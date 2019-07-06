@@ -83,6 +83,31 @@ function! s:OpenConfig()
   execute 'edit '.home.'/coc-settings.json'
 endfunction
 
+function! s:AddAnsiGroups() abort
+  let color_map = {}
+  let colors = ['#282828', '#cc241d', '#98971a', '#d79921', '#458588', '#b16286', '#689d6a', '#a89984', '#928374']
+  let names = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white', 'grey']
+  for i in range(0, len(names) - 1)
+    let name = names[i]
+    if exists('g:terminal_ansi_colors')
+      let color_map[name] = get(g:, 'terminal_ansi_colors', i)
+    else
+      let color_map[name] = get(g:, 'terminal_color_'.i, colors[i])
+    endif
+  endfor
+  for name in keys(color_map)
+    let foreground = toupper(name[0]).name[1:]
+    let foregroundColor = color_map[name]
+    for key in keys(color_map)
+      let background = toupper(key[0]).key[1:]
+      let backgroundColor = color_map[key]
+      exe 'hi default CocList'.foreground.background.' guifg='.foregroundColor.' guibg='.backgroundColor
+    endfor
+    exe 'hi default CocListFg'.foreground. ' guifg='.foregroundColor
+    exe 'hi default CocListBg'.foreground. ' guibg='.foregroundColor
+  endfor
+endfunction
+
 function! s:Disable() abort
   if get(g:, 'coc_enabled', 0) == 0
     return
@@ -261,6 +286,7 @@ command! -nargs=0 -bar CocUpdateSync   :call coc#util#update_extensions()
 command! -nargs=+ -bar -complete=custom,s:InstallOptions CocInstall   :call coc#util#install_extension([<f-args>])
 
 call s:Enable()
+call s:AddAnsiGroups()
 
 vnoremap <Plug>(coc-range-select)          :<C-u>call       CocAction('rangeSelect',     visualmode(), v:true)<CR>
 vnoremap <Plug>(coc-range-select-backword) :<C-u>call       CocAction('rangeSelect',     visualmode(), v:false)<CR>

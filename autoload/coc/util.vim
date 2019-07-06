@@ -860,3 +860,8 @@ function! coc#util#init_virtual_hl()
     endif
   endfor
 endfunction
+
+function! coc#util#set_buf_var(bufnr, name, val) abort
+  if !bufloaded(a:bufnr) | return | endif
+  call setbufvar(a:bufnr, a:name, a:val)
+endfunction

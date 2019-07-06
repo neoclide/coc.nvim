@@ -159,7 +159,8 @@ function! coc#list#setlines(lines, append)
 endfunction
 
 function! coc#list#options(...)
-  let list = ['--top', '--normal', '--no-sort', '--input', '--strict', '--regex', '--interactive', '--number-select', '--auto-preview']
+  let list = ['--top', '--tab', '--normal', '--no-sort', '--input', '--strict',
+        \ '--regex', '--interactive', '--number-select', '--auto-preview']
   if get(g:, 'coc_enabled', 0)
     let names = coc#rpc#request('listNames', [])
     call extend(list, names)
@@ -188,8 +189,12 @@ endfunction
 
 function! coc#list#create(position, height, name)
   nohlsearch
-  execute 'silent keepalt '.(a:position ==# 'top' ? '' : 'botright').a:height.'sp list:///'.a:name
-  execute 'resize '.a:height
+  if a:position ==# 'tab'
+    execute 'silent tabe list:///'.a:name
+  else
+    execute 'silent keepalt '.(a:position ==# 'top' ? '' : 'botright').a:height.'sp list:///'.a:name
+    execute 'resize '.a:height
+  endif
   return [bufnr('%'), win_getid()]
 endfunction
 
@@ -226,26 +231,19 @@ function! coc#list#has_preview()
   return 0
 endfunction
 
-function! coc#list#get_colors()
-  let color_map = {}
-  let colors = ['#282828', '#cc241d', '#98971a', '#d79921', '#458588', '#b16286', '#689d6a', '#a89984', '#928374']
-  let names = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white', 'grey']
-  for i in range(0, len(names) - 1)
-    let name = names[i]
-    if exists('g:terminal_ansi_colors')
-      let color_map[name] = get(g:, 'terminal_ansi_colors', i)
-    else
-      let color_map[name] = get(g:, 'terminal_color_'.i, colors[i])
-    endif
-  endfor
-  return color_map
-endfunction
-
 function! coc#list#restore(winid, height)
   let res = win_gotoid(a:winid)
   if res == 0 | return | endif
+  if winnr('$') == 1
+    return
+  endif
   execute 'resize '.a:height
   if s:is_vim
     redraw
   endif
+endfunction
+
+function! coc#list#set_height(height) abort
+  if winnr('$') == 1| return | endif
+  execute 'resize '.a:height
 endfunction

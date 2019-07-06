@@ -1874,6 +1874,9 @@ Command options 					*coc-list-options*
 --top
 	Show list as top window.
 
+--tab
+	Open list in new tabpage.
+
 --normal
 	Start list in normal mode, recommended for short list.
 

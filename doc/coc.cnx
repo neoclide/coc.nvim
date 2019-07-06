@@ -1253,6 +1253,9 @@ Command options 					*coc-list-options*
 --top
 	在上方显示列表分割窗口，默认为下方显示。
 
+--tab
+	使用新标签页打开列表。
+
 --normal
 	打开后进入正常模式，默认为输入模式。
 

@@ -1689,7 +1689,7 @@ const log4js_1 = tslib_1.__importDefault(__webpack_require__(63));
 const events_1 = tslib_1.__importDefault(__webpack_require__(145));
 const plugin_1 = tslib_1.__importDefault(__webpack_require__(228));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
-__webpack_require__(351);
+__webpack_require__(352);
 const logger = __webpack_require__(183)('attach');
 const isTest = "none" == 'test';
 exports.default = (opts, requestApi = true) => {
@@ -54287,7 +54287,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "eed5413bc6" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "4fe01e0597" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -57216,7 +57216,7 @@ const which_1 = tslib_1.__importDefault(__webpack_require__(175));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const extension_1 = tslib_1.__importDefault(__webpack_require__(373));
 const commands_1 = tslib_1.__importDefault(__webpack_require__(229));
-__webpack_require__(351);
+__webpack_require__(352);
 const createLogger = __webpack_require__(183);
 const logger = createLogger('extensions');
 function loadJson(file) {
@@ -60809,11 +60809,11 @@ const manager_1 = tslib_1.__importDefault(__webpack_require__(345));
 exports.listManager = manager_1.default;
 const manager_2 = tslib_1.__importDefault(__webpack_require__(230));
 exports.snippetManager = manager_2.default;
-const basic_1 = tslib_1.__importDefault(__webpack_require__(354));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(355));
 exports.BasicList = basic_1.default;
 const manager_3 = tslib_1.__importDefault(__webpack_require__(255));
 exports.diagnosticManager = manager_3.default;
-const ansiparse_1 = __webpack_require__(371);
+const ansiparse_1 = __webpack_require__(347);
 exports.ansiparse = ansiparse_1.ansiparse;
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(224));
 exports.Watchman = watchman_1.default;
@@ -63229,8 +63229,7 @@ class DiagnosticBuffer {
                     info.error = info.error + 1;
             }
         }
-        let buffer = this.nvim.createBuffer(this.bufnr);
-        buffer.setVar('coc_diagnostic_info', info, true);
+        this.nvim.call('coc#util#set_buf_var', [this.bufnr, 'coc_diagnostic_info', info], true);
         if (!workspace_1.default.getDocument(this.bufnr))
             return;
         if (workspace_1.default.bufnr == this.bufnr)
@@ -63310,6 +63309,7 @@ class DiagnosticBuffer {
             let buffer = this.nvim.createBuffer(this.bufnr);
             buffer.clearNamespace(this.config.virtualTextSrcId);
         }
+        this.setDiagnosticInfo([]);
         await nvim.resumeNotification(false, true);
     }
     dispose() {
@@ -72309,6 +72309,7 @@ class LanguageClient extends client_1.BaseLanguageClient {
                 if (!serverProcess || !serverProcess.pid) {
                     throw new Error(`Launching server ${node.module} failed.`);
                 }
+                logger.info(`${this.id} started with ${serverProcess.pid}`);
                 this._serverProcess = serverProcess;
                 serverProcess.stdout.on('data', data => this.appendOutput(data, encoding));
                 serverProcess.stderr.on('data', data => this.appendOutput(data, encoding));
@@ -72322,6 +72323,7 @@ class LanguageClient extends client_1.BaseLanguageClient {
                 if (!serverProcess || !serverProcess.pid) {
                     throw new Error(`Launching server ${node.module} failed.`);
                 }
+                logger.info(`${this.id} started with ${serverProcess.pid}`);
                 this._serverProcess = serverProcess;
                 serverProcess.stderr.on('data', data => this.appendOutput(data, encoding));
                 return {
@@ -72335,6 +72337,7 @@ class LanguageClient extends client_1.BaseLanguageClient {
                 if (!process || !process.pid) {
                     throw new Error(`Launching server ${node.module} failed.`);
                 }
+                logger.info(`${this.id} started with ${process.pid}`);
                 this._serverProcess = process;
                 process.stderr.on('data', data => this.appendOutput(data, encoding));
                 process.stdout.on('data', data => this.appendOutput(data, encoding));
@@ -72347,6 +72350,7 @@ class LanguageClient extends client_1.BaseLanguageClient {
                 if (!process || !process.pid) {
                     throw new Error(`Launching server ${node.module} failed.`);
                 }
+                logger.info(`${this.id} started with ${process.pid}`);
                 this._serverProcess = process;
                 process.stderr.on('data', data => this.appendOutput(data, encoding));
                 process.stdout.on('data', data => this.appendOutput(data, encoding));
@@ -72377,6 +72381,7 @@ class LanguageClient extends client_1.BaseLanguageClient {
             if (!serverProcess || !serverProcess.pid) {
                 throw new Error(`Launching server using command ${command.command} failed.`);
             }
+            logger.info(`${this.id} started with ${serverProcess.pid}`);
             serverProcess.on('exit', code => {
                 if (code != 0)
                     this.error(`${command.command} exited with code: ${code}`);
@@ -75707,25 +75712,25 @@ const extensions_1 = tslib_1.__importDefault(__webpack_require__(235));
 const util_1 = __webpack_require__(171);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const highligher_1 = tslib_1.__importDefault(__webpack_require__(346));
-const configuration_1 = tslib_1.__importDefault(__webpack_require__(347));
-const history_1 = tslib_1.__importDefault(__webpack_require__(348));
-const mappings_1 = tslib_1.__importDefault(__webpack_require__(350));
-const prompt_1 = tslib_1.__importDefault(__webpack_require__(352));
-const commands_1 = tslib_1.__importDefault(__webpack_require__(353));
-const diagnostics_1 = tslib_1.__importDefault(__webpack_require__(355));
-const extensions_2 = tslib_1.__importDefault(__webpack_require__(357));
-const folders_1 = tslib_1.__importDefault(__webpack_require__(358));
-const links_1 = tslib_1.__importDefault(__webpack_require__(359));
-const lists_1 = tslib_1.__importDefault(__webpack_require__(360));
-const location_1 = tslib_1.__importDefault(__webpack_require__(356));
-const outline_1 = tslib_1.__importDefault(__webpack_require__(361));
-const output_1 = tslib_1.__importDefault(__webpack_require__(363));
-const services_1 = tslib_1.__importDefault(__webpack_require__(364));
-const sources_1 = tslib_1.__importDefault(__webpack_require__(365));
-const symbols_1 = tslib_1.__importDefault(__webpack_require__(366));
-const actions_1 = tslib_1.__importDefault(__webpack_require__(368));
-const ui_1 = tslib_1.__importDefault(__webpack_require__(369));
-const worker_1 = tslib_1.__importDefault(__webpack_require__(370));
+const configuration_1 = tslib_1.__importDefault(__webpack_require__(348));
+const history_1 = tslib_1.__importDefault(__webpack_require__(349));
+const mappings_1 = tslib_1.__importDefault(__webpack_require__(351));
+const prompt_1 = tslib_1.__importDefault(__webpack_require__(353));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(354));
+const diagnostics_1 = tslib_1.__importDefault(__webpack_require__(356));
+const extensions_2 = tslib_1.__importDefault(__webpack_require__(358));
+const folders_1 = tslib_1.__importDefault(__webpack_require__(359));
+const links_1 = tslib_1.__importDefault(__webpack_require__(360));
+const lists_1 = tslib_1.__importDefault(__webpack_require__(361));
+const location_1 = tslib_1.__importDefault(__webpack_require__(357));
+const outline_1 = tslib_1.__importDefault(__webpack_require__(362));
+const output_1 = tslib_1.__importDefault(__webpack_require__(364));
+const services_1 = tslib_1.__importDefault(__webpack_require__(365));
+const sources_1 = tslib_1.__importDefault(__webpack_require__(366));
+const symbols_1 = tslib_1.__importDefault(__webpack_require__(367));
+const actions_1 = tslib_1.__importDefault(__webpack_require__(369));
+const ui_1 = tslib_1.__importDefault(__webpack_require__(370));
+const worker_1 = tslib_1.__importDefault(__webpack_require__(371));
 const logger = __webpack_require__(183)('list-manager');
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>'];
 class ListManager {
@@ -75842,8 +75847,8 @@ class ListManager {
         let res = this.parseArgs(args);
         if (!res)
             return;
+        this.args = args;
         this.activated = true;
-        this.args = [...res.listOptions, res.list.name, ...res.listArgs];
         let { list, options, listArgs } = res;
         try {
             this.reset();
@@ -75993,6 +75998,7 @@ class ListManager {
         let name;
         let input = '';
         let matcher = 'fuzzy';
+        let position = 'bottom';
         let listArgs = [];
         let listOptions = [];
         for (let arg of args) {
@@ -76035,7 +76041,13 @@ class ListManager {
             else if (opt == '--interactive' || opt == '-I') {
                 interactive = true;
             }
-            else if (opt == '--ignore-case' || opt == '--top' || opt == '--normal' || opt == '--no-sort') {
+            else if (opt == '--top') {
+                position = 'top';
+            }
+            else if (opt == '--tab') {
+                position = 'tab';
+            }
+            else if (opt == '--ignore-case' || opt == '--normal' || opt == '--no-sort') {
                 options.push(opt.slice(2));
             }
             else {
@@ -76049,21 +76061,20 @@ class ListManager {
             return null;
         }
         if (interactive && !list.interactive) {
-            workspace_1.default.showMessage(`Interactive mode of "${name}" not supported`, 'error');
+            workspace_1.default.showMessage(`Interactive mode of "${name}" list not supported`, 'error');
             return null;
         }
         return {
             list,
             listArgs,
-            listOptions,
             options: {
                 numberSelect,
                 autoPreview,
                 input,
                 interactive,
                 matcher,
+                position,
                 ignorecase: options.indexOf('ignore-case') != -1 ? true : false,
-                position: options.indexOf('top') == -1 ? 'bottom' : 'top',
                 mode: options.indexOf('normal') == -1 ? 'insert' : 'normal',
                 sort: options.indexOf('no-sort') == -1 ? true : false
             },
@@ -76314,7 +76325,7 @@ class ListManager {
             uniqueItems: true,
             items: {
                 type: 'string',
-                enum: ['--top', '--normal', '--no-sort', '--input',
+                enum: ['--top', '--normal', '--no-sort', '--input', '--tab',
                     '--strict', '--regex', '--ignore-case', '--number-select',
                     '--interactive', '--auto-preview']
             }
@@ -76458,6 +76469,7 @@ exports.default = new ListManager();
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const string_1 = __webpack_require__(207);
+const ansiparse_1 = __webpack_require__(347);
 /**
  * Build highlights, with lines and highlights
  */
@@ -76481,8 +76493,25 @@ class Highlighter {
                 colEnd: string_1.byteLength(line),
                 hlGroup
             });
+        } // '\x1b'
+        if (line.indexOf('\x1b') !== -1) {
+            let res = ansiparse_1.parseAnsiHighlights(line);
+            for (let hl of res.highlights) {
+                let { span, hlGroup } = hl;
+                if (span[0] != span[1]) {
+                    this.highlights.push({
+                        line: this.lines.length,
+                        colStart: span[0],
+                        colEnd: span[1],
+                        hlGroup
+                    });
+                }
+            }
+            this.lines.push(res.line);
         }
-        this.lines.push(line);
+        else {
+            this.lines.push(line);
+        }
     }
     addLines(lines) {
         this.lines.push(...lines);
@@ -76516,7 +76545,7 @@ class Highlighter {
             buffer.addHighlight({
                 hlGroup: item.hlGroup,
                 colStart: item.colStart,
-                colEnd: item.colEnd,
+                colEnd: item.colEnd == null ? -1 : item.colEnd,
                 line: start + item.line,
                 srcId: this.srcId
             }).logError();
@@ -76528,6 +76557,225 @@ exports.default = Highlighter;
 
 /***/ }),
 /* 347 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const string_1 = __webpack_require__(207);
+const foregroundColors = {
+    30: 'black',
+    31: 'red',
+    32: 'green',
+    33: 'yellow',
+    34: 'blue',
+    35: 'magenta',
+    36: 'cyan',
+    37: 'white',
+    90: 'grey'
+};
+const backgroundColors = {
+    40: 'black',
+    41: 'red',
+    42: 'green',
+    43: 'yellow',
+    44: 'blue',
+    45: 'magenta',
+    46: 'cyan',
+    47: 'white'
+};
+const styles = {
+    1: 'bold',
+    3: 'italic',
+    4: 'underline'
+};
+function parseAnsiHighlights(line) {
+    let items = ansiparse(line);
+    let highlights = [];
+    let newLabel = '';
+    for (let item of items) {
+        if (!item.text)
+            continue;
+        let { foreground, background } = item;
+        let len = string_1.byteLength(newLabel);
+        if (foreground || background) {
+            let span = [len, len + string_1.byteLength(item.text)];
+            let hlGroup = '';
+            if (foreground && background) {
+                hlGroup = `CocList${string_1.upperFirst(foreground)}${string_1.upperFirst(background)}`;
+            }
+            else if (foreground) {
+                hlGroup = `CocListFg${string_1.upperFirst(foreground)}`;
+            }
+            else if (background) {
+                hlGroup = `CocListBg${string_1.upperFirst(background)}`;
+            }
+            highlights.push({ span, hlGroup });
+        }
+        newLabel = newLabel + item.text;
+    }
+    return { line: newLabel, highlights };
+}
+exports.parseAnsiHighlights = parseAnsiHighlights;
+function ansiparse(str) {
+    //
+    // I'm terrible at writing parsers.
+    //
+    let matchingControl = null;
+    let matchingData = null;
+    let matchingText = '';
+    let ansiState = [];
+    let result = [];
+    let state = {};
+    let eraseChar;
+    //
+    // General workflow for this thing is:
+    // \033\[33mText
+    // |     |  |
+    // |     |  matchingText
+    // |     matchingData
+    // matchingControl
+    //
+    // \033\[K or \033\[m
+    //
+    // In further steps we hope it's all going to be fine. It usually is.
+    //
+    //
+    // Erases a char from the output
+    //
+    eraseChar = () => {
+        let index;
+        let text;
+        if (matchingText.length) {
+            matchingText = matchingText.substr(0, matchingText.length - 1);
+        }
+        else if (result.length) {
+            index = result.length - 1;
+            text = result[index].text;
+            if (text.length === 1) {
+                //
+                // A result bit was fully deleted, pop it out to simplify the final output
+                //
+                result.pop();
+            }
+            else {
+                result[index].text = text.substr(0, text.length - 1);
+            }
+        }
+    };
+    for (let i = 0; i < str.length; i++) { // tslint:disable-line
+        if (matchingControl != null) {
+            if (matchingControl == '\x1b' && str[i] == '\[') {
+                //
+                // We've matched full control code. Lets start matching formating data.
+                //
+                //
+                // "emit" matched text with correct state
+                //
+                if (matchingText) {
+                    state.text = matchingText;
+                    result.push(state);
+                    state = {};
+                    matchingText = '';
+                }
+                if (matchingText == '' && (str[i + 1] == 'm' || str[i + 1] == 'K')) {
+                    if (state.foreground || state.background) {
+                        state.text = '';
+                        result.push(state);
+                    }
+                    state = {};
+                }
+                matchingControl = null;
+                matchingData = '';
+            }
+            else {
+                //
+                // We failed to match anything - most likely a bad control code. We
+                // go back to matching regular strings.
+                //
+                matchingText += matchingControl + str[i];
+                matchingControl = null;
+            }
+            continue;
+        }
+        else if (matchingData != null) {
+            if (str[i] == ';') {
+                //
+                // `;` separates many formatting codes, for example: `\033[33;43m`
+                // means that both `33` and `43` should be applied.
+                //
+                // TODO: this can be simplified by modifying state here.
+                //
+                ansiState.push(matchingData);
+                matchingData = '';
+            }
+            else if (str[i] == 'm' || str[i] == 'K') {
+                //
+                // `m` finished whole formatting code. We can proceed to matching
+                // formatted text.
+                //
+                ansiState.push(matchingData);
+                matchingData = null;
+                matchingText = '';
+                //
+                // Convert matched formatting data into user-friendly state object.
+                //
+                // TODO: DRY.
+                //
+                ansiState.forEach(ansiCode => {
+                    if (foregroundColors[ansiCode]) {
+                        state.foreground = foregroundColors[ansiCode];
+                    }
+                    else if (backgroundColors[ansiCode]) {
+                        state.background = backgroundColors[ansiCode];
+                    }
+                    else if (ansiCode == 39) {
+                        delete state.foreground;
+                    }
+                    else if (ansiCode == 49) {
+                        delete state.background;
+                    }
+                    else if (styles[ansiCode]) {
+                        state[styles[ansiCode]] = true;
+                    }
+                    else if (ansiCode == 22) {
+                        state.bold = false;
+                    }
+                    else if (ansiCode == 23) {
+                        state.italic = false;
+                    }
+                    else if (ansiCode == 24) {
+                        state.underline = false;
+                    }
+                });
+                ansiState = [];
+            }
+            else {
+                matchingData += str[i];
+            }
+            continue;
+        }
+        if (str[i] == '\x1b') {
+            matchingControl = str[i];
+        }
+        else if (str[i] == '\u0008') {
+            eraseChar();
+        }
+        else {
+            matchingText += str[i];
+        }
+    }
+    if (matchingText) {
+        state.text = matchingText + (matchingControl ? matchingControl : '');
+        result.push(state);
+    }
+    return result;
+}
+exports.ansiparse = ansiparse;
+//# sourceMappingURL=ansiparse.js.map
+
+/***/ }),
+/* 348 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -76642,14 +76890,14 @@ exports.default = ListConfiguration;
 //# sourceMappingURL=configuration.js.map
 
 /***/ }),
-/* 348 */
+/* 349 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const fuzzy_1 = __webpack_require__(349);
+const fuzzy_1 = __webpack_require__(350);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const logger = __webpack_require__(183)('list-history');
 class History {
@@ -76732,7 +76980,7 @@ exports.default = History;
 //# sourceMappingURL=history.js.map
 
 /***/ }),
-/* 349 */
+/* 350 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -76795,16 +77043,16 @@ exports.fuzzyMatch = fuzzyMatch;
 //# sourceMappingURL=fuzzy.js.map
 
 /***/ }),
-/* 350 */
+/* 351 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-__webpack_require__(351);
+__webpack_require__(352);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const configuration_1 = __webpack_require__(347);
+const configuration_1 = __webpack_require__(348);
 const logger = __webpack_require__(183)('list-mappings');
 class Mappings {
     constructor(manager, nvim, config) {
@@ -77147,7 +77395,7 @@ exports.default = Mappings;
 //# sourceMappingURL=mappings.js.map
 
 /***/ }),
-/* 351 */
+/* 352 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const logger = __webpack_require__(183)('extensions');
@@ -77163,7 +77411,7 @@ Promise.prototype.logError = function () {
 //# sourceMappingURL=extensions.js.map
 
 /***/ }),
-/* 352 */
+/* 353 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -77363,7 +77611,7 @@ exports.default = Prompt;
 //# sourceMappingURL=prompt.js.map
 
 /***/ }),
-/* 353 */
+/* 354 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -77373,7 +77621,7 @@ const tslib_1 = __webpack_require__(3);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(229));
 const events_1 = tslib_1.__importDefault(__webpack_require__(145));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(354));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(355));
 class CommandsList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -77434,7 +77682,7 @@ function score(list, key) {
 //# sourceMappingURL=commands.js.map
 
 /***/ }),
-/* 354 */
+/* 355 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -77449,7 +77697,7 @@ const util_1 = __webpack_require__(171);
 const position_1 = __webpack_require__(210);
 const string_1 = __webpack_require__(207);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const configuration_1 = tslib_1.__importDefault(__webpack_require__(347));
+const configuration_1 = tslib_1.__importDefault(__webpack_require__(348));
 const logger = __webpack_require__(183)('list-basic');
 class BasicList {
     constructor(nvim) {
@@ -77616,6 +77864,7 @@ class BasicList {
             lineCount = doc.lineCount;
         let height = Math.min(this.previewHeight, lineCount);
         let u = vscode_uri_1.URI.parse(uri);
+        // handle different scheme
         if (u.scheme == 'untitled' || u.scheme == 'unknown') {
             let bufnr = parseInt(u.path, 10);
             let valid = await nvim.call('bufloaded', [bufnr]);
@@ -77628,29 +77877,40 @@ class BasicList {
                 await this.preview({ bufname: name, sketch: true, filetype: filetype || 'txt', lnum, lines }, context);
             }
             else {
-                await this.preview({ bufname: '[No Name]', sketch: true, filetype: 'txt', lines: [] }, context);
+                await this.preview({ sketch: true, filetype: 'txt', lines: [] }, context);
             }
             return;
         }
+        // check
         let filepath = u.scheme == 'file' ? u.fsPath : u.toString();
-        let escaped = await nvim.call('fnameescape', filepath);
+        nvim.pauseNotification();
+        nvim.call('fnameescape', filepath, true);
+        nvim.call('bufloaded', filepath, true);
+        nvim.call('eval', `!empty(getwininfo(${context.window.id}))`, true);
+        let [res, error] = await nvim.resumeNotification();
+        if (error) {
+            logger.error(error);
+            return;
+        }
+        // open previewwindow
+        let { position } = context.options;
+        let [escaped, exists, valid] = res;
         let lnum = range.start.line + 1;
-        let mod = context.options.position == 'top' ? 'below' : 'above';
         let winid = context.listWindow.id;
-        let exists = await nvim.call('bufloaded', filepath);
-        let valid = await context.window.valid;
         nvim.pauseNotification();
         nvim.command('pclose', true);
-        if (this.splitRight) {
-            if (valid)
+        if (this.splitRight || position == 'tab') {
+            if (valid && this.splitRight)
                 nvim.call('win_gotoid', [context.window.id], true);
             nvim.command(`silent belowright vs +setl\\ previewwindow ${escaped}`, true);
         }
         else {
+            let mod = context.options.position == 'top' ? 'below' : 'above';
             nvim.command(`silent ${mod} ${height}sp +setl\\ previewwindow ${escaped}`, true);
         }
         nvim.command(`exe ${lnum}`, true);
         nvim.command('setl winfixheight nofoldenable', true);
+        // highlight range
         if (position_1.comparePosition(range.start, range.end) !== 0) {
             let arr = [];
             for (let i = range.start.line; i <= range.end.line; i++) {
@@ -77682,26 +77942,37 @@ class BasicList {
     async preview(options, context) {
         let { nvim } = this;
         let { bufname, filetype, sketch, lines, lnum } = options;
+        if (!bufname)
+            sketch = true;
         let mod = context.options.position == 'top' ? 'below' : 'above';
         let height = Math.min(this.previewHeight, lines ? Math.max(lines.length, 1) : Infinity);
         let winid = context.listWindow.id;
         let valid = await context.window.valid;
         nvim.pauseNotification();
         nvim.command('pclose', true);
-        if (this.splitRight) {
-            if (valid)
+        if (this.splitRight || context.options.position == 'tab') {
+            if (valid && this.splitRight)
                 nvim.call('win_gotoid', [context.window.id], true);
-            nvim.command(`silent belowright vs +setl\\ previewwindow ${bufname}`, true);
+            if (bufname) {
+                nvim.command(`silent belowright vs +setl\\ previewwindow ${bufname}`, true);
+            }
+            else {
+                nvim.command(`silent belowright vnew +setl\\ previewwindow`, true);
+            }
         }
         else {
-            nvim.command(`silent ${mod} ${height}sp +setl\\ previewwindow ${bufname}`, true);
+            if (bufname) {
+                nvim.command(`silent ${mod} ${height}sp +setl\\ previewwindow ${bufname}`, true);
+            }
+            else {
+                nvim.command(`silent ${mod} ${height}new +setl\\ previewwindow`, true);
+            }
         }
-        if (lines) {
+        if (lines && lines.length) {
             nvim.call('append', [0, lines], true);
             nvim.command('normal! Gdd', true);
         }
-        if (lnum)
-            nvim.command(`exe ${lnum}`, true);
+        nvim.command(`exe ${lnum || 1}`, true);
         nvim.command('setl winfixheight nomodifiable', true);
         if (sketch)
             nvim.command('setl buftype=nofile bufhidden=wipe nobuflisted', true);
@@ -77711,7 +77982,8 @@ class BasicList {
         else if (filetype) {
             nvim.command(`setf ${filetype}`, true);
         }
-        nvim.command('normal! zz', true);
+        if (lnum && lnum != 1)
+            nvim.command('normal! zz', true);
         nvim.call('win_gotoid', [winid], true);
         if (workspace_1.default.isVim)
             nvim.command('redraw', true);
@@ -77719,6 +77991,13 @@ class BasicList {
         // tslint:disable-next-line: no-console
         if (err)
             console.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`);
+    }
+    getPreviewCommand(context) {
+        let { position } = context.options;
+        if (position == 'tab')
+            return `belowright vs`;
+        let mod = position == 'top' ? 'below' : 'above';
+        return `${mod} ${this.previewHeight}sp`;
     }
     doHighlight() {
         // noop
@@ -77731,7 +78010,7 @@ exports.default = BasicList;
 //# sourceMappingURL=basic.js.map
 
 /***/ }),
-/* 355 */
+/* 356 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -77740,7 +78019,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(255));
-const location_1 = tslib_1.__importDefault(__webpack_require__(356));
+const location_1 = tslib_1.__importDefault(__webpack_require__(357));
 const fs_1 = __webpack_require__(197);
 const logger = __webpack_require__(183)('list-symbols');
 class DiagnosticsList extends location_1.default {
@@ -77783,7 +78062,7 @@ exports.default = DiagnosticsList;
 //# sourceMappingURL=diagnostics.js.map
 
 /***/ }),
-/* 356 */
+/* 357 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -77792,7 +78071,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_types_1 = __webpack_require__(158);
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(354));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(355));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const vscode_uri_1 = __webpack_require__(174);
 const fs_1 = __webpack_require__(197);
@@ -77862,7 +78141,7 @@ exports.default = LocationList;
 //# sourceMappingURL=location.js.map
 
 /***/ }),
-/* 357 */
+/* 358 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -77874,7 +78153,7 @@ const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(235));
 const util_1 = __webpack_require__(171);
 const fs_1 = __webpack_require__(197);
-const basic_1 = tslib_1.__importDefault(__webpack_require__(354));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(355));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const logger = __webpack_require__(183)('list-extensions');
 class ExtensionList extends basic_1.default {
@@ -78013,7 +78292,7 @@ function getPriority(stat) {
 //# sourceMappingURL=extensions.js.map
 
 /***/ }),
-/* 358 */
+/* 359 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -78022,7 +78301,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const fs_1 = __webpack_require__(197);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(354));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(355));
 class FoldList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -78052,7 +78331,7 @@ exports.default = FoldList;
 //# sourceMappingURL=folders.js.map
 
 /***/ }),
-/* 359 */
+/* 360 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -78062,7 +78341,7 @@ const tslib_1 = __webpack_require__(3);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(254));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(354));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(355));
 const vscode_languageserver_types_1 = __webpack_require__(158);
 const vscode_uri_1 = __webpack_require__(174);
 const fs_1 = __webpack_require__(197);
@@ -78135,14 +78414,14 @@ function formatUri(uri) {
 //# sourceMappingURL=links.js.map
 
 /***/ }),
-/* 360 */
+/* 361 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const basic_1 = tslib_1.__importDefault(__webpack_require__(354));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(355));
 const mru_1 = tslib_1.__importDefault(__webpack_require__(212));
 class LinksList extends basic_1.default {
     constructor(nvim, listMap) {
@@ -78196,7 +78475,7 @@ function score(list, key) {
 //# sourceMappingURL=lists.js.map
 
 /***/ }),
-/* 361 */
+/* 362 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -78210,8 +78489,8 @@ const languages_1 = tslib_1.__importDefault(__webpack_require__(254));
 const util_1 = __webpack_require__(171);
 const fs_1 = __webpack_require__(197);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const location_1 = tslib_1.__importDefault(__webpack_require__(356));
-const convert_1 = __webpack_require__(362);
+const location_1 = tslib_1.__importDefault(__webpack_require__(357));
+const convert_1 = __webpack_require__(363);
 const logger = __webpack_require__(183)('list-symbols');
 class Outline extends location_1.default {
     constructor() {
@@ -78347,7 +78626,7 @@ function sortSymbols(a, b) {
 //# sourceMappingURL=outline.js.map
 
 /***/ }),
-/* 362 */
+/* 363 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -78416,7 +78695,7 @@ exports.getSymbolKind = getSymbolKind;
 //# sourceMappingURL=convert.js.map
 
 /***/ }),
-/* 363 */
+/* 364 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -78424,7 +78703,7 @@ exports.getSymbolKind = getSymbolKind;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(354));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(355));
 class OutputList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -78446,7 +78725,7 @@ exports.default = OutputList;
 //# sourceMappingURL=output.js.map
 
 /***/ }),
-/* 364 */
+/* 365 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -78454,7 +78733,7 @@ exports.default = OutputList;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const services_1 = tslib_1.__importDefault(__webpack_require__(332));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(354));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(355));
 const util_1 = __webpack_require__(171);
 class ServicesList extends basic_1.default {
     constructor(nvim) {
@@ -78501,7 +78780,7 @@ exports.default = ServicesList;
 //# sourceMappingURL=services.js.map
 
 /***/ }),
-/* 365 */
+/* 366 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -78511,7 +78790,7 @@ const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_types_1 = __webpack_require__(158);
 const vscode_uri_1 = __webpack_require__(174);
 const sources_1 = tslib_1.__importDefault(__webpack_require__(234));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(354));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(355));
 class SourcesList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -78572,7 +78851,7 @@ exports.default = SourcesList;
 //# sourceMappingURL=sources.js.map
 
 /***/ }),
-/* 366 */
+/* 367 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -78584,10 +78863,10 @@ const vscode_languageserver_types_1 = __webpack_require__(158);
 const vscode_uri_1 = __webpack_require__(174);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(254));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const location_1 = tslib_1.__importDefault(__webpack_require__(356));
-const convert_1 = __webpack_require__(362);
+const location_1 = tslib_1.__importDefault(__webpack_require__(357));
+const convert_1 = __webpack_require__(363);
 const fs_1 = __webpack_require__(197);
-const fzy_1 = __webpack_require__(367);
+const fzy_1 = __webpack_require__(368);
 const logger = __webpack_require__(183)('list-symbols');
 class Symbols extends location_1.default {
     constructor() {
@@ -78686,7 +78965,7 @@ exports.default = Symbols;
 //# sourceMappingURL=symbols.js.map
 
 /***/ }),
-/* 367 */
+/* 368 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -78857,7 +79136,7 @@ exports.hasMatch = hasMatch;
 //# sourceMappingURL=fzy.js.map
 
 /***/ }),
-/* 368 */
+/* 369 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -78870,7 +79149,7 @@ const manager_1 = tslib_1.__importDefault(__webpack_require__(255));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(254));
 const services_1 = tslib_1.__importDefault(__webpack_require__(332));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(354));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(355));
 const logger = __webpack_require__(183)('list-actions');
 class ActionsList extends basic_1.default {
     constructor(nvim) {
@@ -78987,7 +79266,7 @@ exports.default = ActionsList;
 //# sourceMappingURL=actions.js.map
 
 /***/ }),
-/* 369 */
+/* 370 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -79004,6 +79283,7 @@ class ListUI {
     constructor(nvim, config) {
         this.nvim = nvim;
         this.config = config;
+        this.newTab = false;
         this._bufnr = 0;
         this.currIndex = 0;
         this.highlights = [];
@@ -79017,7 +79297,6 @@ class ListUI {
         this._onDidChange = new vscode_languageserver_protocol_1.Emitter();
         this._onDidLineChange = new vscode_languageserver_protocol_1.Emitter();
         this._onDoubleClick = new vscode_languageserver_protocol_1.Emitter();
-        this.hlGroupMap = new Map();
         this.onDidChangeLine = this._onDidChangeLine.event;
         this.onDidLineChange = this._onDidLineChange.event;
         this.onDidOpen = this._onDidOpen.event;
@@ -79057,22 +79336,6 @@ class ListUI {
             nvim.command('redraw', true);
             await nvim.resumeNotification(false, true);
         }, 100));
-        nvim.call('coc#list#get_colors').then(map => {
-            for (let key of Object.keys(map)) {
-                let foreground = key[0].toUpperCase() + key.slice(1);
-                let foregroundColor = map[key];
-                for (let key of Object.keys(map)) {
-                    let background = key[0].toUpperCase() + key.slice(1);
-                    let backgroundColor = map[key];
-                    let group = `CocList${foreground}${background}`;
-                    this.hlGroupMap.set(group, `hi default CocList${foreground}${background} guifg=${foregroundColor} guibg=${backgroundColor}`);
-                }
-                this.hlGroupMap.set(`CocListFg${foreground}`, `hi default CocListFg${foreground} guifg=${foregroundColor}`);
-                this.hlGroupMap.set(`CocListBg${foreground}`, `hi default CocListBg${foreground} guibg=${foregroundColor}`);
-            }
-        }, _e => {
-            // noop
-        });
     }
     set index(n) {
         if (n < 0 || n >= this.items.length)
@@ -79309,6 +79572,7 @@ class ListUI {
     }
     async drawItems(items, name, position = 'bottom', reload = false) {
         let { bufnr, config, nvim } = this;
+        this.newTab = position == 'tab';
         let maxHeight = config.get('maxHeight', 12);
         let height = Math.max(1, Math.min(items.length, maxHeight));
         let limitLines = config.get('limitLines', 30000);
@@ -79353,7 +79617,7 @@ class ListUI {
         let { nvim, bufnr, window, config } = this;
         if (!bufnr || !window)
             return;
-        let resize = config.get('autoResize', true);
+        let resize = !this.newTab && config.get('autoResize', true);
         let buf = nvim.createBuffer(bufnr);
         nvim.pauseNotification();
         nvim.call('win_gotoid', window.id, true);
@@ -79364,7 +79628,7 @@ class ListUI {
             let maxHeight = config.get('maxHeight', 12);
             let height = Math.max(1, Math.min(this.items.length, maxHeight));
             this.height = height;
-            window.notify(`nvim_win_set_height`, [height]);
+            nvim.call('coc#list#set_height', [height], true);
         }
         if (!append) {
             if (!lines.length) {
@@ -79381,10 +79645,11 @@ class ListUI {
         }
         nvim.command('setl nomodifiable', true);
         if (!append && index == 0) {
-            this.doHighlight(0, 500);
+            this.doHighlight(0, 300);
         }
         else {
-            this.doHighlight(Math.max(0, index - this.height), Math.min(index + this.height + 1, this.length - 1));
+            let height = this.newTab ? workspace_1.default.env.lines : this.height;
+            this.doHighlight(Math.max(0, index - height), Math.min(index + height + 1, this.length - 1));
         }
         if (!append)
             window.notify('nvim_win_set_cursor', [[index + 1, 0]]);
@@ -79396,6 +79661,8 @@ class ListUI {
         });
     }
     restoreWindow() {
+        if (this.newTab)
+            return;
         let { window, height } = this;
         if (window && height) {
             this.nvim.call('coc#list#restore', [window.id, height], true);
@@ -79425,7 +79692,6 @@ class ListUI {
             if (ansiHighlights) {
                 for (let hi of ansiHighlights) {
                     let { span, hlGroup } = hi;
-                    this.setHighlightGroup(hlGroup);
                     nvim.call('matchaddpos', [hlGroup, [[i + 1, span[0] + 1, span[1] - span[0]]], 9], true);
                 }
             }
@@ -79435,14 +79701,6 @@ class ListUI {
                     nvim.call('matchaddpos', [hlGroup || 'Search', [[i + 1, span[0] + 1, span[1] - span[0]]], 11], true);
                 }
             }
-        }
-    }
-    setHighlightGroup(hlGroup) {
-        let { nvim } = workspace_1.default;
-        if (this.hlGroupMap.has(hlGroup)) {
-            let cmd = this.hlGroupMap.get(hlGroup);
-            this.hlGroupMap.delete(hlGroup);
-            nvim.command(cmd, true);
         }
     }
     setCursor(lnum, col) {
@@ -79485,7 +79743,7 @@ exports.default = ListUI;
 //# sourceMappingURL=ui.js.map
 
 /***/ }),
-/* 370 */
+/* 371 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -79493,14 +79751,14 @@ exports.default = ListUI;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const ansiparse_1 = __webpack_require__(371);
+const vscode_uri_1 = __webpack_require__(174);
+const ansiparse_1 = __webpack_require__(347);
 const diff_1 = __webpack_require__(205);
-const fzy_1 = __webpack_require__(367);
+const fzy_1 = __webpack_require__(368);
 const score_1 = __webpack_require__(372);
 const string_1 = __webpack_require__(207);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const uuidv1 = __webpack_require__(217);
-const vscode_uri_1 = __webpack_require__(174);
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 const logger = __webpack_require__(183)('list-worker');
 const controlCode = '\x1b';
@@ -79900,31 +80158,8 @@ class Worker {
         let { label } = item;
         if (item.ansiHighlights || label.indexOf(controlCode) == -1)
             return;
-        let ansiItems = ansiparse_1.ansiparse(label);
-        let newLabel = '';
-        let highlights = [];
-        for (let item of ansiItems) {
-            if (!item.text)
-                continue;
-            let old = newLabel;
-            newLabel = newLabel + item.text;
-            let { foreground, background } = item;
-            if (foreground || background) {
-                let span = [string_1.byteLength(old), string_1.byteLength(newLabel)];
-                let hlGroup = '';
-                if (foreground && background) {
-                    hlGroup = `CocList${string_1.upperFirst(foreground)}${string_1.upperFirst(background)}`;
-                }
-                else if (foreground) {
-                    hlGroup = `CocListFg${string_1.upperFirst(foreground)}`;
-                }
-                else if (background) {
-                    hlGroup = `CocListBg${string_1.upperFirst(background)}`;
-                }
-                highlights.push({ span, hlGroup });
-            }
-        }
-        item.label = newLabel;
+        let { line, highlights } = ansiparse_1.parseAnsiHighlights(label);
+        item.label = line;
         item.ansiHighlights = highlights;
     }
     fixLabel(label) {
@@ -79949,196 +80184,6 @@ function logError(e) {
 //# sourceMappingURL=worker.js.map
 
 /***/ }),
-/* 371 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const foregroundColors = {
-    30: 'black',
-    31: 'red',
-    32: 'green',
-    33: 'yellow',
-    34: 'blue',
-    35: 'magenta',
-    36: 'cyan',
-    37: 'white',
-    90: 'grey'
-};
-const backgroundColors = {
-    40: 'black',
-    41: 'red',
-    42: 'green',
-    43: 'yellow',
-    44: 'blue',
-    45: 'magenta',
-    46: 'cyan',
-    47: 'white'
-};
-const styles = {
-    1: 'bold',
-    3: 'italic',
-    4: 'underline'
-};
-function ansiparse(str) {
-    //
-    // I'm terrible at writing parsers.
-    //
-    let matchingControl = null;
-    let matchingData = null;
-    let matchingText = '';
-    let ansiState = [];
-    let result = [];
-    let state = {};
-    let eraseChar;
-    //
-    // General workflow for this thing is:
-    // \033\[33mText
-    // |     |  |
-    // |     |  matchingText
-    // |     matchingData
-    // matchingControl
-    //
-    // \033\[K or \033\[m
-    //
-    // In further steps we hope it's all going to be fine. It usually is.
-    //
-    //
-    // Erases a char from the output
-    //
-    eraseChar = () => {
-        let index;
-        let text;
-        if (matchingText.length) {
-            matchingText = matchingText.substr(0, matchingText.length - 1);
-        }
-        else if (result.length) {
-            index = result.length - 1;
-            text = result[index].text;
-            if (text.length === 1) {
-                //
-                // A result bit was fully deleted, pop it out to simplify the final output
-                //
-                result.pop();
-            }
-            else {
-                result[index].text = text.substr(0, text.length - 1);
-            }
-        }
-    };
-    for (let i = 0; i < str.length; i++) { // tslint:disable-line
-        if (matchingControl != null) {
-            if (matchingControl == '\x1b' && str[i] == '\[') {
-                //
-                // We've matched full control code. Lets start matching formating data.
-                //
-                //
-                // "emit" matched text with correct state
-                //
-                if (matchingText) {
-                    state.text = matchingText;
-                    result.push(state);
-                    state = {};
-                    matchingText = '';
-                }
-                if (matchingText == '' && (str[i + 1] == 'm' || str[i + 1] == 'K')) {
-                    if (state.foreground || state.background) {
-                        state.text = '';
-                        result.push(state);
-                    }
-                    state = {};
-                }
-                matchingControl = null;
-                matchingData = '';
-            }
-            else {
-                //
-                // We failed to match anything - most likely a bad control code. We
-                // go back to matching regular strings.
-                //
-                matchingText += matchingControl + str[i];
-                matchingControl = null;
-            }
-            continue;
-        }
-        else if (matchingData != null) {
-            if (str[i] == ';') {
-                //
-                // `;` separates many formatting codes, for example: `\033[33;43m`
-                // means that both `33` and `43` should be applied.
-                //
-                // TODO: this can be simplified by modifying state here.
-                //
-                ansiState.push(matchingData);
-                matchingData = '';
-            }
-            else if (str[i] == 'm' || str[i] == 'K') {
-                //
-                // `m` finished whole formatting code. We can proceed to matching
-                // formatted text.
-                //
-                ansiState.push(matchingData);
-                matchingData = null;
-                matchingText = '';
-                //
-                // Convert matched formatting data into user-friendly state object.
-                //
-                // TODO: DRY.
-                //
-                ansiState.forEach(ansiCode => {
-                    if (foregroundColors[ansiCode]) {
-                        state.foreground = foregroundColors[ansiCode];
-                    }
-                    else if (backgroundColors[ansiCode]) {
-                        state.background = backgroundColors[ansiCode];
-                    }
-                    else if (ansiCode == 39) {
-                        delete state.foreground;
-                    }
-                    else if (ansiCode == 49) {
-                        delete state.background;
-                    }
-                    else if (styles[ansiCode]) {
-                        state[styles[ansiCode]] = true;
-                    }
-                    else if (ansiCode == 22) {
-                        state.bold = false;
-                    }
-                    else if (ansiCode == 23) {
-                        state.italic = false;
-                    }
-                    else if (ansiCode == 24) {
-                        state.underline = false;
-                    }
-                });
-                ansiState = [];
-            }
-            else {
-                matchingData += str[i];
-            }
-            continue;
-        }
-        if (str[i] == '\x1b') {
-            matchingControl = str[i];
-        }
-        else if (str[i] == '\u0008') {
-            eraseChar();
-        }
-        else {
-            matchingText += str[i];
-        }
-    }
-    if (matchingText) {
-        state.text = matchingText + (matchingControl ? matchingControl : '');
-        result.push(state);
-    }
-    return result;
-}
-exports.ansiparse = ansiparse;
-//# sourceMappingURL=ansiparse.js.map
-
-/***/ }),
 /* 372 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -80146,7 +80191,7 @@ exports.ansiparse = ansiparse;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = __webpack_require__(56);
-const fuzzy_1 = __webpack_require__(349);
+const fuzzy_1 = __webpack_require__(350);
 // first is start or path start +1, fuzzy +0.5
 // next is followed of path start +1, fuzzy +0.5
 // filename startsWith +1, fuzzy +0.5
@@ -80656,7 +80701,7 @@ exports.default = Source;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const fuzzy_1 = __webpack_require__(349);
+const fuzzy_1 = __webpack_require__(350);
 const string_1 = __webpack_require__(207);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const source_1 = tslib_1.__importDefault(__webpack_require__(374));
@@ -81023,7 +81068,7 @@ exports.regist = regist;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const fuzzy_1 = __webpack_require__(349);
+const fuzzy_1 = __webpack_require__(350);
 const string_1 = __webpack_require__(207);
 const match_1 = __webpack_require__(380);
 const logger = __webpack_require__(183)('completion-complete');
@@ -81395,7 +81440,7 @@ exports.default = Complete;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const fuzzy_1 = __webpack_require__(349);
+const fuzzy_1 = __webpack_require__(350);
 function nextWordIndex(start = 0, codes) {
     if (start == 0 && fuzzy_1.wordChar(codes[0]))
         return 0;
@@ -82015,7 +82060,7 @@ const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(256));
 const services_1 = tslib_1.__importDefault(__webpack_require__(332));
 const manager_3 = tslib_1.__importDefault(__webpack_require__(230));
 const util_1 = __webpack_require__(171);
-const convert_1 = __webpack_require__(362);
+const convert_1 = __webpack_require__(363);
 const object_1 = __webpack_require__(187);
 const position_1 = __webpack_require__(210);
 const string_1 = __webpack_require__(207);
