@@ -90,7 +90,7 @@ function! s:AddAnsiGroups() abort
   for i in range(0, len(names) - 1)
     let name = names[i]
     if exists('g:terminal_ansi_colors')
-      let color_map[name] = get(g:, 'terminal_ansi_colors', i)
+      let color_map[name] = get(g:terminal_ansi_colors, i, colors[i])
     else
       let color_map[name] = get(g:, 'terminal_color_'.i, colors[i])
     endif
