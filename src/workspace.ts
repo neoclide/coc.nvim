@@ -1454,7 +1454,7 @@ augroup end`
 
   public getRootPatterns(document: Document, patternType: PatternType): string[] {
     let { uri } = document
-    if (patternType == PatternType.Buffer) return document.rootPatterns
+    if (patternType == PatternType.Buffer) return document.getVar('root_patterns', []) || []
     if (patternType == PatternType.LanguageServer) return this.getServerRootPatterns(document.filetype)
     const preferences = this.getConfiguration('coc.preferences', uri)
     return preferences.get<string[]>('rootPatterns', ['.vim', '.git', '.hg', '.projections.json']).slice()

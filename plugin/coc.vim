@@ -2,11 +2,10 @@ if exists('g:did_coc_loaded') || v:version < 800
   finish
 endif
 if has('nvim') && !has('nvim-0.3.0') | finish | endif
-let s:is_win = has('win32') || has('win64')
-let s:root = expand('<sfile>:h:h')
-
 let g:did_coc_loaded = 1
 let g:coc_service_initialized = 0
+let s:is_win = has('win32') || has('win64')
+let s:root = expand('<sfile>:h:h')
 let s:is_vim = !has('nvim')
 let s:is_gvim = get(v:, 'progname', '') ==# 'gvim'
 
@@ -154,10 +153,10 @@ function! s:Enable()
       autocmd CompleteDone      * call coc#util#close_popup()
     endif
 
-    if get(g:, 'coc_start_at_startup', 1) && s:is_gvim
-      autocmd VimEnter            * call coc#rpc#start_server()
-    else
+    if coc#rpc#started()
       autocmd VimEnter            * call coc#rpc#notify('VimEnter', [])
+    else
+      autocmd VimEnter            * call coc#rpc#start_server()
     endif
     if s:is_vim
       if exists('##DirChanged')
@@ -223,6 +222,7 @@ hi default link CocListPath Comment
 hi default link CocFloating Pmenu
 hi default link CocHighlightText  CursorColumn
 
+hi default link CocCursorRange    Search
 hi default link CocHighlightRead  CocHighlightText
 hi default link CocHighlightWrite CocHighlightText
 
@@ -318,10 +318,13 @@ nnoremap <Plug>(coc-command-repeat)        :<C-u>call       CocAction('repeatCom
 nnoremap <Plug>(coc-refactor)              :<C-u>call       CocActionAsync('refactor')<CR>
 inoremap <silent>                          <Plug>CocRefresh <C-r>=coc#_complete()<CR>
 
-vnoremap <silent> <Plug>(coc-funcobj-i) :<C-U>call coc#rpc#request('selectFunction', [v:true, visualmode()])<CR>
-vnoremap <silent> <Plug>(coc-funcobj-a) :<C-U>call coc#rpc#request('selectFunction', [v:false, visualmode()])<CR>
-onoremap <silent> <Plug>(coc-funcobj-i) :<C-U>call coc#rpc#request('selectFunction', [v:true, ''])<CR>
-onoremap <silent> <Plug>(coc-funcobj-a) :<C-U>call coc#rpc#request('selectFunction', [v:false, ''])<CR>
+vnoremap <silent> <Plug>(coc-cursors-range)    :<C-u>call coc#rpc#request('cursorsSelect', [bufnr('%'), 'range', visualmode()])<CR>
+nnoremap <silent> <Plug>(coc-cursors-word)     :<C-u>call coc#rpc#request('cursorsSelect', [bufnr('%'), 'word', 'n'])<CR>
+nnoremap <silent> <Plug>(coc-cursors-position) :<C-u>call coc#rpc#request('cursorsSelect', [bufnr('%'), 'position', 'n'])<CR>
+vnoremap <silent> <Plug>(coc-funcobj-i)        :<C-U>call coc#rpc#request('selectFunction', [v:true, visualmode()])<CR>
+vnoremap <silent> <Plug>(coc-funcobj-a)        :<C-U>call coc#rpc#request('selectFunction', [v:false, visualmode()])<CR>
+onoremap <silent> <Plug>(coc-funcobj-i)        :<C-U>call coc#rpc#request('selectFunction', [v:true, ''])<CR>
+onoremap <silent> <Plug>(coc-funcobj-a)        :<C-U>call coc#rpc#request('selectFunction', [v:false, ''])<CR>
 if !hasmapto('<Plug>(coc-funcobj-i)', 'v') && empty(maparg('if', 'x'))
   xmap if <Plug>(coc-funcobj-i)
 endif

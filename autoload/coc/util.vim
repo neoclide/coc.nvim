@@ -291,8 +291,6 @@ function! coc#util#get_bufoptions(bufnr) abort
         \ 'filetype': getbufvar(a:bufnr, '&filetype'),
         \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
         \ 'changedtick': getbufvar(a:bufnr, 'changedtick'),
-        \ 'rootPatterns': getbufvar(a:bufnr, 'coc_root_patterns', v:null),
-        \ 'additionalKeywords': getbufvar(a:bufnr, 'coc_additional_keywords', []),
         \}
 endfunction
 
@@ -861,4 +859,22 @@ endfunction
 function! coc#util#set_buf_var(bufnr, name, val) abort
   if !bufloaded(a:bufnr) | return | endif
   call setbufvar(a:bufnr, a:name, a:val)
+endfunction
+
+function! coc#util#change_lines(bufnr, list) abort
+  if !bufloaded(a:bufnr) | return | endif
+  let bufnr = bufnr('%')
+  let changeBuffer = bufnr != a:bufnr
+  if changeBuffer
+    exe 'buffer '.a:bufnr
+  endif
+  for [lnum, line] in a:list
+    call setline(lnum + 1, line)
+  endfor
+  if changeBuffer
+    exe 'buffer '.bufnr
+  endif
+  if s:is_vim
+    redraw
+  endif
 endfunction

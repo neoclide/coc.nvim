@@ -3,10 +3,11 @@ import debounce from 'debounce'
 import { DidChangeTextDocumentParams, Emitter, Event, Position, Range, TextDocument, TextEdit, CancellationToken } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { BufferOption, ChangeInfo, Env } from '../types'
+import events from '../events'
 import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
 import { getUri, wait } from '../util/index'
-import { byteIndex, byteLength, byteSlice } from '../util/string'
+import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
 import { Chars } from './chars'
 import { group } from '../util/array'
 import { comparePosition } from '../util/position'
@@ -32,9 +33,7 @@ export default class Document {
   // real current lines
   private lines: string[] = []
   private _filetype: string
-  private _additionalKeywords: string[] = []
   private _uri: string
-  private _rootPatterns: string[]
   private _changedtick: number
   private _words: string[] = []
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
@@ -58,24 +57,27 @@ export default class Document {
     }, 50)
   }
 
+  /**
+   * Check if current document should be attached for changes.
+   *
+   * Currently only attach for empty and `acwrite` buftype.
+   */
   public get shouldAttach(): boolean {
     let { buftype } = this
     if (this.uri.endsWith('%5BCommand%20Line%5D')) return true
     return buftype == '' || buftype == 'acwrite'
   }
 
+  /**
+   * All words, extracted by `iskeyword` option.
+   */
   public get words(): string[] {
     return this._words
   }
 
-  public setFiletype(filetype: string): void {
-    let { uri, version } = this
-    this._filetype = this.convertFiletype(filetype)
-    version = version ? version + 1 : 1
-    let textDocument = TextDocument.create(uri, this.filetype, version, this.content)
-    this.textDocument = textDocument
-  }
-
+  /**
+   * Map filetype for languageserver.
+   */
   public convertFiletype(filetype: string): string {
     let map = this.env.filetypeMap
     if (filetype == 'json' && this.uri && this.uri.endsWith('coc-settings.json')) {
@@ -87,23 +89,31 @@ export default class Document {
   }
 
   /**
-   * Current changedtick of buffer
-   *
-   * @public
-   * @returns {number}
+   * Get current buffer changedtick.
    */
   public get changedtick(): number {
     return this._changedtick
   }
 
+  /**
+   * Scheme of document.
+   */
   public get schema(): string {
     return URI.parse(this.uri).scheme
   }
 
+  /**
+   * Line count of current buffer.
+   */
   public get lineCount(): number {
     return this.lines.length
   }
 
+  /**
+   * Initialize document model.
+   *
+   * @internal
+   */
   public async init(nvim: Neovim, token: CancellationToken): Promise<boolean> {
     this.nvim = nvim
     let { buffer } = this
@@ -111,9 +121,7 @@ export default class Document {
     if (opts == null) return false
     let buftype = this.buftype = opts.buftype
     this.variables = opts.variables
-    this._additionalKeywords = opts.additionalKeywords
     this._changedtick = opts.changedtick
-    this._rootPatterns = opts.rootPatterns
     this.eol = opts.eol == 1
     let uri = this._uri = getUri(opts.fullpath, buffer.id, buftype)
     token.onCancellationRequested(() => {
@@ -139,15 +147,7 @@ export default class Document {
     return true
   }
 
-  public setIskeyword(iskeyword: string): void {
-    let chars = (this.chars = new Chars(iskeyword))
-    for (let ch of this._additionalKeywords) {
-      chars.addKeyword(ch)
-    }
-    this._words = this.chars.matchKeywords(this.lines.join('\n'))
-  }
-
-  public async attach(): Promise<boolean> {
+  private async attach(): Promise<boolean> {
     if (this.shouldAttach) {
       let attached = await this.buffer.attach(false)
       if (!attached) return false
@@ -194,9 +194,6 @@ export default class Document {
 
   /**
    * Make sure current document synced correctly
-   *
-   * @public
-   * @returns {Promise<void>}
    */
   public async checkDocument(): Promise<void> {
     this.paused = false
@@ -207,6 +204,9 @@ export default class Document {
     this._fireContentChanges()
   }
 
+  /**
+   * Check if document changed after last synchronize
+   */
   public get dirty(): boolean {
     return this.content != this.getDocumentContent()
   }
@@ -214,9 +214,17 @@ export default class Document {
   private _fireContentChanges(force = false): void {
     let { paused, textDocument } = this
     if (paused && !force) return
+    let { cursor } = events
     try {
       let content = this.getDocumentContent()
-      let change = getChange(this.content, content)
+      let endOffset = null
+      if (cursor.bufnr == this.bufnr) {
+        endOffset = this.getEndOffset(cursor.lnum, cursor.col, cursor.insert)
+        if (!cursor.insert && content.length < this.content.length) {
+          endOffset = endOffset + 1
+        }
+      }
+      let change = getChange(this.content, content, endOffset)
       if (change == null) return
       this.createDocument()
       let { version, uri } = this
@@ -227,7 +235,7 @@ export default class Document {
         rangeLength: change.end - change.start,
         text: change.newText
       }]
-      logger.debug('changes:', JSON.stringify(changes, null, 2))
+      // logger.debug('change:', JSON.stringify(changes, null, 2))
       this._onDocumentChange.fire({
         textDocument: { version, uri },
         contentChanges: changes
@@ -238,29 +246,23 @@ export default class Document {
     }
   }
 
-  public detach(): void {
-    // neovim not detach on `:checktime`
-    if (this.attached) {
-      this.attached = false
-      this.buffer.detach().catch(_e => {
-        // noop
-      })
-      this._onDocumentDetach.fire(this.uri)
-    }
-    this.fetchContent.clear()
-    this.fireContentChanges.clear()
-    this._onDocumentChange.dispose()
-    this._onDocumentDetach.dispose()
-  }
-
+  /**
+   * Buffer number
+   */
   public get bufnr(): number {
     return this.buffer.id
   }
 
+  /**
+   * Content of textDocument.
+   */
   public get content(): string {
     return this.textDocument.getText()
   }
 
+  /**
+   * Coverted filetype.
+   */
   public get filetype(): string {
     return this._filetype
   }
@@ -306,11 +308,26 @@ export default class Document {
     }
   }
 
+  public changeLines(lines: [number, string][], sync = true): void {
+    let { nvim } = this
+    nvim.call('coc#util#change_lines', [this.bufnr, lines], true)
+    for (let [lnum, text] of lines) {
+      this.lines[lnum] = text
+    }
+    if (sync) this.forceSync()
+  }
+
+  /**
+   * Force emit change event when necessary.
+   */
   public forceSync(ignorePause = true): void {
     this.fireContentChanges.clear()
     this._fireContentChanges(ignorePause)
   }
 
+  /**
+   * Get offset from lnum & col
+   */
   public getOffset(lnum: number, col: number): number {
     return this.textDocument.offsetAt({
       line: lnum - 1,
@@ -318,10 +335,16 @@ export default class Document {
     })
   }
 
+  /**
+   * Check string is word.
+   */
   public isWord(word: string): boolean {
     return this.chars.isKeyword(word)
   }
 
+  /**
+   * Generate more words by split word with `-`
+   */
   public getMoreWords(): string[] {
     let res = []
     let { words, chars } = this
@@ -410,6 +433,9 @@ export default class Document {
     this._fireContentChanges()
   }
 
+  /**
+   * Get change from vim8, used by workspace
+   */
   public async patchChange(): Promise<void> {
     if (!this.env.isVim || !this.attached) return
     let change = await this.nvim.call('coc#util#get_changeinfo', []) as ChangeInfo
@@ -420,6 +446,17 @@ export default class Document {
     lines[lnum - 1] = line
   }
 
+  /**
+   * Get changedtick from vim8, used by workspace
+   */
+  public async patchChangedTick(): Promise<void> {
+    if (!this.env.isVim || !this.attached) return
+    this._changedtick = await this.nvim.call('getbufvar', [this.bufnr, 'changedtick'])
+  }
+
+  /**
+   * Get ranges of word in textDocument.
+   */
   public getSymbolRanges(word: string): Range[] {
     this.forceSync()
     let { textDocument } = this
@@ -445,11 +482,9 @@ export default class Document {
     return res
   }
 
-  public async patchChangedTick(): Promise<void> {
-    if (!this.env.isVim || !this.attached) return
-    this._changedtick = await this.nvim.call('getbufvar', [this.bufnr, 'changedtick'])
-  }
-
+  /**
+   * Adjust col with new valid character before position.
+   */
   public fixStartcol(position: Position, valids: string[]): number {
     let line = this.getline(position.line)
     if (!line) return null
@@ -486,8 +521,8 @@ export default class Document {
     }, [])
     for (let range of splited) {
       let { start, end } = range
-      if (start.character == end.character) continue
       let line = this.getline(start.line)
+      if (start.character == end.character) continue
       arr.push([start.line + 1, byteIndex(line, start.character) + 1, byteLength(line.slice(start.character, end.character))])
     }
     for (let grouped of group(arr, 8)) {
@@ -500,6 +535,11 @@ export default class Document {
     return res
   }
 
+  /**
+   * Highlight ranges in document, return match id list.
+   *
+   * Note: match id could by namespace id or vim's match id.
+   */
   public highlightRanges(ranges: Range[], hlGroup: string, srcId: number): number[] {
     let res: number[] = []
     if (this.env.isVim && !this.env.textprop) {
@@ -541,6 +581,9 @@ export default class Document {
     return res
   }
 
+  /**
+   * Clear match id list, for vim support namespace, list should be namespace id list.
+   */
   public clearMatchIds(ids: Set<number> | number[]): void {
     if (this.env.isVim && !this.env.textprop) {
       this.nvim.call('coc#util#clearmatches', [Array.from(ids)], true)
@@ -555,12 +598,125 @@ export default class Document {
     }
   }
 
+  /**
+   * Get cwd of this document.
+   */
   public async getcwd(): Promise<string> {
     let wid = await this.nvim.call('bufwinid', this.buffer.id)
     if (wid == -1) return await this.nvim.call('getcwd')
     return await this.nvim.call('getcwd', wid)
   }
 
+  /**
+   * Real current line
+   */
+  public getline(line: number, current = true): string {
+    if (current) return this.lines[line] || ''
+    let lines = this.textDocument.getText().split(/\r?\n/)
+    return lines[line] || ''
+  }
+
+  /**
+   * Get lines, zero indexed, end exclude.
+   */
+  public getLines(start: number, end: number): string[] {
+    return this.lines.slice(start, end)
+  }
+
+  /**
+   * Get current content text.
+   */
+  public getDocumentContent(): string {
+    let content = this.lines.join('\n')
+    return this.eol ? content + '\n' : content
+  }
+
+  /**
+   * Get variable value by key, defined by `b:coc_{key}`
+   */
+  public getVar<T>(key: string, defaultValue?: T): T {
+    let val = this.variables[`coc_${key}`]
+    return val === undefined ? defaultValue : val
+  }
+
+  /**
+   * Get position from lnum & col
+   */
+  public getPosition(lnum: number, col: number): Position {
+    let line = this.getline(lnum - 1)
+    if (!line || col == 0) return { line: lnum - 1, character: 0 }
+    let pre = byteSlice(line, 0, col - 1)
+    return { line: lnum - 1, character: pre.length }
+  }
+
+  private getEndOffset(lnum: number, col: number, insert: boolean): number {
+    let total = 0
+    let len = this.lines.length
+    for (let i = lnum - 1; i < len; i++) {
+      let line = this.lines[i]
+      if (i == lnum - 1 && line.length) {
+        if (!insert && byteLength(line) >= col) col = col + 1
+        total = total + line.slice(characterIndex(line, col - 1)).length
+      } else {
+        total = total + line.length
+      }
+      if (!this.eol && i == len - 1) break
+      total = total + 1
+    }
+    return total
+  }
+
+  /**
+   * Recreate document with new filetype.
+   *
+   * @internal
+   */
+  public setFiletype(filetype: string): void {
+    let { uri, version } = this
+    this._filetype = this.convertFiletype(filetype)
+    version = version ? version + 1 : 1
+    let textDocument = TextDocument.create(uri, this.filetype, version, this.content)
+    this.textDocument = textDocument
+  }
+
+  /**
+   * Change iskeyword option of document
+   *
+   * @internal
+   */
+  public setIskeyword(iskeyword: string): void {
+    let chars = (this.chars = new Chars(iskeyword))
+    for (let ch of this.getVar('additional_keywords', []) || []) {
+      chars.addKeyword(ch)
+    }
+    this._words = this.chars.matchKeywords(this.lines.join('\n'))
+  }
+
+  /**
+   * Detach document.
+   *
+   * @internal
+   */
+  public detach(): void {
+    // neovim not detach on `:checktime`
+    if (this.attached) {
+      this.attached = false
+      this.buffer.detach().catch(_e => {
+        // noop
+      })
+      this._onDocumentDetach.fire(this.uri)
+    }
+    this.fetchContent.clear()
+    this.fireContentChanges.clear()
+    this._onDocumentChange.dispose()
+    this._onDocumentDetach.dispose()
+  }
+
+  /**
+   * Get localify bonus map.
+   *
+   * @internal
+   */
   public getLocalifyBonus(sp: Position, ep: Position): Map<string, number> {
     let res: Map<string, number> = new Map()
     let { chars } = this
@@ -604,39 +760,5 @@ export default class Document {
       preKeyword = iskeyword
     }
     return res
-  }
-
-  /**
-   * Real current line
-   */
-  public getline(line: number, current = true): string {
-    if (current) return this.lines[line] || ''
-    let lines = this.textDocument.getText().split(/\r?\n/)
-    return lines[line] || ''
-  }
-
-  public getLines(start: number, end: number): string[] {
-    return this.lines.slice(start, end)
-  }
-
-  public getDocumentContent(): string {
-    let content = this.lines.join('\n')
-    return this.eol ? content + '\n' : content
-  }
-
-  public getVar<T>(key: string, defaultValue?: T): T {
-    let val = this.variables[`coc_${key}`]
-    return val === undefined ? defaultValue : val
-  }
-
-  public get rootPatterns(): string[] | null {
-    return this._rootPatterns
-  }
-
-  public getPosition(lnum: number, col: number): Position {
-    let line = this.getline(lnum - 1)
-    if (!line || col == 0) return { line: lnum - 1, character: 0 }
-    let pre = byteSlice(line, 0, col - 1)
-    return { line: lnum - 1, character: pre.length }
   }
 }

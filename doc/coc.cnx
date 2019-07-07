@@ -1186,6 +1186,12 @@ CocHintFloat 					*CocHintFloat*
 
   提醒浮窗符使用的高亮。
 
+CocCursorRange 					*CocCursorRange*
+
+  Default: `hi default link CocCursorRange Search`
+
+  鼠标选择区使用的高亮。
+
 ==============================================================================
 
 LIST SUPPORT 					*coc-list*

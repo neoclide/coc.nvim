@@ -388,8 +388,6 @@ export interface BufferOption {
   filetype: string
   iskeyword: string
   changedtick: number
-  rootPatterns: string[] | null
-  additionalKeywords: string[]
 }
 
 export interface DiagnosticInfo {

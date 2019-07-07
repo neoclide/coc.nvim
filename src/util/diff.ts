@@ -42,7 +42,7 @@ export function diffLines(from: string, to: string): ChangedLines {
   }
 }
 
-export function getChange(oldStr: string, newStr: string): Change {
+export function getChange(oldStr: string, newStr: string, cursorEnd?: number): Change {
   let start = 0
   let ol = oldStr.length
   let nl = newStr.length
@@ -50,6 +50,10 @@ export function getChange(oldStr: string, newStr: string): Change {
   let newText = ''
   let endOffset = 0
   for (let i = 0; i <= max; i++) {
+    if (cursorEnd != null && i == cursorEnd) {
+      endOffset = i
+      break
+    }
     if (oldStr[ol - i - 1] != newStr[nl - i - 1]) {
       endOffset = i
       break
@@ -69,6 +73,7 @@ export function getChange(oldStr: string, newStr: string): Change {
   }
   let end = ol - endOffset
   newText = newStr.slice(start, nl - endOffset)
+  if (ol == nl && start == end) return null
   return { start, end, newText }
 }
 

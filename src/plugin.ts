@@ -11,6 +11,7 @@ import services from './services'
 import snippetManager from './snippets/manager'
 import sources from './sources'
 import { Autocmd, OutputChannel, PatternType } from './types'
+import Cursors from './cursors'
 import clean from './util/clean'
 import workspace from './workspace'
 const logger = require('./util/logger')('plugin')
@@ -19,17 +20,22 @@ export default class Plugin extends EventEmitter {
   private _ready = false
   private handler: Handler
   private infoChannel: OutputChannel
+  private cursors: Cursors
 
   constructor(public nvim: Neovim) {
     super()
     Object.defineProperty(workspace, 'nvim', {
       get: () => this.nvim
     })
+    this.cursors = new Cursors(nvim)
     this.addMethod('hasSelected', () => {
       return completion.hasSelected()
     })
     this.addMethod('listNames', () => {
       return listManager.names
+    })
+    this.addMethod('cursorsSelect', (bufnr: number, kind: string, mode: string) => {
+      return this.cursors.select(bufnr, kind, mode)
     })
     this.addMethod('codeActionRange', (start, end, only) => {
       return this.handler.codeActionRange(start, end, only)

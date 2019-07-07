@@ -1755,13 +1755,13 @@ CocHighlightText 				*CocHighlightText*
   The highlight used for document highlight feature. Normally used for
   highlighting same symbols in the buffer at the current cursor position.
 
-CocHighlightTextRead 				*CocHighlightTextRead*
+CocHighlightRead 				*CocHighlightRead*
 
   Default `hi default link CocHighlightRead  CocHighlightText`
 
   Highlight for `Read` kind of document symbol.
 
-CocHighlightTextWrite 				*CocHighlightTextWrite*
+CocHighlightWrite 				*CocHighlightWrite*
 
   Default `hi default link CocHighlightWrite  CocHighlightText`
 
@@ -1826,6 +1826,12 @@ CocHintFloat 					*CocHintFloat*
   Default: `hi default link CocHintFloat CocHintSign`
 
   The highlight used for a floating window with hints.
+
+CocCursorRange 					*CocCursorRange*
+
+  Default: `hi default link CocCursorRange Search`
+
+  The highlight used for cursor ranges.
 
 ==============================================================================
 LIST SUPPORT 					*coc-list*
