@@ -5,6 +5,7 @@ import { wait } from './util'
 import workspace from './workspace'
 import Plugin from './plugin'
 import snipetsManager from './snippets/manager'
+import diagnosticManager from './diagnostic/manager'
 import { URI } from 'vscode-uri'
 const logger = require('./util/logger')('commands')
 
@@ -148,6 +149,12 @@ export class CommandManager implements Disposable {
           config.update('extensionUpdateCheck', 'never', true)
           workspace.showMessage('Extension auto update disabled.', 'more')
         }
+      }
+    })
+    this.register({
+      id: 'workspace.diagnosticRelated',
+      execute: () => {
+        return diagnosticManager.jumpRelated()
       }
     })
     this.register({
