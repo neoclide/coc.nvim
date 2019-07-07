@@ -190,7 +190,7 @@ export interface Terminal {
   /**
    * The process ID of the shell process.
    */
-  readonly processId: number
+  readonly processId: Promise<number>
 
   /**
    * Send text to the terminal. The text is written to the stdin of the underlying pty process

@@ -25,8 +25,8 @@ export default class TerminalModel implements Terminal {
     return this._name || this.cmd
   }
 
-  public get processId(): number {
-    return this.pid
+  public get processId(): Promise<number> {
+    return Promise.resolve(this.pid)
   }
 
   public sendText(text: string, addNewLine = true): void {
