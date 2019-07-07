@@ -24,7 +24,7 @@ describe('terminal properties', () => {
   })
 
   it('should get pid', async () => {
-    let pid = terminal.processId
+    let pid = await terminal.processId
     expect(typeof pid).toBe('number')
   })
 
