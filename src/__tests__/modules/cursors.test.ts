@@ -112,6 +112,24 @@ describe('cursors#select', () => {
     n = await rangeCount()
     expect(n).toBe(1)
   })
+
+  it('should select by operator', async () => {
+    await nvim.command('nmap x  <Plug>(coc-cursors-operator)')
+    let doc = await helper.createDocument()
+    await nvim.call('setline', [1, ['"short"', '"long"']])
+    await nvim.call('cursor', [1, 2])
+    await nvim.input('xa"')
+    await helper.wait(30)
+    await nvim.call('cursor', [2, 2])
+    await nvim.input('xa"')
+    await helper.wait(30)
+    let matches = await nvim.call('getmatches')
+    let match = matches.find(o => o.group == 'CocCursorRange') as any
+    expect(match).toBeDefined()
+    expect(match.pos1).toEqual([1, 1, 7])
+    expect(match.pos2).toEqual([2, 1, 6])
+    await nvim.command('nunmap x')
+  })
 })
 
 describe('cursors#addRanges', () => {
@@ -127,7 +145,7 @@ describe('cursors#addRanges', () => {
       Range.create(1, 0, 1, 3),
       Range.create(1, 4, 1, 7)
     ]
-    await cursors.addRanges(doc, ranges)
+    await cursors.addRanges(ranges)
     let n = await rangeCount()
     expect(n).toBe(5)
   })
@@ -147,7 +165,7 @@ describe('cursors#onchange', () => {
       Range.create(1, 0, 1, 3),
       Range.create(1, 4, 1, 7)
     ]
-    await cursors.addRanges(doc, ranges)
+    await cursors.addRanges(ranges)
     await nvim.call('cursor', [1, 1])
     return doc
   }
@@ -222,7 +240,7 @@ describe('cursors#onchange', () => {
       Range.create(0, 0, 0, 5),
       Range.create(0, 6, 0, 11)
     ]
-    await cursors.addRanges(doc, ranges)
+    await cursors.addRanges(ranges)
     await nvim.call('cursor', [1, 2])
     await nvim.setLine('foo "bar"')
     doc.forceSync()

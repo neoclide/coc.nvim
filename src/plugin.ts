@@ -402,6 +402,8 @@ export default class Plugin extends EventEmitter {
           return await extensions.uninstallExtension(args.slice(1))
         case 'getCurrentFunctionSymbol':
           return await handler.getCurrentFunctionSymbol()
+        case 'addRanges':
+          return await this.cursors.addRanges(args[1])
         default:
           workspace.showMessage(`unknown action ${args[0]}`, 'error')
       }

@@ -4,8 +4,8 @@ import { Range, TextDocument, TextEdit } from 'vscode-languageserver-types'
 import events from '../events'
 import Document from '../model/document'
 import { disposeAll } from '../util'
-import { comparePosition, rangeIntersect, rangeInRange } from '../util/position'
 import workspace from '../workspace'
+import { comparePosition, rangeIntersect, rangeInRange, rangeOverlap } from '../util/position'
 import TextRange from './range'
 const logger = require('../util/logger')('cursors')
 
@@ -38,6 +38,7 @@ export default class Cursors {
   public async select(bufnr: number, kind: string, mode: string): Promise<void> {
     let doc = workspace.getDocument(bufnr)
     if (!doc) return
+    doc.forceSync()
     let { nvim } = this
     if (this._changed || bufnr != this.bufnr) {
       this.cancel()
@@ -45,35 +46,54 @@ export default class Cursors {
     let pos = await workspace.getCursorPosition()
     let range: Range
     let text = ''
-    if (mode == 'n') {
-      if (kind == 'word') {
-        range = doc.getWordRangeAtPosition(pos)
-        if (!range) {
-          let line = doc.getline(pos.line)
-          if (pos.character == line.length) {
-            range = Range.create(pos.line, Math.max(0, line.length - 1), pos.line, line.length)
-          } else {
-            range = Range.create(pos.line, pos.character, pos.line, pos.character + 1)
-          }
-        }
+    if (kind == 'operator') {
+      await nvim.command(`normal! ${mode == 'line' ? `'[` : '`['}`)
+      let start = await workspace.getCursorPosition()
+      await nvim.command(`normal! ${mode == 'line' ? `']` : '`]'}`)
+      let end = await workspace.getCursorPosition()
+      await workspace.moveTo(pos)
+      let relative = comparePosition(start, end)
+      // do nothing for empty range
+      if (relative == 0) return
+      if (relative >= 0) [start, end] = [end, start]
+      // include end character
+      let line = doc.getline(end.line)
+      if (end.character < line.length) {
+        end.character = end.character + 1
+      }
+      let range = Range.create(start, end)
+      this.addRange(range, doc.textDocument.getText(range))
+    } else if (kind == 'word') {
+      range = doc.getWordRangeAtPosition(pos)
+      if (!range) {
         let line = doc.getline(pos.line)
-        text = line.slice(range.start.character, range.end.character)
-      } else {
-        // make sure range contains character for highlight
-        let line = doc.getline(pos.line)
-        if (pos.character >= line.length) {
-          range = Range.create(pos.line, line.length - 1, pos.line, line.length)
+        if (pos.character == line.length) {
+          range = Range.create(pos.line, Math.max(0, line.length - 1), pos.line, line.length)
         } else {
           range = Range.create(pos.line, pos.character, pos.line, pos.character + 1)
         }
       }
+      let line = doc.getline(pos.line)
+      text = line.slice(range.start.character, range.end.character)
       this.addRange(range, text)
-    } else {
+    } else if (kind == 'position') {
+      // make sure range contains character for highlight
+      let line = doc.getline(pos.line)
+      if (pos.character >= line.length) {
+        range = Range.create(pos.line, line.length - 1, pos.line, line.length)
+      } else {
+        range = Range.create(pos.line, pos.character, pos.line, pos.character + 1)
+      }
+      this.addRange(range, text)
+    } else if (kind == 'range') {
       await nvim.call('eval', 'feedkeys("\\<esc>", "in")')
       let range = await workspace.getSelectedRange(mode, doc)
       if (!range || range.start.line != range.end.line) return
       text = doc.textDocument.getText(range)
       this.addRange(range, text)
+    } else {
+      workspace.showMessage(`${kind} not supported`, 'error')
+      return
     }
     if (workspace.bufnr != bufnr) return
     if (this._activated && !this.ranges.length) {
@@ -90,7 +110,9 @@ export default class Cursors {
       let [, err] = await nvim.resumeNotification()
       if (err) logger.error(err)
     }
-    await nvim.command(`silent! call repeat#set("\\<Plug>(coc-cursors-${kind})", -1)`)
+    if (kind == 'word' || kind == 'position') {
+      await nvim.command(`silent! call repeat#set("\\<Plug>(coc-cursors-${kind})", -1)`)
+    }
   }
 
   private activate(doc: Document): void {
@@ -209,24 +231,42 @@ export default class Cursors {
     nvim.resumeNotification(false, true).logError()
   }
 
-  // sort edits and add them
-  public async addRanges(doc: Document, ranges: Range[]): Promise<void> {
+  // Add ranges to current document
+  public async addRanges(ranges: Range[]): Promise<void> {
     let { nvim } = this
+    let bufnr = await nvim.call('bufnr', ['%'])
+    let doc = workspace.getDocument(bufnr)
+    if (!doc) return
     doc.forceSync()
-    this.ranges = []
-    ranges.sort((a, b) => comparePosition(a.start, b.start))
-    let preCount = 0
-    let currline = -1
+    // filter overlap ranges
+    if (!this._changed) {
+      this.ranges = this.ranges.filter(r => {
+        let { currRange } = r
+        return !ranges.some(range => rangeOverlap(range, currRange))
+      })
+    } else {
+      this.ranges = []
+    }
+    let { textDocument } = doc
     for (let range of ranges) {
       let { line } = range.start
+      let textRange = new TextRange(line, range.start.character, range.end.character, textDocument.getText(range), 0)
+      this.ranges.push(textRange)
+    }
+    this.ranges.sort((a, b) => comparePosition(a.range.start, b.range.start))
+    // fix preCount
+    let preCount = 0
+    let currline = -1
+    for (let range of this.ranges) {
+      let { line } = range
       if (line != currline) {
         preCount = 0
       }
-      let textRange = new TextRange(line, range.start.character, range.end.character, doc.textDocument.getText(range), preCount)
-      this.ranges.push(textRange)
+      range.preCount = preCount
       preCount = preCount + 1
       currline = line
     }
+    if (!this.ranges.length) return
     this.activate(doc)
     nvim.pauseNotification()
     this.doHighlights()

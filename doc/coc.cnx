@@ -912,6 +912,10 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	执行当前行第一个 quickfix action，用于快速修复。
 
+"addRanges" {ranges}					*coc-action-addRanges*
+
+	Ranges 必须为 LSP 定义的 Range 数组： https://git.io/fjiEG
+
 ==============================================================================
 
 命令 						*coc-commands*
