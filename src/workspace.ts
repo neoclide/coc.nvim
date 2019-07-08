@@ -1186,7 +1186,11 @@ export class Workspace implements IWorkspace {
     for (let [id, autocmd] of this.autocmds.entries()) {
       let args = autocmd.arglist && autocmd.arglist.length ? ', ' + autocmd.arglist.join(', ') : ''
       let event = Array.isArray(autocmd.event) ? autocmd.event.join(' ') : autocmd.event
-      cmds.push(`autocmd ${event} * call coc#rpc#${autocmd.request ? 'request' : 'notify'}('doAutocmd', [${id}${args}])`)
+      let pattern = '*'
+      if (/\buser\b/i.test(event)) {
+        pattern = ''
+      }
+      cmds.push(`autocmd ${event} ${pattern} call coc#rpc#${autocmd.request ? 'request' : 'notify'}('doAutocmd', [${id}${args}])`)
     }
     for (let key of this.watchedOptions) {
       cmds.push(`autocmd OptionSet ${key} call coc#rpc#notify('OptionSet',[expand('<amatch>'), v:option_old, v:option_new])`)
