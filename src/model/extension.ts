@@ -37,8 +37,7 @@ export default class ExtensionManager {
     this.checked = true
     let { root } = this
     mkdirp.sync(root)
-    mkdirp.sync(path.join(root, '.cache'))
-    mkdirp.sync(path.join(root, 'node_modules'))
+    mkdirp.sync(path.join(root, 'node_modules/.cache'))
   }
 
   private async getInfo(npm: string, name: string): Promise<Info> {
@@ -76,7 +75,7 @@ export default class ExtensionManager {
   }
 
   private async _install(npm: string, def: string, info: Info, onMessage: (msg: string) => void): Promise<void> {
-    let tmpFolder = await promisify(fs.mkdtemp)(path.join(this.root, '.cache', `${info.name}-`))
+    let tmpFolder = await promisify(fs.mkdtemp)(path.join(this.root, 'node_modules/.cache', `${info.name}-`))
     let url = info['dist.tarball']
     onMessage(`Downloading from ${url}`)
     await download(url, { dest: tmpFolder })
