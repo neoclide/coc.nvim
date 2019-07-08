@@ -1753,7 +1753,7 @@ exports.default = (opts, requestApi = true) => {
         clientReady = true;
         if (isTest)
             nvim.command(`let g:coc_node_channel_id = ${channelId}`, true);
-        let json = __webpack_require__(392);
+        let json = __webpack_require__(391);
         let { major, minor, patch } = semver_1.default.parse(json.version);
         nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {});
         let entered = await nvim.getVvar('vim_did_enter');
@@ -45220,7 +45220,11 @@ class Workspace {
         for (let [id, autocmd] of this.autocmds.entries()) {
             let args = autocmd.arglist && autocmd.arglist.length ? ', ' + autocmd.arglist.join(', ') : '';
             let event = Array.isArray(autocmd.event) ? autocmd.event.join(' ') : autocmd.event;
-            cmds.push(`autocmd ${event} * call coc#rpc#${autocmd.request ? 'request' : 'notify'}('doAutocmd', [${id}${args}])`);
+            let pattern = '*';
+            if (/\buser\b/i.test(event)) {
+                pattern = '';
+            }
+            cmds.push(`autocmd ${event} ${pattern} call coc#rpc#${autocmd.request ? 'request' : 'notify'}('doAutocmd', [${id}${args}])`);
         }
         for (let key of this.watchedOptions) {
             cmds.push(`autocmd OptionSet ${key} call coc#rpc#notify('OptionSet',[expand('<amatch>'), v:option_old, v:option_new])`);
@@ -50012,6 +50016,7 @@ class Document {
                     rangeLength: change.end - change.start,
                     text: change.newText
                 }];
+            logger.debug('changes:', JSON.stringify(changes, null, 2));
             this._onDocumentChange.fire({
                 textDocument: { version, uri },
                 contentChanges: changes
@@ -52440,7 +52445,7 @@ class TerminalModel {
         return this._name || this.cmd;
     }
     get processId() {
-        return this.pid;
+        return Promise.resolve(this.pid);
     }
     sendText(text, addNewLine = true) {
         if (!this.bufnr)
@@ -52451,21 +52456,24 @@ class TerminalModel {
         let { bufnr, nvim } = this;
         if (!bufnr)
             return;
-        let winnr = await nvim.call('bufwinnr', bufnr);
+        let [loaded, winid] = await nvim.eval(`[bufloaded(${bufnr}),bufwinid(${bufnr})]`);
+        if (!loaded)
+            return false;
         nvim.pauseNotification();
-        if (winnr == -1) {
+        if (winid == -1) {
             nvim.command(`below ${bufnr}sb`, true);
             nvim.command('resize 8', true);
             nvim.call('coc#util#do_autocmd', ['CocTerminalOpen'], true);
         }
         else {
-            nvim.command(`${winnr}wincmd w`, true);
+            nvim.call('win_gotoid', [winid], true);
         }
         nvim.command('normal! G', true);
         if (preserveFocus) {
             nvim.command('wincmd p', true);
         }
         await nvim.resumeNotification();
+        return true;
     }
     async hide() {
         let { bufnr, nvim } = this;
@@ -54054,8 +54062,7 @@ const services_1 = tslib_1.__importDefault(__webpack_require__(332));
 const manager_3 = tslib_1.__importDefault(__webpack_require__(230));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(234));
 const types_1 = __webpack_require__(186);
-const cursors_1 = tslib_1.__importDefault(__webpack_require__(390));
-const clean_1 = tslib_1.__importDefault(__webpack_require__(391));
+const clean_1 = tslib_1.__importDefault(__webpack_require__(390));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const logger = __webpack_require__(183)('plugin');
 class Plugin extends events_1.EventEmitter {
@@ -54066,15 +54073,11 @@ class Plugin extends events_1.EventEmitter {
         Object.defineProperty(workspace_1.default, 'nvim', {
             get: () => this.nvim
         });
-        this.cursors = new cursors_1.default(nvim);
         this.addMethod('hasSelected', () => {
             return completion_1.default.hasSelected();
         });
         this.addMethod('listNames', () => {
             return manager_2.default.names;
-        });
-        this.addMethod('cursorsSelect', (bufnr, kind, mode) => {
-            return this.cursors.select(bufnr, kind, mode);
         });
         this.addMethod('codeActionRange', (start, end, only) => {
             return this.handler.codeActionRange(start, end, only);
@@ -54291,7 +54294,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "89a83c1d29" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "533b3070e7" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54370,8 +54373,6 @@ class Plugin extends events_1.EventEmitter {
                     break;
                 case 'diagnosticList':
                     return manager_1.default.getDiagnosticList();
-                case 'diagnosticRelated':
-                    return manager_1.default.jumpRelated();
                 case 'jumpDefinition':
                     return await handler.gotoDefinition(args[1]);
                 case 'jumpDeclaration':
@@ -54484,6 +54485,7 @@ const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const util_1 = __webpack_require__(171);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(230));
+const manager_2 = tslib_1.__importDefault(__webpack_require__(255));
 const vscode_uri_1 = __webpack_require__(174);
 const logger = __webpack_require__(183)('commands');
 class CommandItem {
@@ -54621,6 +54623,12 @@ class CommandManager {
                     config.update('extensionUpdateCheck', 'never', true);
                     workspace_1.default.showMessage('Extension auto update disabled.', 'more');
                 }
+            }
+        });
+        this.register({
+            id: 'workspace.diagnosticRelated',
+            execute: () => {
+                return manager_2.default.jumpRelated();
             }
         });
         this.register({
@@ -63313,7 +63321,12 @@ class DiagnosticBuffer {
             let buffer = this.nvim.createBuffer(this.bufnr);
             buffer.clearNamespace(this.config.virtualTextSrcId);
         }
-        this.setDiagnosticInfo([]);
+        if (workspace_1.default.bufnr == this.bufnr) {
+            nvim.command('unlet b:coc_diagnostic_info', true);
+        }
+        else {
+            this.setDiagnosticInfo([]);
+        }
         await nvim.resumeNotification(false, true);
     }
     dispose() {
@@ -84213,133 +84226,6 @@ exports.default = DocumentHighlighter;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const events_1 = tslib_1.__importDefault(__webpack_require__(145));
-const vscode_languageserver_types_1 = __webpack_require__(158);
-const util_1 = __webpack_require__(171);
-const position_1 = __webpack_require__(210);
-const logger = __webpack_require__(183)('cursors');
-class Cursors {
-    constructor(nvim) {
-        this.nvim = nvim;
-        this.edits = new Set();
-        this.disposables = [];
-        this._activated = false;
-        this._changed = false;
-        this.matchIds = new Set();
-    }
-    async select(bufnr, kind, mode) {
-        if (this._changed)
-            return;
-        let doc = workspace_1.default.getDocument(bufnr);
-        if (!doc)
-            return;
-        let { nvim } = this;
-        if (this.bufnr && bufnr != this.bufnr) {
-            this.reset();
-        }
-        let pos = await workspace_1.default.getCursorPosition();
-        let range;
-        let text = '';
-        if (mode == 'n') {
-            if (kind == 'word') {
-                range = doc.getWordRangeAtPosition(pos);
-                let line = doc.getline(pos.line);
-                text = line.slice(range.start.character, range.end.character);
-            }
-            else {
-                // position
-                range = vscode_languageserver_types_1.Range.create(pos, pos);
-            }
-            this.addRange(range, text);
-        }
-        else {
-            await nvim.call('eval', 'feedkeys("\\<esc>", "in")');
-            let range = await workspace_1.default.getSelectedRange(mode, doc);
-            if (!range || range.start.line != range.end.line)
-                return;
-            text = doc.textDocument.getText(range);
-            this.addRange(range, text);
-        }
-        if (this._activated && !this.edits.size) {
-            this.cancel();
-        }
-        else if (this.edits.size && !this._activated) {
-            this.activate(doc);
-        }
-    }
-    addRange(range, text) {
-        let { edits } = this;
-        let find = false;
-        for (let edit of Array.from(edits)) {
-            if (position_1.rangeIntersect(edit.range, range)) {
-                edits.delete(edit);
-                find = true;
-            }
-        }
-        if (!find)
-            edits.add({ range, newText: text });
-    }
-    activate(doc) {
-        if (this._activated)
-            return;
-        this.bufnr = doc.bufnr;
-        doc.forceSync();
-        this.textDocument = doc.textDocument;
-        let last;
-        doc.onDocumentChange(e => {
-            let change = e.contentChanges[0];
-            let { text, range } = change;
-            if (text.indexOf('\n') !== -1 || range.start.line != range.end.line) {
-                this.cancel();
-                return;
-            }
-            // textEdit can be wrong
-        }, null, this.disposables);
-        doc.onDocumentDetach(e => {
-            this.cancel();
-        }, null, this.disposables);
-        let onCursorMoved = (bufnr, cursor) => {
-            if (bufnr != doc.bufnr)
-                return;
-            last = cursor;
-        };
-        events_1.default.on('CursorMoved', onCursorMoved, null, this.disposables);
-        events_1.default.on('CursorMovedI', onCursorMoved, null, this.disposables);
-    }
-    cancel() {
-        let { nvim } = this;
-        nvim.command(`nunmap <buffer> <esc>`, true);
-        this.clear();
-        this.reset();
-        this.bufnr = 0;
-    }
-    reset() {
-        util_1.disposeAll(this.disposables);
-        this.disposables = [];
-        this._changed = false;
-        this.matchIds.clear();
-        this.edits.clear();
-    }
-    clear() {
-        let { matchIds, nvim } = this;
-        if (matchIds.size) {
-            nvim.call('coc#util#clearmatches', [Array.from(matchIds)], true);
-        }
-        this.matchIds.clear();
-    }
-}
-exports.default = Cursors;
-//# sourceMappingURL=index.js.map
-
-/***/ }),
-/* 391 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(3);
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
 const glob_1 = tslib_1.__importDefault(__webpack_require__(237));
@@ -84380,7 +84266,7 @@ exports.default = default_1;
 //# sourceMappingURL=clean.js.map
 
 /***/ }),
-/* 392 */
+/* 391 */
 /***/ (function(module) {
 
 module.exports = {"name":"coc.nvim","version":"0.0.72","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npm-run-all clean build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/glob":"^7.1.1","@types/jest":"^24.0.15","@types/minimatch":"^3.0.3","@types/mkdirp":"^0.5.2","@types/node":"^12.0.10","@types/semver":"^6.0.1","@types/tunnel":"^0.0.1","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.8.0","npm-run-all":"^4.1.5","ts-jest":"^24.0.2","tslint":"^5.18.0","typescript":"3.5.2","vscode-languageserver":"5.3.0-next.8"},"dependencies":{"@chemzqm/neovim":"5.1.7","bser":"^2.1.0","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","follow-redirects":"^1.7.0","glob":"^7.1.4","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.4.0","minimatch":"^3.0.4","mkdirp":"^0.5.1","rimraf":"^2.6.3","semver":"^6.1.2","tar":"^4.4.10","tslib":"^1.10.0","tunnel":"^0.0.6","uuid":"^3.3.2","vscode-languageserver-protocol":"3.15.0-next.6","vscode-languageserver-types":"3.15.0-next.2","vscode-uri":"^2.0.2","which":"^1.3.1"}};

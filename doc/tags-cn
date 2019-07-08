@@ -180,7 +180,6 @@ n_coc-definition	coc.cnx	/*n_coc-definition*
 n_coc-diagnostic-info	coc.cnx	/*n_coc-diagnostic-info*
 n_coc-diagnostic-next	coc.cnx	/*n_coc-diagnostic-next*
 n_coc-diagnostic-prev	coc.cnx	/*n_coc-diagnostic-prev*
-n_coc-diagnostic-related	coc.cnx	/*n_coc-diagnostic-related*
 n_coc-fix-current	coc.cnx	/*n_coc-fix-current*
 n_coc-flost-hide	coc.cnx	/*n_coc-flost-hide*
 n_coc-flost-jump	coc.cnx	/*n_coc-flost-jump*
