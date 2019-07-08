@@ -45,7 +45,6 @@ export default class Cursors {
     }
     let pos = await workspace.getCursorPosition()
     let range: Range
-    let text = ''
     if (kind == 'operator') {
       await nvim.command(`normal! ${mode == 'line' ? `'[` : '`['}`)
       let start = await workspace.getCursorPosition()
@@ -61,8 +60,11 @@ export default class Cursors {
       if (end.character < line.length) {
         end.character = end.character + 1
       }
-      let range = Range.create(start, end)
-      this.addRange(range, doc.textDocument.getText(range))
+      let ranges = splitRange(doc, Range.create(start, end))
+      for (let r of ranges) {
+        let text = doc.textDocument.getText(r)
+        this.addRange(r, text)
+      }
     } else if (kind == 'word') {
       range = doc.getWordRangeAtPosition(pos)
       if (!range) {
@@ -74,7 +76,7 @@ export default class Cursors {
         }
       }
       let line = doc.getline(pos.line)
-      text = line.slice(range.start.character, range.end.character)
+      let text = line.slice(range.start.character, range.end.character)
       this.addRange(range, text)
     } else if (kind == 'position') {
       // make sure range contains character for highlight
@@ -84,13 +86,16 @@ export default class Cursors {
       } else {
         range = Range.create(pos.line, pos.character, pos.line, pos.character + 1)
       }
-      this.addRange(range, text)
+      this.addRange(range, line.slice(range.start.character, range.end.character))
     } else if (kind == 'range') {
       await nvim.call('eval', 'feedkeys("\\<esc>", "in")')
       let range = await workspace.getSelectedRange(mode, doc)
-      if (!range || range.start.line != range.end.line) return
-      text = doc.textDocument.getText(range)
-      this.addRange(range, text)
+      if (!range || comparePosition(range.start, range.end) == 0) return
+      let ranges = splitRange(doc, range)
+      for (let r of ranges) {
+        let text = doc.textDocument.getText(r)
+        this.addRange(r, text)
+      }
     } else {
       workspace.showMessage(`${kind} not supported`, 'error')
       return
@@ -389,4 +394,16 @@ export default class Cursors {
       }
     }
   }
+}
+
+function splitRange(doc: Document, range: Range): Range[] {
+  let splited: Range[] = []
+  for (let i = range.start.line; i <= range.end.line; i++) {
+    let curr = doc.getline(i) || ''
+    let sc = i == range.start.line ? range.start.character : 0
+    let ec = i == range.end.line ? range.end.character : curr.length
+    if (sc == ec) continue
+    splited.push(Range.create(i, sc, i, ec))
+  }
+  return splited
 }
