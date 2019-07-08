@@ -204,11 +204,11 @@ export interface Terminal {
   sendText(text: string, addNewLine?: boolean): void
 
   /**
-   * Show the terminal panel and reveal this terminal in the UI.
+   * Show the terminal panel and reveal this terminal in the UI, return false when failed.
    *
    * @param preserveFocus When `true` the terminal will not take focus.
    */
-  show(preserveFocus?: boolean): void
+  show(preserveFocus?: boolean): Promise<boolean>
 
   /**
    * Hide the terminal panel if this terminal is currently showing.

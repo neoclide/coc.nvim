@@ -34,24 +34,25 @@ export default class TerminalModel implements Terminal {
     this.nvim.call('coc#terminal#send', [this.bufnr, text, addNewLine], true)
   }
 
-  public async show(preserveFocus?: boolean): Promise<void> {
+  public async show(preserveFocus?: boolean): Promise<boolean> {
     let { bufnr, nvim } = this
     if (!bufnr) return
-    let winnr = await nvim.call('bufwinnr', bufnr)
+    let [loaded, winid] = await nvim.eval(`[bufloaded(${bufnr}),bufwinid(${bufnr})]`) as [number, number]
+    if (!loaded) return false
     nvim.pauseNotification()
-    if (winnr == -1) {
+    if (winid == -1) {
       nvim.command(`below ${bufnr}sb`, true)
       nvim.command('resize 8', true)
       nvim.call('coc#util#do_autocmd', ['CocTerminalOpen'], true)
     } else {
-      nvim.command(`${winnr}wincmd w`, true)
+      nvim.call('win_gotoid', [winid], true)
     }
     nvim.command('normal! G', true)
     if (preserveFocus) {
       nvim.command('wincmd p', true)
     }
     await nvim.resumeNotification()
-
+    return true
   }
 
   public async hide(): Promise<void> {
