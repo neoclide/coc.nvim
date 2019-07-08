@@ -70,9 +70,9 @@ function! coc#terminal#send(bufnr, text, add_new_line) abort
     call chansend(chan, lines)
     let winnr = bufwinnr(a:bufnr)
     if winnr != -1
-      exe winnr.'wincmd w'
-      exe 'normal! G'
-      wincmd p
+      exe 'noa '.winnr.'wincmd w'
+      exe 'noa normal! G'
+      exe 'noa '.wincmd p
     endif
   else
     if !a:add_new_line
