@@ -512,7 +512,7 @@ export class Workspace implements IWorkspace {
   /**
    * Convert location to quickfix item.
    */
-  public async getQuickfixItem(loc: Location | LocationLink, text?: string, type = ''): Promise<QuickfixItem> {
+  public async getQuickfixItem(loc: Location | LocationLink, text?: string, type = '', module?: string): Promise<QuickfixItem> {
     if (LocationLink.is(loc)) {
       loc = Location.create(loc.targetUri, loc.targetRange)
     }
@@ -533,6 +533,7 @@ export class Workspace implements IWorkspace {
       text: text || '',
       range
     }
+    if (module) item.module = module
     if (type) item.type = type
     if (bufnr != -1) item.bufnr = bufnr
     return item
@@ -609,7 +610,7 @@ export class Workspace implements IWorkspace {
    */
   public async showLocations(locations: Location[]): Promise<void> {
     let items = await Promise.all(locations.map(loc => {
-      return this.getQuickfixItem(loc)
+      return this.getQuickfixItem(loc, '', undefined, 'Locations')
     }))
     let { nvim } = this
     const preferences = this.getConfiguration('coc.preferences')

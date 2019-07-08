@@ -9,6 +9,12 @@ import workspace from '../workspace'
 import TextRange from './range'
 const logger = require('../util/logger')('cursors')
 
+interface Config {
+  cancelKey: string
+  previousKey: string
+  nextKey: string
+}
+
 export default class Cursors {
   private _activated = false
   private _changed = false
@@ -19,7 +25,14 @@ export default class Cursors {
   private matchIds: number[] = []
   private textDocument: TextDocument
   private version = -1
+  private config: Config
   constructor(private nvim: Neovim) {
+    let config = workspace.getConfiguration('cursors')
+    this.config = {
+      nextKey: config.get('nextKey', '<C-n>'),
+      previousKey: config.get('previousKey', '<C-p>'),
+      cancelKey: config.get('cancelKey', '<esc>')
+    }
   }
 
   public async select(bufnr: number, kind: string, mode: string): Promise<void> {
@@ -46,8 +59,13 @@ export default class Cursors {
         let line = doc.getline(pos.line)
         text = line.slice(range.start.character, range.end.character)
       } else {
-        // position
-        range = Range.create(pos, pos)
+        // make sure range contains character for highlight
+        let line = doc.getline(pos.line)
+        if (pos.character >= line.length) {
+          range = Range.create(pos.line, line.length - 1, pos.line, line.length)
+        } else {
+          range = Range.create(pos.line, pos.character, pos.line, pos.character + 1)
+        }
       }
       this.addRange(range, text)
     } else {
@@ -123,8 +141,35 @@ export default class Cursors {
     events.on('BufWinEnter', () => {
       this.cancel()
     }, null, this.disposables)
-    workspace.registerLocalKeymap('n', '<esc>', () => {
+    let { cancelKey, nextKey, previousKey } = this.config
+    workspace.registerLocalKeymap('n', cancelKey, () => {
+      if (!this._activated) return this.unmap(cancelKey)
       this.cancel()
+    }, true)
+    workspace.registerLocalKeymap('n', nextKey, async () => {
+      if (!this._activated) return this.unmap(nextKey)
+      let ranges = this.ranges.map(o => o.currRange)
+      let curr = await workspace.getCursorPosition()
+      for (let r of ranges) {
+        if (comparePosition(r.start, curr) > 0) {
+          await workspace.moveTo(r.start)
+          return
+        }
+      }
+      if (ranges.length) await workspace.moveTo(ranges[0].start)
+    }, true)
+    workspace.registerLocalKeymap('n', previousKey, async () => {
+      if (!this._activated) return this.unmap(previousKey)
+      let ranges = this.ranges.map(o => o.currRange)
+      ranges.reverse()
+      let curr = await workspace.getCursorPosition()
+      for (let r of ranges) {
+        if (comparePosition(r.end, curr) < 0) {
+          await workspace.moveTo(r.start)
+          return
+        }
+      }
+      if (ranges.length) await workspace.moveTo(ranges[0].start)
     }, true)
   }
 
@@ -135,32 +180,13 @@ export default class Cursors {
     }
     let doc = workspace.getDocument(this.bufnr)
     if (!doc || !this.ranges.length) return
-    let cursorRanges: Range[] = []
-    let searchRanges: Range[] = []
-    for (let r of this.ranges) {
-      let range = r.currRange
-      if (range.start.character == range.end.character) {
-        let line = doc.getline(range.start.line)
-        if (line.length) {
-          let { character } = range.start
-          let isEnd = character == line.length
-          let start = isEnd ? character - 1 : character
-          let end = isEnd ? character : character + 1
-          cursorRanges.push(Range.create(range.start.line, start, range.start.line, end))
-        }
-      } else {
-        searchRanges.push(range)
-      }
-    }
+    let searchRanges = this.ranges.map(o => o.currRange)
     this.matchIds = doc.matchAddRanges(searchRanges, 'CocCursorRange', 999)
-    let ids = doc.matchAddRanges(cursorRanges, 'Cursor', 999)
-    if (ids.length) this.matchIds.push(...ids)
   }
 
   public cancel(): void {
     if (!this._activated) return
     let { nvim, matchIds } = this
-    nvim.command(`silent! nunmap <buffer> <esc>`, true)
     if (matchIds.length) {
       nvim.call('coc#util#clearmatches', [matchIds], true)
     }
@@ -169,9 +195,18 @@ export default class Cursors {
     this.disposables = []
     this._changed = false
     this.ranges = []
-    this.bufnr = 0
     this.version = -1
     this._activated = false
+  }
+
+  private unmap(key: string): void {
+    let { nvim, bufnr } = this
+    let { cancelKey, nextKey, previousKey } = this.config
+    let escaped = key.startsWith('<') && key.endsWith('>') ? `\\${key}` : key
+    nvim.pauseNotification()
+    nvim.call('coc#util#unmap', [bufnr, [cancelKey, nextKey, previousKey]], true)
+    nvim.call('eval', `feedkeys("${escaped}", 't')`, true)
+    nvim.resumeNotification(false, true).logError()
   }
 
   // sort edits and add them
@@ -200,6 +235,10 @@ export default class Cursors {
     }
     let [, err] = await nvim.resumeNotification()
     if (err) logger.error(err)
+  }
+
+  public get activated(): boolean {
+    return this._activated
   }
 
   private getTextRange(range: Range, text: string): TextRange | null {

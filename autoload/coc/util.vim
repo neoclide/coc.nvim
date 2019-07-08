@@ -878,3 +878,11 @@ function! coc#util#change_lines(bufnr, list) abort
     redraw
   endif
 endfunction
+
+function! coc#util#unmap(bufnr, keys) abort
+  if bufnr('%') == a:bufnr
+    for key in a:keys
+      exe 'silent! nunmap <buffer> '.key
+    endfor
+  endif
+endfunction

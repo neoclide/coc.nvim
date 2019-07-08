@@ -24,17 +24,6 @@ afterEach(async () => {
   await helper.reset()
 })
 
-async function cursorCount(): Promise<number> {
-  let matches = await nvim.call('getmatches')
-  return matches.reduce((p, curr) => {
-    if (curr.group == 'Cursor') {
-      let len = Object.keys(curr).filter(k => k.startsWith('pos')).length
-      p = p + len
-    }
-    return p
-  }, 0)
-}
-
 async function rangeCount(): Promise<number> {
   let matches = await nvim.call('getmatches')
   return matches.reduce((p, curr) => {
@@ -55,15 +44,16 @@ describe('cursors#select', () => {
     await helper.wait(30)
     doc.forceSync()
     await cursors.select(doc.bufnr, 'position', 'n')
-    let n = await cursorCount()
+    await helper.wait(30)
+    let n = await rangeCount()
     expect(n).toBe(1)
     await nvim.setOption('virtualedit', 'onemore')
     await nvim.call('cursor', [2, 2])
     await cursors.select(doc.bufnr, 'position', 'n')
-    n = await cursorCount()
+    n = await rangeCount()
     expect(n).toBe(2)
     await cursors.select(doc.bufnr, 'position', 'n')
-    n = await cursorCount()
+    n = await rangeCount()
     expect(n).toBe(1)
   })
 
@@ -270,5 +260,68 @@ describe('cursors#onchange', () => {
     await helper.wait(100)
     let lines = await nvim.call('getline', [1, '$'])
     expect(lines).toEqual(['fabo fabo fabo', 'babr babr'])
+  })
+})
+
+describe('cursors#keymaps', () => {
+  async function setup(): Promise<void> {
+    let doc = await helper.createDocument()
+    await nvim.call('setline', [1, ['a', 'b', 'c']])
+    await helper.wait(30)
+    doc.forceSync()
+    await nvim.call('cursor', [1, 1])
+    await cursors.select(doc.bufnr, 'position', 'n')
+    await helper.wait(30)
+    await nvim.call('cursor', [2, 1])
+    await cursors.select(doc.bufnr, 'position', 'n')
+    await helper.wait(30)
+    await nvim.call('cursor', [3, 1])
+    await cursors.select(doc.bufnr, 'position', 'n')
+  }
+
+  async function hasKeymap(key): Promise<boolean> {
+    let buf = await nvim.buffer
+    let keymaps = await buf.getKeymap('n') as any
+    return keymaps.find(o => o.lhs == key) != null
+  }
+
+  it('should setup cancel keymap', async () => {
+    await setup()
+    let count = await rangeCount()
+    expect(count).toBe(3)
+    await nvim.input('<esc>')
+    await helper.wait(100)
+    count = await rangeCount()
+    expect(count).toBe(0)
+    let has = await hasKeymap('<Esc>')
+    expect(has).toBe(true)
+    await nvim.input('<esc>')
+    await helper.wait(100)
+    has = await hasKeymap('<Esc>')
+    expect(has).toBe(false)
+  })
+
+  it('should setup nextKey', async () => {
+    await setup()
+    await nvim.input('<C-n>')
+    await helper.wait(50)
+    let cursor = await nvim.call('coc#util#cursor')
+    expect(cursor).toEqual([0, 0])
+    await nvim.input('<C-n>')
+    await helper.wait(50)
+    cursor = await nvim.call('coc#util#cursor')
+    expect(cursor).toEqual([1, 0])
+  })
+
+  it('should setup previouskey', async () => {
+    await setup()
+    await nvim.input('<C-p>')
+    await helper.wait(50)
+    let cursor = await nvim.call('coc#util#cursor')
+    expect(cursor).toEqual([1, 0])
+    await nvim.input('<C-p>')
+    await helper.wait(50)
+    cursor = await nvim.call('coc#util#cursor')
+    expect(cursor).toEqual([0, 0])
   })
 })
