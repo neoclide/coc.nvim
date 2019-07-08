@@ -230,7 +230,11 @@ export class DiagnosticBuffer implements Disposable {
       let buffer = this.nvim.createBuffer(this.bufnr)
       buffer.clearNamespace(this.config.virtualTextSrcId)
     }
-    this.setDiagnosticInfo([])
+    if (workspace.bufnr == this.bufnr) {
+      nvim.command('unlet b:coc_diagnostic_info', true)
+    } else {
+      this.setDiagnosticInfo([])
+    }
     await nvim.resumeNotification(false, true)
   }
 

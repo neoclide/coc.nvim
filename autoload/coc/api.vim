@@ -356,6 +356,7 @@ function! s:funcs.buf_get_var(bufnr, name)
 endfunction
 
 function! s:funcs.buf_set_var(bufnr, name, val)
+  if !bufloaded(a:bufnr) | return | endif
   call setbufvar(a:bufnr, a:name, a:val)
 endfunction
 
