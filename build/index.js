@@ -54294,7 +54294,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "533b3070e7" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "af3476c5ad" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -80386,8 +80386,7 @@ class ExtensionManager {
         this.checked = true;
         let { root } = this;
         mkdirp_1.default.sync(root);
-        mkdirp_1.default.sync(path_1.default.join(root, '.cache'));
-        mkdirp_1.default.sync(path_1.default.join(root, 'node_modules'));
+        mkdirp_1.default.sync(path_1.default.join(root, 'node_modules/.cache'));
     }
     async getInfo(npm, name) {
         if (name.startsWith('https:'))
@@ -80425,7 +80424,7 @@ class ExtensionManager {
         }
     }
     async _install(npm, def, info, onMessage) {
-        let tmpFolder = await util_1.promisify(fs_1.default.mkdtemp)(path_1.default.join(this.root, '.cache', `${info.name}-`));
+        let tmpFolder = await util_1.promisify(fs_1.default.mkdtemp)(path_1.default.join(this.root, 'node_modules/.cache', `${info.name}-`));
         let url = info['dist.tarball'];
         onMessage(`Downloading from ${url}`);
         await download_1.default(url, { dest: tmpFolder });
