@@ -548,15 +548,15 @@ export class Workspace implements IWorkspace {
 
   public async getSelectedRange(mode: string, document: Document): Promise<Range | null> {
     let { nvim } = this
-    if (['v', 'V', 'char', 'line'].indexOf(mode) == -1) {
+    if (['v', 'V', 'char', 'line', '\x16'].indexOf(mode) == -1) {
       this.showMessage(`Mode '${mode}' is not supported`, 'error')
       return null
     }
-    let isVisual = ['v', 'V'].indexOf(mode) != -1
+    let isVisual = ['v', 'V', '\x16'].indexOf(mode) != -1
     let [, sl, sc] = await nvim.call('getpos', isVisual ? `'<` : `'[`) as [number, number, number]
     let [, el, ec] = await nvim.call('getpos', isVisual ? `'>` : `']`) as [number, number, number]
     let range = Range.create(document.getPosition(sl, sc), document.getPosition(el, ec))
-    if (mode == 'v') {
+    if (mode == 'v' || mode == '\x16') {
       range.end.character = range.end.character + 1
     }
     return range

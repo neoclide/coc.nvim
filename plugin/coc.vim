@@ -69,6 +69,14 @@ function! s:ExtensionList(...) abort
   return join(list, "\n")
 endfunction
 
+function! s:SearchOptions(...) abort
+  let list = ['-e', '--regexp', '-F', '--fixed-strings', '-L', '--follow',
+        \ '-g', '--glob', '--hidden', '--no-hidden', '--no-ignore-vcs',
+        \ '--word-regexp', '-w', '--smart-case', '-S', '--no-config',
+        \ '--line-regexp', '-x']
+  return join(list, "\n")
+endfunction
+
 function! s:InstallOptions(...)abort
   let list = ['-terminal', '-sync']
   return join(list, "\n")
@@ -282,6 +290,7 @@ command! -nargs=0 CocConfig       :call s:OpenConfig()
 command! -nargs=0 CocRestart      :call coc#rpc#restart()
 command! -nargs=0 CocStart        :call coc#rpc#start_server()
 command! -nargs=0 CocRebuild      :call coc#util#rebuild()
+command! -nargs=+ -complete=custom,s:SearchOptions  CocSearch    :call coc#rpc#notify('search', [<f-args>])
 command! -nargs=+ -complete=custom,s:ExtensionList  CocUninstall :call coc#rpc#notify('CocAction', ['uninstallExtension', <f-args>])
 command! -nargs=* -complete=custom,coc#list#options CocList      :call coc#rpc#notify('openList',  [<f-args>])
 command! -nargs=* -complete=custom,s:CommandList -range CocCommand :call coc#rpc#notify('runCommand', [<f-args>])

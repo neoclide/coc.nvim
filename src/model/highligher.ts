@@ -88,7 +88,7 @@ export default class Highlighter {
 
   // default to replace
   public render(buffer: Buffer, start = 0, end = -1): void {
-    buffer.setLines(this.lines, { start, end, strictIndexing: false })
+    buffer.setLines(this.lines, { start, end, strictIndexing: false }, true)
     for (let item of this.highlights) {
       buffer.addHighlight({
         hlGroup: item.hlGroup,

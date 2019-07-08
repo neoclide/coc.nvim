@@ -18,6 +18,7 @@ import { positionInRange, rangeInRange } from '../util/position'
 import { byteLength, isWord } from '../util/string'
 import workspace from '../workspace'
 import CodeLensManager from './codelens'
+import Search from './search'
 import Colors from './colors'
 import Refactor from './refactor'
 import DocumentHighlighter from './documentHighlight'
@@ -1040,8 +1041,14 @@ export default class Handler {
   public async doRefactor(): Promise<void> {
     await this.refactor.start()
   }
+
   public async saveRefactor(bufnr: number): Promise<void> {
     await this.refactor.saveRefactor(bufnr)
+  }
+
+  public async search(args: string[]): Promise<void> {
+    let search = new Search(this.nvim, this.refactor)
+    await search.run(args)
   }
 
   private async previewHover(hovers: Hover[]): Promise<void> {

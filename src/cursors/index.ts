@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-jsonrpc'
-import { Range, TextDocument, TextEdit } from 'vscode-languageserver-types'
+import { Range, TextDocument, TextEdit, Position } from 'vscode-languageserver-types'
 import events from '../events'
 import Document from '../model/document'
 import { disposeAll } from '../util'
@@ -91,7 +91,7 @@ export default class Cursors {
       await nvim.call('eval', 'feedkeys("\\<esc>", "in")')
       let range = await workspace.getSelectedRange(mode, doc)
       if (!range || comparePosition(range.start, range.end) == 0) return
-      let ranges = splitRange(doc, range)
+      let ranges = mode == '\x16' ? getVisualRanges(doc, range) : splitRange(doc, range)
       for (let r of ranges) {
         let text = doc.textDocument.getText(r)
         this.addRange(r, text)
@@ -130,6 +130,11 @@ export default class Cursors {
       if (doc.version - this.version == 1) return
       let change = e.contentChanges[0]
       let { text, range } = change
+      // ignore change after last range
+      if (comparePosition(range.start, this.lastPosition) >= 0) {
+        this.textDocument = doc.textDocument
+        return
+      }
       this._changed = true
       // get range from edit
       let textRange = this.getTextRange(range, text)
@@ -147,7 +152,6 @@ export default class Cursors {
           arr.push([r.line, newLines[r.line]])
         }
       }
-
       let { nvim } = this
       this.version = doc.version
       nvim.pauseNotification()
@@ -163,9 +167,6 @@ export default class Cursors {
       if (err) logger.error(err)
     }, null, this.disposables)
     doc.onDocumentDetach(e => {
-      this.cancel()
-    }, null, this.disposables)
-    events.on('BufWinEnter', () => {
       this.cancel()
     }, null, this.disposables)
     let { cancelKey, nextKey, previousKey } = this.config
@@ -394,6 +395,12 @@ export default class Cursors {
       }
     }
   }
+
+  private get lastPosition(): Position {
+    let { ranges } = this
+    let r = ranges[ranges.length - 1]
+    return r.currRange.end
+  }
 }
 
 function splitRange(doc: Document, range: Range): Range[] {
@@ -406,4 +413,19 @@ function splitRange(doc: Document, range: Range): Range[] {
     splited.push(Range.create(i, sc, i, ec))
   }
   return splited
+}
+
+function getVisualRanges(doc: Document, range: Range): Range[] {
+  let { start, end } = range
+  if (start.line > end.line) {
+    [start, end] = [end, start]
+  }
+  let sc = start.character < end.character ? start.character : end.character
+  let ec = start.character < end.character ? end.character : start.character
+  let ranges: Range[] = []
+  for (let i = start.line; i <= end.line; i++) {
+    let line = doc.getline(i)
+    ranges.push(Range.create(i, sc, i, Math.min(line.length, ec)))
+  }
+  return ranges
 }

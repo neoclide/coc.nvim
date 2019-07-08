@@ -34,6 +34,9 @@ export default class Plugin extends EventEmitter {
     this.addMethod('listNames', () => {
       return listManager.names
     })
+    this.addMethod('search', (...args: string[]) => {
+      return this.handler.search(args)
+    })
     this.addMethod('cursorsSelect', (bufnr: number, kind: string, mode: string) => {
       return this.cursors.select(bufnr, kind, mode)
     })

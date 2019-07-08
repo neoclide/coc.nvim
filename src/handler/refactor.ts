@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim, Buffer } from '@chemzqm/neovim'
 import fs from 'fs'
 import path from 'path'
 import { Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
@@ -19,6 +19,7 @@ export interface FileRange {
   end: number
   // range relatived to new range
   highlights: Range[]
+  lines?: string[]
 }
 
 export interface FileItem {
@@ -35,7 +36,8 @@ export interface RefactorConfig {
 export default class Refactor {
   private id = 0
   private nvim: Neovim
-  private config: RefactorConfig
+  private bufnr: number
+  public config: RefactorConfig
   constructor() {
     this.nvim = workspace.nvim
     let config = workspace.getConfiguration('refactor')
@@ -56,72 +58,33 @@ export default class Refactor {
       workspace.showMessage('Invalid position for rename', 'error')
       return
     }
-    let curname: string
-    if (res == null) {
-      let range = doc.getWordRangeAtPosition(position)
-      if (range) curname = doc.textDocument.getText(range)
-    } else {
-      if (Range.is(res)) {
-        let line = doc.getline(res.start.line)
-        curname = line.slice(res.start.character, res.end.character)
-      } else {
-        curname = res.placeholder
-      }
-    }
-    if (!curname) {
-      workspace.showMessage('Invalid position', 'warning')
-      return
-    }
     let edit = await languages.provideRenameEdits(doc.textDocument, position, 'newname')
     if (!edit) {
       workspace.showMessage('Server return empty response', 'warning')
       return
     }
     let items = this.getFileItems(edit)
-    await this.createRefactorWindow(items, curname, winid)
+    let buf = await this.createRefactorBuffer(winid)
+    await this.addFileItems(items, buf)
   }
 
-  public async createRefactorWindow(items: FileItem[], curname: string, winid: number): Promise<void> {
-    let { nvim } = this
+  public async createRefactorBuffer(winid: number): Promise<Buffer> {
+    let { nvim, bufnr } = this
+    if (bufnr) await nvim.command(`silent! ${bufnr}bd!`)
+    let { openCommand } = this.config
     let highligher = new Highlighter()
     highligher.addLine('Save current buffer to make changes', 'Comment')
     highligher.addLine('—')
-    let hlRanges: Range[] = []
-    for (let item of items) {
-      for (let range of item.ranges) {
-        // range.highlights
-        highligher.addLine('—')
-        highligher.addText(`${item.filepath}`, 'Label')
-        highligher.addText(':')
-        highligher.addText(String(range.start + 1), 'LineNr')
-        highligher.addText(':')
-        highligher.addText(String(range.end + 1), 'LineNr')
-        hlRanges.push(...range.highlights.map(r => adjustRange(r, - highligher.length)))
-        let lines = await this.getLines(item.filepath, range.start, range.end)
-        highligher.addLines(lines)
-        highligher.addLine('—')
-      }
-    }
-    let { openCommand } = this.config
+    highligher.addLine('—')
     nvim.pauseNotification()
     nvim.command(`${openCommand} ${name}${this.id++}`, true)
     nvim.command(`setl buftype=acwrite nobuflisted bufhidden=hide nofen wrap conceallevel=3 concealcursor=n`, true)
     nvim.call('bufnr', ['%'], true)
     nvim.call('matchadd', ['Conceal', '^—'], true)
     nvim.call('coc#util#do_autocmd', ['CocRefactorOpen'], true)
-    let [res, err] = await nvim.resumeNotification()
-    if (err) {
-      logger.error(err)
-      workspace.showMessage(`Error on open refactor window: ${err}`, 'error')
-      return
-    }
-    let buffer = nvim.createBuffer(res[2])
-    nvim.pauseNotification()
-    highligher.render(buffer)
-    nvim.command('setl nomod', true)
-    nvim.call('coc#util#jumpTo', [hlRanges[0].start.line, hlRanges[0].start.character], true)
     workspace.registerLocalKeymap('n', '<CR>', async () => {
-      let lines = await nvim.eval('getline(3,line("."))') as string[]
+      let currwin = await nvim.call('win_getid')
+      let lines = await nvim.eval('getline(4,line("."))') as string[]
       let len = lines.length
       for (let i = 0; i < len; i++) {
         let line = lines[len - i - 1]
@@ -141,9 +104,74 @@ export default class Refactor {
         }
       }
     }, true)
+    let [res, err] = await nvim.resumeNotification()
+    if (err) {
+      logger.error(err)
+      workspace.showMessage(`Error on open refactor window: ${err}`, 'error')
+      return
+    }
+    let buffer = nvim.createBuffer(res[2])
+    this.bufnr = res[2]
+    nvim.pauseNotification()
+    highligher.render(buffer)
+    nvim.command('setl nomod', true)
     await nvim.resumeNotification()
-    await workspace.document
+    return buffer
+  }
+
+  public async addFileItems(items: FileItem[], buffer: Buffer): Promise<void> {
+    let count = await buffer.length
+    let highligher = new Highlighter()
+    let hlRanges: Range[] = []
+    for (let item of items) {
+      for (let range of item.ranges) {
+        // range.highlights
+        highligher.addLine('—')
+        highligher.addText(`${item.filepath}`, 'Label')
+        highligher.addText(':')
+        highligher.addText(String(range.start + 1), 'LineNr')
+        highligher.addText(':')
+        highligher.addText(String(range.end), 'LineNr')
+        let base = 0 - highligher.length - count
+        hlRanges.push(...range.highlights.map(r => adjustRange(r, base)))
+        let { lines } = range
+        if (!lines) lines = await this.getLines(item.filepath, range.start, range.end)
+        highligher.addLines(lines)
+        highligher.addLine('—')
+      }
+    }
+    let { nvim } = this
+    nvim.pauseNotification()
+    highligher.render(buffer, count)
+    nvim.command('setl nomod', true)
+    if (count == 3) {
+      nvim.call('coc#util#jumpTo', [hlRanges[0].start.line, hlRanges[0].start.character], true)
+    }
+    await nvim.resumeNotification()
+    try {
+      await this.ensureDocument(buffer.id)
+    } catch (e) {
+      logger.error(e)
+      return
+    }
     await commands.executeCommand('editor.action.addRanges', hlRanges)
+  }
+
+  private async ensureDocument(bufnr: number): Promise<void> {
+    await new Promise<void>((resolve, reject) => {
+      let n = 0
+      let interval = setInterval(() => {
+        let doc = workspace.getDocument(bufnr)
+        if (doc) {
+          clearInterval(interval)
+          resolve()
+        } else if (n == 10) {
+          clearInterval(interval)
+          reject(new Error('document create timeout after 1s'))
+        }
+        n++
+      }, 100)
+    })
   }
 
   private getFileItems(edit: WorkspaceEdit): FileItem[] {
@@ -211,7 +239,7 @@ export default class Refactor {
     let uri: string
     let start: number
     let end: number
-    for (let line of lines.slice(2)) {
+    for (let line of lines.slice(3)) {
       if (line.startsWith('—') && line.length == 1 && uri) {
         let edits = changes[uri] || []
         let r = Range.create(start - 1, 0, end, 0)
@@ -232,8 +260,8 @@ export default class Refactor {
       }
     }
     await workspace.applyEdit({ changes })
-    nvim.command('setl nomod', true)
-    nvim.command('noa wa', true)
+    await buffer.setOption('modified', false)
+    nvim.command('wa', true)
   }
 }
 
