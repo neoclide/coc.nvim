@@ -4,6 +4,7 @@ import path from 'path'
 import { Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import languages from '../languages'
+import commands from '../commands'
 import Highlighter from '../model/highligher'
 import { readFileLines } from '../util/fs'
 import workspace from '../workspace'
@@ -85,14 +86,17 @@ export default class Refactor {
     let highligher = new Highlighter()
     highligher.addLine('Save current buffer to make changes', 'Comment')
     highligher.addLine('—')
+    let hlRanges: Range[] = []
     for (let item of items) {
       for (let range of item.ranges) {
+        // range.highlights
         highligher.addLine('—')
         highligher.addText(`${item.filepath}`, 'Label')
         highligher.addText(':')
         highligher.addText(String(range.start + 1), 'LineNr')
         highligher.addText(':')
         highligher.addText(String(range.end + 1), 'LineNr')
+        hlRanges.push(...range.highlights.map(r => adjustRange(r, - highligher.length)))
         let lines = await this.getLines(item.filepath, range.start, range.end)
         highligher.addLines(lines)
         highligher.addLine('—')
@@ -114,9 +118,8 @@ export default class Refactor {
     let buffer = nvim.createBuffer(res[2])
     nvim.pauseNotification()
     highligher.render(buffer)
-    nvim.command('exe 1', true)
     nvim.command('setl nomod', true)
-    nvim.command(`execute 'normal! /\\<'.escape('${curname.replace(/'/g, "''")}', '\\\\/.*$^~[]')."\\\\>\\<cr>"`, true)
+    nvim.call('coc#util#jumpTo', [hlRanges[0].start.line, hlRanges[0].start.character], true)
     workspace.registerLocalKeymap('n', '<CR>', async () => {
       let lines = await nvim.eval('getline(3,line("."))') as string[]
       let len = lines.length
@@ -139,6 +142,8 @@ export default class Refactor {
       }
     }, true)
     await nvim.resumeNotification()
+    await workspace.document
+    await commands.executeCommand('editor.action.addRanges', hlRanges)
   }
 
   private getFileItems(edit: WorkspaceEdit): FileItem[] {

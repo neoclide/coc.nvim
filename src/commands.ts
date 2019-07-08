@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import * as language from 'vscode-languageserver-protocol'
-import { Disposable, Location, Position, TextEdit, CodeAction } from 'vscode-languageserver-protocol'
+import { Disposable, Location, Position, TextEdit, CodeAction, Range } from 'vscode-languageserver-protocol'
 import { wait } from './util'
 import workspace from './workspace'
 import Plugin from './plugin'
@@ -83,6 +83,12 @@ export class CommandManager implements Disposable {
       }
     }, true)
     this.register({
+      id: 'editor.action.addRanges',
+      execute: async (ranges: Range[]) => {
+        await plugin.cocAction('addRanges', ranges)
+      }
+    }, true)
+    this.register({
       id: 'editor.action.restart',
       execute: async () => {
         await wait(30)
@@ -122,7 +128,7 @@ export class CommandManager implements Disposable {
       execute: async () => {
         await workspace.runCommand('watchman watch-del-all')
       }
-    })
+    }, false, 'run watch-del-all for watchman to free up memory.')
     this.register({
       id: 'workspace.workspaceFolders',
       execute: async () => {
@@ -130,13 +136,13 @@ export class CommandManager implements Disposable {
         let lines = folders.map(folder => URI.parse(folder.uri).fsPath)
         await workspace.echoLines(lines)
       }
-    })
+    }, false, 'show opened workspaceFolders.')
     this.register({
       id: 'workspace.renameCurrentFile',
       execute: async () => {
         await workspace.renameCurrent()
       }
-    })
+    }, false, 'change current filename to a new name and reload it.')
     this.register({
       id: 'extensions.toggleAutoUpdate',
       execute: async () => {
@@ -150,13 +156,13 @@ export class CommandManager implements Disposable {
           workspace.showMessage('Extension auto update disabled.', 'more')
         }
       }
-    })
+    }, false, 'toggle auto update of extensions.')
     this.register({
       id: 'workspace.diagnosticRelated',
       execute: () => {
         return diagnosticManager.jumpRelated()
       }
-    })
+    }, false, 'jump to related locations of current diagnostic.')
     this.register({
       id: 'workspace.showOutput',
       execute: async (name?: string) => {
@@ -175,7 +181,23 @@ export class CommandManager implements Disposable {
           }
         }
       }
-    })
+    }, false, 'open output buffer to show output from languageservers or extensions.')
+    this.register({
+      id: 'document.renameCurrentWord',
+      execute: async () => {
+        let bufnr = await nvim.call('bufnr', '%')
+        let doc = workspace.getDocument(bufnr)
+        if (!doc) return
+        let pos = await workspace.getCursorPosition()
+        let range = doc.getWordRangeAtPosition(pos)
+        if (!range) return
+        let text = doc.textDocument.getText(range)
+        let ranges = doc.getSymbolRanges(text)
+        if (ranges.length) {
+          await plugin.cocAction('addRanges', ranges)
+        }
+      }
+    }, false, 'rename word under cursor in current buffer by use multiple cursors.')
   }
 
   public get commandList(): CommandItem[] {
@@ -200,9 +222,10 @@ export class CommandManager implements Disposable {
     this.executeCommand.apply(this, args)
   }
 
-  public register<T extends Command>(command: T, internal = false): T {
+  public register<T extends Command>(command: T, internal = false, description?: string): T {
     for (const id of Array.isArray(command.id) ? command.id : [command.id]) {
       this.registerCommand(id, command.execute, command, internal)
+      if (description) this.titles.set(id, description)
     }
     return command
   }
