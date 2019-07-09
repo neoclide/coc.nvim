@@ -1382,6 +1382,7 @@ s           - 执行 'split' 操作.
 		"<C-p>": "normal:k",
 		"<C-t>": "action:tabe",
 		"<C-x>": "call:MyFunc"
+		"<C-v>": "eval:@@"
 	}
 	"list.normalMappings": {
 		"c": "expr:MyExprFunc"
@@ -1418,6 +1419,7 @@ s           - 执行 'split' 操作.
 	'removetail' - 删除后面全部字符
 	'removeahead' - 删除前面全部字符
 	'paste' - 插入系统粘贴板内容到当前位置
+'eval' - 执行 viml 表达式并将结果插入到当前位置
 'action' - 执行特定操作，使用 <tab> 查看当前列表支持操作
 'feedkeys' - 发送按键到列表窗口
 'normal' - 执行 normal 命令
