@@ -133,14 +133,15 @@ export default class Cursors {
       if (doc.version - this.version == 1 || !this.ranges.length) return
       let change = e.contentChanges[0]
       let { text, range } = change
+      let d = comparePosition(range.start, this.lastPosition)
       // ignore change after last range
-      if (!this._changed && comparePosition(range.start, this.lastPosition) > 0) {
+      if (!this._changed && (d > 0) || (d == 0 && text.startsWith('\n'))) {
         this.textDocument = doc.textDocument
         return
       }
       let changeCount = text.split('\n').length - (range.end.line - range.start.line + 1)
       // adjust line when change before first line
-      if (!this._changed && range.end.line < this.ranges[0].line && changeCount != 0) {
+      if (!this._changed && editBeforeLine({ range, newText: text }, this.ranges[0].line) && changeCount != 0) {
         this.ranges.forEach(r => r.line = r.line + changeCount)
         this.textDocument = doc.textDocument
         return
@@ -449,4 +450,14 @@ function getVisualRanges(doc: Document, range: Range): Range[] {
     ranges.push(Range.create(i, sc, i, Math.min(line.length, ec)))
   }
   return ranges
+}
+
+function editBeforeLine(edit: TextEdit, line: number): boolean {
+  let { range, newText } = edit
+  let { end } = range
+  if (end.line < line) return true
+  if (end.line == line && end.character == 0 && newText.endsWith('\n')) {
+    return true
+  }
+  return false
 }

@@ -158,8 +158,53 @@ describe('cursors#onchange', () => {
     return doc
   }
 
+  it('should ignore change after last range', async () => {
+    let doc = await setup()
+    await doc.buffer.append(['append'])
+    doc.forceSync()
+    await helper.wait(50)
+    let n = await rangeCount()
+    expect(n).toBe(5)
+  })
+
+  it('should adjust ranges on change before first line', async () => {
+    let doc = await setup()
+    await doc.buffer.setLines(['prepend'], { start: 0, end: 0, strictIndexing: false })
+    doc.forceSync()
+    await helper.wait(50)
+    let n = await rangeCount()
+    expect(n).toBe(5)
+    await nvim.call('cursor', [2, 1])
+    await nvim.input('ia')
+    await helper.wait(30)
+    doc.forceSync()
+    await helper.wait(100)
+    let lines = await nvim.call('getline', [1, '$'])
+    expect(lines).toEqual(['prepend', 'afoo afoo afoo', 'abar abar'])
+  })
+
+  it('should work when change made to unrelated line', async () => {
+    let doc = await setup()
+    await doc.buffer.setLines(['prepend'], { start: 0, end: 0, strictIndexing: false })
+    doc.forceSync()
+    await helper.wait(50)
+    let n = await rangeCount()
+    expect(n).toBe(5)
+    await nvim.call('cursor', [1, 1])
+    await nvim.input('ia')
+    await helper.wait(30)
+    doc.forceSync()
+    await helper.wait(100)
+    await nvim.call('cursor', [2, 1])
+    await nvim.input('a')
+    await helper.wait(30)
+    doc.forceSync()
+    await helper.wait(100)
+    let lines = await nvim.call('getline', [1, '$'])
+    expect(lines).toEqual(['aprepend', 'afoo afoo afoo', 'abar abar'])
+  })
+
   it('should add text before', async () => {
-    await nvim.command('stopinsert')
     let doc = await setup()
     await nvim.input('iabc')
     await helper.wait(30)
