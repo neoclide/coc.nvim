@@ -1753,7 +1753,7 @@ exports.default = (opts, requestApi = true) => {
         clientReady = true;
         if (isTest)
             nvim.command(`let g:coc_node_channel_id = ${channelId}`, true);
-        let json = __webpack_require__(391);
+        let json = __webpack_require__(395);
         let { major, minor, patch } = semver_1.default.parse(json.version);
         nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {});
         let entered = await nvim.getVvar('vim_did_enter');
@@ -37403,13 +37403,21 @@ const logger = __webpack_require__(183)('events');
 class Events {
     constructor() {
         this.handlers = new Map();
-        this.paused = false;
+    }
+    get cursor() {
+        return this._cursor;
     }
     async fire(event, args) {
-        if (this.paused && event == 'CursorHold')
-            return;
         logger.debug('Event:', event, args);
         let handlers = this.handlers.get(event);
+        if (event == 'CursorMoved' || event == 'CursorMovedI') {
+            this._cursor = {
+                bufnr: args[0],
+                lnum: args[1][0],
+                col: args[1][1],
+                insert: event == 'CursorMovedI'
+            };
+        }
         if (handlers) {
             try {
                 await Promise.all(handlers.map(fn => {
@@ -44549,7 +44557,7 @@ class Workspace {
     /**
      * Convert location to quickfix item.
      */
-    async getQuickfixItem(loc, text, type = '') {
+    async getQuickfixItem(loc, text, type = '', module) {
         if (vscode_languageserver_protocol_1.LocationLink.is(loc)) {
             loc = vscode_languageserver_protocol_1.Location.create(loc.targetUri, loc.targetRange);
         }
@@ -44570,6 +44578,8 @@ class Workspace {
             text: text || '',
             range
         };
+        if (module)
+            item.module = module;
         if (type)
             item.type = type;
         if (bufnr != -1)
@@ -44584,15 +44594,15 @@ class Workspace {
     }
     async getSelectedRange(mode, document) {
         let { nvim } = this;
-        if (['v', 'V', 'char', 'line'].indexOf(mode) == -1) {
+        if (['v', 'V', 'char', 'line', '\x16'].indexOf(mode) == -1) {
             this.showMessage(`Mode '${mode}' is not supported`, 'error');
             return null;
         }
-        let isVisual = ['v', 'V'].indexOf(mode) != -1;
+        let isVisual = ['v', 'V', '\x16'].indexOf(mode) != -1;
         let [, sl, sc] = await nvim.call('getpos', isVisual ? `'<` : `'[`);
         let [, el, ec] = await nvim.call('getpos', isVisual ? `'>` : `']`);
         let range = vscode_languageserver_protocol_1.Range.create(document.getPosition(sl, sc), document.getPosition(el, ec));
-        if (mode == 'v') {
+        if (mode == 'v' || mode == '\x16') {
             range.end.character = range.end.character + 1;
         }
         return range;
@@ -44651,7 +44661,7 @@ class Workspace {
      */
     async showLocations(locations) {
         let items = await Promise.all(locations.map(loc => {
-            return this.getQuickfixItem(loc);
+            return this.getQuickfixItem(loc, '', undefined, 'Locations');
         }));
         let { nvim } = this;
         const preferences = this.getConfiguration('coc.preferences');
@@ -45492,7 +45502,7 @@ augroup end`;
     getRootPatterns(document, patternType) {
         let { uri } = document;
         if (patternType == types_1.PatternType.Buffer)
-            return document.rootPatterns;
+            return document.getVar('root_patterns', []) || [];
         if (patternType == types_1.PatternType.LanguageServer)
             return this.getServerRootPatterns(document.filetype);
         const preferences = this.getConfiguration('coc.preferences', uri);
@@ -48320,6 +48330,10 @@ function readFileLines(fullpath, start, end) {
     let n = 0;
     return new Promise((resolve, reject) => {
         rl.on('line', line => {
+            if (n == 0 && line.startsWith('\uFEFF')) {
+                // handle BOM
+                line = line.slice(1);
+            }
             if (n >= start && n <= end) {
                 res.push(line);
             }
@@ -48345,6 +48359,10 @@ function readFileLine(fullpath, count) {
     return new Promise((resolve, reject) => {
         rl.on('line', line => {
             if (n == count) {
+                if (n == 0 && line.startsWith('\uFEFF')) {
+                    // handle BOM
+                    line = line.slice(1);
+                }
                 rl.close();
                 resolve(line);
                 return;
@@ -49813,6 +49831,7 @@ const tslib_1 = __webpack_require__(3);
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(173));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const vscode_uri_1 = __webpack_require__(174);
+const events_1 = tslib_1.__importDefault(__webpack_require__(145));
 const diff_1 = __webpack_require__(205);
 const fs_1 = __webpack_require__(197);
 const index_1 = __webpack_require__(171);
@@ -49834,7 +49853,6 @@ class Document {
         this.attached = false;
         // real current lines
         this.lines = [];
-        this._additionalKeywords = [];
         this._words = [];
         this._onDocumentChange = new vscode_languageserver_protocol_1.Emitter();
         this._onDocumentDetach = new vscode_languageserver_protocol_1.Emitter();
@@ -49849,22 +49867,26 @@ class Document {
             });
         }, 50);
     }
+    /**
+     * Check if current document should be attached for changes.
+     *
+     * Currently only attach for empty and `acwrite` buftype.
+     */
     get shouldAttach() {
         let { buftype } = this;
         if (this.uri.endsWith('%5BCommand%20Line%5D'))
             return true;
         return buftype == '' || buftype == 'acwrite';
     }
+    /**
+     * All words, extracted by `iskeyword` option.
+     */
     get words() {
         return this._words;
     }
-    setFiletype(filetype) {
-        let { uri, version } = this;
-        this._filetype = this.convertFiletype(filetype);
-        version = version ? version + 1 : 1;
-        let textDocument = vscode_languageserver_protocol_1.TextDocument.create(uri, this.filetype, version, this.content);
-        this.textDocument = textDocument;
-    }
+    /**
+     * Map filetype for languageserver.
+     */
     convertFiletype(filetype) {
         let map = this.env.filetypeMap;
         if (filetype == 'json' && this.uri && this.uri.endsWith('coc-settings.json')) {
@@ -49877,20 +49899,28 @@ class Document {
         return map[filetype] || filetype;
     }
     /**
-     * Current changedtick of buffer
-     *
-     * @public
-     * @returns {number}
+     * Get current buffer changedtick.
      */
     get changedtick() {
         return this._changedtick;
     }
+    /**
+     * Scheme of document.
+     */
     get schema() {
         return vscode_uri_1.URI.parse(this.uri).scheme;
     }
+    /**
+     * Line count of current buffer.
+     */
     get lineCount() {
         return this.lines.length;
     }
+    /**
+     * Initialize document model.
+     *
+     * @internal
+     */
     async init(nvim, token) {
         this.nvim = nvim;
         let { buffer } = this;
@@ -49899,9 +49929,7 @@ class Document {
             return false;
         let buftype = this.buftype = opts.buftype;
         this.variables = opts.variables;
-        this._additionalKeywords = opts.additionalKeywords;
         this._changedtick = opts.changedtick;
-        this._rootPatterns = opts.rootPatterns;
         this.eol = opts.eol == 1;
         let uri = this._uri = index_1.getUri(opts.fullpath, buffer.id, buftype);
         token.onCancellationRequested(() => {
@@ -49929,13 +49957,6 @@ class Document {
         if (token.isCancellationRequested)
             return false;
         return true;
-    }
-    setIskeyword(iskeyword) {
-        let chars = (this.chars = new chars_1.Chars(iskeyword));
-        for (let ch of this._additionalKeywords) {
-            chars.addKeyword(ch);
-        }
-        this._words = this.chars.matchKeywords(this.lines.join('\n'));
     }
     async attach() {
         if (this.shouldAttach) {
@@ -49983,9 +50004,6 @@ class Document {
     }
     /**
      * Make sure current document synced correctly
-     *
-     * @public
-     * @returns {Promise<void>}
      */
     async checkDocument() {
         this.paused = false;
@@ -49995,6 +50013,9 @@ class Document {
         this.fireContentChanges.clear();
         this._fireContentChanges();
     }
+    /**
+     * Check if document changed after last synchronize
+     */
     get dirty() {
         return this.content != this.getDocumentContent();
     }
@@ -50002,9 +50023,17 @@ class Document {
         let { paused, textDocument } = this;
         if (paused && !force)
             return;
+        let { cursor } = events_1.default;
         try {
             let content = this.getDocumentContent();
-            let change = diff_1.getChange(this.content, content);
+            let endOffset = null;
+            if (cursor.bufnr == this.bufnr) {
+                endOffset = this.getEndOffset(cursor.lnum, cursor.col, cursor.insert);
+                if (!cursor.insert && content.length < this.content.length) {
+                    endOffset = endOffset + 1;
+                }
+            }
+            let change = diff_1.getChange(this.content, content, endOffset);
             if (change == null)
                 return;
             this.createDocument();
@@ -50016,7 +50045,7 @@ class Document {
                     rangeLength: change.end - change.start,
                     text: change.newText
                 }];
-            logger.debug('changes:', JSON.stringify(changes, null, 2));
+            // logger.debug('change:', JSON.stringify(changes, null, 2))
             this._onDocumentChange.fire({
                 textDocument: { version, uri },
                 contentChanges: changes
@@ -50027,26 +50056,21 @@ class Document {
             logger.error(e.message);
         }
     }
-    detach() {
-        // neovim not detach on `:checktime`
-        if (this.attached) {
-            this.attached = false;
-            this.buffer.detach().catch(_e => {
-                // noop
-            });
-            this._onDocumentDetach.fire(this.uri);
-        }
-        this.fetchContent.clear();
-        this.fireContentChanges.clear();
-        this._onDocumentChange.dispose();
-        this._onDocumentDetach.dispose();
-    }
+    /**
+     * Buffer number
+     */
     get bufnr() {
         return this.buffer.id;
     }
+    /**
+     * Content of textDocument.
+     */
     get content() {
         return this.textDocument.getText();
     }
+    /**
+     * Coverted filetype.
+     */
     get filetype() {
         return this._filetype;
     }
@@ -50056,6 +50080,9 @@ class Document {
     get version() {
         return this.textDocument ? this.textDocument.version : null;
     }
+    /**
+     * Apply textEdits, change event would fired during the call by default.
+     */
     async applyEdits(_nvim, edits, sync = true) {
         if (edits.length == 0)
             return;
@@ -50079,19 +50106,46 @@ class Document {
                 this.forceSync();
         }
     }
+    changeLines(lines, sync = true, check = false) {
+        let { nvim } = this;
+        let filtered;
+        for (let [lnum, text] of lines) {
+            if (check && this.lines[lnum] != text) {
+                filtered.push([lnum, text]);
+            }
+            this.lines[lnum] = text;
+        }
+        if (check && !filtered.length)
+            return;
+        nvim.call('coc#util#change_lines', [this.bufnr, check ? filtered : lines], true);
+        if (sync)
+            this.forceSync();
+    }
+    /**
+     * Force emit change event when necessary.
+     */
     forceSync(ignorePause = true) {
         this.fireContentChanges.clear();
         this._fireContentChanges(ignorePause);
     }
+    /**
+     * Get offset from lnum & col
+     */
     getOffset(lnum, col) {
         return this.textDocument.offsetAt({
             line: lnum - 1,
             character: col
         });
     }
+    /**
+     * Check string is word.
+     */
     isWord(word) {
         return this.chars.isKeyword(word);
     }
+    /**
+     * Generate more words by split word with `-`
+     */
     getMoreWords() {
         let res = [];
         let { words, chars } = this;
@@ -50176,6 +50230,9 @@ class Document {
         this.lines = newLines;
         this._fireContentChanges();
     }
+    /**
+     * Get change from vim8, used by workspace
+     */
     async patchChange() {
         if (!this.env.isVim || !this.attached)
             return;
@@ -50187,6 +50244,17 @@ class Document {
         this._changedtick = changedtick;
         lines[lnum - 1] = line;
     }
+    /**
+     * Get changedtick from vim8, used by workspace
+     */
+    async patchChangedTick() {
+        if (!this.env.isVim || !this.attached)
+            return;
+        this._changedtick = await this.nvim.call('getbufvar', [this.bufnr, 'changedtick']);
+    }
+    /**
+     * Get ranges of word in textDocument.
+     */
     getSymbolRanges(word) {
         this.forceSync();
         let { textDocument } = this;
@@ -50211,11 +50279,9 @@ class Document {
         }
         return res;
     }
-    async patchChangedTick() {
-        if (!this.env.isVim || !this.attached)
-            return;
-        this._changedtick = await this.nvim.call('getbufvar', [this.bufnr, 'changedtick']);
-    }
+    /**
+     * Adjust col with new valid character before position.
+     */
     fixStartcol(position, valids) {
         let line = this.getline(position.line);
         if (!line)
@@ -50254,9 +50320,9 @@ class Document {
         }, []);
         for (let range of splited) {
             let { start, end } = range;
+            let line = this.getline(start.line);
             if (start.character == end.character)
                 continue;
-            let line = this.getline(start.line);
             arr.push([start.line + 1, string_1.byteIndex(line, start.character) + 1, string_1.byteLength(line.slice(start.character, end.character))]);
         }
         for (let grouped of array_1.group(arr, 8)) {
@@ -50268,10 +50334,15 @@ class Document {
         this.nvim.call('coc#util#add_matchids', [res], true);
         return res;
     }
-    highlightRanges(ranges, hlGroup, srcId) {
+    /**
+     * Highlight ranges in document, return match id list.
+     *
+     * Note: match id could by namespace id or vim's match id.
+     */
+    highlightRanges(ranges, hlGroup, srcId, priority = 10) {
         let res = [];
         if (this.env.isVim && !this.env.textprop) {
-            res = this.matchAddRanges(ranges, hlGroup, 10);
+            res = this.matchAddRanges(ranges, hlGroup, priority);
         }
         else {
             let lineRanges = [];
@@ -50313,27 +50384,141 @@ class Document {
         }
         return res;
     }
+    /**
+     * Clear match id list, for vim support namespace, list should be namespace id list.
+     */
     clearMatchIds(ids) {
         if (this.env.isVim && !this.env.textprop) {
             this.nvim.call('coc#util#clearmatches', [Array.from(ids)], true);
         }
         else {
-            for (let id of ids) {
-                if (this.nvim.hasFunction('nvim_create_namespace')) {
+            ids = array_1.distinct(Array.from(ids));
+            let hasNamesapce = this.nvim.hasFunction('nvim_create_namespace');
+            ids.forEach(id => {
+                if (hasNamesapce) {
                     this.buffer.clearNamespace(id);
                 }
                 else {
                     this.buffer.clearHighlight({ srcId: id });
                 }
-            }
+            });
         }
     }
+    /**
+     * Get cwd of this document.
+     */
     async getcwd() {
         let wid = await this.nvim.call('bufwinid', this.buffer.id);
         if (wid == -1)
             return await this.nvim.call('getcwd');
         return await this.nvim.call('getcwd', wid);
     }
+    /**
+     * Real current line
+     */
+    getline(line, current = true) {
+        if (current)
+            return this.lines[line] || '';
+        let lines = this.textDocument.getText().split(/\r?\n/);
+        return lines[line] || '';
+    }
+    /**
+     * Get lines, zero indexed, end exclude.
+     */
+    getLines(start, end) {
+        return this.lines.slice(start, end);
+    }
+    /**
+     * Get current content text.
+     */
+    getDocumentContent() {
+        let content = this.lines.join('\n');
+        return this.eol ? content + '\n' : content;
+    }
+    /**
+     * Get variable value by key, defined by `b:coc_{key}`
+     */
+    getVar(key, defaultValue) {
+        let val = this.variables[`coc_${key}`];
+        return val === undefined ? defaultValue : val;
+    }
+    /**
+     * Get position from lnum & col
+     */
+    getPosition(lnum, col) {
+        let line = this.getline(lnum - 1);
+        if (!line || col == 0)
+            return { line: lnum - 1, character: 0 };
+        let pre = string_1.byteSlice(line, 0, col - 1);
+        return { line: lnum - 1, character: pre.length };
+    }
+    getEndOffset(lnum, col, insert) {
+        let total = 0;
+        let len = this.lines.length;
+        for (let i = lnum - 1; i < len; i++) {
+            let line = this.lines[i];
+            if (i == lnum - 1 && line.length) {
+                if (!insert && string_1.byteLength(line) >= col)
+                    col = col + 1;
+                total = total + line.slice(string_1.characterIndex(line, col - 1)).length;
+            }
+            else {
+                total = total + line.length;
+            }
+            if (!this.eol && i == len - 1)
+                break;
+            total = total + 1;
+        }
+        return total;
+    }
+    /**
+     * Recreate document with new filetype.
+     *
+     * @internal
+     */
+    setFiletype(filetype) {
+        let { uri, version } = this;
+        this._filetype = this.convertFiletype(filetype);
+        version = version ? version + 1 : 1;
+        let textDocument = vscode_languageserver_protocol_1.TextDocument.create(uri, this.filetype, version, this.content);
+        this.textDocument = textDocument;
+    }
+    /**
+     * Change iskeyword option of document
+     *
+     * @internal
+     */
+    setIskeyword(iskeyword) {
+        let chars = (this.chars = new chars_1.Chars(iskeyword));
+        for (let ch of this.getVar('additional_keywords', []) || []) {
+            chars.addKeyword(ch);
+        }
+        this._words = this.chars.matchKeywords(this.lines.join('\n'));
+    }
+    /**
+     * Detach document.
+     *
+     * @internal
+     */
+    detach() {
+        // neovim not detach on `:checktime`
+        if (this.attached) {
+            this.attached = false;
+            this.buffer.detach().catch(_e => {
+                // noop
+            });
+            this._onDocumentDetach.fire(this.uri);
+        }
+        this.fetchContent.clear();
+        this.fireContentChanges.clear();
+        this._onDocumentChange.dispose();
+        this._onDocumentDetach.dispose();
+    }
+    /**
+     * Get localify bonus map.
+     *
+     * @internal
+     */
     getLocalifyBonus(sp, ep) {
         let res = new Map();
         let { chars } = this;
@@ -50379,36 +50564,6 @@ class Document {
             preKeyword = iskeyword;
         }
         return res;
-    }
-    /**
-     * Real current line
-     */
-    getline(line, current = true) {
-        if (current)
-            return this.lines[line] || '';
-        let lines = this.textDocument.getText().split(/\r?\n/);
-        return lines[line] || '';
-    }
-    getLines(start, end) {
-        return this.lines.slice(start, end);
-    }
-    getDocumentContent() {
-        let content = this.lines.join('\n');
-        return this.eol ? content + '\n' : content;
-    }
-    getVar(key, defaultValue) {
-        let val = this.variables[`coc_${key}`];
-        return val === undefined ? defaultValue : val;
-    }
-    get rootPatterns() {
-        return this._rootPatterns;
-    }
-    getPosition(lnum, col) {
-        let line = this.getline(lnum - 1);
-        if (!line || col == 0)
-            return { line: lnum - 1, character: 0 };
-        let pre = string_1.byteSlice(line, 0, col - 1);
-        return { line: lnum - 1, character: pre.length };
     }
 }
 exports.default = Document;
@@ -50457,7 +50612,7 @@ function diffLines(from, to) {
     };
 }
 exports.diffLines = diffLines;
-function getChange(oldStr, newStr) {
+function getChange(oldStr, newStr, cursorEnd) {
     let start = 0;
     let ol = oldStr.length;
     let nl = newStr.length;
@@ -50465,6 +50620,10 @@ function getChange(oldStr, newStr) {
     let newText = '';
     let endOffset = 0;
     for (let i = 0; i <= max; i++) {
+        if (cursorEnd != null && i == cursorEnd) {
+            endOffset = i;
+            break;
+        }
         if (oldStr[ol - i - 1] != newStr[nl - i - 1]) {
             endOffset = i;
             break;
@@ -50486,6 +50645,8 @@ function getChange(oldStr, newStr) {
     }
     let end = ol - endOffset;
     newText = newStr.slice(start, nl - endOffset);
+    if (ol == nl && start == end)
+        return null;
     return { start, end, newText };
 }
 exports.getChange = getChange;
@@ -51631,14 +51792,23 @@ function rangeInRange(r, range) {
     return positionInRange(r.start, range) === 0 && positionInRange(r.end, range) === 0;
 }
 exports.rangeInRange = rangeInRange;
+/**
+ * Check if two ranges have overlap character.
+ */
 function rangeOverlap(r, range) {
     let { start, end } = r;
-    if (comparePosition(start, range.start) < 0 && comparePosition(end, range.end) > 0) {
-        return true;
+    if (comparePosition(end, range.start) <= 0) {
+        return false;
     }
-    return positionInRange(start, range) == 0 || positionInRange(end, range) == 0;
+    if (comparePosition(start, range.end) >= 0) {
+        return false;
+    }
+    return true;
 }
 exports.rangeOverlap = rangeOverlap;
+/**
+ * Check if two ranges have overlap or nested
+ */
 function rangeIntersect(r, range) {
     if (positionInRange(r.start, range) == 0) {
         return true;
@@ -54062,7 +54232,8 @@ const services_1 = tslib_1.__importDefault(__webpack_require__(332));
 const manager_3 = tslib_1.__importDefault(__webpack_require__(230));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(234));
 const types_1 = __webpack_require__(186);
-const clean_1 = tslib_1.__importDefault(__webpack_require__(390));
+const cursors_1 = tslib_1.__importDefault(__webpack_require__(392));
+const clean_1 = tslib_1.__importDefault(__webpack_require__(394));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const logger = __webpack_require__(183)('plugin');
 class Plugin extends events_1.EventEmitter {
@@ -54073,11 +54244,18 @@ class Plugin extends events_1.EventEmitter {
         Object.defineProperty(workspace_1.default, 'nvim', {
             get: () => this.nvim
         });
+        this.cursors = new cursors_1.default(nvim);
         this.addMethod('hasSelected', () => {
             return completion_1.default.hasSelected();
         });
         this.addMethod('listNames', () => {
             return manager_2.default.names;
+        });
+        this.addMethod('search', (...args) => {
+            return this.handler.search(args);
+        });
+        this.addMethod('cursorsSelect', (bufnr, kind, mode) => {
+            return this.cursors.select(bufnr, kind, mode);
         });
         this.addMethod('codeActionRange', (start, end, only) => {
             return this.handler.codeActionRange(start, end, only);
@@ -54294,7 +54472,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f531ad1e07" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "b24601e6af" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54441,6 +54619,8 @@ class Plugin extends events_1.EventEmitter {
                     return await extensions_1.default.uninstallExtension(args.slice(1));
                 case 'getCurrentFunctionSymbol':
                     return await handler.getCurrentFunctionSymbol();
+                case 'addRanges':
+                    return await this.cursors.addRanges(args[1]);
                 default:
                     workspace_1.default.showMessage(`unknown action ${args[0]}`, 'error');
             }
@@ -54555,6 +54735,12 @@ class CommandManager {
             }
         }, true);
         this.register({
+            id: 'editor.action.addRanges',
+            execute: async (ranges) => {
+                await plugin.cocAction('addRanges', ranges);
+            }
+        }, true);
+        this.register({
             id: 'editor.action.restart',
             execute: async () => {
                 await util_1.wait(30);
@@ -54595,7 +54781,7 @@ class CommandManager {
             execute: async () => {
                 await workspace_1.default.runCommand('watchman watch-del-all');
             }
-        });
+        }, false, 'run watch-del-all for watchman to free up memory.');
         this.register({
             id: 'workspace.workspaceFolders',
             execute: async () => {
@@ -54603,13 +54789,13 @@ class CommandManager {
                 let lines = folders.map(folder => vscode_uri_1.URI.parse(folder.uri).fsPath);
                 await workspace_1.default.echoLines(lines);
             }
-        });
+        }, false, 'show opened workspaceFolders.');
         this.register({
             id: 'workspace.renameCurrentFile',
             execute: async () => {
                 await workspace_1.default.renameCurrent();
             }
-        });
+        }, false, 'change current filename to a new name and reload it.');
         this.register({
             id: 'extensions.toggleAutoUpdate',
             execute: async () => {
@@ -54624,13 +54810,13 @@ class CommandManager {
                     workspace_1.default.showMessage('Extension auto update disabled.', 'more');
                 }
             }
-        });
+        }, false, 'toggle auto update of extensions.');
         this.register({
             id: 'workspace.diagnosticRelated',
             execute: () => {
                 return manager_2.default.jumpRelated();
             }
-        });
+        }, false, 'jump to related locations of current diagnostic.');
         this.register({
             id: 'workspace.showOutput',
             execute: async (name) => {
@@ -54653,7 +54839,25 @@ class CommandManager {
                     }
                 }
             }
-        });
+        }, false, 'open output buffer to show output from languageservers or extensions.');
+        this.register({
+            id: 'document.renameCurrentWord',
+            execute: async () => {
+                let bufnr = await nvim.call('bufnr', '%');
+                let doc = workspace_1.default.getDocument(bufnr);
+                if (!doc)
+                    return;
+                let pos = await workspace_1.default.getCursorPosition();
+                let range = doc.getWordRangeAtPosition(pos);
+                if (!range)
+                    return;
+                let text = doc.textDocument.getText(range);
+                let ranges = doc.getSymbolRanges(text);
+                if (ranges.length) {
+                    await plugin.cocAction('addRanges', ranges);
+                }
+            }
+        }, false, 'rename word under cursor in current buffer by use multiple cursors.');
     }
     get commandList() {
         let res = [];
@@ -54676,9 +54880,11 @@ class CommandManager {
             args.push(...arr);
         this.executeCommand.apply(this, args);
     }
-    register(command, internal = false) {
+    register(command, internal = false, description) {
         for (const id of Array.isArray(command.id) ? command.id : [command.id]) {
             this.registerCommand(id, command.execute, command, internal);
+            if (description)
+                this.titles.set(id, description);
         }
         return command;
     }
@@ -56680,10 +56886,12 @@ class Completion {
     }
     async onInsertLeave(bufnr) {
         this.insertLeaveTs = Date.now();
-        let doc = workspace_1.default.getDocument(bufnr);
-        if (doc)
-            doc.forceSync(true);
-        this.stop();
+        if (this.isActivted) {
+            let doc = workspace_1.default.getDocument(bufnr);
+            if (doc)
+                doc.forceSync(true);
+            this.stop();
+        }
     }
     async onInsertEnter() {
         if (!this.config.triggerAfterInsertEnter)
@@ -61126,28 +61334,6 @@ class Languages {
         return await this.workspaceSymbolsManager.resolveWorkspaceSymbol(symbol, this.token);
     }
     async provideRenameEdits(document, position, newName) {
-        if (!this.renameManager.hasProvider(document)) {
-            let doc = workspace_1.default.getDocument(document.uri);
-            if (!doc)
-                return null;
-            let range = doc.getWordRangeAtPosition(position);
-            if (!range)
-                return null;
-            let word = doc.textDocument.getText(range);
-            let ranges = doc.getSymbolRanges(word);
-            if (!ranges.length)
-                return null;
-            return {
-                changes: {
-                    [doc.uri]: ranges.map(r => {
-                        return {
-                            range: r,
-                            newText: newName
-                        };
-                    })
-                }
-            };
-        }
         return await this.renameManager.provideRenameEdits(document, position, newName, this.token);
     }
     async prepareRename(document, position) {
@@ -76555,9 +76741,12 @@ class Highlighter {
     get length() {
         return this.lines.length;
     }
+    getline(line) {
+        return this.lines[line] || '';
+    }
     // default to replace
     render(buffer, start = 0, end = -1) {
-        buffer.setLines(this.lines, { start, end, strictIndexing: false });
+        buffer.setLines(this.lines, { start, end, strictIndexing: false }, true);
         for (let item of this.highlights) {
             buffer.addHighlight({
                 hlGroup: item.hlGroup,
@@ -77377,9 +77566,6 @@ class Mappings {
                     await this.onError(`prompt '${action}' not supported`);
             }
         }
-        else if (key == 'eval') {
-            await prompt.eval(action);
-        }
         else if (key == 'command') {
             await manager.command(action);
         }
@@ -77607,19 +77793,18 @@ class Prompt {
         this._onDidChangeInput.fire(this._input);
     }
     insertCharacter(ch) {
-        this.addText(ch);
+        let { cusorIndex, input } = this;
+        this.cusorIndex = cusorIndex + 1;
+        let pre = input.slice(0, cusorIndex);
+        let post = input.slice(cusorIndex);
+        this._input = `${pre}${ch}${post}`;
+        this.drawPrompt();
+        this._onDidChangeInput.fire(this._input);
     }
     async paste() {
-        await this.eval('@*');
-    }
-    async eval(expression) {
         let { cusorIndex, input } = this;
-        let text = await this.nvim.eval(expression);
+        let text = await this.nvim.eval('@*');
         text = text.replace(/\n/g, '');
-        this.addText(text);
-    }
-    addText(text) {
-        let { cusorIndex, input } = this;
         this.cusorIndex = cusorIndex + text.length;
         let pre = input.slice(0, cusorIndex);
         let post = input.slice(cusorIndex);
@@ -82086,9 +82271,10 @@ const position_1 = __webpack_require__(210);
 const string_1 = __webpack_require__(207);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const codelens_1 = tslib_1.__importDefault(__webpack_require__(385));
-const colors_1 = tslib_1.__importDefault(__webpack_require__(386));
-const refactor_1 = tslib_1.__importDefault(__webpack_require__(388));
-const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(389));
+const search_1 = tslib_1.__importDefault(__webpack_require__(386));
+const colors_1 = tslib_1.__importDefault(__webpack_require__(388));
+const refactor_1 = tslib_1.__importDefault(__webpack_require__(390));
+const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(391));
 const debounce = __webpack_require__(173);
 const logger = __webpack_require__(183)('Handler');
 const pairs = new Map([
@@ -83095,10 +83281,14 @@ class Handler {
      * Refactor of current symbol
      */
     async doRefactor() {
-        await this.refactor.start();
+        await this.refactor.rename();
     }
     async saveRefactor(bufnr) {
         await this.refactor.saveRefactor(bufnr);
+    }
+    async search(args) {
+        let search = new search_1.default(this.nvim, this.refactor);
+        await search.run(args);
     }
     async previewHover(hovers) {
         let lines = [];
@@ -83543,6 +83733,250 @@ exports.default = CodeLensManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
+const child_process_1 = __webpack_require__(172);
+const highligher_1 = tslib_1.__importDefault(__webpack_require__(346));
+const events_1 = __webpack_require__(49);
+const path_1 = tslib_1.__importDefault(__webpack_require__(56));
+const readline_1 = tslib_1.__importDefault(__webpack_require__(59));
+const vscode_languageserver_types_1 = __webpack_require__(158);
+const which_1 = tslib_1.__importDefault(__webpack_require__(175));
+const ansiparse_1 = __webpack_require__(347);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
+const await_semaphore_1 = __webpack_require__(387);
+const logger = __webpack_require__(183)('handler-search');
+const defaultArgs = ['--color', 'ansi', '--colors', 'path:fg:black', '--colors', 'match:fg:red', '--no-messages', '--heading', '-n'];
+const controlCode = '\x1b';
+// emit FileItem
+class Task extends events_1.EventEmitter {
+    start(cmd, args, cwd) {
+        this.process = child_process_1.spawn(cmd, args, { cwd });
+        this.process.on('error', e => {
+            this.emit('error', e.message);
+        });
+        this.process.stderr.on('data', chunk => {
+            console.error(chunk.toString('utf8')); // tslint:disable-line
+        });
+        const rl = readline_1.default.createInterface(this.process.stdout);
+        let fileItem;
+        let start;
+        let lines = [];
+        let highlights = [];
+        let create = true;
+        rl.on('line', content => {
+            if (content.indexOf(controlCode) !== -1) {
+                let items = ansiparse_1.ansiparse(content);
+                if (items[0].foreground == 'black') {
+                    fileItem = { filepath: path_1.default.join(cwd, items[0].text), ranges: [] };
+                    return;
+                }
+                let normalLine = items[0].foreground == 'green';
+                if (normalLine) {
+                    let lnum = parseInt(items[0].text, 10) - 1;
+                    let padlen = items[0].text.length + 1;
+                    if (create) {
+                        start = lnum;
+                        create = false;
+                    }
+                    let line = '';
+                    for (let item of items) {
+                        if (item.foreground == 'red') {
+                            let l = lnum - start;
+                            let c = line.length - padlen;
+                            highlights.push(vscode_languageserver_types_1.Range.create(l, c, l, c + item.text.length));
+                        }
+                        line += item.text;
+                    }
+                    let currline = line.slice(padlen);
+                    lines.push(currline);
+                }
+            }
+            else {
+                let fileEnd = content.trim().length == 0;
+                if (fileItem && (fileEnd || content.trim() == '--')) {
+                    let fileRange = {
+                        lines,
+                        highlights,
+                        start,
+                        end: start + lines.length
+                    };
+                    fileItem.ranges.push(fileRange);
+                }
+                if (fileEnd) {
+                    this.emit('item', fileItem);
+                    fileItem = null;
+                }
+                lines = [];
+                highlights = [];
+                create = true;
+            }
+        });
+        rl.on('close', () => {
+            if (fileItem) {
+                if (lines.length) {
+                    let fileRange = {
+                        lines,
+                        highlights,
+                        start,
+                        end: start + lines.length
+                    };
+                    fileItem.ranges.push(fileRange);
+                }
+                this.emit('item', fileItem);
+                fileItem = null;
+            }
+            this.emit('end');
+        });
+    }
+    dispose() {
+        if (this.process) {
+            this.process.kill();
+        }
+    }
+}
+class Search {
+    constructor(nvim, refactor) {
+        this.nvim = nvim;
+        this.refactor = refactor;
+    }
+    async run(args) {
+        let { nvim } = this;
+        let { afterContext, beforeContext } = this.refactor.config;
+        let argList = ['-A', afterContext.toString(), '-B', beforeContext.toString()].concat(defaultArgs, args);
+        let cwd = await nvim.call('getcwd');
+        let winid = await nvim.call('win_getid');
+        let cmd;
+        try {
+            cmd = which_1.default.sync('rg');
+        }
+        catch (e) {
+            workspace_1.default.showMessage('Please install ripgrep and make sure rg is in your $PATH', 'error');
+            return;
+        }
+        let buf = await this.refactor.createRefactorBuffer(winid);
+        this.task = new Task();
+        this.task.start(cmd, argList, cwd);
+        let mutex = new await_semaphore_1.Mutex();
+        let files = 0;
+        let matches = 0;
+        let start = Date.now();
+        this.task.on('item', async (fileItem) => {
+            files++;
+            matches = matches + fileItem.ranges.reduce((p, r) => p + r.highlights.length, 0);
+            const release = await mutex.acquire();
+            try {
+                await this.refactor.addFileItems([fileItem], buf);
+            }
+            catch (e) {
+                logger.error(e);
+            }
+            release();
+        });
+        this.task.on('error', message => {
+            this.task = null;
+        });
+        this.task.on('end', async () => {
+            this.task.removeAllListeners();
+            this.task = null;
+            nvim.pauseNotification();
+            if (files == 0) {
+                buf.setLines(['No match found'], { start: 1, end: 2, strictIndexing: false });
+                buf.addHighlight({ line: 1, srcId: -1, colEnd: -1, colStart: 0, hlGroup: 'Error' }).logError();
+            }
+            else {
+                let highligher = new highligher_1.default();
+                highligher.addText('Files', 'MoreMsg');
+                highligher.addText(': ');
+                highligher.addText(`${files} `, 'Number');
+                highligher.addText('Matches', 'MoreMsg');
+                highligher.addText(': ');
+                highligher.addText(`${matches} `, 'Number');
+                highligher.addText('Duration', 'MoreMsg');
+                highligher.addText(': ');
+                highligher.addText(`${Date.now() - start}`, 'Number');
+                highligher.render(buf, 1, 2);
+            }
+            buf.setOption('modified', false, true);
+            await nvim.resumeNotification();
+        });
+    }
+}
+exports.default = Search;
+//# sourceMappingURL=search.js.map
+
+/***/ }),
+/* 387 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+class Semaphore {
+    constructor(count) {
+        this.tasks = [];
+        this.count = count;
+    }
+    sched() {
+        if (this.count > 0 && this.tasks.length > 0) {
+            this.count--;
+            let next = this.tasks.shift();
+            if (next === undefined) {
+                throw "Unexpected undefined value in tasks list";
+            }
+            next();
+        }
+    }
+    acquire() {
+        return new Promise((res, rej) => {
+            var task = () => {
+                var released = false;
+                res(() => {
+                    if (!released) {
+                        released = true;
+                        this.count++;
+                        this.sched();
+                    }
+                });
+            };
+            this.tasks.push(task);
+            if (process && process.nextTick) {
+                process.nextTick(this.sched.bind(this));
+            }
+            else {
+                setImmediate(this.sched.bind(this));
+            }
+        });
+    }
+    use(f) {
+        return this.acquire()
+            .then(release => {
+            return f()
+                .then((res) => {
+                release();
+                return res;
+            })
+                .catch((err) => {
+                release();
+                throw err;
+            });
+        });
+    }
+}
+exports.Semaphore = Semaphore;
+class Mutex extends Semaphore {
+    constructor() {
+        super(1);
+    }
+}
+exports.Mutex = Mutex;
+//# sourceMappingURL=index.js.map
+
+/***/ }),
+/* 388 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(3);
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(173));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const events_1 = tslib_1.__importDefault(__webpack_require__(145));
@@ -83550,7 +83984,7 @@ const languages_1 = tslib_1.__importDefault(__webpack_require__(254));
 const util_1 = __webpack_require__(171);
 const object_1 = __webpack_require__(187);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const highlighter_1 = tslib_1.__importStar(__webpack_require__(387));
+const highlighter_1 = tslib_1.__importStar(__webpack_require__(389));
 const logger = __webpack_require__(183)('colors');
 class Colors {
     constructor(nvim) {
@@ -83741,7 +84175,7 @@ exports.default = Colors;
 //# sourceMappingURL=colors.js.map
 
 /***/ }),
-/* 387 */
+/* 389 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -83889,7 +84323,7 @@ function isDark(color) {
 //# sourceMappingURL=highlighter.js.map
 
 /***/ }),
-/* 388 */
+/* 390 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -83900,15 +84334,19 @@ const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const vscode_languageserver_types_1 = __webpack_require__(158);
 const vscode_uri_1 = __webpack_require__(174);
+const commands_1 = tslib_1.__importDefault(__webpack_require__(229));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(254));
 const highligher_1 = tslib_1.__importDefault(__webpack_require__(346));
 const fs_2 = __webpack_require__(197);
+const object_1 = __webpack_require__(187);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const logger = __webpack_require__(183)('refactor');
 const name = '__coc_refactor__';
+const separator = '\u3000';
 class Refactor {
     constructor() {
         this.id = 0;
+        this.varibles = new Map();
         this.nvim = workspace_1.default.nvim;
         let config = workspace_1.default.getConfiguration('refactor');
         this.config = {
@@ -83917,8 +84355,11 @@ class Refactor {
             openCommand: config.get('openCommand', 'edit')
         };
     }
-    async start() {
-        let [bufnr, cursor, winid] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),win_getid()]');
+    /**
+     * Start rename refactor of current symbol.
+     */
+    async rename() {
+        let [bufnr, cursor, winid, filetype] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),win_getid(),&filetype]');
         let doc = workspace_1.default.getDocument(bufnr);
         if (!doc)
             return;
@@ -83928,86 +84369,55 @@ class Refactor {
             workspace_1.default.showMessage('Invalid position for rename', 'error');
             return;
         }
-        let curname;
-        if (res == null) {
-            let range = doc.getWordRangeAtPosition(position);
-            if (range)
-                curname = doc.textDocument.getText(range);
-        }
-        else {
-            if (vscode_languageserver_types_1.Range.is(res)) {
-                let line = doc.getline(res.start.line);
-                curname = line.slice(res.start.character, res.end.character);
-            }
-            else {
-                curname = res.placeholder;
-            }
-        }
-        if (!curname) {
-            workspace_1.default.showMessage('Invalid position', 'warning');
-            return;
-        }
         let edit = await languages_1.default.provideRenameEdits(doc.textDocument, position, 'newname');
-        if (!edit) {
-            workspace_1.default.showMessage('Server return empty response', 'warning');
+        if (!edit || emptyWorkspaceEdit(edit)) {
+            workspace_1.default.showMessage('Empty workspaceEdit from server', 'warning');
             return;
         }
         let items = this.getFileItems(edit);
-        await this.createRefactorWindow(items, curname, winid);
+        let buf = await this.createRefactorBuffer(winid, filetype);
+        await this.addFileItems(items, buf);
     }
-    async createRefactorWindow(items, curname, winid) {
-        let { nvim } = this;
+    /**
+     * Create initialized refactor buffer
+     */
+    async createRefactorBuffer(winid, filetype) {
+        let { nvim, bufnr } = this;
+        if (bufnr)
+            await nvim.command(`silent! ${bufnr}bd!`);
+        let cwd = await nvim.call('getcwd');
+        let { openCommand } = this.config;
         let highligher = new highligher_1.default();
         highligher.addLine('Save current buffer to make changes', 'Comment');
-        highligher.addLine('—');
-        for (let item of items) {
-            for (let range of item.ranges) {
-                highligher.addLine('—');
-                highligher.addText(`${item.filepath}`, 'Label');
-                highligher.addText(':');
-                highligher.addText(String(range.start + 1), 'LineNr');
-                highligher.addText(':');
-                highligher.addText(String(range.end + 1), 'LineNr');
-                let start = highligher.length;
-                let lines = await this.getLines(item.filepath, range.start, range.end);
-                highligher.addLines(lines);
-                highligher.addLine('—');
-            }
-        }
-        let { openCommand } = this.config;
+        highligher.addLine(separator);
         nvim.pauseNotification();
         nvim.command(`${openCommand} ${name}${this.id++}`, true);
         nvim.command(`setl buftype=acwrite nobuflisted bufhidden=hide nofen wrap conceallevel=3 concealcursor=n`, true);
         nvim.call('bufnr', ['%'], true);
-        nvim.call('matchadd', ['Conceal', '^—'], true);
+        nvim.call('matchadd', ['Conceal', '^\\%u3000'], true);
         nvim.call('coc#util#do_autocmd', ['CocRefactorOpen'], true);
-        let [res, err] = await nvim.resumeNotification();
-        if (err) {
-            logger.error(err);
-            workspace_1.default.showMessage(`Error on open refactor window: ${err}`, 'error');
-            return;
-        }
-        let buffer = nvim.createBuffer(res[2]);
-        nvim.pauseNotification();
-        highligher.render(buffer);
-        nvim.command('exe 1', true);
-        nvim.command('setl nomod', true);
-        nvim.command(`execute 'normal! /\\<'.escape('${curname.replace(/'/g, "''")}', '\\\\/.*$^~[]')."\\\\>\\<cr>"`, true);
         workspace_1.default.registerLocalKeymap('n', '<CR>', async () => {
+            let win = nvim.createWindow(winid);
             let currwin = await nvim.call('win_getid');
-            let lines = await nvim.eval('getline(3,line("."))');
+            let valid = await win.valid;
+            let lines = await nvim.eval('getline(4,line("."))');
             let len = lines.length;
             for (let i = 0; i < len; i++) {
                 let line = lines[len - i - 1];
-                let ms = line.match(/^—(.*?):(\d+):(\d+)/);
+                let ms = line.match(/^\u3000(.*?):(\d+):(\d+)/);
                 if (ms) {
                     let filepath = ms[1];
                     let start = parseInt(ms[2], 10);
                     let lnum = i == 0 ? start : start + i - 1;
                     let bufname = filepath.startsWith(workspace_1.default.cwd) ? path_1.default.relative(workspace_1.default.cwd, filepath) : filepath;
                     nvim.pauseNotification();
-                    nvim.call('win_gotoid', [winid], true);
-                    this.nvim.call('coc#util#jump', ['edit', bufname, [lnum, 1]], true);
+                    if (valid) {
+                        nvim.call('win_gotoid', [winid], true);
+                        this.nvim.call('coc#util#jump', ['edit', bufname, [lnum, 1]], true);
+                    }
+                    else {
+                        this.nvim.call('coc#util#jump', ['belowright vs', bufname, [lnum, 1]], true);
+                    }
                     nvim.command('normal! zz', true);
                     let [, err] = await nvim.resumeNotification();
                     if (err)
@@ -84016,7 +84426,167 @@ class Refactor {
                 }
             }
         }, true);
+        let [res, err] = await nvim.resumeNotification();
+        if (err) {
+            logger.error(err);
+            workspace_1.default.showMessage(`Error on open refactor window: ${err}`, 'error');
+            return;
+        }
+        let buffer = nvim.createBuffer(res[2]);
+        this.saveVariable(buffer.id, 'cwd', cwd);
+        this.bufnr = res[2];
+        nvim.pauseNotification();
+        if (filetype)
+            nvim.command(`runtime! syntax/${filetype}.vim`, true);
+        highligher.render(buffer);
+        nvim.command('setl nomod', true);
         await nvim.resumeNotification();
+        return buffer;
+    }
+    /**
+     * Add FileItem to refactor buffer.
+     */
+    async addFileItems(items, buffer) {
+        let count = await buffer.length;
+        let cwd = this.getVariable(buffer.id, 'cwd');
+        let highligher = new highligher_1.default();
+        let hlRanges = [];
+        for (let item of items) {
+            for (let range of item.ranges) {
+                highligher.addLine(separator);
+                highligher.addLine(separator);
+                highligher.addText(`${cwd ? path_1.default.relative(cwd, item.filepath) : item.filepath}`, 'Label');
+                highligher.addText(':');
+                highligher.addText(String(range.start + 1), 'LineNr');
+                highligher.addText(':');
+                highligher.addText(String(range.end), 'LineNr');
+                let base = 0 - highligher.length - count;
+                if (range.highlights) {
+                    hlRanges.push(...range.highlights.map(r => adjustRange(r, base)));
+                }
+                let { lines } = range;
+                if (!lines)
+                    lines = await this.getLines(item.filepath, range.start, range.end);
+                highligher.addLines(lines);
+            }
+        }
+        let { nvim } = this;
+        nvim.pauseNotification();
+        highligher.render(buffer, count);
+        nvim.command('setl nomod', true);
+        if (count == 2 && hlRanges.length) {
+            nvim.call('coc#util#jumpTo', [hlRanges[0].start.line, hlRanges[0].start.character], true);
+        }
+        let [, err] = await nvim.resumeNotification();
+        if (err)
+            logger.error(err);
+        try {
+            await this.ensureDocument(buffer.id);
+        }
+        catch (e) {
+            logger.error(e);
+            return;
+        }
+        await commands_1.default.executeCommand('editor.action.addRanges', hlRanges);
+    }
+    /**
+     * Current changed file ranges
+     */
+    async getFileChanges(buffer) {
+        let { nvim } = this;
+        let bufnr = buffer.id;
+        let changes = [];
+        let cwd = this.getVariable(bufnr, 'cwd');
+        let lines = await buffer.lines;
+        lines.push(separator);
+        // current lines
+        let arr = [];
+        let fsPath;
+        let start;
+        let end;
+        for (let line of lines) {
+            if (line.startsWith(separator)) {
+                if (fsPath) {
+                    changes.push({
+                        filepath: fsPath,
+                        lines: arr,
+                        start: start - 1,
+                        end
+                    });
+                    fsPath = undefined;
+                    arr = [];
+                }
+                if (line.length > 1) {
+                    let ms = line.match(/^\u3000(.*?):(\d+):(\d+)/);
+                    if (ms) {
+                        fsPath = !path_1.default.isAbsolute(ms[1]) && cwd ? path_1.default.join(cwd, ms[1]) : ms[1];
+                        start = parseInt(ms[2], 10);
+                        end = parseInt(ms[3], 10);
+                        arr = [];
+                    }
+                }
+            }
+            else {
+                arr.push(line);
+            }
+        }
+        return changes;
+    }
+    /**
+     * Save changes to files, return false when no change made.
+     */
+    async saveRefactor(bufnr) {
+        let { nvim } = this;
+        let buffer = nvim.createBuffer(bufnr);
+        let changes = await this.getFileChanges(buffer);
+        // filter changes that not change
+        let removeList = [];
+        await Promise.all(changes.map((change, idx) => {
+            return this.hasChange(change).then(changed => {
+                if (!changed)
+                    removeList.push(idx);
+            }, e => {
+                logger.error(e);
+            });
+        }));
+        changes = changes.filter((_, i) => !removeList.includes(i));
+        if (changes.length == 0) {
+            workspace_1.default.showMessage('No change.', 'more');
+            await buffer.setOption('modified', false);
+            return false;
+        }
+        let changeMap = {};
+        for (let change of changes) {
+            let uri = vscode_uri_1.URI.file(change.filepath).toString();
+            let edits = changeMap[uri] || [];
+            edits.push({
+                range: vscode_languageserver_types_1.Range.create(change.start, 0, change.end, 0),
+                newText: change.lines.join('\n') + '\n'
+            });
+            changeMap[uri] = edits;
+        }
+        await buffer.setOption('modified', false);
+        await workspace_1.default.applyEdit({ changes: changeMap });
+        await nvim.command('wa');
+        return true;
+    }
+    async ensureDocument(bufnr) {
+        await new Promise((resolve, reject) => {
+            let n = 0;
+            let interval = setInterval(async () => {
+                let doc = workspace_1.default.getDocument(bufnr);
+                if (doc) {
+                    await doc._fetchContent();
+                    clearInterval(interval);
+                    resolve();
+                }
+                else if (n == 10) {
+                    clearInterval(interval);
+                    reject(new Error('document create timeout after 1s'));
+                }
+                n++;
+            }, 100);
+        });
     }
     getFileItems(edit) {
         let res = [];
@@ -84041,15 +84611,15 @@ class Refactor {
             for (let edit of edits) {
                 let { line } = edit.range.start;
                 let s = Math.max(0, line - beforeContext);
-                if (start != null && s <= end) {
-                    end = Math.min(max, line + afterContext);
+                if (start != null && s < end) {
+                    end = Math.min(max, line + afterContext + 1);
                     highlights.push(adjustRange(edit.range, start));
                 }
                 else {
                     if (start != null)
                         ranges.push({ start, end, highlights });
                     start = s;
-                    end = Math.min(max, line + afterContext);
+                    end = Math.min(max, line + afterContext + 1);
                     highlights = [adjustRange(edit.range, start)];
                 }
             }
@@ -84073,44 +84643,25 @@ class Refactor {
         let uri = vscode_uri_1.URI.file(fsPath).toString();
         let doc = workspace_1.default.getDocument(uri);
         if (doc)
-            return doc.getLines(start, end + 1);
-        return await fs_2.readFileLines(fsPath, start, end);
+            return doc.getLines(start, end);
+        return await fs_2.readFileLines(fsPath, start, end - 1);
     }
-    async saveRefactor(bufnr) {
-        let { nvim } = this;
-        let buffer = nvim.createBuffer(bufnr);
-        let lines = await buffer.lines;
-        let changes = {};
-        let arr = [];
-        let uri;
-        let start;
-        let end;
-        for (let line of lines.slice(2)) {
-            if (line.startsWith('—') && line.length == 1 && uri) {
-                let edits = changes[uri] || [];
-                let r = vscode_languageserver_types_1.Range.create(start - 1, 0, end, 0);
-                edits.push(vscode_languageserver_types_1.TextEdit.replace(r, arr.join('\n') + '\n'));
-                changes[uri] = edits;
-                arr = [];
-            }
-            else if (line.startsWith('—')) {
-                let ms = line.match(/^—(.*?):(\d+):(\d+)/);
-                if (ms) {
-                    uri = vscode_uri_1.URI.file(ms[1]).toString();
-                    start = parseInt(ms[2], 10);
-                    end = parseInt(ms[3], 10);
-                }
-                else {
-                    arr.push(line);
-                }
-            }
-            else {
-                arr.push(line);
-            }
+    async hasChange(fileChange) {
+        let { filepath, start, end, lines } = fileChange;
+        let curr = await this.getLines(filepath, start, end);
+        if (curr.length == lines.length && object_1.equals(curr, lines)) {
+            return false;
         }
-        await workspace_1.default.applyEdit({ changes });
-        nvim.command('setl nomod', true);
-        nvim.command('noa wa', true);
+        return true;
+    }
+    saveVariable(bufnr, key, value) {
+        let obj = this.varibles.get(bufnr) || {};
+        obj[key] = value;
+        this.varibles.set(bufnr, obj);
+    }
+    getVariable(bufnr, key) {
+        let obj = this.varibles.get(bufnr) || {};
+        return obj[key];
     }
 }
 exports.default = Refactor;
@@ -84118,10 +84669,18 @@ function adjustRange(range, offset) {
     let { start, end } = range;
     return vscode_languageserver_types_1.Range.create(start.line - offset, start.character, end.line - offset, end.character);
 }
+function emptyWorkspaceEdit(edit) {
+    let { changes, documentChanges } = edit;
+    if (documentChanges && documentChanges.length)
+        return false;
+    if (changes && Object.keys(changes).length)
+        return false;
+    return true;
+}
 //# sourceMappingURL=refactor.js.map
 
 /***/ }),
-/* 389 */
+/* 391 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -84222,7 +84781,544 @@ exports.default = DocumentHighlighter;
 //# sourceMappingURL=documentHighlight.js.map
 
 /***/ }),
-/* 390 */
+/* 392 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(3);
+const vscode_languageserver_types_1 = __webpack_require__(158);
+const events_1 = tslib_1.__importDefault(__webpack_require__(145));
+const util_1 = __webpack_require__(171);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
+const position_1 = __webpack_require__(210);
+const range_1 = tslib_1.__importDefault(__webpack_require__(393));
+const array_1 = __webpack_require__(209);
+const logger = __webpack_require__(183)('cursors');
+class Cursors {
+    constructor(nvim) {
+        this.nvim = nvim;
+        this._activated = false;
+        this._changed = false;
+        this.ranges = [];
+        this.disposables = [];
+        this.matchIds = [];
+        this.version = -1;
+        let config = workspace_1.default.getConfiguration('cursors');
+        this.config = {
+            nextKey: config.get('nextKey', '<C-n>'),
+            previousKey: config.get('previousKey', '<C-p>'),
+            cancelKey: config.get('cancelKey', '<esc>')
+        };
+        this.srcId = workspace_1.default.createNameSpace('coc-cursors');
+    }
+    async select(bufnr, kind, mode) {
+        let doc = workspace_1.default.getDocument(bufnr);
+        if (!doc)
+            return;
+        doc.forceSync();
+        let { nvim } = this;
+        if (this._changed || bufnr != this.bufnr) {
+            this.cancel();
+        }
+        let pos = await workspace_1.default.getCursorPosition();
+        let range;
+        if (kind == 'operator') {
+            await nvim.command(`normal! ${mode == 'line' ? `'[` : '`['}`);
+            let start = await workspace_1.default.getCursorPosition();
+            await nvim.command(`normal! ${mode == 'line' ? `']` : '`]'}`);
+            let end = await workspace_1.default.getCursorPosition();
+            await workspace_1.default.moveTo(pos);
+            let relative = position_1.comparePosition(start, end);
+            // do nothing for empty range
+            if (relative == 0)
+                return;
+            if (relative >= 0)
+                [start, end] = [end, start];
+            // include end character
+            let line = doc.getline(end.line);
+            if (end.character < line.length) {
+                end.character = end.character + 1;
+            }
+            let ranges = splitRange(doc, vscode_languageserver_types_1.Range.create(start, end));
+            for (let r of ranges) {
+                let text = doc.textDocument.getText(r);
+                this.addRange(r, text);
+            }
+        }
+        else if (kind == 'word') {
+            range = doc.getWordRangeAtPosition(pos);
+            if (!range) {
+                let line = doc.getline(pos.line);
+                if (pos.character == line.length) {
+                    range = vscode_languageserver_types_1.Range.create(pos.line, Math.max(0, line.length - 1), pos.line, line.length);
+                }
+                else {
+                    range = vscode_languageserver_types_1.Range.create(pos.line, pos.character, pos.line, pos.character + 1);
+                }
+            }
+            let line = doc.getline(pos.line);
+            let text = line.slice(range.start.character, range.end.character);
+            this.addRange(range, text);
+        }
+        else if (kind == 'position') {
+            // make sure range contains character for highlight
+            let line = doc.getline(pos.line);
+            if (pos.character >= line.length) {
+                range = vscode_languageserver_types_1.Range.create(pos.line, line.length - 1, pos.line, line.length);
+            }
+            else {
+                range = vscode_languageserver_types_1.Range.create(pos.line, pos.character, pos.line, pos.character + 1);
+            }
+            this.addRange(range, line.slice(range.start.character, range.end.character));
+        }
+        else if (kind == 'range') {
+            await nvim.call('eval', 'feedkeys("\\<esc>", "in")');
+            let range = await workspace_1.default.getSelectedRange(mode, doc);
+            if (!range || position_1.comparePosition(range.start, range.end) == 0)
+                return;
+            let ranges = mode == '\x16' ? getVisualRanges(doc, range) : splitRange(doc, range);
+            for (let r of ranges) {
+                let text = doc.textDocument.getText(r);
+                this.addRange(r, text);
+            }
+        }
+        else {
+            workspace_1.default.showMessage(`${kind} not supported`, 'error');
+            return;
+        }
+        if (workspace_1.default.bufnr != bufnr)
+            return;
+        if (this._activated && !this.ranges.length) {
+            this.cancel();
+        }
+        else if (this.ranges.length && !this._activated) {
+            this.activate(doc);
+        }
+        if (this._activated) {
+            nvim.pauseNotification();
+            this.doHighlights();
+            if (workspace_1.default.isVim) {
+                nvim.command('redraw', true);
+            }
+            let [, err] = await nvim.resumeNotification();
+            if (err)
+                logger.error(err);
+        }
+        if (kind == 'word' || kind == 'position') {
+            await nvim.command(`silent! call repeat#set("\\<Plug>(coc-cursors-${kind})", -1)`);
+        }
+    }
+    activate(doc) {
+        if (this._activated)
+            return;
+        this._activated = true;
+        this.bufnr = doc.bufnr;
+        doc.forceSync();
+        this.textDocument = doc.textDocument;
+        doc.onDocumentChange(async (e) => {
+            if (doc.version - this.version == 1 || !this.ranges.length)
+                return;
+            let change = e.contentChanges[0];
+            let { text, range } = change;
+            // ignore change after last range
+            if (!this._changed && position_1.comparePosition(range.start, this.lastPosition) > 0) {
+                this.textDocument = doc.textDocument;
+                return;
+            }
+            let changeCount = text.split('\n').length - (range.end.line - range.start.line + 1);
+            // adjust line when change before first line
+            if (!this._changed && range.end.line < this.ranges[0].line && changeCount != 0) {
+                this.ranges.forEach(r => r.line = r.line + changeCount);
+                this.textDocument = doc.textDocument;
+                return;
+            }
+            // ignore changes not overlap
+            if (changeCount == 0) {
+                let lnums = array_1.distinct(this.ranges.map(r => r.line));
+                let startLine = range.start.line;
+                let endLine = range.end.line;
+                let overlap = lnums.some(line => line >= startLine && line <= endLine);
+                if (!overlap)
+                    return;
+            }
+            this._changed = true;
+            // get range from edit
+            let textRange = this.getTextRange(range, text);
+            if (!textRange)
+                return this.cancel();
+            // calculate & apply changes for all ranges
+            this.adjustChange(textRange, range, text);
+            let edits = this.ranges.map(o => o.textEdit);
+            let content = vscode_languageserver_types_1.TextDocument.applyEdits(this.textDocument, edits);
+            let newLines = content.split('\n');
+            let changedLnum = new Set();
+            let arr = [];
+            for (let r of this.ranges) {
+                if (!changedLnum.has(r.line)) {
+                    changedLnum.add(r.line);
+                    arr.push([r.line, newLines[r.line]]);
+                }
+            }
+            let { nvim } = this;
+            this.version = doc.version;
+            nvim.pauseNotification();
+            doc.changeLines(arr);
+            // change cursor position when necessary
+            let { cursor } = events_1.default;
+            if (textRange.preCount > 0 && cursor.bufnr == this.bufnr && textRange.line + 1 == cursor.lnum) {
+                let changed = textRange.preCount * (text.length - (range.end.character - range.start.character));
+                nvim.call('cursor', [cursor.lnum, cursor.col + changed], true);
+            }
+            this.doHighlights();
+            let [, err] = await nvim.resumeNotification();
+            if (err)
+                logger.error(err);
+        }, null, this.disposables);
+        doc.onDocumentDetach(e => {
+            this.cancel();
+        }, null, this.disposables);
+        let { cancelKey, nextKey, previousKey } = this.config;
+        workspace_1.default.registerLocalKeymap('n', cancelKey, () => {
+            if (!this._activated)
+                return this.unmap(cancelKey);
+            this.cancel();
+        }, true);
+        workspace_1.default.registerLocalKeymap('n', nextKey, async () => {
+            if (!this._activated)
+                return this.unmap(nextKey);
+            let ranges = this.ranges.map(o => o.currRange);
+            let curr = await workspace_1.default.getCursorPosition();
+            for (let r of ranges) {
+                if (position_1.comparePosition(r.start, curr) > 0) {
+                    await workspace_1.default.moveTo(r.start);
+                    return;
+                }
+            }
+            if (ranges.length)
+                await workspace_1.default.moveTo(ranges[0].start);
+        }, true);
+        workspace_1.default.registerLocalKeymap('n', previousKey, async () => {
+            if (!this._activated)
+                return this.unmap(previousKey);
+            let ranges = this.ranges.map(o => o.currRange);
+            ranges.reverse();
+            let curr = await workspace_1.default.getCursorPosition();
+            for (let r of ranges) {
+                if (position_1.comparePosition(r.end, curr) < 0) {
+                    await workspace_1.default.moveTo(r.start);
+                    return;
+                }
+            }
+            if (ranges.length)
+                await workspace_1.default.moveTo(ranges[0].start);
+        }, true);
+    }
+    doHighlights() {
+        let { nvim, matchIds } = this;
+        let doc = workspace_1.default.getDocument(this.bufnr);
+        if (!doc || !this.ranges.length)
+            return;
+        if (matchIds.length)
+            doc.clearMatchIds(matchIds);
+        let searchRanges = this.ranges.map(o => o.currRange);
+        this.matchIds = doc.highlightRanges(searchRanges, 'CocCursorRange', this.srcId, 99);
+    }
+    cancel() {
+        if (!this._activated)
+            return;
+        let { nvim, matchIds } = this;
+        let doc = workspace_1.default.getDocument(this.bufnr);
+        if (matchIds.length && doc)
+            doc.clearMatchIds(matchIds);
+        if (workspace_1.default.isVim && workspace_1.default.env.textprop) {
+            nvim.call('prop_remove', [{ bufnr: this.bufnr, type: 'CocCocCursorRange' }], true);
+        }
+        this.matchIds = [];
+        util_1.disposeAll(this.disposables);
+        this.disposables = [];
+        this._changed = false;
+        this.ranges = [];
+        this.version = -1;
+        this._activated = false;
+    }
+    unmap(key) {
+        let { nvim, bufnr } = this;
+        let { cancelKey, nextKey, previousKey } = this.config;
+        let escaped = key.startsWith('<') && key.endsWith('>') ? `\\${key}` : key;
+        nvim.pauseNotification();
+        nvim.call('coc#util#unmap', [bufnr, [cancelKey, nextKey, previousKey]], true);
+        nvim.call('eval', `feedkeys("${escaped}", 't')`, true);
+        nvim.resumeNotification(false, true).logError();
+    }
+    // Add ranges to current document
+    async addRanges(ranges) {
+        let { nvim } = this;
+        let bufnr = await nvim.call('bufnr', ['%']);
+        let doc = workspace_1.default.getDocument(bufnr);
+        if (!doc)
+            return;
+        doc.forceSync();
+        // filter overlap ranges
+        if (!this._changed) {
+            this.ranges = this.ranges.filter(r => {
+                let { currRange } = r;
+                return !ranges.some(range => position_1.rangeOverlap(range, currRange));
+            });
+        }
+        else {
+            this.ranges = [];
+        }
+        let { textDocument } = doc;
+        for (let range of ranges) {
+            let { line } = range.start;
+            let textRange = new range_1.default(line, range.start.character, range.end.character, textDocument.getText(range), 0);
+            this.ranges.push(textRange);
+        }
+        this.ranges.sort((a, b) => position_1.comparePosition(a.range.start, b.range.start));
+        // fix preCount
+        let preCount = 0;
+        let currline = -1;
+        for (let range of this.ranges) {
+            let { line } = range;
+            if (line != currline) {
+                preCount = 0;
+            }
+            range.preCount = preCount;
+            preCount = preCount + 1;
+            currline = line;
+        }
+        if (!this.ranges.length)
+            return;
+        this.activate(doc);
+        nvim.pauseNotification();
+        this.doHighlights();
+        if (workspace_1.default.isVim) {
+            nvim.command('redraw', true);
+        }
+        let [, err] = await nvim.resumeNotification();
+        if (err)
+            logger.error(err);
+    }
+    get activated() {
+        return this._activated;
+    }
+    getTextRange(range, text) {
+        let { ranges } = this;
+        // can't support line count change
+        if (text.indexOf('\n') !== -1 || range.start.line != range.end.line)
+            return null;
+        let textRange = ranges.find(o => position_1.rangeIntersect(o.currRange, range));
+        if (!textRange)
+            return null;
+        if (position_1.rangeInRange(range, textRange.currRange)) {
+            return textRange;
+        }
+        if (range.start.character != range.end.character) {
+            // not added
+            return null;
+        }
+        if (text.length
+            && (range.end.character == textRange.currRange.start.character
+                || range.start.character == textRange.currRange.end.character)) {
+            return textRange;
+        }
+        return null;
+    }
+    adjustChange(textRange, range, text) {
+        let { ranges } = this;
+        if (range.start.character == range.end.character) {
+            // add
+            let isEnd = textRange.currRange.end.character == range.start.character;
+            if (isEnd) {
+                ranges.forEach(r => {
+                    r.add(r.text.length, text);
+                });
+            }
+            else {
+                let d = range.start.character - textRange.currRange.start.character;
+                ranges.forEach(r => {
+                    r.add(Math.min(r.text.length, d), text);
+                });
+            }
+        }
+        else {
+            // replace
+            let d = range.end.character - range.start.character;
+            let isEnd = textRange.currRange.end.character == range.end.character;
+            if (isEnd) {
+                if (textRange.currRange.start.character == range.start.character) {
+                    // changed both start and end
+                    if (text.indexOf(textRange.text) !== -1) {
+                        let idx = text.indexOf(textRange.text);
+                        let pre = idx == 0 ? '' : text.slice(0, idx);
+                        let post = text.slice(idx + textRange.text.length);
+                        if (pre)
+                            ranges.forEach(r => r.add(0, pre));
+                        if (post)
+                            ranges.forEach(r => r.add(r.text.length, post));
+                    }
+                    else if (textRange.text.indexOf(text) !== -1) {
+                        // delete
+                        let idx = textRange.text.indexOf(text);
+                        let offset = textRange.text.length - (idx + text.length);
+                        if (idx != 0)
+                            ranges.forEach(r => r.replace(0, idx));
+                        if (offset > 0)
+                            ranges.forEach(r => r.replace(r.text.length - offset, r.text.length));
+                    }
+                    else {
+                        this.cancel();
+                    }
+                }
+                else {
+                    ranges.forEach(r => {
+                        let l = r.text.length;
+                        r.replace(Math.max(0, l - d), l, text);
+                    });
+                }
+            }
+            else {
+                let start = range.start.character - textRange.currRange.start.character;
+                ranges.forEach(r => {
+                    let l = r.text.length;
+                    r.replace(start, Math.min(start + d, l), text);
+                });
+            }
+        }
+    }
+    addRange(range, text) {
+        let { ranges } = this;
+        let idx = ranges.findIndex(o => position_1.rangeIntersect(o.range, range));
+        // remove range when intersect
+        if (idx !== -1) {
+            ranges.splice(idx, 1);
+            // adjust preCount after
+            for (let r of ranges) {
+                if (r.line == range.start.line && r.start > range.start.character) {
+                    r.preCount = r.preCount - 1;
+                }
+            }
+        }
+        else {
+            let preCount = 0;
+            let idx = 0;
+            let { line } = range.start;
+            // idx & preCount
+            for (let r of ranges) {
+                if (r.line > line || (r.line == line && r.start > range.end.character)) {
+                    break;
+                }
+                if (r.line == line)
+                    preCount++;
+                idx++;
+            }
+            let created = new range_1.default(line, range.start.character, range.end.character, text, preCount);
+            ranges.splice(idx, 0, created);
+            // adjust preCount after
+            for (let r of ranges) {
+                if (r.line == range.start.line && r.start > range.start.character) {
+                    r.preCount = r.preCount + 1;
+                }
+            }
+        }
+    }
+    get lastPosition() {
+        let { ranges } = this;
+        let r = ranges[ranges.length - 1];
+        return r.currRange.end;
+    }
+}
+exports.default = Cursors;
+function splitRange(doc, range) {
+    let splited = [];
+    for (let i = range.start.line; i <= range.end.line; i++) {
+        let curr = doc.getline(i) || '';
+        let sc = i == range.start.line ? range.start.character : 0;
+        let ec = i == range.end.line ? range.end.character : curr.length;
+        if (sc == ec)
+            continue;
+        splited.push(vscode_languageserver_types_1.Range.create(i, sc, i, ec));
+    }
+    return splited;
+}
+/**
+ * Get ranges of visual block
+ */
+function getVisualRanges(doc, range) {
+    let { start, end } = range;
+    if (start.line > end.line) {
+        [start, end] = [end, start];
+    }
+    let sc = start.character < end.character ? start.character : end.character;
+    let ec = start.character < end.character ? end.character : start.character;
+    let ranges = [];
+    for (let i = start.line; i <= end.line; i++) {
+        let line = doc.getline(i);
+        ranges.push(vscode_languageserver_types_1.Range.create(i, sc, i, Math.min(line.length, ec)));
+    }
+    return ranges;
+}
+//# sourceMappingURL=index.js.map
+
+/***/ }),
+/* 393 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const vscode_languageserver_types_1 = __webpack_require__(158);
+const logger = __webpack_require__(183)('cursors-range');
+// edit range
+class TextRange {
+    constructor(line, start, end, text, 
+    // range count at this line before, shuld be updated on range add
+    preCount) {
+        this.line = line;
+        this.start = start;
+        this.end = end;
+        this.text = text;
+        this.preCount = preCount;
+        this.currStart = start;
+        this.currEnd = end;
+    }
+    add(offset, add) {
+        let { text, preCount } = this;
+        let pre = offset == 0 ? '' : text.slice(0, offset);
+        let post = text.slice(offset);
+        this.text = `${pre}${add}${post}`;
+        this.currStart = this.currStart + preCount * add.length;
+        this.currEnd = this.currEnd + (preCount + 1) * add.length;
+    }
+    replace(begin, end, add = '') {
+        let { text, preCount } = this;
+        let pre = begin == 0 ? '' : text.slice(0, begin);
+        let post = text.slice(end);
+        this.text = pre + add + post;
+        let l = end - begin - add.length;
+        this.currStart = this.currStart - preCount * l;
+        this.currEnd = this.currEnd - (preCount + 1) * l;
+    }
+    get range() {
+        return vscode_languageserver_types_1.Range.create(this.line, this.start, this.line, this.end);
+    }
+    get currRange() {
+        return vscode_languageserver_types_1.Range.create(this.line, this.currStart, this.line, this.currEnd);
+    }
+    get textEdit() {
+        return {
+            range: this.range,
+            newText: this.text
+        };
+    }
+}
+exports.default = TextRange;
+//# sourceMappingURL=range.js.map
+
+/***/ }),
+/* 394 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -84269,7 +85365,7 @@ exports.default = default_1;
 //# sourceMappingURL=clean.js.map
 
 /***/ }),
-/* 391 */
+/* 395 */
 /***/ (function(module) {
 
 module.exports = {"name":"coc.nvim","version":"0.0.72","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npm-run-all clean build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/glob":"^7.1.1","@types/jest":"^24.0.15","@types/minimatch":"^3.0.3","@types/mkdirp":"^0.5.2","@types/node":"^12.0.10","@types/semver":"^6.0.1","@types/tunnel":"^0.0.1","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.8.0","npm-run-all":"^4.1.5","ts-jest":"^24.0.2","tslint":"^5.18.0","typescript":"3.5.2","vscode-languageserver":"5.3.0-next.8"},"dependencies":{"@chemzqm/neovim":"5.1.7","bser":"^2.1.0","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","follow-redirects":"^1.7.0","glob":"^7.1.4","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.4.0","minimatch":"^3.0.4","mkdirp":"^0.5.1","rimraf":"^2.6.3","semver":"^6.1.2","tar":"^4.4.10","tslib":"^1.10.0","tunnel":"^0.0.6","uuid":"^3.3.2","vscode-languageserver-protocol":"3.15.0-next.6","vscode-languageserver-types":"3.15.0-next.2","vscode-uri":"^2.0.2","which":"^1.3.1"}};
