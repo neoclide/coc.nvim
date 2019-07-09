@@ -1039,7 +1039,7 @@ export default class Handler {
    * Refactor of current symbol
    */
   public async doRefactor(): Promise<void> {
-    await this.refactor.start()
+    await this.refactor.rename()
   }
 
   public async saveRefactor(bufnr: number): Promise<void> {

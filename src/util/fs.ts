@@ -128,6 +128,10 @@ export function readFileLines(fullpath: string, start: number, end: number): Pro
   let n = 0
   return new Promise((resolve, reject) => {
     rl.on('line', line => {
+      if (n == 0 && line.startsWith('\uFEFF')) {
+        // handle BOM
+        line = line.slice(1)
+      }
       if (n >= start && n <= end) {
         res.push(line)
       }
@@ -153,6 +157,10 @@ export function readFileLine(fullpath: string, count: number): Promise<string> {
   return new Promise((resolve, reject) => {
     rl.on('line', line => {
       if (n == count) {
+        if (n == 0 && line.startsWith('\uFEFF')) {
+          // handle BOM
+          line = line.slice(1)
+        }
         rl.close()
         resolve(line)
         return

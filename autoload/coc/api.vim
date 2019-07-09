@@ -15,8 +15,15 @@ function! s:buf_line_count(bufnr) abort
   if bufnr('%') == a:bufnr
     return line('$')
   endif
-  let lines = getbufline(a:bufnr, 1, '$')
-  return len(lines)
+  if exists('*getbufline')
+    let lines = getbufline(a:bufnr, 1, '$')
+    return len(lines)
+  endif
+  let curr = bufnr('%')
+  execute 'buffer '.a:bufnr
+  let n = line('$')
+  execute 'buffer '.curr
+  return n
 endfunction
 
 function! s:execute(cmd)
