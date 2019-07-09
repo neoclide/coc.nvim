@@ -6,10 +6,13 @@ export function rangeInRange(r: Range, range: Range): boolean {
 
 export function rangeOverlap(r: Range, range: Range): boolean {
   let { start, end } = r
-  if (comparePosition(start, range.start) < 0 && comparePosition(end, range.end) > 0) {
-    return true
+  if (comparePosition(end, range.start) <= 0) {
+    return false
   }
-  return positionInRange(start, range) == 0 || positionInRange(end, range) == 0
+  if (comparePosition(start, range.end) >= 0) {
+    return false
+  }
+  return true
 }
 
 export function rangeIntersect(r: Range, range: Range): boolean {
