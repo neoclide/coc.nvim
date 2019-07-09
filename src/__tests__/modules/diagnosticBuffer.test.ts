@@ -131,12 +131,7 @@ describe('diagnostic buffer', () => {
     await helper.wait(50)
     let buffer = await nvim.buffer
     let res = await buffer.getVar('coc_diagnostic_info')
-    expect(res).toEqual({
-      information: 0,
-      hint: 0,
-      warning: 0,
-      error: 0
-    })
+    expect(res).toBeNull()
     let { matchIds } = buf as any
     expect(matchIds.size).toBe(0)
   })

@@ -313,6 +313,8 @@ export default class Mappings {
         default:
           await this.onError(`prompt '${action}' not supported`)
       }
+    } else if (key == 'eval') {
+      await prompt.eval(action)
     } else if (key == 'command') {
       await manager.command(action)
     } else if (key == 'action') {

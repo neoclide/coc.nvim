@@ -176,19 +176,22 @@ export default class Prompt {
   }
 
   public insertCharacter(ch: string): void {
-    let { cusorIndex, input } = this
-    this.cusorIndex = cusorIndex + 1
-    let pre = input.slice(0, cusorIndex)
-    let post = input.slice(cusorIndex)
-    this._input = `${pre}${ch}${post}`
-    this.drawPrompt()
-    this._onDidChangeInput.fire(this._input)
+    this.addText(ch)
   }
 
   public async paste(): Promise<void> {
+    await this.eval('@*')
+  }
+
+  public async eval(expression: string): Promise<void> {
     let { cusorIndex, input } = this
-    let text = await this.nvim.eval('@*') as string
+    let text = await this.nvim.eval(expression) as string
     text = text.replace(/\n/g, '')
+    this.addText(text)
+  }
+
+  private addText(text: string): void {
+    let { cusorIndex, input } = this
     this.cusorIndex = cusorIndex + text.length
     let pre = input.slice(0, cusorIndex)
     let post = input.slice(cusorIndex)

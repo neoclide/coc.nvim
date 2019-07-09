@@ -2007,7 +2007,9 @@ for customizing the list key-mappings, ex: >
 		"<C-n>": "normal:j",
 		"<C-p>": "normal:k",
 		"<C-t>": "action:tabe",
-		"<C-x>": "call:MyFunc"
+		"<C-x>": "call:MyFunc",
+		// paste yanked text to prompt
+		"<C-v>": "eval:@@"
 	}
 	"list.normalMappings": {
 		"c": "expr:MyExprFunc"
@@ -2045,6 +2047,7 @@ The mapping expression should be `command:arguments`, available commands:
 	'removetail' - remove characters afterwards.
 	'removeahead' - remove character ahead.
 	'paste' - append text from system clipboard to prompt.
+'eval' - append text to prompt from result of viml expression.
 'action' - execute action of list, use <tab> to find available actions.
 'feedkeys' - feedkeys to list window, use `\\` in JSON to escape special characters.
 'normal' - execute normal command in list window.

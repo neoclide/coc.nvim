@@ -582,4 +582,17 @@ describe('User mappings', () => {
     let { input } = manager.prompt
     expect(input).toMatch('foo')
   })
+
+  it('should insert text from default register to prompt', async () => {
+    helper.updateConfiguration('list.insertMappings', {
+      '<C-v>': 'eval:@@',
+    })
+    await nvim.command('let @@ = "bar"')
+    await manager.start(['location'])
+    await helper.wait(100)
+    await nvim.eval(`feedkeys("\\<C-v>", "in")`)
+    await helper.wait(200)
+    let { input } = manager.prompt
+    expect(input).toMatch('bar')
+  })
 })
