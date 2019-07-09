@@ -1,14 +1,14 @@
-import { Neovim, Buffer } from '@chemzqm/neovim'
+import { Buffer, Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import path from 'path'
 import { Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import languages from '../languages'
 import commands from '../commands'
+import languages from '../languages'
 import Highlighter from '../model/highligher'
 import { readFileLines } from '../util/fs'
-import workspace from '../workspace'
 import { equals } from '../util/object'
+import workspace from '../workspace'
 const logger = require('../util/logger')('refactor')
 
 const name = '__coc_refactor__'
@@ -64,7 +64,7 @@ export default class Refactor {
    * Start rename refactor of current symbol.
    */
   public async rename(): Promise<void> {
-    let [bufnr, cursor, winid] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),win_getid()]') as [number, [number, number], number]
+    let [bufnr, cursor, winid, filetype] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),win_getid(),&filetype]') as [number, [number, number], number, string]
     let doc = workspace.getDocument(bufnr)
     if (!doc) return
     let position = { line: cursor[0], character: cursor[1] }
@@ -79,14 +79,14 @@ export default class Refactor {
       return
     }
     let items = this.getFileItems(edit)
-    let buf = await this.createRefactorBuffer(winid)
+    let buf = await this.createRefactorBuffer(winid, filetype)
     await this.addFileItems(items, buf)
   }
 
   /**
    * Create initialized refactor buffer
    */
-  public async createRefactorBuffer(winid: number): Promise<Buffer> {
+  public async createRefactorBuffer(winid: number, filetype?: string): Promise<Buffer> {
     let { nvim, bufnr } = this
     if (bufnr) await nvim.command(`silent! ${bufnr}bd!`)
     let cwd = await nvim.call('getcwd')
@@ -138,6 +138,7 @@ export default class Refactor {
     this.saveVariable(buffer.id, 'cwd', cwd)
     this.bufnr = res[2]
     nvim.pauseNotification()
+    if (filetype) nvim.command(`runtime! syntax/${filetype}.vim`, true)
     highligher.render(buffer)
     nvim.command('setl nomod', true)
     await nvim.resumeNotification()
@@ -272,9 +273,10 @@ export default class Refactor {
   private async ensureDocument(bufnr: number): Promise<void> {
     await new Promise<void>((resolve, reject) => {
       let n = 0
-      let interval = setInterval(() => {
+      let interval = setInterval(async () => {
         let doc = workspace.getDocument(bufnr)
         if (doc) {
+          await (doc as any)._fetchContent()
           clearInterval(interval)
           resolve()
         } else if (n == 10) {

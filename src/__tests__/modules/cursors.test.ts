@@ -25,14 +25,7 @@ afterEach(async () => {
 })
 
 async function rangeCount(): Promise<number> {
-  let matches = await nvim.call('getmatches')
-  return matches.reduce((p, curr) => {
-    if (curr.group == 'CocCursorRange') {
-      let len = Object.keys(curr).filter(k => k.startsWith('pos')).length
-      p = p + len
-    }
-    return p
-  }, 0)
+  return (cursors as any).ranges.length
 }
 
 describe('cursors#select', () => {
@@ -123,11 +116,6 @@ describe('cursors#select', () => {
     await nvim.call('cursor', [2, 2])
     await nvim.input('xa"')
     await helper.wait(30)
-    let matches = await nvim.call('getmatches')
-    let match = matches.find(o => o.group == 'CocCursorRange') as any
-    expect(match).toBeDefined()
-    expect(match.pos1).toEqual([1, 1, 7])
-    expect(match.pos2).toEqual([2, 1, 6])
     await nvim.command('nunmap x')
   })
 })

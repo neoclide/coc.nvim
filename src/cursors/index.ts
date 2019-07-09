@@ -7,6 +7,7 @@ import { disposeAll } from '../util'
 import workspace from '../workspace'
 import { comparePosition, rangeIntersect, rangeInRange, rangeOverlap } from '../util/position'
 import TextRange from './range'
+import { distinct } from '../util/array'
 const logger = require('../util/logger')('cursors')
 
 interface Config {
@@ -26,6 +27,7 @@ export default class Cursors {
   private textDocument: TextDocument
   private version = -1
   private config: Config
+  private srcId: number
   constructor(private nvim: Neovim) {
     let config = workspace.getConfiguration('cursors')
     this.config = {
@@ -33,6 +35,7 @@ export default class Cursors {
       previousKey: config.get('previousKey', '<C-p>'),
       cancelKey: config.get('cancelKey', '<esc>')
     }
+    this.srcId = workspace.createNameSpace('coc-cursors')
   }
 
   public async select(bufnr: number, kind: string, mode: string): Promise<void> {
@@ -127,13 +130,28 @@ export default class Cursors {
     doc.forceSync()
     this.textDocument = doc.textDocument
     doc.onDocumentChange(async e => {
-      if (doc.version - this.version == 1) return
+      if (doc.version - this.version == 1 || !this.ranges.length) return
       let change = e.contentChanges[0]
       let { text, range } = change
       // ignore change after last range
-      if (comparePosition(range.start, this.lastPosition) >= 0) {
+      if (!this._changed && comparePosition(range.start, this.lastPosition) > 0) {
         this.textDocument = doc.textDocument
         return
+      }
+      let changeCount = text.split('\n').length - (range.end.line - range.start.line + 1)
+      // adjust line when change before first line
+      if (!this._changed && range.end.line < this.ranges[0].line && changeCount != 0) {
+        this.ranges.forEach(r => r.line = r.line + changeCount)
+        this.textDocument = doc.textDocument
+        return
+      }
+      // ignore changes not overlap
+      if (changeCount == 0) {
+        let lnums = distinct(this.ranges.map(r => r.line))
+        let startLine = range.start.line
+        let endLine = range.end.line
+        let overlap = lnums.some(line => line >= startLine && line <= endLine)
+        if (!overlap) return
       }
       this._changed = true
       // get range from edit
@@ -203,20 +221,20 @@ export default class Cursors {
 
   private doHighlights(): void {
     let { nvim, matchIds } = this
-    if (matchIds.length) {
-      nvim.call('coc#util#clearmatches', [matchIds], true)
-    }
     let doc = workspace.getDocument(this.bufnr)
     if (!doc || !this.ranges.length) return
+    if (matchIds.length) doc.clearMatchIds(matchIds)
     let searchRanges = this.ranges.map(o => o.currRange)
-    this.matchIds = doc.matchAddRanges(searchRanges, 'CocCursorRange', 999)
+    this.matchIds = doc.highlightRanges(searchRanges, 'CocCursorRange', this.srcId, 99)
   }
 
   public cancel(): void {
     if (!this._activated) return
     let { nvim, matchIds } = this
-    if (matchIds.length) {
-      nvim.call('coc#util#clearmatches', [matchIds], true)
+    let doc = workspace.getDocument(this.bufnr)
+    if (matchIds.length && doc) doc.clearMatchIds(matchIds)
+    if (workspace.isVim && workspace.env.textprop) {
+      nvim.call('prop_remove', [{ bufnr: this.bufnr, type: 'CocCocCursorRange' }], true)
     }
     this.matchIds = []
     disposeAll(this.disposables)
@@ -415,6 +433,9 @@ function splitRange(doc: Document, range: Range): Range[] {
   return splited
 }
 
+/**
+ * Get ranges of visual block
+ */
 function getVisualRanges(doc: Document, range: Range): Range[] {
   let { start, end } = range
   if (start.line > end.line) {

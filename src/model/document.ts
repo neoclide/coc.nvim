@@ -9,7 +9,7 @@ import { isGitIgnored } from '../util/fs'
 import { getUri, wait } from '../util/index'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
 import { Chars } from './chars'
-import { group } from '../util/array'
+import { group, distinct } from '../util/array'
 import { comparePosition } from '../util/position'
 const logger = require('../util/logger')('model-document')
 
@@ -545,10 +545,10 @@ export default class Document {
    *
    * Note: match id could by namespace id or vim's match id.
    */
-  public highlightRanges(ranges: Range[], hlGroup: string, srcId: number): number[] {
+  public highlightRanges(ranges: Range[], hlGroup: string, srcId: number, priority = 10): number[] {
     let res: number[] = []
     if (this.env.isVim && !this.env.textprop) {
-      res = this.matchAddRanges(ranges, hlGroup, 10)
+      res = this.matchAddRanges(ranges, hlGroup, priority)
     } else {
       let lineRanges = []
       for (let range of ranges) {
@@ -593,13 +593,15 @@ export default class Document {
     if (this.env.isVim && !this.env.textprop) {
       this.nvim.call('coc#util#clearmatches', [Array.from(ids)], true)
     } else {
-      for (let id of ids) {
-        if (this.nvim.hasFunction('nvim_create_namespace')) {
+      ids = distinct(Array.from(ids))
+      let hasNamesapce = this.nvim.hasFunction('nvim_create_namespace')
+      ids.forEach(id => {
+        if (hasNamesapce) {
           this.buffer.clearNamespace(id)
         } else {
           this.buffer.clearHighlight({ srcId: id })
         }
-      }
+      })
     }
   }
 

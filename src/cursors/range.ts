@@ -6,7 +6,7 @@ export default class TextRange {
   private currStart: number
   private currEnd: number
 
-  constructor(public readonly line: number,
+  constructor(public line: number,
     public readonly start: number,
     public readonly end: number,
     public text: string,
