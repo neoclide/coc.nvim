@@ -3,6 +3,7 @@ import fs from 'fs'
 import mkdirp from 'mkdirp'
 import path from 'path'
 import rimraf from 'rimraf'
+import mv from 'mv'
 import semver from 'semver'
 import { promisify } from 'util'
 import { runCommand } from '../util'
@@ -103,7 +104,7 @@ export default class ExtensionManager {
     onMessage(`Moving to new folder.`)
     let folder = path.join(this.root, 'node_modules', info.name)
     await this.removeFolder(folder)
-    await promisify(fs.rename)(tmpFolder, folder)
+    await promisify(mv)(tmpFolder, folder, { mkdirp: true })
   }
 
   public async install(npm: string, def: string): Promise<string> {
