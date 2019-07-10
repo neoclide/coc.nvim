@@ -10,7 +10,7 @@ const logger = require('../../util/logger')('list-location')
 
 export default class LocationList extends BasicList {
   public defaultAction = 'open'
-  public description = 'last jump locations'
+  public description = 'show locations saved by g:coc_jump_locations variable'
   public name = 'location'
 
   constructor(nvim: Neovim) {
