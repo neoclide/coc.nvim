@@ -329,6 +329,7 @@ describe('completion#TextChangedP', () => {
     await helper.wait(100)
     await nvim.input('<C-y>')
     await helper.wait(200)
+    disposable.dispose()
     let line = await nvim.line
     expect(line).toBe('bar if()')
     let [, lnum, col] = await nvim.call('getcurpos')
@@ -356,6 +357,7 @@ describe('completion#TextChangedP', () => {
     await helper.wait(100)
     await nvim.input('<C-y>')
     await helper.wait(200)
+    disposable.dispose()
     let line = await nvim.line
     let [, lnum, col] = await nvim.call('getcurpos')
     expect(line).toBe('bar do')
@@ -387,6 +389,7 @@ describe('completion#TextChangedP', () => {
     await nvim.input('<C-y>')
     await helper.wait(200)
     let line = await nvim.line
+    disposable.dispose()
     let [, lnum, col] = await nvim.call('getcurpos')
     expect(line).toBe('bar func(do)')
     expect(lnum).toBe(1)
