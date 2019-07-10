@@ -87,7 +87,7 @@ export default class ExtensionManager {
         let args = ['install', '--ignore-scripts', '--no-lockfile', '--no-bin-links', '--production']
         const child = spawn(npm, args, { cwd: tmpFolder })
         child.on('error', reject)
-        child.once('exit', resolve)
+        child.once('close', resolve)
       })
       await p
     }
