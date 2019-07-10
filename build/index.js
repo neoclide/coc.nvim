@@ -54267,7 +54267,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "9168ad0be2" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d87103178f" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -61341,6 +61341,8 @@ class Languages {
                     });
                 }
                 await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, isSnippet);
+                if (isSnippet)
+                    await manager_2.default.selectCurrentPlaceholder();
                 if (item.command)
                     commands_1.default.execute(item.command);
             },
@@ -61415,12 +61417,8 @@ class Languages {
         if (!snippet)
             changed = position_1.getChangedFromEdits(pos, textEdits);
         await document.applyEdits(this.nvim, textEdits);
-        if (snippet) {
-            await manager_2.default.selectCurrentPlaceholder();
-        }
-        else if (changed) {
+        if (changed)
             await workspace_1.default.moveTo(vscode_languageserver_protocol_1.Position.create(pos.line + changed.line, pos.character + changed.character));
-        }
     }
     convertVimCompleteItem(item, shortcut, opt) {
         let { echodocSupport, detailField, detailMaxLength } = this.completeConfig;
