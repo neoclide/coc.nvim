@@ -153,7 +153,7 @@ describe('SnippetSession#start', () => {
     await session.nextPlaceholder()
     await session.nextPlaceholder()
     let pos = await workspace.getCursorPosition()
-    expect(pos).toEqual({ line: 0, character: 8 })
+    expect(pos).toEqual({ line: 0, character: 9 })
   })
 
   it('should start nest snippet without select', async () => {

@@ -1,6 +1,6 @@
 import * as path from "path"
 import workspace from '../workspace'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import { Variable, VariableResolver } from "./parser"
 import { Neovim } from '@chemzqm/neovim'
 import Document from '../model/document'
@@ -15,7 +15,7 @@ export class SnippetVariableResolver implements VariableResolver {
 
   public async init(document: Document): Promise<void> {
     let { nvim } = this
-    let filepath = Uri.parse(document.uri).fsPath
+    let filepath = URI.parse(document.uri).fsPath
     let lnum = await nvim.call('line', '.') as number
     let line = document.getline(lnum - 1)
     let cword = await this.nvim.call('expand', '<cword>')

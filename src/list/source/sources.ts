@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Location, Range } from 'vscode-languageserver-types'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import sources from '../../sources'
 import { ListContext, ListItem } from '../../types'
 import BasicList from '../basic'
@@ -39,10 +39,10 @@ export default class SourcesList extends BasicList {
       let prefix = stat.disabled ? ' ' : '*'
       let location: Location
       if (stat.filepath) {
-        location = Location.create(Uri.file(stat.filepath).toString(), Range.create(0, 0, 0, 0))
+        location = Location.create(URI.file(stat.filepath).toString(), Range.create(0, 0, 0, 0))
       }
       return {
-        label: `${prefix}\t${stat.name}\t[${stat.type}]\t${stat.filetypes.join(',')}`,
+        label: `${prefix}\t${stat.name}\t[${stat.shortcut}]\t${stat.filetypes.join(',')}`,
         location,
         data: { name: stat.name }
       }

@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Diagnostic, DiagnosticSeverity, Disposable, Location, Range, TextDocument } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { Diagnostic, DiagnosticSeverity, Disposable, Location, Range, TextDocument, Position } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
 import FloatFactory from '../model/floatFactory'
@@ -11,7 +11,6 @@ import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
 import { getSeverityName, getSeverityType, severityLevel } from './util'
-import { equals } from '../util/object'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
@@ -48,25 +47,32 @@ export class DiagnosticManager implements Disposable {
   private disposables: Disposable[] = []
   private lastMessage = ''
   private timer: NodeJS.Timer
-  private lastShown: Diagnostic[]
 
   public init(): void {
     this.setConfiguration()
     let { nvim } = workspace
-    let { maxWindowHeight, joinMessageLines } = this.config
-    this.floatFactory = new FloatFactory(nvim, workspace.env, false, maxWindowHeight, joinMessageLines)
+    let { maxWindowHeight } = this.config
+    this.floatFactory = new FloatFactory(nvim, workspace.env, false, maxWindowHeight)
     this.disposables.push(Disposable.create(() => {
       if (this.timer) clearTimeout(this.timer)
     }))
     events.on('CursorMoved', async () => {
       if (this.timer) clearTimeout(this.timer)
       this.timer = setTimeout(async () => {
-        if (workspace.insertMode) return
-        if (!this.config || this.config.enableMessage != 'always') return
+        if (this.config.enableMessage != 'always') return
+        if (this.config.messageTarget == 'float') return
         await this.echoMessage(true)
       }, 500)
     }, null, this.disposables)
-
+    if (this.config.messageTarget == 'float') {
+      this.disposables.push(workspace.registerAutocmd({
+        event: 'CursorHold',
+        request: true,
+        callback: async () => {
+          await this.echoMessage(true)
+        }
+      }))
+    }
     events.on('InsertEnter', async () => {
       this.floatFactory.close()
       if (this.timer) clearTimeout(this.timer)
@@ -79,7 +85,6 @@ export class DiagnosticManager implements Disposable {
       let { refreshOnInsertMode, refreshAfterSave } = this.config
       if (!refreshOnInsertMode && !refreshAfterSave) {
         await wait(500)
-        if (workspace.insertMode) return
         this.refreshBuffer(doc.uri)
       }
     }, null, this.disposables)
@@ -99,18 +104,6 @@ export class DiagnosticManager implements Disposable {
       }
     }, null, this.disposables)
 
-    events.on('BufUnload', async bufnr => {
-      let idx = this.buffers.findIndex(buf => buf.bufnr == bufnr)
-      if (idx == -1) return
-      let buf = this.buffers[idx]
-      buf.dispose()
-      this.buffers.splice(idx, 1)
-      for (let collection of this.collections) {
-        collection.delete(buf.uri)
-      }
-      await buf.clear()
-    }, null, this.disposables)
-
     events.on('BufWritePost', async bufnr => {
       let buf = this.buffers.find(buf => buf.bufnr == bufnr)
       if (buf) await buf.checkSigns()
@@ -124,12 +117,6 @@ export class DiagnosticManager implements Disposable {
       this.setConfiguration(e)
     }, null, this.disposables)
 
-    let { errorSign, warningSign, infoSign, hintSign } = this.config
-    nvim.command(`sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`, true)
-    nvim.command(`sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`, true)
-    nvim.command(`sign define CocInfo    text=${infoSign}    linehl=CocInfoLine  texthl=CocInfoSign`, true)
-    nvim.command(`sign define CocHint    text=${hintSign}    linehl=CocHintLine  texthl=CocHintSign`, true)
-
     // create buffers
     for (let doc of workspace.documents) {
       this.createDiagnosticBuffer(doc)
@@ -138,10 +125,36 @@ export class DiagnosticManager implements Disposable {
       let doc = workspace.getDocument(textDocument.uri)
       this.createDiagnosticBuffer(doc)
     }, null, this.disposables)
+    workspace.onDidCloseTextDocument(async ({ uri }) => {
+      let doc = workspace.getDocument(uri)
+      if (!doc) return
+      let { bufnr } = doc
+      let idx = this.buffers.findIndex(buf => buf.bufnr == bufnr)
+      if (idx == -1) return
+      let buf = this.buffers[idx]
+      buf.dispose()
+      this.buffers.splice(idx, 1)
+      for (let collection of this.collections) {
+        collection.delete(buf.uri)
+      }
+      await buf.clear()
+    }, null, this.disposables)
     this.setConfigurationErrors(true)
     workspace.configurations.onError(async () => {
       this.setConfigurationErrors()
     }, null, this.disposables)
+    let { errorSign, warningSign, infoSign, hintSign } = this.config
+    nvim.pauseNotification()
+    nvim.command(`sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`, true)
+    nvim.command(`sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`, true)
+    nvim.command(`sign define CocInfo    text=${infoSign}    linehl=CocInfoLine  texthl=CocInfoSign`, true)
+    nvim.command(`sign define CocHint    text=${hintSign}    linehl=CocHintLine  texthl=CocHintSign`, true)
+    if (this.config.virtualText && workspace.isNvim) {
+      nvim.call('coc#util#init_virtual_hl', [], true)
+    }
+    nvim.resumeNotification(false, true).catch(_e => {
+      // noop
+    })
   }
 
   private createDiagnosticBuffer(doc: Document): void {
@@ -151,6 +164,7 @@ export class DiagnosticManager implements Disposable {
       let buf = new DiagnosticBuffer(doc, this.config)
       this.buffers.push(buf)
       buf.onDidRefresh(() => {
+        if (workspace.insertMode) return
         this.echoMessage(true).catch(_e => {
           // noop
         })
@@ -210,11 +224,14 @@ export class DiagnosticManager implements Disposable {
   /**
    * Get diagnostics ranges from document
    */
-  public getSortedRanges(uri: string): Range[] {
+  public getSortedRanges(uri: string, severity?: string): Range[] {
     let collections = this.getCollections(uri)
     let res: Range[] = []
+    let level = severity ? severityLevel(severity) : 0
     for (let collection of collections) {
-      let ranges = collection.get(uri).map(o => o.range)
+      let diagnostics = collection.get(uri)
+      if (level) diagnostics = diagnostics.filter(o => o.severity == level)
+      let ranges = diagnostics.map(o => o.range)
       res.push(...ranges)
     }
     res.sort((a, b) => {
@@ -271,13 +288,13 @@ export class DiagnosticManager implements Disposable {
   /**
    * Jump to previouse diagnostic position
    */
-  public async jumpPrevious(): Promise<void> {
+  public async jumpPrevious(severity?: string): Promise<void> {
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
     if (!document) return
     let offset = await workspace.getOffset()
     if (offset == null) return
-    let ranges = this.getSortedRanges(document.uri)
+    let ranges = this.getSortedRanges(document.uri, severity)
     if (ranges.length == 0) {
       workspace.showMessage('Empty diagnostics', 'warning')
       return
@@ -295,11 +312,11 @@ export class DiagnosticManager implements Disposable {
   /**
    * Jump to next diagnostic position
    */
-  public async jumpNext(): Promise<void> {
+  public async jumpNext(severity?: string): Promise<void> {
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
     let offset = await workspace.getOffset()
-    let ranges = this.getSortedRanges(document.uri)
+    let ranges = this.getSortedRanges(document.uri, severity)
     if (ranges.length == 0) {
       workspace.showMessage('Empty diagnostics', 'warning')
       return
@@ -321,7 +338,7 @@ export class DiagnosticManager implements Disposable {
     let res: DiagnosticItem[] = []
     for (let collection of this.collections) {
       collection.forEach((uri, diagnostics) => {
-        let file = Uri.parse(uri).fsPath
+        let file = URI.parse(uri).fsPath
         for (let diagnostic of diagnostics) {
           let { start } = diagnostic.range
           let o: DiagnosticItem = {
@@ -353,32 +370,27 @@ export class DiagnosticManager implements Disposable {
     return res
   }
 
+  public async getCurrentDiagnostics(): Promise<Diagnostic[]> {
+    let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number]]
+    let pos = Position.create(cursor[0], cursor[1])
+    let buffer = this.buffers.find(o => o.bufnr == bufnr)
+    if (!buffer) return []
+    let { checkCurrentLine } = this.config
+    let diagnostics = buffer.diagnostics.filter(o => {
+      if (checkCurrentLine) return lineInRange(pos.line, o.range)
+      return positionInRange(pos, o.range) == 0
+    })
+    return diagnostics
+  }
+
   /**
    * Echo diagnostic message of currrent position
    */
   public async echoMessage(truncate = false): Promise<void> {
     if (!this.enabled || this.config.enableMessage == 'never') return
     if (this.timer) clearTimeout(this.timer)
-    let buf = await this.nvim.buffer
-    let pos = await workspace.getCursorPosition()
-    let buffer = this.buffers.find(o => o.bufnr == buf.id)
-    if (!buffer || workspace.insertMode) return
-    let { checkCurrentLine } = this.config
-    let useFloat = workspace.env.floating && this.config.messageTarget == 'float'
-    let diagnostics = buffer.diagnostics.filter(o => {
-      if (checkCurrentLine) return lineInRange(pos.line, o.range)
-      return positionInRange(pos, o.range) == 0
-    })
-    if (truncate) {
-      if (diagnostics.length && this.lastShown && equals(this.lastShown, diagnostics)) {
-        let activated = await this.floatFactory.activated()
-        if (activated) {
-          this.floatFactory.close()
-          return
-        }
-      }
-      this.lastShown = diagnostics
-    }
+    let useFloat = this.config.messageTarget == 'float'
+    let diagnostics = await this.getCurrentDiagnostics()
     if (diagnostics.length == 0) {
       if (useFloat) {
         this.floatFactory.close()
@@ -391,6 +403,7 @@ export class DiagnosticManager implements Disposable {
       }
       return
     }
+    if (truncate && workspace.insertMode) return
     let lines: string[] = []
     let docs: Documentation[] = []
     diagnostics.forEach(diagnostic => {
@@ -413,14 +426,24 @@ export class DiagnosticManager implements Disposable {
       lines.push(...str.split('\n'))
     })
     if (useFloat) {
-      if (FloatFactory.isCreating) return
-      let hasFloat = await this.nvim.call('coc#util#has_float')
-      if (hasFloat) return
       await this.floatFactory.create(docs)
     } else {
       this.lastMessage = lines[0]
       await this.nvim.command('echo ""')
       await workspace.echoLines(lines, truncate)
+    }
+  }
+
+  public async jumpRelated(): Promise<void> {
+    let diagnostics = await this.getCurrentDiagnostics()
+    if (!diagnostics) return
+    let diagnostic = diagnostics.find(o => o.relatedInformation != null)
+    if (!diagnostic) return
+    let locations = diagnostic.relatedInformation.map(o => o.location)
+    if (locations.length == 1) {
+      await workspace.jumpTo(locations[0].uri, locations[0].range.start)
+    } else if (locations.length > 1) {
+      await workspace.showLocations(locations)
     }
   }
 
@@ -433,6 +456,9 @@ export class DiagnosticManager implements Disposable {
   public dispose(): void {
     for (let collection of this.collections) {
       collection.dispose()
+    }
+    if (this.floatFactory) {
+      this.floatFactory.dispose()
     }
     this.buffers.splice(0, this.buffers.length)
     this.collections = []
@@ -450,15 +476,19 @@ export class DiagnosticManager implements Disposable {
     function getConfig<T>(key: string, defaultValue: T): T {
       return preferences.get<T>(key, config.get<T>(key, defaultValue))
     }
+    let messageTarget = getConfig<string>('messageTarget', 'float')
+    if (messageTarget == 'float' && !workspace.env.floating && !workspace.env.textprop) {
+      messageTarget = 'echo'
+    }
     this.config = {
+      messageTarget,
       srcId: workspace.createNameSpace('coc-diagnostic') || 1000,
       virtualTextSrcId: workspace.createNameSpace('diagnostic-virtualText'),
       checkCurrentLine: getConfig<boolean>('checkCurrentLine', false),
       enableSign: getConfig<boolean>('enableSign', true),
-      maxWindowHeight: getConfig<number>('maxWindowHeight', 8),
+      maxWindowHeight: getConfig<number>('maxWindowHeight', 10),
       enableMessage: getConfig<string>('enableMessage', 'always'),
       joinMessageLines: getConfig<boolean>('joinMessageLines', false),
-      messageTarget: getConfig<string>('messageTarget', 'float'),
       virtualText: getConfig<boolean>('virtualText', false),
       virtualTextPrefix: getConfig<string>('virtualTextPrefix', " "),
       virtualTextLineSeparator: getConfig<string>('virtualTextLineSeparator', " \\ "),
@@ -506,7 +536,7 @@ export class DiagnosticManager implements Disposable {
     if (buf) {
       if (displayByAle) {
         let { nvim } = this
-        nvim.pauseNotification()
+        let allDiagnostics: Map<string, any[]> = new Map()
         for (let collection of this.collections) {
           let diagnostics = collection.get(uri)
           let aleItems = diagnostics.map(o => {
@@ -517,11 +547,20 @@ export class DiagnosticManager implements Disposable {
               lnum: range.start.line + 1,
               col: range.start.character + 1,
               end_lnum: range.end.line + 1,
-              end_col: range.end.character + 1,
+              end_col: range.end.character,
               type: getSeverityType(o.severity)
             }
           })
-          this.nvim.call('ale#other_source#ShowResults', [buf.bufnr, collection.name, aleItems], true)
+          let exists = allDiagnostics.get(collection.name)
+          if (exists) {
+            exists.push(...aleItems)
+          } else {
+            allDiagnostics.set(collection.name, aleItems)
+          }
+        }
+        nvim.pauseNotification()
+        for (let key of allDiagnostics.keys()) {
+          this.nvim.call('ale#other_source#ShowResults', [buf.bufnr, key, allDiagnostics.get(key)], true)
         }
         nvim.resumeNotification(false, true).catch(_e => {
           // noop
@@ -543,10 +582,6 @@ export class DiagnosticManager implements Disposable {
     await this.nvim.call('cursor', [start.line + 1, start.character + 1])
     await this.echoMessage()
   }
-}
-
-function withIn(a: number, s: number, e: number): boolean {
-  return a >= s && a <= e
 }
 
 export default new DiagnosticManager()

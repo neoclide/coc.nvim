@@ -69,10 +69,14 @@ export default class StatusLine implements Disposable {
 
   private async setStatusText(): Promise<void> {
     let text = this.getText()
+    let { nvim } = this
     if (text != this._text) {
       this._text = text
-      await this.nvim.setVar('coc_status', text)
+      nvim.pauseNotification()
+      this.nvim.setVar('coc_status', text, true)
       this.nvim.command('redraws', true)
+      this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true)
+      await nvim.resumeNotification(false, true)
     }
   }
 }

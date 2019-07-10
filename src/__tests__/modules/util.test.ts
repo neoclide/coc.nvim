@@ -2,13 +2,14 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import rimraf from 'rimraf'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import os from 'os'
 import { mkdirp } from '../../util'
-import { isGitIgnored, resolveRoot, statAsync } from '../../util/fs'
+import { isGitIgnored, findUp, resolveRoot, statAsync, parentDirs, isParentFolder } from '../../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
+import { score, positions } from '../../util/fzy'
 import { getHiglights } from '../../util/highlight'
-import { score } from '../../util/match'
+import { score as matchScore } from '../../util/match'
 import { mixin } from '../../util/object'
 import { indexOf, resolveVariables } from '../../util/string'
 import helper from '../helper'
@@ -26,9 +27,20 @@ afterAll(async () => {
 
 describe('score test', () => {
   test('should match schema', () => {
-    let uri = Uri.file('/foo').toString()
-    let s = score([{ language: '*', scheme: 'file' }], uri, 'typescript')
+    let uri = URI.file('/foo').toString()
+    let s = matchScore([{ language: '*', scheme: 'file' }], uri, 'typescript')
     expect(s).toBe(5)
+  })
+
+  test('fzy#score', async () => {
+    let a = score("amuser", "app/models/user.rb")
+    let b = score("amuser", "app/models/customer.rb")
+    expect(a).toBeGreaterThan(b)
+  })
+
+  test('fzy#positions', async () => {
+    let arr = positions("amuser", "app/models/user.rb")
+    expect(arr).toEqual([0, 4, 11, 12, 13, 14])
   })
 })
 
@@ -38,6 +50,20 @@ describe('mkdirp', () => {
     let res = await mkdirp(dir)
     expect(res).toBe(true)
     rimraf.sync(path.join(__dirname, 'a'))
+  })
+})
+
+describe('parentDirs', () => {
+  test('get parentDirs', () => {
+    let dirs = parentDirs('/a/b/c')
+    expect(dirs).toEqual(['/', '/a', '/a/b'])
+  })
+})
+
+describe('isParentFolder', () => {
+  test('check parent folder', () => {
+    expect(isParentFolder('/a', '/a/b')).toBe(true)
+    expect(isParentFolder('/a/b', '/a/b/')).toBe(true)
   })
 })
 
@@ -125,6 +151,20 @@ describe('resolveRoot', () => {
   test('should not resolve to home', () => {
     let res = resolveRoot(__dirname, ['.config'])
     expect(res != os.homedir()).toBeTruthy()
+  })
+})
+
+describe('findUp', () => {
+  test('findUp by filename', () => {
+    let filepath = findUp('package.json', __dirname)
+    expect(filepath).toMatch('coc.nvim')
+    filepath = findUp('not_exists', __dirname)
+    expect(filepath).toBeNull()
+  })
+
+  test('findUp by filenames', async () => {
+    let filepath = findUp(['src'], __dirname)
+    expect(filepath).toMatch('coc.nvim')
   })
 })
 

@@ -14,20 +14,17 @@ function! coc#client#create(name, command)
   let client['command'] = a:command
   let client['name'] = a:name
   let client['running'] = 0
-  let client['stderrs'] = []
   let client['async_req_id'] = 1
   let client['async_callbacks'] = {}
   " vim only
   let client['channel'] = v:null
   " neovim only
   let client['chan_id'] = 0
-
   let client['start'] = function('s:start', [], client)
   let client['request'] = function('s:request', [], client)
   let client['notify'] = function('s:notify', [], client)
   let client['request_async'] = function('s:request_async', [], client)
   let client['on_async_response'] = function('s:on_async_response', [], client)
-
   let s:clients[a:name] = client
   return client
 endfunction
@@ -35,16 +32,14 @@ endfunction
 function! s:start() dict
   if self.running | return | endif
   if s:is_vim
+    let $VIM_NODE_RPC = 1
+    let $COC_NVIM = 1
     let options = {
           \ 'in_mode': 'json',
           \ 'out_mode': 'json',
           \ 'err_mode': 'nl',
-          \ 'err_cb': {channel, message -> s:on_stderr(self.name, [message])},
+          \ 'err_cb': {channel, message -> s:on_stderr(self.name, split(message, "\n"))},
           \ 'exit_cb': {channel, code -> s:on_exit(self.name, code)},
-          \ 'env': {
-          \   'VIM_NODE_RPC': 1,
-          \   'COC_NVIM': 1,
-          \ }
           \}
     if has("patch-8.1.350")
       let options['noblock'] = 1
@@ -53,7 +48,7 @@ function! s:start() dict
     let status = job_status(job)
     if status !=# 'run'
       let self.running = 0
-      echohl Error | echon 'Failed to start '.self.name.' service' | echohl None
+      echohl Error | echom 'Failed to start '.self.name.' service' | echohl None
       return
     endif
     let self['running'] = 1
@@ -65,7 +60,7 @@ function! s:start() dict
           \ 'on_exit': {channel, code -> s:on_exit(self.name, code)},
           \})
     if chan_id <= 0
-      echohl Error | echon 'Failed to start '.self.name.' service' | echohl None
+      echohl Error | echom 'Failed to start '.self.name.' service' | echohl None
       return
     endif
     let self['chan_id'] = chan_id
@@ -75,11 +70,8 @@ endfunction
 
 function! s:on_stderr(name, msgs)
   if get(g:, 'coc_vim_leaving', 0) | return | endif
-  let client = get(s:clients, a:name, v:null)
-  if empty(client) | return | endif
   let data = filter(copy(a:msgs), '!empty(v:val)')
   if empty(data) | return | endif
-  call extend(client['stderrs'], data)
   let client = a:name ==# 'coc' ? '' : ' client '.a:name
   let data[0] = '[coc.nvim]'.client.' error: ' . data[0]
   call coc#util#echo_messages('Error', data)
@@ -95,7 +87,7 @@ function! s:on_exit(name, code) abort
   let client['channel'] = v:null
   let client['async_req_id'] = 1
   if a:code != 0
-    echohl Error | echon 'client '.a:name. ' abnormal exit with: '.a:code | echohl None
+    echohl Error | echom 'client '.a:name. ' abnormal exit with: '.a:code | echohl None
   endif
 endfunction
 

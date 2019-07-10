@@ -15,15 +15,11 @@ export interface ColorRanges {
 const usedColors: Set<string> = new Set()
 
 export default class Highlighter implements Disposable {
-  public winid: number
-  private matchIds: number[] = []
+  private matchIds: Set<number> = new Set()
   private _colors: ColorInformation[] = []
   // last highlight version
   private _version: number
-  constructor(
-    private nvim: Neovim,
-    private document: Document,
-    private srcId) {
+  constructor(private nvim: Neovim, private document: Document, private srcId) {
   }
 
   public get version(): number {
@@ -45,10 +41,10 @@ export default class Highlighter implements Disposable {
   public async highlight(colors: ColorInformation[]): Promise<void> {
     colors = colors || []
     this._version = this.document.version
-    if (workspace.isVim && workspace.bufnr != this.document.bufnr) return
+    if (workspace.isVim
+      && !workspace.env.textprop
+      && workspace.bufnr != this.document.bufnr) return
     if (colors.length == 0) return this.clearHighlight()
-    let window = await this.nvim.window
-    this.winid = window.id
     this._colors = colors
     let groups = group(colors, 100)
     let cleared = false
@@ -56,18 +52,15 @@ export default class Highlighter implements Disposable {
       this.nvim.pauseNotification()
       if (!cleared) {
         cleared = true
-        if (workspace.isVim) {
-          this.document.clearMatchIds(this.matchIds)
-          this.matchIds = []
-        } else {
-          this.document.clearMatchIds([this.srcId])
-        }
+        this.document.clearMatchIds(this.matchIds)
+        this.matchIds.clear()
       }
       let colorRanges = this.getColorRanges(colors)
       this.addColors(colors.map(o => o.color))
       for (let o of colorRanges) {
         this.addHighlight(o.ranges, o.color)
       }
+      this.nvim.command('redraw', true)
       await this.nvim.resumeNotification()
     }
   }
@@ -76,7 +69,9 @@ export default class Highlighter implements Disposable {
     let { red, green, blue } = toHexColor(color)
     let hlGroup = `BG${toHexString(color)}`
     let ids = this.document.highlightRanges(ranges, hlGroup, this.srcId)
-    if (workspace.isVim) this.matchIds.push(...ids)
+    for (let id of ids) {
+      this.matchIds.add(id)
+    }
   }
 
   private addColors(colors: Color[]): void {
@@ -94,12 +89,8 @@ export default class Highlighter implements Disposable {
   public clearHighlight(): void {
     let { matchIds, srcId } = this
     if (!this.document) return
-    if (workspace.isVim) {
-      this.matchIds = []
-      this.document.clearMatchIds(matchIds)
-    } else {
-      this.document.clearMatchIds([srcId])
-    }
+    this.matchIds.clear()
+    this.document.clearMatchIds(matchIds)
     this._colors = []
   }
 
@@ -129,6 +120,7 @@ export default class Highlighter implements Disposable {
   }
 
   public dispose(): void {
+    this.clearHighlight()
     this.document = null
   }
 }
@@ -152,7 +144,13 @@ function toHexColor(color: Color): { red: number, green: number, blue: number } 
 }
 
 function isDark(color: Color): boolean {
-  let { red, green, blue } = toHexColor(color)
-  let luma = 0.2126 * red + 0.7152 * green + 0.0722 * blue
-  return luma < 40
+  // http://www.w3.org/TR/WCAG20/#relativeluminancedef
+  let rgb = [color.red, color.green, color.blue]
+  let lum = []
+  for (let i = 0; i < rgb.length; i++) {
+    let chan = rgb[i]
+    lum[i] = (chan <= 0.03928) ? chan / 12.92 : Math.pow(((chan + 0.055) / 1.055), 2.4)
+  }
+  let luma = 0.2126 * lum[0] + 0.7152 * lum[1] + 0.0722 * lum[2]
+  return luma <= 0.5
 }

@@ -15,7 +15,7 @@ afterAll(async () => {
 
 async function create(): Promise<FloatBuffer> {
   let buf = await nvim.createNewBuffer(false, false)
-  return new FloatBuffer(buf, nvim, 1000)
+  return new FloatBuffer(nvim, buf)
 }
 
 describe('FloatBuffer', () => {
@@ -47,13 +47,6 @@ describe('FloatBuffer', () => {
     let buf = await create()
     let valid = await buf.valid
     expect(valid).toBe(true)
-  })
-
-  it('should get highlightOffset & height', async () => {
-    let buf = await create()
-    let offset = buf.highlightOffset
-    expect(offset).toBe(0)
-    expect(buf.height).toBe(0)
   })
 
   it('should get code fragment #1', async () => {
@@ -142,11 +135,11 @@ describe('FloatBuffer', () => {
     await nvim.resumeNotification()
     let lines = await buf.buffer.lines
     expect(lines).toEqual([
-      ' # head',
-      ' **note**',
-      ' console.log(3)',
-      '————————————————',
-      ' class Foo'
+      '# head',
+      '**note**',
+      'console.log(3)',
+      '——————————————',
+      'class Foo'
     ])
   })
 })

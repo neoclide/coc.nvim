@@ -1,5 +1,5 @@
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import Watchman, { FileChange } from '../watchman'
 import path = require('path')
 import { RenameEvent } from '../types'
@@ -8,14 +8,14 @@ const logger = require('../util/logger')('filesystem-watcher')
 
 export default class FileSystemWatcher implements Disposable {
 
-  private _onDidCreate = new Emitter<Uri>()
-  private _onDidChange = new Emitter<Uri>()
-  private _onDidDelete = new Emitter<Uri>()
+  private _onDidCreate = new Emitter<URI>()
+  private _onDidChange = new Emitter<URI>()
+  private _onDidDelete = new Emitter<URI>()
   private _onDidRename = new Emitter<RenameEvent>()
 
-  public readonly onDidCreate: Event<Uri> = this._onDidCreate.event
-  public readonly onDidChange: Event<Uri> = this._onDidChange.event
-  public readonly onDidDelete: Event<Uri> = this._onDidDelete.event
+  public readonly onDidCreate: Event<URI> = this._onDidCreate.event
+  public readonly onDidChange: Event<URI> = this._onDidChange.event
+  public readonly onDidDelete: Event<URI> = this._onDidDelete.event
   public readonly onDidRename: Event<RenameEvent> = this._onDidRename.event
   private disposables: Disposable[] = []
 
@@ -44,7 +44,7 @@ export default class FileSystemWatcher implements Disposable {
       let { root, files } = change
       files = files.filter(f => f.type == 'f')
       for (let file of files) {
-        let uri = Uri.file(path.join(root, file.name))
+        let uri = URI.file(path.join(root, file.name))
         if (!file.exists) {
           if (!ignoreDeleteEvents) this._onDidDelete.fire(uri)
         } else {
@@ -60,8 +60,8 @@ export default class FileSystemWatcher implements Disposable {
         let newFile = files[1]
         if (oldFile.size == newFile.size) {
           this._onDidRename.fire({
-            oldUri: Uri.file(path.join(root, oldFile.name)),
-            newUri: Uri.file(path.join(root, newFile.name))
+            oldUri: URI.file(path.join(root, oldFile.name)),
+            newUri: URI.file(path.join(root, newFile.name))
           })
         }
       }

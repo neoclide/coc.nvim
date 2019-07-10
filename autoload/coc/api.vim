@@ -1,6 +1,14 @@
+" ============================================================================
+" Description: Client api used by vim8
+" Author: Qiming Zhao <chemzqm@gmail.com>
+" Licence: MIT licence
+" Last Modified:  June 28, 2019
+" ============================================================================
 if has('nvim') | finish | endif
-scriptencoding utf-8
 let s:funcs = {}
+let s:prop_id = 1000
+let s:namespace_id = 1
+let s:namespace_cache = {}
 
 " helper {{
 function! s:buf_line_count(bufnr) abort
@@ -58,14 +66,16 @@ function! s:funcs.list_wins() abort
 endfunction
 
 function! s:funcs.call_atomic(calls)
+  let res = []
   for [key, arglist] in a:calls
     let name = key[5:]
     try
-      call call(s:funcs[name], arglist)
+      call add(res, call(s:funcs[name], arglist))
     catch /.*/
-      throw v:exception
+      return [res, v:exception]
     endtry
   endfor
+  return [res, v:null]
 endfunction
 
 function! s:funcs.set_client_info(...) abort
@@ -87,7 +97,7 @@ endfunction
 
 function! s:funcs.command(command) abort
   " command that could cause cursor vanish
-  if a:command =~# '^echo' || a:command =~# '^redraws' || a:command =~# '^sign place'
+  if a:command =~# '^echo' || a:command =~# '^redraw' || a:command =~# '^sign place'
     call timer_start(0, {-> s:execute(a:command)})
   else
     execute a:command
@@ -178,6 +188,21 @@ endfunction
 function! s:funcs.err_writeln(str)
   echoerr a:str
 endfunction
+
+function! s:funcs.create_namespace(name) abort
+  if empty(a:name)
+    let id = s:namespace_id
+    let s:namespace_id = s:namespace_id + 1
+    return id
+  endif
+  let id = get(s:namespace_cache, a:name, 0)
+  if !id
+    let id = s:namespace_id
+    let s:namespace_id = s:namespace_id + 1
+    let s:namespace_cache[a:name] = id
+  endif
+  return id
+endfunction
 " }}
 
 " buffer methods {{
@@ -201,18 +226,72 @@ function! s:funcs.buf_get_mark(bufnr, name)
   return [line("'" . a:name), col("'" . a:name)]
 endfunction
 
+function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEnd) abort
+  if !has('textprop')
+    return
+  endif
+  let key = 'Coc'.a:hlGroup
+  if empty(prop_type_get(key))
+    call prop_type_add(key, {'highlight': a:hlGroup, 'combine': 1})
+  endif
+  let end = a:colEnd
+  if end == -1
+    let end = strlen(getbufline(a:bufnr, a:line + 1)[0]) + 1
+  endif
+  let id = 0
+  if a:srcId != 0
+    let cached = getbufvar(a:bufnr, 'prop_namespace_'.a:srcId, [])
+    let id = s:prop_id
+    let s:prop_id = id + 1
+    call add(cached, id)
+    call setbufvar(a:bufnr, 'prop_namespace_'.a:srcId, cached)
+  endif
+  call prop_add(a:line + 1, a:colStart + 1, {'length': end - a:colStart, 'bufnr': a:bufnr, 'type': key, 'id': id})
+endfunction
+
+function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
+  if !has('textprop')
+    return
+  endif
+  if a:srcId == 0
+    if a:endLine == -1
+      call prop_clear(a:startLine + 1, {'bufnr': a:bufnr})
+    else
+      call prop_clear(a:startLine + 1, a:endLine + 1, {'bufnr': a:bufnr})
+    endif
+  else
+    let cached = getbufvar(a:bufnr, 'prop_namespace_'.a:srcId, [])
+    if empty(cached)
+      return
+    endif
+    for id in cached
+      if a:endLine == -1
+        if a:startLine == 0 && a:endLine == -1
+          call prop_remove({'id':id, 'bufnr': a:bufnr})
+        elseif a:endLine != -1
+          call prop_remove({'id':id, 'bufnr': a:bufnr}, a:startLine, a:endLine)
+        else
+          let len = s:buf_line_count(a:bufnr)
+          call prop_remove({'id':id, 'bufnr': a:bufnr}, a:startLine, len)
+        endif
+      else
+      endif
+    endfor
+  endif
+endfunction
+
 function! s:funcs.buf_line_count(bufnr) abort
   return s:buf_line_count(a:bufnr)
 endfunction
 
 function! s:funcs.buf_attach(...)
   " not supported
-  return 0
+  return 1
 endfunction
 
 function! s:funcs.buf_detach()
   " not supported
-  return 0
+  return 1
 endfunction
 
 function! s:funcs.buf_get_lines(bufnr, start, end, strict) abort
@@ -231,16 +310,33 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
   let startLnum = a:start >= 0 ? a:start + 1 : lineCount + a:start + 1
   let end = a:end >= 0 ? a:end : lineCount + a:end + 1
   let delCount = end - (startLnum - 1)
-  " replace
-  if delCount == len(replacement)
-    call setbufline(a:bufnr, startLnum, replacement)
-  else
-    if len(replacement)
-      call appendbufline(a:bufnr, startLnum - 1, replacement)
+  if a:bufnr == bufnr('%')
+    " replace
+    if delCount == len(replacement)
+      call setline(startLnum, replacement)
+    else
+      if len(replacement)
+        call append(startLnum - 1, replacement)
+      endif
+      if delCount
+        let start = startLnum + len(replacement)
+        silent execute start . ','.(start + delCount - 1).'d'
+      endif
     endif
-    if delCount
-      let start = startLnum + len(replacement)
-      call deletebufline(a:bufnr, start, start + delCount - 1)
+  else
+    if exists('*setbufline')
+      " replace
+      if delCount == len(replacement)
+        call setbufline(a:bufnr, startLnum, replacement)
+      else
+        if len(replacement)
+          call appendbufline(a:bufnr, startLnum - 1, replacement)
+        endif
+        if delCount
+          let start = startLnum + len(replacement)
+          call deletebufline(a:bufnr, start, start + delCount - 1)
+        endif
+      endif
     endif
   endif
 endfunction
@@ -249,6 +345,7 @@ function! s:funcs.buf_set_name(bufnr, name) abort
   let nr = bufnr('%')
   if a:bufnr != nr
     throw 'buf_set_name support current buffer only'
+  else
     execute '0f'
     execute 'file '.fnameescape(a:name)
   endif
@@ -259,6 +356,7 @@ function! s:funcs.buf_get_var(bufnr, name)
 endfunction
 
 function! s:funcs.buf_set_var(bufnr, name, val)
+  if !bufloaded(a:bufnr) | return | endif
   call setbufvar(a:bufnr, a:name, a:val)
 endfunction
 
@@ -334,11 +432,11 @@ function! s:funcs.win_set_height(win_id, height) abort
 endfunction
 
 function! s:funcs.win_set_option(win_id, name, value) abort
-  call settabwinvar(0, a:win_id, '&'.a:name, a:value)
+  call setwinvar(a:win_id, '&'.a:name, a:value)
 endfunction
 
 function! s:funcs.win_set_var(win_id, name, value) abort
-  call settabwinvar(0, a:win_id, a:name, a:value)
+  call setwinvar(a:win_id, a:name, a:value)
 endfunction
 
 function! s:funcs.win_del_var(win_id, name) abort

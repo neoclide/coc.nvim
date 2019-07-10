@@ -4,7 +4,7 @@ import helper from '../helper'
 import fs from 'fs'
 import * as lsclient from '../../language-client'
 import * as path from 'path'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 // import which from 'which'
 
 beforeAll(async () => {
@@ -45,7 +45,7 @@ describe('Client integration', () => {
         let res = await client.sendRequest('custom/received')
         expect(res).toEqual({
           changes: [{
-            uri: Uri.file(file).toString(),
+            uri: URI.file(file).toString(),
             type: 1
           }]
         })

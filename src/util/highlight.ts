@@ -37,11 +37,11 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
   const hlMap: Map<number, string> = new Map()
   const content = lines.join('\n')
   if (diagnosticFiletypes.indexOf(filetype) != -1) {
-    let highlights = lines.map((_line, i) => {
+    let highlights = lines.map((line, i) => {
       return {
         line: i,
         colStart: 0,
-        colEnd: -1,
+        colEnd: byteLength(line),
         hlGroup: `Coc${filetype}Float`
       }
     })
@@ -55,6 +55,7 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
   }
   const id = createHash('md5').update(content).digest('hex')
   if (cache[id]) return Promise.resolve(cache[id])
+  if (workspace.env.isVim) return Promise.resolve([])
   const res: Highlight[] = []
   let nvim: NeovimClient
   return new Promise(async resolve => {
@@ -73,10 +74,15 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
       })
       env.runtimepath = dirs.join(',')
     }
-    let proc = cp.spawn('nvim', ['-u', 'NORC', '-i', 'NONE', '--embed', uuid()], {
+    let prog = workspace.env.progpath || 'nvim'
+    let proc = cp.spawn(prog, ['-u', 'NORC', '-i', 'NONE', '--embed', uuid()], {
       shell: false,
       cwd: os.tmpdir(),
-      env: omit(process.env, ['NVIM_LISTEN_ADDRESS'])
+      env: omit(process.env, ['NVIM_LISTEN_ADDRESS', 'VIM_NODE_RPC'])
+    })
+    proc.on('error', error => {
+      logger.info('highlight error:', error)
+      resolve([])
     })
     let timer: NodeJS.Timer
     let exited = false
@@ -137,8 +143,8 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
                       res.push({
                         line,
                         hlGroup,
-                        colStart: colStart + 1,
-                        colEnd: col + 1,
+                        colStart,
+                        colEnd: col,
                         isMarkdown: filetype == 'markdown'
                       })
                     }
@@ -152,8 +158,8 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
                   res.push({
                     hlGroup,
                     line,
-                    colStart: colStart + 1,
-                    colEnd: col + 1,
+                    colStart,
+                    colEnd: col,
                     isMarkdown: filetype == 'markdown'
                   })
                 }
@@ -179,7 +185,7 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
         ['nvim_command', ['set laststatus=0']],
       ])
       let buf = await nvim.buffer
-      await buf.setLines(lines.map(s => s.slice(1)), { start: 0, end: -1, strictIndexing: false })
+      await buf.setLines(lines, { start: 0, end: -1, strictIndexing: false })
       await buf.setOption('filetype', filetype)
       await nvim.uiAttach(200, lines.length + 1, {
         ext_hlstate: true,

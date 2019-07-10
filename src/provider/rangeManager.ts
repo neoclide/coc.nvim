@@ -1,5 +1,4 @@
-import { CancellationToken, Disposable, DocumentSelector, Position, TextDocument } from 'vscode-languageserver-protocol'
-import { SelectionRange } from 'vscode-languageserver-protocol/lib/protocol.selectionRange.proposed'
+import { SelectionRange, CancellationToken, Disposable, DocumentSelector, Position, TextDocument } from 'vscode-languageserver-protocol'
 import { SelectionRangeProvider } from './index'
 import Manager from './manager'
 import uuid = require('uuid/v4')
@@ -22,11 +21,11 @@ export default class SelectionRangeManager extends Manager<SelectionRangeProvide
     document: TextDocument,
     positions: Position[],
     token: CancellationToken
-  ): Promise<SelectionRange[][] | null> {
+  ): Promise<SelectionRange[] | null> {
     let item = this.getProvider(document)
     if (!item) return null
     let { provider } = item
-    return await Promise.resolve(provider.provideSelectionRanges(document, positions, token))
+    return (await Promise.resolve(provider.provideSelectionRanges(document, positions, token)) || [])
   }
 
   public dispose(): void {

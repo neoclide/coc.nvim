@@ -1,11 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
 import commandManager from '../../commands'
-import workspace from '../../workspace'
 import events from '../../events'
-import extensions from '../../extensions'
-import { ListContext, ListItem } from '../../types'
-import BasicList from '../basic'
 import Mru from '../../model/mru'
+import { ListContext, ListItem } from '../../types'
+import workspace from '../../workspace'
+import BasicList from '../basic'
 
 export default class CommandsList extends BasicList {
   public defaultAction = 'run'
@@ -21,24 +20,25 @@ export default class CommandsList extends BasicList {
       await events.fire('Command', [cmd])
       await commandManager.executeCommand(cmd)
       await this.mru.add(cmd)
+      await nvim.command(`silent! call repeat#set("\\<Plug>(coc-command-repeat)", -1)`)
     })
   }
 
   public async loadItems(_context: ListContext): Promise<ListItem[]> {
     let items: ListItem[] = []
     let list = commandManager.commandList
-    let { commands } = extensions
+    let { titles } = commandManager
     let mruList = await this.mru.load()
-    for (let key of Object.keys(commands)) {
+    for (let key of titles.keys()) {
       items.push({
-        label: `${key}\t${commands[key]}`,
+        label: `${key}\t${titles.get(key)}`,
         filterText: key,
         data: { cmd: key, score: score(mruList, key) }
       })
     }
     for (let o of list) {
       let { id } = o
-      if (items.findIndex(item => item.filterText == id) == -1) {
+      if (!titles.has(id)) {
         items.push({
           label: id,
           filterText: id,

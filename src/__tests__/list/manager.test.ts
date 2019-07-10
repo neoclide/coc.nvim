@@ -164,7 +164,6 @@ describe('list options', () => {
 
   it('should respect auto preview option', async () => {
     await manager.start(['--auto-preview', 'location'])
-    expect(manager.isActivated).toBe(true)
     await helper.wait(300)
     let previewWinnr = await nvim.call('coc#util#has_preview')
     expect(previewWinnr).toBe(2)
@@ -176,6 +175,14 @@ describe('list options', () => {
     await helper.wait(100)
     let winnr = await nvim.call('coc#util#has_preview')
     expect(winnr).toBe(previewWinnr)
+  })
+
+  it('should respect tab option', async () => {
+    await manager.start(['--tab', '--auto-preview', 'location'])
+    await helper.wait(300)
+    await nvim.command('wincmd l')
+    let previewwindow = await nvim.eval('&previewwindow')
+    expect(previewwindow).toBe(1)
   })
 })
 
@@ -196,6 +203,24 @@ describe('list configuration', () => {
     let height = await win.height
     expect(height).toBe(2)
     helper.updateConfiguration('list.maxHeight', 12)
+  })
+
+  it('should split right for preview window', async () => {
+    helper.updateConfiguration('list.previewSplitRight', true)
+    let win = await nvim.window
+    await manager.start(['location'])
+    await helper.wait(100)
+    await manager.doAction('preview')
+    await helper.wait(100)
+    manager.prompt.cancel()
+    await helper.wait(10)
+    await nvim.call('win_gotoid', [win.id])
+    await nvim.command('wincmd l')
+    let curr = await nvim.window
+    let bufname = await nvim.eval('bufname("%")')
+    let isPreview = await curr.getOption('previewwindow')
+    expect(isPreview).toBe(true)
+    helper.updateConfiguration('list.previewSplitRight', false)
   })
 
   it('should change autoResize', async () => {
@@ -258,16 +283,6 @@ describe('list configuration', () => {
     expect(items.length).toBe(3)
   })
 
-  it('should activated after cursor moved out and in', async () => {
-    await manager.start(['--normal', 'location'])
-    await helper.wait(100)
-    await nvim.command('wincmd p')
-    await helper.wait(100)
-    await nvim.command('wincmd p')
-    await helper.wait(100)
-    expect(manager.isActivated).toBe(true)
-  })
-
   it('should toggle preview', async () => {
     await manager.start(['--normal', '--auto-preview', 'location'])
     await helper.wait(200)
@@ -277,6 +292,14 @@ describe('list configuration', () => {
     await helper.wait(100)
     let has = await nvim.call('coc#list#has_preview')
     expect(has).toBe(1)
+  })
+
+  it('should show help of current list', async () => {
+    await manager.start(['--normal', '--auto-preview', 'location'])
+    await helper.wait(200)
+    await manager.showHelp()
+    let bufname = await nvim.call('bufname', '%')
+    expect(bufname).toBe('[LIST HELP]')
   })
 
   it('should resolve list item', async () => {

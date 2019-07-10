@@ -5,7 +5,8 @@ import { wait } from './util'
 import workspace from './workspace'
 import Plugin from './plugin'
 import snipetsManager from './snippets/manager'
-import URI from 'vscode-uri'
+import diagnosticManager from './diagnostic/manager'
+import { URI } from 'vscode-uri'
 const logger = require('./util/logger')('commands')
 
 // command center
@@ -36,6 +37,7 @@ class CommandItem implements Disposable, Command {
 
 export class CommandManager implements Disposable {
   private readonly commands = new Map<string, CommandItem>()
+  public titles = new Map<string, string>()
 
   public init(nvim: Neovim, plugin: Plugin): void {
     this.register({
@@ -136,6 +138,26 @@ export class CommandManager implements Disposable {
       }
     })
     this.register({
+      id: 'extensions.toggleAutoUpdate',
+      execute: async () => {
+        let config = workspace.getConfiguration('coc.preferences')
+        let interval = config.get<string>('extensionUpdateCheck', 'daily')
+        if (interval == 'never') {
+          config.update('extensionUpdateCheck', 'daily', true)
+          workspace.showMessage('Extension auto update enabled.', 'more')
+        } else {
+          config.update('extensionUpdateCheck', 'never', true)
+          workspace.showMessage('Extension auto update disabled.', 'more')
+        }
+      }
+    })
+    this.register({
+      id: 'workspace.diagnosticRelated',
+      execute: () => {
+        return diagnosticManager.jumpRelated()
+      }
+    })
+    this.register({
       id: 'workspace.showOutput',
       execute: async (name?: string) => {
         if (name) {
@@ -221,7 +243,7 @@ export class CommandManager implements Disposable {
    *
    * * *Note 1:* When executing an editor command not all types are allowed to
    * be passed as arguments. Allowed are the primitive types `string`, `boolean`,
-   * `number`, `undefined`, and `null`, as well as [`Position`](#Position), [`Range`](#Range), [`Uri`](#Uri) and [`Location`](#Location).
+   * `number`, `undefined`, and `null`, as well as [`Position`](#Position), [`Range`](#Range), [`URI`](#URI) and [`Location`](#Location).
    * * *Note 2:* There are no restrictions when executing commands that have been contributed
    * by extensions.
    *
@@ -240,6 +262,16 @@ export class CommandManager implements Disposable {
       workspace.showMessage(`Command error: ${e.message}`, 'error')
       logger.error(e.stack)
     })
+  }
+
+  public async repeatCommand(): Promise<void> {
+    let mru = workspace.createMru('commands')
+    let mruList = await mru.load()
+    let first = mruList[0]
+    if (first) {
+      await this.executeCommand(first)
+      await workspace.nvim.command(`silent! call repeat#set("\\<Plug>(coc-command-repeat)", -1)`)
+    }
   }
 }
 

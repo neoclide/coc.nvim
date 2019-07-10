@@ -185,6 +185,38 @@ export class ServiceManager extends EventEmitter implements Disposable {
     }
   }
 
+  private waitClient(id: string): Promise<void> {
+    let service = this.getService(id)
+    if (service && service.state == ServiceStat.Running) return Promise.resolve()
+    if (service) return new Promise(resolve => {
+      service.onServiceReady(() => {
+        resolve()
+      })
+    })
+    return new Promise(resolve => {
+      let listener = clientId => {
+        if (clientId == id || clientId == `languageserver.${id}`) {
+          this.off('ready', listener)
+          resolve()
+        }
+      }
+      this.on('ready', listener)
+    })
+  }
+
+  public async registNotification(id: string, method: string): Promise<void> {
+    await this.waitClient(id)
+    let service = this.getService(id)
+    if (!service.client) {
+      workspace.showMessage(`Not a language client: ${id}`, 'error')
+      return
+    }
+    let client = service.client as LanguageClient
+    client.onNotification(method, async result => {
+      await workspace.nvim.call('coc#do_notify', [id, method, result])
+    })
+  }
+
   public async sendRequest(id: string, method: string, params?: any): Promise<any> {
     if (!method) {
       throw new Error(`method required for sendRequest`)
@@ -348,6 +380,8 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
   let clientOptions: LanguageClientOptions = {
     ignoredRootPaths,
     disableWorkspaceFolders,
+    disableCompletion: !!config.disableCompletion,
+    disableDiagnostics: !!config.disableDiagnostics,
     documentSelector,
     revealOutputChannelOn: getRevealOutputChannelOn(config.revealOutputChannelOn),
     synchronize: {

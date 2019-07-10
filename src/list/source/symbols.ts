@@ -1,17 +1,19 @@
 import path from 'path'
 import { SymbolInformation, SymbolKind } from 'vscode-languageserver-types'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import languages from '../../languages'
 import { ListContext, ListItem } from '../../types'
 import workspace from '../../workspace'
 import LocationList from './location'
 import { getSymbolKind } from '../../util/convert'
+import { isParentFolder } from '../../util/fs'
+import { score } from '../../util/fzy'
 const logger = require('../../util/logger')('list-symbols')
 
 export default class Symbols extends LocationList {
   public readonly interactive = true
   public readonly description = 'search workspace symbols'
-  public readonly detail = 'Symbols list if provided by server, it works on interactive mode only.\n'
+  public readonly detail = 'Symbols list is provided by server, it works on interactive mode only.'
   public name = 'symbols'
 
   public async loadItems(context: ListContext): Promise<ListItem[]> {
@@ -28,19 +30,27 @@ export default class Symbols extends LocationList {
     }
     let items: ListItem[] = []
     for (let s of symbols) {
-      if (!this.validWorkspaceSymbol(s)) continue
       let kind = getSymbolKind(s.kind)
-      let file = Uri.parse(s.location.uri).fsPath
-      if (file.startsWith(workspace.cwd)) {
+      let file = URI.parse(s.location.uri).fsPath
+      if (isParentFolder(workspace.cwd, file)) {
         file = path.relative(workspace.cwd, file)
       }
       items.push({
         label: `${s.name} [${kind}]\t${file}`,
         filterText: `${s.name}`,
         location: s.location,
-        data: { original: s }
+        data: { original: s, kind: s.kind, file, score: score(input, s.name) }
       })
     }
+    items.sort((a, b) => {
+      if (a.data.score != b.data.score) {
+        return b.data.score - a.data.score
+      }
+      if (a.data.kind != b.data.kind) {
+        return a.data.kind - b.data.kind
+      }
+      return a.data.file.length - b.data.file.length
+    })
     return items
   }
 
@@ -50,8 +60,8 @@ export default class Symbols extends LocationList {
     let resolved = await languages.resolveWorkspaceSymbol(s)
     if (!resolved) return null
     let kind = getSymbolKind(resolved.kind)
-    let file = Uri.parse(resolved.location.uri).fsPath
-    if (file.startsWith(workspace.cwd)) {
+    let file = URI.parse(resolved.location.uri).fsPath
+    if (isParentFolder(workspace.cwd, file)) {
       file = path.relative(workspace.cwd, file)
     }
     return {

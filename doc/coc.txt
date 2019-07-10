@@ -45,45 +45,54 @@ Changelog					|coc-changelog|
 ==============================================================================
 INTRODUCTION					*coc-introduction*
 
-Coc.nvim tries to provide the best experience for various LSP features,
-especially for completion.
+Coc.nvim is created to make your (neo)vim have more intelligence like VSCode.
 
-It is built to work with extensions which have features similar to
-extensions of VSCode. You can configure coc to work with custom
-language servers as well.
+It can:~
+
+- Provide APIs that work on both vim8 and neovim.
+- Load VSCode like extensions.
+- Configure coc.nvim and extensions by use jsonc configuration file.
+- Configure language servers that implements LSP.
+
+It's designed to work well with your other vim plugins as much as possible.
+
+Note: unlike some of IDEs, it doesn't hijack your experience, you can turn
+off any feature whenever you want.
 
 ==============================================================================
 REQUIREMENT					*coc-requirement*
 
-Note: this plugin requires neovim > 0.3 or vim > 8.1.
+Note: this plugin requires neovim >= 0.3.0 or vim >= 8.0.
 
 Node: https://nodejs.org/en/download/ is required to run javascript code.
 
 If those requirements are not satisfied, the plugin will not be loaded
 at all.
 
-Yarn (https://yarnpkg.com/en/docs/install) is used for managing coc
-extensions.
-
-Note: yarn is not required if you want to manage extensions using a vim
-plugin manager such as vim-plug.
-
 ==============================================================================
 INSTALL						*coc-install*
 
-To use the [vim-plug](https://github.com/junegunn/vim-plug) plugin manager, add this: >
+To use the [vim-plug](https://github.com/junegunn/vim-plug), add this: >
 
-  Plug 'neoclide/coc.nvim', {'do': { -> coc#util#install()}}
+  Plug 'neoclide/coc.nvim', {'branch': 'release'}
 
 to your `init.vim` and run: >
 
   :PlugInstall
 
-For other plugin managers, run `:call coc#util#install()` after the plugin is
-loaded. This command will download the latest compiled javascript code from
-the release branch.
+For other plugin managers, use code from release branch.
 
-Use `:call coc#util#build()` to build coc.nvim from source code.
+Or use vim's buildin package feature like: >
+
+  #!/bin/sh
+  # for vim8
+  mkdir -p ~/.vim/pack/coc/start
+  cd ~/.vim/pack/coc/start
+  curl --fail -L https://github.com/neoclide/coc.nvim/archive/release.tar.gz|tar xzfv -
+  # for neovim
+  mkdir -p ~/.local/share/nvim/site/pack/coc/start
+  cd ~/.local/share/nvim/site/pack/coc/start
+  curl --fail -L https://github.com/neoclide/coc.nvim/archive/release.tar.gz|tar xzfv -
 
 ==============================================================================
 CONFIGURATION					*coc-configuration*
@@ -96,7 +105,7 @@ Use the command |:CocConfig| to open the user configuration file, or create
 To enable completion and validation support of the settings file, install the
 `coc-json` extension: `:CocInstall coc-json`.
 
-Check out https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file
+Check out https://github.com/neoclide/coc.nvim/wiki/Using-the-configuration-file
 for more details.
 
 Builtin configurations:~
@@ -111,11 +120,19 @@ Builtin configurations:~
 
 "suggest.maxPreviewWidth":~
 
-	Maximum width of floating preview window.,  default: `50`
+	Maximum width of floating preview window.,  default: `80`
+
+"suggest.labelMaxLength":~
+
+	Maximum length of label shown in pum, default: `200`
 
 "suggest.enablePreview":~
 
-	Add preview option to `completeopt`, default: false.,  default: `false`
+	Add preview option to `completeopt`, default: false,  default: `false`
+
+"suggest.floatEnable"~
+
+	Enable floating window for documentation when possible, default: `true`
 
 "suggest.detailMaxLength":~
 
@@ -129,11 +146,6 @@ Builtin configurations:~
 
 	Valid options: ["abbr","menu","preview"]
 
-"suggest.previewIsKeyword":~
-
-	'iskeyword' option on floating preview buffer.,  default:
-	`"@,48-57,_192-255,<,>,$,#,-,`,*"`
-
 "suggest.autoTrigger":~
 
 	How should completion be triggered,  default: `"always"`
@@ -146,8 +158,8 @@ Builtin configurations:~
 
 "suggest.numberSelect":~
 
-	Input number to select complete item, it could wrong when using <up>
-	and <down> to select complete item,  default: `false`
+	Input number to select complete item, it could be wrong when
+	using <up> and <down> to select complete item,  default: `false`
 
 "suggest.disableKind":~
 
@@ -164,7 +176,7 @@ Builtin configurations:~
 
 "suggest.maxCompleteItemCount":~
 
-	Maxmium number of complete items shown in vim,  default: `50`
+	Maximum number of complete items shown in vim,  default: `50`
 
 "suggest.preferCompleteThanJumpPlaceholder":~
 
@@ -231,8 +243,38 @@ Builtin configurations:~
 
 "suggest.completionItemKindLabels":~
 
-	Set custom labels to completion items' kinds.,  default: `{}`
+	Set custom labels to completion items' kinds.,  default: `{}`.
 
+	Example configuration: with https://nerdfonts.com:  >
+
+	  "suggest.completionItemKindLabels": {
+		"keyword": "\uf1de",
+		"variable": "\ue79b",
+		"value": "\uf89f",
+		"operator": "\u03a8",
+		"function": "\u0192",
+		"reference": "\ufa46",
+		"constant": "\uf8fe",
+		"method": "\uf09a",
+		"struct": "\ufb44",
+		"class": "\uf0e8",
+		"interface": "\uf417",
+		"text": "\ue612",
+		"enum": "\uf435",
+		"enumMember": "\uf02b",
+		"module": "\uf40d",
+		"color": "\ue22b",
+		"property": "\ue624",
+		"field": "\uf9be",
+		"unit": "\uf475",
+		"event": "\ufacd",
+		"file": "\uf723",
+		"folder": "\uf114",
+		"snippet": "\ue60b",
+		"typeParameter": "\uf728",
+		"default": "\uf29c"
+	}
+<
 "diagnostic.enable":~
 
 	Set to false to disable diagnostic display,  default: `true`
@@ -332,12 +374,17 @@ Builtin configurations:~
 
 "diagnostic.maxWindowHeight":~
 
-	Maxmium height of diagnostics floating window.,  default: `8`
+	Maximum height of diagnostics floating window.,  default: `8`
 
 "signature.enable":~
 
 	Enable signature help when trigger character typed, require restart
 	service on change.,  default: `true`
+
+"signature.triggerSignatureWait":~
+
+	Wait time for trigger signature, default: `50`.
+	Change to higher value if your language server is slow.
 
 "signature.target":~
 
@@ -414,6 +461,10 @@ Builtin configurations:~
 "list.previousKeymap":~
 
 	Key used for select previous line on insert mode.,  default: `"<C-k>"`
+
+"list.extendedSearchMode": ~
+
+	Enable extended search mode which allows multiple search patterns delimited by spaces.
 
 "list.normalMappings":~
 
@@ -611,6 +662,14 @@ normal mode, `v_` works for visual mode.
 			
 			Jump to previous diagnostic position.
 
+<Plug>(coc-diagnostic-next-error) 		*n_coc-diagnostic-next-error*
+			
+			Jump to next diagnostic error position.
+
+<Plug>(coc-diagnostic-prev-error) 		*n_coc-diagnostic-prev-error*
+			
+			Jump to previous diagnostic error position.
+
 <Plug>(coc-definition) 				*n_coc-definition*
 
 			Jump to definition(s) of current symbol.
@@ -680,7 +739,7 @@ normal mode, `v_` works for visual mode.
 
 <Plug>(coc-fix-current) 			*n_coc-fix-current*
 
-			Try to run quickfix action for diagnostics on the  
+			Try to run quickfix action for diagnostics on the
 			current line.
 
 <Plug>(coc-float-hide) 				*n_coc-flost-hide*
@@ -691,8 +750,40 @@ normal mode, `v_` works for visual mode.
 
 			Jump to first float window.
 
+<Plug>(coc-refactor) 				*n_coc-refactor*
+
+			Open refactor window for refactor of current symbol.
+
+<Plug>(coc-range-select) 			*n_coc-range-select*
+<Plug>(coc-range-select) 			*v_coc-range-select*
+
+			Select next selection range.
+
+			Note: requires selection ranges feature of language
+			server, like: coc-tsserver, coc-python
+
+<Plug>(coc-range-select-backward) 		*v_coc-range-select-backward*
+
+			Select previous selection range.
+
+			Note: requires selection ranges feature of language
+			server, like: coc-tsserver, coc-python
+
+<Plug>(coc-funcobj-i) 			*n_coc-funcobj-i* *v_coc-funcobj-i*
+
+			Select inside function, mapped to `if` by default.
+
+<Plug>(coc-funcobj-a) 			*n_coc-funcobj-a* *v_coc-funcobj-a*
+
+			Select current function, mapped to `af` by default.
+
 ------------------------------------------------------------------------------
 VARIABLES 					*coc-variables*
+
+b:coc_enabled 					*b:coc_enabled*
+
+			Set to `0` on buffer create if you don't want
+			coc.nvim manage this buffer.
 
 b:coc_root_patterns 				*b:coc_root_patterns*
 
@@ -752,6 +843,15 @@ g:coc_user_config 				*g:coc_user_config*
 
 			User configuration object, define this variable when
 			you can't use |coc#config()|
+
+g:coc_extension_root 				*g:coc_extension_root*
+
+			Location that coc extensions would be installed to,
+			empty to use default location:
+			Windows:
+				`~/AppData/Local/coc/extensions`
+			Other:
+				`~/.config/coc/extensions`
 
 g:coc_global_extensions 			*g:coc_global_extensions*
 
@@ -869,6 +969,12 @@ g:coc_watch_extensions 				*g:coc_watch_extensions*
 			Extensions to watch for reload, used for developing 
 			extensions only, need watchman installed.
 
+g:coc_quickfix_open_command 			*g:coc_quickfix_open_command*
+
+			Open command used for open quickfix.
+			Used by quickfix action of list sources.
+			Default: |copen|
+
 g:WorkspaceFolders 				*g:WorkspaceFolders*
 
 			Current workspace folders, used for restoring from a 
@@ -942,7 +1048,17 @@ coc#add_extension({name}, ...) 			*coc#add_extension()*
 <
 	This function can be called before service initialized.
 	This function can be called multiple times.
+	
+coc#add_command({id}, {command}, [{title}]) 	*coc#add_command()*
 
+	Add custom vim command to commands list opened by
+	`:CocList commands` .
+
+	Example: >
+
+	call coc#add_command('mundoToggle', 'MundoToggle',
+		\ 'toggle mundo window')
+<
 						*coc#refresh()*
 coc#refresh()
 
@@ -1025,13 +1141,6 @@ coc#util#install([{config}])
 	- `terminal` use terminal when specified.
 	- `tag` use latest tag when specified.
 
-						*coc#util#build()*
-
-coc#util#build()
-
-	Build coc.nvim from source code, restarting vim is required after the 
-	build.
-
 						*coc#util#extension_root()*
 
 coc#util#extension_root()
@@ -1043,12 +1152,6 @@ coc#util#extension_root()
 coc#util#rebuild()
 
 	Rebuild coc extensions.
-
-						*coc#util#update()*
-
-coc#util#update()
-
-	Update extensions by use terminal feature.
 
 						*coc#util#has_float()*
 
@@ -1086,6 +1189,21 @@ CocRequestAsync({id}, {method}, [{params}, [{callback}]])
 
 	Async request for remote language client. {callback} is called with
 	error and response.
+
+						*CocRegistNotification()*
+
+CocRegistNotification({id}, {method}, {callback})
+
+	Regist notification callback for specified client {id} and {method},
+	example: >
+
+	autocmd User CocNvimInit call CocRegistNotification('ccls',
+		\ '$ccls/publishSemanticHighlight', function('s:Handler')) 
+<
+	{callback} is called with single param as notification result.
+
+	Note: when register notification with same {id} and {method}, only the
+	later registered would work.
 
 						*CocLocations()*
 CocLocations({id}, {method}, [{params}, {openCommand}])
@@ -1146,6 +1264,7 @@ Available Actions ~
 "jumpDefinition" [{openCommand}] 		*coc-action-jumpDefinition*
 
 	jump to definition position of the current symbol.
+	Return `v:false` when location not found.
 
 	|coc-list| is used when more than one position is available.
 
@@ -1155,6 +1274,7 @@ Available Actions ~
 "jumpDeclaration" [{openCommand}] 		*coc-action-jumpDeclaration*
 
 	jump to declaration position of the current symbol.
+	Return `v:false` when location not found.
 
 	same behavior as "jumpDefinition".
 
@@ -1163,24 +1283,28 @@ Available Actions ~
 "jumpImplementation" [{openCommand}] 		*coc-action-jumpImplementation*
 
 	Jump to implementation position of the current symbol.
+	Return `v:false` when location not found.
 
 	same behavior as "jumpDefinition"
 
 "jumpTypeDefinition" [{openCommand}] 		*coc-action-jumpTypeDefinition*
 
 	Jump to type definition position of the current symbol.
+	Return `v:false` when location not found.
 
 	same behavior as "jumpDefinition"
 
 "jumpReferences" [{openCommand}]		*coc-action-jumpReferences*
 
 	Jump to references position of the current symbol.
+	Return `v:false` when location not found.
 
 	same behavior as "jumpDefinition"
 
 "doHover" 					*coc-action-doHover*
 
 	Show documentation of the current word in a preview window.
+	Return `v:false` when hover not found.
 
 	Use `coc.preferences.hoverTarget` to change hover behavior.
 
@@ -1189,10 +1313,11 @@ Available Actions ~
 
 "showSignatureHelp" 				*coc-action-showSignatureHelp*
 
-	Echo signature help of current function, you may want to set up an 
-	autocmd like this: >
+	Echo signature help of current function, return `v:false` when
+	signature not found.  You may want to set up an autocmd like this: >
 
-	autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
+	autocmd User CocJumpPlaceholder call
+				\ CocActionAsync('showSignatureHelp')
 <
 "getCurrentFunctionSymbol" 			 *coc-action-getCurrentFunctionSymbol*
 
@@ -1226,6 +1351,7 @@ Available Actions ~
 "format" 					*coc-action-format*
 
 	Format current buffer using the language server.
+	Return `v:false` when format failed.
 
 "formatSelected" [{mode}] 			*coc-action-formatSelected*
 
@@ -1235,12 +1361,14 @@ Available Actions ~
 	When {mode} is omitted, it should be called using |formatexpr|.
 	
 
-"codeAction" [{mode}] 				*coc-action-codeAction*
+"codeAction" [{mode}] [{only}]			*coc-action-codeAction*
 
 	Prompt for a code action and do it.
 
 	{mode} should be result of visualmode(), when used in visualmode,
-	could be empty string for none visualmode.
+	could be empty string or v:null for none visualmode.
+
+	{only} can be title of a codeAction or list of CodeActionKind.
 
 
 "codeLensAction" 				*coc-action-codeLensAction*
@@ -1254,10 +1382,12 @@ Available Actions ~
 
 	Get a list of available service commands for the current buffer.
 
-"runCommand" [{name}] 				*coc-action-runCommand*
+"runCommand" [{name}] [...{args}] 		*coc-action-runCommand*
 
 	Run a global command provided by the language server. If {name} is not 
 	provided, a prompt with a list of commands is shown to be selected.
+
+	{args} are passed as arguments of command.
 
 	You can bind your custom command like so: >
 
@@ -1268,6 +1398,8 @@ Available Actions ~
 
 	Fold the current buffer, optionally use {kind} for filtering folds, 
 	{kind} could be either 'comment', 'imports' or 'region'
+
+	Return `v:false` when failed.
 
 "highlight" 					*coc-action-highlight*
 
@@ -1283,7 +1415,10 @@ Available Actions ~
 
 	Open a link under the cursor with {command}.
 	{command} default to `edit`.
-	File and URL links are supported.
+
+	File and URL links are supported, return `v:false` when failed.
+
+	Note: it needs language server support documentLink feature to work.
 	
 "extensionStats" 				*coc-action-extensionStats*
 
@@ -1321,15 +1456,25 @@ Available Actions ~
 
 	Change the color presentation at the current color position.
 
-	Requires a language server that supports color representation 
+	Requires a language server that supports color representation
 	requests.
 
-"quickfixes" 					*coc-action-quickfixes*
+"codeActions" [{visualmode}] [{only}]		*coc-action-codeActions*
 
-	Get all quickfix codeActions of current buffer.
+	Get codeActions of current range.
 
-	Could be used with |CocDiagnosticChange| autocmd to get available fix
-	actions.
+	{visualmode} can be result of |visualmode()| for visual selected
+	range, When it's empty string or not exists use current line.
+
+	{only} can be used to limit codeActionKind, possible values:
+	'refactor', 'quickfix' and 'source'.
+
+"quickfixes" [{visualmode}]			*coc-action-quickfixes*
+
+	Get quickfix codeActions of current buffer.
+
+	Add {visualmode} as second argument get quickfix actions with range of
+	latest |visualmode()|
 
 "doCodeAction" {codeAction} 			*coc-action-doCodeAction*
 
@@ -1338,6 +1483,7 @@ Available Actions ~
 "doQuickfix" 					*coc-action-doQuickfix*
 
 	Do the first quickfix action for the current line.
+	Return `v:false` when no quickfix action found.
 
 ------------------------------------------------------------------------------
 COMMANDS 					*coc-commands*
@@ -1398,6 +1544,17 @@ COMMANDS 					*coc-commands*
 		Run a command contributed by extensions, use `<tab>` for name 
 		completion.
 
+:{range}CocAction  [{only}] 			*:CocAction*
+
+		Get codeActions of current document in actions list,
+		with optional {range}.
+
+		{only} can be 'quickfix' or 'source' as CodeActionKind.
+
+:{range}CocFix 					*:CocFix*
+
+		Same as `:CocAction quickfix` for quickfix actions.
+
 :CocOpenLog 					*:CocOpenLog*
 
 		Open the log file of coc.nvim. To change the log level 
@@ -1413,12 +1570,6 @@ COMMANDS 					*coc-commands*
 		to the beggining of your `.vimrc` (before the plugin is 
 		loaded).
 
-		The log file is cleared after vim is started. To get the log 
-		file in your terminal, run the following command: >
-
-		node -e 'console.log(path.join(os.tmpdir(), "coc-nvim.log"))'
-		
-<
 :CocInfo 					*:CocInfo*
 
 		Show version and log information in a split window, useful for 
@@ -1429,14 +1580,13 @@ AUTOCMD 					*coc-autocmds*
 
 						*CocLocationsChange*
 
-
 :autocmd User CocLocationsChange {command}
 
 		For building a custom view of locations, set 
 		|g:coc_enable_locationlist| to 0 and use this autocmd with 
 		with |g:coc_jump_locations|
 
-		For example, to enable auto preview for coc list, use:
+		For example, to disable auto preview of location list, use:
 >
 		let g:coc_enable_locationlist = 0
 		autocmd User CocLocationsChange CocList --normal -A location
@@ -1450,6 +1600,13 @@ AUTOCMD 					*coc-autocmds*
 		If you want to trigger an action of coc after vim has started, 
 		this autocmd should be used because coc is always started 
 		asynchronously.
+
+						*CocStatusChange*
+
+:autocmd User CocStatusChange {command}
+
+		Triggered after `g:coc_status` changed, can be used for
+		refresh stautsline.
 
 						*CocDiagnosticChange*
 
@@ -1467,12 +1624,22 @@ AUTOCMD 					*coc-autocmds*
 		showwing signature help like so: >
 
 	autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
+<
+						*CocOpenFloat*
+
+:autocmd User CocOpenFloat {command}
+
+		Triggered when floating window opened.
+						*CocTerminalOpen*
+
+:autocmd User CocTerminalOpen {command}
+
+		Triggered when terminal shown, can be used for adjust window
+		height.
 
 ------------------------------------------------------------------------------
 
 HIGHLIGHTS 					*coc-highlights*
-
-You can overwrite the highlights provided by coc with the |:hi| command.
 
 To customize a highlight, simply use |:highlight| command of vim in your
 vimrc, like: >
@@ -1482,7 +1649,9 @@ vimrc, like: >
 <
 Note: don't use `:hi default` for overwriting the highlights.
 
-Note: highlight commands should appear after the |:colorscheme| command.
+Note: highlight commands should appear after the |:colorscheme| command or use
+|ColorScheme| autocmd to make sure customized highlight works after color
+scheme change.
 
 CocErrorSign 					*CocErrorSign*
 
@@ -1505,6 +1674,30 @@ CocInfoSign 					*CocInfoSign*
 CocHintSign 					*CocHintSign*
 
   Default: `hi CocHintSign  ctermfg=Blue guifg=#15aabf`
+
+  The highlight used for hint signs.
+
+CocErrorVirtualText 					*CocErrorVirtualText*
+
+  Default: `hi default link CocErrorVirtualText  CocErrorSign`
+
+  The highlight used for error signs.
+
+CocWarningVirtualText 					*CocWarningVirtualText*
+
+  Default: `hi default link CocWarningVirtualText CocWarningSign`
+
+  The highlight used for warning signs.
+
+CocInfoVirtualText 					*CocInfoVirtualText*
+
+  Default: `hi default link CocInfoVirtualText CocInfoSign`
+
+  The highlight used for information signs.
+
+CocHintVirtualText 					*CocHintVirtualText*
+
+  Default: `hi default link CocHintVirtualText CocHintSign`
 
   The highlight used for hint signs.
 
@@ -1534,7 +1727,7 @@ CocHintHighlight 				*CocHintHighlight*
 
 CocHighlightText 				*CocHighlightText*
 
-  Default `hi default CocHighlightText  guibg=#111111 ctermbg=223`
+  Default `hi default link CursorColumn`
 
   The highlight used for document highlight feature. Normally used for
   highlighting same symbols in the buffer at the current cursor position.
@@ -1675,6 +1868,9 @@ Command options 					*coc-list-options*
 --top
 	Show list as top window.
 
+--tab
+	Open list in new tabpage.
+
 --normal
 	Start list in normal mode, recommended for short list.
 
@@ -1811,7 +2007,9 @@ for customizing the list key-mappings, ex: >
 		"<C-n>": "normal:j",
 		"<C-p>": "normal:k",
 		"<C-t>": "action:tabe",
-		"<C-x>": "call:MyFunc"
+		"<C-x>": "call:MyFunc",
+		// paste yanked text to prompt
+		"<C-v>": "eval:@@"
 	}
 	"list.normalMappings": {
 		"c": "expr:MyExprFunc"
@@ -1848,6 +2046,8 @@ The mapping expression should be `command:arguments`, available commands:
 	'deletebackward' - remove next character.
 	'removetail' - remove characters afterwards.
 	'removeahead' - remove character ahead.
+	'paste' - append text from system clipboard to prompt.
+'eval' - append text to prompt from result of viml expression.
 'action' - execute action of list, use <tab> to find available actions.
 'feedkeys' - feedkeys to list window, use `\\` in JSON to escape special characters.
 'normal' - execute normal command in list window.
@@ -1984,6 +2184,13 @@ lists 							 *coc-list-lists*
 
 	- 'open': open selected list, default action.
 
+actions 						 *coc-list-actions*
+
+	Get available code actions.
+
+	Actions:
+
+	- 'do': execute selected action.
 
 ==============================================================================
 
@@ -2023,25 +2230,12 @@ Add `%{StatusDiagnostic()}` to your 'statusline' option.
 
 With vim-airline: https://github.com/vim-airline/vim-airline
 
-Add configuration like: >
+Error and warning display should work in vim-airline out of box.
 
-	" use error & warning count of diagnostics form coc.nvim
-	let g:airline_section_error = '%{airline#util#wrap(airline#extensions#coc#get_error(),0)}'
-	let g:airline_section_warning = '%{airline#util#wrap(airline#extensions#coc#get_warning(),0)}'
-
-	" create a part for server status.
-	function! GetServerStatus()
-	  return get(g:, 'coc_status', '')
-	endfunction
-	call airline#parts#define_function('coc', 'GetServerStatus')
-	function! AirlineInit()
-	  let g:airline_section_a = airline#section#create(['coc'])
-	endfunction
-	autocmd User AirlineAfterInit call AirlineInit()
-
-	" exclude overwrite statusline of list filetype
-	let g:airline_exclude_filetypes = ["list"]
-
+Disable vim-airline integration:
+>
+	let g:airline#extensions#coc#enabled = 0
+<
 Change error symbol:
 >
 	let airline#extensions#coc#error_symbol = 'Error:'
@@ -2057,7 +2251,7 @@ Change error format:
 Change warning format:
 >
 	let airline#extensions#coc#stl_format_warn = '%W{[%w(#%fw)]}'
-
+<
 ------------------------------------------------------------------------------
 						*coc-status-lightline*
 
@@ -2075,10 +2269,10 @@ Use configuration like: >
 	\   'cocstatus': 'coc#status'
 	\ },
 	\ }
-<
-Use autocmd |CocDiagnosticChange| to force lightline refresh on diagnostics
-change.
 
+  " Use auocmd to force lightline update.
+  autocmd User CocStatusChange,CocDiagnosticChange call lightline#update()
+<
 ==============================================================================
 CUSTOM SOURCE					*coc-custom-source*
 

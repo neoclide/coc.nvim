@@ -1,14 +1,14 @@
 import { Neovim } from '@chemzqm/neovim'
-import path from 'path'
-import { Emitter, Event, CancellationTokenSource } from 'vscode-languageserver-protocol'
-import { AnsiHighlight, ListHighlights, ListItem, ListItemsEvent, ListTask } from '../types'
-import { ansiparse } from '../util/ansiparse'
+import { CancellationTokenSource, Emitter, Event } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
+import { ListHighlights, ListItem, ListItemsEvent, ListTask } from '../types'
+import { parseAnsiHighlights } from '../util/ansiparse'
 import { patchLine } from '../util/diff'
-import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
+import { hasMatch, positions, score } from '../util/fzy'
 import { getMatchResult } from '../util/score'
-import { byteIndex, byteLength, upperFirst } from '../util/string'
-import { ListManager } from './manager'
+import { byteIndex, byteLength } from '../util/string'
 import workspace from '../workspace'
+import { ListManager } from './manager'
 import uuidv1 = require('uuid/v1')
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 const logger = require('../util/logger')('list-worker')
@@ -18,11 +18,11 @@ export interface ExtendedItem extends ListItem {
   score: number
   matches: number[]
   filterLabel: string
-  recentIndex: number
 }
 
 // perform loading task
 export default class Worker {
+  private recentFiles: string[] = []
   private _loading = false
   private taskId: string
   private task: ListTask = null
@@ -45,13 +45,20 @@ export default class Worker {
         this.timer = setTimeout(async () => {
           await this.loadItems()
         }, 100)
-      } else if (!this._loading && this.length) {
-        let wait = Math.max(Math.min(Math.floor(this.length / 200), 200), 50)
+      } else if (this.length) {
+        let wait = Math.max(Math.min(Math.floor(this.length / 200), 300), 50)
         this.timer = setTimeout(async () => {
           await this.drawItems()
         }, wait)
       }
     })
+  }
+
+  private loadMru(): void {
+    let mru = workspace.createMru('mru')
+    mru.load().then(files => {
+      this.recentFiles = files
+    }, logError)
   }
 
   private set loading(loading: boolean) {
@@ -64,7 +71,7 @@ export default class Worker {
         nvim.pauseNotification()
         nvim.setVar('coc_list_loading_status', frames[idx], true)
         nvim.command('redraws', true)
-        await nvim.resumeNotification(false, true)
+        nvim.resumeNotification(false, true).logError()
       }, 100)
     } else {
       if (this.interval) {
@@ -72,9 +79,7 @@ export default class Worker {
         nvim.pauseNotification()
         nvim.setVar('coc_list_loading_status', '', true)
         nvim.command('redraws', true)
-        nvim.resumeNotification(false, true).catch(_e => {
-          // noop
-        })
+        nvim.resumeNotification(false, true).logError()
       }
     }
   }
@@ -86,6 +91,7 @@ export default class Worker {
   public async loadItems(reload = false): Promise<void> {
     let { context, list, listOptions } = this.manager
     if (!list) return
+    this.loadMru()
     if (this.timer) clearTimeout(this.timer)
     let id = this.taskId = uuidv1()
     this.loading = true
@@ -165,13 +171,12 @@ export default class Worker {
         item.label = this.fixLabel(item.label)
         this.parseListItemAnsi(item)
         totalItems.push(item)
+        if (this.input != currInput) return
         if ((!lastTs && totalItems.length == 500)
           || Date.now() - lastTs > 200) {
           _onData()
-        } else if (lastTs && this.input != currInput) {
-          _onData()
         } else {
-          timer = setTimeout(_onData, 60)
+          timer = setTimeout(_onData, 50)
         }
       })
       let disposable = token.onCancellationRequested(() => {
@@ -271,57 +276,80 @@ export default class Worker {
         highlights
       }
     }
+    let extended = this.manager.getConfig<boolean>('extendedSearchMode', true)
     let filtered: ListItem[] | ExtendedItem[]
     if (input.length > 0) {
+      let inputs = extended ? input.split(/\s+/) : [input]
       if (matcher == 'strict') {
         filtered = items.filter(item => {
-          let text = item.filterText || item.label
-          if (!ignorecase) return text.indexOf(input) !== -1
-          return text.toLowerCase().indexOf(input.toLowerCase()) !== -1
+          let spans: [number, number][] = []
+          let filterLabel = getFilterLabel(item)
+          for (let input of inputs) {
+            let idx = ignorecase ? filterLabel.toLowerCase().indexOf(input.toLowerCase()) : filterLabel.indexOf(input)
+            if (idx == -1) return false
+            spans.push([byteIndex(filterLabel, idx), byteIndex(filterLabel, idx + byteLength(input))])
+          }
+          highlights.push({ spans })
+          return true
         })
-        for (let item of filtered) {
-          let filterLabel = getFilterLabel(item)
-          let idx = ignorecase ? filterLabel.toLocaleLowerCase().indexOf(input.toLowerCase()) : filterLabel.indexOf(input)
-          if (idx != -1) {
-            highlights.push({
-              spans: [[byteIndex(filterLabel, idx), byteIndex(filterLabel, idx + input.length)]]
-            })
-          }
-        }
       } else if (matcher == 'regex') {
-        let regex = new RegExp(input, ignorecase ? 'i' : '')
-        filtered = items.filter(item => regex.test(item.filterText || item.label))
-        for (let item of filtered) {
+        let flags = ignorecase ? 'iu' : 'u'
+        let regexes = inputs.reduce((p, c) => {
+          try {
+            let regex = new RegExp(c, flags)
+            p.push(regex)
+            // tslint:disable-next-line: no-empty
+          } catch (e) { }
+          return p
+        }, [])
+        filtered = items.filter(item => {
+          let spans: [number, number][] = []
           let filterLabel = getFilterLabel(item)
-          let ms = filterLabel.match(regex)
-          if (ms && ms.length) {
-            highlights.push({
-              spans: [[byteIndex(filterLabel, ms.index), byteIndex(filterLabel, ms.index + ms[0].length)]]
-            })
+          for (let regex of regexes) {
+            let ms = filterLabel.match(regex)
+            if (ms == null) return false
+            spans.push([byteIndex(filterLabel, ms.index), byteIndex(filterLabel, ms.index + byteLength(ms[0]))])
           }
-        }
+          highlights.push({ spans })
+          return true
+        })
       } else {
-        let codes = getCharCodes(input)
-        filtered = items.filter(item => fuzzyMatch(codes, item.filterText || item.label))
+        filtered = items.filter(item => {
+          let filterText = item.filterText || item.label
+          return inputs.every(s => hasMatch(s, filterText))
+        })
         filtered = filtered.map(item => {
-          let filename = item.location ? path.basename(getItemUri(item)) : null
           let filterLabel = getFilterLabel(item)
-          let res = getMatchResult(filterLabel, input, filename)
+          let matchScore = 0
+          let matches: number[] = []
+          for (let input of inputs) {
+            matches.push(...positions(input, filterLabel))
+            matchScore += score(input, filterLabel)
+          }
+          let { recentScore } = item
+          if (!recentScore && item.location) {
+            let uri = getItemUri(item)
+            if (uri.startsWith('file')) {
+              let fsPath = URI.parse(uri).fsPath
+              recentScore = - this.recentFiles.indexOf(fsPath)
+            }
+          }
           return Object.assign({}, item, {
             filterLabel,
-            score: res ? res.score : 0,
-            matches: res ? res.matches : []
+            score: matchScore,
+            recentScore,
+            matches
           })
         }) as ExtendedItem[]
         if (sort && items.length) {
           (filtered as ExtendedItem[]).sort((a, b) => {
             if (a.score != b.score) return b.score - a.score
+            if (input.length && a.recentScore != b.recentScore) {
+              return (a.recentScore || -Infinity) - (b.recentScore || -Infinity)
+            }
             if (a.location && b.location) {
               let au = getItemUri(a)
               let bu = getItemUri(b)
-              if (au.length != bu.length) {
-                return au.length - bu.length
-              }
               return au > bu ? 1 : -1
             }
             return a.label > b.label ? 1 : -1
@@ -366,28 +394,8 @@ export default class Worker {
   private parseListItemAnsi(item: ListItem): void {
     let { label } = item
     if (item.ansiHighlights || label.indexOf(controlCode) == -1) return
-    let ansiItems = ansiparse(label)
-    let newLabel = ''
-    let highlights: AnsiHighlight[] = []
-    for (let item of ansiItems) {
-      if (!item.text) continue
-      let old = newLabel
-      newLabel = newLabel + item.text
-      let { foreground, background } = item
-      if (foreground || background) {
-        let span: [number, number] = [byteLength(old), byteLength(newLabel)]
-        let hlGroup = ''
-        if (foreground && background) {
-          hlGroup = `CocList${upperFirst(foreground)}${upperFirst(background)}`
-        } else if (foreground) {
-          hlGroup = `CocListFg${upperFirst(foreground)}`
-        } else if (background) {
-          hlGroup = `CocListBg${upperFirst(background)}`
-        }
-        highlights.push({ span, hlGroup })
-      }
-    }
-    item.label = newLabel
+    let { line, highlights } = parseAnsiHighlights(label)
+    item.label = line
     item.ansiHighlights = highlights
   }
 
@@ -406,4 +414,8 @@ function getItemUri(item: ListItem): string {
   let { location } = item
   if (typeof location == 'string') return location
   return location.uri
+}
+
+function logError(e): void {
+  logger.error(e)
 }

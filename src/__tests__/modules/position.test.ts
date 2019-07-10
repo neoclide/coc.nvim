@@ -15,10 +15,10 @@ describe('Position', () => {
 
   test('rangeOverlap', () => {
     let r = Range.create(0, 0, 0, 0)
-    expect(rangeOverlap(r, Range.create(0, 0, 0, 0))).toBe(true)
+    expect(rangeOverlap(r, Range.create(0, 0, 0, 0))).toBe(false)
     expect(rangeOverlap(Range.create(0, 0, 0, 10), Range.create(0, 1, 0, 2))).toBe(true)
-    expect(rangeOverlap(Range.create(0, 0, 0, 1), Range.create(0, 1, 0, 2))).toBe(true)
-    expect(rangeOverlap(Range.create(0, 1, 0, 2), Range.create(0, 0, 0, 1))).toBe(true)
+    expect(rangeOverlap(Range.create(0, 0, 0, 1), Range.create(0, 1, 0, 2))).toBe(false)
+    expect(rangeOverlap(Range.create(0, 1, 0, 2), Range.create(0, 0, 0, 1))).toBe(false)
     expect(rangeOverlap(Range.create(0, 0, 0, 1), Range.create(0, 2, 0, 3))).toBe(false)
   })
 

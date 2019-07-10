@@ -5,7 +5,7 @@ import path from 'path'
 import Configurations from '../../configuration'
 import { convertErrors, getChangedKeys, getConfigurationValue, getKeys, parseConfiguration } from '../../configuration/util'
 import { IConfigurationModel } from '../../types'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import uuidv1 = require('uuid/v1')
 
 const config = fs.readFileSync(path.join(__dirname, './settings.json'), 'utf8')
@@ -149,7 +149,7 @@ describe('Configurations', () => {
     let file = path.resolve(__dirname, '../sample/tmp.js')
     let fn = jest.fn()
     conf.onDidChange(fn)
-    conf.setFolderConfiguration(Uri.file(file).toString())
+    conf.setFolderConfiguration(URI.file(file).toString())
     let { contents } = conf.workspace
     expect(contents.foo).toBeUndefined()
     expect(fn).toBeCalled()

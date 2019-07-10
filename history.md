@@ -1,8 +1,91 @@
+# 2019-07-01
+
+- feat(plugin): add CocStatusChange autocmd
+- feat(extension): support both npm and yarn.
+- feat(plugin): work on vim 8.0
+- feat(extensions): add lock & doc actions to extension source
+- feat(extension): add proxy auth support (#920)
+- feat(source): not change startcol for file source
+- feat(completion): no numberSelect for number input
+- feat(extensions): Use yarn when npm not found
+- feat(completion): no popup for command line buffer
+- feat(plugin): support only for codeActions action
+- feat(task): debounce stdout
+- feat(plugin): add keymaps for selection ranges
+- feat(plugin): add function textobj
+- feat(list): restore window height, closes #905
+- feat(handler): support signature.floatTimeout
+- feat(configuration): support change of workspace configuration
+- feat(diagnostic): add keymaps for jump error diagnostics
+- feat(plugin): delay start on gvim, fix #659
+
+# 2019-06-15
+
+- feat(plugin): add popup support of vim
+- refactor(completion): improve float support
+- refactor(floating): remove unused code
+- refactor(workspace): replace find-up
+- refactor(handler): improve message for fold method
+- fix(virtualtext): invalid highlight tag (#874)
+- fix(snippets): fix plaintext check
+- fix(highlight): catch error of child_process.spawn
+- fix(highlight): use v:progpath, fix #871
+- fix(floatFactory): escape feedkeys
+- fix(handler): fix getCurrentFunctionSymbol not work
+
+# 2019-06-12
+
+- feat(document): add getVar method
+- fix(util): not break selection on message
+- fix(workspace): fix jumpTo not work on vim8
+- fix(completion): trigger completion with word character
+- refactor(handler): return boolean result
+- perf(workspace): improve jump performance
+- fix(util): Escape filename for jump (#862)
+- refactor(plugin): not show empty hover
+- feat(outline): ignore callback function
+- feat(workspace): support list of events with registerAutocmd
+- fix(workspace): fix jump with tab drop
+- refactor(language-client): change API of selectionRanges
+
+# 2019-06-09
+
+- **Break change** `CocHighlightText` link to `CursorColumn` by default.
+- **Break change** logger folder changed to `$XDG_RUNTIME_DIR` when exists.
+- Add `<PageUp>` and `<PageDown>` support for list, #825.
+- Add function `coc#add_command()`.
+- Add `disableDiagnostics` & `disableCompletion` to languageclient configuration.
+- Add `signature.triggerSignatureWait` configuration.
+- Add vim-repeat support for run command and quickfix.
+- Add prefered `codeAction` support.
+- Add `prompt.paste` action to list.
+- Add title as argument support for `codeAction` action.
+- Add `suggest.floatEnable` configuration.
+- Add `editor.action.orgnizeImport` command.
+- Add `:CocAction` and `:CocFix` commands.
+- Add `codeActions` action.
+- Fix issues with list.
+
+# 2019-05-30
+
+- **Break change** logger folder changed.
+- Add support of vim-repeat for `<Plug>` keymaps.
+- Add `CocRegistNotification()` function.
+- Add argument to rename action.
+- Add `suggest.disableMenuShortcut` configuration.
+- Add glob support for root patterns.
+- Add `<esc>` keymap to list window.
+- Add shortcut in sources list.
+- Add `list.previewSplitRight` configuration.
+- Add `triggerOnly` property to source.
+- Add warning for duplicate extension.
+- Bug fixes.
+
 # 2019-05-07
 
 - **New feature** load extensions from coc-extensions folder.
 - Add `workspace.renameCurrentFile` command.
-- Add `FloatBuffer`, `FloatFactory` and `Uri` to exports.
+- Add `FloatBuffer`, `FloatFactory` and `URI` to exports.
 - Add `resolveItem` support to list.
 - Fix prompt can't work when execute list action.
 - Fix ansiparser for empty color ranges.

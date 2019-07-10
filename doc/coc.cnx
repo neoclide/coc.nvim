@@ -65,15 +65,9 @@ coc.nvim 使用 coc-settings.json 文件进行配置，该文件格式与工作�
 
 依赖						*coc-requirement*
 
-该插件需要 neovim 0.3 版本以上或者 vim 8.1 版本以上
+该插件需要 neovim 0.3 版本以上或者 vim 8.0 版本以上
 
 首先需要安装 node https://nodejs.org/en/download/ 用于执行 javascript 代码。
-
-使用 coc.nvim 插件需要安装 yarn (一个 nodejs 包管理工具):
-
-https://yarnpkg.com/en/docs/install
-
-如果你使用 vim-plug 来管理 coc.nvim 插件可以不需要安装 yarn。
 
 ==============================================================================
 
@@ -81,15 +75,13 @@ https://yarnpkg.com/en/docs/install
 
 推荐使用 https://github.com/junegunn/vim-plug 添加
 >
-  Plug 'neoclide/coc.nvim', {'do': { -> coc#util#install()}}
+  Plug 'neoclide/coc.nvim', {'branch': 'release'}
 
 到 `init.vim` 然后执行: >
 
   :PlugInstall
 
-如果使用其它插件进行配置，需要插件安装完成后手工执行 `:call coc#util#install()`
-
-或者使用 `:call coc#util#build()` 从源码安装。
+如果使用其它插件进行配置，请使用 release 分支代码。
 
 ==============================================================================
 
@@ -271,10 +263,41 @@ coc 不会向 vim 添加自己的快捷键，你需要手工配置来满足需�
 
 			跳转到第一个浮动窗口。
 
+<Plug>(coc-refactor) 				*n_coc-refactor*
+
+			打开重构窗口，用于重构当前函数或重命名。
+
+<Plug>(coc-range-select) 			*n_coc-range-select*
+<Plug>(coc-range-select) 			*v_coc-range-select*
+
+			选择下一个可选区域。
+
+			注意：仅部分语言服务支持。
+
+<Plug>(coc-range-select-backward) 		*v_coc-range-select-backward*
+
+			选择上一个可选区域。
+
+			注意：仅部分语言服务支持。
+
+<Plug>(coc-funcobj-i) 			*n_coc-funcobj-i* *v_coc-funcobj-i*
+
+			选择函数内所有行，默认映射到 `if` 。
+
+			例如：使用 `cif` 重写当前函数。
+
+<Plug>(coc-funcobj-a) 			*n_coc-funcobj-a* *v_coc-funcobj-a*
+
+			选择当前函数所在区间，默认映射到 `af`。
+
 ==============================================================================
 
 变量 						*coc-variables*
 
+b:coc_enabled 					*b:coc_enabled*
+
+			为 `0` 时该缓存区将被 coc.nvim 忽略，仅在缓存区创建时设
+			置有效。
 
 b:coc_root_patterns 				*b:coc_root_patterns*
 
@@ -335,6 +358,16 @@ g:coc_user_config 				*g:coc_user_config*
 			进行配置，而不是该变量。
 
 			该设置仅在服务启动前有效。
+
+g:coc_extension_root 				*g:coc_extension_root*
+
+			自定义插件安装根目录，为空时使用默认地址。
+
+			Windows 系统:
+				`~/AppData/Local/coc/extensions`
+			其它:
+				`~/.config/coc/extensions`
+
 
 g:coc_global_extensions 			*g:coc_global_extensions*
 
@@ -475,6 +508,7 @@ coc#config({section}, {value})
 
 	注意: 该函数可以同时和配置文件工作，建议主要使用配置文件。
 
+						*coc#add_extension()*
 coc#add_extension({name}, ...)
 
 
@@ -485,6 +519,15 @@ coc#add_extension({name}, ...)
 <
 	注意: 该函数可以多处或者在服务未启动时调用。
 
+	
+						*coc#add_command()*
+coc#add_command({id}, {command}, [{title}])
+
+	添加自定义的 vim 命令到 `:CocList commands` 列表中，例如： >
+
+	call coc#add_command('mundoToggle', 'MundoToggle',
+		\ 'toggle mundo window')
+<
 						*coc#refresh()*
 coc#refresh()
 
@@ -564,12 +607,6 @@ coc#util#install([{config}])
 	- `terminal` 使用 terminal 来异步安装
 	- `tag` 安装最新的已发布版本
 
-						*coc#util#build()*
-
-coc#util#build()
-
-	编译 coc.nvim，需重启 vim 或者执行 |:CocRestart| 生效。
-
 						*coc#util#extension_root()*
 coc#util#extension_root()
 	
@@ -579,11 +616,6 @@ coc#util#extension_root()
 coc#util#rebuild()
 
 	对插件执行 `npm rebuild` 命令。
-
-						*coc#util#update()*
-coc#util#update()
-
-	使用终端缓冲区更新插件。
 
 						*coc#util#has_float()*
 
@@ -770,11 +802,13 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 	如果不提供 {mode}, 该函数必须设置为 |formatexpr| 使用。
 	
 
-"codeAction" [{mode}] 				*coc-action-codeAction*
+"codeAction" [{mode}] [{only}]			*coc-action-codeAction*
 
 	执行 codeAction。
 
 	{mode} 为 visualmode() 返回结果。
+
+	{only} 可以是某个 codeAction 的 title，或者是 CodeActionKind 列表
 
 "codeLensAction" 				*coc-action-codeLensAction*
 
@@ -786,9 +820,11 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	获取当前缓冲区可用命令列表。
 
-"runCommand" [{name}] 				*coc-action-runCommand*
+"runCommand" [{name}]  [...{args}]		*coc-action-runCommand*
 
 	执行 {name} 命令，如果不提供 {name}，则提示进行选择。
+
+	{args} 做为参数传递给对应命令。
 
 	对于常用命令，可以设置更方便使用的命令，例如： >
 
@@ -858,9 +894,15 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	推荐安装 coc-highlight 插件在所有文件中支持该功能。
 
-"quickfixes" 					*coc-action-quickfixes*
+"codeActions" [{visualmode}]			*coc-action-codeActions*
 
-	获取当前缓冲区的 quickfix codeActions。
+	获取当前行的所有 codeActions，指定 {visualmode}
+	获取上一次选择区间的中的 codeActions.
+
+"quickfixes" [{visualmode}]			*coc-action-quickfixes*
+
+	获取当前行的 quickfix codeActions，指定 {visualmode}
+	获取上一次选择区间的中的 quickfixes.
 
 "doCodeAction" {codeAction} 			*coc-action-doCodeAction*
 
@@ -931,6 +973,17 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 		执行某个插件提供的命令，支持使用 <tab> 对 {name} 补全。
 
+:{range}CocAction  [{only}] 			*:CocAction*
+
+		获取当前 buffer 所有的 codeActions 到 actions 列表，
+		支持 {range}。
+
+		{only} 可以为 'quickfix' 或者 'source'。
+
+:{range}CocFix 					*:CocFix*
+
+		同 `:CocAction quickfix` 一样。
+
 :CocOpenLog 					*:CocOpenLog*
 
 		打开 coc 的日志文件，默认级别为 info。
@@ -944,12 +997,6 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 		let $NVIM_COC_LOG_LEVEL='debug'
 <
 		到 .vimrc 。
-
-		日志文件会在 vim 启动后清空，通过命令： >
-
-		node -e 'console.log(path.join(os.tmpdir(), "coc-nvim.log"))'
-<
-		获取日志地址。
 
 :CocInfo 					*:CocInfo*
 
@@ -978,6 +1025,12 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 :autocmd User CocNvimInit {command}
 
 		服务启动后触发。可用于服务启动后自动执行命令。
+
+						*CocStatusChange*
+
+:autocmd User CocStatusChange {command}
+
+		`g:coc_status` 改变时触发，可用于刷新状态栏。
 
 						*CocDiagnosticChange*
 
@@ -1056,7 +1109,7 @@ CocHintHighlight 				*CocHintHighlight*
 
 CocHighlightText 				*CocHighlightText*
 
-  默认： `hi default CocHighlightText  guibg=#111111 ctermbg=223`
+  默认： `hi default link CursorColumn`
 
   Document highlight 特性使用的高亮。用于高亮显示全部当前缓冲区的相同
   变量。
@@ -1195,6 +1248,9 @@ Command options 					*coc-list-options*
 --top
 	在上方显示列表分割窗口，默认为下方显示。
 
+--tab
+	使用新标签页打开列表。
+
 --normal
 	打开后进入正常模式，默认为输入模式。
 
@@ -1237,39 +1293,35 @@ Command options 					*coc-list-options*
 
 LIST CONFIGURATION 				*coc-list-configuration*
 
-Coc 列表无需配置即可工作，同时提供了一些配置进行增强。
+CocList 同样使用 `coc-settings.json` 文件来进行配置。
 
-- `"list.indicator"`: 输入栏提示字符。
+安装 coc-json 插件后可以在 coc-settings.json 文件中输入 `list.` 来获取所有
+list 相关可用配置项。
 
-	默认: `>`
+针对特性的 list 源，可使用以 `list.source.{name}` 开头的配置项来设置。
 
-- `"list.maxHeight"`: 列表窗口最大高度。
+修改指定源的默认选项:~
 
-	默认: 12
+使用 `list.source.{name}.defaultOptions` 配置，例如: >
 
-- `"list.autoResize"`: 开启自动调整高度功能。
+	// 让 symbols 列表启用 interactive 模式，同时支持数字键选中
+	"list.source.symbols.defaultOptions": ["--interactive", "--number-select"],
+<
+	注意: 部分源只能在 interactive 模式下工作，所以推荐使用配置让
+	interactive 总是生效。
 
-	默认: `true`
+注意: 如果通过命令行传递了参数，默认选项将不会生效。
 
-- `"list.nextKeymap"`: 输入模式下选中下一个的快捷键。
+设置指定源默认参数:~
 
-	默认: <C-j>
+使用 `list.source.{name}.defaultArgs` 配置，例如： >
 
-- `"list.previousKeymap"`: 输入模式下选中上一个的快捷键。
+	// 配置 grep 源默认使用正则匹配
+	"list.source.grep.defaultArgs": ["-regex"],
 
-	默认: <C-k>
+注意: 默认参数仅在命令行调用参数为空时生效。
 
-- `"list.normalMappings"`: 正常模式下用户定义快捷键。
-
-	默认: `{}`
-
-	详情查看： |coc-list-mappings-custom|
-
-- `"list.insertMappings"`: 插入模式下用户定义快捷键。
-
-	默认: `{}`
-
-	详情查看： |coc-list-mappings-custom|
+在正常模式键入 `？` 可以查看当前源的详细文档。
 
 ------------------------------------------------------------------------------
 
@@ -1330,6 +1382,7 @@ s           - 执行 'split' 操作.
 		"<C-p>": "normal:k",
 		"<C-t>": "action:tabe",
 		"<C-x>": "call:MyFunc"
+		"<C-v>": "eval:@@"
 	}
 	"list.normalMappings": {
 		"c": "expr:MyExprFunc"
@@ -1365,6 +1418,8 @@ s           - 执行 'split' 操作.
 	'deletebackward' - 删除后一个字符
 	'removetail' - 删除后面全部字符
 	'removeahead' - 删除前面全部字符
+	'paste' - 插入系统粘贴板内容到当前位置
+'eval' - 执行 viml 表达式并将结果插入到当前位置
 'action' - 执行特定操作，使用 <tab> 查看当前列表支持操作
 'feedkeys' - 发送按键到列表窗口
 'normal' - 执行 normal 命令
@@ -1531,15 +1586,12 @@ lists 							 *coc-list-lists*
 
 vim-airline: https://github.com/vim-airline/vim-airline 支持：
 
-添加如下配置： >
+vim-airline 提供开箱即用的支持。
 
-	" if you want to disable auto detect, comment out those two lines
-	"let g:airline#extensions#disable_rtp_load = 1
-	"let g:airline_extensions = ['branch', 'hunks', 'coc']
-
-	let g:airline_section_error = '%{airline#util#wrap(airline#extensions#coc#get_error(),0)}'
-	let g:airline_section_warning = '%{airline#util#wrap(airline#extensions#coc#get_warning(),0)}'
-
+关闭 vim-airline 集成：
+>
+	let g:airline#extensions#coc#enabled = 0
+<
 改变错误标签：
 >
 	let airline#extensions#coc#error_symbol = 'Error:'
@@ -1571,6 +1623,8 @@ Lightline.vim: https://github.com/itchyny/lightline.vim 支持：
 	\   'cocstatus': 'coc#status'
 	\ },
 	\ }
+
+  autocmd User CocStatusChange,CocDiagnosticChange call lightline#update()
 <
 ==============================================================================
 

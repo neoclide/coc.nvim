@@ -28,7 +28,7 @@ export default class HoverManager extends Manager<HoverProvider> implements Disp
     for (let i = 0, len = items.length; i < len; i += 1) {
       const item = items[i]
       let hover = await Promise.resolve(item.provider.provideHover(document, position, token))
-      if (hover) res.push(hover)
+      if (hover && hover.contents != '') res.push(hover)
     }
     return res
   }

@@ -14,7 +14,7 @@ export default class DocumentHighlighter {
   private matchIds: Set<number> = new Set()
   private cursorMoveTs: number
   constructor(private nvim: Neovim, private colors: Colors) {
-    events.on('BufWinLeave', () => {
+    events.on('BufWinEnter', () => {
       this.clearHighlight()
     }, null, this.disposables)
     events.on(['CursorMoved', 'CursorMovedI'], () => {
@@ -30,7 +30,12 @@ export default class DocumentHighlighter {
     let { matchIds } = this
     let { nvim } = workspace
     if (matchIds.size == 0) return
+    nvim.pauseNotification()
     nvim.call('coc#util#clearmatches', [Array.from(matchIds)], true)
+    nvim.command('redraw', true)
+    nvim.resumeNotification(false, true).catch(_e => {
+      // noop
+    })
     this.matchIds.clear()
   }
 
@@ -42,6 +47,7 @@ export default class DocumentHighlighter {
       this.clearHighlight()
       return
     }
+    if (workspace.bufnr != bufnr) return
     nvim.pauseNotification()
     this.clearHighlight()
     let groups: { [index: string]: Range[] } = {}
@@ -58,7 +64,7 @@ export default class DocumentHighlighter {
         this.matchIds.add(id)
       }
     }
-    this.nvim.call('coc#util#add_matchids', [Array.from(this.matchIds)], true)
+    this.nvim.command('redraw', true)
     await this.nvim.resumeNotification(false, true)
   }
 
@@ -69,14 +75,16 @@ export default class DocumentHighlighter {
     let position = await workspace.getCursorPosition()
     let line = document.getline(position.line)
     let ch = line[position.character]
-    if (!ch || !document.isWord(ch) || this.colors.hasColorAtPostion(bufnr, position)) {
+    if (!ch || !document.isWord(ch) || this.colors.hasColorAtPostion(bufnr, position)) return null
+    try {
+      let highlights = await languages.getDocumentHighLight(document.textDocument, position)
+      if (workspace.bufnr != document.bufnr || (this.cursorMoveTs && this.cursorMoveTs > ts)) {
+        return null
+      }
+      return highlights
+    } catch (_e) {
       return null
     }
-    let highlights: DocumentHighlight[] = await languages.getDocumentHighLight(document.textDocument, position)
-    if (workspace.bufnr != document.bufnr || (this.cursorMoveTs && this.cursorMoveTs > ts)) {
-      return null
-    }
-    return highlights
   }
 
   public dispose(): void {

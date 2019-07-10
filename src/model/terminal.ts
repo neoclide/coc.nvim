@@ -4,8 +4,8 @@ const isVim = process.env.VIM_NODE_RPC == '1'
 const logger = require('../util/logger')('model-terminal')
 
 export default class TerminalModel implements Terminal {
-  private chanId: number
   public bufnr: number
+  private pid = 0
 
   constructor(private cmd: string,
     private args: string[],
@@ -15,28 +15,10 @@ export default class TerminalModel implements Terminal {
 
   public async start(cwd?: string, env?: { [key: string]: string | null }): Promise<void> {
     let { nvim } = this
-    nvim.pauseNotification()
-    nvim.command('belowright 5new', true)
-    nvim.command('setl winfixheight', true)
-    nvim.command('setl norelativenumber', true)
-    nvim.command('setl nonumber', true)
-    if (env && Object.keys(env).length) {
-      for (let key of Object.keys(env)) {
-        nvim.command(`let $${key}='${env[key].replace(/'/g, "''")}'`, true)
-      }
-    }
-    await nvim.resumeNotification()
-    this.bufnr = await nvim.call('bufnr', '%')
     let cmd = [this.cmd, ...this.args]
-    let opts: any = {}
-    if (cwd) opts.cwd = cwd
-    this.chanId = await nvim.call('termopen', [cmd, opts])
-    if (env && Object.keys(env).length) {
-      for (let key of Object.keys(env)) {
-        nvim.command(`unlet $${key}`, true)
-      }
-    }
-    await nvim.command('wincmd p')
+    let [bufnr, pid] = await nvim.call('coc#terminal#start', [cmd, cwd, env || {}])
+    this.bufnr = bufnr
+    this.pid = pid
   }
 
   public get name(): string {
@@ -44,37 +26,33 @@ export default class TerminalModel implements Terminal {
   }
 
   public get processId(): Promise<number> {
-    if (!this.chanId) return null
-    return this.nvim.call('jobpid', this.chanId)
+    return Promise.resolve(this.pid)
   }
 
   public sendText(text: string, addNewLine = true): void {
-    let { chanId, nvim } = this
-    if (!chanId) return
-    let lines = text.split(/\r?\n/)
-    if (addNewLine && lines[lines.length - 1].length > 0) {
-      lines.push('')
-    }
-    nvim.call('chansend', [chanId, lines], true)
+    if (!this.bufnr) return
+    this.nvim.call('coc#terminal#send', [this.bufnr, text, addNewLine], true)
   }
 
-  public async show(preserveFocus?: boolean): Promise<void> {
+  public async show(preserveFocus?: boolean): Promise<boolean> {
     let { bufnr, nvim } = this
     if (!bufnr) return
-    let winnr = await nvim.call('bufwinnr', bufnr)
+    let [loaded, winid] = await nvim.eval(`[bufloaded(${bufnr}),bufwinid(${bufnr})]`) as [number, number]
+    if (!loaded) return false
     nvim.pauseNotification()
-    if (winnr == -1) {
+    if (winid == -1) {
       nvim.command(`below ${bufnr}sb`, true)
-      nvim.command('resize 5', true)
+      nvim.command('resize 8', true)
+      nvim.call('coc#util#do_autocmd', ['CocTerminalOpen'], true)
     } else {
-      nvim.command(`${winnr}wincmd w`, true)
+      nvim.call('win_gotoid', [winid], true)
     }
     nvim.command('normal! G', true)
     if (preserveFocus) {
       nvim.command('wincmd p', true)
     }
     await nvim.resumeNotification()
-
+    return true
   }
 
   public async hide(): Promise<void> {
@@ -86,9 +64,8 @@ export default class TerminalModel implements Terminal {
   }
 
   public dispose(): void {
-    let { bufnr, chanId, nvim } = this
-    if (!chanId) return
-    nvim.call('chanclose', [chanId], true)
-    nvim.command(`silent! bd! ${bufnr}`, true)
+    let { bufnr, nvim } = this
+    if (!bufnr) return
+    nvim.call('coc#terminal#close', [bufnr], true)
   }
 }

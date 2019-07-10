@@ -21,7 +21,6 @@ afterEach(async () => {
 describe('completion', () => {
 
   it('should not show word of word source on empty input', async () => {
-    await helper.edit()
     await nvim.setLine('foo bar')
     await helper.wait(200)
     await nvim.input('of')
@@ -124,12 +123,13 @@ describe('completion', () => {
         return Promise.resolve(result)
       }
     }
-    sources.addSource(source)
+    let disposable = sources.addSource(source)
     await nvim.setLine('foo.')
     await nvim.input('Ab')
     await helper.waitPopup()
     let val = await nvim.getVar('coc#_context') as any
     expect(val.start).toBe(0)
+    disposable.dispose()
   })
 
   it('should trigger on triggerCharacters', async () => {
@@ -154,6 +154,30 @@ describe('completion', () => {
     sources.removeSource(source)
     let res = await helper.visible('foo', 'trigger')
     expect(res).toBe(true)
+  })
+
+  it('should should complete items without input', async () => {
+    await helper.edit()
+    let source: ISource = {
+      enable: true,
+      name: 'trigger',
+      priority: 10,
+      sourceType: SourceType.Native,
+      doComplete: async (): Promise<CompleteResult> => {
+        return Promise.resolve({
+          items: [{ word: 'foo' }, { word: 'bar' }]
+        })
+      }
+    }
+    let disposable = sources.addSource(source)
+    await nvim.command('inoremap <silent><expr> <c-space> coc#refresh()')
+    await nvim.input('i')
+    await helper.wait(30)
+    await nvim.input('<c-space>')
+    await helper.waitPopup()
+    let items = await helper.getItems()
+    expect(items.length).toBeGreaterThan(1)
+    disposable.dispose()
   })
 
   it('should show float window', async () => {
@@ -211,6 +235,34 @@ describe('completion', () => {
     sources.removeSource(source)
     let res = await helper.visible('foo', 'pattern')
     expect(res).toBe(true)
+  })
+
+  it('should not trigger triggerOnly source', async () => {
+    await helper.edit()
+    await nvim.setLine('foo bar')
+    let source: ISource = {
+      name: 'pattern',
+      triggerOnly: true,
+      priority: 10,
+      enable: true,
+      sourceType: SourceType.Native,
+      triggerPatterns: [/^From:\s*/],
+      doComplete: async (): Promise<CompleteResult> => {
+        return Promise.resolve({
+          items: [{ word: 'foo' }]
+        })
+      }
+    }
+    let disposable = sources.addSource(source)
+    await nvim.input('o')
+    await helper.wait(10)
+    await nvim.input('f')
+    await helper.wait(10)
+    let res = await helper.visible('foo', 'around')
+    expect(res).toBe(true)
+    let items = await helper.items()
+    expect(items.length).toBe(1)
+    disposable.dispose()
   })
 
   it('should not trigger when cursor moved', async () => {
@@ -312,6 +364,35 @@ describe('completion', () => {
     await helper.waitPopup()
     let items = await helper.getItems()
     expect(items.length).toBe(2)
+    disposable.dispose()
+  })
+
+  it('should truncate label of complete items', async () => {
+    helper.updateConfiguration('suggest.labelMaxLength', 10)
+    await helper.edit()
+    let source: ISource = {
+      name: 'high',
+      priority: 90,
+      enable: true,
+      sourceType: SourceType.Native,
+      triggerCharacters: ['.'],
+      doComplete: async (): Promise<CompleteResult> => {
+        return Promise.resolve({
+          items: ['a', 'b', 'c', 'd'].map(key => {
+            return { word: key.repeat(20) }
+          })
+        })
+      }
+    }
+    let disposable = sources.addSource(source)
+    await nvim.input('i')
+    await helper.wait(30)
+    await nvim.input('.')
+    await helper.waitPopup()
+    let items = await helper.getItems()
+    for (let item of items) {
+      expect(item.abbr.length).toBeLessThanOrEqual(10)
+    }
     disposable.dispose()
   })
 })

@@ -1,4 +1,5 @@
 *.map
+.cache
 lib/extensions
 lib/__tests__
 plugin
@@ -11,3 +12,5 @@ coverage
 data
 tslint.json
 tsconfig.json
+.zip
+.DS_Store

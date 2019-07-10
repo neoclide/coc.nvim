@@ -1,6 +1,6 @@
 import path from 'path'
 import { DocumentSymbol, Location, Range, SymbolInformation } from 'vscode-languageserver-types'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import languages from '../../languages'
 import Document from '../../model/document'
 import { ListContext, ListItem } from '../../types'
@@ -34,7 +34,7 @@ export default class Outline extends LocationList {
         symbols.sort(sortSymbols)
         for (let s of symbols) {
           let kind = getSymbolKind(s.kind)
-          if (kind == 'Variable') continue
+          if (kind == 'Variable' || s.name.endsWith(') callback')) continue
           let location = Location.create(document.uri, s.selectionRange)
           items.push({
             label: `${' '.repeat(level * 2)}${s.name} [${kind}] ${s.range.start.line + 1}`,
@@ -56,6 +56,7 @@ export default class Outline extends LocationList {
       })
       for (let s of symbols as SymbolInformation[]) {
         let kind = getSymbolKind(s.kind)
+        if (s.name.endsWith(') callback')) continue
         items.push({
           label: `${s.name} [${kind}] ${s.location.range.start.line + 1}`,
           filterText: `${s.name}`,
@@ -81,7 +82,7 @@ export default class Outline extends LocationList {
   }
 
   public async loadCtagsSymbols(document: Document): Promise<ListItem[]> {
-    let uri = Uri.parse(document.uri)
+    let uri = URI.parse(document.uri)
     let extname = path.extname(uri.fsPath)
     let content = ''
     let tempname = await this.nvim.call('tempname')

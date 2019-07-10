@@ -1,15 +1,22 @@
 import { Neovim, Window } from '@chemzqm/neovim'
+import { RequestOptions } from 'http'
 import log4js from 'log4js'
 import { CancellationToken, CompletionTriggerKind, CreateFileOptions, DeleteFileOptions, Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFileOptions, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import Configurations from './configuration'
 import { LanguageClient } from './language-client'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import { ProviderResult, TextDocumentContentProvider } from './provider'
+import * as protocol from 'vscode-languageserver-protocol'
 
 export type MsgTypes = 'error' | 'warning' | 'more'
 export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
+
+export interface CodeAction extends protocol.CodeAction {
+  isPrefered?: boolean
+  clientId?: string
+}
 
 export interface TaskOptions {
   cmd: string
@@ -29,10 +36,11 @@ export interface KeymapOption {
   sync: boolean
   cancel: boolean
   silent: boolean
+  repeat: boolean
 }
 
 export interface Autocmd {
-  event: string
+  event: string | string[]
   arglist?: string[]
   request?: boolean
   thisArg?: any
@@ -45,6 +53,7 @@ export interface ExtensionInfo {
   description: string
   root: string
   exotic: boolean
+  uri?: string
   state: ExtensionState
   isLocal: boolean
 }
@@ -111,7 +120,7 @@ export interface TerminalOptions {
   shellArgs?: string[]
 
   /**
-   * A path or Uri for the current working directory to be used for the terminal.
+   * A path or URI for the current working directory to be used for the terminal.
    */
   cwd?: string
 
@@ -169,6 +178,11 @@ export interface Memento {
 export interface Terminal {
 
   /**
+   * The bufnr of terminal buffer.
+   */
+  readonly bufnr: number
+
+  /**
    * The name of the terminal.
    */
   readonly name: string
@@ -190,11 +204,11 @@ export interface Terminal {
   sendText(text: string, addNewLine?: boolean): void
 
   /**
-   * Show the terminal panel and reveal this terminal in the UI.
+   * Show the terminal panel and reveal this terminal in the UI, return false when failed.
    *
    * @param preserveFocus When `true` the terminal will not take focus.
    */
-  show(preserveFocus?: boolean): void
+  show(preserveFocus?: boolean): Promise<boolean>
 
   /**
    * Hide the terminal panel if this terminal is currently showing.
@@ -226,6 +240,9 @@ export interface Env {
   readonly isVim: boolean
   readonly isMacvim: boolean
   readonly version: string
+  readonly locationlist: boolean
+  readonly progpath: string
+  readonly textprop: boolean
 }
 
 export interface Fragment {
@@ -293,7 +310,7 @@ export interface ConfigurationChangeEvent {
    * Returns `true` if the given section for the given resource (if provided) is affected.
    *
    * @param section Configuration name, supports _dotted_ names.
-   * @param resource A resource Uri.
+   * @param resource A resource URI.
    * @return `true` if the given section for the given resource (if provided) is affected.
    */
   affectsConfiguration(section: string, resource?: string): boolean
@@ -305,6 +322,8 @@ export interface LanguageServerConfig {
   transport?: string
   transportPort?: number
   disableWorkspaceFolders?: boolean
+  disableCompletion?: boolean
+  disableDiagnostics?: boolean
   filetypes: string[]
   additionalSchemes: string[]
   enable: boolean
@@ -361,6 +380,7 @@ export interface ChangeItem {
 
 export interface BufferOption {
   eol: number
+  variables: { [key: string]: any }
   bufname: string
   fullpath: string
   buftype: string
@@ -368,6 +388,7 @@ export interface BufferOption {
   iskeyword: string
   changedtick: number
   rootPatterns: string[] | null
+  additionalKeywords: string[]
 }
 
 export interface DiagnosticInfo {
@@ -466,6 +487,54 @@ export interface VimCompleteItem {
   line?: string
 }
 
+export interface PopupProps {
+  col: number
+  length: number // or 0
+  type: string
+  end_lnum?: number
+  end_col?: number
+  id?: number
+  transparent?: boolean
+}
+
+export interface TextItem {
+  text: string
+  props?: PopupProps
+}
+
+export interface PopupOptions {
+  line?: number | string
+  col?: number | string
+  pos?: 'topleft' | 'topright' | 'botleft' | 'botright' | 'center'
+  // move float window when content overlap when it's false(default)
+  fixed?: boolean
+  // no overlap of popupmenu-completion, not implemented
+  flip?: boolean
+  maxheight?: number
+  minheight?: number
+  maxwidth?: number
+  minwidth?: number
+  // When out of range the last buffer line will at the top of the window.
+  firstline?: number
+  // not implemented
+  hidden?: boolean
+  // only -1 and 0 are supported
+  tab?: number
+  title?: string
+  wrap?: boolean
+  drag?: boolean
+  highlight?: string
+  padding?: [number, number, number, number]
+  border?: [number, number, number, number]
+  borderhighlight?: [string, string, string, string]
+  borderchars?: string[]
+  zindex?: number
+  time?: number
+  moved?: string | [number, number]
+  filter?: string
+  callback?: string
+}
+
 export interface PopupChangeEvent {
   completed_item: VimCompleteItem,
   height: number
@@ -478,9 +547,7 @@ export interface PopupChangeEvent {
 
 export interface CompleteResult {
   items: VimCompleteItem[]
-  completeInComplete?: boolean
   isIncomplete?: boolean
-  engross?: boolean
   startcol?: number
   source?: string
   priority?: number
@@ -489,6 +556,7 @@ export interface CompleteResult {
 export interface SourceStat {
   name: string
   type: string
+  shortcut: string
   filepath: string
   disabled: boolean
   filetypes: string[]
@@ -497,7 +565,9 @@ export interface SourceStat {
 export interface CompleteConfig {
   disableKind: boolean
   disableMenu: boolean
+  disableMenuShortcut: boolean
   enablePreview: boolean
+  labelMaxLength: number
   maxPreviewWidth: number
   autoTrigger: string
   previewIsKeyword: string
@@ -578,8 +648,8 @@ export interface ConfigurationInspect<T> {
 }
 
 export interface RenameEvent {
-  oldUri: Uri
-  newUri: Uri
+  oldUri: URI
+  newUri: URI
 }
 
 export interface TerminalResult {
@@ -589,6 +659,7 @@ export interface TerminalResult {
 }
 
 export interface ConfigurationShape {
+  workspaceConfigFile: string
   $updateConfigurationOption(target: ConfigurationTarget, key: string, value: any): void
   $removeConfigurationOption(target: ConfigurationTarget, key: string): void
 }
@@ -721,24 +792,68 @@ export interface ListTask {
 }
 
 export interface ListArgument {
+  key?: string
+  hasValue?: boolean
   name: string
   description: string
 }
 
 export interface IList {
+  /**
+   * Unique name of list.
+   */
   name: string
+  /**
+   * Action list.
+   */
   actions: ListAction[]
+  /**
+   * Default action name.
+   */
   defaultAction: string
+  /**
+   * Load list items.
+   */
   loadItems(context: ListContext, token: CancellationToken): Promise<ListItem[] | ListTask | null | undefined>
+  /**
+   * Resolve list item.
+   */
   resolveItem?(item: ListItem): Promise<ListItem | null>
-  // support interactive mode
+  /**
+   * Should be true when interactive is supported.
+   */
   interactive?: boolean
+  /**
+   * Description of list.
+   */
   description?: string
+  /**
+   * Detail description, shown in help.
+   */
   detail?: string
+  /**
+   * Options supported by list.
+   */
   options?: ListArgument[]
-  searchHighlight?: boolean
+  /**
+   * Highlight buffer by vim's syntax commands.
+   */
   doHighlight?(): void
   dispose?(): void
+}
+
+export interface PreiewOptions {
+  bufname?: string
+  sketch: boolean
+  filetype: string
+  lines?: string[]
+  lnum?: number
+}
+
+export interface DownloadOptions extends RequestOptions {
+  // absolute folder path
+  dest: string
+  onProgress?: (percent: number) => void
 }
 
 export interface AnsiItem {
@@ -754,9 +869,12 @@ export interface ISource {
   // identifier
   name: string
   enable?: boolean
+  shortcut?: string
   priority?: number
   sourceType?: SourceType
   triggerCharacters?: string[]
+  // should only be used when trigger match.
+  triggerOnly?: boolean
   // regex to detect trigger completetion, ignored when triggerCharacters exists.
   triggerPatterns?: RegExp[]
   disableSyntaxes?: string[]

@@ -9,7 +9,7 @@ export default class Prompt {
   private cusorIndex = 0
   private _input = ''
   private _matcher: Matcher | ''
-  private _mode: ListMode
+  private _mode: ListMode = 'insert'
   private interactive = false
 
   private _onDidChangeInput = new Emitter<string>()
@@ -53,7 +53,8 @@ export default class Prompt {
       this._mode = opts.mode
       this._matcher = opts.interactive ? '' : opts.matcher
     }
-    this.nvim.callTimer('coc#list#start_prompt', [], true)
+    let fn = workspace.isVim ? 'coc#list#prompt_start' : 'coc#list#start_prompt'
+    this.nvim.call(fn, [], true)
     this.drawPrompt()
   }
 
@@ -72,7 +73,7 @@ export default class Prompt {
   public drawPrompt(): void {
     let indicator = this.config.get<string>('indicator', '>')
     let { cusorIndex, interactive, input, _matcher } = this
-    let cmds = workspace.isVim ? ['echo ""'] : ['redraw']
+    let cmds = ['echo ""']
     if (this.mode == 'insert') {
       if (interactive) {
         cmds.push(`echohl MoreMsg | echon 'INTERACTIVE ' | echohl None`)
@@ -82,9 +83,7 @@ export default class Prompt {
       cmds.push(`echohl Special | echon '${indicator} ' | echohl None`)
       if (cusorIndex == input.length) {
         cmds.push(`echon '${input.replace(/'/g, "''")}'`)
-        if (workspace.isVim) {
-          cmds.push(`echohl Cursor | echon ' ' | echohl None`)
-        }
+        cmds.push(`echohl Cursor | echon ' ' | echohl None`)
       } else {
         let pre = input.slice(0, cusorIndex)
         if (pre) cmds.push(`echon '${pre.replace(/'/g, "''")}'`)
@@ -95,7 +94,7 @@ export default class Prompt {
     } else {
       cmds.push(`echohl MoreMsg | echo "" | echohl None`)
     }
-    if (workspace.isVim) cmds.push('redraw')
+    cmds.push('redraw')
     let cmd = cmds.join('|')
     this.nvim.command(cmd, true)
   }
@@ -177,11 +176,26 @@ export default class Prompt {
   }
 
   public insertCharacter(ch: string): void {
+    this.addText(ch)
+  }
+
+  public async paste(): Promise<void> {
+    await this.eval('@*')
+  }
+
+  public async eval(expression: string): Promise<void> {
     let { cusorIndex, input } = this
-    this.cusorIndex = cusorIndex + 1
+    let text = await this.nvim.eval(expression) as string
+    text = text.replace(/\n/g, '')
+    this.addText(text)
+  }
+
+  private addText(text: string): void {
+    let { cusorIndex, input } = this
+    this.cusorIndex = cusorIndex + text.length
     let pre = input.slice(0, cusorIndex)
     let post = input.slice(cusorIndex)
-    this._input = `${pre}${ch}${post}`
+    this._input = `${pre}${text}${post}`
     this.drawPrompt()
     this._onDidChangeInput.fire(this._input)
   }

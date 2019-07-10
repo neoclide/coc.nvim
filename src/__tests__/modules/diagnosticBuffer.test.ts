@@ -114,7 +114,7 @@ describe('diagnostic buffer', () => {
     let winid = await nvim.call('bufwinid', buf.bufnr) as number
     buf.addHighlight([diagnostic], winid)
     await wait(100)
-    expect(buf.hasMatch(1000)).toBe(true)
+    expect(buf.matchIds.size).toBeGreaterThan(0)
   })
 
   it('should clear all diagnostics', async () => {
@@ -128,17 +128,10 @@ describe('diagnostic buffer', () => {
     let lines: string[] = content.split('\n')
     let line = lines.find(s => s.indexOf('CocError') != -1)
     expect(line).toBeUndefined()
-    let winid = await nvim.call('bufwinid', buf.bufnr) as number
-    let curr = await nvim.call('getloclist', [winid, { title: 1 }])
-    expect(curr.title).toBeUndefined()
+    await helper.wait(50)
     let buffer = await nvim.buffer
     let res = await buffer.getVar('coc_diagnostic_info')
-    expect(res).toEqual({
-      information: 0,
-      hint: 0,
-      warning: 0,
-      error: 0
-    })
+    expect(res).toBeNull()
     let { matchIds } = buf as any
     expect(matchIds.size).toBe(0)
   })

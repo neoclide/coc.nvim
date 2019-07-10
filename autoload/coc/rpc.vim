@@ -47,8 +47,7 @@ function! coc#rpc#kill()
 endfunction
 
 function! coc#rpc#get_errors()
-  if empty(s:client) | return | endif
-  return s:client['stderrs']
+  return split(execute('messages'), "\n")
 endfunction
 
 function! coc#rpc#stop()
@@ -59,6 +58,11 @@ function! coc#rpc#restart()
   if empty(s:client)
     call coc#rpc#start_server()
   else
+    for i in range(1, winnr('$'))
+      if getwinvar(i, 'float')
+        execute i.'wincmd c'
+      endif
+    endfor
     call coc#rpc#request('detach', [])
     sleep 100m
     let s:client['command'] = coc#util#job_command()

@@ -137,4 +137,11 @@ describe('document model properties', () => {
     expect(item.pos3).toEqual([3, 1, 10])
     expect(item.pos4).toEqual([4, 1, 30])
   })
+
+  it('should get variable form buffer', async () => {
+    await nvim.command('autocmd BufNewFile,BufRead * let b:coc_enabled = 1')
+    let doc = await helper.createDocument()
+    let val = doc.getVar<number>('enabled')
+    expect(val).toBe(1)
+  })
 })

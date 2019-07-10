@@ -65,3 +65,45 @@ export function resolveVariables(str: string, variables: { [key: string]: string
     return match
   })
 }
+
+export function isAsciiLetter(code: number): boolean {
+  if (code >= 65 && code <= 90) return true
+  if (code >= 97 && code <= 122) return true
+  return false
+}
+
+function doEqualsIgnoreCase(a: string, b: string, stopAt = a.length): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string') {
+    return false
+  }
+  for (let i = 0; i < stopAt; i++) {
+    const codeA = a.charCodeAt(i)
+    const codeB = b.charCodeAt(i)
+    if (codeA === codeB) {
+      continue
+    }
+    // a-z A-Z
+    if (isAsciiLetter(codeA) && isAsciiLetter(codeB)) {
+      const diff = Math.abs(codeA - codeB)
+      if (diff !== 0 && diff !== 32) {
+        return false
+      }
+    }
+    // Any other charcode
+    else {
+      if (String.fromCharCode(codeA).toLowerCase() !== String.fromCharCode(codeB).toLowerCase()) {
+        return false
+      }
+    }
+  }
+  return true
+}
+
+export function equalsIgnoreCase(a: string, b: string): boolean {
+  const len1 = a ? a.length : 0
+  const len2 = b ? b.length : 0
+  if (len1 !== len2) {
+    return false
+  }
+  return doEqualsIgnoreCase(a, b)
+}

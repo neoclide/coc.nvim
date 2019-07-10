@@ -4,7 +4,7 @@ import { IConfigurationModel, ErrorItem } from '../types'
 import { emptyObject, objectLiteral } from '../util/is'
 import { equals } from '../util/object'
 import fs from 'fs'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import path from 'path'
 const logger = require('../util/logger')('configuration-util')
 declare var __webpack_require__: any
@@ -16,7 +16,7 @@ export type ShowError = (errors: ErrorItem[]) => void
 export function parseContentFromFile(filepath: string | null, onError?: ShowError): IConfigurationModel {
   if (!filepath || !fs.existsSync(filepath)) return { contents: {} }
   let content: string
-  let uri = Uri.file(filepath).toString()
+  let uri = URI.file(filepath).toString()
   try {
     content = fs.readFileSync(filepath, 'utf8')
   } catch (_e) {

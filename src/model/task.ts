@@ -28,9 +28,16 @@ export default class Task implements Disposable {
         this._onStderr.fire(lines)
       }
     }, null, this.disposables)
+    let stdout: string[] = []
+    let timer: NodeJS.Timeout
     events.on('TaskStdout', (id, lines) => {
       if (id == this.id) {
-        this._onStdout.fire(lines)
+        if (timer) clearTimeout(timer)
+        stdout.push(...lines)
+        timer = setTimeout(() => {
+          this._onStdout.fire(stdout)
+          stdout = []
+        }, 100)
       }
     }, null, this.disposables)
   }

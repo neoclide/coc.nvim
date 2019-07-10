@@ -1,7 +1,8 @@
-import workspace from '../workspace'
+import { CancellationToken } from 'vscode-languageserver-protocol'
 import { CompleteOption, CompleteResult, VimCompleteItem } from '../types'
 import { fuzzyChar } from '../util/fuzzy'
 import { byteSlice } from '../util/string'
+import workspace from '../workspace'
 import Source from './source'
 const logger = require('../util/logger')('model-source-vim')
 
@@ -52,9 +53,10 @@ export default class VimSource extends Source {
     }]) // tslint:disable-line
   }
 
-  public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {
+  public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> {
     let { col, input, line, colnr } = opt
     let startcol: number | null = await this.callOptinalFunc('get_startcol', [opt])
+    if (token.isCancellationRequested) return
     if (startcol) {
       if (startcol < 0) return null
       startcol = Number(startcol)
@@ -70,7 +72,7 @@ export default class VimSource extends Source {
       }
     }
     let items: VimCompleteItem[] = await this.nvim.callAsync('coc#util#do_complete', [this.name, opt])
-    if (!items || items.length == 0) return null
+    if (!items || items.length == 0 || token.isCancellationRequested) return null
     if (this.firstMatch && input.length) {
       let ch = input[0]
       items = items.filter(item => {

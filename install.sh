@@ -37,17 +37,6 @@ fetch() {
   fi
 }
 
-install_yarn() {
-  if ! command_exists node && ! command_exists nodejs; then
-    echo "Nodejs not found, installing latest LTS"
-    fetch install-node.now.sh/lts | sh
-  fi
-  if ! command_exists yarn && ! command_exists yarnpkg; then
-    echo "Yarn not found, installing yarn."
-    fetch https://yarnpkg.com/install.sh | sh
-  fi
-}
-
 get_latest_release() {
   fetch "https://api.github.com/repos/neoclide/coc.nvim/releases/latest" |
     grep '"tag_name":' |
@@ -62,11 +51,10 @@ else
 fi
 
 download() {
-  install_yarn
   mkdir -p build
   cd build
   if [ "$tag" = "nightly" ]; then
-    fetch https://raw.githubusercontent.com/neoclide/coc.nvim/release/index.js > index.js
+    fetch https://raw.githubusercontent.com/neoclide/coc.nvim/release/build/index.js > index.js
     return
   fi
   url="https://github.com/neoclide/coc.nvim/releases/download/$tag/coc.tar.gz"

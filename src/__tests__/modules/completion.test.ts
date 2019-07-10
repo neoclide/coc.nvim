@@ -218,7 +218,7 @@ describe('completion#resumeCompletion', () => {
         return { isIncomplete: false, items: [{ word: 'foo' }, { word: opt.input }] }
       }
     }
-    sources.addSource(source)
+    let disposable = sources.addSource(source)
     await helper.edit()
     await nvim.input('i.')
     await helper.waitPopup()
@@ -228,7 +228,7 @@ describe('completion#resumeCompletion', () => {
     await helper.wait(10)
     await nvim.input('b')
     await helper.wait(100)
-    sources.removeSource(source)
+    disposable.dispose()
     items = await helper.items()
     expect(items[0].word).toBe('ab')
     await nvim.input('<esc>')
@@ -514,18 +514,15 @@ describe('completion trigger', () => {
         if (!opt.input.startsWith('EM')) return null
         return Promise.resolve({
           items: [
-            { word: 'a', filterText: 'EMa' },
-            { word: 'b', filterText: 'EMb' }
+            { word: 'foo', filterText: 'EMfoo' },
+            { word: 'bar', filterText: 'EMbar' }
           ]
         })
       },
     }
     let disposable = sources.addSource(source)
     await nvim.input('i')
-    await helper.wait(10)
-    await nvim.input('E')
-    await helper.wait(10)
-    await nvim.input('M')
+    await nvim.input('EM')
     await helper.waitPopup()
     let items = await helper.getItems()
     expect(items.length).toBe(2)
@@ -554,7 +551,7 @@ describe('completion trigger', () => {
     await nvim.input('o')
     await helper.wait(10)
     await nvim.input('E')
-    await helper.waitPopup()
+    await helper.wait(30)
     await nvim.input('M')
     await helper.waitPopup()
     let items = await helper.getItems()

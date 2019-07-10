@@ -4,7 +4,7 @@ import { ColorInformation, Disposable, Position } from 'vscode-languageserver-pr
 import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
-import { disposeAll } from '../util'
+import { disposeAll, wait } from '../util'
 import { equals } from '../util/object'
 import workspace from '../workspace'
 import Highlighter, { toHexString } from './highlighter'
@@ -23,7 +23,7 @@ export default class Colors {
       this._highlightCurrent().catch(e => {
         logger.error('highlight error:', e.stack)
       })
-    }, 100)
+    }, 200)
     let config = workspace.getConfiguration('coc.preferences')
     this._enabled = config.get<boolean>('colorSupport', true)
     this.srcId = workspace.createNameSpace('coc-colors')
@@ -36,22 +36,9 @@ export default class Colors {
     }))
 
     events.on('BufEnter', async () => {
-      if (!global.hasOwnProperty('__TEST__')) {
-        this.highlightCurrent()
-      }
+      if (global.hasOwnProperty('__TEST__')) return
+      this.highlightCurrent()
     }, null, this.disposables)
-
-    if (workspace.isVim) {
-      events.on('BufWinEnter', async (bufnr, winid) => {
-        for (let highlighter of this.highlighters.values()) {
-          if (highlighter.winid == winid && highlighter.bufnr != bufnr) {
-            highlighter.clearHighlight()
-          }
-        }
-        let doc = workspace.getDocument(bufnr)
-        if (doc) await this.highlightColors(doc, true)
-      }, null, this.disposables)
-    }
 
     events.on('InsertLeave', async () => {
       this.highlightCurrent()
@@ -60,7 +47,6 @@ export default class Colors {
     events.on('BufUnload', async bufnr => {
       let highlighter = this.highlighters.get(bufnr)
       if (highlighter) {
-        highlighter.clearHighlight()
         highlighter.dispose()
         this.highlighters.delete(bufnr)
       }
@@ -71,7 +57,8 @@ export default class Colors {
       let doc = workspace.getDocument(textDocument.uri)
       if (doc && doc.bufnr == workspace.bufnr) {
         let { range, text } = contentChanges[0]
-        this.highlightColors(doc) // tslint:disable-line
+        await wait(50)
+        await this.highlightColors(doc)
       }
     }, null, this.disposables)
 
@@ -95,7 +82,7 @@ export default class Colors {
     if (['help', 'terminal', 'quickfix'].indexOf(document.buftype) !== -1) return
     let { version, changedtick } = document
     let highlighter = this.getHighlighter(document.bufnr)
-    if (!highlighter && (highlighter.version == version && !force)) return
+    if (!highlighter || (highlighter.version == version && !force)) return
     let colors: ColorInformation[]
     try {
       colors = await languages.provideDocumentColors(document.textDocument)

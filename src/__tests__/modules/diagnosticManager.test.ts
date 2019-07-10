@@ -1,6 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { severityLevel, getNameFromSeverity } from '../../diagnostic/util'
-import { Range, DiagnosticSeverity, Diagnostic } from 'vscode-languageserver-types'
+import { Range, DiagnosticSeverity, Diagnostic, Location } from 'vscode-languageserver-types'
+import { URI } from 'vscode-uri'
 import Document from '../../model/document'
 import workspace from '../../workspace'
 import manager from '../../diagnostic/manager'
@@ -47,6 +48,18 @@ async function createDocument(): Promise<Document> {
 }
 
 describe('diagnostic manager', () => {
+  it('should get all diagnostics', async () => {
+    await createDocument()
+    let list = manager.getDiagnosticList()
+    expect(list).toBeDefined()
+    expect(list.length).toBeGreaterThanOrEqual(5)
+    expect(list[0].severity).toBe('Error')
+    expect(list[1].severity).toBe('Error')
+    expect(list[2].severity).toBe('Warning')
+    expect(list[3].severity).toBe('Information')
+    expect(list[4].severity).toBe('Hint')
+  })
+
   it('should refresh on InsertLeave', async () => {
     let doc = await helper.createDocument()
     await nvim.input('i')
@@ -85,6 +98,9 @@ describe('diagnostic manager', () => {
     expect(ranges[0]).toEqual(Range.create(0, 0, 0, 1))
     expect(ranges[1]).toEqual(Range.create(0, 1, 0, 2))
     expect(ranges[2]).toEqual(Range.create(1, 0, 1, 2))
+    ranges = manager.getSortedRanges(doc.uri, 'error')
+    expect(ranges.length).toBe(3)
+    expect(manager.getSortedRanges(doc.uri, 'warning').length).toBe(0)
   })
 
   it('should get diagnostics in range', async () => {
@@ -103,6 +119,29 @@ describe('diagnostic manager', () => {
     collection.set(doc.uri, diagnostics)
     let res = manager.getDiagnosticsInRange(doc.textDocument, Range.create(0, 0, 0, 3))
     expect(res.length).toBe(2)
+  })
+
+  it('should get diagnostics under corsor', async () => {
+    let doc = await createDocument()
+    let diagnostics = await manager.getCurrentDiagnostics()
+    expect(diagnostics.length).toBe(0)
+    await nvim.call('cursor', [1, 4])
+    diagnostics = await manager.getCurrentDiagnostics()
+    expect(diagnostics.length).toBe(1)
+  })
+
+  it('should jump to related position', async () => {
+    let doc = await helper.createDocument()
+    let range = Range.create(0, 0, 0, 10)
+    let location = Location.create(URI.file(__filename).toString(), range)
+    let diagnostic = Diagnostic.create(range, 'msg', DiagnosticSeverity.Error, 1000, 'test',
+      [{ location, message: 'test' }])
+    let collection = manager.create('positions')
+    collection.set(doc.uri, [diagnostic])
+    await helper.wait(300)
+    await manager.jumpRelated()
+    let bufname = await nvim.call('bufname', '%')
+    expect(bufname).toMatch('diagnosticManager')
   })
 
   it('should jump to previous', async () => {
@@ -128,23 +167,12 @@ describe('diagnostic manager', () => {
     }
   })
 
-  it('should get all diagnostics', async () => {
-    await createDocument()
-    let list = manager.getDiagnosticList()
-    expect(list).toBeDefined()
-    expect(list.length).toBe(5)
-    expect(list[0].severity).toBe('Error')
-    expect(list[1].severity).toBe('Error')
-    expect(list[2].severity).toBe('Warning')
-    expect(list[3].severity).toBe('Information')
-    expect(list[4].severity).toBe('Hint')
-  })
-
   it('should show floating window on cursor hold', async () => {
     let config = workspace.getConfiguration('diagnostic')
     config.update('messageTarget', 'float')
     await createDocument()
     await nvim.call('cursor', [1, 3])
+    await nvim.command('doautocmd CursorHold')
     let winid = await helper.waitFloat()
     let bufnr = await nvim.call('nvim_win_get_buf', winid) as number
     let buf = nvim.createBuffer(bufnr)

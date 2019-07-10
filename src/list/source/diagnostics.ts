@@ -2,6 +2,7 @@ import path from 'path'
 import diagnosticManager from '../../diagnostic/manager'
 import { DiagnosticItem, ListContext, ListItem } from '../../types'
 import LocationList from './location'
+import { isParentFolder } from '../../util/fs'
 const logger = require('../../util/logger')('list-symbols')
 
 export default class DiagnosticsList extends LocationList {
@@ -13,7 +14,7 @@ export default class DiagnosticsList extends LocationList {
     let list: DiagnosticItem[] = diagnosticManager.getDiagnosticList()
     let { cwd } = context
     return list.map(item => {
-      let file = item.file.startsWith(cwd) ? path.relative(cwd, item.file) : item.file
+      let file = isParentFolder(cwd, item.file) ? path.relative(cwd, item.file) : item.file
       return {
         label: `${file}:${item.lnum}:${item.col}\t${item.severity}\t${item.message.replace(/\n/g, '')}`,
         location: item.location

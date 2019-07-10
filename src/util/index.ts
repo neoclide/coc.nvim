@@ -4,10 +4,11 @@ import cp, { exec, ExecOptions } from 'child_process'
 import debounce from 'debounce'
 import fs from 'fs'
 import { Disposable, TextDocumentIdentifier } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import which from 'which'
 import * as platform from './platform'
 import isuri from 'isuri'
+import mkdir from 'mkdirp'
 import { MapMode } from '../types'
 
 export { platform }
@@ -39,13 +40,15 @@ export function wait(ms: number): Promise<any> {
 }
 
 function echoMsg(nvim: Neovim, msg: string, hl: string): void {
-  nvim.callTimer('coc#util#echo_messages', [hl, msg.split('\n')], true)
+  let method = process.env.VIM_NODE_RPC == '1' ? 'callTimer' : 'call'
+  nvim[method]('coc#util#echo_messages', [hl, msg.split('\n')], true)
 }
 
 export function getUri(fullpath: string, id: number, buftype: string): string {
   if (!fullpath) return `untitled:${id}`
-  if (path.isAbsolute(fullpath)) return Uri.file(fullpath).toString()
-  if (isuri.isValid(fullpath)) return Uri.parse(fullpath).toString()
+  if (platform.isWindows) fullpath = path.win32.normalize(fullpath)
+  if (path.isAbsolute(fullpath)) return URI.file(fullpath).toString()
+  if (isuri.isValid(fullpath)) return URI.parse(fullpath).toString()
   if (buftype != '') return `${buftype}:${id}`
   return `unknown:${id}`
 }
@@ -68,14 +71,6 @@ export function executable(command: string): boolean {
   return true
 }
 
-export function createNvim(): Neovim {
-  let p = which.sync('nvim')
-  let proc = cp.spawn(p, ['-u', 'NORC', '-i', 'NONE', '--embed', '--headless'], {
-    shell: false
-  })
-  return attach({ proc })
-}
-
 export function runCommand(cmd: string, opts: ExecOptions = {}, timeout?: number): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     let timer: NodeJS.Timer
@@ -87,7 +82,7 @@ export function runCommand(cmd: string, opts: ExecOptions = {}, timeout?: number
     exec(cmd, opts, (err, stdout, stderr) => {
       if (timer) clearTimeout(timer)
       if (err) {
-        reject(new Error(`exited with ${err.code}\n${stderr}`))
+        reject(new Error(`exited with ${err.code}\n${err}\n${stderr}`))
         return
       }
       resolve(stdout)
@@ -133,41 +128,12 @@ export function getKeymapModifier(mode: MapMode): string {
 }
 
 export async function mkdirp(path: string, mode?: number): Promise<boolean> {
-  const mkdir = async () => {
-    try {
-      await nfcall(fs.mkdir, path, mode)
-    } catch (err) {
-      if (err.code === 'EEXIST') {
-        const stat = await nfcall<fs.Stats>(fs.stat, path)
-
-        if (stat.isDirectory) {
-          return
-        }
-
-        throw new Error(`'${path}' exists and is not a directory.`)
-      }
-
-      throw err
-    }
-  }
-
-  // is root?
-  if (path === dirname(path)) {
-    return true
-  }
-
-  try {
-    await mkdir()
-  } catch (err) {
-    if (err.code !== 'ENOENT') {
-      throw err
-    }
-
-    await mkdirp(dirname(path), mode)
-    await mkdir()
-  }
-
-  return true
+  return new Promise(resolve => {
+    mkdir(path, { mode }, err => {
+      if (err) return resolve(false)
+      resolve(true)
+    })
+  })
 }
 
 function nfcall<R>(fn: Function, ...args: any[]): Promise<R> {

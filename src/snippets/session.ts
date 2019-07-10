@@ -1,12 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
 import { FormattingOptions } from 'jsonc-parser'
-import { Emitter, Event, Position, Range, TextDocumentContentChangeEvent, TextEdit } from 'vscode-languageserver-protocol'
+import { Emitter, Event, Range, TextDocumentContentChangeEvent, TextEdit } from 'vscode-languageserver-protocol'
+import completion from '../completion'
 import Document from '../model/document'
 import { wait } from '../util'
 import { comparePosition, positionInRange, rangeInRange } from '../util/position'
 import { byteLength } from '../util/string'
 import workspace from '../workspace'
-import completion from '../completion'
 import { CocSnippet, CocSnippetPlaceholder } from "./snippet"
 import { SnippetVariableResolver } from "./variableResolve"
 const logger = require('../util/logger')('snippets-session')
@@ -38,15 +38,16 @@ export class SnippetSession {
     const formatOptions = await workspace.getFormatOptions(this.document.uri)
     const currentLine = document.getline(position.line)
     const currentIndent = currentLine.match(/^\s*/)[0]
-    const inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions)
+    let inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions)
     const resolver = new SnippetVariableResolver()
     await resolver.init(document)
     const snippet = new CocSnippet(inserted, position, resolver)
     const edit = TextEdit.replace(range, snippet.toString())
-    const endPart = currentLine.slice(position.character)
-    if (snippetString.endsWith('\n') && endPart) {
+    if (snippetString.endsWith('\n')
+      && currentLine.slice(position.character).length) {
       // make next line same indent
       edit.newText = edit.newText + currentIndent
+      inserted = inserted + currentIndent
     }
     if (snippet.isPlainText) {
       // insert as text
@@ -61,11 +62,11 @@ export class SnippetSession {
     await document.applyEdits(nvim, [edit])
     if (this._isActive) {
       // insert check
-      let placeholder = this.findPlaceholder(Range.create(position, position))
+      let placeholder = this.findPlaceholder(range)
       // insert to placeholder
       if (placeholder && !placeholder.isFinalTabstop) {
         // don't repeat snippet insert
-        let index = this.snippet.insertSnippet(placeholder, inserted, position)
+        let index = this.snippet.insertSnippet(placeholder, inserted, range)
         let p = this.snippet.getPlaceholder(index)
         this._currId = p.id
         if (select) await this.selectPlaceholder(p)
@@ -185,27 +186,16 @@ export class SnippetSession {
       start: { line: start.line, col },
       end: { line: end.line, col: endCol }
     }, true)
-    let ve = await nvim.getOption('virtualedit')
-    let selection = await nvim.getOption('selection')
-    let mode = await nvim.call('mode') as string
+    let [ve, selection, pumvisible, mode] = await nvim.eval('[&virtualedit, &selection, pumvisible(), mode()]') as [string, string, number, string]
     let move_cmd = ''
-    if (mode.startsWith('i')) {
-      let pum = await nvim.call('pumvisible')
-      if (pum && this.preferComplete) {
-        let pre = completion.hasSelected() ? '' : '\\<C-n>'
-        await nvim.eval(`feedkeys("${pre}\\<C-y>", 'in')`)
-        return
-      }
+    if (pumvisible && this.preferComplete) {
+      let pre = completion.hasSelected() ? '' : '\\<C-n>'
+      await nvim.eval(`feedkeys("${pre}\\<C-y>", 'in')`)
+      return
     }
     let resetVirtualEdit = false
-    if (ve != 'onemore') {
-      resetVirtualEdit = true
-      await nvim.setOption('virtualedit', 'onemore')
-    }
-    await nvim.call('cursor', [start.line + 1, col + 1])
     if (mode != 'n') move_cmd += "\\<Esc>"
     if (len == 0) {
-      triggerAutocmd = false
       if (col == 0 || (!mode.startsWith('i') && col < byteLength(line))) {
         move_cmd += 'i'
       } else {
@@ -228,11 +218,16 @@ export class SnippetSession {
       col = await this.getVirtualCol(start.line + 1, col)
       move_cmd += `o${start.line + 1}G${col + 1}|o\\<c-g>`
     }
-    await nvim.eval(`feedkeys("${move_cmd}", 'in')`)
-    if (workspace.env.isVim) {
-      nvim.command('redraw', true)
+    nvim.pauseNotification()
+    if (ve != 'onemore') {
+      resetVirtualEdit = true
+      nvim.setOption('virtualedit', 'onemore', true)
     }
-    if (resetVirtualEdit) await nvim.setOption('virtualedit', ve)
+    nvim.command(`noa call cursor(${start.line + 1},${col + (move_cmd == 'a' ? 0 : 1)})`, true)
+    nvim.call('eval', [`feedkeys("${move_cmd}", 'in')`], true)
+    if (resetVirtualEdit) nvim.setOption('virtualedit', ve, true)
+    if (workspace.env.isVim) nvim.command('redraw', true)
+    await nvim.resumeNotification()
     if (triggerAutocmd) nvim.command('silent doautocmd User CocJumpPlaceholder', true)
   }
 

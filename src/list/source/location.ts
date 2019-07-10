@@ -4,12 +4,13 @@ import path from 'path'
 import { ListContext, ListItem, QuickfixItem } from '../../types'
 import BasicList from '../basic'
 import workspace from '../../workspace'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
+import { isParentFolder } from '../../util/fs'
 const logger = require('../../util/logger')('list-location')
 
 export default class LocationList extends BasicList {
   public defaultAction = 'open'
-  public description = 'last jump locations'
+  public description = 'show locations saved by g:coc_jump_locations variable'
   public name = 'location'
 
   constructor(nvim: Neovim) {
@@ -24,7 +25,7 @@ export default class LocationList extends BasicList {
     locs.forEach(loc => {
       if (!loc.uri) {
         let fullpath = path.isAbsolute(loc.filename) ? loc.filename : path.join(context.cwd, loc.filename)
-        loc.uri = Uri.file(fullpath).toString()
+        loc.uri = URI.file(fullpath).toString()
       }
       if (!loc.bufnr && workspace.getDocument(loc.uri) != null) {
         loc.bufnr = workspace.getDocument(loc.uri).bufnr
@@ -37,18 +38,13 @@ export default class LocationList extends BasicList {
         loc.col = loc.col || loc.range.start.character + 1
       }
     })
-    let bufnr: number
-    let valid = await context.window.valid
-    if (valid) {
-      let buf = await context.window.buffer
-      bufnr = buf.id
-    }
+    let bufnr = await this.nvim.call('bufnr', '%')
     let ignoreFilepath = locs.every(o => o.bufnr && bufnr && o.bufnr == bufnr)
     let items: ListItem[] = locs.map(loc => {
       let filename = ignoreFilepath ? '' : loc.filename
       let filterText = `${filename}${loc.text.trim()}`
       if (path.isAbsolute(filename)) {
-        filename = filename.startsWith(context.cwd) ? path.relative(context.cwd, filename) : filename
+        filename = isParentFolder(context.cwd, filename) ? path.relative(context.cwd, filename) : filename
       }
       return {
         label: `${filename} |${loc.type ? loc.type + ' ' : ''}${loc.lnum} col ${loc.col}| ${loc.text}`,

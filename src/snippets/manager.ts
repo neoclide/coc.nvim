@@ -1,11 +1,11 @@
-import { DidChangeTextDocumentParams, Disposable, Position, Range } from 'vscode-languageserver-protocol'
+import { DidChangeTextDocumentParams, Disposable, Range } from 'vscode-languageserver-protocol'
 import events from '../events'
 import * as types from '../types'
 import workspace from '../workspace'
-import { SnippetSession } from './session'
 import * as Snippets from "./parser"
-import { SnippetVariableResolver } from './variableResolve'
 import { SnippetParser } from './parser'
+import { SnippetSession } from './session'
+import { SnippetVariableResolver } from './variableResolve'
 const logger = require('../util/logger')('snippets-manager')
 
 export class SnippetManager implements types.SnippetManager {
@@ -84,7 +84,7 @@ export class SnippetManager implements types.SnippetManager {
 
   public isPlainText(text: string): boolean {
     let snippet = (new SnippetParser()).parse(text, true)
-    if (snippet.placeholders.every(p => p.isFinalTabstop == true)) {
+    if (snippet.placeholders.every(p => p.isFinalTabstop == true && p.toString() == '')) {
       return true
     }
     return false
@@ -119,6 +119,11 @@ export class SnippetManager implements types.SnippetManager {
   public get session(): SnippetSession {
     let session = this.getSession(workspace.bufnr)
     return session && session.isActive ? session : null
+  }
+
+  public isActived(bufnr: number): boolean {
+    let session = this.getSession(bufnr)
+    return session && session.isActive
   }
 
   public jumpable(): boolean {

@@ -5,7 +5,7 @@
 /*tslint:disable*/
 import path from 'path'
 import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest, ApplyWorkspaceEditResponse, CancellationToken, ClientCapabilities, CodeAction, CodeActionContext, CodeActionKind, CodeActionParams, CodeActionRegistrationOptions, CodeActionRequest, CodeLens, CodeLensRegistrationOptions, CodeLensRequest, CodeLensResolveRequest, Command, CompletionContext, CompletionItem, CompletionItemKind, CompletionList, CompletionRegistrationOptions, CompletionRequest, CompletionResolveRequest, createProtocolConnection, Definition, DefinitionRequest, Diagnostic, DidChangeConfigurationNotification, DidChangeConfigurationParams, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeTextDocumentParams, DidChangeWatchedFilesNotification, DidChangeWatchedFilesParams, DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, DidSaveTextDocumentNotification, DidSaveTextDocumentParams, Disposable, DocumentFormattingParams, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightRequest, DocumentLink, DocumentLinkRegistrationOptions, DocumentLinkRequest, DocumentLinkResolveRequest, DocumentOnTypeFormattingParams, DocumentOnTypeFormattingRegistrationOptions, DocumentOnTypeFormattingRequest, DocumentRangeFormattingParams, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbol, DocumentSymbolRequest, Emitter, ErrorCodes, Event, ExecuteCommandParams, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, ExitNotification, FailureHandlingKind, FileChangeType, FileEvent, FormattingOptions, GenericNotificationHandler, GenericRequestHandler, Hover, HoverRequest, InitializedNotification, InitializeError, InitializeParams, InitializeRequest, InitializeResult, Location, Logger, LogMessageNotification, LogMessageParams, MarkupKind, Message, MessageReader, MessageType, MessageWriter, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, Position, PrepareRenameRequest, PublishDiagnosticsNotification, PublishDiagnosticsParams, Range, ReferencesRequest, RegistrationParams, RegistrationRequest, RenameParams, RenameRegistrationOptions, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, ResourceOperationKind, ResponseError, RPCMessageType, ServerCapabilities, ShowMessageNotification, ShowMessageParams, ShowMessageRequest, ShutdownRequest, SignatureHelp, SignatureHelpRegistrationOptions, SignatureHelpRequest, SymbolInformation, SymbolKind, TelemetryEventNotification, TextDocument, TextDocumentChangeRegistrationOptions, TextDocumentPositionParams, TextDocumentRegistrationOptions, TextDocumentSaveRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, Trace, TraceFormat, TraceOptions, Tracer, UnregistrationParams, UnregistrationRequest, WatchKind, WillSaveTextDocumentNotification, WillSaveTextDocumentParams, WillSaveTextDocumentWaitUntilRequest, WorkspaceEdit, WorkspaceFolder, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import commands from '../commands'
 import languages from '../languages'
 import FileWatcher from '../model/fileSystemWatcher'
@@ -644,6 +644,8 @@ export interface LanguageClientOptions {
   synchronize?: SynchronizeOptions
   diagnosticCollectionName?: string
   disableWorkspaceFolders?: boolean
+  disableDiagnostics?: boolean
+  disableCompletion?: boolean
   outputChannelName?: string
   outputChannel?: OutputChannel
   revealOutputChannelOn?: RevealOutputChannelOn
@@ -662,6 +664,8 @@ export interface LanguageClientOptions {
 interface ResolvedClientOptions {
   ignoredRootPaths?: string[]
   disableWorkspaceFolders?: boolean
+  disableDiagnostics?: boolean
+  disableCompletion?: boolean
   documentSelector?: DocumentSelector
   synchronize: SynchronizeOptions
   diagnosticCollectionName?: string
@@ -3119,6 +3123,8 @@ export abstract class BaseLanguageClient {
     clientOptions = clientOptions || {}
     this._clientOptions = {
       disableWorkspaceFolders: clientOptions.disableWorkspaceFolders,
+      disableDiagnostics: clientOptions.disableDiagnostics,
+      disableCompletion: clientOptions.disableCompletion,
       ignoredRootPaths: clientOptions.ignoredRootPaths,
       documentSelector: clientOptions.documentSelector || [],
       synchronize: clientOptions.synchronize || {},
@@ -3413,10 +3419,6 @@ export abstract class BaseLanguageClient {
     if (this._clientOptions.revealOutputChannelOn <= level) {
       this.outputChannel.show(true)
     }
-    if (type == 'Error' && message.indexOf('UnhandledPromiseRejectionWarning') == -1) {
-      message = dataString ? message + '\n' + dataString : message
-      workspace.showMessage(`Error output from ${this.id}: ${message}`, 'error')
-    }
   }
 
   public info(message: string, data?: any): void {
@@ -3519,7 +3521,7 @@ export abstract class BaseLanguageClient {
             workspace.showMessage(params.message, msgType as any)
             return Promise.resolve(null)
           }
-          let items = params.actions.map(o => o.title)
+          let items = params.actions.map(o => typeof o === 'string' ? o : o.title)
           return workspace.showQuickpick(items, params.message).then(idx => {
             return params.actions[idx]
           })
@@ -3551,7 +3553,7 @@ export abstract class BaseLanguageClient {
 
   private resolveRootPath(): string | null {
     if (this._clientOptions.workspaceFolder) {
-      return Uri.parse(this._clientOptions.workspaceFolder.uri).fsPath
+      return URI.parse(this._clientOptions.workspaceFolder.uri).fsPath
     }
     let { ignoredRootPaths } = this._clientOptions
     let config = workspace.getConfiguration(this.id)
@@ -3561,7 +3563,7 @@ export abstract class BaseLanguageClient {
     if (rootPatterns && rootPatterns.length) {
       let doc = workspace.getDocument(workspace.bufnr)
       if (doc && doc.schema == 'file') {
-        let dir = path.dirname(Uri.parse(doc.uri).fsPath)
+        let dir = path.dirname(URI.parse(doc.uri).fsPath)
         resolved = resolveRoot(dir, rootPatterns, workspace.cwd)
       }
     }
@@ -3582,7 +3584,7 @@ export abstract class BaseLanguageClient {
     let initParams: any = {
       processId: process.pid,
       rootPath: rootPath ? rootPath : null,
-      rootUri: rootPath ? cv.asUri(Uri.file(rootPath)) : null,
+      rootUri: rootPath ? cv.asUri(URI.file(rootPath)) : null,
       capabilities: this.computeClientCapabilities(),
       initializationOptions: Is.func(initOption) ? initOption() : initOption,
       trace: Trace.toString(this._trace),
@@ -3620,8 +3622,9 @@ export abstract class BaseLanguageClient {
         this._capabilities = Object.assign({}, result.capabilities, {
           resolvedTextDocumentSync: textDocumentSyncOptions
         })
-
-        connection.onDiagnostics(params => this.handleDiagnostics(params))
+        if (!this._clientOptions.disableDiagnostics) {
+          connection.onDiagnostics(params => this.handleDiagnostics(params))
+        }
         connection.onRequest(RegistrationRequest.type, params =>
           this.handleRegistrationRequest(params)
         )
@@ -3941,7 +3944,9 @@ export abstract class BaseLanguageClient {
     this.registerFeature(new DidSaveTextDocumentFeature(this))
     this.registerFeature(new DidCloseTextDocumentFeature(this, this._syncedDocuments))
     this.registerFeature(new FileSystemWatcherFeature(this, event => this.notifyFileEvent(event)))
-    this.registerFeature(new CompletionItemFeature(this))
+    if (!this._clientOptions.disableCompletion) {
+      this.registerFeature(new CompletionItemFeature(this))
+    }
     this.registerFeature(new HoverFeature(this))
     this.registerFeature(new SignatureHelpFeature(this))
     this.registerFeature(new DefinitionFeature(this))
