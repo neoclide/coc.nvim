@@ -269,11 +269,17 @@ export default class Document {
     return this.textDocument ? this.textDocument.version : null
   }
 
-  public async applyEdits(_nvim: Neovim, edits: TextEdit[], sync = true): Promise<void> {
-    if (edits.length == 0) return
+  public applyEdits(textEdit: TextEdit[], sync?: boolean): Promise<void>
+  public applyEdits(nvim: Neovim, textEdit: TextEdit[], sync?: boolean): Promise<void>
+  public async applyEdits(nvim: Neovim | TextEdit[], edits: TextEdit[] | boolean, sync = true): Promise<void> {
+    if (Array.isArray(nvim)) {
+      sync = edits == null ? true : edits as boolean
+      edits = nvim
+    }
+    if ((edits as TextEdit[]).length == 0) return
     let orig = this.lines.join('\n') + (this.eol ? '\n' : '')
     let textDocument = TextDocument.create(this.uri, this.filetype, 1, orig)
-    let content = TextDocument.applyEdits(textDocument, edits)
+    let content = TextDocument.applyEdits(textDocument, edits as TextEdit[])
     // could be equal sometimes
     if (orig === content) {
       this.createDocument()

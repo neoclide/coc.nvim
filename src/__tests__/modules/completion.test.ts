@@ -1,4 +1,5 @@
 import helper from '../helper'
+import snippetManager from '../../snippets/manager'
 import workspace from '../../workspace'
 import { Neovim } from '@chemzqm/neovim'
 import completion from '../../completion'
@@ -6,7 +7,7 @@ import languages from '../../languages'
 import sources from '../../sources'
 import { CompleteOption, ISource, CompleteResult, SourceType, CompletionContext } from '../../types'
 import { CompletionItemProvider } from '../../provider'
-import { TextDocument, Position, CompletionItem, InsertTextFormat, TextEdit } from 'vscode-languageserver-types'
+import { TextDocument, Position, CompletionItem, InsertTextFormat, TextEdit, Range } from 'vscode-languageserver-types'
 import { CancellationToken } from 'vscode-jsonrpc'
 
 let nvim: Neovim
@@ -277,7 +278,7 @@ describe('completion#TextChangedP', () => {
     expect(completion.isActivted).toBe(false)
   })
 
-  it('should fix cursor position on additionalTextEdits', async () => {
+  it('should fix cursor position with plain text on additionalTextEdits', async () => {
     let provider: CompletionItemProvider = {
       provideCompletionItems: async (
         _document: TextDocument,
@@ -306,7 +307,90 @@ describe('completion#TextChangedP', () => {
     expect(lnum).toBe(2)
     expect(col).toBe(7)
     disposable.dispose()
+  })
 
+  it('should fix cursor position with snippet on additionalTextEdits', async () => {
+    let provider: CompletionItemProvider = {
+      provideCompletionItems: async (): Promise<CompletionItem[]> => {
+        return [{
+          label: 'if',
+          insertTextFormat: InsertTextFormat.Snippet,
+          textEdit: { range: Range.create(0, 0, 0, 2), newText: 'if($1)' },
+          additionalTextEdits: [TextEdit.insert(Position.create(0, 0), 'bar ')],
+          preselect: true
+        }]
+      }
+    }
+    let disposable = languages.registerCompletionItemProvider('edits', 'edit', null, provider)
+    await nvim.input('iif')
+    await helper.waitPopup()
+    await helper.wait(100)
+    await nvim.input('<C-n>')
+    await helper.wait(100)
+    await nvim.input('<C-y>')
+    await helper.wait(200)
+    let line = await nvim.line
+    expect(line).toBe('bar if()')
+    let [, lnum, col] = await nvim.call('getcurpos')
+    expect(lnum).toBe(1)
+    expect(col).toBe(8)
+  })
+
+  it('should fix cursor position with plain text snippet on additionalTextEdits', async () => {
+    let provider: CompletionItemProvider = {
+      provideCompletionItems: async (): Promise<CompletionItem[]> => {
+        return [{
+          label: 'if',
+          insertTextFormat: InsertTextFormat.Snippet,
+          textEdit: { range: Range.create(0, 0, 0, 2), newText: 'do$0' },
+          additionalTextEdits: [TextEdit.insert(Position.create(0, 0), 'bar ')],
+          preselect: true
+        }]
+      }
+    }
+    let disposable = languages.registerCompletionItemProvider('edits', 'edit', null, provider)
+    await nvim.input('iif')
+    await helper.waitPopup()
+    await helper.wait(100)
+    await nvim.input('<C-n>')
+    await helper.wait(100)
+    await nvim.input('<C-y>')
+    await helper.wait(200)
+    let line = await nvim.line
+    let [, lnum, col] = await nvim.call('getcurpos')
+    expect(line).toBe('bar do')
+    expect(lnum).toBe(1)
+    expect(col).toBe(7)
+  })
+
+  it('should fix cursor position with nested snippet on additionalTextEdits', async () => {
+    let doc = await helper.createDocument()
+    let res = await snippetManager.insertSnippet('func($1)$0')
+    expect(res).toBe(true)
+    let provider: CompletionItemProvider = {
+      provideCompletionItems: async (): Promise<CompletionItem[]> => {
+        return [{
+          label: 'if',
+          insertTextFormat: InsertTextFormat.Snippet,
+          insertText: 'do$0',
+          additionalTextEdits: [TextEdit.insert(Position.create(0, 0), 'bar ')],
+          preselect: true
+        }]
+      }
+    }
+    let disposable = languages.registerCompletionItemProvider('edits', 'edit', null, provider)
+    await nvim.input('if')
+    await helper.waitPopup()
+    await helper.wait(100)
+    await nvim.input('<C-n>')
+    await helper.wait(100)
+    await nvim.input('<C-y>')
+    await helper.wait(200)
+    let line = await nvim.line
+    let [, lnum, col] = await nvim.call('getcurpos')
+    expect(line).toBe('bar func(do)')
+    expect(lnum).toBe(1)
+    expect(col).toBe(12)
   })
 
   it('should fix input for snippet item', async () => {

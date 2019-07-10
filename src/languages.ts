@@ -490,7 +490,6 @@ class Languages {
     priority = priority == null ? this.completeConfig.priority : priority
     // index set of resolved items
     let resolvedIndexes: Set<number> = new Set()
-    let doc: Document = null
     let waitTime = Math.min(Math.max(50, this.completeConfig.waitTime), 300)
     let source: ISource = {
       name,
@@ -502,8 +501,6 @@ class Languages {
       triggerCharacters: triggerCharacters || [],
       doComplete: async (opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> => {
         let { triggerCharacter, bufnr } = opt
-        doc = workspace.getDocument(bufnr)
-        if (!doc) return null
         resolvedIndexes = new Set()
         let isTrigger = triggerCharacters && triggerCharacters.indexOf(triggerCharacter) != -1
         let triggerKind: CompletionTriggerKind = CompletionTriggerKind.Invoked
@@ -519,6 +516,7 @@ class Languages {
         if (isTrigger) context.triggerCharacter = triggerCharacter
         let result
         try {
+          let doc = workspace.getDocument(bufnr)
           result = await Promise.resolve(provider.provideCompletionItems(doc.textDocument, position, token, context))
         } catch (e) {
           // don't disturb user
@@ -561,7 +559,8 @@ class Languages {
             detail = detail.replace(/\n\s*/g, ' ')
             if (detail.length) {
               let isText = /^[\w-\s.,\t]+$/.test(detail)
-              docs.push({ filetype: isText ? 'txt' : doc.filetype, content: detail })
+              let filetype = isText ? 'txt' : await workspace.nvim.eval('&filetype') as string
+              docs.push({ filetype: isText ? 'txt' : filetype, content: detail })
             }
           }
           if (documentation) {
@@ -593,24 +592,23 @@ class Languages {
           }
         }
         if (vimItem.line) Object.assign(opt, { line: vimItem.line })
-        let snippet = await this.applyTextEdit(item, opt)
+        let isSnippet = await this.applyTextEdit(item, opt)
+        if (isSnippet && snippetManager.isPlainText(item.textEdit.newText)) {
+          isSnippet = false
+        }
         let { additionalTextEdits } = item
         if (additionalTextEdits && item.textEdit) {
           let r = item.textEdit.range
           additionalTextEdits = additionalTextEdits.filter(edit => {
             if (rangeOverlap(r, edit.range)) {
-              logger.info('Filtered overlap additionalTextEdit:', edit)
+              logger.error('Filtered overlap additionalTextEdit:', edit)
               return false
             }
             return true
           })
         }
-        await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, snippet)
-        if (snippet && !snippetManager.isPlainText(item.textEdit.newText)) {
-          await snippetManager.selectCurrentPlaceholder()
-        }
+        await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, isSnippet)
         if (item.command) commands.execute(item.command)
-        doc = null
       },
       shouldCommit: (item: VimCompleteItem, character: string): boolean => {
         let completeItem = completeItems[item.index]
@@ -683,7 +681,9 @@ class Languages {
     let pos = await workspace.getCursorPosition()
     if (!snippet) changed = getChangedFromEdits(pos, textEdits)
     await document.applyEdits(this.nvim, textEdits)
-    if (changed) {
+    if (snippet) {
+      await snippetManager.selectCurrentPlaceholder()
+    } else if (changed) {
       await workspace.moveTo(Position.create(pos.line + changed.line, pos.character + changed.character))
     }
   }
