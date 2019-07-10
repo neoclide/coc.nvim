@@ -128,8 +128,9 @@ export default class Handler {
     }, null, this.disposables)
 
     let lastInsert: number
-    events.on('InsertCharPre', async () => {
+    events.on('InsertCharPre', async character => {
       lastInsert = Date.now()
+      if (character == ')') this.signatureFactory.close()
     }, null, this.disposables)
     events.on('Enter', async bufnr => {
       let { bracketEnterImprove } = this.preferences
