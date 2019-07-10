@@ -50,7 +50,7 @@ export default function download(url: string, options: DownloadOptions): Promise
       }
       res.pipe(tar.x({ strip: 1, C: dest }))
       res.on('end', () => {
-        setTimeout(resolve, 50)
+        setTimeout(resolve, 1000)
       })
     })
     req.on('error', reject)
