@@ -6,7 +6,7 @@ import { URI } from 'vscode-uri'
 import commands from '../commands'
 import languages from '../languages'
 import Highlighter from '../model/highligher'
-import { readFileLines } from '../util/fs'
+import { readFileLines, getFileLineCount } from '../util/fs'
 import { equals } from '../util/object'
 import workspace from '../workspace'
 const logger = require('../util/logger')('refactor')
@@ -78,7 +78,7 @@ export default class Refactor {
       workspace.showMessage('Empty workspaceEdit from server', 'warning')
       return
     }
-    let items = this.getFileItems(edit)
+    let items = await this.getFileItems(edit)
     let buf = await this.createRefactorBuffer(winid, filetype)
     await this.addFileItems(items, buf)
   }
@@ -96,8 +96,9 @@ export default class Refactor {
     highligher.addLine(separator)
     nvim.pauseNotification()
     nvim.command(`${openCommand} ${name}${this.id++}`, true)
-    nvim.command(`setl buftype=acwrite nobuflisted bufhidden=hide nofen wrap conceallevel=3 concealcursor=n`, true)
-    nvim.call('bufnr', ['%'], true)
+    nvim.command(`setl buftype=acwrite nobuflisted bufhidden=wipe nofen wrap conceallevel=3 concealcursor=n`, true)
+    nvim.command(`setl nolist nospell noswapfile foldmethod=expr foldexpr=coc#util#refactor_foldlevel(v:lnum)`, true)
+    nvim.command(`setl foldtext=getline(v:foldstart)[1:]`, true)
     nvim.call('matchadd', ['Conceal', '^\\%u3000'], true)
     nvim.call('coc#util#do_autocmd', ['CocRefactorOpen'], true)
     workspace.registerLocalKeymap('n', '<CR>', async () => {
@@ -128,15 +129,15 @@ export default class Refactor {
         }
       }
     }, true)
-    let [res, err] = await nvim.resumeNotification()
+    let [, err] = await nvim.resumeNotification()
     if (err) {
       logger.error(err)
       workspace.showMessage(`Error on open refactor window: ${err}`, 'error')
       return
     }
-    let buffer = nvim.createBuffer(res[2])
+    bufnr = this.bufnr = await nvim.eval('bufnr("%")') as number
+    let buffer = nvim.createBuffer(bufnr)
     this.saveVariable(buffer.id, 'cwd', cwd)
-    this.bufnr = res[2]
     nvim.pauseNotification()
     if (filetype) nvim.command(`runtime! syntax/${filetype}.vim`, true)
     highligher.render(buffer)
@@ -176,7 +177,8 @@ export default class Refactor {
     highligher.render(buffer, count)
     nvim.command('setl nomod', true)
     if (count == 2 && hlRanges.length) {
-      nvim.call('coc#util#jumpTo', [hlRanges[0].start.line, hlRanges[0].start.character], true)
+      let pos = hlRanges[0].start
+      nvim.call('coc#util#jumpTo', [pos.line, pos.character], true)
     }
     let [, err] = await nvim.resumeNotification()
     if (err) logger.error(err)
@@ -288,7 +290,7 @@ export default class Refactor {
     })
   }
 
-  private getFileItems(edit: WorkspaceEdit): FileItem[] {
+  private async getFileItems(edit: WorkspaceEdit): Promise<FileItem[]> {
     let res: FileItem[] = []
     let { beforeContext, afterContext } = this.config
     let { changes, documentChanges } = edit
@@ -300,7 +302,7 @@ export default class Refactor {
       }
     }
     for (let key of Object.keys(changes)) {
-      let max = this.getLineCount(key)
+      let max = await this.getLineCount(key)
       let edits = changes[key]
       let ranges: FileRange[] = []
       // start end highlights
@@ -330,11 +332,10 @@ export default class Refactor {
     return res
   }
 
-  private getLineCount(uri: string): number {
+  private async getLineCount(uri: string): Promise<number> {
     let doc = workspace.getDocument(uri)
     if (doc) return doc.lineCount
-    let content = fs.readFileSync(URI.parse(uri).fsPath, 'utf8')
-    return content.split(/\r?\n/).length
+    return await getFileLineCount(URI.parse(uri).fsPath)
   }
 
   private async getLines(fsPath: string, start: number, end: number): Promise<string[]> {
