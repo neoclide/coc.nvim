@@ -38,7 +38,7 @@ List 						|coc-list|
 Statusline support      			|coc-status|
   Manual                			|coc-status-manual|
   Airline 					|coc-status-airline|
-  Lightline  					|coc-stauts-lightline|
+  Lightline  					|coc-status-lightline|
 FAQ						|coc-faq|
 Changelog					|coc-changelog|
 
