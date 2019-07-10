@@ -50022,7 +50022,11 @@ class Document {
     get version() {
         return this.textDocument ? this.textDocument.version : null;
     }
-    async applyEdits(_nvim, edits, sync = true) {
+    async applyEdits(nvim, edits, sync = true) {
+        if (Array.isArray(nvim)) {
+            sync = edits == null ? true : edits;
+            edits = nvim;
+        }
         if (edits.length == 0)
             return;
         let orig = this.lines.join('\n') + (this.eol ? '\n' : '');
@@ -54263,7 +54267,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "6da3d043a1" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "20462895da" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -61205,7 +61209,6 @@ class Languages {
         priority = priority == null ? this.completeConfig.priority : priority;
         // index set of resolved items
         let resolvedIndexes = new Set();
-        let doc = null;
         let waitTime = Math.min(Math.max(50, this.completeConfig.waitTime), 300);
         let source = {
             name,
@@ -61217,9 +61220,6 @@ class Languages {
             triggerCharacters: triggerCharacters || [],
             doComplete: async (opt, token) => {
                 let { triggerCharacter, bufnr } = opt;
-                doc = workspace_1.default.getDocument(bufnr);
-                if (!doc)
-                    return null;
                 resolvedIndexes = new Set();
                 let isTrigger = triggerCharacters && triggerCharacters.indexOf(triggerCharacter) != -1;
                 let triggerKind = vscode_languageserver_protocol_1.CompletionTriggerKind.Invoked;
@@ -61239,6 +61239,7 @@ class Languages {
                     context.triggerCharacter = triggerCharacter;
                 let result;
                 try {
+                    let doc = workspace_1.default.getDocument(bufnr);
                     result = await Promise.resolve(provider.provideCompletionItems(doc.textDocument, position, token, context));
                 }
                 catch (e) {
@@ -61288,7 +61289,8 @@ class Languages {
                         detail = detail.replace(/\n\s*/g, ' ');
                         if (detail.length) {
                             let isText = /^[\w-\s.,\t]+$/.test(detail);
-                            docs.push({ filetype: isText ? 'txt' : doc.filetype, content: detail });
+                            let filetype = isText ? 'txt' : await workspace_1.default.nvim.eval('&filetype');
+                            docs.push({ filetype: isText ? 'txt' : filetype, content: detail });
                         }
                     }
                     if (documentation) {
@@ -61323,25 +61325,24 @@ class Languages {
                 }
                 if (vimItem.line)
                     Object.assign(opt, { line: vimItem.line });
-                let snippet = await this.applyTextEdit(item, opt);
+                let isSnippet = await this.applyTextEdit(item, opt);
+                if (isSnippet && manager_2.default.isPlainText(item.textEdit.newText)) {
+                    isSnippet = false;
+                }
                 let { additionalTextEdits } = item;
                 if (additionalTextEdits && item.textEdit) {
                     let r = item.textEdit.range;
                     additionalTextEdits = additionalTextEdits.filter(edit => {
                         if (position_1.rangeOverlap(r, edit.range)) {
-                            logger.info('Filtered overlap additionalTextEdit:', edit);
+                            logger.error('Filtered overlap additionalTextEdit:', edit);
                             return false;
                         }
                         return true;
                     });
                 }
-                await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, snippet);
-                if (snippet && !manager_2.default.isPlainText(item.textEdit.newText)) {
-                    await manager_2.default.selectCurrentPlaceholder();
-                }
+                await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, isSnippet);
                 if (item.command)
                     commands_1.default.execute(item.command);
-                doc = null;
             },
             shouldCommit: (item, character) => {
                 let completeItem = completeItems[item.index];
@@ -61414,7 +61415,10 @@ class Languages {
         if (!snippet)
             changed = position_1.getChangedFromEdits(pos, textEdits);
         await document.applyEdits(this.nvim, textEdits);
-        if (changed) {
+        if (snippet) {
+            await manager_2.default.selectCurrentPlaceholder();
+        }
+        else if (changed) {
             await workspace_1.default.moveTo(vscode_languageserver_protocol_1.Position.create(pos.line + changed.line, pos.character + changed.character));
         }
     }
