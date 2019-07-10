@@ -445,6 +445,18 @@ describe('workspace utility', () => {
     expect(bufnr).toBe(doc.bufnr)
   })
 
+  it('should loadFiles', async () => {
+    let files = ['a', 'b', 'c'].map(key => {
+      return path.join(__dirname, key)
+    })
+    await workspace.loadFiles(files)
+    for (let file of files) {
+      let uri = URI.file(file).toString()
+      let doc = workspace.getDocument(uri)
+      expect(doc).toBeDefined()
+    }
+  })
+
   it('should not create file if document exists', async () => {
     let doc = await helper.createDocument()
     let filepath = URI.parse(doc.uri).fsPath

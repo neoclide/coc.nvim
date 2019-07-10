@@ -885,3 +885,18 @@ function! coc#util#unmap(bufnr, keys) abort
     endfor
   endif
 endfunction
+
+function! coc#util#open_files(files)
+  if exists('*bufadd') && exists('*bufload')
+    for file in a:files
+      let bufnr = bufadd(file)
+      call bufload(file)
+    endfor
+  else
+    noa keepalt 1new +setl\ bufhidden=wipe
+    for file in a:files
+      execute 'edit +setl\ bufhidden=hide '.fnameescape(file)
+    endfor
+    noa close
+  endif
+endfunction

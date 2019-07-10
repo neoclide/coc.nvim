@@ -692,9 +692,12 @@ export default class Document {
    * @internal
    */
   public setIskeyword(iskeyword: string): void {
-    let chars = (this.chars = new Chars(iskeyword))
-    for (let ch of this.getVar('additional_keywords', []) || []) {
-      chars.addKeyword(ch)
+    let chars = this.chars = new Chars(iskeyword)
+    let additional = this.getVar('additional_keywords')
+    if (additional && Array.isArray(additional)) {
+      for (let ch of additional) {
+        chars.addKeyword(ch)
+      }
     }
     this._words = this.chars.matchKeywords(this.lines.join('\n'))
   }
