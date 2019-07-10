@@ -213,6 +213,9 @@ export default class Complete {
           item.source = source
         }
         item.priority = priority
+        if (source == 'tabnine' && item.isSnippet) {
+          item.priority = Math.max(priority, 100)
+        }
         item.abbr = item.abbr || item.word
         item.score = input.length ? score : 0
         item.localBonus = this.localBonus ? this.localBonus.get(filterText) || 0 : 0
