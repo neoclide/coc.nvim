@@ -608,6 +608,7 @@ class Languages {
           })
         }
         await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, isSnippet)
+        if (isSnippet) await snippetManager.selectCurrentPlaceholder()
         if (item.command) commands.execute(item.command)
       },
       shouldCommit: (item: VimCompleteItem, character: string): boolean => {
@@ -681,11 +682,7 @@ class Languages {
     let pos = await workspace.getCursorPosition()
     if (!snippet) changed = getChangedFromEdits(pos, textEdits)
     await document.applyEdits(this.nvim, textEdits)
-    if (snippet) {
-      await snippetManager.selectCurrentPlaceholder()
-    } else if (changed) {
-      await workspace.moveTo(Position.create(pos.line + changed.line, pos.character + changed.character))
-    }
+    if (changed) await workspace.moveTo(Position.create(pos.line + changed.line, pos.character + changed.character))
   }
 
   private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption): VimCompleteItem {
