@@ -665,29 +665,16 @@ endfunction
 
 function! coc#util#install(...) abort
   let opts = get(a:, 1, {})
-  let l:terminal = get(opts, 'terminal', 0)
-  let tag = get(opts, 'tag', 0)
-  let cmd = (s:is_win ? 'install.cmd' : './install.sh') . (tag ? '' : ' nightly')
-  function! s:OnInstalled(status, ...) closure
-    if a:status != 0 | return | endif
-    call coc#rpc#restart()
-  endfunction
-  " install.cmd would always exited with code 0 with/without errors.
-  if l:terminal
-    call coc#util#open_terminal({
-          \ 'cmd': cmd,
-          \ 'autoclose': 1,
-          \ 'cwd': s:root,
-          \ 'Callback': funcref('s:OnInstalled')
-          \})
-    wincmd p
-  else
-    let cwd = getcwd()
-    exe 'lcd '.s:root
-    exe '!'.cmd
-    exe 'lcd '.cwd
-    call s:OnInstalled(0)
+  if !isdirectory(s:root.'/src')
+    echohl WarningMsg | echon '[coc.nvim] coc#util#install not needed for release branch.' | echohl None
+    return
   endif
+  let cmd = (s:is_win ? 'install.cmd' : './install.sh') . ' nightly'
+  let cwd = getcwd()
+  exe 'lcd '.s:root
+  exe '!'.cmd
+  exe 'lcd '.cwd
+  call coc#rpc#restart()
 endfunction
 
 function! coc#util#do_complete(name, opt, cb) abort

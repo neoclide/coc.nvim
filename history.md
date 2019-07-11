@@ -1,3 +1,35 @@
+# 2019-07-11 0.0.73
+
+- fix(completion): fix map of number select
+- fix(languages): fix cursor position with snippet
+- fix(completion): fix cursor position with additionalTextEdits
+- fix(position): fix rangeOverlap check #961
+- fix(list): not change guicursor when it's empty
+- fix(list): fix filter not work on loading
+- fix(list): fix custom location list command not work
+- fix(util): highlight & render on vim8
+- fix(handler): fix getCommands
+- fix(handler): not check lastInsert on trigger signatureHelp
+- fix(handler): fix check of signature help trigger
+- fix(language-client): configuration for configured server, closes #930
+- fix(diagnostic): clear diagnostics on filetype change
+- feat(plugin): add download & fetch modules
+- feat(plugin): add highligher module
+- feat(refactor): add `<Plug>(coc-refactor)` for refactor window
+- feat(extension): use mv module for folder rename
+- feat(extension): support install taged extension
+- feat(extension): support custom extension root `g:coc_extension_root`
+- feat(handler): close signature float window on ')'
+- feat(list): support `g:coc_quickfix_open_command`
+- feat(list): add eval action
+- feat(list): add --tab list option
+- feat(list): use highligher module for showHelp
+- feat(terminal): add noa on window jump
+- feat(terminal): support vim8
+- feat(diagnostic): add diagnosticRelated support
+- feat(diagnostic): use text properties on vim8
+- feat(handler): improve signature float window
+
 # 2019-07-01
 
 - feat(plugin): add CocStatusChange autocmd
