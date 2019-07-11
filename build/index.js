@@ -54267,7 +54267,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "56825890dc" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "b4a588557c" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -62153,7 +62153,6 @@ const util_1 = __webpack_require__(171);
 const object_1 = __webpack_require__(187);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(257));
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(173));
 const popup_1 = tslib_1.__importDefault(__webpack_require__(261));
 const logger = __webpack_require__(183)('model-float');
 // factory class for floating window
@@ -62194,24 +62193,22 @@ class FloatFactory {
                 this.close();
             }
         }, null, this.disposables);
-        let onCursorMoved = debounce_1.default(this.onCursorMoved.bind(this), 100);
-        events_1.default.on('CursorMoved', onCursorMoved, this, this.disposables);
-        if (autoHide) {
-            events_1.default.on('CursorMovedI', onCursorMoved, this, this.disposables);
-        }
+        events_1.default.on('CursorMoved', this.onCursorMoved.bind(this, false), null, this.disposables);
+        events_1.default.on('CursorMovedI', this.onCursorMoved.bind(this, true), null, this.disposables);
     }
-    onCursorMoved(bufnr, cursor) {
-        if (!this.window)
-            return;
-        if (this.buffer && bufnr == this.buffer.id)
+    onCursorMoved(insertMode, bufnr, cursor) {
+        if (!this.window || this.buffer && bufnr == this.buffer.id)
             return;
         if (bufnr == this.targetBufnr && object_1.equals(cursor, this.cursor))
             return;
-        if (!workspace_1.default.insertMode || bufnr != this.targetBufnr) {
+        if (this.autoHide) {
             this.close();
             return;
         }
-        this.close();
+        if (!workspace_1.default.insertMode || bufnr != this.targetBufnr || (this.cursor && cursor[0] != this.cursor[0])) {
+            this.close();
+            return;
+        }
     }
     async checkFloatBuffer() {
         let { floatBuffer, nvim, window } = this;

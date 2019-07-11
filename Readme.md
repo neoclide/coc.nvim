@@ -75,7 +75,7 @@ Below are the reasons that led coc.nvim to build its own engine:
 
 - [Installation](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim)
 
-  Install [nodejs](https://nodejs.org/en/download/):
+  Install [nodejs](https://nodejs.org/en/download/) when necessary:
 
   ```sh
   curl -sL install-node.now.sh/lts | bash
@@ -86,8 +86,9 @@ Below are the reasons that led coc.nvim to build its own engine:
   ```vim
   " Use release branch
   Plug 'neoclide/coc.nvim', {'branch': 'release'}
-  " Or build from source code
-  " Install yarn from https://yarnpkg.com
+  " Or latest tag
+  Plug 'neoclide/coc.nvim', {'tag': '*'}
+  " Or build from source code by use yarn: https://yarnpkg.com
   Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}
   ```
 
