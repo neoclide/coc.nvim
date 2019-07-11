@@ -178,7 +178,7 @@ endfunction
 function! coc#_map()
   if !s:select_api | return | endif
   for i in range(1, 9)
-    exe 'inoremap <buffer> '.i.' <C-R>=nvim_select_popupmenu_item('.(i - 1).', v:true, v:true, {})<CR>'
+    exe 'inoremap <buffer> '.i.' <Cmd>call nvim_select_popupmenu_item('.(i - 1).', v:true, v:true, {})<cr>'
   endfor
 endfunction
 
