@@ -251,7 +251,7 @@ export default class FloatFactory implements Disposable {
         nvim.command(`noa call win_gotoid(${this.window.id})`, true)
       }
       if (filetypes.size == 1) {
-        nvim.command(`setfiletype ${filetypes.values().next().value}`)
+        nvim.command(`set filetype=${filetypes.values().next().value}`)
       }
       this.floatBuffer.setLines()
       nvim.command(`normal! ${alignTop ? 'G' : 'gg'}0`, true)
