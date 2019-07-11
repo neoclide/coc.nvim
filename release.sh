@@ -22,12 +22,18 @@ cd ./build
 tar -zcf coc.tar.gz index.js
 zip coc.zip index.js
 declare -a files=("coc.zip" "coc.tar.gz")
-# Validate token.
 GH_API="https://api.github.com"
 GH_REPO="$GH_API/repos/neoclide/coc.nvim"
 GH_TAGS="$GH_REPO/releases/tags/$tag"
 AUTH="Authorization: token $GITHUB_API_TOKEN"
+# Validate token.
 curl -o /dev/null -sH "$AUTH" $GH_REPO || { echo "Error: Invalid repo, token or network issue!";  exit 1; }
+# Create release
+echo "Creating release for $tag"
+curl -X POST -H "Authorization: token $GITHUB_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data "{\"tag_name\":\"$tag\"}" \
+  "$GH_REPO/releases"
 # Read asset tags.
 response=$(curl -sH "$AUTH" $GH_TAGS)
 # Get ID of the asset based on given filename.
