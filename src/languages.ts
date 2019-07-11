@@ -704,7 +704,7 @@ class Languages {
       sortText: item.sortText || null,
       filterText: item.filterText || label,
       isSnippet,
-      dup: isSnippet || item.textEdit != null || hasAdditionalEdit || item.detail ? 1 : 0
+      dup: item.data.dup == 0 ? 0 : 1
     }
     if (item && item.detail && detailField != 'preview') {
       let detail = item.detail.replace(/\n\s*/g, ' ')
