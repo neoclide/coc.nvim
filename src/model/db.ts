@@ -7,6 +7,12 @@ export default class DB {
   constructor(public readonly filepath: string) {
   }
 
+  /**
+   * Get data by key.
+   *
+   * @param {string} key unique key allows dot notation.
+   * @returns {any}
+   */
   public fetch(key: string): any {
     let obj = this.load()
     if (!key) return obj
@@ -20,6 +26,11 @@ export default class DB {
     return obj
   }
 
+  /**
+   * Check if key exists
+   *
+   * @param {string} key unique key allows dot notation.
+   */
   public exists(key: string): boolean {
     let obj = this.load()
     let parts = key.split('.')
@@ -32,6 +43,11 @@ export default class DB {
     return true
   }
 
+  /**
+   * Delete data by key
+   *
+   * @param {string} key unique key allows dot notation.
+   */
   public delete(key: string): void {
     let obj = this.load()
     let origin = obj
@@ -50,6 +66,12 @@ export default class DB {
     }
   }
 
+  /**
+   * Save data with key
+   *
+   * @param {string} key unique string that allows dot notation.
+   * @param {number|null|boolean|string|{[index} data saved data.
+   */
   public push(key: string, data: number | null | boolean | string | { [index: string]: any }): void {
     let origin = this.load() || {}
     let obj = origin
@@ -93,12 +115,18 @@ export default class DB {
     }
   }
 
+  /**
+   * Empty db file.
+   */
   public clear(): void {
     let stat = fs.statSync(this.filepath)
     if (!stat || !stat.isFile()) return
     fs.writeFileSync(this.filepath, '{}', 'utf8')
   }
 
+  /**
+   * Remove db file.
+   */
   public destroy(): void {
     if (fs.existsSync(this.filepath)) {
       fs.unlinkSync(this.filepath)

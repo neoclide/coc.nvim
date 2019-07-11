@@ -10,6 +10,9 @@ import { getAgent } from './fetch'
 
 /**
  * Download and extract tgz from url
+ *
+ * @param {string} url
+ * @param {DownloadOptions} options contains dest folder and optional onProgress callback
  */
 export default function download(url: string, options: DownloadOptions): Promise<void> {
   let { dest, onProgress } = options

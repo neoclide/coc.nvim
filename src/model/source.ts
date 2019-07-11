@@ -23,10 +23,16 @@ export default class Source implements ISource {
     this.defaults = option
   }
 
+  /**
+   * Priority of source, higher priority makes items lower index.
+   */
   public get priority(): number {
     return this.getConfig('priority', 1)
   }
 
+  /**
+   * When triggerOnly is true, not trigger completion on keyword character insert.
+   */
   public get triggerOnly(): boolean {
     let triggerOnly = this.defaults['triggerOnly']
     if (typeof triggerOnly == 'boolean') return triggerOnly

@@ -5,7 +5,9 @@ import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { disposeAll } from '../util'
 
 /**
- * Task - task run by vim
+ * Controls long running task started by vim.
+ * Useful to keep the task running after CocRestart.
+ *
  * @public
  */
 export default class Task implements Disposable {
@@ -17,6 +19,10 @@ export default class Task implements Disposable {
   public readonly onStdout: Event<string[]> = this._onStdout.event
   public readonly onStderr: Event<string[]> = this._onStderr.event
 
+  /**
+   * @param {Neovim} nvim
+   * @param {string} id unique id
+   */
   constructor(private nvim: Neovim, private id: string) {
     events.on('TaskExit', (id, code) => {
       if (id == this.id) {
@@ -42,21 +48,36 @@ export default class Task implements Disposable {
     }, null, this.disposables)
   }
 
+  /**
+   * Start task, task will be restarted when already running.
+   *
+   * @param {TaskOptions} opts
+   * @returns {Promise<boolean>}
+   */
   public async start(opts: TaskOptions): Promise<boolean> {
     let { nvim } = this
     return await nvim.call('coc#task#start', [this.id, opts])
   }
 
+  /**
+   * Stop task by SIGTERM or SIGKILL
+   */
   public async stop(): Promise<void> {
     let { nvim } = this
     await nvim.call('coc#task#stop', [this.id])
   }
 
+  /**
+   * Check if the task is running.
+   */
   public get running(): Promise<boolean> {
     let { nvim } = this
     return nvim.call('coc#task#running', [this.id])
   }
 
+  /**
+   * Stop task and dispose all events.
+   */
   public dispose(): void {
     let { nvim } = this
     nvim.call('coc#task#stop', [this.id], true)
