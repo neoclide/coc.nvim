@@ -54267,7 +54267,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "b4a588557c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "b7fb9f51b6" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -61607,6 +61607,9 @@ class DiagnosticManager {
                 event: 'CursorHold',
                 request: true,
                 callback: async () => {
+                    let popup = await nvim.eval('get(w:, "float", 0)');
+                    if (popup)
+                        return;
                     await this.echoMessage(true);
                 }
             }));
@@ -62375,13 +62378,9 @@ class FloatFactory {
             // helps to fix undo issue, don't know why.
             if (mode.startsWith('i'))
                 await nvim.eval('feedkeys("\\<C-g>u", "n")');
-            let reuse = false;
-            if (!this.window) {
+            let reuse = this.window && await this.window.valid;
+            if (!reuse)
                 this.window = await nvim.openFloatWindow(this.buffer, false, config);
-            }
-            else {
-                reuse = await this.window.valid;
-            }
             if (token.isCancellationRequested)
                 return;
             nvim.pauseNotification();
