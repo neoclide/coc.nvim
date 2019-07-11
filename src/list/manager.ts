@@ -156,7 +156,7 @@ export class ListManager implements Disposable {
       this.listArgs = listArgs
       this.cwd = workspace.cwd
       await this.getCharMap()
-      await this.history.load()
+      this.history.load()
       this.window = await this.nvim.window
       this.savedHeight = await this.window.height
       this.prompt.start(options)

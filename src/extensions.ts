@@ -128,10 +128,10 @@ export class Extensions {
     if (interval != 'never') {
       let now = new Date()
       let day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (interval == 'daily' ? 0 : 7))
-      let ts = await this.db.fetch('lastUpdate')
+      let ts = this.db.fetch('lastUpdate')
       if (ts && Number(ts) > day.getTime()) return
       this.updateExtensions().logError()
-      await this.db.push('lastUpdate', Date.now())
+      this.db.push('lastUpdate', Date.now())
     }
   }
 
@@ -270,9 +270,9 @@ export class Extensions {
     let key = `extension.${id}.locked`
     let locked = await this.db.fetch(key)
     if (locked) {
-      await this.db.delete(key)
+      this.db.delete(key)
     } else {
-      await this.db.push(key, true)
+      this.db.push(key, true)
     }
   }
 
@@ -283,7 +283,7 @@ export class Extensions {
       this.deactivate(id)
     }
     let key = `extension.${id}.disabled`
-    await this.db.push(key, state == 'disabled' ? false : true)
+    this.db.push(key, state == 'disabled' ? false : true)
     if (state != 'disabled') {
       this.disabled.add(id)
       // unload

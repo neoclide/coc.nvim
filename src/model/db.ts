@@ -1,17 +1,14 @@
 import path from 'path'
 import fs from 'fs'
 import * as fsAsync from '../util/fs'
-import { mkdirp } from '../util'
+import mkdirp from 'mkdirp'
 
 export default class DB {
-  constructor(
-    public readonly filepath: string
-  ) {
+  constructor(public readonly filepath: string) {
   }
 
-  public async fetch(key: string): Promise<any> {
-    let obj = await this.load()
-    if (obj == null) return undefined
+  public fetch(key: string): any {
+    let obj = this.load()
     if (!key) return obj
     let parts = key.split('.')
     for (let part of parts) {
@@ -23,26 +20,8 @@ export default class DB {
     return obj
   }
 
-  public fetchSync(key: string): any {
-    try {
-      let content = fs.readFileSync(this.filepath, 'utf8')
-      let obj = JSON.parse(content)
-      if (obj == null) return undefined
-      let parts = key.split('.')
-      for (let part of parts) {
-        if (typeof obj[part] == 'undefined') {
-          return undefined
-        }
-        obj = obj[part]
-      }
-    } catch (e) {
-      return undefined
-    }
-  }
-
-  public async exists(key: string): Promise<boolean> {
-    let obj = await this.load()
-    if (obj == null) return false
+  public exists(key: string): boolean {
+    let obj = this.load()
     let parts = key.split('.')
     for (let part of parts) {
       if (typeof obj[part] == 'undefined') {
@@ -53,9 +32,8 @@ export default class DB {
     return true
   }
 
-  public async delete(key: string): Promise<void> {
-    let obj = await this.load()
-    if (obj == null) return
+  public delete(key: string): void {
+    let obj = this.load()
     let origin = obj
     let parts = key.split('.')
     let len = parts.length
@@ -65,28 +43,28 @@ export default class DB {
       }
       if (i == len - 1) {
         delete obj[parts[i]]
-        await fsAsync.writeFile(this.filepath, JSON.stringify(origin, null, 2))
+        fs.writeFileSync(this.filepath, JSON.stringify(origin, null, 2), 'utf8')
         break
       }
       obj = obj[parts[i]]
     }
   }
 
-  public async push(key: string, data: number | null | boolean | string | { [index: string]: any }): Promise<void> {
-    let origin = (await this.load()) || {}
+  public push(key: string, data: number | null | boolean | string | { [index: string]: any }): void {
+    let origin = this.load() || {}
     let obj = origin
     let parts = key.split('.')
     let len = parts.length
     if (obj == null) {
       let dir = path.dirname(this.filepath)
-      await mkdirp(dir)
+      mkdirp.sync(dir)
       obj = origin
     }
     for (let i = 0; i < len; i++) {
       let key = parts[i]
       if (i == len - 1) {
         obj[key] = data
-        await fsAsync.writeFile(this.filepath, JSON.stringify(origin, null, 2))
+        fs.writeFileSync(this.filepath, JSON.stringify(origin, null, 2))
         break
       }
       if (typeof obj[key] == 'undefined') {
@@ -98,25 +76,32 @@ export default class DB {
     }
   }
 
-  private async load(): Promise<any> {
-    let stat = await fsAsync.statAsync(this.filepath)
-    if (!stat || !stat.isFile()) return null
-    let content = await fsAsync.readFile(this.filepath, 'utf8')
-    if (!content.trim()) return {}
+  private load(): any {
+    let dir = path.dirname(this.filepath)
+    let stat = fs.statSync(dir)
+    if (!stat || !stat.isDirectory()) {
+      mkdirp.sync(dir)
+      fs.writeFileSync(this.filepath, '{}', 'utf8')
+      return {}
+    }
     try {
-      return JSON.parse(content)
+      let content = fs.readFileSync(this.filepath, 'utf8')
+      return JSON.parse(content.trim())
     } catch (e) {
-      return null
+      fs.writeFileSync(this.filepath, '{}', 'utf8')
+      return {}
     }
   }
 
-  public async clear(): Promise<void> {
-    let stat = await fsAsync.statAsync(this.filepath)
+  public clear(): void {
+    let stat = fs.statSync(this.filepath)
     if (!stat || !stat.isFile()) return
-    await fsAsync.writeFile(this.filepath, '')
+    fs.writeFileSync(this.filepath, '{}', 'utf8')
   }
 
-  public async destroy(): Promise<void> {
-    await fsAsync.unlinkAsync(this.filepath)
+  public destroy(): void {
+    if (fs.existsSync(this.filepath)) {
+      fs.unlinkSync(this.filepath)
+    }
   }
 }

@@ -583,9 +583,9 @@ describe('workspace utility', () => {
 
   it('should create database', async () => {
     let db = workspace.createDatabase('test')
-    let res = await db.exists('xyz')
+    let res = db.exists('xyz')
     expect(res).toBe(false)
-    await db.destroy()
+    db.destroy()
   })
 
   it('should create outputChannel', () => {

@@ -26,11 +26,11 @@ export default class History {
   }
 
   // on list activted
-  public async load(): Promise<void> {
+  public load(): void {
     let { db } = this
     let { input } = this.manager.prompt
     let { name } = this.manager
-    let arr = await db.fetch(`${name}.${encodeURIComponent(workspace.cwd)}`)
+    let arr = db.fetch(`${name}.${encodeURIComponent(workspace.cwd)}`)
     if (!arr || !Array.isArray(arr)) {
       this.loaded = []
     } else {
@@ -51,9 +51,7 @@ export default class History {
     if (loaded.length > 200) {
       loaded = loaded.slice(-200)
     }
-    db.push(`${name}.${encodeURIComponent(workspace.cwd)}`, loaded).catch(_e => {
-      // noop
-    })
+    db.push(`${name}.${encodeURIComponent(workspace.cwd)}`, loaded)
   }
 
   public previous(): void {

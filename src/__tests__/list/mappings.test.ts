@@ -228,13 +228,17 @@ describe('list insert mappings', () => {
   })
 
   it('should change input by <C-n> and <C-p>', async () => {
-    await manager.start(['location'])
-    await helper.wait(10)
-    await nvim.eval('feedkeys("f", "in")')
-    await helper.wait(10)
-    await nvim.eval('feedkeys("\\<CR>", "in")')
-    await helper.wait(100)
-    expect(manager.isActivated).toBe(false)
+    async function session(input: string): Promise<void> {
+      await manager.start(['location'])
+      await helper.wait(10)
+      await nvim.eval(`feedkeys("${input}", "in")`)
+      await helper.wait(10)
+      await manager.cancel()
+      await helper.wait(100)
+      expect(manager.isActivated).toBe(false)
+    }
+    await session('foo')
+    await session('bar')
     await manager.start(['location'])
     await nvim.eval('feedkeys("\\<C-n>", "in")')
     await helper.wait(100)
