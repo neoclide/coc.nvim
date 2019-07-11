@@ -6,6 +6,11 @@ set -o errexit    # exit when command fails
 BLUE="$(tput setaf 4 2>/dev/null || echo '')"
 NO_COLOR="$(tput sgr0 2>/dev/null || echo '')"
 
+if [ ! -d "src" ]; then
+  echo 'install.sh of coc.nvim not needed any more.'
+  exit 0
+fi
+
 command_exists() {
   command -v "$1" >/dev/null 2>&1;
 }
