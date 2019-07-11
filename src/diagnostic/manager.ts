@@ -69,6 +69,8 @@ export class DiagnosticManager implements Disposable {
         event: 'CursorHold',
         request: true,
         callback: async () => {
+          let popup = await nvim.eval('get(w:, "float", 0)')
+          if (popup) return
           await this.echoMessage(true)
         }
       }))
