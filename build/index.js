@@ -54267,7 +54267,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "03496942b8" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "30efc7d4ee" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -61439,7 +61439,7 @@ class Languages {
             sortText: item.sortText || null,
             filterText: item.filterText || label,
             isSnippet,
-            dup: item.data.dup == 0 ? 0 : 1
+            dup: item.data && item.data.dup == 0 ? 0 : 1
         };
         if (item && item.detail && detailField != 'preview') {
             let detail = item.detail.replace(/\n\s*/g, ' ');
