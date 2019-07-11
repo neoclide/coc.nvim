@@ -1165,7 +1165,12 @@ export class Workspace implements IWorkspace {
    * Create DB instance at extension root.
    */
   public createDatabase(name: string): DB {
-    let root = path.dirname(this.env.extensionRoot)
+    let root: string
+    if (global.hasOwnProperty('__TEST__')) {
+      root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-'))
+    } else {
+      root = path.dirname(this.env.extensionRoot)
+    }
     let filepath = path.join(root, name + '.json')
     return new DB(filepath)
   }

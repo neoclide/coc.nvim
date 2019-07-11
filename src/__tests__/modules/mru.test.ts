@@ -1,6 +1,6 @@
 import Mru from '../../model/mru'
 import os from 'os'
-const root = os.homedir()
+const root = os.tmpdir()
 
 describe('Mru', () => {
 

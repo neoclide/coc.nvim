@@ -2,6 +2,7 @@ import path from 'path'
 import os from 'os'
 import fs from 'fs'
 import util from 'util'
+import mkdirp from 'mkdirp'
 const isWindows = process.platform == 'win32'
 const root = isWindows ? path.join(os.homedir(), 'AppData/Local/coc') : path.join(os.homedir(), '.config/coc')
 
@@ -13,7 +14,12 @@ export default class Mru {
   }
 
   public async load(): Promise<string[]> {
+    let dir = path.dirname(this.file)
     try {
+      mkdirp.sync(dir)
+      if (!fs.existsSync(this.file)) {
+        fs.writeFileSync(this.file, '', 'utf8')
+      }
       let content = await util.promisify(fs.readFile)(this.file, 'utf8')
       content = content.trim()
       return content.length ? content.trim().split('\n') : []
