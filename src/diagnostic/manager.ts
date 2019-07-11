@@ -5,9 +5,9 @@ import events from '../events'
 import Document from '../model/document'
 import FloatFactory from '../model/floatFactory'
 import { ConfigurationChangeEvent, DiagnosticItem, Documentation } from '../types'
-import { disposeAll, wait } from '../util'
+import { disposeAll, wait, echoMessage } from '../util'
 import { comparePosition, positionInRange, lineInRange, rangeIntersect } from '../util/position'
-import workspace from '../workspace'
+import workspace, { Workspace } from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
 import { getSeverityName, getSeverityType, severityLevel } from './util'
@@ -36,6 +36,7 @@ export interface DiagnosticConfig {
   virtualTextPrefix: string
   virtualTextLines: number
   virtualTextLineSeparator: string
+  filetype: string
 }
 
 export class DiagnosticManager implements Disposable {
@@ -412,22 +413,32 @@ export class DiagnosticManager implements Disposable {
     if (truncate && workspace.insertMode) return
     let lines: string[] = []
     let docs: Documentation[] = []
+
+    let ft = (this.config.filetype === 'bufferType')
+      ? (await workspace.document).filetype
+      : this.config.filetype
+
     diagnostics.forEach(diagnostic => {
       let { source, code, severity, message } = diagnostic
       let s = getSeverityName(severity)[0]
       let str = `[${source}${code ? ' ' + code : ''}] [${s}] ${message}`
       let filetype = 'Error'
-      switch (diagnostic.severity) {
-        case DiagnosticSeverity.Hint:
-          filetype = 'Hint'
-          break
-        case DiagnosticSeverity.Warning:
-          filetype = 'Warning'
-          break
-        case DiagnosticSeverity.Information:
-          filetype = 'Info'
-          break
+      if (ft === '') {
+        switch (diagnostic.severity) {
+          case DiagnosticSeverity.Hint:
+            filetype = 'Hint'
+            break
+          case DiagnosticSeverity.Warning:
+            filetype = 'Warning'
+            break
+          case DiagnosticSeverity.Information:
+            filetype = 'Info'
+            break
+        }
+      } else {
+        filetype = ft
       }
+
       docs.push({ filetype, content: str })
       lines.push(...str.split('\n'))
     })
@@ -509,6 +520,7 @@ export class DiagnosticManager implements Disposable {
       hintSign: getConfig<string>('hintSign', '>>'),
       refreshAfterSave: getConfig<boolean>('refreshAfterSave', false),
       refreshOnInsertMode: getConfig<boolean>('refreshOnInsertMode', false),
+      filetype: getConfig<string>('filetype', ''),
     }
     this.enabled = getConfig<boolean>('enable', true)
     if (this.config.displayByAle) {

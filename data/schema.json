@@ -550,6 +550,12 @@
       "description": "Maximum height of diagnostics floating window.",
       "default": 8
     },
+    "diagnostic.filetype": {
+      "type": "string",
+      "description": "The filetype given to diagnostic buffers. Use \"bufferType\" config to set diagnostics windows to parent code window's filetype.",
+      "default": "",
+      "enum": ["", "bufferType", "custom"]
+    },
     "signature.enable": {
       "type": "boolean",
       "description": "Enable signature help when trigger character typed, require restart service on change.",

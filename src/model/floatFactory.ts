@@ -178,11 +178,9 @@ export default class FloatFactory implements Disposable {
       let { nvim, alignTop } = this
       let reuse = false
       let filetypes = docs.reduce((p, curr) => {
-        if (p.indexOf(curr.filetype) == -1) {
-          p.push(curr.filetype)
-        }
+        p.add(curr.filetype)
         return p
-      }, [] as string[])
+      }, new Set as Set<string>)
       nvim.pauseNotification()
       let { popup, window } = this
       this.popup.move({
@@ -195,8 +193,8 @@ export default class FloatFactory implements Disposable {
       })
       this.floatBuffer.setLines()
       // nvim.call('win_execute', [window.id, `normal! G`], true)
-      if (filetypes.length == 1) {
-        this.popup.setFiletype(filetypes[0])
+      if (filetypes.size == 1) {
+        this.popup.setFiletype(filetypes.values().next().value)
       }
       let [res, err] = await nvim.resumeNotification()
       if (err) {
@@ -212,6 +210,11 @@ export default class FloatFactory implements Disposable {
       this.close()
       return
     }
+    let filetypes = docs.reduce((p, curr) => {
+      p.add(curr.filetype)
+      return p
+    }, new Set as Set<string>)
+
     if (this.tokenSource) {
       this.tokenSource.cancel()
     }
@@ -246,6 +249,9 @@ export default class FloatFactory implements Disposable {
       } else {
         this.window.setConfig(config, true)
         nvim.command(`noa call win_gotoid(${this.window.id})`, true)
+      }
+      if (filetypes.size == 1) {
+        nvim.command(`setfiletype ${filetypes.values().next().value}`)
       }
       this.floatBuffer.setLines()
       nvim.command(`normal! ${alignTop ? 'G' : 'gg'}0`, true)
