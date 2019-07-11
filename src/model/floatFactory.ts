@@ -55,22 +55,21 @@ export default class FloatFactory implements Disposable {
         this.close()
       }
     }, null, this.disposables)
-    let onCursorMoved = debounce(this.onCursorMoved.bind(this), 100)
-    events.on('CursorMoved', onCursorMoved, this, this.disposables)
-    if (autoHide) {
-      events.on('CursorMovedI', onCursorMoved, this, this.disposables)
-    }
+    events.on('CursorMoved', this.onCursorMoved.bind(this, false), null, this.disposables)
+    events.on('CursorMovedI', this.onCursorMoved.bind(this, true), null, this.disposables)
   }
 
-  private onCursorMoved(bufnr: number, cursor: [number, number]): void {
-    if (!this.window) return
-    if (this.buffer && bufnr == this.buffer.id) return
+  private onCursorMoved(insertMode: boolean, bufnr: number, cursor: [number, number]): void {
+    if (!this.window || this.buffer && bufnr == this.buffer.id) return
     if (bufnr == this.targetBufnr && equals(cursor, this.cursor)) return
-    if (!workspace.insertMode || bufnr != this.targetBufnr) {
+    if (this.autoHide) {
       this.close()
       return
     }
-    this.close()
+    if (!workspace.insertMode || bufnr != this.targetBufnr || (this.cursor && cursor[0] != this.cursor[0])) {
+      this.close()
+      return
+    }
   }
 
   private async checkFloatBuffer(): Promise<void> {
