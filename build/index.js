@@ -54267,7 +54267,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "b7fb9f51b6" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "0a0c6cc788" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -61591,7 +61591,9 @@ class DiagnosticManager {
             if (this.timer)
                 clearTimeout(this.timer);
         }));
+        let moved = false;
         events_1.default.on('CursorMoved', async () => {
+            moved = true;
             if (this.timer)
                 clearTimeout(this.timer);
             this.timer = setTimeout(async () => {
@@ -61607,6 +61609,9 @@ class DiagnosticManager {
                 event: 'CursorHold',
                 request: true,
                 callback: async () => {
+                    if (!moved)
+                        return;
+                    moved = false;
                     let popup = await nvim.eval('get(w:, "float", 0)');
                     if (popup)
                         return;
