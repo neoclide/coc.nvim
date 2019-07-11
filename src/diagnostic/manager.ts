@@ -56,7 +56,9 @@ export class DiagnosticManager implements Disposable {
     this.disposables.push(Disposable.create(() => {
       if (this.timer) clearTimeout(this.timer)
     }))
+    let moved = false
     events.on('CursorMoved', async () => {
+      moved = true
       if (this.timer) clearTimeout(this.timer)
       this.timer = setTimeout(async () => {
         if (this.config.enableMessage != 'always') return
@@ -69,6 +71,8 @@ export class DiagnosticManager implements Disposable {
         event: 'CursorHold',
         request: true,
         callback: async () => {
+          if (!moved) return
+          moved = false
           let popup = await nvim.eval('get(w:, "float", 0)')
           if (popup) return
           await this.echoMessage(true)
