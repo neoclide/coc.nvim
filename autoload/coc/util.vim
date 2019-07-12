@@ -685,6 +685,9 @@ function! coc#util#do_complete(name, opt, cb) abort
 endfunction
 
 function! coc#util#extension_root() abort
+  if !empty($COC_TEST)
+    return s:root.'/src/__tests__/extensions'
+  endif
   let dir = get(g:, 'coc_extension_root', '')
   if empty(dir)
     if s:is_win
