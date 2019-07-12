@@ -208,13 +208,10 @@ export class Extensions {
     let { npm } = this
     if (!npm) return
     if (!this.root) await this.initializeRoot()
-    list = distinct(list)
     let missing = this.getMissingExtensions()
     if (missing.length) list.push(...missing)
-    if (!list.length) {
-      workspace.showMessage(`No missing extension found`, 'more')
-      return
-    }
+    if (!list.length) return
+    list = distinct(list)
     let statusItem = workspace.createStatusBarItem(0, { progress: true })
     statusItem.show()
     statusItem.text = `Installing ${list.join(' ')}`
