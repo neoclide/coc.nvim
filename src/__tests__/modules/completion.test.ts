@@ -232,6 +232,7 @@ describe('completion resumeCompletion', () => {
   })
 
   it('should not complete inComplete source when isIncomplete is false', async () => {
+    await helper.createDocument()
     let lastOption: CompleteOption
     let source: ISource = {
       priority: 0,
@@ -254,9 +255,9 @@ describe('completion resumeCompletion', () => {
     await helper.waitPopup()
     expect(completion.isActivted).toBe(true)
     await nvim.input('fo')
-    await helper.wait(50)
+    await helper.wait(100)
     await nvim.input('b')
-    await helper.wait(300)
+    await helper.wait(100)
     sources.removeSource(source)
     expect(lastOption.input).toBe('fo')
   })

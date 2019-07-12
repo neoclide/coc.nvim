@@ -51,10 +51,10 @@ describe('OutputChannel', () => {
     let c = new OutputChannel('3', nvim)
     c.show(false)
     await wait(60)
-    let buf = await nvim.buffer
     c.append('foo')
     c.append('bar')
     await wait(300)
+    let buf = await nvim.buffer
     let lines = await buf.lines
     expect(lines.join('\n')).toMatch('foo')
   })
