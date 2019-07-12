@@ -54,6 +54,7 @@ export default function download(url: string, options: DownloadOptions): Promise
       stream.on('finish', () => {
         setTimeout(resolve, 100)
       })
+      stream.on('error', reject)
     })
     req.on('error', reject)
     req.end()

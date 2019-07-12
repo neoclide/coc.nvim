@@ -956,13 +956,13 @@ export class Workspace implements IWorkspace {
   /**
    * Reveal buffer of output channel.
    */
-  public showOutputChannel(name: string): void {
+  public showOutputChannel(name: string, preserveFocus?: boolean): void {
     let channel = this.outputChannels.get(name)
     if (!channel) {
       this.showMessage(`Channel "${name}" not found`, 'error')
       return
     }
-    channel.show(false)
+    channel.show(preserveFocus)
   }
 
   /**

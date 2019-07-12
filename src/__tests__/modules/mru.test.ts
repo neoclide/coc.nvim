@@ -1,6 +1,8 @@
 import Mru from '../../model/mru'
 import os from 'os'
-const root = os.tmpdir()
+import fs from 'fs'
+import path from 'path'
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mru-'))
 
 describe('Mru', () => {
 

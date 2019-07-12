@@ -86,6 +86,10 @@ export class Helper extends Emitter {
     throw new Error('timeout after 2s')
   }
 
+  public async selectCompleteItem(idx: number): Promise<void> {
+    await this.nvim.call('nvim_select_popupmenu_item', [idx, true, true, {}])
+  }
+
   public async reset(): Promise<void> {
     let mode = await this.nvim.call('mode')
     if (mode !== 'n') {

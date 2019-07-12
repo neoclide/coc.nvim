@@ -17,6 +17,7 @@ export function getAgent(protocol: string): Agent {
   if (proxy) {
     let auth = proxy.includes('@') ? proxy.split('@', 2)[0] : ''
     let parts = auth.length ? proxy.slice(auth.length + 1).split(':') : proxy.split(':')
+    logger.info(`Using proxy from: ${proxy}`)
     if (parts.length > 1) {
       let agent = tunnel.httpsOverHttp({
         proxy: {
