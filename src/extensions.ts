@@ -249,7 +249,7 @@ export class Extensions {
     let npm = workspace.getConfiguration('npm').get<string>('binPath', 'npm')
     for (let exe of [npm, 'yarnpkg', 'yarn', 'npm']) {
       try {
-        let res = which.sync(npm)
+        let res = which.sync(exe)
         return res
       } catch (e) {
         continue
