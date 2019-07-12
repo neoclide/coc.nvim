@@ -6,7 +6,7 @@ import isuri from 'isuri'
 import path from 'path'
 import rimraf from 'rimraf'
 import semver from 'semver'
-import util from 'util'
+import util, { promisify } from 'util'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import which from 'which'
@@ -109,6 +109,13 @@ export class Extensions {
             await this.loadExtension(p, true)
           }
         }
+      }
+    })
+    commandManager.register({
+      id: 'extensions.forceUpdateAll',
+      execute: async () => {
+        await this.cleanExtensions()
+        await this.installExtensions([])
       }
     })
   }
@@ -335,6 +342,21 @@ export class Extensions {
       await this.loadExtension(directory)
     } else {
       this.activate(id)
+    }
+  }
+
+  /**
+   * Remove all installed extensions
+   */
+  public async cleanExtensions(): Promise<void> {
+    let dir = path.join(this.root, 'node_modules')
+    if (!fs.existsSync(dir)) return
+    let names = fs.readdirSync(dir)
+    for (let name of names) {
+      let file = path.join(dir, name)
+      let stat = await promisify(fs.lstat)(file)
+      if (stat.isSymbolicLink()) continue
+      await promisify(rimraf)(file, { glob: false })
     }
   }
 

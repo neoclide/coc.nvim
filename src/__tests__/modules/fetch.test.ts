@@ -9,7 +9,7 @@ import { promisify } from 'util'
 describe('fetch', () => {
 
   it('should fetch json', async () => {
-    let res = await fetch('http://nodejs.org/dist/index.json')
+    let res = await fetch('https://nodejs.org/dist/index.json')
     expect(Array.isArray(res)).toBe(true)
   })
 
