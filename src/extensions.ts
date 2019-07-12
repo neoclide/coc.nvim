@@ -1,29 +1,28 @@
-import { spawn } from 'child_process'
+import { Neovim } from '@chemzqm/neovim'
 import { debounce } from 'debounce'
 import fastDiff from 'fast-diff'
 import fs from 'fs'
 import isuri from 'isuri'
 import path from 'path'
+import rimraf from 'rimraf'
 import semver from 'semver'
 import util from 'util'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-import rimraf from 'rimraf'
+import which from 'which'
+import commandManager from './commands'
 import events from './events'
 import DB from './model/db'
+import ExtensionManager from './model/extension'
 import Memos from './model/memos'
 import { Extension, ExtensionContext, ExtensionInfo, ExtensionState } from './types'
-import { disposeAll, runCommand, wait, executable, mkdirp } from './util'
+import { disposeAll, mkdirp, wait } from './util'
 import { distinct } from './util/array'
-import { createExtension, ExtensionExport } from './util/factory'
-import { readFile, inDirectory, statAsync, readdirAsync, realpathAsync } from './util/fs'
-import Watchman from './watchman'
-import which from 'which'
-import workspace from './workspace'
-import ExtensionManager from './model/extension'
-import { Neovim } from '@chemzqm/neovim'
-import commandManager from './commands'
 import './util/extensions'
+import { createExtension, ExtensionExport } from './util/factory'
+import { inDirectory, readdirAsync, readFile, realpathAsync, statAsync } from './util/fs'
+import Watchman from './watchman'
+import workspace from './workspace'
 
 const createLogger = require('./util/logger')
 const logger = createLogger('extensions')
@@ -219,16 +218,15 @@ export class Extensions {
 
   private get npm(): string {
     let npm = workspace.getConfiguration('npm').get<string>('binPath', 'npm')
-    try {
-      return which.sync(npm)
-    } catch (_e) {
-      if (executable('yarn')) return which.sync('yarn')
-      if (npm == 'npm') {
-        workspace.showMessage(`npm is not in not in your $PATH, add npm to your $PATH or use "npm.binPath" configuration.`, 'error')
-      } else {
-        workspace.showMessage(`Invalid "npm.binPath", ${npm} is not executable.`, 'error')
+    for (let exe of [npm, 'yarnpkg', 'yarn', 'npm']) {
+      try {
+        let res = which.sync(npm)
+        return res
+      } catch (e) {
+        continue
       }
     }
+    workspace.showMessage(`Can't find npm or yarn in your $PATH`, 'error')
     return null
   }
 

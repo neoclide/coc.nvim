@@ -23,8 +23,8 @@ export interface Info {
   }
 }
 
-async function getData(name: string, field: string): Promise<string> {
-  let res = await runCommand(`yarn info ${name} ${field} --json`, { timeout: 60 * 1000 })
+async function getData(cmd: string, name: string, field: string): Promise<string> {
+  let res = await runCommand(`${cmd} info ${name} ${field} --json`, { timeout: 60 * 1000 })
   return JSON.parse(res)['data']
 }
 
@@ -43,11 +43,11 @@ export default class ExtensionManager {
 
   private async getInfo(npm: string, name: string): Promise<Info> {
     if (name.startsWith('https:')) return await this.getInfoFromUri(name)
-    if (npm.endsWith('yarn')) {
+    if (npm.endsWith('yarn') || npm.endsWith('yarnpkg')) {
       let obj = { name }
       let keys = ['dist.tarball', 'engines.coc', 'version', 'name']
       let vals = await Promise.all(keys.map(key => {
-        return getData(name, key)
+        return getData(npm, name, key)
       }))
       for (let i = 0; i < keys.length; i++) {
         obj[keys[i]] = vals[i]
