@@ -710,7 +710,6 @@ endfunction
 
 function! coc#util#install_extension(args) abort
   let names = filter(copy(a:args), 'v:val !~# "^-"')
-  if empty(names) | return | endif
   let isRequest = index(a:args, '-sync') != -1
   if isRequest
     call coc#rpc#request('installExtensions', names)

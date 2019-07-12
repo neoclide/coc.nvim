@@ -54330,7 +54330,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "e5a4764adb" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "5c385721a8" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -57249,7 +57249,7 @@ const isuri_1 = tslib_1.__importDefault(__webpack_require__(180));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const rimraf_1 = tslib_1.__importDefault(__webpack_require__(236));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
-const util_1 = tslib_1.__importDefault(__webpack_require__(40));
+const util_1 = tslib_1.__importStar(__webpack_require__(40));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const vscode_uri_1 = __webpack_require__(174);
 const which_1 = tslib_1.__importDefault(__webpack_require__(175));
@@ -57329,6 +57329,13 @@ class Extensions {
                         await this.loadExtension(p, true);
                     }
                 }
+            }
+        });
+        commands_1.default.register({
+            id: 'extensions.forceUpdateAll',
+            execute: async () => {
+                await this.cleanExtensions();
+                await this.installExtensions([]);
             }
         });
     }
@@ -57419,15 +57426,20 @@ class Extensions {
     /**
      * Install extensions, can be called without initialize.
      */
-    async installExtensions(list) {
-        if (!list || !list.length)
-            return;
+    async installExtensions(list = []) {
         let { npm } = this;
         if (!npm)
             return;
         if (!this.root)
             await this.initializeRoot();
         list = array_1.distinct(list);
+        let missing = this.getMissingExtensions();
+        if (missing.length)
+            list.push(...missing);
+        if (!list.length) {
+            workspace_1.default.showMessage(`No missing extension found`, 'more');
+            return;
+        }
         let statusItem = workspace_1.default.createStatusBarItem(0, { progress: true });
         statusItem.show();
         statusItem.text = `Installing ${list.join(' ')}`;
@@ -57441,21 +57453,38 @@ class Extensions {
         }));
         statusItem.dispose();
     }
+    /**
+     * Get list of extensions in package.json that not installed
+     */
+    getMissingExtensions() {
+        let json = this.loadJson() || { dependencies: {} };
+        let ids = [];
+        for (let key of Object.keys(json.dependencies)) {
+            let folder = path_1.default.join(this.root, 'node_modules', key);
+            if (!fs_1.default.existsSync(folder)) {
+                let val = json.dependencies[key];
+                if (val.startsWith('http')) {
+                    ids.push(val);
+                }
+                else {
+                    ids.push(key);
+                }
+            }
+        }
+        return ids;
+    }
     get npm() {
         let npm = workspace_1.default.getConfiguration('npm').get('binPath', 'npm');
-        try {
-            return which_1.default.sync(npm);
-        }
-        catch (_e) {
-            if (util_2.executable('yarn'))
-                return which_1.default.sync('yarn');
-            if (npm == 'npm') {
-                workspace_1.default.showMessage(`npm is not in not in your $PATH, add npm to your $PATH or use "npm.binPath" configuration.`, 'error');
+        for (let exe of [npm, 'yarnpkg', 'yarn', 'npm']) {
+            try {
+                let res = which_1.default.sync(npm);
+                return res;
             }
-            else {
-                workspace_1.default.showMessage(`Invalid "npm.binPath", ${npm} is not executable.`, 'error');
+            catch (e) {
+                continue;
             }
         }
+        workspace_1.default.showMessage(`Can't find npm or yarn in your $PATH`, 'error');
         return null;
     }
     /**
@@ -57539,6 +57568,22 @@ class Extensions {
         }
         else {
             this.activate(id);
+        }
+    }
+    /**
+     * Remove all installed extensions
+     */
+    async cleanExtensions() {
+        let dir = path_1.default.join(this.root, 'node_modules');
+        if (!fs_1.default.existsSync(dir))
+            return;
+        let names = fs_1.default.readdirSync(dir);
+        for (let name of names) {
+            let file = path_1.default.join(dir, name);
+            let stat = await util_1.promisify(fs_1.default.lstat)(file);
+            if (stat.isSymbolicLink())
+                continue;
+            await util_1.promisify(rimraf_1.default)(file, { glob: false });
         }
     }
     async uninstallExtension(ids) {
@@ -60567,8 +60612,8 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const download_1 = tslib_1.__importDefault(__webpack_require__(255));
 const fetch_1 = tslib_1.__importDefault(__webpack_require__(295));
 const logger = __webpack_require__(183)('model-extension');
-async function getData(name, field) {
-    let res = await util_2.runCommand(`yarn info ${name} ${field} --json`, { timeout: 60 * 1000 });
+async function getData(cmd, name, field) {
+    let res = await util_2.runCommand(`${cmd} info ${name} ${field} --json`, { timeout: 60 * 1000 });
     return JSON.parse(res)['data'];
 }
 class ExtensionManager {
@@ -60587,11 +60632,11 @@ class ExtensionManager {
     async getInfo(npm, name) {
         if (name.startsWith('https:'))
             return await this.getInfoFromUri(name);
-        if (npm.endsWith('yarn')) {
+        if (npm.endsWith('yarn') || npm.endsWith('yarnpkg')) {
             let obj = { name };
             let keys = ['dist.tarball', 'engines.coc', 'version', 'name'];
             let vals = await Promise.all(keys.map(key => {
-                return getData(name, key);
+                return getData(npm, name, key);
             }));
             for (let i = 0; i < keys.length; i++) {
                 obj[keys[i]] = vals[i];
@@ -70713,26 +70758,31 @@ class Languages {
                 }
                 if (vimItem.line)
                     Object.assign(opt, { line: vimItem.line });
-                let isSnippet = await this.applyTextEdit(item, opt);
-                if (isSnippet && manager_2.default.isPlainText(item.textEdit.newText)) {
-                    isSnippet = false;
+                try {
+                    let isSnippet = await this.applyTextEdit(item, opt);
+                    if (isSnippet && manager_2.default.isPlainText(item.textEdit.newText)) {
+                        isSnippet = false;
+                    }
+                    let { additionalTextEdits } = item;
+                    if (additionalTextEdits && item.textEdit) {
+                        let r = item.textEdit.range;
+                        additionalTextEdits = additionalTextEdits.filter(edit => {
+                            if (position_1.rangeOverlap(r, edit.range)) {
+                                logger.error('Filtered overlap additionalTextEdit:', edit);
+                                return false;
+                            }
+                            return true;
+                        });
+                    }
+                    await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, isSnippet);
+                    if (isSnippet)
+                        await manager_2.default.selectCurrentPlaceholder();
+                    if (item.command)
+                        commands_1.default.execute(item.command);
                 }
-                let { additionalTextEdits } = item;
-                if (additionalTextEdits && item.textEdit) {
-                    let r = item.textEdit.range;
-                    additionalTextEdits = additionalTextEdits.filter(edit => {
-                        if (position_1.rangeOverlap(r, edit.range)) {
-                            logger.error('Filtered overlap additionalTextEdit:', edit);
-                            return false;
-                        }
-                        return true;
-                    });
+                catch (e) {
+                    logger.error('Error on CompleteDone:', e);
                 }
-                await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, isSnippet);
-                if (isSnippet)
-                    await manager_2.default.selectCurrentPlaceholder();
-                if (item.command)
-                    commands_1.default.execute(item.command);
             },
             shouldCommit: (item, character) => {
                 let completeItem = completeItems[item.index];
@@ -70757,13 +70807,15 @@ class Languages {
         if (!textEdit)
             return false;
         let { line, bufnr, linenr } = option;
+        let doc = workspace_1.default.getDocument(bufnr);
+        if (!doc)
+            return false;
         let { range, newText } = textEdit;
         let isSnippet = item.insertTextFormat === vscode_languageserver_protocol_1.InsertTextFormat.Snippet;
         // replace inserted word
         let start = line.substr(0, range.start.character);
         let end = line.substr(range.end.character);
         if (isSnippet) {
-            let doc = workspace_1.default.getDocument(bufnr);
             await doc.applyEdits(nvim, [{
                     range: vscode_languageserver_protocol_1.Range.create(linenr - 1, 0, linenr, 0),
                     newText: `${start}${end}\n`
@@ -70778,14 +70830,12 @@ class Languages {
             await workspace_1.default.moveTo(vscode_languageserver_protocol_1.Position.create(linenr - 1, (start + newText).length));
         }
         else {
-            let document = workspace_1.default.getDocument(bufnr);
-            if (document) {
-                await document.buffer.setLines(newLines, {
-                    start: linenr - 1,
-                    end: linenr,
-                    strictIndexing: false
-                });
-            }
+            let buffer = nvim.createBuffer(bufnr);
+            await buffer.setLines(newLines, {
+                start: linenr - 1,
+                end: linenr,
+                strictIndexing: false
+            });
             let line = linenr - 1 + newLines.length - 1;
             let character = newLines[newLines.length - 1].length - end.length;
             await workspace_1.default.moveTo({ line, character });
@@ -70798,7 +70848,7 @@ class Languages {
         let document = workspace_1.default.getDocument(bufnr);
         if (!document)
             return;
-        await util_1.wait(workspace_1.default.isVim ? 100 : 10);
+        await document._fetchContent();
         // how to move cursor after edit
         let changed = null;
         let pos = await workspace_1.default.getCursorPosition();
