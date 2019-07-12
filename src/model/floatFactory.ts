@@ -55,7 +55,7 @@ export default class FloatFactory implements Disposable {
         this.close()
       }
     }, null, this.disposables)
-    events.on('CursorMoved', this.onCursorMoved.bind(this, false), null, this.disposables)
+    events.on('CursorMoved', debounce(this.onCursorMoved.bind(this, false), 100), null, this.disposables)
     events.on('CursorMovedI', this.onCursorMoved.bind(this, true), null, this.disposables)
   }
 
