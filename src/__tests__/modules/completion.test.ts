@@ -324,6 +324,7 @@ describe('completion TextChangedP', () => {
   })
 
   it('should fix cursor position with snippet on additionalTextEdits', async () => {
+    let doc = await helper.createDocument()
     let provider: CompletionItemProvider = {
       provideCompletionItems: async (): Promise<CompletionItem[]> => {
         return [{
@@ -339,7 +340,7 @@ describe('completion TextChangedP', () => {
     await nvim.input('iif')
     await helper.waitPopup()
     await helper.selectCompleteItem(0)
-    await helper.wait(200)
+    await helper.wait(300)
     let line = await nvim.line
     expect(line).toBe('bar if()')
     let [, lnum, col] = await nvim.call('getcurpos')

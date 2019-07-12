@@ -87,7 +87,7 @@ Below are the reasons that led coc.nvim to build its own engine:
   " Use release branch
   Plug 'neoclide/coc.nvim', {'branch': 'release'}
   " Or latest tag
-  Plug 'neoclide/coc.nvim', {'tag': '*'}
+  Plug 'neoclide/coc.nvim', {'tag': '*', 'branch': 'release'}
   " Or build from source code by use yarn: https://yarnpkg.com
   Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}
   ```

@@ -592,24 +592,28 @@ class Languages {
           }
         }
         if (vimItem.line) Object.assign(opt, { line: vimItem.line })
-        let isSnippet = await this.applyTextEdit(item, opt)
-        if (isSnippet && snippetManager.isPlainText(item.textEdit.newText)) {
-          isSnippet = false
+        try {
+          let isSnippet = await this.applyTextEdit(item, opt)
+          if (isSnippet && snippetManager.isPlainText(item.textEdit.newText)) {
+            isSnippet = false
+          }
+          let { additionalTextEdits } = item
+          if (additionalTextEdits && item.textEdit) {
+            let r = item.textEdit.range
+            additionalTextEdits = additionalTextEdits.filter(edit => {
+              if (rangeOverlap(r, edit.range)) {
+                logger.error('Filtered overlap additionalTextEdit:', edit)
+                return false
+              }
+              return true
+            })
+          }
+          await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, isSnippet)
+          if (isSnippet) await snippetManager.selectCurrentPlaceholder()
+          if (item.command) commands.execute(item.command)
+        } catch (e) {
+          logger.error('Error on CompleteDone:', e)
         }
-        let { additionalTextEdits } = item
-        if (additionalTextEdits && item.textEdit) {
-          let r = item.textEdit.range
-          additionalTextEdits = additionalTextEdits.filter(edit => {
-            if (rangeOverlap(r, edit.range)) {
-              logger.error('Filtered overlap additionalTextEdit:', edit)
-              return false
-            }
-            return true
-          })
-        }
-        await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, isSnippet)
-        if (isSnippet) await snippetManager.selectCurrentPlaceholder()
-        if (item.command) commands.execute(item.command)
       },
       shouldCommit: (item: VimCompleteItem, character: string): boolean => {
         let completeItem = completeItems[item.index]
@@ -634,13 +638,14 @@ class Languages {
     let { textEdit } = item
     if (!textEdit) return false
     let { line, bufnr, linenr } = option
+    let doc = workspace.getDocument(bufnr)
+    if (!doc) return false
     let { range, newText } = textEdit
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
     // replace inserted word
     let start = line.substr(0, range.start.character)
     let end = line.substr(range.end.character)
     if (isSnippet) {
-      let doc = workspace.getDocument(bufnr)
       await doc.applyEdits(nvim, [{
         range: Range.create(linenr - 1, 0, linenr, 0),
         newText: `${start}${end}\n`
@@ -654,14 +659,12 @@ class Languages {
       await nvim.call('coc#util#setline', [linenr, newLines[0]])
       await workspace.moveTo(Position.create(linenr - 1, (start + newText).length))
     } else {
-      let document = workspace.getDocument(bufnr)
-      if (document) {
-        await document.buffer.setLines(newLines, {
-          start: linenr - 1,
-          end: linenr,
-          strictIndexing: false
-        })
-      }
+      let buffer = nvim.createBuffer(bufnr)
+      await buffer.setLines(newLines, {
+        start: linenr - 1,
+        end: linenr,
+        strictIndexing: false
+      })
       let line = linenr - 1 + newLines.length - 1
       let character = newLines[newLines.length - 1].length - end.length
       await workspace.moveTo({ line, character })
@@ -676,7 +679,7 @@ class Languages {
     if (!textEdits || textEdits.length == 0) return
     let document = workspace.getDocument(bufnr)
     if (!document) return
-    await wait(workspace.isVim ? 100 : 10)
+    await (document as any)._fetchContent()
     // how to move cursor after edit
     let changed = null
     let pos = await workspace.getCursorPosition()

@@ -16,6 +16,7 @@ import { Autocmd, OutputChannel, PatternType } from './types'
 import clean from './util/clean'
 import workspace from './workspace'
 import debounce = require('debounce')
+import { echoErr } from './util'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
