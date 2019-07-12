@@ -118,6 +118,10 @@ Builtin configurations:~
 
 	 default: `true`
 
+"suggest.enablePreselect":~
+
+	Enable preselect feature on neovim, default: `true`
+
 "suggest.maxPreviewWidth":~
 
 	Maximum width of floating preview window.,  default: `80`

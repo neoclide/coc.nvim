@@ -121,8 +121,11 @@ export default class Complete {
             } else {
               let { results } = this
               let idx = results.findIndex(o => o.source == name)
-              if (idx != -1) results.splice(idx, 1)
-              this.results.push(result)
+              if (idx != -1) {
+                results.splice(idx, 1, result)
+              } else {
+                results.push(result)
+              }
             }
             if (empty) this._onDidComplete.fire()
             resolve()
@@ -164,7 +167,11 @@ export default class Complete {
 
   public filterResults(input: string, cid = 0): VimCompleteItem[] {
     let { results } = this
-    results.sort((a, b) => b.priority - a.priority)
+    results.sort((a, b) => {
+      if (a.source == 'tabnine') return 1
+      if (b.source == 'tabnine') return -1
+      return b.priority - a.priority
+    })
     let now = Date.now()
     let { bufnr } = this.option
     let { snippetIndicator, fixInsertedWord } = this.config
@@ -176,7 +183,6 @@ export default class Complete {
     let codes = getCharCodes(input)
     let words: Set<string> = new Set()
     let filtering = input.length > this.input.length
-    let preselect: VimCompleteItem = null
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let { items, source, priority } = res
@@ -188,7 +194,7 @@ export default class Complete {
         let filterText = item.filterText || item.word
         item.filterText = filterText
         if (filterText.length < input.length) continue
-        let score = matchScore(filterText, codes)
+        let score = filterText == input ? 64 : matchScore(filterText, codes)
         if (input.length && score == 0) continue
         if (priority > 90) maxScore = Math.max(maxScore, score)
         if (maxScore > 5 && priority <= 10 && score < maxScore) continue
@@ -213,9 +219,6 @@ export default class Complete {
           item.source = source
         }
         item.priority = priority
-        if (source == 'tabnine' && item.isSnippet) {
-          item.priority = Math.max(priority, 100)
-        }
         item.abbr = item.abbr || item.word
         item.score = input.length ? score : 0
         item.localBonus = this.localBonus ? this.localBonus.get(filterText) || 0 : 0
@@ -227,14 +230,8 @@ export default class Complete {
           }
         }
         words.add(word)
-        if (!preselect) {
-          if (item.isSnippet && item.word == input) {
-            preselect = item
-            continue
-          } else if (!filtering && item.preselect) {
-            preselect = item
-            continue
-          }
+        if (item.isSnippet && item.word == input) {
+          item.preselect = true
         }
         arr.push(item)
       }
@@ -257,9 +254,7 @@ export default class Complete {
       }
       return a.filterText.length - b.filterText.length
     })
-    let items = arr.slice(0, this.config.maxItemCount)
-    if (preselect) items.unshift(preselect)
-    return this.limitCompleteItems(items)
+    return this.limitCompleteItems(arr.slice(0, this.config.maxItemCount))
   }
 
   private limitCompleteItems(items: VimCompleteItem[]): VimCompleteItem[] {

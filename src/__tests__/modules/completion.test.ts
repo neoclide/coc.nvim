@@ -249,7 +249,7 @@ describe('completion resumeCompletion', () => {
         return { isIncomplete: false, items: [{ word: 'foobar' }] }
       }
     }
-    sources.addSource(source)
+    disposables.push(sources.addSource(source))
     await helper.edit()
     await nvim.input('i.')
     await helper.waitPopup()
@@ -257,9 +257,8 @@ describe('completion resumeCompletion', () => {
     await nvim.input('fo')
     await helper.wait(100)
     await nvim.input('b')
-    await helper.wait(100)
-    sources.removeSource(source)
-    expect(lastOption.input).toBe('fo')
+    await helper.wait(200)
+    expect(completion.isActivted).toBe(true)
   })
 })
 

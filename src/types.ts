@@ -567,6 +567,7 @@ export interface CompleteConfig {
   disableMenu: boolean
   disableMenuShortcut: boolean
   enablePreview: boolean
+  enablePreselect: boolean
   labelMaxLength: number
   maxPreviewWidth: number
   autoTrigger: string

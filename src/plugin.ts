@@ -133,9 +133,7 @@ export default class Plugin extends EventEmitter {
   }
 
   private addMethod(name: string, fn: Function): any {
-    Object.defineProperty(this, name, {
-      value: fn
-    })
+    Object.defineProperty(this, name, { value: fn })
   }
 
   public addCommand(cmd: { id: string, cmd: string, title?: string }): void {

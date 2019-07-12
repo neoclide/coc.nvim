@@ -123,7 +123,7 @@ function! coc#util#close_popup()
     endif
   else
     for winnr in range(1, winnr('$'))
-      let popup = getwinvar(winnr, 'popup')
+      let popup = getwinvar(winnr, 'float')
       if !empty(popup)
         exe winnr.'close!'
       endif

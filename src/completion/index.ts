@@ -128,6 +128,7 @@ export class Completion implements Disposable {
       disableMenu: getConfig<boolean>('disableMenu', false),
       previewIsKeyword: getConfig<string>('previewIsKeyword', '@,48-57,_192-255'),
       enablePreview: getConfig<boolean>('enablePreview', false),
+      enablePreselect: getConfig<boolean>('enablePreselect', false),
       maxPreviewWidth: getConfig<number>('maxPreviewWidth', 50),
       labelMaxLength: getConfig<number>('labelMaxLength', 100),
       triggerAfterInsertEnter: getConfig<boolean>('triggerAfterInsertEnter', false),
@@ -202,6 +203,7 @@ export class Completion implements Disposable {
   private async showCompletion(col: number, items: VimCompleteItem[]): Promise<void> {
     let { nvim, document, option } = this
     let { numberSelect, disableKind, labelMaxLength, disableMenuShortcut, disableMenu } = this.config
+    let preselect = this.config.enablePreselect ? items.findIndex(o => o.preselect == true) : -1
     if (numberSelect && !/^\d/.test(option.input)) {
       items = items.map((item, i) => {
         let idx = i + 1
@@ -233,7 +235,7 @@ export class Completion implements Disposable {
       }
       return obj
     })
-    nvim.call('coc#_do_complete', [col, vimItems], true)
+    nvim.call('coc#_do_complete', [col, vimItems, preselect], true)
   }
 
   private async _doComplete(option: CompleteOption): Promise<void> {
