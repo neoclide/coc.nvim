@@ -54215,9 +54215,7 @@ class Plugin extends events_1.EventEmitter {
         clean_1.default(); // tslint:disable-line
     }
     addMethod(name, fn) {
-        Object.defineProperty(this, name, {
-            value: fn
-        });
+        Object.defineProperty(this, name, { value: fn });
     }
     addCommand(cmd) {
         let id = `vim.${cmd.id}`;
@@ -54330,7 +54328,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "5c385721a8" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "ca3e389259" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -56408,6 +56406,7 @@ class Completion {
             disableMenu: getConfig('disableMenu', false),
             previewIsKeyword: getConfig('previewIsKeyword', '@,48-57,_192-255'),
             enablePreview: getConfig('enablePreview', false),
+            enablePreselect: getConfig('enablePreselect', false),
             maxPreviewWidth: getConfig('maxPreviewWidth', 50),
             labelMaxLength: getConfig('labelMaxLength', 100),
             triggerAfterInsertEnter: getConfig('triggerAfterInsertEnter', false),
@@ -56488,6 +56487,7 @@ class Completion {
     async showCompletion(col, items) {
         let { nvim, document, option } = this;
         let { numberSelect, disableKind, labelMaxLength, disableMenuShortcut, disableMenu } = this.config;
+        let preselect = this.config.enablePreselect ? items.findIndex(o => o.preselect == true) : -1;
         if (numberSelect && !/^\d/.test(option.input)) {
             items = items.map((item, i) => {
                 let idx = i + 1;
@@ -56523,7 +56523,7 @@ class Completion {
             }
             return obj;
         });
-        nvim.call('coc#_do_complete', [col, vimItems], true);
+        nvim.call('coc#_do_complete', [col, vimItems, preselect], true);
     }
     async _doComplete(option) {
         let { source } = option;
@@ -57432,14 +57432,12 @@ class Extensions {
             return;
         if (!this.root)
             await this.initializeRoot();
-        list = array_1.distinct(list);
         let missing = this.getMissingExtensions();
         if (missing.length)
             list.push(...missing);
-        if (!list.length) {
-            workspace_1.default.showMessage(`No missing extension found`, 'more');
+        if (!list.length)
             return;
-        }
+        list = array_1.distinct(list);
         let statusItem = workspace_1.default.createStatusBarItem(0, { progress: true });
         statusItem.show();
         statusItem.text = `Installing ${list.join(' ')}`;
@@ -57477,7 +57475,7 @@ class Extensions {
         let npm = workspace_1.default.getConfiguration('npm').get('binPath', 'npm');
         for (let exe of [npm, 'yarnpkg', 'yarn', 'npm']) {
             try {
-                let res = which_1.default.sync(npm);
+                let res = which_1.default.sync(exe);
                 return res;
             }
             catch (e) {
@@ -71599,6 +71597,7 @@ const util_1 = __webpack_require__(171);
 const object_1 = __webpack_require__(187);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(309));
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(173));
 const popup_1 = tslib_1.__importDefault(__webpack_require__(313));
 const logger = __webpack_require__(183)('model-float');
 // factory class for floating window
@@ -71639,7 +71638,7 @@ class FloatFactory {
                 this.close();
             }
         }, null, this.disposables);
-        events_1.default.on('CursorMoved', this.onCursorMoved.bind(this, false), null, this.disposables);
+        events_1.default.on('CursorMoved', debounce_1.default(this.onCursorMoved.bind(this, false), 100), null, this.disposables);
         events_1.default.on('CursorMovedI', this.onCursorMoved.bind(this, true), null, this.disposables);
     }
     onCursorMoved(insertMode, bufnr, cursor) {
@@ -83480,9 +83479,12 @@ class Complete {
                         else {
                             let { results } = this;
                             let idx = results.findIndex(o => o.source == name);
-                            if (idx != -1)
-                                results.splice(idx, 1);
-                            this.results.push(result);
+                            if (idx != -1) {
+                                results.splice(idx, 1, result);
+                            }
+                            else {
+                                results.push(result);
+                            }
                         }
                         if (empty)
                             this._onDidComplete.fire();
@@ -83525,7 +83527,13 @@ class Complete {
     }
     filterResults(input, cid = 0) {
         let { results } = this;
-        results.sort((a, b) => b.priority - a.priority);
+        results.sort((a, b) => {
+            if (a.source == 'tabnine')
+                return 1;
+            if (b.source == 'tabnine')
+                return -1;
+            return b.priority - a.priority;
+        });
         let now = Date.now();
         let { bufnr } = this.option;
         let { snippetIndicator, fixInsertedWord } = this.config;
@@ -83538,7 +83546,6 @@ class Complete {
         let codes = fuzzy_1.getCharCodes(input);
         let words = new Set();
         let filtering = input.length > this.input.length;
-        let preselect = null;
         for (let i = 0, l = results.length; i < l; i++) {
             let res = results[i];
             let { items, source, priority } = res;
@@ -83552,7 +83559,7 @@ class Complete {
                 item.filterText = filterText;
                 if (filterText.length < input.length)
                     continue;
-                let score = match_1.matchScore(filterText, codes);
+                let score = filterText == input ? 64 : match_1.matchScore(filterText, codes);
                 if (input.length && score == 0)
                     continue;
                 if (priority > 90)
@@ -83581,9 +83588,6 @@ class Complete {
                     item.source = source;
                 }
                 item.priority = priority;
-                if (source == 'tabnine' && item.isSnippet) {
-                    item.priority = Math.max(priority, 100);
-                }
                 item.abbr = item.abbr || item.word;
                 item.score = input.length ? score : 0;
                 item.localBonus = this.localBonus ? this.localBonus.get(filterText) || 0 : 0;
@@ -83595,15 +83599,8 @@ class Complete {
                     }
                 }
                 words.add(word);
-                if (!preselect) {
-                    if (item.isSnippet && item.word == input) {
-                        preselect = item;
-                        continue;
-                    }
-                    else if (!filtering && item.preselect) {
-                        preselect = item;
-                        continue;
-                    }
+                if (item.isSnippet && item.word == input) {
+                    item.preselect = true;
                 }
                 arr.push(item);
             }
@@ -83632,10 +83629,7 @@ class Complete {
             }
             return a.filterText.length - b.filterText.length;
         });
-        let items = arr.slice(0, this.config.maxItemCount);
-        if (preselect)
-            items.unshift(preselect);
-        return this.limitCompleteItems(items);
+        return this.limitCompleteItems(arr.slice(0, this.config.maxItemCount));
     }
     limitCompleteItems(items) {
         let { highPrioritySourceLimit, lowPrioritySourceLimit } = this.config;

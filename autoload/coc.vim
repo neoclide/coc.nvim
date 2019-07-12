@@ -1,4 +1,4 @@
-let g:coc#_context = {'start': 0, 'candidates': []}
+let g:coc#_context = {'start': 0, 'preselect': -1,'candidates': []}
 let g:coc_user_config = get(g:, 'coc_user_config', {})
 let g:coc_global_extensions = get(g:, 'coc_global_extensions', [])
 let g:coc_selected_text = ''
@@ -32,7 +32,6 @@ endfunction
 
 function! coc#refresh() abort
   if pumvisible()
-    let g:coc#_context['candidates'] = []
     call feedkeys("\<Plug>CocRefresh", 'i')
   endif
   return "\<c-r>=coc#start()\<CR>"
@@ -55,23 +54,21 @@ endfunction
 
 function! coc#_complete() abort
   let items = get(g:coc#_context, 'candidates', [])
+  let preselect = get(g:coc#_context, 'preselect', -1)
   call complete(
         \ g:coc#_context.start + 1,
         \ items)
+  if s:select_api && len(items) && preselect != -1
+    call nvim_select_popupmenu_item(preselect, v:false, v:false, {})
+  endif
   return ''
 endfunction
 
-" hack method to avoid vim flicking
-function! coc#_reload()
-  if &paste | return | endif
-  let items = get(g:coc#_context, 'candidates', [])
-  call feedkeys("\<Plug>CocRefresh", 'i')
-endfunction
-
-function! coc#_do_complete(start, items)
+function! coc#_do_complete(start, items, preselect)
   let g:coc#_context = {
         \ 'start': a:start,
         \ 'candidates': a:items,
+        \ 'preselect': a:preselect
         \}
   if mode() =~# 'i'
     call feedkeys("\<Plug>CocRefresh", 'i')
@@ -98,14 +95,10 @@ function! coc#_hide() abort
 endfunction
 
 function! coc#_cancel()
-  for winnr in range(1, winnr('$'))
-    let popup = getwinvar(winnr, 'popup')
-    if !empty(popup)
-      exe winnr.'close!'
-    endif
-  endfor
+  call coc#util#close_popup()
+  " hack for close pum
   if pumvisible()
-    let g:coc#_context['candidates'] = []
+    let g:coc#_context = {'start': 0, 'preselect': -1,'candidates': []}
     call feedkeys("\<Plug>CocRefresh", 'i')
   endif
 endfunction

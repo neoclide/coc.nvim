@@ -255,6 +255,11 @@
       "default": "npm",
       "description": "Command or absolute path to npm or yarn."
     },
+    "suggest.enablePreselect": {
+      "type": "boolean",
+      "description": "Enable preselect feature, only works on neovim",
+      "default": true
+    },
     "suggest.maxPreviewWidth": {
       "type": "number",
       "default": 80,
