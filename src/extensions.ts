@@ -197,12 +197,17 @@ export class Extensions {
   /**
    * Install extensions, can be called without initialize.
    */
-  public async installExtensions(list: string[]): Promise<void> {
-    if (!list || !list.length) return
+  public async installExtensions(list: string[] = []): Promise<void> {
     let { npm } = this
     if (!npm) return
     if (!this.root) await this.initializeRoot()
     list = distinct(list)
+    let missing = this.getMissingExtensions()
+    if (missing.length) list.push(...missing)
+    if (!list.length) {
+      workspace.showMessage(`No missing extension found`, 'more')
+      return
+    }
     let statusItem = workspace.createStatusBarItem(0, { progress: true })
     statusItem.show()
     statusItem.text = `Installing ${list.join(' ')}`
@@ -214,6 +219,26 @@ export class Extensions {
       })
     }))
     statusItem.dispose()
+  }
+
+  /**
+   * Get list of extensions in package.json that not installed
+   */
+  public getMissingExtensions(): string[] {
+    let json = this.loadJson() || { dependencies: {} }
+    let ids: string[] = []
+    for (let key of Object.keys(json.dependencies)) {
+      let folder = path.join(this.root, 'node_modules', key)
+      if (!fs.existsSync(folder)) {
+        let val = json.dependencies[key]
+        if (val.startsWith('http')) {
+          ids.push(val)
+        } else {
+          ids.push(key)
+        }
+      }
+    }
+    return ids
   }
 
   private get npm(): string {

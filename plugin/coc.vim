@@ -283,7 +283,7 @@ command! -nargs=* -range CocAction :call coc#rpc#notify('codeActionRange', [<lin
 command! -nargs=* -range CocFix    :call coc#rpc#notify('codeActionRange', [<line1>, <line2>, 'quickfix'])
 command! -nargs=0 CocUpdate       :call coc#util#update_extensions(1)
 command! -nargs=0 -bar CocUpdateSync   :call coc#util#update_extensions()
-command! -nargs=+ -bar -complete=custom,s:InstallOptions CocInstall   :call coc#util#install_extension([<f-args>])
+command! -nargs=* -bar -complete=custom,s:InstallOptions CocInstall   :call coc#util#install_extension([<f-args>])
 
 call s:Enable()
 call s:AddAnsiGroups()
