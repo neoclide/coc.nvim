@@ -951,7 +951,7 @@ describe('workspace textDocument content provider', () => {
       }
     }
     workspace.registerTextDocumentContentProvider('test', provider)
-    await helper.wait(80)
+    await helper.wait(100)
     await nvim.command('edit test://1')
     let buf = await nvim.buffer
     let lines = await buf.lines
@@ -974,7 +974,7 @@ describe('workspace textDocument content provider', () => {
     await helper.wait(100)
     text = 'bar'
     emitter.fire(URI.parse('jdk://1'))
-    await helper.wait(100)
+    await helper.wait(200)
     let buf = await nvim.buffer
     let lines = await buf.lines
     expect(lines).toEqual(['bar'])
