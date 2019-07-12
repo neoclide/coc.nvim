@@ -72,6 +72,9 @@ export function executable(command: string): boolean {
 }
 
 export function runCommand(cmd: string, opts: ExecOptions = {}, timeout?: number): Promise<string> {
+  if (!platform.isWindows) {
+    opts.shell = opts.shell || process.env.SHELL
+  }
   return new Promise<string>((resolve, reject) => {
     let timer: NodeJS.Timer
     if (timeout) {
