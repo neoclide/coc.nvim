@@ -269,11 +269,11 @@ describe('list insert mappings', () => {
 
   it('should select action by <tab>', async () => {
     await manager.start(['location'])
-    await helper.wait(30)
+    await helper.wait(100)
     nvim.call('eval', 'feedkeys("\\<tab>", "in")', true)
     await helper.wait(100)
     await nvim.input('t')
-    await helper.wait(200)
+    await helper.wait(300)
     let nr = await nvim.call('tabpagenr')
     expect(nr).toBe(2)
   })
@@ -339,11 +339,11 @@ describe('list normal mappings', () => {
 
   it('should select action by <tab>', async () => {
     await manager.start(['--normal', 'location'])
-    await helper.wait(10)
+    await helper.wait(100)
     await nvim.eval('feedkeys("\\<tab>", "in")')
-    await helper.wait(30)
+    await helper.wait(100)
     await nvim.input('t')
-    await helper.wait(30)
+    await helper.wait(300)
     let nr = await nvim.call('tabpagenr')
     expect(nr).toBe(2)
   })
