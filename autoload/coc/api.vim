@@ -253,7 +253,11 @@ function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEn
     call add(cached, id)
     call setbufvar(bufnr, 'prop_namespace_'.a:srcId, cached)
   endif
-  call prop_add(a:line + 1, a:colStart + 1, {'length': end - a:colStart, 'bufnr': bufnr, 'type': key, 'id': id})
+  try
+    call prop_add(a:line + 1, a:colStart + 1, {'length': end - a:colStart, 'bufnr': bufnr, 'type': key, 'id': id})
+  catch /^Vim\%((\a\+)\)\=:E967/
+    " ignore 967
+  endtry
 endfunction
 
 function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
