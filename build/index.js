@@ -54328,7 +54328,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "ca3e389259" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "9111e95e01" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -83559,7 +83559,7 @@ class Complete {
                 item.filterText = filterText;
                 if (filterText.length < input.length)
                     continue;
-                let score = filterText == input ? 64 : match_1.matchScore(filterText, codes);
+                let score = item.kind && filterText == input ? 64 : match_1.matchScore(filterText, codes);
                 if (input.length && score == 0)
                     continue;
                 if (priority > 90)

@@ -230,30 +230,37 @@ function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEn
   if !has('textprop')
     return
   endif
+  let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
   let key = 'Coc'.a:hlGroup
   if empty(prop_type_get(key))
     call prop_type_add(key, {'highlight': a:hlGroup, 'combine': 1})
   endif
+  let total = strlen(getbufline(bufnr, a:line + 1)[0])
   let end = a:colEnd
   if end == -1
-    let end = strlen(getbufline(a:bufnr, a:line + 1)[0]) + 1
+    let end = total
+  else
+    let end = min([end, total])
+  endif
+  if end <= a:colStart
+    return
   endif
   let id = 0
-  if a:srcId != 0
-    let cached = getbufvar(a:bufnr, 'prop_namespace_'.a:srcId, [])
+  if a:srcId != -1
+    let cached = getbufvar(bufnr, 'prop_namespace_'.a:srcId, [])
     let id = s:prop_id
     let s:prop_id = id + 1
     call add(cached, id)
-    call setbufvar(a:bufnr, 'prop_namespace_'.a:srcId, cached)
+    call setbufvar(bufnr, 'prop_namespace_'.a:srcId, cached)
   endif
-  call prop_add(a:line + 1, a:colStart + 1, {'length': end - a:colStart, 'bufnr': a:bufnr, 'type': key, 'id': id})
+  call prop_add(a:line + 1, a:colStart + 1, {'length': end - a:colStart, 'bufnr': bufnr, 'type': key, 'id': id})
 endfunction
 
 function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
   if !has('textprop')
     return
   endif
-  if a:srcId == 0
+  if a:srcId == -1
     if a:endLine == -1
       call prop_clear(a:startLine + 1, {'bufnr': a:bufnr})
     else
