@@ -238,6 +238,9 @@ function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEn
   if end == -1
     let end = strlen(getbufline(a:bufnr, a:line + 1)[0]) + 1
   endif
+  if end <= a:colStart
+    return
+  endif
   let id = 0
   if a:srcId != 0
     let cached = getbufvar(a:bufnr, 'prop_namespace_'.a:srcId, [])
