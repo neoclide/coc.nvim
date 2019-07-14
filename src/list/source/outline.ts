@@ -34,11 +34,10 @@ export default class Outline extends LocationList {
         symbols.sort(sortSymbols)
         for (let s of symbols) {
           let kind = getSymbolKind(s.kind)
-          if (kind == 'Variable' || s.name.endsWith(') callback')) continue
           let location = Location.create(document.uri, s.selectionRange)
           items.push({
-            label: `${' '.repeat(level * 2)}${s.name} [${kind}] ${s.range.start.line + 1}`,
-            filterText: `${s.name}`,
+            label: `${' '.repeat(level * 2)}${s.name}\t[${kind}]\t${s.range.start.line + 1}`,
+            filterText: s.name,
             location
           })
           if (s.children && s.children.length) {
@@ -70,7 +69,7 @@ export default class Outline extends LocationList {
   public doHighlight(): void {
     let { nvim } = this
     nvim.pauseNotification()
-    nvim.command('syntax match CocOutlineName /\\v^\\s*\\S+/ contained containedin=CocOutlineLine', true)
+    nvim.command('syntax match CocOutlineName /\\v^\\s*[^\t]+/ contained containedin=CocOutlineLine', true)
     nvim.command('syntax match CocOutlineKind /\\[\\w\\+\\]/ contained containedin=CocOutlineLine', true)
     nvim.command('syntax match CocOutlineLine /\\d\\+$/ contained containedin=CocOutlineLine', true)
     nvim.command('highlight default link CocOutlineName Normal', true)
