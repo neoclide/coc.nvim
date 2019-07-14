@@ -147,6 +147,13 @@ describe('snippet provider', () => {
     expect(active).toBe(true)
   })
 
+  it('should resolve variables', async () => {
+    await helper.createDocument()
+    await snippetManager.insertSnippet('${foo:abc} ${bar}')
+    let line = await nvim.line
+    expect(line).toBe('abc bar')
+  })
+
   it('should work with nest snippet', async () => {
     let buf = await helper.edit()
     let snip = '<a ${1:http://www.${2:example.com}}>\n$0\n</a>'

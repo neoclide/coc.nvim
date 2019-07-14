@@ -16,19 +16,14 @@ export class SnippetVariableResolver implements VariableResolver {
   public async init(document: Document): Promise<void> {
     let { nvim } = this
     let filepath = URI.parse(document.uri).fsPath
-    let lnum = await nvim.call('line', '.') as number
-    let line = document.getline(lnum - 1)
-    let cword = await this.nvim.call('expand', '<cword>')
-    let selected = await this.nvim.getVar('coc_selected_text') as string
-    let clipboard = await this.nvim.call('getreg', '+')
-    let yank = await this.nvim.call('getreg', '"')
+    let [lnum, line, cword, selected, clipboard, yank] = await this.nvim.eval(`[line('.'),getline('.'),expand('<cword>'),get(g:,'coc_selected_text', ''),getreg('+'),getreg('"')]`) as any[]
     Object.assign(this._variableToValue, {
       YANK: yank || undefined,
       CLIPBOARD: clipboard || undefined,
       TM_CURRENT_LINE: line,
       TM_SELECTED_TEXT: selected || undefined,
       TM_CURRENT_WORD: cword,
-      TM_LINE_INDEX: (lnum - 1).toString(),
+      TM_LINE_INDEX: (lnum as number - 1).toString(),
       TM_LINE_NUMBER: lnum.toString(),
       TM_FILENAME: path.basename(filepath),
       TM_FILENAME_BASE: path.basename(filepath, path.extname(filepath)),
@@ -59,6 +54,9 @@ export class SnippetVariableResolver implements VariableResolver {
 
   public resolve(variable: Variable): string {
     const variableName = variable.name
-    return this._variableToValue[variableName]
+    if (this._variableToValue.hasOwnProperty(variableName)) {
+      return this._variableToValue[variableName] || ''
+    }
+    return variable.toString() || variableName
   }
 }
