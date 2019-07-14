@@ -556,6 +556,11 @@
       "default": "",
       "enum": ["", "bufferType", "custom"]
     },
+    "diagnostic.filetypeMap": {
+      "type":"object",
+      "description": "A map between buffer filetype and the filetype assigned to diagnostics. Use to override default \"diagnostic.filetype\"",
+      "default": {}
+    },
     "signature.enable": {
       "type": "boolean",
       "description": "Enable signature help when trigger character typed, require restart service on change.",

@@ -37,6 +37,7 @@ export interface DiagnosticConfig {
   virtualTextLines: number
   virtualTextLineSeparator: string
   filetype: string
+  filetypeMap: object
 }
 
 export class DiagnosticManager implements Disposable {
@@ -394,9 +395,10 @@ export class DiagnosticManager implements Disposable {
    * Echo diagnostic message of currrent position
    */
   public async echoMessage(truncate = false): Promise<void> {
-    if (!this.enabled || this.config.enableMessage == 'never') return
+    const config = this.config
+    if (!this.enabled || config.enableMessage == 'never') return
     if (this.timer) clearTimeout(this.timer)
-    let useFloat = this.config.messageTarget == 'float'
+    let useFloat = config.messageTarget == 'float'
     let diagnostics = await this.getCurrentDiagnostics()
     if (diagnostics.length == 0) {
       if (useFloat) {
@@ -414,9 +416,11 @@ export class DiagnosticManager implements Disposable {
     let lines: string[] = []
     let docs: Documentation[] = []
 
-    let ft = (this.config.filetype === 'bufferType')
-      ? (await workspace.document).filetype
-      : this.config.filetype
+    const buf_ft = (await workspace.document).filetype
+    const ft = config.filetypeMap.hasOwnProperty(buf_ft) ?
+      config.filetypeMap[buf_ft] :
+      (config.filetype === "bufferType" ?
+        buf_ft : config.filetype)
 
     diagnostics.forEach(diagnostic => {
       let { source, code, severity, message } = diagnostic
@@ -521,6 +525,7 @@ export class DiagnosticManager implements Disposable {
       refreshAfterSave: getConfig<boolean>('refreshAfterSave', false),
       refreshOnInsertMode: getConfig<boolean>('refreshOnInsertMode', false),
       filetype: getConfig<string>('filetype', ''),
+      filetypeMap: getConfig<object>('filetypeMap', {}),
     }
     this.enabled = getConfig<boolean>('enable', true)
     if (this.config.displayByAle) {

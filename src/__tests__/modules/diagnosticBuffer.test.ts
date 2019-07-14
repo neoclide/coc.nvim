@@ -29,7 +29,8 @@ const config: DiagnosticConfig = {
   infoSign: '>>',
   refreshAfterSave: false,
   hintSign: '>>',
-  filetype: ''
+  filetype: '',
+  filetypeMap: {},
 }
 
 async function createDiagnosticBuffer(): Promise<DiagnosticBuffer> {
