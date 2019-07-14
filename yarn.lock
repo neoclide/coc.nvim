@@ -2404,16 +2404,21 @@ lodash@^4.17.11:
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.11.tgz#b39ea6229ef607ecd89e2c8df12536891cac9b8d"
   integrity sha512-cQKh8igo5QUhZ7lg38DYWAxMvjSAKG0A8wGSVimP07SIUEK2UO+arSRKbRZWtelMtN5V0Hkwh5ryOto/SshYIg==
 
-log4js@^4.5.0:
-  version "4.5.0"
-  resolved "https://registry.yarnpkg.com/log4js/-/log4js-4.5.0.tgz#21db5bed7672fc4784f78ce24c0a771a45e17690"
-  integrity sha512-mYtGcbmu//OprhT7prJM2erY9nPXM2TMLM/mBLPo4FojntEZz/V34d06SVBXeQ6EsryMkLJhHuXCWCQNoPW8hQ==
+lodash@^4.17.14:
+  version "4.17.14"
+  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.14.tgz#9ce487ae66c96254fe20b599f21b6816028078ba"
+  integrity sha512-mmKYbW3GLuJeX+iGP+Y7Gp1AiGHGbXHCOh/jZmrawMmsE7MS4znI3RL2FsjbqOyMayHInjOeykW7PEajUk1/xw==
+
+log4js@^4.5.1:
+  version "4.5.1"
+  resolved "https://registry.yarnpkg.com/log4js/-/log4js-4.5.1.tgz#e543625e97d9e6f3e6e7c9fc196dd6ab2cae30b5"
+  integrity sha512-EEEgFcE9bLgaYUKuozyFfytQM2wDHtXn4tAN41pkaxpNjAykv11GVdeI4tHtmPWW4Xrgh9R/2d7XYghDVjbKKw==
   dependencies:
     date-format "^2.0.0"
     debug "^4.1.1"
     flatted "^2.0.0"
     rfdc "^1.1.4"
-    streamroller "^1.0.5"
+    streamroller "^1.0.6"
 
 loose-envify@^1.0.0:
   version "1.4.0"
@@ -3507,16 +3512,16 @@ stealthy-require@^1.1.1:
   resolved "https://registry.yarnpkg.com/stealthy-require/-/stealthy-require-1.1.1.tgz#35b09875b4ff49f26a777e509b3090a3226bf24b"
   integrity sha1-NbCYdbT/SfJqd35QmzCQoyJr8ks=
 
-streamroller@^1.0.5:
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/streamroller/-/streamroller-1.0.5.tgz#71660c20b06b1a7b204d46085731ad13c10a562d"
-  integrity sha512-iGVaMcyF5PcUY0cPbW3xFQUXnr9O4RZXNBBjhuLZgrjLO4XCLLGfx4T2sGqygSeylUjwgWRsnNbT9aV0Zb8AYw==
+streamroller@^1.0.6:
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/streamroller/-/streamroller-1.0.6.tgz#8167d8496ed9f19f05ee4b158d9611321b8cacd9"
+  integrity sha512-3QC47Mhv3/aZNFpDDVO44qQb9gwB9QggMEE0sQmkTAwBVYdBRWISdsywlkfm5II1Q5y/pmrHflti/IgmIzdDBg==
   dependencies:
     async "^2.6.2"
     date-format "^2.0.0"
     debug "^3.2.6"
     fs-extra "^7.0.1"
-    lodash "^4.17.11"
+    lodash "^4.17.14"
 
 string-length@^2.0.0:
   version "2.0.0"
