@@ -568,6 +568,11 @@ Builtin configurations:~
 	Filetypes that should use `ctags` for outline instead of language
 	server.,  default: `[]`
 
+"npm.binPath":~
+
+	Command or full path of npm or yarn executable for install/update
+	extenextensions, use `npm` by default.
+
 "languageserver":~
 
 	Dictionary of languageservers, key is used as id of languageserver.,
