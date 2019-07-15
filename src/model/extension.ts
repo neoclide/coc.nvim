@@ -10,6 +10,7 @@ import { runCommand } from '../util'
 import workspace from '../workspace'
 import download from './download'
 import fetch from './fetch'
+import rc from 'rc'
 const logger = require('../util/logger')('model-extension')
 
 export interface Info {
@@ -23,9 +24,10 @@ export interface Info {
   }
 }
 
-async function getData(cmd: string, name: string, field: string): Promise<string> {
-  let res = await runCommand(`${cmd} info ${name} ${field} --json`, { timeout: 60 * 1000 })
-  return JSON.parse(res)['data']
+function registryUrl(scope = ''): string {
+  const result = rc('npm', { registry: 'https://registry.npmjs.org/' })
+  const url = result[`${scope}:registry`] || result.config_registry || result.registry
+  return url.slice(-1) === '/' ? url : `${url}/`
 }
 
 export default class ExtensionManager {
@@ -43,25 +45,15 @@ export default class ExtensionManager {
 
   private async getInfo(npm: string, name: string): Promise<Info> {
     if (name.startsWith('https:')) return await this.getInfoFromUri(name)
-    if (npm.endsWith('yarn') || npm.endsWith('yarnpkg')) {
-      let obj = { name }
-      let keys = ['dist.tarball', 'engines.coc', 'version', 'name']
-      let vals = await Promise.all(keys.map(key => {
-        return getData(npm, name, key)
-      }))
-      for (let i = 0; i < keys.length; i++) {
-        obj[keys[i]] = vals[i]
-      }
-      return obj as Info
-    }
-    let content = await safeRun(`"${npm}" view ${name} dist.tarball engines.coc version name`, { timeout: 60 * 1000 })
-    let lines = content.split(/\r?\n/)
-    let obj = { name }
-    for (let line of lines) {
-      let ms = line.match(/^(\S+)\s*=\s*'(.*)'/)
-      if (ms) obj[ms[1]] = ms[2]
-    }
-    return obj as Info
+    let url = `${registryUrl()}/${name}`
+    let res = await fetch(url) as any
+    let latest = res['versions'][res['dist-tags']['latest']]
+    return {
+      'dist.tarball': latest['dist']['tarball'],
+      'engines.coc': latest['engines'] && latest['engines']['coc'],
+      version: latest,
+      name: res.name
+    } as Info
   }
 
   private async removeFolder(folder: string): Promise<void> {
@@ -173,25 +165,4 @@ export default class ExtensionManager {
       version: obj.version
     }
   }
-}
-
-function safeRun(cmd: string, opts: ExecOptions = {}, timeout?: number): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
-    let timer: NodeJS.Timer
-    let cp = exec(cmd, opts, (err, stdout, stderr) => {
-      if (timer) clearTimeout(timer)
-      if (err) return reject(err)
-      resolve(stdout)
-    })
-    cp.on('error', e => {
-      if (timer) clearTimeout(timer)
-      reject(e)
-    })
-    if (timeout) {
-      timer = setTimeout(() => {
-        cp.kill()
-        reject(new Error(`timeout after ${timeout}s`))
-      }, timeout * 1000)
-    }
-  })
 }
