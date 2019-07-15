@@ -108,6 +108,7 @@ export default class Floating {
       maxheight: rect.height
     })
     this.popup.show()
+    nvim.setVar('coc_popup_id', this.popup.id, true)
     nvim.command('redraw', true)
     let [, err] = await nvim.resumeNotification()
     // tslint:disable-next-line: no-console
