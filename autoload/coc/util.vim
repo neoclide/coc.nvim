@@ -118,12 +118,12 @@ endfunction
 
 function! coc#util#close_popup()
   if s:is_vim
-    if exists('*popup_clear')
-      call popup_clear()
+    if exists('*popup_close')
+      call popup_close(get(g:, 'coc_popup_id', 0))
     endif
   else
     for winnr in range(1, winnr('$'))
-      let popup = getwinvar(winnr, 'float')
+      let popup = getwinvar(winnr, 'popup')
       if !empty(popup)
         exe winnr.'close!'
       endif
