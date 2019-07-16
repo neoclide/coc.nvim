@@ -51,7 +51,7 @@ export default class ExtensionManager {
     return {
       'dist.tarball': latest['dist']['tarball'],
       'engines.coc': latest['engines'] && latest['engines']['coc'],
-      version: latest,
+      version: latest['version'],
       name: res.name
     } as Info
   }
