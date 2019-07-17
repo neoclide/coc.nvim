@@ -1,5 +1,6 @@
 import { exec, ExecOptions, spawn } from 'child_process'
 import fs from 'fs'
+import url from 'url'
 import mkdirp from 'mkdirp'
 import path from 'path'
 import rimraf from 'rimraf'
@@ -26,8 +27,7 @@ export interface Info {
 
 function registryUrl(scope = ''): string {
   const result = rc('npm', { registry: 'https://registry.npmjs.org/' })
-  const url = result[`${scope}:registry`] || result.config_registry || result.registry
-  return url.slice(-1) === '/' ? url : `${url}/`
+  return result[`${scope}:registry`] || result.config_registry || result.registry
 }
 
 export default class ExtensionManager {
@@ -43,15 +43,23 @@ export default class ExtensionManager {
     mkdirp.sync(path.join(root, 'node_modules/.cache'))
   }
 
-  private async getInfo(npm: string, name: string): Promise<Info> {
-    if (name.startsWith('https:')) return await this.getInfoFromUri(name)
-    let url = `${registryUrl()}/${name}`
-    let res = await fetch(url) as any
-    let latest = res['versions'][res['dist-tags']['latest']]
+  private async getInfo(npm: string, ref: string): Promise<Info> {
+    if (ref.startsWith('https:')) return await this.getInfoFromUri(ref)
+    let name: string
+    let version: string
+    if (ref.indexOf('@') > 0) {
+      [name, version] = ref.split('@', 2)
+    } else {
+      name = ref
+    }
+    let res = await fetch(url.resolve(registryUrl(), name)) as any
+    if (!version) version = res['dist-tags']['latest']
+    let obj = res['versions'][version]
+    if (!obj) throw new Error(`${ref} not exists.`)
     return {
-      'dist.tarball': latest['dist']['tarball'],
-      'engines.coc': latest['engines'] && latest['engines']['coc'],
-      version: latest['version'],
+      'dist.tarball': obj['dist']['tarball'],
+      'engines.coc': obj['engines'] && obj['engines']['coc'],
+      version: obj['version'],
       name: res.name
     } as Info
   }
