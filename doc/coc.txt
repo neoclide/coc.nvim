@@ -1526,9 +1526,15 @@ COMMANDS 					*coc-commands*
 		{option}: could be `-sync` for use blocked process to download
 		instead of terminal.
 
-		Check out https://www.npmjs.com/search?q=keywords%3Acoc.nvim 
-		for available extensions.
+		Examples: >
 
+		" Install latest coc-omni
+		:CocInstall coc-omni
+		" Install coc-omni 1.0.0
+		:CocInstall coc-omni@1.0.0
+		" Install snippet extension from github
+		:CocInstall https://github.com/dsznajder/vscode-es7-javascript-react-snippets
+>
 :CocUninstall {name} 				*:CocUninstall*
 
 		Uninstall an extension, use <tab> to complete the extension 

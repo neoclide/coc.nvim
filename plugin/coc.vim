@@ -197,6 +197,7 @@ function! s:Enable()
     autocmd FocusGained         * call s:Autocmd('FocusGained')
     autocmd VimResized          * call s:Autocmd('VimResized', &columns, &lines)
     autocmd VimLeavePre         * let g:coc_vim_leaving = 1
+    autocmd VimLeave            * call coc#rpc#stop()
     autocmd BufReadCmd,FileReadCmd,SourceCmd list://* call coc#list#setup(expand('<amatch>'))
     autocmd BufWriteCmd __coc_refactor__* :call coc#rpc#notify('saveRefactor', [+expand('<abuf>')])
   augroup end

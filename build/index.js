@@ -44244,7 +44244,6 @@ class Workspace {
                 };
             });
         }
-        this.checkProcess();
         this.configurations.updateUserConfig(this._env.config);
         events_1.default.on('InsertEnter', () => {
             this._insertMode = true;
@@ -45694,19 +45693,6 @@ augroup end`;
             });
         }
         return this.nvim.getOption(name);
-    }
-    checkProcess() {
-        if (global.hasOwnProperty('__TEST__'))
-            return;
-        let pid = this._env.pid;
-        let interval = setInterval(() => {
-            if (!index_1.isRunning(pid)) {
-                process.exit();
-            }
-        }, 15000);
-        process.on('exit', () => {
-            clearInterval(interval);
-        });
     }
     addWorkspaceFolder(rootPath) {
         if (rootPath == os_1.default.homedir())
@@ -52229,9 +52215,7 @@ class StatusLine {
         this.shownIds = new Set();
         this._text = '';
         this.interval = setInterval(() => {
-            this.setStatusText().catch(_e => {
-                // noop
-            });
+            this.setStatusText().logError();
         }, 100);
     }
     dispose() {
@@ -54425,7 +54409,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "3ce5cabf4c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "baa3b1f169" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -57956,7 +57940,7 @@ class Extensions {
                         return resolve(null);
                     }
                     if (names.indexOf(obj.name) !== -1) {
-                        workspace_1.default.showMessage(`Skipped extension  "${root}", please uninstall "${obj.name}" by :CocUninstall ${obj.name}`, 'warning');
+                        workspace_1.default.showMessage(`Skipped extension  "${root}", please remove "${obj.name}" from your vim's plugin manager.`, 'warning');
                         return resolve(null);
                     }
                     let version = obj ? obj.version || '' : '';
@@ -60703,21 +60687,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const child_process_1 = __webpack_require__(172);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
+const url_1 = tslib_1.__importDefault(__webpack_require__(249));
 const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(182));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const rimraf_1 = tslib_1.__importDefault(__webpack_require__(236));
-const mv_1 = tslib_1.__importDefault(__webpack_require__(249));
+const mv_1 = tslib_1.__importDefault(__webpack_require__(250));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
 const util_1 = __webpack_require__(40);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const download_1 = tslib_1.__importDefault(__webpack_require__(255));
+const download_1 = tslib_1.__importDefault(__webpack_require__(256));
 const fetch_1 = tslib_1.__importDefault(__webpack_require__(295));
 const rc_1 = tslib_1.__importDefault(__webpack_require__(299));
 const logger = __webpack_require__(183)('model-extension');
 function registryUrl(scope = '') {
     const result = rc_1.default('npm', { registry: 'https://registry.npmjs.org/' });
-    const url = result[`${scope}:registry`] || result.config_registry || result.registry;
-    return url.slice(-1) === '/' ? url : `${url}/`;
+    return result[`${scope}:registry`] || result.config_registry || result.registry;
 }
 class ExtensionManager {
     constructor(root) {
@@ -60732,16 +60716,27 @@ class ExtensionManager {
         mkdirp_1.default.sync(root);
         mkdirp_1.default.sync(path_1.default.join(root, 'node_modules/.cache'));
     }
-    async getInfo(npm, name) {
-        if (name.startsWith('https:'))
-            return await this.getInfoFromUri(name);
-        let url = `${registryUrl()}/${name}`;
-        let res = await fetch_1.default(url);
-        let latest = res['versions'][res['dist-tags']['latest']];
+    async getInfo(npm, ref) {
+        if (ref.startsWith('https:'))
+            return await this.getInfoFromUri(ref);
+        let name;
+        let version;
+        if (ref.indexOf('@') > 0) {
+            [name, version] = ref.split('@', 2);
+        }
+        else {
+            name = ref;
+        }
+        let res = await fetch_1.default(url_1.default.resolve(registryUrl(), name));
+        if (!version)
+            version = res['dist-tags']['latest'];
+        let obj = res['versions'][version];
+        if (!obj)
+            throw new Error(`${ref} not exists.`);
         return {
-            'dist.tarball': latest['dist']['tarball'],
-            'engines.coc': latest['engines'] && latest['engines']['coc'],
-            version: latest['version'],
+            'dist.tarball': obj['dist']['tarball'],
+            'engines.coc': obj['engines'] && obj['engines']['coc'],
+            version: obj['version'],
             name: res.name
         };
     }
@@ -60860,12 +60855,18 @@ exports.default = ExtensionManager;
 
 /***/ }),
 /* 249 */
+/***/ (function(module, exports) {
+
+module.exports = require("url");
+
+/***/ }),
+/* 250 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var fs = __webpack_require__(54);
-var ncp = __webpack_require__(250).ncp;
+var ncp = __webpack_require__(251).ncp;
 var path = __webpack_require__(56);
-var rimraf = __webpack_require__(251);
+var rimraf = __webpack_require__(252);
 var mkdirp = __webpack_require__(182);
 
 module.exports = mv;
@@ -60970,7 +60971,7 @@ function moveDirAcrossDevice(source, dest, clobber, limit, cb) {
 
 
 /***/ }),
-/* 250 */
+/* 251 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var fs = __webpack_require__(54),
@@ -61237,7 +61238,7 @@ function ncp (source, dest, options, callback) {
 
 
 /***/ }),
-/* 251 */
+/* 252 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = rimraf
@@ -61246,7 +61247,7 @@ rimraf.sync = rimrafSync
 var assert = __webpack_require__(107)
 var path = __webpack_require__(56)
 var fs = __webpack_require__(54)
-var glob = __webpack_require__(252)
+var glob = __webpack_require__(253)
 
 var globOpts = {
   nosort: true,
@@ -61576,7 +61577,7 @@ function rmkidsSync (p, options) {
 
 
 /***/ }),
-/* 252 */
+/* 253 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // Approach:
@@ -61629,8 +61630,8 @@ var EE = __webpack_require__(49).EventEmitter
 var path = __webpack_require__(56)
 var assert = __webpack_require__(107)
 var isAbsolute = __webpack_require__(242)
-var globSync = __webpack_require__(253)
-var common = __webpack_require__(254)
+var globSync = __webpack_require__(254)
+var common = __webpack_require__(255)
 var alphasort = common.alphasort
 var alphasorti = common.alphasorti
 var setopts = common.setopts
@@ -62347,7 +62348,7 @@ Glob.prototype._stat2 = function (f, abs, er, stat, cb) {
 
 
 /***/ }),
-/* 253 */
+/* 254 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = globSync
@@ -62356,12 +62357,12 @@ globSync.GlobSync = GlobSync
 var fs = __webpack_require__(54)
 var minimatch = __webpack_require__(198)
 var Minimatch = minimatch.Minimatch
-var Glob = __webpack_require__(252).Glob
+var Glob = __webpack_require__(253).Glob
 var util = __webpack_require__(40)
 var path = __webpack_require__(56)
 var assert = __webpack_require__(107)
 var isAbsolute = __webpack_require__(242)
-var common = __webpack_require__(254)
+var common = __webpack_require__(255)
 var alphasort = common.alphasort
 var alphasorti = common.alphasorti
 var setopts = common.setopts
@@ -62813,7 +62814,7 @@ GlobSync.prototype._makeAbs = function (f) {
 
 
 /***/ }),
-/* 254 */
+/* 255 */
 /***/ (function(module, exports, __webpack_require__) {
 
 exports.alphasort = alphasort
@@ -63045,19 +63046,19 @@ function childrenIgnored (self, path) {
 
 
 /***/ }),
-/* 255 */
+/* 256 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const follow_redirects_1 = __webpack_require__(256);
+const follow_redirects_1 = __webpack_require__(257);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
 const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(182));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const tar_1 = tslib_1.__importDefault(__webpack_require__(264));
-const url_1 = __webpack_require__(257);
+const url_1 = __webpack_require__(249);
 const fetch_1 = __webpack_require__(295);
 /**
  * Download and extract tgz from url
@@ -63116,10 +63117,10 @@ exports.default = download;
 //# sourceMappingURL=download.js.map
 
 /***/ }),
-/* 256 */
+/* 257 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var url = __webpack_require__(257);
+var url = __webpack_require__(249);
 var URL = url.URL;
 var http = __webpack_require__(258);
 var https = __webpack_require__(259);
@@ -63554,12 +63555,6 @@ function urlToOptions(urlObject) {
 module.exports = wrap({ http: http, https: https });
 module.exports.wrap = wrap;
 
-
-/***/ }),
-/* 257 */
-/***/ (function(module, exports) {
-
-module.exports = require("url");
 
 /***/ }),
 /* 258 */
@@ -69571,9 +69566,9 @@ chownr.sync = chownrSync
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const follow_redirects_1 = __webpack_require__(256);
+const follow_redirects_1 = __webpack_require__(257);
 const tunnel_1 = tslib_1.__importDefault(__webpack_require__(296));
-const url_1 = __webpack_require__(257);
+const url_1 = __webpack_require__(249);
 const zlib_1 = tslib_1.__importDefault(__webpack_require__(136));
 const is_1 = __webpack_require__(188);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
@@ -69606,6 +69601,7 @@ exports.getAgent = getAgent;
  * Fetch text from server
  */
 function fetch(url, data, options = {}) {
+    logger.info('fetch:', url);
     let mod = url.startsWith('https') ? follow_redirects_1.https : follow_redirects_1.http;
     let endpoint = url_1.parse(url);
     let agent = getAgent(endpoint.protocol);
@@ -71126,7 +71122,7 @@ const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(314));
 exports.FloatFactory = floatFactory_1.default;
 const fetch_1 = tslib_1.__importDefault(__webpack_require__(295));
 exports.fetch = fetch_1.default;
-const download_1 = tslib_1.__importDefault(__webpack_require__(255));
+const download_1 = tslib_1.__importDefault(__webpack_require__(256));
 exports.download = download_1.default;
 const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(211));
 exports.FileSystemWatcher = fileSystemWatcher_1.default;
