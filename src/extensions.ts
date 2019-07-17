@@ -16,7 +16,8 @@ import DB from './model/db'
 import ExtensionManager from './model/extension'
 import Memos from './model/memos'
 import { Extension, ExtensionContext, ExtensionInfo, ExtensionState } from './types'
-import { disposeAll, mkdirp, wait } from './util'
+import { disposeAll, wait } from './util'
+import mkdirp from 'mkdirp'
 import { distinct } from './util/array'
 import './util/extensions'
 import { createExtension, ExtensionExport } from './util/factory'
@@ -137,7 +138,6 @@ export class Extensions {
       let ts = this.db.fetch('lastUpdate')
       if (ts && Number(ts) > day.getTime()) return
       this.updateExtensions().logError()
-      this.db.push('lastUpdate', Date.now())
     }
   }
 
@@ -160,6 +160,7 @@ export class Extensions {
         workspace.showMessage(`Error on update ${name}: ${err}`)
       })
     }))
+    this.db.push('lastUpdate', Date.now())
     workspace.showMessage('Update completed', 'more')
     statusItem.dispose()
   }
@@ -839,15 +840,18 @@ export class Extensions {
 
   private async initializeRoot(): Promise<void> {
     let root = this.root = await workspace.nvim.call('coc#util#extension_root')
+    if (!fs.existsSync(root)) {
+      mkdirp.sync(root)
+    }
+    let jsonFile = path.join(root, 'package.json')
+    if (!fs.existsSync(jsonFile)) {
+      fs.writeFileSync(jsonFile, '{"dependencies":{}}', 'utf8')
+    }
     if (!this.db) {
-      let filepath = path.join(this.root, 'db.json')
+      let filepath = path.join(root, 'db.json')
       this.db = new DB(filepath)
     }
-    this.manager = new ExtensionManager(this.root)
-    let jsonFile = path.join(root, 'package.json')
-    if (fs.existsSync(jsonFile)) return
-    await mkdirp(root)
-    await util.promisify(fs.writeFile)(jsonFile, '{"dependencies":{}}', 'utf8')
+    this.manager = new ExtensionManager(root)
   }
 }
 
