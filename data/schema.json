@@ -550,16 +550,12 @@
       "description": "Maximum height of diagnostics floating window.",
       "default": 8
     },
-    "diagnostic.filetype": {
-      "type": "string",
-      "description": "The filetype given to diagnostic buffers. Use \"bufferType\" config to set diagnostics windows to parent code window's filetype.",
-      "default": "",
-      "enum": ["", "bufferType", "custom"]
-    },
     "diagnostic.filetypeMap": {
       "type":"object",
-      "description": "A map between buffer filetype and the filetype assigned to diagnostics. Use to override default \"diagnostic.filetype\"",
-      "default": {}
+      "description": "A map between buffer filetype and the filetype assigned to diagnostics. To syntax highlight diagnostics withs their parent buffer type use '\"default\": \"bufferType\"'",
+      "default": {
+        "default": ""
+      }
     },
     "signature.enable": {
       "type": "boolean",

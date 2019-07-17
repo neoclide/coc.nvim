@@ -36,7 +36,6 @@ export interface DiagnosticConfig {
   virtualTextPrefix: string
   virtualTextLines: number
   virtualTextLineSeparator: string
-  filetype: string
   filetypeMap: object
 }
 
@@ -416,11 +415,14 @@ export class DiagnosticManager implements Disposable {
     let lines: string[] = []
     let docs: Documentation[] = []
 
+
+
     const buf_ft = (await workspace.document).filetype
+    const default_ft = config.filetypeMap['default']
     const ft = config.filetypeMap.hasOwnProperty(buf_ft) ?
       config.filetypeMap[buf_ft] :
-      (config.filetype === "bufferType" ?
-        buf_ft : config.filetype)
+      (default_ft === 'bufferType' ?
+        buf_ft : (default_ft ? default_ft : ''))
 
     diagnostics.forEach(diagnostic => {
       let { source, code, severity, message } = diagnostic
@@ -524,7 +526,6 @@ export class DiagnosticManager implements Disposable {
       hintSign: getConfig<string>('hintSign', '>>'),
       refreshAfterSave: getConfig<boolean>('refreshAfterSave', false),
       refreshOnInsertMode: getConfig<boolean>('refreshOnInsertMode', false),
-      filetype: getConfig<string>('filetype', ''),
       filetypeMap: getConfig<object>('filetypeMap', {}),
     }
     this.enabled = getConfig<boolean>('enable', true)
