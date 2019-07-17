@@ -577,7 +577,6 @@ function! coc#util#vim_info()
         \ 'completeOpt': &completeopt,
         \ 'pumevent': exists('##MenuPopupChanged') || exists('##CompleteChanged'),
         \ 'isVim': has('nvim') ? v:false : v:true,
-        \ 'isCygwin': has('win32unix') ? v:true : v:false,
         \ 'isMacvim': has('gui_macvim') ? v:true : v:false,
         \ 'colorscheme': get(g:, 'colors_name', ''),
         \ 'workspaceFolders': get(g:, 'WorkspaceFolders', v:null),
