@@ -5,9 +5,9 @@ import events from '../events'
 import Document from '../model/document'
 import FloatFactory from '../model/floatFactory'
 import { ConfigurationChangeEvent, DiagnosticItem, Documentation } from '../types'
-import { disposeAll, wait } from '../util'
+import { disposeAll, wait, echoMessage } from '../util'
 import { comparePosition, positionInRange, lineInRange, rangeIntersect } from '../util/position'
-import workspace from '../workspace'
+import workspace, { Workspace } from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
 import { getSeverityName, getSeverityType, severityLevel } from './util'
@@ -36,6 +36,7 @@ export interface DiagnosticConfig {
   virtualTextPrefix: string
   virtualTextLines: number
   virtualTextLineSeparator: string
+  filetypeMap: object
 }
 
 export class DiagnosticManager implements Disposable {
@@ -393,9 +394,10 @@ export class DiagnosticManager implements Disposable {
    * Echo diagnostic message of currrent position
    */
   public async echoMessage(truncate = false): Promise<void> {
-    if (!this.enabled || this.config.enableMessage == 'never') return
+    const config = this.config
+    if (!this.enabled || config.enableMessage == 'never') return
     if (this.timer) clearTimeout(this.timer)
-    let useFloat = this.config.messageTarget == 'float'
+    let useFloat = config.messageTarget == 'float'
     let diagnostics = await this.getCurrentDiagnostics()
     if (diagnostics.length == 0) {
       if (useFloat) {
@@ -412,22 +414,37 @@ export class DiagnosticManager implements Disposable {
     if (truncate && workspace.insertMode) return
     let lines: string[] = []
     let docs: Documentation[] = []
+
+
+
+    const buf_ft = (await workspace.document).filetype
+    const default_ft = config.filetypeMap['default']
+    const ft = config.filetypeMap.hasOwnProperty(buf_ft) ?
+      config.filetypeMap[buf_ft] :
+      (default_ft === 'bufferType' ?
+        buf_ft : (default_ft ? default_ft : ''))
+
     diagnostics.forEach(diagnostic => {
       let { source, code, severity, message } = diagnostic
       let s = getSeverityName(severity)[0]
       let str = `[${source}${code ? ' ' + code : ''}] [${s}] ${message}`
       let filetype = 'Error'
-      switch (diagnostic.severity) {
-        case DiagnosticSeverity.Hint:
-          filetype = 'Hint'
-          break
-        case DiagnosticSeverity.Warning:
-          filetype = 'Warning'
-          break
-        case DiagnosticSeverity.Information:
-          filetype = 'Info'
-          break
+      if (ft === '') {
+        switch (diagnostic.severity) {
+          case DiagnosticSeverity.Hint:
+            filetype = 'Hint'
+            break
+          case DiagnosticSeverity.Warning:
+            filetype = 'Warning'
+            break
+          case DiagnosticSeverity.Information:
+            filetype = 'Info'
+            break
+        }
+      } else {
+        filetype = ft
       }
+
       docs.push({ filetype, content: str })
       lines.push(...str.split('\n'))
     })
@@ -509,6 +526,7 @@ export class DiagnosticManager implements Disposable {
       hintSign: getConfig<string>('hintSign', '>>'),
       refreshAfterSave: getConfig<boolean>('refreshAfterSave', false),
       refreshOnInsertMode: getConfig<boolean>('refreshOnInsertMode', false),
+      filetypeMap: getConfig<object>('filetypeMap', {}),
     }
     this.enabled = getConfig<boolean>('enable', true)
     if (this.config.displayByAle) {
