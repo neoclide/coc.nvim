@@ -551,6 +551,15 @@ function! coc#util#run_terminal(opts, cb)
   call coc#util#open_terminal(opts)
 endfunction
 
+function! coc#util#getpid()
+  if !has('win32unix')
+    return getpid()
+  endif
+
+  let cmd = 'cat /proc/' . getpid() . '/winpid'
+  return substitute(system(cmd), '\v\n', '', 'gi')
+endfunction
+
 function! coc#util#vim_info()
   return {
         \ 'mode': mode(),
@@ -559,7 +568,7 @@ function! coc#util#vim_info()
         \ 'watchExtensions': get(g:, 'coc_watch_extensions', []),
         \ 'globalExtensions': get(g:, 'coc_global_extensions', []),
         \ 'config': get(g:, 'coc_user_config', {}),
-        \ 'pid': getpid(),
+        \ 'pid': coc#util#getpid(),
         \ 'columns': &columns,
         \ 'lines': &lines,
         \ 'cmdheight': &cmdheight,
@@ -568,6 +577,7 @@ function! coc#util#vim_info()
         \ 'completeOpt': &completeopt,
         \ 'pumevent': exists('##MenuPopupChanged') || exists('##CompleteChanged'),
         \ 'isVim': has('nvim') ? v:false : v:true,
+        \ 'isCygwin': has('win32unix') ? v:true : v:false,
         \ 'isMacvim': has('gui_macvim') ? v:true : v:false,
         \ 'colorscheme': get(g:, 'colors_name', ''),
         \ 'workspaceFolders': get(g:, 'WorkspaceFolders', v:null),
