@@ -54425,7 +54425,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "a8ae0d07bc" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "3ce5cabf4c" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -57356,6 +57356,7 @@ const db_1 = tslib_1.__importDefault(__webpack_require__(203));
 const extension_1 = tslib_1.__importDefault(__webpack_require__(248));
 const memos_1 = tslib_1.__importDefault(__webpack_require__(305));
 const util_2 = __webpack_require__(171);
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(182));
 const array_1 = __webpack_require__(209);
 __webpack_require__(306);
 const factory_1 = __webpack_require__(307);
@@ -57455,7 +57456,6 @@ class Extensions {
             if (ts && Number(ts) > day.getTime())
                 return;
             this.updateExtensions().logError();
-            this.db.push('lastUpdate', Date.now());
         }
     }
     async updateExtensions() {
@@ -57480,6 +57480,7 @@ class Extensions {
                 workspace_1.default.showMessage(`Error on update ${name}: ${err}`);
             });
         }));
+        this.db.push('lastUpdate', Date.now());
         workspace_1.default.showMessage('Update completed', 'more');
         statusItem.dispose();
     }
@@ -58173,16 +58174,18 @@ class Extensions {
     }
     async initializeRoot() {
         let root = this.root = await workspace_1.default.nvim.call('coc#util#extension_root');
+        if (!fs_1.default.existsSync(root)) {
+            mkdirp_1.default.sync(root);
+        }
+        let jsonFile = path_1.default.join(root, 'package.json');
+        if (!fs_1.default.existsSync(jsonFile)) {
+            fs_1.default.writeFileSync(jsonFile, '{"dependencies":{}}', 'utf8');
+        }
         if (!this.db) {
-            let filepath = path_1.default.join(this.root, 'db.json');
+            let filepath = path_1.default.join(root, 'db.json');
             this.db = new db_1.default(filepath);
         }
-        this.manager = new extension_1.default(this.root);
-        let jsonFile = path_1.default.join(root, 'package.json');
-        if (fs_1.default.existsSync(jsonFile))
-            return;
-        await util_2.mkdirp(root);
-        await util_1.default.promisify(fs_1.default.writeFile)(jsonFile, '{"dependencies":{}}', 'utf8');
+        this.manager = new extension_1.default(root);
     }
 }
 exports.Extensions = Extensions;
@@ -72292,11 +72295,12 @@ class DiagnosticManager {
      * Echo diagnostic message of currrent position
      */
     async echoMessage(truncate = false) {
-        if (!this.enabled || this.config.enableMessage == 'never')
+        const config = this.config;
+        if (!this.enabled || config.enableMessage == 'never')
             return;
         if (this.timer)
             clearTimeout(this.timer);
-        let useFloat = this.config.messageTarget == 'float';
+        let useFloat = config.messageTarget == 'float';
         let diagnostics = await this.getCurrentDiagnostics();
         if (diagnostics.length == 0) {
             if (useFloat) {
@@ -72315,21 +72319,32 @@ class DiagnosticManager {
             return;
         let lines = [];
         let docs = [];
+        const buf_ft = (await workspace_1.default.document).filetype;
+        const default_ft = config.filetypeMap['default'];
+        const ft = config.filetypeMap.hasOwnProperty(buf_ft) ?
+            config.filetypeMap[buf_ft] :
+            (default_ft === 'bufferType' ?
+                buf_ft : (default_ft ? default_ft : ''));
         diagnostics.forEach(diagnostic => {
             let { source, code, severity, message } = diagnostic;
             let s = util_2.getSeverityName(severity)[0];
             let str = `[${source}${code ? ' ' + code : ''}] [${s}] ${message}`;
             let filetype = 'Error';
-            switch (diagnostic.severity) {
-                case vscode_languageserver_protocol_1.DiagnosticSeverity.Hint:
-                    filetype = 'Hint';
-                    break;
-                case vscode_languageserver_protocol_1.DiagnosticSeverity.Warning:
-                    filetype = 'Warning';
-                    break;
-                case vscode_languageserver_protocol_1.DiagnosticSeverity.Information:
-                    filetype = 'Info';
-                    break;
+            if (ft === '') {
+                switch (diagnostic.severity) {
+                    case vscode_languageserver_protocol_1.DiagnosticSeverity.Hint:
+                        filetype = 'Hint';
+                        break;
+                    case vscode_languageserver_protocol_1.DiagnosticSeverity.Warning:
+                        filetype = 'Warning';
+                        break;
+                    case vscode_languageserver_protocol_1.DiagnosticSeverity.Information:
+                        filetype = 'Info';
+                        break;
+                }
+            }
+            else {
+                filetype = ft;
             }
             docs.push({ filetype, content: str });
             lines.push(...str.split('\n'));
@@ -72412,6 +72427,7 @@ class DiagnosticManager {
             hintSign: getConfig('hintSign', '>>'),
             refreshAfterSave: getConfig('refreshAfterSave', false),
             refreshOnInsertMode: getConfig('refreshOnInsertMode', false),
+            filetypeMap: getConfig('filetypeMap', {}),
         };
         this.enabled = getConfig('enable', true);
         if (this.config.displayByAle) {
@@ -72678,11 +72694,9 @@ class FloatFactory {
             let { nvim, alignTop } = this;
             let reuse = false;
             let filetypes = docs.reduce((p, curr) => {
-                if (p.indexOf(curr.filetype) == -1) {
-                    p.push(curr.filetype);
-                }
+                p.add(curr.filetype);
                 return p;
-            }, []);
+            }, new Set);
             nvim.pauseNotification();
             let { popup, window } = this;
             this.popup.move({
@@ -72695,8 +72709,8 @@ class FloatFactory {
             });
             this.floatBuffer.setLines();
             // nvim.call('win_execute', [window.id, `normal! G`], true)
-            if (filetypes.length == 1) {
-                this.popup.setFiletype(filetypes[0]);
+            if (filetypes.size == 1) {
+                this.popup.setFiletype(filetypes.values().next().value);
             }
             let [res, err] = await nvim.resumeNotification();
             if (err) {

@@ -550,6 +550,13 @@
       "description": "Maximum height of diagnostics floating window.",
       "default": 8
     },
+    "diagnostic.filetypeMap": {
+      "type":"object",
+      "description": "A map between buffer filetype and the filetype assigned to diagnostics. To syntax highlight diagnostics withs their parent buffer type use '\"default\": \"bufferType\"'",
+      "default": {
+        "default": ""
+      }
+    },
     "signature.enable": {
       "type": "boolean",
       "description": "Enable signature help when trigger character typed, require restart service on change.",
