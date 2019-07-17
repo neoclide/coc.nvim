@@ -624,7 +624,7 @@ export class Extensions {
             return resolve(null)
           }
           if (names.indexOf(obj.name) !== -1) {
-            workspace.showMessage(`Skipped extension  "${root}", please uninstall "${obj.name}" by :CocUninstall ${obj.name}`, 'warning')
+            workspace.showMessage(`Skipped extension  "${root}", please remove "${obj.name}" from your vim's plugin manager.`, 'warning')
             return resolve(null)
           }
           let version = obj ? obj.version || '' : ''
