@@ -57,6 +57,9 @@ export class SnippetVariableResolver implements VariableResolver {
     if (this._variableToValue.hasOwnProperty(variableName)) {
       return this._variableToValue[variableName] || ''
     }
-    return variable.toString() || variableName
+    if (variable.children && variable.children.length) {
+      return variable.toString()
+    }
+    return variableName
   }
 }

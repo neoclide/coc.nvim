@@ -76,12 +76,12 @@ export class Extensions {
     if (global.hasOwnProperty('__TEST__')) {
       this.root = path.join(__dirname, './__tests__/extensions')
       this.manager = new ExtensionManager(this.root)
+      let filepath = path.join(this.root, 'db.json')
+      let db = this.db = new DB(filepath)
     } else {
       await this.initializeRoot()
     }
-    let filepath = path.join(this.root, 'db.json')
-    let db = this.db = new DB(filepath)
-    let data = loadJson(db.filepath) || {}
+    let data = loadJson(this.db.filepath) || {}
     let keys = Object.keys(data.extension || {})
     for (let key of keys) {
       if (data.extension[key].disabled == true) {
@@ -839,6 +839,10 @@ export class Extensions {
 
   private async initializeRoot(): Promise<void> {
     let root = this.root = await workspace.nvim.call('coc#util#extension_root')
+    if (!this.db) {
+      let filepath = path.join(this.root, 'db.json')
+      this.db = new DB(filepath)
+    }
     this.manager = new ExtensionManager(this.root)
     let jsonFile = path.join(root, 'package.json')
     if (fs.existsSync(jsonFile)) return
