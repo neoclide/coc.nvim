@@ -141,8 +141,7 @@ function! coc#util#valid_state()
     return 0
   endif
   if get(g: , 'EasyMotion_loaded', 0)
-    let line = coc#util#echo_line()
-    return line !~# 'Target key'
+    return EasyMotion#is_active() != 1
   endif
   return 1
 endfunction
