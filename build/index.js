@@ -54425,7 +54425,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "afdf22508e" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "a8ae0d07bc" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -57391,13 +57391,13 @@ class Extensions {
         if (global.hasOwnProperty('__TEST__')) {
             this.root = path_1.default.join(__dirname, './__tests__/extensions');
             this.manager = new extension_1.default(this.root);
+            let filepath = path_1.default.join(this.root, 'db.json');
+            let db = this.db = new db_1.default(filepath);
         }
         else {
             await this.initializeRoot();
         }
-        let filepath = path_1.default.join(this.root, 'db.json');
-        let db = this.db = new db_1.default(filepath);
-        let data = loadJson(db.filepath) || {};
+        let data = loadJson(this.db.filepath) || {};
         let keys = Object.keys(data.extension || {});
         for (let key of keys) {
             if (data.extension[key].disabled == true) {
@@ -58173,6 +58173,10 @@ class Extensions {
     }
     async initializeRoot() {
         let root = this.root = await workspace_1.default.nvim.call('coc#util#extension_root');
+        if (!this.db) {
+            let filepath = path_1.default.join(this.root, 'db.json');
+            this.db = new db_1.default(filepath);
+        }
         this.manager = new extension_1.default(this.root);
         let jsonFile = path_1.default.join(root, 'package.json');
         if (fs_1.default.existsSync(jsonFile))
@@ -85240,7 +85244,10 @@ class SnippetVariableResolver {
         if (this._variableToValue.hasOwnProperty(variableName)) {
             return this._variableToValue[variableName] || '';
         }
-        return variable.toString() || variableName;
+        if (variable.children && variable.children.length) {
+            return variable.toString();
+        }
+        return variableName;
     }
 }
 exports.SnippetVariableResolver = SnippetVariableResolver;
