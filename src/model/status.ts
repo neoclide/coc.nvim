@@ -13,9 +13,7 @@ export default class StatusLine implements Disposable {
   private interval: NodeJS.Timer
   constructor(private nvim: Neovim) {
     this.interval = setInterval(() => {
-      this.setStatusText().catch(_e => {
-        // noop
-      })
+      this.setStatusText().logError()
     }, 100)
   }
 

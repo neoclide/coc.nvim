@@ -117,7 +117,6 @@ export class Workspace implements IWorkspace {
         }
       })
     }
-    this.checkProcess()
     this.configurations.updateUserConfig(this._env.config)
     events.on('InsertEnter', () => {
       this._insertMode = true
@@ -1589,19 +1588,6 @@ augroup end`
       })
     }
     return this.nvim.getOption(name)
-  }
-
-  private checkProcess(): void {
-    if (global.hasOwnProperty('__TEST__')) return
-    let pid = this._env.pid
-    let interval = setInterval(() => {
-      if (!isRunning(pid)) {
-        process.exit()
-      }
-    }, 15000)
-    process.on('exit', () => {
-      clearInterval(interval)
-    })
   }
 
   private addWorkspaceFolder(rootPath: string): WorkspaceFolder {
