@@ -31,9 +31,7 @@ function! coc#add_command(id, cmd, ...)
 endfunction
 
 function! coc#refresh() abort
-  if pumvisible()
-    call feedkeys("\<Plug>CocRefresh", 'i')
-  endif
+  call coc#_cancel()
   return "\<c-r>=coc#start()\<CR>"
 endfunction
 
@@ -109,9 +107,6 @@ function! coc#_select() abort
 endfunction
 
 function! coc#start(...)
-  if !get(g:, 'coc_enabled', 0)
-    return ''
-  endif
   let opt = coc#util#get_complete_option()
   call CocActionAsync('startCompletion', extend(opt, get(a:, 1, {})))
   return ''

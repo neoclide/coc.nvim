@@ -54409,7 +54409,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "0fe193e685" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "37ddac61f8" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -75801,6 +75801,10 @@ class LanguageClient extends client_1.BaseLanguageClient {
             }
             if (cmd.indexOf('$') !== -1) {
                 cmd = string_1.resolveVariables(cmd, { workspaceFolder: workspace_1.default.rootPath });
+            }
+            if (path_1.default.isAbsolute(cmd) && !fs_1.default.existsSync(cmd)) {
+                logger.info(`${cmd} of ${this.id} not exists`);
+                return;
             }
             try {
                 which_1.default.sync(cmd);
