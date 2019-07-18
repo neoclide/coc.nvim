@@ -5,7 +5,7 @@ import { URI } from 'vscode-uri'
 import { BufferOption, ChangeInfo, Env } from '../types'
 import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
-import { getUri, wait } from '../util/index'
+import { getUri, wait, platform } from '../util/index'
 import { byteIndex, byteLength, byteSlice } from '../util/string'
 import { Chars } from './chars'
 import { group } from '../util/array'
@@ -280,6 +280,12 @@ export default class Document {
     let orig = this.lines.join('\n') + (this.eol ? '\n' : '')
     let textDocument = TextDocument.create(this.uri, this.filetype, 1, orig)
     let content = TextDocument.applyEdits(textDocument, edits as TextEdit[])
+    if (this.env.isCygwin && platform.isWindows) {
+      let fileformat = await this.nvim.call('coc#util#get_fileformat', [])
+      if (fileformat == 'unix') {
+        content = content.replace(/\r\n/g, '\n');
+      }
+    }
     // could be equal sometimes
     if (orig === content) {
       this.createDocument()

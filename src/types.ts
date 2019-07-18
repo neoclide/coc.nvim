@@ -237,6 +237,7 @@ export interface Env {
   readonly pumevent: boolean
   readonly cmdheight: number
   readonly filetypeMap: { [index: string]: string }
+  readonly isCygwin: boolean
   readonly isVim: boolean
   readonly isMacvim: boolean
   readonly version: string
