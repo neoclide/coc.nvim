@@ -27,7 +27,6 @@ export class Completion implements Disposable {
   private activted = false
   private input: string
   private lastInsert?: LastInsert
-  private nvim: Neovim
   private disposables: Disposable[] = []
   private complete: Complete | null = null
   private recentScores: RecentScore = {}
@@ -38,10 +37,9 @@ export class Completion implements Disposable {
   // only used when no pum change event
   private isResolving = false
 
-  public init(nvim: Neovim): void {
-    this.nvim = nvim
+  public init(): void {
     this.config = this.getCompleteConfig()
-    this.floating = new Floating(nvim)
+    this.floating = new Floating()
     events.on('InsertCharPre', this.onInsertCharPre, this, this.disposables)
     events.on('InsertLeave', this.onInsertLeave, this, this.disposables)
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
@@ -67,6 +65,10 @@ export class Completion implements Disposable {
         Object.assign(this.config, this.getCompleteConfig())
       }
     }, null, this.disposables)
+  }
+
+  private get nvim(): Neovim {
+    return workspace.nvim
   }
 
   public get option(): CompleteOption {

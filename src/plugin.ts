@@ -149,18 +149,18 @@ export default class Plugin extends EventEmitter {
     try {
       await extensions.init(nvim)
       await workspace.init()
+      completion.init()
       diagnosticManager.init()
       listManager.init(nvim)
       nvim.setVar('coc_workspace_initialized', 1, true)
       nvim.setVar('coc_process_pid', process.pid, true)
       nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
-      completion.init(nvim)
       sources.init()
       this.handler = new Handler(nvim)
       services.init()
       await extensions.activateExtensions()
       nvim.setVar('coc_service_initialized', 1, true)
-      nvim.call('coc#_init', [], true)
+      nvim.call('coc#util#do_autocmd', ['CocNvimInit'], true)
       this._ready = true
       let cmds = await nvim.getVar('coc_vim_commands') as any[]
       if (cmds && cmds.length) {

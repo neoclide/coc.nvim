@@ -182,12 +182,6 @@ function! coc#_unmap()
   endfor
 endfunction
 
-function! coc#_init()
-  if exists('#User#CocNvimInit')
-    doautocmd User CocNvimInit
-  endif
-endfunction
-
 function! coc#on_notify(id, method, Cb)
   let key = a:id. '-'.a:method
   let s:callbacks[key] = a:Cb
