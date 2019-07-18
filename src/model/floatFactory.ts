@@ -9,6 +9,7 @@ import workspace from '../workspace'
 import FloatBuffer from './floatBuffer'
 import debounce from 'debounce'
 import createPopup, { Popup } from './popup'
+import { distinct } from '../util/array'
 const logger = require('../util/logger')('model-float')
 
 export interface WindowConfig {
@@ -31,6 +32,7 @@ export default class FloatFactory implements Disposable {
   private createTs = 0
   private cursor: [number, number] = [0, 0]
   private popup: Popup
+  public shown = false
   constructor(private nvim: Neovim,
     private env: Env,
     private preferTop = false,
@@ -55,7 +57,10 @@ export default class FloatFactory implements Disposable {
         this.close()
       }
     }, null, this.disposables)
-    events.on('CursorMoved', debounce(this.onCursorMoved.bind(this, false), 100), null, this.disposables)
+    events.on('CursorMoved', debounce((bufnr, cursor) => {
+      if (Date.now() - this.createTs < 100) return
+      this.onCursorMoved(false, bufnr, cursor)
+    }, 100), null, this.disposables)
     events.on('CursorMovedI', this.onCursorMoved.bind(this, true), null, this.disposables)
   }
 
@@ -66,7 +71,7 @@ export default class FloatFactory implements Disposable {
       this.close()
       return
     }
-    if (!workspace.insertMode || bufnr != this.targetBufnr || (this.cursor && cursor[0] != this.cursor[0])) {
+    if (!insertMode || bufnr != this.targetBufnr || (this.cursor && cursor[0] != this.cursor[0])) {
       this.close()
       return
     }
@@ -149,21 +154,15 @@ export default class FloatFactory implements Disposable {
     }
   }
   public async create(docs: Documentation[], allowSelection = false, offsetX = 0): Promise<void> {
-    if (this.env.floating) {
-      await this.createNvim(docs, allowSelection, offsetX)
-    } else if (this.env.textprop) {
-      await this.createVim(docs, allowSelection, offsetX)
-    }
+    let shown = await this.createPopup(docs, allowSelection, offsetX)
+    if (!shown) this.close(false)
   }
 
-  public async createVim(docs: Documentation[], allowSelection = false, offsetX = 0): Promise<void> {
-    if (docs.length == 0) {
-      this.close()
-      return
-    }
+  public async createPopup(docs: Documentation[], allowSelection = false, offsetX = 0): Promise<boolean> {
     if (this.tokenSource) {
       this.tokenSource.cancel()
     }
+    if (docs.length == 0) return false
     this.createTs = Date.now()
     this.targetBufnr = workspace.bufnr
     let tokenSource = this.tokenSource = new CancellationTokenSource()
@@ -172,69 +171,21 @@ export default class FloatFactory implements Disposable {
     let config = await this.getBoundings(docs, offsetX)
     let [mode, line, col, visible] = await this.nvim.eval('[mode(),line("."),col("."),pumvisible()]') as [string, number, number, number]
     this.cursor = [line, col]
-    if (visible && this.alignTop == this.pumAlignTop) return this.close()
-    if (!config || token.isCancellationRequested || visible) return this.close()
-    allowSelection = mode == 's' && allowSelection
-    if (['i', 'n', 'ic'].indexOf(mode) !== -1 || allowSelection) {
-      let { nvim, alignTop } = this
-      let reuse = false
-      let filetypes = docs.reduce((p, curr) => {
-        p.add(curr.filetype)
-        return p
-      }, new Set() as Set<string>)
-      nvim.pauseNotification()
-      let { popup, window } = this
-      this.popup.move({
-        line: cursorPostion(config.row),
-        col: cursorPostion(config.col),
-        minwidth: config.width - 2,
-        minheight: config.height,
-        maxwidth: config.width - 2,
-        maxheight: config.height
-      })
-      this.floatBuffer.setLines()
-      // nvim.call('win_execute', [window.id, `normal! G`], true)
-      if (filetypes.size == 1) {
-        this.popup.setFiletype(filetypes.values().next().value)
-      }
-      let [res, err] = await nvim.resumeNotification()
-      if (err) {
-        workspace.showMessage(`Error on ${err[0]}: ${err[1]} - ${err[2]}`, 'error')
-        return
-      }
-      if (mode == 's') await snippetsManager.selectCurrentPlaceholder(false)
-    }
-  }
-
-  public async createNvim(docs: Documentation[], allowSelection = false, offsetX = 0): Promise<void> {
-    if (docs.length == 0) {
-      this.close()
-      return
-    }
-    if (this.tokenSource) {
-      this.tokenSource.cancel()
-    }
-    this.createTs = Date.now()
-    this.targetBufnr = workspace.bufnr
-    let tokenSource = this.tokenSource = new CancellationTokenSource()
-    let token = tokenSource.token
-    await this.checkFloatBuffer()
-    let config = await this.getBoundings(docs, offsetX)
-    let [mode, line, col, visible] = await this.nvim.eval('[mode(),line("."),col("."),pumvisible()]') as [string, number, number, number]
-    this.cursor = [line, col]
-    if (visible && this.alignTop == this.pumAlignTop) return this.close()
-    if (!config || token.isCancellationRequested || visible) return this.close()
-    allowSelection = mode == 's' && allowSelection
-    if (['i', 'n', 'ic'].indexOf(mode) !== -1 || allowSelection) {
-      let { nvim, alignTop } = this
-      // change to normal
-      if (mode == 's') await nvim.call('feedkeys', ['\x1b', 'in'])
-      // helps to fix undo issue, don't know why.
-      if (mode.startsWith('i')) await nvim.eval('feedkeys("\\<C-g>u", "n")')
-      let reuse = this.window && await this.window.valid
+    if (visible && this.alignTop == this.pumAlignTop) return false
+    if (!config || token.isCancellationRequested) return false
+    if (!this.checkMode(mode, allowSelection)) return false
+    let { nvim, alignTop } = this
+    if (mode == 's') await nvim.call('feedkeys', ['\x1b', 'in'])
+    // helps to fix undo issue, don't know why.
+    if (workspace.isNvim && mode.startsWith('i')) await nvim.eval('feedkeys("\\<C-g>u", "n")')
+    let reuse = false
+    if (workspace.isNvim) {
+      reuse = this.window && await this.window.valid
       if (!reuse) this.window = await nvim.openFloatWindow(this.buffer, false, config)
-      if (token.isCancellationRequested) return
-      nvim.pauseNotification()
+    }
+    if (token.isCancellationRequested) return false
+    nvim.pauseNotification()
+    if (workspace.isNvim) {
       if (!reuse) {
         nvim.command(`noa call win_gotoid(${this.window.id})`, true)
         this.window.setVar('float', 1, true)
@@ -250,28 +201,49 @@ export default class FloatFactory implements Disposable {
       this.floatBuffer.setLines()
       nvim.command(`normal! ${alignTop ? 'G' : 'gg'}0`, true)
       nvim.command('noa wincmd p', true)
-      let [res, err] = await nvim.resumeNotification()
-      if (err) {
-        workspace.showMessage(`Error on ${err[0]}: ${err[1]} - ${err[2]}`, 'error')
-        return
+    } else {
+      let filetypes = distinct(docs.map(d => d.filetype))
+      if (filetypes.length == 1) {
+        this.popup.setFiletype(filetypes[0])
       }
-      if (mode == 's') await snippetsManager.selectCurrentPlaceholder(false)
+      this.popup.move({
+        line: cursorPostion(config.row),
+        col: cursorPostion(config.col),
+        minwidth: config.width - 2,
+        minheight: config.height,
+        maxwidth: config.width - 2,
+        maxheight: config.height
+      })
+      this.floatBuffer.setLines()
     }
+    let [res, err] = await nvim.resumeNotification()
+    if (err) {
+      workspace.showMessage(`Error on ${err[0]}: ${err[1]} - ${err[2]}`, 'error')
+      return false
+    }
+    if (mode == 's') await snippetsManager.selectCurrentPlaceholder(false)
+    return true
+  }
+
+  private checkMode(mode: string, allowSelection: boolean): boolean {
+    if (mode == 's' && allowSelection) {
+      return true
+    }
+    return ['i', 'n', 'ic'].indexOf(mode) != -1
   }
 
   /**
    * Close float window
    */
-  public close(): void {
-    if (this.tokenSource) {
-      this.tokenSource.cancel()
-      this.tokenSource = null
+  public close(cancel = true): void {
+    if (cancel && this.tokenSource) {
+      if (this.tokenSource) {
+        this.tokenSource.cancel()
+        this.tokenSource = null
+      }
     }
-    this.closeWindow()
-  }
-
-  private closeWindow(): void {
     let { window, popup } = this
+    this.shown = false
     if (this.env.textprop) {
       if (popup) popup.dispose()
     } else if (window) {
