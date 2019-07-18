@@ -54311,18 +54311,18 @@ class Plugin extends events_1.EventEmitter {
         try {
             await extensions_1.default.init(nvim);
             await workspace_1.default.init();
+            completion_1.default.init();
             manager_1.default.init();
             manager_2.default.init(nvim);
             nvim.setVar('coc_workspace_initialized', 1, true);
             nvim.setVar('coc_process_pid', process.pid, true);
             nvim.setVar('WorkspaceFolders', workspace_1.default.folderPaths, true);
-            completion_1.default.init(nvim);
             sources_1.default.init();
             this.handler = new handler_1.default(nvim);
             services_1.default.init();
             await extensions_1.default.activateExtensions();
             nvim.setVar('coc_service_initialized', 1, true);
-            nvim.call('coc#_init', [], true);
+            nvim.call('coc#util#do_autocmd', ['CocNvimInit'], true);
             this._ready = true;
             let cmds = await nvim.getVar('coc_vim_commands');
             if (cmds && cmds.length) {
@@ -54409,7 +54409,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "baa3b1f169" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "0fe193e685" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -56395,10 +56395,9 @@ class Completion {
         // only used when no pum change event
         this.isResolving = false;
     }
-    init(nvim) {
-        this.nvim = nvim;
+    init() {
         this.config = this.getCompleteConfig();
-        this.floating = new floating_1.default(nvim);
+        this.floating = new floating_1.default();
         events_1.default.on('InsertCharPre', this.onInsertCharPre, this, this.disposables);
         events_1.default.on('InsertLeave', this.onInsertLeave, this, this.disposables);
         events_1.default.on('InsertEnter', this.onInsertEnter, this, this.disposables);
@@ -56427,6 +56426,9 @@ class Completion {
                 Object.assign(this.config, this.getCompleteConfig());
             }
         }, null, this.disposables);
+    }
+    get nvim() {
+        return workspace_1.default.nvim;
     }
     get option() {
         if (!this.complete)
@@ -84811,8 +84813,7 @@ const popup_1 = tslib_1.__importDefault(__webpack_require__(319));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const logger = __webpack_require__(183)('floating');
 class Floating {
-    constructor(nvim) {
-        this.nvim = nvim;
+    constructor() {
         let configuration = workspace_1.default.getConfiguration('suggest');
         let enableFloat = configuration.get('floatEnable', true);
         let { env } = workspace_1.default;
@@ -84830,7 +84831,7 @@ class Floating {
         return floatBuffer ? floatBuffer.buffer : null;
     }
     async showDocumentationFloating(docs, bounding, token) {
-        let { nvim } = this;
+        let { nvim } = workspace_1.default;
         await this.checkBuffer();
         let rect = await this.calculateBounding(docs, bounding);
         let config = Object.assign({ relative: 'editor', }, rect);
@@ -84883,7 +84884,7 @@ class Floating {
         }
     }
     async showDocumentationVim(docs, bounding, token) {
-        let { nvim } = this;
+        let { nvim } = workspace_1.default;
         await this.checkBuffer();
         let rect = await this.calculateBounding(docs, bounding);
         if (token.isCancellationRequested)
@@ -84938,7 +84939,8 @@ class Floating {
         };
     }
     async checkBuffer() {
-        let { buffer, nvim, popup } = this;
+        let { buffer, popup } = this;
+        let { nvim } = workspace_1.default;
         if (workspace_1.default.env.textprop) {
             if (popup) {
                 let visible = await popup.visible();
@@ -84962,7 +84964,7 @@ class Floating {
                 win.setOption('conceallevel', 2, true);
                 await nvim.resumeNotification();
             }
-            buffer = this.nvim.createBuffer(this.popup.bufferId);
+            buffer = nvim.createBuffer(this.popup.bufferId);
             this.floatBuffer = new floatBuffer_1.default(nvim, buffer, nvim.createWindow(this.popup.id));
         }
         else {
@@ -84971,7 +84973,7 @@ class Floating {
                 if (valid)
                     return;
             }
-            buffer = await this.nvim.createNewBuffer(false, true);
+            buffer = await nvim.createNewBuffer(false, true);
             await buffer.setOption('buftype', 'nofile');
             await buffer.setOption('bufhidden', 'hide');
             this.floatBuffer = new floatBuffer_1.default(nvim, buffer);
@@ -84988,7 +84990,7 @@ class Floating {
         if (!window)
             return;
         this.window = null;
-        this.nvim.call('coc#util#close_win', window.id, true);
+        workspace_1.default.nvim.call('coc#util#close_win', window.id, true);
         this.window = null;
         let count = 0;
         let interval = setInterval(() => {
@@ -84997,7 +84999,7 @@ class Floating {
                 clearInterval(interval);
             window.valid.then(valid => {
                 if (valid) {
-                    this.nvim.call('coc#util#close_win', window.id, true);
+                    workspace_1.default.nvim.call('coc#util#close_win', window.id, true);
                 }
                 else {
                     window = null;
