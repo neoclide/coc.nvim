@@ -50122,13 +50122,20 @@ class Document {
     get version() {
         return this.textDocument ? this.textDocument.version : null;
     }
-    async applyEdits(nvim, edits, sync = true) {
+    async applyEdits(nvim, _edits, sync = true) {
+        let edits = [];
         if (Array.isArray(nvim)) {
-            sync = edits == null ? true : edits;
+            sync = _edits == null ? true : _edits;
             edits = nvim;
+        }
+        else {
+            edits = _edits || [];
         }
         if (edits.length == 0)
             return;
+        edits.forEach(edit => {
+            edit.newText = edit.newText.replace(/\r/g, '');
+        });
         let orig = this.lines.join('\n') + (this.eol ? '\n' : '');
         let textDocument = vscode_languageserver_protocol_1.TextDocument.create(this.uri, this.filetype, 1, orig);
         let content = vscode_languageserver_protocol_1.TextDocument.applyEdits(textDocument, edits);
@@ -54409,7 +54416,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "5dae846bdd" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d438eaf5e0" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -72527,6 +72534,7 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(315));
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(173));
 const popup_1 = tslib_1.__importDefault(__webpack_require__(319));
+const array_1 = __webpack_require__(209);
 const logger = __webpack_require__(183)('model-float');
 // factory class for floating window
 class FloatFactory {
@@ -72539,8 +72547,10 @@ class FloatFactory {
         this.autoHide = autoHide;
         this.disposables = [];
         this.alignTop = false;
+        this.pumAlignTop = false;
         this.createTs = 0;
         this.cursor = [0, 0];
+        this.shown = false;
         if (!env.floating && !env.textprop)
             return;
         this.maxWidth = Math.min(maxWidth || 80, this.columns - 10);
@@ -72559,14 +72569,16 @@ class FloatFactory {
             this.close();
         }, null, this.disposables);
         events_1.default.on('MenuPopupChanged', async (ev, cursorline) => {
-            if (cursorline < ev.row && !this.alignTop) {
-                this.close();
-            }
-            else if (cursorline > ev.row && this.alignTop) {
+            let pumAlignTop = this.pumAlignTop = cursorline > ev.row;
+            if (pumAlignTop == this.alignTop) {
                 this.close();
             }
         }, null, this.disposables);
-        events_1.default.on('CursorMoved', debounce_1.default(this.onCursorMoved.bind(this, false), 100), null, this.disposables);
+        events_1.default.on('CursorMoved', debounce_1.default((bufnr, cursor) => {
+            if (Date.now() - this.createTs < 100)
+                return;
+            this.onCursorMoved(false, bufnr, cursor);
+        }, 100), null, this.disposables);
         events_1.default.on('CursorMovedI', this.onCursorMoved.bind(this, true), null, this.disposables);
     }
     onCursorMoved(insertMode, bufnr, cursor) {
@@ -72578,7 +72590,7 @@ class FloatFactory {
             this.close();
             return;
         }
-        if (!workspace_1.default.insertMode || bufnr != this.targetBufnr || (this.cursor && cursor[0] != this.cursor[0])) {
+        if (!insertMode || bufnr != this.targetBufnr || (this.cursor && cursor[0] != this.cursor[0])) {
             this.close();
             return;
         }
@@ -72662,96 +72674,46 @@ class FloatFactory {
         };
     }
     async create(docs, allowSelection = false, offsetX = 0) {
-        if (this.env.floating) {
-            await this.createNvim(docs, allowSelection, offsetX);
-        }
-        else if (this.env.textprop) {
-            await this.createVim(docs, allowSelection, offsetX);
-        }
+        let shown = await this.createPopup(docs, allowSelection, offsetX);
+        if (!shown)
+            this.close(false);
     }
-    async createVim(docs, allowSelection = false, offsetX = 0) {
-        if (docs.length == 0) {
-            this.close();
-            return;
-        }
+    async createPopup(docs, allowSelection = false, offsetX = 0) {
         if (this.tokenSource) {
             this.tokenSource.cancel();
         }
+        if (docs.length == 0)
+            return false;
         this.createTs = Date.now();
         this.targetBufnr = workspace_1.default.bufnr;
         let tokenSource = this.tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
         let token = tokenSource.token;
         await this.checkFloatBuffer();
         let config = await this.getBoundings(docs, offsetX);
-        let [mode, line, col] = await this.nvim.eval('[mode(),line("."),col(".")]');
+        let [mode, line, col, visible] = await this.nvim.eval('[mode(),line("."),col("."),pumvisible()]');
         this.cursor = [line, col];
+        if (visible && this.alignTop == this.pumAlignTop)
+            return false;
         if (!config || token.isCancellationRequested)
-            return this.popup.dispose();
-        allowSelection = mode == 's' && allowSelection;
-        if (['i', 'n', 'ic'].indexOf(mode) !== -1 || allowSelection) {
-            let { nvim, alignTop } = this;
-            let reuse = false;
-            let filetypes = docs.reduce((p, curr) => {
-                p.add(curr.filetype);
-                return p;
-            }, new Set);
-            nvim.pauseNotification();
-            let { popup, window } = this;
-            this.popup.move({
-                line: cursorPostion(config.row),
-                col: cursorPostion(config.col),
-                minwidth: config.width - 2,
-                minheight: config.height,
-                maxwidth: config.width - 2,
-                maxheight: config.height
-            });
-            this.floatBuffer.setLines();
-            // nvim.call('win_execute', [window.id, `normal! G`], true)
-            if (filetypes.size == 1) {
-                this.popup.setFiletype(filetypes.values().next().value);
-            }
-            let [res, err] = await nvim.resumeNotification();
-            if (err) {
-                workspace_1.default.showMessage(`Error on ${err[0]}: ${err[1]} - ${err[2]}`, 'error');
-                return;
-            }
-            if (mode == 's')
-                await manager_1.default.selectCurrentPlaceholder(false);
-        }
-    }
-    async createNvim(docs, allowSelection = false, offsetX = 0) {
-        if (docs.length == 0) {
-            this.close();
-            return;
-        }
-        if (this.tokenSource) {
-            this.tokenSource.cancel();
-        }
-        this.createTs = Date.now();
-        this.targetBufnr = workspace_1.default.bufnr;
-        let tokenSource = this.tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
-        let token = tokenSource.token;
-        await this.checkFloatBuffer();
-        let config = await this.getBoundings(docs, offsetX);
-        let [mode, line, col] = await this.nvim.eval('[mode(),line("."),col(".")]');
-        this.cursor = [line, col];
-        if (!config || token.isCancellationRequested)
-            return;
-        allowSelection = mode == 's' && allowSelection;
-        if (['i', 'n', 'ic'].indexOf(mode) !== -1 || allowSelection) {
-            let { nvim, alignTop } = this;
-            // change to normal
-            if (mode == 's')
-                await nvim.call('feedkeys', ['\x1b', 'in']);
-            // helps to fix undo issue, don't know why.
-            if (mode.startsWith('i'))
-                await nvim.eval('feedkeys("\\<C-g>u", "n")');
-            let reuse = this.window && await this.window.valid;
+            return false;
+        if (!this.checkMode(mode, allowSelection))
+            return false;
+        let { nvim, alignTop } = this;
+        if (mode == 's')
+            await nvim.call('feedkeys', ['\x1b', 'in']);
+        // helps to fix undo issue, don't know why.
+        if (workspace_1.default.isNvim && mode.startsWith('i'))
+            await nvim.eval('feedkeys("\\<C-g>u", "n")');
+        let reuse = false;
+        if (workspace_1.default.isNvim) {
+            reuse = this.window && await this.window.valid;
             if (!reuse)
                 this.window = await nvim.openFloatWindow(this.buffer, false, config);
-            if (token.isCancellationRequested)
-                return;
-            nvim.pauseNotification();
+        }
+        if (token.isCancellationRequested)
+            return false;
+        nvim.pauseNotification();
+        if (workspace_1.default.isNvim) {
             if (!reuse) {
                 nvim.command(`noa call win_gotoid(${this.window.id})`, true);
                 this.window.setVar('float', 1, true);
@@ -72768,51 +72730,56 @@ class FloatFactory {
             this.floatBuffer.setLines();
             nvim.command(`normal! ${alignTop ? 'G' : 'gg'}0`, true);
             nvim.command('noa wincmd p', true);
-            let [res, err] = await nvim.resumeNotification();
-            if (err) {
-                workspace_1.default.showMessage(`Error on ${err[0]}: ${err[1]} - ${err[2]}`, 'error');
-                return;
-            }
-            if (mode == 's')
-                await manager_1.default.selectCurrentPlaceholder(false);
         }
+        else {
+            let filetypes = array_1.distinct(docs.map(d => d.filetype));
+            if (filetypes.length == 1) {
+                this.popup.setFiletype(filetypes[0]);
+            }
+            this.popup.move({
+                line: cursorPostion(config.row),
+                col: cursorPostion(config.col),
+                minwidth: config.width - 2,
+                minheight: config.height,
+                maxwidth: config.width - 2,
+                maxheight: config.height
+            });
+            this.floatBuffer.setLines();
+        }
+        let [res, err] = await nvim.resumeNotification();
+        if (err) {
+            workspace_1.default.showMessage(`Error on ${err[0]}: ${err[1]} - ${err[2]}`, 'error');
+            return false;
+        }
+        if (mode == 's')
+            await manager_1.default.selectCurrentPlaceholder(false);
+        return true;
+    }
+    checkMode(mode, allowSelection) {
+        if (mode == 's' && allowSelection) {
+            return true;
+        }
+        return ['i', 'n', 'ic'].indexOf(mode) != -1;
     }
     /**
      * Close float window
      */
-    close() {
-        if (this.tokenSource) {
-            this.tokenSource.cancel();
-            this.tokenSource = null;
+    close(cancel = true) {
+        if (cancel && this.tokenSource) {
+            if (this.tokenSource) {
+                this.tokenSource.cancel();
+                this.tokenSource = null;
+            }
         }
-        if (this.popup) {
-            this.popup.dispose();
+        let { window, popup } = this;
+        this.shown = false;
+        if (this.env.textprop) {
+            if (popup)
+                popup.dispose();
         }
-        else {
-            this.closeWindow(this.window);
+        else if (window) {
+            this.nvim.call('nvim_win_close', [window.id, 1], true);
         }
-    }
-    closeWindow(window) {
-        if (!window)
-            return;
-        this.nvim.call('coc#util#close_win', window.id, true);
-        this.window = null;
-        let count = 0;
-        let interval = setInterval(() => {
-            count++;
-            if (count == 5)
-                clearInterval(interval);
-            window.valid.then(valid => {
-                if (valid) {
-                    this.nvim.call('coc#util#close_win', window.id, true);
-                }
-                else {
-                    clearInterval(interval);
-                }
-            }, _e => {
-                clearInterval(interval);
-            });
-        }, 200);
     }
     dispose() {
         if (this.tokenSource) {

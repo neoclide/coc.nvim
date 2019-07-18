@@ -31,7 +31,6 @@ function! coc#add_command(id, cmd, ...)
 endfunction
 
 function! coc#refresh() abort
-  call coc#_cancel()
   return "\<c-r>=coc#start()\<CR>"
 endfunction
 
