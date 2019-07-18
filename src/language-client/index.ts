@@ -427,6 +427,10 @@ export class LanguageClient extends BaseLanguageClient {
       if (cmd.indexOf('$') !== -1) {
         cmd = resolveVariables(cmd, { workspaceFolder: workspace.rootPath })
       }
+      if (path.isAbsolute(cmd) && !fs.existsSync(cmd)) {
+        logger.info(`${cmd} of ${this.id} not exists`)
+        return
+      }
       try {
         which.sync(cmd)
       } catch (e) {
