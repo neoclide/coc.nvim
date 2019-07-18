@@ -271,15 +271,21 @@ export default class Document {
 
   public applyEdits(textEdit: TextEdit[], sync?: boolean): Promise<void>
   public applyEdits(nvim: Neovim, textEdit: TextEdit[], sync?: boolean): Promise<void>
-  public async applyEdits(nvim: Neovim | TextEdit[], edits: TextEdit[] | boolean, sync = true): Promise<void> {
+  public async applyEdits(nvim: Neovim | TextEdit[], _edits: TextEdit[] | boolean, sync = true): Promise<void> {
+    let edits: TextEdit[] = []
     if (Array.isArray(nvim)) {
-      sync = edits == null ? true : edits as boolean
+      sync = _edits == null ? true : _edits as boolean
       edits = nvim
+    } else {
+      edits = _edits as TextEdit[] || []
     }
-    if ((edits as TextEdit[]).length == 0) return
+    if (edits.length == 0) return
+    edits.forEach(edit => {
+      edit.newText = edit.newText.replace(/\r/g, '')
+    })
     let orig = this.lines.join('\n') + (this.eol ? '\n' : '')
     let textDocument = TextDocument.create(this.uri, this.filetype, 1, orig)
-    let content = TextDocument.applyEdits(textDocument, edits as TextEdit[])
+    let content = TextDocument.applyEdits(textDocument, edits)
     // could be equal sometimes
     if (orig === content) {
       this.createDocument()
