@@ -27,6 +27,7 @@ export default class FloatFactory implements Disposable {
   private floatBuffer: FloatBuffer
   private tokenSource: CancellationTokenSource
   private alignTop = false
+  private pumAlignTop = false
   private createTs = 0
   private cursor: [number, number] = [0, 0]
   private popup: Popup
@@ -49,9 +50,8 @@ export default class FloatFactory implements Disposable {
       this.close()
     }, null, this.disposables)
     events.on('MenuPopupChanged', async (ev, cursorline) => {
-      if (cursorline < ev.row && !this.alignTop) {
-        this.close()
-      } else if (cursorline > ev.row && this.alignTop) {
+      let pumAlignTop = this.pumAlignTop = cursorline > ev.row
+      if (pumAlignTop == this.alignTop) {
         this.close()
       }
     }, null, this.disposables)
@@ -170,9 +170,10 @@ export default class FloatFactory implements Disposable {
     let token = tokenSource.token
     await this.checkFloatBuffer()
     let config = await this.getBoundings(docs, offsetX)
-    let [mode, line, col] = await this.nvim.eval('[mode(),line("."),col(".")]') as [string, number, number]
+    let [mode, line, col, visible] = await this.nvim.eval('[mode(),line("."),col("."),pumvisible()]') as [string, number, number, number]
     this.cursor = [line, col]
-    if (!config || token.isCancellationRequested) return this.popup.dispose()
+    if (visible && this.alignTop == this.pumAlignTop) return this.close()
+    if (!config || token.isCancellationRequested || visible) return this.close()
     allowSelection = mode == 's' && allowSelection
     if (['i', 'n', 'ic'].indexOf(mode) !== -1 || allowSelection) {
       let { nvim, alignTop } = this
@@ -180,7 +181,7 @@ export default class FloatFactory implements Disposable {
       let filetypes = docs.reduce((p, curr) => {
         p.add(curr.filetype)
         return p
-      }, new Set as Set<string>)
+      }, new Set() as Set<string>)
       nvim.pauseNotification()
       let { popup, window } = this
       this.popup.move({
@@ -210,7 +211,6 @@ export default class FloatFactory implements Disposable {
       this.close()
       return
     }
-
     if (this.tokenSource) {
       this.tokenSource.cancel()
     }
@@ -220,9 +220,10 @@ export default class FloatFactory implements Disposable {
     let token = tokenSource.token
     await this.checkFloatBuffer()
     let config = await this.getBoundings(docs, offsetX)
-    let [mode, line, col] = await this.nvim.eval('[mode(),line("."),col(".")]') as [string, number, number]
+    let [mode, line, col, visible] = await this.nvim.eval('[mode(),line("."),col("."),pumvisible()]') as [string, number, number, number]
     this.cursor = [line, col]
-    if (!config || token.isCancellationRequested) return
+    if (visible && this.alignTop == this.pumAlignTop) return this.close()
+    if (!config || token.isCancellationRequested || visible) return this.close()
     allowSelection = mode == 's' && allowSelection
     if (['i', 'n', 'ic'].indexOf(mode) !== -1 || allowSelection) {
       let { nvim, alignTop } = this
@@ -266,31 +267,16 @@ export default class FloatFactory implements Disposable {
       this.tokenSource.cancel()
       this.tokenSource = null
     }
-    if (this.popup) {
-      this.popup.dispose()
-    } else {
-      this.closeWindow(this.window)
-    }
+    this.closeWindow()
   }
 
-  private closeWindow(window: Window): void {
-    if (!window) return
-    this.nvim.call('coc#util#close_win', window.id, true)
-    this.window = null
-    let count = 0
-    let interval = setInterval(() => {
-      count++
-      if (count == 5) clearInterval(interval)
-      window.valid.then(valid => {
-        if (valid) {
-          this.nvim.call('coc#util#close_win', window.id, true)
-        } else {
-          clearInterval(interval)
-        }
-      }, _e => {
-        clearInterval(interval)
-      })
-    }, 200)
+  private closeWindow(): void {
+    let { window, popup } = this
+    if (this.env.textprop) {
+      if (popup) popup.dispose()
+    } else if (window) {
+      this.nvim.call('nvim_win_close', [window.id, 1], true)
+    }
   }
 
   public dispose(): void {
