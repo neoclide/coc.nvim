@@ -307,9 +307,9 @@ export class Completion implements Disposable {
       this.isResolving = true
       return
     }
-    let col = await this.nvim.call('col', '.')
-    let search = byteSlice(line, option.col, col - 1)
-    let pre = byteSlice(line, 0, col - 1)
+    let pre = await this.getPreviousContent(document)
+    if (!pre) return
+    let search = this.getResumeInput(pre)
     if (sources.shouldTrigger(pre, document.filetype)) {
       await this.triggerCompletion(document, pre, false)
     } else {
@@ -442,7 +442,7 @@ export class Completion implements Disposable {
 
   private get latestInsert(): LastInsert | null {
     let { lastInsert } = this
-    if (!lastInsert || Date.now() - lastInsert.timestamp > 200) {
+    if (!lastInsert || Date.now() - lastInsert.timestamp > 500) {
       return null
     }
     return lastInsert
