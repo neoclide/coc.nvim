@@ -50,7 +50,7 @@ export class Completion implements Disposable {
     events.on('CursorMovedI', debounce(async (bufnr, cursor) => {
       // try trigger completion
       let doc = workspace.getDocument(bufnr)
-      if (this.isActivted || !doc || cursor[1] == 1 || !this.latestInsertChar) return
+      if (this.isActivated || !doc || cursor[1] == 1 || !this.latestInsertChar) return
       let line = doc.getline(cursor[0] - 1)
       if (!line) return
       let pre = byteSlice(line, 0, cursor[1] - 1)
@@ -100,7 +100,7 @@ export class Completion implements Disposable {
     return option ? option.bufnr : null
   }
 
-  public get isActivted(): boolean {
+  public get isActivated(): boolean {
     return this.activated
   }
 
@@ -188,7 +188,7 @@ export class Completion implements Disposable {
     } else {
       items = complete.filterResults(search)
     }
-    if (!this.isActivted) return
+    if (!this.isActivated) return
     if (!complete.isCompleting && (!items || items.length === 0)) {
       this.stop()
       return
@@ -323,7 +323,7 @@ export class Completion implements Disposable {
     let document = workspace.getDocument(workspace.bufnr)
     if (!document) return
     await document.patchChange()
-    if (!this.isActivted) {
+    if (!this.isActivated) {
       if (!latestInsertChar) return
       let pre = await this.getPreviousContent(document)
       await this.triggerCompletion(document, pre)
@@ -358,7 +358,7 @@ export class Completion implements Disposable {
       await this.triggerCompletion(document, content, false)
       return
     }
-    if (!this.isActivted || this.complete.isEmpty) return
+    if (!this.isActivated || this.complete.isEmpty) return
     let search = content.slice(characterIndex(content, this.option.col))
     return await this.resumeCompletion(content, search)
   }
@@ -389,7 +389,7 @@ export class Completion implements Disposable {
 
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
     let { document } = this
-    if (!this.isActivted || !document || !item.hasOwnProperty('word')) return
+    if (!this.isActivated || !document || !item.hasOwnProperty('word')) return
     let visible = await this.nvim.call('pumvisible')
     if (visible) return
     let opt = Object.assign({}, this.option)
@@ -571,7 +571,7 @@ export class Completion implements Disposable {
   }
 
   private getCompleteItem(item: VimCompleteItem): VimCompleteItem | null {
-    if (!this.isActivted) return null
+    if (!this.isActivated) return null
     return this.complete.resolveCompletionItem(item)
   }
 
