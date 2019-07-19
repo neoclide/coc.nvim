@@ -334,7 +334,7 @@
     },
     "suggest.preferCompleteThanJumpPlaceholder": {
       "type": "boolean",
-      "description": "Confirm completion instead of jump to next placeholder when completion is activted.",
+      "description": "Confirm completion instead of jump to next placeholder when completion is activated.",
       "default": false
     },
     "suggest.fixInsertedWord": {
@@ -551,7 +551,7 @@
       "default": 8
     },
     "diagnostic.filetypeMap": {
-      "type":"object",
+      "type": "object",
       "description": "A map between buffer filetype and the filetype assigned to diagnostics. To syntax highlight diagnostics withs their parent buffer type use '\"default\": \"bufferType\"'",
       "default": {
         "default": ""

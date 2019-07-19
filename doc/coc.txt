@@ -185,7 +185,7 @@ Builtin configurations:~
 "suggest.preferCompleteThanJumpPlaceholder":~
 
 	Confirm completion instead of jump to next placeholder when completion
-	is activted.,  default: `false`
+	is activated.,  default: `false`
 
 "suggest.fixInsertedWord":~
 

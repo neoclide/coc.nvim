@@ -25,7 +25,6 @@ export default class History {
     return this.index == -1 ? null : this.current[this.index]
   }
 
-  // on list activted
   public load(): void {
     let { db } = this
     let { input } = this.manager.prompt
