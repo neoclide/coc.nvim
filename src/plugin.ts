@@ -1,8 +1,6 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
-import https from 'https'
-import semver from 'semver'
-import { Location, CodeActionKind } from 'vscode-languageserver-types'
+import { CodeActionKind, Location } from 'vscode-languageserver-types'
 import commandManager from './commands'
 import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
@@ -15,8 +13,6 @@ import sources from './sources'
 import { Autocmd, OutputChannel, PatternType } from './types'
 import clean from './util/clean'
 import workspace from './workspace'
-import debounce = require('debounce')
-import { echoErr } from './util'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {

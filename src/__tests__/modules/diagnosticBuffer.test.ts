@@ -30,7 +30,7 @@ const config: DiagnosticConfig = {
   refreshAfterSave: false,
   hintSign: '>>',
   filetypeMap: {
-    'default': ''
+    default: ''
   },
 }
 
