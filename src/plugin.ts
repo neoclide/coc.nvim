@@ -90,7 +90,14 @@ export default class Plugin extends EventEmitter {
     })
     this.addMethod('doAutocmd', async (id: number, ...args: []) => {
       let autocmd = (workspace as any).autocmds.get(id) as Autocmd
-      if (autocmd) await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args))
+      if (autocmd) {
+        try {
+          await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args))
+        } catch (e) {
+          logger.error(`Error on autocmd ${autocmd.event}`, e)
+          workspace.showMessage(`Error on autocmd ${autocmd.event}: ${e.message}`)
+        }
+      }
     })
     this.addMethod('updateConfig', (section: string, val: any) => {
       workspace.configurations.updateUserConfig({ [section]: val })
