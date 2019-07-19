@@ -2,6 +2,7 @@ import { Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-p
 import { adjustPosition, comparePosition, editRange, getChangedPosition, rangeInRange } from '../util/position'
 import * as Snippets from "./parser"
 import { VariableResolver } from './parser'
+import { byteLength } from '../util/string'
 const logger = require('../util/logger')('snippets-snipet')
 
 export interface CocSnippetPlaceholder {
@@ -149,7 +150,7 @@ export class CocSnippet {
           p.id < id &&
           p.line == placeholder.range.start.line) {
           let text = this.tmSnippet.getPlaceholderText(p.id, newText)
-          delta = delta + text.length - p.value.length
+          delta = delta + byteLength(text) - byteLength(p.value)
         }
       }
     }

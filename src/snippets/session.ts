@@ -127,7 +127,7 @@ export class SnippetSession {
     if (adjusted) return
     if (comparePosition(edit.range.start, snippet.range.end) > 0) {
       if (!edit.newText) return
-      logger.info('Content add after snippet, cancelling snippet session')
+      logger.info('Content change after snippet, cancelling snippet session')
       this.deactivate()
       return
     }
