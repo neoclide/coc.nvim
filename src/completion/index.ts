@@ -50,16 +50,14 @@ export class Completion implements Disposable {
     events.on('CursorMovedI', debounce(async (bufnr, cursor) => {
       // try trigger completion
       let doc = workspace.getDocument(bufnr)
-      if (this.isActivted || !doc || cursor[1] == 1) return
+      if (this.isActivted || !doc || cursor[1] == 1 || !this.latestInsertChar) return
       let line = doc.getline(cursor[0] - 1)
       if (!line) return
-      let { latestInsertChar } = this
       let pre = byteSlice(line, 0, cursor[1] - 1)
-      if (!latestInsertChar || !pre.endsWith(latestInsertChar)) return
       if (sources.shouldTrigger(pre, doc.filetype)) {
         await this.triggerCompletion(doc, pre, false)
       }
-    }, 20))
+    }, 50))
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('suggest')) {
         Object.assign(this.config, this.getCompleteConfig())
@@ -390,6 +388,8 @@ export class Completion implements Disposable {
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
     let { document } = this
     if (!this.isActivted || !document || !item.hasOwnProperty('word')) return
+    let visible = await this.nvim.call('pumvisible')
+    if (visible) return
     let opt = Object.assign({}, this.option)
     let resolvedItem = this.getCompleteItem(item)
     this.stop()
