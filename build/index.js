@@ -54259,8 +54259,15 @@ class Plugin extends events_1.EventEmitter {
         });
         this.addMethod('doAutocmd', async (id, ...args) => {
             let autocmd = workspace_1.default.autocmds.get(id);
-            if (autocmd)
-                await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args));
+            if (autocmd) {
+                try {
+                    await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args));
+                }
+                catch (e) {
+                    logger.error(`Error on autocmd ${autocmd.event}`, e);
+                    workspace_1.default.showMessage(`Error on autocmd ${autocmd.event}: ${e.message}`);
+                }
+            }
         });
         this.addMethod('updateConfig', (section, val) => {
             workspace_1.default.configurations.updateUserConfig({ [section]: val });
@@ -54416,7 +54423,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "46a50885d7" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "bacaaa8ef2" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -56392,7 +56399,7 @@ const completeItemKeys = ['abbr', 'menu', 'info', 'kind', 'icase', 'dup', 'empty
 class Completion {
     constructor() {
         // current input string
-        this.activted = false;
+        this.activated = false;
         this.disposables = [];
         this.complete = null;
         this.recentScores = {};
@@ -56415,7 +56422,7 @@ class Completion {
         events_1.default.on('CursorMovedI', debounce_1.default(async (bufnr, cursor) => {
             // try trigger completion
             let doc = workspace_1.default.getDocument(bufnr);
-            if (this.isActivted || !doc || cursor[1] == 1 || !this.latestInsertChar)
+            if (this.isActivated || !doc || cursor[1] == 1 || !this.latestInsertChar)
                 return;
             let line = doc.getline(cursor[0] - 1);
             if (!line)
@@ -56452,8 +56459,8 @@ class Completion {
         return col == 1 ? '' : string_1.byteSlice(line, 0, col - 1);
     }
     getResumeInput(pre) {
-        let { option, activted } = this;
-        if (!activted)
+        let { option, activated } = this;
+        if (!activated)
             return null;
         if (!pre)
             return '';
@@ -56466,8 +56473,8 @@ class Completion {
         let { option } = this;
         return option ? option.bufnr : null;
     }
-    get isActivted() {
-        return this.activted;
+    get isActivated() {
+        return this.activated;
     }
     getCompleteConfig() {
         let config = workspace_1.default.getConfiguration('coc.preferences');
@@ -56527,8 +56534,8 @@ class Completion {
         }
     }
     async resumeCompletion(pre, search, force = false) {
-        let { document, complete, activted } = this;
-        if (!activted || !complete.results)
+        let { document, complete, activated } = this;
+        if (!activated || !complete.results)
             return;
         if (search == this.input && !force)
             return;
@@ -56547,16 +56554,17 @@ class Completion {
             await document.patchChange();
             document.forceSync();
             await util_1.wait(30);
-            if (document.changedtick != changedtick)
-                return;
             items = await complete.completeInComplete(search);
-            if (document.changedtick != changedtick)
+            // check search change
+            let content = await this.getPreviousContent(document);
+            let curr = this.getResumeInput(content);
+            if (curr != search)
                 return;
         }
         else {
             items = complete.filterResults(search);
         }
-        if (!this.isActivted)
+        if (!this.isActivated)
             return;
         if (!complete.isCompleting && (!items || items.length === 0)) {
             this.stop();
@@ -56687,9 +56695,10 @@ class Completion {
             this.isResolving = true;
             return;
         }
-        let col = await this.nvim.call('col', '.');
-        let search = string_1.byteSlice(line, option.col, col - 1);
-        let pre = string_1.byteSlice(line, 0, col - 1);
+        let pre = await this.getPreviousContent(document);
+        if (!pre)
+            return;
+        let search = this.getResumeInput(pre);
         if (sources_1.default.shouldTrigger(pre, document.filetype)) {
             await this.triggerCompletion(document, pre, false);
         }
@@ -56704,7 +56713,7 @@ class Completion {
         if (!document)
             return;
         await document.patchChange();
-        if (!this.isActivted) {
+        if (!this.isActivated) {
             if (!latestInsertChar)
                 return;
             let pre = await this.getPreviousContent(document);
@@ -56741,7 +56750,7 @@ class Completion {
             await this.triggerCompletion(document, content, false);
             return;
         }
-        if (!this.isActivted || this.complete.isEmpty)
+        if (!this.isActivated || this.complete.isEmpty)
             return;
         let search = content.slice(string_1.characterIndex(content, this.option.col));
         return await this.resumeCompletion(content, search);
@@ -56772,7 +56781,7 @@ class Completion {
     }
     async onCompleteDone(item) {
         let { document } = this;
-        if (!this.isActivted || !document || !item.hasOwnProperty('word'))
+        if (!this.isActivated || !document || !item.hasOwnProperty('word'))
             return;
         let visible = await this.nvim.call('pumvisible');
         if (visible)
@@ -56829,7 +56838,7 @@ class Completion {
     }
     get latestInsert() {
         let { lastInsert } = this;
-        if (!lastInsert || Date.now() - lastInsert.timestamp > 200) {
+        if (!lastInsert || Date.now() - lastInsert.timestamp > 500) {
             return null;
         }
         return lastInsert;
@@ -56861,7 +56870,7 @@ class Completion {
         return false;
     }
     async onPumChange(ev) {
-        if (!this.activted)
+        if (!this.activated)
             return;
         if (this.document && this.document.uri.endsWith('%5BCommand%20Line%5D'))
             return;
@@ -56899,10 +56908,10 @@ class Completion {
         this.resolveTokenSource = null;
     }
     start(complete) {
-        let { activted } = this;
-        this.activted = true;
+        let { activated } = this;
+        this.activated = true;
         this.isResolving = false;
-        if (activted) {
+        if (activated) {
             this.complete.dispose();
         }
         this.complete = complete;
@@ -56920,11 +56929,11 @@ class Completion {
     }
     stop() {
         let { nvim } = this;
-        if (!this.activted)
+        if (!this.activated)
             return;
         this.cancel();
         this.currItem = null;
-        this.activted = false;
+        this.activated = false;
         this.document.paused = false;
         this.document.fireContentChanges();
         if (this.complete) {
@@ -56963,7 +56972,7 @@ class Completion {
         return `noinsert,menuone${preview}`;
     }
     getCompleteItem(item) {
-        if (!this.isActivted)
+        if (!this.isActivated)
             return null;
         return this.complete.resolveCompletionItem(item);
     }
@@ -57740,7 +57749,7 @@ class Extensions {
     has(id) {
         return this.list.find(o => o.id == id) != null;
     }
-    isActivted(id) {
+    isActivated(id) {
         let item = this.list.find(o => o.id == id);
         if (item && item.extension.isActive) {
             return true;
@@ -57756,7 +57765,7 @@ class Extensions {
         let packageJSON = JSON.parse(content);
         if (this.isDisabled(packageJSON.name))
             return;
-        if (this.isActivted(packageJSON.name)) {
+        if (this.isActivated(packageJSON.name)) {
             workspace_1.default.showMessage(`deactivate ${packageJSON.name}`);
             this.deactivate(packageJSON.name);
             await util_2.wait(200);
@@ -80321,7 +80330,6 @@ class History {
     get curr() {
         return this.index == -1 ? null : this.current[this.index];
     }
-    // on list activted
     load() {
         let { db } = this;
         let { input } = this.manager.prompt;
