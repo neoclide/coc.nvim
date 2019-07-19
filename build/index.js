@@ -49906,7 +49906,12 @@ class Document {
         this._onDocumentDetach = new vscode_languageserver_protocol_1.Emitter();
         this.onDocumentChange = this._onDocumentChange.event;
         this.onDocumentDetach = this._onDocumentDetach.event;
-        this.fireContentChanges = debounce_1.default(() => {
+        this.fireContentChanges = debounce_1.default(async () => {
+            let mode = await this.nvim.mode;
+            if (mode.blocking) {
+                this.fireContentChanges();
+                return;
+            }
             this._fireContentChanges();
         }, 200);
         this.fetchContent = debounce_1.default(() => {
@@ -54423,7 +54428,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "bacaaa8ef2" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "735836dc5c" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -56202,7 +56207,7 @@ class SnippetSession {
         if (position_1.comparePosition(edit.range.start, snippet.range.end) > 0) {
             if (!edit.newText)
                 return;
-            logger.info('Content add after snippet, cancelling snippet session');
+            logger.info('Content change after snippet, cancelling snippet session');
             this.deactivate();
             return;
         }
@@ -85004,6 +85009,7 @@ const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const position_1 = __webpack_require__(210);
 const Snippets = tslib_1.__importStar(__webpack_require__(231));
+const string_1 = __webpack_require__(207);
 const logger = __webpack_require__(183)('snippets-snipet');
 class CocSnippet {
     constructor(_snippetString, position, _variableResolver) {
@@ -85120,7 +85126,7 @@ class CocSnippet {
                     p.id < id &&
                     p.line == placeholder.range.start.line) {
                     let text = this.tmSnippet.getPlaceholderText(p.id, newText);
-                    delta = delta + text.length - p.value.length;
+                    delta = delta + string_1.byteLength(text) - string_1.byteLength(p.value);
                 }
             }
         }
