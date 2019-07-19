@@ -69,7 +69,7 @@ export default class Floating {
         nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true)
         nvim.command(`setl signcolumn=no conceallevel=2`, true)
         nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating`, true)
-        nvim.command(`silent doautocmd User CocOpenFloat`, true)
+        nvim.call('coc#util#do_autocmd', ['CocOpenFloat'], true)
         this.floatBuffer.setLines()
         nvim.call('cursor', [1, 1], true)
         nvim.command(`noa wincmd p`, true)

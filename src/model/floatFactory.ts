@@ -193,7 +193,7 @@ export default class FloatFactory implements Disposable {
         nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true)
         nvim.command(`setl signcolumn=no conceallevel=2`, true)
         nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating`, true)
-        nvim.command(`silent doautocmd User CocOpenFloat`, true)
+        nvim.call('coc#util#do_autocmd', ['CocOpenFloat'], true)
       } else {
         this.window.setConfig(config, true)
         nvim.command(`noa call win_gotoid(${this.window.id})`, true)
@@ -215,6 +215,7 @@ export default class FloatFactory implements Disposable {
         maxheight: config.height
       })
       this.floatBuffer.setLines()
+      nvim.command('redraw', true)
     }
     let [res, err] = await nvim.resumeNotification()
     if (err) {
