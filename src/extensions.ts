@@ -422,7 +422,7 @@ export class Extensions {
     return this.list.find(o => o.id == id) != null
   }
 
-  public isActivted(id: string): boolean {
+  public isActivated(id: string): boolean {
     let item = this.list.find(o => o.id == id)
     if (item && item.extension.isActive) {
       return true
@@ -437,7 +437,7 @@ export class Extensions {
     let content = await readFile(jsonFile, 'utf8')
     let packageJSON = JSON.parse(content)
     if (this.isDisabled(packageJSON.name)) return
-    if (this.isActivted(packageJSON.name)) {
+    if (this.isActivated(packageJSON.name)) {
       workspace.showMessage(`deactivate ${packageJSON.name}`)
       this.deactivate(packageJSON.name)
       await wait(200)

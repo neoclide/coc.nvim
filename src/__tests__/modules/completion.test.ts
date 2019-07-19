@@ -58,7 +58,7 @@ describe('completion start', () => {
     let option: CompleteOption = await nvim.call('coc#util#get_complete_option')
     await completion.startCompletion(option)
       ; (completion as any)._doComplete = fn
-    expect(completion.isActivted).toBe(false)
+    expect(completion.isActivated).toBe(false)
   })
 
   it('should start completion', async () => {
@@ -68,7 +68,7 @@ describe('completion start', () => {
     let option: CompleteOption = await nvim.call('coc#util#get_complete_option')
     await completion.startCompletion(option)
     await helper.wait(30)
-    expect(completion.isActivted).toBe(true)
+    expect(completion.isActivated).toBe(true)
   })
 
   it('should show slow source', async () => {
@@ -90,7 +90,7 @@ describe('completion start', () => {
     await helper.edit()
     await nvim.input('i.')
     await helper.waitPopup()
-    expect(completion.isActivted).toBe(true)
+    expect(completion.isActivated).toBe(true)
     let items = await helper.items()
     expect(items.length).toBe(2)
   })
@@ -103,10 +103,10 @@ describe('completion resumeCompletion', () => {
     await helper.wait(50)
     await nvim.input('Af')
     await helper.waitPopup()
-    expect(completion.isActivted).toBe(true)
+    expect(completion.isActivated).toBe(true)
     await nvim.input('d')
     await helper.wait(60)
-    expect(completion.isActivted).toBe(false)
+    expect(completion.isActivated).toBe(false)
   })
 
   it('should deactivate without filtered items', async () => {
@@ -117,7 +117,7 @@ describe('completion resumeCompletion', () => {
     await helper.wait(100)
     let items = await helper.items()
     expect(items.length).toBe(0)
-    expect(completion.isActivted).toBe(false)
+    expect(completion.isActivated).toBe(false)
   })
 
   it('should deactivate when insert space', async () => {
@@ -137,13 +137,13 @@ describe('completion resumeCompletion', () => {
     await helper.edit()
     await nvim.input('i.')
     await helper.waitPopup()
-    expect(completion.isActivted).toBe(true)
+    expect(completion.isActivated).toBe(true)
     sources.removeSource(source)
     let items = await helper.items()
     expect(items[0].word).toBe('foo bar')
     await nvim.input(' ')
     await helper.wait(60)
-    expect(completion.isActivted).toBe(false)
+    expect(completion.isActivated).toBe(false)
   })
 
   it('should use resume input to filter', async () => {
@@ -167,7 +167,7 @@ describe('completion resumeCompletion', () => {
     await helper.wait(20)
     await nvim.input('f')
     await helper.waitPopup()
-    expect(completion.isActivted).toBe(true)
+    expect(completion.isActivated).toBe(true)
     let items = await helper.items()
     expect(items.length).toBe(1)
     expect(items[0].word).toBe('foo')
@@ -197,7 +197,7 @@ describe('completion resumeCompletion', () => {
     await helper.waitPopup()
     await nvim.input('o')
     await helper.wait(100)
-    expect(completion.isActivted).toBe(true)
+    expect(completion.isActivated).toBe(true)
     let items = await helper.items()
     expect(items.length).toBe(1)
     expect(items[0].word).toBe('foo')
@@ -222,7 +222,7 @@ describe('completion resumeCompletion', () => {
     await helper.edit()
     await nvim.input('i.')
     await helper.waitPopup()
-    expect(completion.isActivted).toBe(true)
+    expect(completion.isActivated).toBe(true)
     let items = await helper.items()
     await nvim.input('a')
     await helper.wait(30)
@@ -253,12 +253,12 @@ describe('completion resumeCompletion', () => {
     await helper.edit()
     await nvim.input('i.')
     await helper.waitPopup()
-    expect(completion.isActivted).toBe(true)
+    expect(completion.isActivated).toBe(true)
     await nvim.input('fo')
     await helper.wait(100)
     await nvim.input('b')
     await helper.wait(200)
-    expect(completion.isActivted).toBe(true)
+    expect(completion.isActivated).toBe(true)
   })
 })
 
@@ -272,7 +272,7 @@ describe('completion InsertEnter', () => {
     await nvim.setLine('foo fo')
     await nvim.input('A')
     await helper.waitPopup()
-    expect(completion.isActivted).toBe(true)
+    expect(completion.isActivated).toBe(true)
     config.update('triggerAfterInsertEnter', undefined)
   })
 
@@ -285,7 +285,7 @@ describe('completion InsertEnter', () => {
     await nvim.setLine('foo ')
     await nvim.input('A')
     await helper.wait(100)
-    expect(completion.isActivted).toBe(false)
+    expect(completion.isActivated).toBe(false)
     config.update('triggerAfterInsertEnter', undefined)
   })
 })
@@ -298,7 +298,7 @@ describe('completion TextChangedP', () => {
     await helper.waitPopup()
     await nvim.input('<backspace>')
     await helper.wait(100)
-    expect(completion.isActivted).toBe(false)
+    expect(completion.isActivated).toBe(false)
   })
 
   it('should fix cursor position with plain text on additionalTextEdits', async () => {
@@ -580,7 +580,7 @@ describe('completion trigger', () => {
     await nvim.setLine('foo fo')
     await nvim.input('A')
     await helper.wait(100)
-    expect(completion.isActivted).toBe(false)
+    expect(completion.isActivated).toBe(false)
     config.update('autoTrigger', 'always')
     await helper.wait(100)
   })

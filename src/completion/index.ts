@@ -24,7 +24,7 @@ export class Completion implements Disposable {
   private floating: Floating
   private currItem: VimCompleteItem
   // current input string
-  private activted = false
+  private activated = false
   private input: string
   private lastInsert?: LastInsert
   private disposables: Disposable[] = []
@@ -50,7 +50,7 @@ export class Completion implements Disposable {
     events.on('CursorMovedI', debounce(async (bufnr, cursor) => {
       // try trigger completion
       let doc = workspace.getDocument(bufnr)
-      if (this.isActivted || !doc || cursor[1] == 1 || !this.latestInsertChar) return
+      if (this.isActivated || !doc || cursor[1] == 1 || !this.latestInsertChar) return
       let line = doc.getline(cursor[0] - 1)
       if (!line) return
       let pre = byteSlice(line, 0, cursor[1] - 1)
@@ -87,8 +87,8 @@ export class Completion implements Disposable {
   }
 
   public getResumeInput(pre: string): string {
-    let { option, activted } = this
-    if (!activted) return null
+    let { option, activated } = this
+    if (!activated) return null
     if (!pre) return ''
     let input = byteSlice(pre, option.col)
     if (option.blacklist && option.blacklist.indexOf(input) !== -1) return null
@@ -100,8 +100,8 @@ export class Completion implements Disposable {
     return option ? option.bufnr : null
   }
 
-  public get isActivted(): boolean {
-    return this.activted
+  public get isActivated(): boolean {
+    return this.activated
   }
 
   private getCompleteConfig(): CompleteConfig {
@@ -162,8 +162,8 @@ export class Completion implements Disposable {
   }
 
   private async resumeCompletion(pre: string, search: string | null, force = false): Promise<void> {
-    let { document, complete, activted } = this
-    if (!activted || !complete.results) return
+    let { document, complete, activated } = this
+    if (!activated || !complete.results) return
     if (search == this.input && !force) return
     let last = search == null ? '' : search.slice(-1)
     if (last.length == 0 ||
@@ -186,7 +186,7 @@ export class Completion implements Disposable {
     } else {
       items = complete.filterResults(search)
     }
-    if (!this.isActivted) return
+    if (!this.isActivated) return
     if (!complete.isCompleting && (!items || items.length === 0)) {
       this.stop()
       return
@@ -321,7 +321,7 @@ export class Completion implements Disposable {
     let document = workspace.getDocument(workspace.bufnr)
     if (!document) return
     await document.patchChange()
-    if (!this.isActivted) {
+    if (!this.isActivated) {
       if (!latestInsertChar) return
       let pre = await this.getPreviousContent(document)
       await this.triggerCompletion(document, pre)
@@ -356,7 +356,7 @@ export class Completion implements Disposable {
       await this.triggerCompletion(document, content, false)
       return
     }
-    if (!this.isActivted || this.complete.isEmpty) return
+    if (!this.isActivated || this.complete.isEmpty) return
     let search = content.slice(characterIndex(content, this.option.col))
     return await this.resumeCompletion(content, search)
   }
@@ -387,7 +387,7 @@ export class Completion implements Disposable {
 
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
     let { document } = this
-    if (!this.isActivted || !document || !item.hasOwnProperty('word')) return
+    if (!this.isActivated || !document || !item.hasOwnProperty('word')) return
     let visible = await this.nvim.call('pumvisible')
     if (visible) return
     let opt = Object.assign({}, this.option)
@@ -469,7 +469,7 @@ export class Completion implements Disposable {
   }
 
   public async onPumChange(ev: PopupChangeEvent): Promise<void> {
-    if (!this.activted) return
+    if (!this.activated) return
     if (this.document && this.document.uri.endsWith('%5BCommand%20Line%5D')) return
     this.cancel()
     let { completed_item, col, row, height, width, scrollbar } = ev
@@ -502,10 +502,10 @@ export class Completion implements Disposable {
   }
 
   public start(complete: Complete): void {
-    let { activted } = this
-    this.activted = true
+    let { activated } = this
+    this.activated = true
     this.isResolving = false
-    if (activted) {
+    if (activated) {
       this.complete.dispose()
     }
     this.complete = complete
@@ -525,10 +525,10 @@ export class Completion implements Disposable {
 
   public stop(): void {
     let { nvim } = this
-    if (!this.activted) return
+    if (!this.activated) return
     this.cancel()
     this.currItem = null
-    this.activted = false
+    this.activated = false
     this.document.paused = false
     this.document.fireContentChanges()
     if (this.complete) {
@@ -569,7 +569,7 @@ export class Completion implements Disposable {
   }
 
   private getCompleteItem(item: VimCompleteItem): VimCompleteItem | null {
-    if (!this.isActivted) return null
+    if (!this.isActivated) return null
     return this.complete.resolveCompletionItem(item)
   }
 
