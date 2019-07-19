@@ -44,18 +44,17 @@ export default class Document {
   constructor(
     public readonly buffer: Buffer,
     private env: Env) {
-    this.fireContentChanges = debounce(async () => {
-      let mode = await this.nvim.mode
-      if (mode.blocking) {
-        this.fireContentChanges()
-        return
-      }
-      this._fireContentChanges()
+    this.fireContentChanges = debounce(() => {
+      this.nvim.mode.then(m => {
+        if (m.blocking) {
+          this.fireContentChanges()
+          return
+        }
+        this._fireContentChanges()
+      }).logError()
     }, 200)
     this.fetchContent = debounce(() => {
-      this._fetchContent().catch(e => {
-        logger.error(`Error on fetch content:`, e)
-      })
+      this._fetchContent().logError()
     }, 50)
   }
 

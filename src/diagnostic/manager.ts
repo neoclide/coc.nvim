@@ -46,7 +46,6 @@ export class DiagnosticManager implements Disposable {
   private floatFactory: FloatFactory
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
-  private lastMessage = ''
   private timer: NodeJS.Timer
 
   public init(): void {
@@ -57,32 +56,16 @@ export class DiagnosticManager implements Disposable {
     this.disposables.push(Disposable.create(() => {
       if (this.timer) clearTimeout(this.timer)
     }))
-    let moved = false
     events.on('CursorMoved', async () => {
-      moved = true
       if (this.timer) clearTimeout(this.timer)
       this.timer = setTimeout(async () => {
         if (this.config.enableMessage != 'always') return
-        if (this.config.messageTarget == 'float') return
         await this.echoMessage(true)
       }, 500)
     }, null, this.disposables)
-    if (this.config.messageTarget == 'float') {
-      this.disposables.push(workspace.registerAutocmd({
-        event: 'CursorHold',
-        request: true,
-        callback: async () => {
-          if (!moved) return
-          moved = false
-          let popup = await nvim.eval('get(w:, "float", 0)')
-          if (popup) return
-          await this.echoMessage(true)
-        }
-      }))
-    }
     events.on('InsertEnter', async () => {
-      this.floatFactory.close()
       if (this.timer) clearTimeout(this.timer)
+      this.floatFactory.close()
     }, null, this.disposables)
 
     events.on('InsertLeave', async bufnr => {
@@ -91,7 +74,10 @@ export class DiagnosticManager implements Disposable {
       if (!doc || !this.shouldValidate(doc)) return
       let { refreshOnInsertMode, refreshAfterSave } = this.config
       if (!refreshOnInsertMode && !refreshAfterSave) {
-        await wait(500)
+        if (doc.dirty) {
+          doc.forceSync()
+          await wait(50)
+        }
         this.refreshBuffer(doc.uri)
       }
     }, null, this.disposables)
@@ -100,14 +86,13 @@ export class DiagnosticManager implements Disposable {
       if (this.timer) clearTimeout(this.timer)
       if (!this.config || !this.enabled || !this.config.locationlist) return
       let doc = workspace.getDocument(bufnr)
-      if (!this.shouldValidate(doc) || doc.bufnr != bufnr) return
-      let refreshed = this.refreshBuffer(doc.uri)
-      if (!refreshed) {
-        let winid = await nvim.call('win_getid') as number
-        let curr = await nvim.call('getloclist', [winid, { title: 1 }])
-        if ((curr.title && curr.title.indexOf('Diagnostics of coc') != -1)) {
-          nvim.call('setloclist', [winid, [], 'f'], true)
-        }
+      if (this.shouldValidate(doc)) {
+        let refreshed = this.refreshBuffer(doc.uri)
+        if (refreshed) return
+      }
+      let curr = await nvim.eval(`getloclist(win_getid(),{'title':1})`) as any
+      if (curr.title && curr.title.indexOf('Diagnostics of coc') != -1) {
+        await nvim.eval(`setloclist(win_getid(),[],'f')`)
       }
     }, null, this.disposables)
 
@@ -403,27 +388,15 @@ export class DiagnosticManager implements Disposable {
       if (useFloat) {
         this.floatFactory.close()
       } else {
-        let echoLine = await this.nvim.call('coc#util#echo_line') as string
-        if (this.lastMessage && this.lastMessage == echoLine.trim()) {
-          this.nvim.command('echo ""', true)
-        }
-        this.lastMessage = ''
+        await this.nvim.command('echo ""')
       }
       return
     }
     if (truncate && workspace.insertMode) return
-    let lines: string[] = []
     let docs: Documentation[] = []
-
-
-
-    const buf_ft = (await workspace.document).filetype
-    const default_ft = config.filetypeMap['default']
-    const ft = config.filetypeMap.hasOwnProperty(buf_ft) ?
-      config.filetypeMap[buf_ft] :
-      (default_ft === 'bufferType' ?
-        buf_ft : (default_ft ? default_ft : ''))
-
+    const filetype = await this.nvim.eval('&filetype') as string
+    const defaultFiletype = config.filetypeMap['default'] || ''
+    const ft = config.filetypeMap[filetype] || (defaultFiletype == 'bufferType' ? filetype : defaultFiletype)
     diagnostics.forEach(diagnostic => {
       let { source, code, severity, message } = diagnostic
       let s = getSeverityName(severity)[0]
@@ -444,15 +417,13 @@ export class DiagnosticManager implements Disposable {
       } else {
         filetype = ft
       }
-
       docs.push({ filetype, content: str })
-      lines.push(...str.split('\n'))
     })
     if (useFloat) {
       await this.floatFactory.create(docs)
     } else {
-      this.lastMessage = lines[0]
       await this.nvim.command('echo ""')
+      let lines = docs.map(d => d.content).join('\n').split(/\r?\n/)
       await workspace.echoLines(lines, truncate)
     }
   }

@@ -23,7 +23,7 @@ describe('document model properties', () => {
   it('should parse iskeyword', async () => {
     let doc = await helper.createDocument()
     await nvim.setLine('foo bar')
-    await helper.wait(200)
+    doc.forceSync()
     let words = doc.words
     expect(words).toEqual(['foo', 'bar'])
   })
