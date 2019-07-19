@@ -49906,18 +49906,17 @@ class Document {
         this._onDocumentDetach = new vscode_languageserver_protocol_1.Emitter();
         this.onDocumentChange = this._onDocumentChange.event;
         this.onDocumentDetach = this._onDocumentDetach.event;
-        this.fireContentChanges = debounce_1.default(async () => {
-            let mode = await this.nvim.mode;
-            if (mode.blocking) {
-                this.fireContentChanges();
-                return;
-            }
-            this._fireContentChanges();
+        this.fireContentChanges = debounce_1.default(() => {
+            this.nvim.mode.then(m => {
+                if (m.blocking) {
+                    this.fireContentChanges();
+                    return;
+                }
+                this._fireContentChanges();
+            }).logError();
         }, 200);
         this.fetchContent = debounce_1.default(() => {
-            this._fetchContent().catch(e => {
-                logger.error(`Error on fetch content:`, e);
-            });
+            this._fetchContent().logError();
         }, 50);
     }
     get shouldAttach() {
@@ -54428,7 +54427,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "735836dc5c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "102ca6741d" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -71952,7 +71951,6 @@ class DiagnosticManager {
         this.buffers = [];
         this.collections = [];
         this.disposables = [];
-        this.lastMessage = '';
     }
     init() {
         this.setConfiguration();
@@ -71963,38 +71961,19 @@ class DiagnosticManager {
             if (this.timer)
                 clearTimeout(this.timer);
         }));
-        let moved = false;
         events_1.default.on('CursorMoved', async () => {
-            moved = true;
             if (this.timer)
                 clearTimeout(this.timer);
             this.timer = setTimeout(async () => {
                 if (this.config.enableMessage != 'always')
                     return;
-                if (this.config.messageTarget == 'float')
-                    return;
                 await this.echoMessage(true);
             }, 500);
         }, null, this.disposables);
-        if (this.config.messageTarget == 'float') {
-            this.disposables.push(workspace_1.default.registerAutocmd({
-                event: 'CursorHold',
-                request: true,
-                callback: async () => {
-                    if (!moved)
-                        return;
-                    moved = false;
-                    let popup = await nvim.eval('get(w:, "float", 0)');
-                    if (popup)
-                        return;
-                    await this.echoMessage(true);
-                }
-            }));
-        }
         events_1.default.on('InsertEnter', async () => {
-            this.floatFactory.close();
             if (this.timer)
                 clearTimeout(this.timer);
+            this.floatFactory.close();
         }, null, this.disposables);
         events_1.default.on('InsertLeave', async (bufnr) => {
             this.floatFactory.close();
@@ -72003,7 +71982,10 @@ class DiagnosticManager {
                 return;
             let { refreshOnInsertMode, refreshAfterSave } = this.config;
             if (!refreshOnInsertMode && !refreshAfterSave) {
-                await util_1.wait(500);
+                if (doc.dirty) {
+                    doc.forceSync();
+                    await util_1.wait(50);
+                }
                 this.refreshBuffer(doc.uri);
             }
         }, null, this.disposables);
@@ -72013,7 +71995,7 @@ class DiagnosticManager {
             if (!this.config || !this.enabled || !this.config.locationlist)
                 return;
             let doc = workspace_1.default.getDocument(bufnr);
-            if (!this.shouldValidate(doc) || doc.bufnr != bufnr)
+            if (!this.shouldValidate(doc) || (doc && doc.bufnr != bufnr))
                 return;
             let refreshed = this.refreshBuffer(doc.uri);
             if (!refreshed) {
@@ -72326,24 +72308,16 @@ class DiagnosticManager {
                 this.floatFactory.close();
             }
             else {
-                let echoLine = await this.nvim.call('coc#util#echo_line');
-                if (this.lastMessage && this.lastMessage == echoLine.trim()) {
-                    this.nvim.command('echo ""', true);
-                }
-                this.lastMessage = '';
+                await this.nvim.command('echo ""');
             }
             return;
         }
         if (truncate && workspace_1.default.insertMode)
             return;
-        let lines = [];
         let docs = [];
-        const buf_ft = (await workspace_1.default.document).filetype;
-        const default_ft = config.filetypeMap['default'];
-        const ft = config.filetypeMap.hasOwnProperty(buf_ft) ?
-            config.filetypeMap[buf_ft] :
-            (default_ft === 'bufferType' ?
-                buf_ft : (default_ft ? default_ft : ''));
+        const filetype = await this.nvim.eval('&filetype');
+        const defaultFiletype = config.filetypeMap['default'] || '';
+        const ft = config.filetypeMap[filetype] || (defaultFiletype == 'bufferType' ? filetype : defaultFiletype);
         diagnostics.forEach(diagnostic => {
             let { source, code, severity, message } = diagnostic;
             let s = util_2.getSeverityName(severity)[0];
@@ -72366,14 +72340,13 @@ class DiagnosticManager {
                 filetype = ft;
             }
             docs.push({ filetype, content: str });
-            lines.push(...str.split('\n'));
         });
         if (useFloat) {
             await this.floatFactory.create(docs);
         }
         else {
-            this.lastMessage = lines[0];
             await this.nvim.command('echo ""');
+            let lines = docs.map(d => d.content).join('\n').split(/\r?\n/);
             await workspace_1.default.echoLines(lines, truncate);
         }
     }
@@ -72735,7 +72708,7 @@ class FloatFactory {
                 nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true);
                 nvim.command(`setl signcolumn=no conceallevel=2`, true);
                 nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating`, true);
-                nvim.command(`silent doautocmd User CocOpenFloat`, true);
+                nvim.call('coc#util#do_autocmd', ['CocOpenFloat'], true);
             }
             else {
                 this.window.setConfig(config, true);
@@ -72759,6 +72732,7 @@ class FloatFactory {
                 maxheight: config.height
             });
             this.floatBuffer.setLines();
+            nvim.command('redraw', true);
         }
         let [res, err] = await nvim.resumeNotification();
         if (err) {
@@ -84841,7 +84815,7 @@ class Floating {
                 nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true);
                 nvim.command(`setl signcolumn=no conceallevel=2`, true);
                 nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating`, true);
-                nvim.command(`silent doautocmd User CocOpenFloat`, true);
+                nvim.call('coc#util#do_autocmd', ['CocOpenFloat'], true);
                 this.floatBuffer.setLines();
                 nvim.call('cursor', [1, 1], true);
                 nvim.command(`noa wincmd p`, true);
