@@ -1,18 +1,18 @@
 import { Neovim } from '@chemzqm/neovim'
+import { Mutex } from 'await-semaphore'
 import { ChildProcess, spawn } from 'child_process'
-import Highlighter from '../model/highligher'
 import { EventEmitter } from 'events'
 import path from 'path'
 import readline from 'readline'
 import { Range } from 'vscode-languageserver-types'
 import which from 'which'
-import { parseAnsiHighlights, ansiparse } from '../util/ansiparse'
+import Highlighter from '../model/highligher'
+import { ansiparse } from '../util/ansiparse'
 import workspace from '../workspace'
-import { Mutex } from 'await-semaphore'
 import Refactor, { FileItem, FileRange } from './refactor'
 const logger = require('../util/logger')('handler-search')
 
-const defaultArgs = ['--color', 'ansi', '--colors', 'path:fg:black', '--colors', 'match:fg:red', '--no-messages', '--heading', '-n']
+const defaultArgs = ['--color', 'ansi', '--colors', 'path:fg:black', '--colors', 'match:fg:red', '--no-messages', '--heading', '-n', '--', './']
 const controlCode = '\x1b'
 
 // emit FileItem
@@ -141,6 +141,7 @@ export default class Search {
       release()
     })
     this.task.on('error', message => {
+      logger.error(message)
       this.task = null
     })
     this.task.on('end', async () => {
