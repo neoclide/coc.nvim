@@ -643,6 +643,7 @@ export interface LanguageClientOptions {
   documentSelector?: DocumentSelector | string[]
   synchronize?: SynchronizeOptions
   diagnosticCollectionName?: string
+  disableDynamicRegister?: boolean
   disableWorkspaceFolders?: boolean
   disableDiagnostics?: boolean
   disableCompletion?: boolean
@@ -663,9 +664,10 @@ export interface LanguageClientOptions {
 
 interface ResolvedClientOptions {
   ignoredRootPaths?: string[]
-  disableWorkspaceFolders?: boolean
-  disableDiagnostics?: boolean
-  disableCompletion?: boolean
+  disableWorkspaceFolders: boolean
+  disableDynamicRegister: boolean
+  disableDiagnostics: boolean
+  disableCompletion: boolean
   documentSelector?: DocumentSelector
   synchronize: SynchronizeOptions
   diagnosticCollectionName?: string
@@ -3123,6 +3125,7 @@ export abstract class BaseLanguageClient {
     clientOptions = clientOptions || {}
     this._clientOptions = {
       disableWorkspaceFolders: clientOptions.disableWorkspaceFolders,
+      disableDynamicRegister: clientOptions.disableDynamicRegister,
       disableDiagnostics: clientOptions.disableDiagnostics,
       disableCompletion: clientOptions.disableCompletion,
       ignoredRootPaths: clientOptions.ignoredRootPaths,
@@ -3996,6 +3999,7 @@ export abstract class BaseLanguageClient {
   private handleRegistrationRequest(
     params: RegistrationParams
   ): Thenable<void> {
+    if (this.clientOptions.disableDynamicRegister) return Promise.resolve()
     return new Promise<void>((resolve, reject) => {
       for (let registration of params.registrations) {
         const feature = this._dynamicFeatures.get(registration.method)

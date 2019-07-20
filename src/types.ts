@@ -322,6 +322,7 @@ export interface LanguageServerConfig {
   transport?: string
   transportPort?: number
   disableWorkspaceFolders?: boolean
+  disableDynamicRegister?: boolean
   disableCompletion?: boolean
   disableDiagnostics?: boolean
   filetypes: string[]

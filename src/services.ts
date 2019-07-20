@@ -380,6 +380,7 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
   let clientOptions: LanguageClientOptions = {
     ignoredRootPaths,
     disableWorkspaceFolders,
+    disableDynamicRegister: !!config.disableDynamicRegister,
     disableCompletion: !!config.disableCompletion,
     disableDiagnostics: !!config.disableDiagnostics,
     documentSelector,
