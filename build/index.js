@@ -54427,7 +54427,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "102ca6741d" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "1e56e5f9a4" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -71995,15 +71995,14 @@ class DiagnosticManager {
             if (!this.config || !this.enabled || !this.config.locationlist)
                 return;
             let doc = workspace_1.default.getDocument(bufnr);
-            if (!this.shouldValidate(doc) || (doc && doc.bufnr != bufnr))
-                return;
-            let refreshed = this.refreshBuffer(doc.uri);
-            if (!refreshed) {
-                let winid = await nvim.call('win_getid');
-                let curr = await nvim.call('getloclist', [winid, { title: 1 }]);
-                if ((curr.title && curr.title.indexOf('Diagnostics of coc') != -1)) {
-                    nvim.call('setloclist', [winid, [], 'f'], true);
-                }
+            if (this.shouldValidate(doc)) {
+                let refreshed = this.refreshBuffer(doc.uri);
+                if (refreshed)
+                    return;
+            }
+            let curr = await nvim.eval(`getloclist(win_getid(),{'title':1})`);
+            if (curr.title && curr.title.indexOf('Diagnostics of coc') != -1) {
+                await nvim.eval(`setloclist(win_getid(),[],'f')`);
             }
         }, null, this.disposables);
         events_1.default.on('BufWritePost', async (bufnr) => {
@@ -79632,7 +79631,7 @@ class ListManager {
         if (list.detail) {
             highligher.addLine('DESCRIPTION', 'Label');
             let lines = list.detail.split('\n').map(s => '  ' + s);
-            highligher.addLine(lines + '\n');
+            highligher.addLine(lines.join('\n') + '\n');
         }
         if (hasOptions) {
             highligher.addLine('ARGUMENTS', 'Label');
@@ -79640,6 +79639,7 @@ class ListManager {
             for (let opt of list.options) {
                 highligher.addLine(opt.name, 'Special');
                 highligher.addLine(`  ${opt.description}`);
+                highligher.addLine('');
             }
             highligher.addLine('');
         }
@@ -84621,20 +84621,28 @@ exports.default = Complete;
 Object.defineProperty(exports, "__esModule", { value: true });
 const fuzzy_1 = __webpack_require__(364);
 function nextWordIndex(start = 0, codes) {
-    if (start == 0 && fuzzy_1.wordChar(codes[0]))
-        return 0;
-    start = start == 0 ? 1 : start;
-    let pre = codes[start - 1];
     for (let i = start; i < codes.length; i++) {
-        const ch = codes[i];
-        if (fuzzy_1.wordChar(ch)) {
-            if (!fuzzy_1.wordChar(pre) || (ch >= 65 && ch <= 90 && pre >= 97 && pre <= 122)) {
-                return i;
-            }
+        if (isWordIndex(i, codes)) {
+            return i;
         }
-        pre = ch;
     }
     return -1;
+}
+function upperCase(code) {
+    return code >= 65 && code <= 90;
+}
+function isWordIndex(index, codes) {
+    if (index == 0)
+        return true;
+    let curr = codes[index];
+    if (!fuzzy_1.wordChar(curr))
+        return false;
+    let pre = codes[index - 1];
+    if (!fuzzy_1.wordChar(pre))
+        return true;
+    if (upperCase(curr) && !upperCase(pre))
+        return true;
+    return false;
 }
 /**
  * Rules:
@@ -84725,17 +84733,19 @@ function nextScore(codes, index, inputCodes, allowFuzzy = true) {
         }
         scores.push(score);
     }
-    // find word start match
-    let idx = nextWordIndex(index + 1, codes);
-    if (idx !== -1) {
-        let next = codes[idx];
-        if (fuzzy_1.caseMatch(input, next)) {
-            let score = input == next ? 1 : 0.75;
-            if (!isFinal) {
-                let next = nextScore(codes, idx + 1, inputCodes.slice(1), allowFuzzy);
-                score = next == 0 ? 0 : score + next;
+    // should not find if current is word index
+    if (fuzzy_1.wordChar(input) && !isWordIndex(index, codes)) {
+        let idx = nextWordIndex(index + 1, codes);
+        if (idx !== -1) {
+            let next = codes[idx];
+            if (fuzzy_1.caseMatch(input, next)) {
+                let score = input == next ? 1 : 0.75;
+                if (!isFinal) {
+                    let next = nextScore(codes, idx + 1, inputCodes.slice(1), allowFuzzy);
+                    score = next == 0 ? 0 : score + next;
+                }
+                scores.push(score);
             }
-            scores.push(score);
         }
     }
     // find fuzzy
