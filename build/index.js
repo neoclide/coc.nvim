@@ -9857,7 +9857,7 @@ module.exports = {
 /* 91 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const debug = __webpack_require__(92)("streamroller:RollingFileWriteStream");
+const debug = __webpack_require__(92)('streamroller:RollingFileWriteStream');
 const _ = __webpack_require__(96);
 const async = __webpack_require__(98);
 const fs = __webpack_require__(99);
@@ -9867,54 +9867,36 @@ const newNow = __webpack_require__(137);
 const format = __webpack_require__(75);
 const { Writable } = __webpack_require__(41);
 
-const FILENAME_SEP = ".";
-const ZIP_EXT = ".gz";
+const FILENAME_SEP = '.';
+const ZIP_EXT = '.gz';
 
-const moveAndMaybeCompressFile = (
-  sourceFilePath,
-  targetFilePath,
-  needCompress,
-  done
-) => {
+const moveAndMaybeCompressFile = (sourceFilePath, targetFilePath, needCompress, done) => {
   if (sourceFilePath === targetFilePath) {
-    debug(
-      `moveAndMaybeCompressFile: source and target are the same, not doing anything`
-    );
+    debug(`moveAndMaybeCompressFile: source and target are the same, not doing anything`);
     return done();
   }
-  fs.access(sourceFilePath, fs.constants.W_OK | fs.constants.R_OK, e => {
+  fs.access(sourceFilePath, fs.constants.W_OK | fs.constants.R_OK,  (e) => {
     if (e) {
-      debug(
-        `moveAndMaybeCompressFile: source file path does not exist. not moving. sourceFilePath=${sourceFilePath}`
-      );
+      debug(`moveAndMaybeCompressFile: source file path does not exist. not moving. sourceFilePath=${sourceFilePath}`);
       return done();
     }
 
-    debug(
-      `moveAndMaybeCompressFile: moving file from ${sourceFilePath} to ${targetFilePath} ${
-        needCompress ? "with" : "without"
-      } compress`
-    );
+    debug(`moveAndMaybeCompressFile: moving file from ${sourceFilePath} to ${targetFilePath} ${needCompress ? 'with' : 'without'} compress`);
     if (needCompress) {
       fs.createReadStream(sourceFilePath)
         .pipe(zlib.createGzip())
         .pipe(fs.createWriteStream(targetFilePath))
-        .on("finish", () => {
-          debug(
-            `moveAndMaybeCompressFile: finished compressing ${targetFilePath}, deleting ${sourceFilePath}`
-          );
+        .on('finish', () => {
+          debug(`moveAndMaybeCompressFile: finished compressing ${targetFilePath}, deleting ${sourceFilePath}`);
           fs.unlink(sourceFilePath, done);
         });
     } else {
-      debug(
-        `moveAndMaybeCompressFile: deleting file=${targetFilePath}, renaming ${sourceFilePath} to ${targetFilePath}`
-      );
-      fs.unlink(targetFilePath, () => {
-        fs.rename(sourceFilePath, targetFilePath, done);
-      });
+      debug(`moveAndMaybeCompressFile: deleting file=${targetFilePath}, renaming ${sourceFilePath} to ${targetFilePath}`);
+      fs.unlink(targetFilePath, () => { fs.rename(sourceFilePath, targetFilePath, done); });
     }
   });
 };
+
 
 /**
  * RollingFileWriteStream is mainly used when writing to a file rolling by date or size.
@@ -9941,38 +9923,31 @@ class RollingFileWriteStream extends Writable {
     super(options);
     this.options = this._parseOption(options);
     this.fileObject = path.parse(filePath);
-    if (this.fileObject.dir === "") {
+    if (this.fileObject.dir === '') {
       this.fileObject = path.parse(path.join(process.cwd(), filePath));
     }
-    this.justTheFile = this._formatFileName({ isHotFile: true });
+    this.justTheFile = this._formatFileName({isHotFile: true});
     this.filename = path.join(this.fileObject.dir, this.justTheFile);
     this.state = {
+      currentDate: newNow(),
+      currentIndex: 0,
       currentSize: 0
     };
 
-    if (this.options.pattern) {
-      this.state.currentDate = format(this.options.pattern, newNow());
-    }
-
-    if (this.options.flags === "a") {
+    if (this.options.flags === 'a') {
       this._setExistingSizeAndDate();
     }
 
-    debug(
-      `create new file with no hot file. name=${
-        this.justTheFile
-      }, state=${JSON.stringify(this.state)}`
-    );
+    debug(`create new file with no hot file. name=${this.justTheFile}, state=${JSON.stringify(this.state)}`);
     this._renewWriteStream();
+
   }
 
   _setExistingSizeAndDate() {
     try {
       const stats = fs.statSync(this.filename);
       this.state.currentSize = stats.size;
-      if (this.options.pattern) {
-        this.state.currentDate = format(this.options.pattern, stats.birthtime);
-      }
+      this.state.currentDate = stats.birthtime;
     } catch (e) {
       //file does not exist, that's fine - move along
       return;
@@ -9983,9 +9958,9 @@ class RollingFileWriteStream extends Writable {
     const defaultOptions = {
       maxSize: Number.MAX_SAFE_INTEGER,
       numToKeep: Number.MAX_SAFE_INTEGER,
-      encoding: "utf8",
-      mode: parseInt("0644", 8),
-      flags: "a",
+      encoding: 'utf8',
+      mode: parseInt('0644', 8),
+      flags: 'a',
       compress: false,
       keepFileExt: false,
       alwaysIncludePattern: false
@@ -9994,7 +9969,7 @@ class RollingFileWriteStream extends Writable {
     if (options.maxSize <= 0) {
       throw new Error(`options.maxSize (${options.maxSize}) should be > 0`);
     }
-    if (options.numToKeep <= 0) {
+    if (options.numToKeep < 1) {
       throw new Error(`options.numToKeep (${options.numToKeep}) should be > 0`);
     }
     debug(`creating stream with option=${JSON.stringify(options)}`);
@@ -10002,37 +9977,27 @@ class RollingFileWriteStream extends Writable {
   }
 
   _shouldRoll(callback) {
-    if (
-      this.state.currentDate &&
-      this.state.currentDate !== format(this.options.pattern, newNow())
-    ) {
-      debug(
-        `_shouldRoll: rolling by date because ${
-          this.state.currentDate
-        } !== ${format(this.options.pattern, newNow())}`
-      );
-      this._roll({ isNextPeriod: true }, callback);
-      return;
-    }
-    if (this.state.currentSize >= this.options.maxSize) {
-      debug(
-        `_shouldRoll: rolling by size because ${this.state.currentSize} >= ${this.options.maxSize}`
-      );
-      this._roll({ isNextPeriod: false }, callback);
-      return;
-    }
-    callback();
+      debug(`in _shouldRoll, pattern = ${this.options.pattern}, currentDate = ${this.state.currentDate}, now = ${newNow()}`);
+      if (this.options.pattern && (format(this.options.pattern, this.state.currentDate) !== format(this.options.pattern, newNow()))) {
+        this._roll({isNextPeriod: true}, callback);
+        return;
+      }
+      debug(`in _shouldRoll, currentSize = ${this.state.currentSize}, maxSize = ${this.options.maxSize}`);
+      if (this.state.currentSize >= this.options.maxSize) {
+        this._roll({isNextPeriod: false}, callback);
+        return;
+      }
+      callback();
   }
 
   _write(chunk, encoding, callback) {
     this._shouldRoll(() => {
-      debug(
-        `writing chunk. ` +
-          `file=${this.currentFileStream.path} ` +
-          `state=${JSON.stringify(this.state)} ` +
-          `chunk=${chunk}`
+      debug(`writing chunk. ` +
+        `file=${this.currentFileStream.path} ` +
+        `state=${JSON.stringify(this.state)} ` +
+        `chunk=${chunk}`
       );
-      this.currentFileStream.write(chunk, encoding, e => {
+      this.currentFileStream.write(chunk, encoding, (e) => {
         this.state.currentSize += chunk.length;
         callback(e);
       });
@@ -10046,23 +10011,17 @@ class RollingFileWriteStream extends Writable {
       const existingFileDetails = _.compact(
         _.map(files, n => {
           const parseResult = this._parseFileName(n);
-          debug(`_getExistingFiles: parsed ${n} as `, parseResult);
+          debug(`_getExistingFiles: parsed ${n} as ${parseResult}`);
           if (!parseResult) {
             return;
           }
-          return _.assign({ fileName: n }, parseResult);
+          return _.assign({fileName: n}, parseResult);
         })
       );
-      cb(
-        null,
-        _.sortBy(
-          existingFileDetails,
-          n =>
-            (n.date
-              ? format.parse(this.options.pattern, n.date).valueOf()
-              : newNow().valueOf()) - n.index
-        )
-      );
+      cb(null, _.sortBy(
+        existingFileDetails,
+        n => (n.date ? n.date.valueOf() : newNow().valueOf()) - n.index
+      ));
     });
   }
 
@@ -10081,15 +10040,13 @@ class RollingFileWriteStream extends Writable {
         return;
       }
       metaStr = fileName.slice(prefix.length, -1 * suffix.length);
-      debug(
-        `metaStr=${metaStr}, fileName=${fileName}, prefix=${prefix}, suffix=${suffix}`
-      );
+      debug(`metaStr=${metaStr}, fileName=${fileName}, prefix=${prefix}, suffix=${suffix}`);
     } else {
       const prefix = this.fileObject.base;
       if (!fileName.startsWith(prefix)) {
         return;
       }
-      metaStr = fileName.slice(prefix.length + 1);
+      metaStr = fileName.slice(prefix.length);
       debug(`metaStr=${metaStr}, fileName=${fileName}, prefix=${prefix}`);
     }
     if (!metaStr) {
@@ -10101,22 +10058,22 @@ class RollingFileWriteStream extends Writable {
     if (this.options.pattern) {
       const items = _.split(metaStr, FILENAME_SEP);
       const indexStr = items[items.length - 1];
-      debug("items: ", items, ", indexStr: ", indexStr);
+      debug('items: ', items, ', indexStr: ', indexStr);
       if (indexStr !== undefined && indexStr.match(/^\d+$/)) {
         const dateStr = metaStr.slice(0, -1 * (indexStr.length + 1));
         debug(`dateStr is ${dateStr}`);
         if (dateStr) {
           return {
-            index: parseInt(indexStr, 10),
-            date: dateStr,
-            isCompressed
-          };
+              index: parseInt(indexStr, 10),
+              date: format.parse(this.options.pattern, dateStr),
+              isCompressed
+            };
         }
       }
       debug(`metaStr is ${metaStr}`);
       return {
         index: 0,
-        date: metaStr,
+        date: format.parse(this.options.pattern, metaStr),
         isCompressed
       };
     } else {
@@ -10130,26 +10087,16 @@ class RollingFileWriteStream extends Writable {
     return;
   }
 
-  _formatFileName({ date, index, isHotFile }) {
-    debug(
-      `_formatFileName: date=${date}, index=${index}, isHotFile=${isHotFile}`
-    );
-    const dateStr =
-      date ||
-      _.get(this, "state.currentDate") ||
-      format(this.options.pattern, newNow());
-    const indexOpt = index || _.get(this, "state.currentIndex");
+  _formatFileName({date, index, isHotFile}) {
+    debug(`_formatFileName: date=${date}, index=${index}, isHotFile=${isHotFile}`);
+    const dateOpt = date || _.get(this, 'state.currentDate') || newNow();
+    const dateStr = format(this.options.pattern, dateOpt);
+    const indexOpt = index || _.get(this, 'state.currentIndex');
     const oriFileName = this.fileObject.base;
     if (isHotFile) {
-      debug(
-        `_formatFileName: includePattern? ${this.options.alwaysIncludePattern}, pattern: ${this.options.pattern}`
-      );
+      debug(`_formatFileName: includePattern? ${this.options.alwaysIncludePattern}, pattern: ${this.options.pattern}`);
       if (this.options.alwaysIncludePattern && this.options.pattern) {
-        debug(
-          `_formatFileName: is hot file, and include pattern, so: ${oriFileName +
-            FILENAME_SEP +
-            dateStr}`
-        );
+        debug(`_formatFileName: is hot file, and include pattern, so: ${oriFileName + FILENAME_SEP + dateStr}`);
         return this.options.keepFileExt
           ? this.fileObject.name + FILENAME_SEP + dateStr + this.fileObject.ext
           : oriFileName + FILENAME_SEP + dateStr;
@@ -10166,14 +10113,10 @@ class RollingFileWriteStream extends Writable {
     }
     let fileName;
     if (this.options.keepFileExt) {
-      const baseFileName =
-        this.fileObject.name +
-        FILENAME_SEP +
-        fileNameExtraItems.join(FILENAME_SEP);
+      const baseFileName = this.fileObject.name + FILENAME_SEP + fileNameExtraItems.join(FILENAME_SEP);
       fileName = baseFileName + this.fileObject.ext;
     } else {
-      fileName =
-        oriFileName + FILENAME_SEP + fileNameExtraItems.join(FILENAME_SEP);
+      fileName = oriFileName + FILENAME_SEP + fileNameExtraItems.join(FILENAME_SEP);
     }
     if (this.options.compress) {
       fileName += ZIP_EXT;
@@ -10184,113 +10127,78 @@ class RollingFileWriteStream extends Writable {
 
   _moveOldFiles(isNextPeriod, cb) {
     const currentFilePath = this.currentFileStream.path;
-    debug(`numToKeep = ${this.options.numToKeep}`);
-    const finishedRolling = () => {
-      if (isNextPeriod) {
-        this.state.currentSize = 0;
-        this.state.currentDate = format(this.options.pattern, newNow());
-        debug(`rolling for next period. state=${JSON.stringify(this.state)}`);
-      } else {
-        this.state.currentSize = 0;
-        debug(
-          `rolling during the same period. state=${JSON.stringify(this.state)}`
-        );
-      }
-      this._renewWriteStream();
-      // wait for the file to be open before cleaning up old ones,
-      // otherwise the daysToKeep calculations can be off
-      this.currentFileStream.write("", "utf8", () => this._clean(cb));
-    };
-
-    this._getExistingFiles((e, files) => {
-      const filesToMove = [];
-      const todaysFiles = this.state.currentDate
-        ? files.filter(f => f.date === this.state.currentDate)
-        : files;
-      for (let i = todaysFiles.length; i >= 0; i--) {
-        debug(`i = ${i}`);
-        const sourceFilePath =
-          i === 0
-            ? currentFilePath
-            : path.format({
-                dir: this.fileObject.dir,
-                base: this._formatFileName({
-                  date: this.state.currentDate,
-                  index: i
-                })
-              });
-        const targetFilePath = path.format({
+    debug(`currentIndex = ${this.state.currentIndex}, numToKeep = ${this.options.numToKeep}`);
+    let totalFilesToMove = _.min([this.state.currentIndex, this.options.numToKeep - 1]);
+    const filesToMove = [];
+    for (let i = totalFilesToMove; i >= 0; i--) {
+      debug(`i = ${i}`);
+      const sourceFilePath = i === 0
+        ? currentFilePath
+        : path.format({
           dir: this.fileObject.dir,
-          base: this._formatFileName({
-            date: this.state.currentDate,
-            index: i + 1
-          })
+          base: this._formatFileName({date: this.state.currentDate, index: i})
         });
-        filesToMove.push({ sourceFilePath, targetFilePath });
-      }
-      debug(`filesToMove = `, filesToMove);
-      async.eachOfSeries(
-        filesToMove,
-        (files, idx, cb1) => {
-          debug(
-            `src=${files.sourceFilePath}, tgt=${
-              files.sourceFilePath
-            }, idx=${idx}, pos=${filesToMove.length - 1 - idx}`
-          );
-          moveAndMaybeCompressFile(
-            files.sourceFilePath,
-            files.targetFilePath,
-            this.options.compress && filesToMove.length - 1 - idx === 0,
-            cb1
-          );
-        },
-        finishedRolling
-      );
-    });
+      const targetFilePath = i === 0 && isNextPeriod
+        ? path.format({
+          dir: this.fileObject.dir,
+          base: this._formatFileName({date: this.state.currentDate, index: 1 })
+        })
+        : path.format({
+          dir: this.fileObject.dir,
+          base: this._formatFileName({date: this.state.currentDate, index: i + 1})
+        });
+      filesToMove.push({ sourceFilePath, targetFilePath });
+    }
+    async.eachOfSeries(filesToMove, (files, idx, cb1) => {
+      debug(`src=${files.sourceFilePath}, tgt=${files.sourceFilePath}, idx=${idx}, pos=${filesToMove.length -1 -idx}`);
+      moveAndMaybeCompressFile(files.sourceFilePath, files.targetFilePath, this.options.compress && (filesToMove.length -1 -idx) === 0, cb1);
+    }, () => {
+        if (isNextPeriod) {
+          this.state.currentSize = 0;
+          this.state.currentIndex = 0;
+          this.state.currentDate = newNow();
+          debug(`rolling for next period. state=${JSON.stringify(this.state)}`);
+        } else {
+          this.state.currentSize = 0;
+          this.state.currentIndex += 1;
+          debug(`rolling during the same period. state=${JSON.stringify(this.state)}`);
+        }
+        this._renewWriteStream();
+        // wait for the file to be open before cleaning up old ones,
+        // otherwise the daysToKeep calculations can be off
+        this.currentFileStream.write('', 'utf8', () => this._clean(cb));
+      });
   }
 
-  _roll({ isNextPeriod }, cb) {
+  _roll({isNextPeriod}, cb) {
     debug(`rolling, isNextPeriod ? ${isNextPeriod}`);
     debug(`_roll: closing the current stream`);
-    this.currentFileStream.end("", this.options.encoding, () => {
-      this._moveOldFiles(isNextPeriod, cb);
-    });
+    this.currentFileStream.end('', this.options.encoding, () => { this._moveOldFiles(isNextPeriod, cb); });
   }
 
   _renewWriteStream() {
     fs.ensureDirSync(this.fileObject.dir);
-    this.justTheFile = this._formatFileName({
-      date: this.state.currentDate,
-      index: 0,
-      isHotFile: true
-    });
-    const filePath = path.format({
-      dir: this.fileObject.dir,
-      base: this.justTheFile
-    });
-    const ops = _.pick(this.options, ["flags", "encoding", "mode"]);
+    this.justTheFile = this._formatFileName({ date: this.state.currentDate, index: this.state.index, isHotFile: true });
+    const filePath = path.format({dir: this.fileObject.dir, base: this.justTheFile});
+    const ops = _.pick(this.options, ['flags', 'encoding', 'mode']);
     this.currentFileStream = fs.createWriteStream(filePath, ops);
-    this.currentFileStream.on("error", e => {
-      this.emit("error", e);
-    });
+    this.currentFileStream.on('error', (e) => { this.emit('error', e); });
   }
 
   _clean(cb) {
     this._getExistingFiles((e, existingFileDetails) => {
-      debug(
-        `numToKeep = ${this.options.numToKeep}, existingFiles = ${existingFileDetails.length}`
-      );
-      debug("existing files are: ", existingFileDetails);
-      if (
-        this.options.numToKeep > 0 &&
-        existingFileDetails.length > this.options.numToKeep
-      ) {
+      debug(`numToKeep = ${this.options.numToKeep}, existingFiles = ${existingFileDetails.length}`);
+      debug('existing files are: ', existingFileDetails);
+      if (existingFileDetails.length > this.options.numToKeep) {
         const fileNamesToRemove = _.slice(
           existingFileDetails.map(f => f.fileName),
           0,
           existingFileDetails.length - this.options.numToKeep - 1
         );
-        this._deleteFiles(fileNamesToRemove, cb);
+        this._deleteFiles(fileNamesToRemove, () => {
+          this.state.currentIndex = Math.min(this.state.currentIndex, this.options.numToKeep -1);
+          cb();
+        });
         return;
       }
       cb();
@@ -10300,7 +10208,7 @@ class RollingFileWriteStream extends Writable {
   _deleteFiles(fileNames, done) {
     debug(`files to delete: ${fileNames}`);
     async.each(
-      _.map(fileNames, f => path.format({ dir: this.fileObject.dir, base: f })),
+      _.map(fileNames, f => path.format({ dir: this.fileObject.dir, base: f})),
       fs.unlink,
       done
     );
@@ -10961,7 +10869,7 @@ formatters.O = function (v) {
 /* WEBPACK VAR INJECTION */(function(module) {var __WEBPACK_AMD_DEFINE_RESULT__;/**
  * @license
  * Lodash <https://lodash.com/>
- * Copyright OpenJS Foundation and other contributors <https://openjsf.org/>
+ * Copyright JS Foundation and other contributors <https://js.foundation/>
  * Released under MIT license <https://lodash.com/license>
  * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
  * Copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -10972,7 +10880,7 @@ formatters.O = function (v) {
   var undefined;
 
   /** Used as the semantic version number. */
-  var VERSION = '4.17.14';
+  var VERSION = '4.17.11';
 
   /** Used as the size to enable large array optimizations. */
   var LARGE_ARRAY_SIZE = 200;
@@ -13631,10 +13539,16 @@ formatters.O = function (v) {
         value.forEach(function(subValue) {
           result.add(baseClone(subValue, bitmask, customizer, subValue, value, stack));
         });
-      } else if (isMap(value)) {
+
+        return result;
+      }
+
+      if (isMap(value)) {
         value.forEach(function(subValue, key) {
           result.set(key, baseClone(subValue, bitmask, customizer, key, value, stack));
         });
+
+        return result;
       }
 
       var keysFunc = isFull
@@ -14558,8 +14472,8 @@ formatters.O = function (v) {
         return;
       }
       baseFor(source, function(srcValue, key) {
-        stack || (stack = new Stack);
         if (isObject(srcValue)) {
+          stack || (stack = new Stack);
           baseMergeDeep(object, source, key, srcIndex, baseMerge, customizer, stack);
         }
         else {
@@ -16376,7 +16290,7 @@ formatters.O = function (v) {
       return function(number, precision) {
         number = toNumber(number);
         precision = precision == null ? 0 : nativeMin(toInteger(precision), 292);
-        if (precision && nativeIsFinite(number)) {
+        if (precision) {
           // Shift with exponential notation to avoid floating-point issues.
           // See [MDN](https://mdn.io/round#Examples) for more details.
           var pair = (toString(number) + 'e').split('e'),
@@ -17559,7 +17473,7 @@ formatters.O = function (v) {
     }
 
     /**
-     * Gets the value at `key`, unless `key` is "__proto__" or "constructor".
+     * Gets the value at `key`, unless `key` is "__proto__".
      *
      * @private
      * @param {Object} object The object to query.
@@ -17567,10 +17481,6 @@ formatters.O = function (v) {
      * @returns {*} Returns the property value.
      */
     function safeGet(object, key) {
-      if (key === 'constructor' && typeof object[key] === 'function') {
-        return;
-      }
-
       if (key == '__proto__') {
         return;
       }
@@ -21371,7 +21281,6 @@ formatters.O = function (v) {
           }
           if (maxing) {
             // Handle invocations in a tight loop.
-            clearTimeout(timerId);
             timerId = setTimeout(timerExpired, wait);
             return invokeFunc(lastCallTime);
           }
@@ -25758,12 +25667,9 @@ formatters.O = function (v) {
       , 'g');
 
       // Use a sourceURL for easier debugging.
-      // The sourceURL gets injected into the source that's eval-ed, so be careful
-      // with lookup (in case of e.g. prototype pollution), and strip newlines if any.
-      // A newline wouldn't be a valid sourceURL anyway, and it'd enable code injection.
       var sourceURL = '//# sourceURL=' +
-        (hasOwnProperty.call(options, 'sourceURL')
-          ? (options.sourceURL + '').replace(/[\r\n]/g, ' ')
+        ('sourceURL' in options
+          ? options.sourceURL
           : ('lodash.templateSources[' + (++templateCounter) + ']')
         ) + '\n';
 
@@ -25796,9 +25702,7 @@ formatters.O = function (v) {
 
       // If `variable` is not specified wrap a with-statement around the generated
       // code to add the data object to the top of the scope chain.
-      // Like with sourceURL, we take care to not check the option's prototype,
-      // as this configuration is a code injection vector.
-      var variable = hasOwnProperty.call(options, 'variable') && options.variable;
+      var variable = options.variable;
       if (!variable) {
         source = 'with (obj) {\n' + source + '\n}\n';
       }
@@ -28003,11 +27907,10 @@ formatters.O = function (v) {
     baseForOwn(LazyWrapper.prototype, function(func, methodName) {
       var lodashFunc = lodash[methodName];
       if (lodashFunc) {
-        var key = lodashFunc.name + '';
-        if (!hasOwnProperty.call(realNames, key)) {
-          realNames[key] = [];
-        }
-        realNames[key].push({ 'name': methodName, 'func': lodashFunc });
+        var key = (lodashFunc.name + ''),
+            names = realNames[key] || (realNames[key] = []);
+
+        names.push({ 'name': methodName, 'func': lodashFunc });
       }
     });
 
@@ -54428,7 +54331,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "133b27e3a6" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "6c34420615" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -75339,6 +75242,7 @@ function getLanguageServerOptions(id, name, config) {
     let clientOptions = {
         ignoredRootPaths,
         disableWorkspaceFolders,
+        disableDynamicRegister: !!config.disableDynamicRegister,
         disableCompletion: !!config.disableCompletion,
         disableDiagnostics: !!config.disableDiagnostics,
         documentSelector,
@@ -77530,6 +77434,7 @@ class BaseLanguageClient {
         clientOptions = clientOptions || {};
         this._clientOptions = {
             disableWorkspaceFolders: clientOptions.disableWorkspaceFolders,
+            disableDynamicRegister: clientOptions.disableDynamicRegister,
             disableDiagnostics: clientOptions.disableDiagnostics,
             disableCompletion: clientOptions.disableCompletion,
             ignoredRootPaths: clientOptions.ignoredRootPaths,
@@ -78235,6 +78140,8 @@ class BaseLanguageClient {
         }
     }
     handleRegistrationRequest(params) {
+        if (this.clientOptions.disableDynamicRegister)
+            return Promise.resolve();
         return new Promise((resolve, reject) => {
             for (let registration of params.registrations) {
                 const feature = this._dynamicFeatures.get(registration.method);
