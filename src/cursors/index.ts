@@ -22,7 +22,6 @@ export default class Cursors {
   private ranges: TextRange[] = []
   private disposables: Disposable[] = []
   private bufnr: number
-  private winid: number
   private matchIds: number[] = []
   private textDocument: TextDocument
   private version = -1

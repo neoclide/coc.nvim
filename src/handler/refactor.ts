@@ -1,5 +1,4 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import fs from 'fs'
 import path from 'path'
 import { Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
@@ -96,14 +95,14 @@ export default class Refactor {
     highligher.addLine(separator)
     nvim.pauseNotification()
     nvim.command(`${openCommand} ${name}${this.id++}`, true)
+    nvim.command(`silent! IndentLinesDisable`, true)
     nvim.command(`setl buftype=acwrite nobuflisted bufhidden=wipe nofen wrap conceallevel=3 concealcursor=n`, true)
     nvim.command(`setl nolist nospell noswapfile foldmethod=expr foldexpr=coc#util#refactor_foldlevel(v:lnum)`, true)
-    nvim.command(`setl foldtext=getline(v:foldstart)[1:]`, true)
+    nvim.command(`setl foldtext=getline(v:foldstart)[3:]`, true)
     nvim.call('matchadd', ['Conceal', '^\\%u3000'], true)
     nvim.call('coc#util#do_autocmd', ['CocRefactorOpen'], true)
     workspace.registerLocalKeymap('n', '<CR>', async () => {
       let win = nvim.createWindow(winid)
-      let currwin = await nvim.call('win_getid')
       let valid = await win.valid
       let lines = await nvim.eval('getline(4,line("."))') as string[]
       let len = lines.length
@@ -195,7 +194,6 @@ export default class Refactor {
    * Current changed file ranges
    */
   public async getFileChanges(buffer: Buffer): Promise<FileChange[]> {
-    let { nvim } = this
     let bufnr = buffer.id
     let changes: FileChange[] = []
     let cwd = this.getVariable(bufnr, 'cwd')

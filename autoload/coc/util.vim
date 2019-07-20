@@ -904,6 +904,6 @@ endfunction
 function! coc#util#refactor_foldlevel(lnum) abort
   if a:lnum <= 2 | return 0 | endif
   let line = getline(a:lnum)
-  if line =~# '^\%u3000.\+' | return 0 | endif
+  if line =~# '^\%u3000\s*$' | return 0 | endif
   return 1
 endfunction
