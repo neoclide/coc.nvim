@@ -44609,6 +44609,7 @@ class Workspace {
             this.showMessage(`Error on applyEdits: ${e}`, 'error');
             return false;
         }
+        await index_1.wait(50);
         return true;
     }
     /**
@@ -54427,7 +54428,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "1e56e5f9a4" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "133b27e3a6" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -85648,7 +85649,8 @@ class Handler {
         return true;
     }
     async documentFormatting() {
-        let document = await workspace_1.default.document;
+        let bufnr = await this.nvim.eval('bufnr("%")');
+        let document = workspace_1.default.getDocument(bufnr);
         if (!document)
             return false;
         let options = await workspace_1.default.getFormatOptions(document.uri);
