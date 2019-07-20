@@ -24,7 +24,7 @@ import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, MessageLevel, MsgTypes, OutputChannel, PatternType, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { distinct } from './util/array'
 import { findUp, isFile, isParentFolder, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
-import { disposeAll, echoErr, echoMessage, echoWarning, getKeymapModifier, isDocumentEdit, mkdirp, runCommand } from './util/index'
+import { disposeAll, echoErr, echoMessage, echoWarning, getKeymapModifier, isDocumentEdit, mkdirp, runCommand, wait } from './util/index'
 import { score } from './util/match'
 import { getChangedFromEdits } from './util/position'
 import { byteIndex, byteLength } from './util/string'
@@ -505,6 +505,7 @@ export class Workspace implements IWorkspace {
       this.showMessage(`Error on applyEdits: ${e}`, 'error')
       return false
     }
+    await wait(50)
     return true
   }
 

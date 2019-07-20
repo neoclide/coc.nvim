@@ -446,7 +446,8 @@ export default class Handler {
   }
 
   public async documentFormatting(): Promise<boolean> {
-    let document = await workspace.document
+    let bufnr = await this.nvim.eval('bufnr("%")') as number
+    let document = workspace.getDocument(bufnr)
     if (!document) return false
     let options = await workspace.getFormatOptions(document.uri)
     let textEdits = await languages.provideDocumentFormattingEdits(document.textDocument, options)
