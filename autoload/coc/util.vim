@@ -212,7 +212,11 @@ function! coc#util#execute(cmd)
 endfunction
 
 function! coc#util#jump(cmd, filepath, ...) abort
-  let file = fnamemodify(a:filepath, ":~:.")
+  let path = a:filepath
+  if (has('win32unix'))
+    let path = substitute(a:filepath, '\v\\', '/', 'g')
+  endif
+  let file = fnamemodify(path, ":~:.")
   if a:cmd =~# '^tab'
     exe a:cmd.' '.fnameescape(file)
     if !empty(get(a:, 1, []))
