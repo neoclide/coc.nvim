@@ -527,7 +527,7 @@ export class ListManager implements Disposable {
     if (list.detail) {
       highligher.addLine('DESCRIPTION', 'Label')
       let lines = list.detail.split('\n').map(s => '  ' + s)
-      highligher.addLine(lines + '\n')
+      highligher.addLine(lines.join('\n') + '\n')
     }
     if (hasOptions) {
       highligher.addLine('ARGUMENTS', 'Label')
@@ -535,6 +535,7 @@ export class ListManager implements Disposable {
       for (let opt of list.options) {
         highligher.addLine(opt.name, 'Special')
         highligher.addLine(`  ${opt.description}`)
+        highligher.addLine('')
       }
       highligher.addLine('')
     }

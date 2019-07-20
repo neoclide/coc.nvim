@@ -1,19 +1,26 @@
 import { getCharCodes, caseMatch, wordChar } from '../util/fuzzy'
 
 function nextWordIndex(start = 0, codes: number[]): number {
-  if (start == 0 && wordChar(codes[0])) return 0
-  start = start == 0 ? 1 : start
-  let pre = codes[start - 1]
   for (let i = start; i < codes.length; i++) {
-    const ch = codes[i]
-    if (wordChar(ch)) {
-      if (!wordChar(pre) || (ch >= 65 && ch <= 90 && pre >= 97 && pre <= 122)) {
-        return i
-      }
+    if (isWordIndex(i, codes)) {
+      return i
     }
-    pre = ch
   }
   return -1
+}
+
+function upperCase(code: number): boolean {
+  return code >= 65 && code <= 90
+}
+
+function isWordIndex(index: number, codes: number[]): boolean {
+  if (index == 0) return true
+  let curr = codes[index]
+  if (!wordChar(curr)) return false
+  let pre = codes[index - 1]
+  if (!wordChar(pre)) return true
+  if (upperCase(curr) && !upperCase(pre)) return true
+  return false
 }
 
 /**
@@ -98,17 +105,19 @@ function nextScore(codes: number[], index: number, inputCodes: number[], allowFu
     }
     scores.push(score)
   }
-  // find word start match
-  let idx = nextWordIndex(index + 1, codes)
-  if (idx !== -1) {
-    let next = codes[idx]
-    if (caseMatch(input, next)) {
-      let score = input == next ? 1 : 0.75
-      if (!isFinal) {
-        let next = nextScore(codes, idx + 1, inputCodes.slice(1), allowFuzzy)
-        score = next == 0 ? 0 : score + next
+  // should not find if current is word index
+  if (wordChar(input) && !isWordIndex(index, codes)) {
+    let idx = nextWordIndex(index + 1, codes)
+    if (idx !== -1) {
+      let next = codes[idx]
+      if (caseMatch(input, next)) {
+        let score = input == next ? 1 : 0.75
+        if (!isFinal) {
+          let next = nextScore(codes, idx + 1, inputCodes.slice(1), allowFuzzy)
+          score = next == 0 ? 0 : score + next
+        }
+        scores.push(score)
       }
-      scores.push(score)
     }
   }
   // find fuzzy
