@@ -54331,7 +54331,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "6c34420615" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "6b79641865" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -81190,9 +81190,10 @@ class BasicList {
         else {
             let mod = context.options.position == 'top' ? 'below' : 'above';
             nvim.command(`silent ${mod} ${height}sp +setl\\ previewwindow ${escaped}`, true);
+            nvim.command(`exe "normal! z${height}\\<cr>"`, true);
         }
         nvim.command(`exe ${lnum}`, true);
-        nvim.command('setl winfixheight nofoldenable', true);
+        nvim.command('setl winfixheight nofoldenable cursorline', true);
         // highlight range
         if (position_1.comparePosition(range.start, range.end) !== 0) {
             let arr = [];
@@ -81250,6 +81251,7 @@ class BasicList {
             else {
                 nvim.command(`silent ${mod} ${height}new +setl\\ previewwindow`, true);
             }
+            nvim.command(`exe "normal! z${height}\\<cr>"`, true);
         }
         if (lines && lines.length) {
             nvim.call('append', [0, lines], true);
