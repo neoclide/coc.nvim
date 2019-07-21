@@ -54089,8 +54089,8 @@ const completion_1 = tslib_1.__importDefault(__webpack_require__(233));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(313));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(235));
 const handler_1 = tslib_1.__importDefault(__webpack_require__(396));
-const manager_2 = tslib_1.__importDefault(__webpack_require__(359));
-const services_1 = tslib_1.__importDefault(__webpack_require__(346));
+const manager_2 = tslib_1.__importDefault(__webpack_require__(361));
+const services_1 = tslib_1.__importDefault(__webpack_require__(348));
 const manager_3 = tslib_1.__importDefault(__webpack_require__(230));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(234));
 const types_1 = __webpack_require__(186);
@@ -54331,7 +54331,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "6b79641865" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "f7d656bdcf" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -71050,9 +71050,11 @@ const fetch_1 = tslib_1.__importDefault(__webpack_require__(295));
 exports.fetch = fetch_1.default;
 const download_1 = tslib_1.__importDefault(__webpack_require__(256));
 exports.download = download_1.default;
+const highligher_1 = tslib_1.__importDefault(__webpack_require__(346));
+exports.Highligher = highligher_1.default;
 const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(211));
 exports.FileSystemWatcher = fileSystemWatcher_1.default;
-const services_1 = tslib_1.__importDefault(__webpack_require__(346));
+const services_1 = tslib_1.__importDefault(__webpack_require__(348));
 exports.services = services_1.default;
 const sources_1 = tslib_1.__importDefault(__webpack_require__(234));
 exports.sources = sources_1.default;
@@ -71060,7 +71062,7 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 exports.workspace = workspace_1.default;
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(235));
 exports.extensions = extensions_1.default;
-const manager_1 = tslib_1.__importDefault(__webpack_require__(359));
+const manager_1 = tslib_1.__importDefault(__webpack_require__(361));
 exports.listManager = manager_1.default;
 const manager_2 = tslib_1.__importDefault(__webpack_require__(230));
 exports.snippetManager = manager_2.default;
@@ -71068,7 +71070,7 @@ const basic_1 = tslib_1.__importDefault(__webpack_require__(368));
 exports.BasicList = basic_1.default;
 const manager_3 = tslib_1.__importDefault(__webpack_require__(313));
 exports.diagnosticManager = manager_3.default;
-const ansiparse_1 = __webpack_require__(361);
+const ansiparse_1 = __webpack_require__(347);
 exports.ansiparse = ansiparse_1.ansiparse;
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(224));
 exports.Watchman = watchman_1.default;
@@ -71083,7 +71085,7 @@ exports.Disposable = vscode_languageserver_protocol_1.Disposable;
 exports.Event = vscode_languageserver_protocol_1.Event;
 exports.Emitter = vscode_languageserver_protocol_1.Emitter;
 tslib_1.__exportStar(__webpack_require__(186), exports);
-tslib_1.__exportStar(__webpack_require__(347), exports);
+tslib_1.__exportStar(__webpack_require__(349), exports);
 var util_1 = __webpack_require__(171);
 exports.disposeAll = util_1.disposeAll;
 exports.runCommand = util_1.runCommand;
@@ -72609,7 +72611,7 @@ class FloatFactory {
                 this.window.setVar('float', 1, true);
                 nvim.command(`setl nospell nolist wrap linebreak foldcolumn=1`, true);
                 nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true);
-                nvim.command(`setl signcolumn=no conceallevel=2`, true);
+                nvim.command(`setl signcolumn=no conceallevel=2 concealcursor=n`, true);
                 nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating`, true);
                 nvim.call('coc#util#do_autocmd', ['CocOpenFloat'], true);
             }
@@ -74865,13 +74867,326 @@ exports.getValidWord = getValidWord;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+const ansiparse_1 = __webpack_require__(347);
+const string_1 = __webpack_require__(207);
+/**
+ * Build highlights, with lines and highlights
+ */
+class Highlighter {
+    constructor(srcId = -1) {
+        this.srcId = srcId;
+        this.lines = [];
+        this.highlights = [];
+    }
+    addLine(line, hlGroup) {
+        if (line.indexOf('\n') !== -1) {
+            for (let content of line.split(/\r?\n/)) {
+                this.addLine(content, hlGroup);
+            }
+            return;
+        }
+        if (hlGroup) {
+            this.highlights.push({
+                line: this.lines.length,
+                colStart: line.match(/^\s*/)[0].length,
+                colEnd: string_1.byteLength(line),
+                hlGroup
+            });
+        } // '\x1b'
+        if (line.indexOf('\x1b') !== -1) {
+            let res = ansiparse_1.parseAnsiHighlights(line);
+            for (let hl of res.highlights) {
+                let { span, hlGroup } = hl;
+                if (span[0] != span[1]) {
+                    this.highlights.push({
+                        line: this.lines.length,
+                        colStart: span[0],
+                        colEnd: span[1],
+                        hlGroup
+                    });
+                }
+            }
+            this.lines.push(res.line);
+        }
+        else {
+            this.lines.push(line);
+        }
+    }
+    addLines(lines) {
+        this.lines.push(...lines);
+    }
+    addText(text, hlGroup) {
+        let { lines } = this;
+        let pre = lines[lines.length - 1] || '';
+        if (hlGroup) {
+            let colStart = string_1.byteLength(pre);
+            this.highlights.push({
+                line: lines.length ? lines.length - 1 : 0,
+                colStart,
+                colEnd: colStart + string_1.byteLength(text),
+                hlGroup
+            });
+        }
+        if (lines.length) {
+            lines[lines.length - 1] = `${pre}${text}`;
+        }
+        else {
+            lines.push(text);
+        }
+    }
+    get length() {
+        return this.lines.length;
+    }
+    // default to replace
+    render(buffer, start = 0, end = -1) {
+        buffer.setLines(this.lines, { start, end, strictIndexing: false });
+        for (let item of this.highlights) {
+            buffer.addHighlight({
+                hlGroup: item.hlGroup,
+                colStart: item.colStart,
+                colEnd: item.colEnd == null ? -1 : item.colEnd,
+                line: start + item.line,
+                srcId: this.srcId
+            }).logError();
+        }
+    }
+}
+exports.default = Highlighter;
+//# sourceMappingURL=highligher.js.map
+
+/***/ }),
+/* 347 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const string_1 = __webpack_require__(207);
+const foregroundColors = {
+    30: 'black',
+    31: 'red',
+    32: 'green',
+    33: 'yellow',
+    34: 'blue',
+    35: 'magenta',
+    36: 'cyan',
+    37: 'white',
+    90: 'grey'
+};
+const backgroundColors = {
+    40: 'black',
+    41: 'red',
+    42: 'green',
+    43: 'yellow',
+    44: 'blue',
+    45: 'magenta',
+    46: 'cyan',
+    47: 'white'
+};
+const styles = {
+    1: 'bold',
+    3: 'italic',
+    4: 'underline'
+};
+function parseAnsiHighlights(line) {
+    let items = ansiparse(line);
+    let highlights = [];
+    let newLabel = '';
+    for (let item of items) {
+        if (!item.text)
+            continue;
+        let { foreground, background } = item;
+        let len = string_1.byteLength(newLabel);
+        if (foreground || background) {
+            let span = [len, len + string_1.byteLength(item.text)];
+            let hlGroup = '';
+            if (foreground && background) {
+                hlGroup = `CocList${string_1.upperFirst(foreground)}${string_1.upperFirst(background)}`;
+            }
+            else if (foreground) {
+                hlGroup = `CocListFg${string_1.upperFirst(foreground)}`;
+            }
+            else if (background) {
+                hlGroup = `CocListBg${string_1.upperFirst(background)}`;
+            }
+            highlights.push({ span, hlGroup });
+        }
+        newLabel = newLabel + item.text;
+    }
+    return { line: newLabel, highlights };
+}
+exports.parseAnsiHighlights = parseAnsiHighlights;
+function ansiparse(str) {
+    //
+    // I'm terrible at writing parsers.
+    //
+    let matchingControl = null;
+    let matchingData = null;
+    let matchingText = '';
+    let ansiState = [];
+    let result = [];
+    let state = {};
+    let eraseChar;
+    //
+    // General workflow for this thing is:
+    // \033\[33mText
+    // |     |  |
+    // |     |  matchingText
+    // |     matchingData
+    // matchingControl
+    //
+    // \033\[K or \033\[m
+    //
+    // In further steps we hope it's all going to be fine. It usually is.
+    //
+    //
+    // Erases a char from the output
+    //
+    eraseChar = () => {
+        let index;
+        let text;
+        if (matchingText.length) {
+            matchingText = matchingText.substr(0, matchingText.length - 1);
+        }
+        else if (result.length) {
+            index = result.length - 1;
+            text = result[index].text;
+            if (text.length === 1) {
+                //
+                // A result bit was fully deleted, pop it out to simplify the final output
+                //
+                result.pop();
+            }
+            else {
+                result[index].text = text.substr(0, text.length - 1);
+            }
+        }
+    };
+    for (let i = 0; i < str.length; i++) { // tslint:disable-line
+        if (matchingControl != null) {
+            if (matchingControl == '\x1b' && str[i] == '\[') {
+                //
+                // We've matched full control code. Lets start matching formating data.
+                //
+                //
+                // "emit" matched text with correct state
+                //
+                if (matchingText) {
+                    state.text = matchingText;
+                    result.push(state);
+                    state = {};
+                    matchingText = '';
+                }
+                if (matchingText == '' && (str[i + 1] == 'm' || str[i + 1] == 'K')) {
+                    if (state.foreground || state.background) {
+                        state.text = '';
+                        result.push(state);
+                    }
+                    state = {};
+                }
+                matchingControl = null;
+                matchingData = '';
+            }
+            else {
+                //
+                // We failed to match anything - most likely a bad control code. We
+                // go back to matching regular strings.
+                //
+                matchingText += matchingControl + str[i];
+                matchingControl = null;
+            }
+            continue;
+        }
+        else if (matchingData != null) {
+            if (str[i] == ';') {
+                //
+                // `;` separates many formatting codes, for example: `\033[33;43m`
+                // means that both `33` and `43` should be applied.
+                //
+                // TODO: this can be simplified by modifying state here.
+                //
+                ansiState.push(matchingData);
+                matchingData = '';
+            }
+            else if (str[i] == 'm' || str[i] == 'K') {
+                //
+                // `m` finished whole formatting code. We can proceed to matching
+                // formatted text.
+                //
+                ansiState.push(matchingData);
+                matchingData = null;
+                matchingText = '';
+                //
+                // Convert matched formatting data into user-friendly state object.
+                //
+                // TODO: DRY.
+                //
+                ansiState.forEach(ansiCode => {
+                    if (foregroundColors[ansiCode]) {
+                        state.foreground = foregroundColors[ansiCode];
+                    }
+                    else if (backgroundColors[ansiCode]) {
+                        state.background = backgroundColors[ansiCode];
+                    }
+                    else if (ansiCode == 39) {
+                        delete state.foreground;
+                    }
+                    else if (ansiCode == 49) {
+                        delete state.background;
+                    }
+                    else if (styles[ansiCode]) {
+                        state[styles[ansiCode]] = true;
+                    }
+                    else if (ansiCode == 22) {
+                        state.bold = false;
+                    }
+                    else if (ansiCode == 23) {
+                        state.italic = false;
+                    }
+                    else if (ansiCode == 24) {
+                        state.underline = false;
+                    }
+                });
+                ansiState = [];
+            }
+            else {
+                matchingData += str[i];
+            }
+            continue;
+        }
+        if (str[i] == '\x1b') {
+            matchingControl = str[i];
+        }
+        else if (str[i] == '\u0008') {
+            eraseChar();
+        }
+        else {
+            matchingText += str[i];
+        }
+    }
+    if (matchingText) {
+        state.text = matchingText + (matchingControl ? matchingControl : '');
+        result.push(state);
+    }
+    return result;
+}
+exports.ansiparse = ansiparse;
+//# sourceMappingURL=ansiparse.js.map
+
+/***/ }),
+/* 348 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const events_1 = __webpack_require__(49);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
 const net_1 = tslib_1.__importDefault(__webpack_require__(6));
 const os_1 = tslib_1.__importDefault(__webpack_require__(55));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const language_client_1 = __webpack_require__(347);
+const language_client_1 = __webpack_require__(349);
 const types_1 = __webpack_require__(186);
 const util_1 = __webpack_require__(171);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
@@ -75314,7 +75629,7 @@ exports.default = new ServiceManager();
 //# sourceMappingURL=services.js.map
 
 /***/ }),
-/* 347 */
+/* 349 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -75336,17 +75651,17 @@ const Is = tslib_1.__importStar(__webpack_require__(188));
 const processes_1 = __webpack_require__(317);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const which_1 = tslib_1.__importDefault(__webpack_require__(175));
-const client_1 = __webpack_require__(348);
-const colorProvider_1 = __webpack_require__(352);
-const configuration_1 = __webpack_require__(353);
-const declaration_1 = __webpack_require__(354);
-const foldingRange_1 = __webpack_require__(355);
-const implementation_1 = __webpack_require__(356);
-const typeDefinition_1 = __webpack_require__(357);
-const workspaceFolders_1 = __webpack_require__(358);
+const client_1 = __webpack_require__(350);
+const colorProvider_1 = __webpack_require__(354);
+const configuration_1 = __webpack_require__(355);
+const declaration_1 = __webpack_require__(356);
+const foldingRange_1 = __webpack_require__(357);
+const implementation_1 = __webpack_require__(358);
+const typeDefinition_1 = __webpack_require__(359);
+const workspaceFolders_1 = __webpack_require__(360);
 const string_1 = __webpack_require__(207);
 const logger = __webpack_require__(183)('language-client-index');
-tslib_1.__exportStar(__webpack_require__(348), exports);
+tslib_1.__exportStar(__webpack_require__(350), exports);
 var Executable;
 (function (Executable) {
     function is(value) {
@@ -75784,7 +76099,7 @@ var ProposedFeatures;
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 348 */
+/* 350 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -75804,9 +76119,9 @@ const languages_1 = tslib_1.__importDefault(__webpack_require__(312));
 const fs_1 = __webpack_require__(197);
 const Is = tslib_1.__importStar(__webpack_require__(188));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const async_1 = __webpack_require__(349);
-const cv = tslib_1.__importStar(__webpack_require__(350));
-const UUID = tslib_1.__importStar(__webpack_require__(351));
+const async_1 = __webpack_require__(351);
+const cv = tslib_1.__importStar(__webpack_require__(352));
+const UUID = tslib_1.__importStar(__webpack_require__(353));
 const logger = __webpack_require__(183)('language-client-client');
 class ConsoleLogger {
     error(message) {
@@ -78192,7 +78507,7 @@ exports.BaseLanguageClient = BaseLanguageClient;
 //# sourceMappingURL=client.js.map
 
 /***/ }),
-/* 349 */
+/* 351 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -78274,7 +78589,7 @@ exports.Delayer = Delayer;
 //# sourceMappingURL=async.js.map
 
 /***/ }),
-/* 350 */
+/* 352 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -78402,7 +78717,7 @@ exports.asCodeLensParams = asCodeLensParams;
 //# sourceMappingURL=converter.js.map
 
 /***/ }),
-/* 351 */
+/* 353 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -78416,7 +78731,7 @@ exports.generateUuid = generateUuid;
 //# sourceMappingURL=uuid.js.map
 
 /***/ }),
-/* 352 */
+/* 354 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -78430,8 +78745,8 @@ const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(312));
 const Is = tslib_1.__importStar(__webpack_require__(188));
-const client_1 = __webpack_require__(348);
-const UUID = tslib_1.__importStar(__webpack_require__(351));
+const client_1 = __webpack_require__(350);
+const UUID = tslib_1.__importStar(__webpack_require__(353));
 function ensure(target, key) {
     if (target[key] === void 0) {
         target[key] = {};
@@ -78510,7 +78825,7 @@ exports.ColorProviderFeature = ColorProviderFeature;
 //# sourceMappingURL=colorProvider.js.map
 
 /***/ }),
-/* 353 */
+/* 355 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -78584,7 +78899,7 @@ exports.ConfigurationFeature = ConfigurationFeature;
 //# sourceMappingURL=configuration.js.map
 
 /***/ }),
-/* 354 */
+/* 356 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -78596,11 +78911,11 @@ exports.ConfigurationFeature = ConfigurationFeature;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const Is = tslib_1.__importStar(__webpack_require__(188));
-const UUID = tslib_1.__importStar(__webpack_require__(351));
+const UUID = tslib_1.__importStar(__webpack_require__(353));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(312));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const converter_1 = __webpack_require__(350);
-const client_1 = __webpack_require__(348);
+const converter_1 = __webpack_require__(352);
+const client_1 = __webpack_require__(350);
 function ensure(target, key) {
     if (target[key] === void 0) {
         target[key] = {};
@@ -78663,7 +78978,7 @@ exports.DeclarationFeature = DeclarationFeature;
 //# sourceMappingURL=declaration.js.map
 
 /***/ }),
-/* 355 */
+/* 357 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -78677,8 +78992,8 @@ const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(312));
 const Is = tslib_1.__importStar(__webpack_require__(188));
-const client_1 = __webpack_require__(348);
-const UUID = tslib_1.__importStar(__webpack_require__(351));
+const client_1 = __webpack_require__(350);
+const UUID = tslib_1.__importStar(__webpack_require__(353));
 function ensure(target, key) {
     if (target[key] === void 0) {
         target[key] = {};
@@ -78740,7 +79055,7 @@ exports.FoldingRangeFeature = FoldingRangeFeature;
 //# sourceMappingURL=foldingRange.js.map
 
 /***/ }),
-/* 356 */
+/* 358 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -78754,9 +79069,9 @@ const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(312));
 const Is = tslib_1.__importStar(__webpack_require__(188));
-const client_1 = __webpack_require__(348);
-const UUID = tslib_1.__importStar(__webpack_require__(351));
-const cv = tslib_1.__importStar(__webpack_require__(350));
+const client_1 = __webpack_require__(350);
+const UUID = tslib_1.__importStar(__webpack_require__(353));
+const cv = tslib_1.__importStar(__webpack_require__(352));
 function ensure(target, key) {
     if (target[key] === void 0) {
         target[key] = {};
@@ -78818,7 +79133,7 @@ exports.ImplementationFeature = ImplementationFeature;
 //# sourceMappingURL=implementation.js.map
 
 /***/ }),
-/* 357 */
+/* 359 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -78832,9 +79147,9 @@ const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(312));
 const Is = tslib_1.__importStar(__webpack_require__(188));
-const client_1 = __webpack_require__(348);
-const UUID = tslib_1.__importStar(__webpack_require__(351));
-const cv = tslib_1.__importStar(__webpack_require__(350));
+const client_1 = __webpack_require__(350);
+const UUID = tslib_1.__importStar(__webpack_require__(353));
+const cv = tslib_1.__importStar(__webpack_require__(352));
 function ensure(target, key) {
     if (target[key] === void 0) {
         target[key] = {};
@@ -78898,7 +79213,7 @@ exports.TypeDefinitionFeature = TypeDefinitionFeature;
 //# sourceMappingURL=typeDefinition.js.map
 
 /***/ }),
-/* 358 */
+/* 360 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -78911,7 +79226,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const UUID = tslib_1.__importStar(__webpack_require__(351));
+const UUID = tslib_1.__importStar(__webpack_require__(353));
 const logger = __webpack_require__(183)('language-client-workspaceFolder');
 function access(target, key) {
     if (target === void 0) {
@@ -78995,7 +79310,7 @@ exports.WorkspaceFoldersFeature = WorkspaceFoldersFeature;
 //# sourceMappingURL=workspaceFolders.js.map
 
 /***/ }),
-/* 359 */
+/* 361 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -79008,7 +79323,7 @@ const events_1 = tslib_1.__importDefault(__webpack_require__(145));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(235));
 const util_1 = __webpack_require__(171);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const highligher_1 = tslib_1.__importDefault(__webpack_require__(360));
+const highligher_1 = tslib_1.__importDefault(__webpack_require__(346));
 const configuration_1 = tslib_1.__importDefault(__webpack_require__(362));
 const history_1 = tslib_1.__importDefault(__webpack_require__(363));
 const mappings_1 = tslib_1.__importDefault(__webpack_require__(365));
@@ -79758,319 +80073,6 @@ class ListManager {
 exports.ListManager = ListManager;
 exports.default = new ListManager();
 //# sourceMappingURL=manager.js.map
-
-/***/ }),
-/* 360 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const string_1 = __webpack_require__(207);
-const ansiparse_1 = __webpack_require__(361);
-/**
- * Build highlights, with lines and highlights
- */
-class Highlighter {
-    constructor(srcId = -1) {
-        this.srcId = srcId;
-        this.lines = [];
-        this.highlights = [];
-    }
-    addLine(line, hlGroup) {
-        if (line.indexOf('\n') !== -1) {
-            for (let content of line.split(/\r?\n/)) {
-                this.addLine(content, hlGroup);
-            }
-            return;
-        }
-        if (hlGroup) {
-            this.highlights.push({
-                line: this.lines.length,
-                colStart: line.match(/^\s*/)[0].length,
-                colEnd: string_1.byteLength(line),
-                hlGroup
-            });
-        } // '\x1b'
-        if (line.indexOf('\x1b') !== -1) {
-            let res = ansiparse_1.parseAnsiHighlights(line);
-            for (let hl of res.highlights) {
-                let { span, hlGroup } = hl;
-                if (span[0] != span[1]) {
-                    this.highlights.push({
-                        line: this.lines.length,
-                        colStart: span[0],
-                        colEnd: span[1],
-                        hlGroup
-                    });
-                }
-            }
-            this.lines.push(res.line);
-        }
-        else {
-            this.lines.push(line);
-        }
-    }
-    addLines(lines) {
-        this.lines.push(...lines);
-    }
-    addText(text, hlGroup) {
-        let { lines } = this;
-        let pre = lines[lines.length - 1] || '';
-        if (hlGroup) {
-            let colStart = string_1.byteLength(pre);
-            this.highlights.push({
-                line: lines.length ? lines.length - 1 : 0,
-                colStart,
-                colEnd: colStart + string_1.byteLength(text),
-                hlGroup
-            });
-        }
-        if (lines.length) {
-            lines[lines.length - 1] = `${pre}${text}`;
-        }
-        else {
-            lines.push(text);
-        }
-    }
-    get length() {
-        return this.lines.length;
-    }
-    // default to replace
-    render(buffer, start = 0, end = -1) {
-        buffer.setLines(this.lines, { start, end, strictIndexing: false });
-        for (let item of this.highlights) {
-            buffer.addHighlight({
-                hlGroup: item.hlGroup,
-                colStart: item.colStart,
-                colEnd: item.colEnd == null ? -1 : item.colEnd,
-                line: start + item.line,
-                srcId: this.srcId
-            }).logError();
-        }
-    }
-}
-exports.default = Highlighter;
-//# sourceMappingURL=highligher.js.map
-
-/***/ }),
-/* 361 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const string_1 = __webpack_require__(207);
-const foregroundColors = {
-    30: 'black',
-    31: 'red',
-    32: 'green',
-    33: 'yellow',
-    34: 'blue',
-    35: 'magenta',
-    36: 'cyan',
-    37: 'white',
-    90: 'grey'
-};
-const backgroundColors = {
-    40: 'black',
-    41: 'red',
-    42: 'green',
-    43: 'yellow',
-    44: 'blue',
-    45: 'magenta',
-    46: 'cyan',
-    47: 'white'
-};
-const styles = {
-    1: 'bold',
-    3: 'italic',
-    4: 'underline'
-};
-function parseAnsiHighlights(line) {
-    let items = ansiparse(line);
-    let highlights = [];
-    let newLabel = '';
-    for (let item of items) {
-        if (!item.text)
-            continue;
-        let { foreground, background } = item;
-        let len = string_1.byteLength(newLabel);
-        if (foreground || background) {
-            let span = [len, len + string_1.byteLength(item.text)];
-            let hlGroup = '';
-            if (foreground && background) {
-                hlGroup = `CocList${string_1.upperFirst(foreground)}${string_1.upperFirst(background)}`;
-            }
-            else if (foreground) {
-                hlGroup = `CocListFg${string_1.upperFirst(foreground)}`;
-            }
-            else if (background) {
-                hlGroup = `CocListBg${string_1.upperFirst(background)}`;
-            }
-            highlights.push({ span, hlGroup });
-        }
-        newLabel = newLabel + item.text;
-    }
-    return { line: newLabel, highlights };
-}
-exports.parseAnsiHighlights = parseAnsiHighlights;
-function ansiparse(str) {
-    //
-    // I'm terrible at writing parsers.
-    //
-    let matchingControl = null;
-    let matchingData = null;
-    let matchingText = '';
-    let ansiState = [];
-    let result = [];
-    let state = {};
-    let eraseChar;
-    //
-    // General workflow for this thing is:
-    // \033\[33mText
-    // |     |  |
-    // |     |  matchingText
-    // |     matchingData
-    // matchingControl
-    //
-    // \033\[K or \033\[m
-    //
-    // In further steps we hope it's all going to be fine. It usually is.
-    //
-    //
-    // Erases a char from the output
-    //
-    eraseChar = () => {
-        let index;
-        let text;
-        if (matchingText.length) {
-            matchingText = matchingText.substr(0, matchingText.length - 1);
-        }
-        else if (result.length) {
-            index = result.length - 1;
-            text = result[index].text;
-            if (text.length === 1) {
-                //
-                // A result bit was fully deleted, pop it out to simplify the final output
-                //
-                result.pop();
-            }
-            else {
-                result[index].text = text.substr(0, text.length - 1);
-            }
-        }
-    };
-    for (let i = 0; i < str.length; i++) { // tslint:disable-line
-        if (matchingControl != null) {
-            if (matchingControl == '\x1b' && str[i] == '\[') {
-                //
-                // We've matched full control code. Lets start matching formating data.
-                //
-                //
-                // "emit" matched text with correct state
-                //
-                if (matchingText) {
-                    state.text = matchingText;
-                    result.push(state);
-                    state = {};
-                    matchingText = '';
-                }
-                if (matchingText == '' && (str[i + 1] == 'm' || str[i + 1] == 'K')) {
-                    if (state.foreground || state.background) {
-                        state.text = '';
-                        result.push(state);
-                    }
-                    state = {};
-                }
-                matchingControl = null;
-                matchingData = '';
-            }
-            else {
-                //
-                // We failed to match anything - most likely a bad control code. We
-                // go back to matching regular strings.
-                //
-                matchingText += matchingControl + str[i];
-                matchingControl = null;
-            }
-            continue;
-        }
-        else if (matchingData != null) {
-            if (str[i] == ';') {
-                //
-                // `;` separates many formatting codes, for example: `\033[33;43m`
-                // means that both `33` and `43` should be applied.
-                //
-                // TODO: this can be simplified by modifying state here.
-                //
-                ansiState.push(matchingData);
-                matchingData = '';
-            }
-            else if (str[i] == 'm' || str[i] == 'K') {
-                //
-                // `m` finished whole formatting code. We can proceed to matching
-                // formatted text.
-                //
-                ansiState.push(matchingData);
-                matchingData = null;
-                matchingText = '';
-                //
-                // Convert matched formatting data into user-friendly state object.
-                //
-                // TODO: DRY.
-                //
-                ansiState.forEach(ansiCode => {
-                    if (foregroundColors[ansiCode]) {
-                        state.foreground = foregroundColors[ansiCode];
-                    }
-                    else if (backgroundColors[ansiCode]) {
-                        state.background = backgroundColors[ansiCode];
-                    }
-                    else if (ansiCode == 39) {
-                        delete state.foreground;
-                    }
-                    else if (ansiCode == 49) {
-                        delete state.background;
-                    }
-                    else if (styles[ansiCode]) {
-                        state[styles[ansiCode]] = true;
-                    }
-                    else if (ansiCode == 22) {
-                        state.bold = false;
-                    }
-                    else if (ansiCode == 23) {
-                        state.italic = false;
-                    }
-                    else if (ansiCode == 24) {
-                        state.underline = false;
-                    }
-                });
-                ansiState = [];
-            }
-            else {
-                matchingData += str[i];
-            }
-            continue;
-        }
-        if (str[i] == '\x1b') {
-            matchingControl = str[i];
-        }
-        else if (str[i] == '\u0008') {
-            eraseChar();
-        }
-        else {
-            matchingText += str[i];
-        }
-    }
-    if (matchingText) {
-        state.text = matchingText + (matchingControl ? matchingControl : '');
-        result.push(state);
-    }
-    return result;
-}
-exports.ansiparse = ansiparse;
-//# sourceMappingURL=ansiparse.js.map
 
 /***/ }),
 /* 362 */
@@ -82015,7 +82017,7 @@ exports.default = OutputList;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const services_1 = tslib_1.__importDefault(__webpack_require__(346));
+const services_1 = tslib_1.__importDefault(__webpack_require__(348));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(368));
 const util_1 = __webpack_require__(171);
 class ServicesList extends basic_1.default {
@@ -82430,7 +82432,7 @@ const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(229));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(313));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(312));
-const services_1 = tslib_1.__importDefault(__webpack_require__(346));
+const services_1 = tslib_1.__importDefault(__webpack_require__(348));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(368));
 const logger = __webpack_require__(183)('list-actions');
@@ -83035,7 +83037,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const vscode_uri_1 = __webpack_require__(174);
-const ansiparse_1 = __webpack_require__(361);
+const ansiparse_1 = __webpack_require__(347);
 const diff_1 = __webpack_require__(205);
 const fzy_1 = __webpack_require__(381);
 const score_1 = __webpack_require__(385);
@@ -84733,7 +84735,7 @@ class Floating {
                 nvim.command(`noa call win_gotoid(${win.id})`, true);
                 nvim.command(`setl nospell nolist wrap linebreak foldcolumn=1`, true);
                 nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true);
-                nvim.command(`setl signcolumn=no conceallevel=2`, true);
+                nvim.command(`setl signcolumn=no conceallevel=2 concealcursor=n`, true);
                 nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating`, true);
                 nvim.call('coc#util#do_autocmd', ['CocOpenFloat'], true);
                 this.floatBuffer.setLines();
@@ -85157,9 +85159,9 @@ const commands_1 = tslib_1.__importDefault(__webpack_require__(229));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(313));
 const events_1 = tslib_1.__importDefault(__webpack_require__(145));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(312));
-const manager_2 = tslib_1.__importDefault(__webpack_require__(359));
+const manager_2 = tslib_1.__importDefault(__webpack_require__(361));
 const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(314));
-const services_1 = tslib_1.__importDefault(__webpack_require__(346));
+const services_1 = tslib_1.__importDefault(__webpack_require__(348));
 const manager_3 = tslib_1.__importDefault(__webpack_require__(230));
 const util_1 = __webpack_require__(171);
 const convert_1 = __webpack_require__(376);
@@ -86368,7 +86370,7 @@ const debounce_1 = tslib_1.__importDefault(__webpack_require__(173));
 const commands_1 = tslib_1.__importDefault(__webpack_require__(229));
 const events_1 = tslib_1.__importDefault(__webpack_require__(145));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(312));
-const services_1 = tslib_1.__importDefault(__webpack_require__(346));
+const services_1 = tslib_1.__importDefault(__webpack_require__(348));
 const util_1 = __webpack_require__(171);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const logger = __webpack_require__(183)('codelens');
@@ -86986,7 +86988,7 @@ const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const vscode_languageserver_types_1 = __webpack_require__(158);
 const vscode_uri_1 = __webpack_require__(174);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(312));
-const highligher_1 = tslib_1.__importDefault(__webpack_require__(360));
+const highligher_1 = tslib_1.__importDefault(__webpack_require__(346));
 const fs_2 = __webpack_require__(197);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const logger = __webpack_require__(183)('refactor');
