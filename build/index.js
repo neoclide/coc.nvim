@@ -44736,9 +44736,7 @@ class Workspace {
             return Promise.resolve(this.buffers.get(bufnr));
         }
         if (!this.creatingSources.has(bufnr)) {
-            this.onBufCreate(bufnr).catch(e => {
-                logger.error('Error on buffer create:', e);
-            });
+            this.onBufCreate(bufnr).logError();
         }
         return new Promise(resolve => {
             let disposable = this.onDidOpenTextDocument(doc => {
@@ -54331,7 +54329,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f7d656bdcf" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "afa52074f6" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -60613,17 +60611,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const child_process_1 = __webpack_require__(172);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
-const url_1 = tslib_1.__importDefault(__webpack_require__(249));
 const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(182));
+const mv_1 = tslib_1.__importDefault(__webpack_require__(249));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
+const rc_1 = tslib_1.__importDefault(__webpack_require__(255));
 const rimraf_1 = tslib_1.__importDefault(__webpack_require__(236));
-const mv_1 = tslib_1.__importDefault(__webpack_require__(250));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
+const url_1 = tslib_1.__importDefault(__webpack_require__(261));
 const util_1 = __webpack_require__(40);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const download_1 = tslib_1.__importDefault(__webpack_require__(256));
-const fetch_1 = tslib_1.__importDefault(__webpack_require__(295));
-const rc_1 = tslib_1.__importDefault(__webpack_require__(299));
+const download_1 = tslib_1.__importDefault(__webpack_require__(262));
+const fetch_1 = tslib_1.__importDefault(__webpack_require__(301));
 const logger = __webpack_require__(183)('model-extension');
 function registryUrl(scope = '') {
     const result = rc_1.default('npm', { registry: 'https://registry.npmjs.org/' });
@@ -60642,7 +60640,7 @@ class ExtensionManager {
         mkdirp_1.default.sync(root);
         mkdirp_1.default.sync(path_1.default.join(root, 'node_modules/.cache'));
     }
-    async getInfo(npm, ref) {
+    async getInfo(ref) {
         if (ref.startsWith('https:'))
             return await this.getInfoFromUri(ref);
         let name;
@@ -60659,9 +60657,13 @@ class ExtensionManager {
         let obj = res['versions'][version];
         if (!obj)
             throw new Error(`${ref} not exists.`);
+        let requiredVersion = obj['engines'] && obj['engines']['coc'];
+        if (!requiredVersion) {
+            throw new Error(`${ref} is not valid coc extension, "engines" field with coc property required.`);
+        }
         return {
             'dist.tarball': obj['dist']['tarball'],
-            'engines.coc': obj['engines'] && obj['engines']['coc'],
+            'engines.coc': requiredVersion,
             version: obj['version'],
             name: res.name
         };
@@ -60678,7 +60680,11 @@ class ExtensionManager {
         }
     }
     async _install(npm, def, info, onMessage) {
-        let tmpFolder = await util_1.promisify(fs_1.default.mkdtemp)(path_1.default.join(this.root, 'node_modules/.cache', `${info.name}-`));
+        let filepath = path_1.default.join(this.root, 'node_modules/.cache', `${info.name}-`);
+        if (!fs_1.default.existsSync(path_1.default.dirname(filepath))) {
+            fs_1.default.mkdirSync(path_1.default.dirname(filepath));
+        }
+        let tmpFolder = await util_1.promisify(fs_1.default.mkdtemp)(filepath);
         let url = info['dist.tarball'];
         onMessage(`Downloading from ${url}`);
         await download_1.default(url, { dest: tmpFolder });
@@ -60713,12 +60719,7 @@ class ExtensionManager {
         this.checkFolder();
         logger.info(`Using npm from: ${npm}`);
         logger.info(`Loading info of ${def}.`);
-        let info = await this.getInfo(npm, def);
-        if (info.error) {
-            let { code, summary } = info.error;
-            let msg = code == 'E404' ? `module ${def} not exists!` : summary;
-            throw new Error(msg);
-        }
+        let info = await this.getInfo(def);
         let { name } = info;
         let required = info['engines.coc'] ? info['engines.coc'].replace(/^\^/, '>=') : '';
         if (required && !semver_1.default.satisfies(workspace_1.default.version, required)) {
@@ -60745,9 +60746,7 @@ class ExtensionManager {
             version = JSON.parse(content).version;
         }
         logger.info(`Loading info of ${name}.`);
-        let info = await this.getInfo(npm, uri ? uri : name);
-        if (info.error)
-            return;
+        let info = await this.getInfo(uri ? uri : name);
         if (version && info.version && semver_1.default.gte(version, info.version)) {
             logger.info(`Extension ${name} is up to date.`);
             return false;
@@ -60781,18 +60780,12 @@ exports.default = ExtensionManager;
 
 /***/ }),
 /* 249 */
-/***/ (function(module, exports) {
-
-module.exports = require("url");
-
-/***/ }),
-/* 250 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var fs = __webpack_require__(54);
-var ncp = __webpack_require__(251).ncp;
+var ncp = __webpack_require__(250).ncp;
 var path = __webpack_require__(56);
-var rimraf = __webpack_require__(252);
+var rimraf = __webpack_require__(251);
 var mkdirp = __webpack_require__(182);
 
 module.exports = mv;
@@ -60897,7 +60890,7 @@ function moveDirAcrossDevice(source, dest, clobber, limit, cb) {
 
 
 /***/ }),
-/* 251 */
+/* 250 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var fs = __webpack_require__(54),
@@ -61164,7 +61157,7 @@ function ncp (source, dest, options, callback) {
 
 
 /***/ }),
-/* 252 */
+/* 251 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = rimraf
@@ -61173,7 +61166,7 @@ rimraf.sync = rimrafSync
 var assert = __webpack_require__(107)
 var path = __webpack_require__(56)
 var fs = __webpack_require__(54)
-var glob = __webpack_require__(253)
+var glob = __webpack_require__(252)
 
 var globOpts = {
   nosort: true,
@@ -61503,7 +61496,7 @@ function rmkidsSync (p, options) {
 
 
 /***/ }),
-/* 253 */
+/* 252 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // Approach:
@@ -61556,8 +61549,8 @@ var EE = __webpack_require__(49).EventEmitter
 var path = __webpack_require__(56)
 var assert = __webpack_require__(107)
 var isAbsolute = __webpack_require__(242)
-var globSync = __webpack_require__(254)
-var common = __webpack_require__(255)
+var globSync = __webpack_require__(253)
+var common = __webpack_require__(254)
 var alphasort = common.alphasort
 var alphasorti = common.alphasorti
 var setopts = common.setopts
@@ -62274,7 +62267,7 @@ Glob.prototype._stat2 = function (f, abs, er, stat, cb) {
 
 
 /***/ }),
-/* 254 */
+/* 253 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = globSync
@@ -62283,12 +62276,12 @@ globSync.GlobSync = GlobSync
 var fs = __webpack_require__(54)
 var minimatch = __webpack_require__(198)
 var Minimatch = minimatch.Minimatch
-var Glob = __webpack_require__(253).Glob
+var Glob = __webpack_require__(252).Glob
 var util = __webpack_require__(40)
 var path = __webpack_require__(56)
 var assert = __webpack_require__(107)
 var isAbsolute = __webpack_require__(242)
-var common = __webpack_require__(255)
+var common = __webpack_require__(254)
 var alphasort = common.alphasort
 var alphasorti = common.alphasorti
 var setopts = common.setopts
@@ -62740,7 +62733,7 @@ GlobSync.prototype._makeAbs = function (f) {
 
 
 /***/ }),
-/* 255 */
+/* 254 */
 /***/ (function(module, exports, __webpack_require__) {
 
 exports.alphasort = alphasort
@@ -62972,20 +62965,872 @@ function childrenIgnored (self, path) {
 
 
 /***/ }),
+/* 255 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var cc   = __webpack_require__(256)
+var join = __webpack_require__(56).join
+var deepExtend = __webpack_require__(259)
+var etc = '/etc'
+var win = process.platform === "win32"
+var home = win
+           ? process.env.USERPROFILE
+           : process.env.HOME
+
+module.exports = function (name, defaults, argv, parse) {
+  if('string' !== typeof name)
+    throw new Error('rc(name): name *must* be string')
+  if(!argv)
+    argv = __webpack_require__(260)(process.argv.slice(2))
+  defaults = (
+      'string' === typeof defaults
+    ? cc.json(defaults) : defaults
+    ) || {}
+
+  parse = parse || cc.parse
+
+  var env = cc.env(name + '_')
+
+  var configs = [defaults]
+  var configFiles = []
+  function addConfigFile (file) {
+    if (configFiles.indexOf(file) >= 0) return
+    var fileConfig = cc.file(file)
+    if (fileConfig) {
+      configs.push(parse(fileConfig))
+      configFiles.push(file)
+    }
+  }
+
+  // which files do we look at?
+  if (!win)
+   [join(etc, name, 'config'),
+    join(etc, name + 'rc')].forEach(addConfigFile)
+  if (home)
+   [join(home, '.config', name, 'config'),
+    join(home, '.config', name),
+    join(home, '.' + name, 'config'),
+    join(home, '.' + name + 'rc')].forEach(addConfigFile)
+  addConfigFile(cc.find('.'+name+'rc'))
+  if (env.config) addConfigFile(env.config)
+  if (argv.config) addConfigFile(argv.config)
+
+  return deepExtend.apply(null, configs.concat([
+    env,
+    argv,
+    configFiles.length ? {configs: configFiles, config: configFiles[configFiles.length - 1]} : undefined,
+  ]))
+}
+
+
+/***/ }),
 /* 256 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var fs   = __webpack_require__(54)
+var ini  = __webpack_require__(257)
+var path = __webpack_require__(56)
+var stripJsonComments = __webpack_require__(258)
+
+var parse = exports.parse = function (content) {
+
+  //if it ends in .json or starts with { then it must be json.
+  //must be done this way, because ini accepts everything.
+  //can't just try and parse it and let it throw if it's not ini.
+  //everything is ini. even json with a syntax error.
+
+  if(/^\s*{/.test(content))
+    return JSON.parse(stripJsonComments(content))
+  return ini.parse(content)
+
+}
+
+var file = exports.file = function () {
+  var args = [].slice.call(arguments).filter(function (arg) { return arg != null })
+
+  //path.join breaks if it's a not a string, so just skip this.
+  for(var i in args)
+    if('string' !== typeof args[i])
+      return
+
+  var file = path.join.apply(null, args)
+  var content
+  try {
+    return fs.readFileSync(file,'utf-8')
+  } catch (err) {
+    return
+  }
+}
+
+var json = exports.json = function () {
+  var content = file.apply(null, arguments)
+  return content ? parse(content) : null
+}
+
+var env = exports.env = function (prefix, env) {
+  env = env || process.env
+  var obj = {}
+  var l = prefix.length
+  for(var k in env) {
+    if(k.toLowerCase().indexOf(prefix.toLowerCase()) === 0) {
+
+      var keypath = k.substring(l).split('__')
+
+      // Trim empty strings from keypath array
+      var _emptyStringIndex
+      while ((_emptyStringIndex=keypath.indexOf('')) > -1) {
+        keypath.splice(_emptyStringIndex, 1)
+      }
+
+      var cursor = obj
+      keypath.forEach(function _buildSubObj(_subkey,i){
+
+        // (check for _subkey first so we ignore empty strings)
+        // (check for cursor to avoid assignment to primitive objects)
+        if (!_subkey || typeof cursor !== 'object')
+          return
+
+        // If this is the last key, just stuff the value in there
+        // Assigns actual value from env variable to final key
+        // (unless it's just an empty string- in that case use the last valid key)
+        if (i === keypath.length-1)
+          cursor[_subkey] = env[k]
+
+
+        // Build sub-object if nothing already exists at the keypath
+        if (cursor[_subkey] === undefined)
+          cursor[_subkey] = {}
+
+        // Increment cursor used to track the object at the current depth
+        cursor = cursor[_subkey]
+
+      })
+
+    }
+
+  }
+
+  return obj
+}
+
+var find = exports.find = function () {
+  var rel = path.join.apply(null, [].slice.call(arguments))
+
+  function find(start, rel) {
+    var file = path.join(start, rel)
+    try {
+      fs.statSync(file)
+      return file
+    } catch (err) {
+      if(path.dirname(start) !== start) // root
+        return find(path.dirname(start), rel)
+    }
+  }
+  return find(process.cwd(), rel)
+}
+
+
+
+
+/***/ }),
+/* 257 */
+/***/ (function(module, exports) {
+
+exports.parse = exports.decode = decode
+
+exports.stringify = exports.encode = encode
+
+exports.safe = safe
+exports.unsafe = unsafe
+
+var eol = typeof process !== 'undefined' &&
+  process.platform === 'win32' ? '\r\n' : '\n'
+
+function encode (obj, opt) {
+  var children = []
+  var out = ''
+
+  if (typeof opt === 'string') {
+    opt = {
+      section: opt,
+      whitespace: false
+    }
+  } else {
+    opt = opt || {}
+    opt.whitespace = opt.whitespace === true
+  }
+
+  var separator = opt.whitespace ? ' = ' : '='
+
+  Object.keys(obj).forEach(function (k, _, __) {
+    var val = obj[k]
+    if (val && Array.isArray(val)) {
+      val.forEach(function (item) {
+        out += safe(k + '[]') + separator + safe(item) + '\n'
+      })
+    } else if (val && typeof val === 'object') {
+      children.push(k)
+    } else {
+      out += safe(k) + separator + safe(val) + eol
+    }
+  })
+
+  if (opt.section && out.length) {
+    out = '[' + safe(opt.section) + ']' + eol + out
+  }
+
+  children.forEach(function (k, _, __) {
+    var nk = dotSplit(k).join('\\.')
+    var section = (opt.section ? opt.section + '.' : '') + nk
+    var child = encode(obj[k], {
+      section: section,
+      whitespace: opt.whitespace
+    })
+    if (out.length && child.length) {
+      out += eol
+    }
+    out += child
+  })
+
+  return out
+}
+
+function dotSplit (str) {
+  return str.replace(/\1/g, '\u0002LITERAL\\1LITERAL\u0002')
+    .replace(/\\\./g, '\u0001')
+    .split(/\./).map(function (part) {
+      return part.replace(/\1/g, '\\.')
+      .replace(/\2LITERAL\\1LITERAL\2/g, '\u0001')
+    })
+}
+
+function decode (str) {
+  var out = {}
+  var p = out
+  var section = null
+  //          section     |key      = value
+  var re = /^\[([^\]]*)\]$|^([^=]+)(=(.*))?$/i
+  var lines = str.split(/[\r\n]+/g)
+
+  lines.forEach(function (line, _, __) {
+    if (!line || line.match(/^\s*[;#]/)) return
+    var match = line.match(re)
+    if (!match) return
+    if (match[1] !== undefined) {
+      section = unsafe(match[1])
+      p = out[section] = out[section] || {}
+      return
+    }
+    var key = unsafe(match[2])
+    var value = match[3] ? unsafe(match[4]) : true
+    switch (value) {
+      case 'true':
+      case 'false':
+      case 'null': value = JSON.parse(value)
+    }
+
+    // Convert keys with '[]' suffix to an array
+    if (key.length > 2 && key.slice(-2) === '[]') {
+      key = key.substring(0, key.length - 2)
+      if (!p[key]) {
+        p[key] = []
+      } else if (!Array.isArray(p[key])) {
+        p[key] = [p[key]]
+      }
+    }
+
+    // safeguard against resetting a previously defined
+    // array by accidentally forgetting the brackets
+    if (Array.isArray(p[key])) {
+      p[key].push(value)
+    } else {
+      p[key] = value
+    }
+  })
+
+  // {a:{y:1},"a.b":{x:2}} --> {a:{y:1,b:{x:2}}}
+  // use a filter to return the keys that have to be deleted.
+  Object.keys(out).filter(function (k, _, __) {
+    if (!out[k] ||
+      typeof out[k] !== 'object' ||
+      Array.isArray(out[k])) {
+      return false
+    }
+    // see if the parent section is also an object.
+    // if so, add it to that, and mark this one for deletion
+    var parts = dotSplit(k)
+    var p = out
+    var l = parts.pop()
+    var nl = l.replace(/\\\./g, '.')
+    parts.forEach(function (part, _, __) {
+      if (!p[part] || typeof p[part] !== 'object') p[part] = {}
+      p = p[part]
+    })
+    if (p === out && nl === l) {
+      return false
+    }
+    p[nl] = out[k]
+    return true
+  }).forEach(function (del, _, __) {
+    delete out[del]
+  })
+
+  return out
+}
+
+function isQuoted (val) {
+  return (val.charAt(0) === '"' && val.slice(-1) === '"') ||
+    (val.charAt(0) === "'" && val.slice(-1) === "'")
+}
+
+function safe (val) {
+  return (typeof val !== 'string' ||
+    val.match(/[=\r\n]/) ||
+    val.match(/^\[/) ||
+    (val.length > 1 &&
+     isQuoted(val)) ||
+    val !== val.trim())
+      ? JSON.stringify(val)
+      : val.replace(/;/g, '\\;').replace(/#/g, '\\#')
+}
+
+function unsafe (val, doUnesc) {
+  val = (val || '').trim()
+  if (isQuoted(val)) {
+    // remove the single quotes before calling JSON.parse
+    if (val.charAt(0) === "'") {
+      val = val.substr(1, val.length - 2)
+    }
+    try { val = JSON.parse(val) } catch (_) {}
+  } else {
+    // walk the val to find the first not-escaped ; character
+    var esc = false
+    var unesc = ''
+    for (var i = 0, l = val.length; i < l; i++) {
+      var c = val.charAt(i)
+      if (esc) {
+        if ('\\;#'.indexOf(c) !== -1) {
+          unesc += c
+        } else {
+          unesc += '\\' + c
+        }
+        esc = false
+      } else if (';#'.indexOf(c) !== -1) {
+        break
+      } else if (c === '\\') {
+        esc = true
+      } else {
+        unesc += c
+      }
+    }
+    if (esc) {
+      unesc += '\\'
+    }
+    return unesc.trim()
+  }
+  return val
+}
+
+
+/***/ }),
+/* 258 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var singleComment = 1;
+var multiComment = 2;
+
+function stripWithoutWhitespace() {
+	return '';
+}
+
+function stripWithWhitespace(str, start, end) {
+	return str.slice(start, end).replace(/\S/g, ' ');
+}
+
+module.exports = function (str, opts) {
+	opts = opts || {};
+
+	var currentChar;
+	var nextChar;
+	var insideString = false;
+	var insideComment = false;
+	var offset = 0;
+	var ret = '';
+	var strip = opts.whitespace === false ? stripWithoutWhitespace : stripWithWhitespace;
+
+	for (var i = 0; i < str.length; i++) {
+		currentChar = str[i];
+		nextChar = str[i + 1];
+
+		if (!insideComment && currentChar === '"') {
+			var escaped = str[i - 1] === '\\' && str[i - 2] !== '\\';
+			if (!escaped) {
+				insideString = !insideString;
+			}
+		}
+
+		if (insideString) {
+			continue;
+		}
+
+		if (!insideComment && currentChar + nextChar === '//') {
+			ret += str.slice(offset, i);
+			offset = i;
+			insideComment = singleComment;
+			i++;
+		} else if (insideComment === singleComment && currentChar + nextChar === '\r\n') {
+			i++;
+			insideComment = false;
+			ret += strip(str, offset, i);
+			offset = i;
+			continue;
+		} else if (insideComment === singleComment && currentChar === '\n') {
+			insideComment = false;
+			ret += strip(str, offset, i);
+			offset = i;
+		} else if (!insideComment && currentChar + nextChar === '/*') {
+			ret += str.slice(offset, i);
+			offset = i;
+			insideComment = multiComment;
+			i++;
+			continue;
+		} else if (insideComment === multiComment && currentChar + nextChar === '*/') {
+			i++;
+			insideComment = false;
+			ret += strip(str, offset, i + 1);
+			offset = i + 1;
+			continue;
+		}
+	}
+
+	return ret + (insideComment ? strip(str.substr(offset)) : str.substr(offset));
+};
+
+
+/***/ }),
+/* 259 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/*!
+ * @description Recursive object extending
+ * @author Viacheslav Lotsmanov <lotsmanov89@gmail.com>
+ * @license MIT
+ *
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2013-2018 Viacheslav Lotsmanov
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+
+
+function isSpecificValue(val) {
+	return (
+		val instanceof Buffer
+		|| val instanceof Date
+		|| val instanceof RegExp
+	) ? true : false;
+}
+
+function cloneSpecificValue(val) {
+	if (val instanceof Buffer) {
+		var x = Buffer.alloc
+			? Buffer.alloc(val.length)
+			: new Buffer(val.length);
+		val.copy(x);
+		return x;
+	} else if (val instanceof Date) {
+		return new Date(val.getTime());
+	} else if (val instanceof RegExp) {
+		return new RegExp(val);
+	} else {
+		throw new Error('Unexpected situation');
+	}
+}
+
+/**
+ * Recursive cloning array.
+ */
+function deepCloneArray(arr) {
+	var clone = [];
+	arr.forEach(function (item, index) {
+		if (typeof item === 'object' && item !== null) {
+			if (Array.isArray(item)) {
+				clone[index] = deepCloneArray(item);
+			} else if (isSpecificValue(item)) {
+				clone[index] = cloneSpecificValue(item);
+			} else {
+				clone[index] = deepExtend({}, item);
+			}
+		} else {
+			clone[index] = item;
+		}
+	});
+	return clone;
+}
+
+function safeGetProperty(object, property) {
+	return property === '__proto__' ? undefined : object[property];
+}
+
+/**
+ * Extening object that entered in first argument.
+ *
+ * Returns extended object or false if have no target object or incorrect type.
+ *
+ * If you wish to clone source object (without modify it), just use empty new
+ * object as first argument, like this:
+ *   deepExtend({}, yourObj_1, [yourObj_N]);
+ */
+var deepExtend = module.exports = function (/*obj_1, [obj_2], [obj_N]*/) {
+	if (arguments.length < 1 || typeof arguments[0] !== 'object') {
+		return false;
+	}
+
+	if (arguments.length < 2) {
+		return arguments[0];
+	}
+
+	var target = arguments[0];
+
+	// convert arguments to array and cut off target object
+	var args = Array.prototype.slice.call(arguments, 1);
+
+	var val, src, clone;
+
+	args.forEach(function (obj) {
+		// skip argument if isn't an object, is null, or is an array
+		if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) {
+			return;
+		}
+
+		Object.keys(obj).forEach(function (key) {
+			src = safeGetProperty(target, key); // source value
+			val = safeGetProperty(obj, key); // new value
+
+			// recursion prevention
+			if (val === target) {
+				return;
+
+			/**
+			 * if new value isn't object then just overwrite by new value
+			 * instead of extending.
+			 */
+			} else if (typeof val !== 'object' || val === null) {
+				target[key] = val;
+				return;
+
+			// just clone arrays (and recursive clone objects inside)
+			} else if (Array.isArray(val)) {
+				target[key] = deepCloneArray(val);
+				return;
+
+			// custom cloning and overwrite for specific objects
+			} else if (isSpecificValue(val)) {
+				target[key] = cloneSpecificValue(val);
+				return;
+
+			// overwrite by new value if source isn't object or array
+			} else if (typeof src !== 'object' || src === null || Array.isArray(src)) {
+				target[key] = deepExtend({}, val);
+				return;
+
+			// source value and new value is objects both, extending...
+			} else {
+				target[key] = deepExtend(src, val);
+				return;
+			}
+		});
+	});
+
+	return target;
+};
+
+
+/***/ }),
+/* 260 */
+/***/ (function(module, exports) {
+
+module.exports = function (args, opts) {
+    if (!opts) opts = {};
+    
+    var flags = { bools : {}, strings : {}, unknownFn: null };
+
+    if (typeof opts['unknown'] === 'function') {
+        flags.unknownFn = opts['unknown'];
+    }
+
+    if (typeof opts['boolean'] === 'boolean' && opts['boolean']) {
+      flags.allBools = true;
+    } else {
+      [].concat(opts['boolean']).filter(Boolean).forEach(function (key) {
+          flags.bools[key] = true;
+      });
+    }
+    
+    var aliases = {};
+    Object.keys(opts.alias || {}).forEach(function (key) {
+        aliases[key] = [].concat(opts.alias[key]);
+        aliases[key].forEach(function (x) {
+            aliases[x] = [key].concat(aliases[key].filter(function (y) {
+                return x !== y;
+            }));
+        });
+    });
+
+    [].concat(opts.string).filter(Boolean).forEach(function (key) {
+        flags.strings[key] = true;
+        if (aliases[key]) {
+            flags.strings[aliases[key]] = true;
+        }
+     });
+
+    var defaults = opts['default'] || {};
+    
+    var argv = { _ : [] };
+    Object.keys(flags.bools).forEach(function (key) {
+        setArg(key, defaults[key] === undefined ? false : defaults[key]);
+    });
+    
+    var notFlags = [];
+
+    if (args.indexOf('--') !== -1) {
+        notFlags = args.slice(args.indexOf('--')+1);
+        args = args.slice(0, args.indexOf('--'));
+    }
+
+    function argDefined(key, arg) {
+        return (flags.allBools && /^--[^=]+$/.test(arg)) ||
+            flags.strings[key] || flags.bools[key] || aliases[key];
+    }
+
+    function setArg (key, val, arg) {
+        if (arg && flags.unknownFn && !argDefined(key, arg)) {
+            if (flags.unknownFn(arg) === false) return;
+        }
+
+        var value = !flags.strings[key] && isNumber(val)
+            ? Number(val) : val
+        ;
+        setKey(argv, key.split('.'), value);
+        
+        (aliases[key] || []).forEach(function (x) {
+            setKey(argv, x.split('.'), value);
+        });
+    }
+
+    function setKey (obj, keys, value) {
+        var o = obj;
+        keys.slice(0,-1).forEach(function (key) {
+            if (o[key] === undefined) o[key] = {};
+            o = o[key];
+        });
+
+        var key = keys[keys.length - 1];
+        if (o[key] === undefined || flags.bools[key] || typeof o[key] === 'boolean') {
+            o[key] = value;
+        }
+        else if (Array.isArray(o[key])) {
+            o[key].push(value);
+        }
+        else {
+            o[key] = [ o[key], value ];
+        }
+    }
+    
+    function aliasIsBoolean(key) {
+      return aliases[key].some(function (x) {
+          return flags.bools[x];
+      });
+    }
+
+    for (var i = 0; i < args.length; i++) {
+        var arg = args[i];
+        
+        if (/^--.+=/.test(arg)) {
+            // Using [\s\S] instead of . because js doesn't support the
+            // 'dotall' regex modifier. See:
+            // http://stackoverflow.com/a/1068308/13216
+            var m = arg.match(/^--([^=]+)=([\s\S]*)$/);
+            var key = m[1];
+            var value = m[2];
+            if (flags.bools[key]) {
+                value = value !== 'false';
+            }
+            setArg(key, value, arg);
+        }
+        else if (/^--no-.+/.test(arg)) {
+            var key = arg.match(/^--no-(.+)/)[1];
+            setArg(key, false, arg);
+        }
+        else if (/^--.+/.test(arg)) {
+            var key = arg.match(/^--(.+)/)[1];
+            var next = args[i + 1];
+            if (next !== undefined && !/^-/.test(next)
+            && !flags.bools[key]
+            && !flags.allBools
+            && (aliases[key] ? !aliasIsBoolean(key) : true)) {
+                setArg(key, next, arg);
+                i++;
+            }
+            else if (/^(true|false)$/.test(next)) {
+                setArg(key, next === 'true', arg);
+                i++;
+            }
+            else {
+                setArg(key, flags.strings[key] ? '' : true, arg);
+            }
+        }
+        else if (/^-[^-]+/.test(arg)) {
+            var letters = arg.slice(1,-1).split('');
+            
+            var broken = false;
+            for (var j = 0; j < letters.length; j++) {
+                var next = arg.slice(j+2);
+                
+                if (next === '-') {
+                    setArg(letters[j], next, arg)
+                    continue;
+                }
+                
+                if (/[A-Za-z]/.test(letters[j]) && /=/.test(next)) {
+                    setArg(letters[j], next.split('=')[1], arg);
+                    broken = true;
+                    break;
+                }
+                
+                if (/[A-Za-z]/.test(letters[j])
+                && /-?\d+(\.\d*)?(e-?\d+)?$/.test(next)) {
+                    setArg(letters[j], next, arg);
+                    broken = true;
+                    break;
+                }
+                
+                if (letters[j+1] && letters[j+1].match(/\W/)) {
+                    setArg(letters[j], arg.slice(j+2), arg);
+                    broken = true;
+                    break;
+                }
+                else {
+                    setArg(letters[j], flags.strings[letters[j]] ? '' : true, arg);
+                }
+            }
+            
+            var key = arg.slice(-1)[0];
+            if (!broken && key !== '-') {
+                if (args[i+1] && !/^(-|--)[^-]/.test(args[i+1])
+                && !flags.bools[key]
+                && (aliases[key] ? !aliasIsBoolean(key) : true)) {
+                    setArg(key, args[i+1], arg);
+                    i++;
+                }
+                else if (args[i+1] && /true|false/.test(args[i+1])) {
+                    setArg(key, args[i+1] === 'true', arg);
+                    i++;
+                }
+                else {
+                    setArg(key, flags.strings[key] ? '' : true, arg);
+                }
+            }
+        }
+        else {
+            if (!flags.unknownFn || flags.unknownFn(arg) !== false) {
+                argv._.push(
+                    flags.strings['_'] || !isNumber(arg) ? arg : Number(arg)
+                );
+            }
+            if (opts.stopEarly) {
+                argv._.push.apply(argv._, args.slice(i + 1));
+                break;
+            }
+        }
+    }
+    
+    Object.keys(defaults).forEach(function (key) {
+        if (!hasKey(argv, key.split('.'))) {
+            setKey(argv, key.split('.'), defaults[key]);
+            
+            (aliases[key] || []).forEach(function (x) {
+                setKey(argv, x.split('.'), defaults[key]);
+            });
+        }
+    });
+    
+    if (opts['--']) {
+        argv['--'] = new Array();
+        notFlags.forEach(function(key) {
+            argv['--'].push(key);
+        });
+    }
+    else {
+        notFlags.forEach(function(key) {
+            argv._.push(key);
+        });
+    }
+
+    return argv;
+};
+
+function hasKey (obj, keys) {
+    var o = obj;
+    keys.slice(0,-1).forEach(function (key) {
+        o = (o[key] || {});
+    });
+
+    var key = keys[keys.length - 1];
+    return key in o;
+}
+
+function isNumber (x) {
+    if (typeof x === 'number') return true;
+    if (/^0x[0-9a-f]+$/i.test(x)) return true;
+    return /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(e[-+]?\d+)?$/.test(x);
+}
+
+
+
+/***/ }),
+/* 261 */
+/***/ (function(module, exports) {
+
+module.exports = require("url");
+
+/***/ }),
+/* 262 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const follow_redirects_1 = __webpack_require__(257);
+const follow_redirects_1 = __webpack_require__(263);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
 const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(182));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
-const tar_1 = tslib_1.__importDefault(__webpack_require__(264));
-const url_1 = __webpack_require__(249);
-const fetch_1 = __webpack_require__(295);
+const tar_1 = tslib_1.__importDefault(__webpack_require__(270));
+const url_1 = __webpack_require__(261);
+const fetch_1 = __webpack_require__(301);
 /**
  * Download and extract tgz from url
  *
@@ -63043,16 +63888,16 @@ exports.default = download;
 //# sourceMappingURL=download.js.map
 
 /***/ }),
-/* 257 */
+/* 263 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var url = __webpack_require__(249);
+var url = __webpack_require__(261);
 var URL = url.URL;
-var http = __webpack_require__(258);
-var https = __webpack_require__(259);
+var http = __webpack_require__(264);
+var https = __webpack_require__(265);
 var assert = __webpack_require__(107);
 var Writable = __webpack_require__(41).Writable;
-var debug = __webpack_require__(260)("follow-redirects");
+var debug = __webpack_require__(266)("follow-redirects");
 
 // RFC7231§4.2.1: Of the request methods defined by this specification,
 // the GET, HEAD, OPTIONS, and TRACE methods are defined to be safe.
@@ -63483,19 +64328,19 @@ module.exports.wrap = wrap;
 
 
 /***/ }),
-/* 258 */
+/* 264 */
 /***/ (function(module, exports) {
 
 module.exports = require("http");
 
 /***/ }),
-/* 259 */
+/* 265 */
 /***/ (function(module, exports) {
 
 module.exports = require("https");
 
 /***/ }),
-/* 260 */
+/* 266 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -63506,15 +64351,15 @@ module.exports = require("https");
  * treat as a browser.
  */
 if (typeof process === 'undefined' || process.type === 'renderer' || process.browser === true || process.__nwjs) {
-  module.exports = __webpack_require__(261);
+  module.exports = __webpack_require__(267);
 } else {
-  module.exports = __webpack_require__(263);
+  module.exports = __webpack_require__(269);
 }
 
 
 
 /***/ }),
-/* 261 */
+/* 267 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -63684,7 +64529,7 @@ function localstorage() {
   }
 }
 
-module.exports = __webpack_require__(262)(exports);
+module.exports = __webpack_require__(268)(exports);
 var formatters = module.exports.formatters;
 /**
  * Map %j to `JSON.stringify()`, since no Web Inspectors do that by default.
@@ -63701,7 +64546,7 @@ formatters.j = function (v) {
 
 
 /***/ }),
-/* 262 */
+/* 268 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -63957,7 +64802,7 @@ module.exports = setup;
 
 
 /***/ }),
-/* 263 */
+/* 269 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -64115,7 +64960,7 @@ function init(debug) {
   }
 }
 
-module.exports = __webpack_require__(262)(exports);
+module.exports = __webpack_require__(268)(exports);
 var formatters = module.exports.formatters;
 /**
  * Map %o to `util.inspect()`, all on a single line.
@@ -64138,44 +64983,44 @@ formatters.O = function (v) {
 
 
 /***/ }),
-/* 264 */
+/* 270 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 // high-level commands
-exports.c = exports.create = __webpack_require__(265)
-exports.r = exports.replace = __webpack_require__(289)
-exports.t = exports.list = __webpack_require__(287)
-exports.u = exports.update = __webpack_require__(290)
-exports.x = exports.extract = __webpack_require__(291)
+exports.c = exports.create = __webpack_require__(271)
+exports.r = exports.replace = __webpack_require__(295)
+exports.t = exports.list = __webpack_require__(293)
+exports.u = exports.update = __webpack_require__(296)
+exports.x = exports.extract = __webpack_require__(297)
 
 // classes
-exports.Pack = __webpack_require__(267)
-exports.Unpack = __webpack_require__(292)
-exports.Parse = __webpack_require__(288)
-exports.ReadEntry = __webpack_require__(277)
-exports.WriteEntry = __webpack_require__(279)
-exports.Header = __webpack_require__(281)
-exports.Pax = __webpack_require__(280)
-exports.types = __webpack_require__(278)
+exports.Pack = __webpack_require__(273)
+exports.Unpack = __webpack_require__(298)
+exports.Parse = __webpack_require__(294)
+exports.ReadEntry = __webpack_require__(283)
+exports.WriteEntry = __webpack_require__(285)
+exports.Header = __webpack_require__(287)
+exports.Pax = __webpack_require__(286)
+exports.types = __webpack_require__(284)
 
 
 /***/ }),
-/* 265 */
+/* 271 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 // tar -c
-const hlo = __webpack_require__(266)
+const hlo = __webpack_require__(272)
 
-const Pack = __webpack_require__(267)
+const Pack = __webpack_require__(273)
 const fs = __webpack_require__(54)
-const fsm = __webpack_require__(286)
-const t = __webpack_require__(287)
+const fsm = __webpack_require__(292)
+const t = __webpack_require__(293)
 const path = __webpack_require__(56)
 
 const c = module.exports = (opt_, files, cb) => {
@@ -64275,7 +65120,7 @@ const create = (opt, files) => {
 
 
 /***/ }),
-/* 266 */
+/* 272 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -64311,13 +65156,13 @@ const parse = module.exports = opt => opt ? Object.keys(opt).map(k => [
 
 
 /***/ }),
-/* 267 */
+/* 273 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const Buffer = __webpack_require__(268)
+const Buffer = __webpack_require__(274)
 
 // A readable tar stream creator
 // Technically, this is a transform stream that you write paths into,
@@ -64341,13 +65186,13 @@ class PackJob {
   }
 }
 
-const MiniPass = __webpack_require__(271)
-const zlib = __webpack_require__(275)
-const ReadEntry = __webpack_require__(277)
-const WriteEntry = __webpack_require__(279)
+const MiniPass = __webpack_require__(277)
+const zlib = __webpack_require__(281)
+const ReadEntry = __webpack_require__(283)
+const WriteEntry = __webpack_require__(285)
 const WriteEntrySync = WriteEntry.Sync
 const WriteEntryTar = WriteEntry.Tar
-const Yallist = __webpack_require__(272)
+const Yallist = __webpack_require__(278)
 const EOF = Buffer.alloc(1024)
 const ONSTAT = Symbol('onStat')
 const ENDED = Symbol('ended')
@@ -64372,7 +65217,7 @@ const ONDRAIN = Symbol('ondrain')
 
 const fs = __webpack_require__(54)
 const path = __webpack_require__(56)
-const warner = __webpack_require__(283)
+const warner = __webpack_require__(289)
 
 const Pack = warner(class Pack extends MiniPass {
   constructor (opt) {
@@ -64722,7 +65567,7 @@ module.exports = Pack
 
 
 /***/ }),
-/* 268 */
+/* 274 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -64734,17 +65579,17 @@ module.exports = Pack
 let B = Buffer
 /* istanbul ignore next */
 if (!B.alloc) {
-  B = __webpack_require__(269).Buffer
+  B = __webpack_require__(275).Buffer
 }
 module.exports = B
 
 
 /***/ }),
-/* 269 */
+/* 275 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* eslint-disable node/no-deprecated-api */
-var buffer = __webpack_require__(270)
+var buffer = __webpack_require__(276)
 var Buffer = buffer.Buffer
 
 // alternative to using Object.keys for old browsers
@@ -64808,19 +65653,19 @@ SafeBuffer.allocUnsafeSlow = function (size) {
 
 
 /***/ }),
-/* 270 */
+/* 276 */
 /***/ (function(module, exports) {
 
 module.exports = require("buffer");
 
 /***/ }),
-/* 271 */
+/* 277 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 const EE = __webpack_require__(49)
-const Yallist = __webpack_require__(272)
+const Yallist = __webpack_require__(278)
 const EOF = Symbol('EOF')
 const MAYBE_EMIT_END = Symbol('maybeEmitEnd')
 const EMITTED_END = Symbol('emittedEnd')
@@ -64831,7 +65676,7 @@ const doIter = process.env._MP_NO_ITERATOR_SYMBOLS_  !== '1'
 const ASYNCITERATOR = doIter && Symbol.asyncIterator || Symbol('asyncIterator not implemented')
 const ITERATOR = doIter && Symbol.iterator || Symbol('iterator not implemented')
 const FLUSHCHUNK = Symbol('flushChunk')
-const SD = __webpack_require__(274).StringDecoder
+const SD = __webpack_require__(280).StringDecoder
 const ENCODING = Symbol('encoding')
 const DECODER = Symbol('decoder')
 const FLOWING = Symbol('flowing')
@@ -64847,7 +65692,7 @@ const OBJECTMODE = Symbol('objectMode')
 let B = Buffer
 /* istanbul ignore next */
 if (!B.alloc) {
-  B = __webpack_require__(269).Buffer
+  B = __webpack_require__(275).Buffer
 }
 
 module.exports = class MiniPass extends EE {
@@ -65196,7 +66041,7 @@ module.exports = class MiniPass extends EE {
 
 
 /***/ }),
-/* 272 */
+/* 278 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -65574,12 +66419,12 @@ function Node (value, prev, next, list) {
 
 try {
   // add if support for Symbol.iterator is present
-  __webpack_require__(273)(Yallist)
+  __webpack_require__(279)(Yallist)
 } catch (er) {}
 
 
 /***/ }),
-/* 273 */
+/* 279 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -65594,24 +66439,24 @@ module.exports = function (Yallist) {
 
 
 /***/ }),
-/* 274 */
+/* 280 */
 /***/ (function(module, exports) {
 
 module.exports = require("string_decoder");
 
 /***/ }),
-/* 275 */
+/* 281 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 const assert = __webpack_require__(107)
-const Buffer = __webpack_require__(270).Buffer
+const Buffer = __webpack_require__(276).Buffer
 const realZlib = __webpack_require__(136)
 
-const constants = exports.constants = __webpack_require__(276)
-const MiniPass = __webpack_require__(271)
+const constants = exports.constants = __webpack_require__(282)
+const MiniPass = __webpack_require__(277)
 
 const OriginalBufferConcat = Buffer.concat
 
@@ -65942,7 +66787,7 @@ exports.Unzip = Unzip
 
 
 /***/ }),
-/* 276 */
+/* 282 */
 /***/ (function(module, exports) {
 
 module.exports = Object.freeze({
@@ -65994,13 +66839,13 @@ module.exports = Object.freeze({
 
 
 /***/ }),
-/* 277 */
+/* 283 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const types = __webpack_require__(278)
-const MiniPass = __webpack_require__(271)
+const types = __webpack_require__(284)
+const MiniPass = __webpack_require__(277)
 
 const SLURP = Symbol('slurp')
 module.exports = class ReadEntry extends MiniPass {
@@ -66095,7 +66940,7 @@ module.exports = class ReadEntry extends MiniPass {
 
 
 /***/ }),
-/* 278 */
+/* 284 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -66146,20 +66991,20 @@ exports.code = new Map(Array.from(exports.name).map(kv => [kv[1], kv[0]]))
 
 
 /***/ }),
-/* 279 */
+/* 285 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const Buffer = __webpack_require__(268)
-const MiniPass = __webpack_require__(271)
-const Pax = __webpack_require__(280)
-const Header = __webpack_require__(281)
-const ReadEntry = __webpack_require__(277)
+const Buffer = __webpack_require__(274)
+const MiniPass = __webpack_require__(277)
+const Pax = __webpack_require__(286)
+const Header = __webpack_require__(287)
+const ReadEntry = __webpack_require__(283)
 const fs = __webpack_require__(54)
 const path = __webpack_require__(56)
 
-const types = __webpack_require__(278)
+const types = __webpack_require__(284)
 const maxReadSize = 16 * 1024 * 1024
 const PROCESS = Symbol('process')
 const FILE = Symbol('file')
@@ -66176,10 +67021,10 @@ const OPENFILE = Symbol('openfile')
 const ONOPENFILE = Symbol('onopenfile')
 const CLOSE = Symbol('close')
 const MODE = Symbol('mode')
-const warner = __webpack_require__(283)
-const winchars = __webpack_require__(284)
+const warner = __webpack_require__(289)
+const winchars = __webpack_require__(290)
 
-const modeFix = __webpack_require__(285)
+const modeFix = __webpack_require__(291)
 
 const WriteEntry = warner(class WriteEntry extends MiniPass {
   constructor (p, opt) {
@@ -66575,13 +67420,13 @@ module.exports = WriteEntry
 
 
 /***/ }),
-/* 280 */
+/* 286 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const Buffer = __webpack_require__(268)
-const Header = __webpack_require__(281)
+const Buffer = __webpack_require__(274)
+const Header = __webpack_require__(287)
 const path = __webpack_require__(56)
 
 class Pax {
@@ -66728,7 +67573,7 @@ module.exports = Pax
 
 
 /***/ }),
-/* 281 */
+/* 287 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -66738,10 +67583,10 @@ module.exports = Pax
 // the data could not be faithfully encoded in a simple header.
 // (Also, check header.needPax to see if it needs a pax header.)
 
-const Buffer = __webpack_require__(268)
-const types = __webpack_require__(278)
+const Buffer = __webpack_require__(274)
+const types = __webpack_require__(284)
 const pathModule = __webpack_require__(56).posix
-const large = __webpack_require__(282)
+const large = __webpack_require__(288)
 
 const SLURP = Symbol('slurp')
 const TYPE = Symbol('type')
@@ -67024,7 +67869,7 @@ module.exports = Header
 
 
 /***/ }),
-/* 282 */
+/* 288 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -67128,7 +67973,7 @@ const twosComp = byte => ((0xff ^ byte) + 1) & 0xff
 
 
 /***/ }),
-/* 283 */
+/* 289 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -67149,7 +67994,7 @@ module.exports = Base => class extends Base {
 
 
 /***/ }),
-/* 284 */
+/* 290 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -67179,7 +68024,7 @@ module.exports = {
 
 
 /***/ }),
-/* 285 */
+/* 291 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -67200,12 +68045,12 @@ module.exports = (mode, isDir) => {
 
 
 /***/ }),
-/* 286 */
+/* 292 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const MiniPass = __webpack_require__(271)
+const MiniPass = __webpack_require__(277)
 const EE = __webpack_require__(49).EventEmitter
 const fs = __webpack_require__(54)
 
@@ -67593,22 +68438,22 @@ exports.WriteStreamSync = WriteStreamSync
 
 
 /***/ }),
-/* 287 */
+/* 293 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const Buffer = __webpack_require__(268)
+const Buffer = __webpack_require__(274)
 
 // XXX: This shares a lot in common with extract.js
 // maybe some DRY opportunity here?
 
 // tar -t
-const hlo = __webpack_require__(266)
-const Parser = __webpack_require__(288)
+const hlo = __webpack_require__(272)
+const Parser = __webpack_require__(294)
 const fs = __webpack_require__(54)
-const fsm = __webpack_require__(286)
+const fsm = __webpack_require__(292)
 const path = __webpack_require__(56)
 
 const t = module.exports = (opt_, files, cb) => {
@@ -67730,7 +68575,7 @@ const list = opt => new Parser(opt)
 
 
 /***/ }),
-/* 288 */
+/* 294 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -67756,16 +68601,16 @@ const list = opt => new Parser(opt)
 //
 // ignored entries get .resume() called on them straight away
 
-const warner = __webpack_require__(283)
+const warner = __webpack_require__(289)
 const path = __webpack_require__(56)
-const Header = __webpack_require__(281)
+const Header = __webpack_require__(287)
 const EE = __webpack_require__(49)
-const Yallist = __webpack_require__(272)
+const Yallist = __webpack_require__(278)
 const maxMetaEntrySize = 1024 * 1024
-const Entry = __webpack_require__(277)
-const Pax = __webpack_require__(280)
-const zlib = __webpack_require__(275)
-const Buffer = __webpack_require__(268)
+const Entry = __webpack_require__(283)
+const Pax = __webpack_require__(286)
+const zlib = __webpack_require__(281)
+const Buffer = __webpack_require__(274)
 
 const gzipHeader = Buffer.from([0x1f, 0x8b])
 const STATE = Symbol('state')
@@ -68160,20 +69005,20 @@ module.exports = warner(class Parser extends EE {
 
 
 /***/ }),
-/* 289 */
+/* 295 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const Buffer = __webpack_require__(268)
+const Buffer = __webpack_require__(274)
 
 // tar -r
-const hlo = __webpack_require__(266)
-const Pack = __webpack_require__(267)
-const Parse = __webpack_require__(288)
+const hlo = __webpack_require__(272)
+const Pack = __webpack_require__(273)
+const Parse = __webpack_require__(294)
 const fs = __webpack_require__(54)
-const fsm = __webpack_require__(286)
-const t = __webpack_require__(287)
+const fsm = __webpack_require__(292)
+const t = __webpack_require__(293)
 const path = __webpack_require__(56)
 
 // starting at the head of the file, read a Header
@@ -68182,7 +69027,7 @@ const path = __webpack_require__(56)
 // and try again.
 // Write the new Pack stream starting there.
 
-const Header = __webpack_require__(281)
+const Header = __webpack_require__(287)
 
 const r = module.exports = (opt_, files, cb) => {
   const opt = hlo(opt_)
@@ -68387,7 +69232,7 @@ const addFilesAsync = (p, files) => {
 
 
 /***/ }),
-/* 290 */
+/* 296 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -68395,8 +69240,8 @@ const addFilesAsync = (p, files) => {
 
 // tar -u
 
-const hlo = __webpack_require__(266)
-const r = __webpack_require__(289)
+const hlo = __webpack_require__(272)
+const r = __webpack_require__(295)
 // just call tar.r with the filter and mtimeCache
 
 const u = module.exports = (opt_, files, cb) => {
@@ -68430,17 +69275,17 @@ const mtimeFilter = opt => {
 
 
 /***/ }),
-/* 291 */
+/* 297 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 // tar -x
-const hlo = __webpack_require__(266)
-const Unpack = __webpack_require__(292)
+const hlo = __webpack_require__(272)
+const Unpack = __webpack_require__(298)
 const fs = __webpack_require__(54)
-const fsm = __webpack_require__(286)
+const fsm = __webpack_require__(292)
 const path = __webpack_require__(56)
 
 const x = module.exports = (opt_, files, cb) => {
@@ -68549,7 +69394,7 @@ const extract = opt => {
 
 
 /***/ }),
-/* 292 */
+/* 298 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -68557,13 +69402,13 @@ const extract = opt => {
 
 const assert = __webpack_require__(107)
 const EE = __webpack_require__(49).EventEmitter
-const Parser = __webpack_require__(288)
+const Parser = __webpack_require__(294)
 const fs = __webpack_require__(54)
-const fsm = __webpack_require__(286)
+const fsm = __webpack_require__(292)
 const path = __webpack_require__(56)
-const mkdir = __webpack_require__(293)
+const mkdir = __webpack_require__(299)
 const mkdirSync = mkdir.sync
-const wc = __webpack_require__(284)
+const wc = __webpack_require__(290)
 
 const ONENTRY = Symbol('onEntry')
 const CHECKFS = Symbol('checkFs')
@@ -69177,7 +70022,7 @@ module.exports = Unpack
 
 
 /***/ }),
-/* 293 */
+/* 299 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -69190,7 +70035,7 @@ module.exports = Unpack
 const mkdirp = __webpack_require__(182)
 const fs = __webpack_require__(54)
 const path = __webpack_require__(56)
-const chownr = __webpack_require__(294)
+const chownr = __webpack_require__(300)
 
 class SymlinkError extends Error {
   constructor (symlink, path) {
@@ -69390,7 +70235,7 @@ const mkdirSync = module.exports.sync = (dir, opt) => {
 
 
 /***/ }),
-/* 294 */
+/* 300 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -69485,16 +70330,16 @@ chownr.sync = chownrSync
 
 
 /***/ }),
-/* 295 */
+/* 301 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const follow_redirects_1 = __webpack_require__(257);
-const tunnel_1 = tslib_1.__importDefault(__webpack_require__(296));
-const url_1 = __webpack_require__(249);
+const follow_redirects_1 = __webpack_require__(263);
+const tunnel_1 = tslib_1.__importDefault(__webpack_require__(302));
+const url_1 = __webpack_require__(261);
 const zlib_1 = tslib_1.__importDefault(__webpack_require__(136));
 const is_1 = __webpack_require__(188);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
@@ -69608,23 +70453,23 @@ exports.default = fetch;
 //# sourceMappingURL=fetch.js.map
 
 /***/ }),
-/* 296 */
+/* 302 */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(297);
+module.exports = __webpack_require__(303);
 
 
 /***/ }),
-/* 297 */
+/* 303 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 var net = __webpack_require__(6);
-var tls = __webpack_require__(298);
-var http = __webpack_require__(258);
-var https = __webpack_require__(259);
+var tls = __webpack_require__(304);
+var http = __webpack_require__(264);
+var https = __webpack_require__(265);
 var events = __webpack_require__(49);
 var assert = __webpack_require__(107);
 var util = __webpack_require__(40);
@@ -69886,856 +70731,10 @@ exports.debug = debug; // for test
 
 
 /***/ }),
-/* 298 */
-/***/ (function(module, exports) {
-
-module.exports = require("tls");
-
-/***/ }),
-/* 299 */
-/***/ (function(module, exports, __webpack_require__) {
-
-var cc   = __webpack_require__(300)
-var join = __webpack_require__(56).join
-var deepExtend = __webpack_require__(303)
-var etc = '/etc'
-var win = process.platform === "win32"
-var home = win
-           ? process.env.USERPROFILE
-           : process.env.HOME
-
-module.exports = function (name, defaults, argv, parse) {
-  if('string' !== typeof name)
-    throw new Error('rc(name): name *must* be string')
-  if(!argv)
-    argv = __webpack_require__(304)(process.argv.slice(2))
-  defaults = (
-      'string' === typeof defaults
-    ? cc.json(defaults) : defaults
-    ) || {}
-
-  parse = parse || cc.parse
-
-  var env = cc.env(name + '_')
-
-  var configs = [defaults]
-  var configFiles = []
-  function addConfigFile (file) {
-    if (configFiles.indexOf(file) >= 0) return
-    var fileConfig = cc.file(file)
-    if (fileConfig) {
-      configs.push(parse(fileConfig))
-      configFiles.push(file)
-    }
-  }
-
-  // which files do we look at?
-  if (!win)
-   [join(etc, name, 'config'),
-    join(etc, name + 'rc')].forEach(addConfigFile)
-  if (home)
-   [join(home, '.config', name, 'config'),
-    join(home, '.config', name),
-    join(home, '.' + name, 'config'),
-    join(home, '.' + name + 'rc')].forEach(addConfigFile)
-  addConfigFile(cc.find('.'+name+'rc'))
-  if (env.config) addConfigFile(env.config)
-  if (argv.config) addConfigFile(argv.config)
-
-  return deepExtend.apply(null, configs.concat([
-    env,
-    argv,
-    configFiles.length ? {configs: configFiles, config: configFiles[configFiles.length - 1]} : undefined,
-  ]))
-}
-
-
-/***/ }),
-/* 300 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var fs   = __webpack_require__(54)
-var ini  = __webpack_require__(301)
-var path = __webpack_require__(56)
-var stripJsonComments = __webpack_require__(302)
-
-var parse = exports.parse = function (content) {
-
-  //if it ends in .json or starts with { then it must be json.
-  //must be done this way, because ini accepts everything.
-  //can't just try and parse it and let it throw if it's not ini.
-  //everything is ini. even json with a syntax error.
-
-  if(/^\s*{/.test(content))
-    return JSON.parse(stripJsonComments(content))
-  return ini.parse(content)
-
-}
-
-var file = exports.file = function () {
-  var args = [].slice.call(arguments).filter(function (arg) { return arg != null })
-
-  //path.join breaks if it's a not a string, so just skip this.
-  for(var i in args)
-    if('string' !== typeof args[i])
-      return
-
-  var file = path.join.apply(null, args)
-  var content
-  try {
-    return fs.readFileSync(file,'utf-8')
-  } catch (err) {
-    return
-  }
-}
-
-var json = exports.json = function () {
-  var content = file.apply(null, arguments)
-  return content ? parse(content) : null
-}
-
-var env = exports.env = function (prefix, env) {
-  env = env || process.env
-  var obj = {}
-  var l = prefix.length
-  for(var k in env) {
-    if(k.toLowerCase().indexOf(prefix.toLowerCase()) === 0) {
-
-      var keypath = k.substring(l).split('__')
-
-      // Trim empty strings from keypath array
-      var _emptyStringIndex
-      while ((_emptyStringIndex=keypath.indexOf('')) > -1) {
-        keypath.splice(_emptyStringIndex, 1)
-      }
-
-      var cursor = obj
-      keypath.forEach(function _buildSubObj(_subkey,i){
-
-        // (check for _subkey first so we ignore empty strings)
-        // (check for cursor to avoid assignment to primitive objects)
-        if (!_subkey || typeof cursor !== 'object')
-          return
-
-        // If this is the last key, just stuff the value in there
-        // Assigns actual value from env variable to final key
-        // (unless it's just an empty string- in that case use the last valid key)
-        if (i === keypath.length-1)
-          cursor[_subkey] = env[k]
-
-
-        // Build sub-object if nothing already exists at the keypath
-        if (cursor[_subkey] === undefined)
-          cursor[_subkey] = {}
-
-        // Increment cursor used to track the object at the current depth
-        cursor = cursor[_subkey]
-
-      })
-
-    }
-
-  }
-
-  return obj
-}
-
-var find = exports.find = function () {
-  var rel = path.join.apply(null, [].slice.call(arguments))
-
-  function find(start, rel) {
-    var file = path.join(start, rel)
-    try {
-      fs.statSync(file)
-      return file
-    } catch (err) {
-      if(path.dirname(start) !== start) // root
-        return find(path.dirname(start), rel)
-    }
-  }
-  return find(process.cwd(), rel)
-}
-
-
-
-
-/***/ }),
-/* 301 */
-/***/ (function(module, exports) {
-
-exports.parse = exports.decode = decode
-
-exports.stringify = exports.encode = encode
-
-exports.safe = safe
-exports.unsafe = unsafe
-
-var eol = typeof process !== 'undefined' &&
-  process.platform === 'win32' ? '\r\n' : '\n'
-
-function encode (obj, opt) {
-  var children = []
-  var out = ''
-
-  if (typeof opt === 'string') {
-    opt = {
-      section: opt,
-      whitespace: false
-    }
-  } else {
-    opt = opt || {}
-    opt.whitespace = opt.whitespace === true
-  }
-
-  var separator = opt.whitespace ? ' = ' : '='
-
-  Object.keys(obj).forEach(function (k, _, __) {
-    var val = obj[k]
-    if (val && Array.isArray(val)) {
-      val.forEach(function (item) {
-        out += safe(k + '[]') + separator + safe(item) + '\n'
-      })
-    } else if (val && typeof val === 'object') {
-      children.push(k)
-    } else {
-      out += safe(k) + separator + safe(val) + eol
-    }
-  })
-
-  if (opt.section && out.length) {
-    out = '[' + safe(opt.section) + ']' + eol + out
-  }
-
-  children.forEach(function (k, _, __) {
-    var nk = dotSplit(k).join('\\.')
-    var section = (opt.section ? opt.section + '.' : '') + nk
-    var child = encode(obj[k], {
-      section: section,
-      whitespace: opt.whitespace
-    })
-    if (out.length && child.length) {
-      out += eol
-    }
-    out += child
-  })
-
-  return out
-}
-
-function dotSplit (str) {
-  return str.replace(/\1/g, '\u0002LITERAL\\1LITERAL\u0002')
-    .replace(/\\\./g, '\u0001')
-    .split(/\./).map(function (part) {
-      return part.replace(/\1/g, '\\.')
-      .replace(/\2LITERAL\\1LITERAL\2/g, '\u0001')
-    })
-}
-
-function decode (str) {
-  var out = {}
-  var p = out
-  var section = null
-  //          section     |key      = value
-  var re = /^\[([^\]]*)\]$|^([^=]+)(=(.*))?$/i
-  var lines = str.split(/[\r\n]+/g)
-
-  lines.forEach(function (line, _, __) {
-    if (!line || line.match(/^\s*[;#]/)) return
-    var match = line.match(re)
-    if (!match) return
-    if (match[1] !== undefined) {
-      section = unsafe(match[1])
-      p = out[section] = out[section] || {}
-      return
-    }
-    var key = unsafe(match[2])
-    var value = match[3] ? unsafe(match[4]) : true
-    switch (value) {
-      case 'true':
-      case 'false':
-      case 'null': value = JSON.parse(value)
-    }
-
-    // Convert keys with '[]' suffix to an array
-    if (key.length > 2 && key.slice(-2) === '[]') {
-      key = key.substring(0, key.length - 2)
-      if (!p[key]) {
-        p[key] = []
-      } else if (!Array.isArray(p[key])) {
-        p[key] = [p[key]]
-      }
-    }
-
-    // safeguard against resetting a previously defined
-    // array by accidentally forgetting the brackets
-    if (Array.isArray(p[key])) {
-      p[key].push(value)
-    } else {
-      p[key] = value
-    }
-  })
-
-  // {a:{y:1},"a.b":{x:2}} --> {a:{y:1,b:{x:2}}}
-  // use a filter to return the keys that have to be deleted.
-  Object.keys(out).filter(function (k, _, __) {
-    if (!out[k] ||
-      typeof out[k] !== 'object' ||
-      Array.isArray(out[k])) {
-      return false
-    }
-    // see if the parent section is also an object.
-    // if so, add it to that, and mark this one for deletion
-    var parts = dotSplit(k)
-    var p = out
-    var l = parts.pop()
-    var nl = l.replace(/\\\./g, '.')
-    parts.forEach(function (part, _, __) {
-      if (!p[part] || typeof p[part] !== 'object') p[part] = {}
-      p = p[part]
-    })
-    if (p === out && nl === l) {
-      return false
-    }
-    p[nl] = out[k]
-    return true
-  }).forEach(function (del, _, __) {
-    delete out[del]
-  })
-
-  return out
-}
-
-function isQuoted (val) {
-  return (val.charAt(0) === '"' && val.slice(-1) === '"') ||
-    (val.charAt(0) === "'" && val.slice(-1) === "'")
-}
-
-function safe (val) {
-  return (typeof val !== 'string' ||
-    val.match(/[=\r\n]/) ||
-    val.match(/^\[/) ||
-    (val.length > 1 &&
-     isQuoted(val)) ||
-    val !== val.trim())
-      ? JSON.stringify(val)
-      : val.replace(/;/g, '\\;').replace(/#/g, '\\#')
-}
-
-function unsafe (val, doUnesc) {
-  val = (val || '').trim()
-  if (isQuoted(val)) {
-    // remove the single quotes before calling JSON.parse
-    if (val.charAt(0) === "'") {
-      val = val.substr(1, val.length - 2)
-    }
-    try { val = JSON.parse(val) } catch (_) {}
-  } else {
-    // walk the val to find the first not-escaped ; character
-    var esc = false
-    var unesc = ''
-    for (var i = 0, l = val.length; i < l; i++) {
-      var c = val.charAt(i)
-      if (esc) {
-        if ('\\;#'.indexOf(c) !== -1) {
-          unesc += c
-        } else {
-          unesc += '\\' + c
-        }
-        esc = false
-      } else if (';#'.indexOf(c) !== -1) {
-        break
-      } else if (c === '\\') {
-        esc = true
-      } else {
-        unesc += c
-      }
-    }
-    if (esc) {
-      unesc += '\\'
-    }
-    return unesc.trim()
-  }
-  return val
-}
-
-
-/***/ }),
-/* 302 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var singleComment = 1;
-var multiComment = 2;
-
-function stripWithoutWhitespace() {
-	return '';
-}
-
-function stripWithWhitespace(str, start, end) {
-	return str.slice(start, end).replace(/\S/g, ' ');
-}
-
-module.exports = function (str, opts) {
-	opts = opts || {};
-
-	var currentChar;
-	var nextChar;
-	var insideString = false;
-	var insideComment = false;
-	var offset = 0;
-	var ret = '';
-	var strip = opts.whitespace === false ? stripWithoutWhitespace : stripWithWhitespace;
-
-	for (var i = 0; i < str.length; i++) {
-		currentChar = str[i];
-		nextChar = str[i + 1];
-
-		if (!insideComment && currentChar === '"') {
-			var escaped = str[i - 1] === '\\' && str[i - 2] !== '\\';
-			if (!escaped) {
-				insideString = !insideString;
-			}
-		}
-
-		if (insideString) {
-			continue;
-		}
-
-		if (!insideComment && currentChar + nextChar === '//') {
-			ret += str.slice(offset, i);
-			offset = i;
-			insideComment = singleComment;
-			i++;
-		} else if (insideComment === singleComment && currentChar + nextChar === '\r\n') {
-			i++;
-			insideComment = false;
-			ret += strip(str, offset, i);
-			offset = i;
-			continue;
-		} else if (insideComment === singleComment && currentChar === '\n') {
-			insideComment = false;
-			ret += strip(str, offset, i);
-			offset = i;
-		} else if (!insideComment && currentChar + nextChar === '/*') {
-			ret += str.slice(offset, i);
-			offset = i;
-			insideComment = multiComment;
-			i++;
-			continue;
-		} else if (insideComment === multiComment && currentChar + nextChar === '*/') {
-			i++;
-			insideComment = false;
-			ret += strip(str, offset, i + 1);
-			offset = i + 1;
-			continue;
-		}
-	}
-
-	return ret + (insideComment ? strip(str.substr(offset)) : str.substr(offset));
-};
-
-
-/***/ }),
-/* 303 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/*!
- * @description Recursive object extending
- * @author Viacheslav Lotsmanov <lotsmanov89@gmail.com>
- * @license MIT
- *
- * The MIT License (MIT)
- *
- * Copyright (c) 2013-2018 Viacheslav Lotsmanov
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
-
-
-
-function isSpecificValue(val) {
-	return (
-		val instanceof Buffer
-		|| val instanceof Date
-		|| val instanceof RegExp
-	) ? true : false;
-}
-
-function cloneSpecificValue(val) {
-	if (val instanceof Buffer) {
-		var x = Buffer.alloc
-			? Buffer.alloc(val.length)
-			: new Buffer(val.length);
-		val.copy(x);
-		return x;
-	} else if (val instanceof Date) {
-		return new Date(val.getTime());
-	} else if (val instanceof RegExp) {
-		return new RegExp(val);
-	} else {
-		throw new Error('Unexpected situation');
-	}
-}
-
-/**
- * Recursive cloning array.
- */
-function deepCloneArray(arr) {
-	var clone = [];
-	arr.forEach(function (item, index) {
-		if (typeof item === 'object' && item !== null) {
-			if (Array.isArray(item)) {
-				clone[index] = deepCloneArray(item);
-			} else if (isSpecificValue(item)) {
-				clone[index] = cloneSpecificValue(item);
-			} else {
-				clone[index] = deepExtend({}, item);
-			}
-		} else {
-			clone[index] = item;
-		}
-	});
-	return clone;
-}
-
-function safeGetProperty(object, property) {
-	return property === '__proto__' ? undefined : object[property];
-}
-
-/**
- * Extening object that entered in first argument.
- *
- * Returns extended object or false if have no target object or incorrect type.
- *
- * If you wish to clone source object (without modify it), just use empty new
- * object as first argument, like this:
- *   deepExtend({}, yourObj_1, [yourObj_N]);
- */
-var deepExtend = module.exports = function (/*obj_1, [obj_2], [obj_N]*/) {
-	if (arguments.length < 1 || typeof arguments[0] !== 'object') {
-		return false;
-	}
-
-	if (arguments.length < 2) {
-		return arguments[0];
-	}
-
-	var target = arguments[0];
-
-	// convert arguments to array and cut off target object
-	var args = Array.prototype.slice.call(arguments, 1);
-
-	var val, src, clone;
-
-	args.forEach(function (obj) {
-		// skip argument if isn't an object, is null, or is an array
-		if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) {
-			return;
-		}
-
-		Object.keys(obj).forEach(function (key) {
-			src = safeGetProperty(target, key); // source value
-			val = safeGetProperty(obj, key); // new value
-
-			// recursion prevention
-			if (val === target) {
-				return;
-
-			/**
-			 * if new value isn't object then just overwrite by new value
-			 * instead of extending.
-			 */
-			} else if (typeof val !== 'object' || val === null) {
-				target[key] = val;
-				return;
-
-			// just clone arrays (and recursive clone objects inside)
-			} else if (Array.isArray(val)) {
-				target[key] = deepCloneArray(val);
-				return;
-
-			// custom cloning and overwrite for specific objects
-			} else if (isSpecificValue(val)) {
-				target[key] = cloneSpecificValue(val);
-				return;
-
-			// overwrite by new value if source isn't object or array
-			} else if (typeof src !== 'object' || src === null || Array.isArray(src)) {
-				target[key] = deepExtend({}, val);
-				return;
-
-			// source value and new value is objects both, extending...
-			} else {
-				target[key] = deepExtend(src, val);
-				return;
-			}
-		});
-	});
-
-	return target;
-};
-
-
-/***/ }),
 /* 304 */
 /***/ (function(module, exports) {
 
-module.exports = function (args, opts) {
-    if (!opts) opts = {};
-    
-    var flags = { bools : {}, strings : {}, unknownFn: null };
-
-    if (typeof opts['unknown'] === 'function') {
-        flags.unknownFn = opts['unknown'];
-    }
-
-    if (typeof opts['boolean'] === 'boolean' && opts['boolean']) {
-      flags.allBools = true;
-    } else {
-      [].concat(opts['boolean']).filter(Boolean).forEach(function (key) {
-          flags.bools[key] = true;
-      });
-    }
-    
-    var aliases = {};
-    Object.keys(opts.alias || {}).forEach(function (key) {
-        aliases[key] = [].concat(opts.alias[key]);
-        aliases[key].forEach(function (x) {
-            aliases[x] = [key].concat(aliases[key].filter(function (y) {
-                return x !== y;
-            }));
-        });
-    });
-
-    [].concat(opts.string).filter(Boolean).forEach(function (key) {
-        flags.strings[key] = true;
-        if (aliases[key]) {
-            flags.strings[aliases[key]] = true;
-        }
-     });
-
-    var defaults = opts['default'] || {};
-    
-    var argv = { _ : [] };
-    Object.keys(flags.bools).forEach(function (key) {
-        setArg(key, defaults[key] === undefined ? false : defaults[key]);
-    });
-    
-    var notFlags = [];
-
-    if (args.indexOf('--') !== -1) {
-        notFlags = args.slice(args.indexOf('--')+1);
-        args = args.slice(0, args.indexOf('--'));
-    }
-
-    function argDefined(key, arg) {
-        return (flags.allBools && /^--[^=]+$/.test(arg)) ||
-            flags.strings[key] || flags.bools[key] || aliases[key];
-    }
-
-    function setArg (key, val, arg) {
-        if (arg && flags.unknownFn && !argDefined(key, arg)) {
-            if (flags.unknownFn(arg) === false) return;
-        }
-
-        var value = !flags.strings[key] && isNumber(val)
-            ? Number(val) : val
-        ;
-        setKey(argv, key.split('.'), value);
-        
-        (aliases[key] || []).forEach(function (x) {
-            setKey(argv, x.split('.'), value);
-        });
-    }
-
-    function setKey (obj, keys, value) {
-        var o = obj;
-        keys.slice(0,-1).forEach(function (key) {
-            if (o[key] === undefined) o[key] = {};
-            o = o[key];
-        });
-
-        var key = keys[keys.length - 1];
-        if (o[key] === undefined || flags.bools[key] || typeof o[key] === 'boolean') {
-            o[key] = value;
-        }
-        else if (Array.isArray(o[key])) {
-            o[key].push(value);
-        }
-        else {
-            o[key] = [ o[key], value ];
-        }
-    }
-    
-    function aliasIsBoolean(key) {
-      return aliases[key].some(function (x) {
-          return flags.bools[x];
-      });
-    }
-
-    for (var i = 0; i < args.length; i++) {
-        var arg = args[i];
-        
-        if (/^--.+=/.test(arg)) {
-            // Using [\s\S] instead of . because js doesn't support the
-            // 'dotall' regex modifier. See:
-            // http://stackoverflow.com/a/1068308/13216
-            var m = arg.match(/^--([^=]+)=([\s\S]*)$/);
-            var key = m[1];
-            var value = m[2];
-            if (flags.bools[key]) {
-                value = value !== 'false';
-            }
-            setArg(key, value, arg);
-        }
-        else if (/^--no-.+/.test(arg)) {
-            var key = arg.match(/^--no-(.+)/)[1];
-            setArg(key, false, arg);
-        }
-        else if (/^--.+/.test(arg)) {
-            var key = arg.match(/^--(.+)/)[1];
-            var next = args[i + 1];
-            if (next !== undefined && !/^-/.test(next)
-            && !flags.bools[key]
-            && !flags.allBools
-            && (aliases[key] ? !aliasIsBoolean(key) : true)) {
-                setArg(key, next, arg);
-                i++;
-            }
-            else if (/^(true|false)$/.test(next)) {
-                setArg(key, next === 'true', arg);
-                i++;
-            }
-            else {
-                setArg(key, flags.strings[key] ? '' : true, arg);
-            }
-        }
-        else if (/^-[^-]+/.test(arg)) {
-            var letters = arg.slice(1,-1).split('');
-            
-            var broken = false;
-            for (var j = 0; j < letters.length; j++) {
-                var next = arg.slice(j+2);
-                
-                if (next === '-') {
-                    setArg(letters[j], next, arg)
-                    continue;
-                }
-                
-                if (/[A-Za-z]/.test(letters[j]) && /=/.test(next)) {
-                    setArg(letters[j], next.split('=')[1], arg);
-                    broken = true;
-                    break;
-                }
-                
-                if (/[A-Za-z]/.test(letters[j])
-                && /-?\d+(\.\d*)?(e-?\d+)?$/.test(next)) {
-                    setArg(letters[j], next, arg);
-                    broken = true;
-                    break;
-                }
-                
-                if (letters[j+1] && letters[j+1].match(/\W/)) {
-                    setArg(letters[j], arg.slice(j+2), arg);
-                    broken = true;
-                    break;
-                }
-                else {
-                    setArg(letters[j], flags.strings[letters[j]] ? '' : true, arg);
-                }
-            }
-            
-            var key = arg.slice(-1)[0];
-            if (!broken && key !== '-') {
-                if (args[i+1] && !/^(-|--)[^-]/.test(args[i+1])
-                && !flags.bools[key]
-                && (aliases[key] ? !aliasIsBoolean(key) : true)) {
-                    setArg(key, args[i+1], arg);
-                    i++;
-                }
-                else if (args[i+1] && /true|false/.test(args[i+1])) {
-                    setArg(key, args[i+1] === 'true', arg);
-                    i++;
-                }
-                else {
-                    setArg(key, flags.strings[key] ? '' : true, arg);
-                }
-            }
-        }
-        else {
-            if (!flags.unknownFn || flags.unknownFn(arg) !== false) {
-                argv._.push(
-                    flags.strings['_'] || !isNumber(arg) ? arg : Number(arg)
-                );
-            }
-            if (opts.stopEarly) {
-                argv._.push.apply(argv._, args.slice(i + 1));
-                break;
-            }
-        }
-    }
-    
-    Object.keys(defaults).forEach(function (key) {
-        if (!hasKey(argv, key.split('.'))) {
-            setKey(argv, key.split('.'), defaults[key]);
-            
-            (aliases[key] || []).forEach(function (x) {
-                setKey(argv, x.split('.'), defaults[key]);
-            });
-        }
-    });
-    
-    if (opts['--']) {
-        argv['--'] = new Array();
-        notFlags.forEach(function(key) {
-            argv['--'].push(key);
-        });
-    }
-    else {
-        notFlags.forEach(function(key) {
-            argv._.push(key);
-        });
-    }
-
-    return argv;
-};
-
-function hasKey (obj, keys) {
-    var o = obj;
-    keys.slice(0,-1).forEach(function (key) {
-        o = (o[key] || {});
-    });
-
-    var key = keys[keys.length - 1];
-    return key in o;
-}
-
-function isNumber (x) {
-    if (typeof x === 'number') return true;
-    if (/^0x[0-9a-f]+$/i.test(x)) return true;
-    return /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(e[-+]?\d+)?$/.test(x);
-}
-
-
+module.exports = require("tls");
 
 /***/ }),
 /* 305 */
@@ -71046,9 +71045,9 @@ const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(315));
 exports.FloatBuffer = floatBuffer_1.default;
 const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(314));
 exports.FloatFactory = floatFactory_1.default;
-const fetch_1 = tslib_1.__importDefault(__webpack_require__(295));
+const fetch_1 = tslib_1.__importDefault(__webpack_require__(301));
 exports.fetch = fetch_1.default;
-const download_1 = tslib_1.__importDefault(__webpack_require__(256));
+const download_1 = tslib_1.__importDefault(__webpack_require__(262));
 exports.download = download_1.default;
 const highligher_1 = tslib_1.__importDefault(__webpack_require__(346));
 exports.Highligher = highligher_1.default;
@@ -84347,7 +84346,7 @@ class Complete {
             for (let idx = 0; idx < items.length; idx++) {
                 let item = items[idx];
                 let { word } = item;
-                if (!item.dup && words.has(word))
+                if ((!item.dup || source == 'tabnine') && words.has(word))
                     continue;
                 let filterText = item.filterText || item.word;
                 item.filterText = filterText;
