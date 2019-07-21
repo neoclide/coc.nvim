@@ -1,6 +1,6 @@
-import { byteLength } from '../util/string'
+import { Buffer } from '@chemzqm/neovim'
 import { parseAnsiHighlights } from '../util/ansiparse'
-import { Buffer, Neovim } from '@chemzqm/neovim'
+import { byteLength } from '../util/string'
 
 export interface HighlightItem {
   // all zero indexed
