@@ -1,17 +1,16 @@
-import { exec, ExecOptions, spawn } from 'child_process'
+import { spawn } from 'child_process'
 import fs from 'fs'
-import url from 'url'
 import mkdirp from 'mkdirp'
-import path from 'path'
-import rimraf from 'rimraf'
 import mv from 'mv'
+import path from 'path'
+import rc from 'rc'
+import rimraf from 'rimraf'
 import semver from 'semver'
+import url from 'url'
 import { promisify } from 'util'
-import { runCommand } from '../util'
 import workspace from '../workspace'
 import download from './download'
 import fetch from './fetch'
-import rc from 'rc'
 const logger = require('../util/logger')('model-extension')
 
 export interface Info {
@@ -19,10 +18,6 @@ export interface Info {
   'engines.coc'?: string
   version?: string
   name?: string
-  error?: {
-    code: string
-    summary: string
-  }
 }
 
 function registryUrl(scope = ''): string {
@@ -43,7 +38,7 @@ export default class ExtensionManager {
     mkdirp.sync(path.join(root, 'node_modules/.cache'))
   }
 
-  private async getInfo(npm: string, ref: string): Promise<Info> {
+  private async getInfo(ref: string): Promise<Info> {
     if (ref.startsWith('https:')) return await this.getInfoFromUri(ref)
     let name: string
     let version: string
@@ -56,9 +51,13 @@ export default class ExtensionManager {
     if (!version) version = res['dist-tags']['latest']
     let obj = res['versions'][version]
     if (!obj) throw new Error(`${ref} not exists.`)
+    let requiredVersion = obj['engines'] && obj['engines']['coc']
+    if (!requiredVersion) {
+      throw new Error(`${ref} is not valid coc extension, "engines" field with coc property required.`)
+    }
     return {
       'dist.tarball': obj['dist']['tarball'],
-      'engines.coc': obj['engines'] && obj['engines']['coc'],
+      'engines.coc': requiredVersion,
       version: obj['version'],
       name: res.name
     } as Info
@@ -76,7 +75,11 @@ export default class ExtensionManager {
   }
 
   private async _install(npm: string, def: string, info: Info, onMessage: (msg: string) => void): Promise<void> {
-    let tmpFolder = await promisify(fs.mkdtemp)(path.join(this.root, 'node_modules/.cache', `${info.name}-`))
+    let filepath = path.join(this.root, 'node_modules/.cache', `${info.name}-`)
+    if (!fs.existsSync(path.dirname(filepath))) {
+      fs.mkdirSync(path.dirname(filepath))
+    }
+    let tmpFolder = await promisify(fs.mkdtemp)(filepath)
     let url = info['dist.tarball']
     onMessage(`Downloading from ${url}`)
     await download(url, { dest: tmpFolder })
@@ -111,12 +114,7 @@ export default class ExtensionManager {
     this.checkFolder()
     logger.info(`Using npm from: ${npm}`)
     logger.info(`Loading info of ${def}.`)
-    let info = await this.getInfo(npm, def)
-    if (info.error) {
-      let { code, summary } = info.error
-      let msg = code == 'E404' ? `module ${def} not exists!` : summary
-      throw new Error(msg)
-    }
+    let info = await this.getInfo(def)
     let { name } = info
     let required = info['engines.coc'] ? info['engines.coc'].replace(/^\^/, '>=') : ''
     if (required && !semver.satisfies(workspace.version, required)) {
@@ -144,8 +142,7 @@ export default class ExtensionManager {
       version = JSON.parse(content).version
     }
     logger.info(`Loading info of ${name}.`)
-    let info = await this.getInfo(npm, uri ? uri : name)
-    if (info.error) return
+    let info = await this.getInfo(uri ? uri : name)
     if (version && info.version && semver.gte(version, info.version)) {
       logger.info(`Extension ${name} is up to date.`)
       return false

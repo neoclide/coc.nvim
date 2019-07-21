@@ -726,9 +726,7 @@ export class Workspace implements IWorkspace {
       return Promise.resolve(this.buffers.get(bufnr))
     }
     if (!this.creatingSources.has(bufnr)) {
-      this.onBufCreate(bufnr).catch(e => {
-        logger.error('Error on buffer create:', e)
-      })
+      this.onBufCreate(bufnr).logError()
     }
     return new Promise<Document>(resolve => {
       let disposable = this.onDidOpenTextDocument(doc => {
