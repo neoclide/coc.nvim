@@ -236,9 +236,10 @@ export default abstract class BasicList implements IList, Disposable {
     } else {
       let mod = context.options.position == 'top' ? 'below' : 'above'
       nvim.command(`silent ${mod} ${height}sp +setl\\ previewwindow ${escaped}`, true)
+      nvim.command(`exe "normal! z${height}\\<cr>"`, true)
     }
     nvim.command(`exe ${lnum}`, true)
-    nvim.command('setl winfixheight nofoldenable', true)
+    nvim.command('setl winfixheight nofoldenable cursorline', true)
     // highlight range
     if (comparePosition(range.start, range.end) !== 0) {
       let arr: Range[] = []
@@ -288,6 +289,7 @@ export default abstract class BasicList implements IList, Disposable {
       } else {
         nvim.command(`silent ${mod} ${height}new +setl\\ previewwindow`, true)
       }
+      nvim.command(`exe "normal! z${height}\\<cr>"`, true)
     }
     if (lines && lines.length) {
       nvim.call('append', [0, lines], true)
