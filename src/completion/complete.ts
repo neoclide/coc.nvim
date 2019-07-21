@@ -183,6 +183,7 @@ export default class Complete {
     let codes = getCharCodes(input)
     let words: Set<string> = new Set()
     let filtering = input.length > this.input.length
+    let hasPreselect = false
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let { items, source, priority } = res
@@ -217,21 +218,25 @@ export default class Complete {
           if (item.signature) user_data.signature = item.signature
           item.user_data = JSON.stringify(user_data)
           item.source = source
+          let recentScore = this.recentScores[`${bufnr}|${word}`]
+          if (recentScore && now - recentScore < 60 * 1000) {
+            item.recentScore = recentScore
+          } else {
+            item.recentScore = 0
+          }
+        } else {
+          delete item.sortText
         }
         item.priority = priority
         item.abbr = item.abbr || item.word
         item.score = input.length ? score : 0
         item.localBonus = this.localBonus ? this.localBonus.get(filterText) || 0 : 0
-        item.recentScore = item.recentScore || 0
-        if (!item.recentScore) {
-          let recentScore = this.recentScores[`${bufnr}|${word}`]
-          if (recentScore && now - recentScore < 60 * 1000) {
-            item.recentScore = recentScore
-          }
-        }
         words.add(word)
         if (item.isSnippet && item.word == input) {
           item.preselect = true
+        }
+        if (item.preselect) {
+          hasPreselect = true
         }
         arr.push(item)
       }
@@ -254,6 +259,10 @@ export default class Complete {
       }
       return a.filterText.length - b.filterText.length
     })
+    if (!filtering && !hasPreselect) {
+      let item = arr.find(o => o.recentScore && o.recentScore > 0)
+      if (item && item.isSnippet) item.preselect = true
+    }
     return this.limitCompleteItems(arr.slice(0, this.config.maxItemCount))
   }
 

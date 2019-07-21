@@ -990,6 +990,14 @@ g:WorkspaceFolders 				*g:WorkspaceFolders*
 			session file, add `set sessionoptions+=globals` to 
 			vimrc for restoring globals.
 
+g:node_client_debug 				*g:node_client_debug*
+
+			Enable debug mode of node client on vim8, use command: >
+			
+			:call coc#client#open_log()
+<
+			to open the log file.
+
 ------------------------------------------------------------------------------
 
 Some variables are provided by coc.nvim so you can use them in your 
