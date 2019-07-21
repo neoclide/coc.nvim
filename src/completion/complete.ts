@@ -190,7 +190,7 @@ export default class Complete {
       for (let idx = 0; idx < items.length; idx++) {
         let item = items[idx]
         let { word } = item
-        if (!item.dup && words.has(word)) continue
+        if ((!item.dup || source == 'tabnine') && words.has(word)) continue
         let filterText = item.filterText || item.word
         item.filterText = filterText
         if (filterText.length < input.length) continue
