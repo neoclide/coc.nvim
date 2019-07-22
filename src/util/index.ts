@@ -44,9 +44,9 @@ function echoMsg(nvim: Neovim, msg: string, hl: string): void {
   nvim[method]('coc#util#echo_messages', [hl, msg.split('\n')], true)
 }
 
-export function getUri(fullpath: string, id: number, buftype: string): string {
+export function getUri(fullpath: string, id: number, buftype: string, isCygwin: boolean): string {
   if (!fullpath) return `untitled:${id}`
-  if (platform.isWindows) fullpath = path.win32.normalize(fullpath)
+  if (platform.isWindows && !isCygwin) fullpath = path.win32.normalize(fullpath)
   if (path.isAbsolute(fullpath)) return URI.file(fullpath).toString()
   if (isuri.isValid(fullpath)) return URI.parse(fullpath).toString()
   if (buftype != '') return `${buftype}:${id}`

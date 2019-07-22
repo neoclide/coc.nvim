@@ -288,6 +288,7 @@ function! coc#util#get_bufoptions(bufnr) abort
   let bufname = bufname(a:bufnr)
   return {
         \ 'bufname': bufname,
+        \ 'isCygwin': has('win32unix'),
         \ 'eol': getbufvar(a:bufnr, '&eol'),
         \ 'variables': s:variables(a:bufnr),
         \ 'fullpath': empty(bufname) ? '' : fnamemodify(bufname, ':p'),

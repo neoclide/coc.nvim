@@ -390,6 +390,7 @@ export interface BufferOption {
   changedtick: number
   rootPatterns: string[] | null
   additionalKeywords: string[]
+  isCygwin: boolean
 }
 
 export interface DiagnosticInfo {
