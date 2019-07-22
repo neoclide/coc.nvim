@@ -181,6 +181,7 @@ Extensions are more powerful than a configured language server. Check out
 - **[coc-html](https://github.com/neoclide/coc-html)** for `html`, `handlebars`
   and `razor`.
 - **[coc-css](https://github.com/neoclide/coc-css)** for `css`, `scss` and `less`.
+- **[coc-ember](https://github.com/NullVoxPopuli/coc-ember)** for ember projects.
 - **[coc-vetur](https://github.com/neoclide/coc-vetur)** for `vue`, use [vetur](https://github.com/vuejs/vetur).
 - **[coc-phpls](https://github.com/marlonfan/coc-phpls)** for `php`, use [intelephense-docs](https://github.com/bmewburn/intelephense-docs).
 - **[coc-java](https://github.com/neoclide/coc-java)** for `java`, use [eclipse.jdt.ls](https://github.com/eclipse/eclipse.jdt.ls).
