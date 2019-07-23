@@ -54329,7 +54329,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "29371b19d7" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "7d2785bc0a" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -56946,6 +56946,9 @@ class Sources {
             let props = await nvim.call(`coc#source#${name}#init`, []);
             let packageJSON = {
                 name: `coc-source-${name}`,
+                engines: {
+                    coc: ">= 0.0.1"
+                },
                 activationEvents: props.filetypes ? props.filetypes.map(f => `onLanguage:${f}`) : ['*'],
                 contributes: {
                     configuration: {
@@ -56953,6 +56956,14 @@ class Sources {
                             [`coc.source.${name}.enable`]: {
                                 type: 'boolean',
                                 default: true
+                            },
+                            [`coc.source.${name}.firstMatch`]: {
+                                type: 'boolean',
+                                default: !!props.firstMatch
+                            },
+                            [`coc.source.${name}.triggerCharacters`]: {
+                                type: 'number',
+                                default: props.triggerCharacters || []
                             },
                             [`coc.source.${name}.priority`]: {
                                 type: 'number',
@@ -57047,7 +57058,8 @@ class Sources {
                 if (changeType == 1) {
                     let paths = value.replace(/,$/, '').split(',');
                     for (let p of paths) {
-                        await this.createVimSources(p);
+                        if (p)
+                            await this.createVimSources(p);
                     }
                 }
             }
@@ -57332,7 +57344,8 @@ class Extensions {
                 if (changeType == 1) {
                     let paths = value.replace(/,$/, '').split(',');
                     for (let p of paths) {
-                        await this.loadExtension(p, true);
+                        if (p)
+                            await this.loadExtension(p, true);
                     }
                 }
             }
@@ -83878,14 +83891,19 @@ class VimSource extends source_1.default {
                 return fuzzy_1.fuzzyChar(ch, cfirst);
             });
         }
-        for (let item of items) {
+        items = items.map(item => {
+            if (typeof item == 'string') {
+                return { word: item, menu: this.menu, isSnippet: this.isSnippet };
+            }
             let menu = item.menu ? item.menu + ' ' : '';
             item.menu = `${menu}${this.menu}`;
             item.isSnippet = this.isSnippet;
             delete item.user_data;
-        }
+            return item;
+        });
         let res = { items };
-        res.startcol = startcol;
+        if (startcol)
+            res.startcol = startcol;
         return res;
     }
 }
