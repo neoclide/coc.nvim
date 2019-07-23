@@ -217,7 +217,7 @@ export default class FloatFactory implements Disposable {
       this.floatBuffer.setLines()
       nvim.command('redraw', true)
     }
-    let [res, err] = await nvim.resumeNotification()
+    let [, err] = await nvim.resumeNotification()
     if (err) {
       workspace.showMessage(`Error on ${err[0]}: ${err[1]} - ${err[2]}`, 'error')
       return false

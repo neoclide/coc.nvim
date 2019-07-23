@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import workspace from '../../workspace'
-import helper, { createTmpFile } from '../helper'
+import helper from '../helper'
 
 let nvim: Neovim
 jest.setTimeout(30000)

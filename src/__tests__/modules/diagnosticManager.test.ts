@@ -122,7 +122,7 @@ describe('diagnostic manager', () => {
   })
 
   it('should get diagnostics under corsor', async () => {
-    let doc = await createDocument()
+    await createDocument()
     let diagnostics = await manager.getCurrentDiagnostics()
     expect(diagnostics.length).toBe(0)
     await nvim.call('cursor', [1, 4])

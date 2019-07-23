@@ -1,4 +1,4 @@
-import { Buffer, Neovim, Window } from '@chemzqm/neovim'
+import { Buffer, Window } from '@chemzqm/neovim'
 import { CancellationToken } from 'vscode-jsonrpc'
 import FloatBuffer from '../model/floatBuffer'
 import createPopup, { Popup } from '../model/popup'

@@ -174,7 +174,7 @@ describe('SnippetSession#start', () => {
     let buf = await helper.edit()
     await nvim.command('startinsert')
     let session = new SnippetSession(nvim, buf.id)
-    let res = await session.start('${1/..*/ -> /}xy$1')
+    await session.start('${1/..*/ -> /}xy$1')
     await helper.wait(30)
     let col = await nvim.call('col', '.')
     expect(col).toBe(3)

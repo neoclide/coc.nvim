@@ -1,11 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
-import path from 'path'
 import { applyEdits, modify } from 'jsonc-parser'
-import { promisify } from 'util'
+import path from 'path'
+import { FormattingOptions } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { ConfigurationShape, ConfigurationTarget, IWorkspace } from '../types'
-import { FormattingOptions } from 'vscode-languageserver-types'
 const logger = require('../util/logger')('configuration-shape')
 
 export default class ConfigurationProxy implements ConfigurationShape {

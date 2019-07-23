@@ -84,20 +84,4 @@ export default class Symbols extends LocationList {
       // noop
     })
   }
-
-  private validWorkspaceSymbol(symbol: SymbolInformation): boolean {
-    switch (symbol.kind) {
-      case SymbolKind.Namespace:
-      case SymbolKind.Class:
-      case SymbolKind.Module:
-      case SymbolKind.Method:
-      case SymbolKind.Package:
-      case SymbolKind.Interface:
-      case SymbolKind.Function:
-      case SymbolKind.Constant:
-        return true
-      default:
-        return false
-    }
-  }
 }

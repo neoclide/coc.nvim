@@ -173,7 +173,6 @@ export class Completion implements Disposable {
       this.stop()
       return
     }
-    let { changedtick } = document
     this.input = search
     let items: VimCompleteItem[]
     if (complete.isIncomplete && document.chars.isKeywordChar(last)) {

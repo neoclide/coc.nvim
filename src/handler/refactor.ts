@@ -93,7 +93,6 @@ export default class Refactor {
         highligher.addText(String(range.start + 1), 'LineNr')
         highligher.addText(':')
         highligher.addText(String(range.end + 1), 'LineNr')
-        let start = highligher.length
         let lines = await this.getLines(item.filepath, range.start, range.end)
         highligher.addLines(lines)
         highligher.addLine('—')
@@ -119,7 +118,6 @@ export default class Refactor {
     nvim.command('setl nomod', true)
     nvim.command(`execute 'normal! /\\<'.escape('${curname.replace(/'/g, "''")}', '\\\\/.*$^~[]')."\\\\>\\<cr>"`, true)
     workspace.registerLocalKeymap('n', '<CR>', async () => {
-      let currwin = await nvim.call('win_getid')
       let lines = await nvim.eval('getline(3,line("."))') as string[]
       let len = lines.length
       for (let i = 0; i < len; i++) {

@@ -1,15 +1,15 @@
-import { attach, Neovim } from '@chemzqm/neovim'
-import path, { dirname } from 'path'
-import cp, { exec, ExecOptions } from 'child_process'
+import { Neovim } from '@chemzqm/neovim'
+import { exec, ExecOptions } from 'child_process'
 import debounce from 'debounce'
 import fs from 'fs'
+import isuri from 'isuri'
+import mkdir from 'mkdirp'
+import path from 'path'
 import { Disposable, TextDocumentIdentifier } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import which from 'which'
-import * as platform from './platform'
-import isuri from 'isuri'
-import mkdir from 'mkdirp'
 import { MapMode } from '../types'
+import * as platform from './platform'
 
 export { platform }
 const logger = require('./logger')('util-index')
@@ -137,10 +137,6 @@ export async function mkdirp(path: string, mode?: number): Promise<boolean> {
       resolve(true)
     })
   })
-}
-
-function nfcall<R>(fn: Function, ...args: any[]): Promise<R> {
-  return new Promise<R>((c, e) => fn(...args, (err: any, r: any) => err ? e(err) : c(r)))
 }
 
 // consider textDocument without version to be valid

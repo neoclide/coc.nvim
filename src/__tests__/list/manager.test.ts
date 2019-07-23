@@ -217,7 +217,6 @@ describe('list configuration', () => {
     await nvim.call('win_gotoid', [win.id])
     await nvim.command('wincmd l')
     let curr = await nvim.window
-    let bufname = await nvim.eval('bufname("%")')
     let isPreview = await curr.getOption('previewwindow')
     expect(isPreview).toBe(true)
     helper.updateConfiguration('list.previewSplitRight', false)

@@ -14,7 +14,6 @@ export class SnippetVariableResolver implements VariableResolver {
   }
 
   public async init(document: Document): Promise<void> {
-    let { nvim } = this
     let filepath = URI.parse(document.uri).fsPath
     let [lnum, line, cword, selected, clipboard, yank] = await this.nvim.eval(`[line('.'),getline('.'),expand('<cword>'),get(g:,'coc_selected_text', ''),getreg('+'),getreg('"')]`) as any[]
     Object.assign(this._variableToValue, {

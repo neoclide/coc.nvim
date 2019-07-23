@@ -3,7 +3,6 @@ import { Logger } from 'log4js'
 import * as path from 'path'
 import * as vm from 'vm'
 import { ExtensionContext } from '../types'
-import workspace from '../workspace'
 import { defaults } from './lodash'
 const createLogger = require('./logger')
 const logger = createLogger('util-factoroy')

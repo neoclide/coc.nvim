@@ -187,7 +187,7 @@ export class DiagnosticBuffer implements Disposable {
   }
 
   public clearHighlight(): void {
-    let { bufnr, nvim, matchIds } = this
+    let { bufnr, matchIds } = this
     let doc = workspace.getDocument(bufnr)
     if (!doc) return
     doc.clearMatchIds(matchIds)

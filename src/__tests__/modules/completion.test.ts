@@ -1,15 +1,15 @@
-import helper from '../helper'
-import snippetManager from '../../snippets/manager'
-import workspace from '../../workspace'
 import { Neovim } from '@chemzqm/neovim'
+import { Disposable } from 'vscode-jsonrpc'
+import { CompletionItem, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import completion from '../../completion'
 import languages from '../../languages'
-import sources from '../../sources'
-import { CompleteOption, ISource, CompleteResult, SourceType, CompletionContext } from '../../types'
 import { CompletionItemProvider } from '../../provider'
-import { TextDocument, Position, CompletionItem, InsertTextFormat, TextEdit, Range } from 'vscode-languageserver-types'
-import { CancellationToken, Disposable } from 'vscode-jsonrpc'
+import snippetManager from '../../snippets/manager'
+import sources from '../../sources'
+import { CompleteOption, CompleteResult, ISource, SourceType } from '../../types'
 import { disposeAll } from '../../util'
+import workspace from '../../workspace'
+import helper from '../helper'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -324,7 +324,7 @@ describe('completion TextChangedP', () => {
   })
 
   it('should fix cursor position with snippet on additionalTextEdits', async () => {
-    let doc = await helper.createDocument()
+    await helper.createDocument()
     let provider: CompletionItemProvider = {
       provideCompletionItems: async (): Promise<CompletionItem[]> => {
         return [{
@@ -373,7 +373,7 @@ describe('completion TextChangedP', () => {
   })
 
   it('should fix cursor position with nested snippet on additionalTextEdits', async () => {
-    let doc = await helper.createDocument()
+    await helper.createDocument()
     let res = await snippetManager.insertSnippet('func($1)$0')
     expect(res).toBe(true)
     let provider: CompletionItemProvider = {

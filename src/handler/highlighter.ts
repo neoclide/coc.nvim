@@ -87,7 +87,7 @@ export default class Highlighter implements Disposable {
   }
 
   public clearHighlight(): void {
-    let { matchIds, srcId } = this
+    let { matchIds } = this
     if (!this.document) return
     this.matchIds.clear()
     this.document.clearMatchIds(matchIds)

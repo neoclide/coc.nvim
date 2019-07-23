@@ -1,6 +1,5 @@
 import { Terminal } from '../types'
 import { Neovim } from '@chemzqm/neovim'
-const isVim = process.env.VIM_NODE_RPC == '1'
 const logger = require('../util/logger')('model-terminal')
 
 export default class TerminalModel implements Terminal {

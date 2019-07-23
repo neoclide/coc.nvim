@@ -117,7 +117,7 @@ export default class Handler {
       }
       this.signatureFactory.close()
     }, null, this.disposables)
-    events.on('InsertLeave', bufnr => {
+    events.on('InsertLeave', () => {
       this.signatureFactory.close()
     }, null, this.disposables)
     events.on(['TextChangedI', 'TextChangedP'], async () => {
@@ -268,14 +268,12 @@ export default class Handler {
       'Method',
       'Function',
     ].includes(s.kind))
-    let filetype = document.filetype
     let functionName = ''
     for (let sym of symbols.reverse()) {
       if (sym.range
         && positionInRange(position, sym.range) == 0
         && !sym.text.endsWith(') callback')) {
         functionName = sym.text
-        let kind = sym.kind.toLowerCase()
         let label = this.labels[sym.kind.toLowerCase()]
         if (label) functionName = `${label} ${functionName}`
         break
@@ -696,7 +694,7 @@ export default class Handler {
 
   public async selectFunction(inner: boolean, visualmode: string): Promise<void> {
     let { nvim } = this
-    let [bufnr, mode] = await nvim.eval(`[bufnr('%'), mode()]`) as [number, string]
+    let bufnr = await nvim.eval('bufnr("%")') as number
     let doc = workspace.getDocument(bufnr)
     if (!doc) return
     let range: Range
