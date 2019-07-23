@@ -80,14 +80,18 @@ export default class VimSource extends Source {
         return fuzzyChar(ch, cfirst)
       })
     }
-    for (let item of items) {
+    items = items.map(item => {
+      if (typeof item == 'string') {
+        return { word: item, menu: this.menu, isSnippet: this.isSnippet }
+      }
       let menu = item.menu ? item.menu + ' ' : ''
       item.menu = `${menu}${this.menu}`
       item.isSnippet = this.isSnippet
       delete item.user_data
-    }
+      return item
+    })
     let res: CompleteResult = { items }
-    res.startcol = startcol
+    if (startcol) res.startcol = startcol
     return res
   }
 }

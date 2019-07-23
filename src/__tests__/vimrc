@@ -15,11 +15,9 @@ set shortmess=at
 
 let s:dir = expand('<sfile>:h')
 let s:root = expand('<sfile>:h:h:h')
-let s:plugin = s:dir.'/plugins'
 let g:coc_watch_extensions = ['test']
 let $COC_TEST = 1
 
 autocmd BufNewFile,BufRead *.ts  set filetype=typescript
 
 execute 'set runtimepath+='.s:root
-execute 'set runtimepath+='.s:plugin

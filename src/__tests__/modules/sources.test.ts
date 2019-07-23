@@ -1,8 +1,9 @@
-import sources from '../../sources'
-import helper from '../helper'
-import { ISource, SourceType } from '../../types'
-import events from '../../events'
 import { Neovim } from '@chemzqm/neovim'
+import path from 'path'
+import events from '../../events'
+import sources from '../../sources'
+import { ISource, SourceType } from '../../types'
+import helper from '../helper'
 
 let nvim: Neovim
 beforeAll(async () => {
@@ -120,5 +121,18 @@ describe('sources#createSource', () => {
     let visible = await helper.visible('custom', 'custom')
     expect(visible).toBe(true)
     disposable.dispose()
+  })
+
+  it('should create vim source', async () => {
+    let folder = path.resolve(__dirname, '..')
+    await nvim.command(`set runtimepath+=${folder}`)
+    await helper.wait(100)
+    let exists = sources.has('email')
+    expect(exists).toBe(true)
+    await helper.createDocument()
+    await nvim.input('i')
+    await helper.wait(10)
+    await nvim.input('@')
+    await helper.visible('foo@gmail.com')
   })
 })

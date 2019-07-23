@@ -48,6 +48,9 @@ export class Sources {
       let props = await nvim.call(`coc#source#${name}#init`, [])
       let packageJSON = {
         name: `coc-source-${name}`,
+        engines: {
+          coc: ">= 0.0.1"
+        },
         activationEvents: props.filetypes ? props.filetypes.map(f => `onLanguage:${f}`) : ['*'],
         contributes: {
           configuration: {
@@ -55,6 +58,14 @@ export class Sources {
               [`coc.source.${name}.enable`]: {
                 type: 'boolean',
                 default: true
+              },
+              [`coc.source.${name}.firstMatch`]: {
+                type: 'boolean',
+                default: !!props.firstMatch
+              },
+              [`coc.source.${name}.triggerCharacters`]: {
+                type: 'number',
+                default: props.triggerCharacters || []
               },
               [`coc.source.${name}.priority`]: {
                 type: 'number',
@@ -149,7 +160,7 @@ export class Sources {
         if (changeType == 1) {
           let paths = value.replace(/,$/, '').split(',')
           for (let p of paths) {
-            await this.createVimSources(p)
+            if (p) await this.createVimSources(p)
           }
         }
       }
