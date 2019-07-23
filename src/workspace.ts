@@ -567,7 +567,7 @@ export class Workspace implements IWorkspace {
   public async selectRange(range: Range): Promise<void> {
     let { nvim } = this
     let { start, end } = range
-    let [bufnr, ve, selection, mode] = await nvim.eval(`[bufnr('%'), &virtualedit, &selection, mode()]`) as [number, string, string, string]
+    let [bufnr, ve, selection] = await nvim.eval(`[bufnr('%'), &virtualedit, &selection, mode()]`) as [number, string, string, string]
     let document = this.getDocument(bufnr)
     if (!document) return
     let line = document.getline(start.line)
@@ -576,7 +576,6 @@ export class Workspace implements IWorkspace {
     let endCol = endLine ? byteLength(endLine.slice(0, end.character)) : 0
     let move_cmd = ''
     let resetVirtualEdit = false
-    // if (mode != 'n') move_cmd += "\\<Esc>"
     move_cmd += 'v'
     endCol = await nvim.eval(`virtcol([${end.line + 1}, ${endCol}])`) as number
     if (selection == 'inclusive') {

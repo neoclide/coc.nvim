@@ -3782,7 +3782,7 @@ export abstract class BaseLanguageClient {
 
   protected abstract createMessageTransports(
     encoding: string
-  ): Thenable<MessageTransports>
+  ): Thenable<MessageTransports | null>
 
   private createConnection(): Thenable<IConnection> {
     let errorHandler = (error: Error, message: Message, count: number) => {
