@@ -42381,17 +42381,17 @@ var ProgressCancelNotification;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const child_process_1 = __webpack_require__(172);
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(173));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
+const isuri_1 = tslib_1.__importDefault(__webpack_require__(174));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(176));
+const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const vscode_uri_1 = __webpack_require__(174);
-const which_1 = tslib_1.__importDefault(__webpack_require__(175));
-const platform = tslib_1.__importStar(__webpack_require__(179));
+const vscode_uri_1 = __webpack_require__(177);
+const which_1 = tslib_1.__importDefault(__webpack_require__(178));
+const platform = tslib_1.__importStar(__webpack_require__(182));
 exports.platform = platform;
-const isuri_1 = tslib_1.__importDefault(__webpack_require__(180));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(182));
 const logger = __webpack_require__(183)('util-index');
 const prefix = '[coc.nvim] ';
 function escapeSingleQuote(str) {
@@ -42529,9 +42529,6 @@ async function mkdirp(path, mode) {
     });
 }
 exports.mkdirp = mkdirp;
-function nfcall(fn, ...args) {
-    return new Promise((c, e) => fn(...args, (err, r) => err ? e(err) : c(r)));
-}
 // consider textDocument without version to be valid
 function isDocumentEdit(edit) {
     if (edit == null)
@@ -42629,6 +42626,396 @@ module.exports = debounce;
 
 /***/ }),
 /* 174 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var rfc3986 = __webpack_require__(175);
+
+// See: https://github.com/hapijs/hoek/blob/f62961d3d07aca68ab11480893e6e80a421914b4/lib/index.js#L783-L787
+function escapeRegex(string) {
+    // Escape ^$.*+-?=!:|\/()[]{},
+    return string.replace(/[\^\$\.\*\+\-\?\=\!\:\|\\\/\(\)\[\]\{\}\,]/g, '\\$&');
+}
+
+var internals = {
+    Uri: {
+        createUriRegex: function (options) {
+            options = options || {};
+
+            if (typeof options !== 'object' || Array.isArray(options)) {
+                throw new Error('options must be an object');
+            }
+
+            var customScheme = '';
+
+            // If we were passed a scheme, use it instead of the generic one
+            if (options.scheme) {
+                if (!Array.isArray(options.scheme)) {
+                    options.scheme = [options.scheme];
+                }
+
+                if (options.scheme.length <= 0) {
+                    throw new Error('scheme must have at least 1 scheme specified');
+                }
+
+                for (var i = 0; i < options.scheme.length; ++i) {
+                    var currentScheme = options.scheme[i];
+
+                    if (!(currentScheme instanceof RegExp || typeof currentScheme === 'string')) {
+                        throw new Error('scheme must only contain Regular Expressions or Strings');
+                    }
+
+                    // Add OR separators if a value already exists
+                    customScheme = customScheme + (customScheme ? '|' : '');
+
+                    // If someone wants to match HTTP or HTTPS for example then we need to support both RegExp and String so we don't escape their pattern unknowingly.
+                    if (currentScheme instanceof RegExp) {
+                        customScheme = customScheme + currentScheme.source;
+                    } else {
+                        if (!/[a-zA-Z][a-zA-Z0-9+-\.]*/.test(currentScheme)) {
+                            throw new Error('scheme at position ' + i + ' must be a valid scheme');
+                        }
+                        customScheme = customScheme + escapeRegex(currentScheme);
+                    }
+                }
+
+            }
+
+            // Have to put this in a non-capturing group to handle the OR statements
+            var scheme = '(?:' + (customScheme || rfc3986.scheme) + ')';
+
+            /**
+             * URI = scheme ":" hier-part [ "?" query ] [ "#" fragment ]
+             *
+             * OR
+             *
+             * relative-ref = relative-part [ "?" query ] [ "#" fragment ]
+             */
+            return new RegExp('^(?:' + scheme + ':' + rfc3986.hierPart + ')(?:\\?' + rfc3986.query + ')?(?:#' + rfc3986.fragment + ')?$');
+        },
+        uriRegex: new RegExp(rfc3986.uri)
+    }
+};
+
+internals.Uri.isValid = function (val) {
+    return internals.Uri.uriRegex.test(val);
+};
+
+module.exports = {
+    createUriRegex: internals.Uri.createUriRegex,
+
+    uriRegex: internals.Uri.uriRegex,
+    isValid: internals.Uri.isValid
+};
+
+/***/ }),
+/* 175 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+// Load modules
+
+// Delcare internals
+
+var internals = {
+    rfc3986: {}
+};
+
+internals.generate = function () {
+
+    /**
+     * elements separated by forward slash ("/") are alternatives.
+     */
+    var or = '|';
+
+    /**
+     * DIGIT = %x30-39 ; 0-9
+     */
+    var digit = '0-9';
+    var digitOnly = '[' + digit + ']';
+
+    /**
+     * ALPHA = %x41-5A / %x61-7A   ; A-Z / a-z
+     */
+    var alpha = 'a-zA-Z';
+    var alphaOnly = '[' + alpha + ']';
+
+    /**
+     * cidr       = DIGIT                ; 0-9
+     *            / %x31-32 DIGIT         ; 10-29
+     *            / "3" %x30-32           ; 30-32
+     */
+    internals.rfc3986.cidr = digitOnly + or + '[1-2]' + digitOnly + or + '3' + '[0-2]';
+
+    /**
+     * HEXDIG = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
+     */
+    var hexDigit = digit + 'A-Fa-f';
+    var hexDigitOnly = '[' + hexDigit + ']';
+
+    /**
+     * unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
+     */
+    var unreserved = alpha + digit + '-\\._~';
+
+    /**
+     * sub-delims = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
+     */
+    var subDelims = '!\\$&\'\\(\\)\\*\\+,;=';
+
+    /**
+     * pct-encoded = "%" HEXDIG HEXDIG
+     */
+    var pctEncoded = '%' + hexDigit;
+
+    /**
+     * pchar = unreserved / pct-encoded / sub-delims / ":" / "@"
+     */
+    var pchar = unreserved + pctEncoded + subDelims + ':@';
+    var pcharOnly = '[' + pchar + ']';
+
+    /**
+     * Rule to support zero-padded addresses.
+     */
+    var zeroPad = '0?';
+
+    /**
+     * dec-octet   = DIGIT                 ; 0-9
+     *            / %x31-39 DIGIT         ; 10-99
+     *            / "1" 2DIGIT            ; 100-199
+     *            / "2" %x30-34 DIGIT     ; 200-249
+     *            / "25" %x30-35          ; 250-255
+     */
+    var decOctect = '(?:' + zeroPad + zeroPad + digitOnly + or + zeroPad + '[1-9]' + digitOnly + or + '1' + digitOnly + digitOnly + or + '2' + '[0-4]' + digitOnly + or + '25' + '[0-5])';
+
+    /**
+     * IPv4address = dec-octet "." dec-octet "." dec-octet "." dec-octet
+     */
+    internals.rfc3986.IPv4address = '(?:' + decOctect + '\\.){3}' + decOctect;
+
+    /**
+     * h16 = 1*4HEXDIG ; 16 bits of address represented in hexadecimal
+     * ls32 = ( h16 ":" h16 ) / IPv4address ; least-significant 32 bits of address
+     * IPv6address =                            6( h16 ":" ) ls32
+     *             /                       "::" 5( h16 ":" ) ls32
+     *             / [               h16 ] "::" 4( h16 ":" ) ls32
+     *             / [ *1( h16 ":" ) h16 ] "::" 3( h16 ":" ) ls32
+     *             / [ *2( h16 ":" ) h16 ] "::" 2( h16 ":" ) ls32
+     *             / [ *3( h16 ":" ) h16 ] "::"    h16 ":"   ls32
+     *             / [ *4( h16 ":" ) h16 ] "::"              ls32
+     *             / [ *5( h16 ":" ) h16 ] "::"              h16
+     *             / [ *6( h16 ":" ) h16 ] "::"
+     */
+    var h16 = hexDigitOnly + '{1,4}';
+    var ls32 = '(?:' + h16 + ':' + h16 + '|' + internals.rfc3986.IPv4address + ')';
+    var IPv6SixHex = '(?:' + h16 + ':){6}' + ls32;
+    var IPv6FiveHex = '::(?:' + h16 + ':){5}' + ls32;
+    var IPv6FourHex = '(?:' + h16 + ')?::(?:' + h16 + ':){4}' + ls32;
+    var IPv6ThreeHex = '(?:(?:' + h16 + ':){0,1}' + h16 + ')?::(?:' + h16 + ':){3}' + ls32;
+    var IPv6TwoHex = '(?:(?:' + h16 + ':){0,2}' + h16 + ')?::(?:' + h16 + ':){2}' + ls32;
+    var IPv6OneHex = '(?:(?:' + h16 + ':){0,3}' + h16 + ')?::' + h16 + ':' + ls32;
+    var IPv6NoneHex = '(?:(?:' + h16 + ':){0,4}' + h16 + ')?::' + ls32;
+    var IPv6NoneHex2 = '(?:(?:' + h16 + ':){0,5}' + h16 + ')?::' + h16;
+    var IPv6NoneHex3 = '(?:(?:' + h16 + ':){0,6}' + h16 + ')?::';
+    internals.rfc3986.IPv6address = '(?:' + IPv6SixHex + or + IPv6FiveHex + or + IPv6FourHex + or + IPv6ThreeHex + or + IPv6TwoHex + or + IPv6OneHex + or + IPv6NoneHex + or + IPv6NoneHex2 + or + IPv6NoneHex3 + ')';
+
+    /**
+     * IPvFuture = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
+     */
+    internals.rfc3986.IPvFuture = 'v' + hexDigitOnly + '+\\.[' + unreserved + subDelims + ':]+';
+
+    /**
+     * scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+     */
+    internals.rfc3986.scheme = alphaOnly + '[' + alpha + digit + '+-\\.]*';
+
+    /**
+     * userinfo = *( unreserved / pct-encoded / sub-delims / ":" )
+     */
+    var userinfo = '[' + unreserved + pctEncoded + subDelims + ':]*';
+
+    /**
+     * IP-literal = "[" ( IPv6address / IPvFuture  ) "]"
+     */
+    internals.rfc3986.IPLiteral = '\\[(?:' + internals.rfc3986.IPv6address + or + internals.rfc3986.IPvFuture + ')\\]';
+
+    /**
+     * reg-name = *( unreserved / pct-encoded / sub-delims )
+     */
+    var regName = '[' + unreserved + pctEncoded + subDelims + ']{0,255}';
+
+    /**
+     * host = IP-literal / IPv4address / reg-name
+     */
+    var host = '(?:' + internals.rfc3986.IPLiteral + or + internals.rfc3986.IPv4address + or + regName + ')';
+
+    /**
+     * port = *DIGIT
+     */
+    var port = digitOnly + '*';
+
+    /**
+     * authority   = [ userinfo "@" ] host [ ":" port ]
+     */
+    var authority = '(?:' + userinfo + '@)?' + host + '(?::' + port + ')?';
+
+    /**
+     * segment       = *pchar
+     * segment-nz    = 1*pchar
+     * path          = path-abempty    ; begins with "/" or is empty
+     *               / path-absolute   ; begins with "/" but not "//"
+     *               / path-noscheme   ; begins with a non-colon segment
+     *               / path-rootless   ; begins with a segment
+     *               / path-empty      ; zero characters
+     * path-abempty  = *( "/" segment )
+     * path-absolute = "/" [ segment-nz *( "/" segment ) ]
+     * path-rootless = segment-nz *( "/" segment )
+     */
+    var segment = pcharOnly + '*';
+    var segmentNz = pcharOnly + '+';
+    var pathAbEmpty = '(?:\\/' + segment + ')*';
+    var pathAbsolute = '\\/(?:' + segmentNz + pathAbEmpty + ')?';
+    var pathRootless = segmentNz + pathAbEmpty;
+
+    /**
+     * hier-part = "//" authority path
+     */
+    internals.rfc3986.hierPart = '(?:' + '(?:\\/\\/' + authority + pathAbEmpty + ')' + or + pathAbsolute + or + pathRootless + ')';
+
+    /**
+     * query = *( pchar / "/" / "?" )
+     */
+    internals.rfc3986.query = '[' + pchar + '\\/\\?]*(?=#|$)'; //Finish matching either at the fragment part or end of the line.
+
+    /**
+     * fragment = *( pchar / "/" / "?" )
+     */
+    internals.rfc3986.fragment = '[' + pchar + '\\/\\?]*';
+
+    /**
+     * URI = scheme ":" hier-part [ "?" query ] [ "#" fragment ]
+     *
+     * OR
+     *
+     * relative-ref = relative-part [ "?" query ] [ "#" fragment ]
+     */
+    internals.rfc3986.uri = '^(?:' + internals.rfc3986.scheme + ':' + internals.rfc3986.hierPart + ')(?:\\?' + internals.rfc3986.query + ')?' + '(?:#' + internals.rfc3986.fragment + ')?$';
+};
+
+internals.generate();
+
+module.exports = internals.rfc3986;
+
+/***/ }),
+/* 176 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var path = __webpack_require__(56);
+var fs = __webpack_require__(54);
+var _0777 = parseInt('0777', 8);
+
+module.exports = mkdirP.mkdirp = mkdirP.mkdirP = mkdirP;
+
+function mkdirP (p, opts, f, made) {
+    if (typeof opts === 'function') {
+        f = opts;
+        opts = {};
+    }
+    else if (!opts || typeof opts !== 'object') {
+        opts = { mode: opts };
+    }
+    
+    var mode = opts.mode;
+    var xfs = opts.fs || fs;
+    
+    if (mode === undefined) {
+        mode = _0777 & (~process.umask());
+    }
+    if (!made) made = null;
+    
+    var cb = f || function () {};
+    p = path.resolve(p);
+    
+    xfs.mkdir(p, mode, function (er) {
+        if (!er) {
+            made = made || p;
+            return cb(null, made);
+        }
+        switch (er.code) {
+            case 'ENOENT':
+                mkdirP(path.dirname(p), opts, function (er, made) {
+                    if (er) cb(er, made);
+                    else mkdirP(p, opts, cb, made);
+                });
+                break;
+
+            // In the case of any other error, just see if there's a dir
+            // there already.  If so, then hooray!  If not, then something
+            // is borked.
+            default:
+                xfs.stat(p, function (er2, stat) {
+                    // if the stat fails, then that's super weird.
+                    // let the original error be the failure reason.
+                    if (er2 || !stat.isDirectory()) cb(er, made)
+                    else cb(null, made);
+                });
+                break;
+        }
+    });
+}
+
+mkdirP.sync = function sync (p, opts, made) {
+    if (!opts || typeof opts !== 'object') {
+        opts = { mode: opts };
+    }
+    
+    var mode = opts.mode;
+    var xfs = opts.fs || fs;
+    
+    if (mode === undefined) {
+        mode = _0777 & (~process.umask());
+    }
+    if (!made) made = null;
+
+    p = path.resolve(p);
+
+    try {
+        xfs.mkdirSync(p, mode);
+        made = made || p;
+    }
+    catch (err0) {
+        switch (err0.code) {
+            case 'ENOENT' :
+                made = sync(path.dirname(p), opts, made);
+                sync(p, opts, made);
+                break;
+
+            // In the case of any other error, just see if there's a dir
+            // there already.  If so, then hooray!  If not, then something
+            // is borked.
+            default:
+                var stat;
+                try {
+                    stat = xfs.statSync(p);
+                }
+                catch (err1) {
+                    throw err0;
+                }
+                if (!stat.isDirectory()) throw err0;
+                break;
+        }
+    }
+
+    return made;
+};
+
+
+/***/ }),
+/* 177 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -43231,7 +43618,7 @@ var _a;
 
 
 /***/ }),
-/* 175 */
+/* 178 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = which
@@ -43243,7 +43630,7 @@ var isWindows = process.platform === 'win32' ||
 
 var path = __webpack_require__(56)
 var COLON = isWindows ? ';' : ':'
-var isexe = __webpack_require__(176)
+var isexe = __webpack_require__(179)
 
 function getNotFoundError (cmd) {
   var er = new Error('not found: ' + cmd)
@@ -43372,15 +43759,15 @@ function whichSync (cmd, opt) {
 
 
 /***/ }),
-/* 176 */
+/* 179 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var fs = __webpack_require__(54)
 var core
 if (process.platform === 'win32' || global.TESTING_WINDOWS) {
-  core = __webpack_require__(177)
+  core = __webpack_require__(180)
 } else {
-  core = __webpack_require__(178)
+  core = __webpack_require__(181)
 }
 
 module.exports = isexe
@@ -43435,7 +43822,7 @@ function sync (path, options) {
 
 
 /***/ }),
-/* 177 */
+/* 180 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = isexe
@@ -43483,7 +43870,7 @@ function sync (path, options) {
 
 
 /***/ }),
-/* 178 */
+/* 181 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = isexe
@@ -43530,7 +43917,7 @@ function checkMode (stat, options) {
 
 
 /***/ }),
-/* 179 */
+/* 182 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -43588,396 +43975,6 @@ exports.OS = _isMacintosh
         ? 1 /* Windows */
         : 3 /* Linux */;
 //# sourceMappingURL=platform.js.map
-
-/***/ }),
-/* 180 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var rfc3986 = __webpack_require__(181);
-
-// See: https://github.com/hapijs/hoek/blob/f62961d3d07aca68ab11480893e6e80a421914b4/lib/index.js#L783-L787
-function escapeRegex(string) {
-    // Escape ^$.*+-?=!:|\/()[]{},
-    return string.replace(/[\^\$\.\*\+\-\?\=\!\:\|\\\/\(\)\[\]\{\}\,]/g, '\\$&');
-}
-
-var internals = {
-    Uri: {
-        createUriRegex: function (options) {
-            options = options || {};
-
-            if (typeof options !== 'object' || Array.isArray(options)) {
-                throw new Error('options must be an object');
-            }
-
-            var customScheme = '';
-
-            // If we were passed a scheme, use it instead of the generic one
-            if (options.scheme) {
-                if (!Array.isArray(options.scheme)) {
-                    options.scheme = [options.scheme];
-                }
-
-                if (options.scheme.length <= 0) {
-                    throw new Error('scheme must have at least 1 scheme specified');
-                }
-
-                for (var i = 0; i < options.scheme.length; ++i) {
-                    var currentScheme = options.scheme[i];
-
-                    if (!(currentScheme instanceof RegExp || typeof currentScheme === 'string')) {
-                        throw new Error('scheme must only contain Regular Expressions or Strings');
-                    }
-
-                    // Add OR separators if a value already exists
-                    customScheme = customScheme + (customScheme ? '|' : '');
-
-                    // If someone wants to match HTTP or HTTPS for example then we need to support both RegExp and String so we don't escape their pattern unknowingly.
-                    if (currentScheme instanceof RegExp) {
-                        customScheme = customScheme + currentScheme.source;
-                    } else {
-                        if (!/[a-zA-Z][a-zA-Z0-9+-\.]*/.test(currentScheme)) {
-                            throw new Error('scheme at position ' + i + ' must be a valid scheme');
-                        }
-                        customScheme = customScheme + escapeRegex(currentScheme);
-                    }
-                }
-
-            }
-
-            // Have to put this in a non-capturing group to handle the OR statements
-            var scheme = '(?:' + (customScheme || rfc3986.scheme) + ')';
-
-            /**
-             * URI = scheme ":" hier-part [ "?" query ] [ "#" fragment ]
-             *
-             * OR
-             *
-             * relative-ref = relative-part [ "?" query ] [ "#" fragment ]
-             */
-            return new RegExp('^(?:' + scheme + ':' + rfc3986.hierPart + ')(?:\\?' + rfc3986.query + ')?(?:#' + rfc3986.fragment + ')?$');
-        },
-        uriRegex: new RegExp(rfc3986.uri)
-    }
-};
-
-internals.Uri.isValid = function (val) {
-    return internals.Uri.uriRegex.test(val);
-};
-
-module.exports = {
-    createUriRegex: internals.Uri.createUriRegex,
-
-    uriRegex: internals.Uri.uriRegex,
-    isValid: internals.Uri.isValid
-};
-
-/***/ }),
-/* 181 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-// Load modules
-
-// Delcare internals
-
-var internals = {
-    rfc3986: {}
-};
-
-internals.generate = function () {
-
-    /**
-     * elements separated by forward slash ("/") are alternatives.
-     */
-    var or = '|';
-
-    /**
-     * DIGIT = %x30-39 ; 0-9
-     */
-    var digit = '0-9';
-    var digitOnly = '[' + digit + ']';
-
-    /**
-     * ALPHA = %x41-5A / %x61-7A   ; A-Z / a-z
-     */
-    var alpha = 'a-zA-Z';
-    var alphaOnly = '[' + alpha + ']';
-
-    /**
-     * cidr       = DIGIT                ; 0-9
-     *            / %x31-32 DIGIT         ; 10-29
-     *            / "3" %x30-32           ; 30-32
-     */
-    internals.rfc3986.cidr = digitOnly + or + '[1-2]' + digitOnly + or + '3' + '[0-2]';
-
-    /**
-     * HEXDIG = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
-     */
-    var hexDigit = digit + 'A-Fa-f';
-    var hexDigitOnly = '[' + hexDigit + ']';
-
-    /**
-     * unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
-     */
-    var unreserved = alpha + digit + '-\\._~';
-
-    /**
-     * sub-delims = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
-     */
-    var subDelims = '!\\$&\'\\(\\)\\*\\+,;=';
-
-    /**
-     * pct-encoded = "%" HEXDIG HEXDIG
-     */
-    var pctEncoded = '%' + hexDigit;
-
-    /**
-     * pchar = unreserved / pct-encoded / sub-delims / ":" / "@"
-     */
-    var pchar = unreserved + pctEncoded + subDelims + ':@';
-    var pcharOnly = '[' + pchar + ']';
-
-    /**
-     * Rule to support zero-padded addresses.
-     */
-    var zeroPad = '0?';
-
-    /**
-     * dec-octet   = DIGIT                 ; 0-9
-     *            / %x31-39 DIGIT         ; 10-99
-     *            / "1" 2DIGIT            ; 100-199
-     *            / "2" %x30-34 DIGIT     ; 200-249
-     *            / "25" %x30-35          ; 250-255
-     */
-    var decOctect = '(?:' + zeroPad + zeroPad + digitOnly + or + zeroPad + '[1-9]' + digitOnly + or + '1' + digitOnly + digitOnly + or + '2' + '[0-4]' + digitOnly + or + '25' + '[0-5])';
-
-    /**
-     * IPv4address = dec-octet "." dec-octet "." dec-octet "." dec-octet
-     */
-    internals.rfc3986.IPv4address = '(?:' + decOctect + '\\.){3}' + decOctect;
-
-    /**
-     * h16 = 1*4HEXDIG ; 16 bits of address represented in hexadecimal
-     * ls32 = ( h16 ":" h16 ) / IPv4address ; least-significant 32 bits of address
-     * IPv6address =                            6( h16 ":" ) ls32
-     *             /                       "::" 5( h16 ":" ) ls32
-     *             / [               h16 ] "::" 4( h16 ":" ) ls32
-     *             / [ *1( h16 ":" ) h16 ] "::" 3( h16 ":" ) ls32
-     *             / [ *2( h16 ":" ) h16 ] "::" 2( h16 ":" ) ls32
-     *             / [ *3( h16 ":" ) h16 ] "::"    h16 ":"   ls32
-     *             / [ *4( h16 ":" ) h16 ] "::"              ls32
-     *             / [ *5( h16 ":" ) h16 ] "::"              h16
-     *             / [ *6( h16 ":" ) h16 ] "::"
-     */
-    var h16 = hexDigitOnly + '{1,4}';
-    var ls32 = '(?:' + h16 + ':' + h16 + '|' + internals.rfc3986.IPv4address + ')';
-    var IPv6SixHex = '(?:' + h16 + ':){6}' + ls32;
-    var IPv6FiveHex = '::(?:' + h16 + ':){5}' + ls32;
-    var IPv6FourHex = '(?:' + h16 + ')?::(?:' + h16 + ':){4}' + ls32;
-    var IPv6ThreeHex = '(?:(?:' + h16 + ':){0,1}' + h16 + ')?::(?:' + h16 + ':){3}' + ls32;
-    var IPv6TwoHex = '(?:(?:' + h16 + ':){0,2}' + h16 + ')?::(?:' + h16 + ':){2}' + ls32;
-    var IPv6OneHex = '(?:(?:' + h16 + ':){0,3}' + h16 + ')?::' + h16 + ':' + ls32;
-    var IPv6NoneHex = '(?:(?:' + h16 + ':){0,4}' + h16 + ')?::' + ls32;
-    var IPv6NoneHex2 = '(?:(?:' + h16 + ':){0,5}' + h16 + ')?::' + h16;
-    var IPv6NoneHex3 = '(?:(?:' + h16 + ':){0,6}' + h16 + ')?::';
-    internals.rfc3986.IPv6address = '(?:' + IPv6SixHex + or + IPv6FiveHex + or + IPv6FourHex + or + IPv6ThreeHex + or + IPv6TwoHex + or + IPv6OneHex + or + IPv6NoneHex + or + IPv6NoneHex2 + or + IPv6NoneHex3 + ')';
-
-    /**
-     * IPvFuture = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
-     */
-    internals.rfc3986.IPvFuture = 'v' + hexDigitOnly + '+\\.[' + unreserved + subDelims + ':]+';
-
-    /**
-     * scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
-     */
-    internals.rfc3986.scheme = alphaOnly + '[' + alpha + digit + '+-\\.]*';
-
-    /**
-     * userinfo = *( unreserved / pct-encoded / sub-delims / ":" )
-     */
-    var userinfo = '[' + unreserved + pctEncoded + subDelims + ':]*';
-
-    /**
-     * IP-literal = "[" ( IPv6address / IPvFuture  ) "]"
-     */
-    internals.rfc3986.IPLiteral = '\\[(?:' + internals.rfc3986.IPv6address + or + internals.rfc3986.IPvFuture + ')\\]';
-
-    /**
-     * reg-name = *( unreserved / pct-encoded / sub-delims )
-     */
-    var regName = '[' + unreserved + pctEncoded + subDelims + ']{0,255}';
-
-    /**
-     * host = IP-literal / IPv4address / reg-name
-     */
-    var host = '(?:' + internals.rfc3986.IPLiteral + or + internals.rfc3986.IPv4address + or + regName + ')';
-
-    /**
-     * port = *DIGIT
-     */
-    var port = digitOnly + '*';
-
-    /**
-     * authority   = [ userinfo "@" ] host [ ":" port ]
-     */
-    var authority = '(?:' + userinfo + '@)?' + host + '(?::' + port + ')?';
-
-    /**
-     * segment       = *pchar
-     * segment-nz    = 1*pchar
-     * path          = path-abempty    ; begins with "/" or is empty
-     *               / path-absolute   ; begins with "/" but not "//"
-     *               / path-noscheme   ; begins with a non-colon segment
-     *               / path-rootless   ; begins with a segment
-     *               / path-empty      ; zero characters
-     * path-abempty  = *( "/" segment )
-     * path-absolute = "/" [ segment-nz *( "/" segment ) ]
-     * path-rootless = segment-nz *( "/" segment )
-     */
-    var segment = pcharOnly + '*';
-    var segmentNz = pcharOnly + '+';
-    var pathAbEmpty = '(?:\\/' + segment + ')*';
-    var pathAbsolute = '\\/(?:' + segmentNz + pathAbEmpty + ')?';
-    var pathRootless = segmentNz + pathAbEmpty;
-
-    /**
-     * hier-part = "//" authority path
-     */
-    internals.rfc3986.hierPart = '(?:' + '(?:\\/\\/' + authority + pathAbEmpty + ')' + or + pathAbsolute + or + pathRootless + ')';
-
-    /**
-     * query = *( pchar / "/" / "?" )
-     */
-    internals.rfc3986.query = '[' + pchar + '\\/\\?]*(?=#|$)'; //Finish matching either at the fragment part or end of the line.
-
-    /**
-     * fragment = *( pchar / "/" / "?" )
-     */
-    internals.rfc3986.fragment = '[' + pchar + '\\/\\?]*';
-
-    /**
-     * URI = scheme ":" hier-part [ "?" query ] [ "#" fragment ]
-     *
-     * OR
-     *
-     * relative-ref = relative-part [ "?" query ] [ "#" fragment ]
-     */
-    internals.rfc3986.uri = '^(?:' + internals.rfc3986.scheme + ':' + internals.rfc3986.hierPart + ')(?:\\?' + internals.rfc3986.query + ')?' + '(?:#' + internals.rfc3986.fragment + ')?$';
-};
-
-internals.generate();
-
-module.exports = internals.rfc3986;
-
-/***/ }),
-/* 182 */
-/***/ (function(module, exports, __webpack_require__) {
-
-var path = __webpack_require__(56);
-var fs = __webpack_require__(54);
-var _0777 = parseInt('0777', 8);
-
-module.exports = mkdirP.mkdirp = mkdirP.mkdirP = mkdirP;
-
-function mkdirP (p, opts, f, made) {
-    if (typeof opts === 'function') {
-        f = opts;
-        opts = {};
-    }
-    else if (!opts || typeof opts !== 'object') {
-        opts = { mode: opts };
-    }
-    
-    var mode = opts.mode;
-    var xfs = opts.fs || fs;
-    
-    if (mode === undefined) {
-        mode = _0777 & (~process.umask());
-    }
-    if (!made) made = null;
-    
-    var cb = f || function () {};
-    p = path.resolve(p);
-    
-    xfs.mkdir(p, mode, function (er) {
-        if (!er) {
-            made = made || p;
-            return cb(null, made);
-        }
-        switch (er.code) {
-            case 'ENOENT':
-                mkdirP(path.dirname(p), opts, function (er, made) {
-                    if (er) cb(er, made);
-                    else mkdirP(p, opts, cb, made);
-                });
-                break;
-
-            // In the case of any other error, just see if there's a dir
-            // there already.  If so, then hooray!  If not, then something
-            // is borked.
-            default:
-                xfs.stat(p, function (er2, stat) {
-                    // if the stat fails, then that's super weird.
-                    // let the original error be the failure reason.
-                    if (er2 || !stat.isDirectory()) cb(er, made)
-                    else cb(null, made);
-                });
-                break;
-        }
-    });
-}
-
-mkdirP.sync = function sync (p, opts, made) {
-    if (!opts || typeof opts !== 'object') {
-        opts = { mode: opts };
-    }
-    
-    var mode = opts.mode;
-    var xfs = opts.fs || fs;
-    
-    if (mode === undefined) {
-        mode = _0777 & (~process.umask());
-    }
-    if (!made) made = null;
-
-    p = path.resolve(p);
-
-    try {
-        xfs.mkdirSync(p, mode);
-        made = made || p;
-    }
-    catch (err0) {
-        switch (err0.code) {
-            case 'ENOENT' :
-                made = sync(path.dirname(p), opts, made);
-                sync(p, opts, made);
-                break;
-
-            // In the case of any other error, just see if there's a dir
-            // there already.  If so, then hooray!  If not, then something
-            // is borked.
-            default:
-                var stat;
-                try {
-                    stat = xfs.statSync(p);
-                }
-                catch (err1) {
-                    throw err0;
-                }
-                if (!stat.isDirectory()) throw err0;
-                break;
-        }
-    }
-
-    return made;
-};
-
 
 /***/ }),
 /* 183 */
@@ -44054,8 +44051,8 @@ const os_1 = tslib_1.__importDefault(__webpack_require__(55));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const util_1 = tslib_1.__importDefault(__webpack_require__(40));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const vscode_uri_1 = __webpack_require__(174);
-const which_1 = tslib_1.__importDefault(__webpack_require__(175));
+const vscode_uri_1 = __webpack_require__(177);
+const which_1 = tslib_1.__importDefault(__webpack_require__(178));
 const configuration_1 = tslib_1.__importDefault(__webpack_require__(185));
 const shape_1 = tslib_1.__importDefault(__webpack_require__(202));
 const events_1 = tslib_1.__importDefault(__webpack_require__(145));
@@ -44572,7 +44569,7 @@ class Workspace {
     async selectRange(range) {
         let { nvim } = this;
         let { start, end } = range;
-        let [bufnr, ve, selection, mode] = await nvim.eval(`[bufnr('%'), &virtualedit, &selection, mode()]`);
+        let [bufnr, ve, selection] = await nvim.eval(`[bufnr('%'), &virtualedit, &selection, mode()]`);
         let document = this.getDocument(bufnr);
         if (!document)
             return;
@@ -44582,7 +44579,6 @@ class Workspace {
         let endCol = endLine ? string_1.byteLength(endLine.slice(0, end.character)) : 0;
         let move_cmd = '';
         let resetVirtualEdit = false;
-        // if (mode != 'n') move_cmd += "\\<Esc>"
         move_cmd += 'v';
         endCol = await nvim.eval(`virtcol([${end.line + 1}, ${endCol}])`);
         if (selection == 'inclusive') {
@@ -45643,7 +45639,7 @@ const os_1 = tslib_1.__importDefault(__webpack_require__(55));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const vscode_uri_1 = __webpack_require__(174);
+const vscode_uri_1 = __webpack_require__(177);
 const types_1 = __webpack_require__(186);
 const object_1 = __webpack_require__(187);
 const util_1 = __webpack_require__(171);
@@ -46347,7 +46343,7 @@ const jsonc_parser_1 = __webpack_require__(192);
 const is_1 = __webpack_require__(188);
 const object_1 = __webpack_require__(187);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
-const vscode_uri_1 = __webpack_require__(174);
+const vscode_uri_1 = __webpack_require__(177);
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const logger = __webpack_require__(183)('configuration-util');
 const isWebpack = typeof __webpack_require__ === "function";
@@ -49587,9 +49583,9 @@ function range(a, b, str) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
-const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const jsonc_parser_1 = __webpack_require__(192);
-const vscode_uri_1 = __webpack_require__(174);
+const path_1 = tslib_1.__importDefault(__webpack_require__(56));
+const vscode_uri_1 = __webpack_require__(177);
 const logger = __webpack_require__(183)('configuration-shape');
 class ConfigurationProxy {
     constructor(workspace) {
@@ -49636,9 +49632,9 @@ exports.default = ConfigurationProxy;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(182));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(176));
+const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 class DB {
     constructor(filepath) {
         this.filepath = filepath;
@@ -49780,7 +49776,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(173));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const vscode_uri_1 = __webpack_require__(174);
+const vscode_uri_1 = __webpack_require__(177);
 const diff_1 = __webpack_require__(205);
 const fs_1 = __webpack_require__(197);
 const index_1 = __webpack_require__(171);
@@ -51754,7 +51750,7 @@ exports.getChangedFromEdits = getChangedFromEdits;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const vscode_uri_1 = __webpack_require__(174);
+const vscode_uri_1 = __webpack_require__(177);
 const path = __webpack_require__(56);
 const util_1 = __webpack_require__(171);
 const logger = __webpack_require__(183)('filesystem-watcher');
@@ -51838,7 +51834,7 @@ const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const os_1 = tslib_1.__importDefault(__webpack_require__(55));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
 const util_1 = tslib_1.__importDefault(__webpack_require__(40));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(182));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(176));
 const isWindows = process.platform == 'win32';
 const root = isWindows ? path_1.default.join(os_1.default.homedir(), 'AppData/Local/coc') : path_1.default.join(os_1.default.homedir(), '.config/coc');
 /**
@@ -52454,7 +52450,6 @@ exports.default = Task;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const isVim = process.env.VIM_NODE_RPC == '1';
 const logger = __webpack_require__(183)('model-terminal');
 class TerminalModel {
     constructor(cmd, args, nvim, _name) {
@@ -52632,7 +52627,7 @@ exports.default = WillSaveUntilHandler;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const minimatch_1 = tslib_1.__importDefault(__webpack_require__(198));
-const vscode_uri_1 = __webpack_require__(174);
+const vscode_uri_1 = __webpack_require__(177);
 function score(selector, uri, languageId) {
     if (Array.isArray(selector)) {
         // array -> take max individual value
@@ -54329,7 +54324,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "63a1a8b060" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "1ea838ee4e" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54521,7 +54516,7 @@ const util_1 = __webpack_require__(171);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(230));
 const manager_2 = tslib_1.__importDefault(__webpack_require__(313));
-const vscode_uri_1 = __webpack_require__(174);
+const vscode_uri_1 = __webpack_require__(177);
 const logger = __webpack_require__(183)('commands');
 class CommandItem {
     constructor(id, impl, thisArg, internal = false) {
@@ -56453,7 +56448,6 @@ class Completion {
             this.stop();
             return;
         }
-        let { changedtick } = document;
         this.input = search;
         let items;
         if (complete.isIncomplete && document.chars.isKeywordChar(last)) {
@@ -57262,21 +57256,21 @@ const tslib_1 = __webpack_require__(3);
 const debounce_1 = __webpack_require__(173);
 const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(206));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
-const isuri_1 = tslib_1.__importDefault(__webpack_require__(180));
+const isuri_1 = tslib_1.__importDefault(__webpack_require__(174));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const rimraf_1 = tslib_1.__importDefault(__webpack_require__(236));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
 const util_1 = tslib_1.__importStar(__webpack_require__(40));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const vscode_uri_1 = __webpack_require__(174);
-const which_1 = tslib_1.__importDefault(__webpack_require__(175));
+const vscode_uri_1 = __webpack_require__(177);
+const which_1 = tslib_1.__importDefault(__webpack_require__(178));
 const commands_1 = tslib_1.__importDefault(__webpack_require__(229));
 const events_1 = tslib_1.__importDefault(__webpack_require__(145));
 const db_1 = tslib_1.__importDefault(__webpack_require__(203));
 const extension_1 = tslib_1.__importDefault(__webpack_require__(248));
 const memos_1 = tslib_1.__importDefault(__webpack_require__(305));
 const util_2 = __webpack_require__(171);
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(182));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(176));
 const array_1 = __webpack_require__(209);
 __webpack_require__(306);
 const factory_1 = __webpack_require__(307);
@@ -60624,7 +60618,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const child_process_1 = __webpack_require__(172);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(182));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(176));
 const mv_1 = tslib_1.__importDefault(__webpack_require__(249));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const rc_1 = tslib_1.__importDefault(__webpack_require__(255));
@@ -60708,8 +60702,19 @@ class ExtensionManager {
             let p = new Promise((resolve, reject) => {
                 let args = ['install', '--ignore-scripts', '--no-lockfile', '--no-bin-links', '--production'];
                 const child = child_process_1.spawn(npm, args, { cwd: tmpFolder });
+                child.stderr.setEncoding('utf8');
                 child.on('error', reject);
-                child.on('exit', resolve);
+                let err = '';
+                child.stderr.on('data', data => {
+                    err += data;
+                });
+                child.on('exit', code => {
+                    if (code) {
+                        // tslint:disable-next-line: no-console
+                        console.error(`${npm} install exited with ${code}, messages:\n${err}`);
+                    }
+                    resolve();
+                });
             });
             await p;
         }
@@ -60799,7 +60804,7 @@ var fs = __webpack_require__(54);
 var ncp = __webpack_require__(250).ncp;
 var path = __webpack_require__(56);
 var rimraf = __webpack_require__(251);
-var mkdirp = __webpack_require__(182);
+var mkdirp = __webpack_require__(176);
 
 module.exports = mv;
 
@@ -63839,7 +63844,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const follow_redirects_1 = __webpack_require__(263);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(182));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(176));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const tar_1 = tslib_1.__importDefault(__webpack_require__(270));
 const url_1 = __webpack_require__(261);
@@ -70045,7 +70050,7 @@ module.exports = Unpack
 // TODO: This should probably be a class, not functionally
 // passing around state in a gazillion args.
 
-const mkdirp = __webpack_require__(182)
+const mkdirp = __webpack_require__(176)
 const fs = __webpack_require__(54)
 const path = __webpack_require__(56)
 const chownr = __webpack_require__(300)
@@ -71086,7 +71091,7 @@ const ansiparse_1 = __webpack_require__(347);
 exports.ansiparse = ansiparse_1.ansiparse;
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(224));
 exports.Watchman = watchman_1.default;
-const vscode_uri_1 = __webpack_require__(174);
+const vscode_uri_1 = __webpack_require__(177);
 exports.Uri = vscode_uri_1.URI;
 const neovim_1 = __webpack_require__(4);
 exports.Neovim = neovim_1.Neovim;
@@ -71853,7 +71858,7 @@ exports.default = new Languages();
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const vscode_uri_1 = __webpack_require__(174);
+const vscode_uri_1 = __webpack_require__(177);
 const events_1 = tslib_1.__importDefault(__webpack_require__(145));
 const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(314));
 const util_1 = __webpack_require__(171);
@@ -72651,7 +72656,7 @@ class FloatFactory {
             this.floatBuffer.setLines();
             nvim.command('redraw', true);
         }
-        let [res, err] = await nvim.resumeNotification();
+        let [, err] = await nvim.resumeNotification();
         if (err) {
             workspace_1.default.showMessage(`Error on ${err[0]}: ${err[1]} - ${err[2]}`, 'error');
             return false;
@@ -73481,7 +73486,7 @@ class DiagnosticBuffer {
         }
     }
     clearHighlight() {
-        let { bufnr, nvim, matchIds } = this;
+        let { bufnr, matchIds } = this;
         let doc = workspace_1.default.getDocument(bufnr);
         if (!doc)
             return;
@@ -73691,7 +73696,7 @@ exports.getLocationListItem = getLocationListItem;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const vscode_uri_1 = __webpack_require__(174);
+const vscode_uri_1 = __webpack_require__(177);
 const position_1 = __webpack_require__(210);
 const logger = __webpack_require__(183)('diagnostic-collection');
 class Collection {
@@ -75662,7 +75667,7 @@ const util_1 = __webpack_require__(171);
 const Is = tslib_1.__importStar(__webpack_require__(188));
 const processes_1 = __webpack_require__(317);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const which_1 = tslib_1.__importDefault(__webpack_require__(175));
+const which_1 = tslib_1.__importDefault(__webpack_require__(178));
 const client_1 = __webpack_require__(350);
 const colorProvider_1 = __webpack_require__(354);
 const configuration_1 = __webpack_require__(355);
@@ -76125,7 +76130,7 @@ const tslib_1 = __webpack_require__(3);
 /*tslint:disable*/
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const vscode_uri_1 = __webpack_require__(174);
+const vscode_uri_1 = __webpack_require__(177);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(229));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(312));
 const fs_1 = __webpack_require__(197);
@@ -80989,7 +80994,7 @@ const tslib_1 = __webpack_require__(3);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
 const readline_1 = tslib_1.__importDefault(__webpack_require__(59));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const vscode_uri_1 = __webpack_require__(174);
+const vscode_uri_1 = __webpack_require__(177);
 const util_1 = __webpack_require__(171);
 const position_1 = __webpack_require__(210);
 const string_1 = __webpack_require__(207);
@@ -81372,7 +81377,7 @@ const vscode_languageserver_types_1 = __webpack_require__(158);
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(368));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const vscode_uri_1 = __webpack_require__(174);
+const vscode_uri_1 = __webpack_require__(177);
 const fs_1 = __webpack_require__(197);
 const logger = __webpack_require__(183)('list-location');
 class LocationList extends basic_1.default {
@@ -81642,7 +81647,7 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(368));
 const vscode_languageserver_types_1 = __webpack_require__(158);
-const vscode_uri_1 = __webpack_require__(174);
+const vscode_uri_1 = __webpack_require__(177);
 const fs_1 = __webpack_require__(197);
 class LinksList extends basic_1.default {
     constructor(nvim) {
@@ -81783,7 +81788,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const vscode_languageserver_types_1 = __webpack_require__(158);
-const vscode_uri_1 = __webpack_require__(174);
+const vscode_uri_1 = __webpack_require__(177);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(312));
 const util_1 = __webpack_require__(171);
 const fs_1 = __webpack_require__(197);
@@ -82085,7 +82090,7 @@ exports.default = ServicesList;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_types_1 = __webpack_require__(158);
-const vscode_uri_1 = __webpack_require__(174);
+const vscode_uri_1 = __webpack_require__(177);
 const sources_1 = tslib_1.__importDefault(__webpack_require__(234));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(368));
 class SourcesList extends basic_1.default {
@@ -82156,8 +82161,7 @@ exports.default = SourcesList;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
-const vscode_languageserver_types_1 = __webpack_require__(158);
-const vscode_uri_1 = __webpack_require__(174);
+const vscode_uri_1 = __webpack_require__(177);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(312));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const location_1 = tslib_1.__importDefault(__webpack_require__(370));
@@ -82241,21 +82245,6 @@ class Symbols extends location_1.default {
         nvim.resumeNotification().catch(_e => {
             // noop
         });
-    }
-    validWorkspaceSymbol(symbol) {
-        switch (symbol.kind) {
-            case vscode_languageserver_types_1.SymbolKind.Namespace:
-            case vscode_languageserver_types_1.SymbolKind.Class:
-            case vscode_languageserver_types_1.SymbolKind.Module:
-            case vscode_languageserver_types_1.SymbolKind.Method:
-            case vscode_languageserver_types_1.SymbolKind.Package:
-            case vscode_languageserver_types_1.SymbolKind.Interface:
-            case vscode_languageserver_types_1.SymbolKind.Function:
-            case vscode_languageserver_types_1.SymbolKind.Constant:
-                return true;
-            default:
-                return false;
-        }
     }
 }
 exports.default = Symbols;
@@ -83048,7 +83037,7 @@ exports.default = ListUI;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const vscode_uri_1 = __webpack_require__(174);
+const vscode_uri_1 = __webpack_require__(177);
 const ansiparse_1 = __webpack_require__(347);
 const diff_1 = __webpack_require__(205);
 const fzy_1 = __webpack_require__(381);
@@ -85107,7 +85096,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const path = tslib_1.__importStar(__webpack_require__(56));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const vscode_uri_1 = __webpack_require__(174);
+const vscode_uri_1 = __webpack_require__(177);
 const logger = __webpack_require__(183)('snippets-variable');
 class SnippetVariableResolver {
     constructor() {
@@ -85134,7 +85123,6 @@ class SnippetVariableResolver {
         return workspace_1.default.nvim;
     }
     async init(document) {
-        let { nvim } = this;
         let filepath = vscode_uri_1.URI.parse(document.uri).fsPath;
         let [lnum, line, cword, selected, clipboard, yank] = await this.nvim.eval(`[line('.'),getline('.'),expand('<cword>'),get(g:,'coc_selected_text', ''),getreg('+'),getreg('"')]`);
         Object.assign(this._variableToValue, {
@@ -85235,7 +85223,7 @@ class Handler {
             }
             this.signatureFactory.close();
         }, null, this.disposables);
-        events_1.default.on('InsertLeave', bufnr => {
+        events_1.default.on('InsertLeave', () => {
             this.signatureFactory.close();
         }, null, this.disposables);
         events_1.default.on(['TextChangedI', 'TextChangedP'], async () => {
@@ -85398,14 +85386,12 @@ class Handler {
             'Method',
             'Function',
         ].includes(s.kind));
-        let filetype = document.filetype;
         let functionName = '';
         for (let sym of symbols.reverse()) {
             if (sym.range
                 && position_1.positionInRange(position, sym.range) == 0
                 && !sym.text.endsWith(') callback')) {
                 functionName = sym.text;
-                let kind = sym.kind.toLowerCase();
                 let label = this.labels[sym.kind.toLowerCase()];
                 if (label)
                     functionName = `${label} ${functionName}`;
@@ -85835,7 +85821,7 @@ class Handler {
     }
     async selectFunction(inner, visualmode) {
         let { nvim } = this;
-        let [bufnr, mode] = await nvim.eval(`[bufnr('%'), mode()]`);
+        let bufnr = await nvim.eval('bufnr("%")');
         let doc = workspace_1.default.getDocument(bufnr);
         if (!doc)
             return;
@@ -86928,7 +86914,7 @@ class Highlighter {
         this.nvim.command(commands.join('|'), true);
     }
     clearHighlight() {
-        let { matchIds, srcId } = this;
+        let { matchIds } = this;
         if (!this.document)
             return;
         this.matchIds.clear();
@@ -87005,7 +86991,7 @@ const tslib_1 = __webpack_require__(3);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const vscode_languageserver_types_1 = __webpack_require__(158);
-const vscode_uri_1 = __webpack_require__(174);
+const vscode_uri_1 = __webpack_require__(177);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(312));
 const highligher_1 = tslib_1.__importDefault(__webpack_require__(346));
 const fs_2 = __webpack_require__(197);
@@ -87074,7 +87060,6 @@ class Refactor {
                 highligher.addText(String(range.start + 1), 'LineNr');
                 highligher.addText(':');
                 highligher.addText(String(range.end + 1), 'LineNr');
-                let start = highligher.length;
                 let lines = await this.getLines(item.filepath, range.start, range.end);
                 highligher.addLines(lines);
                 highligher.addLine('—');
@@ -87100,7 +87085,6 @@ class Refactor {
         nvim.command('setl nomod', true);
         nvim.command(`execute 'normal! /\\<'.escape('${curname.replace(/'/g, "''")}', '\\\\/.*$^~[]')."\\\\>\\<cr>"`, true);
         workspace_1.default.registerLocalKeymap('n', '<CR>', async () => {
-            let currwin = await nvim.call('win_getid');
             let lines = await nvim.eval('getline(3,line("."))');
             let len = lines.length;
             for (let i = 0; i < len; i++) {
