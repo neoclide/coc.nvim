@@ -54329,7 +54329,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "8b9b7d83a6" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d9ac1b1568" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -84338,8 +84338,6 @@ class Complete {
         let arr = [];
         let codes = fuzzy_1.getCharCodes(input);
         let words = new Set();
-        let filtering = input.length > this.input.length;
-        let hasPreselect = false;
         for (let i = 0, l = results.length; i < l; i++) {
             let res = results[i];
             let { items, source, priority } = res;
@@ -84399,9 +84397,6 @@ class Complete {
                 if (item.isSnippet && item.word == input) {
                     item.preselect = true;
                 }
-                if (item.preselect) {
-                    hasPreselect = true;
-                }
                 arr.push(item);
             }
         }
@@ -84429,11 +84424,6 @@ class Complete {
             }
             return a.filterText.length - b.filterText.length;
         });
-        if (!filtering && !hasPreselect) {
-            let item = arr.find(o => o.recentScore && o.recentScore > 0);
-            if (item && item.isSnippet)
-                item.preselect = true;
-        }
         return this.limitCompleteItems(arr.slice(0, this.config.maxItemCount));
     }
     limitCompleteItems(items) {
