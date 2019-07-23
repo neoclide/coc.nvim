@@ -90,8 +90,19 @@ export default class ExtensionManager {
       let p = new Promise<void>((resolve, reject) => {
         let args = ['install', '--ignore-scripts', '--no-lockfile', '--no-bin-links', '--production']
         const child = spawn(npm, args, { cwd: tmpFolder })
+        child.stderr.setEncoding('utf8')
         child.on('error', reject)
-        child.on('exit', resolve)
+        let err = ''
+        child.stderr.on('data', data => {
+          err += data
+        })
+        child.on('exit', code => {
+          if (code) {
+            // tslint:disable-next-line: no-console
+            console.error(`${npm} install exited with ${code}, messages:\n${err}`)
+          }
+          resolve()
+        })
       })
       await p
     }
