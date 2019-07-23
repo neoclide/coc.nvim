@@ -182,8 +182,6 @@ export default class Complete {
     let arr: VimCompleteItem[] = []
     let codes = getCharCodes(input)
     let words: Set<string> = new Set()
-    let filtering = input.length > this.input.length
-    let hasPreselect = false
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let { items, source, priority } = res
@@ -235,9 +233,6 @@ export default class Complete {
         if (item.isSnippet && item.word == input) {
           item.preselect = true
         }
-        if (item.preselect) {
-          hasPreselect = true
-        }
         arr.push(item)
       }
     }
@@ -259,10 +254,6 @@ export default class Complete {
       }
       return a.filterText.length - b.filterText.length
     })
-    if (!filtering && !hasPreselect) {
-      let item = arr.find(o => o.recentScore && o.recentScore > 0)
-      if (item && item.isSnippet) item.preselect = true
-    }
     return this.limitCompleteItems(arr.slice(0, this.config.maxItemCount))
   }
 
