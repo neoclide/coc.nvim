@@ -13,13 +13,15 @@ function getLogFile(): string {
 
 const MAX_LOG_SIZE = 1024 * 1024
 const MAX_LOG_BACKUPS = 10
-const logfile = getLogFile()
+let logfile = getLogFile()
 const level = process.env.NVIM_COC_LOG_LEVEL || 'info'
 
 if (!fs.existsSync(logfile)) {
   try {
     fs.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 })
   } catch (e) {
+    logfile = path.join(os.tmpdir(), `coc-nvim-${process.pid}.log`)
+    fs.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 })
     // noop
   }
 }
@@ -48,6 +50,8 @@ log4js.configure({
 
 module.exports = (name = 'coc-nvim'): log4js.Logger => {
   let logger = log4js.getLogger(name)
-    ; (logger as any).getLogFile = getLogFile
+    ; (logger as any).getLogFile = () => {
+      return logfile
+    }
   return logger
 }
