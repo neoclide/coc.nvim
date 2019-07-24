@@ -218,7 +218,7 @@ export default class Document {
     try {
       let content = this.getDocumentContent()
       let endOffset = null
-      if (cursor.bufnr == this.bufnr) {
+      if (cursor && cursor.bufnr == this.bufnr) {
         endOffset = this.getEndOffset(cursor.lnum, cursor.col, cursor.insert)
         if (!cursor.insert && content.length < this.content.length) {
           endOffset = endOffset + 1

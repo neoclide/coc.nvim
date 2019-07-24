@@ -239,7 +239,7 @@ export default abstract class BasicList implements IList, Disposable {
       nvim.command(`exe "normal! z${height}\\<cr>"`, true)
     }
     nvim.command(`exe ${lnum}`, true)
-    nvim.command('setl winfixheight nofoldenable cursorline', true)
+    nvim.command('setl winfixheight nofoldenable', true)
     // highlight range
     if (comparePosition(range.start, range.end) !== 0) {
       let arr: Range[] = []

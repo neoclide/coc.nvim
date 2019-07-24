@@ -12,7 +12,7 @@ import workspace from '../workspace'
 import Refactor, { FileItem, FileRange } from './refactor'
 const logger = require('../util/logger')('handler-search')
 
-const defaultArgs = ['--color', 'ansi', '--colors', 'path:fg:black', '--colors', 'match:fg:red', '--no-messages', '--heading', '-n', '--', './']
+const defaultArgs = ['--color', 'ansi', '--colors', 'path:fg:black', '--colors', 'match:fg:red', '--no-messages', '--heading', '-n']
 const controlCode = '\x1b'
 
 // emit FileItem
@@ -23,6 +23,8 @@ class Task extends EventEmitter {
     this.process.on('error', e => {
       this.emit('error', e.message)
     })
+    logger.debug('cmd:', cmd)
+    logger.debug('args:', args)
     this.process.stderr.on('data', chunk => {
       console.error(chunk.toString('utf8')) // tslint:disable-line
     })
@@ -106,13 +108,14 @@ class Task extends EventEmitter {
 
 export default class Search {
   private task: Task
-  constructor(private nvim: Neovim, private refactor: Refactor) {
+  constructor(private nvim: Neovim) {
   }
 
-  public async run(args: string[]): Promise<void> {
+  public async run(args: string[], refactor: Refactor): Promise<void> {
     let { nvim } = this
-    let { afterContext, beforeContext } = this.refactor.config
+    let { afterContext, beforeContext } = refactor.config
     let argList = ['-A', afterContext.toString(), '-B', beforeContext.toString()].concat(defaultArgs, args)
+    argList.push('--', './')
     let cwd = await nvim.call('getcwd')
     let winid = await nvim.call('win_getid')
     let cmd: string
@@ -122,7 +125,7 @@ export default class Search {
       workspace.showMessage('Please install ripgrep and make sure rg is in your $PATH', 'error')
       return
     }
-    let buf = await this.refactor.createRefactorBuffer(winid)
+    let buf = await refactor.createRefactorBuffer(winid)
     this.task = new Task()
     this.task.start(cmd, argList, cwd)
     let mutex: Mutex = new Mutex()
@@ -134,7 +137,7 @@ export default class Search {
       matches = matches + fileItem.ranges.reduce((p, r) => p + r.highlights.length, 0)
       const release = await mutex.acquire()
       try {
-        await this.refactor.addFileItems([fileItem], buf)
+        await refactor.addFileItems([fileItem], buf)
       } catch (e) {
         logger.error(e)
       }

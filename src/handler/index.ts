@@ -93,7 +93,6 @@ export default class Handler {
         this.getPreferences()
       }
     })
-    this.refactor = new Refactor()
     this.hoverFactory = new FloatFactory(nvim, workspace.env)
     this.disposables.push(this.hoverFactory)
     let { signaturePreferAbove, signatureFloatMaxWidth, signatureMaxHeight } = this.preferences
@@ -1039,16 +1038,37 @@ export default class Handler {
    * Refactor of current symbol
    */
   public async doRefactor(): Promise<void> {
-    await this.refactor.rename()
+    if (this.refactor) {
+      this.refactor.dispose()
+    }
+    let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number], number, string]
+    let doc = workspace.getDocument(bufnr)
+    if (!doc) return
+    let position = { line: cursor[0], character: cursor[1] }
+    let res = await languages.prepareRename(doc.textDocument, position)
+    if (res === false) {
+      workspace.showMessage('Invalid position for rename', 'error')
+      return
+    }
+    let edit = await languages.provideRenameEdits(doc.textDocument, position, 'newname')
+    if (!edit) {
+      workspace.showMessage('Empty workspaceEdit from server', 'warning')
+      return
+    }
+    this.refactor = await Refactor.createFromWorkspaceEdit(edit)
   }
 
   public async saveRefactor(bufnr: number): Promise<void> {
-    await this.refactor.saveRefactor(bufnr)
+    if (this.refactor) await this.refactor.saveRefactor(bufnr)
   }
 
   public async search(args: string[]): Promise<void> {
-    let search = new Search(this.nvim, this.refactor)
-    await search.run(args)
+    if (this.refactor) {
+      this.refactor.dispose()
+    }
+    this.refactor = new Refactor()
+    let search = new Search(this.nvim)
+    await search.run(args, this.refactor)
   }
 
   private async previewHover(hovers: Hover[]): Promise<void> {

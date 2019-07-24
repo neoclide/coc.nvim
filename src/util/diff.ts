@@ -74,6 +74,9 @@ export function getChange(oldStr: string, newStr: string, cursorEnd?: number): C
   let end = ol - endOffset
   newText = newStr.slice(start, nl - endOffset)
   if (ol == nl && start == end) return null
+  if (newText.startsWith('\n') && oldStr[end] == '\n') {
+    return { start: start + 1, end: end + 1, newText: newText.slice(1) + '\n' }
+  }
   return { start, end, newText }
 }
 

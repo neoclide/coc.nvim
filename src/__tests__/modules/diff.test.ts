@@ -1,5 +1,5 @@
-import { getChange, patchLine, diffLines } from '../../util/diff'
-import { TextDocument, TextEdit, Range } from 'vscode-languageserver-types'
+import { TextDocument, TextEdit } from 'vscode-languageserver-types'
+import { diffLines, getChange, patchLine } from '../../util/diff'
 
 describe('diff lines', () => {
   it('should diff changed lines', () => {
@@ -116,5 +116,16 @@ describe('should get text edits', () => {
 
   it('should get diff for remove #2', () => {
     applyEdits('  ', ' ')
+  })
+
+  it('should prefer next line for change', async () => {
+    let res = getChange('a\nb', 'a\nc\nb')
+    expect(res).toEqual({ start: 2, end: 2, newText: 'c\n' })
+    applyEdits('a\nb', 'a\nc\nb')
+  })
+
+  it('should prefer previous line for change', async () => {
+    let res = getChange('\n\na', '\na')
+    expect(res).toEqual({ start: 0, end: 1, newText: '' })
   })
 })

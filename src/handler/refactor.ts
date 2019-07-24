@@ -1,19 +1,33 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
+import fastDiff from 'fast-diff'
 import path from 'path'
-import { Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
+import { Disposable, DidChangeTextDocumentParams } from 'vscode-languageserver-protocol'
+import { Range, TextDocumentEdit, TextEdit, WorkspaceEdit, Location, TextDocument } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import commands from '../commands'
-import languages from '../languages'
+import events from '../events'
 import Highlighter from '../model/highligher'
-import { readFileLines, getFileLineCount } from '../util/fs'
+import { disposeAll } from '../util'
+import { getFileLineCount, isParentFolder, readFileLines } from '../util/fs'
 import { equals } from '../util/object'
+import { byteLength } from '../util/string'
 import workspace from '../workspace'
+import Document from '../model/document'
 const logger = require('../util/logger')('refactor')
+// cases: buffer change event
 
 const name = '__coc_refactor__'
 const separator = '\u3000'
 
+export interface LineChange {
+  // zero indexed
+  lnum: number
+  delta: number
+}
+
 export interface FileRange {
+  // start lnum in refactor buffer, 1 indexed
+  lnum?: number
   // start line 0 indexed
   start: number
   // end line 0 indexed, excluded
@@ -24,11 +38,13 @@ export interface FileRange {
 }
 
 export interface FileChange {
-  filepath: string
+  // line number of filepath
+  lnum: number
   // start line 0 indexed
-  start: number
+  start?: number
   // end line 0 indexed, excluded
-  end: number
+  end?: number
+  filepath: string
   lines: string[]
 }
 
@@ -47,37 +63,38 @@ export default class Refactor {
   private id = 0
   private nvim: Neovim
   private bufnr: number
-  private varibles: Map<number, { [index: string]: any }> = new Map()
+  private winid: number
+  private textDocument: TextDocument
+  private matchIds: Set<number> = new Set()
+  private disposables: Disposable[] = []
+  private fileItems: FileItem[] = []
+  private cwd: string
+  private version: number
+  private srcId: number
+  private changing = false
   public config: RefactorConfig
   constructor() {
     this.nvim = workspace.nvim
+    if (workspace.isNvim && this.nvim.hasFunction('nvim_buf_set_virtual_text')) {
+      this.srcId = workspace.createNameSpace('coc-refactor')
+    }
     let config = workspace.getConfiguration('refactor')
     this.config = {
       afterContext: config.get('afterContext', 3),
       beforeContext: config.get('beforeContext', 3),
       openCommand: config.get('openCommand', 'edit')
     }
+    events.on('BufUnload', bufnr => {
+      if (bufnr == this.bufnr) this.dispose()
+    }, null, this.disposables)
   }
 
   /**
-   * Start rename refactor of current symbol.
+   * Start refactor from workspaceEdit
    */
-  public async rename(): Promise<void> {
-    let [bufnr, cursor, winid, filetype] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),win_getid(),&filetype]') as [number, [number, number], number, string]
-    let doc = workspace.getDocument(bufnr)
-    if (!doc) return
-    let position = { line: cursor[0], character: cursor[1] }
-    let res = await languages.prepareRename(doc.textDocument, position)
-    if (res === false) {
-      workspace.showMessage('Invalid position for rename', 'error')
-      return
-    }
-    let edit = await languages.provideRenameEdits(doc.textDocument, position, 'newname')
-    if (!edit || emptyWorkspaceEdit(edit)) {
-      workspace.showMessage('Empty workspaceEdit from server', 'warning')
-      return
-    }
-    let items = await this.getFileItems(edit)
+  public async fromWorkspaceEdit(edit: WorkspaceEdit): Promise<void> {
+    let items = await this.getItemsFromWorkspaceEdit(edit)
+    let [winid, filetype] = await this.nvim.eval('[win_getid(),&filetype]') as [number, string]
     let buf = await this.createRefactorBuffer(winid, filetype)
     await this.addFileItems(items, buf)
   }
@@ -86,8 +103,7 @@ export default class Refactor {
    * Create initialized refactor buffer
    */
   public async createRefactorBuffer(winid: number, filetype?: string): Promise<Buffer> {
-    let { nvim, bufnr } = this
-    if (bufnr) await nvim.command(`silent! ${bufnr}bd!`)
+    let { nvim } = this
     let cwd = await nvim.call('getcwd')
     let { openCommand } = this.config
     let highligher = new Highlighter()
@@ -96,23 +112,25 @@ export default class Refactor {
     nvim.pauseNotification()
     nvim.command(`${openCommand} ${name}${this.id++}`, true)
     nvim.command(`silent! IndentLinesDisable`, true)
-    nvim.command(`setl buftype=acwrite nobuflisted bufhidden=wipe nofen wrap conceallevel=3 concealcursor=n`, true)
-    nvim.command(`setl nolist nospell noswapfile foldmethod=expr foldexpr=coc#util#refactor_foldlevel(v:lnum)`, true)
+    nvim.command(`setl buftype=acwrite nobuflisted bufhidden=wipe nofen wrap conceallevel=2 concealcursor=n`, true)
+    nvim.command(`setl undolevels=-1 nolist nospell noswapfile foldmethod=expr foldexpr=coc#util#refactor_foldlevel(v:lnum)`, true)
     nvim.command(`setl foldtext=getline(v:foldstart)[3:]`, true)
     nvim.call('matchadd', ['Conceal', '^\\%u3000'], true)
+    nvim.call('matchadd', ['Label', '^\\%u3000\\zs\\S\\+'], true)
     nvim.call('coc#util#do_autocmd', ['CocRefactorOpen'], true)
     workspace.registerLocalKeymap('n', '<CR>', async () => {
       let win = nvim.createWindow(winid)
       let valid = await win.valid
-      let lines = await nvim.eval('getline(4,line("."))') as string[]
+      let lines = await nvim.eval('getline(1,line("."))') as string[]
       let len = lines.length
       for (let i = 0; i < len; i++) {
         let line = lines[len - i - 1]
-        let ms = line.match(/^\u3000(.*?):(\d+):(\d+)/)
+        let ms = line.match(/^\u3000(.+)/)
         if (ms) {
-          let filepath = ms[1]
-          let start = parseInt(ms[2], 10)
-          let lnum = i == 0 ? start : start + i - 1
+          let filepath = ms[1].trim()
+          let r = this.getLinesRange(len - i)
+          if (!r) return
+          let lnum = r[0] + 1
           let bufname = filepath.startsWith(workspace.cwd) ? path.relative(workspace.cwd, filepath) : filepath
           nvim.pauseNotification()
           if (valid) {
@@ -134,14 +152,20 @@ export default class Refactor {
       workspace.showMessage(`Error on open refactor window: ${err}`, 'error')
       return
     }
-    bufnr = this.bufnr = await nvim.eval('bufnr("%")') as number
+    let [bufnr, win] = await nvim.eval('[bufnr("%"),win_getid()]') as [number, number]
+    this.winid = win
+    this.bufnr = bufnr
     let buffer = nvim.createBuffer(bufnr)
-    this.saveVariable(buffer.id, 'cwd', cwd)
+    this.cwd = cwd
     nvim.pauseNotification()
     if (filetype) nvim.command(`runtime! syntax/${filetype}.vim`, true)
     highligher.render(buffer)
     nvim.command('setl nomod', true)
     await nvim.resumeNotification()
+    let doc = await workspace.document
+    this.textDocument = doc.textDocument
+    doc.onDocumentChange(this.onRefactorChange, this)
+    workspace.onDidChangeTextDocument(this.onBufferChange, this, this.disposables)
     return buffer
   }
 
@@ -149,32 +173,39 @@ export default class Refactor {
    * Add FileItem to refactor buffer.
    */
   public async addFileItems(items: FileItem[], buffer: Buffer): Promise<void> {
+    this.fileItems.push(...items)
     let count = await buffer.length
-    let cwd = this.getVariable(buffer.id, 'cwd')
     let highligher = new Highlighter()
     let hlRanges: Range[] = []
     for (let item of items) {
       for (let range of item.ranges) {
+        range.lnum = count + highligher.length + 2
         highligher.addLine(separator)
         highligher.addLine(separator)
-        highligher.addText(`${cwd ? path.relative(cwd, item.filepath) : item.filepath}`, 'Label')
-        highligher.addText(':')
-        highligher.addText(String(range.start + 1), 'LineNr')
-        highligher.addText(':')
-        highligher.addText(String(range.end), 'LineNr')
+        highligher.addText(`${this.cwd && isParentFolder(this.cwd, item.filepath) ? path.relative(this.cwd, item.filepath) : item.filepath}`)
+        // white spaces for conceal texts
+        let n = String(range.start + 1).length + String(range.end).length + 4
+        if (!this.srcId) highligher.addText(' '.repeat(n))
         let base = 0 - highligher.length - count
         if (range.highlights) {
           hlRanges.push(...range.highlights.map(r => adjustRange(r, base)))
         }
         let { lines } = range
-        if (!lines) lines = await this.getLines(item.filepath, range.start, range.end)
+        if (!lines) {
+          lines = await this.getLines(item.filepath, range.start, range.end)
+          range.lines = lines
+        }
         highligher.addLines(lines)
       }
     }
     let { nvim } = this
+    this.version = this.document.version
+    let buf = nvim.createBuffer(this.bufnr)
     nvim.pauseNotification()
     highligher.render(buffer, count)
+    this.highlightLineNr()
     nvim.command('setl nomod', true)
+    buf.setOption('undolevels', 1000, true)
     if (count == 2 && hlRanges.length) {
       let pos = hlRanges[0].start
       nvim.call('coc#util#jumpTo', [pos.line, pos.character], true)
@@ -191,37 +222,69 @@ export default class Refactor {
   }
 
   /**
+   * Use conceal to add lineNr
+   */
+  private highlightLineNr(): void {
+    let { fileItems, nvim, winid, srcId, bufnr } = this
+    if (srcId) {
+      nvim.call('nvim_buf_clear_namespace', [bufnr, srcId, 0, -1], true)
+      for (let item of fileItems) {
+        for (let range of item.ranges) {
+          let text = `${range.start + 1}:${range.end}`
+          nvim.call('nvim_buf_set_virtual_text', [bufnr, srcId, range.lnum - 1, [[text, 'LineNr']], {}], true)
+        }
+      }
+    } else {
+      if (this.matchIds.size) {
+        nvim.call('coc#util#clearmatches', [Array.from(this.matchIds)], true)
+        this.matchIds.clear()
+      }
+      let id = 2000
+      for (let item of fileItems) {
+        let filename = `${this.cwd ? path.relative(this.cwd, item.filepath) : item.filepath}`
+        let col = byteLength(filename) + 1
+        for (let range of item.ranges) {
+          let text = `:${range.start + 1}:${range.end}`
+          for (let i = 0; i < text.length; i++) {
+            let ch = text[i]
+            this.matchIds.add(id)
+            nvim.call('matchaddpos', ['Conceal', [[range.lnum, col + i]], 99, id, { conceal: ch, window: winid }], true)
+            id++
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * Current changed file ranges
    */
   public async getFileChanges(buffer: Buffer): Promise<FileChange[]> {
-    let bufnr = buffer.id
     let changes: FileChange[] = []
-    let cwd = this.getVariable(bufnr, 'cwd')
     let lines = await buffer.lines
     lines.push(separator)
     // current lines
     let arr: string[] = []
     let fsPath: string
-    let start: number
-    let end: number
-    for (let line of lines) {
+    let lnum: number
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i]
       if (line.startsWith(separator)) {
         if (fsPath) {
           changes.push({
             filepath: fsPath,
             lines: arr,
-            start: start - 1,
-            end
+            lnum
           })
           fsPath = undefined
           arr = []
         }
         if (line.length > 1) {
-          let ms = line.match(/^\u3000(.*?):(\d+):(\d+)/)
+          let ms = line.match(/^\u3000(.*)/)
           if (ms) {
-            fsPath = !path.isAbsolute(ms[1]) && cwd ? path.join(cwd, ms[1]) : ms[1]
-            start = parseInt(ms[2], 10)
-            end = parseInt(ms[3], 10)
+            let filepath = ms[1].replace(/\s+$/, '')
+            fsPath = !path.isAbsolute(filepath) && this.cwd ? path.join(this.cwd, filepath) : filepath
+            lnum = i + 1
             arr = []
           }
         }
@@ -238,17 +301,45 @@ export default class Refactor {
   public async saveRefactor(bufnr: number): Promise<boolean> {
     let { nvim } = this
     let buffer = nvim.createBuffer(bufnr)
+    let doc = this.document
+    if (!doc) return
+    if (workspace.isVim) {
+      await (doc as any)._fetchContent()
+    }
+    doc.forceSync()
     let changes = await this.getFileChanges(buffer)
+    changes.sort((a, b) => a.lnum - b.lnum)
     // filter changes that not change
     let removeList: number[] = []
-    await Promise.all(changes.map((change, idx) => {
-      return this.hasChange(change).then(changed => {
-        if (!changed) removeList.push(idx)
-      }, e => {
-        logger.error(e)
-      })
-    }))
-    changes = changes.filter((_, i) => !removeList.includes(i))
+    let deltaMap: Map<string, number> = new Map()
+    for (let i = 0; i < changes.length; i++) {
+      let change = changes[i]
+      let { filepath, lnum } = change
+      let curr = deltaMap.get(filepath) || 0
+      let item = this.fileItems.find(o => o.filepath == filepath)
+      let range = item ? item.ranges.find(o => o.lnum == lnum) : null
+      if (!range || equals(range.lines, change.lines)) {
+        removeList.push(i)
+        if (curr) {
+          range.start = range.start + curr
+          range.end = range.end + curr
+        }
+        continue
+      }
+      change.start = range.start
+      change.end = range.end
+      if (curr != 0) range.start = range.start + curr
+      if (change.lines.length != range.lines.length) {
+        let delta = change.lines.length - range.lines.length
+        let total = delta + curr
+        deltaMap.set(filepath, total)
+        range.end = range.end + total
+      } else {
+        range.end = range.end + curr
+      }
+      range.lines = change.lines
+    }
+    if (removeList.length) changes = changes.filter((_, i) => !removeList.includes(i))
     if (changes.length == 0) {
       workspace.showMessage('No change.', 'more')
       await buffer.setOption('modified', false)
@@ -264,10 +355,170 @@ export default class Refactor {
       })
       changeMap[uri] = edits
     }
-    await buffer.setOption('modified', false)
+    this.changing = true
     await workspace.applyEdit({ changes: changeMap })
-    await nvim.command('wa')
+    this.changing = false
+    nvim.pauseNotification()
+    buffer.setOption('modified', false, true)
+    nvim.command('wa', true)
+    this.highlightLineNr()
+    await nvim.resumeNotification()
     return true
+  }
+
+  public getFileRange(lnum: number): FileRange {
+    for (let item of this.fileItems) {
+      for (let r of item.ranges) {
+        if (r.lnum == lnum) {
+          return r
+        }
+      }
+    }
+    return null
+  }
+
+  public has(filepath): boolean {
+    return this.fileItems.find(o => o.filepath == filepath) != null
+  }
+
+  private async onBufferChange(e: DidChangeTextDocumentParams): Promise<void> {
+    if (this.changing) return
+    let { uri } = e.textDocument
+    let { range, text } = e.contentChanges[0]
+    let filepath = URI.parse(uri).fsPath
+    let fileItem = this.fileItems.find(o => o.filepath == filepath)
+    if (!fileItem) return
+    let lineChange = text.split('\n').length - (range.end.line - range.start.line) - 1
+    let edits: TextEdit[] = []
+    // ignore, change lineNr, reload, remove
+    for (let i = 0; i < fileItem.ranges.length; i++) {
+      let r = fileItem.ranges[i]
+      if (range.start.line >= r.end) {
+        continue
+      }
+      if (range.end.line < r.start) {
+        if (lineChange == 0) {
+          continue
+        } else {
+          r.start = r.start + lineChange
+          r.end = r.end + lineChange
+        }
+      } else {
+        let doc = workspace.getDocument(uri)
+        let newLines = doc.getLines(r.start, r.end)
+        if (!newLines.length) {
+          // remove this range
+          fileItem.ranges.splice(i, 1)
+          edits.push({
+            range: this.getFileRangeRange(r, false),
+            newText: ''
+          })
+        } else {
+          r.end = r.start + newLines.length
+          // reload lines, reset end
+          edits.push({
+            range: this.getFileRangeRange(r, true),
+            newText: newLines.join('\n') + '\n'
+          })
+        }
+      }
+      let buf = this.document.buffer
+      let mod = await buf.getOption('modified')
+      if (edits.length) {
+        this.version = this.document.version
+        await this.document.applyEdits(edits)
+      }
+      this.nvim.pauseNotification()
+      this.highlightLineNr()
+      if (!mod) buf.setOption('modified', false, true)
+      await this.nvim.resumeNotification()
+    }
+  }
+
+  /**
+   * Edit range of FileRange
+   */
+  private getFileRangeRange(range: FileRange, lineOnly = true): Range {
+    let { document } = this
+    if (!document) return null
+    let { lnum } = range
+    let first = document.getline(lnum - 1)
+    if (!first.startsWith('\u3000')) return null
+    let start = lineOnly ? lnum : lnum - 1
+    let end = document.lineCount
+    for (let i = lnum; i < document.lineCount; i++) {
+      let line = document.getline(i)
+      if (line.startsWith('\u3000')) {
+        end = lineOnly ? i : i + 1
+        break
+      }
+    }
+    return Range.create(start, 0, end, 0)
+  }
+
+  private async onRefactorChange(e): Promise<void> {
+    let { nvim } = this
+    let doc = this.document
+    let orig = this.textDocument
+    this.textDocument = doc.textDocument
+    if (doc.version - this.version == 1) return
+    doc.buffer.setOption('modified', true, true)
+    let { fileItems } = this
+    if (!fileItems.length) return
+    let change = e.contentChanges[0]
+    let { range, text } = change
+    let lines = text.split('\n')
+    let lineChange = lines.length - (range.end.line - range.start.line) - 1
+    if (lineChange == 0) return
+    let lineChanges: LineChange[] = []
+    if (text.indexOf('\u3000') !== -1) {
+      let o = orig.getText(range)
+      let diffs = fastDiff(o, text)
+      let offset = orig.offsetAt(range.start)
+      for (let i = 0; i < diffs.length; i++) {
+        let diff = diffs[i]
+        let pos = orig.positionAt(offset)
+        if (diff[0] == fastDiff.EQUAL) {
+          offset = offset + diff[1].length
+        } else if (diff[0] == fastDiff.DELETE) {
+          let end = orig.positionAt(offset + diff[1].length)
+          if (diffs[i + 1] && diffs[i + 1][0] == fastDiff.INSERT) {
+            let delta = diffs[i + 1][1].split('\n').length - (end.line - pos.line) - 1
+            if (delta != 0) lineChanges.push({ delta, lnum: pos.line })
+            i = i + 1
+          } else {
+            let delta = - (end.line - pos.line)
+            if (delta != 0) lineChanges.push({ delta, lnum: pos.line })
+          }
+          offset = offset + diff[1].length
+        } else if (diff[0] == fastDiff.INSERT) {
+          let delta = diff[1].split('\n').length - 1
+          if (delta != 0) lineChanges.push({ delta, lnum: pos.line })
+        }
+      }
+    } else {
+      lineChanges = [{ delta: lineChange, lnum: range.start.line }]
+    }
+    let changed = false
+    // adjust LineNr highlights
+    for (let item of fileItems) {
+      for (let range of item.ranges) {
+        let arr = lineChanges.filter(o => o.lnum < range.lnum - 1)
+        if (arr.length) {
+          let total = arr.reduce((p, c) => p + c.delta, 0)
+          range.lnum = range.lnum + total
+          changed = true
+        }
+      }
+    }
+    if (!changed || this.srcId) return
+    let winid = await nvim.call('win_getid')
+    if (winid != this.winid) {
+      await nvim.call('win_gotoid', [winid])
+    }
+    nvim.pauseNotification()
+    this.highlightLineNr()
+    await nvim.resumeNotification()
   }
 
   private async ensureDocument(bufnr: number): Promise<void> {
@@ -288,7 +539,7 @@ export default class Refactor {
     })
   }
 
-  private async getFileItems(edit: WorkspaceEdit): Promise<FileItem[]> {
+  private async getItemsFromWorkspaceEdit(edit: WorkspaceEdit): Promise<FileItem[]> {
     let res: FileItem[] = []
     let { beforeContext, afterContext } = this.config
     let { changes, documentChanges } = edit
@@ -343,24 +594,60 @@ export default class Refactor {
     return await readFileLines(fsPath, start, end - 1)
   }
 
-  private async hasChange(fileChange: FileChange): Promise<boolean> {
-    let { filepath, start, end, lines } = fileChange
-    let curr = await this.getLines(filepath, start, end)
-    if (curr.length == lines.length && equals(curr, lines)) {
-      return false
+  private getLinesRange(lnum: number): [number, number] | null {
+    for (let item of this.fileItems) {
+      for (let range of item.ranges) {
+        if (range.lnum == lnum) {
+          return [range.start, range.end]
+        }
+      }
     }
-    return true
+    return null
   }
 
-  private saveVariable(bufnr: number, key: string, value: any): void {
-    let obj = this.varibles.get(bufnr) || {}
-    obj[key] = value
-    this.varibles.set(bufnr, obj)
+  public get document(): Document | null {
+    if (!this.bufnr) return null
+    return workspace.getDocument(this.bufnr)
   }
 
-  private getVariable(bufnr: number, key: string): any {
-    let obj = this.varibles.get(bufnr) || {}
-    return obj[key]
+  public async shown(): Promise<boolean> {
+    if (!this.winid) return false
+    let win = this.nvim.createWindow(this.winid)
+    return await win.valid
+  }
+
+  public dispose(): void {
+    let { bufnr } = this
+    this.fileItems = []
+    disposeAll(this.disposables)
+    if (bufnr) this.nvim.command(`silent! bd! ${bufnr}`, true)
+  }
+
+  /**
+   * Refactor from workspaceEdit.
+   */
+  public static async createFromWorkspaceEdit(edit: WorkspaceEdit): Promise<Refactor> {
+    if (!edit || emptyWorkspaceEdit(edit)) return null
+    let refactor = new Refactor()
+    await refactor.fromWorkspaceEdit(edit)
+    return refactor
+  }
+
+  /**
+   * Refactor from locations.
+   */
+  public static async createFromLocations(locations: Location[]): Promise<Refactor> {
+    if (!locations || locations.length == 0) return null
+    let changes: { [uri: string]: TextEdit[] } = {}
+    let edit: WorkspaceEdit = { changes }
+    for (let location of locations) {
+      let edits: TextEdit[] = changes[location.uri] || []
+      edits.push({ range: location.range, newText: '' })
+      changes[location.uri] = edits
+    }
+    let refactor = new Refactor()
+    await refactor.fromWorkspaceEdit(edit)
+    return refactor
   }
 }
 
