@@ -43999,13 +43999,15 @@ function getLogFile() {
 }
 const MAX_LOG_SIZE = 1024 * 1024;
 const MAX_LOG_BACKUPS = 10;
-const logfile = getLogFile();
+let logfile = getLogFile();
 const level = process.env.NVIM_COC_LOG_LEVEL || 'info';
 if (!fs_1.default.existsSync(logfile)) {
     try {
         fs_1.default.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 });
     }
     catch (e) {
+        logfile = path_1.default.join(os_1.default.tmpdir(), `coc-nvim-${process.pid}.log`);
+        fs_1.default.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 });
         // noop
     }
 }
@@ -44032,7 +44034,9 @@ log4js_1.default.configure({
 });
 module.exports = (name = 'coc-nvim') => {
     let logger = log4js_1.default.getLogger(name);
-    logger.getLogFile = getLogFile;
+    logger.getLogFile = () => {
+        return logfile;
+    };
     return logger;
 };
 //# sourceMappingURL=logger.js.map
@@ -54324,7 +54328,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "1ea838ee4e" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "800fdeacc6" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
