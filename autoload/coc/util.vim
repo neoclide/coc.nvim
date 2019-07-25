@@ -288,7 +288,6 @@ function! coc#util#get_bufoptions(bufnr) abort
   let bufname = bufname(a:bufnr)
   return {
         \ 'bufname': bufname,
-        \ 'isCygwin': has('win32unix'),
         \ 'eol': getbufvar(a:bufnr, '&eol'),
         \ 'variables': s:variables(a:bufnr),
         \ 'fullpath': empty(bufname) ? '' : fnamemodify(bufname, ':p'),
@@ -581,6 +580,7 @@ function! coc#util#vim_info()
         \ 'completeOpt': &completeopt,
         \ 'pumevent': exists('##MenuPopupChanged') || exists('##CompleteChanged'),
         \ 'isVim': has('nvim') ? v:false : v:true,
+        \ 'isCygwin': has('win32unix') ? v:true : v:false,
         \ 'isMacvim': has('gui_macvim') ? v:true : v:false,
         \ 'colorscheme': get(g:, 'colors_name', ''),
         \ 'workspaceFolders': get(g:, 'WorkspaceFolders', v:null),

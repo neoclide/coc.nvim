@@ -115,7 +115,7 @@ export default class Document {
     this._changedtick = opts.changedtick
     this._rootPatterns = opts.rootPatterns
     this.eol = opts.eol == 1
-    let uri = this._uri = getUri(opts.fullpath, buffer.id, buftype, opts.isCygwin)
+    let uri = this._uri = getUri(opts.fullpath, buffer.id, buftype, this.env.isCygwin)
     token.onCancellationRequested(() => {
       this.detach()
     })

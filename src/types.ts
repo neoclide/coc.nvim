@@ -238,6 +238,7 @@ export interface Env {
   readonly cmdheight: number
   readonly filetypeMap: { [index: string]: string }
   readonly isVim: boolean
+  readonly isCygwin: boolean
   readonly isMacvim: boolean
   readonly version: string
   readonly locationlist: boolean
@@ -390,7 +391,6 @@ export interface BufferOption {
   changedtick: number
   rootPatterns: string[] | null
   additionalKeywords: string[]
-  isCygwin: boolean
 }
 
 export interface DiagnosticInfo {
