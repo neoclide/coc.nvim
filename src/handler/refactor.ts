@@ -114,7 +114,7 @@ export default class Refactor {
     nvim.command(`silent! IndentLinesDisable`, true)
     nvim.command(`setl buftype=acwrite nobuflisted bufhidden=wipe nofen wrap conceallevel=2 concealcursor=n`, true)
     nvim.command(`setl undolevels=-1 nolist nospell noswapfile foldmethod=expr foldexpr=coc#util#refactor_foldlevel(v:lnum)`, true)
-    nvim.command(`setl foldtext=getline(v:foldstart)[3:]`, true)
+    nvim.command(`setl foldtext=coc#rpc#request('refactorFoldText',[v:foldstart])`, true)
     nvim.call('matchadd', ['Conceal', '^\\%u3000'], true)
     nvim.call('matchadd', ['Label', '^\\%u3000\\zs\\S\\+'], true)
     nvim.call('coc#util#do_autocmd', ['CocRefactorOpen'], true)
@@ -130,7 +130,7 @@ export default class Refactor {
           let filepath = ms[1].trim()
           let r = this.getLinesRange(len - i)
           if (!r) return
-          let lnum = r[0] + 1
+          let lnum = r[0] + i
           let bufname = filepath.startsWith(workspace.cwd) ? path.relative(workspace.cwd, filepath) : filepath
           nvim.pauseNotification()
           if (valid) {
@@ -379,6 +379,20 @@ export default class Refactor {
 
   public has(filepath): boolean {
     return this.fileItems.find(o => o.filepath == filepath) != null
+  }
+
+  public getFoldText(lnum: number): string {
+    let { document } = this
+    if (!document) return ''
+    let line = document.getline(lnum - 1)
+    if (!line.startsWith('\u3000')) return ''
+    let filepath = line.slice(1).trim()
+    let ranges = this.fileItems.reduce((p, c) => {
+      p.push(...c.ranges)
+      return p
+    }, [] as FileRange[])
+    let range = ranges.find(r => r.lnum == lnum)
+    return `${filepath}${range ? ` ${range.start}-${range.end}` : ''}`
   }
 
   private async onBufferChange(e: DidChangeTextDocumentParams): Promise<void> {

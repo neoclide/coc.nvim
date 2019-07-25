@@ -484,8 +484,7 @@ export class Workspace implements IWorkspace {
         }
         this.showMessage(`${n} buffers changed.`)
       } else if (changes) {
-        let files = Object.keys(changes).map(s => URI.parse(s).fsPath)
-        await this.loadFiles(files)
+        await this.loadFiles(Object.keys(changes))
         for (let uri of Object.keys(changes)) {
           let document = await this.loadFile(uri)
           if (URI.parse(uri).toString() == uri) currEdits = changes[uri]
@@ -865,29 +864,25 @@ export class Workspace implements IWorkspace {
   /**
    * Load the files that not loaded
    */
-  public async loadFiles(files: string[]): Promise<void> {
-    files = files.map(file => path.normalize(file))
-    files = files.filter(f => {
-      let uri = URI.file(f).toString()
-      return this.getDocument(uri) == null
-    })
-    if (!files.length) return
-    let count = files.length
-    this.nvim.call('coc#util#open_files', [files], true)
-    return await new Promise<void>((resolve, reject) => {
-      let disposable = this.onDidOpenTextDocument(textDocument => {
-        let fsPath = URI.parse(textDocument.uri).fsPath
-        if (files.indexOf(fsPath) !== -1) count--
-        if (count == 0) {
+  public async loadFiles(uris: string[]): Promise<void> {
+    uris = uris.filter(uri => this.getDocument(uri) == null)
+    if (!uris.length) return
+    let bufnrs = await this.nvim.call('coc#util#open_files', [uris.map(u => URI.parse(u).fsPath)]) as number[]
+    let create = bufnrs.filter(bufnr => this.getDocument(bufnr) == null)
+    if (!create.length) return
+    create.map(bufnr => this.onBufCreate(bufnr).logError())
+    return new Promise((resolve, reject) => {
+      let timer = setTimeout(() => {
+        disposable.dispose()
+        reject(new Error(`Create document timeout after 2s.`))
+      }, 2000)
+      let disposable = this.onDidOpenTextDocument(() => {
+        if (uris.every(uri => this.getDocument(uri) != null)) {
           clearTimeout(timer)
           disposable.dispose()
           resolve()
         }
       })
-      let timer = setTimeout(() => {
-        disposable.dispose()
-        reject(new Error(`Create documents timeout after 2s.`))
-      }, 2000)
     })
   }
 

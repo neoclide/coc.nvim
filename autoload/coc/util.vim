@@ -202,7 +202,7 @@ endfunction
 
 function! coc#util#execute(cmd)
   silent exe a:cmd
-  if &l:filetype ==# ''
+  if &filetype ==# ''
     filetype detect
   endif
   if s:is_vim
@@ -887,18 +887,25 @@ function! coc#util#unmap(bufnr, keys) abort
 endfunction
 
 function! coc#util#open_files(files)
+  let bufnrs = []
   if exists('*bufadd') && exists('*bufload')
     for file in a:files
       let bufnr = bufadd(file)
       call bufload(file)
+      call add(bufnrs, bufnr(file))
     endfor
   else
     noa keepalt 1new +setl\ bufhidden=wipe
     for file in a:files
-      execute 'edit +setl\ bufhidden=hide '.fnameescape(file)
+      execute 'noa edit +setl\ bufhidden=hide '.fnameescape(file)
+      if &filetype ==# ''
+        filetype detect
+      endif
+      call add(bufnrs, bufnr('%'))
     endfor
     noa close
   endif
+  return bufnrs
 endfunction
 
 function! coc#util#refactor_foldlevel(lnum) abort

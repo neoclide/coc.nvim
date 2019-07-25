@@ -114,6 +114,18 @@ describe('onChange', () => {
   })
 })
 
+describe('refactor#getFoldText', () => {
+  it('should get fold text', async () => {
+    let doc = await helper.createDocument()
+    await doc.buffer.append(['', '', '', '', 'foo', 'bar'])
+    await helper.wait(50)
+    doc.forceSync()
+    let refactor = await Refactor.createFromLocations([{ uri: doc.uri, range: Range.create(4, 0, 4, 3) }])
+    let text = refactor.getFoldText(4)
+    expect(text).toMatch('1-7')
+  })
+})
+
 describe('refactor#getFileChanges', () => {
   it('should get changes #1', async () => {
     let lines = `

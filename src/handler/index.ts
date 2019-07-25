@@ -1071,6 +1071,11 @@ export default class Handler {
     await search.run(args, this.refactor)
   }
 
+  public async refactorFoldText(lnum: number): Promise<string> {
+    if (!this.refactor) return ''
+    return this.refactor.getFoldText(lnum)
+  }
+
   private async previewHover(hovers: Hover[]): Promise<void> {
     let lines: string[] = []
     let target = this.preferences.hoverTarget
