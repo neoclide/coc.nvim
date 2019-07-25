@@ -638,7 +638,11 @@ function! coc#util#clear_signs()
   endfor
 endfunction
 
-function! coc#util#clearmatches(ids)
+function! coc#util#clearmatches(ids, ...)
+  let winid = get(a:, 1, 0)
+  if winid != 0 && win_getid() != winid
+    return
+  endif
   for id in a:ids
     try
       call matchdelete(id)

@@ -162,7 +162,7 @@ export default class Plugin extends EventEmitter {
   public async init(): Promise<void> {
     let { nvim } = this
     try {
-      await extensions.init(nvim)
+      await extensions.init()
       await workspace.init()
       completion.init()
       diagnosticManager.init()

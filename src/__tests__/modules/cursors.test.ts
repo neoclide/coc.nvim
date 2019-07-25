@@ -1,8 +1,8 @@
 import { Neovim } from '@chemzqm/neovim'
-import helper from '../helper'
-import Cursors from '../../cursors'
 import { Range } from 'vscode-languageserver-types'
+import Cursors from '../../cursors'
 import Document from '../../model/document'
+import helper from '../helper'
 
 let nvim: Neovim
 let cursors: Cursors
@@ -108,7 +108,7 @@ describe('cursors#select', () => {
 
   it('should select by operator', async () => {
     await nvim.command('nmap x  <Plug>(coc-cursors-operator)')
-    let doc = await helper.createDocument()
+    await helper.createDocument()
     await nvim.call('setline', [1, ['"short"', '"long"']])
     await nvim.call('cursor', [1, 2])
     await nvim.input('xa"')

@@ -1,13 +1,14 @@
 import { Neovim } from '@chemzqm/neovim'
+import debounce from 'debounce'
 import { Disposable } from 'vscode-jsonrpc'
-import { Range, TextDocument, TextEdit, Position } from 'vscode-languageserver-types'
+import { Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-types'
 import events from '../events'
 import Document from '../model/document'
 import { disposeAll } from '../util'
-import workspace from '../workspace'
-import { comparePosition, rangeIntersect, rangeInRange, rangeOverlap } from '../util/position'
-import TextRange from './range'
 import { distinct } from '../util/array'
+import { comparePosition, rangeInRange, rangeIntersect, rangeOverlap } from '../util/position'
+import workspace from '../workspace'
+import TextRange from './range'
 const logger = require('../util/logger')('cursors')
 
 interface Config {
@@ -22,19 +23,27 @@ export default class Cursors {
   private ranges: TextRange[] = []
   private disposables: Disposable[] = []
   private bufnr: number
+  private winid: number
   private matchIds: number[] = []
   private textDocument: TextDocument
   private version = -1
   private config: Config
-  private srcId: number
   constructor(private nvim: Neovim) {
+    this.loadConfig()
+    workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('cursors')) {
+        this.loadConfig()
+      }
+    })
+  }
+
+  private loadConfig(): void {
     let config = workspace.getConfiguration('cursors')
     this.config = {
       nextKey: config.get('nextKey', '<C-n>'),
       previousKey: config.get('previousKey', '<C-p>'),
       cancelKey: config.get('cancelKey', '<esc>')
     }
-    this.srcId = workspace.createNameSpace('coc-cursors')
   }
 
   public async select(bufnr: number, kind: string, mode: string): Promise<void> {
@@ -102,18 +111,15 @@ export default class Cursors {
       workspace.showMessage(`${kind} not supported`, 'error')
       return
     }
-    if (workspace.bufnr != bufnr) return
     if (this._activated && !this.ranges.length) {
       this.cancel()
     } else if (this.ranges.length && !this._activated) {
-      this.activate(doc)
+      let winid = await nvim.call('win_getid')
+      this.activate(doc, winid)
     }
     if (this._activated) {
       nvim.pauseNotification()
       this.doHighlights()
-      if (workspace.isVim) {
-        nvim.command('redraw', true)
-      }
       let [, err] = await nvim.resumeNotification()
       if (err) logger.error(err)
     }
@@ -122,14 +128,16 @@ export default class Cursors {
     }
   }
 
-  private activate(doc: Document): void {
+  private activate(doc: Document, winid): void {
     if (this._activated) return
     this._activated = true
     this.bufnr = doc.bufnr
+    this.winid = winid
     doc.forceSync()
     this.textDocument = doc.textDocument
-    doc.onDocumentChange(async e => {
-      if (doc.version - this.version == 1 || !this.ranges.length) return
+    workspace.onDidChangeTextDocument(async e => {
+      if (e.textDocument.uri != doc.uri || !this.ranges.length) return
+      if (doc.version - this.version == 1) return
       let change = e.contentChanges[0]
       let { text, range } = change
       let d = comparePosition(range.start, this.lastPosition)
@@ -184,9 +192,6 @@ export default class Cursors {
       let [, err] = await nvim.resumeNotification()
       if (err) logger.error(err)
     }, null, this.disposables)
-    doc.onDocumentDetach(e => {
-      this.cancel()
-    }, null, this.disposables)
     let { cancelKey, nextKey, previousKey } = this.config
     workspace.registerLocalKeymap('n', cancelKey, () => {
       if (!this._activated) return this.unmap(cancelKey)
@@ -217,28 +222,31 @@ export default class Cursors {
       }
       if (ranges.length) await workspace.moveTo(ranges[0].start)
     }, true)
+    events.on('CursorMoved', debounce(async bufnr => {
+      if (bufnr != this.bufnr) return this.cancel()
+      let winid = await this.nvim.call('win_getid')
+      if (winid != this.winid) {
+        this.cancel()
+      }
+    }, 100), null, this.disposables)
   }
 
   private doHighlights(): void {
-    let { nvim, matchIds } = this
+    let { matchIds } = this
     let doc = workspace.getDocument(this.bufnr)
     if (!doc || !this.ranges.length) return
-    if (matchIds.length) doc.clearMatchIds(matchIds)
+    if (matchIds.length) this.nvim.call('coc#util#clearmatches', [matchIds, this.winid], true)
     let searchRanges = this.ranges.map(o => o.currRange)
-    this.matchIds = doc.highlightRanges(searchRanges, 'CocCursorRange', this.srcId, 99)
+    this.matchIds = doc.matchAddRanges(searchRanges, 'CocCursorRange', 99)
+    if (workspace.isVim) this.nvim.command('redraw', true)
   }
 
   public cancel(): void {
     if (!this._activated) return
-    let { nvim, matchIds } = this
-    let doc = workspace.getDocument(this.bufnr)
-    if (matchIds.length && doc) doc.clearMatchIds(matchIds)
-    if (workspace.isVim && workspace.env.textprop) {
-      nvim.call('prop_remove', [{ bufnr: this.bufnr, type: 'CocCocCursorRange' }], true)
-    }
+    let { matchIds } = this
+    this.nvim.call('coc#util#clearmatches', [Array.from(matchIds), this.winid], true)
     this.matchIds = []
     disposeAll(this.disposables)
-    this.disposables = []
     this._changed = false
     this.ranges = []
     this.version = -1
@@ -258,7 +266,10 @@ export default class Cursors {
   // Add ranges to current document
   public async addRanges(ranges: Range[]): Promise<void> {
     let { nvim } = this
-    let bufnr = await nvim.call('bufnr', ['%'])
+    let [bufnr, winid] = await nvim.eval('[bufnr("%"),win_getid()]') as [number, number]
+    if (this._activated && (this.bufnr != bufnr || this.winid != winid)) {
+      this.cancel()
+    }
     let doc = workspace.getDocument(bufnr)
     if (!doc) return
     doc.forceSync()
@@ -269,6 +280,7 @@ export default class Cursors {
         return !ranges.some(range => rangeOverlap(range, currRange))
       })
     } else {
+      // use new ranges
       this.ranges = []
     }
     let { textDocument } = doc
@@ -291,12 +303,9 @@ export default class Cursors {
       currline = line
     }
     if (!this.ranges.length) return
-    this.activate(doc)
+    this.activate(doc, winid)
     nvim.pauseNotification()
     this.doHighlights()
-    if (workspace.isVim) {
-      nvim.command('redraw', true)
-    }
     let [, err] = await nvim.resumeNotification()
     if (err) logger.error(err)
   }
