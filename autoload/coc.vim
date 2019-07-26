@@ -38,7 +38,11 @@ function! coc#on_enter()
   if !coc#rpc#ready()
     return ''
   endif
-  call coc#rpc#request('CocAutocmd', ['Enter', bufnr('%')])
+  if s:is_vim
+    call coc#rpc#notify('CocAutocmd', ['Enter', bufnr('%')])
+  else
+    call coc#rpc#request('CocAutocmd', ['Enter', bufnr('%')])
+  endif
   return ''
 endfunction
 
