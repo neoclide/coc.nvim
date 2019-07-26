@@ -149,7 +149,7 @@ describe('snippet provider', () => {
 
   it('should resolve variables', async () => {
     await helper.createDocument()
-    await snippetManager.insertSnippet('${foo:abc} ${bar}')
+    await snippetManager.insertSnippet('${foo:abcdef} ${bar}')
     let line = await nvim.line
     expect(line).toBe('abc bar')
   })

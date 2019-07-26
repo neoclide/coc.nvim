@@ -48,33 +48,43 @@ export function getChange(oldStr: string, newStr: string, cursorEnd?: number): C
   let nl = newStr.length
   let max = Math.min(ol, nl)
   let newText = ''
-  let endOffset = 0
+  let endOffset = -1
+  let maxEndOffset = -1
   for (let i = 0; i <= max; i++) {
     if (cursorEnd != null && i == cursorEnd) {
       endOffset = i
-      break
     }
     if (oldStr[ol - i - 1] != newStr[nl - i - 1]) {
-      endOffset = i
+      if (endOffset == -1) endOffset = i
+      maxEndOffset = i
       break
     }
-    if (i == max) return null
   }
-  max = max - endOffset
-  if (max == 0) {
+  if (endOffset == -1) return null
+  let remain = max - endOffset
+  if (remain == 0) {
     start = 0
   } else {
-    for (let i = 0; i <= max; i++) {
-      if (oldStr[i] != newStr[i] || i == max) {
+    for (let i = 0; i <= remain; i++) {
+      if (oldStr[i] != newStr[i] || i == remain) {
         start = i
         break
       }
     }
   }
+  if (maxEndOffset != -1
+    && maxEndOffset != endOffset
+    && start + maxEndOffset < max) {
+    endOffset = maxEndOffset
+  }
   let end = ol - endOffset
   newText = newStr.slice(start, nl - endOffset)
   if (ol == nl && start == end) return null
-  if (newText.startsWith('\n') && oldStr[end] == '\n') {
+  let pre = start == 0 ? '' : newStr[start - 1]
+  if (pre && pre != '\n'
+    && newText.startsWith('\n')
+    && oldStr[end] == '\n') {
+    // optimize for add new line(s)
     return { start: start + 1, end: end + 1, newText: newText.slice(1) + '\n' }
   }
   return { start, end, newText }

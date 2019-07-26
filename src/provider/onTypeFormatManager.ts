@@ -25,6 +25,16 @@ export default class OnTypeFormatManager implements Disposable {
     })
   }
 
+  public hasProvider(document: TextDocument): boolean {
+    for (let o of this.providers) {
+      let { selector } = o
+      if (workspace.match(selector, document) > 0) {
+        return true
+      }
+    }
+    return false
+  }
+
   public getProvider(document: TextDocument, triggerCharacter: string): OnTypeFormattingEditProvider | null {
     for (let o of this.providers) {
       let { triggerCharacters, selector } = o

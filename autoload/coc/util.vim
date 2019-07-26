@@ -892,6 +892,7 @@ endfunction
 
 function! coc#util#open_files(files)
   let bufnrs = []
+  " added on latest vim8
   if exists('*bufadd') && exists('*bufload')
     for file in a:files
       let bufnr = bufadd(file)

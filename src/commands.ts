@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import * as language from 'vscode-languageserver-protocol'
-import { Disposable, Location, Position, TextEdit, CodeAction, Range } from 'vscode-languageserver-protocol'
+import { Disposable, Location, Position, TextEdit, CodeAction, Range, WorkspaceEdit, TextDocumentEdit } from 'vscode-languageserver-protocol'
 import { wait } from './util'
 import workspace from './workspace'
 import Plugin from './plugin'
@@ -188,11 +188,23 @@ export class CommandManager implements Disposable {
         let bufnr = await nvim.call('bufnr', '%')
         let doc = workspace.getDocument(bufnr)
         if (!doc) return
-        let pos = await workspace.getCursorPosition()
-        let range = doc.getWordRangeAtPosition(pos)
-        if (!range) return
-        let text = doc.textDocument.getText(range)
-        let ranges = doc.getSymbolRanges(text)
+        let edit = await plugin.cocAction('getWordEdit') as WorkspaceEdit
+        if (!edit) {
+          workspace.showMessage('Invalid position', 'warning')
+          return
+        }
+        let ranges: Range[] = []
+        let { changes, documentChanges } = edit
+        if (changes) {
+          let edits = changes[doc.uri]
+          if (edits) ranges = edits.map(e => e.range)
+        } else if (documentChanges) {
+          for (let c of documentChanges) {
+            if (TextDocumentEdit.is(c) && c.textDocument.uri == doc.uri) {
+              ranges = c.edits.map(e => e.range)
+            }
+          }
+        }
         if (ranges.length) {
           await plugin.cocAction('addRanges', ranges)
         }

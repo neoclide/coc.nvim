@@ -408,6 +408,8 @@ export default class Plugin extends EventEmitter {
           return await extensions.uninstallExtension(args.slice(1))
         case 'getCurrentFunctionSymbol':
           return await handler.getCurrentFunctionSymbol()
+        case 'getWordEdit':
+          return await handler.getWordEdit()
         case 'addRanges':
           return await this.cursors.addRanges(args[1])
         default:

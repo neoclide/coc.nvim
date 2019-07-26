@@ -370,7 +370,6 @@ export class Workspace implements IWorkspace {
    */
   public async findUp(filename: string | string[]): Promise<string | null> {
     let { cwd } = this
-
     let filepath = await this.nvim.call('expand', '%:p') as string
     filepath = path.normalize(filepath)
     let isFile = filepath && path.isAbsolute(filepath)

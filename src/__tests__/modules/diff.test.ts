@@ -128,4 +128,14 @@ describe('should get text edits', () => {
     let res = getChange('\n\na', '\na')
     expect(res).toEqual({ start: 0, end: 1, newText: '' })
   })
+
+  it('should consider cursor', () => {
+    let res = getChange('\n\n\n', '\n\n\n\n', 1)
+    expect(res).toEqual({ start: 2, end: 2, newText: '\n' })
+  })
+
+  it('should get minimal diff', () => {
+    let res = getChange('foo\nbar', 'fab\nbar', 2)
+    expect(res).toEqual({ start: 1, end: 3, newText: 'ab' })
+  })
 })

@@ -23,8 +23,6 @@ class Task extends EventEmitter {
     this.process.on('error', e => {
       this.emit('error', e.message)
     })
-    logger.debug('cmd:', cmd)
-    logger.debug('args:', args)
     this.process.stderr.on('data', chunk => {
       console.error(chunk.toString('utf8')) // tslint:disable-line
     })
@@ -111,13 +109,11 @@ export default class Search {
   constructor(private nvim: Neovim) {
   }
 
-  public async run(args: string[], refactor: Refactor): Promise<void> {
+  public run(args: string[], cwd: string, refactor: Refactor): void {
     let { nvim } = this
     let { afterContext, beforeContext } = refactor.config
     let argList = ['-A', afterContext.toString(), '-B', beforeContext.toString()].concat(defaultArgs, args)
     argList.push('--', './')
-    let cwd = await nvim.call('getcwd')
-    let winid = await nvim.call('win_getid')
     let cmd: string
     try {
       cmd = which.sync('rg')
@@ -125,31 +121,48 @@ export default class Search {
       workspace.showMessage('Please install ripgrep and make sure rg is in your $PATH', 'error')
       return
     }
-    let buf = await refactor.createRefactorBuffer(winid)
     this.task = new Task()
     this.task.start(cmd, argList, cwd)
     let mutex: Mutex = new Mutex()
     let files = 0
     let matches = 0
     let start = Date.now()
-    this.task.on('item', async (fileItem: FileItem) => {
-      files++
-      matches = matches + fileItem.ranges.reduce((p, r) => p + r.highlights.length, 0)
+    // remaining items
+    let fileItems: FileItem[] = []
+    const addFileItems = async () => {
+      if (fileItems.length == 0) return
+      let items = fileItems.slice()
+      fileItems = []
       const release = await mutex.acquire()
       try {
-        await refactor.addFileItems([fileItem], buf)
+        await refactor.addFileItems(items)
       } catch (e) {
         logger.error(e)
       }
       release()
+    }
+    let interval = setInterval(addFileItems, 100)
+    this.task.on('item', async (fileItem: FileItem) => {
+      files++
+      matches = matches + fileItem.ranges.reduce((p, r) => p + r.highlights.length, 0)
+      fileItems.push(fileItem)
     })
     this.task.on('error', message => {
+      clearInterval(interval)
+      workspace.showMessage(`Error on rg command: ${message}`, 'error')
       logger.error(message)
       this.task = null
     })
     this.task.on('end', async () => {
+      clearInterval(interval)
+      await addFileItems()
+      const release = await mutex.acquire()
+      release()
       this.task.removeAllListeners()
       this.task = null
+      let { document } = refactor
+      if (!document) return
+      let buf = document.buffer
       nvim.pauseNotification()
       if (files == 0) {
         buf.setLines(['No match found'], { start: 1, end: 2, strictIndexing: false })
@@ -164,11 +177,11 @@ export default class Search {
         highligher.addText(`${matches} `, 'Number')
         highligher.addText('Duration', 'MoreMsg')
         highligher.addText(': ')
-        highligher.addText(`${Date.now() - start}`, 'Number')
+        highligher.addText(`${Date.now() - start}ms`, 'Number')
         highligher.render(buf, 1, 2)
       }
       buf.setOption('modified', false, true)
-      await nvim.resumeNotification()
+      await nvim.resumeNotification(false, true)
     })
   }
 }

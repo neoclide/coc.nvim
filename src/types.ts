@@ -19,6 +19,7 @@ export interface CodeAction extends protocol.CodeAction {
 }
 
 export interface DidChangeTextDocumentParams extends protocol.DidChangeTextDocumentParams {
+  bufnr: number
   // original text
   original: string
 }

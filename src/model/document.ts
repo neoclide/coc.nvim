@@ -237,6 +237,7 @@ export default class Document {
         text: change.newText
       }]
       this._onDocumentChange.fire({
+        bufnr: this.bufnr,
         original,
         textDocument: { version, uri },
         contentChanges: changes

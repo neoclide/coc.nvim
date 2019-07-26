@@ -1506,6 +1506,11 @@ Available Actions ~
 
 	Ranges must be provided as array of range type: https://git.io/fjiEG
 
+"getWordEdit" 						 *coc-action-getWordEdit*
+
+	Get workspaceEdit of current word, language server used when possible,
+	extract word from current buffer as fallback.
+
 ------------------------------------------------------------------------------
 COMMANDS 					*coc-commands*
 

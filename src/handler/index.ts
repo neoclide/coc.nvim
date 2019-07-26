@@ -1,5 +1,5 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, SymbolInformation, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, SymbolInformation, TextEdit, WorkspaceEdit, TextDocumentEdit } from 'vscode-languageserver-protocol'
 import { Document } from '..'
 import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
@@ -14,7 +14,7 @@ import { CodeAction, Documentation } from '../types'
 import { disposeAll, wait } from '../util'
 import { getSymbolKind } from '../util/convert'
 import { equals } from '../util/object'
-import { positionInRange, rangeInRange } from '../util/position'
+import { positionInRange, rangeInRange, emptyRange } from '../util/position'
 import { byteLength, isWord } from '../util/string'
 import workspace from '../workspace'
 import CodeLensManager from './codelens'
@@ -77,7 +77,7 @@ export default class Handler {
   private colors: Colors
   private hoverFactory: FloatFactory
   private signatureFactory: FloatFactory
-  private refactor: Refactor
+  private refactorMap: Map<number, Refactor> = new Map()
   private documentLines: string[] = []
   private codeLensManager: CodeLensManager
   private signatureTokenSource: CancellationTokenSource
@@ -105,6 +105,13 @@ export default class Handler {
       false)
     this.disposables.push(this.signatureFactory)
 
+    events.on('BufUnload', async bufnr => {
+      let refactor = this.refactorMap.get(bufnr)
+      if (refactor) {
+        refactor.dispose()
+        this.refactorMap.delete(bufnr)
+      }
+    }, null, this.disposables)
     events.on('CursorMovedI', async (bufnr, cursor) => {
       if (!this.signaturePosition) return
       let doc = workspace.getDocument(bufnr)
@@ -398,46 +405,67 @@ export default class Handler {
     return res
   }
 
-  public async rename(newName?: string): Promise<boolean> {
-    let { nvim } = this
-    let buf = await nvim.buffer
-    let doc = workspace.getDocument(buf.id)
+  public async getWordEdit(): Promise<WorkspaceEdit> {
+    let bufnr = await this.nvim.call('bufnr', '%')
+    let doc = workspace.getDocument(bufnr)
+    if (!doc) return null
     let position = await workspace.getCursorPosition()
-    if (!doc) return false
-    let res = await languages.prepareRename(doc.textDocument, position)
-    if (res === false) {
-      workspace.showMessage('Invalid position for rename', 'error')
-      return false
+    let range = doc.getWordRangeAtPosition(position)
+    if (!range || emptyRange(range)) return null
+    let curname = doc.textDocument.getText(range)
+    if (languages.hasProvider('rename', doc.textDocument)) {
+      if (doc.dirty) {
+        doc.forceSync()
+        await wait(30)
+      }
+      let res = await languages.prepareRename(doc.textDocument, position)
+      if (res === false) return null
+      let edit = await languages.provideRenameEdits(doc.textDocument, position, curname)
+      if (edit) return edit
     }
-    doc.forceSync()
-    let curname: string
-    if (res == null) {
-      let range = doc.getWordRangeAtPosition(position)
-      if (range) curname = doc.textDocument.getText(range)
-    } else {
-      if (Range.is(res)) {
-        let line = doc.getline(res.start.line)
-        curname = line.slice(res.start.character, res.end.character)
-      } else {
-        curname = res.placeholder
+    workspace.showMessage('Rename provider not found, extract word ranges from current buffer', 'more')
+    let ranges = doc.getSymbolRanges(curname)
+    return {
+      changes: {
+        [doc.uri]: ranges.map(r => {
+          return { range: r, newText: curname }
+        })
       }
     }
-    if (!curname) {
-      workspace.showMessage('Invalid position', 'warning')
+  }
+
+  public async rename(newName?: string): Promise<boolean> {
+    let edit = await this.getWordEdit()
+    let { nvim } = this
+    if (!edit) {
+      workspace.showMessage('Invalid position for rename', 'warning')
       return false
     }
     if (!newName) {
+      let curname = await nvim.eval('expand("<cword>")')
       newName = await workspace.callAsync<string>('input', ['new name:', curname])
       nvim.command('normal! :<C-u>', true)
       if (!newName) {
-        workspace.showMessage('Empty word, canceled', 'warning')
+        workspace.showMessage('Empty name, canceled', 'warning')
         return false
       }
     }
-    let edit = await languages.provideRenameEdits(doc.textDocument, position, newName)
-    if (!edit) {
-      workspace.showMessage('Server return empty response for rename', 'warning')
-      return false
+    // change to newName
+    let { changes, documentChanges } = edit
+    if (changes) {
+      for (let uri of Object.keys(changes)) {
+        for (let edit of changes[uri]) {
+          edit.newText = newName
+        }
+      }
+    } else if (documentChanges) {
+      for (let c of documentChanges) {
+        if (TextDocumentEdit.is(c)) {
+          for (let edit of c.edits) {
+            edit.newText = newName
+          }
+        }
+      }
     }
     await workspace.applyEdit(edit)
     return true
@@ -753,7 +781,7 @@ export default class Handler {
     }
     let pos: Position = insertLeave ? { line: position.line + 1, character: 0 } : position
     try {
-      let edits = await languages.provideDocumentOntTypeEdits(ch, doc.textDocument, pos)
+      let edits = await languages.provideDocumentOnTypeEdits(ch, doc.textDocument, pos)
       // changed by other process
       if (doc.changedtick != changedtick) return
       if (insertLeave) {
@@ -1038,10 +1066,7 @@ export default class Handler {
    * Refactor of current symbol
    */
   public async doRefactor(): Promise<void> {
-    if (this.refactor) {
-      this.refactor.dispose()
-    }
-    let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number], number, string]
+    let [bufnr, cursor, filetype] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),&filetype]') as [number, [number, number], string]
     let doc = workspace.getDocument(bufnr)
     if (!doc) return
     let position = { line: cursor[0], character: cursor[1] }
@@ -1055,25 +1080,33 @@ export default class Handler {
       workspace.showMessage('Empty workspaceEdit from server', 'warning')
       return
     }
-    this.refactor = await Refactor.createFromWorkspaceEdit(edit)
+    let refactor = await Refactor.createFromWorkspaceEdit(edit, filetype)
+    if (!refactor.buffer) return
+    this.refactorMap.set(refactor.buffer.id, refactor)
   }
 
   public async saveRefactor(bufnr: number): Promise<void> {
-    if (this.refactor) await this.refactor.saveRefactor(bufnr)
+    let refactor = this.refactorMap.get(bufnr)
+    if (refactor) {
+      await refactor.saveRefactor()
+    }
   }
 
   public async search(args: string[]): Promise<void> {
-    if (this.refactor) {
-      this.refactor.dispose()
-    }
-    this.refactor = new Refactor()
+    let cwd = await this.nvim.call('getcwd')
+    let refactor = new Refactor()
+    await refactor.createRefactorBuffer()
+    if (!refactor.buffer) return
     let search = new Search(this.nvim)
-    await search.run(args, this.refactor)
+    search.run(args, cwd, refactor)
+    this.refactorMap.set(refactor.buffer.id, refactor)
   }
 
   public async refactorFoldText(lnum: number): Promise<string> {
-    if (!this.refactor) return ''
-    return this.refactor.getFoldText(lnum)
+    let bufnr = await this.nvim.eval('bufnr("%")') as number
+    let refactor = this.refactorMap.get(bufnr)
+    if (!refactor) return
+    return refactor.getFoldText(lnum)
   }
 
   private async previewHover(hovers: Hover[]): Promise<void> {
