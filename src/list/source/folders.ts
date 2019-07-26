@@ -32,7 +32,7 @@ export default class FoldList extends BasicList {
     }, { reload: true, persist: true })
 
 		this.addAction('newfile', async item => {
-			let file = await nvim.call('input', ['File name:', item.label + '/'])
+			let file = await workspace.requestInput('File name:', item.label + '/')
 			let dir = path.dirname(file)
 			if (!fs.existsSync(dir)) {
 				mkdirp.sync(dir)
