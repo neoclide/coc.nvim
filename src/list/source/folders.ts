@@ -4,7 +4,7 @@ import { ListContext, ListItem } from '../../types'
 import workspace from '../../workspace'
 import BasicList from '../basic'
 import {URI} from 'vscode-uri'
-import mkdirp from 'mkdirp'
+import {mkdirp, echoErr} from '../../util'
 import path from 'path'
 
 export default class FoldList extends BasicList {
@@ -30,11 +30,15 @@ export default class FoldList extends BasicList {
     }, { reload: true, persist: true })
 
 		this.addAction('newfile', async item => {
-			let file = await workspace.requestInput('File name:', item.label + '/')
+			let file = await workspace.requestInput('File name', item.label + '/')
 			let dir = path.dirname(file)
 			let stat = await statAsync(dir)
 			if (!stat || !stat.isDirectory()) {
-				mkdirp.sync(dir)
+				let success = await mkdirp(dir)
+				if (!success) {
+					echoErr(nvim, `Error creating new directory ${dir}`)
+					return
+				}
 			}
 			await workspace.createFile(file, {overwrite: false, ignoreIfExists: true})
 			await this.jumpTo(URI.file(file).toString())
