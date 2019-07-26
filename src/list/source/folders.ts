@@ -3,11 +3,9 @@ import { statAsync } from '../../util/fs'
 import { ListContext, ListItem } from '../../types'
 import workspace from '../../workspace'
 import BasicList from '../basic'
-import {Range, Location} from 'vscode-languageserver-protocol'
 import {URI} from 'vscode-uri'
 import mkdirp from 'mkdirp'
 import path from 'path'
-import fs from 'fs'
 
 export default class FoldList extends BasicList {
   public defaultAction = 'edit'
@@ -34,7 +32,8 @@ export default class FoldList extends BasicList {
 		this.addAction('newfile', async item => {
 			let file = await workspace.requestInput('File name:', item.label + '/')
 			let dir = path.dirname(file)
-			if (!fs.existsSync(dir)) {
+			let stat = await statAsync(dir)
+			if (!stat || !stat.isDirectory()) {
 				mkdirp.sync(dir)
 			}
 			await workspace.createFile(file, {overwrite: false, ignoreIfExists: true})
