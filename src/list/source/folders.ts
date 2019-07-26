@@ -3,6 +3,8 @@ import { statAsync } from '../../util/fs'
 import { ListContext, ListItem } from '../../types'
 import workspace from '../../workspace'
 import BasicList from '../basic'
+import {Range, Location} from 'vscode-languageserver-protocol'
+import {URI} from 'vscode-uri'
 
 export default class FoldList extends BasicList {
   public defaultAction = 'edit'
@@ -25,6 +27,14 @@ export default class FoldList extends BasicList {
     this.addAction('delete', async item => {
       workspace.removeWorkspaceFolder(item.label)
     }, { reload: true, persist: true })
+
+		this.addAction('newfile', async item => {
+			let file = await nvim.call('input', ['File name:', item.label + '/'])
+			await workspace.createFile(file, {overwrite: false, ignoreIfExists: true})
+			let range = Range.create(0, 0, 0, 0)
+			let location = Location.create(URI.file(file).toString(), range)
+			this.jumpTo(location)
+		})
   }
 
   public async loadItems(_context: ListContext): Promise<ListItem[]> {
