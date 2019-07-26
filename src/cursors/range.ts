@@ -43,6 +43,18 @@ export default class TextRange {
     return Range.create(this.line, this.currStart, this.line, this.currEnd)
   }
 
+  public applyEdit(edit: TextEdit): void {
+    let { range, newText } = edit
+    let start = range.start.character
+    let end = range.end.character
+    let isAdd = start == end
+    if (isAdd) {
+      this.add(start - this.currStart, newText)
+    } else {
+      this.replace(start - this.currStart, end - this.currStart, newText)
+    }
+  }
+
   public get textEdit(): TextEdit {
     return {
       range: this.range,

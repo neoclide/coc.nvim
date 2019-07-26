@@ -4,7 +4,7 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import util from 'util'
-import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, LocationLink, Position, Range, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, LocationLink, Position, Range, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import which from 'which'
 import Configurations from './configuration'
@@ -21,7 +21,7 @@ import Task from './model/task'
 import TerminalModel from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, MessageLevel, MsgTypes, OutputChannel, PatternType, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, MessageLevel, MsgTypes, OutputChannel, PatternType, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, DidChangeTextDocumentParams } from './types'
 import { distinct } from './util/array'
 import { findUp, isFile, isParentFolder, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, getKeymapModifier, isDocumentEdit, mkdirp, runCommand, wait } from './util/index'
@@ -843,7 +843,6 @@ export class Workspace implements IWorkspace {
     if (doc) return doc
     let { nvim } = this
     let filepath = uri.startsWith('file') ? URI.parse(uri).fsPath : uri
-    if (process.platform == 'win32') filepath = path.win32.normalize(filepath)
     nvim.call('coc#util#open_files', [[filepath]], true)
     return await new Promise<Document>((resolve, reject) => {
       let disposable = this.onDidOpenTextDocument(textDocument => {
@@ -1362,13 +1361,7 @@ augroup end`
       this.configurations.checkFolderConfiguration(document.uri)
     }
     this._onDidOpenDocument.fire(document.textDocument)
-    document.onDocumentChange(({ textDocument, contentChanges }) => {
-      let { version, uri } = textDocument
-      this._onDidChangeDocument.fire({
-        textDocument: { version, uri },
-        contentChanges
-      })
-    })
+    document.onDocumentChange(e => this._onDidChangeDocument.fire(e))
     logger.debug('buffer created', buffer.id)
   }
 

@@ -447,7 +447,7 @@ describe('workspace utility', () => {
 
   it('should loadFiles', async () => {
     let files = ['a', 'b', 'c'].map(key => {
-      return path.join(__dirname, key)
+      return URI.file(path.join(__dirname, key)).toString()
     })
     await workspace.loadFiles(files)
     for (let file of files) {
@@ -509,8 +509,9 @@ describe('workspace utility', () => {
     let dir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-workspace'))
     let filepath = path.join(dir, 'old')
     await writeFile(filepath, 'bar')
+    await nvim.call('coc#util#open_file', ['edit', filepath])
     let uri = URI.file(filepath).toString()
-    await workspace.loadFile(uri)
+    await helper.wait(100)
     let line = await nvim.line
     expect(line).toBe('bar')
     let newFile = path.join(dir, 'new')

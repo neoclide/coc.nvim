@@ -1,8 +1,8 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { DidChangeTextDocumentParams, Emitter, Event, Position, Range, TextDocument, TextEdit, CancellationToken } from 'vscode-languageserver-protocol'
+import { Emitter, Event, Position, Range, TextDocument, TextEdit, CancellationToken } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-import { BufferOption, ChangeInfo, Env } from '../types'
+import { DidChangeTextDocumentParams, BufferOption, ChangeInfo, Env } from '../types'
 import events from '../events'
 import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
@@ -230,13 +230,14 @@ export default class Document {
       let { version, uri } = this
       let start = textDocument.positionAt(change.start)
       let end = textDocument.positionAt(change.end)
+      let original = textDocument.getText(Range.create(start, end))
       let changes = [{
         range: { start, end },
         rangeLength: change.end - change.start,
         text: change.newText
       }]
-      // logger.debug('change:', JSON.stringify(changes, null, 2))
       this._onDocumentChange.fire({
+        original,
         textDocument: { version, uri },
         contentChanges: changes
       })
