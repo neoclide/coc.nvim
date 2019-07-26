@@ -40,7 +40,7 @@ export default class FoldList extends BasicList {
 			await workspace.createFile(file, {overwrite: false, ignoreIfExists: true})
 			let range = Range.create(0, 0, 0, 0)
 			let location = Location.create(URI.file(file).toString(), range)
-			this.jumpTo(location)
+			await this.jumpTo(location)
 		})
   }
 
