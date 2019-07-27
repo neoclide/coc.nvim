@@ -1097,9 +1097,9 @@ export default class Handler {
     let refactor = new Refactor()
     await refactor.createRefactorBuffer()
     if (!refactor.buffer) return
-    let search = new Search(this.nvim)
-    search.run(args, cwd, refactor)
     this.refactorMap.set(refactor.buffer.id, refactor)
+    let search = new Search(this.nvim)
+    search.run(args, cwd, refactor).logError()
   }
 
   public async refactorFoldText(lnum: number): Promise<string> {

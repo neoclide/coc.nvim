@@ -12,7 +12,7 @@ import workspace from '../workspace'
 import Refactor, { FileItem, FileRange } from './refactor'
 const logger = require('../util/logger')('handler-search')
 
-const defaultArgs = ['--color', 'ansi', '--colors', 'path:fg:black', '--colors', 'match:fg:red', '--no-messages', '--heading', '-n']
+const defaultArgs = ['--color', 'ansi', '--colors', 'path:fg:black', '--colors', 'line:fg:green', '--colors', 'match:fg:red', '--no-messages', '--heading', '-n']
 const controlCode = '\x1b'
 
 // emit FileItem
@@ -23,12 +23,9 @@ class Task extends EventEmitter {
     this.process.on('error', e => {
       this.emit('error', e.message)
     })
-    this.process.stderr.on('data', chunk => {
-      console.error(chunk.toString('utf8')) // tslint:disable-line
-    })
     const rl = readline.createInterface(this.process.stdout)
-    let fileItem: FileItem
     let start: number
+    let fileItem: FileItem
     let lines: string[] = []
     let highlights: Range[] = []
     let create = true
@@ -91,8 +88,8 @@ class Task extends EventEmitter {
           fileItem.ranges.push(fileRange)
         }
         this.emit('item', fileItem)
-        fileItem = null
       }
+      lines = highlights = fileItem = null
       this.emit('end')
     })
   }
@@ -106,20 +103,19 @@ class Task extends EventEmitter {
 
 export default class Search {
   private task: Task
-  constructor(private nvim: Neovim) {
+  constructor(private nvim: Neovim, private cmd = 'rg') {
   }
 
-  public run(args: string[], cwd: string, refactor: Refactor): void {
-    let { nvim } = this
+  public run(args: string[], cwd: string, refactor: Refactor): Promise<void> {
+    let { nvim, cmd } = this
     let { afterContext, beforeContext } = refactor.config
     let argList = ['-A', afterContext.toString(), '-B', beforeContext.toString()].concat(defaultArgs, args)
     argList.push('--', './')
-    let cmd: string
     try {
-      cmd = which.sync('rg')
+      cmd = which.sync(cmd)
     } catch (e) {
       workspace.showMessage('Please install ripgrep and make sure rg is in your $PATH', 'error')
-      return
+      return Promise.reject(e)
     }
     this.task = new Task()
     this.task.start(cmd, argList, cwd)
@@ -141,47 +137,57 @@ export default class Search {
       }
       release()
     }
-    let interval = setInterval(addFileItems, 100)
-    this.task.on('item', async (fileItem: FileItem) => {
-      files++
-      matches = matches + fileItem.ranges.reduce((p, r) => p + r.highlights.length, 0)
-      fileItems.push(fileItem)
-    })
-    this.task.on('error', message => {
-      clearInterval(interval)
-      workspace.showMessage(`Error on rg command: ${message}`, 'error')
-      logger.error(message)
-      this.task = null
-    })
-    this.task.on('end', async () => {
-      clearInterval(interval)
-      await addFileItems()
-      const release = await mutex.acquire()
-      release()
-      this.task.removeAllListeners()
-      this.task = null
-      let { document } = refactor
-      if (!document) return
-      let buf = document.buffer
-      nvim.pauseNotification()
-      if (files == 0) {
-        buf.setLines(['No match found'], { start: 1, end: 2, strictIndexing: false })
-        buf.addHighlight({ line: 1, srcId: -1, colEnd: -1, colStart: 0, hlGroup: 'Error' }).logError()
-      } else {
-        let highligher = new Highlighter()
-        highligher.addText('Files', 'MoreMsg')
-        highligher.addText(': ')
-        highligher.addText(`${files} `, 'Number')
-        highligher.addText('Matches', 'MoreMsg')
-        highligher.addText(': ')
-        highligher.addText(`${matches} `, 'Number')
-        highligher.addText('Duration', 'MoreMsg')
-        highligher.addText(': ')
-        highligher.addText(`${Date.now() - start}ms`, 'Number')
-        highligher.render(buf, 1, 2)
-      }
-      buf.setOption('modified', false, true)
-      await nvim.resumeNotification(false, true)
+    return new Promise((resolve, reject) => {
+      let interval = setInterval(addFileItems, 100)
+      this.task.on('item', async (fileItem: FileItem) => {
+        files++
+        matches = matches + fileItem.ranges.reduce((p, r) => p + r.highlights.length, 0)
+        fileItems.push(fileItem)
+      })
+      this.task.on('error', message => {
+        clearInterval(interval)
+        workspace.showMessage(`Error on command "${cmd}": ${message}`, 'error')
+        this.task = null
+        reject(new Error(message))
+      })
+      this.task.on('end', async () => {
+        clearInterval(interval)
+        try {
+          await addFileItems()
+          const release = await mutex.acquire()
+          release()
+          this.task.removeAllListeners()
+          this.task = null
+          let { document } = refactor
+          if (document) {
+            let buf = document.buffer
+            nvim.pauseNotification()
+            if (files == 0) {
+              buf.setLines(['No match found'], { start: 1, end: 2, strictIndexing: false })
+              buf.addHighlight({ line: 1, srcId: -1, colEnd: -1, colStart: 0, hlGroup: 'Error' }).logError()
+              buf.setOption('modified', false, true)
+            } else {
+              let highligher = new Highlighter()
+              highligher.addText('Files', 'MoreMsg')
+              highligher.addText(': ')
+              highligher.addText(`${files} `, 'Number')
+              highligher.addText('Matches', 'MoreMsg')
+              highligher.addText(': ')
+              highligher.addText(`${matches} `, 'Number')
+              highligher.addText('Duration', 'MoreMsg')
+              highligher.addText(': ')
+              highligher.addText(`${Date.now() - start}ms`, 'Number')
+              highligher.render(buf, 1, 2)
+            }
+            buf.setOption('modified', false, true)
+            await nvim.resumeNotification(false, true)
+          }
+        } catch (e) {
+          reject(e)
+          return
+        }
+        resolve()
+      })
     })
   }
 }
