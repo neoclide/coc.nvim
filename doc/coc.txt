@@ -132,7 +132,7 @@ Builtin configurations:~
 
 "suggest.enablePreview":~
 
-	Add preview option to `completeopt`, default: false,  default: `false`
+	Add preview option to `completeopt`, default: `false`
 
 "suggest.floatEnable"~
 
