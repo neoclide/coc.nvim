@@ -54328,7 +54328,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "e40efcbd31" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "f4deedf91a" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -71753,6 +71753,9 @@ class Languages {
         }
         if (item.documentation) {
             obj.info = typeof item.documentation == 'string' ? item.documentation : item.documentation.value;
+        }
+        else {
+            obj.info = '';
         }
         if (!obj.word)
             obj.empty = 1;
