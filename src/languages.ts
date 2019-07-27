@@ -722,6 +722,8 @@ class Languages {
     }
     if (item.documentation) {
       obj.info = typeof item.documentation == 'string' ? item.documentation : item.documentation.value
+    } else {
+      obj.info = ''
     }
     if (!obj.word) obj.empty = 1
     if (item.textEdit) obj.line = opt.line
