@@ -127,7 +127,7 @@ export default class Refactor {
     nvim.command(`${openCommand} ${name}${refactorId++}`, true)
     nvim.command(`setl buftype=acwrite nobuflisted bufhidden=wipe nofen wrap conceallevel=2 concealcursor=n`, true)
     nvim.command(`setl undolevels=-1 nolist nospell noswapfile foldmethod=expr foldexpr=coc#util#refactor_foldlevel(v:lnum)`, true)
-    nvim.command(`setl foldtext=coc#rpc#request('refactorFoldText',[v:foldstart])`, true)
+    nvim.command(`setl foldtext=coc#util#refactor_fold_text(v:foldstart)`, true)
     nvim.call('setline', [1, ['Save current buffer to make changes', separator]], true)
     nvim.call('matchadd', ['Comment', '\\%1l'], true)
     nvim.call('matchadd', ['Conceal', '^\\%u3000'], true)
@@ -236,17 +236,19 @@ export default class Refactor {
    */
   private highlightLineNr(): void {
     let { fileItems, nvim, winid, srcId, bufnr } = this
+    let info = {}
     if (srcId) {
       nvim.call('nvim_buf_clear_namespace', [bufnr, srcId, 0, -1], true)
       for (let item of fileItems) {
         for (let range of item.ranges) {
           let text = `${range.start + 1}:${range.end}`
+          info[range.lnum] = [range.start + 1, range.end]
           nvim.call('nvim_buf_set_virtual_text', [bufnr, srcId, range.lnum - 1, [[text, 'LineNr']], {}], true)
         }
       }
     } else {
       if (this.matchIds.size) {
-        nvim.call('coc#util#clearmatches', [Array.from(this.matchIds)], true)
+        nvim.call('coc#util#clearmatches', [Array.from(this.matchIds), this.winid], true)
         this.matchIds.clear()
       }
       let id = 2000
@@ -258,12 +260,14 @@ export default class Refactor {
           for (let i = 0; i < text.length; i++) {
             let ch = text[i]
             this.matchIds.add(id)
+            info[range.lnum] = [range.start + 1, range.end]
             nvim.call('matchaddpos', ['Conceal', [[range.lnum, col + i]], 99, id, { conceal: ch, window: winid }], true)
             id++
           }
         }
       }
     }
+    this.buffer.setVar('line_infos', info, true)
   }
 
   /**
@@ -388,20 +392,6 @@ export default class Refactor {
       }
     }
     return null
-  }
-
-  public getFoldText(lnum: number): string {
-    let { document } = this
-    if (!document) return ''
-    let line = document.getline(lnum - 1)
-    if (!line.startsWith('\u3000')) return ''
-    let filepath = line.slice(1).trim()
-    let ranges = this.fileItems.reduce((p, c) => {
-      p.push(...c.ranges)
-      return p
-    }, [] as FileRange[])
-    let range = ranges.find(r => r.lnum == lnum)
-    return `${filepath}${range ? ` ${range.start}-${range.end}` : ''}`
   }
 
   private async onBufferChange(e: DidChangeTextDocumentParams): Promise<void> {

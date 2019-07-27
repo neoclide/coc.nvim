@@ -919,3 +919,12 @@ function! coc#util#refactor_foldlevel(lnum) abort
   if line =~# '^\%u3000\s*$' | return 0 | endif
   return 1
 endfunction
+
+function! coc#util#refactor_fold_text(lnum) abort
+  let range = ''
+  let info = get(b:line_infos, a:lnum, [])
+  if !empty(info)
+    let range = info[0].':'.info[1]
+  endif
+  return trim(getline(a:lnum)[3:]).' '.range
+endfunction

@@ -1102,13 +1102,6 @@ export default class Handler {
     search.run(args, cwd, refactor).logError()
   }
 
-  public async refactorFoldText(lnum: number): Promise<string> {
-    let bufnr = await this.nvim.eval('bufnr("%")') as number
-    let refactor = this.refactorMap.get(bufnr)
-    if (!refactor) return
-    return refactor.getFoldText(lnum)
-  }
-
   private async previewHover(hovers: Hover[]): Promise<void> {
     let lines: string[] = []
     let target = this.preferences.hoverTarget
