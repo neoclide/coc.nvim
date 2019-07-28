@@ -417,18 +417,23 @@ export class Completion implements Disposable {
 
   private async onInsertLeave(bufnr: number): Promise<void> {
     this.insertLeaveTs = Date.now()
-    let doc = workspace.getDocument(bufnr)
-    if (doc) doc.forceSync(true)
-    this.stop()
+    if (this.isActivated) {
+      let doc = workspace.getDocument(bufnr)
+      if (doc) doc.forceSync()
+      this.stop()
+    }
   }
 
-  private async onInsertEnter(): Promise<void> {
+  private async onInsertEnter(bufnr: number): Promise<void> {
     if (!this.config.triggerAfterInsertEnter) return
-    let option = await this.nvim.call('coc#util#get_complete_option')
-    this.fixCompleteOption(option)
-    if (option && option.input.length >= this.config.minTriggerInputLength) {
-      await this.startCompletion(option)
-    }
+    let document = workspace.getDocument(bufnr)
+    await document.patchChange()
+    if (!document) return
+    let cursor = await this.nvim.call('coc#util#cursor')
+    let line = document.getline(cursor[0])
+    let pre = byteSlice(line, 0, cursor[1])
+    if (!pre) return
+    await this.triggerCompletion(document, pre, false)
   }
 
   private async onInsertCharPre(character: string): Promise<void> {

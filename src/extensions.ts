@@ -1,4 +1,3 @@
-import { Neovim } from '@chemzqm/neovim'
 import { debounce } from 'debounce'
 import fastDiff from 'fast-diff'
 import fs from 'fs'
@@ -73,12 +72,12 @@ export class Extensions {
   public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
   public readonly onDidUnloadExtension: Event<string> = this._onDidUnloadExtension.event
 
-  public async init(nvim: Neovim): Promise<void> {
+  public async init(): Promise<void> {
     if (global.hasOwnProperty('__TEST__')) {
       this.root = path.join(__dirname, './__tests__/extensions')
       this.manager = new ExtensionManager(this.root)
       let filepath = path.join(this.root, 'db.json')
-      let db = this.db = new DB(filepath)
+      this.db = new DB(filepath)
     } else {
       await this.initializeRoot()
     }
@@ -146,7 +145,6 @@ export class Extensions {
     if (!this.npm) return
     let lockedList = await this.getLockedList()
     let stats = await this.globalExtensionStats()
-    let versionInfo: { [index: string]: string } = {}
     stats = stats.filter(o => !this.disabled.has(o.id) && !lockedList.includes(o.id))
     let names = stats.map(o => o.id)
     let statusItem = workspace.createStatusBarItem(0, { progress: true })

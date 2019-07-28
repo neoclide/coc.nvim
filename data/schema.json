@@ -705,6 +705,29 @@
       "default": {},
       "description": "Custom keymappings on insert mode."
     },
+    "list.source.outline.ctagsFilestypes": {
+      "type": "array",
+      "default": [],
+      "description": "Filetypes that should use ctags for outline instead of language server.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cursors.cancelKey": {
+      "type": "string",
+      "default": "<esc>",
+      "description": "Key used for cancel cursors session."
+    },
+    "cursors.nextKey": {
+      "type": "string",
+      "default": "<C-n>",
+      "description": "Key used for jump to next cursors position. "
+    },
+    "cursors.previousKey": {
+      "type": "string",
+      "default": "<C-p>",
+      "description": "Key used for jump to previous cursors position."
+    },
     "coc.preferences.useQuickfixForLocations": {
       "type": "boolean",
       "description": "Use vim's quickfix list for jump locations,\n need restart on change.",
@@ -890,14 +913,6 @@
       "type": "array",
       "default": [],
       "description": "Ignore patterns of matcher",
-      "items": {
-        "type": "string"
-      }
-    },
-    "list.source.outline.ctagsFilestypes": {
-      "type": "array",
-      "default": [],
-      "description": "Filetypes that should use ctags for outline instead of language server.",
       "items": {
         "type": "string"
       }

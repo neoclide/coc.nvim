@@ -264,12 +264,13 @@ describe('completion resumeCompletion', () => {
 
 describe('completion InsertEnter', () => {
   it('should trigger completion if triggerAfterInsertEnter is true', async () => {
+    await helper.createDocument()
+    await nvim.setLine('foo fo')
     let config = workspace.getConfiguration('suggest')
     config.update('triggerAfterInsertEnter', true)
     await helper.wait(100)
     let triggerAfterInsertEnter = completion.config.triggerAfterInsertEnter
     expect(triggerAfterInsertEnter).toBe(true)
-    await nvim.setLine('foo fo')
     await nvim.input('A')
     await helper.waitPopup()
     expect(completion.isActivated).toBe(true)

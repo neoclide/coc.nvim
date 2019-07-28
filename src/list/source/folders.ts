@@ -3,6 +3,9 @@ import { statAsync } from '../../util/fs'
 import { ListContext, ListItem } from '../../types'
 import workspace from '../../workspace'
 import BasicList from '../basic'
+import {URI} from 'vscode-uri'
+import {mkdirp, echoErr} from '../../util'
+import path from 'path'
 
 export default class FoldList extends BasicList {
   public defaultAction = 'edit'
@@ -25,6 +28,21 @@ export default class FoldList extends BasicList {
     this.addAction('delete', async item => {
       workspace.removeWorkspaceFolder(item.label)
     }, { reload: true, persist: true })
+
+		this.addAction('newfile', async item => {
+			let file = await workspace.requestInput('File name', item.label + '/')
+			let dir = path.dirname(file)
+			let stat = await statAsync(dir)
+			if (!stat || !stat.isDirectory()) {
+				let success = await mkdirp(dir)
+				if (!success) {
+					echoErr(nvim, `Error creating new directory ${dir}`)
+					return
+				}
+			}
+			await workspace.createFile(file, {overwrite: false, ignoreIfExists: true})
+			await this.jumpTo(URI.file(file).toString())
+		})
   }
 
   public async loadItems(_context: ListContext): Promise<ListItem[]> {

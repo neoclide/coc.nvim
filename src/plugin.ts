@@ -11,6 +11,7 @@ import services from './services'
 import snippetManager from './snippets/manager'
 import sources from './sources'
 import { Autocmd, OutputChannel, PatternType } from './types'
+import Cursors from './cursors'
 import clean from './util/clean'
 import workspace from './workspace'
 const logger = require('./util/logger')('plugin')
@@ -19,17 +20,25 @@ export default class Plugin extends EventEmitter {
   private _ready = false
   private handler: Handler
   private infoChannel: OutputChannel
+  private cursors: Cursors
 
   constructor(public nvim: Neovim) {
     super()
     Object.defineProperty(workspace, 'nvim', {
       get: () => this.nvim
     })
+    this.cursors = new Cursors(nvim)
     this.addMethod('hasSelected', () => {
       return completion.hasSelected()
     })
     this.addMethod('listNames', () => {
       return listManager.names
+    })
+    this.addMethod('search', (...args: string[]) => {
+      return this.handler.search(args)
+    })
+    this.addMethod('cursorsSelect', (bufnr: number, kind: string, mode: string) => {
+      return this.cursors.select(bufnr, kind, mode)
     })
     this.addMethod('codeActionRange', (start, end, only) => {
       return this.handler.codeActionRange(start, end, only)
@@ -150,7 +159,7 @@ export default class Plugin extends EventEmitter {
   public async init(): Promise<void> {
     let { nvim } = this
     try {
-      await extensions.init(nvim)
+      await extensions.init()
       await workspace.init()
       completion.init()
       diagnosticManager.init()
@@ -396,6 +405,10 @@ export default class Plugin extends EventEmitter {
           return await extensions.uninstallExtension(args.slice(1))
         case 'getCurrentFunctionSymbol':
           return await handler.getCurrentFunctionSymbol()
+        case 'getWordEdit':
+          return await handler.getWordEdit()
+        case 'addRanges':
+          return await this.cursors.addRanges(args[1])
         default:
           workspace.showMessage(`unknown action ${args[0]}`, 'error')
       }

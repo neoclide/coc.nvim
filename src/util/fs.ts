@@ -118,6 +118,19 @@ export function readFile(fullpath: string, encoding: string): Promise<string> {
   })
 }
 
+export function getFileLineCount(filepath: string): Promise<number> {
+  let i
+  let count = 0
+  return new Promise((resolve, reject) => {
+    fs.createReadStream(filepath)
+      .on('error', e => reject(e))
+      .on('data', chunk => {
+        for (i = 0; i < chunk.length; ++i) if (chunk[i] == 10) count++
+      })
+      .on('end', () => resolve(count))
+  })
+}
+
 export function readFileLines(fullpath: string, start: number, end: number): Promise<string[]> {
   let res: string[] = []
   const rl = readline.createInterface({
@@ -128,6 +141,10 @@ export function readFileLines(fullpath: string, start: number, end: number): Pro
   let n = 0
   return new Promise((resolve, reject) => {
     rl.on('line', line => {
+      if (n == 0 && line.startsWith('\uFEFF')) {
+        // handle BOM
+        line = line.slice(1)
+      }
       if (n >= start && n <= end) {
         res.push(line)
       }
@@ -153,6 +170,10 @@ export function readFileLine(fullpath: string, count: number): Promise<string> {
   return new Promise((resolve, reject) => {
     rl.on('line', line => {
       if (n == count) {
+        if (n == 0 && line.startsWith('\uFEFF')) {
+          // handle BOM
+          line = line.slice(1)
+        }
         rl.close()
         resolve(line)
         return

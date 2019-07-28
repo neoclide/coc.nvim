@@ -23,15 +23,33 @@ export type MoveEvents = 'CursorMoved' | 'CursorMovedI'
 
 export type OptionValue = string | number | boolean
 
+export interface CursorPosition {
+  bufnr: number
+  lnum: number
+  col: number
+  insert: boolean
+}
+
 class Events {
 
   private handlers: Map<string, Function[]> = new Map()
-  public paused = false
+  private _cursor: CursorPosition
+
+  public get cursor(): CursorPosition {
+    return this._cursor
+  }
 
   public async fire(event: string, args: any[]): Promise<void> {
-    if (this.paused && event == 'CursorHold') return
     logger.debug('Event:', event, args)
     let handlers = this.handlers.get(event)
+    if (event == 'CursorMoved' || event == 'CursorMovedI') {
+      this._cursor = {
+        bufnr: args[0],
+        lnum: args[1][0],
+        col: args[1][1],
+        insert: event == 'CursorMovedI'
+      }
+    }
     if (handlers) {
       try {
         await Promise.all(handlers.map(fn => {

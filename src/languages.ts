@@ -1,11 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
-import { SelectionRange, CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, LocationLink, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, LocationLink, Position, Range, SelectionRange, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
-import Document from './model/document'
-import { CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider, SelectionRangeProvider } from './provider'
+import { CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
 import CodeActionManager from './provider/codeActionmanager'
-import SelectionRangeManager from './provider/rangeManager'
 import CodeLensManager from './provider/codeLensManager'
 import DeclarationManager from './provider/declarationManager'
 import DefinitionManager from './provider/definitionManager'
@@ -19,6 +17,7 @@ import FormatRangeManager from './provider/formatRangeManager'
 import HoverManager from './provider/hoverManager'
 import ImplementationManager from './provider/implementatioinManager'
 import OnTypeFormatManager from './provider/onTypeFormatManager'
+import SelectionRangeManager from './provider/rangeManager'
 import ReferenceManager from './provider/referenceManager'
 import RenameManager from './provider/renameManager'
 import SignatureManager from './provider/signatureManager'
@@ -347,25 +346,6 @@ class Languages {
 
   @check
   public async provideRenameEdits(document: TextDocument, position: Position, newName: string): Promise<WorkspaceEdit> {
-    if (!this.renameManager.hasProvider(document)) {
-      let doc = workspace.getDocument(document.uri)
-      if (!doc) return null
-      let range = doc.getWordRangeAtPosition(position)
-      if (!range) return null
-      let word = doc.textDocument.getText(range)
-      let ranges = doc.getSymbolRanges(word)
-      if (!ranges.length) return null
-      return {
-        changes: {
-          [doc.uri]: ranges.map(r => {
-            return {
-              range: r,
-              newText: newName
-            }
-          })
-        }
-      }
-    }
     return await this.renameManager.provideRenameEdits(document, position, newName, this.token)
   }
 
@@ -459,12 +439,59 @@ class Languages {
   }
 
   @check
-  public async provideDocumentOntTypeEdits(character: string, document: TextDocument, position: Position): Promise<TextEdit[] | null> {
+  public async provideDocumentOnTypeEdits(character: string, document: TextDocument, position: Position): Promise<TextEdit[] | null> {
     return this.onTypeFormatManager.onCharacterType(character, document, position, this.token)
   }
 
   public hasOnTypeProvider(character: string, document: TextDocument): boolean {
     return this.onTypeFormatManager.getProvider(document, character) != null
+  }
+
+  public hasProvider(id: string, document: TextDocument): boolean {
+    switch (id) {
+      case 'rename':
+        return this.renameManager.hasProvider(document)
+      case 'onTypeEdit':
+        return this.onTypeFormatManager.hasProvider(document)
+      case 'documentLink':
+        return this.documentLinkManager.hasProvider(document)
+      case 'documentColor':
+        return this.documentColorManager.hasProvider(document)
+      case 'foldingRange':
+        return this.foldingRangeManager.hasProvider(document)
+      case 'format':
+        return this.formatManager.hasProvider(document)
+      case 'codeAction':
+        return this.codeActionManager.hasProvider(document)
+      case 'workspaceSymbols':
+        return this.workspaceSymbolsManager.hasProvider(document)
+      case 'formatRange':
+        return this.formatRangeManager.hasProvider(document)
+      case 'hover':
+        return this.hoverManager.hasProvider(document)
+      case 'signature':
+        return this.signatureManager.hasProvider(document)
+      case 'documentSymbol':
+        return this.documentSymbolManager.hasProvider(document)
+      case 'documentHighlight':
+        return this.documentHighlightManager.hasProvider(document)
+      case 'definition':
+        return this.definitionManager.hasProvider(document)
+      case 'declaration':
+        return this.declarationManager.hasProvider(document)
+      case 'typeDefinition':
+        return this.typeDefinitionManager.hasProvider(document)
+      case 'reference':
+        return this.referenceManager.hasProvider(document)
+      case 'implementatioin':
+        return this.implementatioinManager.hasProvider(document)
+      case 'codeLens':
+        return this.codeLensManager.hasProvider(document)
+      case 'selectionRange':
+        return this.selectionRangeManager.hasProvider(document)
+      default:
+        throw new Error(`${id} not supported.`)
+    }
   }
 
   public dispose(): void {
