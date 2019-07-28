@@ -151,7 +151,7 @@ describe('snippet provider', () => {
     await helper.createDocument()
     await snippetManager.insertSnippet('${foo:abcdef} ${bar}')
     let line = await nvim.line
-    expect(line).toBe('abc bar')
+    expect(line).toBe('abcdef bar')
   })
 
   it('should work with nest snippet', async () => {
