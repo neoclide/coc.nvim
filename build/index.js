@@ -54547,7 +54547,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "23ed9b8b01" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "b96f1d0e0b" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -72045,6 +72045,9 @@ class Languages {
         }
         if (item.documentation) {
             obj.info = typeof item.documentation == 'string' ? item.documentation : item.documentation.value;
+        }
+        else {
+            obj.info = '';
         }
         if (!obj.word)
             obj.empty = 1;

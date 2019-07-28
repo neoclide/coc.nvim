@@ -71,7 +71,7 @@ function! coc#_do_complete(start, items, preselect)
         \ 'candidates': a:items,
         \ 'preselect': a:preselect
         \}
-  if mode() =~# 'i'
+  if mode() =~# 'i' && &paste != 1
     call feedkeys("\<Plug>CocRefresh", 'i')
   endif
 endfunction
@@ -98,7 +98,7 @@ endfunction
 function! coc#_cancel()
   call coc#util#close_popup()
   " hack for close pum
-  if pumvisible()
+  if pumvisible() && &paste != 1
     let g:coc#_context = {'start': 0, 'preselect': -1,'candidates': []}
     call feedkeys("\<Plug>CocRefresh", 'i')
   endif
