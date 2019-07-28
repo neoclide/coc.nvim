@@ -132,7 +132,7 @@ Builtin configurations:~
 
 "suggest.enablePreview":~
 
-	Add preview option to `completeopt`, default: false,  default: `false`
+	Add preview option to `completeopt`, default: `false`
 
 "suggest.floatEnable"~
 
@@ -1502,6 +1502,15 @@ Available Actions ~
 	Do the first quickfix action for the current line.
 	Return `v:false` when no quickfix action found.
 
+"addRanges" {ranges}					*coc-action-addRanges*
+
+	Ranges must be provided as array of range type: https://git.io/fjiEG
+
+"getWordEdit" 						 *coc-action-getWordEdit*
+
+	Get workspaceEdit of current word, language server used when possible,
+	extract word from current buffer as fallback.
+
 ------------------------------------------------------------------------------
 COMMANDS 					*coc-commands*
 
@@ -1755,13 +1764,13 @@ CocHighlightText 				*CocHighlightText*
   The highlight used for document highlight feature. Normally used for
   highlighting same symbols in the buffer at the current cursor position.
 
-CocHighlightTextRead 				*CocHighlightTextRead*
+CocHighlightRead 				*CocHighlightRead*
 
   Default `hi default link CocHighlightRead  CocHighlightText`
 
   Highlight for `Read` kind of document symbol.
 
-CocHighlightTextWrite 				*CocHighlightTextWrite*
+CocHighlightWrite 				*CocHighlightWrite*
 
   Default `hi default link CocHighlightWrite  CocHighlightText`
 
@@ -1826,6 +1835,12 @@ CocHintFloat 					*CocHintFloat*
   Default: `hi default link CocHintFloat CocHintSign`
 
   The highlight used for a floating window with hints.
+
+CocCursorRange 					*CocCursorRange*
+
+  Default: `hi default link CocCursorRange Search`
+
+  The highlight used for cursor ranges.
 
 ==============================================================================
 LIST SUPPORT 					*coc-list*

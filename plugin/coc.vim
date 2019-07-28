@@ -2,11 +2,10 @@ if exists('g:did_coc_loaded') || v:version < 800
   finish
 endif
 if has('nvim') && !has('nvim-0.3.0') | finish | endif
-let s:is_win = has('win32') || has('win64')
-let s:root = expand('<sfile>:h:h')
-
 let g:did_coc_loaded = 1
 let g:coc_service_initialized = 0
+let s:is_win = has('win32') || has('win64')
+let s:root = expand('<sfile>:h:h')
 let s:is_vim = !has('nvim')
 let s:is_gvim = get(v:, 'progname', '') ==# 'gvim'
 
@@ -70,6 +69,14 @@ function! s:ExtensionList(...) abort
   return join(list, "\n")
 endfunction
 
+function! s:SearchOptions(...) abort
+  let list = ['-e', '--regexp', '-F', '--fixed-strings', '-L', '--follow',
+        \ '-g', '--glob', '--hidden', '--no-hidden', '--no-ignore-vcs',
+        \ '--word-regexp', '-w', '--smart-case', '-S', '--no-config',
+        \ '--line-regexp', '-x']
+  return join(list, "\n")
+endfunction
+
 function! s:InstallOptions(...)abort
   let list = ['-terminal', '-sync']
   return join(list, "\n")
@@ -106,6 +113,11 @@ function! s:AddAnsiGroups() abort
     exe 'hi default CocListFg'.foreground. ' guifg='.foregroundColor
     exe 'hi default CocListBg'.foreground. ' guibg='.foregroundColor
   endfor
+endfunction
+
+function! s:CursorRangeFromSelected(type, ...) abort
+  " add range by operator
+  call coc#rpc#request('cursorsSelect', [bufnr('%'), 'operator', a:type])
 endfunction
 
 function! s:Disable() abort
@@ -154,10 +166,10 @@ function! s:Enable()
       autocmd CompleteDone      * call coc#util#close_popup()
     endif
 
-    if get(g:, 'coc_start_at_startup', 1) && s:is_gvim
-      autocmd VimEnter            * call coc#rpc#start_server()
-    else
+    if coc#rpc#started()
       autocmd VimEnter            * call coc#rpc#notify('VimEnter', [])
+    else
+      autocmd VimEnter            * call coc#rpc#start_server()
     endif
     if s:is_vim
       if exists('##DirChanged')
@@ -223,6 +235,7 @@ hi default link CocListPath Comment
 hi default link CocFloating Pmenu
 hi default link CocHighlightText  CursorColumn
 
+hi default link CocCursorRange    Search
 hi default link CocHighlightRead  CocHighlightText
 hi default link CocHighlightWrite CocHighlightText
 
@@ -277,6 +290,7 @@ command! -nargs=0 CocConfig       :call s:OpenConfig()
 command! -nargs=0 CocRestart      :call coc#rpc#restart()
 command! -nargs=0 CocStart        :call coc#rpc#start_server()
 command! -nargs=0 CocRebuild      :call coc#util#rebuild()
+command! -nargs=+ -complete=custom,s:SearchOptions  CocSearch    :call coc#rpc#notify('search', [<f-args>])
 command! -nargs=+ -complete=custom,s:ExtensionList  CocUninstall :call coc#rpc#notify('CocAction', ['uninstallExtension', <f-args>])
 command! -nargs=* -complete=custom,coc#list#options CocList      :call coc#rpc#notify('openList',  [<f-args>])
 command! -nargs=* -complete=custom,s:CommandList -range CocCommand :call coc#rpc#notify('runCommand', [<f-args>])
@@ -318,10 +332,14 @@ nnoremap <Plug>(coc-command-repeat)        :<C-u>call       CocAction('repeatCom
 nnoremap <Plug>(coc-refactor)              :<C-u>call       CocActionAsync('refactor')<CR>
 inoremap <silent>                          <Plug>CocRefresh <C-r>=coc#_complete()<CR>
 
-vnoremap <silent> <Plug>(coc-funcobj-i) :<C-U>call coc#rpc#request('selectFunction', [v:true, visualmode()])<CR>
-vnoremap <silent> <Plug>(coc-funcobj-a) :<C-U>call coc#rpc#request('selectFunction', [v:false, visualmode()])<CR>
-onoremap <silent> <Plug>(coc-funcobj-i) :<C-U>call coc#rpc#request('selectFunction', [v:true, ''])<CR>
-onoremap <silent> <Plug>(coc-funcobj-a) :<C-U>call coc#rpc#request('selectFunction', [v:false, ''])<CR>
+nnoremap <silent> <Plug>(coc-cursors-operator) :<C-u>set operatorfunc=<SID>CursorRangeFromSelected<CR>g@
+vnoremap <silent> <Plug>(coc-cursors-range)    :<C-u>call coc#rpc#request('cursorsSelect', [bufnr('%'), 'range', visualmode()])<CR>
+nnoremap <silent> <Plug>(coc-cursors-word)     :<C-u>call coc#rpc#request('cursorsSelect', [bufnr('%'), 'word', 'n'])<CR>
+nnoremap <silent> <Plug>(coc-cursors-position) :<C-u>call coc#rpc#request('cursorsSelect', [bufnr('%'), 'position', 'n'])<CR>
+vnoremap <silent> <Plug>(coc-funcobj-i)        :<C-U>call coc#rpc#request('selectFunction', [v:true, visualmode()])<CR>
+vnoremap <silent> <Plug>(coc-funcobj-a)        :<C-U>call coc#rpc#request('selectFunction', [v:false, visualmode()])<CR>
+onoremap <silent> <Plug>(coc-funcobj-i)        :<C-U>call coc#rpc#request('selectFunction', [v:true, ''])<CR>
+onoremap <silent> <Plug>(coc-funcobj-a)        :<C-U>call coc#rpc#request('selectFunction', [v:false, ''])<CR>
 if !hasmapto('<Plug>(coc-funcobj-i)', 'v') && empty(maparg('if', 'x'))
   xmap if <Plug>(coc-funcobj-i)
 endif

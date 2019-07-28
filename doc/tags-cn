@@ -17,6 +17,7 @@
 CocAction()	coc.cnx	/*CocAction()*
 CocActionAsync()	coc.cnx	/*CocActionAsync()*
 CocCodeLens	coc.cnx	/*CocCodeLens*
+CocCursorRange	coc.cnx	/*CocCursorRange*
 CocDiagnosticChange	coc.cnx	/*CocDiagnosticChange*
 CocErrorFloat	coc.cnx	/*CocErrorFloat*
 CocErrorHighlight	coc.cnx	/*CocErrorHighlight*
@@ -75,6 +76,7 @@ coc#util#has_float()	coc.cnx	/*coc#util#has_float()*
 coc#util#install()	coc.cnx	/*coc#util#install()*
 coc#util#job_command()	coc.cnx	/*coc#util#job_command()*
 coc#util#rebuild()	coc.cnx	/*coc#util#rebuild()*
+coc-action-addRanges	coc.cnx	/*coc-action-addRanges*
 coc-action-codeAction	coc.cnx	/*coc-action-codeAction*
 coc-action-codeActions	coc.cnx	/*coc-action-codeActions*
 coc-action-codeLensAction	coc.cnx	/*coc-action-codeLensAction*

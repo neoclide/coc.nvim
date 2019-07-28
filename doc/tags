@@ -16,6 +16,7 @@
 CocAction()	coc.txt	/*CocAction()*
 CocActionAsync()	coc.txt	/*CocActionAsync()*
 CocCodeLens	coc.txt	/*CocCodeLens*
+CocCursorRange	coc.txt	/*CocCursorRange*
 CocDiagnosticChange	coc.txt	/*CocDiagnosticChange*
 CocErrorFloat	coc.txt	/*CocErrorFloat*
 CocErrorHighlight	coc.txt	/*CocErrorHighlight*
@@ -23,9 +24,9 @@ CocErrorLine	coc.txt	/*CocErrorLine*
 CocErrorSign	coc.txt	/*CocErrorSign*
 CocErrorVirtualText	coc.txt	/*CocErrorVirtualText*
 CocFloating	coc.txt	/*CocFloating*
+CocHighlightRead	coc.txt	/*CocHighlightRead*
 CocHighlightText	coc.txt	/*CocHighlightText*
-CocHighlightTextRead	coc.txt	/*CocHighlightTextRead*
-CocHighlightTextWrite	coc.txt	/*CocHighlightTextWrite*
+CocHighlightWrite	coc.txt	/*CocHighlightWrite*
 CocHintFloat	coc.txt	/*CocHintFloat*
 CocHintHighlight	coc.txt	/*CocHintHighlight*
 CocHintLine	coc.txt	/*CocHintLine*
@@ -81,6 +82,7 @@ coc#util#has_float()	coc.txt	/*coc#util#has_float()*
 coc#util#install()	coc.txt	/*coc#util#install()*
 coc#util#job_command()	coc.txt	/*coc#util#job_command()*
 coc#util#rebuild()	coc.txt	/*coc#util#rebuild()*
+coc-action-addRanges	coc.txt	/*coc-action-addRanges*
 coc-action-codeAction	coc.txt	/*coc-action-codeAction*
 coc-action-codeActions	coc.txt	/*coc-action-codeActions*
 coc-action-codeLensAction	coc.txt	/*coc-action-codeLensAction*
@@ -98,6 +100,7 @@ coc-action-fold	coc.txt	/*coc-action-fold*
 coc-action-format	coc.txt	/*coc-action-format*
 coc-action-formatSelected	coc.txt	/*coc-action-formatSelected*
 coc-action-getCurrentFunctionSymbol	coc.txt	/*coc-action-getCurrentFunctionSymbol*
+coc-action-getWordEdit	coc.txt	/*coc-action-getWordEdit*
 coc-action-highlight	coc.txt	/*coc-action-highlight*
 coc-action-jumpDeclaration	coc.txt	/*coc-action-jumpDeclaration*
 coc-action-jumpDefinition	coc.txt	/*coc-action-jumpDefinition*

@@ -15,8 +15,15 @@ function! s:buf_line_count(bufnr) abort
   if bufnr('%') == a:bufnr
     return line('$')
   endif
-  let lines = getbufline(a:bufnr, 1, '$')
-  return len(lines)
+  if exists('*getbufline')
+    let lines = getbufline(a:bufnr, 1, '$')
+    return len(lines)
+  endif
+  let curr = bufnr('%')
+  execute 'buffer '.a:bufnr
+  let n = line('$')
+  execute 'buffer '.curr
+  return n
 endfunction
 
 function! s:execute(cmd)
@@ -321,7 +328,13 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
   let startLnum = a:start >= 0 ? a:start + 1 : lineCount + a:start + 1
   let end = a:end >= 0 ? a:end : lineCount + a:end + 1
   let delCount = end - (startLnum - 1)
-  if a:bufnr == bufnr('%')
+  let changeBuffer = 0
+  let curr = bufnr('%')
+  if a:bufnr != curr && !exists('*setbufline')
+    let changeBuffer = 1
+    exe 'buffer '.a:bufnr
+  endif
+  if a:bufnr == curr || changeBuffer
     " replace
     if delCount == len(replacement)
       call setline(startLnum, replacement)
@@ -334,19 +347,23 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
         silent execute start . ','.(start + delCount - 1).'d'
       endif
     endif
-  else
-    if exists('*setbufline')
-      " replace
-      if delCount == len(replacement)
-        call setbufline(a:bufnr, startLnum, replacement)
-      else
-        if len(replacement)
-          call appendbufline(a:bufnr, startLnum - 1, replacement)
-        endif
-        if delCount
-          let start = startLnum + len(replacement)
-          call deletebufline(a:bufnr, start, start + delCount - 1)
-        endif
+    if changeBuffer
+      exe 'buffer '.curr
+    endif
+  elseif exists('*setbufline')
+    " replace
+    if delCount == len(replacement)
+      " 8.0.1039
+      call setbufline(a:bufnr, startLnum, replacement)
+    else
+      if len(replacement)
+        " 8.10037
+        call appendbufline(a:bufnr, startLnum - 1, replacement)
+      endif
+      if delCount
+        let start = startLnum + len(replacement)
+        "8.1.0039
+        call deletebufline(a:bufnr, start, start + delCount - 1)
       endif
     endif
   endif

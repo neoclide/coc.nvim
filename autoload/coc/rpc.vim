@@ -23,6 +23,10 @@ function! coc#rpc#start_server()
   endif
 endfunction
 
+function! coc#rpc#started() abort
+  return !empty(s:client)
+endfunction
+
 function! coc#rpc#ready()
   if empty(s:client) || s:client['running'] == 0 | return 0 | endif
   return 1

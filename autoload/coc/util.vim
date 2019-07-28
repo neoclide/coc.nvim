@@ -123,8 +123,7 @@ function! coc#util#close_popup()
     endif
   else
     for winnr in range(1, winnr('$'))
-      let popup = getwinvar(winnr, 'popup')
-      if !empty(popup)
+      if getwinvar(winnr, 'popup', 0)
         exe winnr.'close!'
       endif
     endfor
@@ -203,7 +202,7 @@ endfunction
 
 function! coc#util#execute(cmd)
   silent exe a:cmd
-  if &l:filetype ==# ''
+  if &filetype ==# ''
     filetype detect
   endif
   if s:is_vim
@@ -291,8 +290,6 @@ function! coc#util#get_bufoptions(bufnr) abort
         \ 'filetype': getbufvar(a:bufnr, '&filetype'),
         \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
         \ 'changedtick': getbufvar(a:bufnr, 'changedtick'),
-        \ 'rootPatterns': getbufvar(a:bufnr, 'coc_root_patterns', v:null),
-        \ 'additionalKeywords': getbufvar(a:bufnr, 'coc_additional_keywords', []),
         \}
 endfunction
 
@@ -641,7 +638,11 @@ function! coc#util#clear_signs()
   endfor
 endfunction
 
-function! coc#util#clearmatches(ids)
+function! coc#util#clearmatches(ids, ...)
+  let winid = get(a:, 1, 0)
+  if winid != 0 && win_getid() != winid
+    return
+  endif
   for id in a:ids
     try
       call matchdelete(id)
@@ -861,4 +862,69 @@ endfunction
 function! coc#util#set_buf_var(bufnr, name, val) abort
   if !bufloaded(a:bufnr) | return | endif
   call setbufvar(a:bufnr, a:name, a:val)
+endfunction
+
+function! coc#util#change_lines(bufnr, list) abort
+  if !bufloaded(a:bufnr) | return | endif
+  let bufnr = bufnr('%')
+  let changeBuffer = bufnr != a:bufnr
+  if changeBuffer
+    exe 'buffer '.a:bufnr
+  endif
+  for [lnum, line] in a:list
+    call setline(lnum + 1, line)
+  endfor
+  if changeBuffer
+    exe 'buffer '.bufnr
+  endif
+  if s:is_vim
+    redraw
+  endif
+endfunction
+
+function! coc#util#unmap(bufnr, keys) abort
+  if bufnr('%') == a:bufnr
+    for key in a:keys
+      exe 'silent! nunmap <buffer> '.key
+    endfor
+  endif
+endfunction
+
+function! coc#util#open_files(files)
+  let bufnrs = []
+  " added on latest vim8
+  if exists('*bufadd') && exists('*bufload')
+    for file in a:files
+      let bufnr = bufadd(file)
+      call bufload(file)
+      call add(bufnrs, bufnr(file))
+    endfor
+  else
+    noa keepalt 1new +setl\ bufhidden=wipe
+    for file in a:files
+      execute 'noa edit +setl\ bufhidden=hide '.fnameescape(file)
+      if &filetype ==# ''
+        filetype detect
+      endif
+      call add(bufnrs, bufnr('%'))
+    endfor
+    noa close
+  endif
+  return bufnrs
+endfunction
+
+function! coc#util#refactor_foldlevel(lnum) abort
+  if a:lnum <= 2 | return 0 | endif
+  let line = getline(a:lnum)
+  if line =~# '^\%u3000\s*$' | return 0 | endif
+  return 1
+endfunction
+
+function! coc#util#refactor_fold_text(lnum) abort
+  let range = ''
+  let info = get(b:line_infos, a:lnum, [])
+  if !empty(info)
+    let range = info[0].':'.info[1]
+  endif
+  return trim(getline(a:lnum)[3:]).' '.range
 endfunction

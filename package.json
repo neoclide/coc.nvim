@@ -71,6 +71,7 @@
   },
   "dependencies": {
     "@chemzqm/neovim": "5.1.7",
+    "await-semaphore": "^0.1.3",
     "bser": "^2.1.0",
     "debounce": "^1.2.0",
     "fast-diff": "^1.2.0",
