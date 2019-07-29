@@ -13,20 +13,18 @@ const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint']
 
 // maintains sign and highlightId
 export class DiagnosticBuffer implements Disposable {
-  private srdId: number
-  private signIds: Set<number> = new Set()
+  private readonly srdId: number
+  private readonly signIds: Set<number> = new Set()
   private sequence: CallSequence = null
   private readonly _onDidRefresh = new Emitter<void>()
-  public matchIds: Set<number> = new Set()
+  public readonly matchIds: Set<number> = new Set()
   public diagnostics: ReadonlyArray<Diagnostic> = []
   public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
   public readonly bufnr: number
-  public readonly uri: string
-  public refresh: (diagnosticItems: ReadonlyArray<Diagnostic>) => void
+  public readonly refresh: (diagnosticItems: ReadonlyArray<Diagnostic>) => void
 
-  constructor(doc: Document, private config: DiagnosticConfig) {
-    this.bufnr = doc.bufnr
-    this.uri = doc.uri
+  constructor(bufnr: number, private config: DiagnosticConfig) {
+    this.bufnr = bufnr
     this.srdId = workspace.createNameSpace('coc-diagnostic')
     let timer: NodeJS.Timer = null
     let time = Date.now()
@@ -39,29 +37,27 @@ export class DiagnosticBuffer implements Disposable {
           await this.sequence.cancel()
         }
         // staled
-        if (current != time) return
+        if (current != time || !this.document) return
         this._refresh(diagnostics)
-      }, global.hasOwnProperty('__TEST__') ? 30 : 50)
+      }, 30)
     }
-  }
-
-  private get nvim(): Neovim {
-    return workspace.nvim
   }
 
   private _refresh(diagnostics: ReadonlyArray<Diagnostic>): void {
     if (equals(this.diagnostics, diagnostics)) return
-    let { nvim, bufnr } = this
+    let { nvim } = this
     let sequence = this.sequence = new CallSequence()
     let winid: number
+    let bufnr: number
     sequence.addFunction(async () => {
-      let [valid, id] = await nvim.eval(`[coc#util#valid_state(), bufwinid(${bufnr})]`) as [number, number]
-      if (valid == 0) return false
-      winid = id
+      let arr = await nvim.eval(`[coc#util#valid_state(), bufwinid(${this.bufnr}), bufnr("%")]`) as [number, number, number]
+      if (arr[0] == 0 || !this.document) return false
+      winid = arr[1]
+      bufnr = arr[2]
     })
     sequence.addFunction(async () => {
       nvim.pauseNotification()
-      this.setDiagnosticInfo(diagnostics)
+      this.setDiagnosticInfo(bufnr, diagnostics)
       this.addSigns(diagnostics)
       this.setLocationlist(diagnostics, winid)
       this.addHighlight(diagnostics, winid)
@@ -139,7 +135,7 @@ export class DiagnosticBuffer implements Disposable {
     }
   }
 
-  public setDiagnosticInfo(diagnostics: ReadonlyArray<Diagnostic>): void {
+  public setDiagnosticInfo(bufnr: number, diagnostics: ReadonlyArray<Diagnostic>): void {
     let info = { error: 0, warning: 0, information: 0, hint: 0 }
     for (let diagnostic of diagnostics) {
       switch (diagnostic.severity) {
@@ -157,9 +153,10 @@ export class DiagnosticBuffer implements Disposable {
       }
     }
     this.nvim.call('coc#util#set_buf_var', [this.bufnr, 'coc_diagnostic_info', info], true)
-    if (!workspace.getDocument(this.bufnr)) return
-    if (workspace.bufnr == this.bufnr) this.nvim.command('redraws', true)
-    this.nvim.call('coc#util#do_autocmd', ['CocDiagnosticChange'], true)
+    if (bufnr == this.bufnr) {
+      this.nvim.command('redraws', true)
+      this.nvim.call('coc#util#do_autocmd', ['CocDiagnosticChange'], true)
+    }
   }
 
   private addDiagnosticVText(diagnostics: ReadonlyArray<Diagnostic>): void {
@@ -187,10 +184,9 @@ export class DiagnosticBuffer implements Disposable {
   }
 
   public clearHighlight(): void {
-    let { bufnr, matchIds } = this
-    let doc = workspace.getDocument(bufnr)
-    if (!doc) return
-    doc.clearMatchIds(matchIds)
+    let { matchIds } = this
+    if (!this.document) return
+    this.document.clearMatchIds(matchIds)
     this.matchIds.clear()
   }
 
@@ -198,8 +194,6 @@ export class DiagnosticBuffer implements Disposable {
     this.clearHighlight()
     if (diagnostics.length == 0) return
     if (winid == -1 && workspace.isVim && !workspace.env.textprop) return
-    let document = workspace.getDocument(this.bufnr)
-    if (!document) return
     const highlights: Map<string, Range[]> = new Map()
     for (let diagnostic of diagnostics) {
       let { range, severity } = diagnostic
@@ -209,7 +203,7 @@ export class DiagnosticBuffer implements Disposable {
       highlights.set(hlGroup, ranges)
     }
     for (let [hlGroup, ranges] of highlights.entries()) {
-      let matchIds = document.highlightRanges(ranges, hlGroup, this.srdId)
+      let matchIds = this.document.highlightRanges(ranges, hlGroup, this.srdId)
       for (let id of matchIds) this.matchIds.add(id)
     }
   }
@@ -223,27 +217,37 @@ export class DiagnosticBuffer implements Disposable {
   public async clear(): Promise<void> {
     if (this.sequence) await this.sequence.cancel()
     let { nvim } = this
+    let bufnr = await nvim.eval('bufnr("%")') as number
     nvim.pauseNotification()
     this.clearHighlight()
     this.clearSigns()
-    if (this.config.virtualText && workspace.isNvim) {
-      let buffer = this.nvim.createBuffer(this.bufnr)
-      buffer.clearNamespace(this.config.virtualTextSrcId)
+    if (this.config.virtualText
+      && nvim.hasFunction('nvim_buf_set_virtual_text')
+      && this.document) {
+      this.document.buffer.clearNamespace(this.config.virtualTextSrcId)
     }
-    if (workspace.bufnr == this.bufnr) {
-      nvim.command('unlet b:coc_diagnostic_info', true)
-    } else {
-      this.setDiagnosticInfo([])
-    }
+    this.setDiagnosticInfo(bufnr, [])
     await nvim.resumeNotification(false, true)
   }
 
   public dispose(): void {
     if (this.sequence) {
-      this.sequence.cancel().catch(_e => {
-        // noop
-      })
+      this.sequence.cancel().logError()
     }
     this._onDidRefresh.dispose()
+  }
+
+  private get document(): Document | null {
+    if (!this.bufnr) return null
+    return workspace.getDocument(this.bufnr)
+  }
+
+  public get uri(): string | null {
+    if (!this.document) return null
+    return this.document.uri
+  }
+
+  private get nvim(): Neovim {
+    return workspace.nvim
   }
 }
