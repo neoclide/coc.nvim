@@ -88,6 +88,8 @@ export class ListManager implements Disposable {
     this.ui.onDidChangeLine(debounce(async () => {
       if (!this.activated) return
       let previewing = await nvim.call('coc#util#has_preview')
+      let mode = await this.nvim.mode
+      if (mode.blocking || mode.mode != 'n') return
       if (previewing) await this.doAction('preview')
     }, 100), null, this.disposables)
     this.ui.onDidLineChange(debounce(async () => {
