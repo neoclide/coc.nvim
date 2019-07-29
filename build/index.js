@@ -54547,7 +54547,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "b96f1d0e0b" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "07a84965f1" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -72173,6 +72173,7 @@ class DiagnosticManager {
         this.buffers = [];
         this.collections = [];
         this.disposables = [];
+        this.lastChanageTs = 0;
     }
     init() {
         this.setConfiguration();
@@ -72208,15 +72209,20 @@ class DiagnosticManager {
                     doc.forceSync();
                     await util_1.wait(50);
                 }
+                let d = 300 - (Date.now() - this.lastChanageTs);
+                if (d > 0)
+                    await util_1.wait(d);
                 this.refreshBuffer(doc.uri);
             }
         }, null, this.disposables);
         events_1.default.on('BufEnter', async (bufnr) => {
             if (this.timer)
                 clearTimeout(this.timer);
-            if (!this.config || !this.enabled || !this.config.locationlist)
+            if (!this.enabled || !this.config.locationlist)
                 return;
             let doc = workspace_1.default.getDocument(bufnr);
+            if (doc && doc.buftype == 'quickfix')
+                return;
             if (this.shouldValidate(doc)) {
                 let refreshed = this.refreshBuffer(doc.uri);
                 if (refreshed)
@@ -72235,6 +72241,9 @@ class DiagnosticManager {
             if (this.config.refreshAfterSave) {
                 this.refreshBuffer(buf.uri);
             }
+        }, null, this.disposables);
+        events_1.default.on(['TextChanged', 'TextChangedI'], () => {
+            this.lastChanageTs = Date.now();
         }, null, this.disposables);
         workspace_1.default.onDidChangeConfiguration(async (e) => {
             this.setConfiguration(e);
@@ -72276,23 +72285,19 @@ class DiagnosticManager {
         if (this.config.virtualText && workspace_1.default.isNvim) {
             nvim.call('coc#util#init_virtual_hl', [], true);
         }
-        nvim.resumeNotification(false, true).catch(_e => {
-            // noop
-        });
+        nvim.resumeNotification(false, true).logError();
     }
     createDiagnosticBuffer(doc) {
         if (!this.shouldValidate(doc))
             return;
         let idx = this.buffers.findIndex(b => b.bufnr == doc.bufnr);
         if (idx == -1) {
-            let buf = new buffer_1.DiagnosticBuffer(doc, this.config);
+            let buf = new buffer_1.DiagnosticBuffer(doc.bufnr, this.config);
             this.buffers.push(buf);
             buf.onDidRefresh(() => {
                 if (workspace_1.default.insertMode)
                     return;
-                this.echoMessage(true).catch(_e => {
-                    // noop
-                });
+                this.echoMessage(true).logError();
             });
         }
     }
@@ -72325,26 +72330,20 @@ class DiagnosticManager {
     create(name) {
         let collection = new collection_1.default(name);
         this.collections.push(collection);
-        let disposable = collection.onDidDiagnosticsChange(async (uri) => {
+        collection.onDidDiagnosticsChange(async (uri) => {
             if (this.config.refreshAfterSave)
                 return;
             this.refreshBuffer(uri);
         });
-        let dispose = collection.onDidDiagnosticsClear(uris => {
+        collection.onDidDiagnosticsClear(uris => {
             for (let uri of uris) {
                 this.refreshBuffer(uri);
             }
         });
         collection.onDispose(() => {
-            disposable.dispose();
-            dispose.dispose();
             let idx = this.collections.findIndex(o => o == collection);
             if (idx !== -1)
                 this.collections.splice(idx, 1);
-            collection.forEach((uri, diagnostics) => {
-                if (diagnostics && diagnostics.length)
-                    this.refreshBuffer(uri);
-            });
         });
         return collection;
     }
@@ -72664,52 +72663,40 @@ class DiagnosticManager {
         return doc != null && doc.buftype == '';
     }
     refreshBuffer(uri) {
-        // vim has issue with diagnostic update
-        if (workspace_1.default.insertMode && !this.config.refreshOnInsertMode)
-            return;
+        let { insertMode } = workspace_1.default;
         let buf = this.buffers.find(buf => buf.uri == uri);
+        if (!buf)
+            return;
         let { displayByAle } = this.config;
-        if (buf) {
-            if (displayByAle) {
-                let { nvim } = this;
-                let allDiagnostics = new Map();
-                for (let collection of this.collections) {
-                    let diagnostics = collection.get(uri);
-                    let aleItems = diagnostics.map(o => {
-                        let { range } = o;
-                        return {
-                            text: o.message,
-                            code: o.code,
-                            lnum: range.start.line + 1,
-                            col: range.start.character + 1,
-                            end_lnum: range.end.line + 1,
-                            end_col: range.end.character,
-                            type: util_2.getSeverityType(o.severity)
-                        };
-                    });
-                    let exists = allDiagnostics.get(collection.name);
-                    if (exists) {
-                        exists.push(...aleItems);
-                    }
-                    else {
-                        allDiagnostics.set(collection.name, aleItems);
-                    }
-                }
-                nvim.pauseNotification();
-                for (let key of allDiagnostics.keys()) {
-                    this.nvim.call('ale#other_source#ShowResults', [buf.bufnr, key, allDiagnostics.get(key)], true);
-                }
-                nvim.resumeNotification(false, true).catch(_e => {
-                    // noop
+        if (!displayByAle) {
+            let diagnostics = this.getDiagnostics(uri);
+            if (insertMode && !this.config.refreshOnInsertMode && diagnostics.length != 0)
+                return;
+            if (this.enabled) {
+                buf.refresh(diagnostics);
+                return true;
+            }
+        }
+        else {
+            let { nvim } = this;
+            nvim.pauseNotification();
+            for (let collection of this.collections) {
+                let diagnostics = collection.get(uri);
+                let aleItems = diagnostics.map(o => {
+                    let { range } = o;
+                    return {
+                        text: o.message,
+                        code: o.code,
+                        lnum: range.start.line + 1,
+                        col: range.start.character + 1,
+                        end_lnum: range.end.line + 1,
+                        end_col: range.end.character,
+                        type: util_2.getSeverityType(o.severity)
+                    };
                 });
+                nvim.call('ale#other_source#ShowResults', [buf.bufnr, collection.name, aleItems], true);
             }
-            else {
-                let diagnostics = this.getDiagnostics(uri);
-                if (this.enabled) {
-                    buf.refresh(diagnostics);
-                    return true;
-                }
-            }
+            nvim.resumeNotification(false, true).logError();
         }
         return false;
     }
@@ -73609,7 +73596,7 @@ const logger = __webpack_require__(183)('diagnostic-buffer');
 const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint'];
 // maintains sign and highlightId
 class DiagnosticBuffer {
-    constructor(doc, config) {
+    constructor(bufnr, config) {
         this.config = config;
         this.signIds = new Set();
         this.sequence = null;
@@ -73617,8 +73604,7 @@ class DiagnosticBuffer {
         this.matchIds = new Set();
         this.diagnostics = [];
         this.onDidRefresh = this._onDidRefresh.event;
-        this.bufnr = doc.bufnr;
-        this.uri = doc.uri;
+        this.bufnr = bufnr;
         this.srdId = workspace_1.default.createNameSpace('coc-diagnostic');
         let timer = null;
         let time = Date.now();
@@ -73632,30 +73618,29 @@ class DiagnosticBuffer {
                     await this.sequence.cancel();
                 }
                 // staled
-                if (current != time)
+                if (current != time || !this.document)
                     return;
                 this._refresh(diagnostics);
-            }, global.hasOwnProperty('__TEST__') ? 30 : 50);
+            }, 30);
         };
-    }
-    get nvim() {
-        return workspace_1.default.nvim;
     }
     _refresh(diagnostics) {
         if (object_1.equals(this.diagnostics, diagnostics))
             return;
-        let { nvim, bufnr } = this;
+        let { nvim } = this;
         let sequence = this.sequence = new callSequence_1.default();
         let winid;
+        let bufnr;
         sequence.addFunction(async () => {
-            let [valid, id] = await nvim.eval(`[coc#util#valid_state(), bufwinid(${bufnr})]`);
-            if (valid == 0)
+            let arr = await nvim.eval(`[coc#util#valid_state(), bufwinid(${this.bufnr}), bufnr("%")]`);
+            if (arr[0] == 0 || !this.document)
                 return false;
-            winid = id;
+            winid = arr[1];
+            bufnr = arr[2];
         });
         sequence.addFunction(async () => {
             nvim.pauseNotification();
-            this.setDiagnosticInfo(diagnostics);
+            this.setDiagnosticInfo(bufnr, diagnostics);
             this.addSigns(diagnostics);
             this.setLocationlist(diagnostics, winid);
             this.addHighlight(diagnostics, winid);
@@ -73735,7 +73720,7 @@ class DiagnosticBuffer {
             signId = signId + 1;
         }
     }
-    setDiagnosticInfo(diagnostics) {
+    setDiagnosticInfo(bufnr, diagnostics) {
         let info = { error: 0, warning: 0, information: 0, hint: 0 };
         for (let diagnostic of diagnostics) {
             switch (diagnostic.severity) {
@@ -73753,11 +73738,10 @@ class DiagnosticBuffer {
             }
         }
         this.nvim.call('coc#util#set_buf_var', [this.bufnr, 'coc_diagnostic_info', info], true);
-        if (!workspace_1.default.getDocument(this.bufnr))
-            return;
-        if (workspace_1.default.bufnr == this.bufnr)
+        if (bufnr == this.bufnr) {
             this.nvim.command('redraws', true);
-        this.nvim.call('coc#util#do_autocmd', ['CocDiagnosticChange'], true);
+            this.nvim.call('coc#util#do_autocmd', ['CocDiagnosticChange'], true);
+        }
     }
     addDiagnosticVText(diagnostics) {
         let { bufnr, nvim } = this;
@@ -73785,11 +73769,10 @@ class DiagnosticBuffer {
         }
     }
     clearHighlight() {
-        let { bufnr, matchIds } = this;
-        let doc = workspace_1.default.getDocument(bufnr);
-        if (!doc)
+        let { matchIds } = this;
+        if (!this.document)
             return;
-        doc.clearMatchIds(matchIds);
+        this.document.clearMatchIds(matchIds);
         this.matchIds.clear();
     }
     addHighlight(diagnostics, winid) {
@@ -73797,9 +73780,6 @@ class DiagnosticBuffer {
         if (diagnostics.length == 0)
             return;
         if (winid == -1 && workspace_1.default.isVim && !workspace_1.default.env.textprop)
-            return;
-        let document = workspace_1.default.getDocument(this.bufnr);
-        if (!document)
             return;
         const highlights = new Map();
         for (let diagnostic of diagnostics) {
@@ -73810,7 +73790,7 @@ class DiagnosticBuffer {
             highlights.set(hlGroup, ranges);
         }
         for (let [hlGroup, ranges] of highlights.entries()) {
-            let matchIds = document.highlightRanges(ranges, hlGroup, this.srdId);
+            let matchIds = this.document.highlightRanges(ranges, hlGroup, this.srdId);
             for (let id of matchIds)
                 this.matchIds.add(id);
         }
@@ -73825,28 +73805,36 @@ class DiagnosticBuffer {
         if (this.sequence)
             await this.sequence.cancel();
         let { nvim } = this;
+        let bufnr = await nvim.eval('bufnr("%")');
         nvim.pauseNotification();
         this.clearHighlight();
         this.clearSigns();
-        if (this.config.virtualText && workspace_1.default.isNvim) {
-            let buffer = this.nvim.createBuffer(this.bufnr);
-            buffer.clearNamespace(this.config.virtualTextSrcId);
+        if (this.config.virtualText
+            && nvim.hasFunction('nvim_buf_set_virtual_text')
+            && this.document) {
+            this.document.buffer.clearNamespace(this.config.virtualTextSrcId);
         }
-        if (workspace_1.default.bufnr == this.bufnr) {
-            nvim.command('unlet b:coc_diagnostic_info', true);
-        }
-        else {
-            this.setDiagnosticInfo([]);
-        }
+        this.setDiagnosticInfo(bufnr, []);
         await nvim.resumeNotification(false, true);
     }
     dispose() {
         if (this.sequence) {
-            this.sequence.cancel().catch(_e => {
-                // noop
-            });
+            this.sequence.cancel().logError();
         }
         this._onDidRefresh.dispose();
+    }
+    get document() {
+        if (!this.bufnr)
+            return null;
+        return workspace_1.default.getDocument(this.bufnr);
+    }
+    get uri() {
+        if (!this.document)
+            return null;
+        return this.document.uri;
+    }
+    get nvim() {
+        return workspace_1.default.nvim;
     }
 }
 exports.DiagnosticBuffer = DiagnosticBuffer;
@@ -79725,6 +79713,9 @@ class ListManager {
             if (!this.activated)
                 return;
             let previewing = await nvim.call('coc#util#has_preview');
+            let mode = await this.nvim.mode;
+            if (mode.blocking || mode.mode != 'n')
+                return;
             if (previewing)
                 await this.doAction('preview');
         }, 100), null, this.disposables);
