@@ -275,6 +275,8 @@ function! s:ShowInfo()
       belowright vnew
       setl filetype=nofile
       call setline(1, lines)
+    else
+      echohl MoreMsg | echon 'Service stopped for some unknown reason, try :CocStart' | echohl None
     endif
   endif
 endfunction
