@@ -150,6 +150,7 @@ export class Extensions {
     let statusItem = workspace.createStatusBarItem(0, { progress: true })
     statusItem.text = `Updating extensions.`
     statusItem.show()
+    this.db.push('lastUpdate', Date.now())
     await Promise.all(names.map(name => {
       let o = stats.find(o => o.id == name)
       return this.manager.update(this.npm, name, o.exotic ? o.uri : undefined).then(updated => {
@@ -158,7 +159,6 @@ export class Extensions {
         workspace.showMessage(`Error on update ${name}: ${err}`)
       })
     }))
-    this.db.push('lastUpdate', Date.now())
     workspace.showMessage('Update completed', 'more')
     statusItem.dispose()
   }
