@@ -14,17 +14,17 @@ export default (opts: Attach, requestApi = true): Plugin => {
   // Overwriding the URI.file function in case of cygwin.
   nvim.eval('has("win32unix")').then(result => {
     if (!result) {
-      return;
+      return
     }
-    const old_uri = URI.file;
+    const old_uri = URI.file
     nvim.eval('g:coc_cygqwin_path_prefixes').then(prefixes => {
-      URI.file = function(_path): URI{
-        let path = _path.replace(/\\/g, '/');
-        Object.keys(prefixes).forEach(k => path = path.replace(new RegExp('^' + k, 'gi'), prefixes[k]));
-        return old_uri(path);
+      URI.file = (_path): URI => {
+        let path = _path.replace(/\\/g, '/')
+        Object.keys(prefixes).forEach(k => path = path.replace(new RegExp('^' + k, 'gi'), prefixes[k]))
+        return old_uri(path)
       }
-    })
-  })
+    }).catch(err => logger.error(`There was an error retrieving the cygwin path prefixes: ${err}`))
+  }).catch(err => logger.error(`There was an error estblishing if we have a cygwin process: ${err}`))
   const plugin = new Plugin(nvim)
   let clientReady = false
   let initialized = false
