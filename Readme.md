@@ -117,6 +117,8 @@ Below are the reasons that led coc.nvim to build its own engine:
 
 - [Using workspaceFolders](https://github.com/neoclide/coc.nvim/wiki/Using-workspaceFolders)
 
+- [Using multiple cursors](https://github.com/neoclide/coc.nvim/wiki/Multiple-cursors-support)
+
 - [Language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers)
 
   - [Supported features](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features)
@@ -213,6 +215,7 @@ Extensions are more powerful than a configured language server. Check out
 - **[coc-powershell](https://github.com/yatli/coc-powershell)** for PowerShellEditorService integration.
 - **[coc-omnisharp](https://github.com/yatli/coc-omnisharp)** for `csharp` and `visualbasic`.
 - **[coc-texlab](https://github.com/fannheyward/coc-texlab)** for `LaTex` using [TexLab](https://texlab.netlify.com/).
+- **[coc-lsp-wl](https://github.com/voldikss/coc-lsp-wl)** for `wolfram mathematica`, fork of [vscode-lsp-wl](https://github.com/kenkangxgwe/vscode-lsp-wl).
 
 Plus more! To get a full list of coc extensions, [search coc.nvim on npm](https://www.npmjs.com/search?q=keywords%3Acoc.nvim),
 or use [coc-marketplace](https://github.com/fannheyward/coc-marketplace), which can search and install extensions in coc.nvim directly.

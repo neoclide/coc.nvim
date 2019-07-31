@@ -54547,7 +54547,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "07a84965f1" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "f283b585e3" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -57658,6 +57658,7 @@ class Extensions {
         let statusItem = workspace_1.default.createStatusBarItem(0, { progress: true });
         statusItem.text = `Updating extensions.`;
         statusItem.show();
+        this.db.push('lastUpdate', Date.now());
         await Promise.all(names.map(name => {
             let o = stats.find(o => o.id == name);
             return this.manager.update(this.npm, name, o.exotic ? o.uri : undefined).then(updated => {
@@ -57667,7 +57668,6 @@ class Extensions {
                 workspace_1.default.showMessage(`Error on update ${name}: ${err}`);
             });
         }));
-        this.db.push('lastUpdate', Date.now());
         workspace_1.default.showMessage('Update completed', 'more');
         statusItem.dispose();
     }
@@ -82951,9 +82951,7 @@ class ListUI {
             nvim.pauseNotification();
             this.setCursor(n + 1, 0);
             nvim.command('redraw', true);
-            nvim.resumeNotification(false, true).catch(_e => {
-                // noop
-            });
+            nvim.resumeNotification(false, true).logError();
         }
     }
     get index() {
@@ -83062,9 +83060,11 @@ class ListUI {
         this.window = null;
     }
     hide() {
-        let { bufnr, nvim } = this;
+        let { bufnr, window, nvim } = this;
+        if (window) {
+            nvim.call('coc#util#close', [window.id], true);
+        }
         if (bufnr) {
-            this._bufnr = 0;
             nvim.command(`silent! bd! ${bufnr}`, true);
         }
     }
