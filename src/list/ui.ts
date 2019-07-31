@@ -86,9 +86,7 @@ export default class ListUI {
       nvim.pauseNotification()
       this.setCursor(n + 1, 0)
       nvim.command('redraw', true)
-      nvim.resumeNotification(false, true).catch(_e => {
-        // noop
-      })
+      nvim.resumeNotification(false, true).logError()
     }
   }
 
@@ -196,9 +194,11 @@ export default class ListUI {
   }
 
   public hide(): void {
-    let { bufnr, nvim } = this
+    let { bufnr, window, nvim } = this
+    if (window) {
+      nvim.call('coc#util#close', [window.id], true)
+    }
     if (bufnr) {
-      this._bufnr = 0
       nvim.command(`silent! bd! ${bufnr}`, true)
     }
   }

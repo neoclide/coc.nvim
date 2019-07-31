@@ -110,6 +110,19 @@ function! coc#util#close_win(id)
   endif
 endfunction
 
+function! coc#util#close(id) abort
+  if exists('*nvim_win_close')
+    if nvim_win_is_valid(a:id)
+      call nvim_win_close(a:id, 1)
+    endif
+  else
+    let winnr = win_id2win(a:id)
+    if winnr > 0
+      execute winnr.'close!'
+    endif
+  endif
+endfunction
+
 function! coc#util#win_position()
   let nr = winnr()
   let [row, col] = win_screenpos(nr)
