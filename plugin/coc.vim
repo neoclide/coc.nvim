@@ -276,7 +276,11 @@ function! s:ShowInfo()
       setl filetype=nofile
       call setline(1, lines)
     else
-      echohl MoreMsg | echon 'Service stopped for some unknown reason, try :CocStart' | echohl None
+      if get(g:, 'coc_start_at_startup',1)
+        echohl MoreMsg | echon 'Start on startup is disabled, try :CocStart' | echohl None
+      else
+        echohl MoreMsg | echon 'Service stopped for some unknown reason, try :CocStart' | echohl None
+      endif
     endif
   endif
 endfunction
