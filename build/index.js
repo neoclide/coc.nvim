@@ -52929,6 +52929,7 @@ const os_1 = tslib_1.__importDefault(__webpack_require__(55));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const uuidv1 = __webpack_require__(217);
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(198));
 const logger = __webpack_require__(183)('watchman');
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch'];
 const clientsMap = new Map();
@@ -52999,7 +53000,7 @@ class Watchman {
         let { clock } = await this.command(['clock', watch]);
         let uid = uuidv1();
         let sub = {
-            expression: ['allof', ['match', globPattern, 'wholename']],
+            expression: ['allof', ['match', '**/*', 'wholename']],
             fields: ['name', 'size', 'exists', 'type', 'mtime_ms', 'ctime_ms'],
             since: clock,
         };
@@ -53016,7 +53017,8 @@ class Watchman {
             if (!resp || resp.subscription != uid)
                 return;
             let { files } = resp;
-            if (!files || !files.length)
+            files = files.filter(f => f.type == 'f');
+            if (!files || !files.length || !minimatch_1.default(files[0].name, globPattern))
                 return;
             let ev = Object.assign({}, resp);
             if (this.relative_path)
@@ -54547,7 +54549,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f283b585e3" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "0ce8df2d10" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
