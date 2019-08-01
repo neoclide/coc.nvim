@@ -6,7 +6,7 @@ __pycache__
 .log
 src
 publish.sh
-!doc/tags
-!doc/tags-cn
+doc/tags
+doc/tags-cn
 node_modules
 src/__tests__/tags
