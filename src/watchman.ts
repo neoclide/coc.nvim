@@ -4,6 +4,7 @@ import path from 'path'
 import { OutputChannel } from './types'
 import uuidv1 = require('uuid/v1')
 import { Disposable } from 'vscode-languageserver-protocol'
+import minimatch from 'minimatch'
 const logger = require('./util/logger')('watchman')
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch']
 
@@ -100,7 +101,7 @@ export default class Watchman {
     let { clock } = await this.command(['clock', watch])
     let uid = uuidv1()
     let sub: any = {
-      expression: ['allof', ['match', globPattern, 'wholename']],
+      expression: ['allof', ['match', '**/*', 'wholename']],
       fields: ['name', 'size', 'exists', 'type', 'mtime_ms', 'ctime_ms'],
       since: clock,
     }
@@ -115,7 +116,8 @@ export default class Watchman {
     this.client.on('subscription', resp => {
       if (!resp || resp.subscription != uid) return
       let { files } = resp as FileChange
-      if (!files || !files.length) return
+      files = files.filter(f => f.type == 'f')
+      if (!files || !files.length || !minimatch(files[0].name, globPattern)) return
       let ev: FileChange = Object.assign({}, resp)
       if (this.relative_path) ev.root = path.resolve(resp.root, this.relative_path)
       // resp.root = this.relative_path
