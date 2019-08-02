@@ -1534,7 +1534,7 @@ COMMANDS 					*coc-commands*
 
 :CocConfig 					*:CocConfig*
 
-		Edit the user config file `coc-setting.json`
+		Edit the user config file `coc-settings.json`
 
 :CocInstall [{option}] {name} ... 		*:CocInstall*
 
