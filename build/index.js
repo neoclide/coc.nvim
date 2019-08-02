@@ -54549,7 +54549,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "065d4d034d" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "ec693b2d81" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -76444,6 +76444,7 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const async_1 = __webpack_require__(351);
 const cv = tslib_1.__importStar(__webpack_require__(352));
 const UUID = tslib_1.__importStar(__webpack_require__(353));
+const lodash_1 = __webpack_require__(309);
 const logger = __webpack_require__(183)('language-client-client');
 class ConsoleLogger {
     error(message) {
@@ -76885,10 +76886,10 @@ class DidChangeTextDocumentFeature {
                 let middleware = this._client.clientOptions.middleware;
                 if (changeData.syncKind === vscode_languageserver_protocol_1.TextDocumentSyncKind.Incremental) {
                     if (middleware.didChange) {
-                        middleware.didChange(event, () => this._client.sendNotification(vscode_languageserver_protocol_1.DidChangeTextDocumentNotification.type, event));
+                        middleware.didChange(event, () => this._client.sendNotification(vscode_languageserver_protocol_1.DidChangeTextDocumentNotification.type, lodash_1.omit(event, ['bufnr', 'original'])));
                     }
                     else {
-                        this._client.sendNotification(vscode_languageserver_protocol_1.DidChangeTextDocumentNotification.type, event);
+                        this._client.sendNotification(vscode_languageserver_protocol_1.DidChangeTextDocumentNotification.type, lodash_1.omit(event, ['bufnr', 'original']));
                     }
                 }
                 else if (changeData.syncKind === vscode_languageserver_protocol_1.TextDocumentSyncKind.Full) {
