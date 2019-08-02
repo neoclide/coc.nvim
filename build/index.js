@@ -54549,7 +54549,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "0ce8df2d10" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "065d4d034d" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54769,6 +54769,7 @@ class CommandManager {
         this.titles = new Map();
     }
     init(nvim, plugin) {
+        this.mru = workspace_1.default.createMru('commands');
         this.register({
             id: 'vscode.open',
             execute: async (url) => {
@@ -55035,9 +55036,12 @@ class CommandManager {
             logger.error(e.stack);
         });
     }
+    async addRecent(cmd) {
+        await this.mru.add(cmd);
+        await workspace_1.default.nvim.command(`silent! call repeat#set("\\<Plug>(coc-command-repeat)", -1)`);
+    }
     async repeatCommand() {
-        let mru = workspace_1.default.createMru('commands');
-        let mruList = await mru.load();
+        let mruList = await this.mru.load();
         let first = mruList[0];
         if (first) {
             await this.executeCommand(first);
@@ -81239,8 +81243,7 @@ class CommandsList extends basic_1.default {
             let { cmd } = item.data;
             await events_1.default.fire('Command', [cmd]);
             await commands_1.default.executeCommand(cmd);
-            await this.mru.add(cmd);
-            await nvim.command(`silent! call repeat#set("\\<Plug>(coc-command-repeat)", -1)`);
+            await commands_1.default.addRecent(cmd);
         });
     }
     async loadItems(_context) {
@@ -85956,7 +85959,9 @@ class Handler {
         if (id) {
             await events_1.default.fire('Command', [id]);
             let res = await commands_1.default.executeCommand(id, ...args);
-            await this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-command-repeat)", -1)`);
+            if (args.length == 0) {
+                await commands_1.default.addRecent(id);
+            }
             return res;
         }
         else {
