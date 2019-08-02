@@ -19,8 +19,7 @@ export default class CommandsList extends BasicList {
       let { cmd } = item.data
       await events.fire('Command', [cmd])
       await commandManager.executeCommand(cmd)
-      await this.mru.add(cmd)
-      await nvim.command(`silent! call repeat#set("\\<Plug>(coc-command-repeat)", -1)`)
+      await commandManager.addRecent(cmd)
     })
   }
 

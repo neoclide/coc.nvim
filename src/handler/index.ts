@@ -508,7 +508,9 @@ export default class Handler {
     if (id) {
       await events.fire('Command', [id])
       let res = await commandManager.executeCommand(id, ...args)
-      await this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-command-repeat)", -1)`)
+      if (args.length == 0) {
+        await commandManager.addRecent(id)
+      }
       return res
     } else {
       await listManager.start(['commands'])

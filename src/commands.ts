@@ -7,6 +7,7 @@ import Plugin from './plugin'
 import snipetsManager from './snippets/manager'
 import diagnosticManager from './diagnostic/manager'
 import { URI } from 'vscode-uri'
+import Mru from './model/mru'
 const logger = require('./util/logger')('commands')
 
 // command center
@@ -38,8 +39,10 @@ class CommandItem implements Disposable, Command {
 export class CommandManager implements Disposable {
   private readonly commands = new Map<string, CommandItem>()
   public titles = new Map<string, string>()
+  private mru: Mru
 
   public init(nvim: Neovim, plugin: Plugin): void {
+    this.mru = workspace.createMru('commands')
     this.register({
       id: 'vscode.open',
       execute: async (url: string | URI) => {
@@ -299,9 +302,13 @@ export class CommandManager implements Disposable {
     })
   }
 
+  public async addRecent(cmd: string): Promise<void> {
+    await this.mru.add(cmd)
+    await workspace.nvim.command(`silent! call repeat#set("\\<Plug>(coc-command-repeat)", -1)`)
+  }
+
   public async repeatCommand(): Promise<void> {
-    let mru = workspace.createMru('commands')
-    let mruList = await mru.load()
+    let mruList = await this.mru.load()
     let first = mruList[0]
     if (first) {
       await this.executeCommand(first)
