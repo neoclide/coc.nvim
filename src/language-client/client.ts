@@ -25,6 +25,7 @@ import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 import { WorkspaceFolderWorkspaceMiddleware } from './workspaceFolders'
 import { SelectionRangeProviderMiddleware } from './selectionRange'
+import { omit } from '../util/lodash'
 
 const logger = require('../util/logger')('language-client-client')
 
@@ -1214,13 +1215,13 @@ class DidChangeTextDocumentFeature
             middleware.didChange(event, () =>
               this._client.sendNotification(
                 DidChangeTextDocumentNotification.type,
-                event
+                omit(event, ['bufnr', 'original'])
               )
             )
           } else {
             this._client.sendNotification(
               DidChangeTextDocumentNotification.type,
-              event
+              omit(event, ['bufnr', 'original'])
             )
           }
         } else if (changeData.syncKind === TextDocumentSyncKind.Full) {
