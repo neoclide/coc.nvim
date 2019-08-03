@@ -123,7 +123,7 @@ export default class Document {
     this.variables = opts.variables
     this._changedtick = opts.changedtick
     this.eol = opts.eol == 1
-    let uri = this._uri = getUri(opts.fullpath, buffer.id, buftype)
+    let uri = this._uri = getUri(opts.fullpath, buffer.id, buftype, this.env.isCygwin)
     token.onCancellationRequested(() => {
       this.detach()
     })

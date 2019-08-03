@@ -244,6 +244,7 @@ export interface Env {
   readonly cmdheight: number
   readonly filetypeMap: { [index: string]: string }
   readonly isVim: boolean
+  readonly isCygwin: boolean
   readonly isMacvim: boolean
   readonly version: string
   readonly locationlist: boolean

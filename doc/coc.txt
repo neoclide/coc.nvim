@@ -868,6 +868,21 @@ g:coc_global_extensions 			*g:coc_global_extensions*
 			installed, define this variable to a list of extension 
 			names when you can't use |coc#add_extension()|
 
+g:coc_cygqwin_path_prefixes 			*g:coc_cygqwin_path_prefixes*
+
+			When running under cygwin, the node process will work
+			with win32 paths, while your vim process will work
+			with POSIX paths. You can use this map to map between
+			paths. For example, your root folder might be
+			`c:/Users/myUser/workspace` mapped in cygwin as
+			`/home/myUser/workspace`. In this situation, your node
+			process might send the `c:/Users/myUser/workspace`
+			path to your vim process. To solve this, you need to
+			define this map:
+
+				`let g:coc_cygqwin_path_prefixes = `
+				`	\{'c:/Users/myUser': '/home/myUser'}`
+
 g:coc_enable_locationlist 			*g:coc_enable_locationlist*
 
 			Open location list when location list changes.
