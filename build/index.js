@@ -54561,7 +54561,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "11bb70de3b" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "a540bcf7b0" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -85905,10 +85905,26 @@ class Handler {
         };
     }
     async rename(newName) {
-        let edit = await this.getWordEdit();
+        let bufnr = await this.nvim.call('bufnr', '%');
+        let doc = workspace_1.default.getDocument(bufnr);
+        if (!doc)
+            return false;
         let { nvim } = this;
-        if (!edit) {
-            workspace_1.default.showMessage('Invalid position for rename', 'warning');
+        let position = await workspace_1.default.getCursorPosition();
+        let range = doc.getWordRangeAtPosition(position);
+        if (!range || position_1.emptyRange(range))
+            return false;
+        if (!languages_1.default.hasProvider('rename', doc.textDocument)) {
+            workspace_1.default.showMessage(`Rename provider not found for current document`, 'error');
+            return false;
+        }
+        if (doc.dirty) {
+            doc.forceSync();
+            await util_1.wait(30);
+        }
+        let res = await languages_1.default.prepareRename(doc.textDocument, position);
+        if (res === false) {
+            workspace_1.default.showMessage('Invalid position for renmame', 'error');
             return false;
         }
         if (!newName) {
@@ -85920,23 +85936,10 @@ class Handler {
                 return false;
             }
         }
-        // change to newName
-        let { changes, documentChanges } = edit;
-        if (changes) {
-            for (let uri of Object.keys(changes)) {
-                for (let edit of changes[uri]) {
-                    edit.newText = newName;
-                }
-            }
-        }
-        else if (documentChanges) {
-            for (let c of documentChanges) {
-                if (vscode_languageserver_protocol_1.TextDocumentEdit.is(c)) {
-                    for (let edit of c.edits) {
-                        edit.newText = newName;
-                    }
-                }
-            }
+        let edit = await languages_1.default.provideRenameEdits(doc.textDocument, position, newName);
+        if (!edit) {
+            workspace_1.default.showMessage('Invalid position for rename', 'warning');
+            return false;
         }
         await workspace_1.default.applyEdit(edit);
         return true;
