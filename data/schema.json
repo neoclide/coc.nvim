@@ -561,9 +561,7 @@
     "diagnostic.filetypeMap": {
       "type": "object",
       "description": "A map between buffer filetype and the filetype assigned to diagnostics. To syntax highlight diagnostics withs their parent buffer type use '\"default\": \"bufferType\"'",
-      "default": {
-        "default": ""
-      }
+      "default": {}
     },
     "signature.enable": {
       "type": "boolean",

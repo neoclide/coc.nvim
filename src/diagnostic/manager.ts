@@ -43,6 +43,7 @@ export class DiagnosticManager implements Disposable {
   public config: DiagnosticConfig
   public enabled = true
   public readonly buffers: DiagnosticBuffer[] = []
+  private lastMessage = ''
   private floatFactory: FloatFactory
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
@@ -371,6 +372,7 @@ export class DiagnosticManager implements Disposable {
       if (checkCurrentLine) return lineInRange(pos.line, o.range)
       return positionInRange(pos, o.range) == 0
     })
+    diagnostics.sort((a, b) => a.severity - b.severity)
     return diagnostics
   }
 
@@ -387,15 +389,21 @@ export class DiagnosticManager implements Disposable {
       if (useFloat) {
         this.floatFactory.close()
       } else {
-        await this.nvim.command('echo ""')
+        let echoLine = await this.nvim.call('coc#util#echo_line') as string
+        if (this.lastMessage && echoLine.startsWith(this.lastMessage)) {
+          this.nvim.command('echo ""', true)
+        }
       }
       return
     }
     if (truncate && workspace.insertMode) return
     let docs: Documentation[] = []
-    const filetype = await this.nvim.eval('&filetype') as string
-    const defaultFiletype = config.filetypeMap['default'] || ''
-    const ft = config.filetypeMap[filetype] || (defaultFiletype == 'bufferType' ? filetype : defaultFiletype)
+    let ft = ''
+    if (Object.keys(config.filetypeMap).length > 0) {
+      const filetype = await this.nvim.eval('&filetype') as string
+      const defaultFiletype = config.filetypeMap['default'] || ''
+      ft = config.filetypeMap[filetype] || (defaultFiletype == 'bufferType' ? filetype : defaultFiletype)
+    }
     diagnostics.forEach(diagnostic => {
       let { source, code, severity, message } = diagnostic
       let s = getSeverityName(severity)[0]
@@ -421,9 +429,12 @@ export class DiagnosticManager implements Disposable {
     if (useFloat) {
       await this.floatFactory.create(docs)
     } else {
-      await this.nvim.command('echo ""')
       let lines = docs.map(d => d.content).join('\n').split(/\r?\n/)
-      await workspace.echoLines(lines, truncate)
+      if (lines.length) {
+        await this.nvim.command('echo ""')
+        this.lastMessage = lines[0].slice(0, 30)
+        await workspace.echoLines(lines, truncate)
+      }
     }
   }
 
