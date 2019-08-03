@@ -695,7 +695,7 @@ export default class Document {
    */
   public setIskeyword(iskeyword: string): void {
     let chars = this.chars = new Chars(iskeyword)
-    let additional = this.getVar('additional_keywords')
+    let additional = this.getVar<string[]>('additional_keywords', [])
     if (additional && Array.isArray(additional)) {
       for (let ch of additional) {
         chars.addKeyword(ch)
