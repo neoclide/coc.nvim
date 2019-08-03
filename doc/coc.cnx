@@ -354,7 +354,7 @@ g:coc_start_at_startup 				*g:coc_start_at_startup*
 
 g:coc_user_config 				*g:coc_user_config*
 
-			配置 coc 的用户配置，推荐使用 coc-setting.json 文件
+			配置 coc 的用户配置，推荐使用 coc-settings.json 文件
 			进行配置，而不是该变量。
 
 			该设置仅在服务启动前有效。
@@ -940,7 +940,7 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 :CocConfig 					*:CocConfig*
 
-		打开用户的 `coc-setting.json` 文件。
+		打开用户的 `coc-settings.json` 文件。
 
 :CocInstall [{option}] {name} ... 		*:CocInstall*
 

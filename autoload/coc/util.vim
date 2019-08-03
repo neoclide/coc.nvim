@@ -224,7 +224,11 @@ function! coc#util#execute(cmd)
 endfunction
 
 function! coc#util#jump(cmd, filepath, ...) abort
-  let file = fnamemodify(a:filepath, ":~:.")
+  let path = a:filepath
+  if (has('win32unix'))
+    let path = substitute(a:filepath, '\v\\', '/', 'g')
+  endif
+  let file = fnamemodify(path, ":~:.")
   if a:cmd =~# '^tab'
     exe a:cmd.' '.fnameescape(file)
     if !empty(get(a:, 1, []))
@@ -586,6 +590,7 @@ function! coc#util#vim_info()
         \ 'completeOpt': &completeopt,
         \ 'pumevent': exists('##MenuPopupChanged') || exists('##CompleteChanged'),
         \ 'isVim': has('nvim') ? v:false : v:true,
+        \ 'isCygwin': has('win32unix') ? v:true : v:false,
         \ 'isMacvim': has('gui_macvim') ? v:true : v:false,
         \ 'colorscheme': get(g:, 'colors_name', ''),
         \ 'workspaceFolders': get(g:, 'WorkspaceFolders', v:null),
