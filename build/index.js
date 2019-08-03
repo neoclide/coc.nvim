@@ -1727,10 +1727,22 @@ const events_1 = tslib_1.__importDefault(__webpack_require__(145));
 const plugin_1 = tslib_1.__importDefault(__webpack_require__(228));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
 __webpack_require__(306);
+const vscode_uri_1 = __webpack_require__(177);
 const logger = __webpack_require__(183)('attach');
 const isTest = "none" == 'test';
 exports.default = (opts, requestApi = true) => {
     const nvim = neovim_1.attach(opts, log4js_1.default.getLogger('node-client'), requestApi);
+    // Overwriding the URI.file function in case of cygwin.
+    nvim.eval('has("win32unix")?get(g:,"coc_cygqwin_path_prefixes", v:null):v:null').then(prefixes => {
+        if (!prefixes)
+            return;
+        const old_uri = vscode_uri_1.URI.file;
+        vscode_uri_1.URI.file = (path) => {
+            path = path.replace(/\\/g, '/');
+            Object.keys(prefixes).forEach(k => path = path.replace(new RegExp('^' + k, 'gi'), prefixes[k]));
+            return old_uri(path);
+        };
+    }).logError();
     const plugin = new plugin_1.default(nvim);
     let clientReady = false;
     let initialized = false;
@@ -42430,10 +42442,10 @@ function echoMsg(nvim, msg, hl) {
     let method = process.env.VIM_NODE_RPC == '1' ? 'callTimer' : 'call';
     nvim[method]('coc#util#echo_messages', [hl, msg.split('\n')], true);
 }
-function getUri(fullpath, id, buftype) {
+function getUri(fullpath, id, buftype, isCygwin) {
     if (!fullpath)
         return `untitled:${id}`;
-    if (platform.isWindows)
+    if (platform.isWindows && !isCygwin)
         fullpath = path_1.default.win32.normalize(fullpath);
     if (path_1.default.isAbsolute(fullpath))
         return vscode_uri_1.URI.file(fullpath).toString();
@@ -49931,7 +49943,7 @@ class Document {
         this.variables = opts.variables;
         this._changedtick = opts.changedtick;
         this.eol = opts.eol == 1;
-        let uri = this._uri = index_1.getUri(opts.fullpath, buffer.id, buftype);
+        let uri = this._uri = index_1.getUri(opts.fullpath, buffer.id, buftype, this.env.isCygwin);
         token.onCancellationRequested(() => {
             this.detach();
         });
@@ -50500,7 +50512,7 @@ class Document {
      */
     setIskeyword(iskeyword) {
         let chars = this.chars = new chars_1.Chars(iskeyword);
-        let additional = this.getVar('additional_keywords');
+        let additional = this.getVar('additional_keywords', []);
         if (additional && Array.isArray(additional)) {
             for (let ch of additional) {
                 chars.addKeyword(ch);
@@ -54549,7 +54561,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "b9967440b8" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "11bb70de3b" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -72177,6 +72189,7 @@ class DiagnosticManager {
     constructor() {
         this.enabled = true;
         this.buffers = [];
+        this.lastMessage = '';
         this.collections = [];
         this.disposables = [];
         this.lastChanageTs = 0;
@@ -72516,6 +72529,7 @@ class DiagnosticManager {
                 return position_1.lineInRange(pos.line, o.range);
             return position_1.positionInRange(pos, o.range) == 0;
         });
+        diagnostics.sort((a, b) => a.severity - b.severity);
         return diagnostics;
     }
     /**
@@ -72534,16 +72548,22 @@ class DiagnosticManager {
                 this.floatFactory.close();
             }
             else {
-                await this.nvim.command('echo ""');
+                let echoLine = await this.nvim.call('coc#util#echo_line');
+                if (this.lastMessage && echoLine.startsWith(this.lastMessage)) {
+                    this.nvim.command('echo ""', true);
+                }
             }
             return;
         }
         if (truncate && workspace_1.default.insertMode)
             return;
         let docs = [];
-        const filetype = await this.nvim.eval('&filetype');
-        const defaultFiletype = config.filetypeMap['default'] || '';
-        const ft = config.filetypeMap[filetype] || (defaultFiletype == 'bufferType' ? filetype : defaultFiletype);
+        let ft = '';
+        if (Object.keys(config.filetypeMap).length > 0) {
+            const filetype = await this.nvim.eval('&filetype');
+            const defaultFiletype = config.filetypeMap['default'] || '';
+            ft = config.filetypeMap[filetype] || (defaultFiletype == 'bufferType' ? filetype : defaultFiletype);
+        }
         diagnostics.forEach(diagnostic => {
             let { source, code, severity, message } = diagnostic;
             let s = util_2.getSeverityName(severity)[0];
@@ -72571,9 +72591,12 @@ class DiagnosticManager {
             await this.floatFactory.create(docs);
         }
         else {
-            await this.nvim.command('echo ""');
             let lines = docs.map(d => d.content).join('\n').split(/\r?\n/);
-            await workspace_1.default.echoLines(lines, truncate);
+            if (lines.length) {
+                await this.nvim.command('echo ""');
+                this.lastMessage = lines[0].slice(0, 30);
+                await workspace_1.default.echoLines(lines, truncate);
+            }
         }
     }
     async jumpRelated() {
