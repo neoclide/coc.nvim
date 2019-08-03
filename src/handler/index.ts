@@ -435,10 +435,24 @@ export default class Handler {
   }
 
   public async rename(newName?: string): Promise<boolean> {
-    let edit = await this.getWordEdit()
+    let bufnr = await this.nvim.call('bufnr', '%')
+    let doc = workspace.getDocument(bufnr)
+    if (!doc) return false
     let { nvim } = this
-    if (!edit) {
-      workspace.showMessage('Invalid position for rename', 'warning')
+    let position = await workspace.getCursorPosition()
+    let range = doc.getWordRangeAtPosition(position)
+    if (!range || emptyRange(range)) return false
+    if (!languages.hasProvider('rename', doc.textDocument)) {
+      workspace.showMessage(`Rename provider not found for current document`, 'error')
+      return false
+    }
+    if (doc.dirty) {
+      doc.forceSync()
+      await wait(30)
+    }
+    let res = await languages.prepareRename(doc.textDocument, position)
+    if (res === false) {
+      workspace.showMessage('Invalid position for renmame', 'error')
       return false
     }
     if (!newName) {
@@ -450,22 +464,10 @@ export default class Handler {
         return false
       }
     }
-    // change to newName
-    let { changes, documentChanges } = edit
-    if (changes) {
-      for (let uri of Object.keys(changes)) {
-        for (let edit of changes[uri]) {
-          edit.newText = newName
-        }
-      }
-    } else if (documentChanges) {
-      for (let c of documentChanges) {
-        if (TextDocumentEdit.is(c)) {
-          for (let edit of c.edits) {
-            edit.newText = newName
-          }
-        }
-      }
+    let edit = await languages.provideRenameEdits(doc.textDocument, position, newName)
+    if (!edit) {
+      workspace.showMessage('Invalid position for rename', 'warning')
+      return false
     }
     await workspace.applyEdit(edit)
     return true
