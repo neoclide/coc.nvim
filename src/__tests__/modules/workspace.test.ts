@@ -740,7 +740,7 @@ describe('workspace utility', () => {
   })
 
   it('should request input', async () => {
-    let p = workspace.requestInput('name')
+    let p = workspace.requestInput('Name')
     await helper.wait(30)
     await nvim.input('bar<enter>')
     let res = await p
@@ -748,7 +748,7 @@ describe('workspace utility', () => {
   })
 
   it('should return null when input empty', async () => {
-    let p = workspace.requestInput('name')
+    let p = workspace.requestInput('Name')
     await helper.wait(30)
     await nvim.input('<enter>')
     let res = await p

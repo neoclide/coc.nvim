@@ -1044,7 +1044,7 @@ export class Workspace implements IWorkspace {
    */
   public async requestInput(title: string, defaultValue?: string): Promise<string> {
     let { nvim } = this
-    let res = await this.callAsync<string>('input', [title + ':', defaultValue || ''])
+    let res = await this.callAsync<string>('input', [title + ': ', defaultValue || ''])
     nvim.command('normal! :<C-u>', true)
     if (!res) {
       this.showMessage('Empty word, canceled', 'warning')
@@ -1479,7 +1479,7 @@ augroup end`
       return
     }
     let oldPath = URI.parse(doc.uri).fsPath
-    let newPath = await nvim.call('input', ['new path:', oldPath, 'file'])
+    let newPath = await nvim.call('input', ['New path: ', oldPath, 'file'])
     newPath = newPath ? newPath.trim() : null
     if (newPath == oldPath || !newPath) return
     let lines = await doc.buffer.lines
