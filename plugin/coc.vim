@@ -206,7 +206,7 @@ function! s:Enable()
     autocmd BufNewFile,BufReadPost, * call s:Autocmd('BufCreate', +expand('<abuf>'))
     autocmd BufUnload           * call s:SyncAutocmd('BufUnload', +expand('<abuf>'))
     autocmd BufWritePre         * call s:SyncAutocmd('BufWritePre', +expand('<abuf>'))
-    autocmd FocusGained         * call s:Autocmd('FocusGained')
+    autocmd FocusGained         * if mode() !~# '^c' | call s:Autocmd('FocusGained') | endif
     autocmd VimResized          * call s:Autocmd('VimResized', &columns, &lines)
     autocmd VimLeavePre         * let g:coc_vim_leaving = 1
     autocmd VimLeave            * call coc#rpc#stop()
