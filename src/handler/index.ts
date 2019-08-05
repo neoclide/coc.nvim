@@ -457,7 +457,7 @@ export default class Handler {
     }
     if (!newName) {
       let curname = await nvim.eval('expand("<cword>")')
-      newName = await workspace.callAsync<string>('input', ['new name:', curname])
+      newName = await workspace.callAsync<string>('input', ['New name: ', curname])
       nvim.command('normal! :<C-u>', true)
       if (!newName) {
         workspace.showMessage('Empty name, canceled', 'warning')
