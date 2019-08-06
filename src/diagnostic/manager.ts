@@ -86,11 +86,11 @@ export class DiagnosticManager implements Disposable {
       }
     }, null, this.disposables)
 
-    events.on('BufEnter', async bufnr => {
+    events.on('BufEnter', async () => {
       if (this.timer) clearTimeout(this.timer)
       if (!this.enabled || !this.config.locationlist) return
-      let doc = workspace.getDocument(bufnr)
-      if (doc && doc.buftype == 'quickfix') return
+      let doc = await workspace.document
+      if (!doc || doc.buftype == 'quickfix') return
       if (this.shouldValidate(doc)) {
         let refreshed = this.refreshBuffer(doc.uri)
         if (refreshed) return
