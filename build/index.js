@@ -45079,7 +45079,7 @@ class Workspace {
      */
     async requestInput(title, defaultValue) {
         let { nvim } = this;
-        let res = await this.callAsync('input', [title + ':', defaultValue || '']);
+        let res = await this.callAsync('input', [title + ': ', defaultValue || '']);
         nvim.command('normal! :<C-u>', true);
         if (!res) {
             this.showMessage('Empty word, canceled', 'warning');
@@ -45516,7 +45516,7 @@ augroup end`;
             return;
         }
         let oldPath = vscode_uri_1.URI.parse(doc.uri).fsPath;
-        let newPath = await nvim.call('input', ['new path:', oldPath, 'file']);
+        let newPath = await nvim.call('input', ['New path: ', oldPath, 'file']);
         newPath = newPath ? newPath.trim() : null;
         if (newPath == oldPath || !newPath)
             return;
@@ -54561,7 +54561,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "1b48fa6643" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "6d4508c366" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -72234,13 +72234,13 @@ class DiagnosticManager {
                 this.refreshBuffer(doc.uri);
             }
         }, null, this.disposables);
-        events_1.default.on('BufEnter', async (bufnr) => {
+        events_1.default.on('BufEnter', async () => {
             if (this.timer)
                 clearTimeout(this.timer);
             if (!this.enabled || !this.config.locationlist)
                 return;
-            let doc = workspace_1.default.getDocument(bufnr);
-            if (doc && doc.buftype == 'quickfix')
+            let doc = await workspace_1.default.document;
+            if (!doc || doc.buftype == 'quickfix')
                 return;
             if (this.shouldValidate(doc)) {
                 let refreshed = this.refreshBuffer(doc.uri);
@@ -81947,7 +81947,7 @@ class FoldList extends basic_1.default {
         this.description = 'list of current workspace folders';
         this.name = 'folders';
         this.addAction('edit', async (item) => {
-            let newPath = await nvim.call('input', ['Folder:', item.label, 'file']);
+            let newPath = await nvim.call('input', ['Folder: ', item.label, 'file']);
             let stat = await fs_1.statAsync(newPath);
             if (!stat || !stat.isDirectory()) {
                 await nvim.command(`echoerr "invalid path: ${newPath}"`);
@@ -85929,7 +85929,7 @@ class Handler {
         }
         if (!newName) {
             let curname = await nvim.eval('expand("<cword>")');
-            newName = await workspace_1.default.callAsync('input', ['new name:', curname]);
+            newName = await workspace_1.default.callAsync('input', ['New name: ', curname]);
             nvim.command('normal! :<C-u>', true);
             if (!newName) {
                 workspace_1.default.showMessage('Empty name, canceled', 'warning');
