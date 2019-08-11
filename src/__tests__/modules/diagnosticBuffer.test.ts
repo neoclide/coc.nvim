@@ -13,6 +13,7 @@ const config: DiagnosticConfig = {
   maxWindowHeight: 8,
   enableMessage: 'always',
   messageTarget: 'echo',
+  floatDelay: 500,
   refreshOnInsertMode: false,
   virtualTextSrcId: 0,
   virtualText: false,
