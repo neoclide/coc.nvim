@@ -28,6 +28,7 @@ export interface DiagnosticConfig {
   hintSign: string
   level: number
   messageTarget: string
+  messageDelay: number
   joinMessageLines: boolean
   maxWindowHeight: number
   refreshAfterSave: boolean
@@ -63,7 +64,7 @@ export class DiagnosticManager implements Disposable {
       this.timer = setTimeout(async () => {
         if (this.config.enableMessage != 'always') return
         await this.echoMessage(true)
-      }, 500)
+      }, this.config.messageDelay)
     }, null, this.disposables)
     events.on('InsertEnter', async () => {
       if (this.timer) clearTimeout(this.timer)
@@ -502,6 +503,7 @@ export class DiagnosticManager implements Disposable {
       maxWindowHeight: getConfig<number>('maxWindowHeight', 10),
       enableMessage: getConfig<string>('enableMessage', 'always'),
       joinMessageLines: getConfig<boolean>('joinMessageLines', false),
+      messageDelay: getConfig<number>('messageDelay', 250),
       virtualText: getConfig<boolean>('virtualText', false),
       virtualTextPrefix: getConfig<string>('virtualTextPrefix', " "),
       virtualTextLineSeparator: getConfig<string>('virtualTextLineSeparator', " \\ "),
