@@ -259,7 +259,7 @@ export default class FloatFactory implements Disposable {
     disposeAll(this.disposables)
   }
 
-  private get buffer(): Buffer {
+  public get buffer(): Buffer {
     return this.floatBuffer ? this.floatBuffer.buffer : null
   }
 

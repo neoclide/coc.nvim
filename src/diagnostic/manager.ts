@@ -362,8 +362,7 @@ export class DiagnosticManager implements Disposable {
     return res
   }
 
-  public async getCurrentDiagnostics(): Promise<Diagnostic[]> {
-    let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number]]
+  private async getDiagnosticsAt(bufnr: number, cursor: [number, number]): Promise<Diagnostic[]> {
     let pos = Position.create(cursor[0], cursor[1])
     let buffer = this.buffers.find(o => o.bufnr == bufnr)
     if (!buffer) return []
@@ -376,6 +375,11 @@ export class DiagnosticManager implements Disposable {
     return diagnostics
   }
 
+  public async getCurrentDiagnostics(): Promise<Diagnostic[]> {
+    let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number]]
+    return await this.getDiagnosticsAt(bufnr, cursor)
+  }
+
   /**
    * Echo diagnostic message of currrent position
    */
@@ -384,7 +388,12 @@ export class DiagnosticManager implements Disposable {
     if (!this.enabled || config.enableMessage == 'never') return
     if (this.timer) clearTimeout(this.timer)
     let useFloat = config.messageTarget == 'float'
-    let diagnostics = await this.getCurrentDiagnostics()
+    let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number]]
+    if (useFloat) {
+      let { buffer } = this.floatFactory
+      if (buffer && bufnr == buffer.id) return
+    }
+    let diagnostics = await this.getDiagnosticsAt(bufnr, cursor)
     if (diagnostics.length == 0) {
       if (useFloat) {
         this.floatFactory.close()
