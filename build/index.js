@@ -54561,7 +54561,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "6d4508c366" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "e9ef666cb5" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -72517,8 +72517,7 @@ class DiagnosticManager {
         });
         return res;
     }
-    async getCurrentDiagnostics() {
-        let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]');
+    async getDiagnosticsAt(bufnr, cursor) {
         let pos = vscode_languageserver_protocol_1.Position.create(cursor[0], cursor[1]);
         let buffer = this.buffers.find(o => o.bufnr == bufnr);
         if (!buffer)
@@ -72532,6 +72531,10 @@ class DiagnosticManager {
         diagnostics.sort((a, b) => a.severity - b.severity);
         return diagnostics;
     }
+    async getCurrentDiagnostics() {
+        let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]');
+        return await this.getDiagnosticsAt(bufnr, cursor);
+    }
     /**
      * Echo diagnostic message of currrent position
      */
@@ -72542,7 +72545,13 @@ class DiagnosticManager {
         if (this.timer)
             clearTimeout(this.timer);
         let useFloat = config.messageTarget == 'float';
-        let diagnostics = await this.getCurrentDiagnostics();
+        let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]');
+        if (useFloat) {
+            let { buffer } = this.floatFactory;
+            if (buffer && bufnr == buffer.id)
+                return;
+        }
+        let diagnostics = await this.getDiagnosticsAt(bufnr, cursor);
         if (diagnostics.length == 0) {
             if (useFloat) {
                 this.floatFactory.close();
