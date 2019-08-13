@@ -217,6 +217,8 @@ export class Extensions {
     await Promise.all(list.map(def => {
       return this.manager.install(npm, def).then(name => {
         if (name) this.onExtensionInstall(name).logError()
+        list = list.filter(e => e !== name)
+        statusItem.text = `Installing ${list.join(' ')}`
       }, err => {
         workspace.showMessage(`Error on install ${def}: ${err}`)
       })
