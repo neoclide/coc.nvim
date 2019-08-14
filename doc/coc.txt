@@ -2361,7 +2361,7 @@ Q: 	I want codeLens feature of LSP.
 A: 	CodeLens support uses the virtual text feature of neovim, its's not 
 	enabled by default. To enable it, add: >
 
-	  "coc.preferences.codeLens.enable": true,
+	  "codeLens.enable": true,
 <
 	to your coc-settings.json
 
