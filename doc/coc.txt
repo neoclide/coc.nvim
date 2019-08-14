@@ -2028,7 +2028,7 @@ Default mappings in insert mode:
 <C-n>       - navigate to next input in history.
 <C-p>       - navigate to previous input in history.
 <C-s>       - switch matcher for filter items.
-<C-r>       - insert content from register.
+<C-r>       - insert content from vim register.
 <Tab>       - select action.
 
 Default mappings in normal mode:
@@ -2100,6 +2100,7 @@ The mapping expression should be `command:arguments`, available commands:
 	'deletebackward' - remove next character.
 	'removetail' - remove characters afterwards.
 	'removeahead' - remove character ahead.
+	'insertregister' - insert content from vim register.
 	'paste' - append text from system clipboard to prompt.
 'eval' - append text to prompt from result of viml expression.
 'action' - execute action of list, use <tab> to find available actions.
