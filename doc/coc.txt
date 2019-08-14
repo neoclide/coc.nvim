@@ -2028,6 +2028,7 @@ Default mappings in insert mode:
 <C-n>       - navigate to next input in history.
 <C-p>       - navigate to previous input in history.
 <C-s>       - switch matcher for filter items.
+<C-r>       - insert content from register.
 <Tab>       - select action.
 
 Default mappings in normal mode:
