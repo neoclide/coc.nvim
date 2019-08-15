@@ -28,6 +28,9 @@ export default class Plugin extends EventEmitter {
       get: () => this.nvim
     })
     this.cursors = new Cursors(nvim)
+    this.addMethod('hasProvider', async (id: string) => {
+      return this.handler.hasProvider(id)
+    })
     this.addMethod('hasSelected', () => {
       return completion.hasSelected()
     })

@@ -1,5 +1,5 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, SymbolInformation, TextEdit, WorkspaceEdit, TextDocumentEdit } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { Document } from '..'
 import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
@@ -14,14 +14,14 @@ import { CodeAction, Documentation } from '../types'
 import { disposeAll, wait } from '../util'
 import { getSymbolKind } from '../util/convert'
 import { equals } from '../util/object'
-import { positionInRange, rangeInRange, emptyRange } from '../util/position'
+import { emptyRange, positionInRange, rangeInRange } from '../util/position'
 import { byteLength, isWord } from '../util/string'
 import workspace from '../workspace'
 import CodeLensManager from './codelens'
-import Search from './search'
 import Colors from './colors'
-import Refactor from './refactor'
 import DocumentHighlighter from './documentHighlight'
+import Refactor from './refactor'
+import Search from './search'
 import debounce = require('debounce')
 const logger = require('../util/logger')('Handler')
 const pairs: Map<string, string> = new Map([
@@ -289,6 +289,13 @@ export default class Handler {
     buffer.setVar('coc_current_function', functionName, true)
     this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true)
     return functionName
+  }
+
+  public async hasProvider(id: string): Promise<boolean> {
+    let bufnr = await this.nvim.call('bufnr', '%')
+    let doc = workspace.getDocument(bufnr)
+    if (!doc) return false
+    return languages.hasProvider(id, doc.textDocument)
   }
 
   public async onHover(): Promise<boolean> {

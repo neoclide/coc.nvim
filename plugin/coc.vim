@@ -17,6 +17,10 @@ function! CocAction(...) abort
   return coc#rpc#request('CocAction', a:000)
 endfunction
 
+function! CocHasProvider(name) abort
+  return coc#rpc#request('hasProvider', [a:name])
+endfunction
+
 function! CocActionAsync(...) abort
   return s:AsyncRequest('CocAction', a:000)
 endfunction
