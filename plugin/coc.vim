@@ -172,7 +172,7 @@ function! s:Enable()
 
     if coc#rpc#started()
       autocmd VimEnter            * call coc#rpc#notify('VimEnter', [])
-    else
+    elseif get(g:, 'coc_start_at_startup', 1)
       autocmd VimEnter            * call coc#rpc#start_server()
     endif
     if s:is_vim
