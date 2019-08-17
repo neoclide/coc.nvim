@@ -45373,7 +45373,7 @@ augroup end`;
         catch (e) {
             logger.error('Error on create buffer:', e);
         }
-        if (!document)
+        if (!document || !document.textDocument)
             return;
         this.buffers.set(bufnr, document);
         document.onDocumentDetach(uri => {
@@ -54564,7 +54564,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "0baa83de90" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "c7b582a7a2" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -83319,7 +83319,9 @@ class ListUI {
         this._onDidChange.fire();
         if (workspace_1.default.isVim)
             nvim.command('redraw', true);
-        await nvim.resumeNotification();
+        let [, err] = await nvim.resumeNotification();
+        if (err)
+            logger.error(err);
     }
     restoreWindow() {
         if (this.newTab)
@@ -83419,7 +83421,6 @@ const fzy_1 = __webpack_require__(381);
 const score_1 = __webpack_require__(385);
 const string_1 = __webpack_require__(207);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const uuidv1 = __webpack_require__(217);
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 const logger = __webpack_require__(183)('list-worker');
 const controlCode = '\x1b';
@@ -83430,7 +83431,6 @@ class Worker {
         this.manager = manager;
         this.recentFiles = [];
         this._loading = false;
-        this.task = null;
         this.totalItems = [];
         this._onDidChangeItems = new vscode_languageserver_protocol_1.Emitter();
         this.onDidChangeItems = this._onDidChangeItems.event;
@@ -83438,6 +83438,7 @@ class Worker {
         prompt.onDidChangeInput(async () => {
             let { listOptions } = manager;
             let { interactive } = listOptions;
+            let time = manager.getConfig('interactiveDebounceTime', 100);
             if (this.timer)
                 clearTimeout(this.timer);
             // reload or filter items
@@ -83445,7 +83446,7 @@ class Worker {
                 this.stop();
                 this.timer = setTimeout(async () => {
                     await this.loadItems();
-                }, 100);
+                }, time);
             }
             else if (this.length) {
                 let wait = Math.max(Math.min(Math.floor(this.length / 200), 300), 50);
@@ -83459,7 +83460,7 @@ class Worker {
         let mru = workspace_1.default.createMru('mru');
         mru.load().then(files => {
             this.recentFiles = files;
-        }, logError);
+        }).logError();
     }
     set loading(loading) {
         if (this._loading == loading)
@@ -83495,7 +83496,6 @@ class Worker {
         this.loadMru();
         if (this.timer)
             clearTimeout(this.timer);
-        let id = this.taskId = uuidv1();
         this.loading = true;
         let { interactive } = listOptions;
         let source = this.tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
@@ -83527,7 +83527,7 @@ class Worker {
             });
         }
         else {
-            let task = this.task = items;
+            let task = items;
             let totalItems = this.totalItems = [];
             let count = 0;
             let currInput = context.input;
@@ -83535,7 +83535,7 @@ class Worker {
             let lastTs;
             let _onData = () => {
                 lastTs = Date.now();
-                if (this.taskId != id || !this.manager.isActivated)
+                if (token.isCancellationRequested || !this.manager.isActivated)
                     return;
                 if (count >= totalItems.length)
                     return;
@@ -83578,7 +83578,7 @@ class Worker {
             task.on('data', async (item) => {
                 if (timer)
                     clearTimeout(timer);
-                if (this.taskId != id || !this._loading)
+                if (token.isCancellationRequested)
                     return;
                 if (interactive && this.input != currInput)
                     return;
@@ -83600,13 +83600,13 @@ class Worker {
                 disposable.dispose();
                 if (timer)
                     clearTimeout(timer);
-                if (task == this.task) {
+                if (task) {
                     task.dispose();
-                    this.task = null;
-                    this.taskId = null;
+                    task = null;
                 }
             });
             task.on('error', async (error) => {
+                task = null;
                 this.loading = false;
                 disposable.dispose();
                 if (timer)
@@ -83616,10 +83616,13 @@ class Worker {
                 logger.error(error);
             });
             task.on('end', async () => {
+                task = null;
                 this.loading = false;
                 disposable.dispose();
                 if (timer)
                     clearTimeout(timer);
+                if (token.isCancellationRequested)
+                    return;
                 if (totalItems.length == 0) {
                     this._onDidChangeItems.fire({ items: [], highlights: [] });
                 }
@@ -83656,11 +83659,6 @@ class Worker {
         this.loading = false;
         if (this.timer) {
             clearTimeout(this.timer);
-        }
-        if (this.task) {
-            this.task.dispose();
-            this.task = null;
-            this.taskId = null;
         }
     }
     get length() {
@@ -83838,9 +83836,6 @@ function getItemUri(item) {
     if (typeof location == 'string')
         return location;
     return location.uri;
-}
-function logError(e) {
-    logger.error(e);
 }
 //# sourceMappingURL=worker.js.map
 
