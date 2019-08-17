@@ -1339,7 +1339,7 @@ augroup end`
     } catch (e) {
       logger.error('Error on create buffer:', e)
     }
-    if (!document) return
+    if (!document || !document.textDocument) return
     this.buffers.set(bufnr, document)
     document.onDocumentDetach(uri => {
       let doc = this.getDocument(uri)
