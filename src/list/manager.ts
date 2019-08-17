@@ -74,11 +74,9 @@ export class ListManager implements Disposable {
         this.ui.hide()
         return
       }
-      let { isVim } = workspace
       let curr = await nvim.call('bufnr', '%')
       if (curr == bufnr) {
         this.prompt.start()
-        if (isVim) nvim.command(`set t_ve=`, true)
       } else {
         nvim.pauseNotification()
         this.prompt.cancel()
@@ -442,7 +440,7 @@ export class ListManager implements Disposable {
       if (code == 65533) return
       // exclude control characer
       if (code < 32 || code >= 127 && code <= 159) return
-      this.prompt.insertCharacter(s)
+      await this.prompt.acceptCharacter(s)
     }
   }
 

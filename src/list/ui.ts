@@ -390,9 +390,7 @@ export default class ListUI {
     if (!append) window.notify('nvim_win_set_cursor', [[index + 1, 0]])
     this._onDidChange.fire()
     if (workspace.isVim) nvim.command('redraw', true)
-    nvim.resumeNotification(false, true).catch(_e => {
-      // noop
-    })
+    await nvim.resumeNotification()
   }
 
   public restoreWindow(): void {

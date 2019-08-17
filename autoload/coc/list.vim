@@ -154,7 +154,9 @@ function! coc#list#setlines(lines, append)
   else
     silent call append(0, a:lines)
     let n = len(a:lines) + 1
+    let saved_reg = @"
     silent execute n.',$d'
+    let @" = saved_reg
   endif
 endfunction
 

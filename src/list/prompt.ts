@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Emitter, Event } from 'vscode-languageserver-protocol'
-import { ListMode, Matcher, ListOptions } from '../types'
+import { ListMode, ListOptions, Matcher } from '../types'
 import workspace from '../workspace'
 import ListConfiguration from './configuration'
 const logger = require('../util/logger')('list-prompt')
@@ -11,6 +11,7 @@ export default class Prompt {
   private _matcher: Matcher | ''
   private _mode: ListMode = 'insert'
   private interactive = false
+  private requestInput = false
 
   private _onDidChangeInput = new Emitter<string>()
   public readonly onDidChangeInput: Event<string> = this._onDidChangeInput.event
@@ -48,8 +49,8 @@ export default class Prompt {
   public start(opts?: ListOptions): void {
     if (opts) {
       this.interactive = opts.interactive
-      this._input = opts.input
       this.cusorIndex = opts.input.length
+      this._input = opts.input
       this._mode = opts.mode
       this._matcher = opts.interactive ? '' : opts.matcher
     }
@@ -175,17 +176,21 @@ export default class Prompt {
     this._onDidChangeInput.fire(this._input)
   }
 
-  public insertCharacter(ch: string): void {
-    this.addText(ch)
+  public async acceptCharacter(ch: string): Promise<void> {
+    if (this.requestInput) {
+      this.requestInput = false
+      if (/^[0-9a-z"%#*+/:\-.]$/.test(ch)) {
+        let text = await this.nvim.call('getreg', ch) as string
+        text = text.replace(/\n/g, ' ')
+        this.addText(text)
+      }
+    } else {
+      this.addText(ch)
+    }
   }
 
   public async insertRegister(): Promise<void> {
-    let ch = await this.nvim.eval('nr2char(getchar())') as string
-    if (/^[0-9a-z"%#*+/:\-.]$/.test(ch)) {
-      let text = await this.nvim.call('getreg', ch) as string
-      text = text.replace(/\n/g, '')
-      this.addText(text)
-    }
+    this.requestInput = true
   }
 
   public async paste(): Promise<void> {
