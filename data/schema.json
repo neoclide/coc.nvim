@@ -638,6 +638,11 @@
       "default": ">",
       "description": "The characer used as first characer in prompt line"
     },
+    "list.interactiveDebounceTime": {
+      "type": "number",
+      "default": 100,
+      "description": "Debouce time for input change on interactive mode."
+    },
     "list.maxHeight": {
       "type": "number",
       "default": 10,
