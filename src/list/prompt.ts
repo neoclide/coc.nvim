@@ -179,6 +179,15 @@ export default class Prompt {
     this.addText(ch)
   }
 
+  public async insertRegister(): Promise<void> {
+    let ch = await this.nvim.eval('nr2char(getchar())') as string
+    if (/^[0-9a-z"%#*+/:\-.]$/.test(ch)) {
+      let text = await this.nvim.call('getreg', ch) as string
+      text = text.replace(/\n/g, '')
+      this.addText(text)
+    }
+  }
+
   public async paste(): Promise<void> {
     await this.eval('@*')
   }

@@ -70,6 +70,9 @@ export default class Mappings {
     this.add('insert', '<C-u>', () => {
       prompt.removeAhead()
     })
+    this.add('insert', '<C-r>', () => {
+      return prompt.insertRegister()
+    })
     this.add('insert', '<C-d>', () => {
       return manager.feedkeys('<C-d>')
     })
@@ -307,6 +310,9 @@ export default class Mappings {
           return prompt.removeTail()
         case 'removeahead':
           return prompt.removeAhead()
+        case 'insertregister':
+          await prompt.insertRegister()
+          return
         case 'paste':
           await prompt.paste()
           return
