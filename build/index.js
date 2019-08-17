@@ -153,7 +153,12 @@ var MAX_SAFE_COMPONENT_LENGTH = 16
 // The actual regexps go on exports.re
 var re = exports.re = []
 var src = exports.src = []
+var t = exports.tokens = {}
 var R = 0
+
+function tok (n) {
+  t[n] = R++
+}
 
 // The following Regular Expressions can be used for tokenizing,
 // validating, and parsing SemVer version strings.
@@ -161,67 +166,67 @@ var R = 0
 // ## Numeric Identifier
 // A single `0`, or a non-zero digit followed by zero or more digits.
 
-var NUMERICIDENTIFIER = R++
-src[NUMERICIDENTIFIER] = '0|[1-9]\\d*'
-var NUMERICIDENTIFIERLOOSE = R++
-src[NUMERICIDENTIFIERLOOSE] = '[0-9]+'
+tok('NUMERICIDENTIFIER')
+src[t.NUMERICIDENTIFIER] = '0|[1-9]\\d*'
+tok('NUMERICIDENTIFIERLOOSE')
+src[t.NUMERICIDENTIFIERLOOSE] = '[0-9]+'
 
 // ## Non-numeric Identifier
 // Zero or more digits, followed by a letter or hyphen, and then zero or
 // more letters, digits, or hyphens.
 
-var NONNUMERICIDENTIFIER = R++
-src[NONNUMERICIDENTIFIER] = '\\d*[a-zA-Z-][a-zA-Z0-9-]*'
+tok('NONNUMERICIDENTIFIER')
+src[t.NONNUMERICIDENTIFIER] = '\\d*[a-zA-Z-][a-zA-Z0-9-]*'
 
 // ## Main Version
 // Three dot-separated numeric identifiers.
 
-var MAINVERSION = R++
-src[MAINVERSION] = '(' + src[NUMERICIDENTIFIER] + ')\\.' +
-                   '(' + src[NUMERICIDENTIFIER] + ')\\.' +
-                   '(' + src[NUMERICIDENTIFIER] + ')'
+tok('MAINVERSION')
+src[t.MAINVERSION] = '(' + src[t.NUMERICIDENTIFIER] + ')\\.' +
+                   '(' + src[t.NUMERICIDENTIFIER] + ')\\.' +
+                   '(' + src[t.NUMERICIDENTIFIER] + ')'
 
-var MAINVERSIONLOOSE = R++
-src[MAINVERSIONLOOSE] = '(' + src[NUMERICIDENTIFIERLOOSE] + ')\\.' +
-                        '(' + src[NUMERICIDENTIFIERLOOSE] + ')\\.' +
-                        '(' + src[NUMERICIDENTIFIERLOOSE] + ')'
+tok('MAINVERSIONLOOSE')
+src[t.MAINVERSIONLOOSE] = '(' + src[t.NUMERICIDENTIFIERLOOSE] + ')\\.' +
+                        '(' + src[t.NUMERICIDENTIFIERLOOSE] + ')\\.' +
+                        '(' + src[t.NUMERICIDENTIFIERLOOSE] + ')'
 
 // ## Pre-release Version Identifier
 // A numeric identifier, or a non-numeric identifier.
 
-var PRERELEASEIDENTIFIER = R++
-src[PRERELEASEIDENTIFIER] = '(?:' + src[NUMERICIDENTIFIER] +
-                            '|' + src[NONNUMERICIDENTIFIER] + ')'
+tok('PRERELEASEIDENTIFIER')
+src[t.PRERELEASEIDENTIFIER] = '(?:' + src[t.NUMERICIDENTIFIER] +
+                            '|' + src[t.NONNUMERICIDENTIFIER] + ')'
 
-var PRERELEASEIDENTIFIERLOOSE = R++
-src[PRERELEASEIDENTIFIERLOOSE] = '(?:' + src[NUMERICIDENTIFIERLOOSE] +
-                                 '|' + src[NONNUMERICIDENTIFIER] + ')'
+tok('PRERELEASEIDENTIFIERLOOSE')
+src[t.PRERELEASEIDENTIFIERLOOSE] = '(?:' + src[t.NUMERICIDENTIFIERLOOSE] +
+                                 '|' + src[t.NONNUMERICIDENTIFIER] + ')'
 
 // ## Pre-release Version
 // Hyphen, followed by one or more dot-separated pre-release version
 // identifiers.
 
-var PRERELEASE = R++
-src[PRERELEASE] = '(?:-(' + src[PRERELEASEIDENTIFIER] +
-                  '(?:\\.' + src[PRERELEASEIDENTIFIER] + ')*))'
+tok('PRERELEASE')
+src[t.PRERELEASE] = '(?:-(' + src[t.PRERELEASEIDENTIFIER] +
+                  '(?:\\.' + src[t.PRERELEASEIDENTIFIER] + ')*))'
 
-var PRERELEASELOOSE = R++
-src[PRERELEASELOOSE] = '(?:-?(' + src[PRERELEASEIDENTIFIERLOOSE] +
-                       '(?:\\.' + src[PRERELEASEIDENTIFIERLOOSE] + ')*))'
+tok('PRERELEASELOOSE')
+src[t.PRERELEASELOOSE] = '(?:-?(' + src[t.PRERELEASEIDENTIFIERLOOSE] +
+                       '(?:\\.' + src[t.PRERELEASEIDENTIFIERLOOSE] + ')*))'
 
 // ## Build Metadata Identifier
 // Any combination of digits, letters, or hyphens.
 
-var BUILDIDENTIFIER = R++
-src[BUILDIDENTIFIER] = '[0-9A-Za-z-]+'
+tok('BUILDIDENTIFIER')
+src[t.BUILDIDENTIFIER] = '[0-9A-Za-z-]+'
 
 // ## Build Metadata
 // Plus sign, followed by one or more period-separated build metadata
 // identifiers.
 
-var BUILD = R++
-src[BUILD] = '(?:\\+(' + src[BUILDIDENTIFIER] +
-             '(?:\\.' + src[BUILDIDENTIFIER] + ')*))'
+tok('BUILD')
+src[t.BUILD] = '(?:\\+(' + src[t.BUILDIDENTIFIER] +
+             '(?:\\.' + src[t.BUILDIDENTIFIER] + ')*))'
 
 // ## Full Version String
 // A main version, followed optionally by a pre-release version and
@@ -232,131 +237,133 @@ src[BUILD] = '(?:\\+(' + src[BUILDIDENTIFIER] +
 // capturing group, because it should not ever be used in version
 // comparison.
 
-var FULL = R++
-var FULLPLAIN = 'v?' + src[MAINVERSION] +
-                src[PRERELEASE] + '?' +
-                src[BUILD] + '?'
+tok('FULL')
+tok('FULLPLAIN')
+src[t.FULLPLAIN] = 'v?' + src[t.MAINVERSION] +
+                  src[t.PRERELEASE] + '?' +
+                  src[t.BUILD] + '?'
 
-src[FULL] = '^' + FULLPLAIN + '$'
+src[t.FULL] = '^' + src[t.FULLPLAIN] + '$'
 
 // like full, but allows v1.2.3 and =1.2.3, which people do sometimes.
 // also, 1.0.0alpha1 (prerelease without the hyphen) which is pretty
 // common in the npm registry.
-var LOOSEPLAIN = '[v=\\s]*' + src[MAINVERSIONLOOSE] +
-                 src[PRERELEASELOOSE] + '?' +
-                 src[BUILD] + '?'
+tok('LOOSEPLAIN')
+src[t.LOOSEPLAIN] = '[v=\\s]*' + src[t.MAINVERSIONLOOSE] +
+                  src[t.PRERELEASELOOSE] + '?' +
+                  src[t.BUILD] + '?'
 
-var LOOSE = R++
-src[LOOSE] = '^' + LOOSEPLAIN + '$'
+tok('LOOSE')
+src[t.LOOSE] = '^' + src[t.LOOSEPLAIN] + '$'
 
-var GTLT = R++
-src[GTLT] = '((?:<|>)?=?)'
+tok('GTLT')
+src[t.GTLT] = '((?:<|>)?=?)'
 
 // Something like "2.*" or "1.2.x".
 // Note that "x.x" is a valid xRange identifer, meaning "any version"
 // Only the first item is strictly required.
-var XRANGEIDENTIFIERLOOSE = R++
-src[XRANGEIDENTIFIERLOOSE] = src[NUMERICIDENTIFIERLOOSE] + '|x|X|\\*'
-var XRANGEIDENTIFIER = R++
-src[XRANGEIDENTIFIER] = src[NUMERICIDENTIFIER] + '|x|X|\\*'
+tok('XRANGEIDENTIFIERLOOSE')
+src[t.XRANGEIDENTIFIERLOOSE] = src[t.NUMERICIDENTIFIERLOOSE] + '|x|X|\\*'
+tok('XRANGEIDENTIFIER')
+src[t.XRANGEIDENTIFIER] = src[t.NUMERICIDENTIFIER] + '|x|X|\\*'
 
-var XRANGEPLAIN = R++
-src[XRANGEPLAIN] = '[v=\\s]*(' + src[XRANGEIDENTIFIER] + ')' +
-                   '(?:\\.(' + src[XRANGEIDENTIFIER] + ')' +
-                   '(?:\\.(' + src[XRANGEIDENTIFIER] + ')' +
-                   '(?:' + src[PRERELEASE] + ')?' +
-                   src[BUILD] + '?' +
+tok('XRANGEPLAIN')
+src[t.XRANGEPLAIN] = '[v=\\s]*(' + src[t.XRANGEIDENTIFIER] + ')' +
+                   '(?:\\.(' + src[t.XRANGEIDENTIFIER] + ')' +
+                   '(?:\\.(' + src[t.XRANGEIDENTIFIER] + ')' +
+                   '(?:' + src[t.PRERELEASE] + ')?' +
+                   src[t.BUILD] + '?' +
                    ')?)?'
 
-var XRANGEPLAINLOOSE = R++
-src[XRANGEPLAINLOOSE] = '[v=\\s]*(' + src[XRANGEIDENTIFIERLOOSE] + ')' +
-                        '(?:\\.(' + src[XRANGEIDENTIFIERLOOSE] + ')' +
-                        '(?:\\.(' + src[XRANGEIDENTIFIERLOOSE] + ')' +
-                        '(?:' + src[PRERELEASELOOSE] + ')?' +
-                        src[BUILD] + '?' +
+tok('XRANGEPLAINLOOSE')
+src[t.XRANGEPLAINLOOSE] = '[v=\\s]*(' + src[t.XRANGEIDENTIFIERLOOSE] + ')' +
+                        '(?:\\.(' + src[t.XRANGEIDENTIFIERLOOSE] + ')' +
+                        '(?:\\.(' + src[t.XRANGEIDENTIFIERLOOSE] + ')' +
+                        '(?:' + src[t.PRERELEASELOOSE] + ')?' +
+                        src[t.BUILD] + '?' +
                         ')?)?'
 
-var XRANGE = R++
-src[XRANGE] = '^' + src[GTLT] + '\\s*' + src[XRANGEPLAIN] + '$'
-var XRANGELOOSE = R++
-src[XRANGELOOSE] = '^' + src[GTLT] + '\\s*' + src[XRANGEPLAINLOOSE] + '$'
+tok('XRANGE')
+src[t.XRANGE] = '^' + src[t.GTLT] + '\\s*' + src[t.XRANGEPLAIN] + '$'
+tok('XRANGELOOSE')
+src[t.XRANGELOOSE] = '^' + src[t.GTLT] + '\\s*' + src[t.XRANGEPLAINLOOSE] + '$'
 
 // Coercion.
 // Extract anything that could conceivably be a part of a valid semver
-var COERCE = R++
-src[COERCE] = '(^|[^\\d])' +
+tok('COERCE')
+src[t.COERCE] = '(^|[^\\d])' +
               '(\\d{1,' + MAX_SAFE_COMPONENT_LENGTH + '})' +
               '(?:\\.(\\d{1,' + MAX_SAFE_COMPONENT_LENGTH + '}))?' +
               '(?:\\.(\\d{1,' + MAX_SAFE_COMPONENT_LENGTH + '}))?' +
               '(?:$|[^\\d])'
-var COERCERTL = R++
-re[COERCERTL] = new RegExp(src[COERCE], 'g')
+tok('COERCERTL')
+re[t.COERCERTL] = new RegExp(src[t.COERCE], 'g')
 
 // Tilde ranges.
 // Meaning is "reasonably at or greater than"
-var LONETILDE = R++
-src[LONETILDE] = '(?:~>?)'
+tok('LONETILDE')
+src[t.LONETILDE] = '(?:~>?)'
 
-var TILDETRIM = R++
-src[TILDETRIM] = '(\\s*)' + src[LONETILDE] + '\\s+'
-re[TILDETRIM] = new RegExp(src[TILDETRIM], 'g')
+tok('TILDETRIM')
+src[t.TILDETRIM] = '(\\s*)' + src[t.LONETILDE] + '\\s+'
+re[t.TILDETRIM] = new RegExp(src[t.TILDETRIM], 'g')
 var tildeTrimReplace = '$1~'
 
-var TILDE = R++
-src[TILDE] = '^' + src[LONETILDE] + src[XRANGEPLAIN] + '$'
-var TILDELOOSE = R++
-src[TILDELOOSE] = '^' + src[LONETILDE] + src[XRANGEPLAINLOOSE] + '$'
+tok('TILDE')
+src[t.TILDE] = '^' + src[t.LONETILDE] + src[t.XRANGEPLAIN] + '$'
+tok('TILDELOOSE')
+src[t.TILDELOOSE] = '^' + src[t.LONETILDE] + src[t.XRANGEPLAINLOOSE] + '$'
 
 // Caret ranges.
 // Meaning is "at least and backwards compatible with"
-var LONECARET = R++
-src[LONECARET] = '(?:\\^)'
+tok('LONECARET')
+src[t.LONECARET] = '(?:\\^)'
 
-var CARETTRIM = R++
-src[CARETTRIM] = '(\\s*)' + src[LONECARET] + '\\s+'
-re[CARETTRIM] = new RegExp(src[CARETTRIM], 'g')
+tok('CARETTRIM')
+src[t.CARETTRIM] = '(\\s*)' + src[t.LONECARET] + '\\s+'
+re[t.CARETTRIM] = new RegExp(src[t.CARETTRIM], 'g')
 var caretTrimReplace = '$1^'
 
-var CARET = R++
-src[CARET] = '^' + src[LONECARET] + src[XRANGEPLAIN] + '$'
-var CARETLOOSE = R++
-src[CARETLOOSE] = '^' + src[LONECARET] + src[XRANGEPLAINLOOSE] + '$'
+tok('CARET')
+src[t.CARET] = '^' + src[t.LONECARET] + src[t.XRANGEPLAIN] + '$'
+tok('CARETLOOSE')
+src[t.CARETLOOSE] = '^' + src[t.LONECARET] + src[t.XRANGEPLAINLOOSE] + '$'
 
 // A simple gt/lt/eq thing, or just "" to indicate "any version"
-var COMPARATORLOOSE = R++
-src[COMPARATORLOOSE] = '^' + src[GTLT] + '\\s*(' + LOOSEPLAIN + ')$|^$'
-var COMPARATOR = R++
-src[COMPARATOR] = '^' + src[GTLT] + '\\s*(' + FULLPLAIN + ')$|^$'
+tok('COMPARATORLOOSE')
+src[t.COMPARATORLOOSE] = '^' + src[t.GTLT] + '\\s*(' + src[t.LOOSEPLAIN] + ')$|^$'
+tok('COMPARATOR')
+src[t.COMPARATOR] = '^' + src[t.GTLT] + '\\s*(' + src[t.FULLPLAIN] + ')$|^$'
 
 // An expression to strip any whitespace between the gtlt and the thing
 // it modifies, so that `> 1.2.3` ==> `>1.2.3`
-var COMPARATORTRIM = R++
-src[COMPARATORTRIM] = '(\\s*)' + src[GTLT] +
-                      '\\s*(' + LOOSEPLAIN + '|' + src[XRANGEPLAIN] + ')'
+tok('COMPARATORTRIM')
+src[t.COMPARATORTRIM] = '(\\s*)' + src[t.GTLT] +
+                      '\\s*(' + src[t.LOOSEPLAIN] + '|' + src[t.XRANGEPLAIN] + ')'
 
 // this one has to use the /g flag
-re[COMPARATORTRIM] = new RegExp(src[COMPARATORTRIM], 'g')
+re[t.COMPARATORTRIM] = new RegExp(src[t.COMPARATORTRIM], 'g')
 var comparatorTrimReplace = '$1$2$3'
 
 // Something like `1.2.3 - 1.2.4`
 // Note that these all use the loose form, because they'll be
 // checked against either the strict or loose comparator form
 // later.
-var HYPHENRANGE = R++
-src[HYPHENRANGE] = '^\\s*(' + src[XRANGEPLAIN] + ')' +
+tok('HYPHENRANGE')
+src[t.HYPHENRANGE] = '^\\s*(' + src[t.XRANGEPLAIN] + ')' +
                    '\\s+-\\s+' +
-                   '(' + src[XRANGEPLAIN] + ')' +
+                   '(' + src[t.XRANGEPLAIN] + ')' +
                    '\\s*$'
 
-var HYPHENRANGELOOSE = R++
-src[HYPHENRANGELOOSE] = '^\\s*(' + src[XRANGEPLAINLOOSE] + ')' +
+tok('HYPHENRANGELOOSE')
+src[t.HYPHENRANGELOOSE] = '^\\s*(' + src[t.XRANGEPLAINLOOSE] + ')' +
                         '\\s+-\\s+' +
-                        '(' + src[XRANGEPLAINLOOSE] + ')' +
+                        '(' + src[t.XRANGEPLAINLOOSE] + ')' +
                         '\\s*$'
 
 // Star ranges basically just allow anything at all.
-var STAR = R++
-src[STAR] = '(<|>)?=?\\s*\\*'
+tok('STAR')
+src[t.STAR] = '(<|>)?=?\\s*\\*'
 
 // Compile to actual regexp objects.
 // All are flag-free, unless they were created above with a flag.
@@ -388,7 +395,7 @@ function parse (version, options) {
     return null
   }
 
-  var r = options.loose ? re[LOOSE] : re[FULL]
+  var r = options.loose ? re[t.LOOSE] : re[t.FULL]
   if (!r.test(version)) {
     return null
   }
@@ -443,7 +450,7 @@ function SemVer (version, options) {
   this.options = options
   this.loose = !!options.loose
 
-  var m = version.trim().match(options.loose ? re[LOOSE] : re[FULL])
+  var m = version.trim().match(options.loose ? re[t.LOOSE] : re[t.FULL])
 
   if (!m) {
     throw new TypeError('Invalid Version: ' + version)
@@ -904,7 +911,7 @@ function Comparator (comp, options) {
 
 var ANY = {}
 Comparator.prototype.parse = function (comp) {
-  var r = this.options.loose ? re[COMPARATORLOOSE] : re[COMPARATOR]
+  var r = this.options.loose ? re[t.COMPARATORLOOSE] : re[t.COMPARATOR]
   var m = comp.match(r)
 
   if (!m) {
@@ -1059,18 +1066,18 @@ Range.prototype.parseRange = function (range) {
   var loose = this.options.loose
   range = range.trim()
   // `1.2.3 - 1.2.4` => `>=1.2.3 <=1.2.4`
-  var hr = loose ? re[HYPHENRANGELOOSE] : re[HYPHENRANGE]
+  var hr = loose ? re[t.HYPHENRANGELOOSE] : re[t.HYPHENRANGE]
   range = range.replace(hr, hyphenReplace)
   debug('hyphen replace', range)
   // `> 1.2.3 < 1.2.5` => `>1.2.3 <1.2.5`
-  range = range.replace(re[COMPARATORTRIM], comparatorTrimReplace)
-  debug('comparator trim', range, re[COMPARATORTRIM])
+  range = range.replace(re[t.COMPARATORTRIM], comparatorTrimReplace)
+  debug('comparator trim', range, re[t.COMPARATORTRIM])
 
   // `~ 1.2.3` => `~1.2.3`
-  range = range.replace(re[TILDETRIM], tildeTrimReplace)
+  range = range.replace(re[t.TILDETRIM], tildeTrimReplace)
 
   // `^ 1.2.3` => `^1.2.3`
-  range = range.replace(re[CARETTRIM], caretTrimReplace)
+  range = range.replace(re[t.CARETTRIM], caretTrimReplace)
 
   // normalize spaces
   range = range.split(/\s+/).join(' ')
@@ -1078,7 +1085,7 @@ Range.prototype.parseRange = function (range) {
   // At this point, the range is completely trimmed and
   // ready to be split into comparators.
 
-  var compRe = loose ? re[COMPARATORLOOSE] : re[COMPARATOR]
+  var compRe = loose ? re[t.COMPARATORLOOSE] : re[t.COMPARATOR]
   var set = range.split(' ').map(function (comp) {
     return parseComparator(comp, this.options)
   }, this).join(' ').split(/\s+/)
@@ -1178,7 +1185,7 @@ function replaceTildes (comp, options) {
 }
 
 function replaceTilde (comp, options) {
-  var r = options.loose ? re[TILDELOOSE] : re[TILDE]
+  var r = options.loose ? re[t.TILDELOOSE] : re[t.TILDE]
   return comp.replace(r, function (_, M, m, p, pr) {
     debug('tilde', comp, _, M, m, p, pr)
     var ret
@@ -1219,7 +1226,7 @@ function replaceCarets (comp, options) {
 
 function replaceCaret (comp, options) {
   debug('caret', comp, options)
-  var r = options.loose ? re[CARETLOOSE] : re[CARET]
+  var r = options.loose ? re[t.CARETLOOSE] : re[t.CARET]
   return comp.replace(r, function (_, M, m, p, pr) {
     debug('caret', comp, _, M, m, p, pr)
     var ret
@@ -1278,7 +1285,7 @@ function replaceXRanges (comp, options) {
 
 function replaceXRange (comp, options) {
   comp = comp.trim()
-  var r = options.loose ? re[XRANGELOOSE] : re[XRANGE]
+  var r = options.loose ? re[t.XRANGELOOSE] : re[t.XRANGE]
   return comp.replace(r, function (ret, gtlt, M, m, p, pr) {
     debug('xRange', comp, ret, gtlt, M, m, p, pr)
     var xM = isX(M)
@@ -1353,10 +1360,10 @@ function replaceXRange (comp, options) {
 function replaceStars (comp, options) {
   debug('replaceStars', comp, options)
   // Looseness is ignored here.  star is always as loose as it gets!
-  return comp.trim().replace(re[STAR], '')
+  return comp.trim().replace(re[t.STAR], '')
 }
 
-// This function is passed to string.replace(re[HYPHENRANGE])
+// This function is passed to string.replace(re[t.HYPHENRANGE])
 // M, m, patch, prerelease, build
 // 1.2 - 3.4.5 => >=1.2.0 <=3.4.5
 // 1.2.3 - 3.4 => >=1.2.0 <3.5.0 Any 3.4.x will do
@@ -1679,7 +1686,7 @@ function coerce (version, options) {
 
   var match = null
   if (!options.rtl) {
-    match = version.match(re[COERCE])
+    match = version.match(re[t.COERCE])
   } else {
     // Find the right-most coercible string that does not share
     // a terminus with a more left-ward coercible string.
@@ -1690,17 +1697,17 @@ function coerce (version, options) {
     // Stop when we get a match that ends at the string end, since no
     // coercible string can be more right-ward without the same terminus.
     var next
-    while ((next = re[COERCERTL].exec(version)) &&
+    while ((next = re[t.COERCERTL].exec(version)) &&
       (!match || match.index + match[0].length !== version.length)
     ) {
       if (!match ||
           next.index + next[0].length !== match.index + match[0].length) {
         match = next
       }
-      re[COERCERTL].lastIndex = next.index + next[1].length + next[2].length
+      re[t.COERCERTL].lastIndex = next.index + next[1].length + next[2].length
     }
     // leave it in a clean state
-    re[COERCERTL].lastIndex = -1
+    re[t.COERCERTL].lastIndex = -1
   }
 
   if (match === null) {
@@ -9869,7 +9876,7 @@ module.exports = {
 /* 91 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const debug = __webpack_require__(92)('streamroller:RollingFileWriteStream');
+const debug = __webpack_require__(92)("streamroller:RollingFileWriteStream");
 const _ = __webpack_require__(96);
 const async = __webpack_require__(98);
 const fs = __webpack_require__(99);
@@ -9879,36 +9886,54 @@ const newNow = __webpack_require__(137);
 const format = __webpack_require__(75);
 const { Writable } = __webpack_require__(41);
 
-const FILENAME_SEP = '.';
-const ZIP_EXT = '.gz';
+const FILENAME_SEP = ".";
+const ZIP_EXT = ".gz";
 
-const moveAndMaybeCompressFile = (sourceFilePath, targetFilePath, needCompress, done) => {
+const moveAndMaybeCompressFile = (
+  sourceFilePath,
+  targetFilePath,
+  needCompress,
+  done
+) => {
   if (sourceFilePath === targetFilePath) {
-    debug(`moveAndMaybeCompressFile: source and target are the same, not doing anything`);
+    debug(
+      `moveAndMaybeCompressFile: source and target are the same, not doing anything`
+    );
     return done();
   }
-  fs.access(sourceFilePath, fs.constants.W_OK | fs.constants.R_OK,  (e) => {
+  fs.access(sourceFilePath, fs.constants.W_OK | fs.constants.R_OK, e => {
     if (e) {
-      debug(`moveAndMaybeCompressFile: source file path does not exist. not moving. sourceFilePath=${sourceFilePath}`);
+      debug(
+        `moveAndMaybeCompressFile: source file path does not exist. not moving. sourceFilePath=${sourceFilePath}`
+      );
       return done();
     }
 
-    debug(`moveAndMaybeCompressFile: moving file from ${sourceFilePath} to ${targetFilePath} ${needCompress ? 'with' : 'without'} compress`);
+    debug(
+      `moveAndMaybeCompressFile: moving file from ${sourceFilePath} to ${targetFilePath} ${
+        needCompress ? "with" : "without"
+      } compress`
+    );
     if (needCompress) {
       fs.createReadStream(sourceFilePath)
         .pipe(zlib.createGzip())
         .pipe(fs.createWriteStream(targetFilePath))
-        .on('finish', () => {
-          debug(`moveAndMaybeCompressFile: finished compressing ${targetFilePath}, deleting ${sourceFilePath}`);
+        .on("finish", () => {
+          debug(
+            `moveAndMaybeCompressFile: finished compressing ${targetFilePath}, deleting ${sourceFilePath}`
+          );
           fs.unlink(sourceFilePath, done);
         });
     } else {
-      debug(`moveAndMaybeCompressFile: deleting file=${targetFilePath}, renaming ${sourceFilePath} to ${targetFilePath}`);
-      fs.unlink(targetFilePath, () => { fs.rename(sourceFilePath, targetFilePath, done); });
+      debug(
+        `moveAndMaybeCompressFile: deleting file=${targetFilePath}, renaming ${sourceFilePath} to ${targetFilePath}`
+      );
+      fs.unlink(targetFilePath, () => {
+        fs.rename(sourceFilePath, targetFilePath, done);
+      });
     }
   });
 };
-
 
 /**
  * RollingFileWriteStream is mainly used when writing to a file rolling by date or size.
@@ -9935,31 +9960,38 @@ class RollingFileWriteStream extends Writable {
     super(options);
     this.options = this._parseOption(options);
     this.fileObject = path.parse(filePath);
-    if (this.fileObject.dir === '') {
+    if (this.fileObject.dir === "") {
       this.fileObject = path.parse(path.join(process.cwd(), filePath));
     }
-    this.justTheFile = this._formatFileName({isHotFile: true});
+    this.justTheFile = this._formatFileName({ isHotFile: true });
     this.filename = path.join(this.fileObject.dir, this.justTheFile);
     this.state = {
-      currentDate: newNow(),
-      currentIndex: 0,
       currentSize: 0
     };
 
-    if (this.options.flags === 'a') {
+    if (this.options.pattern) {
+      this.state.currentDate = format(this.options.pattern, newNow());
+    }
+
+    if (this.options.flags === "a") {
       this._setExistingSizeAndDate();
     }
 
-    debug(`create new file with no hot file. name=${this.justTheFile}, state=${JSON.stringify(this.state)}`);
+    debug(
+      `create new file with no hot file. name=${
+        this.justTheFile
+      }, state=${JSON.stringify(this.state)}`
+    );
     this._renewWriteStream();
-
   }
 
   _setExistingSizeAndDate() {
     try {
       const stats = fs.statSync(this.filename);
       this.state.currentSize = stats.size;
-      this.state.currentDate = stats.birthtime;
+      if (this.options.pattern) {
+        this.state.currentDate = format(this.options.pattern, stats.birthtime);
+      }
     } catch (e) {
       //file does not exist, that's fine - move along
       return;
@@ -9970,9 +10002,9 @@ class RollingFileWriteStream extends Writable {
     const defaultOptions = {
       maxSize: Number.MAX_SAFE_INTEGER,
       numToKeep: Number.MAX_SAFE_INTEGER,
-      encoding: 'utf8',
-      mode: parseInt('0644', 8),
-      flags: 'a',
+      encoding: "utf8",
+      mode: parseInt("0644", 8),
+      flags: "a",
       compress: false,
       keepFileExt: false,
       alwaysIncludePattern: false
@@ -9981,7 +10013,7 @@ class RollingFileWriteStream extends Writable {
     if (options.maxSize <= 0) {
       throw new Error(`options.maxSize (${options.maxSize}) should be > 0`);
     }
-    if (options.numToKeep < 1) {
+    if (options.numToKeep <= 0) {
       throw new Error(`options.numToKeep (${options.numToKeep}) should be > 0`);
     }
     debug(`creating stream with option=${JSON.stringify(options)}`);
@@ -9989,27 +10021,37 @@ class RollingFileWriteStream extends Writable {
   }
 
   _shouldRoll(callback) {
-      debug(`in _shouldRoll, pattern = ${this.options.pattern}, currentDate = ${this.state.currentDate}, now = ${newNow()}`);
-      if (this.options.pattern && (format(this.options.pattern, this.state.currentDate) !== format(this.options.pattern, newNow()))) {
-        this._roll({isNextPeriod: true}, callback);
-        return;
-      }
-      debug(`in _shouldRoll, currentSize = ${this.state.currentSize}, maxSize = ${this.options.maxSize}`);
-      if (this.state.currentSize >= this.options.maxSize) {
-        this._roll({isNextPeriod: false}, callback);
-        return;
-      }
-      callback();
+    if (
+      this.state.currentDate &&
+      this.state.currentDate !== format(this.options.pattern, newNow())
+    ) {
+      debug(
+        `_shouldRoll: rolling by date because ${
+          this.state.currentDate
+        } !== ${format(this.options.pattern, newNow())}`
+      );
+      this._roll({ isNextPeriod: true }, callback);
+      return;
+    }
+    if (this.state.currentSize >= this.options.maxSize) {
+      debug(
+        `_shouldRoll: rolling by size because ${this.state.currentSize} >= ${this.options.maxSize}`
+      );
+      this._roll({ isNextPeriod: false }, callback);
+      return;
+    }
+    callback();
   }
 
   _write(chunk, encoding, callback) {
     this._shouldRoll(() => {
-      debug(`writing chunk. ` +
-        `file=${this.currentFileStream.path} ` +
-        `state=${JSON.stringify(this.state)} ` +
-        `chunk=${chunk}`
+      debug(
+        `writing chunk. ` +
+          `file=${this.currentFileStream.path} ` +
+          `state=${JSON.stringify(this.state)} ` +
+          `chunk=${chunk}`
       );
-      this.currentFileStream.write(chunk, encoding, (e) => {
+      this.currentFileStream.write(chunk, encoding, e => {
         this.state.currentSize += chunk.length;
         callback(e);
       });
@@ -10023,17 +10065,23 @@ class RollingFileWriteStream extends Writable {
       const existingFileDetails = _.compact(
         _.map(files, n => {
           const parseResult = this._parseFileName(n);
-          debug(`_getExistingFiles: parsed ${n} as ${parseResult}`);
+          debug(`_getExistingFiles: parsed ${n} as `, parseResult);
           if (!parseResult) {
             return;
           }
-          return _.assign({fileName: n}, parseResult);
+          return _.assign({ fileName: n }, parseResult);
         })
       );
-      cb(null, _.sortBy(
-        existingFileDetails,
-        n => (n.date ? n.date.valueOf() : newNow().valueOf()) - n.index
-      ));
+      cb(
+        null,
+        _.sortBy(
+          existingFileDetails,
+          n =>
+            (n.date
+              ? format.parse(this.options.pattern, n.date).valueOf()
+              : newNow().valueOf()) - n.index
+        )
+      );
     });
   }
 
@@ -10052,13 +10100,15 @@ class RollingFileWriteStream extends Writable {
         return;
       }
       metaStr = fileName.slice(prefix.length, -1 * suffix.length);
-      debug(`metaStr=${metaStr}, fileName=${fileName}, prefix=${prefix}, suffix=${suffix}`);
+      debug(
+        `metaStr=${metaStr}, fileName=${fileName}, prefix=${prefix}, suffix=${suffix}`
+      );
     } else {
       const prefix = this.fileObject.base;
       if (!fileName.startsWith(prefix)) {
         return;
       }
-      metaStr = fileName.slice(prefix.length);
+      metaStr = fileName.slice(prefix.length + 1);
       debug(`metaStr=${metaStr}, fileName=${fileName}, prefix=${prefix}`);
     }
     if (!metaStr) {
@@ -10070,22 +10120,22 @@ class RollingFileWriteStream extends Writable {
     if (this.options.pattern) {
       const items = _.split(metaStr, FILENAME_SEP);
       const indexStr = items[items.length - 1];
-      debug('items: ', items, ', indexStr: ', indexStr);
+      debug("items: ", items, ", indexStr: ", indexStr);
       if (indexStr !== undefined && indexStr.match(/^\d+$/)) {
         const dateStr = metaStr.slice(0, -1 * (indexStr.length + 1));
         debug(`dateStr is ${dateStr}`);
         if (dateStr) {
           return {
-              index: parseInt(indexStr, 10),
-              date: format.parse(this.options.pattern, dateStr),
-              isCompressed
-            };
+            index: parseInt(indexStr, 10),
+            date: dateStr,
+            isCompressed
+          };
         }
       }
       debug(`metaStr is ${metaStr}`);
       return {
         index: 0,
-        date: format.parse(this.options.pattern, metaStr),
+        date: metaStr,
         isCompressed
       };
     } else {
@@ -10099,16 +10149,26 @@ class RollingFileWriteStream extends Writable {
     return;
   }
 
-  _formatFileName({date, index, isHotFile}) {
-    debug(`_formatFileName: date=${date}, index=${index}, isHotFile=${isHotFile}`);
-    const dateOpt = date || _.get(this, 'state.currentDate') || newNow();
-    const dateStr = format(this.options.pattern, dateOpt);
-    const indexOpt = index || _.get(this, 'state.currentIndex');
+  _formatFileName({ date, index, isHotFile }) {
+    debug(
+      `_formatFileName: date=${date}, index=${index}, isHotFile=${isHotFile}`
+    );
+    const dateStr =
+      date ||
+      _.get(this, "state.currentDate") ||
+      format(this.options.pattern, newNow());
+    const indexOpt = index || _.get(this, "state.currentIndex");
     const oriFileName = this.fileObject.base;
     if (isHotFile) {
-      debug(`_formatFileName: includePattern? ${this.options.alwaysIncludePattern}, pattern: ${this.options.pattern}`);
+      debug(
+        `_formatFileName: includePattern? ${this.options.alwaysIncludePattern}, pattern: ${this.options.pattern}`
+      );
       if (this.options.alwaysIncludePattern && this.options.pattern) {
-        debug(`_formatFileName: is hot file, and include pattern, so: ${oriFileName + FILENAME_SEP + dateStr}`);
+        debug(
+          `_formatFileName: is hot file, and include pattern, so: ${oriFileName +
+            FILENAME_SEP +
+            dateStr}`
+        );
         return this.options.keepFileExt
           ? this.fileObject.name + FILENAME_SEP + dateStr + this.fileObject.ext
           : oriFileName + FILENAME_SEP + dateStr;
@@ -10125,10 +10185,14 @@ class RollingFileWriteStream extends Writable {
     }
     let fileName;
     if (this.options.keepFileExt) {
-      const baseFileName = this.fileObject.name + FILENAME_SEP + fileNameExtraItems.join(FILENAME_SEP);
+      const baseFileName =
+        this.fileObject.name +
+        FILENAME_SEP +
+        fileNameExtraItems.join(FILENAME_SEP);
       fileName = baseFileName + this.fileObject.ext;
     } else {
-      fileName = oriFileName + FILENAME_SEP + fileNameExtraItems.join(FILENAME_SEP);
+      fileName =
+        oriFileName + FILENAME_SEP + fileNameExtraItems.join(FILENAME_SEP);
     }
     if (this.options.compress) {
       fileName += ZIP_EXT;
@@ -10139,78 +10203,113 @@ class RollingFileWriteStream extends Writable {
 
   _moveOldFiles(isNextPeriod, cb) {
     const currentFilePath = this.currentFileStream.path;
-    debug(`currentIndex = ${this.state.currentIndex}, numToKeep = ${this.options.numToKeep}`);
-    let totalFilesToMove = _.min([this.state.currentIndex, this.options.numToKeep - 1]);
-    const filesToMove = [];
-    for (let i = totalFilesToMove; i >= 0; i--) {
-      debug(`i = ${i}`);
-      const sourceFilePath = i === 0
-        ? currentFilePath
-        : path.format({
+    debug(`numToKeep = ${this.options.numToKeep}`);
+    const finishedRolling = () => {
+      if (isNextPeriod) {
+        this.state.currentSize = 0;
+        this.state.currentDate = format(this.options.pattern, newNow());
+        debug(`rolling for next period. state=${JSON.stringify(this.state)}`);
+      } else {
+        this.state.currentSize = 0;
+        debug(
+          `rolling during the same period. state=${JSON.stringify(this.state)}`
+        );
+      }
+      this._renewWriteStream();
+      // wait for the file to be open before cleaning up old ones,
+      // otherwise the daysToKeep calculations can be off
+      this.currentFileStream.write("", "utf8", () => this._clean(cb));
+    };
+
+    this._getExistingFiles((e, files) => {
+      const filesToMove = [];
+      const todaysFiles = this.state.currentDate
+        ? files.filter(f => f.date === this.state.currentDate)
+        : files;
+      for (let i = todaysFiles.length; i >= 0; i--) {
+        debug(`i = ${i}`);
+        const sourceFilePath =
+          i === 0
+            ? currentFilePath
+            : path.format({
+                dir: this.fileObject.dir,
+                base: this._formatFileName({
+                  date: this.state.currentDate,
+                  index: i
+                })
+              });
+        const targetFilePath = path.format({
           dir: this.fileObject.dir,
-          base: this._formatFileName({date: this.state.currentDate, index: i})
+          base: this._formatFileName({
+            date: this.state.currentDate,
+            index: i + 1
+          })
         });
-      const targetFilePath = i === 0 && isNextPeriod
-        ? path.format({
-          dir: this.fileObject.dir,
-          base: this._formatFileName({date: this.state.currentDate, index: 1 })
-        })
-        : path.format({
-          dir: this.fileObject.dir,
-          base: this._formatFileName({date: this.state.currentDate, index: i + 1})
-        });
-      filesToMove.push({ sourceFilePath, targetFilePath });
-    }
-    async.eachOfSeries(filesToMove, (files, idx, cb1) => {
-      debug(`src=${files.sourceFilePath}, tgt=${files.sourceFilePath}, idx=${idx}, pos=${filesToMove.length -1 -idx}`);
-      moveAndMaybeCompressFile(files.sourceFilePath, files.targetFilePath, this.options.compress && (filesToMove.length -1 -idx) === 0, cb1);
-    }, () => {
-        if (isNextPeriod) {
-          this.state.currentSize = 0;
-          this.state.currentIndex = 0;
-          this.state.currentDate = newNow();
-          debug(`rolling for next period. state=${JSON.stringify(this.state)}`);
-        } else {
-          this.state.currentSize = 0;
-          this.state.currentIndex += 1;
-          debug(`rolling during the same period. state=${JSON.stringify(this.state)}`);
-        }
-        this._renewWriteStream();
-        // wait for the file to be open before cleaning up old ones,
-        // otherwise the daysToKeep calculations can be off
-        this.currentFileStream.write('', 'utf8', () => this._clean(cb));
-      });
+        filesToMove.push({ sourceFilePath, targetFilePath });
+      }
+      debug(`filesToMove = `, filesToMove);
+      async.eachOfSeries(
+        filesToMove,
+        (files, idx, cb1) => {
+          debug(
+            `src=${files.sourceFilePath}, tgt=${
+              files.sourceFilePath
+            }, idx=${idx}, pos=${filesToMove.length - 1 - idx}`
+          );
+          moveAndMaybeCompressFile(
+            files.sourceFilePath,
+            files.targetFilePath,
+            this.options.compress && filesToMove.length - 1 - idx === 0,
+            cb1
+          );
+        },
+        finishedRolling
+      );
+    });
   }
 
-  _roll({isNextPeriod}, cb) {
+  _roll({ isNextPeriod }, cb) {
     debug(`rolling, isNextPeriod ? ${isNextPeriod}`);
     debug(`_roll: closing the current stream`);
-    this.currentFileStream.end('', this.options.encoding, () => { this._moveOldFiles(isNextPeriod, cb); });
+    this.currentFileStream.end("", this.options.encoding, () => {
+      this._moveOldFiles(isNextPeriod, cb);
+    });
   }
 
   _renewWriteStream() {
     fs.ensureDirSync(this.fileObject.dir);
-    this.justTheFile = this._formatFileName({ date: this.state.currentDate, index: this.state.index, isHotFile: true });
-    const filePath = path.format({dir: this.fileObject.dir, base: this.justTheFile});
-    const ops = _.pick(this.options, ['flags', 'encoding', 'mode']);
+    this.justTheFile = this._formatFileName({
+      date: this.state.currentDate,
+      index: 0,
+      isHotFile: true
+    });
+    const filePath = path.format({
+      dir: this.fileObject.dir,
+      base: this.justTheFile
+    });
+    const ops = _.pick(this.options, ["flags", "encoding", "mode"]);
     this.currentFileStream = fs.createWriteStream(filePath, ops);
-    this.currentFileStream.on('error', (e) => { this.emit('error', e); });
+    this.currentFileStream.on("error", e => {
+      this.emit("error", e);
+    });
   }
 
   _clean(cb) {
     this._getExistingFiles((e, existingFileDetails) => {
-      debug(`numToKeep = ${this.options.numToKeep}, existingFiles = ${existingFileDetails.length}`);
-      debug('existing files are: ', existingFileDetails);
-      if (existingFileDetails.length > this.options.numToKeep) {
+      debug(
+        `numToKeep = ${this.options.numToKeep}, existingFiles = ${existingFileDetails.length}`
+      );
+      debug("existing files are: ", existingFileDetails);
+      if (
+        this.options.numToKeep > 0 &&
+        existingFileDetails.length > this.options.numToKeep
+      ) {
         const fileNamesToRemove = _.slice(
           existingFileDetails.map(f => f.fileName),
           0,
           existingFileDetails.length - this.options.numToKeep - 1
         );
-        this._deleteFiles(fileNamesToRemove, () => {
-          this.state.currentIndex = Math.min(this.state.currentIndex, this.options.numToKeep -1);
-          cb();
-        });
+        this._deleteFiles(fileNamesToRemove, cb);
         return;
       }
       cb();
@@ -10220,7 +10319,7 @@ class RollingFileWriteStream extends Writable {
   _deleteFiles(fileNames, done) {
     debug(`files to delete: ${fileNames}`);
     async.each(
-      _.map(fileNames, f => path.format({ dir: this.fileObject.dir, base: f})),
+      _.map(fileNames, f => path.format({ dir: this.fileObject.dir, base: f })),
       fs.unlink,
       done
     );
@@ -10881,7 +10980,7 @@ formatters.O = function (v) {
 /* WEBPACK VAR INJECTION */(function(module) {var __WEBPACK_AMD_DEFINE_RESULT__;/**
  * @license
  * Lodash <https://lodash.com/>
- * Copyright JS Foundation and other contributors <https://js.foundation/>
+ * Copyright OpenJS Foundation and other contributors <https://openjsf.org/>
  * Released under MIT license <https://lodash.com/license>
  * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
  * Copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -10892,7 +10991,7 @@ formatters.O = function (v) {
   var undefined;
 
   /** Used as the semantic version number. */
-  var VERSION = '4.17.11';
+  var VERSION = '4.17.14';
 
   /** Used as the size to enable large array optimizations. */
   var LARGE_ARRAY_SIZE = 200;
@@ -13551,16 +13650,10 @@ formatters.O = function (v) {
         value.forEach(function(subValue) {
           result.add(baseClone(subValue, bitmask, customizer, subValue, value, stack));
         });
-
-        return result;
-      }
-
-      if (isMap(value)) {
+      } else if (isMap(value)) {
         value.forEach(function(subValue, key) {
           result.set(key, baseClone(subValue, bitmask, customizer, key, value, stack));
         });
-
-        return result;
       }
 
       var keysFunc = isFull
@@ -14484,8 +14577,8 @@ formatters.O = function (v) {
         return;
       }
       baseFor(source, function(srcValue, key) {
+        stack || (stack = new Stack);
         if (isObject(srcValue)) {
-          stack || (stack = new Stack);
           baseMergeDeep(object, source, key, srcIndex, baseMerge, customizer, stack);
         }
         else {
@@ -16302,7 +16395,7 @@ formatters.O = function (v) {
       return function(number, precision) {
         number = toNumber(number);
         precision = precision == null ? 0 : nativeMin(toInteger(precision), 292);
-        if (precision) {
+        if (precision && nativeIsFinite(number)) {
           // Shift with exponential notation to avoid floating-point issues.
           // See [MDN](https://mdn.io/round#Examples) for more details.
           var pair = (toString(number) + 'e').split('e'),
@@ -17485,7 +17578,7 @@ formatters.O = function (v) {
     }
 
     /**
-     * Gets the value at `key`, unless `key` is "__proto__".
+     * Gets the value at `key`, unless `key` is "__proto__" or "constructor".
      *
      * @private
      * @param {Object} object The object to query.
@@ -17493,6 +17586,10 @@ formatters.O = function (v) {
      * @returns {*} Returns the property value.
      */
     function safeGet(object, key) {
+      if (key === 'constructor' && typeof object[key] === 'function') {
+        return;
+      }
+
       if (key == '__proto__') {
         return;
       }
@@ -21293,6 +21390,7 @@ formatters.O = function (v) {
           }
           if (maxing) {
             // Handle invocations in a tight loop.
+            clearTimeout(timerId);
             timerId = setTimeout(timerExpired, wait);
             return invokeFunc(lastCallTime);
           }
@@ -25679,9 +25777,12 @@ formatters.O = function (v) {
       , 'g');
 
       // Use a sourceURL for easier debugging.
+      // The sourceURL gets injected into the source that's eval-ed, so be careful
+      // with lookup (in case of e.g. prototype pollution), and strip newlines if any.
+      // A newline wouldn't be a valid sourceURL anyway, and it'd enable code injection.
       var sourceURL = '//# sourceURL=' +
-        ('sourceURL' in options
-          ? options.sourceURL
+        (hasOwnProperty.call(options, 'sourceURL')
+          ? (options.sourceURL + '').replace(/[\r\n]/g, ' ')
           : ('lodash.templateSources[' + (++templateCounter) + ']')
         ) + '\n';
 
@@ -25714,7 +25815,9 @@ formatters.O = function (v) {
 
       // If `variable` is not specified wrap a with-statement around the generated
       // code to add the data object to the top of the scope chain.
-      var variable = options.variable;
+      // Like with sourceURL, we take care to not check the option's prototype,
+      // as this configuration is a code injection vector.
+      var variable = hasOwnProperty.call(options, 'variable') && options.variable;
       if (!variable) {
         source = 'with (obj) {\n' + source + '\n}\n';
       }
@@ -27919,10 +28022,11 @@ formatters.O = function (v) {
     baseForOwn(LazyWrapper.prototype, function(func, methodName) {
       var lodashFunc = lodash[methodName];
       if (lodashFunc) {
-        var key = (lodashFunc.name + ''),
-            names = realNames[key] || (realNames[key] = []);
-
-        names.push({ 'name': methodName, 'func': lodashFunc });
+        var key = lodashFunc.name + '';
+        if (!hasOwnProperty.call(realNames, key)) {
+          realNames[key] = [];
+        }
+        realNames[key].push({ 'name': methodName, 'func': lodashFunc });
       }
     });
 
@@ -50679,12 +50783,14 @@ function getChange(oldStr, newStr, cursorEnd) {
     newText = newStr.slice(start, nl - endOffset);
     if (ol == nl && start == end)
         return null;
-    let pre = start == 0 ? '' : newStr[start - 1];
-    if (pre && pre != '\n'
-        && newText.startsWith('\n')
-        && oldStr[end] == '\n') {
-        // optimize for add new line(s)
-        return { start: start + 1, end: end + 1, newText: newText.slice(1) + '\n' };
+    if (start == end) {
+        let pre = start == 0 ? '' : newStr[start - 1];
+        if (pre && pre != '\n'
+            && oldStr[start] == '\n'
+            && newText.startsWith('\n')) {
+            // optimize for add new line(s)
+            return { start: start + 1, end: end + 1, newText: newText.slice(1) + '\n' };
+        }
     }
     return { start, end, newText };
 }
@@ -54564,7 +54670,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "c7b582a7a2" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "73d7c23570" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
