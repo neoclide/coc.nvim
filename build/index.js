@@ -54564,7 +54564,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "42c3ae12b1" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "0baa83de90" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -79738,12 +79738,9 @@ class ListManager {
                 this.ui.hide();
                 return;
             }
-            let { isVim } = workspace_1.default;
             let curr = await nvim.call('bufnr', '%');
             if (curr == bufnr) {
                 this.prompt.start();
-                if (isVim)
-                    nvim.command(`set t_ve=`, true);
             }
             else {
                 nvim.pauseNotification();
@@ -80132,7 +80129,7 @@ class ListManager {
             // exclude control characer
             if (code < 32 || code >= 127 && code <= 159)
                 return;
-            this.prompt.insertCharacter(s);
+            await this.prompt.acceptCharacter(s);
         }
     }
     async onNormalInput(ch, _charmod) {
@@ -80775,6 +80772,9 @@ class Mappings {
         this.add('insert', '<C-u>', () => {
             prompt.removeAhead();
         });
+        this.add('insert', '<C-r>', () => {
+            return prompt.insertRegister();
+        });
         this.add('insert', '<C-d>', () => {
             return manager.feedkeys('<C-d>');
         });
@@ -81011,6 +81011,9 @@ class Mappings {
                     return prompt.removeTail();
                 case 'removeahead':
                     return prompt.removeAhead();
+                case 'insertregister':
+                    await prompt.insertRegister();
+                    return;
                 case 'paste':
                     await prompt.paste();
                     return;
@@ -81074,6 +81077,7 @@ class Prompt {
         this._input = '';
         this._mode = 'insert';
         this.interactive = false;
+        this.requestInput = false;
         this._onDidChangeInput = new vscode_languageserver_protocol_1.Emitter();
         this.onDidChangeInput = this._onDidChangeInput.event;
     }
@@ -81104,8 +81108,8 @@ class Prompt {
     start(opts) {
         if (opts) {
             this.interactive = opts.interactive;
-            this._input = opts.input;
             this.cusorIndex = opts.input.length;
+            this._input = opts.input;
             this._mode = opts.mode;
             this._matcher = opts.interactive ? '' : opts.matcher;
         }
@@ -81231,8 +81235,21 @@ class Prompt {
         this.drawPrompt();
         this._onDidChangeInput.fire(this._input);
     }
-    insertCharacter(ch) {
-        this.addText(ch);
+    async acceptCharacter(ch) {
+        if (this.requestInput) {
+            this.requestInput = false;
+            if (/^[0-9a-z"%#*+/:\-.]$/.test(ch)) {
+                let text = await this.nvim.call('getreg', ch);
+                text = text.replace(/\n/g, ' ');
+                this.addText(text);
+            }
+        }
+        else {
+            this.addText(ch);
+        }
+    }
+    async insertRegister() {
+        this.requestInput = true;
     }
     async paste() {
         await this.eval('@*');
@@ -83302,9 +83319,7 @@ class ListUI {
         this._onDidChange.fire();
         if (workspace_1.default.isVim)
             nvim.command('redraw', true);
-        nvim.resumeNotification(false, true).catch(_e => {
-            // noop
-        });
+        await nvim.resumeNotification();
     }
     restoreWindow() {
         if (this.newTab)

@@ -344,7 +344,9 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
       endif
       if delCount
         let start = startLnum + len(replacement)
+        let saved_reg = @"
         silent execute start . ','.(start + delCount - 1).'d'
+        let @" = saved_reg
       endif
     endif
     if changeBuffer
