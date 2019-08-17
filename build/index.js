@@ -54329,6 +54329,9 @@ class Plugin extends events_1.EventEmitter {
             get: () => this.nvim
         });
         this.cursors = new cursors_1.default(nvim);
+        this.addMethod('hasProvider', async (id) => {
+            return this.handler.hasProvider(id);
+        });
         this.addMethod('hasSelected', () => {
             return completion_1.default.hasSelected();
         });
@@ -54561,7 +54564,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "e9ef666cb5" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "42c3ae12b1" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -85534,10 +85537,10 @@ const position_1 = __webpack_require__(210);
 const string_1 = __webpack_require__(207);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const codelens_1 = tslib_1.__importDefault(__webpack_require__(397));
-const search_1 = tslib_1.__importDefault(__webpack_require__(398));
-const colors_1 = tslib_1.__importDefault(__webpack_require__(400));
-const refactor_1 = tslib_1.__importDefault(__webpack_require__(402));
-const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(403));
+const colors_1 = tslib_1.__importDefault(__webpack_require__(398));
+const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(400));
+const refactor_1 = tslib_1.__importDefault(__webpack_require__(401));
+const search_1 = tslib_1.__importDefault(__webpack_require__(402));
 const debounce = __webpack_require__(173);
 const logger = __webpack_require__(183)('Handler');
 const pairs = new Map([
@@ -85766,6 +85769,13 @@ class Handler {
         buffer.setVar('coc_current_function', functionName, true);
         this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true);
         return functionName;
+    }
+    async hasProvider(id) {
+        let bufnr = await this.nvim.call('bufnr', '%');
+        let doc = workspace_1.default.getDocument(bufnr);
+        if (!doc)
+            return false;
+        return languages_1.default.hasProvider(id, doc.textDocument);
     }
     async onHover() {
         let { document, position } = await workspace_1.default.getCurrentState();
@@ -87057,275 +87067,6 @@ exports.default = CodeLensManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const await_semaphore_1 = __webpack_require__(399);
-const child_process_1 = __webpack_require__(172);
-const events_1 = __webpack_require__(49);
-const path_1 = tslib_1.__importDefault(__webpack_require__(56));
-const readline_1 = tslib_1.__importDefault(__webpack_require__(59));
-const vscode_languageserver_types_1 = __webpack_require__(158);
-const which_1 = tslib_1.__importDefault(__webpack_require__(178));
-const highligher_1 = tslib_1.__importDefault(__webpack_require__(346));
-const ansiparse_1 = __webpack_require__(347);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const logger = __webpack_require__(183)('handler-search');
-const defaultArgs = ['--color', 'ansi', '--colors', 'path:fg:black', '--colors', 'line:fg:green', '--colors', 'match:fg:red', '--no-messages', '--heading', '-n'];
-const controlCode = '\x1b';
-// emit FileItem
-class Task extends events_1.EventEmitter {
-    start(cmd, args, cwd) {
-        this.process = child_process_1.spawn(cmd, args, { cwd });
-        this.process.on('error', e => {
-            this.emit('error', e.message);
-        });
-        const rl = readline_1.default.createInterface(this.process.stdout);
-        let start;
-        let fileItem;
-        let lines = [];
-        let highlights = [];
-        let create = true;
-        rl.on('line', content => {
-            if (content.indexOf(controlCode) !== -1) {
-                let items = ansiparse_1.ansiparse(content);
-                if (items[0].foreground == 'black') {
-                    fileItem = { filepath: path_1.default.join(cwd, items[0].text), ranges: [] };
-                    return;
-                }
-                let normalLine = items[0].foreground == 'green';
-                if (normalLine) {
-                    let lnum = parseInt(items[0].text, 10) - 1;
-                    let padlen = items[0].text.length + 1;
-                    if (create) {
-                        start = lnum;
-                        create = false;
-                    }
-                    let line = '';
-                    for (let item of items) {
-                        if (item.foreground == 'red') {
-                            let l = lnum - start;
-                            let c = line.length - padlen;
-                            highlights.push(vscode_languageserver_types_1.Range.create(l, c, l, c + item.text.length));
-                        }
-                        line += item.text;
-                    }
-                    let currline = line.slice(padlen);
-                    lines.push(currline);
-                }
-            }
-            else {
-                let fileEnd = content.trim().length == 0;
-                if (fileItem && (fileEnd || content.trim() == '--')) {
-                    let fileRange = {
-                        lines,
-                        highlights,
-                        start,
-                        end: start + lines.length
-                    };
-                    fileItem.ranges.push(fileRange);
-                }
-                if (fileEnd) {
-                    this.emit('item', fileItem);
-                    fileItem = null;
-                }
-                lines = [];
-                highlights = [];
-                create = true;
-            }
-        });
-        rl.on('close', () => {
-            if (fileItem) {
-                if (lines.length) {
-                    let fileRange = {
-                        lines,
-                        highlights,
-                        start,
-                        end: start + lines.length
-                    };
-                    fileItem.ranges.push(fileRange);
-                }
-                this.emit('item', fileItem);
-            }
-            lines = highlights = fileItem = null;
-            this.emit('end');
-        });
-    }
-    dispose() {
-        if (this.process) {
-            this.process.kill();
-        }
-    }
-}
-class Search {
-    constructor(nvim, cmd = 'rg') {
-        this.nvim = nvim;
-        this.cmd = cmd;
-    }
-    run(args, cwd, refactor) {
-        let { nvim, cmd } = this;
-        let { afterContext, beforeContext } = refactor.config;
-        let argList = ['-A', afterContext.toString(), '-B', beforeContext.toString()].concat(defaultArgs, args);
-        argList.push('--', './');
-        try {
-            cmd = which_1.default.sync(cmd);
-        }
-        catch (e) {
-            workspace_1.default.showMessage('Please install ripgrep and make sure rg is in your $PATH', 'error');
-            return Promise.reject(e);
-        }
-        this.task = new Task();
-        this.task.start(cmd, argList, cwd);
-        let mutex = new await_semaphore_1.Mutex();
-        let files = 0;
-        let matches = 0;
-        let start = Date.now();
-        // remaining items
-        let fileItems = [];
-        const addFileItems = async () => {
-            if (fileItems.length == 0)
-                return;
-            let items = fileItems.slice();
-            fileItems = [];
-            const release = await mutex.acquire();
-            try {
-                await refactor.addFileItems(items);
-            }
-            catch (e) {
-                logger.error(e);
-            }
-            release();
-        };
-        return new Promise((resolve, reject) => {
-            let interval = setInterval(addFileItems, 100);
-            this.task.on('item', async (fileItem) => {
-                files++;
-                matches = matches + fileItem.ranges.reduce((p, r) => p + r.highlights.length, 0);
-                fileItems.push(fileItem);
-            });
-            this.task.on('error', message => {
-                clearInterval(interval);
-                workspace_1.default.showMessage(`Error on command "${cmd}": ${message}`, 'error');
-                this.task = null;
-                reject(new Error(message));
-            });
-            this.task.on('end', async () => {
-                clearInterval(interval);
-                try {
-                    await addFileItems();
-                    const release = await mutex.acquire();
-                    release();
-                    this.task.removeAllListeners();
-                    this.task = null;
-                    let { document } = refactor;
-                    if (document) {
-                        let buf = document.buffer;
-                        nvim.pauseNotification();
-                        if (files == 0) {
-                            buf.setLines(['No match found'], { start: 1, end: 2, strictIndexing: false });
-                            buf.addHighlight({ line: 1, srcId: -1, colEnd: -1, colStart: 0, hlGroup: 'Error' }).logError();
-                            buf.setOption('modified', false, true);
-                        }
-                        else {
-                            let highligher = new highligher_1.default();
-                            highligher.addText('Files', 'MoreMsg');
-                            highligher.addText(': ');
-                            highligher.addText(`${files} `, 'Number');
-                            highligher.addText('Matches', 'MoreMsg');
-                            highligher.addText(': ');
-                            highligher.addText(`${matches} `, 'Number');
-                            highligher.addText('Duration', 'MoreMsg');
-                            highligher.addText(': ');
-                            highligher.addText(`${Date.now() - start}ms`, 'Number');
-                            highligher.render(buf, 1, 2);
-                        }
-                        buf.setOption('modified', false, true);
-                        await nvim.resumeNotification(false, true);
-                    }
-                }
-                catch (e) {
-                    reject(e);
-                    return;
-                }
-                resolve();
-            });
-        });
-    }
-}
-exports.default = Search;
-//# sourceMappingURL=search.js.map
-
-/***/ }),
-/* 399 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-class Semaphore {
-    constructor(count) {
-        this.tasks = [];
-        this.count = count;
-    }
-    sched() {
-        if (this.count > 0 && this.tasks.length > 0) {
-            this.count--;
-            let next = this.tasks.shift();
-            if (next === undefined) {
-                throw "Unexpected undefined value in tasks list";
-            }
-            next();
-        }
-    }
-    acquire() {
-        return new Promise((res, rej) => {
-            var task = () => {
-                var released = false;
-                res(() => {
-                    if (!released) {
-                        released = true;
-                        this.count++;
-                        this.sched();
-                    }
-                });
-            };
-            this.tasks.push(task);
-            if (process && process.nextTick) {
-                process.nextTick(this.sched.bind(this));
-            }
-            else {
-                setImmediate(this.sched.bind(this));
-            }
-        });
-    }
-    use(f) {
-        return this.acquire()
-            .then(release => {
-            return f()
-                .then((res) => {
-                release();
-                return res;
-            })
-                .catch((err) => {
-                release();
-                throw err;
-            });
-        });
-    }
-}
-exports.Semaphore = Semaphore;
-class Mutex extends Semaphore {
-    constructor() {
-        super(1);
-    }
-}
-exports.Mutex = Mutex;
-//# sourceMappingURL=index.js.map
-
-/***/ }),
-/* 400 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(3);
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(173));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const events_1 = tslib_1.__importDefault(__webpack_require__(145));
@@ -87333,7 +87074,7 @@ const languages_1 = tslib_1.__importDefault(__webpack_require__(312));
 const util_1 = __webpack_require__(171);
 const object_1 = __webpack_require__(187);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const highlighter_1 = tslib_1.__importStar(__webpack_require__(401));
+const highlighter_1 = tslib_1.__importStar(__webpack_require__(399));
 const logger = __webpack_require__(183)('colors');
 class Colors {
     constructor(nvim) {
@@ -87524,7 +87265,7 @@ exports.default = Colors;
 //# sourceMappingURL=colors.js.map
 
 /***/ }),
-/* 401 */
+/* 399 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -87672,7 +87413,108 @@ function isDark(color) {
 //# sourceMappingURL=highlighter.js.map
 
 /***/ }),
-/* 402 */
+/* 400 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(3);
+const events_1 = tslib_1.__importDefault(__webpack_require__(145));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
+const languages_1 = tslib_1.__importDefault(__webpack_require__(312));
+const vscode_languageserver_protocol_1 = __webpack_require__(146);
+const util_1 = __webpack_require__(171);
+const logger = __webpack_require__(183)('documentHighlight');
+class DocumentHighlighter {
+    constructor(nvim, colors) {
+        this.nvim = nvim;
+        this.colors = colors;
+        this.disposables = [];
+        this.matchIds = new Set();
+        events_1.default.on('BufWinEnter', () => {
+            this.clearHighlight();
+        }, null, this.disposables);
+        events_1.default.on(['CursorMoved', 'CursorMovedI'], () => {
+            this.cursorMoveTs = Date.now();
+        }, null, this.disposables);
+        events_1.default.on('InsertEnter', () => {
+            this.clearHighlight();
+        }, null, this.disposables);
+    }
+    // clear matchIds of current window
+    clearHighlight() {
+        let { matchIds } = this;
+        let { nvim } = workspace_1.default;
+        if (matchIds.size == 0)
+            return;
+        nvim.pauseNotification();
+        nvim.call('coc#util#clearmatches', [Array.from(matchIds)], true);
+        nvim.command('redraw', true);
+        nvim.resumeNotification(false, true).catch(_e => {
+            // noop
+        });
+        this.matchIds.clear();
+    }
+    async highlight(bufnr) {
+        let { nvim } = this;
+        let document = workspace_1.default.getDocument(bufnr);
+        let highlights = await this.getHighlights(document);
+        if (!highlights || highlights.length == 0) {
+            this.clearHighlight();
+            return;
+        }
+        if (workspace_1.default.bufnr != bufnr)
+            return;
+        nvim.pauseNotification();
+        this.clearHighlight();
+        let groups = {};
+        for (let hl of highlights) {
+            let hlGroup = hl.kind == vscode_languageserver_protocol_1.DocumentHighlightKind.Text
+                ? 'CocHighlightText'
+                : hl.kind == vscode_languageserver_protocol_1.DocumentHighlightKind.Read ? 'CocHighlightRead' : 'CocHighlightWrite';
+            groups[hlGroup] = groups[hlGroup] || [];
+            groups[hlGroup].push(hl.range);
+        }
+        for (let hlGroup of Object.keys(groups)) {
+            let ids = document.matchAddRanges(groups[hlGroup], hlGroup, -1);
+            for (let id of ids) {
+                this.matchIds.add(id);
+            }
+        }
+        this.nvim.command('redraw', true);
+        await this.nvim.resumeNotification(false, true);
+    }
+    async getHighlights(document) {
+        if (!document)
+            return null;
+        let ts = Date.now();
+        let { bufnr } = document;
+        let position = await workspace_1.default.getCursorPosition();
+        let line = document.getline(position.line);
+        let ch = line[position.character];
+        if (!ch || !document.isWord(ch) || this.colors.hasColorAtPostion(bufnr, position))
+            return null;
+        try {
+            let highlights = await languages_1.default.getDocumentHighLight(document.textDocument, position);
+            if (workspace_1.default.bufnr != document.bufnr || (this.cursorMoveTs && this.cursorMoveTs > ts)) {
+                return null;
+            }
+            return highlights;
+        }
+        catch (_e) {
+            return null;
+        }
+    }
+    dispose() {
+        util_1.disposeAll(this.disposables);
+    }
+}
+exports.default = DocumentHighlighter;
+//# sourceMappingURL=documentHighlight.js.map
+
+/***/ }),
+/* 401 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -88346,105 +88188,273 @@ function emptyWorkspaceEdit(edit) {
 //# sourceMappingURL=refactor.js.map
 
 /***/ }),
-/* 403 */
+/* 402 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const events_1 = tslib_1.__importDefault(__webpack_require__(145));
+const await_semaphore_1 = __webpack_require__(403);
+const child_process_1 = __webpack_require__(172);
+const events_1 = __webpack_require__(49);
+const path_1 = tslib_1.__importDefault(__webpack_require__(56));
+const readline_1 = tslib_1.__importDefault(__webpack_require__(59));
+const vscode_languageserver_types_1 = __webpack_require__(158);
+const which_1 = tslib_1.__importDefault(__webpack_require__(178));
+const highligher_1 = tslib_1.__importDefault(__webpack_require__(346));
+const ansiparse_1 = __webpack_require__(347);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
-const languages_1 = tslib_1.__importDefault(__webpack_require__(312));
-const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const util_1 = __webpack_require__(171);
-const logger = __webpack_require__(183)('documentHighlight');
-class DocumentHighlighter {
-    constructor(nvim, colors) {
-        this.nvim = nvim;
-        this.colors = colors;
-        this.disposables = [];
-        this.matchIds = new Set();
-        events_1.default.on('BufWinEnter', () => {
-            this.clearHighlight();
-        }, null, this.disposables);
-        events_1.default.on(['CursorMoved', 'CursorMovedI'], () => {
-            this.cursorMoveTs = Date.now();
-        }, null, this.disposables);
-        events_1.default.on('InsertEnter', () => {
-            this.clearHighlight();
-        }, null, this.disposables);
-    }
-    // clear matchIds of current window
-    clearHighlight() {
-        let { matchIds } = this;
-        let { nvim } = workspace_1.default;
-        if (matchIds.size == 0)
-            return;
-        nvim.pauseNotification();
-        nvim.call('coc#util#clearmatches', [Array.from(matchIds)], true);
-        nvim.command('redraw', true);
-        nvim.resumeNotification(false, true).catch(_e => {
-            // noop
+const logger = __webpack_require__(183)('handler-search');
+const defaultArgs = ['--color', 'ansi', '--colors', 'path:fg:black', '--colors', 'line:fg:green', '--colors', 'match:fg:red', '--no-messages', '--heading', '-n'];
+const controlCode = '\x1b';
+// emit FileItem
+class Task extends events_1.EventEmitter {
+    start(cmd, args, cwd) {
+        this.process = child_process_1.spawn(cmd, args, { cwd });
+        this.process.on('error', e => {
+            this.emit('error', e.message);
         });
-        this.matchIds.clear();
-    }
-    async highlight(bufnr) {
-        let { nvim } = this;
-        let document = workspace_1.default.getDocument(bufnr);
-        let highlights = await this.getHighlights(document);
-        if (!highlights || highlights.length == 0) {
-            this.clearHighlight();
-            return;
-        }
-        if (workspace_1.default.bufnr != bufnr)
-            return;
-        nvim.pauseNotification();
-        this.clearHighlight();
-        let groups = {};
-        for (let hl of highlights) {
-            let hlGroup = hl.kind == vscode_languageserver_protocol_1.DocumentHighlightKind.Text
-                ? 'CocHighlightText'
-                : hl.kind == vscode_languageserver_protocol_1.DocumentHighlightKind.Read ? 'CocHighlightRead' : 'CocHighlightWrite';
-            groups[hlGroup] = groups[hlGroup] || [];
-            groups[hlGroup].push(hl.range);
-        }
-        for (let hlGroup of Object.keys(groups)) {
-            let ids = document.matchAddRanges(groups[hlGroup], hlGroup, -1);
-            for (let id of ids) {
-                this.matchIds.add(id);
+        const rl = readline_1.default.createInterface(this.process.stdout);
+        let start;
+        let fileItem;
+        let lines = [];
+        let highlights = [];
+        let create = true;
+        rl.on('line', content => {
+            if (content.indexOf(controlCode) !== -1) {
+                let items = ansiparse_1.ansiparse(content);
+                if (items[0].foreground == 'black') {
+                    fileItem = { filepath: path_1.default.join(cwd, items[0].text), ranges: [] };
+                    return;
+                }
+                let normalLine = items[0].foreground == 'green';
+                if (normalLine) {
+                    let lnum = parseInt(items[0].text, 10) - 1;
+                    let padlen = items[0].text.length + 1;
+                    if (create) {
+                        start = lnum;
+                        create = false;
+                    }
+                    let line = '';
+                    for (let item of items) {
+                        if (item.foreground == 'red') {
+                            let l = lnum - start;
+                            let c = line.length - padlen;
+                            highlights.push(vscode_languageserver_types_1.Range.create(l, c, l, c + item.text.length));
+                        }
+                        line += item.text;
+                    }
+                    let currline = line.slice(padlen);
+                    lines.push(currline);
+                }
             }
-        }
-        this.nvim.command('redraw', true);
-        await this.nvim.resumeNotification(false, true);
-    }
-    async getHighlights(document) {
-        if (!document)
-            return null;
-        let ts = Date.now();
-        let { bufnr } = document;
-        let position = await workspace_1.default.getCursorPosition();
-        let line = document.getline(position.line);
-        let ch = line[position.character];
-        if (!ch || !document.isWord(ch) || this.colors.hasColorAtPostion(bufnr, position))
-            return null;
-        try {
-            let highlights = await languages_1.default.getDocumentHighLight(document.textDocument, position);
-            if (workspace_1.default.bufnr != document.bufnr || (this.cursorMoveTs && this.cursorMoveTs > ts)) {
-                return null;
+            else {
+                let fileEnd = content.trim().length == 0;
+                if (fileItem && (fileEnd || content.trim() == '--')) {
+                    let fileRange = {
+                        lines,
+                        highlights,
+                        start,
+                        end: start + lines.length
+                    };
+                    fileItem.ranges.push(fileRange);
+                }
+                if (fileEnd) {
+                    this.emit('item', fileItem);
+                    fileItem = null;
+                }
+                lines = [];
+                highlights = [];
+                create = true;
             }
-            return highlights;
-        }
-        catch (_e) {
-            return null;
-        }
+        });
+        rl.on('close', () => {
+            if (fileItem) {
+                if (lines.length) {
+                    let fileRange = {
+                        lines,
+                        highlights,
+                        start,
+                        end: start + lines.length
+                    };
+                    fileItem.ranges.push(fileRange);
+                }
+                this.emit('item', fileItem);
+            }
+            lines = highlights = fileItem = null;
+            this.emit('end');
+        });
     }
     dispose() {
-        util_1.disposeAll(this.disposables);
+        if (this.process) {
+            this.process.kill();
+        }
     }
 }
-exports.default = DocumentHighlighter;
-//# sourceMappingURL=documentHighlight.js.map
+class Search {
+    constructor(nvim, cmd = 'rg') {
+        this.nvim = nvim;
+        this.cmd = cmd;
+    }
+    run(args, cwd, refactor) {
+        let { nvim, cmd } = this;
+        let { afterContext, beforeContext } = refactor.config;
+        let argList = ['-A', afterContext.toString(), '-B', beforeContext.toString()].concat(defaultArgs, args);
+        argList.push('--', './');
+        try {
+            cmd = which_1.default.sync(cmd);
+        }
+        catch (e) {
+            workspace_1.default.showMessage('Please install ripgrep and make sure rg is in your $PATH', 'error');
+            return Promise.reject(e);
+        }
+        this.task = new Task();
+        this.task.start(cmd, argList, cwd);
+        let mutex = new await_semaphore_1.Mutex();
+        let files = 0;
+        let matches = 0;
+        let start = Date.now();
+        // remaining items
+        let fileItems = [];
+        const addFileItems = async () => {
+            if (fileItems.length == 0)
+                return;
+            let items = fileItems.slice();
+            fileItems = [];
+            const release = await mutex.acquire();
+            try {
+                await refactor.addFileItems(items);
+            }
+            catch (e) {
+                logger.error(e);
+            }
+            release();
+        };
+        return new Promise((resolve, reject) => {
+            let interval = setInterval(addFileItems, 100);
+            this.task.on('item', async (fileItem) => {
+                files++;
+                matches = matches + fileItem.ranges.reduce((p, r) => p + r.highlights.length, 0);
+                fileItems.push(fileItem);
+            });
+            this.task.on('error', message => {
+                clearInterval(interval);
+                workspace_1.default.showMessage(`Error on command "${cmd}": ${message}`, 'error');
+                this.task = null;
+                reject(new Error(message));
+            });
+            this.task.on('end', async () => {
+                clearInterval(interval);
+                try {
+                    await addFileItems();
+                    const release = await mutex.acquire();
+                    release();
+                    this.task.removeAllListeners();
+                    this.task = null;
+                    let { document } = refactor;
+                    if (document) {
+                        let buf = document.buffer;
+                        nvim.pauseNotification();
+                        if (files == 0) {
+                            buf.setLines(['No match found'], { start: 1, end: 2, strictIndexing: false });
+                            buf.addHighlight({ line: 1, srcId: -1, colEnd: -1, colStart: 0, hlGroup: 'Error' }).logError();
+                            buf.setOption('modified', false, true);
+                        }
+                        else {
+                            let highligher = new highligher_1.default();
+                            highligher.addText('Files', 'MoreMsg');
+                            highligher.addText(': ');
+                            highligher.addText(`${files} `, 'Number');
+                            highligher.addText('Matches', 'MoreMsg');
+                            highligher.addText(': ');
+                            highligher.addText(`${matches} `, 'Number');
+                            highligher.addText('Duration', 'MoreMsg');
+                            highligher.addText(': ');
+                            highligher.addText(`${Date.now() - start}ms`, 'Number');
+                            highligher.render(buf, 1, 2);
+                        }
+                        buf.setOption('modified', false, true);
+                        await nvim.resumeNotification(false, true);
+                    }
+                }
+                catch (e) {
+                    reject(e);
+                    return;
+                }
+                resolve();
+            });
+        });
+    }
+}
+exports.default = Search;
+//# sourceMappingURL=search.js.map
+
+/***/ }),
+/* 403 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+class Semaphore {
+    constructor(count) {
+        this.tasks = [];
+        this.count = count;
+    }
+    sched() {
+        if (this.count > 0 && this.tasks.length > 0) {
+            this.count--;
+            let next = this.tasks.shift();
+            if (next === undefined) {
+                throw "Unexpected undefined value in tasks list";
+            }
+            next();
+        }
+    }
+    acquire() {
+        return new Promise((res, rej) => {
+            var task = () => {
+                var released = false;
+                res(() => {
+                    if (!released) {
+                        released = true;
+                        this.count++;
+                        this.sched();
+                    }
+                });
+            };
+            this.tasks.push(task);
+            if (process && process.nextTick) {
+                process.nextTick(this.sched.bind(this));
+            }
+            else {
+                setImmediate(this.sched.bind(this));
+            }
+        });
+    }
+    use(f) {
+        return this.acquire()
+            .then(release => {
+            return f()
+                .then((res) => {
+                release();
+                return res;
+            })
+                .catch((err) => {
+                release();
+                throw err;
+            });
+        });
+    }
+}
+exports.Semaphore = Semaphore;
+class Mutex extends Semaphore {
+    constructor() {
+        super(1);
+    }
+}
+exports.Mutex = Mutex;
+//# sourceMappingURL=index.js.map
 
 /***/ }),
 /* 404 */
@@ -88587,6 +88597,7 @@ class Cursors {
         this._activated = true;
         this.bufnr = doc.bufnr;
         this.winid = winid;
+        this.nvim.setVar('coc_cursors_activated', 1, true);
         doc.forceSync();
         this.textDocument = doc.textDocument;
         workspace_1.default.onDidChangeTextDocument(async (e) => {
@@ -88700,6 +88711,7 @@ class Cursors {
         if (!this._activated)
             return;
         let { matchIds } = this;
+        this.nvim.setVar('coc_cursors_activated', 0, true);
         this.nvim.call('coc#util#clearmatches', [Array.from(matchIds), this.winid], true);
         this.matchIds = [];
         util_1.disposeAll(this.disposables);

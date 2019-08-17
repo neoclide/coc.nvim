@@ -17,6 +17,10 @@ function! CocAction(...) abort
   return coc#rpc#request('CocAction', a:000)
 endfunction
 
+function! CocHasProvider(name) abort
+  return coc#rpc#request('hasProvider', [a:name])
+endfunction
+
 function! CocActionAsync(...) abort
   return s:AsyncRequest('CocAction', a:000)
 endfunction
@@ -168,7 +172,7 @@ function! s:Enable()
 
     if coc#rpc#started()
       autocmd VimEnter            * call coc#rpc#notify('VimEnter', [])
-    else
+    elseif get(g:, 'coc_start_at_startup', 1)
       autocmd VimEnter            * call coc#rpc#start_server()
     endif
     if s:is_vim

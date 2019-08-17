@@ -1013,6 +1013,11 @@ g:node_client_debug 				*g:node_client_debug*
 <
 			to open the log file.
 
+g:coc_cursors_activated				*g:coc_cursors_activated*
+
+			Use expression `get(g:, 'coc_cursors_activated',0)` to
+			check if cursors session is activated.
+
 ------------------------------------------------------------------------------
 
 Some variables are provided by coc.nvim so you can use them in your 
@@ -1268,6 +1273,17 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	Call CocAction without blocking vim UI, the callback is called with 
 	`error` as the first argument and `response` as the second argument.
+
+						*CocHasProvider()*
+CocHasProvider({feature})
+
+	Check if provider exists for specified feature. Supported features:
+
+	`rename` `onTypeEdit` `documentLink` `documentColor` `foldingRange`
+	`format` `codeAction` `workspaceSymbols` `formatRange` `hover`
+	`signature` `documentSymbol` `documentHighlight` `definition`
+	`declaration` `typeDefinition` `reference` `implementatioin` `codeLens`
+	`selectionRange`
 
 ------------------------------------------------------------------------------
 
@@ -2361,7 +2377,7 @@ Q: 	I want codeLens feature of LSP.
 A: 	CodeLens support uses the virtual text feature of neovim, its's not 
 	enabled by default. To enable it, add: >
 
-	  "coc.preferences.codeLens.enable": true,
+	  "codeLens.enable": true,
 <
 	to your coc-settings.json
 
