@@ -67,6 +67,21 @@ describe('should get text edits', () => {
     expect(res).toBe(newStr)
   }
 
+  it('should get diff for comments ', async () => {
+    let oldStr = '/*\n *\n * \n'
+    let newStr = '/*\n *\n *\n * \n'
+    let doc = TextDocument.create('untitled://1', 'markdown', 0, oldStr)
+    let change = getChange(doc.getText(), newStr, 1)
+    let start = doc.positionAt(change.start)
+    let end = doc.positionAt(change.end)
+    let edit: TextEdit = {
+      range: { start, end },
+      newText: change.newText
+    }
+    let res = TextDocument.applyEdits(doc, [edit])
+    expect(res).toBe(newStr)
+  })
+
   it('should return null for same content', () => {
     let change = getChange('', '')
     expect(change).toBeNull()
