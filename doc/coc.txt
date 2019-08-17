@@ -1013,6 +1013,11 @@ g:node_client_debug 				*g:node_client_debug*
 <
 			to open the log file.
 
+g:coc_cursors_activated				*g:coc_cursors_activated*
+
+			Use expression `get(g:, 'coc_cursors_activated',0)` to
+			check if cursors session is activated.
+
 ------------------------------------------------------------------------------
 
 Some variables are provided by coc.nvim so you can use them in your 

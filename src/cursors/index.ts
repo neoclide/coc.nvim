@@ -134,6 +134,7 @@ export default class Cursors {
     this._activated = true
     this.bufnr = doc.bufnr
     this.winid = winid
+    this.nvim.setVar('coc_cursors_activated', 1, true)
     doc.forceSync()
     this.textDocument = doc.textDocument
     workspace.onDidChangeTextDocument(async e => {
@@ -232,6 +233,7 @@ export default class Cursors {
   public cancel(): void {
     if (!this._activated) return
     let { matchIds } = this
+    this.nvim.setVar('coc_cursors_activated', 0, true)
     this.nvim.call('coc#util#clearmatches', [Array.from(matchIds), this.winid], true)
     this.matchIds = []
     disposeAll(this.disposables)
