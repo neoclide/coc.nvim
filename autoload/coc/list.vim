@@ -189,13 +189,19 @@ function! coc#list#status(name)
   return get(b:list_status, a:name, '')
 endfunction
 
-function! coc#list#create(position, height, name)
+function! coc#list#create(position, height, name, numberSelect)
   nohlsearch
   if a:position ==# 'tab'
     execute 'silent tabe list:///'.a:name
   else
     execute 'silent keepalt '.(a:position ==# 'top' ? '' : 'botright').a:height.'sp list:///'.a:name
     execute 'resize '.a:height
+  endif
+  if a:numberSelect
+    setl number
+  else
+    setl nonumber
+    setl foldcolumn=2
   endif
   return [bufnr('%'), win_getid()]
 endfunction
@@ -212,9 +218,9 @@ function! coc#list#setup(source)
     \ ]
   call setwinvar(winnr(), '&statusline', join(statusParts, ' '))
   setl buftype=nofile nobuflisted nofen nowrap
-  setl number norelativenumber bufhidden=wipe cursorline winfixheight
+  setl norelativenumber bufhidden=wipe cursorline winfixheight
   setl tabstop=1 nolist nocursorcolumn
-  setl signcolumn=yes
+  setl signcolumn=auto
   setl filetype=list
   syntax case ignore
   let source = a:source[8:]

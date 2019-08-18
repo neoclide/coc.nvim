@@ -123,7 +123,7 @@ export class ListManager implements Disposable {
         await this.ui.appendItems(items)
       } else {
         this.ui.addHighlights(highlights)
-        await this.ui.drawItems(items, this.name, this.listOptions.position, reload)
+        await this.ui.drawItems(items, this.name, this.listOptions, reload)
       }
     }, null, this.disposables)
 
@@ -175,7 +175,7 @@ export class ListManager implements Disposable {
     this.activated = true
     this.window = await nvim.window
     this.prompt.start()
-    await ui.resume(name, this.listOptions.position)
+    await ui.resume(name, this.listOptions)
   }
 
   public async doAction(name?: string): Promise<void> {

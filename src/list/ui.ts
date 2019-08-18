@@ -1,7 +1,7 @@
 import { Neovim, Window } from '@chemzqm/neovim'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
-import { ListHighlights, ListItem } from '../types'
+import { ListHighlights, ListItem, ListOptions } from '../types'
 import { disposeAll } from '../util'
 import workspace from '../workspace'
 import ListConfiguration from './configuration'
@@ -203,9 +203,9 @@ export default class ListUI {
     }
   }
 
-  public async resume(name: string, position: string): Promise<void> {
+  public async resume(name: string, listOptions: ListOptions): Promise<void> {
     let { items, selected, nvim, signOffset } = this
-    await this.drawItems(items, name, position, true)
+    await this.drawItems(items, name, listOptions, true)
     if (selected.size > 0 && this.bufnr) {
       nvim.pauseNotification()
       for (let lnum of selected) {
@@ -309,9 +309,9 @@ export default class ListUI {
     }
   }
 
-  public async drawItems(items: ListItem[], name: string, position = 'bottom', reload = false): Promise<void> {
+  public async drawItems(items: ListItem[], name: string, listOptions: ListOptions, reload = false): Promise<void> {
     let { bufnr, config, nvim } = this
-    this.newTab = position == 'tab'
+    this.newTab = listOptions.position == 'tab'
     let maxHeight = config.get<number>('maxHeight', 12)
     let height = Math.max(1, Math.min(items.length, maxHeight))
     let limitLines = config.get<number>('limitLines', 30000)
@@ -319,7 +319,7 @@ export default class ListUI {
     this.items = items.slice(0, limitLines)
     if (bufnr == 0 && !this.creating) {
       this.creating = true
-      let [bufnr, winid] = await nvim.call('coc#list#create', [position, height, name])
+      let [bufnr, winid] = await nvim.call('coc#list#create', [listOptions.position, height, name, listOptions.numberSelect])
       this._bufnr = bufnr
       this.window = nvim.createWindow(winid)
       this.height = height
