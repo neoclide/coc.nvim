@@ -1,3 +1,16 @@
+# 2019-08-18 0.0.74
+
+- feat(cursors): support multiple cursors.
+- feat(extensions): install missing extensions by CocInstall.
+- feat(extensions): add command `extensions.forceUpdateAll`.
+- feat(completion): rework preselect feature.
+- feat(extension): use request for fetch package info.
+- feat(language-client): support disableDynamicRegister configuration.
+- feat(list): paste from vim register support on insert mode #1088.
+- feat(plugin): add CocHasProvider(), close #1087.
+- refactor(outline): not exclude variables and callback.
+- refactor(diagnostic): remove timeout on InsertLeave.
+
 # 2019-07-11 0.0.73
 
 - fix(completion): fix map of number select
