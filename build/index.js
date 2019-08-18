@@ -45355,7 +45355,12 @@ augroup end`;
         try {
             let filepath = path_1.default.join(os_1.default.tmpdir(), `coc-${process.pid}.vim`);
             await fs_2.writeFile(filepath, content);
-            await this.nvim.command(`source ${filepath}`);
+            let cmd = `source ${filepath}`;
+            const isCygwin = await this.nvim.eval('has("win32unix")');
+            if (isCygwin && index_1.platform.isWindows) {
+                cmd = `execute "source" . substitute(system('cygpath ${filepath.replace(/\\/g, '/')}'), '\\n', '', 'g')`;
+            }
+            await this.nvim.command(cmd);
         }
         catch (e) {
             this.showMessage(`Can't create tmp file: ${e.message}`, 'error');
@@ -50783,12 +50788,12 @@ function getChange(oldStr, newStr, cursorEnd) {
     newText = newStr.slice(start, nl - endOffset);
     if (ol == nl && start == end)
         return null;
+    // optimize for add new line(s)
     if (start == end) {
         let pre = start == 0 ? '' : newStr[start - 1];
         if (pre && pre != '\n'
             && oldStr[start] == '\n'
             && newText.startsWith('\n')) {
-            // optimize for add new line(s)
             return { start: start + 1, end: end + 1, newText: newText.slice(1) + '\n' };
         }
     }
@@ -54670,7 +54675,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "6dd955143d" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "5b5377732d" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -79900,7 +79905,7 @@ class ListManager {
             }
             else {
                 this.ui.addHighlights(highlights);
-                await this.ui.drawItems(items, this.name, this.listOptions.position, reload);
+                await this.ui.drawItems(items, this.name, this.listOptions, reload);
             }
         }, null, this.disposables);
         this.registerList(new links_1.default(nvim));
@@ -79953,7 +79958,7 @@ class ListManager {
         this.activated = true;
         this.window = await nvim.window;
         this.prompt.start();
-        await ui.resume(name, this.listOptions.position);
+        await ui.resume(name, this.listOptions);
     }
     async doAction(name) {
         let { currList } = this;
@@ -83232,9 +83237,9 @@ class ListUI {
             nvim.command(`silent! bd! ${bufnr}`, true);
         }
     }
-    async resume(name, position) {
+    async resume(name, listOptions) {
         let { items, selected, nvim, signOffset } = this;
-        await this.drawItems(items, name, position, true);
+        await this.drawItems(items, name, listOptions, true);
         if (selected.size > 0 && this.bufnr) {
             nvim.pauseNotification();
             for (let lnum of selected) {
@@ -83339,9 +83344,9 @@ class ListUI {
             });
         }
     }
-    async drawItems(items, name, position = 'bottom', reload = false) {
+    async drawItems(items, name, listOptions, reload = false) {
         let { bufnr, config, nvim } = this;
-        this.newTab = position == 'tab';
+        this.newTab = listOptions.position == 'tab';
         let maxHeight = config.get('maxHeight', 12);
         let height = Math.max(1, Math.min(items.length, maxHeight));
         let limitLines = config.get('limitLines', 30000);
@@ -83349,7 +83354,7 @@ class ListUI {
         this.items = items.slice(0, limitLines);
         if (bufnr == 0 && !this.creating) {
             this.creating = true;
-            let [bufnr, winid] = await nvim.call('coc#list#create', [position, height, name]);
+            let [bufnr, winid] = await nvim.call('coc#list#create', [listOptions.position, height, name, listOptions.numberSelect]);
             this._bufnr = bufnr;
             this.window = nvim.createWindow(winid);
             this.height = height;
