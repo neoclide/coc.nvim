@@ -15,7 +15,7 @@ import FoldingRangeManager from './provider/foldingRangeManager'
 import FormatManager from './provider/formatManager'
 import FormatRangeManager from './provider/formatRangeManager'
 import HoverManager from './provider/hoverManager'
-import ImplementationManager from './provider/implementatioinManager'
+import ImplementationManager from './provider/implementationManager'
 import OnTypeFormatManager from './provider/onTypeFormatManager'
 import SelectionRangeManager from './provider/rangeManager'
 import ReferenceManager from './provider/referenceManager'
@@ -98,7 +98,7 @@ class Languages {
   private declarationManager = new DeclarationManager()
   private typeDefinitionManager = new TypeDefinitionManager()
   private referenceManager = new ReferenceManager()
-  private implementatioinManager = new ImplementationManager()
+  private implementationManager = new ImplementationManager()
   private codeLensManager = new CodeLensManager()
   private selectionRangeManager = new SelectionRangeManager()
   private cancelTokenSource: CancellationTokenSource = new CancellationTokenSource()
@@ -257,7 +257,7 @@ class Languages {
   }
 
   public registerImplementationProvider(selector: DocumentSelector, provider: ImplementationProvider): Disposable {
-    return this.implementatioinManager.register(selector, provider)
+    return this.implementationManager.register(selector, provider)
   }
 
   public registerReferencesProvider(selector: DocumentSelector, provider: ReferenceProvider): Disposable {
@@ -313,8 +313,8 @@ class Languages {
 
   @check
   public async getImplementation(document: TextDocument, position: Position): Promise<Location[]> {
-    if (!this.implementatioinManager.hasProvider(document)) return null
-    return await this.implementatioinManager.provideReferences(document, position, this.token)
+    if (!this.implementationManager.hasProvider(document)) return null
+    return await this.implementationManager.provideReferences(document, position, this.token)
   }
 
   @check
@@ -483,8 +483,8 @@ class Languages {
         return this.typeDefinitionManager.hasProvider(document)
       case 'reference':
         return this.referenceManager.hasProvider(document)
-      case 'implementatioin':
-        return this.implementatioinManager.hasProvider(document)
+      case 'implementation':
+        return this.implementationManager.hasProvider(document)
       case 'codeLens':
         return this.codeLensManager.hasProvider(document)
       case 'selectionRange':
