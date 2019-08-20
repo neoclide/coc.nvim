@@ -1282,7 +1282,7 @@ CocHasProvider({feature})
 	`rename` `onTypeEdit` `documentLink` `documentColor` `foldingRange`
 	`format` `codeAction` `workspaceSymbols` `formatRange` `hover`
 	`signature` `documentSymbol` `documentHighlight` `definition`
-	`declaration` `typeDefinition` `reference` `implementatioin` `codeLens`
+	`declaration` `typeDefinition` `reference` `implementation` `codeLens`
 	`selectionRange`
 
 ------------------------------------------------------------------------------
