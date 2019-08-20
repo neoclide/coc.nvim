@@ -2177,6 +2177,8 @@ extensions 						 *coc-list-extensions*
 	- 'toggle' activate/deactivate extension, default action.
 	- 'disable' disable extension.
 	- 'enable' enable extension.
+	- 'lock' lock/unlock extension to current version.
+	- 'doc' view extension's README doc.
 	- 'reload' reload extension.
 	- 'uninstall' uninstall extension.
 

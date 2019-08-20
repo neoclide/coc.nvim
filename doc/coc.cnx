@@ -1487,6 +1487,8 @@ extensions 						 *coc-list-extensions*
 	- 'toggle' 激活/停用插件, 默认操作
 	- 'disable' 禁用插件
 	- 'enable' 启动插件
+	- 'lock' 锁定/解除插件在当前版本
+	- 'doc' 查看插件文档
 	- 'reload' 重载插件
 	- 'uninstall' 卸载插件
 
