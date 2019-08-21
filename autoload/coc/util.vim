@@ -773,6 +773,7 @@ function! coc#util#echo_line()
 endfunction
 
 " [r, g, b] ['255', '255', '255']
+" return ['255', '255', '255'] or return v:false to cancel
 function! coc#util#pick_color(default_color)
   if has('mac')
     " This is the AppleScript magic:
@@ -783,20 +784,25 @@ function! coc#util#pick_color(default_color)
           \ '-e "' . s:quit . '"',
           \ '-e "end tell"',
           \ '-e "return theColor"']
-    let res = system("osascript " . join(s:ascrpt, ' ') . " 2>/dev/null")
-    return map(split(trim(res), ','), {idx, val -> string(str2nr(val) / 257)})
+    let res = trim(system("osascript " . join(s:ascrpt, ' ') . " 2>/dev/null"))
+    if empty(res)
+      return v:false
+    else
+      return map(split(res, ','), {idx, val -> string(str2nr(val) / 257)})
+    endif
   endif
 
   let hex_color = printf('#%02x%02x%02x', a:default_color[0], a:default_color[1], a:default_color[2])
 
   if has('unix')
     if executable('zenity')
-      let returnColor = trim(system('zenity --title="Selection a color" --color-selection --color="' . hex_color . '" 2> /dev/null'))
-      if returnColor[0:2] == 'rgb'
-        return map(split(returnColor[4:-2], ','), {idx, val -> trim(val)})
+      let res = trim(system('zenity --title="Selection a color" --color-selection --color="' . hex_color . '" 2> /dev/null'))
+      if empty(res)
+        return v:false
+      else
+        " res is rgb(255,255,255)
+        return map(split(res[4:-2], ','), {idx, val -> trim(val)})
       endif
-      " cancel by user
-      return a:default_color
     endif
   endif
 

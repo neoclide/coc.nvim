@@ -8,6 +8,7 @@ import { disposeAll, wait } from '../util'
 import { equals } from '../util/object'
 import workspace from '../workspace'
 import Highlighter, { toHexString } from './highlighter'
+import util from 'util'
 
 const logger = require('../util/logger')('colors')
 
@@ -118,6 +119,10 @@ export default class Colors {
     let { color } = info
     let colorArr = [(color.red * 255).toFixed(0), (color.green * 255).toFixed(0), (color.blue * 255).toFixed(0)]
     let res = await this.nvim.call('coc#util#pick_color', [colorArr])
+    if (res === false) {
+      // cancel
+      return
+    }
     if (!res || res.length != 3) {
       workspace.showMessage('Failed to get color', 'warning')
       return
