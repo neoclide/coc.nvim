@@ -786,7 +786,20 @@ function! coc#util#pick_color(default_color)
     let res = system("osascript " . join(s:ascrpt, ' ') . " 2>/dev/null")
     return split(trim(res), ',')
   endif
-  let default_color = printf('#%02x%02x%02x', a:default_color[0], a:default_color[1], a:default_color[2])
+
+  let hex_color = printf('#%02x%02x%02x', a:default_color[0], a:default_color[1], a:default_color[2])
+
+  if has('unix')
+    if executable('zenity')
+      let returnColor = trim(system('zenity --title="Selection a color" --color-selection --color="' . hex_color . '" 2> /dev/null'))
+      if returnColor[0:2] == 'rgb'
+        return map(split(returnColor[4:-2], ','), {idx, val -> string(str2nr(val) * 256)})
+      endif
+      " cancel by user
+      return a:default_color
+    endif
+  endif
+
   let rgb = []
   if !has('python')
     echohl Error | echom 'python support required, checkout :echo has(''python'')' | echohl None
@@ -809,7 +822,7 @@ wnd_title_insert = "Insert a color"
 csd = gtk.ColorSelectionDialog(wnd_title_insert)
 cs = csd.colorsel
 
-cs.set_current_color(gtk.gdk.color_parse(vim.eval("default_color")))
+cs.set_current_color(gtk.gdk.color_parse(vim.eval("hex_color")))
 
 cs.set_current_alpha(65536)
 cs.set_has_opacity_control(False)
