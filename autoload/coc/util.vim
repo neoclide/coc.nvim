@@ -779,12 +779,12 @@ function! coc#util#pick_color(default_color)
     let s:ascrpt = ['-e "tell application \"' . s:app . '\""',
           \ '-e "' . s:activate . '"',
           \ "-e \"set AppleScript's text item delimiters to {\\\",\\\"}\"",
-          \ '-e "set theColor to (choose color default color {' . str2nr(a:default_color[0])*256 . ", " . str2nr(a:default_color[1])*256 . ", " . str2nr(a:default_color[2])*256 . '}) as text"',
+          \ '-e "set theColor to (choose color default color {' . str2nr(a:default_color[0])*257 . ", " . str2nr(a:default_color[1])*257 . ", " . str2nr(a:default_color[2])*257 . '}) as text"',
           \ '-e "' . s:quit . '"',
           \ '-e "end tell"',
           \ '-e "return theColor"']
     let res = system("osascript " . join(s:ascrpt, ' ') . " 2>/dev/null")
-    return split(trim(res), ',')
+    return map(split(trim(res), ','), {idx, val -> string(str2nr(val) / 257)})
   endif
 
   let hex_color = printf('#%02x%02x%02x', a:default_color[0], a:default_color[1], a:default_color[2])
@@ -793,7 +793,7 @@ function! coc#util#pick_color(default_color)
     if executable('zenity')
       let returnColor = trim(system('zenity --title="Selection a color" --color-selection --color="' . hex_color . '" 2> /dev/null'))
       if returnColor[0:2] == 'rgb'
-        return map(split(returnColor[4:-2], ','), {idx, val -> string(str2nr(val) * 256)})
+        return map(split(returnColor[4:-2], ','), {idx, val -> trim(val)})
       endif
       " cancel by user
       return a:default_color
@@ -824,13 +824,13 @@ cs = csd.colorsel
 
 cs.set_current_color(gtk.gdk.color_parse(vim.eval("hex_color")))
 
-cs.set_current_alpha(65536)
+cs.set_current_alpha(65535)
 cs.set_has_opacity_control(False)
 cs.set_has_palette(int(vim.eval("s:display_palette")))
 
 if csd.run()==gtk.RESPONSE_OK:
     c = cs.get_current_color()
-    s = [str(int(c.red)),',',str(int(c.green)),',',str(int(c.blue))]
+    s = [str(int(c.red / 257)),',',str(int(c.green / 257)),',',str(int(c.blue / 257))]
     thecolor = ''.join(s)
     vim.command(":let rgb = split('%s',',')" % thecolor)
 

@@ -116,16 +116,16 @@ export default class Colors {
     let info = await this.currentColorInfomation()
     if (!info) return workspace.showMessage('Color not found at current position', 'warning')
     let { color } = info
-    let colorArr = [(color.red * 256).toFixed(0), (color.green * 256).toFixed(0), (color.blue * 256).toFixed(0)]
+    let colorArr = [(color.red * 255).toFixed(0), (color.green * 255).toFixed(0), (color.blue * 255).toFixed(0)]
     let res = await this.nvim.call('coc#util#pick_color', [colorArr])
     if (!res || res.length != 3) {
       workspace.showMessage('Failed to get color', 'warning')
       return
     }
     let hex = toHexString({
-      red: (res[0] / 65536),
-      green: (res[1] / 65536),
-      blue: (res[2] / 65536),
+      red: (res[0] / 255),
+      green: (res[1] / 255),
+      blue: (res[2] / 255),
       alpha: 1
     })
     let document = await workspace.document
