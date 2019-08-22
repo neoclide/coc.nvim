@@ -800,7 +800,7 @@ function! coc#util#pick_color(default_color)
       if empty(res)
         return v:false
       else
-        " res is rgb(255,255,255)
+        " res format is rgb(255,255,255)
         return map(split(res[4:-2], ','), {idx, val -> trim(val)})
       endif
     endif
