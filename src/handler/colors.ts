@@ -8,7 +8,6 @@ import { disposeAll, wait } from '../util'
 import { equals } from '../util/object'
 import workspace from '../workspace'
 import Highlighter, { toHexString } from './highlighter'
-import util from 'util'
 
 const logger = require('../util/logger')('colors')
 
