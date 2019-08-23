@@ -347,8 +347,8 @@ function! coc#util#preview_info(info, ...) abort
 endfunction
 
 function! coc#util#get_config_home()
-  if exists("g:coc_config_home")
-      return get(g:, 'coc_config_home', "")
+  if !empty(get(g:, 'coc_config_home', ''))
+      return g:coc_config_home
   endif
   if exists('$VIMCONFIG')
     return resolve($VIMCONFIG)
