@@ -1567,6 +1567,10 @@ COMMANDS 					*coc-commands*
 
 		Edit the user config file `coc-settings.json`
 
+:CocLocalConfig 				*:CocLocalConfig*
+
+		Edit the workspace config file `.vim/coc-settings.json`
+
 :CocInstall [{option}] {name} ... 		*:CocInstall*
 
 		Install one or more coc extensions.

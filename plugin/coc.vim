@@ -94,6 +94,14 @@ function! s:OpenConfig()
   execute 'edit '.home.'/coc-settings.json'
 endfunction
 
+function! s:OpenLocalConfig()
+  let localVimConfigDir = '.vim'
+  if !isdirectory(localVimConfigDir)
+    call mkdir(localVimConfigDir, 'p')
+  endif
+  execute 'edit '.localVimConfigDir.'/coc-settings.json'
+endfunction
+
 function! s:AddAnsiGroups() abort
   let color_map = {}
   let colors = ['#282828', '#cc241d', '#98971a', '#d79921', '#458588', '#b16286', '#689d6a', '#a89984', '#928374']
@@ -297,6 +305,7 @@ command! -nargs=0 CocNext         :call coc#rpc#notify('listNext', [])
 command! -nargs=0 CocDisable      :call s:Disable()
 command! -nargs=0 CocEnable       :call s:Enable()
 command! -nargs=0 CocConfig       :call s:OpenConfig()
+command! -nargs=0 CocLocalConfig  :call s:OpenLocalConfig()
 command! -nargs=0 CocRestart      :call coc#rpc#restart()
 command! -nargs=0 CocStart        :call coc#rpc#start_server()
 command! -nargs=0 CocRebuild      :call coc#util#rebuild()
