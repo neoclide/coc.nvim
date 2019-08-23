@@ -773,22 +773,23 @@ function! coc#util#echo_line()
 endfunction
 
 " [r, g, b] ['255', '255', '255']
-" return ['255', '255', '255'] or return v:false to cancel
+" return ['65535', '65535', '65535'] or return v:false to cancel
 function! coc#util#pick_color(default_color)
   if has('mac')
+    let default_color = map(a:default_color, {idx, val -> str2nr(val) / 255 * 65535})
     " This is the AppleScript magic:
     let s:ascrpt = ['-e "tell application \"' . s:app . '\""',
-          \ '-e "' . s:activate . '"',
-          \ "-e \"set AppleScript's text item delimiters to {\\\",\\\"}\"",
-          \ '-e "set theColor to (choose color default color {' . str2nr(a:default_color[0])*257 . ", " . str2nr(a:default_color[1])*257 . ", " . str2nr(a:default_color[2])*257 . '}) as text"',
-          \ '-e "' . s:quit . '"',
-          \ '-e "end tell"',
-          \ '-e "return theColor"']
+         \ '-e "' . s:activate . '"',
+         \ "-e \"set AppleScript's text item delimiters to {\\\",\\\"}\"",
+         \ '-e "set theColor to (choose color default color {' . default_color[0] . ", " . default_color[1] . ", " . default_color[2] . '}) as text"',
+         \ '-e "' . s:quit . '"',
+         \ '-e "end tell"',
+         \ '-e "return theColor"']
     let res = trim(system("osascript " . join(s:ascrpt, ' ') . " 2>/dev/null"))
     if empty(res)
       return v:false
     else
-      return map(split(res, ','), {idx, val -> string(str2nr(val) / 257)})
+      return split(trim(res), ',')
     endif
   endif
 
@@ -801,7 +802,7 @@ function! coc#util#pick_color(default_color)
         return v:false
       else
         " res format is rgb(255,255,255)
-        return map(split(res[4:-2], ','), {idx, val -> trim(val)})
+        return map(split(res[4:-2], ','), {idx, val -> string(str2nr(trim(val)) / 255 * 65535)})
       endif
     endif
   endif
@@ -832,11 +833,11 @@ cs.set_current_color(gtk.gdk.color_parse(vim.eval("hex_color")))
 
 cs.set_current_alpha(65535)
 cs.set_has_opacity_control(False)
-cs.set_has_palette(int(vim.eval("s:display_palette")))
+# cs.set_has_palette(int(vim.eval("s:display_palette")))
 
 if csd.run()==gtk.RESPONSE_OK:
     c = cs.get_current_color()
-    s = [str(int(c.red) / 257),',',str(int(c.green) / 257),',',str(int(c.blue) / 257)]
+    s = [str(int(c.red)),',',str(int(c.green)),',',str(int(c.blue))]
     thecolor = ''.join(s)
     vim.command(":let rgb = split('%s',',')" % thecolor)
 

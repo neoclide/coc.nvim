@@ -128,9 +128,9 @@ export default class Colors {
       return
     }
     let hex = toHexString({
-      red: (res[0] / 255),
-      green: (res[1] / 255),
-      blue: (res[2] / 255),
+      red: (res[0] / 65535),
+      green: (res[1] / 65535),
+      blue: (res[2] / 65535),
       alpha: 1
     })
     let document = await workspace.document
