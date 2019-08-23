@@ -807,7 +807,7 @@ function! coc#util#pick_color(default_color)
     endif
   endif
 
-  let rgb = []
+  let rgb = v:false
   if !has('python')
     echohl Error | echom 'python support required, checkout :echo has(''python'')' | echohl None
     return
