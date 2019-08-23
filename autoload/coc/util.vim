@@ -836,7 +836,7 @@ cs.set_has_palette(int(vim.eval("s:display_palette")))
 
 if csd.run()==gtk.RESPONSE_OK:
     c = cs.get_current_color()
-    s = [str(int(c.red / 257)),',',str(int(c.green / 257)),',',str(int(c.blue / 257))]
+    s = [str(int(c.red) / 257),',',str(int(c.green) / 257),',',str(int(c.blue) / 257)]
     thecolor = ''.join(s)
     vim.command(":let rgb = split('%s',',')" % thecolor)
 
