@@ -779,12 +779,12 @@ function! coc#util#pick_color(default_color)
     let default_color = map(a:default_color, {idx, val -> str2nr(val) / 255 * 65535})
     " This is the AppleScript magic:
     let s:ascrpt = ['-e "tell application \"' . s:app . '\""',
-         \ '-e "' . s:activate . '"',
-         \ "-e \"set AppleScript's text item delimiters to {\\\",\\\"}\"",
-         \ '-e "set theColor to (choose color default color {' . default_color[0] . ", " . default_color[1] . ", " . default_color[2] . '}) as text"',
-         \ '-e "' . s:quit . '"',
-         \ '-e "end tell"',
-         \ '-e "return theColor"']
+          \ '-e "' . s:activate . '"',
+          \ "-e \"set AppleScript's text item delimiters to {\\\",\\\"}\"",
+          \ '-e "set theColor to (choose color default color {' . default_color[0] . ", " . default_color[1] . ", " . default_color[2] . '}) as text"',
+          \ '-e "' . s:quit . '"',
+          \ '-e "end tell"',
+          \ '-e "return theColor"']
     let res = trim(system("osascript " . join(s:ascrpt, ' ') . " 2>/dev/null"))
     if empty(res)
       return v:false
