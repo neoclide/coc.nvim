@@ -1305,7 +1305,7 @@ augroup end`
   }
 
   private createConfigurations(): Configurations {
-    let home = process.env.VIMCONFIG || path.join(os.homedir(), '.vim')
+    let home = process.env.COC_VIMCONFIG || path.join(os.homedir(), '.vim')
     if (global.hasOwnProperty('__TEST__')) {
       home = path.join(this.pluginRoot, 'src/__tests__')
     }
