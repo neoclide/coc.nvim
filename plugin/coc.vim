@@ -95,11 +95,19 @@ function! s:OpenConfig()
 endfunction
 
 function! s:OpenLocalConfig()
-  let localVimConfigDir = '.vim'
-  if !isdirectory(localVimConfigDir)
-    call mkdir(localVimConfigDir, 'p')
-  endif
-  execute 'edit '.localVimConfigDir.'/coc-settings.json'
+  let currentDir = $PWD
+  let fsRootDir = fnamemodify($HOME, ":p:h:h:h")
+
+  while isdirectory(currentDir) && !(currentDir ==# $HOME) && !(currentDir ==# fsRootDir)
+    if isdirectory(currentDir.'/.vim')
+      execute 'edit '.currentDir.'/.vim/coc-settings.json'
+      return
+    endif
+    let currentDir = fnamemodify(currentDir, ':p:h:h')
+  endwhile
+
+  call mkdir('.vim', 'p')
+  execute 'edit .vim/coc-settings.json'
 endfunction
 
 function! s:AddAnsiGroups() abort
