@@ -22,7 +22,7 @@ export default function download(url: string, options: DownloadOptions): Promise
   if (!fs.existsSync(dest)) mkdirp.sync(dest)
   let endpoint = parse(url)
   let mod = url.startsWith('https') ? https : http
-  let agent = getAgent(endpoint.protocol)
+  let agent = getAgent(endpoint)
   let opts: RequestOptions = Object.assign({
     method: 'GET',
     hostname: endpoint.hostname,

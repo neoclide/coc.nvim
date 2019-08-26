@@ -2,17 +2,47 @@ import { http, https } from 'follow-redirects'
 import { Agent, RequestOptions } from 'http'
 import { Readable } from 'stream'
 import tunnel from 'tunnel'
-import { parse } from 'url'
+import { parse, UrlWithStringQuery } from 'url'
 import zlib from 'zlib'
 import { objectLiteral } from '../util/is'
 import workspace from '../workspace'
 const logger = require('../util/logger')('model-fetch')
 
-export function getAgent(protocol: string): Agent {
+export function getAgent(endpoint: UrlWithStringQuery): Agent {
   let proxy = workspace.getConfiguration('http').get<string>('proxy', '')
-  let key = protocol.startsWith('https') ? 'HTTPS_PROXY' : 'HTTP_PROXY'
+  let key = endpoint.protocol.startsWith('https') ? 'HTTPS_PROXY' : 'HTTP_PROXY'
   if (!proxy && process.env[key]) {
     proxy = process.env[key].replace(/^https?:\/\//, '').replace(/\/$/, '')
+  }
+  const noProxy = process.env.NO_PROXY || process.env.no_proxy || null
+  if (noProxy === '*') {
+    proxy = null
+  } else if (noProxy !== null) {
+    // canonicalize the hostname, so that 'oogle.com' won't match 'google.com'
+    const hostname = endpoint.hostname.replace(/^\.*/, '.').toLowerCase()
+    const port = endpoint.port || endpoint.protocol.startsWith('https') ? '443' : '80'
+    const noProxyList = noProxy.split(',')
+
+    for (let i = 0, len = noProxyList.length; i < len; i++) {
+      let noProxyItem = noProxyList[i].trim().toLowerCase()
+
+      // no_proxy can be granular at the port level, which complicates things a bit.
+      if (noProxyItem.indexOf(':') > -1) {
+        let noProxyItemParts = noProxyItem.split(':', 2)
+        let noProxyHost = noProxyItemParts[0].replace(/^\.*/, '.')
+        let noProxyPort = noProxyItemParts[1]
+        if (port === noProxyPort && hostname.indexOf(noProxyHost) === hostname.length - noProxyHost.length) {
+          proxy = null
+          break
+        }
+      } else {
+        noProxyItem = noProxyItem.replace(/^\.*/, '.')
+        if (hostname.indexOf(noProxyItem) === hostname.length - noProxyItem.length) {
+          proxy = null
+          break
+        }
+      }
+    }
   }
   if (proxy) {
     let auth = proxy.includes('@') ? proxy.split('@', 2)[0] : ''
@@ -39,7 +69,7 @@ export default function fetch(url: string, data?: string | { [key: string]: any 
   logger.info('fetch:', url)
   let mod = url.startsWith('https') ? https : http
   let endpoint = parse(url)
-  let agent = getAgent(endpoint.protocol)
+  let agent = getAgent(endpoint)
   let opts: RequestOptions = Object.assign({
     method: 'GET',
     hostname: endpoint.hostname,
