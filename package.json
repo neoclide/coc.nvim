@@ -76,7 +76,7 @@
     "debounce": "^1.2.0",
     "fast-diff": "^1.2.0",
     "fb-watchman": "^2.0.0",
-    "follow-redirects": "^1.7.0",
+    "follow-redirects": "^1.8.1",
     "glob": "^7.1.4",
     "isuri": "^2.0.3",
     "jsonc-parser": "^2.1.1",
