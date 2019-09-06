@@ -109,7 +109,7 @@ class Languages {
       let { languageId } = event.document
       let config = workspace.getConfiguration('coc.preferences', event.document.uri)
       let filetypes = config.get<string[]>('formatOnSaveFiletypes', [])
-      if (filetypes.indexOf(languageId) !== -1) {
+      if (filetypes.indexOf(languageId) !== -1 || filetypes === ['*']) {
         let willSaveWaitUntil = async (): Promise<TextEdit[]> => {
           let options = await workspace.getFormatOptions(event.document.uri)
           let textEdits = await this.provideDocumentFormattingEdits(event.document, options)
