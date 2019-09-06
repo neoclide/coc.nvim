@@ -56,7 +56,7 @@
     "@types/minimatch": "^3.0.3",
     "@types/mkdirp": "^0.5.2",
     "@types/node": "^12.6.2",
-    "@types/semver": "^6.0.1",
+    "@types/semver": "^6.0.2",
     "@types/tar": "^4.0.3",
     "@types/tunnel": "^0.0.1",
     "@types/uuid": "^3.4.5",
