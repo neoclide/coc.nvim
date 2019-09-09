@@ -48,6 +48,11 @@ export default class CodeActionManager extends Manager<CodeActionProvider> imple
           if (Command.is(action)) {
             codeActions.push(CodeAction.create(action.title, action))
           } else {
+            if (context.only) {
+              if (!action.kind || context.only.indexOf(action.kind) == -1) {
+                continue
+              }
+            }
             let idx = codeActions.findIndex(o => o.title == action.title)
             if (idx == -1) codeActions.push(action)
           }
