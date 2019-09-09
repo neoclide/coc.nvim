@@ -302,6 +302,16 @@ export default class Handler {
     let { document, position } = await workspace.getCurrentState()
     let hovers = await languages.getHover(document, position)
     if (hovers && hovers.length) {
+      let hover = hovers.find(o => Range.is(o.range))
+      if (hover) {
+        let doc = workspace.getDocument(document.uri)
+        if (doc) {
+          let ids = doc.matchAddRanges([hover.range], 'CocHoverRange', 999)
+          setTimeout(() => {
+            this.nvim.call('coc#util#clearmatches', [ids], true)
+          }, 1000)
+        }
+      }
       await this.previewHover(hovers)
       return true
     }

@@ -239,6 +239,7 @@ hi default link CocListPath Comment
 hi default link CocFloating Pmenu
 hi default link CocHighlightText  CursorColumn
 
+hi default link CocHoverRange     Search
 hi default link CocCursorRange    Search
 hi default link CocHighlightRead  CocHighlightText
 hi default link CocHighlightWrite CocHighlightText

@@ -1873,6 +1873,12 @@ CocCursorRange 					*CocCursorRange*
 
   The highlight used for cursor ranges.
 
+CocHoverRange 					*CocHoverRange*
+
+  Default: `hi default link CocHoverRange Search`
+
+  The highlight used for current hover range.
+
 ==============================================================================
 LIST SUPPORT 					*coc-list*
 
