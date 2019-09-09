@@ -212,7 +212,8 @@ export default class FloatFactory implements Disposable {
         minwidth: config.width - 2,
         minheight: config.height,
         maxwidth: config.width - 2,
-        maxheight: config.height
+        maxheight: config.height,
+        firstline: alignTop ? -1 : 1
       })
       this.floatBuffer.setLines()
       nvim.command('redraw', true)
