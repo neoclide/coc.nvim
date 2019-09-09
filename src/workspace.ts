@@ -1096,7 +1096,7 @@ export class Workspace implements IWorkspace {
       if (m == 'i') {
         nvim.command(`inoremap ${silent}<expr> <Plug>(coc-${key}) coc#_insert_key('${method}', '${key}', ${opts.cancel ? 1 : 0})`, true)
       } else {
-        let modify = this.isNvim ? '<Cmd>' : getKeymapModifier(m)
+        let modify = getKeymapModifier(m)
         nvim.command(`${m}noremap ${silent} <Plug>(coc-${key}) ${modify}:call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, true)
       }
     }

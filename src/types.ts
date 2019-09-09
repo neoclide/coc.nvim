@@ -282,7 +282,7 @@ export interface SnippetManager {
 
 export type ModuleResolve = () => Promise<string>
 
-export type MapMode = 'n' | 'i' | 'v' | 'x' | 's'
+export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o'
 
 export enum PatternType {
   Buffer,

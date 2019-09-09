@@ -124,9 +124,10 @@ export function isRunning(pid: number): boolean {
 }
 
 export function getKeymapModifier(mode: MapMode): string {
+  if (mode == 'o' || mode == 'x') return '<C-U>'
   if (mode == 'n' || mode == 'v') return ''
   if (mode == 'i') return '<C-o>'
-  if (mode == 's' || mode == 'x') return '<Esc>'
+  if (mode == 's') return '<Esc>'
   return ''
 }
 
