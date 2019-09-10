@@ -191,6 +191,7 @@ Extensions are more powerful than a configured language server. Check out
   use [solargraph](http://solargraph.org/).
 - **[coc-rls](https://github.com/neoclide/coc-rls)** for `rust`, use
   [Rust Language Server](https://github.com/rust-lang/rls)
+- **[coc-rust-analyzer](https://github.com/fannheyward/coc-rust-analyzer)** for `rust`, use [rust-analyzer](https://github.com/rust-analyzer/rust-analyzer)
 - **[coc-r-lsp](https://github.com/neoclide/coc-r-lsp)** for `r`, use [R languageserver](https://github.com/REditorSupport/languageserver).
 - **[coc-yaml](https://github.com/neoclide/coc-yaml)** for `yaml`
 - **[coc-python](https://github.com/neoclide/coc-python)** for `python`, extension forked from [vscode-python](https://github.com/Microsoft/vscode-python).
@@ -216,6 +217,7 @@ Extensions are more powerful than a configured language server. Check out
 - **[coc-omnisharp](https://github.com/yatli/coc-omnisharp)** for `csharp` and `visualbasic`.
 - **[coc-texlab](https://github.com/fannheyward/coc-texlab)** for `LaTex` using [TexLab](https://texlab.netlify.com/).
 - **[coc-lsp-wl](https://github.com/voldikss/coc-lsp-wl)** for `wolfram mathematica`, fork of [vscode-lsp-wl](https://github.com/kenkangxgwe/vscode-lsp-wl).
+- **[coc-flow](https://github.com/amiralies/coc-flow)** for [`flow`](https://flow.org)
 
 Plus more! To get a full list of coc extensions, [search coc.nvim on npm](https://www.npmjs.com/search?q=keywords%3Acoc.nvim),
 or use [coc-marketplace](https://github.com/fannheyward/coc-marketplace), which can search and install extensions in coc.nvim directly.

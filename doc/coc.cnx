@@ -255,11 +255,11 @@ coc 不会向 vim 添加自己的快捷键，你需要手工配置来满足需�
 			修复当前行可修复的第一个错误修复操作。
 
 
-<Plug>(coc-float-hide) 				*n_coc-flost-hide*
+<Plug>(coc-float-hide) 				*n_coc-float-hide*
 
 			隐藏所有浮动窗口。
 
-<Plug>(coc-float-jump) 				*n_coc-flost-jump*
+<Plug>(coc-float-jump) 				*n_coc-float-jump*
 
 			跳转到第一个浮动窗口。
 
@@ -1487,6 +1487,8 @@ extensions 						 *coc-list-extensions*
 	- 'toggle' 激活/停用插件, 默认操作
 	- 'disable' 禁用插件
 	- 'enable' 启动插件
+	- 'lock' 锁定/解除插件在当前版本
+	- 'doc' 查看插件文档
 	- 'reload' 重载插件
 	- 'uninstall' 卸载插件
 

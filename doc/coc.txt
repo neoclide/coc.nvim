@@ -751,11 +751,11 @@ normal mode, `v_` works for visual mode.
 			Try to run quickfix action for diagnostics on the
 			current line.
 
-<Plug>(coc-float-hide) 				*n_coc-flost-hide*
+<Plug>(coc-float-hide) 				*n_coc-float-hide*
 
 			Hide all float windows.
 
-<Plug>(coc-float-jump) 				*n_coc-flost-jump*
+<Plug>(coc-float-jump) 				*n_coc-float-jump*
 
 			Jump to first float window.
 
@@ -1018,6 +1018,11 @@ g:coc_cursors_activated				*g:coc_cursors_activated*
 			Use expression `get(g:, 'coc_cursors_activated',0)` to
 			check if cursors session is activated.
 
+g:coc_config_home				*g:coc_config_home*
+
+			Configure the directory which will be used to look
+			for coc-settings.json and install extensions.
+			
 ------------------------------------------------------------------------------
 
 Some variables are provided by coc.nvim so you can use them in your 
@@ -1849,7 +1854,7 @@ CocErrorFloat 					*CocErrorFloat*
 
   The highlight used for a floating window with errors.
 
-CocWarningFloat 					*CocWarningFloat*
+CocWarningFloat 				*CocWarningFloat*
 
   Default: `hi default link CocWarningFloat CocWarningSign`
 
@@ -1872,6 +1877,12 @@ CocCursorRange 					*CocCursorRange*
   Default: `hi default link CocCursorRange Search`
 
   The highlight used for cursor ranges.
+
+CocHoverRange 					*CocHoverRange*
+
+  Default: `hi default link CocHoverRange Search`
+
+  The highlight used for current hover range.
 
 ==============================================================================
 LIST SUPPORT 					*coc-list*
@@ -2177,6 +2188,8 @@ extensions 						 *coc-list-extensions*
 	- 'toggle' activate/deactivate extension, default action.
 	- 'disable' disable extension.
 	- 'enable' enable extension.
+	- 'lock' lock/unlock extension to current version.
+	- 'doc' view extension's README doc.
 	- 'reload' reload extension.
 	- 'uninstall' uninstall extension.
 
