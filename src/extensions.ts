@@ -1,5 +1,6 @@
 import { debounce } from 'debounce'
 import fastDiff from 'fast-diff'
+import os from 'os'
 import fs from 'fs'
 import isuri from 'isuri'
 import path from 'path'
@@ -246,6 +247,9 @@ export class Extensions {
 
   private get npm(): string {
     let npm = workspace.getConfiguration('npm').get<string>('binPath', 'npm')
+    if (npm.startsWith('~')) {
+      npm = os.homedir() + npm.slice(1)
+    }
     for (let exe of [npm, 'yarnpkg', 'yarn', 'npm']) {
       try {
         let res = which.sync(exe)

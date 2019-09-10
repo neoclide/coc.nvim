@@ -943,6 +943,8 @@ g:coc_node_path 				*g:coc_node_path*
 <
 			Use this when coc has problems with your system node,
 
+			Note: you have to use `$HOME` as home directory.
+
 g:coc_force_debug  				*g:coc_force_debug*
 
 			Coc would use the precompiled bundle when the bundle
