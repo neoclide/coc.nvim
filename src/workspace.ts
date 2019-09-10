@@ -57,6 +57,7 @@ export class Workspace implements IWorkspace {
   private _initialized = false
   private _attached = false
   private buffers: Map<number, Document> = new Map()
+  private autocmdMaxId = 0
   private autocmds: Map<number, Autocmd> = new Map()
   private terminals: Map<number, Terminal> = new Map()
   private creatingSources: Map<number, CancellationTokenSource> = new Map()
@@ -195,7 +196,8 @@ export class Workspace implements IWorkspace {
    * Register autocmd on vim.
    */
   public registerAutocmd(autocmd: Autocmd): Disposable {
-    let id = this.autocmds.size + 1
+    this.autocmdMaxId += 1
+    let id = this.autocmdMaxId
     this.autocmds.set(id, autocmd)
     this.setupDynamicAutocmd()
     return Disposable.create(() => {
@@ -1202,7 +1204,7 @@ export class Workspace implements IWorkspace {
     }
     for (let [id, autocmd] of this.autocmds.entries()) {
       let args = autocmd.arglist && autocmd.arglist.length ? ', ' + autocmd.arglist.join(', ') : ''
-      let event = Array.isArray(autocmd.event) ? autocmd.event.join(' ') : autocmd.event
+      let event = Array.isArray(autocmd.event) ? autocmd.event.join(',') : autocmd.event
       let pattern = '*'
       if (/\buser\b/i.test(event)) {
         pattern = ''

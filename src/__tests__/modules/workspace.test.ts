@@ -755,23 +755,35 @@ describe('workspace utility', () => {
     expect(res).toBeNull()
   })
 
-  it('should regist autocmd', async () => {
+  it('should register autocmd', async () => {
     let event: any
-    let disposable = workspace.registerAutocmd({
+    let eventCount = 0
+    let disposables = []
+    disposables.push(workspace.registerAutocmd({
       event: 'TextYankPost',
       arglist: ['v:event'],
       callback: ev => {
+        eventCount += 1
         event = ev
       }
-    })
+    }))
+    disposables.push(workspace.registerAutocmd({
+      event: ['InsertEnter', 'CursorMoved'],
+      callback: () => {
+        eventCount += 1
+      }
+    }))
     await nvim.setLine('foo')
     await helper.wait(30)
     await nvim.command('normal! yy')
     await helper.wait(30)
+    await nvim.command('normal! Abar')
+    await helper.wait(30)
     expect(event.regtype).toBe('V')
     expect(event.operator).toBe('y')
     expect(event.regcontents).toEqual(['foo'])
-    disposable.dispose()
+    expect(eventCount).toEqual(3)
+    disposables.forEach(d => d.dispose())
   })
 
   it('should regist keymap', async () => {
