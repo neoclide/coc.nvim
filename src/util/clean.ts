@@ -28,6 +28,13 @@ export default async function(): Promise<void> {
         await util.promisify(fs.unlink)(file)
       }
     }
+    dir = process.env.XDG_RUNTIME_DIR || dir
+    files = glob.sync(path.join(dir, '/coc-nvim-*.log'))
+    for (let file of files) {
+      if (path.basename(file) != `coc-nvim-${process.pid}.log`) {
+        await util.promisify(fs.unlink)(file)
+      }
+    }
   } catch (e) {
     // noop
   }
