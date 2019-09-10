@@ -1849,7 +1849,7 @@ CocErrorFloat 					*CocErrorFloat*
 
   The highlight used for a floating window with errors.
 
-CocWarningFloat 					*CocWarningFloat*
+CocWarningFloat 				*CocWarningFloat*
 
   Default: `hi default link CocWarningFloat CocWarningSign`
 
