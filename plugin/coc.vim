@@ -95,8 +95,13 @@ function! s:OpenConfig()
 endfunction
 
 function! s:OpenLocalConfig()
-  let currentDir = $PWD
+  let currentDir = getcwd()
   let fsRootDir = fnamemodify($HOME, ":p:h:h:h")
+
+  if currentDir == $HOME
+    echom "Can't resolve local config from current working directory."
+    return
+  endif
 
   while isdirectory(currentDir) && !(currentDir ==# $HOME) && !(currentDir ==# fsRootDir)
     if isdirectory(currentDir.'/.vim')
@@ -106,8 +111,10 @@ function! s:OpenLocalConfig()
     let currentDir = fnamemodify(currentDir, ':p:h:h')
   endwhile
 
-  call mkdir('.vim', 'p')
-  execute 'edit .vim/coc-settings.json'
+  if coc#util#prompt_confirm("No local config detected, would you like to create .vim/coc-settings.json?")
+    call mkdir('.vim', 'p')
+    execute 'edit .vim/coc-settings.json'
+  endif
 endfunction
 
 function! s:AddAnsiGroups() abort
