@@ -32253,7 +32253,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f06157adc2" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "1777523f6d" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -35238,6 +35238,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const debounce_1 = __webpack_require__(175);
 const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(208));
+const os_1 = tslib_1.__importDefault(__webpack_require__(55));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
 const isuri_1 = tslib_1.__importDefault(__webpack_require__(176));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
@@ -35468,6 +35469,9 @@ class Extensions {
     }
     get npm() {
         let npm = workspace_1.default.getConfiguration('npm').get('binPath', 'npm');
+        if (npm.startsWith('~')) {
+            npm = os_1.default.homedir() + npm.slice(1);
+        }
         for (let exe of [npm, 'yarnpkg', 'yarn', 'npm']) {
             try {
                 let res = which_1.default.sync(exe);
@@ -66969,6 +66973,13 @@ async function default_1() {
         files = glob_1.default.sync(path_1.default.join(dir, '/coc-*.vim'));
         for (let file of files) {
             if (path_1.default.basename(file) != `coc-${process.pid}.vim`) {
+                await util_1.default.promisify(fs_1.default.unlink)(file);
+            }
+        }
+        dir = process.env.XDG_RUNTIME_DIR || dir;
+        files = glob_1.default.sync(path_1.default.join(dir, '/coc-nvim-*.log'));
+        for (let file of files) {
+            if (path_1.default.basename(file) != `coc-nvim-${process.pid}.log`) {
                 await util_1.default.promisify(fs_1.default.unlink)(file);
             }
         }
