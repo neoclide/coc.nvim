@@ -1018,6 +1018,11 @@ g:coc_cursors_activated				*g:coc_cursors_activated*
 			Use expression `get(g:, 'coc_cursors_activated',0)` to
 			check if cursors session is activated.
 
+g:coc_config_home				*g:coc_config_home*
+
+			Configure the directory which will be used to look
+			for coc-settings.json and install extensions.
+			
 ------------------------------------------------------------------------------
 
 Some variables are provided by coc.nvim so you can use them in your 

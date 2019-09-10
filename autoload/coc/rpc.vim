@@ -15,7 +15,7 @@ function! coc#rpc#start_server()
   if empty(s:client)
     let cmd = coc#util#job_command()
     if empty(cmd) | return | endif
-    let $VIMCONFIG = coc#util#get_config_home()
+    let $COC_VIMCONFIG = coc#util#get_config_home()
     let s:client = coc#client#create(s:name, cmd)
   endif
   if !coc#client#is_running('coc')
