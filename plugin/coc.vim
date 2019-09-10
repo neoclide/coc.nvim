@@ -351,15 +351,3 @@ vnoremap <silent> <Plug>(coc-funcobj-i)        :<C-U>call coc#rpc#request('selec
 vnoremap <silent> <Plug>(coc-funcobj-a)        :<C-U>call coc#rpc#request('selectFunction', [v:false, visualmode()])<CR>
 onoremap <silent> <Plug>(coc-funcobj-i)        :<C-U>call coc#rpc#request('selectFunction', [v:true, ''])<CR>
 onoremap <silent> <Plug>(coc-funcobj-a)        :<C-U>call coc#rpc#request('selectFunction', [v:false, ''])<CR>
-if !hasmapto('<Plug>(coc-funcobj-i)', 'v') && empty(maparg('if', 'x'))
-  xmap if <Plug>(coc-funcobj-i)
-endif
-if !hasmapto('<Plug>(coc-funcobj-a)', 'v') && empty(maparg('af', 'x'))
-  xmap af <Plug>(coc-funcobj-a)
-endif
-if !hasmapto('<Plug>(coc-funcobj-i)', 'o') && empty(maparg('if', 'o'))
-  omap if <Plug>(coc-funcobj-i)
-endif
-if !hasmapto('<Plug>(coc-funcobj-a)', 'o') && empty(maparg('af', 'o'))
-  omap af <Plug>(coc-funcobj-a)
-endif
