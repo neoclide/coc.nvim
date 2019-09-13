@@ -779,7 +779,7 @@ endfunction
 " return ['65535', '65535', '65535'] or return v:false to cancel
 function! coc#util#pick_color(default_color)
   if has('mac')
-    let default_color = map(a:default_color, {idx, val -> str2nr(val) / 255 * 65535})
+    let default_color = map(a:default_color, {idx, val -> str2nr(val) * 65535 / 255 })
     " This is the AppleScript magic:
     let s:ascrpt = ['-e "tell application \"' . s:app . '\""',
           \ '-e "' . s:activate . '"',
@@ -805,7 +805,7 @@ function! coc#util#pick_color(default_color)
         return v:false
       else
         " res format is rgb(255,255,255)
-        return map(split(res[4:-2], ','), {idx, val -> string(str2nr(trim(val)) / 255 * 65535)})
+        return map(split(res[4:-2], ','), {idx, val -> string(str2nr(trim(val)) * 65535 / 255)})
       endif
     endif
   endif
