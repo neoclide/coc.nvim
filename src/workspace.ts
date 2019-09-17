@@ -1099,7 +1099,7 @@ export class Workspace implements IWorkspace {
         nvim.command(`inoremap ${silent}<expr> <Plug>(coc-${key}) coc#_insert_key('${method}', '${key}', ${opts.cancel ? 1 : 0})`, true)
       } else {
         let modify = getKeymapModifier(m)
-        nvim.command(`${m}noremap ${silent} <Plug>(coc-${key}) ${modify}:call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, true)
+        nvim.command(`${m}noremap ${silent} <Plug>(coc-${key}) ${modify}:<c-u>call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, true)
       }
     }
     return Disposable.create(() => {
@@ -1132,7 +1132,7 @@ export class Workspace implements IWorkspace {
     let id = uuid()
     let { nvim } = this
     this.keymaps.set(id, [fn, false])
-    nvim.command(`${mode}noremap <silent><nowait><buffer> ${key} :call coc#rpc#${notify ? 'notify' : 'request'}('doKeymap', ['${id}'])<CR>`, true)
+    nvim.command(`${mode}noremap <silent><nowait><buffer> ${key} :<c-u>call coc#rpc#${notify ? 'notify' : 'request'}('doKeymap', ['${id}'])<CR>`, true)
     return Disposable.create(() => {
       this.keymaps.delete(id)
       nvim.command(`${mode}unmap <buffer> ${key}`, true)
