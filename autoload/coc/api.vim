@@ -282,6 +282,7 @@ function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
     if empty(cached)
       return
     endif
+    call setbufvar(a:bufnr, 'prop_namespace_'.a:srcId, [])
     for id in cached
       if a:endLine == -1
         if a:startLine == 0 && a:endLine == -1

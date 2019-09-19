@@ -1574,6 +1574,11 @@ COMMANDS 					*coc-commands*
 
 		Edit the user config file `coc-settings.json`
 
+:CocLocalConfig 				*:CocLocalConfig*
+
+		Edit or create `.vim/coc-settings.json` of current working
+		directory.
+
 :CocInstall [{option}] {name} ... 		*:CocInstall*
 
 		Install one or more coc extensions.

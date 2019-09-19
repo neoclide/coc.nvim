@@ -22814,7 +22814,7 @@ class Workspace {
             }
             else {
                 let modify = index_1.getKeymapModifier(m);
-                nvim.command(`${m}noremap ${silent} <Plug>(coc-${key}) ${modify}:call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, true);
+                nvim.command(`${m}noremap ${silent} <Plug>(coc-${key}) ${modify}:<c-u>call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, true);
             }
         }
         return vscode_languageserver_protocol_1.Disposable.create(() => {
@@ -22846,7 +22846,7 @@ class Workspace {
         let id = uuid();
         let { nvim } = this;
         this.keymaps.set(id, [fn, false]);
-        nvim.command(`${mode}noremap <silent><nowait><buffer> ${key} :call coc#rpc#${notify ? 'notify' : 'request'}('doKeymap', ['${id}'])<CR>`, true);
+        nvim.command(`${mode}noremap <silent><nowait><buffer> ${key} :<c-u>call coc#rpc#${notify ? 'notify' : 'request'}('doKeymap', ['${id}'])<CR>`, true);
         return vscode_languageserver_protocol_1.Disposable.create(() => {
             this.keymaps.delete(id);
             nvim.command(`${mode}unmap <buffer> ${key}`, true);
@@ -26096,8 +26096,13 @@ function parentDirs(pth) {
 }
 exports.parentDirs = parentDirs;
 function isParentFolder(folder, filepath) {
-    let rel = path_1.default.relative(folder, filepath);
-    return !rel.startsWith('..');
+    let pdir = path_1.default.resolve(path_1.default.normalize(folder)) + (path_1.default.sep || '/');
+    let dir = path_1.default.resolve(path_1.default.normalize(filepath));
+    if (pdir == '//')
+        pdir = '/';
+    if (pdir == dir)
+        return false;
+    return dir.slice(0, pdir.length) === pdir;
 }
 exports.isParentFolder = isParentFolder;
 //# sourceMappingURL=fs.js.map
@@ -32253,7 +32258,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "e8e583c8e0" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "3aea9c9662" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -36097,28 +36102,27 @@ exports.default = new Extensions();
 /* 238 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const assert = __webpack_require__(100)
-const path = __webpack_require__(56)
-const fs = __webpack_require__(54)
-let glob = undefined
-try {
-  glob = __webpack_require__(239)
-} catch (_err) {
-  // treat glob as optional.
-}
+module.exports = rimraf
+rimraf.sync = rimrafSync
 
-const defaultGlobOpts = {
+var assert = __webpack_require__(100)
+var path = __webpack_require__(56)
+var fs = __webpack_require__(54)
+var glob = __webpack_require__(239)
+var _0666 = parseInt('666', 8)
+
+var defaultGlobOpts = {
   nosort: true,
   silent: true
 }
 
 // for EMFILE handling
-let timeout = 0
+var timeout = 0
 
-const isWindows = (process.platform === "win32")
+var isWindows = (process.platform === "win32")
 
-const defaults = options => {
-  const methods = [
+function defaults (options) {
+  var methods = [
     'unlink',
     'chmod',
     'stat',
@@ -36126,7 +36130,7 @@ const defaults = options => {
     'rmdir',
     'readdir'
   ]
-  methods.forEach(m => {
+  methods.forEach(function(m) {
     options[m] = options[m] || fs[m]
     m = m + 'Sync'
     options[m] = options[m] || fs[m]
@@ -36137,14 +36141,11 @@ const defaults = options => {
   if (options.glob === false) {
     options.disableGlob = true
   }
-  if (options.disableGlob !== true && glob === undefined) {
-    throw Error('glob dependency not found, set `options.disableGlob = true` if intentional')
-  }
   options.disableGlob = options.disableGlob || false
   options.glob = options.glob || defaultGlobOpts
 }
 
-const rimraf = (p, options, cb) => {
+function rimraf (p, options, cb) {
   if (typeof options === 'function') {
     cb = options
     options = {}
@@ -36158,17 +36159,27 @@ const rimraf = (p, options, cb) => {
 
   defaults(options)
 
-  let busyTries = 0
-  let errState = null
-  let n = 0
+  var busyTries = 0
+  var errState = null
+  var n = 0
 
-  const next = (er) => {
+  if (options.disableGlob || !glob.hasMagic(p))
+    return afterGlob(null, [p])
+
+  options.lstat(p, function (er, stat) {
+    if (!er)
+      return afterGlob(null, [p])
+
+    glob(p, options.glob, afterGlob)
+  })
+
+  function next (er) {
     errState = errState || er
     if (--n === 0)
       cb(errState)
   }
 
-  const afterGlob = (er, results) => {
+  function afterGlob (er, results) {
     if (er)
       return cb(er)
 
@@ -36176,19 +36187,24 @@ const rimraf = (p, options, cb) => {
     if (n === 0)
       return cb()
 
-    results.forEach(p => {
-      const CB = (er) => {
+    results.forEach(function (p) {
+      rimraf_(p, options, function CB (er) {
         if (er) {
           if ((er.code === "EBUSY" || er.code === "ENOTEMPTY" || er.code === "EPERM") &&
               busyTries < options.maxBusyTries) {
             busyTries ++
+            var time = busyTries * 100
             // try again, with the same exact callback as this one.
-            return setTimeout(() => rimraf_(p, options, CB), busyTries * 100)
+            return setTimeout(function () {
+              rimraf_(p, options, CB)
+            }, time)
           }
 
           // this one won't happen if graceful-fs is used.
           if (er.code === "EMFILE" && timeout < options.emfileWait) {
-            return setTimeout(() => rimraf_(p, options, CB), timeout ++)
+            return setTimeout(function () {
+              rimraf_(p, options, CB)
+            }, timeout ++)
           }
 
           // already gone
@@ -36197,21 +36213,9 @@ const rimraf = (p, options, cb) => {
 
         timeout = 0
         next(er)
-      }
-      rimraf_(p, options, CB)
+      })
     })
   }
-
-  if (options.disableGlob || !glob.hasMagic(p))
-    return afterGlob(null, [p])
-
-  options.lstat(p, (er, stat) => {
-    if (!er)
-      return afterGlob(null, [p])
-
-    glob(p, options.glob, afterGlob)
-  })
-
 }
 
 // Two possible strategies.
@@ -36225,14 +36229,14 @@ const rimraf = (p, options, cb) => {
 //
 // If anyone ever complains about this, then I guess the strategy could
 // be made configurable somehow.  But until then, YAGNI.
-const rimraf_ = (p, options, cb) => {
+function rimraf_ (p, options, cb) {
   assert(p)
   assert(options)
   assert(typeof cb === 'function')
 
   // sunos lets the root user unlink directories, which is... weird.
   // so we have to lstat here and make sure it's not a dir.
-  options.lstat(p, (er, st) => {
+  options.lstat(p, function (er, st) {
     if (er && er.code === "ENOENT")
       return cb(null)
 
@@ -36243,7 +36247,7 @@ const rimraf_ = (p, options, cb) => {
     if (st && st.isDirectory())
       return rmdir(p, options, er, cb)
 
-    options.unlink(p, er => {
+    options.unlink(p, function (er) {
       if (er) {
         if (er.code === "ENOENT")
           return cb(null)
@@ -36259,18 +36263,18 @@ const rimraf_ = (p, options, cb) => {
   })
 }
 
-const fixWinEPERM = (p, options, er, cb) => {
+function fixWinEPERM (p, options, er, cb) {
   assert(p)
   assert(options)
   assert(typeof cb === 'function')
   if (er)
     assert(er instanceof Error)
 
-  options.chmod(p, 0o666, er2 => {
+  options.chmod(p, _0666, function (er2) {
     if (er2)
       cb(er2.code === "ENOENT" ? null : er)
     else
-      options.stat(p, (er3, stats) => {
+      options.stat(p, function(er3, stats) {
         if (er3)
           cb(er3.code === "ENOENT" ? null : er)
         else if (stats.isDirectory())
@@ -36281,14 +36285,14 @@ const fixWinEPERM = (p, options, er, cb) => {
   })
 }
 
-const fixWinEPERMSync = (p, options, er) => {
+function fixWinEPERMSync (p, options, er) {
   assert(p)
   assert(options)
   if (er)
     assert(er instanceof Error)
 
   try {
-    options.chmodSync(p, 0o666)
+    options.chmodSync(p, _0666)
   } catch (er2) {
     if (er2.code === "ENOENT")
       return
@@ -36296,9 +36300,8 @@ const fixWinEPERMSync = (p, options, er) => {
       throw er
   }
 
-  let stats
   try {
-    stats = options.statSync(p)
+    var stats = options.statSync(p)
   } catch (er3) {
     if (er3.code === "ENOENT")
       return
@@ -36312,7 +36315,7 @@ const fixWinEPERMSync = (p, options, er) => {
     options.unlinkSync(p)
 }
 
-const rmdir = (p, options, originalEr, cb) => {
+function rmdir (p, options, originalEr, cb) {
   assert(p)
   assert(options)
   if (originalEr)
@@ -36322,7 +36325,7 @@ const rmdir = (p, options, originalEr, cb) => {
   // try to rmdir first, and only readdir on ENOTEMPTY or EEXIST (SunOS)
   // if we guessed wrong, and it's not a directory, then
   // raise the original error.
-  options.rmdir(p, er => {
+  options.rmdir(p, function (er) {
     if (er && (er.code === "ENOTEMPTY" || er.code === "EEXIST" || er.code === "EPERM"))
       rmkids(p, options, cb)
     else if (er && er.code === "ENOTDIR")
@@ -36332,20 +36335,20 @@ const rmdir = (p, options, originalEr, cb) => {
   })
 }
 
-const rmkids = (p, options, cb) => {
+function rmkids(p, options, cb) {
   assert(p)
   assert(options)
   assert(typeof cb === 'function')
 
-  options.readdir(p, (er, files) => {
+  options.readdir(p, function (er, files) {
     if (er)
       return cb(er)
-    let n = files.length
+    var n = files.length
     if (n === 0)
       return options.rmdir(p, cb)
-    let errState
-    files.forEach(f => {
-      rimraf(path.join(p, f), options, er => {
+    var errState
+    files.forEach(function (f) {
+      rimraf(path.join(p, f), options, function (er) {
         if (errState)
           return
         if (er)
@@ -36360,7 +36363,7 @@ const rmkids = (p, options, cb) => {
 // this looks simpler, and is strictly *faster*, but will
 // tie up the JavaScript thread and fail on excessively
 // deep directory trees.
-const rimrafSync = (p, options) => {
+function rimrafSync (p, options) {
   options = options || {}
   defaults(options)
 
@@ -36369,7 +36372,7 @@ const rimrafSync = (p, options) => {
   assert(options, 'rimraf: missing options')
   assert.equal(typeof options, 'object', 'rimraf: options should be object')
 
-  let results
+  var results
 
   if (options.disableGlob || !glob.hasMagic(p)) {
     results = [p]
@@ -36385,12 +36388,11 @@ const rimrafSync = (p, options) => {
   if (!results.length)
     return
 
-  for (let i = 0; i < results.length; i++) {
-    const p = results[i]
+  for (var i = 0; i < results.length; i++) {
+    var p = results[i]
 
-    let st
     try {
-      st = options.lstatSync(p)
+      var st = options.lstatSync(p)
     } catch (er) {
       if (er.code === "ENOENT")
         return
@@ -36419,7 +36421,7 @@ const rimrafSync = (p, options) => {
   }
 }
 
-const rmdirSync = (p, options, originalEr) => {
+function rmdirSync (p, options, originalEr) {
   assert(p)
   assert(options)
   if (originalEr)
@@ -36437,10 +36439,12 @@ const rmdirSync = (p, options, originalEr) => {
   }
 }
 
-const rmkidsSync = (p, options) => {
+function rmkidsSync (p, options) {
   assert(p)
   assert(options)
-  options.readdirSync(p).forEach(f => rimrafSync(path.join(p, f), options))
+  options.readdirSync(p).forEach(function (f) {
+    rimrafSync(path.join(p, f), options)
+  })
 
   // We only end up here once we got ENOTEMPTY at least once, and
   // at this point, we are guaranteed to have removed all the kids.
@@ -36448,12 +36452,12 @@ const rmkidsSync = (p, options) => {
   // try really hard to delete stuff on windows, because it has a
   // PROFOUNDLY annoying habit of not closing handles promptly when
   // files are deleted, resulting in spurious ENOTEMPTY errors.
-  const retries = isWindows ? 100 : 1
-  let i = 0
+  var retries = isWindows ? 100 : 1
+  var i = 0
   do {
-    let threw = true
+    var threw = true
     try {
-      const ret = options.rmdirSync(p, options)
+      var ret = options.rmdirSync(p, options)
       threw = false
       return ret
     } finally {
@@ -36462,9 +36466,6 @@ const rmkidsSync = (p, options) => {
     }
   } while (true)
 }
-
-module.exports = rimraf
-rimraf.sync = rimrafSync
 
 
 /***/ }),
@@ -50699,7 +50700,7 @@ class FloatFactory {
                 nvim.command(`noa call win_gotoid(${this.window.id})`, true);
                 this.window.setVar('float', 1, true);
                 nvim.command(`setl nospell nolist wrap linebreak foldcolumn=1`, true);
-                nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true);
+                nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn colorcolumn=`, true);
                 nvim.command(`setl signcolumn=no conceallevel=2 concealcursor=n`, true);
                 nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating`, true);
                 nvim.call('coc#util#do_autocmd', ['CocOpenFloat'], true);
@@ -62863,7 +62864,7 @@ class Floating {
                 win.setVar('popup', 1, true);
                 nvim.command(`noa call win_gotoid(${win.id})`, true);
                 nvim.command(`setl nospell nolist wrap linebreak foldcolumn=1`, true);
-                nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true);
+                nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn colorcolumn=`, true);
                 nvim.command(`setl signcolumn=no conceallevel=2 concealcursor=n`, true);
                 nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating`, true);
                 nvim.call('coc#util#do_autocmd', ['CocOpenFloat'], true);
