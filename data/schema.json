@@ -362,7 +362,7 @@
     },
     "suggest.timeout": {
       "type": "integer",
-      "default": 2000,
+      "default": 5000,
       "minimum": 500,
       "maximum": 5000,
       "description": "Timeout for completion, in miliseconds."
