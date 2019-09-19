@@ -221,6 +221,9 @@ export function parentDirs(pth: string): string[] {
 }
 
 export function isParentFolder(folder: string, filepath: string): boolean {
-  let rel = path.relative(folder, filepath)
-  return !rel.startsWith('..')
+  let pdir = path.resolve(path.normalize(folder)) + (path.sep || '/')
+  let dir = path.resolve(path.normalize(filepath))
+  if (pdir == '//') pdir = '/'
+  if (pdir == dir) return false
+  return dir.slice(0, pdir.length) === pdir
 }
