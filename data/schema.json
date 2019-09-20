@@ -467,6 +467,11 @@
       "default": "float",
       "enum": ["echo", "float"]
     },
+    "diagnostic.messageDelay": {
+      "type": "number",
+      "description": "How long to wait (in milliseconds) before displaying the diagnostic message with echo or float",
+      "default": 250
+    },
     "diagnostic.joinMessageLines": {
       "type": "boolean",
       "description": "Join lines messages to reduce lines of floating window.",
