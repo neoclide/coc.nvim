@@ -136,19 +136,24 @@ export class DiagnosticBuffer implements Disposable {
   }
 
   public setDiagnosticInfo(bufnr: number, diagnostics: ReadonlyArray<Diagnostic>): void {
-    let info = { error: 0, warning: 0, information: 0, hint: 0 }
+    let lnums = [0, 0, 0, 0]
+    let info = { error: 0, warning: 0, information: 0, hint: 0, lnums }
     for (let diagnostic of diagnostics) {
       switch (diagnostic.severity) {
         case DiagnosticSeverity.Warning:
           info.warning = info.warning + 1
+          lnums[1] = lnums[1] || diagnostic.range.start.line + 1
           break
         case DiagnosticSeverity.Information:
           info.information = info.information + 1
+          lnums[2] = lnums[2] || diagnostic.range.start.line + 1
           break
         case DiagnosticSeverity.Hint:
           info.hint = info.hint + 1
+          lnums[3] = lnums[3] || diagnostic.range.start.line + 1
           break
         default:
+          lnums[0] = lnums[0] || diagnostic.range.start.line + 1
           info.error = info.error + 1
       }
     }
