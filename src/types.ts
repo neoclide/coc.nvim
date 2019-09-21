@@ -592,6 +592,7 @@ export interface CompleteConfig {
   localityBonus: boolean
   highPrioritySourceLimit: number
   lowPrioritySourceLimit: number
+  removeDuplicateItems: boolean
 }
 
 export interface WorkspaceConfiguration {

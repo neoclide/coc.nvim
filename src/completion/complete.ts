@@ -174,7 +174,7 @@ export default class Complete {
     })
     let now = Date.now()
     let { bufnr } = this.option
-    let { snippetIndicator, fixInsertedWord } = this.config
+    let { snippetIndicator, removeDuplicateItems, fixInsertedWord } = this.config
     let followPart = (!fixInsertedWord || cid == 0) ? '' : this.getFollowPart()
     if (results.length == 0) return []
     // max score of high priority source
@@ -190,6 +190,7 @@ export default class Complete {
         let item = items[idx]
         let { word } = item
         if ((!item.dup || source == 'tabnine') && words.has(word)) continue
+        if (removeDuplicateItems && !item.isSnippet && words.has(word)) continue
         let filterText = item.filterText || item.word
         item.filterText = filterText
         if (filterText.length < input.length) continue

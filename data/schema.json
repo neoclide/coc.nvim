@@ -411,6 +411,11 @@
       "maximum": 100,
       "description": "Max items count for source priority bigger than or equal to 90."
     },
+    "suggest.removeDuplicateItems": {
+      "type": "boolean",
+      "description": "Remove completion items with duplicated word for all sources, snippet items are excluded.",
+      "default": false
+    },
     "suggest.completionItemKindLabels": {
       "type": "object",
       "default": {},
