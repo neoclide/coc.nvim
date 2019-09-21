@@ -32258,7 +32258,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "3aea9c9662" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "741de710b6" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -34376,6 +34376,7 @@ class Completion {
         return {
             autoTrigger,
             keepCompleteopt,
+            removeDuplicateItems: getConfig('removeDuplicateItems', false),
             disableMenuShortcut: getConfig('disableMenuShortcut', false),
             acceptSuggestionOnCommitCharacter,
             disableKind: getConfig('disableKind', false),
@@ -49959,7 +49960,7 @@ class DiagnosticManager {
                 if (this.config.enableMessage != 'always')
                     return;
                 await this.echoMessage(true);
-            }, 500);
+            }, this.config.messageDelay);
         }, null, this.disposables);
         events_1.default.on('InsertEnter', async () => {
             if (this.timer)
@@ -50412,6 +50413,7 @@ class DiagnosticManager {
             maxWindowHeight: getConfig('maxWindowHeight', 10),
             enableMessage: getConfig('enableMessage', 'always'),
             joinMessageLines: getConfig('joinMessageLines', false),
+            messageDelay: getConfig('messageDelay', 250),
             virtualText: getConfig('virtualText', false),
             virtualTextPrefix: getConfig('virtualTextPrefix', " "),
             virtualTextLineSeparator: getConfig('virtualTextLineSeparator', " \\ "),
@@ -51509,19 +51511,24 @@ class DiagnosticBuffer {
         }
     }
     setDiagnosticInfo(bufnr, diagnostics) {
-        let info = { error: 0, warning: 0, information: 0, hint: 0 };
+        let lnums = [0, 0, 0, 0];
+        let info = { error: 0, warning: 0, information: 0, hint: 0, lnums };
         for (let diagnostic of diagnostics) {
             switch (diagnostic.severity) {
                 case vscode_languageserver_protocol_1.DiagnosticSeverity.Warning:
                     info.warning = info.warning + 1;
+                    lnums[1] = lnums[1] || diagnostic.range.start.line + 1;
                     break;
                 case vscode_languageserver_protocol_1.DiagnosticSeverity.Information:
                     info.information = info.information + 1;
+                    lnums[2] = lnums[2] || diagnostic.range.start.line + 1;
                     break;
                 case vscode_languageserver_protocol_1.DiagnosticSeverity.Hint:
                     info.hint = info.hint + 1;
+                    lnums[3] = lnums[3] || diagnostic.range.start.line + 1;
                     break;
                 default:
+                    lnums[0] = lnums[0] || diagnostic.range.start.line + 1;
                     info.error = info.error + 1;
             }
         }
@@ -62458,7 +62465,7 @@ class Complete {
         });
         let now = Date.now();
         let { bufnr } = this.option;
-        let { snippetIndicator, fixInsertedWord } = this.config;
+        let { snippetIndicator, removeDuplicateItems, fixInsertedWord } = this.config;
         let followPart = (!fixInsertedWord || cid == 0) ? '' : this.getFollowPart();
         if (results.length == 0)
             return [];
@@ -62475,6 +62482,8 @@ class Complete {
                 let item = items[idx];
                 let { word } = item;
                 if ((!item.dup || source == 'tabnine') && words.has(word))
+                    continue;
+                if (removeDuplicateItems && !item.isSnippet && words.has(word))
                     continue;
                 let filterText = item.filterText || item.word;
                 item.filterText = filterText;

@@ -428,7 +428,7 @@ endfunction
 function! s:funcs.win_get_cursor(win_id) abort
   let winid = win_getid()
   call win_gotoid(a:win_id)
-  let pos = [line('.'), col('.')]
+  let pos = [line('.'), col('.')-1]
   call win_gotoid(winid)
   return pos
 endfunction
