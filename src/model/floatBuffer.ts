@@ -31,7 +31,7 @@ export default class FloatBuffer {
     let l = 0
     for (let doc of docs) {
       let lines = doc.content.split(/\r?\n/)
-      if (doc.filetype == 'markdown' && workspace.isNvim) {
+      if (doc.filetype == 'markdown') {
         lines = lines.filter(s => !s.startsWith('```'))
       }
       for (let line of lines) {
