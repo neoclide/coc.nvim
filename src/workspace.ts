@@ -142,7 +142,7 @@ export class Workspace implements IWorkspace {
       Object.assign(this._env, { columns, lines })
     }, null, this.disposables)
     await this.attach()
-    this.initVimEvents()
+    this.attachChangedEvents()
     this.configurations.onDidChange(e => {
       this._onDidChangeConfiguration.fire(e)
     }, null, this.disposables)
@@ -1316,14 +1316,15 @@ augroup end`
   }
 
   // events for sync buffer of vim
-  private initVimEvents(): void {
-    if (!this.isVim) return
-    const onChange = async (bufnr: number) => {
-      let doc = this.getDocument(bufnr)
-      if (doc && doc.shouldAttach) doc.fetchContent()
+  private attachChangedEvents(): void {
+    if (this.isVim) {
+      const onChange = async (bufnr: number) => {
+        let doc = this.getDocument(bufnr)
+        if (doc && doc.shouldAttach) doc.fetchContent()
+      }
+      events.on('TextChangedI', onChange, null, this.disposables)
+      events.on('TextChanged', onChange, null, this.disposables)
     }
-    events.on('TextChangedI', onChange, null, this.disposables)
-    events.on('TextChanged', onChange, null, this.disposables)
   }
 
   private async onBufCreate(buf: number | Buffer): Promise<void> {
@@ -1332,7 +1333,7 @@ augroup end`
     if (this.creatingSources.has(bufnr)) return
     let document = this.getDocument(bufnr)
     try {
-      if (document) this.onBufUnload(bufnr, true)
+      if (document) this.onBufUnload(bufnr, true).logError()
       document = new Document(buffer, this._env)
       let source = new CancellationTokenSource()
       let token = source.token
@@ -1350,7 +1351,7 @@ augroup end`
     this.buffers.set(bufnr, document)
     document.onDocumentDetach(uri => {
       let doc = this.getDocument(uri)
-      if (doc) this.onBufUnload(doc.bufnr)
+      if (doc) this.onBufUnload(doc.bufnr).logError()
     })
     if (document.buftype == '' && document.schema == 'file') {
       let config = this.getConfiguration('workspace')
@@ -1392,7 +1393,8 @@ augroup end`
     this._onDidSaveDocument.fire(doc.textDocument)
   }
 
-  private onBufUnload(bufnr: number, recreate = false): void {
+  private async onBufUnload(bufnr: number, recreate = false): Promise<void> {
+    logger.debug('buffer unload', bufnr)
     if (!recreate) {
       let source = this.creatingSources.get(bufnr)
       if (source) {
@@ -1411,7 +1413,7 @@ augroup end`
       this.buffers.delete(bufnr)
       if (!recreate) doc.detach()
     }
-    logger.debug('buffer unload', bufnr)
+    await wait(10)
   }
 
   private async onBufWritePre(bufnr: number): Promise<void> {

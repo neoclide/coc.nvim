@@ -12,6 +12,8 @@ export type BufEvents = 'TextChangedI' | 'BufHidden' | 'BufEnter' | 'TextChanged
 
 export type EmptyEvents = 'FocusGained'
 
+export type TextChangedEvent = 'TextChanged'
+
 export type TaskEvents = 'TaskExit' | 'TaskStderr' | 'TaskStdout'
 
 export type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents |
@@ -77,6 +79,7 @@ class Events {
   public on(event: EmptyEvents | AllEvents[], handler: () => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: BufEvents, handler: (bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: MoveEvents, handler: (bufnr: number, cursor: [number, number]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: TextChangedEvent, handler: (bufnr: number, changedtick: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TaskExit', handler: (id: string, code: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TaskStderr' | 'TaskStdout', handler: (id: string, lines: string[]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'BufReadCmd', handler: (scheme: string, fullpath: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

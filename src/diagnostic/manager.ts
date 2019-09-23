@@ -127,19 +127,10 @@ export class DiagnosticManager implements Disposable {
       let doc = workspace.getDocument(textDocument.uri)
       this.createDiagnosticBuffer(doc)
     }, null, this.disposables)
-    workspace.onDidCloseTextDocument(async ({ uri }) => {
+    workspace.onDidCloseTextDocument(({ uri }) => {
       let doc = workspace.getDocument(uri)
       if (!doc) return
-      let { bufnr } = doc
-      let idx = this.buffers.findIndex(buf => buf.bufnr == bufnr)
-      if (idx == -1) return
-      let buf = this.buffers[idx]
-      buf.dispose()
-      this.buffers.splice(idx, 1)
-      for (let collection of this.collections) {
-        collection.delete(buf.uri)
-      }
-      await buf.clear()
+      this.disposeBuffer(doc.bufnr)
     }, null, this.disposables)
     this.setConfigurationErrors(true)
     workspace.configurations.onError(async () => {
@@ -459,6 +450,18 @@ export class DiagnosticManager implements Disposable {
     } else if (locations.length > 1) {
       await workspace.showLocations(locations)
     }
+  }
+
+  private disposeBuffer(bufnr: number): void {
+    let idx = this.buffers.findIndex(buf => buf.bufnr == bufnr)
+    if (idx == -1) return
+    let buf = this.buffers[idx]
+    buf.dispose()
+    this.buffers.splice(idx, 1)
+    for (let collection of this.collections) {
+      collection.delete(buf.uri)
+    }
+    buf.clear().logError()
   }
 
   public hideFloat(): void {

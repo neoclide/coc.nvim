@@ -220,9 +220,8 @@ export class DiagnosticBuffer implements Disposable {
    * @returns {Promise<void>}
    */
   public async clear(): Promise<void> {
-    if (this.sequence) await this.sequence.cancel()
+    if (this.sequence) this.sequence.cancel().logError()
     let { nvim } = this
-    let bufnr = await nvim.eval('bufnr("%")') as number
     nvim.pauseNotification()
     this.clearHighlight()
     this.clearSigns()
@@ -231,7 +230,7 @@ export class DiagnosticBuffer implements Disposable {
       && this.document) {
       this.document.buffer.clearNamespace(this.config.virtualTextSrcId)
     }
-    this.setDiagnosticInfo(bufnr, [])
+    this.setDiagnosticInfo(workspace.bufnr, [])
     await nvim.resumeNotification(false, true)
   }
 
