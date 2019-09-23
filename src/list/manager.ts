@@ -176,6 +176,9 @@ export class ListManager implements Disposable {
     this.window = await nvim.window
     this.prompt.start()
     await ui.resume(name, this.listOptions)
+    if (this.listOptions.autoPreview) {
+      await this.doAction('preview')
+    }
   }
 
   public async doAction(name?: string): Promise<void> {
