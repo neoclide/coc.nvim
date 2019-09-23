@@ -46,6 +46,7 @@ interface CompleteConfig {
   waitTime: number
   detailMaxLength: number
   detailField: string
+  invalidInsertCharacters: string[]
 }
 
 function fixDocumentation(str: string): string {
@@ -170,7 +171,8 @@ class Languages {
       echodocSupport: getConfig<boolean>('echodocSupport', false),
       waitTime: getConfig<number>('triggerCompletionWait', 60),
       detailField: getConfig<string>('detailField', 'abbr'),
-      detailMaxLength: getConfig<number>('detailMaxLength', 50)
+      detailMaxLength: getConfig<number>('detailMaxLength', 50),
+      invalidInsertCharacters: getConfig<string[]>('invalidInsertCharacters', [' ', '(', '<', '{', '[', '\r', '\n']),
     }
   }
 
@@ -716,7 +718,7 @@ class Languages {
   }
 
   private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption): VimCompleteItem {
-    let { echodocSupport, detailField, detailMaxLength } = this.completeConfig
+    let { echodocSupport, detailField, detailMaxLength, invalidInsertCharacters } = this.completeConfig
     let hasAdditionalEdit = item.additionalTextEdits && item.additionalTextEdits.length > 0
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet || hasAdditionalEdit
     let label = item.label.trim()
@@ -727,7 +729,7 @@ class Languages {
       item.insertTextFormat = InsertTextFormat.PlainText
     }
     let obj: VimCompleteItem = {
-      word: complete.getWord(item, opt),
+      word: complete.getWord(item, opt, invalidInsertCharacters),
       abbr: label,
       menu: `[${shortcut}]`,
       kind: complete.completionKindString(item.kind, this.completionItemKindMap, this.completeConfig.defaultKindText),
