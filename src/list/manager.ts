@@ -186,7 +186,13 @@ export class ListManager implements Disposable {
       workspace.showMessage(`Action ${name} not found`, 'error')
       return
     }
-    let items = await this.ui.getItems()
+    let items: ListItem[]
+    if (name == 'preview') {
+      let item = await this.ui.item
+      items = item ? [item] : []
+    } else {
+      items = await this.ui.getItems()
+    }
     if (items.length) await this.doItemAction(items, action)
   }
 
