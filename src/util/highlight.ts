@@ -86,31 +86,30 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
     })
     let timer: NodeJS.Timer
     let exited = false
-    const exit = () => {
+    const exit = res => {
       if (exited) return
       exited = true
+      resolve(res)
       if (timer) clearTimeout(timer)
       if (nvim) {
-        nvim.command('qa!').catch(() => {
-          let killed = terminate(proc)
-          if (!killed) {
-            setTimeout(() => {
-              terminate(proc)
-            }, 50)
-          }
-        })
+        let killed = terminate(proc)
+        if (!killed) {
+          setTimeout(() => {
+            let killed = terminate(proc)
+            if (!killed) logger.error(`Can't kill neovim process`)
+          }, 50)
+        }
       }
     }
+    timer = setTimeout(() => {
+      exit([])
+    }, 500)
     try {
       proc.once('exit', () => {
         if (exited) return
         logger.info('highlight nvim exited.')
         resolve([])
       })
-      timer = setTimeout(() => {
-        exit()
-        resolve([])
-      }, 500)
       nvim = attach({ proc }, null, false)
       const callback = (method, args) => {
         if (method == 'redraw') {
@@ -165,8 +164,7 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
                 }
               }
               cache[id] = res
-              exit()
-              resolve(res)
+              exit([])
             }
           }
         }
@@ -193,8 +191,7 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
       })
     } catch (e) {
       logger.error(e)
-      exit()
-      resolve([])
+      exit([])
     }
   })
 }
