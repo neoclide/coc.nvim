@@ -450,6 +450,14 @@
       },
       "additionalProperties": false
     },
+    "suggest.invalidInsertCharacters": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Invalid character for strip valid word when inserting text of complete item.",
+      "default": [" ", "(", "<", "{", "[", "\r", "\n"]
+    },
     "diagnostic.enable": {
       "type": "boolean",
       "description": "Set to false to disable diagnostic display",

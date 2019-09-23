@@ -32258,7 +32258,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "741de710b6" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "582aa072c5" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
