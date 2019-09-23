@@ -86,7 +86,7 @@ function! s:on_exit(name, code) abort
   let client['chan_id'] = 0
   let client['channel'] = v:null
   let client['async_req_id'] = 1
-  if a:code != 0
+  if a:code != 0 && a:code != 143
     echohl Error | echom 'client '.a:name. ' abnormal exit with: '.a:code | echohl None
   endif
 endfunction
