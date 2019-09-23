@@ -21873,7 +21873,7 @@ class Workspace {
             Object.assign(this._env, { columns, lines });
         }, null, this.disposables);
         await this.attach();
-        this.initVimEvents();
+        this.attachChangedEvents();
         this.configurations.onDidChange(e => {
             this._onDidChangeConfiguration.fire(e);
         }, null, this.disposables);
@@ -23025,16 +23025,16 @@ augroup end`;
         return new configuration_1.default(userConfigFile, new shape_1.default(this));
     }
     // events for sync buffer of vim
-    initVimEvents() {
-        if (!this.isVim)
-            return;
-        const onChange = async (bufnr) => {
-            let doc = this.getDocument(bufnr);
-            if (doc && doc.shouldAttach)
-                doc.fetchContent();
-        };
-        events_1.default.on('TextChangedI', onChange, null, this.disposables);
-        events_1.default.on('TextChanged', onChange, null, this.disposables);
+    attachChangedEvents() {
+        if (this.isVim) {
+            const onChange = async (bufnr) => {
+                let doc = this.getDocument(bufnr);
+                if (doc && doc.shouldAttach)
+                    doc.fetchContent();
+            };
+            events_1.default.on('TextChangedI', onChange, null, this.disposables);
+            events_1.default.on('TextChanged', onChange, null, this.disposables);
+        }
     }
     async onBufCreate(buf) {
         let buffer = typeof buf === 'number' ? this.nvim.createBuffer(buf) : buf;
@@ -23044,7 +23044,7 @@ augroup end`;
         let document = this.getDocument(bufnr);
         try {
             if (document)
-                this.onBufUnload(bufnr, true);
+                this.onBufUnload(bufnr, true).logError();
             document = new document_1.default(buffer, this._env);
             let source = new vscode_languageserver_protocol_1.CancellationTokenSource();
             let token = source.token;
@@ -23066,7 +23066,7 @@ augroup end`;
         document.onDocumentDetach(uri => {
             let doc = this.getDocument(uri);
             if (doc)
-                this.onBufUnload(doc.bufnr);
+                this.onBufUnload(doc.bufnr).logError();
         });
         if (document.buftype == '' && document.schema == 'file') {
             let config = this.getConfiguration('workspace');
@@ -23106,7 +23106,8 @@ augroup end`;
             return;
         this._onDidSaveDocument.fire(doc.textDocument);
     }
-    onBufUnload(bufnr, recreate = false) {
+    async onBufUnload(bufnr, recreate = false) {
+        logger.debug('buffer unload', bufnr);
         if (!recreate) {
             let source = this.creatingSources.get(bufnr);
             if (source) {
@@ -23126,7 +23127,7 @@ augroup end`;
             if (!recreate)
                 doc.detach();
         }
-        logger.debug('buffer unload', bufnr);
+        await index_1.wait(10);
     }
     async onBufWritePre(bufnr) {
         let doc = this.buffers.get(bufnr);
@@ -32258,7 +32259,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "582aa072c5" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "07b00fd6fc" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -49306,7 +49307,8 @@ class Languages {
             echodocSupport: getConfig('echodocSupport', false),
             waitTime: getConfig('triggerCompletionWait', 60),
             detailField: getConfig('detailField', 'abbr'),
-            detailMaxLength: getConfig('detailMaxLength', 50)
+            detailMaxLength: getConfig('detailMaxLength', 50),
+            invalidInsertCharacters: getConfig('invalidInsertCharacters', [' ', '(', '<', '{', '[', '\r', '\n']),
         };
     }
     registerOnTypeFormattingEditProvider(selector, provider, triggerCharacters) {
@@ -49779,7 +49781,7 @@ class Languages {
             await workspace_1.default.moveTo(vscode_languageserver_protocol_1.Position.create(pos.line + changed.line, pos.character + changed.character));
     }
     convertVimCompleteItem(item, shortcut, opt) {
-        let { echodocSupport, detailField, detailMaxLength } = this.completeConfig;
+        let { echodocSupport, detailField, detailMaxLength, invalidInsertCharacters } = this.completeConfig;
         let hasAdditionalEdit = item.additionalTextEdits && item.additionalTextEdits.length > 0;
         let isSnippet = item.insertTextFormat === vscode_languageserver_protocol_1.InsertTextFormat.Snippet || hasAdditionalEdit;
         let label = item.label.trim();
@@ -49790,7 +49792,7 @@ class Languages {
             item.insertTextFormat = vscode_languageserver_protocol_1.InsertTextFormat.PlainText;
         }
         let obj = {
-            word: complete.getWord(item, opt),
+            word: complete.getWord(item, opt, invalidInsertCharacters),
             abbr: label,
             menu: `[${shortcut}]`,
             kind: complete.completionKindString(item.kind, this.completionItemKindMap, this.completeConfig.defaultKindText),
@@ -50025,21 +50027,11 @@ class DiagnosticManager {
             let doc = workspace_1.default.getDocument(textDocument.uri);
             this.createDiagnosticBuffer(doc);
         }, null, this.disposables);
-        workspace_1.default.onDidCloseTextDocument(async ({ uri }) => {
+        workspace_1.default.onDidCloseTextDocument(({ uri }) => {
             let doc = workspace_1.default.getDocument(uri);
             if (!doc)
                 return;
-            let { bufnr } = doc;
-            let idx = this.buffers.findIndex(buf => buf.bufnr == bufnr);
-            if (idx == -1)
-                return;
-            let buf = this.buffers[idx];
-            buf.dispose();
-            this.buffers.splice(idx, 1);
-            for (let collection of this.collections) {
-                collection.delete(buf.uri);
-            }
-            await buf.clear();
+            this.disposeBuffer(doc.bufnr);
         }, null, this.disposables);
         this.setConfigurationErrors(true);
         workspace_1.default.configurations.onError(async () => {
@@ -50372,6 +50364,18 @@ class DiagnosticManager {
         else if (locations.length > 1) {
             await workspace_1.default.showLocations(locations);
         }
+    }
+    disposeBuffer(bufnr) {
+        let idx = this.buffers.findIndex(buf => buf.bufnr == bufnr);
+        if (idx == -1)
+            return;
+        let buf = this.buffers[idx];
+        buf.dispose();
+        this.buffers.splice(idx, 1);
+        for (let collection of this.collections) {
+            collection.delete(buf.uri);
+        }
+        buf.clear().logError();
     }
     hideFloat() {
         if (this.floatFactory) {
@@ -50833,7 +50837,7 @@ class FloatBuffer {
         let l = 0;
         for (let doc of docs) {
             let lines = doc.content.split(/\r?\n/);
-            if (doc.filetype == 'markdown' && workspace_1.default.isNvim) {
+            if (doc.filetype == 'markdown') {
                 lines = lines.filter(s => !s.startsWith('```'));
             }
             for (let line of lines) {
@@ -51090,23 +51094,27 @@ function getHiglights(lines, filetype) {
         });
         let timer;
         let exited = false;
-        const exit = () => {
+        const exit = res => {
             if (exited)
                 return;
             exited = true;
+            resolve(res);
             if (timer)
                 clearTimeout(timer);
             if (nvim) {
-                nvim.command('qa!').catch(() => {
-                    let killed = processes_1.terminate(proc);
-                    if (!killed) {
-                        setTimeout(() => {
-                            processes_1.terminate(proc);
-                        }, 50);
-                    }
-                });
+                let killed = processes_1.terminate(proc);
+                if (!killed) {
+                    setTimeout(() => {
+                        let killed = processes_1.terminate(proc);
+                        if (!killed)
+                            logger.error(`Can't kill neovim process`);
+                    }, 50);
+                }
             }
         };
+        timer = setTimeout(() => {
+            exit([]);
+        }, 500);
         try {
             proc.once('exit', () => {
                 if (exited)
@@ -51114,10 +51122,6 @@ function getHiglights(lines, filetype) {
                 logger.info('highlight nvim exited.');
                 resolve([]);
             });
-            timer = setTimeout(() => {
-                exit();
-                resolve([]);
-            }, 500);
             nvim = neovim_1.attach({ proc }, null, false);
             const callback = (method, args) => {
                 if (method == 'redraw') {
@@ -51174,8 +51178,7 @@ function getHiglights(lines, filetype) {
                                 }
                             }
                             cache[id] = res;
-                            exit();
-                            resolve(res);
+                            exit([]);
                         }
                     }
                 }
@@ -51203,8 +51206,7 @@ function getHiglights(lines, filetype) {
         }
         catch (e) {
             logger.error(e);
-            exit();
-            resolve([]);
+            exit([]);
         }
     });
 }
@@ -51598,9 +51600,8 @@ class DiagnosticBuffer {
      */
     async clear() {
         if (this.sequence)
-            await this.sequence.cancel();
+            this.sequence.cancel().logError();
         let { nvim } = this;
-        let bufnr = await nvim.eval('bufnr("%")');
         nvim.pauseNotification();
         this.clearHighlight();
         this.clearSigns();
@@ -51609,7 +51610,7 @@ class DiagnosticBuffer {
             && this.document) {
             this.document.buffer.clearNamespace(this.config.virtualTextSrcId);
         }
-        this.setDiagnosticInfo(bufnr, []);
+        this.setDiagnosticInfo(workspace_1.default.bufnr, []);
         await nvim.resumeNotification(false, true);
     }
     dispose() {
@@ -52881,7 +52882,6 @@ const vscode_languageserver_types_1 = __webpack_require__(160);
 const parser_1 = __webpack_require__(233);
 const string_1 = __webpack_require__(209);
 const logger = __webpack_require__(185)('util-complete');
-const invalidInsertCharacters = [' ', '(', '<', '{', '[', '\r', '\n'];
 function getPosition(opt) {
     let { line, linenr, colnr } = opt;
     let part = string_1.byteSlice(line, 0, colnr - 1);
@@ -52891,7 +52891,7 @@ function getPosition(opt) {
     };
 }
 exports.getPosition = getPosition;
-function getWord(item, opt) {
+function getWord(item, opt, invalidInsertCharacters) {
     // tslint:disable-next-line: deprecation
     let { label, data, insertTextFormat, insertText, textEdit } = item;
     let word;
@@ -57607,6 +57607,9 @@ class ListManager {
         this.window = await nvim.window;
         this.prompt.start();
         await ui.resume(name, this.listOptions);
+        if (this.listOptions.autoPreview) {
+            await this.doAction('preview');
+        }
     }
     async doAction(name) {
         let { currList } = this;
@@ -57616,7 +57619,14 @@ class ListManager {
             workspace_1.default.showMessage(`Action ${name} not found`, 'error');
             return;
         }
-        let items = await this.ui.getItems();
+        let items;
+        if (name == 'preview') {
+            let item = await this.ui.item;
+            items = item ? [item] : [];
+        }
+        else {
+            items = await this.ui.getItems();
+        }
         if (items.length)
             await this.doItemAction(items, action);
     }
