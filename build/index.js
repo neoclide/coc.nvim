@@ -32259,7 +32259,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "07b00fd6fc" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "e04013a8bd" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -51094,27 +51094,23 @@ function getHiglights(lines, filetype) {
         });
         let timer;
         let exited = false;
-        const exit = res => {
+        const exit = () => {
             if (exited)
                 return;
             exited = true;
-            resolve(res);
             if (timer)
                 clearTimeout(timer);
             if (nvim) {
-                let killed = processes_1.terminate(proc);
-                if (!killed) {
-                    setTimeout(() => {
-                        let killed = processes_1.terminate(proc);
-                        if (!killed)
-                            logger.error(`Can't kill neovim process`);
-                    }, 50);
-                }
+                nvim.command('qa!').catch(() => {
+                    let killed = processes_1.terminate(proc);
+                    if (!killed) {
+                        setTimeout(() => {
+                            processes_1.terminate(proc);
+                        }, 50);
+                    }
+                });
             }
         };
-        timer = setTimeout(() => {
-            exit([]);
-        }, 500);
         try {
             proc.once('exit', () => {
                 if (exited)
@@ -51122,6 +51118,10 @@ function getHiglights(lines, filetype) {
                 logger.info('highlight nvim exited.');
                 resolve([]);
             });
+            timer = setTimeout(() => {
+                exit();
+                resolve([]);
+            }, 500);
             nvim = neovim_1.attach({ proc }, null, false);
             const callback = (method, args) => {
                 if (method == 'redraw') {
@@ -51178,7 +51178,8 @@ function getHiglights(lines, filetype) {
                                 }
                             }
                             cache[id] = res;
-                            exit([]);
+                            exit();
+                            resolve(res);
                         }
                     }
                 }
@@ -51206,7 +51207,8 @@ function getHiglights(lines, filetype) {
         }
         catch (e) {
             logger.error(e);
-            exit([]);
+            exit();
+            resolve([]);
         }
     });
 }
