@@ -214,7 +214,15 @@ endfunction
 
 " buffer methods {{
 function! s:funcs.buf_set_option(bufnr, name, val)
-  return setbufvar(a:bufnr, '&'.a:name, a:val)
+  let val = a:val
+  if type(val) == type(v:true)
+    if val == v:true
+      let val = 1
+    else
+      let val = 0
+    endif
+  endif
+  return setbufvar(a:bufnr, '&'.a:name, val)
 endfunction
 
 function! s:funcs.buf_get_changedtick(bufnr)
@@ -463,7 +471,15 @@ function! s:funcs.win_set_height(win_id, height) abort
 endfunction
 
 function! s:funcs.win_set_option(win_id, name, value) abort
-  call setwinvar(a:win_id, '&'.a:name, a:value)
+  let val = a:value
+  if type(val) == type(v:true)
+    if val == v:true
+      let val = 1
+    else
+      let val = 0
+    endif
+  endif
+  call setwinvar(a:win_id, '&'.a:name, val)
 endfunction
 
 function! s:funcs.win_set_var(win_id, name, value) abort
