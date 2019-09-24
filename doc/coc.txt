@@ -1696,7 +1696,7 @@ AUTOCMD 					*coc-autocmds*
 :autocmd User CocJumpPlaceholder {command}
 
 		Triggered after a jump to a placeholder. Can be used for 
-		showwing signature help like so: >
+		showing signature help like so: >
 
 	autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
 <
