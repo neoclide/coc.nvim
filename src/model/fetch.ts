@@ -31,13 +31,13 @@ export function getAgent(endpoint: UrlWithStringQuery): Agent {
         let noProxyItemParts = noProxyItem.split(':', 2)
         let noProxyHost = noProxyItemParts[0].replace(/^\.*/, '.')
         let noProxyPort = noProxyItemParts[1]
-        if (port === noProxyPort && hostname.indexOf(noProxyHost) === hostname.length - noProxyHost.length) {
+        if (port === noProxyPort && hostname.endsWith(noProxyHost)) {
           proxy = null
           break
         }
       } else {
         noProxyItem = noProxyItem.replace(/^\.*/, '.')
-        if (hostname.indexOf(noProxyItem) === hostname.length - noProxyItem.length) {
+        if (hostname.endsWith(noProxyItem)) {
           proxy = null
           break
         }
