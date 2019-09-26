@@ -7,7 +7,7 @@ import BasicList from '../basic'
 
 export default class SourcesList extends BasicList {
   public readonly defaultAction = 'toggle'
-  public readonly description = 'registed completion sources'
+  public readonly description = 'registered completion sources'
   public readonly name = 'sources'
 
   constructor(nvim: Neovim) {

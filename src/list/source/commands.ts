@@ -8,7 +8,7 @@ import BasicList from '../basic'
 
 export default class CommandsList extends BasicList {
   public defaultAction = 'run'
-  public description = 'registed commands of coc.nvim'
+  public description = 'registered commands of coc.nvim'
   public readonly name = 'commands'
   private mru: Mru
 

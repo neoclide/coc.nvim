@@ -6,7 +6,7 @@ import { wait } from '../../util'
 
 export default class ServicesList extends BasicList {
   public defaultAction = 'toggle'
-  public description = 'registed services of coc.nvim'
+  public description = 'registered services of coc.nvim'
   public name = 'services'
 
   constructor(nvim: Neovim) {
