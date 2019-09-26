@@ -576,6 +576,11 @@
       "description": "Maximum height of diagnostics floating window.",
       "default": 8
     },
+    "diagnostic.maxWindowWidth": {
+      "type": "number",
+      "description": "Maximum width of diagnostics floating window.",
+      "default": 80
+    },
     "diagnostic.filetypeMap": {
       "type": "object",
       "description": "A map between buffer filetype and the filetype assigned to diagnostics. To syntax highlight diagnostics withs their parent buffer type use '\"default\": \"bufferType\"'",
