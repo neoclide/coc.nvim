@@ -206,7 +206,7 @@ export class Completion implements Disposable {
     let { nvim, document, option } = this
     let { numberSelect, disableKind, labelMaxLength, disableMenuShortcut, disableMenu } = this.config
     let preselect = this.config.enablePreselect ? items.findIndex(o => o.preselect == true) : -1
-    if (numberSelect && !/^\d/.test(option.input)) {
+    if (numberSelect && option.input.length && !/^\d/.test(option.input)) {
       items = items.map((item, i) => {
         let idx = i + 1
         if (i < 9) {
