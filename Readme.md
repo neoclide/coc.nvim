@@ -212,6 +212,7 @@ Extensions are more powerful than a configured language server. Check out
 - **[coc-vimlsp](https://github.com/iamcco/coc-vimlsp)** for `viml`.
 - **[coc-xml](https://github.com/fannheyward/coc-xml)** for `xml`, use [lsp4xml](https://github.com/angelozerr/lsp4xml).
 - **[coc-elixir](https://github.com/amiralies/coc-elixir)** for `elixir`, based on [elixir-ls](https://github.com/JakeBecker/elixir-ls/).
+- **[coc-erlang_ls](https://github.com/hyhugh/coc-erlang_ls)** for `erlang`, based on [erlang_ls](https://github.com/erlang-ls/erlang_ls)
 - **[coc-tabnine](https://github.com/neoclide/coc-tabnine)** for [tabnine](https://tabnine.com/).
 - **[coc-powershell](https://github.com/yatli/coc-powershell)** for PowerShellEditorService integration.
 - **[coc-omnisharp](https://github.com/yatli/coc-omnisharp)** for `csharp` and `visualbasic`.
