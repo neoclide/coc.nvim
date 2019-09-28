@@ -249,7 +249,7 @@ export default class FloatFactory implements Disposable {
     if (this.env.textprop) {
       if (popup) popup.dispose()
     } else if (window) {
-      this.nvim.call('nvim_win_close', [window.id, 1], true)
+      window.close(true, true)
     }
   }
 

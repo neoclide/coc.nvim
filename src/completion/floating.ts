@@ -194,23 +194,7 @@ export default class Floating {
     }
     let { window } = this
     if (!window) return
+    this.window.close(true, true)
     this.window = null
-    workspace.nvim.call('coc#util#close_win', window.id, true)
-    this.window = null
-    let count = 0
-    let interval = setInterval(() => {
-      count++
-      if (count == 5) clearInterval(interval)
-      window.valid.then(valid => {
-        if (valid) {
-          workspace.nvim.call('coc#util#close_win', window.id, true)
-        } else {
-          window = null
-          clearInterval(interval)
-        }
-      }, _e => {
-        clearInterval(interval)
-      })
-    }, 200)
   }
 }
