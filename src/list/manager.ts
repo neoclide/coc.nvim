@@ -580,7 +580,7 @@ export class ListManager implements Disposable {
     highligher.addLine('ACTIONS', 'Label')
     highligher.addLine(`  ${list.actions.map(o => o.name).join(', ')}`)
     highligher.addLine('')
-    highligher.addLine(`see ':h coc-list--options' for available list options.`, 'Comment')
+    highligher.addLine(`see ':h coc-list-options' for available list options.`, 'Comment')
     nvim.pauseNotification()
     highligher.render(buf, 0, -1)
     nvim.command('setl nomod', true)
