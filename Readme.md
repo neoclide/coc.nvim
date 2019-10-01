@@ -146,6 +146,7 @@ Below are the reasons that led coc.nvim to build its own engine:
     - [Fortran](https://github.com/neoclide/coc.nvim/wiki/Language-servers#fortran)
     - [Clojure](https://github.com/neoclide/coc.nvim/wiki/Language-servers#clojure)
     - [Julia](https://github.com/neoclide/coc.nvim/wiki/Language-servers#julia)
+    - [Dhall](https://github.com/neoclide/coc.nvim/wiki/Language-servers#dhall)
 
 * [Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
 
