@@ -25,7 +25,7 @@ It's a completion framework and language server client which supports [extension
 
 _True snippet and additional text editing support_
 
-Floating windows require nightly build of neovim or vim >= 8.1.1522, [follow steps in the faq](https://github.com/neoclide/coc.nvim/wiki/F.A.Q#how-to-make-preview-window-shown-aside-with-pum).
+Floating windows require the nightly build of vim >= 8.1.1522, [follow steps in the faq](https://github.com/neoclide/coc.nvim/wiki/F.A.Q#how-to-make-preview-window-shown-aside-with-pum). Floating windows are supported in neovim >= 0.4.0.
 
 Check out [doc/coc.txt](doc/coc.txt) for the vim interface.
 
@@ -146,6 +146,7 @@ Below are the reasons that led coc.nvim to build its own engine:
     - [Fortran](https://github.com/neoclide/coc.nvim/wiki/Language-servers#fortran)
     - [Clojure](https://github.com/neoclide/coc.nvim/wiki/Language-servers#clojure)
     - [Julia](https://github.com/neoclide/coc.nvim/wiki/Language-servers#julia)
+    - [Dhall](https://github.com/neoclide/coc.nvim/wiki/Language-servers#dhall)
 
 * [Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
 
@@ -212,6 +213,7 @@ Extensions are more powerful than a configured language server. Check out
 - **[coc-vimlsp](https://github.com/iamcco/coc-vimlsp)** for `viml`.
 - **[coc-xml](https://github.com/fannheyward/coc-xml)** for `xml`, use [lsp4xml](https://github.com/angelozerr/lsp4xml).
 - **[coc-elixir](https://github.com/amiralies/coc-elixir)** for `elixir`, based on [elixir-ls](https://github.com/JakeBecker/elixir-ls/).
+- **[coc-erlang_ls](https://github.com/hyhugh/coc-erlang_ls)** for `erlang`, based on [erlang_ls](https://github.com/erlang-ls/erlang_ls)
 - **[coc-tabnine](https://github.com/neoclide/coc-tabnine)** for [tabnine](https://tabnine.com/).
 - **[coc-powershell](https://github.com/yatli/coc-powershell)** for PowerShellEditorService integration.
 - **[coc-omnisharp](https://github.com/yatli/coc-omnisharp)** for `csharp` and `visualbasic`.
@@ -323,9 +325,7 @@ nmap <leader>ac  <Plug>(coc-codeaction)
 " Fix autofix problem of current line
 nmap <leader>qf  <Plug>(coc-fix-current)
 
-" Create mappings for function text object, requires document symbols feature of
-languageserver.
-
+" Create mappings for function text object, requires document symbols feature of languageserver.
 xmap if <Plug>(coc-funcobj-i)
 xmap af <Plug>(coc-funcobj-a)
 omap if <Plug>(coc-funcobj-i)

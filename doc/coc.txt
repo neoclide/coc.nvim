@@ -1560,7 +1560,7 @@ COMMANDS 					*coc-commands*
 
 		Restart coc service.
 
-		Use this command when you want coc start all over again.
+		Use this command when you want coc to start all over again.
 
 :CocDisable 					*:CocDisable*
 
@@ -1576,7 +1576,7 @@ COMMANDS 					*coc-commands*
 
 :CocLocalConfig 				*:CocLocalConfig*
 
-		Edit or create `.vim/coc-settings.json` of current working
+		Edit or create `.vim/coc-settings.json` of the current working
 		directory.
 
 :CocInstall [{option}] {name} ... 		*:CocInstall*
@@ -1670,7 +1670,7 @@ AUTOCMD 					*coc-autocmds*
 						*CocNvimInit*
 :autocmd User CocNvimInit {command}
 
-		Triggered after the coc services has started.
+		Triggered after the coc services have started.
 
 		If you want to trigger an action of coc after vim has started, 
 		this autocmd should be used because coc is always started 
@@ -1696,7 +1696,7 @@ AUTOCMD 					*coc-autocmds*
 :autocmd User CocJumpPlaceholder {command}
 
 		Triggered after a jump to a placeholder. Can be used for 
-		showwing signature help like so: >
+		showing signature help like so: >
 
 	autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
 <
@@ -1704,13 +1704,13 @@ AUTOCMD 					*coc-autocmds*
 
 :autocmd User CocOpenFloat {command}
 
-		Triggered when floating window opened.
+		Triggered when a floating window is opened.
 						*CocTerminalOpen*
 
 :autocmd User CocTerminalOpen {command}
 
-		Triggered when terminal shown, can be used for adjust window
-		height.
+		Triggered when the terminal is shown, can be used for adjusting the
+		window height.
 
 ------------------------------------------------------------------------------
 
