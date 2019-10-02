@@ -551,12 +551,12 @@ export class DiagnosticManager implements Disposable {
 
   private refreshBuffer(uri: string): boolean {
     let { insertMode } = workspace
+    if (insertMode && !this.config.refreshOnInsertMode) return
     let buf = this.buffers.find(buf => buf.uri == uri)
     if (!buf) return
     let { displayByAle } = this.config
     if (!displayByAle) {
       let diagnostics = this.getDiagnostics(uri)
-      if (insertMode && !this.config.refreshOnInsertMode && diagnostics.length != 0) return
       if (this.enabled) {
         buf.refresh(diagnostics)
         return true
