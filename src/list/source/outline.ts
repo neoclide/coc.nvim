@@ -56,6 +56,9 @@ export default class Outline extends LocationList {
       for (let s of symbols as SymbolInformation[]) {
         let kind = getSymbolKind(s.kind)
         if (s.name.endsWith(') callback')) continue
+        if (s.location.uri === undefined) {
+            s.location.uri = document.uri
+        }
         items.push({
           label: `${s.name} [${kind}] ${s.location.range.start.line + 1}`,
           filterText: `${s.name}`,
