@@ -75,7 +75,7 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
       env.runtimepath = dirs.join(',')
     }
     let prog = workspace.env.progpath || 'nvim'
-    let proc = cp.spawn(prog, ['-u', 'NORC', '-i', 'NONE', '--embed', uuid()], {
+    let proc = cp.spawn(prog, ['-u', 'NORC', '-i', 'NONE', '--embed', '--noplugin', uuid()], {
       shell: false,
       cwd: os.tmpdir(),
       env: omit(process.env, ['NVIM_LISTEN_ADDRESS', 'VIM_NODE_RPC'])
