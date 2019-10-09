@@ -23252,8 +23252,14 @@ augroup end`;
         let filepath = fs_2.isParentFolder(cwd, newPath) ? path_1.default.relative(cwd, newPath) : newPath;
         let cursor = await nvim.call('getcurpos');
         nvim.pauseNotification();
-        nvim.command(`keepalt ${bufnr}bwipeout!`, true);
-        nvim.call('coc#util#open_file', ['keepalt edit', filepath], true);
+        if (oldPath.toLowerCase() == newPath.toLowerCase()) {
+            nvim.command(`keepalt ${bufnr}bwipeout!`, true);
+            nvim.call('coc#util#open_file', ['keepalt edit', filepath], true);
+        }
+        else {
+            nvim.call('coc#util#open_file', ['keepalt edit', filepath], true);
+            nvim.command(`${bufnr}bwipeout!`, true);
+        }
         if (!exists && lines.join('\n') != '\n') {
             nvim.call('append', [0, lines], true);
             nvim.command('normal! Gdd', true);
@@ -32286,7 +32292,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "a84f813105" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "19efc0ce7e" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -49980,8 +49986,8 @@ class DiagnosticManager {
     init() {
         this.setConfiguration();
         let { nvim } = workspace_1.default;
-        let { maxWindowHeight } = this.config;
-        this.floatFactory = new floatFactory_1.default(nvim, workspace_1.default.env, false, maxWindowHeight);
+        let { maxWindowHeight, maxWindowWidth } = this.config;
+        this.floatFactory = new floatFactory_1.default(nvim, workspace_1.default.env, false, maxWindowHeight, maxWindowWidth);
         this.disposables.push(vscode_languageserver_protocol_1.Disposable.create(() => {
             if (this.timer)
                 clearTimeout(this.timer);
@@ -50446,6 +50452,7 @@ class DiagnosticManager {
             checkCurrentLine: getConfig('checkCurrentLine', false),
             enableSign: getConfig('enableSign', true),
             maxWindowHeight: getConfig('maxWindowHeight', 10),
+            maxWindowWidth: getConfig('maxWindowWidth', 80),
             enableMessage: getConfig('enableMessage', 'always'),
             joinMessageLines: getConfig('joinMessageLines', false),
             messageDelay: getConfig('messageDelay', 250),
@@ -50488,14 +50495,14 @@ class DiagnosticManager {
     }
     refreshBuffer(uri) {
         let { insertMode } = workspace_1.default;
+        if (insertMode && !this.config.refreshOnInsertMode)
+            return;
         let buf = this.buffers.find(buf => buf.uri == uri);
         if (!buf)
             return;
         let { displayByAle } = this.config;
         if (!displayByAle) {
             let diagnostics = this.getDiagnostics(uri);
-            if (insertMode && !this.config.refreshOnInsertMode && diagnostics.length != 0)
-                return;
             if (this.enabled) {
                 buf.refresh(diagnostics);
                 return true;
@@ -58059,7 +58066,7 @@ class ListManager {
         highligher.addLine('ACTIONS', 'Label');
         highligher.addLine(`  ${list.actions.map(o => o.name).join(', ')}`);
         highligher.addLine('');
-        highligher.addLine(`see ':h coc-list--options' for available list options.`, 'Comment');
+        highligher.addLine(`see ':h coc-list-options' for available list options.`, 'Comment');
         nvim.pauseNotification();
         highligher.render(buf, 0, -1);
         nvim.command('setl nomod', true);
