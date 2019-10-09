@@ -1506,8 +1506,13 @@ augroup end`
     let filepath = isParentFolder(cwd, newPath) ? path.relative(cwd, newPath) : newPath
     let cursor = await nvim.call('getcurpos')
     nvim.pauseNotification()
-    nvim.command(`keepalt ${bufnr}bwipeout!`, true)
-    nvim.call('coc#util#open_file', ['keepalt edit', filepath], true)
+    if (oldPath.toLowerCase() == newPath.toLowerCase()) {
+      nvim.command(`keepalt ${bufnr}bwipeout!`, true)
+      nvim.call('coc#util#open_file', ['keepalt edit', filepath], true)
+    } else {
+      nvim.call('coc#util#open_file', ['keepalt edit', filepath], true)
+      nvim.command(`${bufnr}bwipeout!`, true)
+    }
     if (!exists && lines.join('\n') != '\n') {
       nvim.call('append', [0, lines], true)
       nvim.command('normal! Gdd', true)
