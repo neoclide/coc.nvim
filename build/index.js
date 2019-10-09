@@ -32292,7 +32292,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "19efc0ce7e" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "5445f64a56" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -51121,7 +51121,7 @@ function getHiglights(lines, filetype) {
             env.runtimepath = dirs.join(',');
         }
         let prog = workspace_1.default.env.progpath || 'nvim';
-        let proc = cp.spawn(prog, ['-u', 'NORC', '-i', 'NONE', '--embed', uuid()], {
+        let proc = cp.spawn(prog, ['-u', 'NORC', '-i', 'NONE', '--embed', '--noplugin', uuid()], {
             shell: false,
             cwd: os_1.default.tmpdir(),
             env: lodash_1.omit(process.env, ['NVIM_LISTEN_ADDRESS', 'VIM_NODE_RPC'])
