@@ -566,6 +566,10 @@ export class DiagnosticManager implements Disposable {
       nvim.pauseNotification()
       for (let collection of this.collections) {
         let diagnostics = collection.get(uri)
+        const { level } = this.config
+        if (level) {
+          diagnostics = diagnostics.filter(o => o.severity && o.severity <= level)
+        }
         let aleItems = diagnostics.map(o => {
           let { range } = o
           return {
