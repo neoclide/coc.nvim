@@ -253,7 +253,14 @@ export default class Complete {
         }
         return b.localBonus - a.localBonus
       }
-      return a.filterText.length - b.filterText.length
+      // Default sort method
+      switch (this.config.completionDefaultSortMethod) {
+        case 'alphabetical':
+          return a.filterText.localeCompare(b.filterText)
+        case 'length':
+        default: // Fallback on length
+          return a.filterText.length - b.filterText.length
+      }
     })
     return this.limitCompleteItems(arr.slice(0, this.config.maxItemCount))
   }
