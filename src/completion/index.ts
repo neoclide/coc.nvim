@@ -122,7 +122,7 @@ export class Completion implements Disposable {
     return {
       autoTrigger,
       keepCompleteopt,
-      completionDefaultSortMethod: getConfig<string>('completionDefaultSortMethod', 'length'),
+      defaultSortMethod: getConfig<string>('defaultSortMethod', 'length'),
       removeDuplicateItems: getConfig<boolean>('removeDuplicateItems', false),
       disableMenuShortcut: getConfig<boolean>('disableMenuShortcut', false),
       acceptSuggestionOnCommitCharacter,

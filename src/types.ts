@@ -593,7 +593,7 @@ export interface CompleteConfig {
   highPrioritySourceLimit: number
   lowPrioritySourceLimit: number
   removeDuplicateItems: boolean
-  completionDefaultSortMethod: string
+  defaultSortMethod: string
 }
 
 export interface WorkspaceConfiguration {

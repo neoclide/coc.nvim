@@ -254,7 +254,7 @@ export default class Complete {
         return b.localBonus - a.localBonus
       }
       // Default sort method
-      switch (this.config.completionDefaultSortMethod) {
+      switch (this.config.defaultSortMethod) {
         case 'alphabetical':
           return a.filterText.localeCompare(b.filterText)
         case 'length':
