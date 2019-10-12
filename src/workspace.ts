@@ -610,7 +610,7 @@ export class Workspace implements IWorkspace {
    */
   public async showLocations(locations: Location[]): Promise<void> {
     let items = await Promise.all(locations.map(loc => {
-      return this.getQuickfixItem(loc, '', undefined, 'Locations')
+      return this.getQuickfixItem(loc)
     }))
     let { nvim } = this
     const preferences = this.getConfiguration('coc.preferences')
