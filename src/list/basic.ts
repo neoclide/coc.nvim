@@ -216,7 +216,7 @@ export default abstract class BasicList implements IList, Disposable {
     let filepath = u.scheme == 'file' ? u.fsPath : u.toString()
     nvim.pauseNotification()
     nvim.call('fnameescape', filepath, true)
-    nvim.call('bufloaded', filepath, true)
+    nvim.call('buflisted', filepath, true)
     nvim.call('eval', `!empty(getwininfo(${context.window.id}))`, true)
     let [res, error] = await nvim.resumeNotification()
     if (error) {
