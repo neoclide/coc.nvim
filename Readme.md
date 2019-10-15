@@ -428,6 +428,50 @@ Try these steps when you have problem with coc.nvim.
 <a href="https://github.com/darthShadow" target="_blank" title="darthShadow">
   <img src="https://github.com/darthShadow.png?size=64" width="64" height="64" alt="darthShadow">
 </a>
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/gravatar/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/f8fbc5df2432deac7557cf5e111439f2" width="64" height="64" alt="Matt Greer">
+<img src="https://avatars0.githubusercontent.com/u/2914269?v=4&s=100&s=400" width="64" height="64" alt="malob">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/gravatar/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/a8b8103b9131cdf694bea446881c05fb" width="64" height="64" alt="Emigre">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals27_bjhsl8.png" width="64" height="64" alt="OkanEsen">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals57_yatmux.png" width="64" height="64" alt="Lennaert Meijvogel">
+<img src="https://avatars2.githubusercontent.com/u/557201?s=400&u=ac96c9da87099c27f094eec935a627cb32fdfdf2&v=4&s=400" width="64" height="64" alt="Nils Landt">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals10_mjtuws.png" width="64" height="64" alt="dlants">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals45_ecgl95.png" width="64" height="64" alt="RCVU">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals71_wi5cvo.png" width="64" height="64" alt="yatli">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/gravatar/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/2986e67e29cf2ad3de088f9f8bc131cf" width="64" height="64" alt="mikker">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/gravatar/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/8703a88e1c178112625bcb6970ed40e4" width="64" height="64" alt="Velovix">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals51_byhedz.png" width="64" height="64" alt="stCarolas">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals67_rzqguf.png" width="64" height="64" alt="Robbie Clarken">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/svdunc4lofagkaeobpar.png" width="64" height="64" alt="hallettj">
+<img src="https://avatars0.githubusercontent.com/u/6803419?v=4&s=100&s=400" width="64" height="64" alt="appelgriebsch">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals75_a0xqeq.png" width="64" height="64" alt="cosminadrianpopescu">
+<img src="https://avatars3.githubusercontent.com/u/301015?v=4&s=100&s=400" width="64" height="64" alt="partizan">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals24_s1h7ax.png" width="64" height="64" alt="ksaldana1">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals63_olgqd6.png" width="64" height="64" alt="jesperryom">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals70_t5kjmo.png" width="64" height="64" alt="JackCA">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals38_vwccce.png" width="64" height="64" alt="peymanmortazavi">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals92_htl0if.png" width="64" height="64" alt="jonaustin">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals33_ch4hs0.png" width="64" height="64" alt="Yuriy Ivanyuk">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals26_knlvug.png" width="64" height="64" alt="abenz1267">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals100_g8py5g.png" width="64" height="64" alt="Sh3Rm4n">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals14_bnuacq.png" width="64" height="64" alt="mwcz">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals78_hleldd.png" width="64" height="64" alt="Philipp-M">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals37_sikg8d.png" width="64" height="64" alt="gvelchuru">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals62_hxul6y.png" width="64" height="64" alt="JSamir">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals19_zafwti.png" width="64" height="64" alt="toby de havilland">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals97_iuw00n.png" width="64" height="64" alt="viniciusarcanjo">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals70_t5kjmo.png" width="64" height="64" alt="Mike Hearn">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals87_vnmrie.png" width="64" height="64" alt="darsto">
+<img src="https://avatars2.githubusercontent.com/u/145502?v=4&s=100&s=400" width="64" height="64" alt="pyrho">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals102_hqrga7.png" width="64" height="64" alt="Frydac">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals90_qlafi0.png" width="64" height="64" alt="gsa9">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals16_qlob5k.png" width="64" height="64" alt="_andys8">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals27_bjhsl8.png" width="64" height="64" alt="iago-lito">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals44_xa5xwi.png" width="64" height="64" alt="ddaletski">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals83_ryixly.png" width="64" height="64" alt="jonatan-branting">
+<img src="https://avatars3.githubusercontent.com/u/8683947?v=4&s=100&s=400" width="64" height="64" alt="yutakatay">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals87_vnmrie.png" width="64" height="64" alt="kevinrambaud">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals76_g3jfjp.png" width="64" height="64" alt="tomaskallup">
+<img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals46_qe2ye0.png" width="64" height="64" alt="LewisSteele">
 
 ## Feedback
 
