@@ -298,21 +298,13 @@ endfunction
 function! coc#util#get_bufoptions(bufnr) abort
   if !bufloaded(a:bufnr) | return v:null | endif
   let bufname = bufname(a:bufnr)
-  let buftype = getbufvar(a:bufnr, '&filetype')
-  if buftype == 'nofile' &&
-        \ (bufname !~# '^list://' ||
-        \ bufname !~# '^output://' ||
-        \ bufname !~# '^__coc_' ||
-        \ bufname ==# '[Command line]')
-    return v:null
-  endif
   return {
         \ 'bufname': bufname,
         \ 'eol': getbufvar(a:bufnr, '&eol'),
         \ 'variables': s:variables(a:bufnr),
         \ 'fullpath': empty(bufname) ? '' : fnamemodify(bufname, ':p'),
         \ 'buftype': getbufvar(a:bufnr, '&buftype'),
-        \ 'filetype': buftype,
+        \ 'filetype': getbufvar(a:bufnr, '&filetype'),
         \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
         \ 'changedtick': getbufvar(a:bufnr, 'changedtick'),
         \}

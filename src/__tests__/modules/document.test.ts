@@ -4,7 +4,7 @@ import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
-jest.setTimeout(30000)
+jest.setTimeout(5000)
 
 beforeAll(async () => {
   await helper.setup()
@@ -143,5 +143,24 @@ describe('document model properties', () => {
     let doc = await helper.createDocument()
     let val = doc.getVar<number>('enabled')
     expect(val).toBe(1)
+  })
+
+  it('should attach change events', async () => {
+    let doc = await helper.createDocument()
+    await nvim.setLine('abc')
+    await helper.wait(50)
+    let content = doc.getDocumentContent()
+    expect(content.indexOf('abc')).toBe(0)
+  })
+
+  it('should not attach change events when b:coc_enabled is false', async () => {
+    await nvim.command('autocmd BufNewFile,BufRead *.dis let b:coc_enabled = 0')
+    let doc = await helper.createDocument('a.dis')
+    let val = doc.getVar<number>('enabled', 0)
+    expect(val).toBe(0)
+    await nvim.setLine('abc')
+    await helper.wait(50)
+    let content = doc.getDocumentContent()
+    expect(content.indexOf('abc')).toBe(-1)
   })
 })

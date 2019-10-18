@@ -64,8 +64,13 @@ export default class Document {
    */
   public get shouldAttach(): boolean {
     let { buftype } = this
+    if (!this.getVar('enabled', true)) return false
     if (this.uri.endsWith('%5BCommand%20Line%5D')) return true
     return buftype == '' || buftype == 'acwrite'
+  }
+
+  public get enabled(): boolean {
+    return this.getVar('enabled', true)
   }
 
   /**
@@ -701,7 +706,8 @@ export default class Document {
         chars.addKeyword(ch)
       }
     }
-    this._words = this.chars.matchKeywords(this.lines.join('\n'))
+    let lines = this.lines.length > 30000 ? this.lines.slice(0, 30000) : this.lines
+    this._words = this.chars.matchKeywords(lines.join('\n'))
   }
 
   /**

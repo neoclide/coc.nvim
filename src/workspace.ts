@@ -1332,27 +1332,30 @@ augroup end`
     let bufnr = buffer.id
     if (this.creatingSources.has(bufnr)) return
     let document = this.getDocument(bufnr)
+    let source = new CancellationTokenSource()
     try {
       if (document) this.onBufUnload(bufnr, true).logError()
       document = new Document(buffer, this._env)
-      let source = new CancellationTokenSource()
       let token = source.token
       this.creatingSources.set(bufnr, source)
       let created = await document.init(this.nvim, token)
-      if (!created || document.getVar<number>('enabled', 1) === 0) document = null
-      if (this.creatingSources.get(bufnr) == source) {
-        source.dispose()
-        this.creatingSources.delete(bufnr)
-      }
+      if (!created) document = null
     } catch (e) {
       logger.error('Error on create buffer:', e)
+      document = null
+    }
+    if (this.creatingSources.get(bufnr) == source) {
+      source.dispose()
+      this.creatingSources.delete(bufnr)
     }
     if (!document || !document.textDocument) return
     this.buffers.set(bufnr, document)
-    document.onDocumentDetach(uri => {
-      let doc = this.getDocument(uri)
-      if (doc) this.onBufUnload(doc.bufnr).logError()
-    })
+    if (document.enabled) {
+      document.onDocumentDetach(uri => {
+        let doc = this.getDocument(uri)
+        if (doc) this.onBufUnload(doc.bufnr).logError()
+      })
+    }
     if (document.buftype == '' && document.schema == 'file') {
       let config = this.getConfiguration('workspace')
       let filetypes = config.get<string[]>('ignoredFiletypes', [])
@@ -1367,8 +1370,10 @@ augroup end`
       }
       this.configurations.checkFolderConfiguration(document.uri)
     }
-    this._onDidOpenDocument.fire(document.textDocument)
-    document.onDocumentChange(e => this._onDidChangeDocument.fire(e))
+    if (document.enabled) {
+      this._onDidOpenDocument.fire(document.textDocument)
+      document.onDocumentChange(e => this._onDidChangeDocument.fire(e))
+    }
     logger.debug('buffer created', buffer.id)
   }
 
