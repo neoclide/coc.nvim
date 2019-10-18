@@ -22353,7 +22353,7 @@ class Workspace {
      */
     async showLocations(locations) {
         let items = await Promise.all(locations.map(loc => {
-            return this.getQuickfixItem(loc, '', undefined, 'Locations');
+            return this.getQuickfixItem(loc);
         }));
         let { nvim } = this;
         const preferences = this.getConfiguration('coc.preferences');
@@ -27612,6 +27612,8 @@ class Document {
      */
     get shouldAttach() {
         let { buftype } = this;
+        if (!this.getVar('coc_enabled', true))
+            return false;
         if (this.uri.endsWith('%5BCommand%20Line%5D'))
             return true;
         return buftype == '' || buftype == 'acwrite';
@@ -32292,7 +32294,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "5445f64a56" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "992d693514" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -34410,6 +34412,7 @@ class Completion {
         return {
             autoTrigger,
             keepCompleteopt,
+            defaultSortMethod: getConfig('defaultSortMethod', 'length'),
             removeDuplicateItems: getConfig('removeDuplicateItems', false),
             disableMenuShortcut: getConfig('disableMenuShortcut', false),
             acceptSuggestionOnCommitCharacter,
@@ -50513,6 +50516,10 @@ class DiagnosticManager {
             nvim.pauseNotification();
             for (let collection of this.collections) {
                 let diagnostics = collection.get(uri);
+                const { level } = this.config;
+                if (level) {
+                    diagnostics = diagnostics.filter(o => o.severity && o.severity <= level);
+                }
                 let aleItems = diagnostics.map(o => {
                     let { range } = o;
                     return {
@@ -59356,7 +59363,7 @@ class BasicList {
         let filepath = u.scheme == 'file' ? u.fsPath : u.toString();
         nvim.pauseNotification();
         nvim.call('fnameescape', filepath, true);
-        nvim.call('bufloaded', filepath, true);
+        nvim.call('buflisted', filepath, true);
         nvim.call('eval', `!empty(getwininfo(${context.window.id}))`, true);
         let [res, error] = await nvim.resumeNotification();
         if (error) {
@@ -60034,6 +60041,9 @@ class Outline extends location_1.default {
                 let kind = convert_1.getSymbolKind(s.kind);
                 if (s.name.endsWith(') callback'))
                     continue;
+                if (s.location.uri === undefined) {
+                    s.location.uri = document.uri;
+                }
                 items.push({
                     label: `${s.name} [${kind}] ${s.location.range.start.line + 1}`,
                     filterText: `${s.name}`,
@@ -62610,7 +62620,14 @@ class Complete {
                 }
                 return b.localBonus - a.localBonus;
             }
-            return a.filterText.length - b.filterText.length;
+            // Default sort method
+            switch (this.config.defaultSortMethod) {
+                case 'alphabetical':
+                    return a.filterText.localeCompare(b.filterText);
+                case 'length':
+                default: // Fallback on length
+                    return a.filterText.length - b.filterText.length;
+            }
         });
         return this.limitCompleteItems(arr.slice(0, this.config.maxItemCount));
     }
