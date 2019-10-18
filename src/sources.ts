@@ -321,6 +321,7 @@ export class Sources {
     for (let item of items) {
       res.push({
         name: item.name,
+        priority: item.priority,
         shortcut: item.shortcut || '',
         filetypes: item.filetypes || [],
         filepath: item.filepath || '',
