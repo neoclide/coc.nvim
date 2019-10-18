@@ -64,6 +64,8 @@ describe('isParentFolder', () => {
   test('check parent folder', () => {
     expect(isParentFolder('/a', '/a/b')).toBe(true)
     expect(isParentFolder('/a/b', '/a/b/')).toBe(false)
+    expect(isParentFolder('/a/b', '/a/b')).toBe(false)
+    expect(isParentFolder('/a/b', '/a/b', true)).toBe(true)
   })
 })
 

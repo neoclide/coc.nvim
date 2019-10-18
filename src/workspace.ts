@@ -1464,10 +1464,11 @@ augroup end`
     let types = [PatternType.Buffer, PatternType.LanguageServer, PatternType.Global]
     let u = URI.parse(document.uri)
     let dir = path.dirname(u.fsPath)
+    let { cwd } = this
     for (let patternType of types) {
       let patterns = this.getRootPatterns(document, patternType)
       if (patterns && patterns.length) {
-        let root = resolveRoot(dir, patterns, this.cwd)
+        let root = resolveRoot(dir, patterns, cwd)
         if (root) return root
       }
     }
