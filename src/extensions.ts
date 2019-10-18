@@ -6,7 +6,7 @@ import isuri from 'isuri'
 import path from 'path'
 import rimraf from 'rimraf'
 import semver from 'semver'
-import util, { promisify } from 'util'
+import { promisify } from 'util'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import which from 'which'
@@ -16,7 +16,7 @@ import DB from './model/db'
 import ExtensionManager from './model/extension'
 import Memos from './model/memos'
 import { Extension, ExtensionContext, ExtensionInfo, ExtensionState } from './types'
-import { disposeAll, wait } from './util'
+import { disposeAll, concurrent, wait } from './util'
 import mkdirp from 'mkdirp'
 import { distinct } from './util/array'
 import './util/extensions'
@@ -152,14 +152,16 @@ export class Extensions {
     statusItem.text = `Updating extensions.`
     statusItem.show()
     this.db.push('lastUpdate', Date.now())
-    await Promise.all(names.map(name => {
+    await concurrent(names.map(name => {
       let o = stats.find(o => o.id == name)
-      return this.manager.update(this.npm, name, o.exotic ? o.uri : undefined).then(updated => {
-        if (updated) this.reloadExtension(name).logError()
-      }, err => {
-        workspace.showMessage(`Error on update ${name}: ${err}`)
-      })
-    }))
+      return (): Promise<void> => {
+        return this.manager.update(this.npm, name, o.exotic ? o.uri : undefined).then(updated => {
+          if (updated) this.reloadExtension(name).logError()
+        }, err => {
+          workspace.showMessage(`Error on update ${name}: ${err}`)
+        })
+      }
+    }), 5)
     workspace.showMessage('Update completed', 'more')
     statusItem.dispose()
   }
@@ -170,7 +172,7 @@ export class Extensions {
       let names = globalExtensions.filter(name => !this.isDisabled(name))
       let folder = path.join(this.root, 'node_modules')
       if (fs.existsSync(folder)) {
-        let files = await util.promisify(fs.readdir)(folder)
+        let files = await promisify(fs.readdir)(folder)
         names = names.filter(s => files.indexOf(s) == -1)
       }
       let json = this.loadJson()
@@ -188,7 +190,7 @@ export class Extensions {
       for (let name of watchExtensions) {
         let stat = stats.find(s => s.id == name)
         if (stat && stat.state !== 'disabled') {
-          let directory = await util.promisify(fs.realpath)(stat.root)
+          let directory = await promisify(fs.realpath)(stat.root)
           let client = await Watchman.createClient(watchmanPath, directory)
           client.subscribe('**/*.js', debounce(async () => {
             await this.reloadExtension(name)
@@ -387,7 +389,7 @@ export class Extensions {
         delete json.dependencies[id]
         let folder = path.join(this.root, 'node_modules', id)
         if (fs.existsSync(folder)) {
-          await util.promisify(rimraf)(`${folder}`, { glob: false })
+          await promisify(rimraf)(`${folder}`, { glob: false })
         }
       }
       let jsonFile = path.join(this.root, 'package.json')

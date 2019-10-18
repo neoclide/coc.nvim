@@ -147,3 +147,22 @@ export function isDocumentEdit(edit: any): boolean {
   if (!Array.isArray(edit.edits)) return false
   return true
 }
+
+export function concurrent(fns: (() => Promise<any>)[], limit = Infinity): Promise<any[]> {
+  if (fns.length == 0) return Promise.resolve([])
+  return new Promise((resolve, rejrect) => {
+    let remain = fns.slice()
+    let results = []
+    let next = () => {
+      if (remain.length == 0) {
+        return resolve(results)
+      }
+      let list = remain.splice(0, limit)
+      Promise.all(list.map(fn => fn())).then(res => {
+        results.push(...res)
+        next()
+      }, rejrect)
+    }
+    next()
+  })
+}
