@@ -23069,38 +23069,42 @@ augroup end`;
         if (this.creatingSources.has(bufnr))
             return;
         let document = this.getDocument(bufnr);
+        let source = new vscode_languageserver_protocol_1.CancellationTokenSource();
         try {
             if (document)
                 this.onBufUnload(bufnr, true).logError();
             document = new document_1.default(buffer, this._env);
-            let source = new vscode_languageserver_protocol_1.CancellationTokenSource();
             let token = source.token;
             this.creatingSources.set(bufnr, source);
             let created = await document.init(this.nvim, token);
-            if (!created || document.getVar('enabled', 1) === 0)
+            if (!created)
                 document = null;
-            if (this.creatingSources.get(bufnr) == source) {
-                source.dispose();
-                this.creatingSources.delete(bufnr);
-            }
         }
         catch (e) {
             logger.error('Error on create buffer:', e);
+            document = null;
+        }
+        if (this.creatingSources.get(bufnr) == source) {
+            source.dispose();
+            this.creatingSources.delete(bufnr);
         }
         if (!document || !document.textDocument)
             return;
         this.buffers.set(bufnr, document);
-        document.onDocumentDetach(uri => {
-            let doc = this.getDocument(uri);
-            if (doc)
-                this.onBufUnload(doc.bufnr).logError();
-        });
+        if (document.enabled) {
+            document.onDocumentDetach(uri => {
+                let doc = this.getDocument(uri);
+                if (doc)
+                    this.onBufUnload(doc.bufnr).logError();
+            });
+        }
         if (document.buftype == '' && document.schema == 'file') {
             let config = this.getConfiguration('workspace');
             let filetypes = config.get('ignoredFiletypes', []);
             if (filetypes.indexOf(document.filetype) == -1) {
                 let root = this.resolveRoot(document);
                 if (root) {
+                    logger.debug('root:', root);
                     this.addWorkspaceFolder(root);
                     if (this.bufnr == buffer.id) {
                         this._root = root;
@@ -23109,8 +23113,10 @@ augroup end`;
             }
             this.configurations.checkFolderConfiguration(document.uri);
         }
-        this._onDidOpenDocument.fire(document.textDocument);
-        document.onDocumentChange(e => this._onDidChangeDocument.fire(e));
+        if (document.enabled) {
+            this._onDidOpenDocument.fire(document.textDocument);
+            document.onDocumentChange(e => this._onDidChangeDocument.fire(e));
+        }
         logger.debug('buffer created', buffer.id);
     }
     async onBufEnter(bufnr) {
@@ -23200,10 +23206,14 @@ augroup end`;
         let types = [types_1.PatternType.Buffer, types_1.PatternType.LanguageServer, types_1.PatternType.Global];
         let u = vscode_uri_1.URI.parse(document.uri);
         let dir = path_1.default.dirname(u.fsPath);
+        let { cwd } = this;
         for (let patternType of types) {
             let patterns = this.getRootPatterns(document, patternType);
             if (patterns && patterns.length) {
-                let root = fs_2.resolveRoot(dir, patterns, this.cwd);
+                let root = fs_2.resolveRoot(dir, patterns, cwd);
+                logger.debug('patterns:', patterns);
+                logger.debug('dir:', dir);
+                logger.debug('cwd:', cwd);
                 if (root)
                     return root;
             }
@@ -25960,12 +25970,9 @@ async function isGitIgnored(fullpath) {
 exports.isGitIgnored = isGitIgnored;
 function resolveRoot(dir, subs, cwd) {
     let home = os_1.default.homedir();
-    if (isParentFolder(dir, home))
+    if (isParentFolder(dir, home, true))
         return null;
-    let { root } = path_1.default.parse(dir);
-    if (root == dir)
-        return null;
-    if (cwd && cwd != home && isParentFolder(cwd, dir) && inDirectory(cwd, subs))
+    if (cwd && isParentFolder(cwd, dir, true) && inDirectory(cwd, subs))
         return cwd;
     let parts = dir.split(path_1.default.sep);
     let curr = [parts.shift()];
@@ -26129,13 +26136,13 @@ function parentDirs(pth) {
     return dirs;
 }
 exports.parentDirs = parentDirs;
-function isParentFolder(folder, filepath) {
-    let pdir = path_1.default.resolve(path_1.default.normalize(folder)) + (path_1.default.sep || '/');
+function isParentFolder(folder, filepath, checkEqual = false) {
+    let pdir = path_1.default.resolve(path_1.default.normalize(folder));
     let dir = path_1.default.resolve(path_1.default.normalize(filepath));
     if (pdir == '//')
         pdir = '/';
     if (pdir == dir)
-        return false;
+        return checkEqual ? true : false;
     return dir.slice(0, pdir.length) === pdir;
 }
 exports.isParentFolder = isParentFolder;
@@ -27612,11 +27619,14 @@ class Document {
      */
     get shouldAttach() {
         let { buftype } = this;
-        if (!this.getVar('coc_enabled', true))
+        if (!this.getVar('enabled', true))
             return false;
         if (this.uri.endsWith('%5BCommand%20Line%5D'))
             return true;
         return buftype == '' || buftype == 'acwrite';
+    }
+    get enabled() {
+        return this.getVar('enabled', true);
     }
     /**
      * All words, extracted by `iskeyword` option.
@@ -28246,7 +28256,8 @@ class Document {
                 chars.addKeyword(ch);
             }
         }
-        this._words = this.chars.matchKeywords(this.lines.join('\n'));
+        let lines = this.lines.length > 30000 ? this.lines.slice(0, 30000) : this.lines;
+        this._words = this.chars.matchKeywords(lines.join('\n'));
     }
     /**
      * Detach document.
@@ -32294,7 +32305,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "992d693514" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "317e3212e3" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
