@@ -259,8 +259,13 @@ hi default link CocInfoHighlight    CocUnderline
 hi default link CocHintHighlight    CocUnderline
 hi default link CocListMode ModeMsg
 hi default link CocListPath Comment
-hi default link CocFloating Pmenu
 hi default link CocHighlightText  CursorColumn
+if has('nvim')
+  hi default link CocFloating NormalFloat
+else
+  hi default link CocFloating Pmenu
+endif
+
 
 hi default link CocHoverRange     Search
 hi default link CocCursorRange    Search
