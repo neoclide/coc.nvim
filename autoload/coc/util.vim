@@ -800,7 +800,7 @@ function! coc#util#pick_color(default_color)
 
   if has('unix')
     if executable('zenity')
-      let res = trim(system('zenity --title="Selection a color" --color-selection --color="' . hex_color . '" 2> /dev/null'))
+      let res = trim(system('zenity --title="Select a color" --color-selection --color="' . hex_color . '" 2> /dev/null'))
       if empty(res)
         return v:false
       else
