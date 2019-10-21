@@ -578,8 +578,8 @@ export default class Refactor {
     let res: FileItem[] = []
     let { beforeContext, afterContext } = this.config
     let { changes, documentChanges } = edit
-    changes = changes || {}
     if (!changes) {
+      changes = {}
       for (let change of documentChanges || []) {
         if (TextDocumentEdit.is(change)) {
           let { textDocument, edits } = change
