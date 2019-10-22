@@ -306,7 +306,6 @@ export default class Configurations {
   }
 
   public checkFolderConfiguration(uri: string): void {
-    logger.debug(`checkFolderConfiguration: ${uri}`)
     let u = URI.parse(uri)
     if (u.scheme != 'file') return
     let rootPath = path.dirname(u.fsPath)
@@ -315,7 +314,6 @@ export default class Configurations {
       if (folder && folder != os.homedir()) {
         let file = path.join(folder, 'coc-settings.json')
         if (fs.existsSync(file)) {
-          logger.debug(`checkFolderConfiguration: add folder setting file ${file}`)
           this.addFolderFile(file)
         }
       }
