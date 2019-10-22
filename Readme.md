@@ -428,6 +428,9 @@ Try these steps when you have problem with coc.nvim.
 <a href="https://github.com/darthShadow" target="_blank" title="darthShadow">
   <img src="https://github.com/darthShadow.png?size=64" width="64" height="64" alt="darthShadow">
 </a>
+<a href="https://github.com/yatli" target="_blank" title="yatli">
+  <img src="https://github.com/yatli.png?size=64" width="64" height="64" alt="yatli">
+</a>
 <a href="#Backers">
   <img src="https://cloudinary-a.akamaihd.net/bountysource/image/gravatar/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/f8fbc5df2432deac7557cf5e111439f2" width="64" height="64" alt="Matt Greer">
 </a>
