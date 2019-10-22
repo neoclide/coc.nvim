@@ -3587,8 +3587,10 @@ export abstract class BaseLanguageClient {
 
   private initialize(connection: IConnection): Thenable<InitializeResult> {
     this.refreshTrace(connection, false)
+    this._clientOptions.invalidate()
     let initOption = this._clientOptions.value().initializationOptions
     let rootPath = this.resolveRootPath()
+    logger.debug(`initialize: initializationOptions = ${JSON.stringify(initOption)}`)
     if (!rootPath) return
     let initParams: any = {
       processId: process.pid,
