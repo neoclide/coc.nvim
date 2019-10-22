@@ -204,8 +204,7 @@ export class LanguageClient extends BaseLanguageClient {
     if (forceDebug === void 0) {
       forceDebug = false
     }
-    // eval client options now to init base class
-    super(id, name, options()[0])
+    super(id, name, () => options()[0])
     this._options = options
     this._forceDebug = forceDebug
     this.registerProposedFeatures()

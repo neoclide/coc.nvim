@@ -26,6 +26,7 @@ import * as UUID from './utils/uuid'
 import { WorkspaceFolderWorkspaceMiddleware } from './workspaceFolders'
 import { SelectionRangeProviderMiddleware } from './selectionRange'
 import { omit } from '../util/lodash'
+import { Lazy } from '../util'
 
 const logger = require('../util/logger')('language-client-client')
 
@@ -3089,7 +3090,7 @@ export namespace MessageTransports {
 export abstract class BaseLanguageClient {
   private _id: string
   private _name: string
-  private _clientOptions: ResolvedClientOptions
+  private _clientOptions: Lazy<ResolvedClientOptions>
 
   protected _state: ClientState
   private _onReady: Promise<void>
@@ -3119,45 +3120,49 @@ export abstract class BaseLanguageClient {
   public constructor(
     id: string,
     name: string,
-    clientOptions: LanguageClientOptions
+    clientOptionsFunc: () => LanguageClientOptions
   ) {
     this._id = id
     this._name = name
-    clientOptions = clientOptions || {}
-    this._clientOptions = {
-      disableWorkspaceFolders: clientOptions.disableWorkspaceFolders,
-      disableDynamicRegister: clientOptions.disableDynamicRegister,
-      disableDiagnostics: clientOptions.disableDiagnostics,
-      disableCompletion: clientOptions.disableCompletion,
-      ignoredRootPaths: clientOptions.ignoredRootPaths,
-      documentSelector: clientOptions.documentSelector || [],
-      synchronize: clientOptions.synchronize || {},
-      diagnosticCollectionName: clientOptions.diagnosticCollectionName,
-      outputChannelName: clientOptions.outputChannelName || this._id,
-      revealOutputChannelOn:
-        clientOptions.revealOutputChannelOn || RevealOutputChannelOn.Never,
-      stdioEncoding: clientOptions.stdioEncoding || 'utf8',
-      initializationOptions: clientOptions.initializationOptions,
-      initializationFailedHandler: clientOptions.initializationFailedHandler,
-      errorHandler:
-        clientOptions.errorHandler || new DefaultErrorHandler(this._id),
-      middleware: clientOptions.middleware || {},
-      workspaceFolder: clientOptions.workspaceFolder
-    }
-    this._clientOptions.synchronize = this._clientOptions.synchronize || {}
+    clientOptionsFunc = clientOptionsFunc || (() => { return {} })
+    this._clientOptions = new Lazy(() => {
+      let clientOptions = clientOptionsFunc()
+      if (clientOptions.outputChannel) {
+        this._outputChannel = clientOptions.outputChannel
+        this._disposeOutputChannel = false
+      } else {
+        this._outputChannel = undefined
+        this._disposeOutputChannel = true
+      }
+
+      let eval_options = {
+        disableWorkspaceFolders: clientOptions.disableWorkspaceFolders,
+        disableDynamicRegister: clientOptions.disableDynamicRegister,
+        disableDiagnostics: clientOptions.disableDiagnostics,
+        disableCompletion: clientOptions.disableCompletion,
+        ignoredRootPaths: clientOptions.ignoredRootPaths,
+        documentSelector: clientOptions.documentSelector || [],
+        synchronize: clientOptions.synchronize || {},
+        diagnosticCollectionName: clientOptions.diagnosticCollectionName,
+        outputChannelName: clientOptions.outputChannelName || this._id,
+        revealOutputChannelOn:
+          clientOptions.revealOutputChannelOn || RevealOutputChannelOn.Never,
+        stdioEncoding: clientOptions.stdioEncoding || 'utf8',
+        initializationOptions: clientOptions.initializationOptions,
+        initializationFailedHandler: clientOptions.initializationFailedHandler,
+        errorHandler:
+          clientOptions.errorHandler || new DefaultErrorHandler(this._id),
+        middleware: clientOptions.middleware || {},
+        workspaceFolder: clientOptions.workspaceFolder
+      }
+      eval_options.synchronize = eval_options.synchronize || {}
+      return eval_options
+    })
 
     this.state = ClientState.Initial
     this._connectionPromise = undefined
     this._resolvedConnection = undefined
     this._initializeResult = undefined
-    if (clientOptions.outputChannel) {
-      this._outputChannel = clientOptions.outputChannel
-      this._disposeOutputChannel = false
-    } else {
-      this._outputChannel = undefined
-      this._disposeOutputChannel = true
-    }
-
     this._listeners = undefined
     this._providers = undefined
     this._diagnostics = undefined
@@ -3336,7 +3341,7 @@ export abstract class BaseLanguageClient {
   }
 
   public get clientOptions(): LanguageClientOptions {
-    return this._clientOptions
+    return this._clientOptions.value()
   }
 
   public get onDidChangeState(): Event<StateChangeEvent> {
@@ -3345,7 +3350,7 @@ export abstract class BaseLanguageClient {
 
   public get outputChannel(): OutputChannel {
     if (!this._outputChannel) {
-      let { outputChannelName } = this._clientOptions
+      let { outputChannelName } = this._clientOptions.value()
       this._outputChannel = workspace.createOutputChannel(outputChannelName ? outputChannelName : this._name)
     }
     return this._outputChannel
@@ -3420,7 +3425,7 @@ export abstract class BaseLanguageClient {
       dataString = this.data2String(data)
       this.outputChannel.appendLine(dataString)
     }
-    if (this._clientOptions.revealOutputChannelOn <= level) {
+    if (this._clientOptions.value().revealOutputChannelOn <= level) {
       this.outputChannel.show(true)
     }
   }
@@ -3480,8 +3485,8 @@ export abstract class BaseLanguageClient {
     this._providers = []
     // If we restart then the diagnostics collection is reused.
     if (!this._diagnostics) {
-      this._diagnostics = this._clientOptions.diagnosticCollectionName
-        ? languages.createDiagnosticCollection(this._clientOptions.diagnosticCollectionName)
+      this._diagnostics = this._clientOptions.value().diagnosticCollectionName
+        ? languages.createDiagnosticCollection(this._clientOptions.value().diagnosticCollectionName)
         : languages.createDiagnosticCollection(this._id)
     }
 
@@ -3556,10 +3561,10 @@ export abstract class BaseLanguageClient {
   }
 
   private resolveRootPath(): string | null {
-    if (this._clientOptions.workspaceFolder) {
-      return URI.parse(this._clientOptions.workspaceFolder.uri).fsPath
+    if (this._clientOptions.value().workspaceFolder) {
+      return URI.parse(this._clientOptions.value().workspaceFolder.uri).fsPath
     }
-    let { ignoredRootPaths } = this._clientOptions
+    let { ignoredRootPaths } = this._clientOptions.value()
     let config = workspace.getConfiguration(this.id)
     let rootPatterns = config.get<string[]>('rootPatterns', [])
     let required = config.get<boolean>('requireRootPattern', false)
@@ -3582,7 +3587,7 @@ export abstract class BaseLanguageClient {
 
   private initialize(connection: IConnection): Thenable<InitializeResult> {
     this.refreshTrace(connection, false)
-    let initOption = this._clientOptions.initializationOptions
+    let initOption = this._clientOptions.value().initializationOptions
     let rootPath = this.resolveRootPath()
     if (!rootPath) return
     let initParams: any = {
@@ -3626,7 +3631,7 @@ export abstract class BaseLanguageClient {
         this._capabilities = Object.assign({}, result.capabilities, {
           resolvedTextDocumentSync: textDocumentSyncOptions
         })
-        if (!this._clientOptions.disableDiagnostics) {
+        if (!this._clientOptions.value().disableDiagnostics) {
           connection.onDiagnostics(params => this.handleDiagnostics(params))
         }
         connection.onRequest(RegistrationRequest.type, params =>
@@ -3655,8 +3660,8 @@ export abstract class BaseLanguageClient {
         this._onReadyCallbacks.resolve()
         return result
       }).then<InitializeResult>(undefined, error => {
-        if (this._clientOptions.initializationFailedHandler) {
-          if (this._clientOptions.initializationFailedHandler(error)) {
+        if (this._clientOptions.value().initializationFailedHandler) {
+          if (this._clientOptions.value().initializationFailedHandler(error)) {
             this.initialize(connection)
           } else {
             this.stop()
@@ -3796,7 +3801,7 @@ export abstract class BaseLanguageClient {
     }
 
     return this.createMessageTransports(
-      this._clientOptions.stdioEncoding || 'utf8'
+      this._clientOptions.value().stdioEncoding || 'utf8'
     ).then(transports => {
       return createConnection(
         transports.reader,
@@ -3824,7 +3829,7 @@ export abstract class BaseLanguageClient {
     }
     let action = CloseAction.DoNotRestart
     try {
-      action = this._clientOptions.errorHandler!.closed()
+      action = this._clientOptions.value().errorHandler!.closed()
     } catch (error) {
       // Ignore errors coming from the error handler.
     }
@@ -3850,7 +3855,7 @@ export abstract class BaseLanguageClient {
   }
 
   private handleConnectionError(error: Error, message: Message, count: number) {
-    let action = this._clientOptions.errorHandler!.error(error, message, count)
+    let action = this._clientOptions.value().errorHandler!.error(error, message, count)
     if (action === ErrorAction.Shutdown) {
       this.error('Connection to server is erroring. Shutting down server.')
       this.stop()
@@ -3889,7 +3894,7 @@ export abstract class BaseLanguageClient {
   }
 
   private hookFileEvents(_connection: IConnection): void {
-    let fileEvents = this._clientOptions.synchronize.fileEvents
+    let fileEvents = this._clientOptions.value().synchronize.fileEvents
     if (!fileEvents) return
     let watchers: FileWatcher[]
     if (Array.isArray(fileEvents)) {
@@ -3948,7 +3953,7 @@ export abstract class BaseLanguageClient {
     this.registerFeature(new DidSaveTextDocumentFeature(this))
     this.registerFeature(new DidCloseTextDocumentFeature(this, this._syncedDocuments))
     this.registerFeature(new FileSystemWatcherFeature(this, event => this.notifyFileEvent(event)))
-    if (!this._clientOptions.disableCompletion) {
+    if (!this._clientOptions.value().disableCompletion) {
       this.registerFeature(new CompletionItemFeature(this))
     }
     this.registerFeature(new HoverFeature(this))
@@ -3991,7 +3996,7 @@ export abstract class BaseLanguageClient {
   }
 
   private initializeFeatures(_connection: IConnection): void {
-    let documentSelector = this._clientOptions.documentSelector
+    let documentSelector = this._clientOptions.value().documentSelector
     for (let feature of this._features) {
       feature.initialize(this._capabilities, documentSelector)
     }
@@ -4014,7 +4019,7 @@ export abstract class BaseLanguageClient {
         }
         const options = registration.registerOptions || {}
         options.documentSelector =
-          options.documentSelector || this._clientOptions.documentSelector
+          options.documentSelector || this._clientOptions.value().documentSelector
         const data: RegistrationData<any> = {
           id: registration.id,
           registerOptions: options

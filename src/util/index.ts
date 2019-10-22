@@ -10,10 +10,13 @@ import { URI } from 'vscode-uri'
 import which from 'which'
 import { MapMode } from '../types'
 import * as platform from './platform'
+import { Lazy } from './lazy'
 
 export { platform }
 const logger = require('./logger')('util-index')
 const prefix = '[coc.nvim] '
+
+export { Lazy }
 
 export function escapeSingleQuote(str: string): string {
   return str.replace(/'/g, "''")
