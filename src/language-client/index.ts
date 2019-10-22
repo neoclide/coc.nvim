@@ -154,7 +154,15 @@ export class LanguageClient extends BaseLanguageClient {
 
   public constructor(
     name: string,
-    options: () => [LanguageClientOptions, ServerOptions],
+    serverOptions: ServerOptions,
+    clientOptions: LanguageClientOptions,
+    forceDebug?: boolean
+  )
+  public constructor(
+    id: string,
+    name: string,
+    serverOptions: ServerOptions,
+    clientOptions: LanguageClientOptions,
     forceDebug?: boolean
   )
   public constructor(
@@ -165,9 +173,10 @@ export class LanguageClient extends BaseLanguageClient {
   )
   public constructor(
     arg1: string,
-    arg2: (() => [LanguageClientOptions, ServerOptions]) | string,
-    arg3: (() => [LanguageClientOptions, ServerOptions]) | boolean,
-    arg4?: boolean
+    arg2: string | ServerOptions,
+    arg3: (() => [LanguageClientOptions, ServerOptions]) | boolean | ServerOptions | LanguageClientOptions,
+    arg4?: boolean | LanguageClientOptions,
+    arg5?: boolean
   ) {
     let id: string
     let name: string
@@ -176,13 +185,21 @@ export class LanguageClient extends BaseLanguageClient {
     if (Is.string(arg2)) {
       id = arg1
       name = arg2
-      options = arg3 as () => [LanguageClientOptions, ServerOptions]
-      forceDebug = !!arg4
+      if (Is.func(arg3)) {
+        // 3rd signature
+        options = arg3 as () => [LanguageClientOptions, ServerOptions]
+        forceDebug = !!arg4
+      }else {
+        // 2nd signature
+        options = () => [arg4 as LanguageClientOptions, arg3 as ServerOptions]
+        forceDebug = !!arg5
+      }
     } else {
+      // first signature
       id = arg1.toLowerCase()
       name = arg1
-      options = arg2 as () => [LanguageClientOptions, ServerOptions]
-      forceDebug = arg3 as boolean
+      options = () => [arg3 as LanguageClientOptions, arg2 as ServerOptions]
+      forceDebug = arg4 as boolean
     }
     if (forceDebug === void 0) {
       forceDebug = false
@@ -286,6 +303,7 @@ export class LanguageClient extends BaseLanguageClient {
     }
 
     let server = this._options()[1]
+    logger.debug(`createMessageTransports: server id = ${this.id}, option = ${JSON.stringify(server)}`)
     // We got a function.
     if (Is.func(server)) {
       let result = await Promise.resolve(server())
