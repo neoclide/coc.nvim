@@ -147,54 +147,49 @@ export type ServerOptions =
   | (() => Thenable<ChildProcess | StreamInfo | MessageTransports | ChildProcessInfo>)
 
 export class LanguageClient extends BaseLanguageClient {
-  private _serverOptions: ServerOptions
   private _forceDebug: boolean
   private _serverProcess: ChildProcess | undefined
   private _isDetached: boolean | undefined
+  private _options: () => [LanguageClientOptions, ServerOptions]
 
   public constructor(
     name: string,
-    serverOptions: ServerOptions,
-    clientOptions: LanguageClientOptions,
+    options: () => [LanguageClientOptions, ServerOptions],
     forceDebug?: boolean
   )
   public constructor(
     id: string,
     name: string,
-    serverOptions: ServerOptions,
-    clientOptions: LanguageClientOptions,
+    options: () => [LanguageClientOptions, ServerOptions],
     forceDebug?: boolean
   )
   public constructor(
     arg1: string,
-    arg2: ServerOptions | string,
-    arg3: LanguageClientOptions | ServerOptions,
-    arg4?: boolean | LanguageClientOptions,
-    arg5?: boolean
+    arg2: (() => [LanguageClientOptions, ServerOptions]) | string,
+    arg3: (() => [LanguageClientOptions, ServerOptions]) | boolean,
+    arg4?: boolean
   ) {
     let id: string
     let name: string
-    let serverOptions: ServerOptions
-    let clientOptions: LanguageClientOptions
+    let options: () => [LanguageClientOptions, ServerOptions]
     let forceDebug: boolean
     if (Is.string(arg2)) {
       id = arg1
       name = arg2
-      serverOptions = arg3 as ServerOptions
-      clientOptions = arg4 as LanguageClientOptions
-      forceDebug = !!arg5
+      options = arg3 as () => [LanguageClientOptions, ServerOptions]
+      forceDebug = !!arg4
     } else {
       id = arg1.toLowerCase()
       name = arg1
-      serverOptions = arg2 as ServerOptions
-      clientOptions = arg3 as LanguageClientOptions
-      forceDebug = arg4 as boolean
+      options = arg2 as () => [LanguageClientOptions, ServerOptions]
+      forceDebug = arg3 as boolean
     }
     if (forceDebug === void 0) {
       forceDebug = false
     }
-    super(id, name, clientOptions)
-    this._serverOptions = serverOptions
+    // eval client options now to init base class
+    super(id, name, options()[0])
+    this._options = options
     this._forceDebug = forceDebug
     this.registerProposedFeatures()
   }
@@ -290,7 +285,7 @@ export class LanguageClient extends BaseLanguageClient {
       return false
     }
 
-    let server = this._serverOptions
+    let server = this._options()[1]
     // We got a function.
     if (Is.func(server)) {
       let result = await Promise.resolve(server())

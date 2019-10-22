@@ -28,7 +28,7 @@ async function testLanguageServer(serverOptions: lsclient.ServerOptions): Promis
     synchronize: {},
     initializationOptions: {}
   }
-  let client = new lsclient.LanguageClient('css', 'Test Language Server', serverOptions, clientOptions)
+  let client = new lsclient.LanguageClient('css', 'Test Language Server', () => [clientOptions, serverOptions])
   let disposable = client.start()
   await client.onReady()
   expect(client.initializeResult).toBeDefined()
@@ -57,7 +57,7 @@ describe('Client integration', () => {
         }
       }
     }
-    let client = new lsclient.LanguageClient('css', 'Test Language Server', serverOptions, clientOptions)
+    let client = new lsclient.LanguageClient('css', 'Test Language Server', () => [clientOptions, serverOptions])
     let disposable = client.start()
 
     assert.equal(client.initializeResult, undefined)
