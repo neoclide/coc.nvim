@@ -20267,6 +20267,26 @@ function isDocumentEdit(edit) {
     return true;
 }
 exports.isDocumentEdit = isDocumentEdit;
+function concurrent(fns, limit = Infinity) {
+    if (fns.length == 0)
+        return Promise.resolve([]);
+    return new Promise((resolve, rejrect) => {
+        let remain = fns.slice();
+        let results = [];
+        let next = () => {
+            if (remain.length == 0) {
+                return resolve(results);
+            }
+            let list = remain.splice(0, limit);
+            Promise.all(list.map(fn => fn())).then(res => {
+                results.push(...res);
+                next();
+            }, rejrect);
+        };
+        next();
+    });
+}
+exports.concurrent = concurrent;
 //# sourceMappingURL=index.js.map
 
 /***/ }),
@@ -23104,7 +23124,6 @@ augroup end`;
             if (filetypes.indexOf(document.filetype) == -1) {
                 let root = this.resolveRoot(document);
                 if (root) {
-                    logger.debug('root:', root);
                     this.addWorkspaceFolder(root);
                     if (this.bufnr == buffer.id) {
                         this._root = root;
@@ -23211,9 +23230,6 @@ augroup end`;
             let patterns = this.getRootPatterns(document, patternType);
             if (patterns && patterns.length) {
                 let root = fs_2.resolveRoot(dir, patterns, cwd);
-                logger.debug('patterns:', patterns);
-                logger.debug('dir:', dir);
-                logger.debug('cwd:', cwd);
                 if (root)
                     return root;
             }
@@ -32305,7 +32321,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "317e3212e3" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "b96d575b14" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -35298,7 +35314,7 @@ const isuri_1 = tslib_1.__importDefault(__webpack_require__(177));
 const path_1 = tslib_1.__importDefault(__webpack_require__(57));
 const rimraf_1 = tslib_1.__importDefault(__webpack_require__(239));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
-const util_1 = tslib_1.__importStar(__webpack_require__(40));
+const util_1 = __webpack_require__(40);
 const vscode_languageserver_protocol_1 = __webpack_require__(149);
 const vscode_uri_1 = __webpack_require__(180);
 const which_1 = tslib_1.__importDefault(__webpack_require__(181));
@@ -35424,15 +35440,17 @@ class Extensions {
         statusItem.text = `Updating extensions.`;
         statusItem.show();
         this.db.push('lastUpdate', Date.now());
-        await Promise.all(names.map(name => {
+        await util_2.concurrent(names.map(name => {
             let o = stats.find(o => o.id == name);
-            return this.manager.update(this.npm, name, o.exotic ? o.uri : undefined).then(updated => {
-                if (updated)
-                    this.reloadExtension(name).logError();
-            }, err => {
-                workspace_1.default.showMessage(`Error on update ${name}: ${err}`);
-            });
-        }));
+            return () => {
+                return this.manager.update(this.npm, name, o.exotic ? o.uri : undefined).then(updated => {
+                    if (updated)
+                        this.reloadExtension(name).logError();
+                }, err => {
+                    workspace_1.default.showMessage(`Error on update ${name}: ${err}`);
+                });
+            };
+        }), 5);
         workspace_1.default.showMessage('Update completed', 'more');
         statusItem.dispose();
     }
@@ -35442,7 +35460,7 @@ class Extensions {
             let names = globalExtensions.filter(name => !this.isDisabled(name));
             let folder = path_1.default.join(this.root, 'node_modules');
             if (fs_1.default.existsSync(folder)) {
-                let files = await util_1.default.promisify(fs_1.default.readdir)(folder);
+                let files = await util_1.promisify(fs_1.default.readdir)(folder);
                 names = names.filter(s => files.indexOf(s) == -1);
             }
             let json = this.loadJson();
@@ -35461,7 +35479,7 @@ class Extensions {
             for (let name of watchExtensions) {
                 let stat = stats.find(s => s.id == name);
                 if (stat && stat.state !== 'disabled') {
-                    let directory = await util_1.default.promisify(fs_1.default.realpath)(stat.root);
+                    let directory = await util_1.promisify(fs_1.default.realpath)(stat.root);
                     let client = await watchman_1.default.createClient(watchmanPath, directory);
                     client.subscribe('**/*.js', debounce_1.debounce(async () => {
                         await this.reloadExtension(name);
@@ -35665,7 +35683,7 @@ class Extensions {
                 delete json.dependencies[id];
                 let folder = path_1.default.join(this.root, 'node_modules', id);
                 if (fs_1.default.existsSync(folder)) {
-                    await util_1.default.promisify(rimraf_1.default)(`${folder}`, { glob: false });
+                    await util_1.promisify(rimraf_1.default)(`${folder}`, { glob: false });
                 }
             }
             let jsonFile = path_1.default.join(this.root, 'package.json');
