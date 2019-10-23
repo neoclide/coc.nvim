@@ -570,28 +570,19 @@ export class DiagnosticManager implements Disposable {
         if (level) {
           diagnostics = diagnostics.filter(o => o.severity && o.severity <= level)
         }
-        let sourceItemsMap = diagnostics.reduce((prev, cur) => {
-          let { range } = cur
-          let items = prev.get(cur.source)
-          if (!items) {
-            items = []
-          }
-          items.push({
-            text: cur.message,
-            code: cur.code,
+        let aleItems = diagnostics.map(o => {
+          let { range } = o
+          return {
+            text: o.message,
+            code: o.code,
             lnum: range.start.line + 1,
             col: range.start.character + 1,
             end_lnum: range.end.line + 1,
             end_col: range.end.character,
-            type: getSeverityType(cur.severity)
-          })
-          prev.set(cur.source, items)
-          return prev
-        }, new Map())
-        for (let sourceItems of sourceItemsMap) {
-          let [source, items] = sourceItems
-          nvim.call('ale#other_source#ShowResults', [buf.bufnr, source, items], true)
-        }
+            type: getSeverityType(o.severity)
+          }
+        })
+        nvim.call('ale#other_source#ShowResults', [buf.bufnr, collection.name, aleItems], true)
       }
       nvim.resumeNotification(false, true).logError()
     }
