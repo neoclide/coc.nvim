@@ -184,7 +184,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
         return getLanguageServerOptions(id, key, lspConfig_[key])
       }
       if (!lazy_opts()) continue
-      let client = new LanguageClient(id, key, lazy_opts)
+      let client = new LanguageClient(id, key, { deferredOptions: lazy_opts })
       this.registLanguageClient(client)
     }
   }

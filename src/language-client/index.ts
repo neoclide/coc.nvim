@@ -146,6 +146,10 @@ export type ServerOptions =
   | NodeModule
   | (() => Thenable<ChildProcess | StreamInfo | MessageTransports | ChildProcessInfo>)
 
+export interface DeferredLanguageClientServerOptions {
+  deferredOptions: () => [LanguageClientOptions, ServerOptions]
+}
+
 export class LanguageClient extends BaseLanguageClient {
   private _forceDebug: boolean
   private _serverProcess: ChildProcess | undefined
@@ -168,13 +172,13 @@ export class LanguageClient extends BaseLanguageClient {
   public constructor(
     id: string,
     name: string,
-    options: () => [LanguageClientOptions, ServerOptions],
+    options: DeferredLanguageClientServerOptions,
     forceDebug?: boolean
   )
   public constructor(
     arg1: string,
     arg2: string | ServerOptions,
-    arg3: (() => [LanguageClientOptions, ServerOptions]) | boolean | ServerOptions | LanguageClientOptions,
+    arg3: DeferredLanguageClientServerOptions | boolean | ServerOptions | LanguageClientOptions,
     arg4?: boolean | LanguageClientOptions,
     arg5?: boolean
   ) {
@@ -185,9 +189,9 @@ export class LanguageClient extends BaseLanguageClient {
     if (Is.string(arg2)) {
       id = arg1
       name = arg2
-      if (Is.func(arg3)) {
+      if ((arg3 as DeferredLanguageClientServerOptions).deferredOptions) {
         // 3rd signature
-        options = arg3 as () => [LanguageClientOptions, ServerOptions]
+        options = (arg3 as DeferredLanguageClientServerOptions).deferredOptions
         forceDebug = !!arg4
       }else {
         // 2nd signature

@@ -34,7 +34,7 @@ describe('Client integration', () => {
       middleware: {
       }
     }
-    let client = new lsclient.LanguageClient('css', 'Test Language Server', () => [clientOptions, serverOptions])
+    let client = new lsclient.LanguageClient('css', 'Test Language Server', { deferredOptions : () => [clientOptions, serverOptions] })
     let disposable = client.start()
 
     client.onReady().then(_ => {
