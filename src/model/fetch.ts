@@ -11,8 +11,9 @@ const logger = require('../util/logger')('model-fetch')
 export function getAgent(endpoint: UrlWithStringQuery): Agent {
   let proxy = workspace.getConfiguration('http').get<string>('proxy', '')
   let key = endpoint.protocol.startsWith('https') ? 'HTTPS_PROXY' : 'HTTP_PROXY'
-  if (!proxy && process.env[key]) {
-    proxy = process.env[key].replace(/^https?:\/\//, '').replace(/\/$/, '')
+  let env = process.env[key]
+  if (!proxy && env && env.startsWith('http')) {
+    proxy = env.replace(/^https?:\/\//, '').replace(/\/$/, '')
   }
   const noProxy = process.env.NO_PROXY || process.env.no_proxy || null
   if (noProxy === '*') {
