@@ -79,7 +79,7 @@
     "follow-redirects": "^1.9.0",
     "glob": "^7.1.4",
     "isuri": "^2.0.3",
-    "jsonc-parser": "^2.1.1",
+    "jsonc-parser": "^2.2.0",
     "log4js": "^5.1.0",
     "minimatch": "^3.0.4",
     "mkdirp": "^0.5.1",
