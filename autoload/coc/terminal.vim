@@ -42,7 +42,7 @@ function! coc#terminal#start(cmd, cwd, env) abort
     let s:channel_map[bufnr] = job_id
     return [bufnr, jobpid(job_id)]
   else
-    let cmd = s:is_win ? join(cmd, ' ') : a:cmd
+    let cmd = s:is_win ? join(a:cmd, ' ') : a:cmd
     let res = term_start(cmd, {
           \ 'cwd': cwd,
           \ 'exit_cb': {job, status -> s:OnExit(status)},

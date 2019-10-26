@@ -32321,7 +32321,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "b04e619c64" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "36e476819f" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -35260,6 +35260,7 @@ class Sources {
         for (let item of items) {
             res.push({
                 name: item.name,
+                priority: item.priority,
                 shortcut: item.shortcut || '',
                 filetypes: item.filetypes || [],
                 filepath: item.filepath || '',
@@ -35802,7 +35803,7 @@ class Extensions {
                 this._onDidActiveExtension.fire(extension);
             }
         }, e => {
-            workspace_1.default.showMessage(`Error on activate ${extension.id}: ${e.message}`, 'error');
+            workspace_1.default.showMessage(`Error on activate ${extension.id}: ${e.stack}`, 'error');
             logger.error(`Error on activate extension ${extension.id}:`, e);
         });
     }
@@ -36076,7 +36077,7 @@ class Extensions {
                 }
                 catch (e) {
                     isActive = false;
-                    workspace_1.default.showMessage(`Error on active extension ${id}: ${e}`, 'error');
+                    workspace_1.default.showMessage(`Error on active extension ${id}: ${e.stack}`, 'error');
                     logger.error(e);
                 }
                 return exports;
@@ -48445,8 +48446,9 @@ const logger = __webpack_require__(186)('model-fetch');
 function getAgent(endpoint) {
     let proxy = workspace_1.default.getConfiguration('http').get('proxy', '');
     let key = endpoint.protocol.startsWith('https') ? 'HTTPS_PROXY' : 'HTTP_PROXY';
-    if (!proxy && process.env[key]) {
-        proxy = process.env[key].replace(/^https?:\/\//, '').replace(/\/$/, '');
+    let env = process.env[key];
+    if (!proxy && env && env.startsWith('http')) {
+        proxy = env.replace(/^https?:\/\//, '').replace(/\/$/, '');
     }
     const noProxy = process.env.NO_PROXY || process.env.no_proxy || null;
     if (noProxy === '*') {
@@ -60352,7 +60354,7 @@ class SourcesList extends basic_1.default {
                 location = vscode_languageserver_types_1.Location.create(vscode_uri_1.URI.file(stat.filepath).toString(), vscode_languageserver_types_1.Range.create(0, 0, 0, 0));
             }
             return {
-                label: `${prefix}\t${stat.name}\t[${stat.shortcut}]\t${stat.filetypes.join(',')}`,
+                label: `${prefix}\t${stat.name}\t[${stat.shortcut}]\t${stat.priority}\t${stat.filetypes.join(',')}`,
                 location,
                 data: { name: stat.name }
             };
@@ -65933,8 +65935,8 @@ class Refactor {
         let res = [];
         let { beforeContext, afterContext } = this.config;
         let { changes, documentChanges } = edit;
-        changes = changes || {};
         if (!changes) {
+            changes = {};
             for (let change of documentChanges || []) {
                 if (vscode_languageserver_types_1.TextDocumentEdit.is(change)) {
                     let { textDocument, edits } = change;
