@@ -52,7 +52,7 @@
     "@types/debounce": "^3.0.0",
     "@types/fb-watchman": "^2.0.0",
     "@types/glob": "^7.1.1",
-    "@types/jest": "^24.0.18",
+    "@types/jest": "^24.0.20",
     "@types/minimatch": "^3.0.3",
     "@types/mkdirp": "^0.5.2",
     "@types/node": "^12.7.4",
