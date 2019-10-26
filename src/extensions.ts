@@ -503,7 +503,7 @@ export class Extensions {
         this._onDidActiveExtension.fire(extension)
       }
     }, e => {
-      workspace.showMessage(`Error on activate ${extension.id}: ${e.message}`, 'error')
+      workspace.showMessage(`Error on activate ${extension.id}: ${e.stack}`, 'error')
       logger.error(`Error on activate extension ${extension.id}:`, e)
     })
   }
@@ -772,7 +772,7 @@ export class Extensions {
           exports = await Promise.resolve(ext.activate(context))
         } catch (e) {
           isActive = false
-          workspace.showMessage(`Error on active extension ${id}: ${e}`, 'error')
+          workspace.showMessage(`Error on active extension ${id}: ${e.stack}`, 'error')
           logger.error(e)
         }
         return exports as API
