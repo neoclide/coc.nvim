@@ -32321,7 +32321,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "36e476819f" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "f66acfe599" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -32416,6 +32416,8 @@ class Plugin extends events_1.EventEmitter {
                     return await handler.showSignatureHelp();
                 case 'documentSymbols':
                     return await handler.getDocumentSymbols();
+                case 'symbolRanges':
+                    return await handler.getSymbolsRanges();
                 case 'selectionRanges':
                     return await handler.getSelectionRanges();
                 case 'rangeSelect':
@@ -32723,6 +32725,32 @@ class CommandManager {
                 }
             }
         }, false, 'rename word under cursor in current buffer by use multiple cursors.');
+        this.register({
+            id: 'document.jumpToNextSymbol',
+            execute: async () => {
+                let doc = await workspace_1.default.document;
+                if (!doc)
+                    return;
+                let ranges = await plugin.cocAction('symbolRanges');
+                if (!ranges)
+                    return;
+                let { textDocument } = doc;
+                let offset = await workspace_1.default.getOffset();
+                ranges.sort((a, b) => {
+                    if (a.start.line != b.start.line) {
+                        return a.start.line - b.start.line;
+                    }
+                    return a.start.character - b.start.character;
+                });
+                for (let i = 0; i <= ranges.length - 1; i++) {
+                    if (textDocument.offsetAt(ranges[i].start) > offset) {
+                        await workspace_1.default.moveTo(ranges[i].start);
+                        return;
+                    }
+                }
+                await workspace_1.default.moveTo(ranges[0].start);
+            }
+        }, false, 'Jump to next symbol highlight position.');
     }
     get commandList() {
         let res = [];
@@ -50264,11 +50292,11 @@ class DiagnosticManager {
         let { textDocument } = document;
         for (let i = ranges.length - 1; i >= 0; i--) {
             if (textDocument.offsetAt(ranges[i].end) < offset) {
-                await this.jumpTo(ranges[i]);
+                await workspace_1.default.moveTo(ranges[i].start);
                 return;
             }
         }
-        await this.jumpTo(ranges[ranges.length - 1]);
+        await workspace_1.default.moveTo(ranges[ranges.length - 1].start);
     }
     /**
      * Jump to next diagnostic position
@@ -50285,11 +50313,11 @@ class DiagnosticManager {
         let { textDocument } = document;
         for (let i = 0; i <= ranges.length - 1; i++) {
             if (textDocument.offsetAt(ranges[i].start) > offset) {
-                await this.jumpTo(ranges[i]);
+                await workspace_1.default.moveTo(ranges[i].start);
                 return;
             }
         }
-        await this.jumpTo(ranges[0]);
+        await workspace_1.default.moveTo(ranges[0].start);
     }
     /**
      * All diagnostics of current workspace
@@ -50568,13 +50596,6 @@ class DiagnosticManager {
             nvim.resumeNotification(false, true).logError();
         }
         return false;
-    }
-    async jumpTo(range) {
-        if (!range)
-            return;
-        let { start } = range;
-        await this.nvim.call('cursor', [start.line + 1, start.character + 1]);
-        await this.echoMessage();
     }
 }
 exports.DiagnosticManager = DiagnosticManager;
@@ -64031,6 +64052,13 @@ class Handler {
     async highlight() {
         let bufnr = await this.nvim.call('bufnr', '%');
         await this.documentHighlighter.highlight(bufnr);
+    }
+    async getSymbolsRanges() {
+        let document = await workspace_1.default.document;
+        let highlights = await this.documentHighlighter.getHighlights(document);
+        if (!highlights)
+            return null;
+        return highlights.map(o => o.range);
     }
     async links() {
         let doc = await workspace_1.default.document;
