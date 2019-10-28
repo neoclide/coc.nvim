@@ -336,6 +336,9 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
   let lineCount = s:buf_line_count(a:bufnr)
   let startLnum = a:start >= 0 ? a:start + 1 : lineCount + a:start + 1
   let end = a:end >= 0 ? a:end : lineCount + a:end + 1
+  if end == lineCount + 1
+    let end = lineCount
+  endif
   let delCount = end - (startLnum - 1)
   let changeBuffer = 0
   let curr = bufnr('%')
