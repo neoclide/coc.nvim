@@ -219,9 +219,16 @@ export function parentDirs(pth: string): string[] {
 }
 
 export function isParentFolder(folder: string, filepath: string, checkEqual = false): boolean {
-  let pdir = path.resolve(path.normalize(folder))
-  let dir = path.resolve(path.normalize(filepath))
+  let pdir = fixDriver(path.resolve(path.normalize(folder)))
+  let dir = fixDriver(path.resolve(path.normalize(filepath)))
   if (pdir == '//') pdir = '/'
   if (pdir == dir) return checkEqual ? true : false
-  return dir.slice(0, pdir.length) === pdir
+  if (pdir.endsWith(path.sep)) return dir.startsWith(pdir)
+  return dir.startsWith(pdir) && dir[pdir.length] == path.sep
+}
+
+// use uppercase for windows driver
+export function fixDriver(filepath: string): string {
+  if (os.platform() != 'win32' || filepath[1] != ':') return filepath
+  return filepath[0].toUpperCase() + filepath.slice(1)
 }

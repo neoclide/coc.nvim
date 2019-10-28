@@ -23,7 +23,7 @@ import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, MessageLevel, MsgTypes, OutputChannel, PatternType, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, DidChangeTextDocumentParams } from './types'
 import { distinct } from './util/array'
-import { findUp, isFile, isParentFolder, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
+import { findUp, isFile, isParentFolder, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile, fixDriver } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, getKeymapModifier, isDocumentEdit, mkdirp, runCommand, wait, platform } from './util/index'
 import { score } from './util/match'
 import { getChangedFromEdits } from './util/position'
@@ -782,21 +782,28 @@ export class Workspace implements IWorkspace {
     const preferences = this.getConfiguration('coc.preferences')
     let jumpCommand = openCommand || preferences.get<string>('jumpCommand', 'edit')
     let { nvim } = this
-    let { line, character } = position || { line: 0, character: 0 }
     let doc = this.getDocument(uri)
-    let col = character + 1
-    if (doc) col = byteLength(doc.getline(line).slice(0, character)) + 1
     let bufnr = doc ? doc.bufnr : -1
     await nvim.command(`normal! m'`)
-    if (bufnr == this.bufnr && position && jumpCommand == 'edit') {
-      await nvim.call('cursor', [line + 1, col])
+    if (bufnr == this.bufnr && jumpCommand == 'edit') {
+      if (position) await this.moveTo(position)
     } else if (bufnr != -1 && jumpCommand == 'edit') {
-      let moveCmd = position ? `+call\\ cursor(${line + 1},${col})` : ''
+      let moveCmd = ''
+      if (position) {
+        let line = doc.getline(position.line)
+        let col = byteLength(line.slice(0, position.character)) + 1
+        moveCmd = position ? `+call\\ cursor(${position.line + 1},${col})` : ''
+      }
       await this.nvim.call('coc#util#execute', [`buffer ${moveCmd} ${bufnr}`])
     } else {
-      let bufname = uri.startsWith('file:') ? path.normalize(URI.parse(uri).fsPath) : uri
-      let pos = position ? [line + 1, col] : []
-      await this.nvim.call('coc#util#jump', [jumpCommand, bufname, pos])
+      let { fsPath, scheme } = URI.parse(uri)
+      let pos = position == null ? null : [position.line + 1, position.character + 1]
+      if (scheme == 'file') {
+        let bufname = fixDriver(path.normalize(fsPath))
+        await this.nvim.call('coc#util#jump', [jumpCommand, bufname, pos])
+      } else {
+        await this.nvim.call('coc#util#jump', [jumpCommand, uri, pos])
+      }
     }
   }
 
