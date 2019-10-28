@@ -8,6 +8,7 @@ import snipetsManager from './snippets/manager'
 import diagnosticManager from './diagnostic/manager'
 import { URI } from 'vscode-uri'
 import Mru from './model/mru'
+import Handler from './handler'
 const logger = require('./util/logger')('commands')
 
 // command center
@@ -213,6 +214,30 @@ export class CommandManager implements Disposable {
         }
       }
     }, false, 'rename word under cursor in current buffer by use multiple cursors.')
+    this.register({
+      id: 'document.jumpToNextSymbol',
+      execute: async () => {
+        let doc = await workspace.document
+        if (!doc) return
+        let ranges = await plugin.cocAction('symbolRanges') as Range[]
+        if (!ranges) return
+        let { textDocument } = doc
+        let offset = await workspace.getOffset()
+        ranges.sort((a, b) => {
+          if (a.start.line != b.start.line) {
+            return a.start.line - b.start.line
+          }
+          return a.start.character - b.start.character
+        })
+        for (let i = 0; i <= ranges.length - 1; i++) {
+          if (textDocument.offsetAt(ranges[i].start) > offset) {
+            await workspace.moveTo(ranges[i].start)
+            return
+          }
+        }
+        await workspace.moveTo(ranges[0].start)
+      }
+    }, false, 'Jump to next symbol highlight position.')
   }
 
   public get commandList(): CommandItem[] {

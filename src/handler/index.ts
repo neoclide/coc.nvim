@@ -691,6 +691,13 @@ export default class Handler {
     await this.documentHighlighter.highlight(bufnr)
   }
 
+  public async getSymbolsRanges(): Promise<Range[]> {
+    let document = await workspace.document
+    let highlights = await this.documentHighlighter.getHighlights(document)
+    if (!highlights) return null
+    return highlights.map(o => o.range)
+  }
+
   public async links(): Promise<DocumentLink[]> {
     let doc = await workspace.document
     let links = await languages.getDocumentLinks(doc.textDocument)
