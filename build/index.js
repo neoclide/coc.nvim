@@ -20235,9 +20235,9 @@ function isRunning(pid) {
 }
 exports.isRunning = isRunning;
 function getKeymapModifier(mode) {
-    if (mode == 'o' || mode == 'x')
+    if (mode == 'o' || mode == 'x' || mode == 'v')
         return '<C-U>';
-    if (mode == 'n' || mode == 'v')
+    if (mode == 'n')
         return '';
     if (mode == 'i')
         return '<C-o>';
@@ -22543,24 +22543,32 @@ class Workspace {
         const preferences = this.getConfiguration('coc.preferences');
         let jumpCommand = openCommand || preferences.get('jumpCommand', 'edit');
         let { nvim } = this;
-        let { line, character } = position || { line: 0, character: 0 };
         let doc = this.getDocument(uri);
-        let col = character + 1;
-        if (doc)
-            col = string_1.byteLength(doc.getline(line).slice(0, character)) + 1;
         let bufnr = doc ? doc.bufnr : -1;
         await nvim.command(`normal! m'`);
-        if (bufnr == this.bufnr && position && jumpCommand == 'edit') {
-            await nvim.call('cursor', [line + 1, col]);
+        if (bufnr == this.bufnr && jumpCommand == 'edit') {
+            if (position)
+                await this.moveTo(position);
         }
         else if (bufnr != -1 && jumpCommand == 'edit') {
-            let moveCmd = position ? `+call\\ cursor(${line + 1},${col})` : '';
+            let moveCmd = '';
+            if (position) {
+                let line = doc.getline(position.line);
+                let col = string_1.byteLength(line.slice(0, position.character)) + 1;
+                moveCmd = position ? `+call\\ cursor(${position.line + 1},${col})` : '';
+            }
             await this.nvim.call('coc#util#execute', [`buffer ${moveCmd} ${bufnr}`]);
         }
         else {
-            let bufname = uri.startsWith('file:') ? path_1.default.normalize(vscode_uri_1.URI.parse(uri).fsPath) : uri;
-            let pos = position ? [line + 1, col] : [];
-            await this.nvim.call('coc#util#jump', [jumpCommand, bufname, pos]);
+            let { fsPath, scheme } = vscode_uri_1.URI.parse(uri);
+            let pos = position == null ? null : [position.line + 1, position.character + 1];
+            if (scheme == 'file') {
+                let bufname = fs_2.fixDriver(path_1.default.normalize(fsPath));
+                await this.nvim.call('coc#util#jump', [jumpCommand, bufname, pos]);
+            }
+            else {
+                await this.nvim.call('coc#util#jump', [jumpCommand, uri, pos]);
+            }
         }
     }
     /**
@@ -22861,7 +22869,7 @@ class Workspace {
             }
             else {
                 let modify = index_1.getKeymapModifier(m);
-                nvim.command(`${m}noremap ${silent} <Plug>(coc-${key}) ${modify}:<c-u>call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, true);
+                nvim.command(`${m}noremap ${silent} <Plug>(coc-${key}) :${modify}call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, true);
             }
         }
         return vscode_languageserver_protocol_1.Disposable.create(() => {
@@ -26153,15 +26161,24 @@ function parentDirs(pth) {
 }
 exports.parentDirs = parentDirs;
 function isParentFolder(folder, filepath, checkEqual = false) {
-    let pdir = path_1.default.resolve(path_1.default.normalize(folder));
-    let dir = path_1.default.resolve(path_1.default.normalize(filepath));
+    let pdir = fixDriver(path_1.default.resolve(path_1.default.normalize(folder)));
+    let dir = fixDriver(path_1.default.resolve(path_1.default.normalize(filepath)));
     if (pdir == '//')
         pdir = '/';
     if (pdir == dir)
         return checkEqual ? true : false;
-    return dir.slice(0, pdir.length) === pdir;
+    if (pdir.endsWith(path_1.default.sep))
+        return dir.startsWith(pdir);
+    return dir.startsWith(pdir) && dir[pdir.length] == path_1.default.sep;
 }
 exports.isParentFolder = isParentFolder;
+// use uppercase for windows driver
+function fixDriver(filepath) {
+    if (os_1.default.platform() != 'win32' || filepath[1] != ':')
+        return filepath;
+    return filepath[0].toUpperCase() + filepath.slice(1);
+}
+exports.fixDriver = fixDriver;
 //# sourceMappingURL=fs.js.map
 
 /***/ }),
@@ -27698,9 +27715,8 @@ class Document {
         this._changedtick = opts.changedtick;
         this.eol = opts.eol == 1;
         let uri = this._uri = index_1.getUri(opts.fullpath, buffer.id, buftype, this.env.isCygwin);
-        token.onCancellationRequested(() => {
-            this.detach();
-        });
+        if (token.isCancellationRequested)
+            return false;
         try {
             if (!this.env.isVim) {
                 let res = await this.attach();
@@ -27720,8 +27736,10 @@ class Document {
         this.textDocument = vscode_languageserver_protocol_1.TextDocument.create(uri, this.filetype, 1, this.getDocumentContent());
         this.setIskeyword(opts.iskeyword);
         this.gitCheck();
-        if (token.isCancellationRequested)
+        if (token.isCancellationRequested) {
+            this.detach();
             return false;
+        }
         return true;
     }
     async attach() {
@@ -32321,7 +32339,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f66acfe599" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "9796d96780" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
