@@ -1106,7 +1106,7 @@ export class Workspace implements IWorkspace {
         nvim.command(`inoremap ${silent}<expr> <Plug>(coc-${key}) coc#_insert_key('${method}', '${key}', ${opts.cancel ? 1 : 0})`, true)
       } else {
         let modify = getKeymapModifier(m)
-        nvim.command(`${m}noremap ${silent} <Plug>(coc-${key}) ${modify}:<c-u>call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, true)
+        nvim.command(`${m}noremap ${silent} <Plug>(coc-${key}) :${modify}call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, true)
       }
     }
     return Disposable.create(() => {
