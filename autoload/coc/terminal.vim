@@ -45,6 +45,8 @@ function! coc#terminal#start(cmd, cwd, env) abort
     let cmd = s:is_win ? join(a:cmd, ' ') : a:cmd
     let res = term_start(cmd, {
           \ 'cwd': cwd,
+          \ 'term_kill': s:is_win ? 'kill' : 'term',
+          \ 'term_finish': 'close',
           \ 'exit_cb': {job, status -> s:OnExit(status)},
           \ 'curwin': 1,
           \ 'env': a:env,
