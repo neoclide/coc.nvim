@@ -317,6 +317,19 @@ export class DiagnosticManager implements Disposable {
   }
 
   /**
+   * Jump to first diagnostic position
+   */
+  public async jumpFirst(severity?: string): Promise<void> {
+    let buffer = await this.nvim.buffer
+    let document = workspace.getDocument(buffer.id)
+    let ranges = this.getSortedRanges(document.uri, severity)
+    if (ranges.length == 0) {
+      return
+    }
+    await workspace.moveTo(ranges[0].start)
+  }
+
+  /**
    * All diagnostics of current workspace
    */
   public getDiagnosticList(): DiagnosticItem[] {
