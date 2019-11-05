@@ -38,6 +38,9 @@ export class DiagnosticBuffer implements Disposable {
         }
         // staled
         if (current != time || !this.document) return
+        diagnostics.forEach(o => {
+          o.range = this.fixRange(o.range)
+        })
         this._refresh(diagnostics)
       }, 30)
     }
@@ -211,6 +214,15 @@ export class DiagnosticBuffer implements Disposable {
       let matchIds = this.document.highlightRanges(ranges, hlGroup, this.srdId)
       for (let id of matchIds) this.matchIds.add(id)
     }
+  }
+
+  // fix range out of total characters
+  private fixRange(range: Range): Range {
+    let { start, end } = range
+    if (start.line != end.line) return range
+    let line = this.document.getline(start.line)
+    if (start.character < line.length) return range
+    return Range.create(start.line, line.length - 1, start.line, line.length)
   }
 
   /**
