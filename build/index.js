@@ -32339,7 +32339,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "a52dec0522" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "377c2729b9" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -51529,6 +51529,9 @@ class DiagnosticBuffer {
                 // staled
                 if (current != time || !this.document)
                     return;
+                diagnostics.forEach(o => {
+                    o.range = this.fixRange(o.range);
+                });
                 this._refresh(diagnostics);
             }, 30);
         };
@@ -51708,6 +51711,16 @@ class DiagnosticBuffer {
             for (let id of matchIds)
                 this.matchIds.add(id);
         }
+    }
+    // fix range out of total characters
+    fixRange(range) {
+        let { start, end } = range;
+        if (start.line != end.line)
+            return range;
+        let line = this.document.getline(start.line);
+        if (start.character < line.length)
+            return range;
+        return vscode_languageserver_protocol_1.Range.create(start.line, line.length - 1, start.line, line.length);
     }
     /**
      * Used on buffer unload
