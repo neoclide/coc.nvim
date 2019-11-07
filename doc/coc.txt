@@ -1317,6 +1317,10 @@ Available Actions ~
 
 	Show diagnostic message at the current position, do not truncate.
 
+"diagnosticPreview" 				*coc-action-diagnosticPreview*
+
+	Show diagnostics under current cursor in preview window.
+
 "jumpDefinition" [{openCommand}] 		*coc-action-jumpDefinition*
 
 	jump to definition position of the current symbol.

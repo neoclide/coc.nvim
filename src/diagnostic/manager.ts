@@ -271,6 +271,31 @@ export class DiagnosticManager implements Disposable {
   }
 
   /**
+   * Show diagnostics under curosr in preview window
+   */
+  public async preview(): Promise<void> {
+    let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number]]
+    let { nvim } = this
+    let diagnostics = await this.getDiagnosticsAt(bufnr, cursor)
+    if (diagnostics.length == 0) {
+      nvim.command('pclose', true)
+      workspace.showMessage(`Empty diagnostics`, 'warning')
+      return
+    }
+    let lines: string[] = []
+    for (let diagnostic of diagnostics) {
+      let { source, code, severity, message } = diagnostic
+      let s = getSeverityName(severity)[0]
+      lines.push(`[${source}${code ? ' ' + code : ''}] [${s}]`)
+      lines.push(...message.split(/\r?\n/))
+      lines.push('')
+    }
+    lines = lines.slice(0, -1)
+    // let content = lines.join('\n').trim()
+    nvim.call('coc#util#preview_info', [lines, 'txt'], true)
+  }
+
+  /**
    * Jump to previouse diagnostic position
    */
   public async jumpPrevious(severity?: string): Promise<void> {
