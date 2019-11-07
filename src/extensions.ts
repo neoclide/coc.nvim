@@ -394,7 +394,11 @@ export class Extensions {
       }
       let jsonFile = path.join(this.root, 'package.json')
       status.dispose()
-      fs.writeFileSync(jsonFile, JSON.stringify(json, null, 2), { encoding: 'utf8' })
+      const sortedObj = { dependencies: {} }
+      Object.keys(json.dependencies).sort().forEach(k => {
+          sortedObj.dependencies[k] = json.dependencies[k]
+      })
+      fs.writeFileSync(jsonFile, JSON.stringify(sortedObj, null, 2), { encoding: 'utf8' })
       workspace.showMessage(`Removed: ${ids.join(' ')}`)
     } catch (e) {
       status.dispose()
