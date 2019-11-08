@@ -32339,7 +32339,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "377c2729b9" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "1ff50ec3b0" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -32415,6 +32415,9 @@ class Plugin extends events_1.EventEmitter {
                     break;
                 case 'diagnosticPrevious':
                     await manager_1.default.jumpPrevious(args[1]);
+                    break;
+                case 'diagnosticPreview':
+                    await manager_1.default.preview();
                     break;
                 case 'diagnosticList':
                     return manager_1.default.getDiagnosticList();
@@ -50290,6 +50293,30 @@ class DiagnosticManager {
             }
         }
         return res;
+    }
+    /**
+     * Show diagnostics under curosr in preview window
+     */
+    async preview() {
+        let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]');
+        let { nvim } = this;
+        let diagnostics = await this.getDiagnosticsAt(bufnr, cursor);
+        if (diagnostics.length == 0) {
+            nvim.command('pclose', true);
+            workspace_1.default.showMessage(`Empty diagnostics`, 'warning');
+            return;
+        }
+        let lines = [];
+        for (let diagnostic of diagnostics) {
+            let { source, code, severity, message } = diagnostic;
+            let s = util_2.getSeverityName(severity)[0];
+            lines.push(`[${source}${code ? ' ' + code : ''}] [${s}]`);
+            lines.push(...message.split(/\r?\n/));
+            lines.push('');
+        }
+        lines = lines.slice(0, -1);
+        // let content = lines.join('\n').trim()
+        nvim.call('coc#util#preview_info', [lines, 'txt'], true);
     }
     /**
      * Jump to previouse diagnostic position

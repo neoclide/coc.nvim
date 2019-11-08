@@ -23,6 +23,16 @@ _True snippet and additional text editing support_
 
 Check out [Wiki](https://github.com/neoclide/coc.nvim/wiki), or [doc/coc.txt](doc/coc.txt) for the vim interface.
 
+“香芋星球” app 728051 提供有偿付费咨询服务。
+
+- 服务时间：每晚 7 点到 8 点
+- 收费： 199 礼物 3 分钟(RMB 19.9)， 299 礼物 5 分钟 (RMB 29.9)
+- 苹果用户请务必使用香芋星球公众号充值（少扣 30%）
+- 目前试营业期间，点关注可以免费上麦提问
+
+有问题就扫码吧:
+![1573194589](https://user-images.githubusercontent.com/251450/68454809-c121e380-0234-11ea-9e19-2e6c77a0aa14.png)
+
 ## Quick Start
 
 Install [nodejs](https://nodejs.org/en/download/) when necessary:

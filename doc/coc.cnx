@@ -714,6 +714,10 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	显示当前位置诊断详情，没有截断。
 
+"diagnosticPreview" 				*coc-action-diagnosticPreview*
+
+	在 preview 窗口显示当前位置诊断信息
+
 "jumpDefinition" [{openCommand}] 		*coc-action-jumpDefinition*
 
 	跳转到定义处。
