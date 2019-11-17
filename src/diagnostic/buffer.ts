@@ -162,7 +162,6 @@ export class DiagnosticBuffer implements Disposable {
     }
     this.nvim.call('coc#util#set_buf_var', [this.bufnr, 'coc_diagnostic_info', info], true)
     if (bufnr == this.bufnr) {
-      this.nvim.command('redraws', true)
       this.nvim.call('coc#util#do_autocmd', ['CocDiagnosticChange'], true)
     }
   }
