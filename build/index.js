@@ -30182,7 +30182,6 @@ class StatusLine {
             this._text = text;
             nvim.pauseNotification();
             this.nvim.setVar('coc_status', text, true);
-            this.nvim.command('redraws', true);
             this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true);
             await nvim.resumeNotification(false, true);
         }
@@ -32339,7 +32338,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "1ff50ec3b0" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "74a3f60c1c" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -35738,7 +35737,11 @@ class Extensions {
             }
             let jsonFile = path_1.default.join(this.root, 'package.json');
             status.dispose();
-            fs_1.default.writeFileSync(jsonFile, JSON.stringify(json, null, 2), { encoding: 'utf8' });
+            const sortedObj = { dependencies: {} };
+            Object.keys(json.dependencies).sort().forEach(k => {
+                sortedObj.dependencies[k] = json.dependencies[k];
+            });
+            fs_1.default.writeFileSync(jsonFile, JSON.stringify(sortedObj, null, 2), { encoding: 'utf8' });
             workspace_1.default.showMessage(`Removed: ${ids.join(' ')}`);
         }
         catch (e) {
@@ -38839,7 +38842,11 @@ class ExtensionManager {
         else {
             obj.dependencies[info.name] = '>=' + info.version;
         }
-        fs_1.default.writeFileSync(jsonFile, JSON.stringify(obj, null, 2), { encoding: 'utf8' });
+        const sortedObj = { dependencies: {} };
+        Object.keys(obj.dependencies).sort().forEach(k => {
+            sortedObj.dependencies[k] = obj.dependencies[k];
+        });
+        fs_1.default.writeFileSync(jsonFile, JSON.stringify(sortedObj, null, 2), { encoding: 'utf8' });
         onMessage(`Moving to new folder.`);
         let folder = path_1.default.join(this.root, 'node_modules', info.name);
         await this.removeFolder(folder);
@@ -51683,7 +51690,6 @@ class DiagnosticBuffer {
         }
         this.nvim.call('coc#util#set_buf_var', [this.bufnr, 'coc_diagnostic_info', info], true);
         if (bufnr == this.bufnr) {
-            this.nvim.command('redraws', true);
             this.nvim.call('coc#util#do_autocmd', ['CocDiagnosticChange'], true);
         }
     }
