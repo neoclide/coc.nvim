@@ -476,26 +476,30 @@ export class ListManager implements Disposable {
     }
   }
 
-  public async feedkeys(key: string): Promise<void> {
+  public async feedkeys(key: string, remap = true): Promise<void> {
     let { nvim } = this
     key = key.startsWith('<') && key.endsWith('>') ? `\\${key}` : key
     await nvim.call('coc#list#stop_prompt', [1])
-    await nvim.eval(`feedkeys("${key}")`)
+    await nvim.call('eval', [`feedkeys("${key}", "${remap ? 'i' : 'in'}")`])
     this.prompt.start()
   }
 
   public async command(command: string): Promise<void> {
     let { nvim } = this
-    await nvim.call('coc#list#stop_prompt', [1])
-    await nvim.command(command)
+    nvim.pauseNotification()
+    nvim.call('coc#list#stop_prompt', [1], true)
+    nvim.command(command, true)
     this.prompt.start()
+    await nvim.resumeNotification()
   }
 
   public async normal(command: string, bang = true): Promise<void> {
     let { nvim } = this
-    await nvim.call('coc#list#stop_prompt', [1])
-    await nvim.command(`normal${bang ? '!' : ''} ${command}`)
+    nvim.pauseNotification()
+    nvim.call('coc#list#stop_prompt', [1], true)
+    nvim.command(`normal${bang ? '!' : ''} ${command}`, true)
     this.prompt.start()
+    await nvim.resumeNotification()
   }
 
   public async call(fname: string): Promise<any> {

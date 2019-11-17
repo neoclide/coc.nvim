@@ -74,13 +74,13 @@ export default class Mappings {
       return prompt.insertRegister()
     })
     this.add('insert', '<C-d>', () => {
-      return manager.feedkeys('<C-d>')
+      return manager.feedkeys('<C-d>', false)
     })
     this.add('insert', '<PageUp>', () => {
-      return manager.feedkeys('<PageUp>')
+      return manager.feedkeys('<PageUp>', false)
     })
     this.add('insert', '<PageDown>', () => {
-      return manager.feedkeys('<PageDown>')
+      return manager.feedkeys('<PageDown>', false)
     })
     this.add('insert', '<down>', () => {
       return manager.normal('j')
