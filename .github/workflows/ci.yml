@@ -10,11 +10,12 @@ on:
 
 jobs:
   test:
+    runs-on: ${{ matrix.os }}
+
     strategy:
       matrix:
         node-version: [10, 12]
-
-    runs-on: ubuntu-latest
+        os: [ubuntu-latest, macos-latest]
 
     env:
       NODE_ENV: test
@@ -40,6 +41,6 @@ jobs:
           tar xzf nvim-linux64.tar.gz
           export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-linux64/bin"
           nvim --version
-          yarn test
+          yarn test-build
         env:
           NODE_ENV: test
