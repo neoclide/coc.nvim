@@ -32338,7 +32338,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "74a3f60c1c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "266a37f273" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -58086,24 +58086,28 @@ class ListManager {
                 return this.ui.onMouse('doubleClick');
         }
     }
-    async feedkeys(key) {
+    async feedkeys(key, remap = true) {
         let { nvim } = this;
         key = key.startsWith('<') && key.endsWith('>') ? `\\${key}` : key;
         await nvim.call('coc#list#stop_prompt', [1]);
-        await nvim.eval(`feedkeys("${key}")`);
+        await nvim.call('eval', [`feedkeys("${key}", "${remap ? 'i' : 'in'}")`]);
         this.prompt.start();
     }
     async command(command) {
         let { nvim } = this;
-        await nvim.call('coc#list#stop_prompt', [1]);
-        await nvim.command(command);
+        nvim.pauseNotification();
+        nvim.call('coc#list#stop_prompt', [1], true);
+        nvim.command(command, true);
         this.prompt.start();
+        await nvim.resumeNotification();
     }
     async normal(command, bang = true) {
         let { nvim } = this;
-        await nvim.call('coc#list#stop_prompt', [1]);
-        await nvim.command(`normal${bang ? '!' : ''} ${command}`);
+        nvim.pauseNotification();
+        nvim.call('coc#list#stop_prompt', [1], true);
+        nvim.command(`normal${bang ? '!' : ''} ${command}`, true);
         this.prompt.start();
+        await nvim.resumeNotification();
     }
     async call(fname) {
         if (!this.currList || !this.window)
@@ -58708,13 +58712,13 @@ class Mappings {
             return prompt.insertRegister();
         });
         this.add('insert', '<C-d>', () => {
-            return manager.feedkeys('<C-d>');
+            return manager.feedkeys('<C-d>', false);
         });
         this.add('insert', '<PageUp>', () => {
-            return manager.feedkeys('<PageUp>');
+            return manager.feedkeys('<PageUp>', false);
         });
         this.add('insert', '<PageDown>', () => {
-            return manager.feedkeys('<PageDown>');
+            return manager.feedkeys('<PageDown>', false);
         });
         this.add('insert', '<down>', () => {
             return manager.normal('j');
