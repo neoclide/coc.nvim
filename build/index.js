@@ -22133,7 +22133,7 @@ class Workspace {
         let filepath = await this.nvim.call('expand', '%:p');
         filepath = path_1.default.normalize(filepath);
         let isFile = filepath && path_1.default.isAbsolute(filepath);
-        if (isFile && !fs_2.isParentFolder(cwd, filepath)) {
+        if (isFile && !fs_2.isParentFolder(cwd, filepath, true)) {
             // can't use cwd
             return fs_2.findUp(filename, path_1.default.dirname(filepath));
         }
@@ -22408,7 +22408,7 @@ class Workspace {
     getWorkspaceFolder(uri) {
         this.workspaceFolders.sort((a, b) => b.uri.length - a.uri.length);
         let filepath = vscode_uri_1.URI.parse(uri).fsPath;
-        return this.workspaceFolders.find(folder => fs_2.isParentFolder(vscode_uri_1.URI.parse(folder.uri).fsPath, filepath));
+        return this.workspaceFolders.find(folder => fs_2.isParentFolder(vscode_uri_1.URI.parse(folder.uri).fsPath, filepath, true));
     }
     /**
      * Get content from buffer of file by uri.
@@ -23242,7 +23242,7 @@ augroup end`;
                     return root;
             }
         }
-        if (this.cwd != os_1.default.homedir() && fs_2.isParentFolder(this.cwd, dir))
+        if (this.cwd != os_1.default.homedir() && fs_2.isParentFolder(this.cwd, dir, true))
             return this.cwd;
         return null;
     }
@@ -23338,6 +23338,10 @@ augroup end`;
     }
     get folderPaths() {
         return this.workspaceFolders.map(f => vscode_uri_1.URI.parse(f.uri).fsPath);
+    }
+    get floatSupported() {
+        let { env } = this;
+        return env.floating || env.textprop;
     }
     removeWorkspaceFolder(fsPath) {
         let idx = this._workspaceFolders.findIndex(f => vscode_uri_1.URI.parse(f.uri).fsPath == fsPath);
@@ -23589,7 +23593,7 @@ class Configurations {
                     return changed.indexOf(section) !== -1;
                 let filepath = u.fsPath;
                 let preRoot = workspaceConfigFile ? path_1.default.resolve(workspaceConfigFile, '../..') : '';
-                if (configFile && !fs_2.isParentFolder(preRoot, filepath) && !fs_2.isParentFolder(path_1.default.resolve(configFile, '../..'), filepath)) {
+                if (configFile && !fs_2.isParentFolder(preRoot, filepath, true) && !fs_2.isParentFolder(path_1.default.resolve(configFile, '../..'), filepath)) {
                     return false;
                 }
                 return changed.indexOf(section) !== -1;
@@ -23603,7 +23607,7 @@ class Configurations {
         let filepath = u.fsPath;
         for (let [configFile, model] of this.foldConfigurations) {
             let root = path_1.default.resolve(configFile, '../..');
-            if (fs_2.isParentFolder(root, filepath) && this.workspaceConfigFile != configFile) {
+            if (fs_2.isParentFolder(root, filepath, true) && this.workspaceConfigFile != configFile) {
                 this.changeConfiguration(types_1.ConfigurationTarget.Workspace, model, configFile);
                 break;
             }
@@ -23611,7 +23615,7 @@ class Configurations {
     }
     hasFolderConfiguration(filepath) {
         let { folders } = this;
-        return folders.findIndex(f => fs_2.isParentFolder(f, filepath)) !== -1;
+        return folders.findIndex(f => fs_2.isParentFolder(f, filepath, true)) !== -1;
     }
     getConfigFile(target) {
         if (target == types_1.ConfigurationTarget.Global)
@@ -23725,7 +23729,7 @@ class Configurations {
         let filepath = u.fsPath;
         for (let [configFile, model] of this.foldConfigurations) {
             let root = path_1.default.resolve(configFile, '../..');
-            if (fs_2.isParentFolder(root, filepath))
+            if (fs_2.isParentFolder(root, filepath, true))
                 return model;
         }
         return new model_1.ConfigurationModel();
@@ -32338,7 +32342,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "266a37f273" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "854841d1b4" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -50688,7 +50692,7 @@ class FloatFactory {
         this.createTs = 0;
         this.cursor = [0, 0];
         this.shown = false;
-        if (!env.floating && !env.textprop)
+        if (!workspace_1.default.floatSupported)
             return;
         this.maxWidth = Math.min(maxWidth || 80, this.columns - 10);
         events_1.default.on('BufEnter', bufnr => {
@@ -50811,6 +50815,10 @@ class FloatFactory {
         };
     }
     async create(docs, allowSelection = false, offsetX = 0) {
+        if (!workspace_1.default.floatSupported) {
+            logger.error('Floating window & textprop not supported!');
+            return;
+        }
         let shown = await this.createPopup(docs, allowSelection, offsetX);
         if (!shown)
             this.close(false);
