@@ -486,20 +486,16 @@ export class ListManager implements Disposable {
 
   public async command(command: string): Promise<void> {
     let { nvim } = this
-    nvim.pauseNotification()
-    nvim.call('coc#list#stop_prompt', [1], true)
-    nvim.command(command, true)
+    await nvim.call('coc#list#stop_prompt', [1])
+    await nvim.command(command)
     this.prompt.start()
-    await nvim.resumeNotification()
   }
 
   public async normal(command: string, bang = true): Promise<void> {
     let { nvim } = this
-    nvim.pauseNotification()
-    nvim.call('coc#list#stop_prompt', [1], true)
-    nvim.command(`normal${bang ? '!' : ''} ${command}`, true)
+    await nvim.call('coc#list#stop_prompt', [1])
+    await nvim.command(`normal${bang ? '!' : ''} ${command}`)
     this.prompt.start()
-    await nvim.resumeNotification()
   }
 
   public async call(fname: string): Promise<any> {
