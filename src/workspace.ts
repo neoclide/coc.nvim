@@ -1573,6 +1573,11 @@ augroup end`
     return this.workspaceFolders.map(f => URI.parse(f.uri).fsPath)
   }
 
+  public get floatSupported(): boolean {
+    let { env } = this
+    return env.floating || env.textprop
+  }
+
   public removeWorkspaceFolder(fsPath: string): void {
     let idx = this._workspaceFolders.findIndex(f => URI.parse(f.uri).fsPath == fsPath)
     if (idx != -1) {
