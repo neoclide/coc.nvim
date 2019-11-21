@@ -32342,7 +32342,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "854841d1b4" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "3a7f1335ae" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -58103,19 +58103,15 @@ class ListManager {
     }
     async command(command) {
         let { nvim } = this;
-        nvim.pauseNotification();
-        nvim.call('coc#list#stop_prompt', [1], true);
-        nvim.command(command, true);
+        await nvim.call('coc#list#stop_prompt', [1]);
+        await nvim.command(command);
         this.prompt.start();
-        await nvim.resumeNotification();
     }
     async normal(command, bang = true) {
         let { nvim } = this;
-        nvim.pauseNotification();
-        nvim.call('coc#list#stop_prompt', [1], true);
-        nvim.command(`normal${bang ? '!' : ''} ${command}`, true);
+        await nvim.call('coc#list#stop_prompt', [1]);
+        await nvim.command(`normal${bang ? '!' : ''} ${command}`);
         this.prompt.start();
-        await nvim.resumeNotification();
     }
     async call(fname) {
         if (!this.currList || !this.window)
