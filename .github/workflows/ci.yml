@@ -10,12 +10,11 @@ on:
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        node-version: [10, 12]
-        os: [ubuntu-latest, macos-latest]
+        node-version: [10, 12, 13]
 
     env:
       NODE_ENV: test
