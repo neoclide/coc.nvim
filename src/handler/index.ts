@@ -807,11 +807,11 @@ export default class Handler {
       doc.forceSync()
       await wait(50)
     }
-    let pos: Position = insertLeave ? { line: position.line + 1, character: 0 } : position
+    let pos: Position = insertLeave ? { line: position.line, character: origLine.length } : position
     try {
       let edits = await languages.provideDocumentOnTypeEdits(ch, doc.textDocument, pos)
       // changed by other process
-      if (doc.changedtick != changedtick) return
+      if (doc.changedtick != changedtick || edits == null) return
       if (insertLeave) {
         edits = edits.filter(edit => {
           return edit.range.start.line < position.line + 1
