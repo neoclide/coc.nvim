@@ -1326,7 +1326,10 @@ Available Actions ~
 	jump to definition position of the current symbol.
 	Return `v:false` when location not found.
 
-	|coc-list| is used when more than one position is available.
+	|coc-list-location| is used when more than one position is available.
+
+	To always use |coc-list-location|| for locations, use `v:false` for
+	{openCommand}.
 
 	{openCommand}: optional command to open buffer, default to
 	`coc.preferences.jumpCommand` in `coc-settings.json`
