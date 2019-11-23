@@ -95,12 +95,14 @@ if (!semver.gte(version, '8.10.0')) {
   process.exit()
 }
 Object.defineProperty(console, 'log', {
-  value: () => { }
+  value: function () {
+    logger.info(...arguments)
+  }
 })
-const attach = __webpack_require__(2).default
-const logger = __webpack_require__(186)('server')
+const logger = __webpack_require__(2)('server')
+const attach = __webpack_require__(93).default
 
-attach({ reader: process.stdin, writer: process.stdout })
+attach({reader: process.stdin, writer: process.stdout})
 
 process.on('uncaughtException', function (err) {
   let msg = 'Uncaught exception: ' + err.stack
@@ -1728,101 +1730,62 @@ function coerce (version, options) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const neovim_1 = __webpack_require__(4);
-const log4js_1 = tslib_1.__importDefault(__webpack_require__(64));
-const events_1 = tslib_1.__importDefault(__webpack_require__(148));
-const plugin_1 = tslib_1.__importDefault(__webpack_require__(231));
-const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
-__webpack_require__(309);
-const vscode_uri_1 = __webpack_require__(180);
-const logger = __webpack_require__(186)('attach');
-const isTest = "none" == 'test';
-exports.default = (opts, requestApi = true) => {
-    const nvim = neovim_1.attach(opts, log4js_1.default.getLogger('node-client'), requestApi);
-    // Overwriding the URI.file function in case of cygwin.
-    nvim.eval('has("win32unix")?get(g:,"coc_cygqwin_path_prefixes", v:null):v:null').then(prefixes => {
-        if (!prefixes)
-            return;
-        const old_uri = vscode_uri_1.URI.file;
-        vscode_uri_1.URI.file = (path) => {
-            path = path.replace(/\\/g, '/');
-            Object.keys(prefixes).forEach(k => path = path.replace(new RegExp('^' + k, 'gi'), prefixes[k]));
-            return old_uri(path);
-        };
-    }).logError();
-    const plugin = new plugin_1.default(nvim);
-    let clientReady = false;
-    let initialized = false;
-    nvim.on('notification', async (method, args) => {
-        switch (method) {
-            case 'VimEnter': {
-                if (!initialized && clientReady) {
-                    initialized = true;
-                    await plugin.init();
-                }
-                break;
-            }
-            case 'TaskExit':
-            case 'TaskStderr':
-            case 'TaskStdout':
-            case 'GlobalChange':
-            case 'InputChar':
-            case 'OptionSet':
-                await events_1.default.fire(method, args);
-                break;
-            case 'CocAutocmd':
-                await events_1.default.fire(args[0], args.slice(1));
-                break;
-            default:
-                const m = method[0].toLowerCase() + method.slice(1);
-                if (typeof plugin[m] == 'function') {
-                    try {
-                        await Promise.resolve(plugin[m].apply(plugin, args));
-                    }
-                    catch (e) {
-                        // tslint:disable-next-line:no-console
-                        console.error(`error on notification '${method}': ${e}`);
-                    }
-                }
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
+const log4js_1 = tslib_1.__importDefault(__webpack_require__(5));
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
+const os_1 = tslib_1.__importDefault(__webpack_require__(14));
+function getLogFile() {
+    let file = process.env.NVIM_COC_LOG_FILE;
+    if (file)
+        return file;
+    let dir = process.env.XDG_RUNTIME_DIR;
+    if (dir)
+        return path_1.default.join(dir, `coc-nvim-${process.pid}.log`);
+    return path_1.default.join(os_1.default.tmpdir(), `coc-nvim-${process.pid}.log`);
+}
+const MAX_LOG_SIZE = 1024 * 1024;
+const MAX_LOG_BACKUPS = 10;
+let logfile = getLogFile();
+const level = process.env.NVIM_COC_LOG_LEVEL || 'info';
+if (!fs_1.default.existsSync(logfile)) {
+    try {
+        fs_1.default.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 });
+    }
+    catch (e) {
+        logfile = path_1.default.join(os_1.default.tmpdir(), `coc-nvim-${process.pid}.log`);
+        fs_1.default.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 });
+        // noop
+    }
+}
+log4js_1.default.configure({
+    disableClustering: true,
+    appenders: {
+        out: {
+            type: 'file',
+            mode: 0o666,
+            filename: logfile,
+            maxLogSize: MAX_LOG_SIZE,
+            backups: MAX_LOG_BACKUPS,
+            layout: {
+                type: 'pattern',
+                // Format log in following pattern:
+                // yyyy-MM-dd HH:mm:ss.mil $Level (pid:$pid) $categroy - $message.
+                pattern: `%d{ISO8601} %p (pid:${process.pid}) [%c] - %m`,
+            },
         }
-    });
-    nvim.on('request', async (method, args, resp) => {
-        try {
-            if (method == 'CocAutocmd') {
-                await events_1.default.fire(args[0], args.slice(1));
-                resp.send();
-                return;
-            }
-            let m = method[0].toLowerCase() + method.slice(1);
-            if (typeof plugin[m] !== 'function') {
-                return resp.send(`Method ${m} not found`, true);
-            }
-            let res = await Promise.resolve(plugin[m].apply(plugin, args));
-            resp.send(res);
-        }
-        catch (e) {
-            logger.error(`Error on "${method}": ` + e.stack);
-            resp.send(e.message, true);
-        }
-    });
-    nvim.channelId.then(async (channelId) => {
-        clientReady = true;
-        if (isTest)
-            nvim.command(`let g:coc_node_channel_id = ${channelId}`, true);
-        let json = __webpack_require__(410);
-        let { major, minor, patch } = semver_1.default.parse(json.version);
-        nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {});
-        let entered = await nvim.getVvar('vim_did_enter');
-        if (entered && !initialized) {
-            initialized = true;
-            await plugin.init();
-        }
-    }).catch(e => {
-        console.error(`Channel create error: ${e.message}`); // tslint:disable-line
-    });
-    return plugin;
+    },
+    categories: {
+        default: { appenders: ['out'], level }
+    }
+});
+module.exports = (name = 'coc-nvim') => {
+    let logger = log4js_1.default.getLogger(name);
+    logger.getLogFile = () => {
+        return logfile;
+    };
+    return logger;
 };
-//# sourceMappingURL=attach.js.map
+//# sourceMappingURL=logger.js.map
 
 /***/ }),
 /* 3 */
@@ -2050,4862 +2013,12 @@ function __importDefault(mod) {
 
 /***/ }),
 /* 4 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-var attach_1 = __webpack_require__(5);
-exports.attach = attach_1.attach;
-var index_1 = __webpack_require__(63);
-exports.Neovim = index_1.Neovim;
-exports.NeovimClient = index_1.NeovimClient;
-exports.Buffer = index_1.Buffer;
-exports.Tabpage = index_1.Tabpage;
-exports.Window = index_1.Window;
-
-
-/***/ }),
-/* 5 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const net_1 = __webpack_require__(6);
-const client_1 = __webpack_require__(7);
-function attach({ reader: _reader, writer: _writer, proc, socket, }, _logger = null, requestApi = true) {
-    let writer;
-    let reader;
-    let neovim;
-    if (socket) {
-        const client = net_1.createConnection(socket);
-        writer = client;
-        reader = client;
-        client.once('close', () => {
-            neovim.detach();
-        });
-    }
-    else if (_reader && _writer) {
-        writer = _writer;
-        reader = _reader;
-    }
-    else if (proc) {
-        writer = proc.stdin;
-        reader = proc.stdout;
-        proc.once('disconnect', () => {
-            neovim.detach();
-        });
-    }
-    writer.on('error', err => {
-        if (err.code == 'EPIPE') {
-            neovim.detach();
-        }
-    });
-    if (writer && reader) {
-        neovim = new client_1.NeovimClient();
-        neovim.attach({
-            writer,
-            reader,
-        }, requestApi);
-        return neovim;
-    }
-    throw new Error('Invalid arguments, could not attach');
-}
-exports.attach = attach;
-
-
-/***/ }),
-/* 6 */
-/***/ (function(module, exports) {
-
-module.exports = require("net");
-
-/***/ }),
-/* 7 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-/**
- * Handles attaching transport
- */
-const nvim_1 = __webpack_require__(8);
-const vim_1 = __webpack_require__(58);
-const Neovim_1 = __webpack_require__(62);
-const Buffer_1 = __webpack_require__(47);
-const Window_1 = __webpack_require__(50);
-const Tabpage_1 = __webpack_require__(52);
-const logger_1 = __webpack_require__(54);
-exports.DETACH_BUFFER = Symbol('detachBuffer');
-exports.ATTACH_BUFFER = Symbol('attachBuffer');
-const logger = logger_1.createLogger('client');
-const isVim = process.env.VIM_NODE_RPC == '1';
-class AsyncResponse {
-    constructor(requestId, cb) {
-        this.requestId = requestId;
-        this.cb = cb;
-        this.finished = false;
-    }
-    finish(err, res) {
-        if (this.finished)
-            return;
-        this.finished = true;
-        if (err) {
-            this.cb(new Error(err));
-            return;
-        }
-        this.cb(null, res);
-    }
-}
-exports.AsyncResponse = AsyncResponse;
-class NeovimClient extends Neovim_1.Neovim {
-    constructor() {
-        // Neovim has no `data` or `metadata`
-        super({});
-        this.requestId = 1;
-        this.responses = new Map();
-        this.attachedBuffers = new Map();
-        this.pauseLevel = 0;
-        Object.defineProperty(this, 'client', {
-            value: this
-        });
-        let transport = isVim ? new vim_1.VimTransport() : new nvim_1.NvimTransport();
-        this.setTransport(transport);
-        this.transportAttached = false;
-        this.handleRequest = this.handleRequest.bind(this);
-        this.handleNotification = this.handleNotification.bind(this);
-    }
-    createBuffer(id) {
-        return new Buffer_1.Buffer({
-            transport: this.transport,
-            data: id,
-            client: this
-        });
-    }
-    createWindow(id) {
-        return new Window_1.Window({
-            transport: this.transport,
-            data: id,
-            client: this
-        });
-    }
-    createTabpage(id) {
-        return new Tabpage_1.Tabpage({
-            transport: this.transport,
-            data: id,
-            client: this
-        });
-    }
-    /** Attaches msgpack to read/write streams * */
-    attach({ reader, writer, }, requestApi = true) {
-        this.transport.attach(writer, reader, this);
-        this.transportAttached = true;
-        this.setupTransport(requestApi);
-    }
-    /* called when attach process disconnected*/
-    detach() {
-        this.transport.detach();
-        this.transportAttached = false;
-    }
-    get isApiReady() {
-        return this.transportAttached && typeof this._channelId !== 'undefined';
-    }
-    get channelId() {
-        return this._isReady.then(() => {
-            return this._channelId;
-        });
-    }
-    isAttached(bufnr) {
-        return this.attachedBuffers.has(bufnr);
-    }
-    handleRequest(method, args, resp) {
-        this.emit('request', method, args, resp);
-    }
-    sendAsyncRequest(method, args) {
-        let id = this.requestId;
-        this.requestId = id + 1;
-        this.notify('nvim_call_function', ['coc#rpc#async_request', [id, method, args || []]]);
-        return new Promise((resolve, reject) => {
-            let response = new AsyncResponse(id, (err, res) => {
-                if (err)
-                    return reject(err);
-                resolve(res);
-            });
-            this.responses.set(id, response);
-        });
-    }
-    emitNotification(method, args) {
-        if (method.endsWith('_event')) {
-            if (method.startsWith('nvim_buf_')) {
-                const shortName = method.replace(/nvim_buf_(.*)_event/, '$1');
-                const buffer = args[0];
-                const { id } = buffer;
-                if (!this.isAttached(id)) {
-                    // this is a problem
-                    return;
-                }
-                const bufferMap = this.attachedBuffers.get(id);
-                const cbs = bufferMap.get(shortName) || [];
-                cbs.forEach(cb => cb(...args));
-                // Handle `nvim_buf_detach_event`
-                // clean `attachedBuffers` since it will no longer be attached
-                if (shortName === 'detach') {
-                    this.attachedBuffers.delete(id);
-                }
-                return;
-            }
-            // async_request_event from vim
-            if (method.startsWith('nvim_async_request')) {
-                const [id, method, arr] = args;
-                this.handleRequest(method, arr, {
-                    send: (resp, isError) => {
-                        this.notify('nvim_call_function', ['coc#rpc#async_response', [id, resp, isError]]);
-                    }
-                });
-            }
-            // nvim_async_response_event
-            if (method.startsWith('nvim_async_response')) {
-                const [id, err, res] = args;
-                const response = this.responses.get(id);
-                if (!response) {
-                    // tslint:disable-next-line: no-console
-                    console.error(`Response not found for request ${id}`);
-                    return;
-                }
-                this.responses.delete(id);
-                response.finish(err, res);
-                return;
-            }
-            // tslint:disable-next-line: no-console
-            // console.error(`Unhandled event: ${method}`)
-        }
-        else {
-            this.emit('notification', method, args);
-        }
-    }
-    handleNotification(method, args) {
-        this.emitNotification(method, args);
-    }
-    // Listen and setup handlers for transport
-    setupTransport(requestApi = true) {
-        if (!this.transportAttached) {
-            throw new Error('Not attached to input/output');
-        }
-        this.transport.on('request', this.handleRequest);
-        this.transport.on('notification', this.handleNotification);
-        this.transport.on('detach', () => {
-            this.emit('disconnect');
-            this.transport.removeAllListeners('request');
-            this.transport.removeAllListeners('notification');
-            this.transport.removeAllListeners('detach');
-        });
-        if (requestApi) {
-            this._isReady = this.generateApi();
-        }
-        else {
-            this._channelId = 0;
-            this._isReady = Promise.resolve(true);
-        }
-    }
-    requestApi() {
-        return new Promise((resolve, reject) => {
-            this.transport.request('nvim_get_api_info', [], (err, res) => {
-                if (err) {
-                    reject(new Error(Array.isArray(err) ? err[1] : err.message || err.toString()));
-                }
-                else {
-                    resolve(res);
-                }
-            });
-        });
-    }
-    generateApi() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let results;
-            try {
-                results = yield this.requestApi();
-            }
-            catch (err) {
-                // tslint:disable-next-line: no-console
-                console.error('Could not get vim api results');
-                logger.error(err);
-            }
-            if (results) {
-                try {
-                    const [channelId, metadata] = results;
-                    this.functions = metadata.functions.map(f => f.name);
-                    this._channelId = channelId;
-                    return true;
-                }
-                catch (err) {
-                    logger.error(err.stack);
-                    return null;
-                }
-            }
-            return null;
-        });
-    }
-    [exports.ATTACH_BUFFER](buffer) {
-        this.attachedBuffers.set(buffer.id, new Map());
-    }
-    [exports.DETACH_BUFFER](buffer) {
-        this.attachedBuffers.delete(buffer.id);
-    }
-    attachBufferEvent(buffer, eventName, cb) {
-        if (!this.isAttached(buffer.id))
-            return;
-        const bufferMap = this.attachedBuffers.get(buffer.id);
-        if (!bufferMap.get(eventName)) {
-            bufferMap.set(eventName, []);
-        }
-        const cbs = bufferMap.get(eventName);
-        if (cbs.indexOf(cb) !== -1)
-            return;
-        cbs.push(cb);
-        bufferMap.set(eventName, cbs);
-        this.attachedBuffers.set(buffer.id, bufferMap);
-        return;
-    }
-    /**
-     * Returns `true` if buffer should be detached
-     */
-    detachBufferEvent(buffer, eventName, cb) {
-        const bufferMap = this.attachedBuffers.get(buffer.id);
-        if (!bufferMap)
-            return;
-        const handlers = (bufferMap.get(eventName) || []).filter(handler => handler !== cb);
-        // Remove eventName listener from bufferMap if no more handlers
-        if (!handlers.length) {
-            bufferMap.delete(eventName);
-        }
-        else {
-            bufferMap.set(eventName, handlers);
-        }
-    }
-    pauseNotification() {
-        this.pauseLevel = this.pauseLevel + 1;
-        this.transport.pauseNotification();
-        if (this.pauseTimer)
-            clearTimeout(this.pauseTimer);
-        this.pauseTimer = setTimeout(() => {
-            this.pauseLevel = 0;
-            // tslint:disable-next-line: no-floating-promises
-            this.transport.resumeNotification();
-        }, 50);
-    }
-    resumeNotification(cancel, notify) {
-        if (this.pauseLevel == 0)
-            return Promise.resolve();
-        this.pauseLevel = this.pauseLevel - 1;
-        if (cancel)
-            return Promise.resolve();
-        if (this.pauseLevel == 0) {
-            if (this.pauseTimer)
-                clearTimeout(this.pauseTimer);
-            if (!notify)
-                return this.transport.resumeNotification();
-            this.transport.resumeNotification(true);
-        }
-        return Promise.resolve();
-    }
-    hasFunction(name) {
-        if (!this.functions)
-            return true;
-        return this.functions.indexOf(name) !== -1;
-    }
-}
-exports.NeovimClient = NeovimClient;
-
-
-/***/ }),
-/* 8 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const msgpack = __importStar(__webpack_require__(9));
-const buffered_1 = __importDefault(__webpack_require__(45));
-const types_1 = __webpack_require__(46);
-const base_1 = __importDefault(__webpack_require__(53));
-class NvimTransport extends base_1.default {
-    constructor() {
-        super();
-        this.pending = new Map();
-        this.nextRequestId = 1;
-        this.attached = false;
-        const codec = this.setupCodec();
-        this.encodeStream = msgpack.createEncodeStream({ codec });
-        this.decodeStream = msgpack.createDecodeStream({ codec });
-        this.decodeStream.on('data', (msg) => {
-            this.parseMessage(msg);
-        });
-        this.decodeStream.on('end', () => {
-            this.detach();
-            this.emit('detach');
-        });
-    }
-    parseMessage(msg) {
-        const msgType = msg[0];
-        this.debugMessage(msg);
-        if (msgType === 0) {
-            // request
-            //   - msg[1]: id
-            //   - msg[2]: method name
-            //   - msg[3]: arguments
-            this.emit('request', msg[2].toString(), msg[3], this.createResponse(msg[1]));
-        }
-        else if (msgType === 1) {
-            // response to a previous request:
-            //   - msg[1]: the id
-            //   - msg[2]: error(if any)
-            //   - msg[3]: result(if not errored)
-            const id = msg[1];
-            const handler = this.pending.get(id);
-            if (handler) {
-                this.pending.delete(id);
-                let err = msg[2];
-                if (err && err.length != 2) {
-                    err = [0, err instanceof Error ? err.message : err];
-                }
-                handler(err, msg[3]);
-            }
-        }
-        else if (msgType === 2) {
-            // notification/event
-            //   - msg[1]: event name
-            //   - msg[2]: arguments
-            this.emit('notification', msg[1].toString(), msg[2]);
-        }
-        else {
-            // tslint:disable-next-line: no-console
-            console.error(`Invalid message type ${msgType}`);
-        }
-    }
-    setupCodec() {
-        const codec = msgpack.createCodec();
-        types_1.Metadata.forEach(({ constructor }, id) => {
-            codec.addExtPacker(id, constructor, (obj) => msgpack.encode(obj.data));
-            codec.addExtUnpacker(id, data => new constructor({
-                transport: this,
-                client: this.client,
-                data: msgpack.decode(data),
-            }));
-        });
-        this.codec = codec;
-        return this.codec;
-    }
-    attach(writer, reader, client) {
-        this.encodeStream = this.encodeStream.pipe(writer);
-        const buffered = new buffered_1.default();
-        reader.pipe(buffered).pipe(this.decodeStream);
-        this.writer = writer;
-        this.reader = reader;
-        this.client = client;
-        this.attached = true;
-    }
-    detach() {
-        if (!this.attached)
-            return;
-        this.attached = false;
-        this.encodeStream.unpipe(this.writer);
-        this.reader.unpipe(this.decodeStream);
-    }
-    request(method, args, cb) {
-        if (!this.attached)
-            return cb([0, 'transport disconnected']);
-        this.nextRequestId = this.nextRequestId + 1;
-        this.debug('nvim request:', this.nextRequestId, method, args);
-        this.encodeStream.write(msgpack.encode([0, this.nextRequestId, method, args], {
-            codec: this.codec,
-        }));
-        this.pending.set(this.nextRequestId, cb);
-    }
-    notify(method, args) {
-        if (!this.attached)
-            return;
-        if (this._paused) {
-            this.paused.push([method, args]);
-            return;
-        }
-        this.debug('nvim notification:', method, args);
-        this.encodeStream.write(msgpack.encode([2, method, args], {
-            codec: this.codec,
-        }));
-    }
-    createResponse(requestId) {
-        let called = false;
-        let { encodeStream } = this;
-        return {
-            send: (resp, isError) => {
-                if (called || !this.attached)
-                    return;
-                this.debug('response:', requestId, resp, isError == true);
-                called = true;
-                encodeStream.write(msgpack.encode([
-                    1,
-                    requestId,
-                    isError ? resp : null,
-                    !isError ? resp : null,
-                ]));
-            }
-        };
-    }
-}
-exports.NvimTransport = NvimTransport;
-
-
-/***/ }),
-/* 9 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// msgpack.js
-
-exports.encode = __webpack_require__(10).encode;
-exports.decode = __webpack_require__(30).decode;
-
-exports.Encoder = __webpack_require__(36).Encoder;
-exports.Decoder = __webpack_require__(38).Decoder;
-
-exports.createEncodeStream = __webpack_require__(39).createEncodeStream;
-exports.createDecodeStream = __webpack_require__(42).createDecodeStream;
-
-exports.createCodec = __webpack_require__(43).createCodec;
-exports.codec = __webpack_require__(44).codec;
-
-
-/***/ }),
-/* 10 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// encode.js
-
-exports.encode = encode;
-
-var EncodeBuffer = __webpack_require__(11).EncodeBuffer;
-
-function encode(input, options) {
-  var encoder = new EncodeBuffer(options);
-  encoder.write(input);
-  return encoder.read();
-}
-
-
-/***/ }),
-/* 11 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// encode-buffer.js
-
-exports.EncodeBuffer = EncodeBuffer;
-
-var preset = __webpack_require__(12).preset;
-
-var FlexEncoder = __webpack_require__(29).FlexEncoder;
-
-FlexEncoder.mixin(EncodeBuffer.prototype);
-
-function EncodeBuffer(options) {
-  if (!(this instanceof EncodeBuffer)) return new EncodeBuffer(options);
-
-  if (options) {
-    this.options = options;
-    if (options.codec) {
-      var codec = this.codec = options.codec;
-      if (codec.bufferish) this.bufferish = codec.bufferish;
-    }
-  }
-}
-
-EncodeBuffer.prototype.codec = preset;
-
-EncodeBuffer.prototype.write = function(input) {
-  this.codec.encode(this, input);
-};
-
-
-/***/ }),
-/* 12 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// write-core.js
-
-var ExtBuffer = __webpack_require__(13).ExtBuffer;
-var ExtPacker = __webpack_require__(22);
-var WriteType = __webpack_require__(23);
-var CodecBase = __webpack_require__(28);
-
-CodecBase.install({
-  addExtPacker: addExtPacker,
-  getExtPacker: getExtPacker,
-  init: init
-});
-
-exports.preset = init.call(CodecBase.preset);
-
-function getEncoder(options) {
-  var writeType = WriteType.getWriteType(options);
-  return encode;
-
-  function encode(encoder, value) {
-    var func = writeType[typeof value];
-    if (!func) throw new Error("Unsupported type \"" + (typeof value) + "\": " + value);
-    func(encoder, value);
-  }
-}
-
-function init() {
-  var options = this.options;
-  this.encode = getEncoder(options);
-
-  if (options && options.preset) {
-    ExtPacker.setExtPackers(this);
-  }
-
-  return this;
-}
-
-function addExtPacker(etype, Class, packer) {
-  packer = CodecBase.filter(packer);
-  var name = Class.name;
-  if (name && name !== "Object") {
-    var packers = this.extPackers || (this.extPackers = {});
-    packers[name] = extPacker;
-  } else {
-    // fallback for IE
-    var list = this.extEncoderList || (this.extEncoderList = []);
-    list.unshift([Class, extPacker]);
-  }
-
-  function extPacker(value) {
-    if (packer) value = packer(value);
-    return new ExtBuffer(value, etype);
-  }
-}
-
-function getExtPacker(value) {
-  var packers = this.extPackers || (this.extPackers = {});
-  var c = value.constructor;
-  var e = c && c.name && packers[c.name];
-  if (e) return e;
-
-  // fallback for IE
-  var list = this.extEncoderList || (this.extEncoderList = []);
-  var len = list.length;
-  for (var i = 0; i < len; i++) {
-    var pair = list[i];
-    if (c === pair[0]) return pair[1];
-  }
-}
-
-
-/***/ }),
-/* 13 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// ext-buffer.js
-
-exports.ExtBuffer = ExtBuffer;
-
-var Bufferish = __webpack_require__(14);
-
-function ExtBuffer(buffer, type) {
-  if (!(this instanceof ExtBuffer)) return new ExtBuffer(buffer, type);
-  this.buffer = Bufferish.from(buffer);
-  this.type = type;
-}
-
-
-/***/ }),
-/* 14 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// bufferish.js
-
-var Buffer = exports.global = __webpack_require__(15);
-var hasBuffer = exports.hasBuffer = Buffer && !!Buffer.isBuffer;
-var hasArrayBuffer = exports.hasArrayBuffer = ("undefined" !== typeof ArrayBuffer);
-
-var isArray = exports.isArray = __webpack_require__(16);
-exports.isArrayBuffer = hasArrayBuffer ? isArrayBuffer : _false;
-var isBuffer = exports.isBuffer = hasBuffer ? Buffer.isBuffer : _false;
-var isView = exports.isView = hasArrayBuffer ? (ArrayBuffer.isView || _is("ArrayBuffer", "buffer")) : _false;
-
-exports.alloc = alloc;
-exports.concat = concat;
-exports.from = from;
-
-var BufferArray = exports.Array = __webpack_require__(17);
-var BufferBuffer = exports.Buffer = __webpack_require__(18);
-var BufferUint8Array = exports.Uint8Array = __webpack_require__(19);
-var BufferProto = exports.prototype = __webpack_require__(20);
-
-/**
- * @param value {Array|ArrayBuffer|Buffer|String}
- * @returns {Buffer|Uint8Array|Array}
- */
-
-function from(value) {
-  if (typeof value === "string") {
-    return fromString.call(this, value);
-  } else {
-    return auto(this).from(value);
-  }
-}
-
-/**
- * @param size {Number}
- * @returns {Buffer|Uint8Array|Array}
- */
-
-function alloc(size) {
-  return auto(this).alloc(size);
-}
-
-/**
- * @param list {Array} array of (Buffer|Uint8Array|Array)s
- * @param [length]
- * @returns {Buffer|Uint8Array|Array}
- */
-
-function concat(list, length) {
-  if (!length) {
-    length = 0;
-    Array.prototype.forEach.call(list, dryrun);
-  }
-  var ref = (this !== exports) && this || list[0];
-  var result = alloc.call(ref, length);
-  var offset = 0;
-  Array.prototype.forEach.call(list, append);
-  return result;
-
-  function dryrun(buffer) {
-    length += buffer.length;
-  }
-
-  function append(buffer) {
-    offset += BufferProto.copy.call(buffer, result, offset);
-  }
-}
-
-var _isArrayBuffer = _is("ArrayBuffer");
-
-function isArrayBuffer(value) {
-  return (value instanceof ArrayBuffer) || _isArrayBuffer(value);
-}
-
-/**
- * @private
- */
-
-function fromString(value) {
-  var expected = value.length * 3;
-  var that = alloc.call(this, expected);
-  var actual = BufferProto.write.call(that, value);
-  if (expected !== actual) {
-    that = BufferProto.slice.call(that, 0, actual);
-  }
-  return that;
-}
-
-function auto(that) {
-  return isBuffer(that) ? BufferBuffer
-    : isView(that) ? BufferUint8Array
-    : isArray(that) ? BufferArray
-    : hasBuffer ? BufferBuffer
-    : hasArrayBuffer ? BufferUint8Array
-    : BufferArray;
-}
-
-function _false() {
-  return false;
-}
-
-function _is(name, key) {
-  /* jshint eqnull:true */
-  name = "[object " + name + "]";
-  return function(value) {
-    return (value != null) && {}.toString.call(key ? value[key] : value) === name;
-  };
-}
-
-/***/ }),
-/* 15 */
-/***/ (function(module, exports) {
-
-/* globals Buffer */
-
-module.exports =
-  c(("undefined" !== typeof Buffer) && Buffer) ||
-  c(this.Buffer) ||
-  c(("undefined" !== typeof window) && window.Buffer) ||
-  this.Buffer;
-
-function c(B) {
-  return B && B.isBuffer && B;
-}
-
-/***/ }),
-/* 16 */
-/***/ (function(module, exports) {
-
-var toString = {}.toString;
-
-module.exports = Array.isArray || function (arr) {
-  return toString.call(arr) == '[object Array]';
-};
-
-
-/***/ }),
-/* 17 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// bufferish-array.js
-
-var Bufferish = __webpack_require__(14);
-
-var exports = module.exports = alloc(0);
-
-exports.alloc = alloc;
-exports.concat = Bufferish.concat;
-exports.from = from;
-
-/**
- * @param size {Number}
- * @returns {Buffer|Uint8Array|Array}
- */
-
-function alloc(size) {
-  return new Array(size);
-}
-
-/**
- * @param value {Array|ArrayBuffer|Buffer|String}
- * @returns {Array}
- */
-
-function from(value) {
-  if (!Bufferish.isBuffer(value) && Bufferish.isView(value)) {
-    // TypedArray to Uint8Array
-    value = Bufferish.Uint8Array.from(value);
-  } else if (Bufferish.isArrayBuffer(value)) {
-    // ArrayBuffer to Uint8Array
-    value = new Uint8Array(value);
-  } else if (typeof value === "string") {
-    // String to Array
-    return Bufferish.from.call(exports, value);
-  } else if (typeof value === "number") {
-    throw new TypeError('"value" argument must not be a number');
-  }
-
-  // Array-like to Array
-  return Array.prototype.slice.call(value);
-}
-
-
-/***/ }),
-/* 18 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// bufferish-buffer.js
-
-var Bufferish = __webpack_require__(14);
-var Buffer = Bufferish.global;
-
-var exports = module.exports = Bufferish.hasBuffer ? alloc(0) : [];
-
-exports.alloc = Bufferish.hasBuffer && Buffer.alloc || alloc;
-exports.concat = Bufferish.concat;
-exports.from = from;
-
-/**
- * @param size {Number}
- * @returns {Buffer|Uint8Array|Array}
- */
-
-function alloc(size) {
-  return new Buffer(size);
-}
-
-/**
- * @param value {Array|ArrayBuffer|Buffer|String}
- * @returns {Buffer}
- */
-
-function from(value) {
-  if (!Bufferish.isBuffer(value) && Bufferish.isView(value)) {
-    // TypedArray to Uint8Array
-    value = Bufferish.Uint8Array.from(value);
-  } else if (Bufferish.isArrayBuffer(value)) {
-    // ArrayBuffer to Uint8Array
-    value = new Uint8Array(value);
-  } else if (typeof value === "string") {
-    // String to Buffer
-    return Bufferish.from.call(exports, value);
-  } else if (typeof value === "number") {
-    throw new TypeError('"value" argument must not be a number');
-  }
-
-  // Array-like to Buffer
-  if (Buffer.from && Buffer.from.length !== 1) {
-    return Buffer.from(value); // node v6+
-  } else {
-    return new Buffer(value); // node v4
-  }
-}
-
-
-/***/ }),
-/* 19 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// bufferish-uint8array.js
-
-var Bufferish = __webpack_require__(14);
-
-var exports = module.exports = Bufferish.hasArrayBuffer ? alloc(0) : [];
-
-exports.alloc = alloc;
-exports.concat = Bufferish.concat;
-exports.from = from;
-
-/**
- * @param size {Number}
- * @returns {Buffer|Uint8Array|Array}
- */
-
-function alloc(size) {
-  return new Uint8Array(size);
-}
-
-/**
- * @param value {Array|ArrayBuffer|Buffer|String}
- * @returns {Uint8Array}
- */
-
-function from(value) {
-  if (Bufferish.isView(value)) {
-    // TypedArray to ArrayBuffer
-    var byteOffset = value.byteOffset;
-    var byteLength = value.byteLength;
-    value = value.buffer;
-    if (value.byteLength !== byteLength) {
-      if (value.slice) {
-        value = value.slice(byteOffset, byteOffset + byteLength);
-      } else {
-        // Android 4.1 does not have ArrayBuffer.prototype.slice
-        value = new Uint8Array(value);
-        if (value.byteLength !== byteLength) {
-          // TypedArray to ArrayBuffer to Uint8Array to Array
-          value = Array.prototype.slice.call(value, byteOffset, byteOffset + byteLength);
-        }
-      }
-    }
-  } else if (typeof value === "string") {
-    // String to Uint8Array
-    return Bufferish.from.call(exports, value);
-  } else if (typeof value === "number") {
-    throw new TypeError('"value" argument must not be a number');
-  }
-
-  return new Uint8Array(value);
-}
-
-
-/***/ }),
-/* 20 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// bufferish-proto.js
-
-/* jshint eqnull:true */
-
-var BufferLite = __webpack_require__(21);
-
-exports.copy = copy;
-exports.slice = slice;
-exports.toString = toString;
-exports.write = gen("write");
-
-var Bufferish = __webpack_require__(14);
-var Buffer = Bufferish.global;
-
-var isBufferShim = Bufferish.hasBuffer && ("TYPED_ARRAY_SUPPORT" in Buffer);
-var brokenTypedArray = isBufferShim && !Buffer.TYPED_ARRAY_SUPPORT;
-
-/**
- * @param target {Buffer|Uint8Array|Array}
- * @param [targetStart] {Number}
- * @param [start] {Number}
- * @param [end] {Number}
- * @returns {Buffer|Uint8Array|Array}
- */
-
-function copy(target, targetStart, start, end) {
-  var thisIsBuffer = Bufferish.isBuffer(this);
-  var targetIsBuffer = Bufferish.isBuffer(target);
-  if (thisIsBuffer && targetIsBuffer) {
-    // Buffer to Buffer
-    return this.copy(target, targetStart, start, end);
-  } else if (!brokenTypedArray && !thisIsBuffer && !targetIsBuffer &&
-    Bufferish.isView(this) && Bufferish.isView(target)) {
-    // Uint8Array to Uint8Array (except for minor some browsers)
-    var buffer = (start || end != null) ? slice.call(this, start, end) : this;
-    target.set(buffer, targetStart);
-    return buffer.length;
-  } else {
-    // other cases
-    return BufferLite.copy.call(this, target, targetStart, start, end);
-  }
-}
-
-/**
- * @param [start] {Number}
- * @param [end] {Number}
- * @returns {Buffer|Uint8Array|Array}
- */
-
-function slice(start, end) {
-  // for Buffer, Uint8Array (except for minor some browsers) and Array
-  var f = this.slice || (!brokenTypedArray && this.subarray);
-  if (f) return f.call(this, start, end);
-
-  // Uint8Array (for minor some browsers)
-  var target = Bufferish.alloc.call(this, end - start);
-  copy.call(this, target, 0, start, end);
-  return target;
-}
-
-/**
- * Buffer.prototype.toString()
- *
- * @param [encoding] {String} ignored
- * @param [start] {Number}
- * @param [end] {Number}
- * @returns {String}
- */
-
-function toString(encoding, start, end) {
-  var f = (!isBufferShim && Bufferish.isBuffer(this)) ? this.toString : BufferLite.toString;
-  return f.apply(this, arguments);
-}
-
-/**
- * @private
- */
-
-function gen(method) {
-  return wrap;
-
-  function wrap() {
-    var f = this[method] || BufferLite[method];
-    return f.apply(this, arguments);
-  }
-}
-
-
-/***/ }),
-/* 21 */
-/***/ (function(module, exports) {
-
-// buffer-lite.js
-
-var MAXBUFLEN = 8192;
-
-exports.copy = copy;
-exports.toString = toString;
-exports.write = write;
-
-/**
- * Buffer.prototype.write()
- *
- * @param string {String}
- * @param [offset] {Number}
- * @returns {Number}
- */
-
-function write(string, offset) {
-  var buffer = this;
-  var index = offset || (offset |= 0);
-  var length = string.length;
-  var chr = 0;
-  var i = 0;
-  while (i < length) {
-    chr = string.charCodeAt(i++);
-
-    if (chr < 128) {
-      buffer[index++] = chr;
-    } else if (chr < 0x800) {
-      // 2 bytes
-      buffer[index++] = 0xC0 | (chr >>> 6);
-      buffer[index++] = 0x80 | (chr & 0x3F);
-    } else if (chr < 0xD800 || chr > 0xDFFF) {
-      // 3 bytes
-      buffer[index++] = 0xE0 | (chr  >>> 12);
-      buffer[index++] = 0x80 | ((chr >>> 6)  & 0x3F);
-      buffer[index++] = 0x80 | (chr          & 0x3F);
-    } else {
-      // 4 bytes - surrogate pair
-      chr = (((chr - 0xD800) << 10) | (string.charCodeAt(i++) - 0xDC00)) + 0x10000;
-      buffer[index++] = 0xF0 | (chr >>> 18);
-      buffer[index++] = 0x80 | ((chr >>> 12) & 0x3F);
-      buffer[index++] = 0x80 | ((chr >>> 6)  & 0x3F);
-      buffer[index++] = 0x80 | (chr          & 0x3F);
-    }
-  }
-  return index - offset;
-}
-
-/**
- * Buffer.prototype.toString()
- *
- * @param [encoding] {String} ignored
- * @param [start] {Number}
- * @param [end] {Number}
- * @returns {String}
- */
-
-function toString(encoding, start, end) {
-  var buffer = this;
-  var index = start|0;
-  if (!end) end = buffer.length;
-  var string = '';
-  var chr = 0;
-
-  while (index < end) {
-    chr = buffer[index++];
-    if (chr < 128) {
-      string += String.fromCharCode(chr);
-      continue;
-    }
-
-    if ((chr & 0xE0) === 0xC0) {
-      // 2 bytes
-      chr = (chr & 0x1F) << 6 |
-            (buffer[index++] & 0x3F);
-
-    } else if ((chr & 0xF0) === 0xE0) {
-      // 3 bytes
-      chr = (chr & 0x0F)             << 12 |
-            (buffer[index++] & 0x3F) << 6  |
-            (buffer[index++] & 0x3F);
-
-    } else if ((chr & 0xF8) === 0xF0) {
-      // 4 bytes
-      chr = (chr & 0x07)             << 18 |
-            (buffer[index++] & 0x3F) << 12 |
-            (buffer[index++] & 0x3F) << 6  |
-            (buffer[index++] & 0x3F);
-    }
-
-    if (chr >= 0x010000) {
-      // A surrogate pair
-      chr -= 0x010000;
-
-      string += String.fromCharCode((chr >>> 10) + 0xD800, (chr & 0x3FF) + 0xDC00);
-    } else {
-      string += String.fromCharCode(chr);
-    }
-  }
-
-  return string;
-}
-
-/**
- * Buffer.prototype.copy()
- *
- * @param target {Buffer}
- * @param [targetStart] {Number}
- * @param [start] {Number}
- * @param [end] {Number}
- * @returns {number}
- */
-
-function copy(target, targetStart, start, end) {
-  var i;
-  if (!start) start = 0;
-  if (!end && end !== 0) end = this.length;
-  if (!targetStart) targetStart = 0;
-  var len = end - start;
-
-  if (target === this && start < targetStart && targetStart < end) {
-    // descending
-    for (i = len - 1; i >= 0; i--) {
-      target[i + targetStart] = this[i + start];
-    }
-  } else {
-    // ascending
-    for (i = 0; i < len; i++) {
-      target[i + targetStart] = this[i + start];
-    }
-  }
-
-  return len;
-}
-
-
-/***/ }),
-/* 22 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// ext-packer.js
-
-exports.setExtPackers = setExtPackers;
-
-var Bufferish = __webpack_require__(14);
-var Buffer = Bufferish.global;
-var packTypedArray = Bufferish.Uint8Array.from;
-var _encode;
-
-var ERROR_COLUMNS = {name: 1, message: 1, stack: 1, columnNumber: 1, fileName: 1, lineNumber: 1};
-
-function setExtPackers(codec) {
-  codec.addExtPacker(0x0E, Error, [packError, encode]);
-  codec.addExtPacker(0x01, EvalError, [packError, encode]);
-  codec.addExtPacker(0x02, RangeError, [packError, encode]);
-  codec.addExtPacker(0x03, ReferenceError, [packError, encode]);
-  codec.addExtPacker(0x04, SyntaxError, [packError, encode]);
-  codec.addExtPacker(0x05, TypeError, [packError, encode]);
-  codec.addExtPacker(0x06, URIError, [packError, encode]);
-
-  codec.addExtPacker(0x0A, RegExp, [packRegExp, encode]);
-  codec.addExtPacker(0x0B, Boolean, [packValueOf, encode]);
-  codec.addExtPacker(0x0C, String, [packValueOf, encode]);
-  codec.addExtPacker(0x0D, Date, [Number, encode]);
-  codec.addExtPacker(0x0F, Number, [packValueOf, encode]);
-
-  if ("undefined" !== typeof Uint8Array) {
-    codec.addExtPacker(0x11, Int8Array, packTypedArray);
-    codec.addExtPacker(0x12, Uint8Array, packTypedArray);
-    codec.addExtPacker(0x13, Int16Array, packTypedArray);
-    codec.addExtPacker(0x14, Uint16Array, packTypedArray);
-    codec.addExtPacker(0x15, Int32Array, packTypedArray);
-    codec.addExtPacker(0x16, Uint32Array, packTypedArray);
-    codec.addExtPacker(0x17, Float32Array, packTypedArray);
-
-    // PhantomJS/1.9.7 doesn't have Float64Array
-    if ("undefined" !== typeof Float64Array) {
-      codec.addExtPacker(0x18, Float64Array, packTypedArray);
-    }
-
-    // IE10 doesn't have Uint8ClampedArray
-    if ("undefined" !== typeof Uint8ClampedArray) {
-      codec.addExtPacker(0x19, Uint8ClampedArray, packTypedArray);
-    }
-
-    codec.addExtPacker(0x1A, ArrayBuffer, packTypedArray);
-    codec.addExtPacker(0x1D, DataView, packTypedArray);
-  }
-
-  if (Bufferish.hasBuffer) {
-    codec.addExtPacker(0x1B, Buffer, Bufferish.from);
-  }
-}
-
-function encode(input) {
-  if (!_encode) _encode = __webpack_require__(10).encode; // lazy load
-  return _encode(input);
-}
-
-function packValueOf(value) {
-  return (value).valueOf();
-}
-
-function packRegExp(value) {
-  value = RegExp.prototype.toString.call(value).split("/");
-  value.shift();
-  var out = [value.pop()];
-  out.unshift(value.join("/"));
-  return out;
-}
-
-function packError(value) {
-  var out = {};
-  for (var key in ERROR_COLUMNS) {
-    out[key] = value[key];
-  }
-  return out;
-}
-
-
-/***/ }),
-/* 23 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// write-type.js
-
-var IS_ARRAY = __webpack_require__(16);
-var Int64Buffer = __webpack_require__(24);
-var Uint64BE = Int64Buffer.Uint64BE;
-var Int64BE = Int64Buffer.Int64BE;
-
-var Bufferish = __webpack_require__(14);
-var BufferProto = __webpack_require__(20);
-var WriteToken = __webpack_require__(25);
-var uint8 = __webpack_require__(27).uint8;
-var ExtBuffer = __webpack_require__(13).ExtBuffer;
-
-var HAS_UINT8ARRAY = ("undefined" !== typeof Uint8Array);
-var HAS_MAP = ("undefined" !== typeof Map);
-
-var extmap = [];
-extmap[1] = 0xd4;
-extmap[2] = 0xd5;
-extmap[4] = 0xd6;
-extmap[8] = 0xd7;
-extmap[16] = 0xd8;
-
-exports.getWriteType = getWriteType;
-
-function getWriteType(options) {
-  var token = WriteToken.getWriteToken(options);
-  var useraw = options && options.useraw;
-  var binarraybuffer = HAS_UINT8ARRAY && options && options.binarraybuffer;
-  var isBuffer = binarraybuffer ? Bufferish.isArrayBuffer : Bufferish.isBuffer;
-  var bin = binarraybuffer ? bin_arraybuffer : bin_buffer;
-  var usemap = HAS_MAP && options && options.usemap;
-  var map = usemap ? map_to_map : obj_to_map;
-
-  var writeType = {
-    "boolean": bool,
-    "function": nil,
-    "number": number,
-    "object": (useraw ? object_raw : object),
-    "string": _string(useraw ? raw_head_size : str_head_size),
-    "symbol": nil,
-    "undefined": nil
-  };
-
-  return writeType;
-
-  // false -- 0xc2
-  // true -- 0xc3
-  function bool(encoder, value) {
-    var type = value ? 0xc3 : 0xc2;
-    token[type](encoder, value);
-  }
-
-  function number(encoder, value) {
-    var ivalue = value | 0;
-    var type;
-    if (value !== ivalue) {
-      // float 64 -- 0xcb
-      type = 0xcb;
-      token[type](encoder, value);
-      return;
-    } else if (-0x20 <= ivalue && ivalue <= 0x7F) {
-      // positive fixint -- 0x00 - 0x7f
-      // negative fixint -- 0xe0 - 0xff
-      type = ivalue & 0xFF;
-    } else if (0 <= ivalue) {
-      // uint 8 -- 0xcc
-      // uint 16 -- 0xcd
-      // uint 32 -- 0xce
-      type = (ivalue <= 0xFF) ? 0xcc : (ivalue <= 0xFFFF) ? 0xcd : 0xce;
-    } else {
-      // int 8 -- 0xd0
-      // int 16 -- 0xd1
-      // int 32 -- 0xd2
-      type = (-0x80 <= ivalue) ? 0xd0 : (-0x8000 <= ivalue) ? 0xd1 : 0xd2;
-    }
-    token[type](encoder, ivalue);
-  }
-
-  // uint 64 -- 0xcf
-  function uint64(encoder, value) {
-    var type = 0xcf;
-    token[type](encoder, value.toArray());
-  }
-
-  // int 64 -- 0xd3
-  function int64(encoder, value) {
-    var type = 0xd3;
-    token[type](encoder, value.toArray());
-  }
-
-  // str 8 -- 0xd9
-  // str 16 -- 0xda
-  // str 32 -- 0xdb
-  // fixstr -- 0xa0 - 0xbf
-  function str_head_size(length) {
-    return (length < 32) ? 1 : (length <= 0xFF) ? 2 : (length <= 0xFFFF) ? 3 : 5;
-  }
-
-  // raw 16 -- 0xda
-  // raw 32 -- 0xdb
-  // fixraw -- 0xa0 - 0xbf
-  function raw_head_size(length) {
-    return (length < 32) ? 1 : (length <= 0xFFFF) ? 3 : 5;
-  }
-
-  function _string(head_size) {
-    return string;
-
-    function string(encoder, value) {
-      // prepare buffer
-      var length = value.length;
-      var maxsize = 5 + length * 3;
-      encoder.offset = encoder.reserve(maxsize);
-      var buffer = encoder.buffer;
-
-      // expected header size
-      var expected = head_size(length);
-
-      // expected start point
-      var start = encoder.offset + expected;
-
-      // write string
-      length = BufferProto.write.call(buffer, value, start);
-
-      // actual header size
-      var actual = head_size(length);
-
-      // move content when needed
-      if (expected !== actual) {
-        var targetStart = start + actual - expected;
-        var end = start + length;
-        BufferProto.copy.call(buffer, buffer, targetStart, start, end);
-      }
-
-      // write header
-      var type = (actual === 1) ? (0xa0 + length) : (actual <= 3) ? (0xd7 + actual) : 0xdb;
-      token[type](encoder, length);
-
-      // move cursor
-      encoder.offset += length;
-    }
-  }
-
-  function object(encoder, value) {
-    // null
-    if (value === null) return nil(encoder, value);
-
-    // Buffer
-    if (isBuffer(value)) return bin(encoder, value);
-
-    // Array
-    if (IS_ARRAY(value)) return array(encoder, value);
-
-    // int64-buffer objects
-    if (Uint64BE.isUint64BE(value)) return uint64(encoder, value);
-    if (Int64BE.isInt64BE(value)) return int64(encoder, value);
-
-    // ext formats
-    var packer = encoder.codec.getExtPacker(value);
-    if (packer) value = packer(value);
-    if (value instanceof ExtBuffer) return ext(encoder, value);
-
-    // plain old Objects or Map
-    map(encoder, value);
-  }
-
-  function object_raw(encoder, value) {
-    // Buffer
-    if (isBuffer(value)) return raw(encoder, value);
-
-    // others
-    object(encoder, value);
-  }
-
-  // nil -- 0xc0
-  function nil(encoder, value) {
-    var type = 0xc0;
-    token[type](encoder, value);
-  }
-
-  // fixarray -- 0x90 - 0x9f
-  // array 16 -- 0xdc
-  // array 32 -- 0xdd
-  function array(encoder, value) {
-    var length = value.length;
-    var type = (length < 16) ? (0x90 + length) : (length <= 0xFFFF) ? 0xdc : 0xdd;
-    token[type](encoder, length);
-
-    var encode = encoder.codec.encode;
-    for (var i = 0; i < length; i++) {
-      encode(encoder, value[i]);
-    }
-  }
-
-  // bin 8 -- 0xc4
-  // bin 16 -- 0xc5
-  // bin 32 -- 0xc6
-  function bin_buffer(encoder, value) {
-    var length = value.length;
-    var type = (length < 0xFF) ? 0xc4 : (length <= 0xFFFF) ? 0xc5 : 0xc6;
-    token[type](encoder, length);
-    encoder.send(value);
-  }
-
-  function bin_arraybuffer(encoder, value) {
-    bin_buffer(encoder, new Uint8Array(value));
-  }
-
-  // fixext 1 -- 0xd4
-  // fixext 2 -- 0xd5
-  // fixext 4 -- 0xd6
-  // fixext 8 -- 0xd7
-  // fixext 16 -- 0xd8
-  // ext 8 -- 0xc7
-  // ext 16 -- 0xc8
-  // ext 32 -- 0xc9
-  function ext(encoder, value) {
-    var buffer = value.buffer;
-    var length = buffer.length;
-    var type = extmap[length] || ((length < 0xFF) ? 0xc7 : (length <= 0xFFFF) ? 0xc8 : 0xc9);
-    token[type](encoder, length);
-    uint8[value.type](encoder);
-    encoder.send(buffer);
-  }
-
-  // fixmap -- 0x80 - 0x8f
-  // map 16 -- 0xde
-  // map 32 -- 0xdf
-  function obj_to_map(encoder, value) {
-    var keys = Object.keys(value);
-    var length = keys.length;
-    var type = (length < 16) ? (0x80 + length) : (length <= 0xFFFF) ? 0xde : 0xdf;
-    token[type](encoder, length);
-
-    var encode = encoder.codec.encode;
-    keys.forEach(function(key) {
-      encode(encoder, key);
-      encode(encoder, value[key]);
-    });
-  }
-
-  // fixmap -- 0x80 - 0x8f
-  // map 16 -- 0xde
-  // map 32 -- 0xdf
-  function map_to_map(encoder, value) {
-    if (!(value instanceof Map)) return obj_to_map(encoder, value);
-
-    var length = value.size;
-    var type = (length < 16) ? (0x80 + length) : (length <= 0xFFFF) ? 0xde : 0xdf;
-    token[type](encoder, length);
-
-    var encode = encoder.codec.encode;
-    value.forEach(function(val, key, m) {
-      encode(encoder, key);
-      encode(encoder, val);
-    });
-  }
-
-  // raw 16 -- 0xda
-  // raw 32 -- 0xdb
-  // fixraw -- 0xa0 - 0xbf
-  function raw(encoder, value) {
-    var length = value.length;
-    var type = (length < 32) ? (0xa0 + length) : (length <= 0xFFFF) ? 0xda : 0xdb;
-    token[type](encoder, length);
-    encoder.send(value);
-  }
-}
-
-
-/***/ }),
-/* 24 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// int64-buffer.js
-
-/*jshint -W018 */ // Confusing use of '!'.
-/*jshint -W030 */ // Expected an assignment or function call and instead saw an expression.
-/*jshint -W093 */ // Did you mean to return a conditional instead of an assignment?
-
-var Uint64BE, Int64BE, Uint64LE, Int64LE;
-
-!function(exports) {
-  // constants
-
-  var UNDEFINED = "undefined";
-  var BUFFER = (UNDEFINED !== typeof Buffer) && Buffer;
-  var UINT8ARRAY = (UNDEFINED !== typeof Uint8Array) && Uint8Array;
-  var ARRAYBUFFER = (UNDEFINED !== typeof ArrayBuffer) && ArrayBuffer;
-  var ZERO = [0, 0, 0, 0, 0, 0, 0, 0];
-  var isArray = Array.isArray || _isArray;
-  var BIT32 = 4294967296;
-  var BIT24 = 16777216;
-
-  // storage class
-
-  var storage; // Array;
-
-  // generate classes
-
-  Uint64BE = factory("Uint64BE", true, true);
-  Int64BE = factory("Int64BE", true, false);
-  Uint64LE = factory("Uint64LE", false, true);
-  Int64LE = factory("Int64LE", false, false);
-
-  // class factory
-
-  function factory(name, bigendian, unsigned) {
-    var posH = bigendian ? 0 : 4;
-    var posL = bigendian ? 4 : 0;
-    var pos0 = bigendian ? 0 : 3;
-    var pos1 = bigendian ? 1 : 2;
-    var pos2 = bigendian ? 2 : 1;
-    var pos3 = bigendian ? 3 : 0;
-    var fromPositive = bigendian ? fromPositiveBE : fromPositiveLE;
-    var fromNegative = bigendian ? fromNegativeBE : fromNegativeLE;
-    var proto = Int64.prototype;
-    var isName = "is" + name;
-    var _isInt64 = "_" + isName;
-
-    // properties
-    proto.buffer = void 0;
-    proto.offset = 0;
-    proto[_isInt64] = true;
-
-    // methods
-    proto.toNumber = toNumber;
-    proto.toString = toString;
-    proto.toJSON = toNumber;
-    proto.toArray = toArray;
-
-    // add .toBuffer() method only when Buffer available
-    if (BUFFER) proto.toBuffer = toBuffer;
-
-    // add .toArrayBuffer() method only when Uint8Array available
-    if (UINT8ARRAY) proto.toArrayBuffer = toArrayBuffer;
-
-    // isUint64BE, isInt64BE
-    Int64[isName] = isInt64;
-
-    // CommonJS
-    exports[name] = Int64;
-
-    return Int64;
-
-    // constructor
-    function Int64(buffer, offset, value, raddix) {
-      if (!(this instanceof Int64)) return new Int64(buffer, offset, value, raddix);
-      return init(this, buffer, offset, value, raddix);
-    }
-
-    // isUint64BE, isInt64BE
-    function isInt64(b) {
-      return !!(b && b[_isInt64]);
-    }
-
-    // initializer
-    function init(that, buffer, offset, value, raddix) {
-      if (UINT8ARRAY && ARRAYBUFFER) {
-        if (buffer instanceof ARRAYBUFFER) buffer = new UINT8ARRAY(buffer);
-        if (value instanceof ARRAYBUFFER) value = new UINT8ARRAY(value);
-      }
-
-      // Int64BE() style
-      if (!buffer && !offset && !value && !storage) {
-        // shortcut to initialize with zero
-        that.buffer = newArray(ZERO, 0);
-        return;
-      }
-
-      // Int64BE(value, raddix) style
-      if (!isValidBuffer(buffer, offset)) {
-        var _storage = storage || Array;
-        raddix = offset;
-        value = buffer;
-        offset = 0;
-        buffer = new _storage(8);
-      }
-
-      that.buffer = buffer;
-      that.offset = offset |= 0;
-
-      // Int64BE(buffer, offset) style
-      if (UNDEFINED === typeof value) return;
-
-      // Int64BE(buffer, offset, value, raddix) style
-      if ("string" === typeof value) {
-        fromString(buffer, offset, value, raddix || 10);
-      } else if (isValidBuffer(value, raddix)) {
-        fromArray(buffer, offset, value, raddix);
-      } else if ("number" === typeof raddix) {
-        writeInt32(buffer, offset + posH, value); // high
-        writeInt32(buffer, offset + posL, raddix); // low
-      } else if (value > 0) {
-        fromPositive(buffer, offset, value); // positive
-      } else if (value < 0) {
-        fromNegative(buffer, offset, value); // negative
-      } else {
-        fromArray(buffer, offset, ZERO, 0); // zero, NaN and others
-      }
-    }
-
-    function fromString(buffer, offset, str, raddix) {
-      var pos = 0;
-      var len = str.length;
-      var high = 0;
-      var low = 0;
-      if (str[0] === "-") pos++;
-      var sign = pos;
-      while (pos < len) {
-        var chr = parseInt(str[pos++], raddix);
-        if (!(chr >= 0)) break; // NaN
-        low = low * raddix + chr;
-        high = high * raddix + Math.floor(low / BIT32);
-        low %= BIT32;
-      }
-      if (sign) {
-        high = ~high;
-        if (low) {
-          low = BIT32 - low;
-        } else {
-          high++;
-        }
-      }
-      writeInt32(buffer, offset + posH, high);
-      writeInt32(buffer, offset + posL, low);
-    }
-
-    function toNumber() {
-      var buffer = this.buffer;
-      var offset = this.offset;
-      var high = readInt32(buffer, offset + posH);
-      var low = readInt32(buffer, offset + posL);
-      if (!unsigned) high |= 0; // a trick to get signed
-      return high ? (high * BIT32 + low) : low;
-    }
-
-    function toString(radix) {
-      var buffer = this.buffer;
-      var offset = this.offset;
-      var high = readInt32(buffer, offset + posH);
-      var low = readInt32(buffer, offset + posL);
-      var str = "";
-      var sign = !unsigned && (high & 0x80000000);
-      if (sign) {
-        high = ~high;
-        low = BIT32 - low;
-      }
-      radix = radix || 10;
-      while (1) {
-        var mod = (high % radix) * BIT32 + low;
-        high = Math.floor(high / radix);
-        low = Math.floor(mod / radix);
-        str = (mod % radix).toString(radix) + str;
-        if (!high && !low) break;
-      }
-      if (sign) {
-        str = "-" + str;
-      }
-      return str;
-    }
-
-    function writeInt32(buffer, offset, value) {
-      buffer[offset + pos3] = value & 255;
-      value = value >> 8;
-      buffer[offset + pos2] = value & 255;
-      value = value >> 8;
-      buffer[offset + pos1] = value & 255;
-      value = value >> 8;
-      buffer[offset + pos0] = value & 255;
-    }
-
-    function readInt32(buffer, offset) {
-      return (buffer[offset + pos0] * BIT24) +
-        (buffer[offset + pos1] << 16) +
-        (buffer[offset + pos2] << 8) +
-        buffer[offset + pos3];
-    }
-  }
-
-  function toArray(raw) {
-    var buffer = this.buffer;
-    var offset = this.offset;
-    storage = null; // Array
-    if (raw !== false && offset === 0 && buffer.length === 8 && isArray(buffer)) return buffer;
-    return newArray(buffer, offset);
-  }
-
-  function toBuffer(raw) {
-    var buffer = this.buffer;
-    var offset = this.offset;
-    storage = BUFFER;
-    if (raw !== false && offset === 0 && buffer.length === 8 && Buffer.isBuffer(buffer)) return buffer;
-    var dest = new BUFFER(8);
-    fromArray(dest, 0, buffer, offset);
-    return dest;
-  }
-
-  function toArrayBuffer(raw) {
-    var buffer = this.buffer;
-    var offset = this.offset;
-    var arrbuf = buffer.buffer;
-    storage = UINT8ARRAY;
-    if (raw !== false && offset === 0 && (arrbuf instanceof ARRAYBUFFER) && arrbuf.byteLength === 8) return arrbuf;
-    var dest = new UINT8ARRAY(8);
-    fromArray(dest, 0, buffer, offset);
-    return dest.buffer;
-  }
-
-  function isValidBuffer(buffer, offset) {
-    var len = buffer && buffer.length;
-    offset |= 0;
-    return len && (offset + 8 <= len) && ("string" !== typeof buffer[offset]);
-  }
-
-  function fromArray(destbuf, destoff, srcbuf, srcoff) {
-    destoff |= 0;
-    srcoff |= 0;
-    for (var i = 0; i < 8; i++) {
-      destbuf[destoff++] = srcbuf[srcoff++] & 255;
-    }
-  }
-
-  function newArray(buffer, offset) {
-    return Array.prototype.slice.call(buffer, offset, offset + 8);
-  }
-
-  function fromPositiveBE(buffer, offset, value) {
-    var pos = offset + 8;
-    while (pos > offset) {
-      buffer[--pos] = value & 255;
-      value /= 256;
-    }
-  }
-
-  function fromNegativeBE(buffer, offset, value) {
-    var pos = offset + 8;
-    value++;
-    while (pos > offset) {
-      buffer[--pos] = ((-value) & 255) ^ 255;
-      value /= 256;
-    }
-  }
-
-  function fromPositiveLE(buffer, offset, value) {
-    var end = offset + 8;
-    while (offset < end) {
-      buffer[offset++] = value & 255;
-      value /= 256;
-    }
-  }
-
-  function fromNegativeLE(buffer, offset, value) {
-    var end = offset + 8;
-    value++;
-    while (offset < end) {
-      buffer[offset++] = ((-value) & 255) ^ 255;
-      value /= 256;
-    }
-  }
-
-  // https://github.com/retrofox/is-array
-  function _isArray(val) {
-    return !!val && "[object Array]" == Object.prototype.toString.call(val);
-  }
-
-}( true && typeof exports.nodeName !== 'string' ? exports : (this || {}));
-
-
-/***/ }),
-/* 25 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// write-token.js
-
-var ieee754 = __webpack_require__(26);
-var Int64Buffer = __webpack_require__(24);
-var Uint64BE = Int64Buffer.Uint64BE;
-var Int64BE = Int64Buffer.Int64BE;
-
-var uint8 = __webpack_require__(27).uint8;
-var Bufferish = __webpack_require__(14);
-var Buffer = Bufferish.global;
-var IS_BUFFER_SHIM = Bufferish.hasBuffer && ("TYPED_ARRAY_SUPPORT" in Buffer);
-var NO_TYPED_ARRAY = IS_BUFFER_SHIM && !Buffer.TYPED_ARRAY_SUPPORT;
-var Buffer_prototype = Bufferish.hasBuffer && Buffer.prototype || {};
-
-exports.getWriteToken = getWriteToken;
-
-function getWriteToken(options) {
-  if (options && options.uint8array) {
-    return init_uint8array();
-  } else if (NO_TYPED_ARRAY || (Bufferish.hasBuffer && options && options.safe)) {
-    return init_safe();
-  } else {
-    return init_token();
-  }
-}
-
-function init_uint8array() {
-  var token = init_token();
-
-  // float 32 -- 0xca
-  // float 64 -- 0xcb
-  token[0xca] = writeN(0xca, 4, writeFloatBE);
-  token[0xcb] = writeN(0xcb, 8, writeDoubleBE);
-
-  return token;
-}
-
-// Node.js and browsers with TypedArray
-
-function init_token() {
-  // (immediate values)
-  // positive fixint -- 0x00 - 0x7f
-  // nil -- 0xc0
-  // false -- 0xc2
-  // true -- 0xc3
-  // negative fixint -- 0xe0 - 0xff
-  var token = uint8.slice();
-
-  // bin 8 -- 0xc4
-  // bin 16 -- 0xc5
-  // bin 32 -- 0xc6
-  token[0xc4] = write1(0xc4);
-  token[0xc5] = write2(0xc5);
-  token[0xc6] = write4(0xc6);
-
-  // ext 8 -- 0xc7
-  // ext 16 -- 0xc8
-  // ext 32 -- 0xc9
-  token[0xc7] = write1(0xc7);
-  token[0xc8] = write2(0xc8);
-  token[0xc9] = write4(0xc9);
-
-  // float 32 -- 0xca
-  // float 64 -- 0xcb
-  token[0xca] = writeN(0xca, 4, (Buffer_prototype.writeFloatBE || writeFloatBE), true);
-  token[0xcb] = writeN(0xcb, 8, (Buffer_prototype.writeDoubleBE || writeDoubleBE), true);
-
-  // uint 8 -- 0xcc
-  // uint 16 -- 0xcd
-  // uint 32 -- 0xce
-  // uint 64 -- 0xcf
-  token[0xcc] = write1(0xcc);
-  token[0xcd] = write2(0xcd);
-  token[0xce] = write4(0xce);
-  token[0xcf] = writeN(0xcf, 8, writeUInt64BE);
-
-  // int 8 -- 0xd0
-  // int 16 -- 0xd1
-  // int 32 -- 0xd2
-  // int 64 -- 0xd3
-  token[0xd0] = write1(0xd0);
-  token[0xd1] = write2(0xd1);
-  token[0xd2] = write4(0xd2);
-  token[0xd3] = writeN(0xd3, 8, writeInt64BE);
-
-  // str 8 -- 0xd9
-  // str 16 -- 0xda
-  // str 32 -- 0xdb
-  token[0xd9] = write1(0xd9);
-  token[0xda] = write2(0xda);
-  token[0xdb] = write4(0xdb);
-
-  // array 16 -- 0xdc
-  // array 32 -- 0xdd
-  token[0xdc] = write2(0xdc);
-  token[0xdd] = write4(0xdd);
-
-  // map 16 -- 0xde
-  // map 32 -- 0xdf
-  token[0xde] = write2(0xde);
-  token[0xdf] = write4(0xdf);
-
-  return token;
-}
-
-// safe mode: for old browsers and who needs asserts
-
-function init_safe() {
-  // (immediate values)
-  // positive fixint -- 0x00 - 0x7f
-  // nil -- 0xc0
-  // false -- 0xc2
-  // true -- 0xc3
-  // negative fixint -- 0xe0 - 0xff
-  var token = uint8.slice();
-
-  // bin 8 -- 0xc4
-  // bin 16 -- 0xc5
-  // bin 32 -- 0xc6
-  token[0xc4] = writeN(0xc4, 1, Buffer.prototype.writeUInt8);
-  token[0xc5] = writeN(0xc5, 2, Buffer.prototype.writeUInt16BE);
-  token[0xc6] = writeN(0xc6, 4, Buffer.prototype.writeUInt32BE);
-
-  // ext 8 -- 0xc7
-  // ext 16 -- 0xc8
-  // ext 32 -- 0xc9
-  token[0xc7] = writeN(0xc7, 1, Buffer.prototype.writeUInt8);
-  token[0xc8] = writeN(0xc8, 2, Buffer.prototype.writeUInt16BE);
-  token[0xc9] = writeN(0xc9, 4, Buffer.prototype.writeUInt32BE);
-
-  // float 32 -- 0xca
-  // float 64 -- 0xcb
-  token[0xca] = writeN(0xca, 4, Buffer.prototype.writeFloatBE);
-  token[0xcb] = writeN(0xcb, 8, Buffer.prototype.writeDoubleBE);
-
-  // uint 8 -- 0xcc
-  // uint 16 -- 0xcd
-  // uint 32 -- 0xce
-  // uint 64 -- 0xcf
-  token[0xcc] = writeN(0xcc, 1, Buffer.prototype.writeUInt8);
-  token[0xcd] = writeN(0xcd, 2, Buffer.prototype.writeUInt16BE);
-  token[0xce] = writeN(0xce, 4, Buffer.prototype.writeUInt32BE);
-  token[0xcf] = writeN(0xcf, 8, writeUInt64BE);
-
-  // int 8 -- 0xd0
-  // int 16 -- 0xd1
-  // int 32 -- 0xd2
-  // int 64 -- 0xd3
-  token[0xd0] = writeN(0xd0, 1, Buffer.prototype.writeInt8);
-  token[0xd1] = writeN(0xd1, 2, Buffer.prototype.writeInt16BE);
-  token[0xd2] = writeN(0xd2, 4, Buffer.prototype.writeInt32BE);
-  token[0xd3] = writeN(0xd3, 8, writeInt64BE);
-
-  // str 8 -- 0xd9
-  // str 16 -- 0xda
-  // str 32 -- 0xdb
-  token[0xd9] = writeN(0xd9, 1, Buffer.prototype.writeUInt8);
-  token[0xda] = writeN(0xda, 2, Buffer.prototype.writeUInt16BE);
-  token[0xdb] = writeN(0xdb, 4, Buffer.prototype.writeUInt32BE);
-
-  // array 16 -- 0xdc
-  // array 32 -- 0xdd
-  token[0xdc] = writeN(0xdc, 2, Buffer.prototype.writeUInt16BE);
-  token[0xdd] = writeN(0xdd, 4, Buffer.prototype.writeUInt32BE);
-
-  // map 16 -- 0xde
-  // map 32 -- 0xdf
-  token[0xde] = writeN(0xde, 2, Buffer.prototype.writeUInt16BE);
-  token[0xdf] = writeN(0xdf, 4, Buffer.prototype.writeUInt32BE);
-
-  return token;
-}
-
-function write1(type) {
-  return function(encoder, value) {
-    var offset = encoder.reserve(2);
-    var buffer = encoder.buffer;
-    buffer[offset++] = type;
-    buffer[offset] = value;
-  };
-}
-
-function write2(type) {
-  return function(encoder, value) {
-    var offset = encoder.reserve(3);
-    var buffer = encoder.buffer;
-    buffer[offset++] = type;
-    buffer[offset++] = value >>> 8;
-    buffer[offset] = value;
-  };
-}
-
-function write4(type) {
-  return function(encoder, value) {
-    var offset = encoder.reserve(5);
-    var buffer = encoder.buffer;
-    buffer[offset++] = type;
-    buffer[offset++] = value >>> 24;
-    buffer[offset++] = value >>> 16;
-    buffer[offset++] = value >>> 8;
-    buffer[offset] = value;
-  };
-}
-
-function writeN(type, len, method, noAssert) {
-  return function(encoder, value) {
-    var offset = encoder.reserve(len + 1);
-    encoder.buffer[offset++] = type;
-    method.call(encoder.buffer, value, offset, noAssert);
-  };
-}
-
-function writeUInt64BE(value, offset) {
-  new Uint64BE(this, offset, value);
-}
-
-function writeInt64BE(value, offset) {
-  new Int64BE(this, offset, value);
-}
-
-function writeFloatBE(value, offset) {
-  ieee754.write(this, value, offset, false, 23, 4);
-}
-
-function writeDoubleBE(value, offset) {
-  ieee754.write(this, value, offset, false, 52, 8);
-}
-
-
-/***/ }),
-/* 26 */
-/***/ (function(module, exports) {
-
-exports.read = function (buffer, offset, isLE, mLen, nBytes) {
-  var e, m
-  var eLen = (nBytes * 8) - mLen - 1
-  var eMax = (1 << eLen) - 1
-  var eBias = eMax >> 1
-  var nBits = -7
-  var i = isLE ? (nBytes - 1) : 0
-  var d = isLE ? -1 : 1
-  var s = buffer[offset + i]
-
-  i += d
-
-  e = s & ((1 << (-nBits)) - 1)
-  s >>= (-nBits)
-  nBits += eLen
-  for (; nBits > 0; e = (e * 256) + buffer[offset + i], i += d, nBits -= 8) {}
-
-  m = e & ((1 << (-nBits)) - 1)
-  e >>= (-nBits)
-  nBits += mLen
-  for (; nBits > 0; m = (m * 256) + buffer[offset + i], i += d, nBits -= 8) {}
-
-  if (e === 0) {
-    e = 1 - eBias
-  } else if (e === eMax) {
-    return m ? NaN : ((s ? -1 : 1) * Infinity)
-  } else {
-    m = m + Math.pow(2, mLen)
-    e = e - eBias
-  }
-  return (s ? -1 : 1) * m * Math.pow(2, e - mLen)
-}
-
-exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
-  var e, m, c
-  var eLen = (nBytes * 8) - mLen - 1
-  var eMax = (1 << eLen) - 1
-  var eBias = eMax >> 1
-  var rt = (mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0)
-  var i = isLE ? 0 : (nBytes - 1)
-  var d = isLE ? 1 : -1
-  var s = value < 0 || (value === 0 && 1 / value < 0) ? 1 : 0
-
-  value = Math.abs(value)
-
-  if (isNaN(value) || value === Infinity) {
-    m = isNaN(value) ? 1 : 0
-    e = eMax
-  } else {
-    e = Math.floor(Math.log(value) / Math.LN2)
-    if (value * (c = Math.pow(2, -e)) < 1) {
-      e--
-      c *= 2
-    }
-    if (e + eBias >= 1) {
-      value += rt / c
-    } else {
-      value += rt * Math.pow(2, 1 - eBias)
-    }
-    if (value * c >= 2) {
-      e++
-      c /= 2
-    }
-
-    if (e + eBias >= eMax) {
-      m = 0
-      e = eMax
-    } else if (e + eBias >= 1) {
-      m = ((value * c) - 1) * Math.pow(2, mLen)
-      e = e + eBias
-    } else {
-      m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen)
-      e = 0
-    }
-  }
-
-  for (; mLen >= 8; buffer[offset + i] = m & 0xff, i += d, m /= 256, mLen -= 8) {}
-
-  e = (e << mLen) | m
-  eLen += mLen
-  for (; eLen > 0; buffer[offset + i] = e & 0xff, i += d, e /= 256, eLen -= 8) {}
-
-  buffer[offset + i - d] |= s * 128
-}
-
-
-/***/ }),
-/* 27 */
-/***/ (function(module, exports) {
-
-// write-unit8.js
-
-var constant = exports.uint8 = new Array(256);
-
-for (var i = 0x00; i <= 0xFF; i++) {
-  constant[i] = write0(i);
-}
-
-function write0(type) {
-  return function(encoder) {
-    var offset = encoder.reserve(1);
-    encoder.buffer[offset] = type;
-  };
-}
-
-
-/***/ }),
-/* 28 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// codec-base.js
-
-var IS_ARRAY = __webpack_require__(16);
-
-exports.createCodec = createCodec;
-exports.install = install;
-exports.filter = filter;
-
-var Bufferish = __webpack_require__(14);
-
-function Codec(options) {
-  if (!(this instanceof Codec)) return new Codec(options);
-  this.options = options;
-  this.init();
-}
-
-Codec.prototype.init = function() {
-  var options = this.options;
-
-  if (options && options.uint8array) {
-    this.bufferish = Bufferish.Uint8Array;
-  }
-
-  return this;
-};
-
-function install(props) {
-  for (var key in props) {
-    Codec.prototype[key] = add(Codec.prototype[key], props[key]);
-  }
-}
-
-function add(a, b) {
-  return (a && b) ? ab : (a || b);
-
-  function ab() {
-    a.apply(this, arguments);
-    return b.apply(this, arguments);
-  }
-}
-
-function join(filters) {
-  filters = filters.slice();
-
-  return function(value) {
-    return filters.reduce(iterator, value);
-  };
-
-  function iterator(value, filter) {
-    return filter(value);
-  }
-}
-
-function filter(filter) {
-  return IS_ARRAY(filter) ? join(filter) : filter;
-}
-
-// @public
-// msgpack.createCodec()
-
-function createCodec(options) {
-  return new Codec(options);
-}
-
-// default shared codec
-
-exports.preset = createCodec({preset: true});
-
-
-/***/ }),
-/* 29 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// flex-buffer.js
-
-exports.FlexDecoder = FlexDecoder;
-exports.FlexEncoder = FlexEncoder;
-
-var Bufferish = __webpack_require__(14);
-
-var MIN_BUFFER_SIZE = 2048;
-var MAX_BUFFER_SIZE = 65536;
-var BUFFER_SHORTAGE = "BUFFER_SHORTAGE";
-
-function FlexDecoder() {
-  if (!(this instanceof FlexDecoder)) return new FlexDecoder();
-}
-
-function FlexEncoder() {
-  if (!(this instanceof FlexEncoder)) return new FlexEncoder();
-}
-
-FlexDecoder.mixin = mixinFactory(getDecoderMethods());
-FlexDecoder.mixin(FlexDecoder.prototype);
-
-FlexEncoder.mixin = mixinFactory(getEncoderMethods());
-FlexEncoder.mixin(FlexEncoder.prototype);
-
-function getDecoderMethods() {
-  return {
-    bufferish: Bufferish,
-    write: write,
-    fetch: fetch,
-    flush: flush,
-    push: push,
-    pull: pull,
-    read: read,
-    reserve: reserve,
-    offset: 0
-  };
-
-  function write(chunk) {
-    var prev = this.offset ? Bufferish.prototype.slice.call(this.buffer, this.offset) : this.buffer;
-    this.buffer = prev ? (chunk ? this.bufferish.concat([prev, chunk]) : prev) : chunk;
-    this.offset = 0;
-  }
-
-  function flush() {
-    while (this.offset < this.buffer.length) {
-      var start = this.offset;
-      var value;
-      try {
-        value = this.fetch();
-      } catch (e) {
-        if (e && e.message != BUFFER_SHORTAGE) throw e;
-        // rollback
-        this.offset = start;
-        break;
-      }
-      this.push(value);
-    }
-  }
-
-  function reserve(length) {
-    var start = this.offset;
-    var end = start + length;
-    if (end > this.buffer.length) throw new Error(BUFFER_SHORTAGE);
-    this.offset = end;
-    return start;
-  }
-}
-
-function getEncoderMethods() {
-  return {
-    bufferish: Bufferish,
-    write: write,
-    fetch: fetch,
-    flush: flush,
-    push: push,
-    pull: pull,
-    read: read,
-    reserve: reserve,
-    send: send,
-    maxBufferSize: MAX_BUFFER_SIZE,
-    minBufferSize: MIN_BUFFER_SIZE,
-    offset: 0,
-    start: 0
-  };
-
-  function fetch() {
-    var start = this.start;
-    if (start < this.offset) {
-      var end = this.start = this.offset;
-      return Bufferish.prototype.slice.call(this.buffer, start, end);
-    }
-  }
-
-  function flush() {
-    while (this.start < this.offset) {
-      var value = this.fetch();
-      if (value) this.push(value);
-    }
-  }
-
-  function pull() {
-    var buffers = this.buffers || (this.buffers = []);
-    var chunk = buffers.length > 1 ? this.bufferish.concat(buffers) : buffers[0];
-    buffers.length = 0; // buffer exhausted
-    return chunk;
-  }
-
-  function reserve(length) {
-    var req = length | 0;
-
-    if (this.buffer) {
-      var size = this.buffer.length;
-      var start = this.offset | 0;
-      var end = start + req;
-
-      // is it long enough?
-      if (end < size) {
-        this.offset = end;
-        return start;
-      }
-
-      // flush current buffer
-      this.flush();
-
-      // resize it to 2x current length
-      length = Math.max(length, Math.min(size * 2, this.maxBufferSize));
-    }
-
-    // minimum buffer size
-    length = Math.max(length, this.minBufferSize);
-
-    // allocate new buffer
-    this.buffer = this.bufferish.alloc(length);
-    this.start = 0;
-    this.offset = req;
-    return 0;
-  }
-
-  function send(buffer) {
-    var length = buffer.length;
-    if (length > this.minBufferSize) {
-      this.flush();
-      this.push(buffer);
-    } else {
-      var offset = this.reserve(length);
-      Bufferish.prototype.copy.call(buffer, this.buffer, offset);
-    }
-  }
-}
-
-// common methods
-
-function write() {
-  throw new Error("method not implemented: write()");
-}
-
-function fetch() {
-  throw new Error("method not implemented: fetch()");
-}
-
-function read() {
-  var length = this.buffers && this.buffers.length;
-
-  // fetch the first result
-  if (!length) return this.fetch();
-
-  // flush current buffer
-  this.flush();
-
-  // read from the results
-  return this.pull();
-}
-
-function push(chunk) {
-  var buffers = this.buffers || (this.buffers = []);
-  buffers.push(chunk);
-}
-
-function pull() {
-  var buffers = this.buffers || (this.buffers = []);
-  return buffers.shift();
-}
-
-function mixinFactory(source) {
-  return mixin;
-
-  function mixin(target) {
-    for (var key in source) {
-      target[key] = source[key];
-    }
-    return target;
-  }
-}
-
-
-/***/ }),
-/* 30 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// decode.js
-
-exports.decode = decode;
-
-var DecodeBuffer = __webpack_require__(31).DecodeBuffer;
-
-function decode(input, options) {
-  var decoder = new DecodeBuffer(options);
-  decoder.write(input);
-  return decoder.read();
-}
-
-/***/ }),
-/* 31 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// decode-buffer.js
-
-exports.DecodeBuffer = DecodeBuffer;
-
-var preset = __webpack_require__(32).preset;
-
-var FlexDecoder = __webpack_require__(29).FlexDecoder;
-
-FlexDecoder.mixin(DecodeBuffer.prototype);
-
-function DecodeBuffer(options) {
-  if (!(this instanceof DecodeBuffer)) return new DecodeBuffer(options);
-
-  if (options) {
-    this.options = options;
-    if (options.codec) {
-      var codec = this.codec = options.codec;
-      if (codec.bufferish) this.bufferish = codec.bufferish;
-    }
-  }
-}
-
-DecodeBuffer.prototype.codec = preset;
-
-DecodeBuffer.prototype.fetch = function() {
-  return this.codec.decode(this);
-};
-
-
-/***/ }),
-/* 32 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// read-core.js
-
-var ExtBuffer = __webpack_require__(13).ExtBuffer;
-var ExtUnpacker = __webpack_require__(33);
-var readUint8 = __webpack_require__(34).readUint8;
-var ReadToken = __webpack_require__(35);
-var CodecBase = __webpack_require__(28);
-
-CodecBase.install({
-  addExtUnpacker: addExtUnpacker,
-  getExtUnpacker: getExtUnpacker,
-  init: init
-});
-
-exports.preset = init.call(CodecBase.preset);
-
-function getDecoder(options) {
-  var readToken = ReadToken.getReadToken(options);
-  return decode;
-
-  function decode(decoder) {
-    var type = readUint8(decoder);
-    var func = readToken[type];
-    if (!func) throw new Error("Invalid type: " + (type ? ("0x" + type.toString(16)) : type));
-    return func(decoder);
-  }
-}
-
-function init() {
-  var options = this.options;
-  this.decode = getDecoder(options);
-
-  if (options && options.preset) {
-    ExtUnpacker.setExtUnpackers(this);
-  }
-
-  return this;
-}
-
-function addExtUnpacker(etype, unpacker) {
-  var unpackers = this.extUnpackers || (this.extUnpackers = []);
-  unpackers[etype] = CodecBase.filter(unpacker);
-}
-
-function getExtUnpacker(type) {
-  var unpackers = this.extUnpackers || (this.extUnpackers = []);
-  return unpackers[type] || extUnpacker;
-
-  function extUnpacker(buffer) {
-    return new ExtBuffer(buffer, type);
-  }
-}
-
-
-/***/ }),
-/* 33 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// ext-unpacker.js
-
-exports.setExtUnpackers = setExtUnpackers;
-
-var Bufferish = __webpack_require__(14);
-var Buffer = Bufferish.global;
-var _decode;
-
-var ERROR_COLUMNS = {name: 1, message: 1, stack: 1, columnNumber: 1, fileName: 1, lineNumber: 1};
-
-function setExtUnpackers(codec) {
-  codec.addExtUnpacker(0x0E, [decode, unpackError(Error)]);
-  codec.addExtUnpacker(0x01, [decode, unpackError(EvalError)]);
-  codec.addExtUnpacker(0x02, [decode, unpackError(RangeError)]);
-  codec.addExtUnpacker(0x03, [decode, unpackError(ReferenceError)]);
-  codec.addExtUnpacker(0x04, [decode, unpackError(SyntaxError)]);
-  codec.addExtUnpacker(0x05, [decode, unpackError(TypeError)]);
-  codec.addExtUnpacker(0x06, [decode, unpackError(URIError)]);
-
-  codec.addExtUnpacker(0x0A, [decode, unpackRegExp]);
-  codec.addExtUnpacker(0x0B, [decode, unpackClass(Boolean)]);
-  codec.addExtUnpacker(0x0C, [decode, unpackClass(String)]);
-  codec.addExtUnpacker(0x0D, [decode, unpackClass(Date)]);
-  codec.addExtUnpacker(0x0F, [decode, unpackClass(Number)]);
-
-  if ("undefined" !== typeof Uint8Array) {
-    codec.addExtUnpacker(0x11, unpackClass(Int8Array));
-    codec.addExtUnpacker(0x12, unpackClass(Uint8Array));
-    codec.addExtUnpacker(0x13, [unpackArrayBuffer, unpackClass(Int16Array)]);
-    codec.addExtUnpacker(0x14, [unpackArrayBuffer, unpackClass(Uint16Array)]);
-    codec.addExtUnpacker(0x15, [unpackArrayBuffer, unpackClass(Int32Array)]);
-    codec.addExtUnpacker(0x16, [unpackArrayBuffer, unpackClass(Uint32Array)]);
-    codec.addExtUnpacker(0x17, [unpackArrayBuffer, unpackClass(Float32Array)]);
-
-    // PhantomJS/1.9.7 doesn't have Float64Array
-    if ("undefined" !== typeof Float64Array) {
-      codec.addExtUnpacker(0x18, [unpackArrayBuffer, unpackClass(Float64Array)]);
-    }
-
-    // IE10 doesn't have Uint8ClampedArray
-    if ("undefined" !== typeof Uint8ClampedArray) {
-      codec.addExtUnpacker(0x19, unpackClass(Uint8ClampedArray));
-    }
-
-    codec.addExtUnpacker(0x1A, unpackArrayBuffer);
-    codec.addExtUnpacker(0x1D, [unpackArrayBuffer, unpackClass(DataView)]);
-  }
-
-  if (Bufferish.hasBuffer) {
-    codec.addExtUnpacker(0x1B, unpackClass(Buffer));
-  }
-}
-
-function decode(input) {
-  if (!_decode) _decode = __webpack_require__(30).decode; // lazy load
-  return _decode(input);
-}
-
-function unpackRegExp(value) {
-  return RegExp.apply(null, value);
-}
-
-function unpackError(Class) {
-  return function(value) {
-    var out = new Class();
-    for (var key in ERROR_COLUMNS) {
-      out[key] = value[key];
-    }
-    return out;
-  };
-}
-
-function unpackClass(Class) {
-  return function(value) {
-    return new Class(value);
-  };
-}
-
-function unpackArrayBuffer(value) {
-  return (new Uint8Array(value)).buffer;
-}
-
-
-/***/ }),
-/* 34 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// read-format.js
-
-var ieee754 = __webpack_require__(26);
-var Int64Buffer = __webpack_require__(24);
-var Uint64BE = Int64Buffer.Uint64BE;
-var Int64BE = Int64Buffer.Int64BE;
-
-exports.getReadFormat = getReadFormat;
-exports.readUint8 = uint8;
-
-var Bufferish = __webpack_require__(14);
-var BufferProto = __webpack_require__(20);
-
-var HAS_MAP = ("undefined" !== typeof Map);
-var NO_ASSERT = true;
-
-function getReadFormat(options) {
-  var binarraybuffer = Bufferish.hasArrayBuffer && options && options.binarraybuffer;
-  var int64 = options && options.int64;
-  var usemap = HAS_MAP && options && options.usemap;
-
-  var readFormat = {
-    map: (usemap ? map_to_map : map_to_obj),
-    array: array,
-    str: str,
-    bin: (binarraybuffer ? bin_arraybuffer : bin_buffer),
-    ext: ext,
-    uint8: uint8,
-    uint16: uint16,
-    uint32: uint32,
-    uint64: read(8, int64 ? readUInt64BE_int64 : readUInt64BE),
-    int8: int8,
-    int16: int16,
-    int32: int32,
-    int64: read(8, int64 ? readInt64BE_int64 : readInt64BE),
-    float32: read(4, readFloatBE),
-    float64: read(8, readDoubleBE)
-  };
-
-  return readFormat;
-}
-
-function map_to_obj(decoder, len) {
-  var value = {};
-  var i;
-  var k = new Array(len);
-  var v = new Array(len);
-
-  var decode = decoder.codec.decode;
-  for (i = 0; i < len; i++) {
-    k[i] = decode(decoder);
-    v[i] = decode(decoder);
-  }
-  for (i = 0; i < len; i++) {
-    value[k[i]] = v[i];
-  }
-  return value;
-}
-
-function map_to_map(decoder, len) {
-  var value = new Map();
-  var i;
-  var k = new Array(len);
-  var v = new Array(len);
-
-  var decode = decoder.codec.decode;
-  for (i = 0; i < len; i++) {
-    k[i] = decode(decoder);
-    v[i] = decode(decoder);
-  }
-  for (i = 0; i < len; i++) {
-    value.set(k[i], v[i]);
-  }
-  return value;
-}
-
-function array(decoder, len) {
-  var value = new Array(len);
-  var decode = decoder.codec.decode;
-  for (var i = 0; i < len; i++) {
-    value[i] = decode(decoder);
-  }
-  return value;
-}
-
-function str(decoder, len) {
-  var start = decoder.reserve(len);
-  var end = start + len;
-  return BufferProto.toString.call(decoder.buffer, "utf-8", start, end);
-}
-
-function bin_buffer(decoder, len) {
-  var start = decoder.reserve(len);
-  var end = start + len;
-  var buf = BufferProto.slice.call(decoder.buffer, start, end);
-  return Bufferish.from(buf);
-}
-
-function bin_arraybuffer(decoder, len) {
-  var start = decoder.reserve(len);
-  var end = start + len;
-  var buf = BufferProto.slice.call(decoder.buffer, start, end);
-  return Bufferish.Uint8Array.from(buf).buffer;
-}
-
-function ext(decoder, len) {
-  var start = decoder.reserve(len+1);
-  var type = decoder.buffer[start++];
-  var end = start + len;
-  var unpack = decoder.codec.getExtUnpacker(type);
-  if (!unpack) throw new Error("Invalid ext type: " + (type ? ("0x" + type.toString(16)) : type));
-  var buf = BufferProto.slice.call(decoder.buffer, start, end);
-  return unpack(buf);
-}
-
-function uint8(decoder) {
-  var start = decoder.reserve(1);
-  return decoder.buffer[start];
-}
-
-function int8(decoder) {
-  var start = decoder.reserve(1);
-  var value = decoder.buffer[start];
-  return (value & 0x80) ? value - 0x100 : value;
-}
-
-function uint16(decoder) {
-  var start = decoder.reserve(2);
-  var buffer = decoder.buffer;
-  return (buffer[start++] << 8) | buffer[start];
-}
-
-function int16(decoder) {
-  var start = decoder.reserve(2);
-  var buffer = decoder.buffer;
-  var value = (buffer[start++] << 8) | buffer[start];
-  return (value & 0x8000) ? value - 0x10000 : value;
-}
-
-function uint32(decoder) {
-  var start = decoder.reserve(4);
-  var buffer = decoder.buffer;
-  return (buffer[start++] * 16777216) + (buffer[start++] << 16) + (buffer[start++] << 8) + buffer[start];
-}
-
-function int32(decoder) {
-  var start = decoder.reserve(4);
-  var buffer = decoder.buffer;
-  return (buffer[start++] << 24) | (buffer[start++] << 16) | (buffer[start++] << 8) | buffer[start];
-}
-
-function read(len, method) {
-  return function(decoder) {
-    var start = decoder.reserve(len);
-    return method.call(decoder.buffer, start, NO_ASSERT);
-  };
-}
-
-function readUInt64BE(start) {
-  return new Uint64BE(this, start).toNumber();
-}
-
-function readInt64BE(start) {
-  return new Int64BE(this, start).toNumber();
-}
-
-function readUInt64BE_int64(start) {
-  return new Uint64BE(this, start);
-}
-
-function readInt64BE_int64(start) {
-  return new Int64BE(this, start);
-}
-
-function readFloatBE(start) {
-  return ieee754.read(this, start, false, 23, 4);
-}
-
-function readDoubleBE(start) {
-  return ieee754.read(this, start, false, 52, 8);
-}
-
-/***/ }),
-/* 35 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// read-token.js
-
-var ReadFormat = __webpack_require__(34);
-
-exports.getReadToken = getReadToken;
-
-function getReadToken(options) {
-  var format = ReadFormat.getReadFormat(options);
-
-  if (options && options.useraw) {
-    return init_useraw(format);
-  } else {
-    return init_token(format);
-  }
-}
-
-function init_token(format) {
-  var i;
-  var token = new Array(256);
-
-  // positive fixint -- 0x00 - 0x7f
-  for (i = 0x00; i <= 0x7f; i++) {
-    token[i] = constant(i);
-  }
-
-  // fixmap -- 0x80 - 0x8f
-  for (i = 0x80; i <= 0x8f; i++) {
-    token[i] = fix(i - 0x80, format.map);
-  }
-
-  // fixarray -- 0x90 - 0x9f
-  for (i = 0x90; i <= 0x9f; i++) {
-    token[i] = fix(i - 0x90, format.array);
-  }
-
-  // fixstr -- 0xa0 - 0xbf
-  for (i = 0xa0; i <= 0xbf; i++) {
-    token[i] = fix(i - 0xa0, format.str);
-  }
-
-  // nil -- 0xc0
-  token[0xc0] = constant(null);
-
-  // (never used) -- 0xc1
-  token[0xc1] = null;
-
-  // false -- 0xc2
-  // true -- 0xc3
-  token[0xc2] = constant(false);
-  token[0xc3] = constant(true);
-
-  // bin 8 -- 0xc4
-  // bin 16 -- 0xc5
-  // bin 32 -- 0xc6
-  token[0xc4] = flex(format.uint8, format.bin);
-  token[0xc5] = flex(format.uint16, format.bin);
-  token[0xc6] = flex(format.uint32, format.bin);
-
-  // ext 8 -- 0xc7
-  // ext 16 -- 0xc8
-  // ext 32 -- 0xc9
-  token[0xc7] = flex(format.uint8, format.ext);
-  token[0xc8] = flex(format.uint16, format.ext);
-  token[0xc9] = flex(format.uint32, format.ext);
-
-  // float 32 -- 0xca
-  // float 64 -- 0xcb
-  token[0xca] = format.float32;
-  token[0xcb] = format.float64;
-
-  // uint 8 -- 0xcc
-  // uint 16 -- 0xcd
-  // uint 32 -- 0xce
-  // uint 64 -- 0xcf
-  token[0xcc] = format.uint8;
-  token[0xcd] = format.uint16;
-  token[0xce] = format.uint32;
-  token[0xcf] = format.uint64;
-
-  // int 8 -- 0xd0
-  // int 16 -- 0xd1
-  // int 32 -- 0xd2
-  // int 64 -- 0xd3
-  token[0xd0] = format.int8;
-  token[0xd1] = format.int16;
-  token[0xd2] = format.int32;
-  token[0xd3] = format.int64;
-
-  // fixext 1 -- 0xd4
-  // fixext 2 -- 0xd5
-  // fixext 4 -- 0xd6
-  // fixext 8 -- 0xd7
-  // fixext 16 -- 0xd8
-  token[0xd4] = fix(1, format.ext);
-  token[0xd5] = fix(2, format.ext);
-  token[0xd6] = fix(4, format.ext);
-  token[0xd7] = fix(8, format.ext);
-  token[0xd8] = fix(16, format.ext);
-
-  // str 8 -- 0xd9
-  // str 16 -- 0xda
-  // str 32 -- 0xdb
-  token[0xd9] = flex(format.uint8, format.str);
-  token[0xda] = flex(format.uint16, format.str);
-  token[0xdb] = flex(format.uint32, format.str);
-
-  // array 16 -- 0xdc
-  // array 32 -- 0xdd
-  token[0xdc] = flex(format.uint16, format.array);
-  token[0xdd] = flex(format.uint32, format.array);
-
-  // map 16 -- 0xde
-  // map 32 -- 0xdf
-  token[0xde] = flex(format.uint16, format.map);
-  token[0xdf] = flex(format.uint32, format.map);
-
-  // negative fixint -- 0xe0 - 0xff
-  for (i = 0xe0; i <= 0xff; i++) {
-    token[i] = constant(i - 0x100);
-  }
-
-  return token;
-}
-
-function init_useraw(format) {
-  var i;
-  var token = init_token(format).slice();
-
-  // raw 8 -- 0xd9
-  // raw 16 -- 0xda
-  // raw 32 -- 0xdb
-  token[0xd9] = token[0xc4];
-  token[0xda] = token[0xc5];
-  token[0xdb] = token[0xc6];
-
-  // fixraw -- 0xa0 - 0xbf
-  for (i = 0xa0; i <= 0xbf; i++) {
-    token[i] = fix(i - 0xa0, format.bin);
-  }
-
-  return token;
-}
-
-function constant(value) {
-  return function() {
-    return value;
-  };
-}
-
-function flex(lenFunc, decodeFunc) {
-  return function(decoder) {
-    var len = lenFunc(decoder);
-    return decodeFunc(decoder, len);
-  };
-}
-
-function fix(len, method) {
-  return function(decoder) {
-    return method(decoder, len);
-  };
-}
-
-
-/***/ }),
-/* 36 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// encoder.js
-
-exports.Encoder = Encoder;
-
-var EventLite = __webpack_require__(37);
-var EncodeBuffer = __webpack_require__(11).EncodeBuffer;
-
-function Encoder(options) {
-  if (!(this instanceof Encoder)) return new Encoder(options);
-  EncodeBuffer.call(this, options);
-}
-
-Encoder.prototype = new EncodeBuffer();
-
-EventLite.mixin(Encoder.prototype);
-
-Encoder.prototype.encode = function(chunk) {
-  this.write(chunk);
-  this.emit("data", this.read());
-};
-
-Encoder.prototype.end = function(chunk) {
-  if (arguments.length) this.encode(chunk);
-  this.flush();
-  this.emit("end");
-};
-
-
-/***/ }),
-/* 37 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/**
- * event-lite.js - Light-weight EventEmitter (less than 1KB when gzipped)
- *
- * @copyright Yusuke Kawasaki
- * @license MIT
- * @constructor
- * @see https://github.com/kawanet/event-lite
- * @see http://kawanet.github.io/event-lite/EventLite.html
- * @example
- * var EventLite = require("event-lite");
- *
- * function MyClass() {...}             // your class
- *
- * EventLite.mixin(MyClass.prototype);  // import event methods
- *
- * var obj = new MyClass();
- * obj.on("foo", function() {...});     // add event listener
- * obj.once("bar", function() {...});   // add one-time event listener
- * obj.emit("foo");                     // dispatch event
- * obj.emit("bar");                     // dispatch another event
- * obj.off("foo");                      // remove event listener
- */
-
-function EventLite() {
-  if (!(this instanceof EventLite)) return new EventLite();
-}
-
-(function(EventLite) {
-  // export the class for node.js
-  if (true) module.exports = EventLite;
-
-  // property name to hold listeners
-  var LISTENERS = "listeners";
-
-  // methods to export
-  var methods = {
-    on: on,
-    once: once,
-    off: off,
-    emit: emit
-  };
-
-  // mixin to self
-  mixin(EventLite.prototype);
-
-  // export mixin function
-  EventLite.mixin = mixin;
-
-  /**
-   * Import on(), once(), off() and emit() methods into target object.
-   *
-   * @function EventLite.mixin
-   * @param target {Prototype}
-   */
-
-  function mixin(target) {
-    for (var key in methods) {
-      target[key] = methods[key];
-    }
-    return target;
-  }
-
-  /**
-   * Add an event listener.
-   *
-   * @function EventLite.prototype.on
-   * @param type {string}
-   * @param func {Function}
-   * @returns {EventLite} Self for method chaining
-   */
-
-  function on(type, func) {
-    getListeners(this, type).push(func);
-    return this;
-  }
-
-  /**
-   * Add one-time event listener.
-   *
-   * @function EventLite.prototype.once
-   * @param type {string}
-   * @param func {Function}
-   * @returns {EventLite} Self for method chaining
-   */
-
-  function once(type, func) {
-    var that = this;
-    wrap.originalListener = func;
-    getListeners(that, type).push(wrap);
-    return that;
-
-    function wrap() {
-      off.call(that, type, wrap);
-      func.apply(this, arguments);
-    }
-  }
-
-  /**
-   * Remove an event listener.
-   *
-   * @function EventLite.prototype.off
-   * @param [type] {string}
-   * @param [func] {Function}
-   * @returns {EventLite} Self for method chaining
-   */
-
-  function off(type, func) {
-    var that = this;
-    var listners;
-    if (!arguments.length) {
-      delete that[LISTENERS];
-    } else if (!func) {
-      listners = that[LISTENERS];
-      if (listners) {
-        delete listners[type];
-        if (!Object.keys(listners).length) return off.call(that);
-      }
-    } else {
-      listners = getListeners(that, type, true);
-      if (listners) {
-        listners = listners.filter(ne);
-        if (!listners.length) return off.call(that, type);
-        that[LISTENERS][type] = listners;
-      }
-    }
-    return that;
-
-    function ne(test) {
-      return test !== func && test.originalListener !== func;
-    }
-  }
-
-  /**
-   * Dispatch (trigger) an event.
-   *
-   * @function EventLite.prototype.emit
-   * @param type {string}
-   * @param [value] {*}
-   * @returns {boolean} True when a listener received the event
-   */
-
-  function emit(type, value) {
-    var that = this;
-    var listeners = getListeners(that, type, true);
-    if (!listeners) return false;
-    var arglen = arguments.length;
-    if (arglen === 1) {
-      listeners.forEach(zeroarg);
-    } else if (arglen === 2) {
-      listeners.forEach(onearg);
-    } else {
-      var args = Array.prototype.slice.call(arguments, 1);
-      listeners.forEach(moreargs);
-    }
-    return !!listeners.length;
-
-    function zeroarg(func) {
-      func.call(that);
-    }
-
-    function onearg(func) {
-      func.call(that, value);
-    }
-
-    function moreargs(func) {
-      func.apply(that, args);
-    }
-  }
-
-  /**
-   * @ignore
-   */
-
-  function getListeners(that, type, readonly) {
-    if (readonly && !that[LISTENERS]) return;
-    var listeners = that[LISTENERS] || (that[LISTENERS] = {});
-    return listeners[type] || (listeners[type] = []);
-  }
-
-})(EventLite);
-
-
-/***/ }),
-/* 38 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// decoder.js
-
-exports.Decoder = Decoder;
-
-var EventLite = __webpack_require__(37);
-var DecodeBuffer = __webpack_require__(31).DecodeBuffer;
-
-function Decoder(options) {
-  if (!(this instanceof Decoder)) return new Decoder(options);
-  DecodeBuffer.call(this, options);
-}
-
-Decoder.prototype = new DecodeBuffer();
-
-EventLite.mixin(Decoder.prototype);
-
-Decoder.prototype.decode = function(chunk) {
-  if (arguments.length) this.write(chunk);
-  this.flush();
-};
-
-Decoder.prototype.push = function(chunk) {
-  this.emit("data", chunk);
-};
-
-Decoder.prototype.end = function(chunk) {
-  this.decode(chunk);
-  this.emit("end");
-};
-
-
-/***/ }),
-/* 39 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// encode-stream.js
-
-exports.createEncodeStream = EncodeStream;
-
-var util = __webpack_require__(40);
-var Transform = __webpack_require__(41).Transform;
-var EncodeBuffer = __webpack_require__(11).EncodeBuffer;
-
-util.inherits(EncodeStream, Transform);
-
-var DEFAULT_OPTIONS = {objectMode: true};
-
-function EncodeStream(options) {
-  if (!(this instanceof EncodeStream)) return new EncodeStream(options);
-  if (options) {
-    options.objectMode = true;
-  } else {
-    options = DEFAULT_OPTIONS;
-  }
-  Transform.call(this, options);
-
-  var stream = this;
-  var encoder = this.encoder = new EncodeBuffer(options);
-  encoder.push = function(chunk) {
-    stream.push(chunk);
-  };
-}
-
-EncodeStream.prototype._transform = function(chunk, encoding, callback) {
-  this.encoder.write(chunk);
-  if (callback) callback();
-};
-
-EncodeStream.prototype._flush = function(callback) {
-  this.encoder.flush();
-  if (callback) callback();
-};
-
-
-/***/ }),
-/* 40 */
-/***/ (function(module, exports) {
-
-module.exports = require("util");
-
-/***/ }),
-/* 41 */
-/***/ (function(module, exports) {
-
-module.exports = require("stream");
-
-/***/ }),
-/* 42 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// decode-stream.js
-
-exports.createDecodeStream = DecodeStream;
-
-var util = __webpack_require__(40);
-var Transform = __webpack_require__(41).Transform;
-var DecodeBuffer = __webpack_require__(31).DecodeBuffer;
-
-util.inherits(DecodeStream, Transform);
-
-var DEFAULT_OPTIONS = {objectMode: true};
-
-function DecodeStream(options) {
-  if (!(this instanceof DecodeStream)) return new DecodeStream(options);
-  if (options) {
-    options.objectMode = true;
-  } else {
-    options = DEFAULT_OPTIONS;
-  }
-  Transform.call(this, options);
-  var stream = this;
-  var decoder = this.decoder = new DecodeBuffer(options);
-  decoder.push = function(chunk) {
-    stream.push(chunk);
-  };
-}
-
-DecodeStream.prototype._transform = function(chunk, encoding, callback) {
-  this.decoder.write(chunk);
-  this.decoder.flush();
-  if (callback) callback();
-};
-
-
-/***/ }),
-/* 43 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// ext.js
-
-// load both interfaces
-__webpack_require__(32);
-__webpack_require__(12);
-
-exports.createCodec = __webpack_require__(28).createCodec;
-
-
-/***/ }),
-/* 44 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// codec.js
-
-// load both interfaces
-__webpack_require__(32);
-__webpack_require__(12);
-
-// @public
-// msgpack.codec.preset
-
-exports.codec = {
-  preset: __webpack_require__(28).preset
-};
-
-
-/***/ }),
-/* 45 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const stream_1 = __webpack_require__(41);
-class Buffered extends stream_1.Transform {
-    constructor() {
-        super({
-            readableHighWaterMark: 10 * 1024 * 1024,
-            writableHighWaterMark: 10 * 1024 * 1024,
-        });
-        this.chunks = null;
-        this.timer = null;
-    }
-    sendData() {
-        const { chunks } = this;
-        if (chunks) {
-            this.chunks = null;
-            const buf = Buffer.concat(chunks);
-            this.push(buf);
-        }
-    }
-    // eslint-disable-next-line consistent-return
-    _transform(chunk, _encoding, callback) {
-        const { chunks, timer } = this;
-        const MIN_SIZE = Buffer.poolSize;
-        if (timer)
-            clearTimeout(timer);
-        if (chunk.length < MIN_SIZE) {
-            if (!chunks)
-                return callback(null, chunk);
-            chunks.push(chunk);
-            this.sendData();
-            callback();
-        }
-        else {
-            if (!chunks) {
-                this.chunks = [chunk];
-            }
-            else {
-                chunks.push(chunk);
-            }
-            this.timer = setTimeout(this.sendData.bind(this), 20);
-            callback();
-        }
-    }
-    _flush(callback) {
-        const { chunks } = this;
-        if (chunks) {
-            this.chunks = null;
-            const buf = Buffer.concat(chunks);
-            callback(null, buf);
-        }
-        else {
-            callback();
-        }
-    }
-}
-exports.default = Buffered;
-
-
-/***/ }),
-/* 46 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Buffer_1 = __webpack_require__(47);
-const Window_1 = __webpack_require__(50);
-const Tabpage_1 = __webpack_require__(52);
-var ExtType;
-(function (ExtType) {
-    ExtType[ExtType["Buffer"] = 0] = "Buffer";
-    ExtType[ExtType["Window"] = 1] = "Window";
-    ExtType[ExtType["Tabpage"] = 2] = "Tabpage";
-})(ExtType = exports.ExtType || (exports.ExtType = {}));
-exports.Metadata = [
-    {
-        constructor: Buffer_1.Buffer,
-        name: 'Buffer',
-        prefix: 'nvim_buf_',
-    },
-    {
-        constructor: Window_1.Window,
-        name: 'Window',
-        prefix: 'nvim_win_',
-    },
-    {
-        constructor: Tabpage_1.Tabpage,
-        name: 'Tabpage',
-        prefix: 'nvim_tabpage_',
-    },
-];
-
-
-/***/ }),
-/* 47 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const Base_1 = __webpack_require__(48);
-const client_1 = __webpack_require__(7);
-class Buffer extends Base_1.BaseApi {
-    constructor() {
-        super(...arguments);
-        this.prefix = 'nvim_buf_';
-    }
-    get isAttached() {
-        return this.client.isAttached(this.id);
-    }
-    /**
-     * Attach to buffer to listen to buffer events
-     * @param sendBuffer Set to true if the initial notification should contain
-     *        the whole buffer. If so, the first notification will be a
-     *        `nvim_buf_lines_event`. Otherwise, the first notification will be
-     *        a `nvim_buf_changedtick_event`
-     */
-    attach(sendBuffer = false, options = {}) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this.isAttached)
-                return true;
-            let res = false;
-            try {
-                res = yield this.request(`${this.prefix}attach`, [sendBuffer, options]);
-            }
-            catch (e) {
-                res = false;
-            }
-            if (res) {
-                this.client[client_1.ATTACH_BUFFER](this);
-            }
-            return this.isAttached;
-        });
-    }
-    /**
-     * Detach from buffer to stop listening to buffer events
-     */
-    detach() {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.client[client_1.DETACH_BUFFER](this);
-            try {
-                yield this.request(`${this.prefix}detach`, []);
-            }
-            catch (e) {
-                // noop
-            }
-        });
-    }
-    /**
-     * Get the bufnr of Buffer
-     */
-    get id() {
-        return this.data;
-    }
-    /** Total number of lines in buffer */
-    get length() {
-        return this.request(`${this.prefix}line_count`, []);
-    }
-    /** Get lines in buffer */
-    get lines() {
-        return this.getLines();
-    }
-    /** Gets a changed tick of a buffer */
-    get changedtick() {
-        return this.request(`${this.prefix}get_changedtick`, []);
-    }
-    get commands() {
-        return this.getCommands();
-    }
-    getCommands(options = {}) {
-        return this.request(`${this.prefix}get_commands`, [options]);
-    }
-    /** Get specific lines of buffer */
-    getLines({ start, end, strictIndexing } = { start: 0, end: -1, strictIndexing: true }) {
-        const indexing = typeof strictIndexing === 'undefined' ? true : strictIndexing;
-        return this.request(`${this.prefix}get_lines`, [
-            start,
-            end,
-            indexing,
-        ]);
-    }
-    /** Set lines of buffer given indeces */
-    setLines(_lines, { start: _start, end: _end, strictIndexing } = {
-        strictIndexing: true,
-    }, notify = false) {
-        // TODO: Error checking
-        // if (typeof start === 'undefined' || typeof end === 'undefined') {
-        // }
-        const indexing = typeof strictIndexing === 'undefined' ? true : strictIndexing;
-        const lines = typeof _lines === 'string' ? [_lines] : _lines;
-        const end = typeof _end !== 'undefined' ? _end : _start + 1;
-        const method = notify ? 'notify' : 'request';
-        return this[method](`${this.prefix}set_lines`, [
-            _start,
-            end,
-            indexing,
-            lines,
-        ]);
-    }
-    /**
-     * Set virtual text for a line
-     *
-     * @public
-     * @param {number} src_id - Source group to use or 0 to use a new group, or -1
-     * @param {number} line - Line to annotate with virtual text (zero-indexed)
-     * @param {Chunk[]} chunks - List with [text, hl_group]
-     * @param {{[index} opts
-     * @returns {Promise<number>}
-     */
-    setVirtualText(src_id, line, chunks, opts = {}) {
-        this.notify(`${this.prefix}set_virtual_text`, [
-            src_id,
-            line,
-            chunks,
-            opts,
-        ]);
-        return Promise.resolve(src_id);
-    }
-    /** Insert lines at `start` index */
-    insert(lines, start) {
-        return this.setLines(lines, {
-            start,
-            end: start,
-            strictIndexing: true,
-        });
-    }
-    /** Replace lines starting at `start` index */
-    replace(_lines, start) {
-        const lines = typeof _lines === 'string' ? [_lines] : _lines;
-        return this.setLines(lines, {
-            start,
-            end: start + lines.length,
-            strictIndexing: false,
-        });
-    }
-    /** Remove lines at index */
-    remove(start, end, strictIndexing = false) {
-        return this.setLines([], { start, end, strictIndexing });
-    }
-    /** Append a string or list of lines to end of buffer */
-    append(lines) {
-        return this.setLines(lines, {
-            start: -1,
-            end: -1,
-            strictIndexing: false,
-        });
-    }
-    /** Get buffer name */
-    get name() {
-        return this.request(`${this.prefix}get_name`, []);
-    }
-    /** Set current buffer name */
-    setName(value) {
-        return this.request(`${this.prefix}set_name`, [value]);
-    }
-    /** Is current buffer valid */
-    get valid() {
-        return this.request(`${this.prefix}is_valid`, []);
-    }
-    /** Get mark position given mark name */
-    mark(name) {
-        return this.request(`${this.prefix}get_mark`, [name]);
-    }
-    // range(start, end) {
-    // """Return a `Range` object, which represents part of the Buffer."""
-    // return Range(this, start, end)
-    // }
-    /** Gets keymap */
-    getKeymap(mode) {
-        return this.request(`${this.prefix}get_keymap`, [mode]);
-    }
-    /**
-   * Checks if a buffer is valid and loaded. See |api-buffer| for
-   * more info about unloaded buffers.
-   */
-    get loaded() {
-        return this.request(`${this.prefix}is_loaded`, []);
-    }
-    /**
-     * Returns the byte offset for a line.
-     *
-     * Line 1 (index=0) has offset 0. UTF-8 bytes are counted. EOL is
-     * one byte. 'fileformat' and 'fileencoding' are ignored. The
-     * line index just after the last line gives the total byte-count
-     * of the buffer. A final EOL byte is counted if it would be
-     * written, see 'eol'.
-     *
-     * Unlike |line2byte()|, throws error for out-of-bounds indexing.
-     * Returns -1 for unloaded buffer.
-     *
-     * @return {Number} Integer byte offset, or -1 for unloaded buffer.
-     */
-    getOffset(index) {
-        return this.request(`${this.prefix}get_offset`, [index]);
-    }
-    /**
-      Adds a highlight to buffer.
-  
-      This can be used for plugins which dynamically generate
-      highlights to a buffer (like a semantic highlighter or
-      linter). The function adds a single highlight to a buffer.
-      Unlike matchaddpos() highlights follow changes to line
-      numbering (as lines are inserted/removed above the highlighted
-      line), like signs and marks do.
-  
-      "src_id" is useful for batch deletion/updating of a set of
-      highlights. When called with src_id = 0, an unique source id
-      is generated and returned. Succesive calls can pass in it as
-      "src_id" to add new highlights to the same source group. All
-      highlights in the same group can then be cleared with
-      nvim_buf_clear_highlight. If the highlight never will be
-      manually deleted pass in -1 for "src_id".
-  
-      If "hl_group" is the empty string no highlight is added, but a
-      new src_id is still returned. This is useful for an external
-      plugin to synchrounously request an unique src_id at
-      initialization, and later asynchronously add and clear
-      highlights in response to buffer changes. */
-    addHighlight({ hlGroup: _hlGroup, line, colStart: _start, colEnd: _end, srcId: _srcId, }) {
-        const hlGroup = typeof _hlGroup !== 'undefined' ? _hlGroup : '';
-        const colEnd = typeof _end !== 'undefined' ? _end : -1;
-        const colStart = typeof _start !== 'undefined' ? _start : -0;
-        const srcId = typeof _srcId !== 'undefined' ? _srcId : -1;
-        const method = hlGroup === '' ? 'request' : 'notify';
-        let res = this[method](`${this.prefix}add_highlight`, [
-            srcId,
-            hlGroup,
-            line,
-            colStart,
-            colEnd,
-        ]);
-        return method === 'request' ? res : Promise.resolve(null);
-    }
-    /** Clears highlights from a given source group and a range of
-    lines
-    To clear a source group in the entire buffer, pass in 1 and -1
-    to lineStart and lineEnd respectively. */
-    clearHighlight(args = {}) {
-        const defaults = {
-            srcId: -1,
-            lineStart: 0,
-            lineEnd: -1,
-        };
-        const { srcId, lineStart, lineEnd } = Object.assign({}, defaults, args);
-        return this.notify(`${this.prefix}clear_highlight`, [
-            srcId,
-            lineStart,
-            lineEnd,
-        ]);
-    }
-    clearNamespace(id, lineStart = 0, lineEnd = -1) {
-        return this.notify(`${this.prefix}clear_namespace`, [
-            id,
-            lineStart,
-            lineEnd,
-        ]);
-    }
-    /**
-     * Listens to buffer for events
-     */
-    listen(eventName, cb) {
-        if (!this.isAttached) {
-            throw new Error('buffer not attached');
-        }
-        this.client.attachBufferEvent(this, eventName, cb);
-        return () => {
-            this.unlisten(eventName, cb);
-        };
-    }
-    unlisten(eventName, cb) {
-        this.client.detachBufferEvent(this, eventName, cb);
-    }
-}
-exports.Buffer = Buffer;
-
-
-/***/ }),
-/* 48 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const events_1 = __webpack_require__(49);
-const isVim = process.env.VIM_NODE_RPC == '1';
-// i.e. a plugin that detaches will affect all plugins registered on host
-// const EXCLUDED = ['nvim_buf_attach', 'nvim_buf_detach']
-// Instead of dealing with multiple inheritance (or lackof), just extend EE
-// Only the Neovim API class should use EE though
-class BaseApi extends events_1.EventEmitter {
-    constructor({ transport, data, client, }) {
-        super();
-        this.setTransport(transport);
-        this.data = data;
-        this.client = client;
-    }
-    setTransport(transport) {
-        this.transport = transport;
-    }
-    equals(other) {
-        try {
-            return String(this.data) === String(other.data);
-        }
-        catch (e) {
-            return false;
-        }
-    }
-    request(name, args = []) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return new Promise((resolve, reject) => {
-                this.transport.request(name, this.getArgsByPrefix(args), (err, res) => {
-                    if (err) {
-                        reject(new Error(`request error ${name} - ${err[1]}`));
-                    }
-                    else {
-                        resolve(res);
-                    }
-                });
-            });
-        });
-    }
-    getArgsByPrefix(args) {
-        // Check if class is Neovim and if so, should not send `this` as first arg
-        if (this.prefix !== 'nvim_' && args[0] != this) {
-            let id = isVim ? this.data : this;
-            return [id, ...args];
-        }
-        return args;
-    }
-    /** Retrieves a scoped variable depending on type (using `this.prefix`) */
-    getVar(name) {
-        return this.request(`${this.prefix}get_var`, [name]).then(res => res, _err => {
-            return null;
-        });
-    }
-    setVar(name, value, isNotify = false) {
-        if (isNotify) {
-            this.notify(`${this.prefix}set_var`, [name, value]);
-            return;
-        }
-        return this.request(`${this.prefix}set_var`, [name, value]);
-    }
-    /** Delete a scoped variable */
-    deleteVar(name) {
-        this.notify(`${this.prefix}del_var`, [name]);
-    }
-    /** Retrieves a scoped option depending on type of `this` */
-    getOption(name) {
-        return this.request(`${this.prefix}get_option`, [name]);
-    }
-    setOption(name, value, isNotify) {
-        if (isNotify) {
-            this.notify(`${this.prefix}set_option`, [name, value]);
-            return;
-        }
-        return this.request(`${this.prefix}set_option`, [name, value]);
-    }
-    /** `request` is basically the same except you can choose to wait forpromise to be resolved */
-    notify(name, args = []) {
-        this.transport.notify(name, this.getArgsByPrefix(args));
-    }
-}
-exports.BaseApi = BaseApi;
-
-
-/***/ }),
-/* 49 */
-/***/ (function(module, exports) {
-
-module.exports = require("events");
-
-/***/ }),
-/* 50 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Base_1 = __webpack_require__(48);
-const timers_1 = __webpack_require__(51);
-class Window extends Base_1.BaseApi {
-    constructor() {
-        super(...arguments);
-        this.prefix = 'nvim_win_';
-    }
-    /**
-     * The windowid that not change within a Vim session
-     */
-    get id() {
-        return this.data;
-    }
-    /** Get current buffer of window */
-    get buffer() {
-        return this.request(`${this.prefix}get_buf`, []);
-    }
-    /** Get the Tabpage that contains the window */
-    get tabpage() {
-        return this.request(`${this.prefix}get_tabpage`, []);
-    }
-    /** Get cursor position */
-    get cursor() {
-        return this.request(`${this.prefix}get_cursor`, []);
-    }
-    setCursor(pos, isNotify = false) {
-        let method = isNotify ? 'notify' : 'request';
-        return this[method](`${this.prefix}set_cursor`, [pos]);
-    }
-    /** Get window height by number of rows */
-    get height() {
-        return this.request(`${this.prefix}get_height`, []);
-    }
-    setHeight(height, isNotify = false) {
-        let method = isNotify ? 'notify' : 'request';
-        return this[method](`${this.prefix}set_height`, [height]);
-    }
-    /** Get window width by number of columns */
-    get width() {
-        return this.request(`${this.prefix}get_width`, []);
-    }
-    setWidth(width, isNotify = false) {
-        let method = isNotify ? 'notify' : 'request';
-        return this[method](`${this.prefix}set_height`, [width]);
-    }
-    /** Get window position */
-    get position() {
-        return this.request(`${this.prefix}get_position`, []);
-    }
-    /** 0-indexed, on-screen window position(row) in display cells. */
-    get row() {
-        return this.request(`${this.prefix}get_position`, []).then(position => position[0]);
-    }
-    /** 0-indexed, on-screen window position(col) in display cells. */
-    get col() {
-        return this.request(`${this.prefix}get_position`, []).then(position => position[1]);
-    }
-    /** Is window valid */
-    get valid() {
-        return this.request(`${this.prefix}is_valid`, []);
-    }
-    /** Get window number */
-    get number() {
-        return this.request(`${this.prefix}get_number`, []);
-    }
-    setConfig(options, isNotify) {
-        let method = isNotify ? 'notify' : 'request';
-        return this[method](`${this.prefix}set_config`, [options]);
-    }
-    getConfig() {
-        return this.request(`${this.prefix}get_config`, []);
-    }
-    close(force, isNotify) {
-        if (isNotify) {
-            this.notify(`${this.prefix}close`, [force]);
-            let count = 0;
-            let interval = setInterval(() => {
-                if (count == 5)
-                    return timers_1.clearInterval(interval);
-                this.request(`${this.prefix}is_valid`, []).then(valid => {
-                    if (!valid) {
-                        timers_1.clearInterval(interval);
-                    }
-                    else {
-                        this.notify(`${this.prefix}close`, [force]);
-                    }
-                }, () => {
-                    timers_1.clearInterval(interval);
-                });
-                count++;
-            }, 50);
-            return null;
-        }
-        return this.request(`${this.prefix}close`, [force]);
-    }
-}
-exports.Window = Window;
-
-
-/***/ }),
-/* 51 */
-/***/ (function(module, exports) {
-
-module.exports = require("timers");
-
-/***/ }),
-/* 52 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Base_1 = __webpack_require__(48);
-class Tabpage extends Base_1.BaseApi {
-    constructor() {
-        super(...arguments);
-        this.prefix = 'nvim_tabpage_';
-    }
-    /** Returns all windows of tabpage */
-    get windows() {
-        return this.request(`${this.prefix}list_wins`, []);
-    }
-    /** Gets the current window of tabpage */
-    get window() {
-        return this.request(`${this.prefix}get_win`, []);
-    }
-    /** Is current tabpage valid */
-    get valid() {
-        return this.request(`${this.prefix}is_valid`, []);
-    }
-    /** Tabpage number */
-    get number() {
-        return this.request(`${this.prefix}get_number`, []);
-    }
-    /** Invalid */
-    getOption() {
-        throw new Error('Tabpage does not have `getOption`');
-    }
-    /** Invalid */
-    setOption() {
-        throw new Error('Tabpage does not have `setOption`');
-    }
-}
-exports.Tabpage = Tabpage;
-
-
-/***/ }),
-/* 53 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const events_1 = __webpack_require__(49);
-const logger_1 = __webpack_require__(54);
-const debug = process.env.NODE_CLIENT_LOG_LEVEL == 'debug';
-const logger = logger_1.createLogger('transport');
-class Transport extends events_1.EventEmitter {
-    constructor() {
-        super(...arguments);
-        this._paused = false;
-        this.paused = [];
-    }
-    debug(key, ...meta) {
-        if (!debug)
-            return;
-        logger.debug(key, ...meta);
-    }
-    debugMessage(msg) {
-        if (!debug)
-            return;
-        const msgType = msg[0];
-        if (msgType == 0) {
-            logger.debug('receive request:', msg.slice(1));
-        }
-        else if (msgType == 1) {
-            logger.debug('receive response:', msg.slice(1));
-        }
-        else if (msgType == 2) {
-            logger.debug('receive notification:', msg.slice(1));
-        }
-        else {
-            logger.debug('unknown message:', msg);
-        }
-    }
-    pauseNotification() {
-        this._paused = true;
-    }
-    resumeNotification(isNotify = false) {
-        this._paused = false;
-        let list = this.paused;
-        if (list.length) {
-            this.paused = [];
-            return new Promise((resolve, reject) => {
-                if (!isNotify)
-                    return this.request('nvim_call_atomic', [list], (err, res) => {
-                        if (err)
-                            return reject(new Error(`call_atomic error: ${err[1]}`));
-                        resolve(res);
-                    });
-                this.notify('nvim_call_atomic', [list]);
-                resolve();
-            });
-        }
-        return isNotify ? null : Promise.resolve();
-    }
-}
-exports.default = Transport;
-
-
-/***/ }),
-/* 54 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const fs_1 = __importDefault(__webpack_require__(55));
-const os_1 = __importDefault(__webpack_require__(56));
-const path_1 = __importDefault(__webpack_require__(57));
-function getLogFile() {
-    let file = process.env.NODE_CLIENT_LOG_FILE;
-    if (file)
-        return file;
-    let dir = process.env.XDG_RUNTIME_DIR;
-    if (dir)
-        return path_1.default.join(dir, 'node-client.log');
-    return path_1.default.join(os_1.default.tmpdir(), `node-client-${process.pid}.log`);
-}
-const LOG_FILE_PATH = getLogFile();
-const level = process.env.NODE_CLIENT_LOG_LEVEL || 'info';
-let invalid = process.getuid && process.getuid() == 0;
-if (!invalid) {
-    try {
-        fs_1.default.mkdirSync(path_1.default.dirname(LOG_FILE_PATH), { recursive: true });
-        fs_1.default.writeFileSync(LOG_FILE_PATH, '', { encoding: 'utf8', mode: 0o666 });
-    }
-    catch (_e) {
-        invalid = true;
-    }
-}
-function toObject(arg) {
-    if (arg == null) {
-        return arg;
-    }
-    if (Array.isArray(arg)) {
-        return arg.map(o => toObject(o));
-    }
-    if (typeof arg == 'object' && typeof arg.prefix == 'string' && typeof arg.data == 'number') {
-        return '[' + arg.prefix + arg.data + ']';
-    }
-    return arg;
-}
-function toString(arg) {
-    if (arg == null)
-        return String(arg);
-    if (typeof arg == 'object')
-        return JSON.stringify(arg, null, 2);
-    return String(arg);
-}
-const stream = invalid ? null : fs_1.default.createWriteStream(LOG_FILE_PATH, { encoding: 'utf8' });
-class Logger {
-    constructor(name) {
-        this.name = name;
-    }
-    getText(level, data, meta) {
-        let more = '';
-        if (meta.length) {
-            let arr = toObject(meta);
-            more = ' ' + arr.map(o => toString(o));
-        }
-        return `${new Date().toLocaleTimeString()} ${level.toUpperCase()} [${this.name}] - ${data}${more}\n`;
-    }
-    debug(data, ...meta) {
-        if (level != 'debug' || stream == null)
-            return;
-        stream.write(this.getText('debug', data, meta));
-    }
-    info(data, ...meta) {
-        if (stream == null)
-            return;
-        stream.write(this.getText('info', data, meta));
-    }
-    error(data, ...meta) {
-        if (stream == null)
-            return;
-        stream.write(this.getText('error', data, meta));
-    }
-    trace(data, ...meta) {
-        if (level != 'trace' || stream == null)
-            return;
-        stream.write(this.getText('trace', data, meta));
-    }
-}
-function createLogger(name) {
-    return new Logger(name);
-}
-exports.createLogger = createLogger;
-
-
-/***/ }),
-/* 55 */
 /***/ (function(module, exports) {
 
 module.exports = require("fs");
 
 /***/ }),
-/* 56 */
-/***/ (function(module, exports) {
-
-module.exports = require("os");
-
-/***/ }),
-/* 57 */
-/***/ (function(module, exports) {
-
-module.exports = require("path");
-
-/***/ }),
-/* 58 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const base_1 = __importDefault(__webpack_require__(53));
-const connection_1 = __importDefault(__webpack_require__(59));
-const request_1 = __importDefault(__webpack_require__(61));
-class VimTransport extends base_1.default {
-    constructor() {
-        super();
-        this.pending = new Map();
-        this.nextRequestId = 0;
-        this.attached = false;
-        this.notifyMethod = process.env.COC_NVIM == '1' ? 'coc#api#notify' : 'nvim#api#notify';
-    }
-    attach(writer, reader, client) {
-        let connection = this.connection = new connection_1.default(reader, writer);
-        this.attached = true;
-        this.client = client;
-        connection.on('request', (id, obj) => {
-            let [method, args] = obj;
-            this.emit('request', method, args, this.createResponse(id));
-        });
-        connection.on('notification', (obj) => {
-            let [event, args] = obj;
-            this.emit('notification', event.toString(), args);
-        });
-        connection.on('response', (id, obj) => {
-            let req = this.pending.get(id);
-            if (req) {
-                this.pending.delete(id);
-                let err = null;
-                let result = null;
-                if (!Array.isArray(obj)) {
-                    err = obj;
-                }
-                else {
-                    err = obj[0];
-                    result = obj[1];
-                }
-                req.callback(this.client, err, result);
-            }
-        });
-    }
-    detach() {
-        if (!this.attached)
-            return;
-        this.attached = false;
-        this.connection.dispose();
-    }
-    /**
-     * Send request to vim
-     */
-    request(method, args, cb) {
-        if (!this.attached)
-            return cb([0, 'transport disconnected']);
-        if (!this.client.hasFunction(method)) {
-            // tslint:disable-next-line: no-console
-            console.error(`method: ${method} not supported.`);
-        }
-        this.nextRequestId = this.nextRequestId - 1;
-        let req = new request_1.default(this.connection, cb, this.nextRequestId);
-        this.pending.set(this.nextRequestId, req);
-        req.request(method, args);
-    }
-    notify(method, args) {
-        if (!this.attached)
-            return;
-        if (!this.client.hasFunction(method)) {
-            // tslint:disable-next-line: no-console
-            console.error(`method: ${method} not supported.`);
-        }
-        if (this._paused) {
-            this.paused.push([method, args]);
-            return;
-        }
-        this.connection.call(this.notifyMethod, [method.slice(5), args]);
-    }
-    createResponse(requestId) {
-        let called = false;
-        let { connection } = this;
-        return {
-            send: (resp, isError) => {
-                if (called || !this.attached)
-                    return;
-                called = true;
-                let err = null;
-                if (isError)
-                    err = typeof resp === 'string' ? resp : resp.toString();
-                connection.response(requestId, [err, isError ? null : resp]);
-            }
-        };
-    }
-}
-exports.VimTransport = VimTransport;
-
-
-/***/ }),
-/* 59 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const events_1 = __importDefault(__webpack_require__(49));
-const readline_1 = __importDefault(__webpack_require__(60));
-const logger_1 = __webpack_require__(54);
-const logger = logger_1.createLogger('connection');
-const debug = process.env.NODE_CLIENT_LOG_LEVEL == 'debug';
-class Connection extends events_1.default {
-    constructor(readable, writeable) {
-        super();
-        this.readable = readable;
-        this.writeable = writeable;
-        const rl = readline_1.default.createInterface(this.readable);
-        rl.on('line', (line) => {
-            this.parseData(line);
-        });
-        rl.on('close', () => {
-            logger.error('connection closed');
-            process.exit(0);
-        });
-    }
-    parseData(str) {
-        if (str.length == 0)
-            return;
-        let arr;
-        try {
-            arr = JSON.parse(str);
-        }
-        catch (e) {
-            // tslint:disable-next-line: no-console
-            console.error(`Invalid data from vim: ${str}`);
-            return;
-        }
-        // request, notification, response
-        let [id, obj] = arr;
-        logger.debug('received:', arr);
-        if (id > 0) {
-            this.emit('request', id, obj);
-        }
-        else if (id == 0) {
-            this.emit('notification', obj);
-        }
-        else {
-            // response for previous request
-            this.emit('response', id, obj);
-        }
-    }
-    response(requestId, data) {
-        this.send([requestId, data || null]);
-    }
-    notify(event, data) {
-        this.send([0, [event, data || null]]);
-    }
-    send(arr) {
-        if (debug)
-            logger.debug('send:', arr[0], arr.slice(1));
-        try {
-            this.writeable.write(JSON.stringify(arr) + '\n');
-        }
-        catch (e) {
-            logger.error('Send error:', arr);
-        }
-    }
-    redraw(force = false) {
-        this.send(['redraw', force ? 'force' : '']);
-    }
-    commmand(cmd) {
-        this.send(['ex', cmd]);
-    }
-    expr(expr) {
-        this.send(['expr', expr]);
-    }
-    call(func, args, requestId) {
-        if (!requestId) {
-            this.send(['call', func, args]);
-            return;
-        }
-        this.send(['call', func, args, requestId]);
-    }
-    dispose() {
-        this.removeAllListeners();
-    }
-}
-exports.default = Connection;
-
-
-/***/ }),
-/* 60 */
-/***/ (function(module, exports) {
-
-module.exports = require("readline");
-
-/***/ }),
-/* 61 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const logger_1 = __webpack_require__(54);
-const logger = logger_1.createLogger('request');
-const debug = process.env.NODE_CLIENT_LOG_LEVEL == 'debug';
-const func = process.env.COC_NVIM == '1' ? 'coc#api#call' : 'nvim#api#call';
-class Request {
-    constructor(connection, cb, id) {
-        this.connection = connection;
-        this.cb = cb;
-        this.id = id;
-    }
-    request(method, args = []) {
-        this.method = method;
-        this.args = args;
-        this.connection.call(func, [method.slice(5), args], this.id);
-    }
-    callback(client, err, result) {
-        let { method, cb } = this;
-        if (debug && err) {
-            logger.debug(`request ${this.method} error:`, err, this.args);
-        }
-        if (err)
-            return cb([0, err.toString()]);
-        switch (method) {
-            case 'nvim_list_wins':
-            case 'nvim_tabpage_list_wins':
-                return cb(null, result.map(o => client.createWindow(o)));
-            case 'nvim_tabpage_get_win':
-            case 'nvim_get_current_win':
-            case 'nvim_open_win':
-                return cb(null, client.createWindow(result));
-            case 'nvim_list_bufs':
-                return cb(null, result.map(o => client.createBuffer(o)));
-            case 'nvim_win_get_buf':
-            case 'nvim_create_buf':
-            case 'nvim_get_current_buf':
-                return cb(null, client.createBuffer(result));
-            case 'nvim_list_tabpages':
-                return cb(null, result.map(o => client.createTabpage(o)));
-            case 'nvim_get_current_tabpage':
-                return cb(null, client.createTabpage(result));
-            default:
-                return cb(null, result);
-        }
-    }
-}
-exports.default = Request;
-
-
-/***/ }),
-/* 62 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const Base_1 = __webpack_require__(48);
-const Buffer_1 = __webpack_require__(47);
-const Tabpage_1 = __webpack_require__(52);
-const Window_1 = __webpack_require__(50);
-const isVim = process.env.VIM_NODE_RPC == '1';
-/**
- * Neovim API
- */
-class Neovim extends Base_1.BaseApi {
-    constructor() {
-        super(...arguments);
-        this.prefix = 'nvim_';
-        this.Buffer = Buffer_1.Buffer;
-        this.Window = Window_1.Window;
-        this.Tabpage = Tabpage_1.Tabpage;
-    }
-    getArgs(args) {
-        if (!args)
-            return [];
-        if (Array.isArray(args))
-            return args;
-        return [args];
-    }
-    get apiInfo() {
-        return this.request(`${this.prefix}get_api_info`);
-    }
-    /** Get list of all buffers */
-    get buffers() {
-        return this.request(`${this.prefix}list_bufs`);
-    }
-    /** Get current buffer */
-    get buffer() {
-        return this.request(`${this.prefix}get_current_buf`);
-    }
-    /** Set current buffer */
-    setBuffer(buffer) {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield this.request(`${this.prefix}set_current_buf`, [buffer]);
-        });
-    }
-    get chans() {
-        return this.request(`${this.prefix}list_chans`);
-    }
-    getChanInfo(chan) {
-        return this.request(`${this.prefix}get_chan_info`, [chan]);
-    }
-    createNamespace(name = "") {
-        return this.request(`${this.prefix}create_namespace`, [name]);
-    }
-    get namespaces() {
-        return this.request(`${this.prefix}get_namespaces`, [name]);
-    }
-    get commands() {
-        return this.getCommands();
-    }
-    getCommands(options = {}) {
-        return this.request(`${this.prefix}get_commands`, [options]);
-    }
-    /** Get list of all tabpages */
-    get tabpages() {
-        return this.request(`${this.prefix}list_tabpages`);
-    }
-    /** Get current tabpage */
-    get tabpage() {
-        return this.request(`${this.prefix}get_current_tabpage`);
-    }
-    /** Set current tabpage */
-    setTabpage(tabpage) {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield this.request(`${this.prefix}set_current_tabpage`, [tabpage]);
-        });
-    }
-    /** Get list of all windows */
-    get windows() {
-        return this.getWindows();
-    }
-    /** Get current window */
-    get window() {
-        return this.request(`${this.prefix}get_current_win`);
-    }
-    /** Get list of all windows */
-    getWindows() {
-        return this.request(`${this.prefix}list_wins`);
-    }
-    setWindow(win) {
-        return __awaiter(this, void 0, void 0, function* () {
-            // Throw error if win is not instance of Window?
-            yield this.request(`${this.prefix}set_current_win`, [win]);
-        });
-    }
-    /** Get list of all runtime paths */
-    get runtimePaths() {
-        return this.request(`${this.prefix}list_runtime_paths`);
-    }
-    /** Set current directory */
-    setDirectory(dir) {
-        return this.request(`${this.prefix}set_current_dir`, [dir]);
-    }
-    /** Get current line. Always returns a Promise. */
-    get line() {
-        return this.getLine();
-    }
-    createNewBuffer(listed = false, scratch = false) {
-        return this.request(`${this.prefix}create_buf`, [listed, scratch]);
-    }
-    openFloatWindow(buffer, enter, options) {
-        return this.request(`${this.prefix}open_win`, [buffer, enter, options]);
-    }
-    getLine() {
-        return this.request(`${this.prefix}get_current_line`);
-    }
-    /** Set current line */
-    setLine(line) {
-        return this.request(`${this.prefix}set_current_line`, [line]);
-    }
-    /** Gets keymap */
-    getKeymap(mode) {
-        return this.request(`${this.prefix}get_keymap`, [mode]);
-    }
-    /** Gets current mode */
-    get mode() {
-        return this.request(`${this.prefix}get_mode`);
-    }
-    /** Gets map of defined colors */
-    get colorMap() {
-        return this.request(`${this.prefix}get_color_map`);
-    }
-    /** Get color by name */
-    getColorByName(name) {
-        return this.request(`${this.prefix}get_color_by_name`, [name]);
-    }
-    /** Get highlight by name or id */
-    getHighlight(nameOrId, isRgb = true) {
-        const functionName = typeof nameOrId === 'string' ? 'by_name' : 'by_id';
-        return this.request(`${this.prefix}get_hl_${functionName}`, [
-            nameOrId,
-            isRgb,
-        ]);
-    }
-    getHighlightByName(name, isRgb = true) {
-        return this.request(`${this.prefix}get_hl_by_name`, [name, isRgb]);
-    }
-    getHighlightById(id, isRgb = true) {
-        return this.request(`${this.prefix}get_hl_by_id`, [id, isRgb]);
-    }
-    /** Delete current line in buffer */
-    deleteCurrentLine() {
-        return this.request(`${this.prefix}del_current_line`);
-    }
-    /**
-     * Evaluates a VimL expression (:help expression). Dictionaries
-     * and Lists are recursively expanded. On VimL error: Returns a
-     * generic error; v:errmsg is not updated.
-     *
-     */
-    eval(expr) {
-        return this.request(`${this.prefix}eval`, [expr]);
-    }
-    /**
-     * Executes lua, it's possible neovim client does not support this
-     */
-    lua(code, args = []) {
-        const _args = this.getArgs(args);
-        return this.request(`${this.prefix}execute_lua`, [code, _args]);
-    }
-    // Alias for `lua()` to be consistent with neovim API
-    executeLua(code, args = []) {
-        return this.lua(code, args);
-    }
-    callDictFunction(dict, fname, args = []) {
-        const _args = this.getArgs(args);
-        return this.request(`${this.prefix}call_dict_function`, [
-            dict,
-            fname,
-            _args,
-        ]);
-    }
-    call(fname, args = [], isNotify) {
-        const _args = this.getArgs(args);
-        if (isNotify) {
-            this.notify(`${this.prefix}call_function`, [fname, _args]);
-            return null;
-        }
-        return this.request(`${this.prefix}call_function`, [fname, _args]);
-    }
-    callTimer(fname, args = [], isNotify) {
-        const _args = this.getArgs(args);
-        if (isNotify) {
-            this.notify(`${this.prefix}call_function`, ['coc#util#timer', [fname, _args]]);
-            return null;
-        }
-        if (isVim) {
-            this.notify(`${this.prefix}call_function`, ['coc#util#timer', [fname, _args]]);
-            return new Promise(resolve => {
-                setTimeout(() => {
-                    resolve(null);
-                }, 20);
-            });
-        }
-        return this.request(`${this.prefix}call_function`, ['coc#util#timer', [fname, _args]]);
-    }
-    callAsync(fname, args = []) {
-        const _args = this.getArgs(args);
-        return this.client.sendAsyncRequest(fname, _args);
-    }
-    /** Alias for `call` */
-    callFunction(fname, args = []) {
-        return this.call(fname, args);
-    }
-    /** Call Atomic calls */
-    callAtomic(calls) {
-        return this.request(`${this.prefix}call_atomic`, [calls]);
-    }
-    command(arg, isNotify) {
-        if (isNotify) {
-            this.notify(`${this.prefix}command`, [arg]);
-            return null;
-        }
-        return this.request(`${this.prefix}command`, [arg]);
-    }
-    /** Runs a command and returns output (synchronous?) */
-    commandOutput(arg) {
-        return this.request(`${this.prefix}command_output`, [arg]);
-    }
-    /** Gets a v: variable */
-    getVvar(name) {
-        return this.request(`${this.prefix}get_vvar`, [name]);
-    }
-    /** feedKeys */
-    feedKeys(keys, mode, escapeCsi) {
-        return this.request(`${this.prefix}feedkeys`, [keys, mode, escapeCsi]);
-    }
-    /** Sends input keys */
-    input(keys) {
-        return this.request(`${this.prefix}input`, [keys]);
-    }
-    /**
-     * Parse a VimL Expression
-     *
-     * TODO: return type, see :help
-     */
-    parseExpression(expr, flags, highlight) {
-        return this.request(`${this.prefix}parse_expression`, [
-            expr,
-            flags,
-            highlight,
-        ]);
-    }
-    getProc(pid) {
-        return this.request(`${this.prefix}get_proc`, [pid]);
-    }
-    getProcChildren(pid) {
-        return this.request(`${this.prefix}get_proc_children`, [pid]);
-    }
-    /** Replace term codes */
-    replaceTermcodes(str, fromPart, doIt, special) {
-        return this.request(`${this.prefix}replace_termcodes`, [
-            str,
-            fromPart,
-            doIt,
-            special,
-        ]);
-    }
-    /** Gets width of string */
-    strWidth(str) {
-        return this.request(`${this.prefix}strwidth`, [str]);
-    }
-    /** Write to output buffer */
-    outWrite(str) {
-        this.notify(`${this.prefix}out_write`, [str]);
-    }
-    outWriteLine(str) {
-        this.outWrite(`${str}\n`);
-    }
-    /** Write to error buffer */
-    errWrite(str) {
-        this.notify(`${this.prefix}err_write`, [str]);
-    }
-    /** Write to error buffer */
-    errWriteLine(str) {
-        this.notify(`${this.prefix}err_writeln`, [str]);
-    }
-    // TODO: add type
-    get uis() {
-        return this.request(`${this.prefix}list_uis`);
-    }
-    uiAttach(width, height, options) {
-        return this.request(`${this.prefix}ui_attach`, [width, height, options]);
-    }
-    uiDetach() {
-        return this.request(`${this.prefix}ui_detach`, []);
-    }
-    uiTryResize(width, height) {
-        return this.request(`${this.prefix}ui_try_resize`, [width, height]);
-    }
-    /** Set UI Option */
-    uiSetOption(name, value) {
-        return this.request(`${this.prefix}ui_set_option`, [name, value]);
-    }
-    /** Subscribe to nvim event broadcasts */
-    subscribe(event) {
-        return this.request(`${this.prefix}subscribe`, [event]);
-    }
-    /** Unsubscribe to nvim event broadcasts */
-    unsubscribe(event) {
-        return this.request(`${this.prefix}unsubscribe`, [event]);
-    }
-    setClientInfo(name, version, type, methods, attributes) {
-        this.notify(`${this.prefix}set_client_info`, [
-            name,
-            version,
-            type,
-            methods,
-            attributes,
-        ]);
-    }
-    /** Quit nvim */
-    quit() {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.command('qa!', true);
-            if (this.transport) {
-                this.transport.detach();
-            }
-        });
-    }
-}
-exports.Neovim = Neovim;
-
-
-/***/ }),
-/* 63 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-var client_1 = __webpack_require__(7);
-exports.Neovim = client_1.NeovimClient;
-var client_2 = __webpack_require__(7);
-exports.NeovimClient = client_2.NeovimClient;
-var Buffer_1 = __webpack_require__(47);
-exports.Buffer = Buffer_1.Buffer;
-var Window_1 = __webpack_require__(50);
-exports.Window = Window_1.Window;
-var Tabpage_1 = __webpack_require__(52);
-exports.Tabpage = Tabpage_1.Tabpage;
-
-
-/***/ }),
-/* 64 */
+/* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -6928,17 +2041,17 @@ exports.Tabpage = Tabpage_1.Tabpage;
  * @since 2005-05-20
  * Website: http://log4js.berlios.de
  */
-const debug = __webpack_require__(65)("log4js:main");
-const fs = __webpack_require__(55);
-const deepClone = __webpack_require__(73)({ proto: true });
-const configuration = __webpack_require__(74);
-const layouts = __webpack_require__(75);
-const levels = __webpack_require__(77);
-const appenders = __webpack_require__(78);
-const categories = __webpack_require__(145);
-const Logger = __webpack_require__(146);
-const clustering = __webpack_require__(79);
-const connectLogger = __webpack_require__(147);
+const debug = __webpack_require__(6)("log4js:main");
+const fs = __webpack_require__(4);
+const deepClone = __webpack_require__(16)({ proto: true });
+const configuration = __webpack_require__(17);
+const layouts = __webpack_require__(18);
+const levels = __webpack_require__(21);
+const appenders = __webpack_require__(22);
+const categories = __webpack_require__(90);
+const Logger = __webpack_require__(91);
+const clustering = __webpack_require__(23);
+const connectLogger = __webpack_require__(92);
 
 let enabled = false;
 
@@ -7065,7 +2178,7 @@ module.exports = log4js;
 
 
 /***/ }),
-/* 65 */
+/* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -7074,14 +2187,14 @@ module.exports = log4js;
  */
 
 if (typeof process === 'undefined' || process.type === 'renderer' || process.browser === true || process.__nwjs) {
-	module.exports = __webpack_require__(66);
+	module.exports = __webpack_require__(7);
 } else {
-	module.exports = __webpack_require__(69);
+	module.exports = __webpack_require__(10);
 }
 
 
 /***/ }),
-/* 66 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* eslint-env browser */
@@ -7333,7 +2446,7 @@ function localstorage() {
 	}
 }
 
-module.exports = __webpack_require__(67)(exports);
+module.exports = __webpack_require__(8)(exports);
 
 const {formatters} = module.exports;
 
@@ -7351,7 +2464,7 @@ formatters.j = function (v) {
 
 
 /***/ }),
-/* 67 */
+/* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
 
@@ -7367,7 +2480,7 @@ function setup(env) {
 	createDebug.disable = disable;
 	createDebug.enable = enable;
 	createDebug.enabled = enabled;
-	createDebug.humanize = __webpack_require__(68);
+	createDebug.humanize = __webpack_require__(9);
 
 	Object.keys(env).forEach(key => {
 		createDebug[key] = env[key];
@@ -7623,7 +2736,7 @@ module.exports = setup;
 
 
 /***/ }),
-/* 68 */
+/* 9 */
 /***/ (function(module, exports) {
 
 /**
@@ -7791,15 +2904,15 @@ function plural(ms, msAbs, n, name) {
 
 
 /***/ }),
-/* 69 */
+/* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
  * Module dependencies.
  */
 
-const tty = __webpack_require__(70);
-const util = __webpack_require__(40);
+const tty = __webpack_require__(11);
+const util = __webpack_require__(12);
 
 /**
  * This is the Node.js implementation of `debug()`.
@@ -7821,7 +2934,7 @@ exports.colors = [6, 2, 3, 4, 5, 1];
 try {
 	// Optional dependency (as in, doesn't need to be installed, NOT like optionalDependencies in package.json)
 	// eslint-disable-next-line import/no-extraneous-dependencies
-	const supportsColor = __webpack_require__(71);
+	const supportsColor = __webpack_require__(13);
 
 	if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
 		exports.colors = [
@@ -8029,7 +3142,7 @@ function init(debug) {
 	}
 }
 
-module.exports = __webpack_require__(67)(exports);
+module.exports = __webpack_require__(8)(exports);
 
 const {formatters} = module.exports;
 
@@ -8054,19 +3167,25 @@ formatters.O = function (v) {
 
 
 /***/ }),
-/* 70 */
+/* 11 */
 /***/ (function(module, exports) {
 
 module.exports = require("tty");
 
 /***/ }),
-/* 71 */
+/* 12 */
+/***/ (function(module, exports) {
+
+module.exports = require("util");
+
+/***/ }),
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const os = __webpack_require__(56);
-const hasFlag = __webpack_require__(72);
+const os = __webpack_require__(14);
+const hasFlag = __webpack_require__(15);
 
 const {env} = process;
 
@@ -8205,7 +3324,13 @@ module.exports = {
 
 
 /***/ }),
-/* 72 */
+/* 14 */
+/***/ (function(module, exports) {
+
+module.exports = require("os");
+
+/***/ }),
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8220,7 +3345,7 @@ module.exports = (flag, argv) => {
 
 
 /***/ }),
-/* 73 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8374,13 +3499,13 @@ function rfdcCircles (opts) {
 
 
 /***/ }),
-/* 74 */
+/* 17 */
 /***/ (function(module, exports, __webpack_require__) {
 
 
 
-const util = __webpack_require__(40);
-const debug = __webpack_require__(65)('log4js:configuration');
+const util = __webpack_require__(12);
+const debug = __webpack_require__(6)('log4js:configuration');
 
 const preProcessingListeners = [];
 const listeners = [];
@@ -8439,13 +3564,13 @@ module.exports = {
 
 
 /***/ }),
-/* 75 */
+/* 18 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const dateFormat = __webpack_require__(76);
-const os = __webpack_require__(56);
-const util = __webpack_require__(40);
-const path = __webpack_require__(57);
+const dateFormat = __webpack_require__(19);
+const os = __webpack_require__(14);
+const util = __webpack_require__(12);
+const path = __webpack_require__(20);
 
 const styles = {
   // styles
@@ -8812,7 +3937,7 @@ module.exports = {
 
 
 /***/ }),
-/* 76 */
+/* 19 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -9014,12 +4139,18 @@ module.exports.ABSOLUTETIME_FORMAT = "hh:mm:ss.SSS";
 
 
 /***/ }),
-/* 77 */
+/* 20 */
+/***/ (function(module, exports) {
+
+module.exports = require("path");
+
+/***/ }),
+/* 21 */
 /***/ (function(module, exports, __webpack_require__) {
 
 
 
-const configuration = __webpack_require__(74);
+const configuration = __webpack_require__(17);
 
 const validColours = [
   'white', 'grey', 'black',
@@ -9170,34 +4301,34 @@ module.exports = Level;
 
 
 /***/ }),
-/* 78 */
+/* 22 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const path = __webpack_require__(57);
-const debug = __webpack_require__(65)('log4js:appenders');
-const configuration = __webpack_require__(74);
-const clustering = __webpack_require__(79);
-const levels = __webpack_require__(77);
-const layouts = __webpack_require__(75);
-const adapters = __webpack_require__(83);
+const path = __webpack_require__(20);
+const debug = __webpack_require__(6)('log4js:appenders');
+const configuration = __webpack_require__(17);
+const clustering = __webpack_require__(23);
+const levels = __webpack_require__(21);
+const layouts = __webpack_require__(18);
+const adapters = __webpack_require__(27);
 
 // pre-load the core appenders so that webpack can find them
 const coreAppenders = new Map();
-coreAppenders.set('console', __webpack_require__(84));
-coreAppenders.set('stdout', __webpack_require__(85));
-coreAppenders.set('stderr', __webpack_require__(86));
-coreAppenders.set('logLevelFilter', __webpack_require__(87));
-coreAppenders.set('categoryFilter', __webpack_require__(88));
-coreAppenders.set('noLogFilter', __webpack_require__(89));
-coreAppenders.set('file', __webpack_require__(90));
-coreAppenders.set('dateFile', __webpack_require__(143));
+coreAppenders.set('console', __webpack_require__(28));
+coreAppenders.set('stdout', __webpack_require__(29));
+coreAppenders.set('stderr', __webpack_require__(30));
+coreAppenders.set('logLevelFilter', __webpack_require__(31));
+coreAppenders.set('categoryFilter', __webpack_require__(32));
+coreAppenders.set('noLogFilter', __webpack_require__(33));
+coreAppenders.set('file', __webpack_require__(34));
+coreAppenders.set('dateFile', __webpack_require__(88));
 
 const appenders = new Map();
 
 const tryLoading = (modulePath, config) => {
   debug('Loading module from ', modulePath);
   try {
-    return __webpack_require__(144)(modulePath); //eslint-disable-line
+    return __webpack_require__(89)(modulePath); //eslint-disable-line
   } catch (e) {
     // if the module was found, and we still got an error, then raise it
     configuration.throwExceptionIf(
@@ -9232,7 +4363,7 @@ const createAppender = (name, config) => {
   }
 
   debug(`${name}: clustering.isMaster ? ${clustering.isMaster()}`);
-  debug(`${name}: appenderModule is ${__webpack_require__(40).inspect(appenderModule)}`); // eslint-disable-line
+  debug(`${name}: appenderModule is ${__webpack_require__(12).inspect(appenderModule)}`); // eslint-disable-line
   return clustering.onlyOnMaster(() => {
     debug(`calling appenderModule.configure for ${name} / ${appenderConfig.type}`);
     return appenderModule.configure(
@@ -9283,17 +4414,17 @@ module.exports = appenders;
 
 
 /***/ }),
-/* 79 */
+/* 23 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const debug = __webpack_require__(65)("log4js:clustering");
-const LoggingEvent = __webpack_require__(80);
-const configuration = __webpack_require__(74);
+const debug = __webpack_require__(6)("log4js:clustering");
+const LoggingEvent = __webpack_require__(24);
+const configuration = __webpack_require__(17);
 
 let disabled = false;
 let cluster = null;
 try {
-  cluster = __webpack_require__(82); //eslint-disable-line
+  cluster = __webpack_require__(26); //eslint-disable-line
 } catch (e) {
   debug("cluster module not present");
   disabled = true;
@@ -9392,11 +4523,11 @@ module.exports = {
 
 
 /***/ }),
-/* 80 */
+/* 24 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const flatted = __webpack_require__(81);
-const levels = __webpack_require__(77);
+const flatted = __webpack_require__(25);
+const levels = __webpack_require__(21);
 
 /**
  * @name LoggingEvent
@@ -9478,7 +4609,7 @@ module.exports = LoggingEvent;
 
 
 /***/ }),
-/* 81 */
+/* 25 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -9606,13 +4737,13 @@ var stringify = Flatted.stringify;
 
 
 /***/ }),
-/* 82 */
+/* 26 */
 /***/ (function(module, exports) {
 
 module.exports = require("cluster");
 
 /***/ }),
-/* 83 */
+/* 27 */
 /***/ (function(module, exports) {
 
 function maxFileSizeUnitTransform(maxLogSize) {
@@ -9662,7 +4793,7 @@ module.exports.modifyConfig = config => (adapters[config.type] ? adapters[config
 
 
 /***/ }),
-/* 84 */
+/* 28 */
 /***/ (function(module, exports) {
 
 // eslint-disable-next-line no-console
@@ -9686,7 +4817,7 @@ module.exports.configure = configure;
 
 
 /***/ }),
-/* 85 */
+/* 29 */
 /***/ (function(module, exports) {
 
 
@@ -9709,7 +4840,7 @@ exports.configure = configure;
 
 
 /***/ }),
-/* 86 */
+/* 30 */
 /***/ (function(module, exports) {
 
 
@@ -9732,7 +4863,7 @@ module.exports.configure = configure;
 
 
 /***/ }),
-/* 87 */
+/* 31 */
 /***/ (function(module, exports) {
 
 function logLevelFilter(minLevelString, maxLevelString, appender, levels) {
@@ -9755,10 +4886,10 @@ module.exports.configure = configure;
 
 
 /***/ }),
-/* 88 */
+/* 32 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const debug = __webpack_require__(65)('log4js:categoryFilter');
+const debug = __webpack_require__(6)('log4js:categoryFilter');
 
 function categoryFilter(excludes, appender) {
   if (typeof excludes === 'string') excludes = [excludes];
@@ -9780,12 +4911,12 @@ module.exports.configure = configure;
 
 
 /***/ }),
-/* 89 */
+/* 33 */
 /***/ (function(module, exports, __webpack_require__) {
 
 
 
-const debug = __webpack_require__(65)('log4js:noLogFilter');
+const debug = __webpack_require__(6)('log4js:noLogFilter');
 
 /**
  * The function removes empty or null regexp from the array
@@ -9829,13 +4960,13 @@ module.exports.configure = configure;
 
 
 /***/ }),
-/* 90 */
+/* 34 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const debug = __webpack_require__(65)('log4js:file');
-const path = __webpack_require__(57);
-const streams = __webpack_require__(91);
-const os = __webpack_require__(56);
+const debug = __webpack_require__(6)('log4js:file');
+const path = __webpack_require__(20);
+const streams = __webpack_require__(35);
+const os = __webpack_require__(14);
 
 const eol = os.EOL || '\n';
 
@@ -9929,29 +5060,29 @@ module.exports.configure = configure;
 
 
 /***/ }),
-/* 91 */
+/* 35 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = {
-  RollingFileWriteStream: __webpack_require__(92),
-  RollingFileStream: __webpack_require__(141),
-  DateRollingFileStream: __webpack_require__(142)
+  RollingFileWriteStream: __webpack_require__(36),
+  RollingFileStream: __webpack_require__(86),
+  DateRollingFileStream: __webpack_require__(87)
 };
 
 
 /***/ }),
-/* 92 */
+/* 36 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const debug = __webpack_require__(65)("streamroller:RollingFileWriteStream");
-const fs = __webpack_require__(93);
-const zlib = __webpack_require__(137);
-const path = __webpack_require__(57);
-const newNow = __webpack_require__(138);
-const format = __webpack_require__(76);
-const { Writable } = __webpack_require__(41);
-const fileNameFormatter = __webpack_require__(139);
-const fileNameParser = __webpack_require__(140);
+const debug = __webpack_require__(6)("streamroller:RollingFileWriteStream");
+const fs = __webpack_require__(37);
+const zlib = __webpack_require__(82);
+const path = __webpack_require__(20);
+const newNow = __webpack_require__(83);
+const format = __webpack_require__(19);
+const { Writable } = __webpack_require__(44);
+const fileNameFormatter = __webpack_require__(84);
+const fileNameParser = __webpack_require__(85);
 
 /**
  * RollingFileWriteStream is mainly used when writing to a file rolling by date or size.
@@ -10260,7 +5391,7 @@ module.exports = RollingFileWriteStream;
 
 
 /***/ }),
-/* 93 */
+/* 37 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -10269,24 +5400,24 @@ module.exports = RollingFileWriteStream;
 module.exports = Object.assign(
   {},
   // Export promiseified graceful-fs:
-  __webpack_require__(94),
+  __webpack_require__(38),
   // Export extra methods:
-  __webpack_require__(102),
-  __webpack_require__(111),
-  __webpack_require__(114),
-  __webpack_require__(117),
-  __webpack_require__(123),
-  __webpack_require__(104),
-  __webpack_require__(132),
-  __webpack_require__(134),
-  __webpack_require__(136),
-  __webpack_require__(113),
-  __webpack_require__(115)
+  __webpack_require__(47),
+  __webpack_require__(56),
+  __webpack_require__(59),
+  __webpack_require__(62),
+  __webpack_require__(68),
+  __webpack_require__(49),
+  __webpack_require__(77),
+  __webpack_require__(79),
+  __webpack_require__(81),
+  __webpack_require__(58),
+  __webpack_require__(60)
 )
 
 // Export fs.promises as a getter property so that we don't trigger
 // ExperimentalWarning before fs.promises is actually accessed.
-const fs = __webpack_require__(55)
+const fs = __webpack_require__(4)
 if (Object.getOwnPropertyDescriptor(fs, 'promises')) {
   Object.defineProperty(module.exports, 'promises', {
     get () { return fs.promises }
@@ -10295,15 +5426,15 @@ if (Object.getOwnPropertyDescriptor(fs, 'promises')) {
 
 
 /***/ }),
-/* 94 */
+/* 38 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 // This is adapted from https://github.com/normalize/mz
 // Copyright (c) 2014-2016 Jonathan Ong me@jongleberry.com and Contributors
-const u = __webpack_require__(95).fromCallback
-const fs = __webpack_require__(96)
+const u = __webpack_require__(39).fromCallback
+const fs = __webpack_require__(40)
 
 const api = [
   'access',
@@ -10411,7 +5542,7 @@ if (typeof fs.realpath.native === 'function') {
 
 
 /***/ }),
-/* 95 */
+/* 39 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -10443,15 +5574,15 @@ exports.fromPromise = function (fn) {
 
 
 /***/ }),
-/* 96 */
+/* 40 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var fs = __webpack_require__(55)
-var polyfills = __webpack_require__(97)
-var legacy = __webpack_require__(99)
-var clone = __webpack_require__(100)
+var fs = __webpack_require__(4)
+var polyfills = __webpack_require__(41)
+var legacy = __webpack_require__(43)
+var clone = __webpack_require__(45)
 
-var util = __webpack_require__(40)
+var util = __webpack_require__(12)
 
 /* istanbul ignore next - node 0.x polyfill */
 var gracefulQueue
@@ -10528,7 +5659,7 @@ if (!global[gracefulQueue]) {
   if (/\bgfs4\b/i.test(process.env.NODE_DEBUG || '')) {
     process.on('exit', function() {
       debug(global[gracefulQueue])
-      __webpack_require__(101).equal(global[gracefulQueue].length, 0)
+      __webpack_require__(46).equal(global[gracefulQueue].length, 0)
     })
   }
 }
@@ -10793,10 +5924,10 @@ function retry () {
 
 
 /***/ }),
-/* 97 */
+/* 41 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var constants = __webpack_require__(98)
+var constants = __webpack_require__(42)
 
 var origCwd = process.cwd
 var cwd = null
@@ -11141,16 +6272,16 @@ function patch (fs) {
 
 
 /***/ }),
-/* 98 */
+/* 42 */
 /***/ (function(module, exports) {
 
 module.exports = require("constants");
 
 /***/ }),
-/* 99 */
+/* 43 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var Stream = __webpack_require__(41).Stream
+var Stream = __webpack_require__(44).Stream
 
 module.exports = legacy
 
@@ -11271,7 +6402,13 @@ function legacy (fs) {
 
 
 /***/ }),
-/* 100 */
+/* 44 */
+/***/ (function(module, exports) {
+
+module.exports = require("stream");
+
+/***/ }),
+/* 45 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -11297,35 +6434,35 @@ function clone (obj) {
 
 
 /***/ }),
-/* 101 */
+/* 46 */
 /***/ (function(module, exports) {
 
 module.exports = require("assert");
 
 /***/ }),
-/* 102 */
+/* 47 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 module.exports = {
-  copySync: __webpack_require__(103)
+  copySync: __webpack_require__(48)
 }
 
 
 /***/ }),
-/* 103 */
+/* 48 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const fs = __webpack_require__(96)
-const path = __webpack_require__(57)
-const mkdirpSync = __webpack_require__(104).mkdirsSync
-const utimesSync = __webpack_require__(108).utimesMillisSync
-const stat = __webpack_require__(109)
+const fs = __webpack_require__(40)
+const path = __webpack_require__(20)
+const mkdirpSync = __webpack_require__(49).mkdirsSync
+const utimesSync = __webpack_require__(53).utimesMillisSync
+const stat = __webpack_require__(54)
 
 function copySync (src, dest, opts) {
   if (typeof opts === 'function') {
@@ -11398,7 +6535,7 @@ function copyFile (srcStat, src, dest, opts) {
 
 function copyFileFallback (srcStat, src, dest, opts) {
   const BUF_LENGTH = 64 * 1024
-  const _buff = __webpack_require__(110)(BUF_LENGTH)
+  const _buff = __webpack_require__(55)(BUF_LENGTH)
 
   const fdr = fs.openSync(src, 'r')
   const fdw = fs.openSync(dest, 'w', srcStat.mode)
@@ -11486,14 +6623,14 @@ module.exports = copySync
 
 
 /***/ }),
-/* 104 */
+/* 49 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const u = __webpack_require__(95).fromCallback
-const mkdirs = u(__webpack_require__(105))
-const mkdirsSync = __webpack_require__(107)
+const u = __webpack_require__(39).fromCallback
+const mkdirs = u(__webpack_require__(50))
+const mkdirsSync = __webpack_require__(52)
 
 module.exports = {
   mkdirs,
@@ -11507,15 +6644,15 @@ module.exports = {
 
 
 /***/ }),
-/* 105 */
+/* 50 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const fs = __webpack_require__(96)
-const path = __webpack_require__(57)
-const invalidWin32Path = __webpack_require__(106).invalidWin32Path
+const fs = __webpack_require__(40)
+const path = __webpack_require__(20)
+const invalidWin32Path = __webpack_require__(51).invalidWin32Path
 
 const o777 = parseInt('0777', 8)
 
@@ -11577,13 +6714,13 @@ module.exports = mkdirs
 
 
 /***/ }),
-/* 106 */
+/* 51 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const path = __webpack_require__(57)
+const path = __webpack_require__(20)
 
 // get drive on windows
 function getRootPath (p) {
@@ -11609,15 +6746,15 @@ module.exports = {
 
 
 /***/ }),
-/* 107 */
+/* 52 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const fs = __webpack_require__(96)
-const path = __webpack_require__(57)
-const invalidWin32Path = __webpack_require__(106).invalidWin32Path
+const fs = __webpack_require__(40)
+const path = __webpack_require__(20)
+const invalidWin32Path = __webpack_require__(51).invalidWin32Path
 
 const o777 = parseInt('0777', 8)
 
@@ -11670,15 +6807,15 @@ module.exports = mkdirsSync
 
 
 /***/ }),
-/* 108 */
+/* 53 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const fs = __webpack_require__(96)
-const os = __webpack_require__(56)
-const path = __webpack_require__(57)
+const fs = __webpack_require__(40)
+const os = __webpack_require__(14)
+const path = __webpack_require__(20)
 
 // HFS, ext{2,3}, FAT do not, Node.js v0.10 does not
 function hasMillisResSync () {
@@ -11756,14 +6893,14 @@ module.exports = {
 
 
 /***/ }),
-/* 109 */
+/* 54 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const fs = __webpack_require__(96)
-const path = __webpack_require__(57)
+const fs = __webpack_require__(40)
+const path = __webpack_require__(20)
 
 const NODE_VERSION_MAJOR_WITH_BIGINT = 10
 const NODE_VERSION_MINOR_WITH_BIGINT = 5
@@ -11935,7 +7072,7 @@ module.exports = {
 
 
 /***/ }),
-/* 110 */
+/* 55 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -11954,31 +7091,31 @@ module.exports = function (size) {
 
 
 /***/ }),
-/* 111 */
+/* 56 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const u = __webpack_require__(95).fromCallback
+const u = __webpack_require__(39).fromCallback
 module.exports = {
-  copy: u(__webpack_require__(112))
+  copy: u(__webpack_require__(57))
 }
 
 
 /***/ }),
-/* 112 */
+/* 57 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const fs = __webpack_require__(96)
-const path = __webpack_require__(57)
-const mkdirp = __webpack_require__(104).mkdirs
-const pathExists = __webpack_require__(113).pathExists
-const utimes = __webpack_require__(108).utimesMillis
-const stat = __webpack_require__(109)
+const fs = __webpack_require__(40)
+const path = __webpack_require__(20)
+const mkdirp = __webpack_require__(49).mkdirs
+const pathExists = __webpack_require__(58).pathExists
+const utimes = __webpack_require__(53).utimesMillis
+const stat = __webpack_require__(54)
 
 function copy (src, dest, opts, cb) {
   if (typeof opts === 'function' && !cb) {
@@ -12186,13 +7323,13 @@ module.exports = copy
 
 
 /***/ }),
-/* 113 */
+/* 58 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const u = __webpack_require__(95).fromPromise
-const fs = __webpack_require__(94)
+const u = __webpack_require__(39).fromPromise
+const fs = __webpack_require__(38)
 
 function pathExists (path) {
   return fs.access(path).then(() => true).catch(() => false)
@@ -12205,17 +7342,17 @@ module.exports = {
 
 
 /***/ }),
-/* 114 */
+/* 59 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const u = __webpack_require__(95).fromCallback
-const fs = __webpack_require__(96)
-const path = __webpack_require__(57)
-const mkdir = __webpack_require__(104)
-const remove = __webpack_require__(115)
+const u = __webpack_require__(39).fromCallback
+const fs = __webpack_require__(40)
+const path = __webpack_require__(20)
+const mkdir = __webpack_require__(49)
+const remove = __webpack_require__(60)
 
 const emptyDir = u(function emptyDir (dir, callback) {
   callback = callback || function () {}
@@ -12260,14 +7397,14 @@ module.exports = {
 
 
 /***/ }),
-/* 115 */
+/* 60 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const u = __webpack_require__(95).fromCallback
-const rimraf = __webpack_require__(116)
+const u = __webpack_require__(39).fromCallback
+const rimraf = __webpack_require__(61)
 
 module.exports = {
   remove: u(rimraf),
@@ -12276,15 +7413,15 @@ module.exports = {
 
 
 /***/ }),
-/* 116 */
+/* 61 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const fs = __webpack_require__(96)
-const path = __webpack_require__(57)
-const assert = __webpack_require__(101)
+const fs = __webpack_require__(40)
+const path = __webpack_require__(20)
+const assert = __webpack_require__(46)
 
 const isWindows = (process.platform === 'win32')
 
@@ -12597,15 +7734,15 @@ rimraf.sync = rimrafSync
 
 
 /***/ }),
-/* 117 */
+/* 62 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const file = __webpack_require__(118)
-const link = __webpack_require__(119)
-const symlink = __webpack_require__(120)
+const file = __webpack_require__(63)
+const link = __webpack_require__(64)
+const symlink = __webpack_require__(65)
 
 module.exports = {
   // file
@@ -12627,17 +7764,17 @@ module.exports = {
 
 
 /***/ }),
-/* 118 */
+/* 63 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const u = __webpack_require__(95).fromCallback
-const path = __webpack_require__(57)
-const fs = __webpack_require__(96)
-const mkdir = __webpack_require__(104)
-const pathExists = __webpack_require__(113).pathExists
+const u = __webpack_require__(39).fromCallback
+const path = __webpack_require__(20)
+const fs = __webpack_require__(40)
+const mkdir = __webpack_require__(49)
+const pathExists = __webpack_require__(58).pathExists
 
 function createFile (file, callback) {
   function makeFile () {
@@ -12683,17 +7820,17 @@ module.exports = {
 
 
 /***/ }),
-/* 119 */
+/* 64 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const u = __webpack_require__(95).fromCallback
-const path = __webpack_require__(57)
-const fs = __webpack_require__(96)
-const mkdir = __webpack_require__(104)
-const pathExists = __webpack_require__(113).pathExists
+const u = __webpack_require__(39).fromCallback
+const path = __webpack_require__(20)
+const fs = __webpack_require__(40)
+const mkdir = __webpack_require__(49)
+const pathExists = __webpack_require__(58).pathExists
 
 function createLink (srcpath, dstpath, callback) {
   function makeLink (srcpath, dstpath) {
@@ -12751,28 +7888,28 @@ module.exports = {
 
 
 /***/ }),
-/* 120 */
+/* 65 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const u = __webpack_require__(95).fromCallback
-const path = __webpack_require__(57)
-const fs = __webpack_require__(96)
-const _mkdirs = __webpack_require__(104)
+const u = __webpack_require__(39).fromCallback
+const path = __webpack_require__(20)
+const fs = __webpack_require__(40)
+const _mkdirs = __webpack_require__(49)
 const mkdirs = _mkdirs.mkdirs
 const mkdirsSync = _mkdirs.mkdirsSync
 
-const _symlinkPaths = __webpack_require__(121)
+const _symlinkPaths = __webpack_require__(66)
 const symlinkPaths = _symlinkPaths.symlinkPaths
 const symlinkPathsSync = _symlinkPaths.symlinkPathsSync
 
-const _symlinkType = __webpack_require__(122)
+const _symlinkType = __webpack_require__(67)
 const symlinkType = _symlinkType.symlinkType
 const symlinkTypeSync = _symlinkType.symlinkTypeSync
 
-const pathExists = __webpack_require__(113).pathExists
+const pathExists = __webpack_require__(58).pathExists
 
 function createSymlink (srcpath, dstpath, type, callback) {
   callback = (typeof type === 'function') ? type : callback
@@ -12821,15 +7958,15 @@ module.exports = {
 
 
 /***/ }),
-/* 121 */
+/* 66 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const path = __webpack_require__(57)
-const fs = __webpack_require__(96)
-const pathExists = __webpack_require__(113).pathExists
+const path = __webpack_require__(20)
+const fs = __webpack_require__(40)
+const pathExists = __webpack_require__(58).pathExists
 
 /**
  * Function that returns two types of paths, one relative to symlink, and one
@@ -12927,13 +8064,13 @@ module.exports = {
 
 
 /***/ }),
-/* 122 */
+/* 67 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const fs = __webpack_require__(96)
+const fs = __webpack_require__(40)
 
 function symlinkType (srcpath, type, callback) {
   callback = (typeof type === 'function') ? type : callback
@@ -12965,17 +8102,17 @@ module.exports = {
 
 
 /***/ }),
-/* 123 */
+/* 68 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const u = __webpack_require__(95).fromCallback
-const jsonFile = __webpack_require__(124)
+const u = __webpack_require__(39).fromCallback
+const jsonFile = __webpack_require__(69)
 
-jsonFile.outputJson = u(__webpack_require__(130))
-jsonFile.outputJsonSync = __webpack_require__(131)
+jsonFile.outputJson = u(__webpack_require__(75))
+jsonFile.outputJsonSync = __webpack_require__(76)
 // aliases
 jsonFile.outputJSON = jsonFile.outputJson
 jsonFile.outputJSONSync = jsonFile.outputJsonSync
@@ -12988,14 +8125,14 @@ module.exports = jsonFile
 
 
 /***/ }),
-/* 124 */
+/* 69 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const u = __webpack_require__(95).fromCallback
-const jsonFile = __webpack_require__(125)
+const u = __webpack_require__(39).fromCallback
+const jsonFile = __webpack_require__(70)
 
 module.exports = {
   // jsonfile exports
@@ -13007,14 +8144,14 @@ module.exports = {
 
 
 /***/ }),
-/* 125 */
+/* 70 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var _fs
 try {
-  _fs = __webpack_require__(126)
+  _fs = __webpack_require__(71)
 } catch (_) {
-  _fs = __webpack_require__(55)
+  _fs = __webpack_require__(4)
 }
 
 function readFile (file, options, callback) {
@@ -13147,17 +8284,17 @@ module.exports = jsonfile
 
 
 /***/ }),
-/* 126 */
+/* 71 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var fs = __webpack_require__(55)
-var polyfills = __webpack_require__(127)
-var legacy = __webpack_require__(128)
-var clone = __webpack_require__(129)
+var fs = __webpack_require__(4)
+var polyfills = __webpack_require__(72)
+var legacy = __webpack_require__(73)
+var clone = __webpack_require__(74)
 
 var queue = []
 
-var util = __webpack_require__(40)
+var util = __webpack_require__(12)
 
 function noop () {}
 
@@ -13174,7 +8311,7 @@ else if (/\bgfs4\b/i.test(process.env.NODE_DEBUG || ''))
 if (/\bgfs4\b/i.test(process.env.NODE_DEBUG || '')) {
   process.on('exit', function() {
     debug(queue)
-    __webpack_require__(101).equal(queue.length, 0)
+    __webpack_require__(46).equal(queue.length, 0)
   })
 }
 
@@ -13432,10 +8569,10 @@ function retry () {
 
 
 /***/ }),
-/* 127 */
+/* 72 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var constants = __webpack_require__(98)
+var constants = __webpack_require__(42)
 
 var origCwd = process.cwd
 var cwd = null
@@ -13767,10 +8904,10 @@ function patch (fs) {
 
 
 /***/ }),
-/* 128 */
+/* 73 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var Stream = __webpack_require__(41).Stream
+var Stream = __webpack_require__(44).Stream
 
 module.exports = legacy
 
@@ -13891,7 +9028,7 @@ function legacy (fs) {
 
 
 /***/ }),
-/* 129 */
+/* 74 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -13917,16 +9054,16 @@ function clone (obj) {
 
 
 /***/ }),
-/* 130 */
+/* 75 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const path = __webpack_require__(57)
-const mkdir = __webpack_require__(104)
-const pathExists = __webpack_require__(113).pathExists
-const jsonFile = __webpack_require__(124)
+const path = __webpack_require__(20)
+const mkdir = __webpack_require__(49)
+const pathExists = __webpack_require__(58).pathExists
+const jsonFile = __webpack_require__(69)
 
 function outputJson (file, data, options, callback) {
   if (typeof options === 'function') {
@@ -13951,16 +9088,16 @@ module.exports = outputJson
 
 
 /***/ }),
-/* 131 */
+/* 76 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const fs = __webpack_require__(96)
-const path = __webpack_require__(57)
-const mkdir = __webpack_require__(104)
-const jsonFile = __webpack_require__(124)
+const fs = __webpack_require__(40)
+const path = __webpack_require__(20)
+const mkdir = __webpack_require__(49)
+const jsonFile = __webpack_require__(69)
 
 function outputJsonSync (file, data, options) {
   const dir = path.dirname(file)
@@ -13976,30 +9113,30 @@ module.exports = outputJsonSync
 
 
 /***/ }),
-/* 132 */
+/* 77 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 module.exports = {
-  moveSync: __webpack_require__(133)
+  moveSync: __webpack_require__(78)
 }
 
 
 /***/ }),
-/* 133 */
+/* 78 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const fs = __webpack_require__(96)
-const path = __webpack_require__(57)
-const copySync = __webpack_require__(102).copySync
-const removeSync = __webpack_require__(115).removeSync
-const mkdirpSync = __webpack_require__(104).mkdirpSync
-const stat = __webpack_require__(109)
+const fs = __webpack_require__(40)
+const path = __webpack_require__(20)
+const copySync = __webpack_require__(47).copySync
+const removeSync = __webpack_require__(60).removeSync
+const mkdirpSync = __webpack_require__(49).mkdirpSync
+const stat = __webpack_require__(54)
 
 function moveSync (src, dest, opts) {
   opts = opts || {}
@@ -14042,32 +9179,32 @@ module.exports = moveSync
 
 
 /***/ }),
-/* 134 */
+/* 79 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const u = __webpack_require__(95).fromCallback
+const u = __webpack_require__(39).fromCallback
 module.exports = {
-  move: u(__webpack_require__(135))
+  move: u(__webpack_require__(80))
 }
 
 
 /***/ }),
-/* 135 */
+/* 80 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const fs = __webpack_require__(96)
-const path = __webpack_require__(57)
-const copy = __webpack_require__(111).copy
-const remove = __webpack_require__(115).remove
-const mkdirp = __webpack_require__(104).mkdirp
-const pathExists = __webpack_require__(113).pathExists
-const stat = __webpack_require__(109)
+const fs = __webpack_require__(40)
+const path = __webpack_require__(20)
+const copy = __webpack_require__(56).copy
+const remove = __webpack_require__(60).remove
+const mkdirp = __webpack_require__(49).mkdirp
+const pathExists = __webpack_require__(58).pathExists
+const stat = __webpack_require__(54)
 
 function move (src, dest, opts, cb) {
   if (typeof opts === 'function') {
@@ -14127,17 +9264,17 @@ module.exports = move
 
 
 /***/ }),
-/* 136 */
+/* 81 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const u = __webpack_require__(95).fromCallback
-const fs = __webpack_require__(96)
-const path = __webpack_require__(57)
-const mkdir = __webpack_require__(104)
-const pathExists = __webpack_require__(113).pathExists
+const u = __webpack_require__(39).fromCallback
+const fs = __webpack_require__(40)
+const path = __webpack_require__(20)
+const mkdir = __webpack_require__(49)
+const pathExists = __webpack_require__(58).pathExists
 
 function outputFile (file, data, encoding, callback) {
   if (typeof encoding === 'function') {
@@ -14174,13 +9311,13 @@ module.exports = {
 
 
 /***/ }),
-/* 137 */
+/* 82 */
 /***/ (function(module, exports) {
 
 module.exports = require("zlib");
 
 /***/ }),
-/* 138 */
+/* 83 */
 /***/ (function(module, exports) {
 
 // allows us to inject a mock date in tests
@@ -14188,11 +9325,11 @@ module.exports = () => new Date();
 
 
 /***/ }),
-/* 139 */
+/* 84 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const debug = __webpack_require__(65)("streamroller:fileNameFormatter");
-const path = __webpack_require__(57);
+const debug = __webpack_require__(6)("streamroller:fileNameFormatter");
+const path = __webpack_require__(20);
 const FILENAME_SEP = ".";
 const ZIP_EXT = ".gz";
 
@@ -14231,13 +9368,13 @@ module.exports = ({
 
 
 /***/ }),
-/* 140 */
+/* 85 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const debug = __webpack_require__(65)("streamroller:fileNameParser");
+const debug = __webpack_require__(6)("streamroller:fileNameParser");
 const FILENAME_SEP = ".";
 const ZIP_EXT = ".gz";
-const format = __webpack_require__(76);
+const format = __webpack_require__(19);
 
 module.exports = ({ file, keepFileExt, pattern }) => {
   // All these functions take two arguments: f, the filename, and p, the result placeholder
@@ -14325,10 +9462,10 @@ module.exports = ({ file, keepFileExt, pattern }) => {
 
 
 /***/ }),
-/* 141 */
+/* 86 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const RollingFileWriteStream = __webpack_require__(92);
+const RollingFileWriteStream = __webpack_require__(36);
 
 // just to adapt the previous version
 class RollingFileStream extends RollingFileWriteStream {
@@ -14358,10 +9495,10 @@ module.exports = RollingFileStream;
 
 
 /***/ }),
-/* 142 */
+/* 87 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const RollingFileWriteStream = __webpack_require__(92);
+const RollingFileWriteStream = __webpack_require__(36);
 
 // just to adapt the previous version
 class DateRollingFileStream extends RollingFileWriteStream {
@@ -14397,11 +9534,11 @@ module.exports = DateRollingFileStream;
 
 
 /***/ }),
-/* 143 */
+/* 88 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const streams = __webpack_require__(91);
-const os = __webpack_require__(56);
+const streams = __webpack_require__(35);
+const os = __webpack_require__(14);
 
 const eol = os.EOL || '\n';
 
@@ -14467,7 +9604,7 @@ module.exports.configure = configure;
 
 
 /***/ }),
-/* 144 */
+/* 89 */
 /***/ (function(module, exports) {
 
 function webpackEmptyContext(req) {
@@ -14478,16 +9615,16 @@ function webpackEmptyContext(req) {
 webpackEmptyContext.keys = function() { return []; };
 webpackEmptyContext.resolve = webpackEmptyContext;
 module.exports = webpackEmptyContext;
-webpackEmptyContext.id = 144;
+webpackEmptyContext.id = 89;
 
 /***/ }),
-/* 145 */
+/* 90 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const debug = __webpack_require__(65)('log4js:categories');
-const configuration = __webpack_require__(74);
-const levels = __webpack_require__(77);
-const appenders = __webpack_require__(78);
+const debug = __webpack_require__(6)('log4js:categories');
+const configuration = __webpack_require__(17);
+const levels = __webpack_require__(21);
+const appenders = __webpack_require__(22);
 
 const categories = new Map();
 
@@ -14695,16 +9832,16 @@ module.exports = {
 
 
 /***/ }),
-/* 146 */
+/* 91 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* eslint no-underscore-dangle:0 */
-const debug = __webpack_require__(65)("log4js:logger");
-const LoggingEvent = __webpack_require__(80);
-const levels = __webpack_require__(77);
-const clustering = __webpack_require__(79);
-const categories = __webpack_require__(145);
-const configuration = __webpack_require__(74);
+const debug = __webpack_require__(6)("log4js:logger");
+const LoggingEvent = __webpack_require__(24);
+const levels = __webpack_require__(21);
+const clustering = __webpack_require__(23);
+const categories = __webpack_require__(90);
+const configuration = __webpack_require__(17);
 
 const stackReg = /at (?:(.+)\s+\()?(?:(.+?):(\d+)(?::(\d+))?|([^)]+))\)?/;
 function defaultParseCallStack(data, skipIdx = 4) {
@@ -14835,12 +9972,12 @@ module.exports = Logger;
 
 
 /***/ }),
-/* 147 */
+/* 92 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* eslint-disable no-plusplus */
 
-const levels = __webpack_require__(77);
+const levels = __webpack_require__(21);
 
 const DEFAULT_FORMAT =
   ":remote-addr - -" +
@@ -15143,17 +10280,4947 @@ module.exports = function getLogger(logger4js, options) {
 
 
 /***/ }),
-/* 148 */
+/* 93 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const util_1 = __webpack_require__(174);
+const neovim_1 = __webpack_require__(94);
+const log4js_1 = tslib_1.__importDefault(__webpack_require__(5));
+const events_1 = tslib_1.__importDefault(__webpack_require__(149));
+const plugin_1 = tslib_1.__importDefault(__webpack_require__(231));
+const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
+__webpack_require__(309);
+const vscode_uri_1 = __webpack_require__(181);
+const logger = __webpack_require__(2)('attach');
+const isTest = "none" == 'test';
+exports.default = (opts, requestApi = true) => {
+    const nvim = neovim_1.attach(opts, log4js_1.default.getLogger('node-client'), requestApi);
+    // Overwriding the URI.file function in case of cygwin.
+    nvim.eval('has("win32unix")?get(g:,"coc_cygqwin_path_prefixes", v:null):v:null').then(prefixes => {
+        if (!prefixes)
+            return;
+        const old_uri = vscode_uri_1.URI.file;
+        vscode_uri_1.URI.file = (path) => {
+            path = path.replace(/\\/g, '/');
+            Object.keys(prefixes).forEach(k => path = path.replace(new RegExp('^' + k, 'gi'), prefixes[k]));
+            return old_uri(path);
+        };
+    }).logError();
+    const plugin = new plugin_1.default(nvim);
+    let clientReady = false;
+    let initialized = false;
+    nvim.on('notification', async (method, args) => {
+        switch (method) {
+            case 'VimEnter': {
+                if (!initialized && clientReady) {
+                    initialized = true;
+                    await plugin.init();
+                }
+                break;
+            }
+            case 'TaskExit':
+            case 'TaskStderr':
+            case 'TaskStdout':
+            case 'GlobalChange':
+            case 'InputChar':
+            case 'OptionSet':
+                await events_1.default.fire(method, args);
+                break;
+            case 'CocAutocmd':
+                await events_1.default.fire(args[0], args.slice(1));
+                break;
+            default:
+                const m = method[0].toLowerCase() + method.slice(1);
+                if (typeof plugin[m] == 'function') {
+                    try {
+                        await Promise.resolve(plugin[m].apply(plugin, args));
+                    }
+                    catch (e) {
+                        // tslint:disable-next-line:no-console
+                        console.error(`error on notification '${method}': ${e}`);
+                    }
+                }
+        }
+    });
+    nvim.on('request', async (method, args, resp) => {
+        try {
+            if (method == 'CocAutocmd') {
+                await events_1.default.fire(args[0], args.slice(1));
+                resp.send();
+                return;
+            }
+            let m = method[0].toLowerCase() + method.slice(1);
+            if (typeof plugin[m] !== 'function') {
+                return resp.send(`Method ${m} not found`, true);
+            }
+            let res = await Promise.resolve(plugin[m].apply(plugin, args));
+            resp.send(res);
+        }
+        catch (e) {
+            logger.error(`Error on "${method}": ` + e.stack);
+            resp.send(e.message, true);
+        }
+    });
+    nvim.channelId.then(async (channelId) => {
+        clientReady = true;
+        if (isTest)
+            nvim.command(`let g:coc_node_channel_id = ${channelId}`, true);
+        let json = __webpack_require__(410);
+        let { major, minor, patch } = semver_1.default.parse(json.version);
+        nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {});
+        let entered = await nvim.getVvar('vim_did_enter');
+        if (entered && !initialized) {
+            initialized = true;
+            await plugin.init();
+        }
+    }).catch(e => {
+        console.error(`Channel create error: ${e.message}`); // tslint:disable-line
+    });
+    return plugin;
+};
+//# sourceMappingURL=attach.js.map
+
+/***/ }),
+/* 94 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var attach_1 = __webpack_require__(95);
+exports.attach = attach_1.attach;
+var index_1 = __webpack_require__(148);
+exports.Neovim = index_1.Neovim;
+exports.NeovimClient = index_1.NeovimClient;
+exports.Buffer = index_1.Buffer;
+exports.Tabpage = index_1.Tabpage;
+exports.Window = index_1.Window;
+
+
+/***/ }),
+/* 95 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const net_1 = __webpack_require__(96);
+const client_1 = __webpack_require__(97);
+function attach({ reader: _reader, writer: _writer, proc, socket, }, _logger = null, requestApi = true) {
+    let writer;
+    let reader;
+    let neovim;
+    if (socket) {
+        const client = net_1.createConnection(socket);
+        writer = client;
+        reader = client;
+        client.once('close', () => {
+            neovim.detach();
+        });
+    }
+    else if (_reader && _writer) {
+        writer = _writer;
+        reader = _reader;
+    }
+    else if (proc) {
+        writer = proc.stdin;
+        reader = proc.stdout;
+        proc.once('disconnect', () => {
+            neovim.detach();
+        });
+    }
+    writer.on('error', err => {
+        if (err.code == 'EPIPE') {
+            neovim.detach();
+        }
+    });
+    if (writer && reader) {
+        neovim = new client_1.NeovimClient();
+        neovim.attach({
+            writer,
+            reader,
+        }, requestApi);
+        return neovim;
+    }
+    throw new Error('Invalid arguments, could not attach');
+}
+exports.attach = attach;
+
+
+/***/ }),
+/* 96 */
+/***/ (function(module, exports) {
+
+module.exports = require("net");
+
+/***/ }),
+/* 97 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * Handles attaching transport
+ */
+const nvim_1 = __webpack_require__(98);
+const vim_1 = __webpack_require__(143);
+const Neovim_1 = __webpack_require__(147);
+const Buffer_1 = __webpack_require__(135);
+const Window_1 = __webpack_require__(138);
+const Tabpage_1 = __webpack_require__(140);
+const logger_1 = __webpack_require__(142);
+exports.DETACH_BUFFER = Symbol('detachBuffer');
+exports.ATTACH_BUFFER = Symbol('attachBuffer');
+const logger = logger_1.createLogger('client');
+const isVim = process.env.VIM_NODE_RPC == '1';
+class AsyncResponse {
+    constructor(requestId, cb) {
+        this.requestId = requestId;
+        this.cb = cb;
+        this.finished = false;
+    }
+    finish(err, res) {
+        if (this.finished)
+            return;
+        this.finished = true;
+        if (err) {
+            this.cb(new Error(err));
+            return;
+        }
+        this.cb(null, res);
+    }
+}
+exports.AsyncResponse = AsyncResponse;
+class NeovimClient extends Neovim_1.Neovim {
+    constructor() {
+        // Neovim has no `data` or `metadata`
+        super({});
+        this.requestId = 1;
+        this.responses = new Map();
+        this.attachedBuffers = new Map();
+        this.pauseLevel = 0;
+        Object.defineProperty(this, 'client', {
+            value: this
+        });
+        let transport = isVim ? new vim_1.VimTransport() : new nvim_1.NvimTransport();
+        this.setTransport(transport);
+        this.transportAttached = false;
+        this.handleRequest = this.handleRequest.bind(this);
+        this.handleNotification = this.handleNotification.bind(this);
+    }
+    createBuffer(id) {
+        return new Buffer_1.Buffer({
+            transport: this.transport,
+            data: id,
+            client: this
+        });
+    }
+    createWindow(id) {
+        return new Window_1.Window({
+            transport: this.transport,
+            data: id,
+            client: this
+        });
+    }
+    createTabpage(id) {
+        return new Tabpage_1.Tabpage({
+            transport: this.transport,
+            data: id,
+            client: this
+        });
+    }
+    /** Attaches msgpack to read/write streams * */
+    attach({ reader, writer, }, requestApi = true) {
+        this.transport.attach(writer, reader, this);
+        this.transportAttached = true;
+        this.setupTransport(requestApi);
+    }
+    /* called when attach process disconnected*/
+    detach() {
+        this.transport.detach();
+        this.transportAttached = false;
+    }
+    get isApiReady() {
+        return this.transportAttached && typeof this._channelId !== 'undefined';
+    }
+    get channelId() {
+        return this._isReady.then(() => {
+            return this._channelId;
+        });
+    }
+    isAttached(bufnr) {
+        return this.attachedBuffers.has(bufnr);
+    }
+    handleRequest(method, args, resp) {
+        this.emit('request', method, args, resp);
+    }
+    sendAsyncRequest(method, args) {
+        let id = this.requestId;
+        this.requestId = id + 1;
+        this.notify('nvim_call_function', ['coc#rpc#async_request', [id, method, args || []]]);
+        return new Promise((resolve, reject) => {
+            let response = new AsyncResponse(id, (err, res) => {
+                if (err)
+                    return reject(err);
+                resolve(res);
+            });
+            this.responses.set(id, response);
+        });
+    }
+    emitNotification(method, args) {
+        if (method.endsWith('_event')) {
+            if (method.startsWith('nvim_buf_')) {
+                const shortName = method.replace(/nvim_buf_(.*)_event/, '$1');
+                const buffer = args[0];
+                const { id } = buffer;
+                if (!this.isAttached(id)) {
+                    // this is a problem
+                    return;
+                }
+                const bufferMap = this.attachedBuffers.get(id);
+                const cbs = bufferMap.get(shortName) || [];
+                cbs.forEach(cb => cb(...args));
+                // Handle `nvim_buf_detach_event`
+                // clean `attachedBuffers` since it will no longer be attached
+                if (shortName === 'detach') {
+                    this.attachedBuffers.delete(id);
+                }
+                return;
+            }
+            // async_request_event from vim
+            if (method.startsWith('nvim_async_request')) {
+                const [id, method, arr] = args;
+                this.handleRequest(method, arr, {
+                    send: (resp, isError) => {
+                        this.notify('nvim_call_function', ['coc#rpc#async_response', [id, resp, isError]]);
+                    }
+                });
+            }
+            // nvim_async_response_event
+            if (method.startsWith('nvim_async_response')) {
+                const [id, err, res] = args;
+                const response = this.responses.get(id);
+                if (!response) {
+                    // tslint:disable-next-line: no-console
+                    console.error(`Response not found for request ${id}`);
+                    return;
+                }
+                this.responses.delete(id);
+                response.finish(err, res);
+                return;
+            }
+            // tslint:disable-next-line: no-console
+            // console.error(`Unhandled event: ${method}`)
+        }
+        else {
+            this.emit('notification', method, args);
+        }
+    }
+    handleNotification(method, args) {
+        this.emitNotification(method, args);
+    }
+    // Listen and setup handlers for transport
+    setupTransport(requestApi = true) {
+        if (!this.transportAttached) {
+            throw new Error('Not attached to input/output');
+        }
+        this.transport.on('request', this.handleRequest);
+        this.transport.on('notification', this.handleNotification);
+        this.transport.on('detach', () => {
+            this.emit('disconnect');
+            this.transport.removeAllListeners('request');
+            this.transport.removeAllListeners('notification');
+            this.transport.removeAllListeners('detach');
+        });
+        if (requestApi) {
+            this._isReady = this.generateApi();
+        }
+        else {
+            this._channelId = 0;
+            this._isReady = Promise.resolve(true);
+        }
+    }
+    requestApi() {
+        return new Promise((resolve, reject) => {
+            this.transport.request('nvim_get_api_info', [], (err, res) => {
+                if (err) {
+                    reject(new Error(Array.isArray(err) ? err[1] : err.message || err.toString()));
+                }
+                else {
+                    resolve(res);
+                }
+            });
+        });
+    }
+    generateApi() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let results;
+            try {
+                results = yield this.requestApi();
+            }
+            catch (err) {
+                // tslint:disable-next-line: no-console
+                console.error('Could not get vim api results');
+                logger.error(err);
+            }
+            if (results) {
+                try {
+                    const [channelId, metadata] = results;
+                    this.functions = metadata.functions.map(f => f.name);
+                    this._channelId = channelId;
+                    return true;
+                }
+                catch (err) {
+                    logger.error(err.stack);
+                    return null;
+                }
+            }
+            return null;
+        });
+    }
+    [exports.ATTACH_BUFFER](buffer) {
+        this.attachedBuffers.set(buffer.id, new Map());
+    }
+    [exports.DETACH_BUFFER](buffer) {
+        this.attachedBuffers.delete(buffer.id);
+    }
+    attachBufferEvent(buffer, eventName, cb) {
+        if (!this.isAttached(buffer.id))
+            return;
+        const bufferMap = this.attachedBuffers.get(buffer.id);
+        if (!bufferMap.get(eventName)) {
+            bufferMap.set(eventName, []);
+        }
+        const cbs = bufferMap.get(eventName);
+        if (cbs.indexOf(cb) !== -1)
+            return;
+        cbs.push(cb);
+        bufferMap.set(eventName, cbs);
+        this.attachedBuffers.set(buffer.id, bufferMap);
+        return;
+    }
+    /**
+     * Returns `true` if buffer should be detached
+     */
+    detachBufferEvent(buffer, eventName, cb) {
+        const bufferMap = this.attachedBuffers.get(buffer.id);
+        if (!bufferMap)
+            return;
+        const handlers = (bufferMap.get(eventName) || []).filter(handler => handler !== cb);
+        // Remove eventName listener from bufferMap if no more handlers
+        if (!handlers.length) {
+            bufferMap.delete(eventName);
+        }
+        else {
+            bufferMap.set(eventName, handlers);
+        }
+    }
+    pauseNotification() {
+        this.pauseLevel = this.pauseLevel + 1;
+        this.transport.pauseNotification();
+        if (this.pauseTimer)
+            clearTimeout(this.pauseTimer);
+        this.pauseTimer = setTimeout(() => {
+            this.pauseLevel = 0;
+            // tslint:disable-next-line: no-floating-promises
+            this.transport.resumeNotification();
+        }, 50);
+    }
+    resumeNotification(cancel, notify) {
+        if (this.pauseLevel == 0)
+            return Promise.resolve();
+        this.pauseLevel = this.pauseLevel - 1;
+        if (cancel)
+            return Promise.resolve();
+        if (this.pauseLevel == 0) {
+            if (this.pauseTimer)
+                clearTimeout(this.pauseTimer);
+            if (!notify)
+                return this.transport.resumeNotification();
+            this.transport.resumeNotification(true);
+        }
+        return Promise.resolve();
+    }
+    hasFunction(name) {
+        if (!this.functions)
+            return true;
+        return this.functions.indexOf(name) !== -1;
+    }
+}
+exports.NeovimClient = NeovimClient;
+
+
+/***/ }),
+/* 98 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const msgpack = __importStar(__webpack_require__(99));
+const buffered_1 = __importDefault(__webpack_require__(133));
+const types_1 = __webpack_require__(134);
+const base_1 = __importDefault(__webpack_require__(141));
+class NvimTransport extends base_1.default {
+    constructor() {
+        super();
+        this.pending = new Map();
+        this.nextRequestId = 1;
+        this.attached = false;
+        const codec = this.setupCodec();
+        this.encodeStream = msgpack.createEncodeStream({ codec });
+        this.decodeStream = msgpack.createDecodeStream({ codec });
+        this.decodeStream.on('data', (msg) => {
+            this.parseMessage(msg);
+        });
+        this.decodeStream.on('end', () => {
+            this.detach();
+            this.emit('detach');
+        });
+    }
+    parseMessage(msg) {
+        const msgType = msg[0];
+        this.debugMessage(msg);
+        if (msgType === 0) {
+            // request
+            //   - msg[1]: id
+            //   - msg[2]: method name
+            //   - msg[3]: arguments
+            this.emit('request', msg[2].toString(), msg[3], this.createResponse(msg[1]));
+        }
+        else if (msgType === 1) {
+            // response to a previous request:
+            //   - msg[1]: the id
+            //   - msg[2]: error(if any)
+            //   - msg[3]: result(if not errored)
+            const id = msg[1];
+            const handler = this.pending.get(id);
+            if (handler) {
+                this.pending.delete(id);
+                let err = msg[2];
+                if (err && err.length != 2) {
+                    err = [0, err instanceof Error ? err.message : err];
+                }
+                handler(err, msg[3]);
+            }
+        }
+        else if (msgType === 2) {
+            // notification/event
+            //   - msg[1]: event name
+            //   - msg[2]: arguments
+            this.emit('notification', msg[1].toString(), msg[2]);
+        }
+        else {
+            // tslint:disable-next-line: no-console
+            console.error(`Invalid message type ${msgType}`);
+        }
+    }
+    setupCodec() {
+        const codec = msgpack.createCodec();
+        types_1.Metadata.forEach(({ constructor }, id) => {
+            codec.addExtPacker(id, constructor, (obj) => msgpack.encode(obj.data));
+            codec.addExtUnpacker(id, data => new constructor({
+                transport: this,
+                client: this.client,
+                data: msgpack.decode(data),
+            }));
+        });
+        this.codec = codec;
+        return this.codec;
+    }
+    attach(writer, reader, client) {
+        this.encodeStream = this.encodeStream.pipe(writer);
+        const buffered = new buffered_1.default();
+        reader.pipe(buffered).pipe(this.decodeStream);
+        this.writer = writer;
+        this.reader = reader;
+        this.client = client;
+        this.attached = true;
+    }
+    detach() {
+        if (!this.attached)
+            return;
+        this.attached = false;
+        this.encodeStream.unpipe(this.writer);
+        this.reader.unpipe(this.decodeStream);
+    }
+    request(method, args, cb) {
+        if (!this.attached)
+            return cb([0, 'transport disconnected']);
+        this.nextRequestId = this.nextRequestId + 1;
+        this.debug('nvim request:', this.nextRequestId, method, args);
+        this.encodeStream.write(msgpack.encode([0, this.nextRequestId, method, args], {
+            codec: this.codec,
+        }));
+        this.pending.set(this.nextRequestId, cb);
+    }
+    notify(method, args) {
+        if (!this.attached)
+            return;
+        if (this._paused) {
+            this.paused.push([method, args]);
+            return;
+        }
+        this.debug('nvim notification:', method, args);
+        this.encodeStream.write(msgpack.encode([2, method, args], {
+            codec: this.codec,
+        }));
+    }
+    createResponse(requestId) {
+        let called = false;
+        let { encodeStream } = this;
+        return {
+            send: (resp, isError) => {
+                if (called || !this.attached)
+                    return;
+                this.debug('response:', requestId, resp, isError == true);
+                called = true;
+                encodeStream.write(msgpack.encode([
+                    1,
+                    requestId,
+                    isError ? resp : null,
+                    !isError ? resp : null,
+                ]));
+            }
+        };
+    }
+}
+exports.NvimTransport = NvimTransport;
+
+
+/***/ }),
+/* 99 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// msgpack.js
+
+exports.encode = __webpack_require__(100).encode;
+exports.decode = __webpack_require__(120).decode;
+
+exports.Encoder = __webpack_require__(126).Encoder;
+exports.Decoder = __webpack_require__(128).Decoder;
+
+exports.createEncodeStream = __webpack_require__(129).createEncodeStream;
+exports.createDecodeStream = __webpack_require__(130).createDecodeStream;
+
+exports.createCodec = __webpack_require__(131).createCodec;
+exports.codec = __webpack_require__(132).codec;
+
+
+/***/ }),
+/* 100 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// encode.js
+
+exports.encode = encode;
+
+var EncodeBuffer = __webpack_require__(101).EncodeBuffer;
+
+function encode(input, options) {
+  var encoder = new EncodeBuffer(options);
+  encoder.write(input);
+  return encoder.read();
+}
+
+
+/***/ }),
+/* 101 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// encode-buffer.js
+
+exports.EncodeBuffer = EncodeBuffer;
+
+var preset = __webpack_require__(102).preset;
+
+var FlexEncoder = __webpack_require__(119).FlexEncoder;
+
+FlexEncoder.mixin(EncodeBuffer.prototype);
+
+function EncodeBuffer(options) {
+  if (!(this instanceof EncodeBuffer)) return new EncodeBuffer(options);
+
+  if (options) {
+    this.options = options;
+    if (options.codec) {
+      var codec = this.codec = options.codec;
+      if (codec.bufferish) this.bufferish = codec.bufferish;
+    }
+  }
+}
+
+EncodeBuffer.prototype.codec = preset;
+
+EncodeBuffer.prototype.write = function(input) {
+  this.codec.encode(this, input);
+};
+
+
+/***/ }),
+/* 102 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// write-core.js
+
+var ExtBuffer = __webpack_require__(103).ExtBuffer;
+var ExtPacker = __webpack_require__(112);
+var WriteType = __webpack_require__(113);
+var CodecBase = __webpack_require__(118);
+
+CodecBase.install({
+  addExtPacker: addExtPacker,
+  getExtPacker: getExtPacker,
+  init: init
+});
+
+exports.preset = init.call(CodecBase.preset);
+
+function getEncoder(options) {
+  var writeType = WriteType.getWriteType(options);
+  return encode;
+
+  function encode(encoder, value) {
+    var func = writeType[typeof value];
+    if (!func) throw new Error("Unsupported type \"" + (typeof value) + "\": " + value);
+    func(encoder, value);
+  }
+}
+
+function init() {
+  var options = this.options;
+  this.encode = getEncoder(options);
+
+  if (options && options.preset) {
+    ExtPacker.setExtPackers(this);
+  }
+
+  return this;
+}
+
+function addExtPacker(etype, Class, packer) {
+  packer = CodecBase.filter(packer);
+  var name = Class.name;
+  if (name && name !== "Object") {
+    var packers = this.extPackers || (this.extPackers = {});
+    packers[name] = extPacker;
+  } else {
+    // fallback for IE
+    var list = this.extEncoderList || (this.extEncoderList = []);
+    list.unshift([Class, extPacker]);
+  }
+
+  function extPacker(value) {
+    if (packer) value = packer(value);
+    return new ExtBuffer(value, etype);
+  }
+}
+
+function getExtPacker(value) {
+  var packers = this.extPackers || (this.extPackers = {});
+  var c = value.constructor;
+  var e = c && c.name && packers[c.name];
+  if (e) return e;
+
+  // fallback for IE
+  var list = this.extEncoderList || (this.extEncoderList = []);
+  var len = list.length;
+  for (var i = 0; i < len; i++) {
+    var pair = list[i];
+    if (c === pair[0]) return pair[1];
+  }
+}
+
+
+/***/ }),
+/* 103 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// ext-buffer.js
+
+exports.ExtBuffer = ExtBuffer;
+
+var Bufferish = __webpack_require__(104);
+
+function ExtBuffer(buffer, type) {
+  if (!(this instanceof ExtBuffer)) return new ExtBuffer(buffer, type);
+  this.buffer = Bufferish.from(buffer);
+  this.type = type;
+}
+
+
+/***/ }),
+/* 104 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// bufferish.js
+
+var Buffer = exports.global = __webpack_require__(105);
+var hasBuffer = exports.hasBuffer = Buffer && !!Buffer.isBuffer;
+var hasArrayBuffer = exports.hasArrayBuffer = ("undefined" !== typeof ArrayBuffer);
+
+var isArray = exports.isArray = __webpack_require__(106);
+exports.isArrayBuffer = hasArrayBuffer ? isArrayBuffer : _false;
+var isBuffer = exports.isBuffer = hasBuffer ? Buffer.isBuffer : _false;
+var isView = exports.isView = hasArrayBuffer ? (ArrayBuffer.isView || _is("ArrayBuffer", "buffer")) : _false;
+
+exports.alloc = alloc;
+exports.concat = concat;
+exports.from = from;
+
+var BufferArray = exports.Array = __webpack_require__(107);
+var BufferBuffer = exports.Buffer = __webpack_require__(108);
+var BufferUint8Array = exports.Uint8Array = __webpack_require__(109);
+var BufferProto = exports.prototype = __webpack_require__(110);
+
+/**
+ * @param value {Array|ArrayBuffer|Buffer|String}
+ * @returns {Buffer|Uint8Array|Array}
+ */
+
+function from(value) {
+  if (typeof value === "string") {
+    return fromString.call(this, value);
+  } else {
+    return auto(this).from(value);
+  }
+}
+
+/**
+ * @param size {Number}
+ * @returns {Buffer|Uint8Array|Array}
+ */
+
+function alloc(size) {
+  return auto(this).alloc(size);
+}
+
+/**
+ * @param list {Array} array of (Buffer|Uint8Array|Array)s
+ * @param [length]
+ * @returns {Buffer|Uint8Array|Array}
+ */
+
+function concat(list, length) {
+  if (!length) {
+    length = 0;
+    Array.prototype.forEach.call(list, dryrun);
+  }
+  var ref = (this !== exports) && this || list[0];
+  var result = alloc.call(ref, length);
+  var offset = 0;
+  Array.prototype.forEach.call(list, append);
+  return result;
+
+  function dryrun(buffer) {
+    length += buffer.length;
+  }
+
+  function append(buffer) {
+    offset += BufferProto.copy.call(buffer, result, offset);
+  }
+}
+
+var _isArrayBuffer = _is("ArrayBuffer");
+
+function isArrayBuffer(value) {
+  return (value instanceof ArrayBuffer) || _isArrayBuffer(value);
+}
+
+/**
+ * @private
+ */
+
+function fromString(value) {
+  var expected = value.length * 3;
+  var that = alloc.call(this, expected);
+  var actual = BufferProto.write.call(that, value);
+  if (expected !== actual) {
+    that = BufferProto.slice.call(that, 0, actual);
+  }
+  return that;
+}
+
+function auto(that) {
+  return isBuffer(that) ? BufferBuffer
+    : isView(that) ? BufferUint8Array
+    : isArray(that) ? BufferArray
+    : hasBuffer ? BufferBuffer
+    : hasArrayBuffer ? BufferUint8Array
+    : BufferArray;
+}
+
+function _false() {
+  return false;
+}
+
+function _is(name, key) {
+  /* jshint eqnull:true */
+  name = "[object " + name + "]";
+  return function(value) {
+    return (value != null) && {}.toString.call(key ? value[key] : value) === name;
+  };
+}
+
+/***/ }),
+/* 105 */
+/***/ (function(module, exports) {
+
+/* globals Buffer */
+
+module.exports =
+  c(("undefined" !== typeof Buffer) && Buffer) ||
+  c(this.Buffer) ||
+  c(("undefined" !== typeof window) && window.Buffer) ||
+  this.Buffer;
+
+function c(B) {
+  return B && B.isBuffer && B;
+}
+
+/***/ }),
+/* 106 */
+/***/ (function(module, exports) {
+
+var toString = {}.toString;
+
+module.exports = Array.isArray || function (arr) {
+  return toString.call(arr) == '[object Array]';
+};
+
+
+/***/ }),
+/* 107 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// bufferish-array.js
+
+var Bufferish = __webpack_require__(104);
+
+var exports = module.exports = alloc(0);
+
+exports.alloc = alloc;
+exports.concat = Bufferish.concat;
+exports.from = from;
+
+/**
+ * @param size {Number}
+ * @returns {Buffer|Uint8Array|Array}
+ */
+
+function alloc(size) {
+  return new Array(size);
+}
+
+/**
+ * @param value {Array|ArrayBuffer|Buffer|String}
+ * @returns {Array}
+ */
+
+function from(value) {
+  if (!Bufferish.isBuffer(value) && Bufferish.isView(value)) {
+    // TypedArray to Uint8Array
+    value = Bufferish.Uint8Array.from(value);
+  } else if (Bufferish.isArrayBuffer(value)) {
+    // ArrayBuffer to Uint8Array
+    value = new Uint8Array(value);
+  } else if (typeof value === "string") {
+    // String to Array
+    return Bufferish.from.call(exports, value);
+  } else if (typeof value === "number") {
+    throw new TypeError('"value" argument must not be a number');
+  }
+
+  // Array-like to Array
+  return Array.prototype.slice.call(value);
+}
+
+
+/***/ }),
+/* 108 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// bufferish-buffer.js
+
+var Bufferish = __webpack_require__(104);
+var Buffer = Bufferish.global;
+
+var exports = module.exports = Bufferish.hasBuffer ? alloc(0) : [];
+
+exports.alloc = Bufferish.hasBuffer && Buffer.alloc || alloc;
+exports.concat = Bufferish.concat;
+exports.from = from;
+
+/**
+ * @param size {Number}
+ * @returns {Buffer|Uint8Array|Array}
+ */
+
+function alloc(size) {
+  return new Buffer(size);
+}
+
+/**
+ * @param value {Array|ArrayBuffer|Buffer|String}
+ * @returns {Buffer}
+ */
+
+function from(value) {
+  if (!Bufferish.isBuffer(value) && Bufferish.isView(value)) {
+    // TypedArray to Uint8Array
+    value = Bufferish.Uint8Array.from(value);
+  } else if (Bufferish.isArrayBuffer(value)) {
+    // ArrayBuffer to Uint8Array
+    value = new Uint8Array(value);
+  } else if (typeof value === "string") {
+    // String to Buffer
+    return Bufferish.from.call(exports, value);
+  } else if (typeof value === "number") {
+    throw new TypeError('"value" argument must not be a number');
+  }
+
+  // Array-like to Buffer
+  if (Buffer.from && Buffer.from.length !== 1) {
+    return Buffer.from(value); // node v6+
+  } else {
+    return new Buffer(value); // node v4
+  }
+}
+
+
+/***/ }),
+/* 109 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// bufferish-uint8array.js
+
+var Bufferish = __webpack_require__(104);
+
+var exports = module.exports = Bufferish.hasArrayBuffer ? alloc(0) : [];
+
+exports.alloc = alloc;
+exports.concat = Bufferish.concat;
+exports.from = from;
+
+/**
+ * @param size {Number}
+ * @returns {Buffer|Uint8Array|Array}
+ */
+
+function alloc(size) {
+  return new Uint8Array(size);
+}
+
+/**
+ * @param value {Array|ArrayBuffer|Buffer|String}
+ * @returns {Uint8Array}
+ */
+
+function from(value) {
+  if (Bufferish.isView(value)) {
+    // TypedArray to ArrayBuffer
+    var byteOffset = value.byteOffset;
+    var byteLength = value.byteLength;
+    value = value.buffer;
+    if (value.byteLength !== byteLength) {
+      if (value.slice) {
+        value = value.slice(byteOffset, byteOffset + byteLength);
+      } else {
+        // Android 4.1 does not have ArrayBuffer.prototype.slice
+        value = new Uint8Array(value);
+        if (value.byteLength !== byteLength) {
+          // TypedArray to ArrayBuffer to Uint8Array to Array
+          value = Array.prototype.slice.call(value, byteOffset, byteOffset + byteLength);
+        }
+      }
+    }
+  } else if (typeof value === "string") {
+    // String to Uint8Array
+    return Bufferish.from.call(exports, value);
+  } else if (typeof value === "number") {
+    throw new TypeError('"value" argument must not be a number');
+  }
+
+  return new Uint8Array(value);
+}
+
+
+/***/ }),
+/* 110 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// bufferish-proto.js
+
+/* jshint eqnull:true */
+
+var BufferLite = __webpack_require__(111);
+
+exports.copy = copy;
+exports.slice = slice;
+exports.toString = toString;
+exports.write = gen("write");
+
+var Bufferish = __webpack_require__(104);
+var Buffer = Bufferish.global;
+
+var isBufferShim = Bufferish.hasBuffer && ("TYPED_ARRAY_SUPPORT" in Buffer);
+var brokenTypedArray = isBufferShim && !Buffer.TYPED_ARRAY_SUPPORT;
+
+/**
+ * @param target {Buffer|Uint8Array|Array}
+ * @param [targetStart] {Number}
+ * @param [start] {Number}
+ * @param [end] {Number}
+ * @returns {Buffer|Uint8Array|Array}
+ */
+
+function copy(target, targetStart, start, end) {
+  var thisIsBuffer = Bufferish.isBuffer(this);
+  var targetIsBuffer = Bufferish.isBuffer(target);
+  if (thisIsBuffer && targetIsBuffer) {
+    // Buffer to Buffer
+    return this.copy(target, targetStart, start, end);
+  } else if (!brokenTypedArray && !thisIsBuffer && !targetIsBuffer &&
+    Bufferish.isView(this) && Bufferish.isView(target)) {
+    // Uint8Array to Uint8Array (except for minor some browsers)
+    var buffer = (start || end != null) ? slice.call(this, start, end) : this;
+    target.set(buffer, targetStart);
+    return buffer.length;
+  } else {
+    // other cases
+    return BufferLite.copy.call(this, target, targetStart, start, end);
+  }
+}
+
+/**
+ * @param [start] {Number}
+ * @param [end] {Number}
+ * @returns {Buffer|Uint8Array|Array}
+ */
+
+function slice(start, end) {
+  // for Buffer, Uint8Array (except for minor some browsers) and Array
+  var f = this.slice || (!brokenTypedArray && this.subarray);
+  if (f) return f.call(this, start, end);
+
+  // Uint8Array (for minor some browsers)
+  var target = Bufferish.alloc.call(this, end - start);
+  copy.call(this, target, 0, start, end);
+  return target;
+}
+
+/**
+ * Buffer.prototype.toString()
+ *
+ * @param [encoding] {String} ignored
+ * @param [start] {Number}
+ * @param [end] {Number}
+ * @returns {String}
+ */
+
+function toString(encoding, start, end) {
+  var f = (!isBufferShim && Bufferish.isBuffer(this)) ? this.toString : BufferLite.toString;
+  return f.apply(this, arguments);
+}
+
+/**
+ * @private
+ */
+
+function gen(method) {
+  return wrap;
+
+  function wrap() {
+    var f = this[method] || BufferLite[method];
+    return f.apply(this, arguments);
+  }
+}
+
+
+/***/ }),
+/* 111 */
+/***/ (function(module, exports) {
+
+// buffer-lite.js
+
+var MAXBUFLEN = 8192;
+
+exports.copy = copy;
+exports.toString = toString;
+exports.write = write;
+
+/**
+ * Buffer.prototype.write()
+ *
+ * @param string {String}
+ * @param [offset] {Number}
+ * @returns {Number}
+ */
+
+function write(string, offset) {
+  var buffer = this;
+  var index = offset || (offset |= 0);
+  var length = string.length;
+  var chr = 0;
+  var i = 0;
+  while (i < length) {
+    chr = string.charCodeAt(i++);
+
+    if (chr < 128) {
+      buffer[index++] = chr;
+    } else if (chr < 0x800) {
+      // 2 bytes
+      buffer[index++] = 0xC0 | (chr >>> 6);
+      buffer[index++] = 0x80 | (chr & 0x3F);
+    } else if (chr < 0xD800 || chr > 0xDFFF) {
+      // 3 bytes
+      buffer[index++] = 0xE0 | (chr  >>> 12);
+      buffer[index++] = 0x80 | ((chr >>> 6)  & 0x3F);
+      buffer[index++] = 0x80 | (chr          & 0x3F);
+    } else {
+      // 4 bytes - surrogate pair
+      chr = (((chr - 0xD800) << 10) | (string.charCodeAt(i++) - 0xDC00)) + 0x10000;
+      buffer[index++] = 0xF0 | (chr >>> 18);
+      buffer[index++] = 0x80 | ((chr >>> 12) & 0x3F);
+      buffer[index++] = 0x80 | ((chr >>> 6)  & 0x3F);
+      buffer[index++] = 0x80 | (chr          & 0x3F);
+    }
+  }
+  return index - offset;
+}
+
+/**
+ * Buffer.prototype.toString()
+ *
+ * @param [encoding] {String} ignored
+ * @param [start] {Number}
+ * @param [end] {Number}
+ * @returns {String}
+ */
+
+function toString(encoding, start, end) {
+  var buffer = this;
+  var index = start|0;
+  if (!end) end = buffer.length;
+  var string = '';
+  var chr = 0;
+
+  while (index < end) {
+    chr = buffer[index++];
+    if (chr < 128) {
+      string += String.fromCharCode(chr);
+      continue;
+    }
+
+    if ((chr & 0xE0) === 0xC0) {
+      // 2 bytes
+      chr = (chr & 0x1F) << 6 |
+            (buffer[index++] & 0x3F);
+
+    } else if ((chr & 0xF0) === 0xE0) {
+      // 3 bytes
+      chr = (chr & 0x0F)             << 12 |
+            (buffer[index++] & 0x3F) << 6  |
+            (buffer[index++] & 0x3F);
+
+    } else if ((chr & 0xF8) === 0xF0) {
+      // 4 bytes
+      chr = (chr & 0x07)             << 18 |
+            (buffer[index++] & 0x3F) << 12 |
+            (buffer[index++] & 0x3F) << 6  |
+            (buffer[index++] & 0x3F);
+    }
+
+    if (chr >= 0x010000) {
+      // A surrogate pair
+      chr -= 0x010000;
+
+      string += String.fromCharCode((chr >>> 10) + 0xD800, (chr & 0x3FF) + 0xDC00);
+    } else {
+      string += String.fromCharCode(chr);
+    }
+  }
+
+  return string;
+}
+
+/**
+ * Buffer.prototype.copy()
+ *
+ * @param target {Buffer}
+ * @param [targetStart] {Number}
+ * @param [start] {Number}
+ * @param [end] {Number}
+ * @returns {number}
+ */
+
+function copy(target, targetStart, start, end) {
+  var i;
+  if (!start) start = 0;
+  if (!end && end !== 0) end = this.length;
+  if (!targetStart) targetStart = 0;
+  var len = end - start;
+
+  if (target === this && start < targetStart && targetStart < end) {
+    // descending
+    for (i = len - 1; i >= 0; i--) {
+      target[i + targetStart] = this[i + start];
+    }
+  } else {
+    // ascending
+    for (i = 0; i < len; i++) {
+      target[i + targetStart] = this[i + start];
+    }
+  }
+
+  return len;
+}
+
+
+/***/ }),
+/* 112 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// ext-packer.js
+
+exports.setExtPackers = setExtPackers;
+
+var Bufferish = __webpack_require__(104);
+var Buffer = Bufferish.global;
+var packTypedArray = Bufferish.Uint8Array.from;
+var _encode;
+
+var ERROR_COLUMNS = {name: 1, message: 1, stack: 1, columnNumber: 1, fileName: 1, lineNumber: 1};
+
+function setExtPackers(codec) {
+  codec.addExtPacker(0x0E, Error, [packError, encode]);
+  codec.addExtPacker(0x01, EvalError, [packError, encode]);
+  codec.addExtPacker(0x02, RangeError, [packError, encode]);
+  codec.addExtPacker(0x03, ReferenceError, [packError, encode]);
+  codec.addExtPacker(0x04, SyntaxError, [packError, encode]);
+  codec.addExtPacker(0x05, TypeError, [packError, encode]);
+  codec.addExtPacker(0x06, URIError, [packError, encode]);
+
+  codec.addExtPacker(0x0A, RegExp, [packRegExp, encode]);
+  codec.addExtPacker(0x0B, Boolean, [packValueOf, encode]);
+  codec.addExtPacker(0x0C, String, [packValueOf, encode]);
+  codec.addExtPacker(0x0D, Date, [Number, encode]);
+  codec.addExtPacker(0x0F, Number, [packValueOf, encode]);
+
+  if ("undefined" !== typeof Uint8Array) {
+    codec.addExtPacker(0x11, Int8Array, packTypedArray);
+    codec.addExtPacker(0x12, Uint8Array, packTypedArray);
+    codec.addExtPacker(0x13, Int16Array, packTypedArray);
+    codec.addExtPacker(0x14, Uint16Array, packTypedArray);
+    codec.addExtPacker(0x15, Int32Array, packTypedArray);
+    codec.addExtPacker(0x16, Uint32Array, packTypedArray);
+    codec.addExtPacker(0x17, Float32Array, packTypedArray);
+
+    // PhantomJS/1.9.7 doesn't have Float64Array
+    if ("undefined" !== typeof Float64Array) {
+      codec.addExtPacker(0x18, Float64Array, packTypedArray);
+    }
+
+    // IE10 doesn't have Uint8ClampedArray
+    if ("undefined" !== typeof Uint8ClampedArray) {
+      codec.addExtPacker(0x19, Uint8ClampedArray, packTypedArray);
+    }
+
+    codec.addExtPacker(0x1A, ArrayBuffer, packTypedArray);
+    codec.addExtPacker(0x1D, DataView, packTypedArray);
+  }
+
+  if (Bufferish.hasBuffer) {
+    codec.addExtPacker(0x1B, Buffer, Bufferish.from);
+  }
+}
+
+function encode(input) {
+  if (!_encode) _encode = __webpack_require__(100).encode; // lazy load
+  return _encode(input);
+}
+
+function packValueOf(value) {
+  return (value).valueOf();
+}
+
+function packRegExp(value) {
+  value = RegExp.prototype.toString.call(value).split("/");
+  value.shift();
+  var out = [value.pop()];
+  out.unshift(value.join("/"));
+  return out;
+}
+
+function packError(value) {
+  var out = {};
+  for (var key in ERROR_COLUMNS) {
+    out[key] = value[key];
+  }
+  return out;
+}
+
+
+/***/ }),
+/* 113 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// write-type.js
+
+var IS_ARRAY = __webpack_require__(106);
+var Int64Buffer = __webpack_require__(114);
+var Uint64BE = Int64Buffer.Uint64BE;
+var Int64BE = Int64Buffer.Int64BE;
+
+var Bufferish = __webpack_require__(104);
+var BufferProto = __webpack_require__(110);
+var WriteToken = __webpack_require__(115);
+var uint8 = __webpack_require__(117).uint8;
+var ExtBuffer = __webpack_require__(103).ExtBuffer;
+
+var HAS_UINT8ARRAY = ("undefined" !== typeof Uint8Array);
+var HAS_MAP = ("undefined" !== typeof Map);
+
+var extmap = [];
+extmap[1] = 0xd4;
+extmap[2] = 0xd5;
+extmap[4] = 0xd6;
+extmap[8] = 0xd7;
+extmap[16] = 0xd8;
+
+exports.getWriteType = getWriteType;
+
+function getWriteType(options) {
+  var token = WriteToken.getWriteToken(options);
+  var useraw = options && options.useraw;
+  var binarraybuffer = HAS_UINT8ARRAY && options && options.binarraybuffer;
+  var isBuffer = binarraybuffer ? Bufferish.isArrayBuffer : Bufferish.isBuffer;
+  var bin = binarraybuffer ? bin_arraybuffer : bin_buffer;
+  var usemap = HAS_MAP && options && options.usemap;
+  var map = usemap ? map_to_map : obj_to_map;
+
+  var writeType = {
+    "boolean": bool,
+    "function": nil,
+    "number": number,
+    "object": (useraw ? object_raw : object),
+    "string": _string(useraw ? raw_head_size : str_head_size),
+    "symbol": nil,
+    "undefined": nil
+  };
+
+  return writeType;
+
+  // false -- 0xc2
+  // true -- 0xc3
+  function bool(encoder, value) {
+    var type = value ? 0xc3 : 0xc2;
+    token[type](encoder, value);
+  }
+
+  function number(encoder, value) {
+    var ivalue = value | 0;
+    var type;
+    if (value !== ivalue) {
+      // float 64 -- 0xcb
+      type = 0xcb;
+      token[type](encoder, value);
+      return;
+    } else if (-0x20 <= ivalue && ivalue <= 0x7F) {
+      // positive fixint -- 0x00 - 0x7f
+      // negative fixint -- 0xe0 - 0xff
+      type = ivalue & 0xFF;
+    } else if (0 <= ivalue) {
+      // uint 8 -- 0xcc
+      // uint 16 -- 0xcd
+      // uint 32 -- 0xce
+      type = (ivalue <= 0xFF) ? 0xcc : (ivalue <= 0xFFFF) ? 0xcd : 0xce;
+    } else {
+      // int 8 -- 0xd0
+      // int 16 -- 0xd1
+      // int 32 -- 0xd2
+      type = (-0x80 <= ivalue) ? 0xd0 : (-0x8000 <= ivalue) ? 0xd1 : 0xd2;
+    }
+    token[type](encoder, ivalue);
+  }
+
+  // uint 64 -- 0xcf
+  function uint64(encoder, value) {
+    var type = 0xcf;
+    token[type](encoder, value.toArray());
+  }
+
+  // int 64 -- 0xd3
+  function int64(encoder, value) {
+    var type = 0xd3;
+    token[type](encoder, value.toArray());
+  }
+
+  // str 8 -- 0xd9
+  // str 16 -- 0xda
+  // str 32 -- 0xdb
+  // fixstr -- 0xa0 - 0xbf
+  function str_head_size(length) {
+    return (length < 32) ? 1 : (length <= 0xFF) ? 2 : (length <= 0xFFFF) ? 3 : 5;
+  }
+
+  // raw 16 -- 0xda
+  // raw 32 -- 0xdb
+  // fixraw -- 0xa0 - 0xbf
+  function raw_head_size(length) {
+    return (length < 32) ? 1 : (length <= 0xFFFF) ? 3 : 5;
+  }
+
+  function _string(head_size) {
+    return string;
+
+    function string(encoder, value) {
+      // prepare buffer
+      var length = value.length;
+      var maxsize = 5 + length * 3;
+      encoder.offset = encoder.reserve(maxsize);
+      var buffer = encoder.buffer;
+
+      // expected header size
+      var expected = head_size(length);
+
+      // expected start point
+      var start = encoder.offset + expected;
+
+      // write string
+      length = BufferProto.write.call(buffer, value, start);
+
+      // actual header size
+      var actual = head_size(length);
+
+      // move content when needed
+      if (expected !== actual) {
+        var targetStart = start + actual - expected;
+        var end = start + length;
+        BufferProto.copy.call(buffer, buffer, targetStart, start, end);
+      }
+
+      // write header
+      var type = (actual === 1) ? (0xa0 + length) : (actual <= 3) ? (0xd7 + actual) : 0xdb;
+      token[type](encoder, length);
+
+      // move cursor
+      encoder.offset += length;
+    }
+  }
+
+  function object(encoder, value) {
+    // null
+    if (value === null) return nil(encoder, value);
+
+    // Buffer
+    if (isBuffer(value)) return bin(encoder, value);
+
+    // Array
+    if (IS_ARRAY(value)) return array(encoder, value);
+
+    // int64-buffer objects
+    if (Uint64BE.isUint64BE(value)) return uint64(encoder, value);
+    if (Int64BE.isInt64BE(value)) return int64(encoder, value);
+
+    // ext formats
+    var packer = encoder.codec.getExtPacker(value);
+    if (packer) value = packer(value);
+    if (value instanceof ExtBuffer) return ext(encoder, value);
+
+    // plain old Objects or Map
+    map(encoder, value);
+  }
+
+  function object_raw(encoder, value) {
+    // Buffer
+    if (isBuffer(value)) return raw(encoder, value);
+
+    // others
+    object(encoder, value);
+  }
+
+  // nil -- 0xc0
+  function nil(encoder, value) {
+    var type = 0xc0;
+    token[type](encoder, value);
+  }
+
+  // fixarray -- 0x90 - 0x9f
+  // array 16 -- 0xdc
+  // array 32 -- 0xdd
+  function array(encoder, value) {
+    var length = value.length;
+    var type = (length < 16) ? (0x90 + length) : (length <= 0xFFFF) ? 0xdc : 0xdd;
+    token[type](encoder, length);
+
+    var encode = encoder.codec.encode;
+    for (var i = 0; i < length; i++) {
+      encode(encoder, value[i]);
+    }
+  }
+
+  // bin 8 -- 0xc4
+  // bin 16 -- 0xc5
+  // bin 32 -- 0xc6
+  function bin_buffer(encoder, value) {
+    var length = value.length;
+    var type = (length < 0xFF) ? 0xc4 : (length <= 0xFFFF) ? 0xc5 : 0xc6;
+    token[type](encoder, length);
+    encoder.send(value);
+  }
+
+  function bin_arraybuffer(encoder, value) {
+    bin_buffer(encoder, new Uint8Array(value));
+  }
+
+  // fixext 1 -- 0xd4
+  // fixext 2 -- 0xd5
+  // fixext 4 -- 0xd6
+  // fixext 8 -- 0xd7
+  // fixext 16 -- 0xd8
+  // ext 8 -- 0xc7
+  // ext 16 -- 0xc8
+  // ext 32 -- 0xc9
+  function ext(encoder, value) {
+    var buffer = value.buffer;
+    var length = buffer.length;
+    var type = extmap[length] || ((length < 0xFF) ? 0xc7 : (length <= 0xFFFF) ? 0xc8 : 0xc9);
+    token[type](encoder, length);
+    uint8[value.type](encoder);
+    encoder.send(buffer);
+  }
+
+  // fixmap -- 0x80 - 0x8f
+  // map 16 -- 0xde
+  // map 32 -- 0xdf
+  function obj_to_map(encoder, value) {
+    var keys = Object.keys(value);
+    var length = keys.length;
+    var type = (length < 16) ? (0x80 + length) : (length <= 0xFFFF) ? 0xde : 0xdf;
+    token[type](encoder, length);
+
+    var encode = encoder.codec.encode;
+    keys.forEach(function(key) {
+      encode(encoder, key);
+      encode(encoder, value[key]);
+    });
+  }
+
+  // fixmap -- 0x80 - 0x8f
+  // map 16 -- 0xde
+  // map 32 -- 0xdf
+  function map_to_map(encoder, value) {
+    if (!(value instanceof Map)) return obj_to_map(encoder, value);
+
+    var length = value.size;
+    var type = (length < 16) ? (0x80 + length) : (length <= 0xFFFF) ? 0xde : 0xdf;
+    token[type](encoder, length);
+
+    var encode = encoder.codec.encode;
+    value.forEach(function(val, key, m) {
+      encode(encoder, key);
+      encode(encoder, val);
+    });
+  }
+
+  // raw 16 -- 0xda
+  // raw 32 -- 0xdb
+  // fixraw -- 0xa0 - 0xbf
+  function raw(encoder, value) {
+    var length = value.length;
+    var type = (length < 32) ? (0xa0 + length) : (length <= 0xFFFF) ? 0xda : 0xdb;
+    token[type](encoder, length);
+    encoder.send(value);
+  }
+}
+
+
+/***/ }),
+/* 114 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// int64-buffer.js
+
+/*jshint -W018 */ // Confusing use of '!'.
+/*jshint -W030 */ // Expected an assignment or function call and instead saw an expression.
+/*jshint -W093 */ // Did you mean to return a conditional instead of an assignment?
+
+var Uint64BE, Int64BE, Uint64LE, Int64LE;
+
+!function(exports) {
+  // constants
+
+  var UNDEFINED = "undefined";
+  var BUFFER = (UNDEFINED !== typeof Buffer) && Buffer;
+  var UINT8ARRAY = (UNDEFINED !== typeof Uint8Array) && Uint8Array;
+  var ARRAYBUFFER = (UNDEFINED !== typeof ArrayBuffer) && ArrayBuffer;
+  var ZERO = [0, 0, 0, 0, 0, 0, 0, 0];
+  var isArray = Array.isArray || _isArray;
+  var BIT32 = 4294967296;
+  var BIT24 = 16777216;
+
+  // storage class
+
+  var storage; // Array;
+
+  // generate classes
+
+  Uint64BE = factory("Uint64BE", true, true);
+  Int64BE = factory("Int64BE", true, false);
+  Uint64LE = factory("Uint64LE", false, true);
+  Int64LE = factory("Int64LE", false, false);
+
+  // class factory
+
+  function factory(name, bigendian, unsigned) {
+    var posH = bigendian ? 0 : 4;
+    var posL = bigendian ? 4 : 0;
+    var pos0 = bigendian ? 0 : 3;
+    var pos1 = bigendian ? 1 : 2;
+    var pos2 = bigendian ? 2 : 1;
+    var pos3 = bigendian ? 3 : 0;
+    var fromPositive = bigendian ? fromPositiveBE : fromPositiveLE;
+    var fromNegative = bigendian ? fromNegativeBE : fromNegativeLE;
+    var proto = Int64.prototype;
+    var isName = "is" + name;
+    var _isInt64 = "_" + isName;
+
+    // properties
+    proto.buffer = void 0;
+    proto.offset = 0;
+    proto[_isInt64] = true;
+
+    // methods
+    proto.toNumber = toNumber;
+    proto.toString = toString;
+    proto.toJSON = toNumber;
+    proto.toArray = toArray;
+
+    // add .toBuffer() method only when Buffer available
+    if (BUFFER) proto.toBuffer = toBuffer;
+
+    // add .toArrayBuffer() method only when Uint8Array available
+    if (UINT8ARRAY) proto.toArrayBuffer = toArrayBuffer;
+
+    // isUint64BE, isInt64BE
+    Int64[isName] = isInt64;
+
+    // CommonJS
+    exports[name] = Int64;
+
+    return Int64;
+
+    // constructor
+    function Int64(buffer, offset, value, raddix) {
+      if (!(this instanceof Int64)) return new Int64(buffer, offset, value, raddix);
+      return init(this, buffer, offset, value, raddix);
+    }
+
+    // isUint64BE, isInt64BE
+    function isInt64(b) {
+      return !!(b && b[_isInt64]);
+    }
+
+    // initializer
+    function init(that, buffer, offset, value, raddix) {
+      if (UINT8ARRAY && ARRAYBUFFER) {
+        if (buffer instanceof ARRAYBUFFER) buffer = new UINT8ARRAY(buffer);
+        if (value instanceof ARRAYBUFFER) value = new UINT8ARRAY(value);
+      }
+
+      // Int64BE() style
+      if (!buffer && !offset && !value && !storage) {
+        // shortcut to initialize with zero
+        that.buffer = newArray(ZERO, 0);
+        return;
+      }
+
+      // Int64BE(value, raddix) style
+      if (!isValidBuffer(buffer, offset)) {
+        var _storage = storage || Array;
+        raddix = offset;
+        value = buffer;
+        offset = 0;
+        buffer = new _storage(8);
+      }
+
+      that.buffer = buffer;
+      that.offset = offset |= 0;
+
+      // Int64BE(buffer, offset) style
+      if (UNDEFINED === typeof value) return;
+
+      // Int64BE(buffer, offset, value, raddix) style
+      if ("string" === typeof value) {
+        fromString(buffer, offset, value, raddix || 10);
+      } else if (isValidBuffer(value, raddix)) {
+        fromArray(buffer, offset, value, raddix);
+      } else if ("number" === typeof raddix) {
+        writeInt32(buffer, offset + posH, value); // high
+        writeInt32(buffer, offset + posL, raddix); // low
+      } else if (value > 0) {
+        fromPositive(buffer, offset, value); // positive
+      } else if (value < 0) {
+        fromNegative(buffer, offset, value); // negative
+      } else {
+        fromArray(buffer, offset, ZERO, 0); // zero, NaN and others
+      }
+    }
+
+    function fromString(buffer, offset, str, raddix) {
+      var pos = 0;
+      var len = str.length;
+      var high = 0;
+      var low = 0;
+      if (str[0] === "-") pos++;
+      var sign = pos;
+      while (pos < len) {
+        var chr = parseInt(str[pos++], raddix);
+        if (!(chr >= 0)) break; // NaN
+        low = low * raddix + chr;
+        high = high * raddix + Math.floor(low / BIT32);
+        low %= BIT32;
+      }
+      if (sign) {
+        high = ~high;
+        if (low) {
+          low = BIT32 - low;
+        } else {
+          high++;
+        }
+      }
+      writeInt32(buffer, offset + posH, high);
+      writeInt32(buffer, offset + posL, low);
+    }
+
+    function toNumber() {
+      var buffer = this.buffer;
+      var offset = this.offset;
+      var high = readInt32(buffer, offset + posH);
+      var low = readInt32(buffer, offset + posL);
+      if (!unsigned) high |= 0; // a trick to get signed
+      return high ? (high * BIT32 + low) : low;
+    }
+
+    function toString(radix) {
+      var buffer = this.buffer;
+      var offset = this.offset;
+      var high = readInt32(buffer, offset + posH);
+      var low = readInt32(buffer, offset + posL);
+      var str = "";
+      var sign = !unsigned && (high & 0x80000000);
+      if (sign) {
+        high = ~high;
+        low = BIT32 - low;
+      }
+      radix = radix || 10;
+      while (1) {
+        var mod = (high % radix) * BIT32 + low;
+        high = Math.floor(high / radix);
+        low = Math.floor(mod / radix);
+        str = (mod % radix).toString(radix) + str;
+        if (!high && !low) break;
+      }
+      if (sign) {
+        str = "-" + str;
+      }
+      return str;
+    }
+
+    function writeInt32(buffer, offset, value) {
+      buffer[offset + pos3] = value & 255;
+      value = value >> 8;
+      buffer[offset + pos2] = value & 255;
+      value = value >> 8;
+      buffer[offset + pos1] = value & 255;
+      value = value >> 8;
+      buffer[offset + pos0] = value & 255;
+    }
+
+    function readInt32(buffer, offset) {
+      return (buffer[offset + pos0] * BIT24) +
+        (buffer[offset + pos1] << 16) +
+        (buffer[offset + pos2] << 8) +
+        buffer[offset + pos3];
+    }
+  }
+
+  function toArray(raw) {
+    var buffer = this.buffer;
+    var offset = this.offset;
+    storage = null; // Array
+    if (raw !== false && offset === 0 && buffer.length === 8 && isArray(buffer)) return buffer;
+    return newArray(buffer, offset);
+  }
+
+  function toBuffer(raw) {
+    var buffer = this.buffer;
+    var offset = this.offset;
+    storage = BUFFER;
+    if (raw !== false && offset === 0 && buffer.length === 8 && Buffer.isBuffer(buffer)) return buffer;
+    var dest = new BUFFER(8);
+    fromArray(dest, 0, buffer, offset);
+    return dest;
+  }
+
+  function toArrayBuffer(raw) {
+    var buffer = this.buffer;
+    var offset = this.offset;
+    var arrbuf = buffer.buffer;
+    storage = UINT8ARRAY;
+    if (raw !== false && offset === 0 && (arrbuf instanceof ARRAYBUFFER) && arrbuf.byteLength === 8) return arrbuf;
+    var dest = new UINT8ARRAY(8);
+    fromArray(dest, 0, buffer, offset);
+    return dest.buffer;
+  }
+
+  function isValidBuffer(buffer, offset) {
+    var len = buffer && buffer.length;
+    offset |= 0;
+    return len && (offset + 8 <= len) && ("string" !== typeof buffer[offset]);
+  }
+
+  function fromArray(destbuf, destoff, srcbuf, srcoff) {
+    destoff |= 0;
+    srcoff |= 0;
+    for (var i = 0; i < 8; i++) {
+      destbuf[destoff++] = srcbuf[srcoff++] & 255;
+    }
+  }
+
+  function newArray(buffer, offset) {
+    return Array.prototype.slice.call(buffer, offset, offset + 8);
+  }
+
+  function fromPositiveBE(buffer, offset, value) {
+    var pos = offset + 8;
+    while (pos > offset) {
+      buffer[--pos] = value & 255;
+      value /= 256;
+    }
+  }
+
+  function fromNegativeBE(buffer, offset, value) {
+    var pos = offset + 8;
+    value++;
+    while (pos > offset) {
+      buffer[--pos] = ((-value) & 255) ^ 255;
+      value /= 256;
+    }
+  }
+
+  function fromPositiveLE(buffer, offset, value) {
+    var end = offset + 8;
+    while (offset < end) {
+      buffer[offset++] = value & 255;
+      value /= 256;
+    }
+  }
+
+  function fromNegativeLE(buffer, offset, value) {
+    var end = offset + 8;
+    value++;
+    while (offset < end) {
+      buffer[offset++] = ((-value) & 255) ^ 255;
+      value /= 256;
+    }
+  }
+
+  // https://github.com/retrofox/is-array
+  function _isArray(val) {
+    return !!val && "[object Array]" == Object.prototype.toString.call(val);
+  }
+
+}( true && typeof exports.nodeName !== 'string' ? exports : (this || {}));
+
+
+/***/ }),
+/* 115 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// write-token.js
+
+var ieee754 = __webpack_require__(116);
+var Int64Buffer = __webpack_require__(114);
+var Uint64BE = Int64Buffer.Uint64BE;
+var Int64BE = Int64Buffer.Int64BE;
+
+var uint8 = __webpack_require__(117).uint8;
+var Bufferish = __webpack_require__(104);
+var Buffer = Bufferish.global;
+var IS_BUFFER_SHIM = Bufferish.hasBuffer && ("TYPED_ARRAY_SUPPORT" in Buffer);
+var NO_TYPED_ARRAY = IS_BUFFER_SHIM && !Buffer.TYPED_ARRAY_SUPPORT;
+var Buffer_prototype = Bufferish.hasBuffer && Buffer.prototype || {};
+
+exports.getWriteToken = getWriteToken;
+
+function getWriteToken(options) {
+  if (options && options.uint8array) {
+    return init_uint8array();
+  } else if (NO_TYPED_ARRAY || (Bufferish.hasBuffer && options && options.safe)) {
+    return init_safe();
+  } else {
+    return init_token();
+  }
+}
+
+function init_uint8array() {
+  var token = init_token();
+
+  // float 32 -- 0xca
+  // float 64 -- 0xcb
+  token[0xca] = writeN(0xca, 4, writeFloatBE);
+  token[0xcb] = writeN(0xcb, 8, writeDoubleBE);
+
+  return token;
+}
+
+// Node.js and browsers with TypedArray
+
+function init_token() {
+  // (immediate values)
+  // positive fixint -- 0x00 - 0x7f
+  // nil -- 0xc0
+  // false -- 0xc2
+  // true -- 0xc3
+  // negative fixint -- 0xe0 - 0xff
+  var token = uint8.slice();
+
+  // bin 8 -- 0xc4
+  // bin 16 -- 0xc5
+  // bin 32 -- 0xc6
+  token[0xc4] = write1(0xc4);
+  token[0xc5] = write2(0xc5);
+  token[0xc6] = write4(0xc6);
+
+  // ext 8 -- 0xc7
+  // ext 16 -- 0xc8
+  // ext 32 -- 0xc9
+  token[0xc7] = write1(0xc7);
+  token[0xc8] = write2(0xc8);
+  token[0xc9] = write4(0xc9);
+
+  // float 32 -- 0xca
+  // float 64 -- 0xcb
+  token[0xca] = writeN(0xca, 4, (Buffer_prototype.writeFloatBE || writeFloatBE), true);
+  token[0xcb] = writeN(0xcb, 8, (Buffer_prototype.writeDoubleBE || writeDoubleBE), true);
+
+  // uint 8 -- 0xcc
+  // uint 16 -- 0xcd
+  // uint 32 -- 0xce
+  // uint 64 -- 0xcf
+  token[0xcc] = write1(0xcc);
+  token[0xcd] = write2(0xcd);
+  token[0xce] = write4(0xce);
+  token[0xcf] = writeN(0xcf, 8, writeUInt64BE);
+
+  // int 8 -- 0xd0
+  // int 16 -- 0xd1
+  // int 32 -- 0xd2
+  // int 64 -- 0xd3
+  token[0xd0] = write1(0xd0);
+  token[0xd1] = write2(0xd1);
+  token[0xd2] = write4(0xd2);
+  token[0xd3] = writeN(0xd3, 8, writeInt64BE);
+
+  // str 8 -- 0xd9
+  // str 16 -- 0xda
+  // str 32 -- 0xdb
+  token[0xd9] = write1(0xd9);
+  token[0xda] = write2(0xda);
+  token[0xdb] = write4(0xdb);
+
+  // array 16 -- 0xdc
+  // array 32 -- 0xdd
+  token[0xdc] = write2(0xdc);
+  token[0xdd] = write4(0xdd);
+
+  // map 16 -- 0xde
+  // map 32 -- 0xdf
+  token[0xde] = write2(0xde);
+  token[0xdf] = write4(0xdf);
+
+  return token;
+}
+
+// safe mode: for old browsers and who needs asserts
+
+function init_safe() {
+  // (immediate values)
+  // positive fixint -- 0x00 - 0x7f
+  // nil -- 0xc0
+  // false -- 0xc2
+  // true -- 0xc3
+  // negative fixint -- 0xe0 - 0xff
+  var token = uint8.slice();
+
+  // bin 8 -- 0xc4
+  // bin 16 -- 0xc5
+  // bin 32 -- 0xc6
+  token[0xc4] = writeN(0xc4, 1, Buffer.prototype.writeUInt8);
+  token[0xc5] = writeN(0xc5, 2, Buffer.prototype.writeUInt16BE);
+  token[0xc6] = writeN(0xc6, 4, Buffer.prototype.writeUInt32BE);
+
+  // ext 8 -- 0xc7
+  // ext 16 -- 0xc8
+  // ext 32 -- 0xc9
+  token[0xc7] = writeN(0xc7, 1, Buffer.prototype.writeUInt8);
+  token[0xc8] = writeN(0xc8, 2, Buffer.prototype.writeUInt16BE);
+  token[0xc9] = writeN(0xc9, 4, Buffer.prototype.writeUInt32BE);
+
+  // float 32 -- 0xca
+  // float 64 -- 0xcb
+  token[0xca] = writeN(0xca, 4, Buffer.prototype.writeFloatBE);
+  token[0xcb] = writeN(0xcb, 8, Buffer.prototype.writeDoubleBE);
+
+  // uint 8 -- 0xcc
+  // uint 16 -- 0xcd
+  // uint 32 -- 0xce
+  // uint 64 -- 0xcf
+  token[0xcc] = writeN(0xcc, 1, Buffer.prototype.writeUInt8);
+  token[0xcd] = writeN(0xcd, 2, Buffer.prototype.writeUInt16BE);
+  token[0xce] = writeN(0xce, 4, Buffer.prototype.writeUInt32BE);
+  token[0xcf] = writeN(0xcf, 8, writeUInt64BE);
+
+  // int 8 -- 0xd0
+  // int 16 -- 0xd1
+  // int 32 -- 0xd2
+  // int 64 -- 0xd3
+  token[0xd0] = writeN(0xd0, 1, Buffer.prototype.writeInt8);
+  token[0xd1] = writeN(0xd1, 2, Buffer.prototype.writeInt16BE);
+  token[0xd2] = writeN(0xd2, 4, Buffer.prototype.writeInt32BE);
+  token[0xd3] = writeN(0xd3, 8, writeInt64BE);
+
+  // str 8 -- 0xd9
+  // str 16 -- 0xda
+  // str 32 -- 0xdb
+  token[0xd9] = writeN(0xd9, 1, Buffer.prototype.writeUInt8);
+  token[0xda] = writeN(0xda, 2, Buffer.prototype.writeUInt16BE);
+  token[0xdb] = writeN(0xdb, 4, Buffer.prototype.writeUInt32BE);
+
+  // array 16 -- 0xdc
+  // array 32 -- 0xdd
+  token[0xdc] = writeN(0xdc, 2, Buffer.prototype.writeUInt16BE);
+  token[0xdd] = writeN(0xdd, 4, Buffer.prototype.writeUInt32BE);
+
+  // map 16 -- 0xde
+  // map 32 -- 0xdf
+  token[0xde] = writeN(0xde, 2, Buffer.prototype.writeUInt16BE);
+  token[0xdf] = writeN(0xdf, 4, Buffer.prototype.writeUInt32BE);
+
+  return token;
+}
+
+function write1(type) {
+  return function(encoder, value) {
+    var offset = encoder.reserve(2);
+    var buffer = encoder.buffer;
+    buffer[offset++] = type;
+    buffer[offset] = value;
+  };
+}
+
+function write2(type) {
+  return function(encoder, value) {
+    var offset = encoder.reserve(3);
+    var buffer = encoder.buffer;
+    buffer[offset++] = type;
+    buffer[offset++] = value >>> 8;
+    buffer[offset] = value;
+  };
+}
+
+function write4(type) {
+  return function(encoder, value) {
+    var offset = encoder.reserve(5);
+    var buffer = encoder.buffer;
+    buffer[offset++] = type;
+    buffer[offset++] = value >>> 24;
+    buffer[offset++] = value >>> 16;
+    buffer[offset++] = value >>> 8;
+    buffer[offset] = value;
+  };
+}
+
+function writeN(type, len, method, noAssert) {
+  return function(encoder, value) {
+    var offset = encoder.reserve(len + 1);
+    encoder.buffer[offset++] = type;
+    method.call(encoder.buffer, value, offset, noAssert);
+  };
+}
+
+function writeUInt64BE(value, offset) {
+  new Uint64BE(this, offset, value);
+}
+
+function writeInt64BE(value, offset) {
+  new Int64BE(this, offset, value);
+}
+
+function writeFloatBE(value, offset) {
+  ieee754.write(this, value, offset, false, 23, 4);
+}
+
+function writeDoubleBE(value, offset) {
+  ieee754.write(this, value, offset, false, 52, 8);
+}
+
+
+/***/ }),
+/* 116 */
+/***/ (function(module, exports) {
+
+exports.read = function (buffer, offset, isLE, mLen, nBytes) {
+  var e, m
+  var eLen = (nBytes * 8) - mLen - 1
+  var eMax = (1 << eLen) - 1
+  var eBias = eMax >> 1
+  var nBits = -7
+  var i = isLE ? (nBytes - 1) : 0
+  var d = isLE ? -1 : 1
+  var s = buffer[offset + i]
+
+  i += d
+
+  e = s & ((1 << (-nBits)) - 1)
+  s >>= (-nBits)
+  nBits += eLen
+  for (; nBits > 0; e = (e * 256) + buffer[offset + i], i += d, nBits -= 8) {}
+
+  m = e & ((1 << (-nBits)) - 1)
+  e >>= (-nBits)
+  nBits += mLen
+  for (; nBits > 0; m = (m * 256) + buffer[offset + i], i += d, nBits -= 8) {}
+
+  if (e === 0) {
+    e = 1 - eBias
+  } else if (e === eMax) {
+    return m ? NaN : ((s ? -1 : 1) * Infinity)
+  } else {
+    m = m + Math.pow(2, mLen)
+    e = e - eBias
+  }
+  return (s ? -1 : 1) * m * Math.pow(2, e - mLen)
+}
+
+exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
+  var e, m, c
+  var eLen = (nBytes * 8) - mLen - 1
+  var eMax = (1 << eLen) - 1
+  var eBias = eMax >> 1
+  var rt = (mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0)
+  var i = isLE ? 0 : (nBytes - 1)
+  var d = isLE ? 1 : -1
+  var s = value < 0 || (value === 0 && 1 / value < 0) ? 1 : 0
+
+  value = Math.abs(value)
+
+  if (isNaN(value) || value === Infinity) {
+    m = isNaN(value) ? 1 : 0
+    e = eMax
+  } else {
+    e = Math.floor(Math.log(value) / Math.LN2)
+    if (value * (c = Math.pow(2, -e)) < 1) {
+      e--
+      c *= 2
+    }
+    if (e + eBias >= 1) {
+      value += rt / c
+    } else {
+      value += rt * Math.pow(2, 1 - eBias)
+    }
+    if (value * c >= 2) {
+      e++
+      c /= 2
+    }
+
+    if (e + eBias >= eMax) {
+      m = 0
+      e = eMax
+    } else if (e + eBias >= 1) {
+      m = ((value * c) - 1) * Math.pow(2, mLen)
+      e = e + eBias
+    } else {
+      m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen)
+      e = 0
+    }
+  }
+
+  for (; mLen >= 8; buffer[offset + i] = m & 0xff, i += d, m /= 256, mLen -= 8) {}
+
+  e = (e << mLen) | m
+  eLen += mLen
+  for (; eLen > 0; buffer[offset + i] = e & 0xff, i += d, e /= 256, eLen -= 8) {}
+
+  buffer[offset + i - d] |= s * 128
+}
+
+
+/***/ }),
+/* 117 */
+/***/ (function(module, exports) {
+
+// write-unit8.js
+
+var constant = exports.uint8 = new Array(256);
+
+for (var i = 0x00; i <= 0xFF; i++) {
+  constant[i] = write0(i);
+}
+
+function write0(type) {
+  return function(encoder) {
+    var offset = encoder.reserve(1);
+    encoder.buffer[offset] = type;
+  };
+}
+
+
+/***/ }),
+/* 118 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// codec-base.js
+
+var IS_ARRAY = __webpack_require__(106);
+
+exports.createCodec = createCodec;
+exports.install = install;
+exports.filter = filter;
+
+var Bufferish = __webpack_require__(104);
+
+function Codec(options) {
+  if (!(this instanceof Codec)) return new Codec(options);
+  this.options = options;
+  this.init();
+}
+
+Codec.prototype.init = function() {
+  var options = this.options;
+
+  if (options && options.uint8array) {
+    this.bufferish = Bufferish.Uint8Array;
+  }
+
+  return this;
+};
+
+function install(props) {
+  for (var key in props) {
+    Codec.prototype[key] = add(Codec.prototype[key], props[key]);
+  }
+}
+
+function add(a, b) {
+  return (a && b) ? ab : (a || b);
+
+  function ab() {
+    a.apply(this, arguments);
+    return b.apply(this, arguments);
+  }
+}
+
+function join(filters) {
+  filters = filters.slice();
+
+  return function(value) {
+    return filters.reduce(iterator, value);
+  };
+
+  function iterator(value, filter) {
+    return filter(value);
+  }
+}
+
+function filter(filter) {
+  return IS_ARRAY(filter) ? join(filter) : filter;
+}
+
+// @public
+// msgpack.createCodec()
+
+function createCodec(options) {
+  return new Codec(options);
+}
+
+// default shared codec
+
+exports.preset = createCodec({preset: true});
+
+
+/***/ }),
+/* 119 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// flex-buffer.js
+
+exports.FlexDecoder = FlexDecoder;
+exports.FlexEncoder = FlexEncoder;
+
+var Bufferish = __webpack_require__(104);
+
+var MIN_BUFFER_SIZE = 2048;
+var MAX_BUFFER_SIZE = 65536;
+var BUFFER_SHORTAGE = "BUFFER_SHORTAGE";
+
+function FlexDecoder() {
+  if (!(this instanceof FlexDecoder)) return new FlexDecoder();
+}
+
+function FlexEncoder() {
+  if (!(this instanceof FlexEncoder)) return new FlexEncoder();
+}
+
+FlexDecoder.mixin = mixinFactory(getDecoderMethods());
+FlexDecoder.mixin(FlexDecoder.prototype);
+
+FlexEncoder.mixin = mixinFactory(getEncoderMethods());
+FlexEncoder.mixin(FlexEncoder.prototype);
+
+function getDecoderMethods() {
+  return {
+    bufferish: Bufferish,
+    write: write,
+    fetch: fetch,
+    flush: flush,
+    push: push,
+    pull: pull,
+    read: read,
+    reserve: reserve,
+    offset: 0
+  };
+
+  function write(chunk) {
+    var prev = this.offset ? Bufferish.prototype.slice.call(this.buffer, this.offset) : this.buffer;
+    this.buffer = prev ? (chunk ? this.bufferish.concat([prev, chunk]) : prev) : chunk;
+    this.offset = 0;
+  }
+
+  function flush() {
+    while (this.offset < this.buffer.length) {
+      var start = this.offset;
+      var value;
+      try {
+        value = this.fetch();
+      } catch (e) {
+        if (e && e.message != BUFFER_SHORTAGE) throw e;
+        // rollback
+        this.offset = start;
+        break;
+      }
+      this.push(value);
+    }
+  }
+
+  function reserve(length) {
+    var start = this.offset;
+    var end = start + length;
+    if (end > this.buffer.length) throw new Error(BUFFER_SHORTAGE);
+    this.offset = end;
+    return start;
+  }
+}
+
+function getEncoderMethods() {
+  return {
+    bufferish: Bufferish,
+    write: write,
+    fetch: fetch,
+    flush: flush,
+    push: push,
+    pull: pull,
+    read: read,
+    reserve: reserve,
+    send: send,
+    maxBufferSize: MAX_BUFFER_SIZE,
+    minBufferSize: MIN_BUFFER_SIZE,
+    offset: 0,
+    start: 0
+  };
+
+  function fetch() {
+    var start = this.start;
+    if (start < this.offset) {
+      var end = this.start = this.offset;
+      return Bufferish.prototype.slice.call(this.buffer, start, end);
+    }
+  }
+
+  function flush() {
+    while (this.start < this.offset) {
+      var value = this.fetch();
+      if (value) this.push(value);
+    }
+  }
+
+  function pull() {
+    var buffers = this.buffers || (this.buffers = []);
+    var chunk = buffers.length > 1 ? this.bufferish.concat(buffers) : buffers[0];
+    buffers.length = 0; // buffer exhausted
+    return chunk;
+  }
+
+  function reserve(length) {
+    var req = length | 0;
+
+    if (this.buffer) {
+      var size = this.buffer.length;
+      var start = this.offset | 0;
+      var end = start + req;
+
+      // is it long enough?
+      if (end < size) {
+        this.offset = end;
+        return start;
+      }
+
+      // flush current buffer
+      this.flush();
+
+      // resize it to 2x current length
+      length = Math.max(length, Math.min(size * 2, this.maxBufferSize));
+    }
+
+    // minimum buffer size
+    length = Math.max(length, this.minBufferSize);
+
+    // allocate new buffer
+    this.buffer = this.bufferish.alloc(length);
+    this.start = 0;
+    this.offset = req;
+    return 0;
+  }
+
+  function send(buffer) {
+    var length = buffer.length;
+    if (length > this.minBufferSize) {
+      this.flush();
+      this.push(buffer);
+    } else {
+      var offset = this.reserve(length);
+      Bufferish.prototype.copy.call(buffer, this.buffer, offset);
+    }
+  }
+}
+
+// common methods
+
+function write() {
+  throw new Error("method not implemented: write()");
+}
+
+function fetch() {
+  throw new Error("method not implemented: fetch()");
+}
+
+function read() {
+  var length = this.buffers && this.buffers.length;
+
+  // fetch the first result
+  if (!length) return this.fetch();
+
+  // flush current buffer
+  this.flush();
+
+  // read from the results
+  return this.pull();
+}
+
+function push(chunk) {
+  var buffers = this.buffers || (this.buffers = []);
+  buffers.push(chunk);
+}
+
+function pull() {
+  var buffers = this.buffers || (this.buffers = []);
+  return buffers.shift();
+}
+
+function mixinFactory(source) {
+  return mixin;
+
+  function mixin(target) {
+    for (var key in source) {
+      target[key] = source[key];
+    }
+    return target;
+  }
+}
+
+
+/***/ }),
+/* 120 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// decode.js
+
+exports.decode = decode;
+
+var DecodeBuffer = __webpack_require__(121).DecodeBuffer;
+
+function decode(input, options) {
+  var decoder = new DecodeBuffer(options);
+  decoder.write(input);
+  return decoder.read();
+}
+
+/***/ }),
+/* 121 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// decode-buffer.js
+
+exports.DecodeBuffer = DecodeBuffer;
+
+var preset = __webpack_require__(122).preset;
+
+var FlexDecoder = __webpack_require__(119).FlexDecoder;
+
+FlexDecoder.mixin(DecodeBuffer.prototype);
+
+function DecodeBuffer(options) {
+  if (!(this instanceof DecodeBuffer)) return new DecodeBuffer(options);
+
+  if (options) {
+    this.options = options;
+    if (options.codec) {
+      var codec = this.codec = options.codec;
+      if (codec.bufferish) this.bufferish = codec.bufferish;
+    }
+  }
+}
+
+DecodeBuffer.prototype.codec = preset;
+
+DecodeBuffer.prototype.fetch = function() {
+  return this.codec.decode(this);
+};
+
+
+/***/ }),
+/* 122 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// read-core.js
+
+var ExtBuffer = __webpack_require__(103).ExtBuffer;
+var ExtUnpacker = __webpack_require__(123);
+var readUint8 = __webpack_require__(124).readUint8;
+var ReadToken = __webpack_require__(125);
+var CodecBase = __webpack_require__(118);
+
+CodecBase.install({
+  addExtUnpacker: addExtUnpacker,
+  getExtUnpacker: getExtUnpacker,
+  init: init
+});
+
+exports.preset = init.call(CodecBase.preset);
+
+function getDecoder(options) {
+  var readToken = ReadToken.getReadToken(options);
+  return decode;
+
+  function decode(decoder) {
+    var type = readUint8(decoder);
+    var func = readToken[type];
+    if (!func) throw new Error("Invalid type: " + (type ? ("0x" + type.toString(16)) : type));
+    return func(decoder);
+  }
+}
+
+function init() {
+  var options = this.options;
+  this.decode = getDecoder(options);
+
+  if (options && options.preset) {
+    ExtUnpacker.setExtUnpackers(this);
+  }
+
+  return this;
+}
+
+function addExtUnpacker(etype, unpacker) {
+  var unpackers = this.extUnpackers || (this.extUnpackers = []);
+  unpackers[etype] = CodecBase.filter(unpacker);
+}
+
+function getExtUnpacker(type) {
+  var unpackers = this.extUnpackers || (this.extUnpackers = []);
+  return unpackers[type] || extUnpacker;
+
+  function extUnpacker(buffer) {
+    return new ExtBuffer(buffer, type);
+  }
+}
+
+
+/***/ }),
+/* 123 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// ext-unpacker.js
+
+exports.setExtUnpackers = setExtUnpackers;
+
+var Bufferish = __webpack_require__(104);
+var Buffer = Bufferish.global;
+var _decode;
+
+var ERROR_COLUMNS = {name: 1, message: 1, stack: 1, columnNumber: 1, fileName: 1, lineNumber: 1};
+
+function setExtUnpackers(codec) {
+  codec.addExtUnpacker(0x0E, [decode, unpackError(Error)]);
+  codec.addExtUnpacker(0x01, [decode, unpackError(EvalError)]);
+  codec.addExtUnpacker(0x02, [decode, unpackError(RangeError)]);
+  codec.addExtUnpacker(0x03, [decode, unpackError(ReferenceError)]);
+  codec.addExtUnpacker(0x04, [decode, unpackError(SyntaxError)]);
+  codec.addExtUnpacker(0x05, [decode, unpackError(TypeError)]);
+  codec.addExtUnpacker(0x06, [decode, unpackError(URIError)]);
+
+  codec.addExtUnpacker(0x0A, [decode, unpackRegExp]);
+  codec.addExtUnpacker(0x0B, [decode, unpackClass(Boolean)]);
+  codec.addExtUnpacker(0x0C, [decode, unpackClass(String)]);
+  codec.addExtUnpacker(0x0D, [decode, unpackClass(Date)]);
+  codec.addExtUnpacker(0x0F, [decode, unpackClass(Number)]);
+
+  if ("undefined" !== typeof Uint8Array) {
+    codec.addExtUnpacker(0x11, unpackClass(Int8Array));
+    codec.addExtUnpacker(0x12, unpackClass(Uint8Array));
+    codec.addExtUnpacker(0x13, [unpackArrayBuffer, unpackClass(Int16Array)]);
+    codec.addExtUnpacker(0x14, [unpackArrayBuffer, unpackClass(Uint16Array)]);
+    codec.addExtUnpacker(0x15, [unpackArrayBuffer, unpackClass(Int32Array)]);
+    codec.addExtUnpacker(0x16, [unpackArrayBuffer, unpackClass(Uint32Array)]);
+    codec.addExtUnpacker(0x17, [unpackArrayBuffer, unpackClass(Float32Array)]);
+
+    // PhantomJS/1.9.7 doesn't have Float64Array
+    if ("undefined" !== typeof Float64Array) {
+      codec.addExtUnpacker(0x18, [unpackArrayBuffer, unpackClass(Float64Array)]);
+    }
+
+    // IE10 doesn't have Uint8ClampedArray
+    if ("undefined" !== typeof Uint8ClampedArray) {
+      codec.addExtUnpacker(0x19, unpackClass(Uint8ClampedArray));
+    }
+
+    codec.addExtUnpacker(0x1A, unpackArrayBuffer);
+    codec.addExtUnpacker(0x1D, [unpackArrayBuffer, unpackClass(DataView)]);
+  }
+
+  if (Bufferish.hasBuffer) {
+    codec.addExtUnpacker(0x1B, unpackClass(Buffer));
+  }
+}
+
+function decode(input) {
+  if (!_decode) _decode = __webpack_require__(120).decode; // lazy load
+  return _decode(input);
+}
+
+function unpackRegExp(value) {
+  return RegExp.apply(null, value);
+}
+
+function unpackError(Class) {
+  return function(value) {
+    var out = new Class();
+    for (var key in ERROR_COLUMNS) {
+      out[key] = value[key];
+    }
+    return out;
+  };
+}
+
+function unpackClass(Class) {
+  return function(value) {
+    return new Class(value);
+  };
+}
+
+function unpackArrayBuffer(value) {
+  return (new Uint8Array(value)).buffer;
+}
+
+
+/***/ }),
+/* 124 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// read-format.js
+
+var ieee754 = __webpack_require__(116);
+var Int64Buffer = __webpack_require__(114);
+var Uint64BE = Int64Buffer.Uint64BE;
+var Int64BE = Int64Buffer.Int64BE;
+
+exports.getReadFormat = getReadFormat;
+exports.readUint8 = uint8;
+
+var Bufferish = __webpack_require__(104);
+var BufferProto = __webpack_require__(110);
+
+var HAS_MAP = ("undefined" !== typeof Map);
+var NO_ASSERT = true;
+
+function getReadFormat(options) {
+  var binarraybuffer = Bufferish.hasArrayBuffer && options && options.binarraybuffer;
+  var int64 = options && options.int64;
+  var usemap = HAS_MAP && options && options.usemap;
+
+  var readFormat = {
+    map: (usemap ? map_to_map : map_to_obj),
+    array: array,
+    str: str,
+    bin: (binarraybuffer ? bin_arraybuffer : bin_buffer),
+    ext: ext,
+    uint8: uint8,
+    uint16: uint16,
+    uint32: uint32,
+    uint64: read(8, int64 ? readUInt64BE_int64 : readUInt64BE),
+    int8: int8,
+    int16: int16,
+    int32: int32,
+    int64: read(8, int64 ? readInt64BE_int64 : readInt64BE),
+    float32: read(4, readFloatBE),
+    float64: read(8, readDoubleBE)
+  };
+
+  return readFormat;
+}
+
+function map_to_obj(decoder, len) {
+  var value = {};
+  var i;
+  var k = new Array(len);
+  var v = new Array(len);
+
+  var decode = decoder.codec.decode;
+  for (i = 0; i < len; i++) {
+    k[i] = decode(decoder);
+    v[i] = decode(decoder);
+  }
+  for (i = 0; i < len; i++) {
+    value[k[i]] = v[i];
+  }
+  return value;
+}
+
+function map_to_map(decoder, len) {
+  var value = new Map();
+  var i;
+  var k = new Array(len);
+  var v = new Array(len);
+
+  var decode = decoder.codec.decode;
+  for (i = 0; i < len; i++) {
+    k[i] = decode(decoder);
+    v[i] = decode(decoder);
+  }
+  for (i = 0; i < len; i++) {
+    value.set(k[i], v[i]);
+  }
+  return value;
+}
+
+function array(decoder, len) {
+  var value = new Array(len);
+  var decode = decoder.codec.decode;
+  for (var i = 0; i < len; i++) {
+    value[i] = decode(decoder);
+  }
+  return value;
+}
+
+function str(decoder, len) {
+  var start = decoder.reserve(len);
+  var end = start + len;
+  return BufferProto.toString.call(decoder.buffer, "utf-8", start, end);
+}
+
+function bin_buffer(decoder, len) {
+  var start = decoder.reserve(len);
+  var end = start + len;
+  var buf = BufferProto.slice.call(decoder.buffer, start, end);
+  return Bufferish.from(buf);
+}
+
+function bin_arraybuffer(decoder, len) {
+  var start = decoder.reserve(len);
+  var end = start + len;
+  var buf = BufferProto.slice.call(decoder.buffer, start, end);
+  return Bufferish.Uint8Array.from(buf).buffer;
+}
+
+function ext(decoder, len) {
+  var start = decoder.reserve(len+1);
+  var type = decoder.buffer[start++];
+  var end = start + len;
+  var unpack = decoder.codec.getExtUnpacker(type);
+  if (!unpack) throw new Error("Invalid ext type: " + (type ? ("0x" + type.toString(16)) : type));
+  var buf = BufferProto.slice.call(decoder.buffer, start, end);
+  return unpack(buf);
+}
+
+function uint8(decoder) {
+  var start = decoder.reserve(1);
+  return decoder.buffer[start];
+}
+
+function int8(decoder) {
+  var start = decoder.reserve(1);
+  var value = decoder.buffer[start];
+  return (value & 0x80) ? value - 0x100 : value;
+}
+
+function uint16(decoder) {
+  var start = decoder.reserve(2);
+  var buffer = decoder.buffer;
+  return (buffer[start++] << 8) | buffer[start];
+}
+
+function int16(decoder) {
+  var start = decoder.reserve(2);
+  var buffer = decoder.buffer;
+  var value = (buffer[start++] << 8) | buffer[start];
+  return (value & 0x8000) ? value - 0x10000 : value;
+}
+
+function uint32(decoder) {
+  var start = decoder.reserve(4);
+  var buffer = decoder.buffer;
+  return (buffer[start++] * 16777216) + (buffer[start++] << 16) + (buffer[start++] << 8) + buffer[start];
+}
+
+function int32(decoder) {
+  var start = decoder.reserve(4);
+  var buffer = decoder.buffer;
+  return (buffer[start++] << 24) | (buffer[start++] << 16) | (buffer[start++] << 8) | buffer[start];
+}
+
+function read(len, method) {
+  return function(decoder) {
+    var start = decoder.reserve(len);
+    return method.call(decoder.buffer, start, NO_ASSERT);
+  };
+}
+
+function readUInt64BE(start) {
+  return new Uint64BE(this, start).toNumber();
+}
+
+function readInt64BE(start) {
+  return new Int64BE(this, start).toNumber();
+}
+
+function readUInt64BE_int64(start) {
+  return new Uint64BE(this, start);
+}
+
+function readInt64BE_int64(start) {
+  return new Int64BE(this, start);
+}
+
+function readFloatBE(start) {
+  return ieee754.read(this, start, false, 23, 4);
+}
+
+function readDoubleBE(start) {
+  return ieee754.read(this, start, false, 52, 8);
+}
+
+/***/ }),
+/* 125 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// read-token.js
+
+var ReadFormat = __webpack_require__(124);
+
+exports.getReadToken = getReadToken;
+
+function getReadToken(options) {
+  var format = ReadFormat.getReadFormat(options);
+
+  if (options && options.useraw) {
+    return init_useraw(format);
+  } else {
+    return init_token(format);
+  }
+}
+
+function init_token(format) {
+  var i;
+  var token = new Array(256);
+
+  // positive fixint -- 0x00 - 0x7f
+  for (i = 0x00; i <= 0x7f; i++) {
+    token[i] = constant(i);
+  }
+
+  // fixmap -- 0x80 - 0x8f
+  for (i = 0x80; i <= 0x8f; i++) {
+    token[i] = fix(i - 0x80, format.map);
+  }
+
+  // fixarray -- 0x90 - 0x9f
+  for (i = 0x90; i <= 0x9f; i++) {
+    token[i] = fix(i - 0x90, format.array);
+  }
+
+  // fixstr -- 0xa0 - 0xbf
+  for (i = 0xa0; i <= 0xbf; i++) {
+    token[i] = fix(i - 0xa0, format.str);
+  }
+
+  // nil -- 0xc0
+  token[0xc0] = constant(null);
+
+  // (never used) -- 0xc1
+  token[0xc1] = null;
+
+  // false -- 0xc2
+  // true -- 0xc3
+  token[0xc2] = constant(false);
+  token[0xc3] = constant(true);
+
+  // bin 8 -- 0xc4
+  // bin 16 -- 0xc5
+  // bin 32 -- 0xc6
+  token[0xc4] = flex(format.uint8, format.bin);
+  token[0xc5] = flex(format.uint16, format.bin);
+  token[0xc6] = flex(format.uint32, format.bin);
+
+  // ext 8 -- 0xc7
+  // ext 16 -- 0xc8
+  // ext 32 -- 0xc9
+  token[0xc7] = flex(format.uint8, format.ext);
+  token[0xc8] = flex(format.uint16, format.ext);
+  token[0xc9] = flex(format.uint32, format.ext);
+
+  // float 32 -- 0xca
+  // float 64 -- 0xcb
+  token[0xca] = format.float32;
+  token[0xcb] = format.float64;
+
+  // uint 8 -- 0xcc
+  // uint 16 -- 0xcd
+  // uint 32 -- 0xce
+  // uint 64 -- 0xcf
+  token[0xcc] = format.uint8;
+  token[0xcd] = format.uint16;
+  token[0xce] = format.uint32;
+  token[0xcf] = format.uint64;
+
+  // int 8 -- 0xd0
+  // int 16 -- 0xd1
+  // int 32 -- 0xd2
+  // int 64 -- 0xd3
+  token[0xd0] = format.int8;
+  token[0xd1] = format.int16;
+  token[0xd2] = format.int32;
+  token[0xd3] = format.int64;
+
+  // fixext 1 -- 0xd4
+  // fixext 2 -- 0xd5
+  // fixext 4 -- 0xd6
+  // fixext 8 -- 0xd7
+  // fixext 16 -- 0xd8
+  token[0xd4] = fix(1, format.ext);
+  token[0xd5] = fix(2, format.ext);
+  token[0xd6] = fix(4, format.ext);
+  token[0xd7] = fix(8, format.ext);
+  token[0xd8] = fix(16, format.ext);
+
+  // str 8 -- 0xd9
+  // str 16 -- 0xda
+  // str 32 -- 0xdb
+  token[0xd9] = flex(format.uint8, format.str);
+  token[0xda] = flex(format.uint16, format.str);
+  token[0xdb] = flex(format.uint32, format.str);
+
+  // array 16 -- 0xdc
+  // array 32 -- 0xdd
+  token[0xdc] = flex(format.uint16, format.array);
+  token[0xdd] = flex(format.uint32, format.array);
+
+  // map 16 -- 0xde
+  // map 32 -- 0xdf
+  token[0xde] = flex(format.uint16, format.map);
+  token[0xdf] = flex(format.uint32, format.map);
+
+  // negative fixint -- 0xe0 - 0xff
+  for (i = 0xe0; i <= 0xff; i++) {
+    token[i] = constant(i - 0x100);
+  }
+
+  return token;
+}
+
+function init_useraw(format) {
+  var i;
+  var token = init_token(format).slice();
+
+  // raw 8 -- 0xd9
+  // raw 16 -- 0xda
+  // raw 32 -- 0xdb
+  token[0xd9] = token[0xc4];
+  token[0xda] = token[0xc5];
+  token[0xdb] = token[0xc6];
+
+  // fixraw -- 0xa0 - 0xbf
+  for (i = 0xa0; i <= 0xbf; i++) {
+    token[i] = fix(i - 0xa0, format.bin);
+  }
+
+  return token;
+}
+
+function constant(value) {
+  return function() {
+    return value;
+  };
+}
+
+function flex(lenFunc, decodeFunc) {
+  return function(decoder) {
+    var len = lenFunc(decoder);
+    return decodeFunc(decoder, len);
+  };
+}
+
+function fix(len, method) {
+  return function(decoder) {
+    return method(decoder, len);
+  };
+}
+
+
+/***/ }),
+/* 126 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// encoder.js
+
+exports.Encoder = Encoder;
+
+var EventLite = __webpack_require__(127);
+var EncodeBuffer = __webpack_require__(101).EncodeBuffer;
+
+function Encoder(options) {
+  if (!(this instanceof Encoder)) return new Encoder(options);
+  EncodeBuffer.call(this, options);
+}
+
+Encoder.prototype = new EncodeBuffer();
+
+EventLite.mixin(Encoder.prototype);
+
+Encoder.prototype.encode = function(chunk) {
+  this.write(chunk);
+  this.emit("data", this.read());
+};
+
+Encoder.prototype.end = function(chunk) {
+  if (arguments.length) this.encode(chunk);
+  this.flush();
+  this.emit("end");
+};
+
+
+/***/ }),
+/* 127 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/**
+ * event-lite.js - Light-weight EventEmitter (less than 1KB when gzipped)
+ *
+ * @copyright Yusuke Kawasaki
+ * @license MIT
+ * @constructor
+ * @see https://github.com/kawanet/event-lite
+ * @see http://kawanet.github.io/event-lite/EventLite.html
+ * @example
+ * var EventLite = require("event-lite");
+ *
+ * function MyClass() {...}             // your class
+ *
+ * EventLite.mixin(MyClass.prototype);  // import event methods
+ *
+ * var obj = new MyClass();
+ * obj.on("foo", function() {...});     // add event listener
+ * obj.once("bar", function() {...});   // add one-time event listener
+ * obj.emit("foo");                     // dispatch event
+ * obj.emit("bar");                     // dispatch another event
+ * obj.off("foo");                      // remove event listener
+ */
+
+function EventLite() {
+  if (!(this instanceof EventLite)) return new EventLite();
+}
+
+(function(EventLite) {
+  // export the class for node.js
+  if (true) module.exports = EventLite;
+
+  // property name to hold listeners
+  var LISTENERS = "listeners";
+
+  // methods to export
+  var methods = {
+    on: on,
+    once: once,
+    off: off,
+    emit: emit
+  };
+
+  // mixin to self
+  mixin(EventLite.prototype);
+
+  // export mixin function
+  EventLite.mixin = mixin;
+
+  /**
+   * Import on(), once(), off() and emit() methods into target object.
+   *
+   * @function EventLite.mixin
+   * @param target {Prototype}
+   */
+
+  function mixin(target) {
+    for (var key in methods) {
+      target[key] = methods[key];
+    }
+    return target;
+  }
+
+  /**
+   * Add an event listener.
+   *
+   * @function EventLite.prototype.on
+   * @param type {string}
+   * @param func {Function}
+   * @returns {EventLite} Self for method chaining
+   */
+
+  function on(type, func) {
+    getListeners(this, type).push(func);
+    return this;
+  }
+
+  /**
+   * Add one-time event listener.
+   *
+   * @function EventLite.prototype.once
+   * @param type {string}
+   * @param func {Function}
+   * @returns {EventLite} Self for method chaining
+   */
+
+  function once(type, func) {
+    var that = this;
+    wrap.originalListener = func;
+    getListeners(that, type).push(wrap);
+    return that;
+
+    function wrap() {
+      off.call(that, type, wrap);
+      func.apply(this, arguments);
+    }
+  }
+
+  /**
+   * Remove an event listener.
+   *
+   * @function EventLite.prototype.off
+   * @param [type] {string}
+   * @param [func] {Function}
+   * @returns {EventLite} Self for method chaining
+   */
+
+  function off(type, func) {
+    var that = this;
+    var listners;
+    if (!arguments.length) {
+      delete that[LISTENERS];
+    } else if (!func) {
+      listners = that[LISTENERS];
+      if (listners) {
+        delete listners[type];
+        if (!Object.keys(listners).length) return off.call(that);
+      }
+    } else {
+      listners = getListeners(that, type, true);
+      if (listners) {
+        listners = listners.filter(ne);
+        if (!listners.length) return off.call(that, type);
+        that[LISTENERS][type] = listners;
+      }
+    }
+    return that;
+
+    function ne(test) {
+      return test !== func && test.originalListener !== func;
+    }
+  }
+
+  /**
+   * Dispatch (trigger) an event.
+   *
+   * @function EventLite.prototype.emit
+   * @param type {string}
+   * @param [value] {*}
+   * @returns {boolean} True when a listener received the event
+   */
+
+  function emit(type, value) {
+    var that = this;
+    var listeners = getListeners(that, type, true);
+    if (!listeners) return false;
+    var arglen = arguments.length;
+    if (arglen === 1) {
+      listeners.forEach(zeroarg);
+    } else if (arglen === 2) {
+      listeners.forEach(onearg);
+    } else {
+      var args = Array.prototype.slice.call(arguments, 1);
+      listeners.forEach(moreargs);
+    }
+    return !!listeners.length;
+
+    function zeroarg(func) {
+      func.call(that);
+    }
+
+    function onearg(func) {
+      func.call(that, value);
+    }
+
+    function moreargs(func) {
+      func.apply(that, args);
+    }
+  }
+
+  /**
+   * @ignore
+   */
+
+  function getListeners(that, type, readonly) {
+    if (readonly && !that[LISTENERS]) return;
+    var listeners = that[LISTENERS] || (that[LISTENERS] = {});
+    return listeners[type] || (listeners[type] = []);
+  }
+
+})(EventLite);
+
+
+/***/ }),
+/* 128 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// decoder.js
+
+exports.Decoder = Decoder;
+
+var EventLite = __webpack_require__(127);
+var DecodeBuffer = __webpack_require__(121).DecodeBuffer;
+
+function Decoder(options) {
+  if (!(this instanceof Decoder)) return new Decoder(options);
+  DecodeBuffer.call(this, options);
+}
+
+Decoder.prototype = new DecodeBuffer();
+
+EventLite.mixin(Decoder.prototype);
+
+Decoder.prototype.decode = function(chunk) {
+  if (arguments.length) this.write(chunk);
+  this.flush();
+};
+
+Decoder.prototype.push = function(chunk) {
+  this.emit("data", chunk);
+};
+
+Decoder.prototype.end = function(chunk) {
+  this.decode(chunk);
+  this.emit("end");
+};
+
+
+/***/ }),
+/* 129 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// encode-stream.js
+
+exports.createEncodeStream = EncodeStream;
+
+var util = __webpack_require__(12);
+var Transform = __webpack_require__(44).Transform;
+var EncodeBuffer = __webpack_require__(101).EncodeBuffer;
+
+util.inherits(EncodeStream, Transform);
+
+var DEFAULT_OPTIONS = {objectMode: true};
+
+function EncodeStream(options) {
+  if (!(this instanceof EncodeStream)) return new EncodeStream(options);
+  if (options) {
+    options.objectMode = true;
+  } else {
+    options = DEFAULT_OPTIONS;
+  }
+  Transform.call(this, options);
+
+  var stream = this;
+  var encoder = this.encoder = new EncodeBuffer(options);
+  encoder.push = function(chunk) {
+    stream.push(chunk);
+  };
+}
+
+EncodeStream.prototype._transform = function(chunk, encoding, callback) {
+  this.encoder.write(chunk);
+  if (callback) callback();
+};
+
+EncodeStream.prototype._flush = function(callback) {
+  this.encoder.flush();
+  if (callback) callback();
+};
+
+
+/***/ }),
+/* 130 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// decode-stream.js
+
+exports.createDecodeStream = DecodeStream;
+
+var util = __webpack_require__(12);
+var Transform = __webpack_require__(44).Transform;
+var DecodeBuffer = __webpack_require__(121).DecodeBuffer;
+
+util.inherits(DecodeStream, Transform);
+
+var DEFAULT_OPTIONS = {objectMode: true};
+
+function DecodeStream(options) {
+  if (!(this instanceof DecodeStream)) return new DecodeStream(options);
+  if (options) {
+    options.objectMode = true;
+  } else {
+    options = DEFAULT_OPTIONS;
+  }
+  Transform.call(this, options);
+  var stream = this;
+  var decoder = this.decoder = new DecodeBuffer(options);
+  decoder.push = function(chunk) {
+    stream.push(chunk);
+  };
+}
+
+DecodeStream.prototype._transform = function(chunk, encoding, callback) {
+  this.decoder.write(chunk);
+  this.decoder.flush();
+  if (callback) callback();
+};
+
+
+/***/ }),
+/* 131 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// ext.js
+
+// load both interfaces
+__webpack_require__(122);
+__webpack_require__(102);
+
+exports.createCodec = __webpack_require__(118).createCodec;
+
+
+/***/ }),
+/* 132 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// codec.js
+
+// load both interfaces
+__webpack_require__(122);
+__webpack_require__(102);
+
+// @public
+// msgpack.codec.preset
+
+exports.codec = {
+  preset: __webpack_require__(118).preset
+};
+
+
+/***/ }),
+/* 133 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const stream_1 = __webpack_require__(44);
+class Buffered extends stream_1.Transform {
+    constructor() {
+        super({
+            readableHighWaterMark: 10 * 1024 * 1024,
+            writableHighWaterMark: 10 * 1024 * 1024,
+        });
+        this.chunks = null;
+        this.timer = null;
+    }
+    sendData() {
+        const { chunks } = this;
+        if (chunks) {
+            this.chunks = null;
+            const buf = Buffer.concat(chunks);
+            this.push(buf);
+        }
+    }
+    // eslint-disable-next-line consistent-return
+    _transform(chunk, _encoding, callback) {
+        const { chunks, timer } = this;
+        const MIN_SIZE = Buffer.poolSize;
+        if (timer)
+            clearTimeout(timer);
+        if (chunk.length < MIN_SIZE) {
+            if (!chunks)
+                return callback(null, chunk);
+            chunks.push(chunk);
+            this.sendData();
+            callback();
+        }
+        else {
+            if (!chunks) {
+                this.chunks = [chunk];
+            }
+            else {
+                chunks.push(chunk);
+            }
+            this.timer = setTimeout(this.sendData.bind(this), 20);
+            callback();
+        }
+    }
+    _flush(callback) {
+        const { chunks } = this;
+        if (chunks) {
+            this.chunks = null;
+            const buf = Buffer.concat(chunks);
+            callback(null, buf);
+        }
+        else {
+            callback();
+        }
+    }
+}
+exports.default = Buffered;
+
+
+/***/ }),
+/* 134 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Buffer_1 = __webpack_require__(135);
+const Window_1 = __webpack_require__(138);
+const Tabpage_1 = __webpack_require__(140);
+var ExtType;
+(function (ExtType) {
+    ExtType[ExtType["Buffer"] = 0] = "Buffer";
+    ExtType[ExtType["Window"] = 1] = "Window";
+    ExtType[ExtType["Tabpage"] = 2] = "Tabpage";
+})(ExtType = exports.ExtType || (exports.ExtType = {}));
+exports.Metadata = [
+    {
+        constructor: Buffer_1.Buffer,
+        name: 'Buffer',
+        prefix: 'nvim_buf_',
+    },
+    {
+        constructor: Window_1.Window,
+        name: 'Window',
+        prefix: 'nvim_win_',
+    },
+    {
+        constructor: Tabpage_1.Tabpage,
+        name: 'Tabpage',
+        prefix: 'nvim_tabpage_',
+    },
+];
+
+
+/***/ }),
+/* 135 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Base_1 = __webpack_require__(136);
+const client_1 = __webpack_require__(97);
+class Buffer extends Base_1.BaseApi {
+    constructor() {
+        super(...arguments);
+        this.prefix = 'nvim_buf_';
+    }
+    get isAttached() {
+        return this.client.isAttached(this.id);
+    }
+    /**
+     * Attach to buffer to listen to buffer events
+     * @param sendBuffer Set to true if the initial notification should contain
+     *        the whole buffer. If so, the first notification will be a
+     *        `nvim_buf_lines_event`. Otherwise, the first notification will be
+     *        a `nvim_buf_changedtick_event`
+     */
+    attach(sendBuffer = false, options = {}) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.isAttached)
+                return true;
+            let res = false;
+            try {
+                res = yield this.request(`${this.prefix}attach`, [sendBuffer, options]);
+            }
+            catch (e) {
+                res = false;
+            }
+            if (res) {
+                this.client[client_1.ATTACH_BUFFER](this);
+            }
+            return this.isAttached;
+        });
+    }
+    /**
+     * Detach from buffer to stop listening to buffer events
+     */
+    detach() {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.client[client_1.DETACH_BUFFER](this);
+            try {
+                yield this.request(`${this.prefix}detach`, []);
+            }
+            catch (e) {
+                // noop
+            }
+        });
+    }
+    /**
+     * Get the bufnr of Buffer
+     */
+    get id() {
+        return this.data;
+    }
+    /** Total number of lines in buffer */
+    get length() {
+        return this.request(`${this.prefix}line_count`, []);
+    }
+    /** Get lines in buffer */
+    get lines() {
+        return this.getLines();
+    }
+    /** Gets a changed tick of a buffer */
+    get changedtick() {
+        return this.request(`${this.prefix}get_changedtick`, []);
+    }
+    get commands() {
+        return this.getCommands();
+    }
+    getCommands(options = {}) {
+        return this.request(`${this.prefix}get_commands`, [options]);
+    }
+    /** Get specific lines of buffer */
+    getLines({ start, end, strictIndexing } = { start: 0, end: -1, strictIndexing: true }) {
+        const indexing = typeof strictIndexing === 'undefined' ? true : strictIndexing;
+        return this.request(`${this.prefix}get_lines`, [
+            start,
+            end,
+            indexing,
+        ]);
+    }
+    /** Set lines of buffer given indeces */
+    setLines(_lines, { start: _start, end: _end, strictIndexing } = {
+        strictIndexing: true,
+    }, notify = false) {
+        // TODO: Error checking
+        // if (typeof start === 'undefined' || typeof end === 'undefined') {
+        // }
+        const indexing = typeof strictIndexing === 'undefined' ? true : strictIndexing;
+        const lines = typeof _lines === 'string' ? [_lines] : _lines;
+        const end = typeof _end !== 'undefined' ? _end : _start + 1;
+        const method = notify ? 'notify' : 'request';
+        return this[method](`${this.prefix}set_lines`, [
+            _start,
+            end,
+            indexing,
+            lines,
+        ]);
+    }
+    /**
+     * Set virtual text for a line
+     *
+     * @public
+     * @param {number} src_id - Source group to use or 0 to use a new group, or -1
+     * @param {number} line - Line to annotate with virtual text (zero-indexed)
+     * @param {Chunk[]} chunks - List with [text, hl_group]
+     * @param {{[index} opts
+     * @returns {Promise<number>}
+     */
+    setVirtualText(src_id, line, chunks, opts = {}) {
+        this.notify(`${this.prefix}set_virtual_text`, [
+            src_id,
+            line,
+            chunks,
+            opts,
+        ]);
+        return Promise.resolve(src_id);
+    }
+    /** Insert lines at `start` index */
+    insert(lines, start) {
+        return this.setLines(lines, {
+            start,
+            end: start,
+            strictIndexing: true,
+        });
+    }
+    /** Replace lines starting at `start` index */
+    replace(_lines, start) {
+        const lines = typeof _lines === 'string' ? [_lines] : _lines;
+        return this.setLines(lines, {
+            start,
+            end: start + lines.length,
+            strictIndexing: false,
+        });
+    }
+    /** Remove lines at index */
+    remove(start, end, strictIndexing = false) {
+        return this.setLines([], { start, end, strictIndexing });
+    }
+    /** Append a string or list of lines to end of buffer */
+    append(lines) {
+        return this.setLines(lines, {
+            start: -1,
+            end: -1,
+            strictIndexing: false,
+        });
+    }
+    /** Get buffer name */
+    get name() {
+        return this.request(`${this.prefix}get_name`, []);
+    }
+    /** Set current buffer name */
+    setName(value) {
+        return this.request(`${this.prefix}set_name`, [value]);
+    }
+    /** Is current buffer valid */
+    get valid() {
+        return this.request(`${this.prefix}is_valid`, []);
+    }
+    /** Get mark position given mark name */
+    mark(name) {
+        return this.request(`${this.prefix}get_mark`, [name]);
+    }
+    // range(start, end) {
+    // """Return a `Range` object, which represents part of the Buffer."""
+    // return Range(this, start, end)
+    // }
+    /** Gets keymap */
+    getKeymap(mode) {
+        return this.request(`${this.prefix}get_keymap`, [mode]);
+    }
+    /**
+   * Checks if a buffer is valid and loaded. See |api-buffer| for
+   * more info about unloaded buffers.
+   */
+    get loaded() {
+        return this.request(`${this.prefix}is_loaded`, []);
+    }
+    /**
+     * Returns the byte offset for a line.
+     *
+     * Line 1 (index=0) has offset 0. UTF-8 bytes are counted. EOL is
+     * one byte. 'fileformat' and 'fileencoding' are ignored. The
+     * line index just after the last line gives the total byte-count
+     * of the buffer. A final EOL byte is counted if it would be
+     * written, see 'eol'.
+     *
+     * Unlike |line2byte()|, throws error for out-of-bounds indexing.
+     * Returns -1 for unloaded buffer.
+     *
+     * @return {Number} Integer byte offset, or -1 for unloaded buffer.
+     */
+    getOffset(index) {
+        return this.request(`${this.prefix}get_offset`, [index]);
+    }
+    /**
+      Adds a highlight to buffer.
+  
+      This can be used for plugins which dynamically generate
+      highlights to a buffer (like a semantic highlighter or
+      linter). The function adds a single highlight to a buffer.
+      Unlike matchaddpos() highlights follow changes to line
+      numbering (as lines are inserted/removed above the highlighted
+      line), like signs and marks do.
+  
+      "src_id" is useful for batch deletion/updating of a set of
+      highlights. When called with src_id = 0, an unique source id
+      is generated and returned. Succesive calls can pass in it as
+      "src_id" to add new highlights to the same source group. All
+      highlights in the same group can then be cleared with
+      nvim_buf_clear_highlight. If the highlight never will be
+      manually deleted pass in -1 for "src_id".
+  
+      If "hl_group" is the empty string no highlight is added, but a
+      new src_id is still returned. This is useful for an external
+      plugin to synchrounously request an unique src_id at
+      initialization, and later asynchronously add and clear
+      highlights in response to buffer changes. */
+    addHighlight({ hlGroup: _hlGroup, line, colStart: _start, colEnd: _end, srcId: _srcId, }) {
+        const hlGroup = typeof _hlGroup !== 'undefined' ? _hlGroup : '';
+        const colEnd = typeof _end !== 'undefined' ? _end : -1;
+        const colStart = typeof _start !== 'undefined' ? _start : -0;
+        const srcId = typeof _srcId !== 'undefined' ? _srcId : -1;
+        const method = hlGroup === '' ? 'request' : 'notify';
+        let res = this[method](`${this.prefix}add_highlight`, [
+            srcId,
+            hlGroup,
+            line,
+            colStart,
+            colEnd,
+        ]);
+        return method === 'request' ? res : Promise.resolve(null);
+    }
+    /** Clears highlights from a given source group and a range of
+    lines
+    To clear a source group in the entire buffer, pass in 1 and -1
+    to lineStart and lineEnd respectively. */
+    clearHighlight(args = {}) {
+        const defaults = {
+            srcId: -1,
+            lineStart: 0,
+            lineEnd: -1,
+        };
+        const { srcId, lineStart, lineEnd } = Object.assign({}, defaults, args);
+        return this.notify(`${this.prefix}clear_highlight`, [
+            srcId,
+            lineStart,
+            lineEnd,
+        ]);
+    }
+    clearNamespace(id, lineStart = 0, lineEnd = -1) {
+        return this.notify(`${this.prefix}clear_namespace`, [
+            id,
+            lineStart,
+            lineEnd,
+        ]);
+    }
+    /**
+     * Listens to buffer for events
+     */
+    listen(eventName, cb) {
+        if (!this.isAttached) {
+            throw new Error('buffer not attached');
+        }
+        this.client.attachBufferEvent(this, eventName, cb);
+        return () => {
+            this.unlisten(eventName, cb);
+        };
+    }
+    unlisten(eventName, cb) {
+        this.client.detachBufferEvent(this, eventName, cb);
+    }
+}
+exports.Buffer = Buffer;
+
+
+/***/ }),
+/* 136 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const events_1 = __webpack_require__(137);
+const isVim = process.env.VIM_NODE_RPC == '1';
+// i.e. a plugin that detaches will affect all plugins registered on host
+// const EXCLUDED = ['nvim_buf_attach', 'nvim_buf_detach']
+// Instead of dealing with multiple inheritance (or lackof), just extend EE
+// Only the Neovim API class should use EE though
+class BaseApi extends events_1.EventEmitter {
+    constructor({ transport, data, client, }) {
+        super();
+        this.setTransport(transport);
+        this.data = data;
+        this.client = client;
+    }
+    setTransport(transport) {
+        this.transport = transport;
+    }
+    equals(other) {
+        try {
+            return String(this.data) === String(other.data);
+        }
+        catch (e) {
+            return false;
+        }
+    }
+    request(name, args = []) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve, reject) => {
+                this.transport.request(name, this.getArgsByPrefix(args), (err, res) => {
+                    if (err) {
+                        reject(new Error(`request error ${name} - ${err[1]}`));
+                    }
+                    else {
+                        resolve(res);
+                    }
+                });
+            });
+        });
+    }
+    getArgsByPrefix(args) {
+        // Check if class is Neovim and if so, should not send `this` as first arg
+        if (this.prefix !== 'nvim_' && args[0] != this) {
+            let id = isVim ? this.data : this;
+            return [id, ...args];
+        }
+        return args;
+    }
+    /** Retrieves a scoped variable depending on type (using `this.prefix`) */
+    getVar(name) {
+        return this.request(`${this.prefix}get_var`, [name]).then(res => res, _err => {
+            return null;
+        });
+    }
+    setVar(name, value, isNotify = false) {
+        if (isNotify) {
+            this.notify(`${this.prefix}set_var`, [name, value]);
+            return;
+        }
+        return this.request(`${this.prefix}set_var`, [name, value]);
+    }
+    /** Delete a scoped variable */
+    deleteVar(name) {
+        this.notify(`${this.prefix}del_var`, [name]);
+    }
+    /** Retrieves a scoped option depending on type of `this` */
+    getOption(name) {
+        return this.request(`${this.prefix}get_option`, [name]);
+    }
+    setOption(name, value, isNotify) {
+        if (isNotify) {
+            this.notify(`${this.prefix}set_option`, [name, value]);
+            return;
+        }
+        return this.request(`${this.prefix}set_option`, [name, value]);
+    }
+    /** `request` is basically the same except you can choose to wait forpromise to be resolved */
+    notify(name, args = []) {
+        this.transport.notify(name, this.getArgsByPrefix(args));
+    }
+}
+exports.BaseApi = BaseApi;
+
+
+/***/ }),
+/* 137 */
+/***/ (function(module, exports) {
+
+module.exports = require("events");
+
+/***/ }),
+/* 138 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Base_1 = __webpack_require__(136);
+const timers_1 = __webpack_require__(139);
+class Window extends Base_1.BaseApi {
+    constructor() {
+        super(...arguments);
+        this.prefix = 'nvim_win_';
+    }
+    /**
+     * The windowid that not change within a Vim session
+     */
+    get id() {
+        return this.data;
+    }
+    /** Get current buffer of window */
+    get buffer() {
+        return this.request(`${this.prefix}get_buf`, []);
+    }
+    /** Get the Tabpage that contains the window */
+    get tabpage() {
+        return this.request(`${this.prefix}get_tabpage`, []);
+    }
+    /** Get cursor position */
+    get cursor() {
+        return this.request(`${this.prefix}get_cursor`, []);
+    }
+    setCursor(pos, isNotify = false) {
+        let method = isNotify ? 'notify' : 'request';
+        return this[method](`${this.prefix}set_cursor`, [pos]);
+    }
+    /** Get window height by number of rows */
+    get height() {
+        return this.request(`${this.prefix}get_height`, []);
+    }
+    setHeight(height, isNotify = false) {
+        let method = isNotify ? 'notify' : 'request';
+        return this[method](`${this.prefix}set_height`, [height]);
+    }
+    /** Get window width by number of columns */
+    get width() {
+        return this.request(`${this.prefix}get_width`, []);
+    }
+    setWidth(width, isNotify = false) {
+        let method = isNotify ? 'notify' : 'request';
+        return this[method](`${this.prefix}set_height`, [width]);
+    }
+    /** Get window position */
+    get position() {
+        return this.request(`${this.prefix}get_position`, []);
+    }
+    /** 0-indexed, on-screen window position(row) in display cells. */
+    get row() {
+        return this.request(`${this.prefix}get_position`, []).then(position => position[0]);
+    }
+    /** 0-indexed, on-screen window position(col) in display cells. */
+    get col() {
+        return this.request(`${this.prefix}get_position`, []).then(position => position[1]);
+    }
+    /** Is window valid */
+    get valid() {
+        return this.request(`${this.prefix}is_valid`, []);
+    }
+    /** Get window number */
+    get number() {
+        return this.request(`${this.prefix}get_number`, []);
+    }
+    setConfig(options, isNotify) {
+        let method = isNotify ? 'notify' : 'request';
+        return this[method](`${this.prefix}set_config`, [options]);
+    }
+    getConfig() {
+        return this.request(`${this.prefix}get_config`, []);
+    }
+    close(force, isNotify) {
+        if (isNotify) {
+            this.notify(`${this.prefix}close`, [force]);
+            let count = 0;
+            let interval = setInterval(() => {
+                if (count == 5)
+                    return timers_1.clearInterval(interval);
+                this.request(`${this.prefix}is_valid`, []).then(valid => {
+                    if (!valid) {
+                        timers_1.clearInterval(interval);
+                    }
+                    else {
+                        this.notify(`${this.prefix}close`, [force]);
+                    }
+                }, () => {
+                    timers_1.clearInterval(interval);
+                });
+                count++;
+            }, 50);
+            return null;
+        }
+        return this.request(`${this.prefix}close`, [force]);
+    }
+}
+exports.Window = Window;
+
+
+/***/ }),
+/* 139 */
+/***/ (function(module, exports) {
+
+module.exports = require("timers");
+
+/***/ }),
+/* 140 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Base_1 = __webpack_require__(136);
+class Tabpage extends Base_1.BaseApi {
+    constructor() {
+        super(...arguments);
+        this.prefix = 'nvim_tabpage_';
+    }
+    /** Returns all windows of tabpage */
+    get windows() {
+        return this.request(`${this.prefix}list_wins`, []);
+    }
+    /** Gets the current window of tabpage */
+    get window() {
+        return this.request(`${this.prefix}get_win`, []);
+    }
+    /** Is current tabpage valid */
+    get valid() {
+        return this.request(`${this.prefix}is_valid`, []);
+    }
+    /** Tabpage number */
+    get number() {
+        return this.request(`${this.prefix}get_number`, []);
+    }
+    /** Invalid */
+    getOption() {
+        throw new Error('Tabpage does not have `getOption`');
+    }
+    /** Invalid */
+    setOption() {
+        throw new Error('Tabpage does not have `setOption`');
+    }
+}
+exports.Tabpage = Tabpage;
+
+
+/***/ }),
+/* 141 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const events_1 = __webpack_require__(137);
+const logger_1 = __webpack_require__(142);
+const debug = process.env.NODE_CLIENT_LOG_LEVEL == 'debug';
+const logger = logger_1.createLogger('transport');
+class Transport extends events_1.EventEmitter {
+    constructor() {
+        super(...arguments);
+        this._paused = false;
+        this.paused = [];
+    }
+    debug(key, ...meta) {
+        if (!debug)
+            return;
+        logger.debug(key, ...meta);
+    }
+    debugMessage(msg) {
+        if (!debug)
+            return;
+        const msgType = msg[0];
+        if (msgType == 0) {
+            logger.debug('receive request:', msg.slice(1));
+        }
+        else if (msgType == 1) {
+            logger.debug('receive response:', msg.slice(1));
+        }
+        else if (msgType == 2) {
+            logger.debug('receive notification:', msg.slice(1));
+        }
+        else {
+            logger.debug('unknown message:', msg);
+        }
+    }
+    pauseNotification() {
+        this._paused = true;
+    }
+    resumeNotification(isNotify = false) {
+        this._paused = false;
+        let list = this.paused;
+        if (list.length) {
+            this.paused = [];
+            return new Promise((resolve, reject) => {
+                if (!isNotify)
+                    return this.request('nvim_call_atomic', [list], (err, res) => {
+                        if (err)
+                            return reject(new Error(`call_atomic error: ${err[1]}`));
+                        resolve(res);
+                    });
+                this.notify('nvim_call_atomic', [list]);
+                resolve();
+            });
+        }
+        return isNotify ? null : Promise.resolve();
+    }
+}
+exports.default = Transport;
+
+
+/***/ }),
+/* 142 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const fs_1 = __importDefault(__webpack_require__(4));
+const os_1 = __importDefault(__webpack_require__(14));
+const path_1 = __importDefault(__webpack_require__(20));
+function getLogFile() {
+    let file = process.env.NODE_CLIENT_LOG_FILE;
+    if (file)
+        return file;
+    let dir = process.env.XDG_RUNTIME_DIR;
+    if (dir)
+        return path_1.default.join(dir, 'node-client.log');
+    return path_1.default.join(os_1.default.tmpdir(), `node-client-${process.pid}.log`);
+}
+const LOG_FILE_PATH = getLogFile();
+const level = process.env.NODE_CLIENT_LOG_LEVEL || 'info';
+let invalid = process.getuid && process.getuid() == 0;
+if (!invalid) {
+    try {
+        fs_1.default.mkdirSync(path_1.default.dirname(LOG_FILE_PATH), { recursive: true });
+        fs_1.default.writeFileSync(LOG_FILE_PATH, '', { encoding: 'utf8', mode: 0o666 });
+    }
+    catch (_e) {
+        invalid = true;
+    }
+}
+function toObject(arg) {
+    if (arg == null) {
+        return arg;
+    }
+    if (Array.isArray(arg)) {
+        return arg.map(o => toObject(o));
+    }
+    if (typeof arg == 'object' && typeof arg.prefix == 'string' && typeof arg.data == 'number') {
+        return '[' + arg.prefix + arg.data + ']';
+    }
+    return arg;
+}
+function toString(arg) {
+    if (arg == null)
+        return String(arg);
+    if (typeof arg == 'object')
+        return JSON.stringify(arg, null, 2);
+    return String(arg);
+}
+const stream = invalid ? null : fs_1.default.createWriteStream(LOG_FILE_PATH, { encoding: 'utf8' });
+class Logger {
+    constructor(name) {
+        this.name = name;
+    }
+    getText(level, data, meta) {
+        let more = '';
+        if (meta.length) {
+            let arr = toObject(meta);
+            more = ' ' + arr.map(o => toString(o));
+        }
+        return `${new Date().toLocaleTimeString()} ${level.toUpperCase()} [${this.name}] - ${data}${more}\n`;
+    }
+    debug(data, ...meta) {
+        if (level != 'debug' || stream == null)
+            return;
+        stream.write(this.getText('debug', data, meta));
+    }
+    info(data, ...meta) {
+        if (stream == null)
+            return;
+        stream.write(this.getText('info', data, meta));
+    }
+    error(data, ...meta) {
+        if (stream == null)
+            return;
+        stream.write(this.getText('error', data, meta));
+    }
+    trace(data, ...meta) {
+        if (level != 'trace' || stream == null)
+            return;
+        stream.write(this.getText('trace', data, meta));
+    }
+}
+function createLogger(name) {
+    return new Logger(name);
+}
+exports.createLogger = createLogger;
+
+
+/***/ }),
+/* 143 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const base_1 = __importDefault(__webpack_require__(141));
+const connection_1 = __importDefault(__webpack_require__(144));
+const request_1 = __importDefault(__webpack_require__(146));
+class VimTransport extends base_1.default {
+    constructor() {
+        super();
+        this.pending = new Map();
+        this.nextRequestId = 0;
+        this.attached = false;
+        this.notifyMethod = process.env.COC_NVIM == '1' ? 'coc#api#notify' : 'nvim#api#notify';
+    }
+    attach(writer, reader, client) {
+        let connection = this.connection = new connection_1.default(reader, writer);
+        this.attached = true;
+        this.client = client;
+        connection.on('request', (id, obj) => {
+            let [method, args] = obj;
+            this.emit('request', method, args, this.createResponse(id));
+        });
+        connection.on('notification', (obj) => {
+            let [event, args] = obj;
+            this.emit('notification', event.toString(), args);
+        });
+        connection.on('response', (id, obj) => {
+            let req = this.pending.get(id);
+            if (req) {
+                this.pending.delete(id);
+                let err = null;
+                let result = null;
+                if (!Array.isArray(obj)) {
+                    err = obj;
+                }
+                else {
+                    err = obj[0];
+                    result = obj[1];
+                }
+                req.callback(this.client, err, result);
+            }
+        });
+    }
+    detach() {
+        if (!this.attached)
+            return;
+        this.attached = false;
+        this.connection.dispose();
+    }
+    /**
+     * Send request to vim
+     */
+    request(method, args, cb) {
+        if (!this.attached)
+            return cb([0, 'transport disconnected']);
+        if (!this.client.hasFunction(method)) {
+            // tslint:disable-next-line: no-console
+            console.error(`method: ${method} not supported.`);
+        }
+        this.nextRequestId = this.nextRequestId - 1;
+        let req = new request_1.default(this.connection, cb, this.nextRequestId);
+        this.pending.set(this.nextRequestId, req);
+        req.request(method, args);
+    }
+    notify(method, args) {
+        if (!this.attached)
+            return;
+        if (!this.client.hasFunction(method)) {
+            // tslint:disable-next-line: no-console
+            console.error(`method: ${method} not supported.`);
+        }
+        if (this._paused) {
+            this.paused.push([method, args]);
+            return;
+        }
+        this.connection.call(this.notifyMethod, [method.slice(5), args]);
+    }
+    createResponse(requestId) {
+        let called = false;
+        let { connection } = this;
+        return {
+            send: (resp, isError) => {
+                if (called || !this.attached)
+                    return;
+                called = true;
+                let err = null;
+                if (isError)
+                    err = typeof resp === 'string' ? resp : resp.toString();
+                connection.response(requestId, [err, isError ? null : resp]);
+            }
+        };
+    }
+}
+exports.VimTransport = VimTransport;
+
+
+/***/ }),
+/* 144 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const events_1 = __importDefault(__webpack_require__(137));
+const readline_1 = __importDefault(__webpack_require__(145));
+const logger_1 = __webpack_require__(142);
+const logger = logger_1.createLogger('connection');
+const debug = process.env.NODE_CLIENT_LOG_LEVEL == 'debug';
+class Connection extends events_1.default {
+    constructor(readable, writeable) {
+        super();
+        this.readable = readable;
+        this.writeable = writeable;
+        const rl = readline_1.default.createInterface(this.readable);
+        rl.on('line', (line) => {
+            this.parseData(line);
+        });
+        rl.on('close', () => {
+            logger.error('connection closed');
+            process.exit(0);
+        });
+    }
+    parseData(str) {
+        if (str.length == 0)
+            return;
+        let arr;
+        try {
+            arr = JSON.parse(str);
+        }
+        catch (e) {
+            // tslint:disable-next-line: no-console
+            console.error(`Invalid data from vim: ${str}`);
+            return;
+        }
+        // request, notification, response
+        let [id, obj] = arr;
+        logger.debug('received:', arr);
+        if (id > 0) {
+            this.emit('request', id, obj);
+        }
+        else if (id == 0) {
+            this.emit('notification', obj);
+        }
+        else {
+            // response for previous request
+            this.emit('response', id, obj);
+        }
+    }
+    response(requestId, data) {
+        this.send([requestId, data || null]);
+    }
+    notify(event, data) {
+        this.send([0, [event, data || null]]);
+    }
+    send(arr) {
+        if (debug)
+            logger.debug('send:', arr[0], arr.slice(1));
+        try {
+            this.writeable.write(JSON.stringify(arr) + '\n');
+        }
+        catch (e) {
+            logger.error('Send error:', arr);
+        }
+    }
+    redraw(force = false) {
+        this.send(['redraw', force ? 'force' : '']);
+    }
+    commmand(cmd) {
+        this.send(['ex', cmd]);
+    }
+    expr(expr) {
+        this.send(['expr', expr]);
+    }
+    call(func, args, requestId) {
+        if (!requestId) {
+            this.send(['call', func, args]);
+            return;
+        }
+        this.send(['call', func, args, requestId]);
+    }
+    dispose() {
+        this.removeAllListeners();
+    }
+}
+exports.default = Connection;
+
+
+/***/ }),
+/* 145 */
+/***/ (function(module, exports) {
+
+module.exports = require("readline");
+
+/***/ }),
+/* 146 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const logger_1 = __webpack_require__(142);
+const logger = logger_1.createLogger('request');
+const debug = process.env.NODE_CLIENT_LOG_LEVEL == 'debug';
+const func = process.env.COC_NVIM == '1' ? 'coc#api#call' : 'nvim#api#call';
+class Request {
+    constructor(connection, cb, id) {
+        this.connection = connection;
+        this.cb = cb;
+        this.id = id;
+    }
+    request(method, args = []) {
+        this.method = method;
+        this.args = args;
+        this.connection.call(func, [method.slice(5), args], this.id);
+    }
+    callback(client, err, result) {
+        let { method, cb } = this;
+        if (debug && err) {
+            logger.debug(`request ${this.method} error:`, err, this.args);
+        }
+        if (err)
+            return cb([0, err.toString()]);
+        switch (method) {
+            case 'nvim_list_wins':
+            case 'nvim_tabpage_list_wins':
+                return cb(null, result.map(o => client.createWindow(o)));
+            case 'nvim_tabpage_get_win':
+            case 'nvim_get_current_win':
+            case 'nvim_open_win':
+                return cb(null, client.createWindow(result));
+            case 'nvim_list_bufs':
+                return cb(null, result.map(o => client.createBuffer(o)));
+            case 'nvim_win_get_buf':
+            case 'nvim_create_buf':
+            case 'nvim_get_current_buf':
+                return cb(null, client.createBuffer(result));
+            case 'nvim_list_tabpages':
+                return cb(null, result.map(o => client.createTabpage(o)));
+            case 'nvim_get_current_tabpage':
+                return cb(null, client.createTabpage(result));
+            default:
+                return cb(null, result);
+        }
+    }
+}
+exports.default = Request;
+
+
+/***/ }),
+/* 147 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Base_1 = __webpack_require__(136);
+const Buffer_1 = __webpack_require__(135);
+const Tabpage_1 = __webpack_require__(140);
+const Window_1 = __webpack_require__(138);
+const isVim = process.env.VIM_NODE_RPC == '1';
+/**
+ * Neovim API
+ */
+class Neovim extends Base_1.BaseApi {
+    constructor() {
+        super(...arguments);
+        this.prefix = 'nvim_';
+        this.Buffer = Buffer_1.Buffer;
+        this.Window = Window_1.Window;
+        this.Tabpage = Tabpage_1.Tabpage;
+    }
+    getArgs(args) {
+        if (!args)
+            return [];
+        if (Array.isArray(args))
+            return args;
+        return [args];
+    }
+    get apiInfo() {
+        return this.request(`${this.prefix}get_api_info`);
+    }
+    /** Get list of all buffers */
+    get buffers() {
+        return this.request(`${this.prefix}list_bufs`);
+    }
+    /** Get current buffer */
+    get buffer() {
+        return this.request(`${this.prefix}get_current_buf`);
+    }
+    /** Set current buffer */
+    setBuffer(buffer) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.request(`${this.prefix}set_current_buf`, [buffer]);
+        });
+    }
+    get chans() {
+        return this.request(`${this.prefix}list_chans`);
+    }
+    getChanInfo(chan) {
+        return this.request(`${this.prefix}get_chan_info`, [chan]);
+    }
+    createNamespace(name = "") {
+        return this.request(`${this.prefix}create_namespace`, [name]);
+    }
+    get namespaces() {
+        return this.request(`${this.prefix}get_namespaces`, [name]);
+    }
+    get commands() {
+        return this.getCommands();
+    }
+    getCommands(options = {}) {
+        return this.request(`${this.prefix}get_commands`, [options]);
+    }
+    /** Get list of all tabpages */
+    get tabpages() {
+        return this.request(`${this.prefix}list_tabpages`);
+    }
+    /** Get current tabpage */
+    get tabpage() {
+        return this.request(`${this.prefix}get_current_tabpage`);
+    }
+    /** Set current tabpage */
+    setTabpage(tabpage) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.request(`${this.prefix}set_current_tabpage`, [tabpage]);
+        });
+    }
+    /** Get list of all windows */
+    get windows() {
+        return this.getWindows();
+    }
+    /** Get current window */
+    get window() {
+        return this.request(`${this.prefix}get_current_win`);
+    }
+    /** Get list of all windows */
+    getWindows() {
+        return this.request(`${this.prefix}list_wins`);
+    }
+    setWindow(win) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // Throw error if win is not instance of Window?
+            yield this.request(`${this.prefix}set_current_win`, [win]);
+        });
+    }
+    /** Get list of all runtime paths */
+    get runtimePaths() {
+        return this.request(`${this.prefix}list_runtime_paths`);
+    }
+    /** Set current directory */
+    setDirectory(dir) {
+        return this.request(`${this.prefix}set_current_dir`, [dir]);
+    }
+    /** Get current line. Always returns a Promise. */
+    get line() {
+        return this.getLine();
+    }
+    createNewBuffer(listed = false, scratch = false) {
+        return this.request(`${this.prefix}create_buf`, [listed, scratch]);
+    }
+    openFloatWindow(buffer, enter, options) {
+        return this.request(`${this.prefix}open_win`, [buffer, enter, options]);
+    }
+    getLine() {
+        return this.request(`${this.prefix}get_current_line`);
+    }
+    /** Set current line */
+    setLine(line) {
+        return this.request(`${this.prefix}set_current_line`, [line]);
+    }
+    /** Gets keymap */
+    getKeymap(mode) {
+        return this.request(`${this.prefix}get_keymap`, [mode]);
+    }
+    /** Gets current mode */
+    get mode() {
+        return this.request(`${this.prefix}get_mode`);
+    }
+    /** Gets map of defined colors */
+    get colorMap() {
+        return this.request(`${this.prefix}get_color_map`);
+    }
+    /** Get color by name */
+    getColorByName(name) {
+        return this.request(`${this.prefix}get_color_by_name`, [name]);
+    }
+    /** Get highlight by name or id */
+    getHighlight(nameOrId, isRgb = true) {
+        const functionName = typeof nameOrId === 'string' ? 'by_name' : 'by_id';
+        return this.request(`${this.prefix}get_hl_${functionName}`, [
+            nameOrId,
+            isRgb,
+        ]);
+    }
+    getHighlightByName(name, isRgb = true) {
+        return this.request(`${this.prefix}get_hl_by_name`, [name, isRgb]);
+    }
+    getHighlightById(id, isRgb = true) {
+        return this.request(`${this.prefix}get_hl_by_id`, [id, isRgb]);
+    }
+    /** Delete current line in buffer */
+    deleteCurrentLine() {
+        return this.request(`${this.prefix}del_current_line`);
+    }
+    /**
+     * Evaluates a VimL expression (:help expression). Dictionaries
+     * and Lists are recursively expanded. On VimL error: Returns a
+     * generic error; v:errmsg is not updated.
+     *
+     */
+    eval(expr) {
+        return this.request(`${this.prefix}eval`, [expr]);
+    }
+    /**
+     * Executes lua, it's possible neovim client does not support this
+     */
+    lua(code, args = []) {
+        const _args = this.getArgs(args);
+        return this.request(`${this.prefix}execute_lua`, [code, _args]);
+    }
+    // Alias for `lua()` to be consistent with neovim API
+    executeLua(code, args = []) {
+        return this.lua(code, args);
+    }
+    callDictFunction(dict, fname, args = []) {
+        const _args = this.getArgs(args);
+        return this.request(`${this.prefix}call_dict_function`, [
+            dict,
+            fname,
+            _args,
+        ]);
+    }
+    call(fname, args = [], isNotify) {
+        const _args = this.getArgs(args);
+        if (isNotify) {
+            this.notify(`${this.prefix}call_function`, [fname, _args]);
+            return null;
+        }
+        return this.request(`${this.prefix}call_function`, [fname, _args]);
+    }
+    callTimer(fname, args = [], isNotify) {
+        const _args = this.getArgs(args);
+        if (isNotify) {
+            this.notify(`${this.prefix}call_function`, ['coc#util#timer', [fname, _args]]);
+            return null;
+        }
+        if (isVim) {
+            this.notify(`${this.prefix}call_function`, ['coc#util#timer', [fname, _args]]);
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    resolve(null);
+                }, 20);
+            });
+        }
+        return this.request(`${this.prefix}call_function`, ['coc#util#timer', [fname, _args]]);
+    }
+    callAsync(fname, args = []) {
+        const _args = this.getArgs(args);
+        return this.client.sendAsyncRequest(fname, _args);
+    }
+    /** Alias for `call` */
+    callFunction(fname, args = []) {
+        return this.call(fname, args);
+    }
+    /** Call Atomic calls */
+    callAtomic(calls) {
+        return this.request(`${this.prefix}call_atomic`, [calls]);
+    }
+    command(arg, isNotify) {
+        if (isNotify) {
+            this.notify(`${this.prefix}command`, [arg]);
+            return null;
+        }
+        return this.request(`${this.prefix}command`, [arg]);
+    }
+    /** Runs a command and returns output (synchronous?) */
+    commandOutput(arg) {
+        return this.request(`${this.prefix}command_output`, [arg]);
+    }
+    /** Gets a v: variable */
+    getVvar(name) {
+        return this.request(`${this.prefix}get_vvar`, [name]);
+    }
+    /** feedKeys */
+    feedKeys(keys, mode, escapeCsi) {
+        return this.request(`${this.prefix}feedkeys`, [keys, mode, escapeCsi]);
+    }
+    /** Sends input keys */
+    input(keys) {
+        return this.request(`${this.prefix}input`, [keys]);
+    }
+    /**
+     * Parse a VimL Expression
+     *
+     * TODO: return type, see :help
+     */
+    parseExpression(expr, flags, highlight) {
+        return this.request(`${this.prefix}parse_expression`, [
+            expr,
+            flags,
+            highlight,
+        ]);
+    }
+    getProc(pid) {
+        return this.request(`${this.prefix}get_proc`, [pid]);
+    }
+    getProcChildren(pid) {
+        return this.request(`${this.prefix}get_proc_children`, [pid]);
+    }
+    /** Replace term codes */
+    replaceTermcodes(str, fromPart, doIt, special) {
+        return this.request(`${this.prefix}replace_termcodes`, [
+            str,
+            fromPart,
+            doIt,
+            special,
+        ]);
+    }
+    /** Gets width of string */
+    strWidth(str) {
+        return this.request(`${this.prefix}strwidth`, [str]);
+    }
+    /** Write to output buffer */
+    outWrite(str) {
+        this.notify(`${this.prefix}out_write`, [str]);
+    }
+    outWriteLine(str) {
+        this.outWrite(`${str}\n`);
+    }
+    /** Write to error buffer */
+    errWrite(str) {
+        this.notify(`${this.prefix}err_write`, [str]);
+    }
+    /** Write to error buffer */
+    errWriteLine(str) {
+        this.notify(`${this.prefix}err_writeln`, [str]);
+    }
+    // TODO: add type
+    get uis() {
+        return this.request(`${this.prefix}list_uis`);
+    }
+    uiAttach(width, height, options) {
+        return this.request(`${this.prefix}ui_attach`, [width, height, options]);
+    }
+    uiDetach() {
+        return this.request(`${this.prefix}ui_detach`, []);
+    }
+    uiTryResize(width, height) {
+        return this.request(`${this.prefix}ui_try_resize`, [width, height]);
+    }
+    /** Set UI Option */
+    uiSetOption(name, value) {
+        return this.request(`${this.prefix}ui_set_option`, [name, value]);
+    }
+    /** Subscribe to nvim event broadcasts */
+    subscribe(event) {
+        return this.request(`${this.prefix}subscribe`, [event]);
+    }
+    /** Unsubscribe to nvim event broadcasts */
+    unsubscribe(event) {
+        return this.request(`${this.prefix}unsubscribe`, [event]);
+    }
+    setClientInfo(name, version, type, methods, attributes) {
+        this.notify(`${this.prefix}set_client_info`, [
+            name,
+            version,
+            type,
+            methods,
+            attributes,
+        ]);
+    }
+    /** Quit nvim */
+    quit() {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.command('qa!', true);
+            if (this.transport) {
+                this.transport.detach();
+            }
+        });
+    }
+}
+exports.Neovim = Neovim;
+
+
+/***/ }),
+/* 148 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var client_1 = __webpack_require__(97);
+exports.Neovim = client_1.NeovimClient;
+var client_2 = __webpack_require__(97);
+exports.NeovimClient = client_2.NeovimClient;
+var Buffer_1 = __webpack_require__(135);
+exports.Buffer = Buffer_1.Buffer;
+var Window_1 = __webpack_require__(138);
+exports.Window = Window_1.Window;
+var Tabpage_1 = __webpack_require__(140);
+exports.Tabpage = Tabpage_1.Tabpage;
+
+
+/***/ }),
+/* 149 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(3);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const util_1 = __webpack_require__(175);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)('events');
+const logger = __webpack_require__(2)('events');
 class Events {
     constructor() {
         this.handlers = new Map();
@@ -15230,7 +15297,7 @@ exports.default = new Events();
 //# sourceMappingURL=events.js.map
 
 /***/ }),
-/* 149 */
+/* 150 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -15243,7 +15310,7 @@ function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 }
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(150);
+const vscode_jsonrpc_1 = __webpack_require__(151);
 exports.ErrorCodes = vscode_jsonrpc_1.ErrorCodes;
 exports.ResponseError = vscode_jsonrpc_1.ResponseError;
 exports.CancellationToken = vscode_jsonrpc_1.CancellationToken;
@@ -15271,10 +15338,10 @@ exports.createServerPipeTransport = vscode_jsonrpc_1.createServerPipeTransport;
 exports.generateRandomPipeName = vscode_jsonrpc_1.generateRandomPipeName;
 exports.createClientSocketTransport = vscode_jsonrpc_1.createClientSocketTransport;
 exports.createServerSocketTransport = vscode_jsonrpc_1.createServerSocketTransport;
-__export(__webpack_require__(161));
 __export(__webpack_require__(162));
-const callHierarchy = __webpack_require__(172);
-const progress = __webpack_require__(173);
+__export(__webpack_require__(163));
+const callHierarchy = __webpack_require__(173);
+const progress = __webpack_require__(174);
 var Proposed;
 (function (Proposed) {
     let CallHierarchyRequest;
@@ -15310,7 +15377,7 @@ exports.createProtocolConnection = createProtocolConnection;
 
 
 /***/ }),
-/* 150 */
+/* 151 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -15324,8 +15391,8 @@ function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 }
 Object.defineProperty(exports, "__esModule", { value: true });
-const Is = __webpack_require__(151);
-const messages_1 = __webpack_require__(152);
+const Is = __webpack_require__(152);
+const messages_1 = __webpack_require__(153);
 exports.RequestType = messages_1.RequestType;
 exports.RequestType0 = messages_1.RequestType0;
 exports.RequestType1 = messages_1.RequestType1;
@@ -15350,26 +15417,26 @@ exports.NotificationType6 = messages_1.NotificationType6;
 exports.NotificationType7 = messages_1.NotificationType7;
 exports.NotificationType8 = messages_1.NotificationType8;
 exports.NotificationType9 = messages_1.NotificationType9;
-const messageReader_1 = __webpack_require__(153);
+const messageReader_1 = __webpack_require__(154);
 exports.MessageReader = messageReader_1.MessageReader;
 exports.StreamMessageReader = messageReader_1.StreamMessageReader;
 exports.IPCMessageReader = messageReader_1.IPCMessageReader;
 exports.SocketMessageReader = messageReader_1.SocketMessageReader;
-const messageWriter_1 = __webpack_require__(155);
+const messageWriter_1 = __webpack_require__(156);
 exports.MessageWriter = messageWriter_1.MessageWriter;
 exports.StreamMessageWriter = messageWriter_1.StreamMessageWriter;
 exports.IPCMessageWriter = messageWriter_1.IPCMessageWriter;
 exports.SocketMessageWriter = messageWriter_1.SocketMessageWriter;
-const events_1 = __webpack_require__(154);
+const events_1 = __webpack_require__(155);
 exports.Disposable = events_1.Disposable;
 exports.Event = events_1.Event;
 exports.Emitter = events_1.Emitter;
-const cancellation_1 = __webpack_require__(156);
+const cancellation_1 = __webpack_require__(157);
 exports.CancellationTokenSource = cancellation_1.CancellationTokenSource;
 exports.CancellationToken = cancellation_1.CancellationToken;
-const linkedMap_1 = __webpack_require__(157);
-__export(__webpack_require__(158));
-__export(__webpack_require__(160));
+const linkedMap_1 = __webpack_require__(158);
+__export(__webpack_require__(159));
+__export(__webpack_require__(161));
 var CancelNotification;
 (function (CancelNotification) {
     CancelNotification.type = new messages_1.NotificationType('$/cancelRequest');
@@ -16240,7 +16307,7 @@ exports.createMessageConnection = createMessageConnection;
 
 
 /***/ }),
-/* 151 */
+/* 152 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -16281,7 +16348,7 @@ exports.stringArray = stringArray;
 
 
 /***/ }),
-/* 152 */
+/* 153 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -16291,7 +16358,7 @@ exports.stringArray = stringArray;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const is = __webpack_require__(151);
+const is = __webpack_require__(152);
 /**
  * Predefined error codes.
  */
@@ -16534,7 +16601,7 @@ exports.isResponseMessage = isResponseMessage;
 
 
 /***/ }),
-/* 153 */
+/* 154 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -16544,8 +16611,8 @@ exports.isResponseMessage = isResponseMessage;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const events_1 = __webpack_require__(154);
-const Is = __webpack_require__(151);
+const events_1 = __webpack_require__(155);
+const Is = __webpack_require__(152);
 let DefaultSize = 8192;
 let CR = Buffer.from('\r', 'ascii')[0];
 let LF = Buffer.from('\n', 'ascii')[0];
@@ -16766,7 +16833,7 @@ exports.SocketMessageReader = SocketMessageReader;
 
 
 /***/ }),
-/* 154 */
+/* 155 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -16904,7 +16971,7 @@ exports.Emitter = Emitter;
 
 
 /***/ }),
-/* 155 */
+/* 156 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -16914,8 +16981,8 @@ exports.Emitter = Emitter;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const events_1 = __webpack_require__(154);
-const Is = __webpack_require__(151);
+const events_1 = __webpack_require__(155);
+const Is = __webpack_require__(152);
 let ContentLength = 'Content-Length: ';
 let CRLF = '\r\n';
 var MessageWriter;
@@ -17105,7 +17172,7 @@ exports.SocketMessageWriter = SocketMessageWriter;
 
 
 /***/ }),
-/* 156 */
+/* 157 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17115,8 +17182,8 @@ exports.SocketMessageWriter = SocketMessageWriter;
  *--------------------------------------------------------------------------------------------*/
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const events_1 = __webpack_require__(154);
-const Is = __webpack_require__(151);
+const events_1 = __webpack_require__(155);
+const Is = __webpack_require__(152);
 var CancellationToken;
 (function (CancellationToken) {
     CancellationToken.None = Object.freeze({
@@ -17206,7 +17273,7 @@ exports.CancellationTokenSource = CancellationTokenSource;
 
 
 /***/ }),
-/* 157 */
+/* 158 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17492,7 +17559,7 @@ exports.LinkedMap = LinkedMap;
 
 
 /***/ }),
-/* 158 */
+/* 159 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17502,12 +17569,12 @@ exports.LinkedMap = LinkedMap;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const path_1 = __webpack_require__(57);
-const os_1 = __webpack_require__(56);
-const crypto_1 = __webpack_require__(159);
-const net_1 = __webpack_require__(6);
-const messageReader_1 = __webpack_require__(153);
-const messageWriter_1 = __webpack_require__(155);
+const path_1 = __webpack_require__(20);
+const os_1 = __webpack_require__(14);
+const crypto_1 = __webpack_require__(160);
+const net_1 = __webpack_require__(96);
+const messageReader_1 = __webpack_require__(154);
+const messageWriter_1 = __webpack_require__(156);
 function generateRandomPipeName() {
     const randomSuffix = crypto_1.randomBytes(21).toString('hex');
     if (process.platform === 'win32') {
@@ -17553,13 +17620,13 @@ exports.createServerPipeTransport = createServerPipeTransport;
 
 
 /***/ }),
-/* 159 */
+/* 160 */
 /***/ (function(module, exports) {
 
 module.exports = require("crypto");
 
 /***/ }),
-/* 160 */
+/* 161 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17569,9 +17636,9 @@ module.exports = require("crypto");
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const net_1 = __webpack_require__(6);
-const messageReader_1 = __webpack_require__(153);
-const messageWriter_1 = __webpack_require__(155);
+const net_1 = __webpack_require__(96);
+const messageReader_1 = __webpack_require__(154);
+const messageWriter_1 = __webpack_require__(156);
 function createClientSocketTransport(port, encoding = 'utf-8') {
     let connectResolve;
     let connected = new Promise((resolve, _reject) => {
@@ -17606,7 +17673,7 @@ exports.createServerSocketTransport = createServerSocketTransport;
 
 
 /***/ }),
-/* 161 */
+/* 162 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -19177,7 +19244,7 @@ var Is;
 
 
 /***/ }),
-/* 162 */
+/* 163 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19187,25 +19254,25 @@ var Is;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const Is = __webpack_require__(163);
-const vscode_jsonrpc_1 = __webpack_require__(150);
-const protocol_implementation_1 = __webpack_require__(164);
+const Is = __webpack_require__(164);
+const vscode_jsonrpc_1 = __webpack_require__(151);
+const protocol_implementation_1 = __webpack_require__(165);
 exports.ImplementationRequest = protocol_implementation_1.ImplementationRequest;
-const protocol_typeDefinition_1 = __webpack_require__(165);
+const protocol_typeDefinition_1 = __webpack_require__(166);
 exports.TypeDefinitionRequest = protocol_typeDefinition_1.TypeDefinitionRequest;
-const protocol_workspaceFolders_1 = __webpack_require__(166);
+const protocol_workspaceFolders_1 = __webpack_require__(167);
 exports.WorkspaceFoldersRequest = protocol_workspaceFolders_1.WorkspaceFoldersRequest;
 exports.DidChangeWorkspaceFoldersNotification = protocol_workspaceFolders_1.DidChangeWorkspaceFoldersNotification;
-const protocol_configuration_1 = __webpack_require__(167);
+const protocol_configuration_1 = __webpack_require__(168);
 exports.ConfigurationRequest = protocol_configuration_1.ConfigurationRequest;
-const protocol_colorProvider_1 = __webpack_require__(168);
+const protocol_colorProvider_1 = __webpack_require__(169);
 exports.DocumentColorRequest = protocol_colorProvider_1.DocumentColorRequest;
 exports.ColorPresentationRequest = protocol_colorProvider_1.ColorPresentationRequest;
-const protocol_foldingRange_1 = __webpack_require__(169);
+const protocol_foldingRange_1 = __webpack_require__(170);
 exports.FoldingRangeRequest = protocol_foldingRange_1.FoldingRangeRequest;
-const protocol_declaration_1 = __webpack_require__(170);
+const protocol_declaration_1 = __webpack_require__(171);
 exports.DeclarationRequest = protocol_declaration_1.DeclarationRequest;
-const protocol_selectionRange_1 = __webpack_require__(171);
+const protocol_selectionRange_1 = __webpack_require__(172);
 exports.SelectionRangeRequest = protocol_selectionRange_1.SelectionRangeRequest;
 // @ts-ignore: to avoid inlining LocatioLink as dynamic import
 let __noDynamicImport;
@@ -19729,7 +19796,7 @@ var ApplyWorkspaceEditRequest;
 
 
 /***/ }),
-/* 163 */
+/* 164 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19778,7 +19845,7 @@ exports.thenable = thenable;
 
 
 /***/ }),
-/* 164 */
+/* 165 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19788,7 +19855,7 @@ exports.thenable = thenable;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(150);
+const vscode_jsonrpc_1 = __webpack_require__(151);
 // @ts-ignore: to avoid inlining LocatioLink as dynamic import
 let __noDynamicImport;
 /**
@@ -19804,7 +19871,7 @@ var ImplementationRequest;
 
 
 /***/ }),
-/* 165 */
+/* 166 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19814,7 +19881,7 @@ var ImplementationRequest;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(150);
+const vscode_jsonrpc_1 = __webpack_require__(151);
 // @ts-ignore: to avoid inlining LocatioLink as dynamic import
 let __noDynamicImport;
 /**
@@ -19830,7 +19897,7 @@ var TypeDefinitionRequest;
 
 
 /***/ }),
-/* 166 */
+/* 167 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19840,7 +19907,7 @@ var TypeDefinitionRequest;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(150);
+const vscode_jsonrpc_1 = __webpack_require__(151);
 /**
  * The `workspace/workspaceFolders` is sent from the server to the client to fetch the open workspace folders.
  */
@@ -19859,7 +19926,7 @@ var DidChangeWorkspaceFoldersNotification;
 
 
 /***/ }),
-/* 167 */
+/* 168 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19869,7 +19936,7 @@ var DidChangeWorkspaceFoldersNotification;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(150);
+const vscode_jsonrpc_1 = __webpack_require__(151);
 /**
  * The 'workspace/configuration' request is sent from the server to the client to fetch a certain
  * configuration setting.
@@ -19886,7 +19953,7 @@ var ConfigurationRequest;
 
 
 /***/ }),
-/* 168 */
+/* 169 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19896,7 +19963,7 @@ var ConfigurationRequest;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(150);
+const vscode_jsonrpc_1 = __webpack_require__(151);
 /**
  * A request to list all color symbols found in a given text document. The request's
  * parameter is of type [DocumentColorParams](#DocumentColorParams) the
@@ -19920,7 +19987,7 @@ var ColorPresentationRequest;
 
 
 /***/ }),
-/* 169 */
+/* 170 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19930,7 +19997,7 @@ var ColorPresentationRequest;
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(150);
+const vscode_jsonrpc_1 = __webpack_require__(151);
 /**
  * Enum of known range kinds
  */
@@ -19962,7 +20029,7 @@ var FoldingRangeRequest;
 
 
 /***/ }),
-/* 170 */
+/* 171 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19972,7 +20039,7 @@ var FoldingRangeRequest;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(150);
+const vscode_jsonrpc_1 = __webpack_require__(151);
 // @ts-ignore: to avoid inlining LocatioLink as dynamic import
 let __noDynamicImport;
 /**
@@ -19989,7 +20056,7 @@ var DeclarationRequest;
 
 
 /***/ }),
-/* 171 */
+/* 172 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19999,7 +20066,7 @@ var DeclarationRequest;
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(150);
+const vscode_jsonrpc_1 = __webpack_require__(151);
 /**
  * A request to provide selection ranges in a document. The request's
  * parameter is of type [SelectionRangeParams](#SelectionRangeParams), the
@@ -20013,7 +20080,7 @@ var SelectionRangeRequest;
 
 
 /***/ }),
-/* 172 */
+/* 173 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20023,7 +20090,7 @@ var SelectionRangeRequest;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(150);
+const vscode_jsonrpc_1 = __webpack_require__(151);
 /**
  * The direction of a call hierarchy request.
  */
@@ -20053,7 +20120,7 @@ var CallHierarchyRequest;
 
 
 /***/ }),
-/* 173 */
+/* 174 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20063,7 +20130,7 @@ var CallHierarchyRequest;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(150);
+const vscode_jsonrpc_1 = __webpack_require__(151);
 /**
  * The `window/progress/start` notification is sent from the server to the client
  * to initiate a progress.
@@ -20099,25 +20166,25 @@ var ProgressCancelNotification;
 
 
 /***/ }),
-/* 174 */
+/* 175 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const child_process_1 = __webpack_require__(175);
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(176));
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
-const isuri_1 = tslib_1.__importDefault(__webpack_require__(177));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(179));
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const vscode_uri_1 = __webpack_require__(180);
-const which_1 = tslib_1.__importDefault(__webpack_require__(181));
-const platform = tslib_1.__importStar(__webpack_require__(185));
+const child_process_1 = __webpack_require__(176);
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(177));
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
+const isuri_1 = tslib_1.__importDefault(__webpack_require__(178));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(180));
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const vscode_uri_1 = __webpack_require__(181);
+const which_1 = tslib_1.__importDefault(__webpack_require__(182));
+const platform = tslib_1.__importStar(__webpack_require__(186));
 exports.platform = platform;
-const logger = __webpack_require__(186)('util-index');
+const logger = __webpack_require__(2)('util-index');
 const prefix = '[coc.nvim] ';
 function escapeSingleQuote(str) {
     return str.replace(/'/g, "''");
@@ -20290,13 +20357,13 @@ exports.concurrent = concurrent;
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 175 */
+/* 176 */
 /***/ (function(module, exports) {
 
 module.exports = require("child_process");
 
 /***/ }),
-/* 176 */
+/* 177 */
 /***/ (function(module, exports) {
 
 /**
@@ -20372,13 +20439,13 @@ module.exports = debounce;
 
 
 /***/ }),
-/* 177 */
+/* 178 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-var rfc3986 = __webpack_require__(178);
+var rfc3986 = __webpack_require__(179);
 
 // See: https://github.com/hapijs/hoek/blob/f62961d3d07aca68ab11480893e6e80a421914b4/lib/index.js#L783-L787
 function escapeRegex(string) {
@@ -20458,7 +20525,7 @@ module.exports = {
 };
 
 /***/ }),
-/* 178 */
+/* 179 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20658,11 +20725,11 @@ internals.generate();
 module.exports = internals.rfc3986;
 
 /***/ }),
-/* 179 */
+/* 180 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var path = __webpack_require__(57);
-var fs = __webpack_require__(55);
+var path = __webpack_require__(20);
+var fs = __webpack_require__(4);
 var _0777 = parseInt('0777', 8);
 
 module.exports = mkdirP.mkdirp = mkdirP.mkdirP = mkdirP;
@@ -20762,7 +20829,7 @@ mkdirP.sync = function sync (p, opts, made) {
 
 
 /***/ }),
-/* 180 */
+/* 181 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -21365,7 +21432,7 @@ var _a;
 
 
 /***/ }),
-/* 181 */
+/* 182 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = which
@@ -21375,9 +21442,9 @@ var isWindows = process.platform === 'win32' ||
     process.env.OSTYPE === 'cygwin' ||
     process.env.OSTYPE === 'msys'
 
-var path = __webpack_require__(57)
+var path = __webpack_require__(20)
 var COLON = isWindows ? ';' : ':'
-var isexe = __webpack_require__(182)
+var isexe = __webpack_require__(183)
 
 function getNotFoundError (cmd) {
   var er = new Error('not found: ' + cmd)
@@ -21506,15 +21573,15 @@ function whichSync (cmd, opt) {
 
 
 /***/ }),
-/* 182 */
+/* 183 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var fs = __webpack_require__(55)
+var fs = __webpack_require__(4)
 var core
 if (process.platform === 'win32' || global.TESTING_WINDOWS) {
-  core = __webpack_require__(183)
-} else {
   core = __webpack_require__(184)
+} else {
+  core = __webpack_require__(185)
 }
 
 module.exports = isexe
@@ -21569,13 +21636,13 @@ function sync (path, options) {
 
 
 /***/ }),
-/* 183 */
+/* 184 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = isexe
 isexe.sync = sync
 
-var fs = __webpack_require__(55)
+var fs = __webpack_require__(4)
 
 function checkPathExt (path, options) {
   var pathext = options.pathExt !== undefined ?
@@ -21617,13 +21684,13 @@ function sync (path, options) {
 
 
 /***/ }),
-/* 184 */
+/* 185 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = isexe
 isexe.sync = sync
 
-var fs = __webpack_require__(55)
+var fs = __webpack_require__(4)
 
 function isexe (path, options, cb) {
   fs.stat(path, function (er, stat) {
@@ -21664,7 +21731,7 @@ function checkMode (stat, options) {
 
 
 /***/ }),
-/* 185 */
+/* 186 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21724,71 +21791,6 @@ exports.OS = _isMacintosh
 //# sourceMappingURL=platform.js.map
 
 /***/ }),
-/* 186 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(3);
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
-const log4js_1 = tslib_1.__importDefault(__webpack_require__(64));
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
-const os_1 = tslib_1.__importDefault(__webpack_require__(56));
-function getLogFile() {
-    let file = process.env.NVIM_COC_LOG_FILE;
-    if (file)
-        return file;
-    let dir = process.env.XDG_RUNTIME_DIR;
-    if (dir)
-        return path_1.default.join(dir, `coc-nvim-${process.pid}.log`);
-    return path_1.default.join(os_1.default.tmpdir(), `coc-nvim-${process.pid}.log`);
-}
-const MAX_LOG_SIZE = 1024 * 1024;
-const MAX_LOG_BACKUPS = 10;
-let logfile = getLogFile();
-const level = process.env.NVIM_COC_LOG_LEVEL || 'info';
-if (!fs_1.default.existsSync(logfile)) {
-    try {
-        fs_1.default.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 });
-    }
-    catch (e) {
-        logfile = path_1.default.join(os_1.default.tmpdir(), `coc-nvim-${process.pid}.log`);
-        fs_1.default.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 });
-        // noop
-    }
-}
-log4js_1.default.configure({
-    disableClustering: true,
-    appenders: {
-        out: {
-            type: 'file',
-            mode: 0o666,
-            filename: logfile,
-            maxLogSize: MAX_LOG_SIZE,
-            backups: MAX_LOG_BACKUPS,
-            layout: {
-                type: 'pattern',
-                // Format log in following pattern:
-                // yyyy-MM-dd HH:mm:ss.mil $Level (pid:$pid) $categroy - $message.
-                pattern: `%d{ISO8601} %p (pid:${process.pid}) [%c] - %m`,
-            },
-        }
-    },
-    categories: {
-        default: { appenders: ['out'], level }
-    }
-});
-module.exports = (name = 'coc-nvim') => {
-    let logger = log4js_1.default.getLogger(name);
-    logger.getLogFile = () => {
-        return logfile;
-    };
-    return logger;
-};
-//# sourceMappingURL=logger.js.map
-
-/***/ }),
 /* 187 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -21796,17 +21798,17 @@ module.exports = (name = 'coc-nvim') => {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(176));
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
-const os_1 = tslib_1.__importDefault(__webpack_require__(56));
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
-const util_1 = tslib_1.__importDefault(__webpack_require__(40));
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const vscode_uri_1 = __webpack_require__(180);
-const which_1 = tslib_1.__importDefault(__webpack_require__(181));
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(177));
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
+const os_1 = tslib_1.__importDefault(__webpack_require__(14));
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
+const util_1 = tslib_1.__importDefault(__webpack_require__(12));
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const vscode_uri_1 = __webpack_require__(181);
+const which_1 = tslib_1.__importDefault(__webpack_require__(182));
 const configuration_1 = tslib_1.__importDefault(__webpack_require__(188));
 const shape_1 = tslib_1.__importDefault(__webpack_require__(205));
-const events_1 = tslib_1.__importDefault(__webpack_require__(148));
+const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const db_1 = tslib_1.__importDefault(__webpack_require__(206));
 const document_1 = tslib_1.__importDefault(__webpack_require__(207));
 const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(214));
@@ -21820,14 +21822,14 @@ const willSaveHandler_1 = tslib_1.__importDefault(__webpack_require__(225));
 const types_1 = __webpack_require__(189);
 const array_1 = __webpack_require__(212);
 const fs_2 = __webpack_require__(200);
-const index_1 = __webpack_require__(174);
+const index_1 = __webpack_require__(175);
 const match_1 = __webpack_require__(226);
 const position_1 = __webpack_require__(213);
 const string_1 = __webpack_require__(210);
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(227));
 const uuid = __webpack_require__(220);
 const requireFunc =  true ? require : undefined;
-const logger = __webpack_require__(186)('workspace');
+const logger = __webpack_require__(2)('workspace');
 const CONFIG_FILE_NAME = 'coc-settings.json';
 let NAME_SPACE = 1080;
 class Workspace {
@@ -23433,20 +23435,20 @@ exports.default = new Workspace();
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const os_1 = tslib_1.__importDefault(__webpack_require__(56));
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const vscode_uri_1 = __webpack_require__(180);
+const os_1 = tslib_1.__importDefault(__webpack_require__(14));
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const vscode_uri_1 = __webpack_require__(181);
 const types_1 = __webpack_require__(189);
 const object_1 = __webpack_require__(190);
-const util_1 = __webpack_require__(174);
+const util_1 = __webpack_require__(175);
 const configuration_1 = __webpack_require__(192);
 const model_1 = __webpack_require__(193);
 const util_2 = __webpack_require__(194);
 const is_1 = __webpack_require__(191);
 const fs_2 = __webpack_require__(200);
-const logger = __webpack_require__(186)('configurations');
+const logger = __webpack_require__(2)('configurations');
 function lookUp(tree, key) {
     if (key) {
         if (tree && tree.hasOwnProperty(key))
@@ -24136,14 +24138,14 @@ exports.ConfigurationModel = ConfigurationModel;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const jsonc_parser_1 = __webpack_require__(195);
 const is_1 = __webpack_require__(191);
 const object_1 = __webpack_require__(190);
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
-const vscode_uri_1 = __webpack_require__(180);
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
-const logger = __webpack_require__(186)('configuration-util');
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
+const vscode_uri_1 = __webpack_require__(181);
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
+const logger = __webpack_require__(2)('configuration-util');
 const isWebpack = typeof __webpack_require__ === "function";
 const pluginRoot = isWebpack ? path_1.default.dirname(__dirname) : path_1.default.resolve(__dirname, '../..');
 function parseContentFromFile(filepath, onError) {
@@ -25933,15 +25935,15 @@ function getLiteralNodeType(value) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const child_process_1 = __webpack_require__(175);
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
-const net_1 = tslib_1.__importDefault(__webpack_require__(6));
-const os_1 = tslib_1.__importDefault(__webpack_require__(56));
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
-const readline_1 = tslib_1.__importDefault(__webpack_require__(60));
-const util_1 = tslib_1.__importDefault(__webpack_require__(40));
+const child_process_1 = __webpack_require__(176);
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
+const net_1 = tslib_1.__importDefault(__webpack_require__(96));
+const os_1 = tslib_1.__importDefault(__webpack_require__(14));
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
+const readline_1 = tslib_1.__importDefault(__webpack_require__(145));
+const util_1 = tslib_1.__importDefault(__webpack_require__(12));
 const minimatch_1 = tslib_1.__importDefault(__webpack_require__(201));
-const logger = __webpack_require__(186)('util-fs');
+const logger = __webpack_require__(2)('util-fs');
 async function statAsync(filepath) {
     let stat = null;
     try {
@@ -26194,7 +26196,7 @@ minimatch.Minimatch = Minimatch
 
 var path = { sep: '/' }
 try {
-  path = __webpack_require__(57)
+  path = __webpack_require__(20)
 } catch (er) {}
 
 var GLOBSTAR = minimatch.GLOBSTAR = Minimatch.GLOBSTAR = {}
@@ -27414,11 +27416,11 @@ function range(a, b, str) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
 const jsonc_parser_1 = __webpack_require__(195);
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
-const vscode_uri_1 = __webpack_require__(180);
-const logger = __webpack_require__(186)('configuration-shape');
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
+const vscode_uri_1 = __webpack_require__(181);
+const logger = __webpack_require__(2)('configuration-shape');
 class ConfigurationProxy {
     constructor(workspace) {
         this.workspace = workspace;
@@ -27464,9 +27466,9 @@ exports.default = ConfigurationProxy;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(179));
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(180));
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 class DB {
     constructor(filepath) {
         this.filepath = filepath;
@@ -27606,18 +27608,18 @@ exports.default = DB;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(176));
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const vscode_uri_1 = __webpack_require__(180);
-const events_1 = tslib_1.__importDefault(__webpack_require__(148));
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(177));
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const vscode_uri_1 = __webpack_require__(181);
+const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const diff_1 = __webpack_require__(208);
 const fs_1 = __webpack_require__(200);
-const index_1 = __webpack_require__(174);
+const index_1 = __webpack_require__(175);
 const string_1 = __webpack_require__(210);
 const chars_1 = __webpack_require__(211);
 const array_1 = __webpack_require__(212);
 const position_1 = __webpack_require__(213);
-const logger = __webpack_require__(186)('model-document');
+const logger = __webpack_require__(2)('model-document');
 // wrapper class of TextDocument
 class Document {
     constructor(buffer, env) {
@@ -28381,7 +28383,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(209));
 const string_1 = __webpack_require__(210);
-const logger = __webpack_require__(186)('util-diff');
+const logger = __webpack_require__(2)('util-diff');
 function diffLines(from, to) {
     let newLines = to.split('\n');
     let oldLines = from.split('\n');
@@ -29408,7 +29410,7 @@ exports.equalsIgnoreCase = equalsIgnoreCase;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const logger = __webpack_require__(186)('model-chars');
+const logger = __webpack_require__(2)('model-chars');
 class Range {
     constructor(start, end) {
         this.start = start;
@@ -29755,11 +29757,11 @@ exports.getChangedFromEdits = getChangedFromEdits;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const vscode_uri_1 = __webpack_require__(180);
-const path = __webpack_require__(57);
-const util_1 = __webpack_require__(174);
-const logger = __webpack_require__(186)('filesystem-watcher');
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const vscode_uri_1 = __webpack_require__(181);
+const path = __webpack_require__(20);
+const util_1 = __webpack_require__(175);
+const logger = __webpack_require__(2)('filesystem-watcher');
 class FileSystemWatcher {
     constructor(clientPromise, globPattern, ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents) {
         this.globPattern = globPattern;
@@ -29836,11 +29838,11 @@ exports.default = FileSystemWatcher;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
-const os_1 = tslib_1.__importDefault(__webpack_require__(56));
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
-const util_1 = tslib_1.__importDefault(__webpack_require__(40));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(179));
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
+const os_1 = tslib_1.__importDefault(__webpack_require__(14));
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
+const util_1 = tslib_1.__importDefault(__webpack_require__(12));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(180));
 const isWindows = process.platform == 'win32';
 const root = isWindows ? path_1.default.join(os_1.default.homedir(), 'AppData/Local/coc') : path_1.default.join(os_1.default.homedir(), '.config/coc');
 /**
@@ -29918,9 +29920,9 @@ exports.default = Mru;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const util_1 = __webpack_require__(174);
+const util_1 = __webpack_require__(175);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)("outpubChannel");
+const logger = __webpack_require__(2)("outpubChannel");
 class BufferChannel {
     constructor(name, nvim) {
         this.name = name;
@@ -30039,11 +30041,11 @@ exports.default = BufferChannel;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
-const util_1 = __webpack_require__(174);
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
+const util_1 = __webpack_require__(175);
 const fs_1 = __webpack_require__(200);
 const decorator_1 = __webpack_require__(218);
-const logger = __webpack_require__(186)('model-resolver');
+const logger = __webpack_require__(2)('model-resolver');
 class Resolver {
     get nodeFolder() {
         if (!util_1.executable('npm'))
@@ -30091,7 +30093,7 @@ exports.default = Resolver;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const logger = __webpack_require__(186)('util-decorator');
+const logger = __webpack_require__(2)('util-decorator');
 function memorize(_target, key, descriptor) {
     let fn = descriptor.get;
     if (typeof fn !== 'function')
@@ -30121,7 +30123,7 @@ exports.memorize = memorize;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const uuidv1 = __webpack_require__(220);
-const logger = __webpack_require__(186)('model-status');
+const logger = __webpack_require__(2)('model-status');
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 class StatusLine {
     constructor(nvim) {
@@ -30316,7 +30318,7 @@ module.exports = v1;
 // Unique ID creation requires a high quality random # generator.  In node.js
 // this is pretty straight-forward - we use the crypto API.
 
-var crypto = __webpack_require__(159);
+var crypto = __webpack_require__(160);
 
 module.exports = function nodeRNG() {
   return crypto.randomBytes(16);
@@ -30361,9 +30363,9 @@ module.exports = bytesToUuid;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const events_1 = tslib_1.__importDefault(__webpack_require__(148));
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const util_1 = __webpack_require__(174);
+const events_1 = tslib_1.__importDefault(__webpack_require__(149));
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const util_1 = __webpack_require__(175);
 /**
  * Controls long running task started by vim.
  * Useful to keep the task running after CocRestart.
@@ -30455,7 +30457,7 @@ exports.default = Task;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const logger = __webpack_require__(186)('model-terminal');
+const logger = __webpack_require__(2)('model-terminal');
 class TerminalModel {
     constructor(cmd, args, nvim, _name) {
         this.cmd = cmd;
@@ -30531,9 +30533,9 @@ exports.default = TerminalModel;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const util_1 = __webpack_require__(174);
-const logger = __webpack_require__(186)('willSaveHandler');
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const util_1 = __webpack_require__(175);
+const logger = __webpack_require__(2)('willSaveHandler');
 class WillSaveUntilHandler {
     constructor(workspace) {
         this.workspace = workspace;
@@ -30632,7 +30634,7 @@ exports.default = WillSaveUntilHandler;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const minimatch_1 = tslib_1.__importDefault(__webpack_require__(201));
-const vscode_uri_1 = __webpack_require__(180);
+const vscode_uri_1 = __webpack_require__(181);
 function score(selector, uri, languageId) {
     if (Array.isArray(selector)) {
         // array -> take max individual value
@@ -30715,12 +30717,12 @@ exports.score = score;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const fb_watchman_1 = tslib_1.__importDefault(__webpack_require__(228));
-const os_1 = tslib_1.__importDefault(__webpack_require__(56));
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
+const os_1 = tslib_1.__importDefault(__webpack_require__(14));
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 const uuidv1 = __webpack_require__(220);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const minimatch_1 = tslib_1.__importDefault(__webpack_require__(201));
-const logger = __webpack_require__(186)('watchman');
+const logger = __webpack_require__(2)('watchman');
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch'];
 const clientsMap = new Map();
 /**
@@ -30890,10 +30892,10 @@ exports.default = Watchman;
 
 
 
-var net = __webpack_require__(6);
-var EE = __webpack_require__(49).EventEmitter;
-var util = __webpack_require__(40);
-var childProcess = __webpack_require__(175);
+var net = __webpack_require__(96);
+var EE = __webpack_require__(137).EventEmitter;
+var util = __webpack_require__(12);
+var childProcess = __webpack_require__(176);
 var bser = __webpack_require__(229);
 
 // We'll emit the responses to these when they get sent down to us
@@ -31216,10 +31218,10 @@ Client.prototype.end = function() {
 /* Copyright 2015-present Facebook, Inc.
  * Licensed under the Apache License, Version 2.0 */
 
-var EE = __webpack_require__(49).EventEmitter;
-var util = __webpack_require__(40);
-var os = __webpack_require__(56);
-var assert = __webpack_require__(101);
+var EE = __webpack_require__(137).EventEmitter;
+var util = __webpack_require__(12);
+var os = __webpack_require__(14);
+var assert = __webpack_require__(46);
 var Int64 = __webpack_require__(230);
 
 // BSER uses the local endianness to reduce byte swapping overheads
@@ -32082,8 +32084,8 @@ Int64.prototype = {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const events_1 = __webpack_require__(49);
-const vscode_languageserver_types_1 = __webpack_require__(161);
+const events_1 = __webpack_require__(137);
+const vscode_languageserver_types_1 = __webpack_require__(162);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
 const completion_1 = tslib_1.__importDefault(__webpack_require__(236));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(316));
@@ -32097,7 +32099,7 @@ const types_1 = __webpack_require__(189);
 const cursors_1 = tslib_1.__importDefault(__webpack_require__(407));
 const clean_1 = tslib_1.__importDefault(__webpack_require__(409));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)('plugin');
+const logger = __webpack_require__(2)('plugin');
 class Plugin extends events_1.EventEmitter {
     constructor(nvim) {
         super();
@@ -32342,7 +32344,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "ba41073f5d" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "dc888b4a6e" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -32538,13 +32540,13 @@ exports.default = Plugin;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const util_1 = __webpack_require__(174);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const util_1 = __webpack_require__(175);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(233));
 const manager_2 = tslib_1.__importDefault(__webpack_require__(316));
-const vscode_uri_1 = __webpack_require__(180);
-const logger = __webpack_require__(186)('commands');
+const vscode_uri_1 = __webpack_require__(181);
+const logger = __webpack_require__(2)('commands');
 class CommandItem {
     constructor(id, impl, thisArg, internal = false) {
         this.id = id;
@@ -32885,13 +32887,13 @@ exports.default = new CommandManager();
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const events_1 = tslib_1.__importDefault(__webpack_require__(148));
+const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const Snippets = tslib_1.__importStar(__webpack_require__(234));
 const parser_1 = __webpack_require__(234);
 const session_1 = __webpack_require__(235);
 const variableResolve_1 = __webpack_require__(398);
-const logger = __webpack_require__(186)('snippets-manager');
+const logger = __webpack_require__(2)('snippets-manager');
 class SnippetManager {
     constructor() {
         this.sessionMap = new Map();
@@ -33049,8 +33051,8 @@ exports.default = new SnippetManager();
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const logger = __webpack_require__(186)('snippets-parser');
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const logger = __webpack_require__(2)('snippets-parser');
 class Scanner {
     constructor() {
         this.text('');
@@ -34071,15 +34073,15 @@ exports.SnippetParser = SnippetParser;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const completion_1 = tslib_1.__importDefault(__webpack_require__(236));
-const util_1 = __webpack_require__(174);
+const util_1 = __webpack_require__(175);
 const position_1 = __webpack_require__(213);
 const string_1 = __webpack_require__(210);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const snippet_1 = __webpack_require__(397);
 const variableResolve_1 = __webpack_require__(398);
-const logger = __webpack_require__(186)('snippets-session');
+const logger = __webpack_require__(2)('snippets-session');
 class SnippetSession {
     constructor(nvim, bufnr) {
         this.nvim = nvim;
@@ -34382,16 +34384,16 @@ exports.normalizeSnippetString = normalizeSnippetString;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(176));
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const events_1 = tslib_1.__importDefault(__webpack_require__(148));
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(177));
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(237));
-const util_1 = __webpack_require__(174);
+const util_1 = __webpack_require__(175);
 const string_1 = __webpack_require__(210);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const complete_1 = tslib_1.__importDefault(__webpack_require__(394));
 const floating_1 = tslib_1.__importDefault(__webpack_require__(396));
-const logger = __webpack_require__(186)('completion');
+const logger = __webpack_require__(2)('completion');
 const completeItemKeys = ['abbr', 'menu', 'info', 'kind', 'icase', 'dup', 'empty', 'user_data'];
 class Completion {
     constructor() {
@@ -34998,20 +35000,20 @@ exports.default = new Completion();
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(209));
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
-const util_1 = tslib_1.__importDefault(__webpack_require__(40));
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const events_1 = tslib_1.__importDefault(__webpack_require__(148));
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
+const util_1 = tslib_1.__importDefault(__webpack_require__(12));
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(238));
 const source_1 = tslib_1.__importDefault(__webpack_require__(389));
 const source_vim_1 = tslib_1.__importDefault(__webpack_require__(390));
 const types_1 = __webpack_require__(189);
-const util_2 = __webpack_require__(174);
+const util_2 = __webpack_require__(175);
 const fs_2 = __webpack_require__(200);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const string_1 = __webpack_require__(210);
-const logger = __webpack_require__(186)('sources');
+const logger = __webpack_require__(2)('sources');
 class Sources {
     constructor() {
         this.sourceMap = new Map();
@@ -35359,32 +35361,32 @@ exports.default = new Sources();
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const debounce_1 = __webpack_require__(176);
+const debounce_1 = __webpack_require__(177);
 const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(209));
-const os_1 = tslib_1.__importDefault(__webpack_require__(56));
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
-const isuri_1 = tslib_1.__importDefault(__webpack_require__(177));
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
+const os_1 = tslib_1.__importDefault(__webpack_require__(14));
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
+const isuri_1 = tslib_1.__importDefault(__webpack_require__(178));
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 const rimraf_1 = tslib_1.__importDefault(__webpack_require__(239));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
-const util_1 = __webpack_require__(40);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const vscode_uri_1 = __webpack_require__(180);
-const which_1 = tslib_1.__importDefault(__webpack_require__(181));
+const util_1 = __webpack_require__(12);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const vscode_uri_1 = __webpack_require__(181);
+const which_1 = tslib_1.__importDefault(__webpack_require__(182));
 const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
-const events_1 = tslib_1.__importDefault(__webpack_require__(148));
+const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const db_1 = tslib_1.__importDefault(__webpack_require__(206));
 const extension_1 = tslib_1.__importDefault(__webpack_require__(251));
 const memos_1 = tslib_1.__importDefault(__webpack_require__(308));
-const util_2 = __webpack_require__(174);
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(179));
+const util_2 = __webpack_require__(175);
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(180));
 const array_1 = __webpack_require__(212);
 __webpack_require__(309);
 const factory_1 = __webpack_require__(310);
 const fs_2 = __webpack_require__(200);
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(227));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const createLogger = __webpack_require__(186);
+const createLogger = __webpack_require__(2);
 const logger = createLogger('extensions');
 function loadJson(file) {
     try {
@@ -36226,9 +36228,9 @@ exports.default = new Extensions();
 /* 239 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const assert = __webpack_require__(101)
-const path = __webpack_require__(57)
-const fs = __webpack_require__(55)
+const assert = __webpack_require__(46)
+const path = __webpack_require__(20)
+const fs = __webpack_require__(4)
 let glob = undefined
 try {
   glob = __webpack_require__(240)
@@ -36642,14 +36644,14 @@ rimraf.sync = rimrafSync
 
 module.exports = glob
 
-var fs = __webpack_require__(55)
+var fs = __webpack_require__(4)
 var rp = __webpack_require__(241)
 var minimatch = __webpack_require__(201)
 var Minimatch = minimatch.Minimatch
 var inherits = __webpack_require__(243)
-var EE = __webpack_require__(49).EventEmitter
-var path = __webpack_require__(57)
-var assert = __webpack_require__(101)
+var EE = __webpack_require__(137).EventEmitter
+var path = __webpack_require__(20)
+var assert = __webpack_require__(46)
 var isAbsolute = __webpack_require__(245)
 var globSync = __webpack_require__(246)
 var common = __webpack_require__(247)
@@ -36658,7 +36660,7 @@ var alphasorti = common.alphasorti
 var setopts = common.setopts
 var ownProp = common.ownProp
 var inflight = __webpack_require__(248)
-var util = __webpack_require__(40)
+var util = __webpack_require__(12)
 var childrenIgnored = common.childrenIgnored
 var isIgnored = common.isIgnored
 
@@ -37403,7 +37405,7 @@ realpath.realpathSync = realpathSync
 realpath.monkeypatch = monkeypatch
 realpath.unmonkeypatch = unmonkeypatch
 
-var fs = __webpack_require__(55)
+var fs = __webpack_require__(4)
 var origRealpath = fs.realpath
 var origRealpathSync = fs.realpathSync
 
@@ -37489,9 +37491,9 @@ function unmonkeypatch () {
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-var pathModule = __webpack_require__(57);
+var pathModule = __webpack_require__(20);
 var isWindows = process.platform === 'win32';
-var fs = __webpack_require__(55);
+var fs = __webpack_require__(4);
 
 // JavaScript implementation of realpath, ported from node pre-v6
 
@@ -37778,7 +37780,7 @@ exports.realpath = function realpath(p, cache, cb) {
 /***/ (function(module, exports, __webpack_require__) {
 
 try {
-  var util = __webpack_require__(40);
+  var util = __webpack_require__(12);
   if (typeof util.inherits !== 'function') throw '';
   module.exports = util.inherits;
 } catch (e) {
@@ -37849,14 +37851,14 @@ module.exports.win32 = win32;
 module.exports = globSync
 globSync.GlobSync = GlobSync
 
-var fs = __webpack_require__(55)
+var fs = __webpack_require__(4)
 var rp = __webpack_require__(241)
 var minimatch = __webpack_require__(201)
 var Minimatch = minimatch.Minimatch
 var Glob = __webpack_require__(240).Glob
-var util = __webpack_require__(40)
-var path = __webpack_require__(57)
-var assert = __webpack_require__(101)
+var util = __webpack_require__(12)
+var path = __webpack_require__(20)
+var assert = __webpack_require__(46)
 var isAbsolute = __webpack_require__(245)
 var common = __webpack_require__(247)
 var alphasort = common.alphasort
@@ -38352,7 +38354,7 @@ function ownProp (obj, field) {
   return Object.prototype.hasOwnProperty.call(obj, field)
 }
 
-var path = __webpack_require__(57)
+var path = __webpack_require__(20)
 var minimatch = __webpack_require__(201)
 var isAbsolute = __webpack_require__(245)
 var Minimatch = minimatch.Minimatch
@@ -38735,20 +38737,20 @@ function onceStrict (fn) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const child_process_1 = __webpack_require__(175);
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(179));
+const child_process_1 = __webpack_require__(176);
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(180));
 const mv_1 = tslib_1.__importDefault(__webpack_require__(252));
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 const rc_1 = tslib_1.__importDefault(__webpack_require__(258));
 const rimraf_1 = tslib_1.__importDefault(__webpack_require__(239));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
 const url_1 = tslib_1.__importDefault(__webpack_require__(264));
-const util_1 = __webpack_require__(40);
+const util_1 = __webpack_require__(12);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const download_1 = tslib_1.__importDefault(__webpack_require__(265));
 const fetch_1 = tslib_1.__importDefault(__webpack_require__(304));
-const logger = __webpack_require__(186)('model-extension');
+const logger = __webpack_require__(2)('model-extension');
 function registryUrl(scope = '') {
     const result = rc_1.default('npm', { registry: 'https://registry.npmjs.org/' });
     return result[`${scope}:registry`] || result.config_registry || result.registry;
@@ -38923,11 +38925,11 @@ exports.default = ExtensionManager;
 /* 252 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var fs = __webpack_require__(55);
+var fs = __webpack_require__(4);
 var ncp = __webpack_require__(253).ncp;
-var path = __webpack_require__(57);
+var path = __webpack_require__(20);
 var rimraf = __webpack_require__(254);
-var mkdirp = __webpack_require__(179);
+var mkdirp = __webpack_require__(180);
 
 module.exports = mv;
 
@@ -39034,8 +39036,8 @@ function moveDirAcrossDevice(source, dest, clobber, limit, cb) {
 /* 253 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var fs = __webpack_require__(55),
-    path = __webpack_require__(57);
+var fs = __webpack_require__(4),
+    path = __webpack_require__(20);
 
 module.exports = ncp;
 ncp.ncp = ncp;
@@ -39304,9 +39306,9 @@ function ncp (source, dest, options, callback) {
 module.exports = rimraf
 rimraf.sync = rimrafSync
 
-var assert = __webpack_require__(101)
-var path = __webpack_require__(57)
-var fs = __webpack_require__(55)
+var assert = __webpack_require__(46)
+var path = __webpack_require__(20)
+var fs = __webpack_require__(4)
 var glob = __webpack_require__(255)
 
 var globOpts = {
@@ -39682,13 +39684,13 @@ function rmkidsSync (p, options) {
 
 module.exports = glob
 
-var fs = __webpack_require__(55)
+var fs = __webpack_require__(4)
 var minimatch = __webpack_require__(201)
 var Minimatch = minimatch.Minimatch
 var inherits = __webpack_require__(243)
-var EE = __webpack_require__(49).EventEmitter
-var path = __webpack_require__(57)
-var assert = __webpack_require__(101)
+var EE = __webpack_require__(137).EventEmitter
+var path = __webpack_require__(20)
+var assert = __webpack_require__(46)
 var isAbsolute = __webpack_require__(245)
 var globSync = __webpack_require__(256)
 var common = __webpack_require__(257)
@@ -39697,7 +39699,7 @@ var alphasorti = common.alphasorti
 var setopts = common.setopts
 var ownProp = common.ownProp
 var inflight = __webpack_require__(248)
-var util = __webpack_require__(40)
+var util = __webpack_require__(12)
 var childrenIgnored = common.childrenIgnored
 var isIgnored = common.isIgnored
 
@@ -40414,13 +40416,13 @@ Glob.prototype._stat2 = function (f, abs, er, stat, cb) {
 module.exports = globSync
 globSync.GlobSync = GlobSync
 
-var fs = __webpack_require__(55)
+var fs = __webpack_require__(4)
 var minimatch = __webpack_require__(201)
 var Minimatch = minimatch.Minimatch
 var Glob = __webpack_require__(255).Glob
-var util = __webpack_require__(40)
-var path = __webpack_require__(57)
-var assert = __webpack_require__(101)
+var util = __webpack_require__(12)
+var path = __webpack_require__(20)
+var assert = __webpack_require__(46)
 var isAbsolute = __webpack_require__(245)
 var common = __webpack_require__(257)
 var alphasort = common.alphasort
@@ -40891,7 +40893,7 @@ function ownProp (obj, field) {
   return Object.prototype.hasOwnProperty.call(obj, field)
 }
 
-var path = __webpack_require__(57)
+var path = __webpack_require__(20)
 var minimatch = __webpack_require__(201)
 var isAbsolute = __webpack_require__(245)
 var Minimatch = minimatch.Minimatch
@@ -41110,7 +41112,7 @@ function childrenIgnored (self, path) {
 /***/ (function(module, exports, __webpack_require__) {
 
 var cc   = __webpack_require__(259)
-var join = __webpack_require__(57).join
+var join = __webpack_require__(20).join
 var deepExtend = __webpack_require__(262)
 var etc = '/etc'
 var win = process.platform === "win32"
@@ -41170,9 +41172,9 @@ module.exports = function (name, defaults, argv, parse) {
 
 "use strict";
 
-var fs   = __webpack_require__(55)
+var fs   = __webpack_require__(4)
 var ini  = __webpack_require__(260)
-var path = __webpack_require__(57)
+var path = __webpack_require__(20)
 var stripJsonComments = __webpack_require__(261)
 
 var parse = exports.parse = function (content) {
@@ -41966,9 +41968,9 @@ module.exports = require("url");
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const follow_redirects_1 = __webpack_require__(266);
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(179));
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(180));
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 const tar_1 = tslib_1.__importDefault(__webpack_require__(273));
 const url_1 = __webpack_require__(264);
 const fetch_1 = __webpack_require__(304);
@@ -42036,8 +42038,8 @@ var url = __webpack_require__(264);
 var URL = url.URL;
 var http = __webpack_require__(267);
 var https = __webpack_require__(268);
-var assert = __webpack_require__(101);
-var Writable = __webpack_require__(41).Writable;
+var assert = __webpack_require__(46);
+var Writable = __webpack_require__(44).Writable;
 var debug = __webpack_require__(269)("follow-redirects");
 
 // RFC7231§4.2.1: Of the request methods defined by this specification,
@@ -42722,7 +42724,7 @@ function setup(env) {
   createDebug.disable = disable;
   createDebug.enable = enable;
   createDebug.enabled = enabled;
-  createDebug.humanize = __webpack_require__(68);
+  createDebug.humanize = __webpack_require__(9);
   Object.keys(env).forEach(function (key) {
     createDebug[key] = env[key];
   });
@@ -42970,9 +42972,9 @@ module.exports = setup;
 /**
  * Module dependencies.
  */
-var tty = __webpack_require__(70);
+var tty = __webpack_require__(11);
 
-var util = __webpack_require__(40);
+var util = __webpack_require__(12);
 /**
  * This is the Node.js implementation of `debug()`.
  */
@@ -42993,7 +42995,7 @@ exports.colors = [6, 2, 3, 4, 5, 1];
 try {
   // Optional dependency (as in, doesn't need to be installed, NOT like optionalDependencies in package.json)
   // eslint-disable-next-line import/no-extraneous-dependencies
-  var supportsColor = __webpack_require__(71);
+  var supportsColor = __webpack_require__(13);
 
   if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
     exports.colors = [20, 21, 26, 27, 32, 33, 38, 39, 40, 41, 42, 43, 44, 45, 56, 57, 62, 63, 68, 69, 74, 75, 76, 77, 78, 79, 80, 81, 92, 93, 98, 99, 112, 113, 128, 129, 134, 135, 148, 149, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 178, 179, 184, 185, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 214, 215, 220, 221];
@@ -43177,10 +43179,10 @@ exports.types = __webpack_require__(287)
 const hlo = __webpack_require__(275)
 
 const Pack = __webpack_require__(276)
-const fs = __webpack_require__(55)
+const fs = __webpack_require__(4)
 const fsm = __webpack_require__(295)
 const t = __webpack_require__(296)
-const path = __webpack_require__(57)
+const path = __webpack_require__(20)
 
 const c = module.exports = (opt_, files, cb) => {
   if (typeof files === 'function')
@@ -43374,8 +43376,8 @@ const WRITEENTRYCLASS = Symbol('writeEntryClass')
 const WRITE = Symbol('write')
 const ONDRAIN = Symbol('ondrain')
 
-const fs = __webpack_require__(55)
-const path = __webpack_require__(57)
+const fs = __webpack_require__(4)
+const path = __webpack_require__(20)
 const warner = __webpack_require__(292)
 
 const Pack = warner(class Pack extends MiniPass {
@@ -43823,7 +43825,7 @@ module.exports = require("buffer");
 
 "use strict";
 
-const EE = __webpack_require__(49)
+const EE = __webpack_require__(137)
 const Yallist = __webpack_require__(281)
 const EOF = Symbol('EOF')
 const MAYBE_EMIT_END = Symbol('maybeEmitEnd')
@@ -44610,9 +44612,9 @@ module.exports = require("string_decoder");
 "use strict";
 
 
-const assert = __webpack_require__(101)
+const assert = __webpack_require__(46)
 const Buffer = __webpack_require__(279).Buffer
-const realZlib = __webpack_require__(137)
+const realZlib = __webpack_require__(82)
 
 const constants = exports.constants = __webpack_require__(285)
 const MiniPass = __webpack_require__(280)
@@ -45160,8 +45162,8 @@ const MiniPass = __webpack_require__(280)
 const Pax = __webpack_require__(289)
 const Header = __webpack_require__(290)
 const ReadEntry = __webpack_require__(286)
-const fs = __webpack_require__(55)
-const path = __webpack_require__(57)
+const fs = __webpack_require__(4)
+const path = __webpack_require__(20)
 
 const types = __webpack_require__(287)
 const maxReadSize = 16 * 1024 * 1024
@@ -45586,7 +45588,7 @@ module.exports = WriteEntry
 
 const Buffer = __webpack_require__(277)
 const Header = __webpack_require__(290)
-const path = __webpack_require__(57)
+const path = __webpack_require__(20)
 
 class Pax {
   constructor (obj, global) {
@@ -45744,7 +45746,7 @@ module.exports = Pax
 
 const Buffer = __webpack_require__(277)
 const types = __webpack_require__(287)
-const pathModule = __webpack_require__(57).posix
+const pathModule = __webpack_require__(20).posix
 const large = __webpack_require__(291)
 
 const SLURP = Symbol('slurp')
@@ -46210,8 +46212,8 @@ module.exports = (mode, isDir) => {
 "use strict";
 
 const MiniPass = __webpack_require__(280)
-const EE = __webpack_require__(49).EventEmitter
-const fs = __webpack_require__(55)
+const EE = __webpack_require__(137).EventEmitter
+const fs = __webpack_require__(4)
 
 // for writev
 const binding = process.binding('fs')
@@ -46611,9 +46613,9 @@ const Buffer = __webpack_require__(277)
 // tar -t
 const hlo = __webpack_require__(275)
 const Parser = __webpack_require__(297)
-const fs = __webpack_require__(55)
+const fs = __webpack_require__(4)
 const fsm = __webpack_require__(295)
-const path = __webpack_require__(57)
+const path = __webpack_require__(20)
 
 const t = module.exports = (opt_, files, cb) => {
   if (typeof opt_ === 'function')
@@ -46761,9 +46763,9 @@ const list = opt => new Parser(opt)
 // ignored entries get .resume() called on them straight away
 
 const warner = __webpack_require__(292)
-const path = __webpack_require__(57)
+const path = __webpack_require__(20)
 const Header = __webpack_require__(290)
-const EE = __webpack_require__(49)
+const EE = __webpack_require__(137)
 const Yallist = __webpack_require__(281)
 const maxMetaEntrySize = 1024 * 1024
 const Entry = __webpack_require__(286)
@@ -47175,10 +47177,10 @@ const Buffer = __webpack_require__(277)
 const hlo = __webpack_require__(275)
 const Pack = __webpack_require__(276)
 const Parse = __webpack_require__(297)
-const fs = __webpack_require__(55)
+const fs = __webpack_require__(4)
 const fsm = __webpack_require__(295)
 const t = __webpack_require__(296)
-const path = __webpack_require__(57)
+const path = __webpack_require__(20)
 
 // starting at the head of the file, read a Header
 // If the checksum is invalid, that's our position to start writing
@@ -47443,9 +47445,9 @@ const mtimeFilter = opt => {
 // tar -x
 const hlo = __webpack_require__(275)
 const Unpack = __webpack_require__(301)
-const fs = __webpack_require__(55)
+const fs = __webpack_require__(4)
 const fsm = __webpack_require__(295)
-const path = __webpack_require__(57)
+const path = __webpack_require__(20)
 
 const x = module.exports = (opt_, files, cb) => {
   if (typeof opt_ === 'function')
@@ -47559,12 +47561,12 @@ const extract = opt => {
 "use strict";
 
 
-const assert = __webpack_require__(101)
-const EE = __webpack_require__(49).EventEmitter
+const assert = __webpack_require__(46)
+const EE = __webpack_require__(137).EventEmitter
 const Parser = __webpack_require__(297)
-const fs = __webpack_require__(55)
+const fs = __webpack_require__(4)
 const fsm = __webpack_require__(295)
-const path = __webpack_require__(57)
+const path = __webpack_require__(20)
 const mkdir = __webpack_require__(302)
 const mkdirSync = mkdir.sync
 const wc = __webpack_require__(293)
@@ -47592,7 +47594,7 @@ const SKIP = Symbol('skip')
 const DOCHOWN = Symbol('doChown')
 const UID = Symbol('uid')
 const GID = Symbol('gid')
-const crypto = __webpack_require__(159)
+const crypto = __webpack_require__(160)
 
 // Unlinks on Windows are not atomic.
 //
@@ -48191,9 +48193,9 @@ module.exports = Unpack
 // TODO: This should probably be a class, not functionally
 // passing around state in a gazillion args.
 
-const mkdirp = __webpack_require__(179)
-const fs = __webpack_require__(55)
-const path = __webpack_require__(57)
+const mkdirp = __webpack_require__(180)
+const fs = __webpack_require__(4)
+const path = __webpack_require__(20)
 const chownr = __webpack_require__(303)
 
 class SymlinkError extends Error {
@@ -48399,8 +48401,8 @@ const mkdirSync = module.exports.sync = (dir, opt) => {
 
 "use strict";
 
-const fs = __webpack_require__(55)
-const path = __webpack_require__(57)
+const fs = __webpack_require__(4)
+const path = __webpack_require__(20)
 
 /* istanbul ignore next */
 const LCHOWN = fs.lchown ? 'lchown' : 'chown'
@@ -48499,10 +48501,10 @@ const tslib_1 = __webpack_require__(3);
 const follow_redirects_1 = __webpack_require__(266);
 const tunnel_1 = tslib_1.__importDefault(__webpack_require__(305));
 const url_1 = __webpack_require__(264);
-const zlib_1 = tslib_1.__importDefault(__webpack_require__(137));
+const zlib_1 = tslib_1.__importDefault(__webpack_require__(82));
 const is_1 = __webpack_require__(191);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)('model-fetch');
+const logger = __webpack_require__(2)('model-fetch');
 function getAgent(endpoint) {
     let proxy = workspace_1.default.getConfiguration('http').get('proxy', '');
     let key = endpoint.protocol.startsWith('https') ? 'HTTPS_PROXY' : 'HTTP_PROXY';
@@ -48656,13 +48658,13 @@ module.exports = __webpack_require__(306);
 "use strict";
 
 
-var net = __webpack_require__(6);
+var net = __webpack_require__(96);
 var tls = __webpack_require__(307);
 var http = __webpack_require__(267);
 var https = __webpack_require__(268);
-var events = __webpack_require__(49);
-var assert = __webpack_require__(101);
-var util = __webpack_require__(40);
+var events = __webpack_require__(137);
+var assert = __webpack_require__(46);
+var util = __webpack_require__(12);
 
 
 exports.httpOverHttp = httpOverHttp;
@@ -48934,9 +48936,9 @@ module.exports = require("tls");
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
 const object_1 = __webpack_require__(190);
-const logger = __webpack_require__(186)('model-memos');
+const logger = __webpack_require__(2)('model-memos');
 class Memos {
     constructor(filepath) {
         this.filepath = filepath;
@@ -48995,7 +48997,7 @@ exports.default = Memos;
 /* 309 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const logger = __webpack_require__(186)('extensions');
+const logger = __webpack_require__(2)('extensions');
 /**
  * Explicitly tells that promise should be run asynchonously.
  */
@@ -49015,11 +49017,11 @@ Promise.prototype.logError = function () {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
-const path = tslib_1.__importStar(__webpack_require__(57));
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
+const path = tslib_1.__importStar(__webpack_require__(20));
 const vm = tslib_1.__importStar(__webpack_require__(311));
 const lodash_1 = __webpack_require__(312);
-const createLogger = __webpack_require__(186);
+const createLogger = __webpack_require__(2);
 const logger = createLogger('util-factoroy');
 const requireFunc =  true ? require : undefined;
 const Module = __webpack_require__(313);
@@ -49223,7 +49225,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
 exports.commands = commands_1.default;
-const events_1 = tslib_1.__importDefault(__webpack_require__(148));
+const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 exports.events = events_1.default;
 const languages_1 = tslib_1.__importDefault(__webpack_require__(315));
 exports.languages = languages_1.default;
@@ -49263,19 +49265,19 @@ const ansiparse_1 = __webpack_require__(350);
 exports.ansiparse = ansiparse_1.ansiparse;
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(227));
 exports.Watchman = watchman_1.default;
-const vscode_uri_1 = __webpack_require__(180);
+const vscode_uri_1 = __webpack_require__(181);
 exports.Uri = vscode_uri_1.URI;
-const neovim_1 = __webpack_require__(4);
+const neovim_1 = __webpack_require__(94);
 exports.Neovim = neovim_1.Neovim;
 exports.Buffer = neovim_1.Buffer;
 exports.Window = neovim_1.Window;
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 exports.Disposable = vscode_languageserver_protocol_1.Disposable;
 exports.Event = vscode_languageserver_protocol_1.Event;
 exports.Emitter = vscode_languageserver_protocol_1.Emitter;
 tslib_1.__exportStar(__webpack_require__(189), exports);
 tslib_1.__exportStar(__webpack_require__(352), exports);
-var util_1 = __webpack_require__(174);
+var util_1 = __webpack_require__(175);
 exports.disposeAll = util_1.disposeAll;
 exports.runCommand = util_1.runCommand;
 exports.isRunning = util_1.isRunning;
@@ -49290,7 +49292,7 @@ exports.executable = util_1.executable;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(316));
 const codeActionmanager_1 = tslib_1.__importDefault(__webpack_require__(327));
@@ -49316,12 +49318,12 @@ const workspaceSymbolsManager_1 = tslib_1.__importDefault(__webpack_require__(34
 const manager_2 = tslib_1.__importDefault(__webpack_require__(233));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(237));
 const types_1 = __webpack_require__(189);
-const util_1 = __webpack_require__(174);
+const util_1 = __webpack_require__(175);
 const complete = tslib_1.__importStar(__webpack_require__(348));
 const position_1 = __webpack_require__(213);
 const string_1 = __webpack_require__(210);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)('languages');
+const logger = __webpack_require__(2)('languages');
 function fixDocumentation(str) {
     return str.replace(/&nbsp;/g, ' ');
 }
@@ -50057,17 +50059,17 @@ exports.default = new Languages();
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const vscode_uri_1 = __webpack_require__(180);
-const events_1 = tslib_1.__importDefault(__webpack_require__(148));
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const vscode_uri_1 = __webpack_require__(181);
+const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(317));
-const util_1 = __webpack_require__(174);
+const util_1 = __webpack_require__(175);
 const position_1 = __webpack_require__(213);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const buffer_1 = __webpack_require__(323);
 const collection_1 = tslib_1.__importDefault(__webpack_require__(326));
 const util_2 = __webpack_require__(325);
-const logger = __webpack_require__(186)('diagnostic-manager');
+const logger = __webpack_require__(2)('diagnostic-manager');
 class DiagnosticManager {
     constructor() {
         this.enabled = true;
@@ -50666,17 +50668,17 @@ exports.default = new DiagnosticManager();
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const events_1 = tslib_1.__importDefault(__webpack_require__(148));
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(233));
-const util_1 = __webpack_require__(174);
+const util_1 = __webpack_require__(175);
 const object_1 = __webpack_require__(190);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(318));
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(176));
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(177));
 const popup_1 = tslib_1.__importDefault(__webpack_require__(322));
 const array_1 = __webpack_require__(212);
-const logger = __webpack_require__(186)('model-float');
+const logger = __webpack_require__(2)('model-float');
 // factory class for floating window
 class FloatFactory {
     constructor(nvim, env, preferTop = false, maxHeight = 999, maxWidth, autoHide = true) {
@@ -50971,7 +50973,7 @@ const highlight_1 = __webpack_require__(319);
 const string_1 = __webpack_require__(210);
 const array_1 = __webpack_require__(212);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)('model-floatBuffer');
+const logger = __webpack_require__(2)('model-floatBuffer');
 class FloatBuffer {
     constructor(nvim, buffer, window) {
         this.nvim = nvim;
@@ -51176,18 +51178,18 @@ exports.default = FloatBuffer;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const neovim_1 = __webpack_require__(4);
-const cp = tslib_1.__importStar(__webpack_require__(175));
-const crypto_1 = __webpack_require__(159);
+const neovim_1 = __webpack_require__(94);
+const cp = tslib_1.__importStar(__webpack_require__(176));
+const crypto_1 = __webpack_require__(160);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 const lodash_1 = __webpack_require__(312);
-const os_1 = tslib_1.__importDefault(__webpack_require__(56));
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
+const os_1 = tslib_1.__importDefault(__webpack_require__(14));
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
 const string_1 = __webpack_require__(210);
 const processes_1 = __webpack_require__(320);
 const uuid = __webpack_require__(321);
-const logger = __webpack_require__(186)('util-highlights');
+const logger = __webpack_require__(2)('util-highlights');
 const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint'];
 const cache = {};
 let env = null;
@@ -51384,8 +51386,8 @@ const tslib_1 = __webpack_require__(3);
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-const cp = tslib_1.__importStar(__webpack_require__(175));
-const path_1 = __webpack_require__(57);
+const cp = tslib_1.__importStar(__webpack_require__(176));
+const path_1 = __webpack_require__(20);
 const isWebpack = typeof __webpack_require__ === "function";
 const isWindows = process.platform === 'win32';
 const isMacintosh = process.platform === 'darwin';
@@ -51538,12 +51540,12 @@ exports.default = createPopup;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const callSequence_1 = tslib_1.__importDefault(__webpack_require__(324));
 const object_1 = __webpack_require__(190);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const util_1 = __webpack_require__(325);
-const logger = __webpack_require__(186)('diagnostic-buffer');
+const logger = __webpack_require__(2)('diagnostic-buffer');
 const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint'];
 // maintains sign and highlightId
 class DiagnosticBuffer {
@@ -51866,7 +51868,7 @@ exports.default = CallSequence;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 function getSeverityName(severity) {
     switch (severity) {
         case vscode_languageserver_protocol_1.DiagnosticSeverity.Error:
@@ -51949,10 +51951,10 @@ exports.getLocationListItem = getLocationListItem;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const vscode_uri_1 = __webpack_require__(180);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const vscode_uri_1 = __webpack_require__(181);
 const position_1 = __webpack_require__(213);
-const logger = __webpack_require__(186)('diagnostic-collection');
+const logger = __webpack_require__(2)('diagnostic-collection');
 class Collection {
     constructor(owner) {
         this.diagnosticsMap = new Map();
@@ -52043,10 +52045,10 @@ exports.default = Collection;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(328));
 const uuid = __webpack_require__(321);
-const logger = __webpack_require__(186)('codeActionManager');
+const logger = __webpack_require__(2)('codeActionManager');
 class CodeActionManager extends manager_1.default {
     register(selector, provider, clientId, codeActionKinds) {
         let item = {
@@ -52117,9 +52119,9 @@ exports.default = CodeActionManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)('provider-manager');
+const logger = __webpack_require__(2)('provider-manager');
 class Manager {
     constructor() {
         this.providers = new Set();
@@ -52197,7 +52199,7 @@ exports.default = Manager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(328));
 const uuid = __webpack_require__(321);
 const lodash_1 = __webpack_require__(312);
@@ -52261,10 +52263,10 @@ exports.default = CodeLensManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(328));
 const uuid = __webpack_require__(321);
-const logger = __webpack_require__(186)('definitionManager');
+const logger = __webpack_require__(2)('definitionManager');
 class DeclarationManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -52299,10 +52301,10 @@ exports.default = DeclarationManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(328));
 const uuid = __webpack_require__(321);
-const logger = __webpack_require__(186)('definitionManager');
+const logger = __webpack_require__(2)('definitionManager');
 class DefinitionManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -52340,7 +52342,7 @@ exports.default = DefinitionManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(328));
 const uuid = __webpack_require__(321);
 class DocumentColorManager extends manager_1.default {
@@ -52387,7 +52389,7 @@ exports.default = DocumentColorManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(328));
 const uuid = __webpack_require__(321);
 class DocumentHighlightManager extends manager_1.default {
@@ -52424,7 +52426,7 @@ exports.default = DocumentHighlightManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(328));
 const uuid = __webpack_require__(321);
 class DocumentLinkManager extends manager_1.default {
@@ -52487,7 +52489,7 @@ exports.default = DocumentLinkManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(328));
 const uuid = __webpack_require__(321);
 class DocumentSymbolManager extends manager_1.default {
@@ -52524,7 +52526,7 @@ exports.default = DocumentSymbolManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(328));
 const uuid = __webpack_require__(321);
 class FoldingRangeManager extends manager_1.default {
@@ -52561,7 +52563,7 @@ exports.default = FoldingRangeManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(328));
 const uuid = __webpack_require__(321);
 class FormatManager extends manager_1.default {
@@ -52599,7 +52601,7 @@ exports.default = FormatManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(328));
 const uuid = __webpack_require__(321);
 class FormatRangeManager extends manager_1.default {
@@ -52637,7 +52639,7 @@ exports.default = FormatRangeManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(328));
 const uuid = __webpack_require__(321);
 class HoverManager extends manager_1.default {
@@ -52680,7 +52682,7 @@ exports.default = HoverManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(328));
 const uuid = __webpack_require__(321);
 class ImplementationManager extends manager_1.default {
@@ -52720,10 +52722,10 @@ exports.default = ImplementationManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const string_1 = __webpack_require__(210);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)('onTypeFormatManager');
+const logger = __webpack_require__(2)('onTypeFormatManager');
 class OnTypeFormatManager {
     constructor() {
         this.providers = new Set();
@@ -52781,7 +52783,7 @@ exports.default = OnTypeFormatManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(328));
 const uuid = __webpack_require__(321);
 class SelectionRangeManager extends manager_1.default {
@@ -52818,7 +52820,7 @@ exports.default = SelectionRangeManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(328));
 const uuid = __webpack_require__(321);
 class ReferenceManager extends manager_1.default {
@@ -52858,7 +52860,7 @@ exports.default = ReferenceManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(328));
 const uuid = __webpack_require__(321);
 class RenameManager extends manager_1.default {
@@ -52908,7 +52910,7 @@ exports.default = RenameManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(328));
 const uuid = __webpack_require__(321);
 class SignatureManager extends manager_1.default {
@@ -52958,7 +52960,7 @@ exports.default = SignatureManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(328));
 const uuid = __webpack_require__(321);
 class TypeDefinitionManager extends manager_1.default {
@@ -52998,7 +53000,7 @@ exports.default = TypeDefinitionManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(328));
 const uuid = __webpack_require__(321);
 class WorkspaceSymbolManager extends manager_1.default {
@@ -53049,10 +53051,10 @@ exports.default = WorkspaceSymbolManager;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_types_1 = __webpack_require__(161);
+const vscode_languageserver_types_1 = __webpack_require__(162);
 const parser_1 = __webpack_require__(234);
 const string_1 = __webpack_require__(210);
-const logger = __webpack_require__(186)('util-complete');
+const logger = __webpack_require__(2)('util-complete');
 function getPosition(opt) {
     let { line, linenr, colnr } = opt;
     let part = string_1.byteSlice(line, 0, colnr - 1);
@@ -53468,16 +53470,16 @@ exports.ansiparse = ansiparse;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const events_1 = __webpack_require__(49);
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
-const net_1 = tslib_1.__importDefault(__webpack_require__(6));
-const os_1 = tslib_1.__importDefault(__webpack_require__(56));
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const events_1 = __webpack_require__(137);
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
+const net_1 = tslib_1.__importDefault(__webpack_require__(96));
+const os_1 = tslib_1.__importDefault(__webpack_require__(14));
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const language_client_1 = __webpack_require__(352);
 const types_1 = __webpack_require__(189);
-const util_1 = __webpack_require__(174);
+const util_1 = __webpack_require__(175);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)('services');
+const logger = __webpack_require__(2)('services');
 function getStateName(state) {
     switch (state) {
         case types_1.ServiceStat.Initial:
@@ -53927,17 +53929,17 @@ const tslib_1 = __webpack_require__(3);
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-const child_process_1 = tslib_1.__importDefault(__webpack_require__(175));
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
-const os_1 = tslib_1.__importDefault(__webpack_require__(56));
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const child_process_1 = tslib_1.__importDefault(__webpack_require__(176));
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
+const os_1 = tslib_1.__importDefault(__webpack_require__(14));
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const types_1 = __webpack_require__(189);
-const util_1 = __webpack_require__(174);
+const util_1 = __webpack_require__(175);
 const Is = tslib_1.__importStar(__webpack_require__(191));
 const processes_1 = __webpack_require__(320);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const which_1 = tslib_1.__importDefault(__webpack_require__(181));
+const which_1 = tslib_1.__importDefault(__webpack_require__(182));
 const client_1 = __webpack_require__(353);
 const colorProvider_1 = __webpack_require__(357);
 const configuration_1 = __webpack_require__(358);
@@ -53947,7 +53949,7 @@ const implementation_1 = __webpack_require__(361);
 const typeDefinition_1 = __webpack_require__(362);
 const workspaceFolders_1 = __webpack_require__(363);
 const string_1 = __webpack_require__(210);
-const logger = __webpack_require__(186)('language-client-index');
+const logger = __webpack_require__(2)('language-client-index');
 tslib_1.__exportStar(__webpack_require__(353), exports);
 var Executable;
 (function (Executable) {
@@ -54398,9 +54400,9 @@ const tslib_1 = __webpack_require__(3);
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 /*tslint:disable*/
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const vscode_uri_1 = __webpack_require__(180);
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const vscode_uri_1 = __webpack_require__(181);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(315));
 const fs_1 = __webpack_require__(200);
@@ -54410,7 +54412,7 @@ const async_1 = __webpack_require__(354);
 const cv = tslib_1.__importStar(__webpack_require__(355));
 const UUID = tslib_1.__importStar(__webpack_require__(356));
 const lodash_1 = __webpack_require__(312);
-const logger = __webpack_require__(186)('language-client-client');
+const logger = __webpack_require__(2)('language-client-client');
 class ConsoleLogger {
     error(message) {
         logger.error(message);
@@ -57030,7 +57032,7 @@ exports.generateUuid = generateUuid;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(315));
 const Is = tslib_1.__importStar(__webpack_require__(191));
 const client_1 = __webpack_require__(353);
@@ -57124,9 +57126,9 @@ const tslib_1 = __webpack_require__(3);
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)('languageclient-configuration');
+const logger = __webpack_require__(2)('languageclient-configuration');
 class ConfigurationFeature {
     constructor(_client) {
         this._client = _client;
@@ -57201,7 +57203,7 @@ const tslib_1 = __webpack_require__(3);
 const Is = tslib_1.__importStar(__webpack_require__(191));
 const UUID = tslib_1.__importStar(__webpack_require__(356));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(315));
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const converter_1 = __webpack_require__(355);
 const client_1 = __webpack_require__(353);
 function ensure(target, key) {
@@ -57277,7 +57279,7 @@ exports.DeclarationFeature = DeclarationFeature;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(315));
 const Is = tslib_1.__importStar(__webpack_require__(191));
 const client_1 = __webpack_require__(353);
@@ -57354,7 +57356,7 @@ const tslib_1 = __webpack_require__(3);
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(315));
 const Is = tslib_1.__importStar(__webpack_require__(191));
 const client_1 = __webpack_require__(353);
@@ -57432,7 +57434,7 @@ const tslib_1 = __webpack_require__(3);
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(315));
 const Is = tslib_1.__importStar(__webpack_require__(191));
 const client_1 = __webpack_require__(353);
@@ -57512,10 +57514,10 @@ exports.TypeDefinitionFeature = TypeDefinitionFeature;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const UUID = tslib_1.__importStar(__webpack_require__(356));
-const logger = __webpack_require__(186)('language-client-workspaceFolder');
+const logger = __webpack_require__(2)('language-client-workspaceFolder');
 function access(target, key) {
     if (target === void 0) {
         return undefined;
@@ -57605,11 +57607,11 @@ exports.WorkspaceFoldersFeature = WorkspaceFoldersFeature;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(176));
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const events_1 = tslib_1.__importDefault(__webpack_require__(148));
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(177));
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(238));
-const util_1 = __webpack_require__(174);
+const util_1 = __webpack_require__(175);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const highligher_1 = tslib_1.__importDefault(__webpack_require__(349));
 const configuration_1 = tslib_1.__importDefault(__webpack_require__(365));
@@ -57631,7 +57633,7 @@ const symbols_1 = tslib_1.__importDefault(__webpack_require__(383));
 const actions_1 = tslib_1.__importDefault(__webpack_require__(385));
 const ui_1 = tslib_1.__importDefault(__webpack_require__(386));
 const worker_1 = tslib_1.__importDefault(__webpack_require__(387));
-const logger = __webpack_require__(186)('list-manager');
+const logger = __webpack_require__(2)('list-manager');
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>'];
 class ListManager {
     constructor() {
@@ -58497,7 +58499,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const fuzzy_1 = __webpack_require__(367);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)('list-history');
+const logger = __webpack_require__(2)('list-history');
 class History {
     constructor(manager) {
         this.manager = manager;
@@ -58648,7 +58650,7 @@ const tslib_1 = __webpack_require__(3);
 __webpack_require__(309);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const configuration_1 = __webpack_require__(365);
-const logger = __webpack_require__(186)('list-mappings');
+const logger = __webpack_require__(2)('list-mappings');
 class Mappings {
     constructor(manager, nvim, config) {
         this.manager = manager;
@@ -59006,9 +59008,9 @@ exports.default = Mappings;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)('list-prompt');
+const logger = __webpack_require__(2)('list-prompt');
 class Prompt {
     constructor(nvim, config) {
         this.nvim = nvim;
@@ -59222,7 +59224,7 @@ exports.default = Prompt;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
-const events_1 = tslib_1.__importDefault(__webpack_require__(148));
+const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(371));
 class CommandsList extends basic_1.default {
@@ -59291,16 +59293,16 @@ function score(list, key) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
-const readline_1 = tslib_1.__importDefault(__webpack_require__(60));
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const vscode_uri_1 = __webpack_require__(180);
-const util_1 = __webpack_require__(174);
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
+const readline_1 = tslib_1.__importDefault(__webpack_require__(145));
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const vscode_uri_1 = __webpack_require__(181);
+const util_1 = __webpack_require__(175);
 const position_1 = __webpack_require__(213);
 const string_1 = __webpack_require__(210);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const configuration_1 = tslib_1.__importDefault(__webpack_require__(365));
-const logger = __webpack_require__(186)('list-basic');
+const logger = __webpack_require__(2)('list-basic');
 class BasicList {
     constructor(nvim) {
         this.nvim = nvim;
@@ -59621,11 +59623,11 @@ exports.default = BasicList;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(316));
 const location_1 = tslib_1.__importDefault(__webpack_require__(373));
 const fs_1 = __webpack_require__(200);
-const logger = __webpack_require__(186)('list-symbols');
+const logger = __webpack_require__(2)('list-symbols');
 class DiagnosticsList extends location_1.default {
     constructor() {
         super(...arguments);
@@ -59673,13 +59675,13 @@ exports.default = DiagnosticsList;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_types_1 = __webpack_require__(161);
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
+const vscode_languageserver_types_1 = __webpack_require__(162);
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(371));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const vscode_uri_1 = __webpack_require__(180);
+const vscode_uri_1 = __webpack_require__(181);
 const fs_1 = __webpack_require__(200);
-const logger = __webpack_require__(186)('list-location');
+const logger = __webpack_require__(2)('list-location');
 class LocationList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -59752,14 +59754,14 @@ exports.default = LocationList;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const os_1 = tslib_1.__importDefault(__webpack_require__(56));
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
+const os_1 = tslib_1.__importDefault(__webpack_require__(14));
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(238));
-const util_1 = __webpack_require__(174);
+const util_1 = __webpack_require__(175);
 const fs_1 = __webpack_require__(200);
 const basic_1 = tslib_1.__importDefault(__webpack_require__(371));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)('list-extensions');
+const logger = __webpack_require__(2)('list-extensions');
 class ExtensionList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -59906,9 +59908,9 @@ const tslib_1 = __webpack_require__(3);
 const fs_1 = __webpack_require__(200);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(371));
-const vscode_uri_1 = __webpack_require__(180);
-const util_1 = __webpack_require__(174);
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
+const vscode_uri_1 = __webpack_require__(181);
+const util_1 = __webpack_require__(175);
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 class FoldList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -59961,10 +59963,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(315));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(371));
-const vscode_languageserver_types_1 = __webpack_require__(161);
-const vscode_uri_1 = __webpack_require__(180);
+const vscode_languageserver_types_1 = __webpack_require__(162);
+const vscode_uri_1 = __webpack_require__(181);
 const fs_1 = __webpack_require__(200);
 class LinksList extends basic_1.default {
     constructor(nvim) {
@@ -60103,16 +60105,17 @@ function score(list, key) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
-const vscode_languageserver_types_1 = __webpack_require__(161);
-const vscode_uri_1 = __webpack_require__(180);
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
+const vscode_languageserver_types_1 = __webpack_require__(162);
+const vscode_uri_1 = __webpack_require__(181);
+const which_1 = tslib_1.__importDefault(__webpack_require__(182));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(315));
-const util_1 = __webpack_require__(174);
+const util_1 = __webpack_require__(175);
 const fs_1 = __webpack_require__(200);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const location_1 = tslib_1.__importDefault(__webpack_require__(373));
 const convert_1 = __webpack_require__(379);
-const logger = __webpack_require__(186)('list-symbols');
+const logger = __webpack_require__(2)('list-symbols');
 class Outline extends location_1.default {
     constructor() {
         super(...arguments);
@@ -60191,6 +60194,9 @@ class Outline extends location_1.default {
         });
     }
     async loadCtagsSymbols(document) {
+        if (!which_1.default.sync('ctags', { nothrow: true })) {
+            return [];
+        }
         let uri = vscode_uri_1.URI.parse(document.uri);
         let extname = path_1.default.extname(uri.fsPath);
         let content = '';
@@ -60254,7 +60260,7 @@ function sortSymbols(a, b) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 function getSymbolKind(kind) {
     switch (kind) {
         case vscode_languageserver_protocol_1.SymbolKind.File:
@@ -60356,7 +60362,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const services_1 = tslib_1.__importDefault(__webpack_require__(351));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(371));
-const util_1 = __webpack_require__(174);
+const util_1 = __webpack_require__(175);
 class ServicesList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -60409,8 +60415,8 @@ exports.default = ServicesList;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_types_1 = __webpack_require__(161);
-const vscode_uri_1 = __webpack_require__(180);
+const vscode_languageserver_types_1 = __webpack_require__(162);
+const vscode_uri_1 = __webpack_require__(181);
 const sources_1 = tslib_1.__importDefault(__webpack_require__(237));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(371));
 class SourcesList extends basic_1.default {
@@ -60480,15 +60486,15 @@ exports.default = SourcesList;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
-const vscode_uri_1 = __webpack_require__(180);
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
+const vscode_uri_1 = __webpack_require__(181);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(315));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const location_1 = tslib_1.__importDefault(__webpack_require__(373));
 const convert_1 = __webpack_require__(379);
 const fs_1 = __webpack_require__(200);
 const fzy_1 = __webpack_require__(384);
-const logger = __webpack_require__(186)('list-symbols');
+const logger = __webpack_require__(2)('list-symbols');
 class Symbols extends location_1.default {
     constructor() {
         super(...arguments);
@@ -60749,14 +60755,14 @@ exports.hasMatch = hasMatch;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(316));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(315));
 const services_1 = tslib_1.__importDefault(__webpack_require__(351));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(371));
-const logger = __webpack_require__(186)('list-actions');
+const logger = __webpack_require__(2)('list-actions');
 class ActionsList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -60879,12 +60885,12 @@ exports.default = ActionsList;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const events_1 = tslib_1.__importDefault(__webpack_require__(148));
-const util_1 = __webpack_require__(174);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const events_1 = tslib_1.__importDefault(__webpack_require__(149));
+const util_1 = __webpack_require__(175);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const debounce = __webpack_require__(176);
-const logger = __webpack_require__(186)('list-ui');
+const debounce = __webpack_require__(177);
+const logger = __webpack_require__(2)('list-ui');
 class ListUI {
     constructor(nvim, config) {
         this.nvim = nvim;
@@ -61356,8 +61362,8 @@ exports.default = ListUI;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const vscode_uri_1 = __webpack_require__(180);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const vscode_uri_1 = __webpack_require__(181);
 const ansiparse_1 = __webpack_require__(350);
 const diff_1 = __webpack_require__(208);
 const fzy_1 = __webpack_require__(384);
@@ -61365,7 +61371,7 @@ const score_1 = __webpack_require__(388);
 const string_1 = __webpack_require__(210);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-const logger = __webpack_require__(186)('list-worker');
+const logger = __webpack_require__(2)('list-worker');
 const controlCode = '\x1b';
 // perform loading task
 class Worker {
@@ -61789,7 +61795,7 @@ function getItemUri(item) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const path_1 = __webpack_require__(57);
+const path_1 = __webpack_require__(20);
 const fuzzy_1 = __webpack_require__(367);
 // first is start or path start +1, fuzzy +0.5
 // next is followed of path start +1, fuzzy +0.5
@@ -61944,7 +61950,7 @@ const tslib_1 = __webpack_require__(3);
 const types_1 = __webpack_require__(189);
 const string_1 = __webpack_require__(210);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)('model-source');
+const logger = __webpack_require__(2)('model-source');
 class Source {
     constructor(option) {
         this._disabled = false;
@@ -62112,7 +62118,7 @@ const fuzzy_1 = __webpack_require__(367);
 const string_1 = __webpack_require__(210);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const source_1 = tslib_1.__importDefault(__webpack_require__(389));
-const logger = __webpack_require__(186)('model-source-vim');
+const logger = __webpack_require__(2)('model-source-vim');
 class VimSource extends source_1.default {
     async callOptinalFunc(fname, args) {
         let exists = this.optionalFns.indexOf(fname) !== -1;
@@ -62220,10 +62226,10 @@ exports.default = VimSource;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const source_1 = tslib_1.__importDefault(__webpack_require__(389));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)('source-around');
+const logger = __webpack_require__(2)('source-around');
 class Around extends source_1.default {
     constructor() {
         super({
@@ -62270,10 +62276,10 @@ exports.regist = regist;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const source_1 = tslib_1.__importDefault(__webpack_require__(389));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)('source-buffer');
+const logger = __webpack_require__(2)('source-buffer');
 class Buffer extends source_1.default {
     constructor() {
         super({
@@ -62334,17 +62340,17 @@ exports.regist = regist;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
 const minimatch_1 = tslib_1.__importDefault(__webpack_require__(201));
-const os_1 = tslib_1.__importDefault(__webpack_require__(56));
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
-const util_1 = tslib_1.__importDefault(__webpack_require__(40));
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const os_1 = tslib_1.__importDefault(__webpack_require__(14));
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
+const util_1 = tslib_1.__importDefault(__webpack_require__(12));
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const source_1 = tslib_1.__importDefault(__webpack_require__(389));
 const fs_2 = __webpack_require__(200);
 const string_1 = __webpack_require__(210);
-const logger = __webpack_require__(186)('source-file');
-const pathRe = /(?:\.{0,2}|~|([\w]+)|)\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/;
+const logger = __webpack_require__(2)('source-file');
+const pathRe = /(?:\.{0,2}|~|\$HOME|([\w]+)|)\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/;
 class File extends source_1.default {
     constructor() {
         super({
@@ -62362,6 +62368,9 @@ class File extends source_1.default {
             let pathstr = ms[0];
             if (pathstr.startsWith('~')) {
                 pathstr = os_1.default.homedir() + pathstr.slice(1);
+            }
+            if (pathstr.startsWith('$HOME')) {
+                pathstr = os_1.default.homedir() + pathstr.slice(5);
             }
             let input = ms[0].match(/[^/]*$/)[0];
             return { pathstr, part: ms[1], startcol: colnr - input.length - 1, input };
@@ -62479,11 +62488,11 @@ exports.regist = regist;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const fuzzy_1 = __webpack_require__(367);
 const string_1 = __webpack_require__(210);
 const match_1 = __webpack_require__(395);
-const logger = __webpack_require__(186)('completion-complete');
+const logger = __webpack_require__(2)('completion-complete');
 // first time completion
 const FIRST_TIMEOUT = 500;
 class Complete {
@@ -63021,7 +63030,7 @@ const tslib_1 = __webpack_require__(3);
 const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(318));
 const popup_1 = tslib_1.__importDefault(__webpack_require__(322));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)('floating');
+const logger = __webpack_require__(2)('floating');
 class Floating {
     constructor() {
         let configuration = workspace_1.default.getConfiguration('suggest');
@@ -63214,11 +63223,11 @@ exports.default = Floating;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const position_1 = __webpack_require__(213);
 const Snippets = tslib_1.__importStar(__webpack_require__(234));
 const string_1 = __webpack_require__(210);
-const logger = __webpack_require__(186)('snippets-snipet');
+const logger = __webpack_require__(2)('snippets-snipet');
 class CocSnippet {
     constructor(_snippetString, position, _variableResolver) {
         this._snippetString = _snippetString;
@@ -63398,10 +63407,10 @@ exports.CocSnippet = CocSnippet;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const path = tslib_1.__importStar(__webpack_require__(57));
+const path = tslib_1.__importStar(__webpack_require__(20));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const vscode_uri_1 = __webpack_require__(180);
-const logger = __webpack_require__(186)('snippets-variable');
+const vscode_uri_1 = __webpack_require__(181);
+const logger = __webpack_require__(2)('snippets-variable');
 class SnippetVariableResolver {
     constructor() {
         this._variableToValue = {};
@@ -63465,16 +63474,16 @@ exports.SnippetVariableResolver = SnippetVariableResolver;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(316));
-const events_1 = tslib_1.__importDefault(__webpack_require__(148));
+const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(315));
 const manager_2 = tslib_1.__importDefault(__webpack_require__(364));
 const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(317));
 const services_1 = tslib_1.__importDefault(__webpack_require__(351));
 const manager_3 = tslib_1.__importDefault(__webpack_require__(233));
-const util_1 = __webpack_require__(174);
+const util_1 = __webpack_require__(175);
 const convert_1 = __webpack_require__(379);
 const object_1 = __webpack_require__(190);
 const position_1 = __webpack_require__(213);
@@ -63485,8 +63494,8 @@ const colors_1 = tslib_1.__importDefault(__webpack_require__(401));
 const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(403));
 const refactor_1 = tslib_1.__importDefault(__webpack_require__(404));
 const search_1 = tslib_1.__importDefault(__webpack_require__(405));
-const debounce = __webpack_require__(176);
-const logger = __webpack_require__(186)('Handler');
+const debounce = __webpack_require__(177);
+const logger = __webpack_require__(2)('Handler');
 const pairs = new Map([
     ['<', '>'],
     ['>', '<'],
@@ -64246,11 +64255,11 @@ class Handler {
             doc.forceSync();
             await util_1.wait(50);
         }
-        let pos = insertLeave ? { line: position.line + 1, character: 0 } : position;
+        let pos = insertLeave ? { line: position.line, character: origLine.length } : position;
         try {
             let edits = await languages_1.default.provideDocumentOnTypeEdits(ch, doc.textDocument, pos);
             // changed by other process
-            if (doc.changedtick != changedtick)
+            if (doc.changedtick != changedtick || edits == null)
                 return;
             if (insertLeave) {
                 edits = edits.filter(edit => {
@@ -64764,14 +64773,14 @@ function isDocumentSymbols(a) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(176));
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(177));
 const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
-const events_1 = tslib_1.__importDefault(__webpack_require__(148));
+const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(315));
 const services_1 = tslib_1.__importDefault(__webpack_require__(351));
-const util_1 = __webpack_require__(174);
+const util_1 = __webpack_require__(175);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)('codelens');
+const logger = __webpack_require__(2)('codelens');
 class CodeLensManager {
     constructor(nvim) {
         this.nvim = nvim;
@@ -65028,15 +65037,15 @@ exports.default = CodeLensManager;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(176));
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const events_1 = tslib_1.__importDefault(__webpack_require__(148));
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(177));
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(315));
-const util_1 = __webpack_require__(174);
+const util_1 = __webpack_require__(175);
 const object_1 = __webpack_require__(190);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const highlighter_1 = tslib_1.__importStar(__webpack_require__(402));
-const logger = __webpack_require__(186)('colors');
+const logger = __webpack_require__(2)('colors');
 class Colors {
     constructor(nvim) {
         this.nvim = nvim;
@@ -65241,7 +65250,7 @@ const array_1 = __webpack_require__(212);
 const object_1 = __webpack_require__(190);
 const position_1 = __webpack_require__(213);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)('highlighter');
+const logger = __webpack_require__(2)('highlighter');
 const usedColors = new Set();
 class Highlighter {
     constructor(nvim, document, srcId) {
@@ -65385,12 +65394,12 @@ function isDark(color) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const events_1 = tslib_1.__importDefault(__webpack_require__(148));
+const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(315));
-const vscode_languageserver_protocol_1 = __webpack_require__(149);
-const util_1 = __webpack_require__(174);
-const logger = __webpack_require__(186)('documentHighlight');
+const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const util_1 = __webpack_require__(175);
+const logger = __webpack_require__(2)('documentHighlight');
 class DocumentHighlighter {
     constructor(nvim, colors) {
         this.nvim = nvim;
@@ -65487,17 +65496,17 @@ exports.default = DocumentHighlighter;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(209));
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
-const vscode_languageserver_types_1 = __webpack_require__(161);
-const vscode_uri_1 = __webpack_require__(180);
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
+const vscode_languageserver_types_1 = __webpack_require__(162);
+const vscode_uri_1 = __webpack_require__(181);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
 const highligher_1 = tslib_1.__importDefault(__webpack_require__(349));
-const util_1 = __webpack_require__(174);
+const util_1 = __webpack_require__(175);
 const fs_1 = __webpack_require__(200);
 const object_1 = __webpack_require__(190);
 const string_1 = __webpack_require__(210);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)('refactor');
+const logger = __webpack_require__(2)('refactor');
 // cases: buffer change event
 const name = '__coc_refactor__';
 const separator = '\u3000';
@@ -66161,16 +66170,16 @@ function emptyWorkspaceEdit(edit) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const await_semaphore_1 = __webpack_require__(406);
-const child_process_1 = __webpack_require__(175);
-const events_1 = __webpack_require__(49);
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
-const readline_1 = tslib_1.__importDefault(__webpack_require__(60));
-const vscode_languageserver_types_1 = __webpack_require__(161);
-const which_1 = tslib_1.__importDefault(__webpack_require__(181));
+const child_process_1 = __webpack_require__(176);
+const events_1 = __webpack_require__(137);
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
+const readline_1 = tslib_1.__importDefault(__webpack_require__(145));
+const vscode_languageserver_types_1 = __webpack_require__(162);
+const which_1 = tslib_1.__importDefault(__webpack_require__(182));
 const highligher_1 = tslib_1.__importDefault(__webpack_require__(349));
 const ansiparse_1 = __webpack_require__(350);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
-const logger = __webpack_require__(186)('handler-search');
+const logger = __webpack_require__(2)('handler-search');
 const defaultArgs = ['--color', 'ansi', '--colors', 'path:fg:black', '--colors', 'line:fg:green', '--colors', 'match:fg:red', '--no-messages', '--heading', '-n'];
 const controlCode = '\x1b';
 // emit FileItem
@@ -66430,15 +66439,15 @@ exports.Mutex = Mutex;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(209));
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(176));
-const vscode_languageserver_types_1 = __webpack_require__(161);
-const events_1 = tslib_1.__importDefault(__webpack_require__(148));
-const util_1 = __webpack_require__(174);
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(177));
+const vscode_languageserver_types_1 = __webpack_require__(162);
+const events_1 = tslib_1.__importDefault(__webpack_require__(149));
+const util_1 = __webpack_require__(175);
 const array_1 = __webpack_require__(212);
 const position_1 = __webpack_require__(213);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(187));
 const range_1 = tslib_1.__importDefault(__webpack_require__(408));
-const logger = __webpack_require__(186)('cursors');
+const logger = __webpack_require__(2)('cursors');
 class Cursors {
     constructor(nvim) {
         this.nvim = nvim;
@@ -67067,8 +67076,8 @@ function equalEdit(one, two) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_types_1 = __webpack_require__(161);
-const logger = __webpack_require__(186)('cursors-range');
+const vscode_languageserver_types_1 = __webpack_require__(162);
+const logger = __webpack_require__(2)('cursors-range');
 // edit range
 class TextRange {
     constructor(line, start, end, text, 
@@ -67135,11 +67144,11 @@ exports.default = TextRange;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const path_1 = tslib_1.__importDefault(__webpack_require__(57));
-const fs_1 = tslib_1.__importDefault(__webpack_require__(55));
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
+const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
 const glob_1 = tslib_1.__importDefault(__webpack_require__(240));
-const os_1 = __webpack_require__(56);
-const util_1 = tslib_1.__importDefault(__webpack_require__(40));
+const os_1 = __webpack_require__(14);
+const util_1 = tslib_1.__importDefault(__webpack_require__(12));
 const fs_2 = __webpack_require__(200);
 async function default_1() {
     if (global.hasOwnProperty('__TEST__'))
