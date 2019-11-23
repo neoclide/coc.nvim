@@ -5,12 +5,14 @@ if (!semver.gte(version, '8.10.0')) {
   process.exit()
 }
 Object.defineProperty(console, 'log', {
-  value: () => { }
+  value: function () {
+    logger.info(...arguments)
+  }
 })
-const attach = require('../lib/attach').default
 const logger = require('../lib/util/logger')('server')
+const attach = require('../lib/attach').default
 
-attach({ reader: process.stdin, writer: process.stdout })
+attach({reader: process.stdin, writer: process.stdout})
 
 process.on('uncaughtException', function (err) {
   let msg = 'Uncaught exception: ' + err.stack
