@@ -178,9 +178,13 @@ export class ServiceManager extends EventEmitter implements Disposable {
       let config: LanguageServerConfig = lspConfig[key]
       let id = `${base}.${key}`
       if (config.enable === false || this.hasService(id)) continue
-      let opts = getLanguageServerOptions(id, key, config)
-      if (!opts) continue
-      let client = new LanguageClient(id, key, opts[1], opts[0])
+      let lazy_opts = () => {
+        // re-read configuration
+        let lspConfig_ = workspace.getConfiguration().get<{ string: LanguageServerConfig }>(base, {} as any)
+        return getLanguageServerOptions(id, key, lspConfig_[key])
+      }
+      if (!lazy_opts()) continue
+      let client = new LanguageClient(id, key, { deferredOptions: lazy_opts })
       this.registLanguageClient(client)
     }
   }

@@ -146,11 +146,15 @@ export type ServerOptions =
   | NodeModule
   | (() => Thenable<ChildProcess | StreamInfo | MessageTransports | ChildProcessInfo>)
 
+export interface DeferredLanguageClientServerOptions {
+  deferredOptions: () => [LanguageClientOptions, ServerOptions]
+}
+
 export class LanguageClient extends BaseLanguageClient {
-  private _serverOptions: ServerOptions
   private _forceDebug: boolean
   private _serverProcess: ChildProcess | undefined
   private _isDetached: boolean | undefined
+  private _options: () => [LanguageClientOptions, ServerOptions]
 
   public constructor(
     name: string,
@@ -166,35 +170,46 @@ export class LanguageClient extends BaseLanguageClient {
     forceDebug?: boolean
   )
   public constructor(
+    id: string,
+    name: string,
+    options: DeferredLanguageClientServerOptions,
+    forceDebug?: boolean
+  )
+  public constructor(
     arg1: string,
-    arg2: ServerOptions | string,
-    arg3: LanguageClientOptions | ServerOptions,
+    arg2: string | ServerOptions,
+    arg3: DeferredLanguageClientServerOptions | boolean | ServerOptions | LanguageClientOptions,
     arg4?: boolean | LanguageClientOptions,
     arg5?: boolean
   ) {
     let id: string
     let name: string
-    let serverOptions: ServerOptions
-    let clientOptions: LanguageClientOptions
+    let options: () => [LanguageClientOptions, ServerOptions]
     let forceDebug: boolean
     if (Is.string(arg2)) {
       id = arg1
       name = arg2
-      serverOptions = arg3 as ServerOptions
-      clientOptions = arg4 as LanguageClientOptions
-      forceDebug = !!arg5
+      if ((arg3 as DeferredLanguageClientServerOptions).deferredOptions) {
+        // 3rd signature
+        options = (arg3 as DeferredLanguageClientServerOptions).deferredOptions
+        forceDebug = !!arg4
+      }else {
+        // 2nd signature
+        options = () => [arg4 as LanguageClientOptions, arg3 as ServerOptions]
+        forceDebug = !!arg5
+      }
     } else {
+      // first signature
       id = arg1.toLowerCase()
       name = arg1
-      serverOptions = arg2 as ServerOptions
-      clientOptions = arg3 as LanguageClientOptions
+      options = () => [arg3 as LanguageClientOptions, arg2 as ServerOptions]
       forceDebug = arg4 as boolean
     }
     if (forceDebug === void 0) {
       forceDebug = false
     }
-    super(id, name, clientOptions)
-    this._serverOptions = serverOptions
+    super(id, name, () => options()[0])
+    this._options = options
     this._forceDebug = forceDebug
     this.registerProposedFeatures()
   }
@@ -290,7 +305,8 @@ export class LanguageClient extends BaseLanguageClient {
       return false
     }
 
-    let server = this._serverOptions
+    let server = this._options()[1]
+    logger.debug(`createMessageTransports: server id = ${this.id}, option = ${JSON.stringify(server)}`)
     // We got a function.
     if (Is.func(server)) {
       let result = await Promise.resolve(server())
