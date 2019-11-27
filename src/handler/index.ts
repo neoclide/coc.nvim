@@ -691,6 +691,13 @@ export default class Handler {
     await this.documentHighlighter.highlight(bufnr)
   }
 
+  public async getSymbolsRanges(): Promise<Range[]> {
+    let document = await workspace.document
+    let highlights = await this.documentHighlighter.getHighlights(document)
+    if (!highlights) return null
+    return highlights.map(o => o.range)
+  }
+
   public async links(): Promise<DocumentLink[]> {
     let doc = await workspace.document
     let links = await languages.getDocumentLinks(doc.textDocument)
@@ -800,11 +807,11 @@ export default class Handler {
       doc.forceSync()
       await wait(50)
     }
-    let pos: Position = insertLeave ? { line: position.line + 1, character: 0 } : position
+    let pos: Position = insertLeave ? { line: position.line, character: origLine.length } : position
     try {
       let edits = await languages.provideDocumentOnTypeEdits(ch, doc.textDocument, pos)
       // changed by other process
-      if (doc.changedtick != changedtick) return
+      if (doc.changedtick != changedtick || edits == null) return
       if (insertLeave) {
         edits = edits.filter(edit => {
           return edit.range.start.line < position.line + 1

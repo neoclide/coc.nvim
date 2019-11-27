@@ -394,7 +394,11 @@ export class Extensions {
       }
       let jsonFile = path.join(this.root, 'package.json')
       status.dispose()
-      fs.writeFileSync(jsonFile, JSON.stringify(json, null, 2), { encoding: 'utf8' })
+      const sortedObj = { dependencies: {} }
+      Object.keys(json.dependencies).sort().forEach(k => {
+          sortedObj.dependencies[k] = json.dependencies[k]
+      })
+      fs.writeFileSync(jsonFile, JSON.stringify(sortedObj, null, 2), { encoding: 'utf8' })
       workspace.showMessage(`Removed: ${ids.join(' ')}`)
     } catch (e) {
       status.dispose()
@@ -503,7 +507,7 @@ export class Extensions {
         this._onDidActiveExtension.fire(extension)
       }
     }, e => {
-      workspace.showMessage(`Error on activate ${extension.id}: ${e.message}`, 'error')
+      workspace.showMessage(`Error on activate ${extension.id}: ${e.stack}`, 'error')
       logger.error(`Error on activate extension ${extension.id}:`, e)
     })
   }
@@ -772,7 +776,7 @@ export class Extensions {
           exports = await Promise.resolve(ext.activate(context))
         } catch (e) {
           isActive = false
-          workspace.showMessage(`Error on active extension ${id}: ${e}`, 'error')
+          workspace.showMessage(`Error on active extension ${id}: ${e.stack}`, 'error')
           logger.error(e)
         }
         return exports as API

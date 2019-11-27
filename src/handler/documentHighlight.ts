@@ -68,7 +68,7 @@ export default class DocumentHighlighter {
     await this.nvim.resumeNotification(false, true)
   }
 
-  private async getHighlights(document: Document | null): Promise<DocumentHighlight[]> {
+  public async getHighlights(document: Document | null): Promise<DocumentHighlight[]> {
     if (!document) return null
     let ts = Date.now()
     let { bufnr } = document

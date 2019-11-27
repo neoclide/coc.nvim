@@ -271,6 +271,31 @@ export class DiagnosticManager implements Disposable {
   }
 
   /**
+   * Show diagnostics under curosr in preview window
+   */
+  public async preview(): Promise<void> {
+    let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number]]
+    let { nvim } = this
+    let diagnostics = await this.getDiagnosticsAt(bufnr, cursor)
+    if (diagnostics.length == 0) {
+      nvim.command('pclose', true)
+      workspace.showMessage(`Empty diagnostics`, 'warning')
+      return
+    }
+    let lines: string[] = []
+    for (let diagnostic of diagnostics) {
+      let { source, code, severity, message } = diagnostic
+      let s = getSeverityName(severity)[0]
+      lines.push(`[${source}${code ? ' ' + code : ''}] [${s}]`)
+      lines.push(...message.split(/\r?\n/))
+      lines.push('')
+    }
+    lines = lines.slice(0, -1)
+    // let content = lines.join('\n').trim()
+    nvim.call('coc#util#preview_info', [lines, 'txt'], true)
+  }
+
+  /**
    * Jump to previouse diagnostic position
    */
   public async jumpPrevious(severity?: string): Promise<void> {
@@ -287,11 +312,11 @@ export class DiagnosticManager implements Disposable {
     let { textDocument } = document
     for (let i = ranges.length - 1; i >= 0; i--) {
       if (textDocument.offsetAt(ranges[i].end) < offset) {
-        await this.jumpTo(ranges[i])
+        await workspace.moveTo(ranges[i].start)
         return
       }
     }
-    await this.jumpTo(ranges[ranges.length - 1])
+    await workspace.moveTo(ranges[ranges.length - 1].start)
   }
 
   /**
@@ -309,11 +334,11 @@ export class DiagnosticManager implements Disposable {
     let { textDocument } = document
     for (let i = 0; i <= ranges.length - 1; i++) {
       if (textDocument.offsetAt(ranges[i].start) > offset) {
-        await this.jumpTo(ranges[i])
+        await workspace.moveTo(ranges[i].start)
         return
       }
     }
-    await this.jumpTo(ranges[0])
+    await workspace.moveTo(ranges[0].start)
   }
 
   /**
@@ -587,13 +612,6 @@ export class DiagnosticManager implements Disposable {
       nvim.resumeNotification(false, true).logError()
     }
     return false
-  }
-
-  private async jumpTo(range: Range): Promise<void> {
-    if (!range) return
-    let { start } = range
-    await this.nvim.call('cursor', [start.line + 1, start.character + 1])
-    await this.echoMessage()
   }
 }
 

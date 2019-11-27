@@ -338,6 +338,9 @@ export default class Plugin extends EventEmitter {
         case 'diagnosticPrevious':
           await diagnosticManager.jumpPrevious(args[1])
           break
+        case 'diagnosticPreview':
+          await diagnosticManager.preview()
+          break
         case 'diagnosticList':
           return diagnosticManager.getDiagnosticList()
         case 'jumpDefinition':
@@ -356,6 +359,8 @@ export default class Plugin extends EventEmitter {
           return await handler.showSignatureHelp()
         case 'documentSymbols':
           return await handler.getDocumentSymbols()
+        case 'symbolRanges':
+          return await handler.getSymbolsRanges()
         case 'selectionRanges':
           return await handler.getSelectionRanges()
         case 'rangeSelect':

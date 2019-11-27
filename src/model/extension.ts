@@ -114,7 +114,11 @@ export default class ExtensionManager {
     } else {
       obj.dependencies[info.name] = '>=' + info.version
     }
-    fs.writeFileSync(jsonFile, JSON.stringify(obj, null, 2), { encoding: 'utf8' })
+    const sortedObj = { dependencies: {} }
+    Object.keys(obj.dependencies).sort().forEach(k => {
+      sortedObj.dependencies[k] = obj.dependencies[k]
+    })
+    fs.writeFileSync(jsonFile, JSON.stringify(sortedObj, null, 2), { encoding: 'utf8' })
     onMessage(`Moving to new folder.`)
     let folder = path.join(this.root, 'node_modules', info.name)
     await this.removeFolder(folder)

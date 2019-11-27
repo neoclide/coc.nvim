@@ -129,9 +129,7 @@ export default class Document {
     this._changedtick = opts.changedtick
     this.eol = opts.eol == 1
     let uri = this._uri = getUri(opts.fullpath, buffer.id, buftype, this.env.isCygwin)
-    token.onCancellationRequested(() => {
-      this.detach()
-    })
+    if (token.isCancellationRequested) return false
     try {
       if (!this.env.isVim) {
         let res = await this.attach()
@@ -148,7 +146,10 @@ export default class Document {
     this.textDocument = TextDocument.create(uri, this.filetype, 1, this.getDocumentContent())
     this.setIskeyword(opts.iskeyword)
     this.gitCheck()
-    if (token.isCancellationRequested) return false
+    if (token.isCancellationRequested) {
+      this.detach()
+      return false
+    }
     return true
   }
 

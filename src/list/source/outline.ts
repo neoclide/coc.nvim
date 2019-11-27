@@ -1,6 +1,7 @@
 import path from 'path'
 import { DocumentSymbol, Location, Range, SymbolInformation } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import which from 'which'
 import languages from '../../languages'
 import Document from '../../model/document'
 import { ListContext, ListItem } from '../../types'
@@ -84,6 +85,9 @@ export default class Outline extends LocationList {
   }
 
   public async loadCtagsSymbols(document: Document): Promise<ListItem[]> {
+    if (!which.sync('ctags', { nothrow: true })) {
+      return []
+    }
     let uri = URI.parse(document.uri)
     let extname = path.extname(uri.fsPath)
     let content = ''

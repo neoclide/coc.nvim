@@ -4,7 +4,7 @@ about: Create a report to help us improve
 ---
 
 <!--
-**Warning:  I will close the bug issue without the issue template and the reproduce ways.**
+**Warning: We will close the bug issue without the issue template and the reproduce ways.**
 
 If you have question, please ask at https://gitter.im/neoclide/coc.nvim
 
@@ -23,8 +23,8 @@ A clear and concise description of what the bug is.
 
 ## Reproduce the bug
 
-**Note**, if you can't provide minimal vimrc that could reproduce the issue,
-it's most likely we can't do anything to help.
+**We will close your issue when you don't provide minimal vimrc and we can't
+reproduce it**
 
 - Create file `mini.vim` with：
 
