@@ -146,6 +146,7 @@ export default class Handler {
         let line = (await nvim.call('line', '.') as number) - 1
         let doc = workspace.getDocument(bufnr)
         if (!doc) return
+        await doc.checkDocument()
         let pre = doc.getline(line - 1)
         let curr = doc.getline(line)
         let prevChar = pre[pre.length - 1]
