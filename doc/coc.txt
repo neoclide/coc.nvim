@@ -2127,6 +2127,7 @@ The mapping expression should be `command:arguments`, available commands:
 	'stop' - stop loading task.
 	'cancel' - cancel list session but leave list window open.
 	'toggle' - toggle selection of current item.
+	'toggleMode' - toggle between insert and normal mode.
 	'previous' - move cursor to previous item.
 	'next' - move cursor to next item.
 	'defaultaction' - execute default action.

@@ -1418,6 +1418,7 @@ s           - 执行 'split' 操作.
 	'stop' - 停止加载任务
 	'cancel' - 取消列表同时保留窗口
 	'toggle' - 切换当前项选中状态
+	'toggleMode' - 在插入和正常模式之间切换
 	'previous' - 移动到前一个项目
 	'next' - 移动到后一个项目
 	'defaultaction' - 执行默认操作
