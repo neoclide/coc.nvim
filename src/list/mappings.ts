@@ -283,6 +283,8 @@ export default class Mappings {
         case 'defaultaction':
           await manager.doAction()
           return
+        case 'toggleMode':
+          return manager.toggleMode()
         default:
           await this.onError(`'${action}' not supported`)
       }
