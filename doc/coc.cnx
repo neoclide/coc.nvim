@@ -146,6 +146,18 @@ coc.nvim 使用 coc-settings.json 文件进行配置，该文件格式与工作�
 
 定制补全体验
 
+使用 <tab> 触发补全: >
+
+    function! s:check_back_space() abort
+      let col = col('.') - 1
+      return !col || getline('.')[col - 1]  =~ '\s'
+    endfunction
+
+    inoremap <silent><expr> <TAB>
+		  \ pumvisible() ? "\<C-n>" :
+		  \ <SID>check_back_space() ? "\<TAB>" :
+		  \ coc#refresh()
+
 使用 <c-space> 强制触发补全: >
 
 	inoremap <silent><expr> <c-space> coc#refresh()
@@ -153,6 +165,11 @@ coc.nvim 使用 coc-settings.json 文件进行配置，该文件格式与工作�
 使用 `<cr>` 确认补全： >
 
 	inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<CR>"
+<
+使用 <CR> 确认补全，并触发 coc.nvim 的 `formatOnType` 功能: >
+
+	inoremap <silent><expr> <cr> pumvisible() ? coc#_select_confirm()
+				\: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 <
 注意: `snippet` 和 `additionalTextEdit` 特性只有在确认补全后才会生效。
 
@@ -177,12 +194,20 @@ coc 不会向 vim 添加自己的快捷键，你需要手工配置来满足需�
 			显示当前位置下的错误信息，没有截断。
 
 <Plug>(coc-diagnostic-next) 			*n_coc-diagnostic-next*
-			
+
 			跳转到下一个错误处。
 
 <Plug>(coc-diagnostic-prev) 			*n_coc-diagnostic-prev*
-			
+
 			跳转到上一个错误处。
+
+<Plug>(coc-diagnostic-next-error) 		*n_coc-diagnostic-next-error*
+
+			跳转到下一个错误处.
+
+<Plug>(coc-diagnostic-prev-error) 		*n_coc-diagnostic-prev-error*
+
+			跳转到上一个错误处.
 
 <Plug>(coc-definition) 				*n_coc-definition*
 
@@ -247,7 +272,7 @@ coc 不会向 vim 添加自己的快捷键，你需要手工配置来满足需�
 
 			执行 codelens 给出的动作。
 
-			需要设置 `"codeLens.enable":true` 开启 codeLens 
+			需要设置 `"codeLens.enable":true` 开启 codeLens
 			支持，该功能需要 neovim 支持 virtual text 特性。
 
 <Plug>(coc-fix-current) 			*n_coc-fix-current*
@@ -310,21 +335,21 @@ b:coc_root_patterns 				*b:coc_root_patterns*
 b:coc_suggest_disable 				*b:coc_suggest_disable*
 
 			用于针对特定 buffer 禁用补全，例如: >
-			
+
 			" 对 python 文件禁用补全
 			autocmd FileType python let b:coc_suggest_disable = 1
 
 b:coc_additional_keywords			*b:coc_additional_keywords*
 
 			生成单词列表所用的额外 keyword 字符，例如： >
-			
+
 			" Add keyword characers for css
 			autocmd FileType css let b:coc_additional_keywords = ["-"]
 
 b:coc_suggest_blacklist 				*b:coc_suggest_blacklist*
 
 			禁用部分单词触发补全，例如： >
-			
+
 	" Disable completion for 'end' in lua file
 	autocmd FileType lua let b:coc_suggest_blacklist = ["end"]
 
@@ -343,6 +368,10 @@ b:coc_current_function 				*b:coc_current_function*
 			在配置文件中添加：
 			`"coc.preferences.currentFunctionSymbolAutoUpdate": true`
 			启用 CursorHold 时自动更新。
+
+g:coc_last_hover_message 			*g:coc_last_hover_message*
+
+			最近一条由 `doHover` 返回的消息。
 
 g:coc_start_at_startup 				*g:coc_start_at_startup*
 
@@ -374,7 +403,7 @@ g:coc_global_extensions 			*g:coc_global_extensions*
 			用户设置需要安装的插件，coc 会检测其中未安装的插件在
 			vim 启动后使用异步方式进行安装，推荐使用
 			|coc#add_extension()| 函数进行配置。
-			
+
 			该设置仅在服务启动前有效。
 
 g:coc_enable_locationlist 			*g:coc_enable_locationlist*
@@ -402,7 +431,7 @@ g:coc_filetype_map 				*g:coc_filetype_map*
 
 			文件类型映射字典，用于让 language server 支持更多
 			的文件类型，例如： >
-			
+
 			let g:coc_filetype_map = {
 				\ 'html.swig': 'html',
 				\ 'wxss': 'css',
@@ -417,7 +446,7 @@ g:coc_filetype_map 				*g:coc_filetype_map*
 g:coc_selectmode_mapping			*g:coc_selectmode_mapping*
 
 			是否启动选择模式映射。  >
-			
+
 			snoremap <silent> <BS> <c-g>c
 			snoremap <silent> <DEL> <c-g>c
 			snoremap <silent> <c-h> <c-g>c
@@ -446,7 +475,7 @@ g:coc_node_args 				*g:coc_node_args*
 
 
 			服务启动时 node 命令额外参数。启动 debug 模式可配置： >
-			
+
 			let g:coc_node_args = ['--nolazy', '--inspect-brk=6045']
 <
 			默认: []
@@ -489,7 +518,7 @@ coc 在 vim 启动后异步启动服务，多数函数并不能在 vim 启动后
 coc#config({section}, {value})
 
 	设置用户配置，该函数不会修改配置文件，该函数可用于动态修改配置。
-	
+
 	例如： >
 
 	call coc#config('coc.preferences', {
@@ -519,7 +548,7 @@ coc#add_extension({name}, ...)
 <
 	注意: 该函数可以多处或者在服务未启动时调用。
 
-	
+
 						*coc#add_command()*
 coc#add_command({id}, {command}, [{title}])
 
@@ -583,7 +612,7 @@ coc#_select_confirm()
 
 						*health#coc#check()*
 health#coc#check()
-	
+
 	由 neovim 的 |:checkhealth| 触发，检测依赖以及服务状态。
 
 						*coc#util#job_command()*
@@ -609,7 +638,7 @@ coc#util#install([{config}])
 
 						*coc#util#extension_root()*
 coc#util#extension_root()
-	
+
 	获取插件根目录。
 
 						*coc#util#rebuild()*
@@ -641,7 +670,7 @@ coc#util#float_scroll({forward})
 CocRequest({id}, {method}, [{params}])
 
 	向指定 language server 发送请求。
-	
+
 	{id} - language server 唯一 id
 	{method} - 方法名称
 	{params} - 可选参数
@@ -671,7 +700,7 @@ CocLocations({id}, {method}, [{params}, {openCommand}])
 	{openCommand}: 缓冲区打开方法，默认使用
 	`coc.preferences.jumpCommand` 打开。 设置为 `v:false` 时总是使用
 	locations 列表。
-	
+
 						*CocLocationsAsync()*
 CocLocationsAsync({id}, {method}, [{params}, {openCommand}])
 
@@ -695,7 +724,7 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 可用的 Actions 列表
 
 "sourceStat" 					*coc-action-sourceStat*
-	
+
 	获取已加载补全源列表。
 
 "refreshSource" [{source}]  			*coc-action-refreshSource*
@@ -804,7 +833,7 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 	格式化选中区间，{mode} 可以为 `v` , `V`, `char`, `line` 之一。
 
 	如果不提供 {mode}, 该函数必须设置为 |formatexpr| 使用。
-	
+
 
 "codeAction" [{mode}] [{only}]			*coc-action-codeAction*
 
@@ -838,7 +867,7 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 "fold" {{kind}} 				*coc-action-fold*
 
 	折叠当前缓冲区，该方法需要 language server 支持。
-	
+
 	{kind} 可以为'comment', 'imports' and 'region' 之一。
 
 "highlight" 					*coc-action-highlight*
@@ -952,7 +981,7 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 		{option}: 可以使用 `-sync` 用同步方式而不是 terminal
 		安装插件。
-		
+
 		访问 https://www.npmjs.com/search?q=keywords%3Acoc.nvim
 		获取所有 coc 插件。
 
@@ -997,11 +1026,11 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 		打开 coc 的日志文件，默认级别为 info。
 
 		设置 `NVIM_COC_LOG_LEVEL` 改变日志级别，例如： >
-		
+
 		export NVIM_COC_LOG_LEVEL=debug
 <
 		或者添加: >
-		
+
 		let $NVIM_COC_LOG_LEVEL='debug'
 <
 		到 .vimrc 。
@@ -1053,13 +1082,24 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 		跳转占位符时触发。可用于跳转后自动显示函数签名。例如： >
 
 	autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
+<
+						*CocOpenFloat*
+
+:autocmd User CocOpenFloat {command}
+
+		浮窗打开时触发。
+						*CocTerminalOpen*
+
+:autocmd User CocTerminalOpen {command}
+
+		内置终端打开时触发。可用于调整窗口大小。
 
 ==============================================================================
 
 高亮 						*coc-highlights*
 
 使用 |:hi| 命令可以改变 coc 提供的高亮。例如： >
-	
+
 	" 让错误文本显示为红色
 	highlight CocErrorHighlight ctermfg=Red  guifg=#ff0000
 <
@@ -1088,6 +1128,30 @@ CocInfoSign 					*CocInfoSign*
 CocHintSign 					*CocHintSign*
 
   默认： `hi CocHintSign  ctermfg=Blue guifg=#15aabf`
+
+  提醒标记符使用的高亮。
+
+CocErrorVirtualText 				*CocErrorVirtualText*
+
+  默认: `hi default link CocErrorVirtualText  CocErrorSign`
+
+  错误标记符使用的高亮。
+
+CocWarningVirtualText 				*CocWarningVirtualText*
+
+  默认: `hi default link CocWarningVirtualText CocWarningSign`
+
+  警告标记符使用的高亮。
+
+CocInfoVirtualText 				*CocInfoVirtualText*
+
+  默认: `hi default link CocInfoVirtualText CocInfoSign`
+
+  信息标记符使用的高亮。
+
+CocHintVirtualText 				*CocHintVirtualText*
+
+  默认: `hi default link CocHintVirtualText CocHintSign`
 
   提醒标记符使用的高亮。
 
@@ -1199,6 +1263,12 @@ CocCursorRange 					*CocCursorRange*
   Default: `hi default link CocCursorRange Search`
 
   鼠标选择区使用的高亮。
+
+CocHoverRange 					*CocHoverRange*
+
+  默认: `hi default link CocHoverRange Search`
+
+  当前 hover 范围使用的高亮。
 
 ==============================================================================
 
@@ -1418,6 +1488,7 @@ s           - 执行 'split' 操作.
 	'stop' - 停止加载任务
 	'cancel' - 取消列表同时保留窗口
 	'toggle' - 切换当前项选中状态
+	'toggleMode' - 在插入和正常模式之间切换
 	'previous' - 移动到前一个项目
 	'next' - 移动到后一个项目
 	'defaultaction' - 执行默认操作
@@ -1565,6 +1636,13 @@ lists 							 *coc-list-lists*
 
 	- 'open': 打开选中列表源，默认操作。
 
+actions 						 *coc-list-actions*
+
+	已注册的 actions 列表.
+
+	可用操作:
+
+	- 'do': 执行选中的 action.
 
 ==============================================================================
 

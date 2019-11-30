@@ -344,7 +344,7 @@ call s:Enable()
 call s:AddAnsiGroups()
 
 vnoremap <Plug>(coc-range-select)          :<C-u>call       CocAction('rangeSelect',     visualmode(), v:true)<CR>
-vnoremap <Plug>(coc-range-select-backword) :<C-u>call       CocAction('rangeSelect',     visualmode(), v:false)<CR>
+vnoremap <Plug>(coc-range-select-backward) :<C-u>call       CocAction('rangeSelect',     visualmode(), v:false)<CR>
 nnoremap <Plug>(coc-range-select)          :<C-u>call       CocAction('rangeSelect',     '', v:true)<CR>
 nnoremap <Plug>(coc-codelens-action)       :<C-u>call       CocActionAsync('codeLensAction')<CR>
 vnoremap <Plug>(coc-format-selected)       :<C-u>call       CocActionAsync('formatSelected',     visualmode())<CR>

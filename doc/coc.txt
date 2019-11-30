@@ -635,12 +635,12 @@ like VSCode. >
 	  \ coc#expandableOrJumpable() ? "\<C-r>=coc#rpc#request('doKeymap', ['snippets-expand-jump',''])\<CR>" :
 	  \ <SID>check_back_space() ? "\<TAB>" :
 	  \ coc#refresh()
-	
+
 	function! s:check_back_space() abort
 	  let col = col('.') - 1
 	  return !col || getline('.')[col - 1]  =~# '\s'
 	endfunction
-	
+
 	let g:coc_snippet_next = '<tab>'
 <
 Note: the `coc-snippets` extension is required for this to work.
@@ -650,12 +650,12 @@ INTERFACE					*coc-interface*
 
 ------------------------------------------------------------------------------
 
-Coc doesn't come with a default global keymap, you need to configure the 
+Coc doesn't come with a default global keymap, you need to configure the
 mappings yourself.
 
 Keymappings 					*coc-key-mappings*
 
-Note: Mappings that start with `i_` works for insert mode `n_` works for 
+Note: Mappings that start with `i_` works for insert mode `n_` works for
 normal mode, `v_` works for visual mode.
 
 <Plug>(coc-diagnostic-info) 			*n_coc-diagnostic-info*
@@ -664,19 +664,19 @@ normal mode, `v_` works for visual mode.
 			truncate.
 
 <Plug>(coc-diagnostic-next) 			*n_coc-diagnostic-next*
-			
+
 			Jump to next diagnostic position.
 
 <Plug>(coc-diagnostic-prev) 			*n_coc-diagnostic-prev*
-			
+
 			Jump to previous diagnostic position.
 
 <Plug>(coc-diagnostic-next-error) 		*n_coc-diagnostic-next-error*
-			
+
 			Jump to next diagnostic error position.
 
 <Plug>(coc-diagnostic-prev-error) 		*n_coc-diagnostic-prev-error*
-			
+
 			Jump to previous diagnostic error position.
 
 <Plug>(coc-definition) 				*n_coc-definition*
@@ -702,8 +702,8 @@ normal mode, `v_` works for visual mode.
 <Plug>(coc-format-selected) 			*n_coc-format-selected*
 						*v_coc-format-selected*
 
-			Format selected range, would work in both visual mode 
-			and normal mode, when used in normal mode, the 
+			Format selected range, would work in both visual mode
+			and normal mode, when used in normal mode, the
 			selection works on the motion object.
 
 	For example: >
@@ -711,12 +711,12 @@ normal mode, `v_` works for visual mode.
 	vmap <leader>p  <Plug>(coc-format-selected)
 	nmap <leader>p  <Plug>(coc-format-selected)
 <
-	makes `<leader>p` format the visually selected range, and you can use 
+	makes `<leader>p` format the visually selected range, and you can use
 	`<leader>pap` to format a paragraph.
 
 <Plug>(coc-format) 				*n_coc-format*
 
-			Format the whole buffer, normally you would like to 
+			Format the whole buffer, normally you would like to
 			use a command like: >
 
 	command! -nargs=0 Format :call CocAction('format')
@@ -734,7 +734,7 @@ normal mode, `v_` works for visual mode.
 <Plug>(coc-codeaction-selected) 		*n_coc-codeaction-selected*
 						*v_coc-codeaction-selected*
 
-			Get and run code action(s) with the selected region. 
+			Get and run code action(s) with the selected region.
 			Works with both normal and visual mode.
 
 
@@ -797,8 +797,8 @@ b:coc_enabled 					*b:coc_enabled*
 
 b:coc_root_patterns 				*b:coc_root_patterns*
 
-			Root patterns used for resolving workspaceFolder for 
-			the current file, will be used instead of 
+			Root patterns used for resolving workspaceFolder for
+			the current file, will be used instead of
 			`"coc.preferences.rootPatterns"` setting. E.g.: >
 
 			autocmd FileType python let b:coc_root_patterns =
@@ -808,21 +808,21 @@ b:coc_root_patterns 				*b:coc_root_patterns*
 b:coc_suggest_disable 				*b:coc_suggest_disable*
 
 			Disable completion support of current buffer. E.g.: >
-			
+
 			" Disable completion for python
 			autocmd FileType python let b:coc_suggest_disable = 1
 
 b:coc_suggest_blacklist 			*b:coc_suggest_blacklist*
 
 			Words for which completion should be disabled. E.g.: >
-			
+
 			" Disable completion for 'end' in lua files
 			autocmd FileType lua let b:coc_suggest_blacklist = ["end"]
 
 b:coc_additional_keywords			*b:coc_additional_keywords*
 
 			Addition keyword characters for generate keywords. E.g.: >
-			
+
 			" Add keyword characters for css
 			autocmd FileType css let b:coc_additional_keywords = ["-"]
 
@@ -865,8 +865,8 @@ g:coc_extension_root 				*g:coc_extension_root*
 
 g:coc_global_extensions 			*g:coc_global_extensions*
 
-			Global extension names to install when they aren't 
-			installed, define this variable to a list of extension 
+			Global extension names to install when they aren't
+			installed, define this variable to a list of extension
 			names when you can't use |coc#add_extension()|
 
 g:coc_cygqwin_path_prefixes 			*g:coc_cygqwin_path_prefixes*
@@ -892,7 +892,7 @@ g:coc_enable_locationlist 			*g:coc_enable_locationlist*
 
 g:coc_snippet_next                            	*g:coc_snippet_next*
 
-			Trigger key for going to the next snippet position, 
+			Trigger key for going to the next snippet position,
 			applied in insert and select mode.
 
 			Only works when snippet session is activated.
@@ -901,7 +901,7 @@ g:coc_snippet_next                            	*g:coc_snippet_next*
 
 g:coc_snippet_prev                            	*g:coc_snippet_prev*
 
-			Trigger key for going to the previous snippet 
+			Trigger key for going to the previous snippet
 			position, applied in insert and select mode.
 
 			Only works when snippet session is activated.
@@ -910,9 +910,9 @@ g:coc_snippet_prev                            	*g:coc_snippet_prev*
 
 g:coc_filetype_map 				*g:coc_filetype_map*
 
-			Map for document filetypes so the server could handle 
+			Map for document filetypes so the server could handle
 			current document as another filetype, ex: >
-			
+
 			let g:coc_filetype_map = {
 				\ 'html.swig': 'html',
 				\ 'wxss': 'css',
@@ -926,9 +926,9 @@ g:coc_filetype_map 				*g:coc_filetype_map*
 
 g:coc_selectmode_mapping			*g:coc_selectmode_mapping*
 
-			Add key mappings for making snippet select mode 
+			Add key mappings for making snippet select mode
 			easier. >
-			
+
 			snoremap <silent> <BS> <c-g>c
 			snoremap <silent> <DEL> <c-g>c
 			snoremap <silent> <c-h> <c-g>c
@@ -960,7 +960,7 @@ g:coc_node_args 				*g:coc_node_args*
 			service from source code.
 
 			Useful for starting coc in debug mode, ex: >
-			
+
 			let g:coc_node_args = ['--nolazy', '--inspect-brk=6045']
 <
 
@@ -969,7 +969,7 @@ g:coc_node_args 				*g:coc_node_args*
 
 g:coc_jump_locations 				*g:coc_jump_locations*
 
-			This variable would be set to jump locations when the 
+			This variable would be set to jump locations when the
 			|CocLocationsChange| autocmd is fired.
 
 			Each location item contains:
@@ -992,8 +992,8 @@ g:coc_status_warning_sign 			*g:coc_status_warning_sign*
 			Warning character used for statusline, default: `W`
 
 g:coc_watch_extensions 				*g:coc_watch_extensions*
-			
-			Extensions to watch for reload, used for developing 
+
+			Extensions to watch for reload, used for developing
 			extensions only, need watchman installed.
 
 g:coc_quickfix_open_command 			*g:coc_quickfix_open_command*
@@ -1004,14 +1004,14 @@ g:coc_quickfix_open_command 			*g:coc_quickfix_open_command*
 
 g:WorkspaceFolders 				*g:WorkspaceFolders*
 
-			Current workspace folders, used for restoring from a 
-			session file, add `set sessionoptions+=globals` to 
+			Current workspace folders, used for restoring from a
+			session file, add `set sessionoptions+=globals` to
 			vimrc for restoring globals.
 
 g:node_client_debug 				*g:node_client_debug*
 
 			Enable debug mode of node client on vim8, use command: >
-			
+
 			:call coc#client#open_log()
 <
 			to open the log file.
@@ -1025,10 +1025,10 @@ g:coc_config_home				*g:coc_config_home*
 
 			Configure the directory which will be used to look
 			for coc-settings.json and install extensions.
-			
+
 ------------------------------------------------------------------------------
 
-Some variables are provided by coc.nvim so you can use them in your 
+Some variables are provided by coc.nvim so you can use them in your
 statusline. See |coc-status| for detail.
 
 b:coc_diagnostic_info 				*b:coc_diagnostic_info*
@@ -1078,10 +1078,10 @@ coc#config({section}, {value})
 
 	Note: this function can be called multiple times.
 
-	Note: this function can be called before the service has been 
+	Note: this function can be called before the service has been
 	initialized.
 
-	Note: this function can work alongside the user configuration file, 
+	Note: this function can work alongside the user configuration file,
 	but it's not recommended to use both.
 
 coc#add_extension({name}, ...) 			*coc#add_extension()*
@@ -1093,7 +1093,7 @@ coc#add_extension({name}, ...) 			*coc#add_extension()*
 <
 	This function can be called before service initialized.
 	This function can be called multiple times.
-	
+
 coc#add_command({id}, {command}, [{title}]) 	*coc#add_command()*
 
 	Add custom vim command to commands list opened by
@@ -1107,7 +1107,7 @@ coc#add_command({id}, {command}, [{title}]) 	*coc#add_command()*
 						*coc#refresh()*
 coc#refresh()
 
-	Start or refresh completion at current cursor position, bind this to 
+	Start or refresh completion at current cursor position, bind this to
 	'imap' to trigger completion, ex: >
 
 	inoremap <silent><expr> <c-space> coc#refresh()
@@ -1143,25 +1143,25 @@ coc#on_enter()
 						*coc#status()*
 coc#status()
 
-	Return a status string that can be used in the status line, the status 
-	includes diagnostic information from `b:coc_diagnostic_info` and 
-	extension contributed statuses from `g:coc_status`. For statusline 
+	Return a status string that can be used in the status line, the status
+	includes diagnostic information from `b:coc_diagnostic_info` and
+	extension contributed statuses from `g:coc_status`. For statusline
 	integration, see |coc-status|
 
 
 						*coc#_select_confirm()*
 coc#_select_confirm()
 
-	Select first completion item if no completion item is selected, then 
+	Select first completion item if no completion item is selected, then
 	confirm the completion.
 
-	Note: for this function to work as expected, either |CompleteChanged| 
-	autocmd should exists or only <C-n> and <C-p> should be used to select 
+	Note: for this function to work as expected, either |CompleteChanged|
+	autocmd should exists or only <C-n> and <C-p> should be used to select
 	a completion item.
 
 						*health#coc#check()*
 health#coc#check()
-	
+
 	Neovim only, run health check, triggered by ':checkhealth'
 	command.
 
@@ -1189,7 +1189,7 @@ coc#util#install([{config}])
 						*coc#util#extension_root()*
 
 coc#util#extension_root()
-	
+
 	Return extensions root of coc.nvim.
 
 						*coc#util#rebuild()*
@@ -1243,7 +1243,7 @@ CocRegistNotification({id}, {method}, {callback})
 	example: >
 
 	autocmd User CocNvimInit call CocRegistNotification('ccls',
-		\ '$ccls/publishSemanticHighlight', function('s:Handler')) 
+		\ '$ccls/publishSemanticHighlight', function('s:Handler'))
 <
 	{callback} is called with single param as notification result.
 
@@ -1279,7 +1279,7 @@ CocAction({action}, [...{args}])
 
 CocActionAsync({action}, [...{args}, [{callback}]])
 
-	Call CocAction without blocking vim UI, the callback is called with 
+	Call CocAction without blocking vim UI, the callback is called with
 	`error` as the first argument and `response` as the second argument.
 
 						*CocHasProvider()*
@@ -1298,7 +1298,7 @@ CocHasProvider({feature})
 Available Actions ~
 
 "sourceStat" 					*coc-action-sourceStat*
-	
+
 	get the list of completion source stats for the current buffer.
 
 "refreshSource" [{source}]  			*coc-action-refreshSource*
@@ -1371,7 +1371,7 @@ Available Actions ~
 
 	Use `coc.preferences.hoverTarget` to change hover behavior.
 
-	Note: the behavior would change in neovim, where floating windows are 
+	Note: the behavior would change in neovim, where floating windows are
 	available.
 
 "showSignatureHelp" 				*coc-action-showSignatureHelp*
@@ -1392,7 +1392,7 @@ Available Actions ~
 
 "rename" 					*coc-action-rename*
 
-	Rename the symbol under the cursor position, user will be prompted for 
+	Rename the symbol under the cursor position, user will be prompted for
 	a new name.
 
 "workspaceSymbols" 				*coc-action-workspaceSymbols*
@@ -1418,11 +1418,11 @@ Available Actions ~
 
 "formatSelected" [{mode}] 			*coc-action-formatSelected*
 
-	Format the selected range, {mode} should be one of visual mode: `v` , 
+	Format the selected range, {mode} should be one of visual mode: `v` ,
 	`V`, `char`, `line`.
 
 	When {mode} is omitted, it should be called using |formatexpr|.
-	
+
 
 "codeAction" [{mode}] [{only}]			*coc-action-codeAction*
 
@@ -1437,8 +1437,8 @@ Available Actions ~
 "codeLensAction" 				*coc-action-codeLensAction*
 
 
-	Invoke the command for codeLens of current line (or the line that 
-	contains codeLens just above). Prompt would be shown when multiple 
+	Invoke the command for codeLens of current line (or the line that
+	contains codeLens just above). Prompt would be shown when multiple
 	actions are available.
 
 "commands" 					*coc-action-commands*
@@ -1447,7 +1447,7 @@ Available Actions ~
 
 "runCommand" [{name}] [...{args}] 		*coc-action-runCommand*
 
-	Run a global command provided by the language server. If {name} is not 
+	Run a global command provided by the language server. If {name} is not
 	provided, a prompt with a list of commands is shown to be selected.
 
 	{args} are passed as arguments of command.
@@ -1459,7 +1459,7 @@ Available Actions ~
 
 "fold" {{kind}} 				*coc-action-fold*
 
-	Fold the current buffer, optionally use {kind} for filtering folds, 
+	Fold the current buffer, optionally use {kind} for filtering folds,
 	{kind} could be either 'comment', 'imports' or 'region'
 
 	Return `v:false` when failed.
@@ -1467,7 +1467,7 @@ Available Actions ~
 "highlight" 					*coc-action-highlight*
 
 	Highlight the symbols under the cursor.
-	Overwrite the highlight groups `CocHighlightText`, `CocHighlightRead` 
+	Overwrite the highlight groups `CocHighlightText`, `CocHighlightRead`
 	and `CocHighlightWrite` for customizing the colors.
 
 	To enable highlight on CursorHold, create an autocmd like this: >
@@ -1482,7 +1482,7 @@ Available Actions ~
 	File and URL links are supported, return `v:false` when failed.
 
 	Note: it needs language server support documentLink feature to work.
-	
+
 "extensionStats" 				*coc-action-extensionStats*
 
 	Get all extension states as a list. Including `id`, `root` and
@@ -1605,7 +1605,7 @@ COMMANDS 					*coc-commands*
 >
 :CocUninstall {name} 				*:CocUninstall*
 
-		Uninstall an extension, use <tab> to complete the extension 
+		Uninstall an extension, use <tab> to complete the extension
 		name.
 
 :CocUpdate 					*:CocUpdate*
@@ -1624,7 +1624,7 @@ COMMANDS 					*coc-commands*
 
 :CocCommand {name} [{args}] ...			*:CocCommand*
 
-		Run a command contributed by extensions, use `<tab>` for name 
+		Run a command contributed by extensions, use `<tab>` for name
 		completion.
 
 :{range}CocAction  [{only}] 			*:CocAction*
@@ -1640,22 +1640,22 @@ COMMANDS 					*coc-commands*
 
 :CocOpenLog 					*:CocOpenLog*
 
-		Open the log file of coc.nvim. To change the log level 
-		(default `info`), use the environment variable 
+		Open the log file of coc.nvim. To change the log level
+		(default `info`), use the environment variable
 		`NVIM_COC_LOG_LEVEL`. E.g.: >
-		
+
 		export NVIM_COC_LOG_LEVEL=debug
 <
 		or add: >
-		
+
 		let $NVIM_COC_LOG_LEVEL='debug'
 <
-		to the beggining of your `.vimrc` (before the plugin is 
+		to the beggining of your `.vimrc` (before the plugin is
 		loaded).
 
 :CocInfo 					*:CocInfo*
 
-		Show version and log information in a split window, useful for 
+		Show version and log information in a split window, useful for
 		submitting a bug report.
 
 ------------------------------------------------------------------------------
@@ -1665,8 +1665,8 @@ AUTOCMD 					*coc-autocmds*
 
 :autocmd User CocLocationsChange {command}
 
-		For building a custom view of locations, set 
-		|g:coc_enable_locationlist| to 0 and use this autocmd with 
+		For building a custom view of locations, set
+		|g:coc_enable_locationlist| to 0 and use this autocmd with
 		with |g:coc_jump_locations|
 
 		For example, to disable auto preview of location list, use:
@@ -1680,8 +1680,8 @@ AUTOCMD 					*coc-autocmds*
 
 		Triggered after the coc services have started.
 
-		If you want to trigger an action of coc after vim has started, 
-		this autocmd should be used because coc is always started 
+		If you want to trigger an action of coc after vim has started,
+		this autocmd should be used because coc is always started
 		asynchronously.
 
 						*CocStatusChange*
@@ -1703,7 +1703,7 @@ AUTOCMD 					*coc-autocmds*
 
 :autocmd User CocJumpPlaceholder {command}
 
-		Triggered after a jump to a placeholder. Can be used for 
+		Triggered after a jump to a placeholder. Can be used for
 		showing signature help like so: >
 
 	autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
@@ -1726,7 +1726,7 @@ HIGHLIGHTS 					*coc-highlights*
 
 To customize a highlight, simply use |:highlight| command of vim in your
 vimrc, like: >
-	
+
 	" make error texts have a red color
 	highlight CocErrorHighlight ctermfg=Red  guifg=#ff0000
 <
@@ -1943,7 +1943,7 @@ LIST COMMAND 					*coc-list-command*
 
 :CocListResume 						*CocListResume*
 
-		Reopen last opened list, input and cursor position will be 
+		Reopen last opened list, input and cursor position will be
 		preserved.
 
 :CocPrev 						*CocPrev*
@@ -1989,7 +1989,7 @@ Command options 					*coc-list-options*
 
 --number-select
 -N
-	Type a line number to select an item and invoke the default action on 
+	Type a line number to select an item and invoke the default action on
 	insert mode. Type `0` to select the 10th line.
 
 
@@ -2112,7 +2112,7 @@ for customizing the list key-mappings, ex: >
 		"d": "action:delete"
 	}
 <
-Note: you should only use mappings that start with `<C-` or `<A-` for insert 
+Note: you should only use mappings that start with `<C-` or `<A-` for insert
 mappings.
 
 Note: <Esc> can't be remapped for other actions.
@@ -2127,6 +2127,7 @@ The mapping expression should be `command:arguments`, available commands:
 	'stop' - stop loading task.
 	'cancel' - cancel list session but leave list window open.
 	'toggle' - toggle selection of current item.
+	'toggleMode' - toggle between insert and normal mode.
 	'previous' - move cursor to previous item.
 	'next' - move cursor to next item.
 	'defaultaction' - execute default action.
@@ -2355,7 +2356,7 @@ Change warning format:
 						*coc-status-lightline*
 
 With lightline.vim: https://github.com/itchyny/lightline.vim
-				
+
 Use configuration like: >
 
   let g:lightline = {
@@ -2385,9 +2386,9 @@ FAQ						*coc-faq*
 ------------------------------------------------------------------------------
 Q: 	I need documentation for completion items.
 
-A: 	Preview window of vim is disabled by default. You can enable it by 
+A: 	Preview window of vim is disabled by default. You can enable it by
 	adding `"suggest.enablePreview":true` to your settings file.
-	
+
 	However, it doesn't work when the server only sends documentation on
 	complete item change, you will need floating window support then,
 	check out: https://bit.ly/2NCVh5P
@@ -2404,7 +2405,7 @@ A: 	Yes, you can make coc send diagnostics to ale, just add >
 ------------------------------------------------------------------------------
 Q: 	I want codeLens feature of LSP.
 
-A: 	CodeLens support uses the virtual text feature of neovim, its's not 
+A: 	CodeLens support uses the virtual text feature of neovim, its's not
 	enabled by default. To enable it, add: >
 
 	  "codeLens.enable": true,
@@ -2414,7 +2415,7 @@ A: 	CodeLens support uses the virtual text feature of neovim, its's not
 ------------------------------------------------------------------------------
 Q: 	I want to highlight codes in markdown documentation.
 
-A: 	Use a markdown plugin which could provide fancy code highlighting, 
+A: 	Use a markdown plugin which could provide fancy code highlighting,
 	like https://github.com/tpope/vim-markdown, and use settings like:
 >
   	let g:markdown_fenced_languages = ['css', 'js=javascript']
