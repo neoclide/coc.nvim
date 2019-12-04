@@ -1,5 +1,6 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
 import { Document } from '..'
 import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
@@ -323,6 +324,23 @@ export default class Handler {
       this.nvim.command('pclose', true)
     }
     return false
+  }
+
+  public async getTagFuncLocations(pattern?: string, flags: string, info: {buf_ffname?: string, user_data?: string}): Promise<Location[]> {
+    // We only support tag lookup for now
+    if (flags !== 'c')
+      return [];
+    let { document, position } = await workspace.getCurrentState()
+    let definitions = await languages.getDefinition(document, position)
+    return definitions.map((location) => {
+      const filename = URI.parse(location.uri).fsPath;
+      return {
+        name: pattern,
+        // We are 0-based, vim is 1-based
+        cmd: `${location.range.start.line + 1} | normal ${location.range.start.character + 1}|`, 
+        filename,
+      }
+    })
   }
 
   public async gotoDefinition(openCommand?: string): Promise<boolean> {

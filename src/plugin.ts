@@ -343,6 +343,8 @@ export default class Plugin extends EventEmitter {
           break
         case 'diagnosticList':
           return diagnosticManager.getDiagnosticList()
+        case 'getTagFuncLocations':
+          return await handler.getTagFuncLocations(args[1], args[2], args[3])
         case 'jumpDefinition':
           return await handler.gotoDefinition(args[1])
         case 'jumpDeclaration':
