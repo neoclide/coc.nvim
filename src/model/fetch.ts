@@ -12,8 +12,8 @@ export function getAgent(endpoint: UrlWithStringQuery): Agent {
   let proxy = workspace.getConfiguration('http').get<string>('proxy', '')
   let key = endpoint.protocol.startsWith('https') ? 'HTTPS_PROXY' : 'HTTP_PROXY'
   let env = process.env[key]
-  if (!proxy && env && env.startsWith('http')) {
-    proxy = env.replace(/^https?:\/\//, '').replace(/\/$/, '')
+  if (!proxy && env) {
+    proxy = env
   }
   const noProxy = process.env.NO_PROXY || process.env.no_proxy || null
   if (noProxy === '*') {
@@ -46,6 +46,7 @@ export function getAgent(endpoint: UrlWithStringQuery): Agent {
     }
   }
   if (proxy) {
+    proxy = proxy.replace(/^https?:\/\//, '').replace(/\/$/, '')
     let auth = proxy.includes('@') ? proxy.split('@', 2)[0] : ''
     let parts = auth.length ? proxy.slice(auth.length + 1).split(':') : proxy.split(':')
     logger.info(`Using proxy from: ${proxy}`)
