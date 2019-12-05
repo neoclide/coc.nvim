@@ -1,10 +1,25 @@
-import fetch from '../../model/fetch'
-import rimraf from 'rimraf'
-import download from '../../model/download'
+import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import fs from 'fs'
+import rimraf from 'rimraf'
+import { parse } from 'url'
 import { promisify } from 'util'
+import download from '../../model/download'
+import fetch, { getAgent } from '../../model/fetch'
+import helper from '../helper'
+
+beforeAll(async () => {
+  await helper.setup()
+})
+
+afterAll(async () => {
+  await helper.shutdown()
+})
+
+afterEach(async () => {
+  helper.updateConfiguration('http.proxy', '')
+  await helper.reset()
+})
 
 describe('fetch', () => {
 
@@ -22,6 +37,30 @@ describe('fetch', () => {
     }
     expect(err).toBeDefined()
   })
+
+  it('should report valid proxy', function() {
+    helper.updateConfiguration('http.proxy', 'domain.com:1234')
+    let agent = getAgent(parse('http://google.com'))
+    // @ts-ignore
+    let proxy = agent.options.proxy
+    expect(proxy.host).toBe('domain.com');
+    expect(proxy.port).toBe(1234);
+
+    helper.updateConfiguration('http.proxy', 'https://domain.com:1234')
+    agent = getAgent(parse('http://google.com'))
+    // @ts-ignore
+    proxy = agent.options.proxy
+    expect(proxy.host).toBe('domain.com');
+    expect(proxy.port).toBe(1234);
+
+    helper.updateConfiguration('http.proxy', 'user:pass@domain.com:1234')
+    agent = getAgent(parse('http://google.com'))
+    // @ts-ignore
+    proxy = agent.options.proxy
+    expect(proxy.host).toBe('domain.com');
+    expect(proxy.port).toBe(1234);
+    expect(proxy.proxyAuth).toBe('user:pass');
+  });
 })
 
 describe('download', () => {
