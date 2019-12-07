@@ -75,7 +75,7 @@
     "bser": "^2.1.0",
     "debounce": "^1.2.0",
     "fast-diff": "^1.2.0",
-    "fb-watchman": "^2.0.0",
+    "fb-watchman": "^2.0.1",
     "follow-redirects": "^1.9.0",
     "glob": "^7.1.4",
     "isuri": "^2.0.3",
