@@ -55,7 +55,7 @@
     "@types/jest": "^24.0.18",
     "@types/minimatch": "^3.0.3",
     "@types/mkdirp": "^0.5.2",
-    "@types/node": "^12.7.4",
+    "@types/node": "^12.12.17",
     "@types/semver": "^6.0.2",
     "@types/tar": "^4.0.3",
     "@types/tunnel": "^0.0.1",
