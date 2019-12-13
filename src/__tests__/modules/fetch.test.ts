@@ -38,29 +38,29 @@ describe('fetch', () => {
     expect(err).toBeDefined()
   })
 
-  it('should report valid proxy', function() {
+  it('should report valid proxy', async () => {
     helper.updateConfiguration('http.proxy', 'domain.com:1234')
     let agent = getAgent(parse('http://google.com'))
     // @ts-ignore
     let proxy = agent.options.proxy
-    expect(proxy.host).toBe('domain.com');
-    expect(proxy.port).toBe(1234);
+    expect(proxy.host).toBe('domain.com')
+    expect(proxy.port).toBe(1234)
 
     helper.updateConfiguration('http.proxy', 'https://domain.com:1234')
     agent = getAgent(parse('http://google.com'))
     // @ts-ignore
     proxy = agent.options.proxy
-    expect(proxy.host).toBe('domain.com');
-    expect(proxy.port).toBe(1234);
+    expect(proxy.host).toBe('domain.com')
+    expect(proxy.port).toBe(1234)
 
     helper.updateConfiguration('http.proxy', 'user:pass@domain.com:1234')
     agent = getAgent(parse('http://google.com'))
     // @ts-ignore
     proxy = agent.options.proxy
-    expect(proxy.host).toBe('domain.com');
-    expect(proxy.port).toBe(1234);
-    expect(proxy.proxyAuth).toBe('user:pass');
-  });
+    expect(proxy.host).toBe('domain.com')
+    expect(proxy.port).toBe(1234)
+    expect(proxy.proxyAuth).toBe('user:pass')
+  })
 })
 
 describe('download', () => {
