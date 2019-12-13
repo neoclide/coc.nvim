@@ -116,8 +116,8 @@ export default class Watchman {
     this.client.on('subscription', resp => {
       if (!resp || resp.subscription != uid) return
       let { files } = resp as FileChange
-      files = files.filter(f => f.type == 'f')
       if (!files || !files.length || !minimatch(files[0].name, globPattern)) return
+      files = files.filter(f => f.type == 'f')
       let ev: FileChange = Object.assign({}, resp)
       if (this.relative_path) ev.root = path.resolve(resp.root, this.relative_path)
       // resp.root = this.relative_path
