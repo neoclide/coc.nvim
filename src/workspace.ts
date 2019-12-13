@@ -1139,7 +1139,8 @@ export class Workspace implements IWorkspace {
     let id = uuid()
     let { nvim } = this
     this.keymaps.set(id, [fn, false])
-    nvim.command(`${mode}noremap <silent><nowait><buffer> ${key} :<c-u>call coc#rpc#${notify ? 'notify' : 'request'}('doKeymap', ['${id}'])<CR>`, true)
+    let modify = getKeymapModifier(mode)
+    nvim.command(`${mode}noremap <silent><nowait><buffer> ${key} :${modify}call coc#rpc#${notify ? 'notify' : 'request'}('doKeymap', ['${id}'])<CR>`, true)
     return Disposable.create(() => {
       this.keymaps.delete(id)
       nvim.command(`${mode}unmap <buffer> ${key}`, true)
