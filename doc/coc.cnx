@@ -514,6 +514,18 @@ coc 在 vim 启动后异步启动服务，多数函数并不能在 vim 启动后
 	autocmd User CocNvimInit call CocAction('runCommand',
 						\ 'tsserver.watchBuild')
 <
+						*coc#start()*
+coc#start([{option}])
+
+	触发补全，{option} 可以包含:
+
+		- `source` 指定补全源.
+
+	例如:  >
+
+	inoremap <silent> <C-w> <C-R>=coc#start({'source': 'word'})<CR>
+<
+	使用 `CocList sources` 获取可用补全源。
 						*coc#config()*
 coc#config({section}, {value})
 

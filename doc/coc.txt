@@ -1058,6 +1058,19 @@ To run a function on startup, use an autocmd like: >
  	autocmd User CocNvimInit call CocAction('runCommand',
 						\ 'tsserver.watchBuild')
 <
+
+						*coc#start()*
+coc#start([{option}])
+
+	Start completion with optional {option}.  Option could contains:
+
+		- `source` specific completion source name.
+
+	ex:  >
+
+	inoremap <silent> <C-w> <C-R>=coc#start({'source': 'word'})<CR>
+<
+	Use `CocList sources` to get available sources.
 						*coc#config()*
 coc#config({section}, {value})
 
