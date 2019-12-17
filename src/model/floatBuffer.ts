@@ -11,6 +11,7 @@ export default class FloatBuffer {
   private highlights: Highlight[]
   private positions: [number, number, number?][] = []
   private enableHighlight = true
+  private highlightTimeout = 500
   private tabstop = 2
   public width = 0
   constructor(
@@ -20,6 +21,7 @@ export default class FloatBuffer {
   ) {
     let config = workspace.getConfiguration('coc.preferences')
     this.enableHighlight = config.get<boolean>('enableFloatHighlight', true)
+    this.highlightTimeout = config.get<number>('highlightTimeout', 500)
     buffer.getOption('tabstop').then(val => {
       this.tabstop = val as number
     }, _e => {
@@ -104,7 +106,7 @@ export default class FloatBuffer {
     }
     if (this.enableHighlight) {
       let arr = await Promise.all(fragments.map(f => {
-        return getHiglights(f.lines, f.filetype).then(highlights => {
+        return getHiglights(f.lines, f.filetype, this.highlightTimeout).then(highlights => {
           return highlights.map(highlight => {
             return Object.assign({}, highlight, { line: highlight.line + f.start })
           })

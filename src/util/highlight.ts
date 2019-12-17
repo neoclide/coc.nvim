@@ -33,7 +33,7 @@ const cache: { [hash: string]: Highlight[] } = {}
 let env: Env = null
 
 // get highlights by send text to another neovim instance.
-export function getHiglights(lines: string[], filetype: string): Promise<Highlight[]> {
+export function getHiglights(lines: string[], filetype: string, timeout = 500): Promise<Highlight[]> {
   const hlMap: Map<number, string> = new Map()
   const content = lines.join('\n')
   if (diagnosticFiletypes.indexOf(filetype) != -1) {
@@ -110,7 +110,7 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
       timer = setTimeout(() => {
         exit()
         resolve([])
-      }, 500)
+      }, timeout)
       nvim = attach({ proc }, null, false)
       const callback = (method, args) => {
         if (method == 'redraw') {
