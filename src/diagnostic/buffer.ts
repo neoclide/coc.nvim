@@ -220,6 +220,7 @@ export class DiagnosticBuffer implements Disposable {
     let { start, end } = range
     if (start.line != end.line) return range
     let line = this.document.getline(start.line)
+    if (!line) return range
     if (start.character < line.length) return range
     return Range.create(start.line, line.length - 1, start.line, line.length)
   }
