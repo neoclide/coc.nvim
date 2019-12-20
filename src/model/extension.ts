@@ -2,6 +2,7 @@ import { spawn } from 'child_process'
 import fs from 'fs'
 import mkdirp from 'mkdirp'
 import mv from 'mv'
+import os from 'os'
 import path from 'path'
 import rc from 'rc'
 import rimraf from 'rimraf'
@@ -75,7 +76,7 @@ export default class ExtensionManager {
   }
 
   private async _install(npm: string, def: string, info: Info, onMessage: (msg: string) => void): Promise<void> {
-    let filepath = path.join(this.root, 'node_modules/.cache', `${info.name}-`)
+    const filepath = path.join(os.tmpdir(), `${info.name}-`)
     if (!fs.existsSync(path.dirname(filepath))) {
       fs.mkdirSync(path.dirname(filepath))
     }
@@ -89,6 +90,9 @@ export default class ExtensionManager {
       onMessage(`Installing dependencies.`)
       let p = new Promise<void>((resolve, reject) => {
         let args = ['install', '--ignore-scripts', '--no-lockfile', '--no-bin-links', '--production']
+        if (info['dist.tarball'] && info['dist.tarball'].includes('github.com')) {
+          args = ['install'];
+        }
         const child = spawn(npm, args, { cwd: tmpFolder })
         child.stderr.setEncoding('utf8')
         child.on('error', reject)
