@@ -91,7 +91,7 @@ export default class ExtensionManager {
       let p = new Promise<void>((resolve, reject) => {
         let args = ['install', '--ignore-scripts', '--no-lockfile', '--no-bin-links', '--production']
         if (info['dist.tarball'] && info['dist.tarball'].includes('github.com')) {
-          args = ['install'];
+          args = ['install']
         }
         const child = spawn(npm, args, { cwd: tmpFolder })
         child.stderr.setEncoding('utf8')
