@@ -254,7 +254,7 @@ export default class Handler {
         await this.applyCodeAction(actions[0])
         return true
       }
-      workspace.showMessage(`Orgnize import action not found.`, 'warning')
+      workspace.showMessage(`Organize import action not found.`, 'warning')
       return false
     }))
     commandManager.titles.set('editor.action.organizeImport', 'run organize import code action.')
