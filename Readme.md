@@ -23,10 +23,6 @@ _True snippet and additional text editing support_
 
 Check out [Wiki](https://github.com/neoclide/coc.nvim/wiki), or [doc/coc.txt](doc/coc.txt) for the vim interface.
 
-## 广告
-
-深圳全民点游有限公司急需小程序相关前端开发，有意者加我微信：chemzqm
-
 ## Quick Start
 
 Install [nodejs](https://nodejs.org/en/download/) when necessary:
@@ -41,8 +37,6 @@ For [vim-plug](https://github.com/junegunn/vim-plug) users:
 " Use release branch (Recommend)
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 
-" Or latest tag
-Plug 'neoclide/coc.nvim', {'tag': '*', 'branch': 'release'}
 " Or build from source code by use yarn: https://yarnpkg.com
 Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}
 ```

@@ -329,16 +329,18 @@ function! coc#util#on_error(msg) abort
   echohl Error | echom '[coc.nvim] '.a:msg | echohl None
 endfunction
 
-function! coc#util#preview_info(info, ...) abort
-  let filetype = get(a:, 1, 'markdown')
+function! coc#util#preview_info(info, filetype, ...) abort
   pclose
   keepalt new +setlocal\ previewwindow|setlocal\ buftype=nofile|setlocal\ noswapfile|setlocal\ wrap [Document]
   setl bufhidden=wipe
   setl nobuflisted
   setl nospell
-  exe 'setl filetype='.filetype
+  exe 'setl filetype='.a:filetype
   setl conceallevel=2
   setl nofoldenable
+  for command in a:000
+    execute command
+  endfor
   let lines = a:info
   call append(0, lines)
   exe "normal! z" . len(lines) . "\<cr>"
