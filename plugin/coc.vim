@@ -249,9 +249,6 @@ hi default CocInfoSign     ctermfg=Yellow  guifg=#fab005
 hi default CocHintSign     ctermfg=Blue    guifg=#15aabf
 hi default CocSelectedText ctermfg=Red     guifg=#fb4934
 hi default CocCodeLens     ctermfg=Gray    guifg=#999999
-if exists('&pumblend')
-  hi default CocCursorTransparent ctermfg=16 ctermbg=253 guifg=#000000 guibg=#00FF00 gui=strikethrough blend=100
-endif
 hi default link CocErrorFloat       CocErrorSign
 hi default link CocWarningFloat     CocWarningSign
 hi default link CocInfoFloat        CocInfoSign
