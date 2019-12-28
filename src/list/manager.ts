@@ -61,7 +61,7 @@ export class ListManager implements Disposable {
     this.mappings = new Mappings(this, nvim, this.config)
     this.worker = new Worker(nvim, this)
     this.ui = new UI(nvim, this.config)
-    if (workspace.isNvim && semver.gte(workspace.env.version, '0.5.0')) {
+    if (workspace.isNvim && semver.gte(workspace.env.version.split('\n', 1)[0], '0.5.0')) {
       nvim.command('hi default CocCursorTransparent ctermfg=16 ctermbg=253 guifg=#000000 guibg=#00FF00 gui=strikethrough blend=100', true)
     }
     events.on('VimResized', () => {
