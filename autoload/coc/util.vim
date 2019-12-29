@@ -145,7 +145,8 @@ endfunction
 
 function! coc#util#version()
   let c = execute('silent version')
-  return matchstr(c, 'NVIM v\zs[^\n-]*')
+  let lines = split(matchstr(c, 'NVIM v\zs[^\n-]*'))
+  return lines[0]
 endfunction
 
 function! coc#util#valid_state()

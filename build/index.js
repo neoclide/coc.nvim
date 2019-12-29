@@ -32373,7 +32373,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "3712edf331" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "937354a908" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -63748,7 +63748,7 @@ class Handler {
                 await this.applyCodeAction(actions[0]);
                 return true;
             }
-            workspace_1.default.showMessage(`Orgnize import action not found.`, 'warning');
+            workspace_1.default.showMessage(`Organize import action not found.`, 'warning');
             return false;
         }));
         commands_1.default.titles.set('editor.action.organizeImport', 'run organize import code action.');
