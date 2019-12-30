@@ -723,9 +723,7 @@ class Languages {
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet || hasAdditionalEdit
     let label = item.label.trim()
     // tslint:disable-next-line:deprecation
-    let insertTextIsHavSnippet = item.insertText && item.insertText.indexOf('$') != -1
-    let newTextIsHavSnippet = item.textEdit && item.textEdit.newText && item.textEdit.newText.indexOf('$') != -1
-    if (isSnippet && !insertTextIsHavSnippet && !newTextIsHavSnippet && !hasAdditionalEdit) {
+    if (isSnippet && item.insertText && item.insertText.indexOf('$') == -1 && !hasAdditionalEdit) {
       // fix wrong insert format
       isSnippet = false
       item.insertTextFormat = InsertTextFormat.PlainText
