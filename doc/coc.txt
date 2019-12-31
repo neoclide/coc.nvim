@@ -516,6 +516,11 @@ Builtin configurations:~
 	Automatically update the value of `b:coc_current_function` on
 	`CursorHold` event,  default: `false`
 
+"coc.preferences.formatOnInsertLeave":~
+
+	Trigger format on type when insert leave by send \n to the server.
+	Default: `false`
+
 "coc.preferences.formatOnSaveFiletypes":~
 
 	Filetypes that should run format on save.,  default: `[]`
