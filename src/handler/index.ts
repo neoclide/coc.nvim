@@ -63,6 +63,7 @@ interface Preferences {
   triggerSignatureHelp: boolean
   triggerSignatureWait: number
   formatOnType: boolean
+  formatOnInsertLeave: boolean
   hoverTarget: string
   previewAutoClose: boolean
   bracketEnterImprove: boolean
@@ -203,6 +204,7 @@ export default class Handler {
     }, null, this.disposables)
 
     events.on('InsertLeave', async bufnr => {
+      if (!this.preferences.formatOnInsertLeave) return
       await wait(30)
       if (workspace.insertMode) return
       await this.onCharacterType('\n', bufnr, true)
@@ -1209,6 +1211,7 @@ export default class Handler {
       signatureFloatMaxWidth: signatureConfig.get<number>('floatMaxWidth', 80),
       signatureHideOnChange: signatureConfig.get<boolean>('hideOnTextChange', false),
       formatOnType: config.get<boolean>('formatOnType', false),
+      formatOnInsertLeave: config.get<boolean>('formatOnInsertLeave', false),
       bracketEnterImprove: config.get<boolean>('bracketEnterImprove', true),
       previewAutoClose: config.get<boolean>('previewAutoClose', false),
       currentFunctionSymbolAutoUpdate: config.get<boolean>('currentFunctionSymbolAutoUpdate', false),

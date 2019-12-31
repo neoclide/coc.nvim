@@ -804,6 +804,11 @@
         "type": "string"
       }
     },
+    "coc.preferences.formatOnInsertLeave": {
+      "type": "boolean",
+      "description": "Trigger format on type when insert leave by send \n to the server.",
+      "default": false
+    },
     "coc.preferences.enableFloatHighlight": {
       "type": "boolean",
       "description": "Enable highlight for floating window.",
