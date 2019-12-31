@@ -30,14 +30,6 @@ export * from './client'
 
 declare var v8debug: any
 
-export interface SpawnOptions {
-  cwd?: string
-  stdio?: string | string[]
-  env?: any
-  detached?: boolean
-  shell?: boolean
-}
-
 export interface Executable {
   command: string
   args?: string[]

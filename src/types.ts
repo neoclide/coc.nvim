@@ -337,7 +337,7 @@ export interface LanguageServerConfig {
   enable: boolean
   args?: string[]
   cwd?: string
-  env?: string[]
+  env?: any
   // socket port
   port?: number
   host?: string
