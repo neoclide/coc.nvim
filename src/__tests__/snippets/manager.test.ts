@@ -66,15 +66,13 @@ describe('snippet provider', () => {
 
   it('should update placeholder on placeholder update', async () => {
     await helper.createDocument()
-    await nvim.setLine('bar')
-    await snippetManager.insertSnippet('${1:foo} $1 ')
-    let line = await nvim.line
-    expect(line).toBe('foo foo bar')
+    // await nvim.setLine('bar')
+    await snippetManager.insertSnippet('$1\n${1/,/,\\n/g}')
     await helper.wait(60)
-    await nvim.input('update')
+    await nvim.input('a,b')
     await helper.wait(200)
-    line = await nvim.line
-    expect(line).toBe('update update bar')
+    let lines = await nvim.call('getline', [1, '$'])
+    expect(lines).toEqual(['a,b', 'a,', 'b'])
   })
 
   it('should adjust cursor position on update', async () => {

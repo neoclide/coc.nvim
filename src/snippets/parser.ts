@@ -1034,8 +1034,11 @@ export class SnippetParser {
         transform.appendChild(new Text(escaped))
         continue
       }
-
       if (this._parseFormatString(transform) || this._parseAnything(transform)) {
+        let text = transform.children[0] as Text
+        if (text && text.value && text.value.indexOf('\\n') !== -1) {
+          text.value = text.value.replace(/\\n/g, '\n')
+        }
         continue
       }
       return false
@@ -1150,7 +1153,8 @@ export class SnippetParser {
 
   private _parseAnything(marker: Marker): boolean {
     if (this._token.type !== TokenType.EOF) {
-      marker.appendChild(new Text(this._scanner.tokenText(this._token)))
+      let text = this._scanner.tokenText(this._token)
+      marker.appendChild(new Text(text))
       this._accept(undefined)
       return true
     }
