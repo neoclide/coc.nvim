@@ -429,6 +429,7 @@ export class Completion implements Disposable {
   private async onInsertEnter(bufnr: number): Promise<void> {
     if (!this.config.triggerAfterInsertEnter) return
     let document = workspace.getDocument(bufnr)
+    if (!document) return
     await document.patchChange()
     if (!document) return
     let cursor = await this.nvim.call('coc#util#cursor')
