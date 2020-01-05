@@ -48,7 +48,7 @@
         "rootPatterns": {
           "type": "array",
           "default": [],
-          "description": "Root patterns used for reoslve rootPath from current file, default to workspace root",
+          "description": "Root patterns used to resolve rootPath from current file, default to workspace root",
           "items": {
             "type": "string"
           }
