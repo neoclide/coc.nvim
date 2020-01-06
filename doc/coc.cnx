@@ -1760,7 +1760,7 @@ Q: 	我想用 ale 插件显示错误提示。
 
 A: 	在配置文件中添加：
 >
-	"coc.preferences.diagnostic.displayByAle": true,
+	"diagnostic.displayByAle": true,
 <
 ------------------------------------------------------------------------------
 
@@ -1769,7 +1769,7 @@ Q: 	我想使用 codeLens 特性。
 A: 	CodeLens 特性需要支持虚拟文本特性的 neovim 版本，默认状态是关闭的。
 	如需启用，需在配置文件中添加：
 >
-	  "coc.preferences.codeLens.enable": true,
+	  "codeLens.enable": true,
 <
 ------------------------------------------------------------------------------
 
