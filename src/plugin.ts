@@ -46,6 +46,9 @@ export default class Plugin extends EventEmitter {
     this.addMethod('codeActionRange', (start, end, only) => {
       return this.handler.codeActionRange(start, end, only)
     })
+    this.addMethod('currentWorkspacePath', () => {
+        return workspace.rootPath
+    })
     this.addMethod('rootPatterns', bufnr => {
       let doc = workspace.getDocument(bufnr)
       if (!doc) return null
