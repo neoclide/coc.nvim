@@ -659,7 +659,7 @@ export default class Handler {
     }
     let ranges = await languages.provideFoldingRanges(document.textDocument, {})
     if (ranges == null) {
-      workspace.showMessage('no range provider found', 'warning')
+      workspace.showMessage('no folding range provider found', 'warning')
       return false
     }
     if (!ranges || ranges.length == 0) {
