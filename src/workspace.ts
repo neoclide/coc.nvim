@@ -1657,6 +1657,7 @@ augroup end`
         patterns.push(...rootPatterns)
       }
     }
+    if (patterns.length) return distinct(patterns)
     patterns = patterns.concat(this.rootPatterns.get(filetype) || [])
     return patterns.length ? distinct(patterns) : null
   }
