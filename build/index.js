@@ -23282,7 +23282,7 @@ augroup end`;
         if (patternType == types_1.PatternType.LanguageServer)
             return this.getServerRootPatterns(document.filetype);
         const preferences = this.getConfiguration('coc.preferences', uri);
-        return preferences.get('rootPatterns', ['.vim', '.git', '.hg', '.projections.json']).slice();
+        return preferences.get('rootPatterns', ['.git', '.hg', '.projections.json']).slice();
     }
     async renameCurrent() {
         let { nvim } = this;
@@ -23701,7 +23701,7 @@ class Configurations {
                 else {
                     model.setValue(s, value);
                 }
-                if (!this.workspaceConfigFile && this._proxy) {
+                if (!this.workspaceConfigFile && this._proxy && target == types_1.ConfigurationTarget.Workspace) {
                     let file = this.workspaceConfigFile = this._proxy.workspaceConfigFile;
                     if (!fs_1.default.existsSync(file)) {
                         let folder = path_1.default.dirname(file);
@@ -33979,6 +33979,10 @@ class SnippetParser {
                 continue;
             }
             if (this._parseFormatString(transform) || this._parseAnything(transform)) {
+                let text = transform.children[0];
+                if (text && text.value && text.value.indexOf('\\n') !== -1) {
+                    text.value = text.value.replace(/\\n/g, '\n');
+                }
                 continue;
             }
             return false;
@@ -34084,7 +34088,8 @@ class SnippetParser {
     }
     _parseAnything(marker) {
         if (this._token.type !== 14 /* EOF */) {
-            marker.appendChild(new Text(this._scanner.tokenText(this._token)));
+            let text = this._scanner.tokenText(this._token);
+            marker.appendChild(new Text(text));
             this._accept(undefined);
             return true;
         }
@@ -34855,6 +34860,8 @@ class Completion {
         if (!this.config.triggerAfterInsertEnter)
             return;
         let document = workspace_1.default.getDocument(bufnr);
+        if (!document)
+            return;
         await document.patchChange();
         if (!document)
             return;
@@ -57710,7 +57717,7 @@ class ListManager {
         this.mappings = new mappings_1.default(this, nvim, this.config);
         this.worker = new worker_1.default(nvim, this);
         this.ui = new ui_1.default(nvim, this.config);
-        if (workspace_1.default.isNvim && semver_1.default.gte(workspace_1.default.env.version, '0.5.0')) {
+        if (workspace_1.default.isNvim && semver_1.default.gte(workspace_1.default.env.version.split('\n', 1)[0], '0.5.0')) {
             nvim.command('hi default CocCursorTransparent ctermfg=16 ctermbg=253 guifg=#000000 guibg=#00FF00 gui=strikethrough blend=100', true);
         }
         events_1.default.on('VimResized', () => {
@@ -63692,6 +63699,8 @@ class Handler {
             }
         }, null, this.disposables);
         events_1.default.on('InsertLeave', async (bufnr) => {
+            if (!this.preferences.formatOnInsertLeave)
+                return;
             await util_1.wait(30);
             if (workspace_1.default.insertMode)
                 return;
@@ -64166,7 +64175,7 @@ class Handler {
         }
         let ranges = await languages_1.default.provideFoldingRanges(document.textDocument, {});
         if (ranges == null) {
-            workspace_1.default.showMessage('no range provider found', 'warning');
+            workspace_1.default.showMessage('no folding range provider found', 'warning');
             return false;
         }
         if (!ranges || ranges.length == 0) {
@@ -64741,6 +64750,7 @@ class Handler {
             signatureFloatMaxWidth: signatureConfig.get('floatMaxWidth', 80),
             signatureHideOnChange: signatureConfig.get('hideOnTextChange', false),
             formatOnType: config.get('formatOnType', false),
+            formatOnInsertLeave: config.get('formatOnInsertLeave', false),
             bracketEnterImprove: config.get('bracketEnterImprove', true),
             previewAutoClose: config.get('previewAutoClose', false),
             currentFunctionSymbolAutoUpdate: config.get('currentFunctionSymbolAutoUpdate', false),
