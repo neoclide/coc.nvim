@@ -533,7 +533,7 @@ Builtin configurations:~
 
 	Root patterns to resolve workspaceFolder from parent folders of opened
 	files, resolved from up to down.,  default:
-	`[".vim",".git",".hg",".projections.json"]`
+	`[".git",".hg",".projections.json"]`
 
 "coc.preferences.watchmanPath":~
 

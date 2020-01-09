@@ -816,7 +816,7 @@
     },
     "coc.preferences.rootPatterns": {
       "type": "array",
-      "default": [".vim", ".git", ".hg", ".projections.json"],
+      "default": [".git", ".hg", ".projections.json"],
       "description": "Root patterns to resolve workspaceFolder from parent folders of opened files, resolved from up to down.",
       "items": {
         "type": "string"
