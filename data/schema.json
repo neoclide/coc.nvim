@@ -464,6 +464,11 @@
       "description": "Invalid character for strip valid word when inserting text of complete item.",
       "default": [" ", "(", "<", "{", "[", "\r", "\n"]
     },
+    "suggest.asciiCharactersOnly": {
+      "type": "boolean",
+      "description": "Suggest ASCII characters only",
+      "default": false
+    },
     "diagnostic.enable": {
       "type": "boolean",
       "description": "Set to false to disable diagnostic display",

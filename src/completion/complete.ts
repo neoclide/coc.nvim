@@ -174,7 +174,7 @@ export default class Complete {
     })
     let now = Date.now()
     let { bufnr } = this.option
-    let { snippetIndicator, removeDuplicateItems, fixInsertedWord } = this.config
+    let { snippetIndicator, removeDuplicateItems, fixInsertedWord, asciiCharactersOnly } = this.config
     let followPart = (!fixInsertedWord || cid == 0) ? '' : this.getFollowPart()
     if (results.length == 0) return []
     // max score of high priority source
@@ -189,6 +189,9 @@ export default class Complete {
       for (let idx = 0; idx < items.length; idx++) {
         let item = items[idx]
         let { word } = item
+        if (asciiCharactersOnly && !/^[\x00-\x7F]*$/.test(word)) {
+          continue
+        }
         if ((!item.dup || source == 'tabnine') && words.has(word)) continue
         if (removeDuplicateItems && !item.isSnippet && words.has(word)) continue
         let filterText = item.filterText || item.word
