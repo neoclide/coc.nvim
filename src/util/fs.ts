@@ -130,6 +130,9 @@ export function getFileLineCount(filepath: string): Promise<number> {
 }
 
 export function readFileLines(fullpath: string, start: number, end: number): Promise<string[]> {
+  if (!fs.existsSync(fullpath)) {
+    return Promise.reject(new Error(`file does not exist: ${fullpath}`))
+  }
   let res: string[] = []
   const rl = readline.createInterface({
     input: fs.createReadStream(fullpath, { encoding: 'utf8' }),
@@ -159,6 +162,9 @@ export function readFileLines(fullpath: string, start: number, end: number): Pro
 }
 
 export function readFileLine(fullpath: string, count: number): Promise<string> {
+  if (!fs.existsSync(fullpath)) {
+    return Promise.reject(new Error(`file does not exist: ${fullpath}`))
+  }
   const rl = readline.createInterface({
     input: fs.createReadStream(fullpath, { encoding: 'utf8' }),
     crlfDelay: Infinity,
