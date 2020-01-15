@@ -144,6 +144,7 @@ export class Completion implements Disposable {
       localityBonus: getConfig<boolean>('localityBonus', true),
       highPrioritySourceLimit: getConfig<number>('highPrioritySourceLimit', null),
       lowPrioritySourceLimit: getConfig<number>('lowPrioritySourceLimit', null),
+      asciiCharactersOnly: getConfig<boolean>('asciiCharactersOnly', false)
     }
   }
 

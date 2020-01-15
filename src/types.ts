@@ -595,6 +595,7 @@ export interface CompleteConfig {
   lowPrioritySourceLimit: number
   removeDuplicateItems: boolean
   defaultSortMethod: string
+  asciiCharactersOnly: boolean
 }
 
 export interface WorkspaceConfiguration {
