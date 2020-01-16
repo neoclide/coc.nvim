@@ -202,7 +202,6 @@ function! coc#list#create(position, height, name, numberSelect)
     setl number
   else
     setl nonumber
-    setl foldcolumn=2
   endif
   return [bufnr('%'), win_getid()]
 endfunction
