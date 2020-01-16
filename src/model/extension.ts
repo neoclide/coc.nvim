@@ -21,9 +21,10 @@ export interface Info {
   name?: string
 }
 
-function registryUrl(scope = ''): string {
+function registryUrl(scope = 'coc.nvim'): string {
   const result = rc('npm', { registry: 'https://registry.npmjs.org/' })
-  return result[`${scope}:registry`] || result.config_registry || result.registry
+  const registry = result[`${scope}:registry`] || result.config_registry || result.registry as string
+  return registry.endsWith('/') ? registry : registry + '/'
 }
 
 export default class ExtensionManager {
