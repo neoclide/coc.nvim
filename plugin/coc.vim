@@ -13,10 +13,6 @@ if get(g:, 'coc_start_at_startup', 1) && !s:is_gvim
   call coc#rpc#start_server()
 endif
 
-function! CocCurrentWorkspacePath()
-  return coc#rpc#request('currentWorkspacePath',[])
-endfunction
-
 function! CocAction(...) abort
   return coc#rpc#request('CocAction', a:000)
 endfunction
