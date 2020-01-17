@@ -419,7 +419,9 @@ export default class Plugin extends EventEmitter {
           return await this.cursors.addRanges(args[1])
         case 'currentWorkspacePath':
          return workspace.rootPath
-        default:
+        case 'workspaceInitialized':
+         return workspace.initialized
+       default:
           workspace.showMessage(`unknown action ${args[0]}`, 'error')
       }
     } catch (e) {
