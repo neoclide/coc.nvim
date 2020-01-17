@@ -1,4 +1,4 @@
-import { Diagnostic, Emitter, Event } from 'vscode-languageserver-protocol'
+import { Diagnostic, Emitter, Event, Position } from 'vscode-languageserver-protocol'
 import { DiagnosticCollection } from '../types'
 import { URI } from 'vscode-uri'
 import { emptyRange } from '../util/position'
@@ -45,7 +45,10 @@ export default class Collection implements DiagnosticCollection {
     uri = URI.parse(uri).toString()
     if (diagnostics) {
       diagnostics.forEach(o => {
-        if (emptyRange(o.range)) {
+        let { range } = o
+        range.start = range.start || Position.create(0, 0)
+        range.end = range.end || Position.create(1, 0)
+        if (emptyRange(range)) {
           o.range.end = {
             line: o.range.end.line,
             character: o.range.end.character + 1

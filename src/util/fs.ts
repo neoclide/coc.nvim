@@ -130,6 +130,9 @@ export function getFileLineCount(filepath: string): Promise<number> {
 }
 
 export function readFileLines(fullpath: string, start: number, end: number): Promise<string[]> {
+  if (!fs.existsSync(fullpath)) {
+    return Promise.reject(new Error(`file does not exist: ${fullpath}`))
+  }
   let res: string[] = []
   const rl = readline.createInterface({
     input: fs.createReadStream(fullpath, { encoding: 'utf8' }),
@@ -159,6 +162,9 @@ export function readFileLines(fullpath: string, start: number, end: number): Pro
 }
 
 export function readFileLine(fullpath: string, count: number): Promise<string> {
+  if (!fs.existsSync(fullpath)) {
+    return Promise.reject(new Error(`file does not exist: ${fullpath}`))
+  }
   const rl = readline.createInterface({
     input: fs.createReadStream(fullpath, { encoding: 'utf8' }),
     crlfDelay: Infinity,
@@ -183,7 +189,7 @@ export function readFileLine(fullpath: string, count: number): Promise<string> {
 }
 
 export async function writeFile(fullpath: string, content: string): Promise<void> {
-  await util.promisify(fs.writeFile)(fullpath, content, 'utf8')
+  await util.promisify(fs.writeFile)(fullpath, content, {encoding: 'utf8', mode: 0o640})
 }
 
 export function validSocket(path: string): Promise<boolean> {

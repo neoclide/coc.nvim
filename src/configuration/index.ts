@@ -244,7 +244,7 @@ export default class Configurations {
         } else {
           model.setValue(s, value)
         }
-        if (!this.workspaceConfigFile && this._proxy) {
+        if (target == ConfigurationTarget.Workspace && !this.workspaceConfigFile && this._proxy) {
           let file = this.workspaceConfigFile = this._proxy.workspaceConfigFile
           if (!fs.existsSync(file)) {
             let folder = path.dirname(file)

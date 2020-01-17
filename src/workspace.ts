@@ -1489,7 +1489,7 @@ augroup end`
     if (patternType == PatternType.Buffer) return document.getVar('root_patterns', []) || []
     if (patternType == PatternType.LanguageServer) return this.getServerRootPatterns(document.filetype)
     const preferences = this.getConfiguration('coc.preferences', uri)
-    return preferences.get<string[]>('rootPatterns', ['.vim', '.git', '.hg', '.projections.json']).slice()
+    return preferences.get<string[]>('rootPatterns', ['.git', '.hg', '.projections.json']).slice()
   }
 
   public async renameCurrent(): Promise<void> {
