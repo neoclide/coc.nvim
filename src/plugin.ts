@@ -417,6 +417,8 @@ export default class Plugin extends EventEmitter {
           return await handler.getWordEdit()
         case 'addRanges':
           return await this.cursors.addRanges(args[1])
+        case 'currentWorkspacePath':
+         return workspace.rootPath
         default:
           workspace.showMessage(`unknown action ${args[0]}`, 'error')
       }
