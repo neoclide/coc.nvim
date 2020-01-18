@@ -853,6 +853,14 @@
       "description": "Set to true to enable format on type",
       "default": false
     },
+    "coc.preferences.formatOnTypeFiletypes": {
+      "type": "array",
+      "default": [],
+      "description": "Filetypes that should run format on typing. Only take effect when `coc.preferences.formatOnType` set `true`",
+      "items": {
+        "type": "string"
+      }
+    },
     "coc.preferences.highlightTimeout": {
       "type": "integer",
       "default": 500,

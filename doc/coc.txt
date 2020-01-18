@@ -564,6 +564,12 @@ Builtin configurations:~
 
 	Set to true to enable format on type,  default: `false`
 
+"coc.preferences.formatOnTypeFiletypes":~
+
+	Filetypes that should run format on typing,  default: `[]`
+
+	Note: only take effect when `coc.preferences.formatOnType` set `true`
+
 "coc.preferences.snippets.enable":~
 
 	Set to false to disable snippets support.,  default: `true`

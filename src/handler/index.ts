@@ -63,6 +63,7 @@ interface Preferences {
   triggerSignatureHelp: boolean
   triggerSignatureWait: number
   formatOnType: boolean
+  formatOnTypeFiletypes: string[]
   formatOnInsertLeave: boolean
   hoverTarget: string
   previewAutoClose: boolean
@@ -803,6 +804,11 @@ export default class Handler {
     let doc = workspace.getDocument(bufnr)
     if (!doc || doc.paused) return
     if (!languages.hasOnTypeProvider(ch, doc.textDocument)) return
+    const filetypes = this.preferences.formatOnTypeFiletypes
+    if (filetypes.length && !filetypes.includes(doc.filetype)) {
+      // Only check formatOnTypeFiletypes when set, avoid breaking change
+      return
+    }
     let position = await workspace.getCursorPosition()
     let origLine = doc.getline(position.line)
     let { changedtick, dirty } = doc
@@ -1211,6 +1217,7 @@ export default class Handler {
       signatureFloatMaxWidth: signatureConfig.get<number>('floatMaxWidth', 80),
       signatureHideOnChange: signatureConfig.get<boolean>('hideOnTextChange', false),
       formatOnType: config.get<boolean>('formatOnType', false),
+      formatOnTypeFiletypes: config.get('formatOnTypeFiletypes', []),
       formatOnInsertLeave: config.get<boolean>('formatOnInsertLeave', false),
       bracketEnterImprove: config.get<boolean>('bracketEnterImprove', true),
       previewAutoClose: config.get<boolean>('previewAutoClose', false),
