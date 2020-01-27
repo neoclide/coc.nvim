@@ -4,7 +4,7 @@ import { URI } from 'vscode-uri'
 import which from 'which'
 import languages from '../../languages'
 import Document from '../../model/document'
-import { ListContext, ListItem } from '../../types'
+import { ListContext, ListItem, ListArgument } from '../../types'
 import { runCommand } from '../../util'
 import { writeFile } from '../../util/fs'
 import workspace from '../../workspace'
@@ -12,9 +12,23 @@ import LocationList from './location'
 import { getSymbolKind } from '../../util/convert'
 const logger = require('../../util/logger')('list-symbols')
 
+function getFilterText(s: DocumentSymbol | SymbolInformation, args: {[key: string]: string | boolean}): string {
+    let result = s.name
+    const kind = getSymbolKind(s.kind)
+    if (args.kind) {
+        result += ` ${kind}`
+    }
+
+    return result;
+}
+
 export default class Outline extends LocationList {
   public readonly description = 'symbols of current document'
   public name = 'outline'
+  public options: ListArgument[] = [{
+    name: '-kind',
+    description: 'filters also by kind',
+  }]
 
   public async loadItems(context: ListContext): Promise<ListItem[]> {
     let buf = await context.window.buffer
@@ -23,6 +37,7 @@ export default class Outline extends LocationList {
     let config = this.getConfig()
     let ctagsFilestypes = config.get<string[]>('ctagsFilestypes', [])
     let symbols: DocumentSymbol[] | SymbolInformation[] | null
+    let args = this.parseArguments(context.args)
     if (ctagsFilestypes.indexOf(document.filetype) == -1) {
       symbols = await languages.getDocumentSymbol(document.textDocument)
     }
@@ -38,7 +53,7 @@ export default class Outline extends LocationList {
           let location = Location.create(document.uri, s.selectionRange)
           items.push({
             label: `${' '.repeat(level * 2)}${s.name}\t[${kind}]\t${s.range.start.line + 1}`,
-            filterText: s.name,
+            filterText: getFilterText(s, args),
             location
           })
           if (s.children && s.children.length) {
@@ -62,7 +77,7 @@ export default class Outline extends LocationList {
         }
         items.push({
           label: `${s.name} [${kind}] ${s.location.range.start.line + 1}`,
-          filterText: `${s.name}`,
+          filterText: getFilterText(s, args),
           location: s.location
         })
       }
