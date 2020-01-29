@@ -19,7 +19,7 @@ function getFilterText(s: DocumentSymbol | SymbolInformation, args: {[key: strin
         result += ` ${kind}`
     }
 
-    return result;
+    return result
 }
 
 export default class Outline extends LocationList {
