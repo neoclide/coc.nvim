@@ -46,6 +46,7 @@ export interface KeymapOption {
 }
 
 export interface Autocmd {
+  pattern: string | undefined
   event: string | string[]
   arglist?: string[]
   request?: boolean
