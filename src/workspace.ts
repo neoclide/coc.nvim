@@ -1213,7 +1213,7 @@ export class Workspace implements IWorkspace {
     for (let [id, autocmd] of this.autocmds.entries()) {
       let args = autocmd.arglist && autocmd.arglist.length ? ', ' + autocmd.arglist.join(', ') : ''
       let event = Array.isArray(autocmd.event) ? autocmd.event.join(',') : autocmd.event
-      let pattern = '*'
+      let pattern = autocmd.pattern !== undefined ? autocmd.pattern : '*'
       if (/\buser\b/i.test(event)) {
         pattern = ''
       }
