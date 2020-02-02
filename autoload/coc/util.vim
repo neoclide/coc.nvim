@@ -406,9 +406,6 @@ function! coc#util#get_complete_option()
     return
   endif
   let synname = synIDattr(synID(pos[1], l:start, 1),"name")
-  if !synname
-    let synname = ''
-  endif
   return {
         \ 'word': matchstr(line[l:start : ], '^\k\+'),
         \ 'input': input,
