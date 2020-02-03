@@ -545,6 +545,11 @@
       "default": true,
       "description": "Enable signs for diagnostics."
     },
+    "diagnostic.enableHiglightLineNumber": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable higlighting line numbers for diagnostics."
+    },
     "diagnostic.enableMessage": {
       "type": "string",
       "default": "always",

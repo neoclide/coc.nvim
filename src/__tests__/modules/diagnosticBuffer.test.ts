@@ -10,6 +10,7 @@ const config: DiagnosticConfig = {
   joinMessageLines: false,
   checkCurrentLine: false,
   enableSign: true,
+  enableHighlightLineNumber: true,
   maxWindowHeight: 8,
   maxWindowWidth: 80,
   enableMessage: 'always',
