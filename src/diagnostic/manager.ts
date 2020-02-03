@@ -140,14 +140,14 @@ export class DiagnosticManager implements Disposable {
     }, null, this.disposables)
     let { errorSign, warningSign, infoSign, hintSign } = this.config
     nvim.pauseNotification()
-    let nvimCocErrorSign = `sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`;
-    let nvimCocWarningSign = `sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`;
+    let nvimCocErrorSign = `sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`
+    let nvimCocWarningSign = `sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`
     if (this.config.enableHighlightLineNumber) {
-      nvimCocErrorSign += ' numhl=CocErrorSign';
-      nvimCocWarningSign += ' numhl=CocWarningSign';
+      nvimCocErrorSign += ' numhl=CocErrorSign'
+      nvimCocWarningSign += ' numhl=CocWarningSign'
     }
-    nvim.command(nvimCocErrorSign);
-    nvim.command(nvimCocWarningSign);
+    nvim.command(nvimCocErrorSign)
+    nvim.command(nvimCocWarningSign)
     nvim.command(`sign define CocInfo    text=${infoSign}    linehl=CocInfoLine  texthl=CocInfoSign`, true)
     nvim.command(`sign define CocHint    text=${hintSign}    linehl=CocHintLine  texthl=CocHintSign`, true)
     if (this.config.virtualText && workspace.isNvim) {
