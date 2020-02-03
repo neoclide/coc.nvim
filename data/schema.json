@@ -258,6 +258,10 @@
       "type": "boolean",
       "default": true
     },
+    "https.rejectUnauthorized": {
+      "type": "boolean",
+      "default": true
+    },
     "npm.binPath": {
       "type": "string",
       "default": "npm",

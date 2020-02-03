@@ -1,11 +1,13 @@
 import { http, https } from 'follow-redirects'
 import fs from 'fs'
-import { RequestOptions, ServerResponse } from 'http'
+import { ServerResponse } from 'http'
+import { RequestOptions } from 'https'
 import mkdirp from 'mkdirp'
 import path from 'path'
 import tar from 'tar'
 import { parse } from 'url'
 import { DownloadOptions } from '../types'
+import workspace from '../workspace'
 import { getAgent } from './fetch'
 
 /**
@@ -15,6 +17,7 @@ import { getAgent } from './fetch'
  * @param {DownloadOptions} options contains dest folder and optional onProgress callback
  */
 export default function download(url: string, options: DownloadOptions): Promise<void> {
+  const rejectUnauthorized = workspace.getConfiguration('https').get<boolean>('rejectUnauthorized', true)
   let { dest, onProgress } = options
   if (!dest || !path.isAbsolute(dest)) {
     throw new Error(`Expect absolute file path for dest option.`)
@@ -30,6 +33,7 @@ export default function download(url: string, options: DownloadOptions): Promise
     path: endpoint.path,
     protocol: url.startsWith('https') ? 'https:' : 'http:',
     agent,
+    rejectUnauthorized,
     headers: {
       'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64)'
     }
