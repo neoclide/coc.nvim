@@ -142,7 +142,7 @@ export class DiagnosticManager implements Disposable {
     nvim.pauseNotification()
     let nvimCocErrorSign = `sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`
     let nvimCocWarningSign = `sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`
-    if (this.config.enableHighlightLineNumber) {
+    if (workspace.isNvim && this.config.enableHighlightLineNumber) {
       nvimCocErrorSign += ' numhl=CocErrorSign'
       nvimCocWarningSign += ' numhl=CocWarningSign'
     }
