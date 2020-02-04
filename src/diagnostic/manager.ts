@@ -15,6 +15,7 @@ const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
   enableSign: boolean
+  enableHighlightLineNumber: boolean
   checkCurrentLine: boolean
   enableMessage: string
   virtualText: boolean
@@ -139,8 +140,14 @@ export class DiagnosticManager implements Disposable {
     }, null, this.disposables)
     let { errorSign, warningSign, infoSign, hintSign } = this.config
     nvim.pauseNotification()
-    nvim.command(`sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`, true)
-    nvim.command(`sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`, true)
+    let nvimCocErrorSign = `sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`
+    let nvimCocWarningSign = `sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`
+    if (this.config.enableHighlightLineNumber) {
+      nvimCocErrorSign += ' numhl=CocErrorSign'
+      nvimCocWarningSign += ' numhl=CocWarningSign'
+    }
+    nvim.command(nvimCocErrorSign, true)
+    nvim.command(nvimCocWarningSign, true)
     nvim.command(`sign define CocInfo    text=${infoSign}    linehl=CocInfoLine  texthl=CocInfoSign`, true)
     nvim.command(`sign define CocHint    text=${hintSign}    linehl=CocHintLine  texthl=CocHintSign`, true)
     if (this.config.virtualText && workspace.isNvim) {
@@ -529,6 +536,7 @@ export class DiagnosticManager implements Disposable {
       virtualTextSrcId: workspace.createNameSpace('diagnostic-virtualText'),
       checkCurrentLine: getConfig<boolean>('checkCurrentLine', false),
       enableSign: getConfig<boolean>('enableSign', true),
+      enableHighlightLineNumber: getConfig<boolean>('enableHighlightLineNumber', true),
       maxWindowHeight: getConfig<number>('maxWindowHeight', 10),
       maxWindowWidth: getConfig<number>('maxWindowWidth', 80),
       enableMessage: getConfig<string>('enableMessage', 'always'),

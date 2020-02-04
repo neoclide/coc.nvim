@@ -545,6 +545,11 @@
       "default": true,
       "description": "Enable signs for diagnostics."
     },
+    "diagnostic.enableHighlightLineNumber": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable highlighting line numbers for diagnostics."
+    },
     "diagnostic.enableMessage": {
       "type": "string",
       "default": "always",
