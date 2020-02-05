@@ -4,7 +4,12 @@ import fs from 'fs'
 import util from 'util'
 import mkdirp from 'mkdirp'
 const isWindows = process.platform == 'win32'
-const root = isWindows ? path.join(os.homedir(), 'AppData/Local/coc') : path.join(os.homedir(), '.config/coc')
+const envPath = process.env.COC_CONFIG_PATH
+const root = envPath
+  ? envPath
+  : isWindows
+  ? path.join(os.homedir(), 'AppData/Local/coc')
+  : path.join(os.homedir(), '.config/coc')
 
 /**
  * Mru - manage string items as lines in mru file.
