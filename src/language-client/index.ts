@@ -426,7 +426,7 @@ export class LanguageClient extends BaseLanguageClient {
       let command: Executable = json as Executable
       let args = command.args || []
       let options = Object.assign({}, command.options)
-      options.env = options.env ? Object.assign(options.env, process.env) : process.env
+      options.env = options.env ? Object.assign({}, options.env, process.env) : process.env
       options.cwd = options.cwd || serverWorkingDir
       let cmd = json.command
       if (cmd.startsWith('~')) {
