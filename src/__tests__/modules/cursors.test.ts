@@ -171,7 +171,7 @@ describe('cursors#onchange', () => {
     let doc = await setup()
     await doc.buffer.setLines(['prepend'], { start: 0, end: 0, strictIndexing: false })
     doc.forceSync()
-    await helper.wait(100)
+    await helper.wait(200)
     let n = rangeCount()
     expect(n).toBe(5)
     await nvim.call('cursor', [2, 1])
