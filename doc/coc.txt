@@ -861,7 +861,7 @@ g:coc_user_config 				*g:coc_user_config*
 
 g:coc_extension_root 				*g:coc_extension_root*
 
-			Deprecated: use *g:coc_data_home* instead.
+			Deprecated: use `g:coc_data_home` instead.
 
 			Location that coc extensions would be installed to,
 			empty to use default location:

@@ -390,7 +390,7 @@ g:coc_user_config 				*g:coc_user_config*
 
 g:coc_extension_root 				*g:coc_extension_root*
 
-			已废弃：使用 *g:coc_data_home* 代替
+			已废弃：使用 `g:coc_data_home` 代替
 
 			自定义插件安装根目录，为空时使用默认地址。
 
