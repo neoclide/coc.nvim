@@ -372,6 +372,19 @@ function! coc#util#get_config_home()
   endif
 endfunction
 
+function! coc#util#get_data_home()
+  if !empty(get(g:, 'coc_data_home', ''))
+    return g:coc_data_home
+  endif
+  if exists('$XDG_CONFIG_HOME')
+    return resolve($XDG_CONFIG_HOME."/coc")
+  endif
+  if s:is_win
+    return resolve($HOME.'/AppData/Local/coc')
+  endif
+  return resolve($HOME.'/.config/coc')
+endfunction
+
 function! coc#util#get_input()
   let pos = getcurpos()
   let line = getline('.')
@@ -720,11 +733,7 @@ function! coc#util#extension_root() abort
   endif
   let dir = get(g:, 'coc_extension_root', '')
   if empty(dir)
-    if s:is_win
-      let dir = $HOME.'/AppData/Local/coc/extensions'
-    else
-      let dir = $HOME.'/.config/coc/extensions'
-    endif
+    let dir = coc#util#get_data_home().'/extensions'
   endif
   return dir
 endfunction
