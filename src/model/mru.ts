@@ -1,10 +1,7 @@
 import path from 'path'
-import os from 'os'
 import fs from 'fs'
 import util from 'util'
 import mkdirp from 'mkdirp'
-const isWindows = process.platform == 'win32'
-const root = isWindows ? path.join(os.homedir(), 'AppData/Local/coc') : path.join(os.homedir(), '.config/coc')
 
 /**
  * Mru - manage string items as lines in mru file.
@@ -17,7 +14,7 @@ export default class Mru {
    * @param {string} base? optional directory name, default to config root of coc.nvim
    */
   constructor(private name: string, base?: string) {
-    this.file = path.join(base || root, name)
+    this.file = path.join(base || process.env.COC_DATA_HOME, name)
   }
 
   /**

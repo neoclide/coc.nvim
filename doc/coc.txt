@@ -867,6 +867,8 @@ g:coc_user_config 				*g:coc_user_config*
 
 g:coc_extension_root 				*g:coc_extension_root*
 
+			Deprecated: use `g:coc_data_home` instead.
+
 			Location that coc extensions would be installed to,
 			empty to use default location:
 			Windows:
@@ -1035,7 +1037,20 @@ g:coc_cursors_activated				*g:coc_cursors_activated*
 g:coc_config_home				*g:coc_config_home*
 
 			Configure the directory which will be used to look
-			for coc-settings.json and install extensions.
+			for `coc-settings.json`, default:
+			Windows:
+				`~/AppData/Local/nvim`
+			Other:
+				`~/.config/nvim`
+
+g:coc_data_home					*g:coc_data_home*
+
+			Configure the directory which will be used to for coc
+			data files(extensions, mru and so on), default:
+			Windows:
+				`~/AppData/Local/coc`
+			Other:
+				`~/.config/coc`
 
 ------------------------------------------------------------------------------
 
@@ -1199,6 +1214,11 @@ coc#util#job_command()
 coc#util#get_config_home()
 
 	Get the config directory that contains the user's coc-settings.json.
+
+						*coc#util#get_data_home()*
+coc#util#get_data_home()
+
+	Get `coc` data directory.
 
 						*coc#util#install()*
 coc#util#install([{config}])
