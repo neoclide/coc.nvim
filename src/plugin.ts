@@ -14,6 +14,7 @@ import { Autocmd, OutputChannel, PatternType } from './types'
 import Cursors from './cursors'
 import clean from './util/clean'
 import workspace from './workspace'
+import languages from './languages'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -139,6 +140,12 @@ export default class Plugin extends EventEmitter {
       for (let folder of folders) {
         await extensions.loadExtension(folder)
       }
+    })
+    this.addMethod('workspaceSymbols', async (input: string, bufnr?: number) => {
+      if (!bufnr) bufnr = await nvim.eval('bufnr("%")') as number
+      let document = workspace.getDocument(bufnr)
+      if (!document) return
+      return await languages.getWorkspaceSymbols(document.textDocument, input)
     })
     workspace.onDidChangeWorkspaceFolders(() => {
       nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)

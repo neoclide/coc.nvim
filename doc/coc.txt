@@ -1581,6 +1581,11 @@ Available Actions ~
 	Get workspaceEdit of current word, language server used when possible,
 	extract word from current buffer as fallback.
 
+"workspaceSymbols" {input} [{bufnr}] 		 *coc-action-workspaceSymbols*
+
+	Get workspace symbols from {input} and optional {bufnr} (use current
+	bufnr when empty).
+
 ------------------------------------------------------------------------------
 COMMANDS 					*coc-commands*
 
