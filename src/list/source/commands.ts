@@ -21,6 +21,10 @@ export default class CommandsList extends BasicList {
       await commandManager.executeCommand(cmd)
       await commandManager.addRecent(cmd)
     })
+    this.addAction('append', async item => {
+      let { cmd } = item.data
+      await nvim.feedKeys(`:CocCommand ${cmd} `, 'n', false)
+    })
   }
 
   public async loadItems(_context: ListContext): Promise<ListItem[]> {
