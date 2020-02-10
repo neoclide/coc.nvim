@@ -731,6 +731,11 @@ function! coc#util#extension_root() abort
   if !empty($COC_TEST)
     return s:root.'/src/__tests__/extensions'
   endif
+  let dir = get(g:, 'coc_data_home', '')
+  if !empty(dir)
+    return dir.'/extensions'
+  endif
+
   let dir = get(g:, 'coc_extension_root', '')
   if empty(dir)
     let dir = coc#util#get_data_home().'/extensions'
