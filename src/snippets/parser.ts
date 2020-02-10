@@ -455,8 +455,13 @@ export class Variable extends TransformableMarker {
       if (previous && previous instanceof Text) {
         let ms = previous.value.match(/\n([ \t]*)$/)
         if (ms) {
-          let newLines = value.split('\n').map((s, i) => {
-            return i == 0 ? s : ms[1] + s.replace(/^\s*/, '')
+          let lines = value.split('\n')
+          let indents = lines.filter(s => s.length > 0).map(s => s.match(/^\s*/)[0])
+          let minIndent = indents.length == 0 ? '' :
+            indents.reduce((p, c) => p.length < c.length ? p : c)
+          let newLines = lines.map((s, i) => {
+            return i == 0 || s.length == 0 || !s.startsWith(minIndent) ? s :
+              ms[1] + s.slice(minIndent.length)
           })
           value = newLines.join('\n')
         }
