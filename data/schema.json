@@ -258,6 +258,10 @@
       "type": "boolean",
       "default": true
     },
+    "https.rejectUnauthorized": {
+      "type": "boolean",
+      "default": true
+    },
     "npm.binPath": {
       "type": "string",
       "default": "npm",
@@ -540,6 +544,11 @@
       "type": "boolean",
       "default": true,
       "description": "Enable signs for diagnostics."
+    },
+    "diagnostic.enableHighlightLineNumber": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable highlighting line numbers for diagnostics."
     },
     "diagnostic.enableMessage": {
       "type": "string",
@@ -852,6 +861,14 @@
       "type": "boolean",
       "description": "Set to true to enable format on type",
       "default": false
+    },
+    "coc.preferences.formatOnTypeFiletypes": {
+      "type": "array",
+      "default": [],
+      "description": "Filetypes that should run format on typing. Only take effect when `coc.preferences.formatOnType` set `true`",
+      "items": {
+        "type": "string"
+      }
     },
     "coc.preferences.highlightTimeout": {
       "type": "integer",
