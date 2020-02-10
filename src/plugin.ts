@@ -141,12 +141,6 @@ export default class Plugin extends EventEmitter {
         await extensions.loadExtension(folder)
       }
     })
-    this.addMethod('workspaceSymbols', async (input: string, bufnr?: number) => {
-      if (!bufnr) bufnr = await nvim.eval('bufnr("%")') as number
-      let document = workspace.getDocument(bufnr)
-      if (!document) return
-      return await languages.getWorkspaceSymbols(document.textDocument, input)
-    })
     workspace.onDidChangeWorkspaceFolders(() => {
       nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
     })
@@ -378,6 +372,13 @@ export default class Plugin extends EventEmitter {
         case 'workspaceSymbols':
           this.nvim.command('CocList -I symbols', true)
           return
+        case 'getWorkspaceSymbols': {
+          let bufnr = args[2]
+          if (!bufnr) bufnr = await this.nvim.eval('bufnr("%")') as number
+          let document = workspace.getDocument(bufnr)
+          if (!document) return
+          return await languages.getWorkspaceSymbols(document.textDocument, args[1])
+        }
         case 'formatSelected':
           return await handler.documentRangeFormatting(args[1])
         case 'format':
@@ -425,7 +426,7 @@ export default class Plugin extends EventEmitter {
         case 'addRanges':
           return await this.cursors.addRanges(args[1])
         case 'currentWorkspacePath':
-         return workspace.rootPath
+          return workspace.rootPath
         default:
           workspace.showMessage(`unknown action ${args[0]}`, 'error')
       }
