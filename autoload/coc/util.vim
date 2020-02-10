@@ -734,6 +734,8 @@ function! coc#util#extension_root() abort
   let dir = get(g:, 'coc_extension_root', '')
   if empty(dir)
     let dir = coc#util#get_data_home().'/extensions'
+  else
+    echohl WarningMsg | echon "g:coc_extension_root has been deprecated, use g:coc_data_home instead" | echohl None
   endif
   return dir
 endfunction
