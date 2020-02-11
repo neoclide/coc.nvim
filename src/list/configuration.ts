@@ -4,6 +4,7 @@ import { Disposable } from 'vscode-languageserver-protocol'
 
 export const validKeys = [
   '<esc>',
+  '<space>',
   '<tab>',
   '<s-tab>',
   '<bs>',
@@ -107,7 +108,7 @@ export default class ListConfiguration {
     if (validKeys.indexOf(key) !== -1) return key
     let find = validKeys.find(s => s.toLowerCase() == key.toLowerCase())
     if (find) return find
-    workspace.showMessage(`Configured key "${key}" invalid.`, 'error')
+    workspace.showMessage(`Configured key "${key}" not supported.`, 'error')
     return null
   }
 }

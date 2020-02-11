@@ -162,7 +162,9 @@ export default class Mappings {
       if (key.length == 1) {
         res.set(key, value)
       } else if (key.startsWith('<') && key.endsWith('>')) {
-        if (validKeys.indexOf(key) != -1) {
+        if (key.toLowerCase() == '<space>') {
+          res.set(' ', value)
+        } else if (validKeys.indexOf(key) != -1) {
           res.set(key, value)
         } else {
           let find = false
