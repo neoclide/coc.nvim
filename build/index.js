@@ -23000,7 +23000,7 @@ class Workspace {
         for (let [id, autocmd] of this.autocmds.entries()) {
             let args = autocmd.arglist && autocmd.arglist.length ? ', ' + autocmd.arglist.join(', ') : '';
             let event = Array.isArray(autocmd.event) ? autocmd.event.join(',') : autocmd.event;
-            let pattern = '*';
+            let pattern = autocmd.pattern !== undefined ? autocmd.pattern : '*';
             if (/\buser\b/i.test(event)) {
                 pattern = '';
             }
@@ -23701,7 +23701,7 @@ class Configurations {
                 else {
                     model.setValue(s, value);
                 }
-                if (!this.workspaceConfigFile && this._proxy && target == types_1.ConfigurationTarget.Workspace) {
+                if (target == types_1.ConfigurationTarget.Workspace && !this.workspaceConfigFile && this._proxy) {
                     let file = this.workspaceConfigFile = this._proxy.workspaceConfigFile;
                     if (!fs_1.default.existsSync(file)) {
                         let folder = path_1.default.dirname(file);
@@ -26108,6 +26108,9 @@ function getFileLineCount(filepath) {
 }
 exports.getFileLineCount = getFileLineCount;
 function readFileLines(fullpath, start, end) {
+    if (!fs_1.default.existsSync(fullpath)) {
+        return Promise.reject(new Error(`file does not exist: ${fullpath}`));
+    }
     let res = [];
     const rl = readline_1.default.createInterface({
         input: fs_1.default.createReadStream(fullpath, { encoding: 'utf8' }),
@@ -26137,6 +26140,9 @@ function readFileLines(fullpath, start, end) {
 }
 exports.readFileLines = readFileLines;
 function readFileLine(fullpath, count) {
+    if (!fs_1.default.existsSync(fullpath)) {
+        return Promise.reject(new Error(`file does not exist: ${fullpath}`));
+    }
     const rl = readline_1.default.createInterface({
         input: fs_1.default.createReadStream(fullpath, { encoding: 'utf8' }),
         crlfDelay: Infinity,
@@ -26161,7 +26167,7 @@ function readFileLine(fullpath, count) {
 }
 exports.readFileLine = readFileLine;
 async function writeFile(fullpath, content) {
-    await util_1.default.promisify(fs_1.default.writeFile)(fullpath, content, 'utf8');
+    await util_1.default.promisify(fs_1.default.writeFile)(fullpath, content, { encoding: 'utf8', mode: 0o640 });
 }
 exports.writeFile = writeFile;
 function validSocket(path) {
@@ -29868,12 +29874,9 @@ exports.default = FileSystemWatcher;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const path_1 = tslib_1.__importDefault(__webpack_require__(20));
-const os_1 = tslib_1.__importDefault(__webpack_require__(14));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
 const util_1 = tslib_1.__importDefault(__webpack_require__(12));
 const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(180));
-const isWindows = process.platform == 'win32';
-const root = isWindows ? path_1.default.join(os_1.default.homedir(), 'AppData/Local/coc') : path_1.default.join(os_1.default.homedir(), '.config/coc');
 /**
  * Mru - manage string items as lines in mru file.
  */
@@ -29884,7 +29887,7 @@ class Mru {
      */
     constructor(name, base) {
         this.name = name;
-        this.file = path_1.default.join(base || root, name);
+        this.file = path_1.default.join(base || process.env.COC_DATA_HOME, name);
     }
     /**
      * Load iems from mru file
@@ -32128,6 +32131,7 @@ const types_1 = __webpack_require__(190);
 const cursors_1 = tslib_1.__importDefault(__webpack_require__(408));
 const clean_1 = tslib_1.__importDefault(__webpack_require__(410));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(188));
+const languages_1 = tslib_1.__importDefault(__webpack_require__(316));
 const logger = __webpack_require__(2)('plugin');
 class Plugin extends events_1.EventEmitter {
     constructor(nvim) {
@@ -32373,7 +32377,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "e0dba4d93e" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "98a709ec3f" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -32483,6 +32487,15 @@ class Plugin extends events_1.EventEmitter {
                 case 'workspaceSymbols':
                     this.nvim.command('CocList -I symbols', true);
                     return;
+                case 'getWorkspaceSymbols': {
+                    let bufnr = args[2];
+                    if (!bufnr)
+                        bufnr = await this.nvim.eval('bufnr("%")');
+                    let document = workspace_1.default.getDocument(bufnr);
+                    if (!document)
+                        return;
+                    return await languages_1.default.getWorkspaceSymbols(document.textDocument, args[1]);
+                }
                 case 'formatSelected':
                     return await handler.documentRangeFormatting(args[1]);
                 case 'format':
@@ -32529,6 +32542,8 @@ class Plugin extends events_1.EventEmitter {
                     return await handler.getWordEdit();
                 case 'addRanges':
                     return await this.cursors.addRanges(args[1]);
+                case 'currentWorkspacePath':
+                    return workspace_1.default.rootPath;
                 default:
                     workspace_1.default.showMessage(`unknown action ${args[0]}`, 'error');
             }
@@ -33465,8 +33480,13 @@ class Variable extends TransformableMarker {
             if (previous && previous instanceof Text) {
                 let ms = previous.value.match(/\n([ \t]*)$/);
                 if (ms) {
-                    let newLines = value.split('\n').map((s, i) => {
-                        return i == 0 ? s : ms[1] + s.replace(/^\s*/, '');
+                    let lines = value.split('\n');
+                    let indents = lines.filter(s => s.length > 0).map(s => s.match(/^\s*/)[0]);
+                    let minIndent = indents.length == 0 ? '' :
+                        indents.reduce((p, c) => p.length < c.length ? p : c);
+                    let newLines = lines.map((s, i) => {
+                        return i == 0 || s.length == 0 || !s.startsWith(minIndent) ? s :
+                            ms[1] + s.slice(minIndent.length);
                     });
                     value = newLines.join('\n');
                 }
@@ -34549,6 +34569,7 @@ class Completion {
             localityBonus: getConfig('localityBonus', true),
             highPrioritySourceLimit: getConfig('highPrioritySourceLimit', null),
             lowPrioritySourceLimit: getConfig('lowPrioritySourceLimit', null),
+            asciiCharactersOnly: getConfig('asciiCharactersOnly', false)
         };
     }
     async startCompletion(option) {
@@ -38788,9 +38809,10 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(188));
 const download_1 = tslib_1.__importDefault(__webpack_require__(266));
 const fetch_1 = tslib_1.__importDefault(__webpack_require__(305));
 const logger = __webpack_require__(2)('model-extension');
-function registryUrl(scope = '') {
+function registryUrl(scope = 'coc.nvim') {
     const result = rc_1.default('npm', { registry: 'https://registry.npmjs.org/' });
-    return result[`${scope}:registry`] || result.config_registry || result.registry;
+    const registry = result[`${scope}:registry`] || result.config_registry || result.registry;
+    return registry.endsWith('/') ? registry : registry + '/';
 }
 class ExtensionManager {
     constructor(root) {
@@ -42013,6 +42035,7 @@ const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(180));
 const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 const tar_1 = tslib_1.__importDefault(__webpack_require__(274));
 const url_1 = __webpack_require__(265);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(188));
 const fetch_1 = __webpack_require__(305);
 /**
  * Download and extract tgz from url
@@ -42021,6 +42044,7 @@ const fetch_1 = __webpack_require__(305);
  * @param {DownloadOptions} options contains dest folder and optional onProgress callback
  */
 function download(url, options) {
+    const rejectUnauthorized = workspace_1.default.getConfiguration('https').get('rejectUnauthorized', true);
     let { dest, onProgress } = options;
     if (!dest || !path_1.default.isAbsolute(dest)) {
         throw new Error(`Expect absolute file path for dest option.`);
@@ -42037,6 +42061,7 @@ function download(url, options) {
         path: endpoint.path,
         protocol: url.startsWith('https') ? 'https:' : 'http:',
         agent,
+        rejectUnauthorized,
         headers: {
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64)'
         }
@@ -50213,8 +50238,14 @@ class DiagnosticManager {
         }, null, this.disposables);
         let { errorSign, warningSign, infoSign, hintSign } = this.config;
         nvim.pauseNotification();
-        nvim.command(`sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`, true);
-        nvim.command(`sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`, true);
+        let nvimCocErrorSign = `sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`;
+        let nvimCocWarningSign = `sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`;
+        if (workspace_1.default.isNvim && this.config.enableHighlightLineNumber) {
+            nvimCocErrorSign += ' numhl=CocErrorSign';
+            nvimCocWarningSign += ' numhl=CocWarningSign';
+        }
+        nvim.command(nvimCocErrorSign, true);
+        nvim.command(nvimCocWarningSign, true);
         nvim.command(`sign define CocInfo    text=${infoSign}    linehl=CocInfoLine  texthl=CocInfoSign`, true);
         nvim.command(`sign define CocHint    text=${hintSign}    linehl=CocHintLine  texthl=CocHintSign`, true);
         if (this.config.virtualText && workspace_1.default.isNvim) {
@@ -50612,6 +50643,7 @@ class DiagnosticManager {
             virtualTextSrcId: workspace_1.default.createNameSpace('diagnostic-virtualText'),
             checkCurrentLine: getConfig('checkCurrentLine', false),
             enableSign: getConfig('enableSign', true),
+            enableHighlightLineNumber: getConfig('enableHighlightLineNumber', true),
             maxWindowHeight: getConfig('maxWindowHeight', 10),
             maxWindowWidth: getConfig('maxWindowWidth', 80),
             enableMessage: getConfig('enableMessage', 'always'),
@@ -52036,7 +52068,10 @@ class Collection {
         uri = vscode_uri_1.URI.parse(uri).toString();
         if (diagnostics) {
             diagnostics.forEach(o => {
-                if (position_1.emptyRange(o.range)) {
+                let { range } = o;
+                range.start = range.start || vscode_languageserver_protocol_1.Position.create(0, 0);
+                range.end = range.end || vscode_languageserver_protocol_1.Position.create(1, 0);
+                if (position_1.emptyRange(range)) {
                     o.range.end = {
                         line: o.range.end.line,
                         character: o.range.end.character + 1
@@ -54312,7 +54347,7 @@ class LanguageClient extends client_1.BaseLanguageClient {
             let command = json;
             let args = command.args || [];
             let options = Object.assign({}, command.options);
-            options.env = options.env ? Object.assign(options.env, process.env) : process.env;
+            options.env = options.env ? Object.assign({}, options.env, process.env) : process.env;
             options.cwd = options.cwd || serverWorkingDir;
             let cmd = json.command;
             if (cmd.startsWith('~')) {
@@ -58452,6 +58487,7 @@ const tslib_1 = __webpack_require__(3);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(188));
 exports.validKeys = [
     '<esc>',
+    '<space>',
     '<tab>',
     '<s-tab>',
     '<bs>',
@@ -58549,7 +58585,7 @@ class ListConfiguration {
         let find = exports.validKeys.find(s => s.toLowerCase() == key.toLowerCase());
         if (find)
             return find;
-        workspace_1.default.showMessage(`Configured key "${key}" invalid.`, 'error');
+        workspace_1.default.showMessage(`Configured key "${key}" not supported.`, 'error');
         return null;
     }
 }
@@ -58872,7 +58908,10 @@ class Mappings {
                 res.set(key, value);
             }
             else if (key.startsWith('<') && key.endsWith('>')) {
-                if (configuration_1.validKeys.indexOf(key) != -1) {
+                if (key.toLowerCase() == '<space>') {
+                    res.set(' ', value);
+                }
+                else if (configuration_1.validKeys.indexOf(key) != -1) {
                     res.set(key, value);
                 }
                 else {
@@ -59308,6 +59347,10 @@ class CommandsList extends basic_1.default {
             await events_1.default.fire('Command', [cmd]);
             await commands_1.default.executeCommand(cmd);
             await commands_1.default.addRecent(cmd);
+        });
+        this.addAction('append', async (item) => {
+            let { cmd } = item.data;
+            await nvim.feedKeys(`:CocCommand ${cmd} `, 'n', false);
         });
     }
     async loadItems(_context) {
@@ -60185,11 +60228,23 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(188));
 const location_1 = tslib_1.__importDefault(__webpack_require__(374));
 const convert_1 = __webpack_require__(380);
 const logger = __webpack_require__(2)('list-symbols');
+function getFilterText(s, args) {
+    let result = s.name;
+    const kind = convert_1.getSymbolKind(s.kind);
+    if (args.kind) {
+        result += ` ${kind}`;
+    }
+    return result;
+}
 class Outline extends location_1.default {
     constructor() {
         super(...arguments);
         this.description = 'symbols of current document';
         this.name = 'outline';
+        this.options = [{
+                name: '-kind',
+                description: 'filters also by kind',
+            }];
     }
     async loadItems(context) {
         let buf = await context.window.buffer;
@@ -60199,6 +60254,7 @@ class Outline extends location_1.default {
         let config = this.getConfig();
         let ctagsFilestypes = config.get('ctagsFilestypes', []);
         let symbols;
+        let args = this.parseArguments(context.args);
         if (ctagsFilestypes.indexOf(document.filetype) == -1) {
             symbols = await languages_1.default.getDocumentSymbol(document.textDocument);
         }
@@ -60216,7 +60272,7 @@ class Outline extends location_1.default {
                     let location = vscode_languageserver_types_1.Location.create(document.uri, s.selectionRange);
                     items.push({
                         label: `${' '.repeat(level * 2)}${s.name}\t[${kind}]\t${s.range.start.line + 1}`,
-                        filterText: s.name,
+                        filterText: getFilterText(s, args),
                         location
                     });
                     if (s.children && s.children.length) {
@@ -60242,7 +60298,7 @@ class Outline extends location_1.default {
                 }
                 items.push({
                     label: `${s.name} [${kind}] ${s.location.range.start.line + 1}`,
-                    filterText: `${s.name}`,
+                    filterText: getFilterText(s, args),
                     location: s.location
                 });
             }
@@ -62727,7 +62783,7 @@ class Complete {
         });
         let now = Date.now();
         let { bufnr } = this.option;
-        let { snippetIndicator, removeDuplicateItems, fixInsertedWord } = this.config;
+        let { snippetIndicator, removeDuplicateItems, fixInsertedWord, asciiCharactersOnly } = this.config;
         let followPart = (!fixInsertedWord || cid == 0) ? '' : this.getFollowPart();
         if (results.length == 0)
             return [];
@@ -62743,6 +62799,9 @@ class Complete {
             for (let idx = 0; idx < items.length; idx++) {
                 let item = items[idx];
                 let { word } = item;
+                if (asciiCharactersOnly && !/^[\x00-\x7F]*$/.test(word)) {
+                    continue;
+                }
                 if ((!item.dup || source == 'tabnine') && words.has(word))
                     continue;
                 if (removeDuplicateItems && !item.isSnippet && words.has(word))
@@ -64320,6 +64379,11 @@ class Handler {
             return;
         if (!languages_1.default.hasOnTypeProvider(ch, doc.textDocument))
             return;
+        const filetypes = this.preferences.formatOnTypeFiletypes;
+        if (filetypes.length && !filetypes.includes(doc.filetype)) {
+            // Only check formatOnTypeFiletypes when set, avoid breaking change
+            return;
+        }
         let position = await workspace_1.default.getCursorPosition();
         let origLine = doc.getline(position.line);
         let { changedtick, dirty } = doc;
@@ -64750,6 +64814,7 @@ class Handler {
             signatureFloatMaxWidth: signatureConfig.get('floatMaxWidth', 80),
             signatureHideOnChange: signatureConfig.get('hideOnTextChange', false),
             formatOnType: config.get('formatOnType', false),
+            formatOnTypeFiletypes: config.get('formatOnTypeFiletypes', []),
             formatOnInsertLeave: config.get('formatOnInsertLeave', false),
             bracketEnterImprove: config.get('bracketEnterImprove', true),
             previewAutoClose: config.get('previewAutoClose', false),

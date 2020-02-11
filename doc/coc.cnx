@@ -390,6 +390,8 @@ g:coc_user_config 				*g:coc_user_config*
 
 g:coc_extension_root 				*g:coc_extension_root*
 
+			已废弃：使用 `g:coc_data_home` 代替
+
 			自定义插件安装根目录，为空时使用默认地址。
 
 			Windows 系统:
@@ -503,6 +505,25 @@ g:WorkspaceFolders 				*g:WorkspaceFolders*
 			当前的 workspaceFolders，用于 session 使用。
 			需添加 `set sessionoptions+=globals` 让 session 支持
 			globals 变量。
+
+g:coc_config_home				*g:coc_config_home*
+
+			设置 `coc-settings.json` 目录。默认：
+
+			Windows 系统:
+				`~/AppData/Local/nvim`
+			其它:
+				`~/.config/nvim`
+
+g:coc_data_home					*g:coc_data_home*
+
+			设置 `coc` 相关文件目录，比如 extensions, mru
+			等，默认：
+
+			Windows 系统:
+				`~/AppData/Local/coc`
+			其它:
+				`~/.config/coc`
 
 ------------------------------------------------------------------------------
 
@@ -637,6 +658,11 @@ coc#util#job_command()
 coc#util#get_config_home()
 
 	获取用户配置文件所在目录。
+
+						*coc#util#get_data_home()*
+coc#util#get_data_home()
+
+	获取 `coc` 数据目录。
 
 						*coc#util#install()*
 coc#util#install([{config}])
