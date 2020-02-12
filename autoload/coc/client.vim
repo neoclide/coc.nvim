@@ -91,6 +91,10 @@ function! s:on_exit(name, code) abort
   endif
 endfunction
 
+function! coc#client#get_client(name) abort
+  return get(s:clients, a:name, v:null)
+endfunction
+
 function! coc#client#get_channel(client)
   if s:is_vim
     return a:client['channel']
