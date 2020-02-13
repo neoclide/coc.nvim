@@ -292,8 +292,8 @@ Builtin configurations:~
 
 "diagnostic.checkCurrentLine":~
 
-	When enabled, show all diagnostics of current line instead of current
-	position.,  default: `false`
+	When enabled, show all diagnostics of current line if there are none
+	at the current position.,  default: `false`
 
 "diagnostic.messageTarget":~
 

@@ -392,10 +392,10 @@ export class DiagnosticManager implements Disposable {
     let buffer = this.buffers.find(o => o.bufnr == bufnr)
     if (!buffer) return []
     let { checkCurrentLine } = this.config
-    let diagnostics = buffer.diagnostics.filter(o => {
-      if (checkCurrentLine) return lineInRange(pos.line, o.range)
-      return positionInRange(pos, o.range) == 0
-    })
+    let diagnostics = buffer.diagnostics.filter(o => positionInRange(pos, o.range) == 0)
+    if (diagnostics.length == 0 && checkCurrentLine) {
+      diagnostics = buffer.diagnostics.filter(o => lineInRange(pos.line, o.range))
+    }
     diagnostics.sort((a, b) => a.severity - b.severity)
     return diagnostics
   }
