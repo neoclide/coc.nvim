@@ -99,6 +99,9 @@ function createSandbox(filename: string, logger: Logger): ISandbox {
     module,
     Buffer,
     console: {
+      debug: (...args: any[]) => {
+        logger.debug.apply(logger, args)
+      },
       log: (...args: any[]) => {
         logger.debug.apply(logger, args)
       },
