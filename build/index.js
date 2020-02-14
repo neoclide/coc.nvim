@@ -32377,7 +32377,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "4b8574838a" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "000c30bf03" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -49145,6 +49145,9 @@ function createSandbox(filename, logger) {
         module,
         Buffer,
         console: {
+            debug: (...args) => {
+                logger.debug.apply(logger, args);
+            },
             log: (...args) => {
                 logger.debug.apply(logger, args);
             },
@@ -50494,11 +50497,10 @@ class DiagnosticManager {
         if (!buffer)
             return [];
         let { checkCurrentLine } = this.config;
-        let diagnostics = buffer.diagnostics.filter(o => {
-            if (checkCurrentLine)
-                return position_1.lineInRange(pos.line, o.range);
-            return position_1.positionInRange(pos, o.range) == 0;
-        });
+        let diagnostics = buffer.diagnostics.filter(o => position_1.positionInRange(pos, o.range) == 0);
+        if (diagnostics.length == 0 && checkCurrentLine) {
+            diagnostics = buffer.diagnostics.filter(o => position_1.lineInRange(pos.line, o.range));
+        }
         diagnostics.sort((a, b) => a.severity - b.severity);
         return diagnostics;
     }
@@ -51421,6 +51423,7 @@ function getHiglights(lines, filetype, timeout = 500) {
             nvim.on('notification', callback);
             await nvim.callAtomic([
                 ['nvim_set_option', ['runtimepath', env.runtimepath]],
+                ['nvim_command', ''],
                 ['nvim_command', [`runtime syntax/${filetype}.vim`]],
                 ['nvim_command', [`colorscheme ${env.colorscheme || 'default'}`]],
                 ['nvim_command', [`set background=${env.background}`]],
