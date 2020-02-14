@@ -91,7 +91,11 @@ function! s:on_exit(name, code) abort
   endif
 endfunction
 
-function! s:get_channel(client)
+function! coc#client#get_client(name) abort
+  return get(s:clients, a:name, v:null)
+endfunction
+
+function! coc#client#get_channel(client)
   if s:is_vim
     return a:client['channel']
   endif
@@ -99,7 +103,7 @@ function! s:get_channel(client)
 endfunction
 
 function! s:request(method, args) dict
-  let channel = s:get_channel(self)
+  let channel = coc#client#get_channel(self)
   if empty(channel) | return '' | endif
   try
     if s:is_vim
@@ -131,7 +135,7 @@ function! s:request(method, args) dict
 endfunction
 
 function! s:notify(method, args) dict
-  let channel = s:get_channel(self)
+  let channel = coc#client#get_channel(self)
   if empty(channel) | return '' | endif
   try
     if s:is_vim
@@ -155,7 +159,7 @@ function! s:notify(method, args) dict
 endfunction
 
 function! s:request_async(method, args, cb) dict
-  let channel = s:get_channel(self)
+  let channel = coc#client#get_channel(self)
   if empty(channel) | return '' | endif
   if type(a:cb) != 2
     echohl Error | echom '['.self['name'].'] Callback should be function' | echohl None
