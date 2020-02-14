@@ -174,6 +174,7 @@ export function getHiglights(lines: string[], filetype: string, timeout = 500): 
       nvim.on('notification', callback)
       await nvim.callAtomic([
         ['nvim_set_option', ['runtimepath', env.runtimepath]],
+        ['nvim_command', [`highlight! link Normal CocFloating`]],
         ['nvim_command', [`runtime syntax/${filetype}.vim`]],
         ['nvim_command', [`colorscheme ${env.colorscheme || 'default'}`]],
         ['nvim_command', [`set background=${env.background}`]],
