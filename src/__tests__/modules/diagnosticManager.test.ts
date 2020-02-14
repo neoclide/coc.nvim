@@ -122,12 +122,21 @@ describe('diagnostic manager', () => {
   })
 
   it('should get diagnostics under corsor', async () => {
+    let config = workspace.getConfiguration('diagnostic')
     await createDocument()
     let diagnostics = await manager.getCurrentDiagnostics()
     expect(diagnostics.length).toBe(0)
     await nvim.call('cursor', [1, 4])
     diagnostics = await manager.getCurrentDiagnostics()
     expect(diagnostics.length).toBe(1)
+
+    config.update('checkCurrentLine', true)
+    diagnostics = await manager.getCurrentDiagnostics()
+    expect(diagnostics.length).toBe(1) // cursor on a diagnostic
+    await nvim.call('cursor', [1, 2])
+    diagnostics = await manager.getCurrentDiagnostics()
+    expect(diagnostics.length).toBe(2) // cursor not on a specific diagnostic
+    config.update('checkCurrentLine', false)
   })
 
   it('should jump to related position', async () => {

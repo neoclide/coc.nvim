@@ -486,7 +486,7 @@
     },
     "diagnostic.checkCurrentLine": {
       "type": "boolean",
-      "description": "When enabled, show all diagnostics of current line instead of current position.",
+      "description": "When enabled, show all diagnostics of current line if there are none at the current position.",
       "default": false
     },
     "diagnostic.messageTarget": {
