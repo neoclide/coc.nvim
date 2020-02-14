@@ -733,6 +733,7 @@ class Languages {
       abbr: label,
       menu: `[${shortcut}]`,
       kind: complete.completionKindString(item.kind, this.completionItemKindMap, this.completeConfig.defaultKindText),
+      score: item['score'] || null,
       sortText: item.sortText || null,
       filterText: item.filterText || label,
       isSnippet,
