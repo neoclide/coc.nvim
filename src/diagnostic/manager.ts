@@ -140,16 +140,26 @@ export class DiagnosticManager implements Disposable {
     }, null, this.disposables)
     let { errorSign, warningSign, infoSign, hintSign } = this.config
     nvim.pauseNotification()
-    let nvimCocErrorSign = `sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`
-    let nvimCocWarningSign = `sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`
-    if (workspace.isNvim && this.config.enableHighlightLineNumber) {
-      nvimCocErrorSign += ' numhl=CocErrorSign'
-      nvimCocWarningSign += ' numhl=CocWarningSign'
+    let signError = `sign define CocError linehl=CocErrorLine texthl=CocErrorSign`
+    let signWarning = `sign define CocWarning linehl=CocWarningLine texthl=CocWarningSign`
+    let signInfo = `sign define CocInfo linehl=CocInfoLine  texthl=CocInfoSign`
+    let signHint = `sign define CocHint linehl=CocHintLine  texthl=CocHintSign`
+    if (this.config.enableSign) {
+      signError += ` text=${errorSign}`
+      signWarning += ` text=${warningSign}`
+      signInfo += ` text=${infoSign}`
+      signHint += ` text=${hintSign}`
     }
-    nvim.command(nvimCocErrorSign, true)
-    nvim.command(nvimCocWarningSign, true)
-    nvim.command(`sign define CocInfo    text=${infoSign}    linehl=CocInfoLine  texthl=CocInfoSign`, true)
-    nvim.command(`sign define CocHint    text=${hintSign}    linehl=CocHintLine  texthl=CocHintSign`, true)
+    if (workspace.isNvim && this.config.enableHighlightLineNumber) {
+      signError += ' numhl=CocErrorSign'
+      signWarning += ' numhl=CocWarningSign'
+      signInfo += ' numhl=CocInfoSign'
+      signHint += ' numhl=CocHintSign'
+    }
+    nvim.command(signError, true)
+    nvim.command(signWarning, true)
+    nvim.command(signInfo, true)
+    nvim.command(signHint, true)
     if (this.config.virtualText && workspace.isNvim) {
       nvim.call('coc#util#init_virtual_hl', [], true)
     }

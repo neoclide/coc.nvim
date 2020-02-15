@@ -120,7 +120,7 @@ export class DiagnosticBuffer implements Disposable {
   }
 
   public addSigns(diagnostics: ReadonlyArray<Diagnostic>): void {
-    if (!this.config.enableSign) return
+    if (!this.config.enableSign && !this.config.enableHighlightLineNumber) return
     this.clearSigns()
     let { nvim, bufnr, signIds } = this
     let signId = this.config.signOffset
