@@ -79,6 +79,7 @@ describe('string test', () => {
     let res = resolveVariables('${workspace}/foo', { workspace: '/home' })
     expect(res).toBe('/home/foo')
     expect(resolveVariables('${x}', {})).toBe('${x}')
+    expect(resolveVariables('${NODE_ENV}', {})).toBe('test')
   })
 })
 

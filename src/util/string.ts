@@ -58,7 +58,7 @@ export function isTriggerCharacter(character: string): boolean {
 export function resolveVariables(str: string, variables: { [key: string]: string }): string {
   const regexp = /\$\{(.*?)\}/g
   return str.replace(regexp, (match: string, name: string) => {
-    const newValue = variables[name]
+    const newValue = variables[name] || process.env[name]
     if (typeof newValue === 'string') {
       return newValue
     }
