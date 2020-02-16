@@ -313,7 +313,7 @@ export class DiagnosticManager implements Disposable {
   }
 
   /**
-   * Jump to previouse diagnostic position
+   * Jump to previous diagnostic position
    */
   public async jumpPrevious(severity?: string): Promise<void> {
     let buffer = await this.nvim.buffer
@@ -333,7 +333,9 @@ export class DiagnosticManager implements Disposable {
         return
       }
     }
-    await workspace.moveTo(ranges[ranges.length - 1].start)
+    if (await this.nvim.getOption('wrapscan')) {
+      await workspace.moveTo(ranges[ranges.length - 1].start)
+    }
   }
 
   /**
@@ -355,7 +357,9 @@ export class DiagnosticManager implements Disposable {
         return
       }
     }
-    await workspace.moveTo(ranges[0].start)
+    if (await this.nvim.getOption('wrapscan')) {
+      await workspace.moveTo(ranges[0].start)
+    }
   }
 
   /**
