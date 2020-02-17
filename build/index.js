@@ -29385,7 +29385,7 @@ exports.isTriggerCharacter = isTriggerCharacter;
 function resolveVariables(str, variables) {
     const regexp = /\$\{(.*?)\}/g;
     return str.replace(regexp, (match, name) => {
-        const newValue = variables[name];
+        const newValue = variables[name] || process.env[name];
         if (typeof newValue === 'string') {
             return newValue;
         }
@@ -32377,7 +32377,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f60eacdced" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d57f450e8d" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -50241,16 +50241,26 @@ class DiagnosticManager {
         }, null, this.disposables);
         let { errorSign, warningSign, infoSign, hintSign } = this.config;
         nvim.pauseNotification();
-        let nvimCocErrorSign = `sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`;
-        let nvimCocWarningSign = `sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`;
-        if (workspace_1.default.isNvim && this.config.enableHighlightLineNumber) {
-            nvimCocErrorSign += ' numhl=CocErrorSign';
-            nvimCocWarningSign += ' numhl=CocWarningSign';
+        let signError = `sign define CocError linehl=CocErrorLine texthl=CocErrorSign`;
+        let signWarning = `sign define CocWarning linehl=CocWarningLine texthl=CocWarningSign`;
+        let signInfo = `sign define CocInfo linehl=CocInfoLine  texthl=CocInfoSign`;
+        let signHint = `sign define CocHint linehl=CocHintLine  texthl=CocHintSign`;
+        if (this.config.enableSign) {
+            signError += ` text=${errorSign}`;
+            signWarning += ` text=${warningSign}`;
+            signInfo += ` text=${infoSign}`;
+            signHint += ` text=${hintSign}`;
         }
-        nvim.command(nvimCocErrorSign, true);
-        nvim.command(nvimCocWarningSign, true);
-        nvim.command(`sign define CocInfo    text=${infoSign}    linehl=CocInfoLine  texthl=CocInfoSign`, true);
-        nvim.command(`sign define CocHint    text=${hintSign}    linehl=CocHintLine  texthl=CocHintSign`, true);
+        if (workspace_1.default.isNvim && this.config.enableHighlightLineNumber) {
+            signError += ' numhl=CocErrorSign';
+            signWarning += ' numhl=CocWarningSign';
+            signInfo += ' numhl=CocInfoSign';
+            signHint += ' numhl=CocHintSign';
+        }
+        nvim.command(signError, true);
+        nvim.command(signWarning, true);
+        nvim.command(signInfo, true);
+        nvim.command(signHint, true);
         if (this.config.virtualText && workspace_1.default.isNvim) {
             nvim.call('coc#util#init_virtual_hl', [], true);
         }
@@ -50407,7 +50417,7 @@ class DiagnosticManager {
         nvim.call('coc#util#preview_info', [lines, 'txt'], true);
     }
     /**
-     * Jump to previouse diagnostic position
+     * Jump to previous diagnostic position
      */
     async jumpPrevious(severity) {
         let buffer = await this.nvim.buffer;
@@ -50429,7 +50439,9 @@ class DiagnosticManager {
                 return;
             }
         }
-        await workspace_1.default.moveTo(ranges[ranges.length - 1].start);
+        if (await this.nvim.getOption('wrapscan')) {
+            await workspace_1.default.moveTo(ranges[ranges.length - 1].start);
+        }
     }
     /**
      * Jump to next diagnostic position
@@ -50450,7 +50462,9 @@ class DiagnosticManager {
                 return;
             }
         }
-        await workspace_1.default.moveTo(ranges[0].start);
+        if (await this.nvim.getOption('wrapscan')) {
+            await workspace_1.default.moveTo(ranges[0].start);
+        }
     }
     /**
      * All diagnostics of current workspace
@@ -51423,7 +51437,7 @@ function getHiglights(lines, filetype, timeout = 500) {
             nvim.on('notification', callback);
             await nvim.callAtomic([
                 ['nvim_set_option', ['runtimepath', env.runtimepath]],
-                ['nvim_command', ''],
+                ['nvim_command', [`highlight! link Normal CocFloating`]],
                 ['nvim_command', [`runtime syntax/${filetype}.vim`]],
                 ['nvim_command', [`colorscheme ${env.colorscheme || 'default'}`]],
                 ['nvim_command', [`set background=${env.background}`]],
@@ -51735,7 +51749,7 @@ class DiagnosticBuffer {
         }
     }
     addSigns(diagnostics) {
-        if (!this.config.enableSign)
+        if (!this.config.enableSign && !this.config.enableHighlightLineNumber)
             return;
         this.clearSigns();
         let { nvim, bufnr, signIds } = this;
@@ -53998,8 +54012,9 @@ function stateString(state) {
             return 'starting';
         case language_client_1.State.Stopped:
             return 'stopped';
+        default:
+            return 'unknown';
     }
-    return 'unknown';
 }
 exports.default = new ServiceManager();
 //# sourceMappingURL=services.js.map
