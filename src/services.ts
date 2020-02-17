@@ -449,8 +449,9 @@ function stateString(state: State): string {
       return 'starting'
     case State.Stopped:
       return 'stopped'
+    default:
+      return 'unknown'
   }
-  return 'unknown'
 }
 
 export default new ServiceManager()
