@@ -40,6 +40,7 @@ export interface DiagnosticConfig {
   virtualTextLines: number
   virtualTextLineSeparator: string
   filetypeMap: object
+  format?: string
 }
 
 export class DiagnosticManager implements Disposable {
@@ -455,10 +456,11 @@ export class DiagnosticManager implements Disposable {
     diagnostics.forEach(diagnostic => {
       let { source, code, severity, message } = diagnostic
       let s = getSeverityName(severity)[0]
-      let str = `[${source}${code ? ' ' + code : ''}] [${s}] ${message}`
+      const codeStr = code ? ' ' + code : ''
+      const str = config.format.replace('%source', source).replace('%code', codeStr).replace('%severity', s).replace('%message', message)
       let filetype = 'Error'
       if (ft === '') {
-        switch (diagnostic.severity) {
+        switch (severity) {
           case DiagnosticSeverity.Hint:
             filetype = 'Hint'
             break
@@ -571,6 +573,7 @@ export class DiagnosticManager implements Disposable {
       refreshAfterSave: getConfig<boolean>('refreshAfterSave', false),
       refreshOnInsertMode: getConfig<boolean>('refreshOnInsertMode', false),
       filetypeMap: getConfig<object>('filetypeMap', {}),
+      format: getConfig<string>('format', '[%source%code] [%severity] %message')
     }
     this.enabled = getConfig<boolean>('enable', true)
     if (this.config.displayByAle) {

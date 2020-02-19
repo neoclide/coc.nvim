@@ -606,6 +606,11 @@
       "description": "A map between buffer filetype and the filetype assigned to diagnostics. To syntax highlight diagnostics withs their parent buffer type use '\"default\": \"bufferType\"'",
       "default": {}
     },
+    "diagnostic.format": {
+      "type": "string",
+      "description": "Define the diagnostic format. Available parts: source, code, severity, message",
+      "default": "[%source%code] [%severity] %message"
+    },
     "signature.enable": {
       "type": "boolean",
       "description": "Enable signature help when trigger character typed, require restart service on change.",
