@@ -440,11 +440,10 @@ export class DiagnosticManager implements Disposable {
     }
     diagnostics.forEach(diagnostic => {
       let { source, code, severity, message } = diagnostic
-      let s = getSeverityName(severity)[0]
-      let str = `[${source}${code ? ' ' + code : ''}] [${s}] ${message}`
+      let str = `${message}\n[${source}${code ? ': ' + code : ''}]`
       let filetype = 'Error'
       if (ft === '') {
-        switch (diagnostic.severity) {
+        switch (severity) {
           case DiagnosticSeverity.Hint:
             filetype = 'Hint'
             break

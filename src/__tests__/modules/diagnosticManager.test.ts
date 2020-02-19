@@ -200,7 +200,7 @@ describe('diagnostic manager', () => {
     let bufnr = await nvim.call('nvim_win_get_buf', winid) as number
     let buf = nvim.createBuffer(bufnr)
     let lines = await buf.lines
-    expect(lines.length).toBe(3)
+    expect(lines).toStrictEqual(['error', '[test]', '———————', 'warning', '[test]'])
     config.update('checkCurrentLine', false)
   })
 
