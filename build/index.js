@@ -32377,7 +32377,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "d57f450e8d" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "c57062d0da" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -49516,9 +49516,9 @@ class Languages {
     registerOnTypeFormattingEditProvider(selector, provider, triggerCharacters) {
         return this.onTypeFormatManager.register(selector, provider, triggerCharacters);
     }
-    registerCompletionItemProvider(name, shortcut, languageIds, provider, triggerCharacters = [], priority) {
+    registerCompletionItemProvider(name, shortcut, languageIds, provider, triggerCharacters = [], allCommitCharacters = [], priority) {
         languageIds = typeof languageIds == 'string' ? [languageIds] : languageIds;
-        let source = this.createCompleteSource(name, shortcut, provider, languageIds, triggerCharacters, priority);
+        let source = this.createCompleteSource(name, shortcut, provider, languageIds, triggerCharacters, allCommitCharacters, priority);
         sources_1.default.addSource(source);
         logger.debug('created service source', name);
         return {
@@ -49758,7 +49758,7 @@ class Languages {
     createDiagnosticCollection(owner) {
         return manager_1.default.create(owner);
     }
-    createCompleteSource(name, shortcut, provider, languageIds, triggerCharacters, priority) {
+    createCompleteSource(name, shortcut, provider, languageIds, triggerCharacters, allCommitCharacters, priority) {
         // track them for resolve
         let completeItems = [];
         // line used for TextEdit
@@ -49912,11 +49912,8 @@ class Languages {
                 let completeItem = completeItems[item.index];
                 if (!completeItem)
                     return false;
-                let { commitCharacters } = completeItem;
-                if (commitCharacters && commitCharacters.indexOf(character) !== -1) {
-                    return true;
-                }
-                return false;
+                let commitCharacters = completeItem.commitCharacters || allCommitCharacters;
+                return commitCharacters.indexOf(character) !== -1;
             }
         };
         return source;
@@ -49998,6 +49995,7 @@ class Languages {
             abbr: label,
             menu: `[${shortcut}]`,
             kind: complete.completionKindString(item.kind, this.completionItemKindMap, this.completeConfig.defaultKindText),
+            score: item['score'] || null,
             sortText: item.sortText || null,
             filterText: item.filterText || label,
             isSnippet,
@@ -50563,10 +50561,11 @@ class DiagnosticManager {
         diagnostics.forEach(diagnostic => {
             let { source, code, severity, message } = diagnostic;
             let s = util_2.getSeverityName(severity)[0];
-            let str = `[${source}${code ? ' ' + code : ''}] [${s}] ${message}`;
+            const codeStr = code ? ' ' + code : '';
+            const str = config.format.replace('%source', source).replace('%code', codeStr).replace('%severity', s).replace('%message', message);
             let filetype = 'Error';
             if (ft === '') {
-                switch (diagnostic.severity) {
+                switch (severity) {
                     case vscode_languageserver_protocol_1.DiagnosticSeverity.Hint:
                         filetype = 'Hint';
                         break;
@@ -50680,6 +50679,7 @@ class DiagnosticManager {
             refreshAfterSave: getConfig('refreshAfterSave', false),
             refreshOnInsertMode: getConfig('refreshOnInsertMode', false),
             filetypeMap: getConfig('filetypeMap', {}),
+            format: getConfig('format', '[%source%code] [%severity] %message')
         };
         this.enabled = getConfig('enable', true);
         if (this.config.displayByAle) {
@@ -51207,12 +51207,7 @@ class FloatBuffer {
     }
     setLines() {
         let { buffer, lines, nvim, highlights } = this;
-        if (this.window) {
-            nvim.call('win_execute', [this.window.id, 'call clearmatches([])'], true);
-        }
-        else {
-            nvim.call('clearmatches', [], true);
-        }
+        nvim.call('clearmatches', this.window ? [this.window.id] : [], true);
         buffer.clearNamespace(-1, 0, -1);
         buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true);
         if (highlights.length) {
@@ -55286,6 +55281,7 @@ class CompletionItemFeature extends TextDocumentFeature {
     }
     registerLanguageProvider(options) {
         let triggerCharacters = options.triggerCharacters || [];
+        let allCommitCharacters = options.allCommitCharacters || [];
         let client = this._client;
         let provideCompletionItems = (document, position, context, token) => {
             return client
@@ -55321,7 +55317,7 @@ class CompletionItemFeature extends TextDocumentFeature {
                         : resolveCompletionItem(item, token);
                 }
                 : undefined
-        }, triggerCharacters);
+        }, triggerCharacters, allCommitCharacters);
     }
 }
 class HoverFeature extends TextDocumentFeature {
@@ -62868,7 +62864,7 @@ class Complete {
                 }
                 item.priority = priority;
                 item.abbr = item.abbr || item.word;
-                item.score = input.length ? score : 0;
+                item.score = input.length ? score * (item.score || 1) : 0;
                 item.localBonus = this.localBonus ? this.localBonus.get(filterText) || 0 : 0;
                 words.add(word);
                 if (item.isSnippet && item.word == input) {
