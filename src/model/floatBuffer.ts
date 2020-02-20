@@ -154,11 +154,7 @@ export default class FloatBuffer {
 
   public setLines(): void {
     let { buffer, lines, nvim, highlights } = this
-    if (this.window) {
-      nvim.call('win_execute', [this.window.id, 'call clearmatches([])'], true)
-    } else {
-      nvim.call('clearmatches', [], true)
-    }
+    nvim.call('clearmatches', this.window ? [this.window.id] : [], true)
     buffer.clearNamespace(-1, 0, -1)
     buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
     if (highlights.length) {
