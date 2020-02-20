@@ -1728,7 +1728,6 @@ class CompletionItemFeature extends TextDocumentFeature<
     options: CompletionRegistrationOptions
   ): Disposable {
     let triggerCharacters = options.triggerCharacters || []
-    let allCommitCharacters = options.allCommitCharacters || []
     let client = this._client
     let provideCompletionItems: ProvideCompletionItemsSignature = (
       document,
@@ -1808,8 +1807,7 @@ class CompletionItemFeature extends TextDocumentFeature<
           }
           : undefined
       },
-      triggerCharacters,
-      allCommitCharacters
+      triggerCharacters
     )
   }
 }

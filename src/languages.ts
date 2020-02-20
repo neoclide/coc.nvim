@@ -190,11 +190,10 @@ class Languages {
     languageIds: string | string[] | null,
     provider: CompletionItemProvider,
     triggerCharacters: string[] = [],
-    allCommitCharacters: string[] = [],
     priority?: number
   ): Disposable {
     languageIds = typeof languageIds == 'string' ? [languageIds] : languageIds
-    let source = this.createCompleteSource(name, shortcut, provider, languageIds, triggerCharacters, allCommitCharacters, priority)
+    let source = this.createCompleteSource(name, shortcut, provider, languageIds, triggerCharacters, priority)
     sources.addSource(source)
     logger.debug('created service source', name)
     return {
@@ -511,7 +510,6 @@ class Languages {
     provider: CompletionItemProvider,
     languageIds: string[] | null,
     triggerCharacters: string[],
-    allCommitCharacters: string[],
     priority?: number
   ): ISource {
     // track them for resolve
@@ -649,8 +647,11 @@ class Languages {
       shouldCommit: (item: VimCompleteItem, character: string): boolean => {
         let completeItem = completeItems[item.index]
         if (!completeItem) return false
-        let commitCharacters = completeItem.commitCharacters || allCommitCharacters
-        return commitCharacters.indexOf(character) !== -1
+        let { commitCharacters } = completeItem
+        if (commitCharacters && commitCharacters.indexOf(character) !== -1) {
+          return true
+        }
+        return false
       }
     }
     return source
