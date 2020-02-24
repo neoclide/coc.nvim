@@ -143,9 +143,11 @@ export default class Source implements ISource {
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
     let { disableSyntaxes } = this
-    let synname = opt.synname.toLowerCase()
-    if (disableSyntaxes && disableSyntaxes.length && disableSyntaxes.findIndex(s => synname.indexOf(s.toLowerCase()) != -1) !== -1) {
-      return false
+    if (opt.synname && disableSyntaxes && disableSyntaxes.length) {
+      let synname = (opt.synname || '').toLowerCase()
+      if (disableSyntaxes.findIndex(s => synname.indexOf(s.toLowerCase()) != -1) !== -1) {
+        return false
+      }
     }
     let fn = this.defaults['shouldComplete']
     if (fn) return await Promise.resolve(fn.call(this, opt))
