@@ -544,6 +544,10 @@ export default class Handler {
     let document = workspace.getDocument(bufnr)
     if (!document) return []
     if (!range) {
+      const position = await workspace.getCursorPosition()
+      range = document.getWordRangeAtPosition(position)
+    }
+    if (!range) {
       let lnum = await this.nvim.call('line', ['.'])
       range = {
         start: { line: lnum - 1, character: 0 },
