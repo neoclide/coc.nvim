@@ -30,10 +30,17 @@ export * from './client'
 
 declare var v8debug: any
 
+export interface ExecutableOptions {
+  cwd?: string
+  env?: any
+  detached?: boolean
+  shell?: boolean
+}
+
 export interface Executable {
   command: string
   args?: string[]
-  options?: SpawnOptions
+  options?: ExecutableOptions
 }
 
 namespace Executable {
@@ -476,6 +483,9 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeature(new DeclarationFeature(this))
     this.registerFeature(new ColorProviderFeature(this))
     this.registerFeature(new FoldingRangeFeature(this))
+    // TODO
+    // this.registerFeature(new SelectionRangeFeature(this))
+    // this.registerFeature(new ProgressFeature(this))
     if (!this.clientOptions.disableWorkspaceFolders) {
       this.registerFeature(new WorkspaceFoldersFeature(this))
     }
@@ -551,7 +561,11 @@ export class SettingMonitor {
 // Exporting proposed protocol.
 export namespace ProposedFeatures {
   export function createAll(_client: BaseLanguageClient): (StaticFeature | DynamicFeature<any>)[] {
-    let result: (StaticFeature | DynamicFeature<any>)[] = []
+    let result: (StaticFeature | DynamicFeature<any>)[] = [
+      // TODO
+      // new CallHierarchyFeature(client),
+      // new SemanticTokensFeature(client)
+    ]
     return result
   }
 }
