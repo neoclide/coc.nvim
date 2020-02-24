@@ -141,6 +141,7 @@ export default class Cursors {
       if (e.textDocument.uri != doc.uri) return
       if (doc.version - this.version == 1 || !this.ranges.length) return
       let change = e.contentChanges[0]
+      if (!('range' in change)) return
       let { original } = e
       let { text, range } = change
       // ignore change after last range

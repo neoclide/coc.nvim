@@ -120,6 +120,7 @@ export class SnippetSession {
 
   public async synchronizeUpdatedPlaceholders(change: TextDocumentContentChangeEvent): Promise<void> {
     if (!this.isActive || !this.document || this.document.version - this.version == 1) return
+    if (!('range' in change)) return
     let edit: TextEdit = { range: change.range, newText: change.text }
     let { snippet } = this
     // change outside range
