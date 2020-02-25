@@ -4,12 +4,10 @@
  * ------------------------------------------------------------------------------------------ */
 'use strict'
 
-import { SelectionRange, SelectionRangeRequest, SelectionRangeParams, SelectionRangeClientCapabilities, SelectionRangeServerCapabilities, CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, ServerCapabilities, StaticRegistrationOptions, TextDocument, TextDocumentRegistrationOptions } from 'vscode-languageserver-protocol'
+import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, SelectionRange, SelectionRangeClientCapabilities, SelectionRangeOptions, SelectionRangeParams, SelectionRangeRegistrationOptions, SelectionRangeRequest, ServerCapabilities, TextDocument } from 'vscode-languageserver-protocol'
 import languages from '../languages'
-import { ProviderResult } from '../provider'
-import * as Is from '../util/is'
+import { ProviderResult, SelectionRangeProvider } from '../provider'
 import { BaseLanguageClient, TextDocumentFeature } from './client'
-import * as UUID from './utils/uuid'
 
 function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
   if (target[key] === void 0) {
@@ -18,15 +16,15 @@ function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
   return target[key]
 }
 
+export interface ProvideSelectionRangeSignature {
+  (this: void, document: TextDocument, positions: Position[], token: CancellationToken): ProviderResult<SelectionRange[]>
+}
+
 export interface SelectionRangeProviderMiddleware {
   provideSelectionRanges?: (this: void, document: TextDocument, positions: Position[], token: CancellationToken, next: ProvideSelectionRangeSignature) => ProviderResult<SelectionRange[]>
 }
 
-export interface ProvideSelectionRangeSignature {
-  (document: TextDocument, positions: Position[], token: CancellationToken): ProviderResult<SelectionRange[]>
-}
-
-export class SelectionRangeFeature extends TextDocumentFeature<TextDocumentRegistrationOptions> {
+export class SelectionRangeFeature extends TextDocumentFeature<boolean | SelectionRangeOptions, SelectionRangeRegistrationOptions, SelectionRangeProvider> {
   constructor(client: BaseLanguageClient) {
     super(client, SelectionRangeRequest.type)
   }
@@ -36,46 +34,37 @@ export class SelectionRangeFeature extends TextDocumentFeature<TextDocumentRegis
     capability.dynamicRegistration = true
   }
 
-  public initialize(capabilities: ServerCapabilities & SelectionRangeServerCapabilities, documentSelector: DocumentSelector): void {
-    if (!capabilities.selectionRangeProvider) {
+  public initialize(capabilities: ServerCapabilities, documentSelector: DocumentSelector): void {
+    let [id, options] = this.getRegistration(documentSelector, capabilities.selectionRangeProvider)
+    if (!id || !options) {
       return
     }
-
-    const implCapabilities = capabilities.selectionRangeProvider as TextDocumentRegistrationOptions & StaticRegistrationOptions
-    const id = Is.string(implCapabilities.id) && implCapabilities.id.length > 0 ? implCapabilities.id : UUID.generateUuid()
-    const selector = implCapabilities.documentSelector || documentSelector
-    if (selector) {
-      this.register(this.messages, {
-        id,
-        registerOptions: Object.assign({}, { documentSelector: selector })
-      })
-    }
+    this.register(this.messages, { id, registerOptions: options })
   }
 
-  protected registerLanguageProvider(options: TextDocumentRegistrationOptions): Disposable {
-    let client = this._client
-    let provideSelectionRanges: ProvideSelectionRangeSignature = (document, positions, token) => {
-      const requestParams: SelectionRangeParams = {
-        textDocument: { uri: document.uri },
-        positions
-      }
-
-      return client.sendRequest(SelectionRangeRequest.type, requestParams, token).then(
-        ranges => ranges,
-        (error: any) => {
-          client.logFailedRequest(SelectionRangeRequest.type, error)
-          return Promise.resolve(null)
+  protected registerLanguageProvider(options: SelectionRangeRegistrationOptions): [Disposable, SelectionRangeProvider] {
+    const provider: SelectionRangeProvider = {
+      provideSelectionRanges: (document, positions, token) => {
+        const client = this._client
+        const provideSelectionRanges: ProvideSelectionRangeSignature = (document, positions, token) => {
+          const requestParams: SelectionRangeParams = {
+            textDocument: { uri: document.uri },
+            positions
+          }
+          return client.sendRequest(SelectionRangeRequest.type, requestParams, token).then(
+            ranges => ranges,
+            (error: any) => {
+              client.logFailedRequest(SelectionRangeRequest.type, error)
+              return Promise.resolve(null)
+            }
+          )
         }
-      )
-    }
-    let middleware = client.clientOptions.middleware!
-    return languages.registerSelectionRangeProvider(options.documentSelector!, {
-      provideSelectionRanges(document: TextDocument, positions: Position[], token: CancellationToken): ProviderResult<SelectionRange[]> {
+        const middleware = client.clientOptions.middleware!
         return middleware.provideSelectionRanges
           ? middleware.provideSelectionRanges(document, positions, token, provideSelectionRanges)
           : provideSelectionRanges(document, positions, token)
-
       }
-    })
+    }
+    return [languages.registerSelectionRangeProvider(options.documentSelector!, provider), provider]
   }
 }

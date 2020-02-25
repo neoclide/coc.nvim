@@ -4,12 +4,10 @@
  * ------------------------------------------------------------------------------------------ */
 'use strict'
 
-import { CancellationToken, ClientCapabilities, Color, ColorInformation, ColorPresentation, ColorPresentationRequest, ColorProviderOptions, Disposable, DocumentColorRequest, DocumentSelector, Range, ServerCapabilities, StaticRegistrationOptions, TextDocument, TextDocumentRegistrationOptions } from 'vscode-languageserver-protocol'
-import Languages from '../languages'
-import { ProviderResult } from '../provider'
-import * as Is from '../util/is'
+import { CancellationToken, ClientCapabilities, Color, ColorInformation, ColorPresentation, ColorPresentationRequest, Disposable, DocumentColorOptions, DocumentColorRegistrationOptions, DocumentColorRequest, DocumentSelector, Range, ServerCapabilities, TextDocument } from 'vscode-languageserver-protocol'
+import languages from '../languages'
+import { DocumentColorProvider, ProviderResult } from '../provider'
 import { BaseLanguageClient, TextDocumentFeature } from './client'
-import * as UUID from './utils/uuid'
 
 function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
   if (target[key] === void 0) {
@@ -43,7 +41,7 @@ export interface ColorProviderMiddleware {
 }
 
 export class ColorProviderFeature extends TextDocumentFeature<
-  TextDocumentRegistrationOptions
+  boolean | DocumentColorOptions, DocumentColorRegistrationOptions, DocumentColorProvider
   > {
   constructor(client: BaseLanguageClient) {
     super(client, DocumentColorRequest.type)
@@ -60,93 +58,60 @@ export class ColorProviderFeature extends TextDocumentFeature<
     capabilities: ServerCapabilities,
     documentSelector: DocumentSelector
   ): void {
-    if (!capabilities.colorProvider) {
+    let [id, options] = this.getRegistration(documentSelector, capabilities.colorProvider)
+    if (!id || !options) {
       return
     }
 
-    const implCapabilities = capabilities.colorProvider as TextDocumentRegistrationOptions &
-      StaticRegistrationOptions &
-      ColorProviderOptions
-    const id =
-      Is.string(implCapabilities.id) && implCapabilities.id.length > 0
-        ? implCapabilities.id
-        : UUID.generateUuid()
-    const selector = implCapabilities.documentSelector || documentSelector
-    if (selector) {
-      this.register(this.messages, {
-        id,
-        registerOptions: Object.assign({}, { documentSelector: selector })
-      })
-    }
+    this.register(this.messages, { id, registerOptions: options })
   }
 
   protected registerLanguageProvider(
-    options: TextDocumentRegistrationOptions
-  ): Disposable {
-    let client = this._client
-    let provideColorPresentations: ProvideColorPresentationSignature = (
-      color,
-      context,
-      token
-    ) => {
-      const requestParams = {
-        color,
-        textDocument: {
-          uri: context.document.uri
-        },
-        range: context.range
-      }
-      return client
-        .sendRequest(ColorPresentationRequest.type, requestParams, token)
-        .then(res => res, (error: any) => {
-          client.logFailedRequest(ColorPresentationRequest.type, error)
-          return Promise.resolve(null)
-        })
-    }
-    let provideDocumentColors: ProvideDocumentColorsSignature = (
-      document,
-      token
-    ) => {
-      const requestParams = {
-        textDocument: {
-          uri: document.uri
-        }
-      }
-      return client
-        .sendRequest(DocumentColorRequest.type, requestParams, token)
-        .then(res => res, (error: any) => {
-          client.logFailedRequest(ColorPresentationRequest.type, error)
-          return Promise.resolve(null)
-        })
-    }
-    let middleware = client.clientOptions.middleware!
-    return Languages.registerDocumentColorProvider(options.documentSelector!, {
-      provideColorPresentations: (
-        color: Color,
-        context: { document: TextDocument; range: Range },
-        token: CancellationToken
-      ) => {
-        return middleware.provideColorPresentations
-          ? middleware.provideColorPresentations(
+    options: DocumentColorRegistrationOptions
+  ): [Disposable, DocumentColorProvider] {
+    const provider: DocumentColorProvider = {
+      provideColorPresentations: (color, context, token) => {
+        const client = this._client
+        const provideColorPresentations: ProvideColorPresentationSignature = (color, context, token) => {
+          const requestParams = {
             color,
-            context,
-            token,
-            provideColorPresentations
+            textDocument: { uri: context.document.uri },
+            range: context.range
+          }
+          return client.sendRequest(ColorPresentationRequest.type, requestParams, token).then(
+            res => res,
+            (error: any) => {
+              client.logFailedRequest(ColorPresentationRequest.type, error)
+              return Promise.resolve(null)
+            }
           )
+        }
+        const middleware = client.clientOptions.middleware!
+        return middleware.provideColorPresentations
+          ? middleware.provideColorPresentations(color, context, token, provideColorPresentations)
           : provideColorPresentations(color, context, token)
       },
-      provideDocumentColors: (
-        document: TextDocument,
-        token: CancellationToken
-      ) => {
-        return middleware.provideDocumentColors
-          ? middleware.provideDocumentColors(
-            document,
-            token,
-            provideDocumentColors
+      provideDocumentColors: (document, token) => {
+        const client = this._client
+        const provideDocumentColors: ProvideDocumentColorsSignature = (document, token) => {
+          const requestParams = {
+            textDocument: { uri: document.uri }
+          }
+          return client.sendRequest(DocumentColorRequest.type, requestParams, token).then(
+            res => res,
+            (error: any) => {
+              client.logFailedRequest(ColorPresentationRequest.type, error)
+              return Promise.resolve(null)
+            }
           )
+        }
+        const middleware = client.clientOptions.middleware!
+        return middleware.provideDocumentColors
+          ? middleware.provideDocumentColors(document, token, provideDocumentColors)
           : provideDocumentColors(document, token)
       }
-    })
+    }
+
+    return [languages.registerDocumentColorProvider(options.documentSelector, provider), provider]
   }
 }

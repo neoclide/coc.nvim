@@ -143,7 +143,7 @@ export type ServerOptions =
   | { run: Executable; debug: Executable }
   | { run: NodeModule; debug: NodeModule }
   | NodeModule
-  | (() => Thenable<ChildProcess | StreamInfo | MessageTransports | ChildProcessInfo>)
+  | (() => Promise<ChildProcess | StreamInfo | MessageTransports | ChildProcessInfo>)
 
 export interface DeferredLanguageClientServerOptions {
   deferredOptions: () => [LanguageClientOptions, ServerOptions]
@@ -213,7 +213,7 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerProposedFeatures()
   }
 
-  public stop(): Thenable<void> {
+  public stop(): Promise<void> {
     return super.stop().then(() => {
       if (this._serverProcess) {
         let toCheck = this._serverProcess

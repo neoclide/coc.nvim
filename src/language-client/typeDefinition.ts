@@ -2,12 +2,10 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { CancellationToken, ClientCapabilities, Definition, Disposable, DocumentSelector, Position, ServerCapabilities, TextDocument, TextDocumentRegistrationOptions, TypeDefinitionRequest } from 'vscode-languageserver-protocol'
+import { CancellationToken, ClientCapabilities, Definition, Disposable, DocumentSelector, Position, ServerCapabilities, TextDocument, TypeDefinitionOptions, TypeDefinitionRegistrationOptions, TypeDefinitionRequest } from 'vscode-languageserver-protocol'
 import languages from '../languages'
-import { ProviderResult } from '../provider'
-import * as Is from '../util/is'
+import { ProviderResult, TypeDefinitionProvider } from '../provider'
 import { BaseLanguageClient, TextDocumentFeature } from './client'
-import * as UUID from './utils/uuid'
 import * as cv from './utils/converter'
 
 function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
@@ -18,7 +16,8 @@ function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
 }
 
 export interface ProvideTypeDefinitionSignature {
-  ( // tslint:disable-line
+  (
+    this: void,
     document: TextDocument,
     position: Position,
     token: CancellationToken
@@ -35,68 +34,43 @@ export interface TypeDefinitionMiddleware {
   ) => ProviderResult<Definition>
 }
 
-export class TypeDefinitionFeature extends TextDocumentFeature<TextDocumentRegistrationOptions> {
+export class TypeDefinitionFeature extends TextDocumentFeature<boolean | TypeDefinitionOptions, TypeDefinitionRegistrationOptions, TypeDefinitionProvider> {
   constructor(client: BaseLanguageClient) {
     super(client, TypeDefinitionRequest.type)
   }
 
   public fillClientCapabilities(capabilites: ClientCapabilities): void {
-    ensure(ensure(capabilites, 'textDocument')!, 'typeDefinition')!.dynamicRegistration = true
+    const typeDefinitionSupport = ensure(ensure(capabilites, 'textDocument')!, 'typeDefinition')!
+    typeDefinitionSupport.dynamicRegistration = true
+    typeDefinitionSupport.linkSupport = true
   }
 
   public initialize(capabilities: ServerCapabilities, documentSelector: DocumentSelector): void {
-    if (!capabilities.typeDefinitionProvider) {
+    const [id, options] = this.getRegistration(documentSelector, capabilities.typeDefinitionProvider)
+    if (!id || !options) {
       return
     }
-    if (capabilities.typeDefinitionProvider === true) {
-      if (!documentSelector) {
-        return
-      }
-      this.register(this.messages, {
-        id: UUID.generateUuid(),
-        registerOptions: Object.assign({}, { documentSelector })
-      })
-    } else {
-      const implCapabilities = capabilities.typeDefinitionProvider
-      const id = Is.string(implCapabilities.id) && implCapabilities.id.length > 0
-        ? implCapabilities.id
-        : UUID.generateUuid()
-      const selector = implCapabilities.documentSelector || documentSelector
-      if (selector) {
-        this.register(this.messages, {
-          id,
-          registerOptions: Object.assign({}, { documentSelector: selector })
-        })
-      }
-    }
+    this.register(this.messages, { id, registerOptions: options })
   }
 
-  protected registerLanguageProvider(options: TextDocumentRegistrationOptions): Disposable {
-    let client = this._client
-    let provideTypeDefinition: ProvideTypeDefinitionSignature = (document, position, token) => {
-      return client.sendRequest(TypeDefinitionRequest.type, cv.asTextDocumentPositionParams(document, position), token)
-        .then(res => res, error => {
-          client.logFailedRequest(TypeDefinitionRequest.type, error)
-          return Promise.resolve(null)
-        })
-    }
-    let middleware = client.clientOptions.middleware!
-    return languages.registerTypeDefinitionProvider(
-      options.documentSelector, {
-        provideTypeDefinition: (
-          document: TextDocument,
-          position: Position,
-          token: CancellationToken
-        ): ProviderResult<Definition> => {
-          return middleware.provideTypeDefinition
-            ? middleware.provideTypeDefinition(
-              document,
-              position,
-              token,
-              provideTypeDefinition
-            )
-            : provideTypeDefinition(document, position, token)
+  protected registerLanguageProvider(options: TypeDefinitionRegistrationOptions): [Disposable, TypeDefinitionProvider] {
+    const provider: TypeDefinitionProvider = {
+      provideTypeDefinition: (document, position, token) => {
+        const client = this._client
+        const provideTypeDefinition: ProvideTypeDefinitionSignature = (document, position, token) => {
+          return client.sendRequest(TypeDefinitionRequest.type, cv.asTextDocumentPositionParams(document, position), token).then(
+            res => res, error => {
+              client.logFailedRequest(TypeDefinitionRequest.type, error)
+              return Promise.resolve(null)
+            }
+          )
         }
-      })
+        const middleware = client.clientOptions.middleware!
+        return middleware.provideTypeDefinition
+          ? middleware.provideTypeDefinition(document, position, token, provideTypeDefinition)
+          : provideTypeDefinition(document, position, token)
+      }
+    }
+    return [languages.registerTypeDefinitionProvider(options.documentSelector!, provider), provider]
   }
 }

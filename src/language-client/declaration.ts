@@ -4,14 +4,13 @@
  * ------------------------------------------------------------------------------------------ */
 'use strict'
 
-import * as Is from '../util/is'
-import * as UUID from './utils/uuid'
+import { CancellationToken, ClientCapabilities, Declaration, DeclarationOptions, DeclarationRegistrationOptions, DeclarationRequest, Disposable, DocumentSelector, Position, ServerCapabilities, TextDocument, TextDocumentRegistrationOptions } from 'vscode-languageserver-protocol'
 import languages from '../languages'
-import { Declaration, ClientCapabilities, Disposable, CancellationToken, ServerCapabilities, TextDocumentRegistrationOptions, DocumentSelector, DeclarationRequest, TextDocument, Position } from 'vscode-languageserver-protocol'
+import { DeclarationProvider, ProviderResult } from '../provider'
+import * as Is from '../util/is'
+import { BaseLanguageClient, TextDocumentFeature } from './client'
 import { asTextDocumentPositionParams } from './utils/converter'
-
-import { TextDocumentFeature, BaseLanguageClient } from './client'
-import { ProviderResult } from '../provider'
+import * as UUID from './utils/uuid'
 
 function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
   if (target[key] === void 0) {
@@ -21,14 +20,14 @@ function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
 }
 
 export interface ProvideDeclarationSignature {
-  (document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Declaration>
+  (this: void, document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Declaration>
 }
 
 export interface DeclarationMiddleware {
   provideDeclaration?: (this: void, document: TextDocument, position: Position, token: CancellationToken, next: ProvideDeclarationSignature) => ProviderResult<Declaration>
 }
 
-export class DeclarationFeature extends TextDocumentFeature<TextDocumentRegistrationOptions> {
+export class DeclarationFeature extends TextDocumentFeature<boolean | DeclarationOptions, DeclarationRegistrationOptions, DeclarationProvider> {
 
   constructor(client: BaseLanguageClient) {
     super(client, DeclarationRequest.type)
@@ -41,47 +40,32 @@ export class DeclarationFeature extends TextDocumentFeature<TextDocumentRegistra
   }
 
   public initialize(capabilities: ServerCapabilities, documentSelector: DocumentSelector): void {
-    if (!capabilities.declarationProvider) {
+    const [id, options] = this.getRegistration(documentSelector, capabilities.declarationProvider)
+    if (!id || !options) {
       return
     }
-    if (capabilities.declarationProvider === true) {
-      if (!documentSelector) {
-        return
-      }
-      this.register(this.messages, {
-        id: UUID.generateUuid(),
-        registerOptions: Object.assign({}, { documentSelector })
-      })
-    } else {
-      const declCapabilities = capabilities.declarationProvider
-      const id = Is.string(declCapabilities.id) && declCapabilities.id.length > 0 ? declCapabilities.id : UUID.generateUuid()
-      const selector = declCapabilities.documentSelector || documentSelector
-      if (selector) {
-        this.register(this.messages, {
-          id,
-          registerOptions: Object.assign({}, { documentSelector: selector })
-        })
-      }
-    }
+    this.register(this.messages, { id, registerOptions: options })
   }
 
-  protected registerLanguageProvider(options: TextDocumentRegistrationOptions): Disposable {
-    let client = this._client
-    let provideDeclaration: ProvideDeclarationSignature = (document, position, token) => {
-      return client.sendRequest(DeclarationRequest.type, asTextDocumentPositionParams(document, position), token).then(
-        res => res, error => {
-          client.logFailedRequest(DeclarationRequest.type, error)
-          return Promise.resolve(null)
-        }
-      )
-    }
-    let middleware = client.clientOptions.middleware!
-    return languages.registerDeclarationProvider(options.documentSelector!, {
+  protected registerLanguageProvider(options: DeclarationRegistrationOptions): [Disposable, DeclarationProvider] {
+    const provider: DeclarationProvider = {
       provideDeclaration: (document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Declaration> => {
+        const client = this._client
+        const provideDeclaration: ProvideDeclarationSignature = (document, position, token) => {
+          return client.sendRequest(DeclarationRequest.type, asTextDocumentPositionParams(document, position), token).then(
+            res => res, error => {
+              client.logFailedRequest(DeclarationRequest.type, error)
+              return Promise.resolve(null)
+            }
+          )
+        }
+        const middleware = client.clientOptions.middleware!
         return middleware.provideDeclaration
           ? middleware.provideDeclaration(document, position, token, provideDeclaration)
           : provideDeclaration(document, position, token)
       }
-    })
+    }
+
+    return [languages.registerDeclarationProvider(options.documentSelector, provider), provider]
   }
 }
