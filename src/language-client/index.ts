@@ -7,22 +7,24 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { createClientPipeTransport, createClientSocketTransport, Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol'
+import which from 'which'
 import { ServiceStat } from '../types'
 import { disposeAll } from '../util'
 import * as Is from '../util/is'
 import { terminate } from '../util/processes'
+import { resolveVariables } from '../util/string'
 import workspace from '../workspace'
-import which from 'which'
 import { BaseLanguageClient, ClientState, DynamicFeature, LanguageClientOptions, MessageTransports, StaticFeature } from './client'
 import { ColorProviderFeature } from './colorProvider'
 import { ConfigurationFeature as PullConfigurationFeature } from './configuration'
 import { DeclarationFeature } from './declaration'
 import { FoldingRangeFeature } from './foldingRange'
 import { ImplementationFeature } from './implementation'
+import { ProgressFeature } from './progress'
 import { TypeDefinitionFeature } from './typeDefinition'
 import { WorkspaceFoldersFeature } from './workspaceFolders'
+import { SelectionRangeFeature } from './selectionRange'
 import ChildProcess = cp.ChildProcess
-import { resolveVariables } from '../util/string'
 
 const logger = require('../util/logger')('language-client-index')
 
@@ -192,7 +194,7 @@ export class LanguageClient extends BaseLanguageClient {
         // 3rd signature
         options = (arg3 as DeferredLanguageClientServerOptions).deferredOptions
         forceDebug = !!arg4
-      }else {
+      } else {
         // 2nd signature
         options = () => [arg4 as LanguageClientOptions, arg3 as ServerOptions]
         forceDebug = !!arg5
@@ -483,9 +485,8 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeature(new DeclarationFeature(this))
     this.registerFeature(new ColorProviderFeature(this))
     this.registerFeature(new FoldingRangeFeature(this))
-    // TODO
-    // this.registerFeature(new SelectionRangeFeature(this))
-    // this.registerFeature(new ProgressFeature(this))
+    this.registerFeature(new SelectionRangeFeature(this))
+    this.registerFeature(new ProgressFeature(this))
     if (!this.clientOptions.disableWorkspaceFolders) {
       this.registerFeature(new WorkspaceFoldersFeature(this))
     }
@@ -537,7 +538,7 @@ export class SettingMonitor {
       dispose: () => {
         disposeAll(this._listeners)
         if (this._client.needsStop()) {
-          this._client.stop()
+          void this._client.stop()
         }
       }
     }
@@ -553,7 +554,7 @@ export class SettingMonitor {
     if (enabled && this._client.needsStart()) {
       this._client.start()
     } else if (!enabled && this._client.needsStop()) {
-      this._client.stop()
+      void this._client.stop()
     }
   }
 }
