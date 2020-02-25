@@ -32,7 +32,7 @@ export class ImplementationFeature extends TextDocumentFeature<boolean | Impleme
   public fillClientCapabilities(capabilites: ClientCapabilities): void {
     const implementationSupport = ensure(ensure(capabilites, 'textDocument')!, 'implementation')!
     implementationSupport.dynamicRegistration = true
-    implementationSupport.linkSupport = true
+    // implementationSupport.linkSupport = true
   }
 
   public initialize(capabilities: ServerCapabilities, documentSelector: DocumentSelector): void {

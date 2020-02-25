@@ -3545,7 +3545,6 @@ export abstract class BaseLanguageClient {
       workspaceFolders: null
     }
     this.fillInitializeParams(initParams)
-    this._clientOptions.value().progressOnInitialization
     if (this._clientOptions.value().progressOnInitialization) {
       const token: ProgressToken = UUID.generateUuid()
       const part: ProgressPart = new ProgressPart(connection, token)

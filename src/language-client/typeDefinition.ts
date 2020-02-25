@@ -42,7 +42,7 @@ export class TypeDefinitionFeature extends TextDocumentFeature<boolean | TypeDef
   public fillClientCapabilities(capabilites: ClientCapabilities): void {
     const typeDefinitionSupport = ensure(ensure(capabilites, 'textDocument')!, 'typeDefinition')!
     typeDefinitionSupport.dynamicRegistration = true
-    typeDefinitionSupport.linkSupport = true
+    // typeDefinitionSupport.linkSupport = true
   }
 
   public initialize(capabilities: ServerCapabilities, documentSelector: DocumentSelector): void {
