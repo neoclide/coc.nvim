@@ -2189,7 +2189,7 @@ class DocumentSymbolFeature extends TextDocumentFeature<
     symbolCapabilities.symbolKind = {
       valueSet: SupportedSymbolKinds
     }
-    symbolCapabilities.hierarchicalDocumentSymbolSupport // TODO
+    symbolCapabilities.hierarchicalDocumentSymbolSupport = true
   }
 
   public initialize(
@@ -3991,7 +3991,7 @@ export abstract class BaseLanguageClient {
     const diagnostics = ensure(ensure(result, 'textDocument')!, 'publishDiagnostics')!
     diagnostics.relatedInformation = true
     diagnostics.versionSupport = false
-    diagnostics.tagSupport = { valueSet: [DiagnosticTag.Unnecessary, DiagnosticTag.Deprecated] } // TODO
+    diagnostics.tagSupport = { valueSet: [DiagnosticTag.Unnecessary, DiagnosticTag.Deprecated] }
     for (let feature of this._features) {
       feature.fillClientCapabilities(result)
     }
