@@ -208,8 +208,14 @@ export class DiagnosticManager implements Disposable {
   public create(name: string): DiagnosticCollection {
     let collection = new DiagnosticCollection(name)
     this.collections.push(collection)
+    // Used for refresh diagnostics on buferEnter when refreshAfterSave is true
+    // Note we can't make sure it work as expected when there're multiple sources
+    let createTime = Date.now()
+    let refreshed = false
     collection.onDidDiagnosticsChange(async uri => {
-      if (this.config.refreshAfterSave) return
+      if (this.config.refreshAfterSave &&
+        (refreshed || Date.now() - createTime > 5000)) return
+      refreshed = true
       this.refreshBuffer(uri)
     })
     collection.onDidDiagnosticsClear(uris => {
