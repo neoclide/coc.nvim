@@ -721,11 +721,14 @@ class Languages {
     let hasAdditionalEdit = item.additionalTextEdits && item.additionalTextEdits.length > 0
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet || hasAdditionalEdit
     let label = item.label.trim()
-    // tslint:disable-next-line:deprecation
-    if (isSnippet && item.insertText && item.insertText.indexOf('$') == -1 && !hasAdditionalEdit) {
-      // fix wrong insert format
-      isSnippet = false
-      item.insertTextFormat = InsertTextFormat.PlainText
+    if (isSnippet && !hasAdditionalEdit) {
+      let { insertText, textEdit } = item
+      insertText = textEdit ? textEdit.newText : insertText
+      if (insertText.indexOf('$') == -1) {
+        // fix wrong insert format
+        isSnippet = false
+        item.insertTextFormat = InsertTextFormat.PlainText
+      }
     }
     let obj: VimCompleteItem = {
       word: complete.getWord(item, opt, invalidInsertCharacters),
