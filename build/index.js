@@ -32396,7 +32396,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "29e80df4e1" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "0b7b4043c8" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -50009,19 +50009,13 @@ class Languages {
             isSnippet = false;
             item.insertTextFormat = vscode_languageserver_protocol_1.InsertTextFormat.PlainText;
         }
-        let sortText = null;
-        if (item.sortText != null) {
-            sortText = item.sortText;
-        }
-        else if (item['score'] && typeof item['score'] == 'number') {
-            sortText = 0 - item['score'];
-        }
         let obj = {
             word: complete.getWord(item, opt, invalidInsertCharacters),
             abbr: label,
             menu: `[${shortcut}]`,
             kind: complete.completionKindString(item.kind, this.completionItemKindMap, this.completeConfig.defaultKindText),
-            sortText,
+            sortText: item.sortText || null,
+            sourceScore: item['score'] || null,
             filterText: item.filterText || label,
             isSnippet,
             dup: item.data && item.data.dup == 0 ? 0 : 1
@@ -62888,7 +62882,7 @@ class Complete {
                 }
                 item.priority = priority;
                 item.abbr = item.abbr || item.word;
-                item.score = input.length ? score : 0;
+                item.score = input.length ? score * (item.sourceScore || 1) : 0;
                 item.localBonus = this.localBonus ? this.localBonus.get(filterText) || 0 : 0;
                 words.add(word);
                 if (item.isSnippet && item.word == input) {
