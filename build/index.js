@@ -32396,7 +32396,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "35fefbd1e9" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "8ab7a19355" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -50005,8 +50005,8 @@ class Languages {
         let label = item.label.trim();
         if (isSnippet && !hasAdditionalEdit) {
             let { insertText, textEdit } = item;
-            insertText = textEdit ? textEdit.newText : insertText || label;
-            if (insertText.indexOf('$') == -1) {
+            insertText = textEdit ? textEdit.newText : insertText;
+            if (insertText && insertText.indexOf('$') == -1) {
                 // fix wrong insert format
                 isSnippet = false;
                 item.insertTextFormat = vscode_languageserver_protocol_1.InsertTextFormat.PlainText;
@@ -57795,7 +57795,7 @@ class ListManager {
         this.mappings = new mappings_1.default(this, nvim, this.config);
         this.worker = new worker_1.default(nvim, this);
         this.ui = new ui_1.default(nvim, this.config);
-        // this.noGuicursor = workspace.
+        this.noGuicursor = workspace_1.default.env.guicursor == '';
         if (workspace_1.default.isNvim && semver_1.default.gte(workspace_1.default.env.version.split('\n', 1)[0], '0.5.0')) {
             nvim.command('hi default CocCursorTransparent ctermfg=16 ctermbg=253 guifg=#000000 guibg=#00FF00 gui=strikethrough blend=100', true);
         }
