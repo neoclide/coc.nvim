@@ -32396,7 +32396,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "712ead397d" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "29e80df4e1" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -50009,13 +50009,19 @@ class Languages {
             isSnippet = false;
             item.insertTextFormat = vscode_languageserver_protocol_1.InsertTextFormat.PlainText;
         }
+        let sortText = null;
+        if (item.sortText != null) {
+            sortText = item.sortText;
+        }
+        else if (item['score'] && typeof item['score'] == 'number') {
+            sortText = 0 - item['score'];
+        }
         let obj = {
             word: complete.getWord(item, opt, invalidInsertCharacters),
             abbr: label,
             menu: `[${shortcut}]`,
             kind: complete.completionKindString(item.kind, this.completionItemKindMap, this.completeConfig.defaultKindText),
-            score: item['score'] || null,
-            sortText: item.sortText || null,
+            sortText,
             filterText: item.filterText || label,
             isSnippet,
             dup: item.data && item.data.dup == 0 ? 0 : 1
@@ -53165,7 +53171,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_languageserver_types_1 = __webpack_require__(162);
 const parser_1 = __webpack_require__(235);
 const string_1 = __webpack_require__(211);
-const logger = __webpack_require__(2)('util-complete');
+// const logger = require('./logger')('util-complete')
 function getPosition(opt) {
     let { line, linenr, colnr } = opt;
     let part = string_1.byteSlice(line, 0, colnr - 1);
@@ -62880,12 +62886,9 @@ class Complete {
                         item.recentScore = 0;
                     }
                 }
-                else {
-                    delete item.sortText;
-                }
                 item.priority = priority;
                 item.abbr = item.abbr || item.word;
-                item.score = input.length ? score * (item.score || 1) : 0;
+                item.score = input.length ? score : 0;
                 item.localBonus = this.localBonus ? this.localBonus.get(filterText) || 0 : 0;
                 words.add(word);
                 if (item.isSnippet && item.word == input) {
