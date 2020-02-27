@@ -1,6 +1,4 @@
 # These are supported funding model platforms
 
-custom: https://salt.bountysource.com/teams/coc-nvim
+custom: ["https://salt.bountysource.com/teams/coc-nvim", "https://www.paypal.me/chezqm"]
 patreon: chemzqm
-bitcon: 3PSNJcTivyCFvhYzxGpyGajxsjvDC2FFXQ
-paypal: chemzqm@gmail.com
