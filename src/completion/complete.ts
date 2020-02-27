@@ -226,8 +226,6 @@ export default class Complete {
           } else {
             item.recentScore = 0
           }
-        } else {
-          delete item.sortText
         }
         item.priority = priority
         item.abbr = item.abbr || item.word
