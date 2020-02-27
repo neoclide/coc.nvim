@@ -50003,15 +50003,6 @@ class Languages {
         let hasAdditionalEdit = item.additionalTextEdits && item.additionalTextEdits.length > 0;
         let isSnippet = item.insertTextFormat === vscode_languageserver_protocol_1.InsertTextFormat.Snippet || hasAdditionalEdit;
         let label = item.label.trim();
-        if (isSnippet && !hasAdditionalEdit) {
-            let { insertText, textEdit } = item;
-            insertText = textEdit ? textEdit.newText : insertText;
-            if (insertText && insertText.indexOf('$') == -1) {
-                // fix wrong insert format
-                isSnippet = false;
-                item.insertTextFormat = vscode_languageserver_protocol_1.InsertTextFormat.PlainText;
-            }
-        }
         let obj = {
             word: complete.getWord(item, opt, invalidInsertCharacters),
             abbr: label,
@@ -57795,7 +57786,6 @@ class ListManager {
         this.mappings = new mappings_1.default(this, nvim, this.config);
         this.worker = new worker_1.default(nvim, this);
         this.ui = new ui_1.default(nvim, this.config);
-        this.noGuicursor = workspace_1.default.env.guicursor == '';
         if (workspace_1.default.isNvim && semver_1.default.gte(workspace_1.default.env.version.split('\n', 1)[0], '0.5.0')) {
             nvim.command('hi default CocCursorTransparent ctermfg=16 ctermbg=253 guifg=#000000 guibg=#00FF00 gui=strikethrough blend=100', true);
         }
