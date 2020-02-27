@@ -52,6 +52,7 @@ export class ListManager implements Disposable {
   private activated = false
   private executing = false
   private nvim: Neovim
+  private noGuicursor: boolean
 
   public init(nvim: Neovim): void {
     this.nvim = nvim
@@ -61,6 +62,7 @@ export class ListManager implements Disposable {
     this.mappings = new Mappings(this, nvim, this.config)
     this.worker = new Worker(nvim, this)
     this.ui = new UI(nvim, this.config)
+    this.noGuicursor = workspace.isNvim && workspace.env.guicursor == ''
     if (workspace.isNvim && semver.gte(workspace.env.version.split('\n', 1)[0], '0.5.0')) {
       nvim.command('hi default CocCursorTransparent ctermfg=16 ctermbg=253 guifg=#000000 guibg=#00FF00 gui=strikethrough blend=100', true)
     }
@@ -159,6 +161,9 @@ export class ListManager implements Disposable {
       this.currList = list
       this.listArgs = listArgs
       this.cwd = workspace.cwd
+      if (this.noGuicursor) {
+        await this.nvim.command('noa set guicursor=a:block')
+      }
       await this.getCharMap()
       this.history.load()
       this.window = await this.nvim.window
@@ -225,6 +230,10 @@ export class ListManager implements Disposable {
     let { nvim, ui, savedHeight } = this
     if (!this.activated) {
       nvim.call('coc#list#stop_prompt', [], true)
+      if (this.noGuicursor) {
+        await nvim.command('noa set guicursor=a:block')
+        nvim.command('noa set guicursor=', true)
+      }
       return
     }
     this.activated = false
@@ -240,6 +249,10 @@ export class ListManager implements Disposable {
       }
     }
     await nvim.resumeNotification()
+    if (this.noGuicursor) {
+      await nvim.command('noa set guicursor=a:block')
+      nvim.command('noa set guicursor=', true)
+    }
   }
 
   public async switchMatcher(): Promise<void> {

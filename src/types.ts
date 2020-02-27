@@ -231,6 +231,7 @@ export interface Terminal {
 export interface Env {
   completeOpt: string
   runtimepath: string
+  readonly guicursor: string
   readonly mode: string
   readonly floating: boolean
   readonly extensionRoot: string

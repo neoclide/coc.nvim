@@ -614,6 +614,7 @@ function! coc#util#vim_info()
         \ 'runtimepath': &runtimepath,
         \ 'locationlist': get(g:,'coc_enable_locationlist', 1),
         \ 'progpath': v:progpath,
+        \ 'guicursor': &guicursor,
         \ 'textprop': has('textprop') && has('patch-8.1.1522') && !has('nvim') ? v:true : v:false,
         \}
 endfunction

@@ -121,7 +121,7 @@ endfunction
 
 function! coc#list#start_prompt()
   if s:activated | return | endif
-  if s:gui && !empty(s:saved_cursor)
+  if s:gui
     set guicursor+=a:ver1-CocCursorTransparent/lCursor
   elseif s:is_vim
     set t_ve=
@@ -172,7 +172,7 @@ endfunction
 
 function! coc#list#stop_prompt(...)
   if get(a:, 1, 0) == 0
-    if s:gui
+    if s:gui && !empty(s:saved_cursor) 
       set guicursor+=a:ver1-Cursor/lCursor
       let &guicursor = s:saved_cursor
     elseif s:is_vim
