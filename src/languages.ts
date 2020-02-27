@@ -727,18 +727,13 @@ class Languages {
       isSnippet = false
       item.insertTextFormat = InsertTextFormat.PlainText
     }
-    let sortText: string | number | null = null
-    if (item.sortText != null) {
-      sortText = item.sortText
-    } else if (item['score'] && typeof item['score'] == 'number') {
-      sortText = 0 - item['score']
-    }
     let obj: VimCompleteItem = {
       word: complete.getWord(item, opt, invalidInsertCharacters),
       abbr: label,
       menu: `[${shortcut}]`,
       kind: complete.completionKindString(item.kind, this.completionItemKindMap, this.completeConfig.defaultKindText),
-      sortText,
+      sortText: item.sortText || null,
+      sourceScore: item['score'] || null,
       filterText: item.filterText || label,
       isSnippet,
       dup: item.data && item.data.dup == 0 ? 0 : 1

@@ -477,7 +477,8 @@ export interface VimCompleteItem {
   user_data?: string
   // it's not saved by vim, for temporarily usage
   score?: number
-  sortText?: string | number
+  sortText?: string
+  sourceScore?: number
   filterText?: string
   isSnippet?: boolean
   source?: string

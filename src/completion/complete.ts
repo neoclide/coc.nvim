@@ -229,7 +229,7 @@ export default class Complete {
         }
         item.priority = priority
         item.abbr = item.abbr || item.word
-        item.score = input.length ? score : 0
+        item.score = input.length ? score * (item.sourceScore || 1) : 0
         item.localBonus = this.localBonus ? this.localBonus.get(filterText) || 0 : 0
         words.add(word)
         if (item.isSnippet && item.word == input) {
