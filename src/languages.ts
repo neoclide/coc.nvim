@@ -721,15 +721,6 @@ class Languages {
     let hasAdditionalEdit = item.additionalTextEdits && item.additionalTextEdits.length > 0
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet || hasAdditionalEdit
     let label = item.label.trim()
-    if (isSnippet && !hasAdditionalEdit) {
-      let { insertText, textEdit } = item
-      insertText = textEdit ? textEdit.newText : insertText || label
-      if (insertText.indexOf('$') == -1) {
-        // fix wrong insert format
-        isSnippet = false
-        item.insertTextFormat = InsertTextFormat.PlainText
-      }
-    }
     let obj: VimCompleteItem = {
       word: complete.getWord(item, opt, invalidInsertCharacters),
       abbr: label,
