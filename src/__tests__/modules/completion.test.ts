@@ -448,8 +448,8 @@ describe('completion TextChangedP', () => {
           doComplete: (_opt: CompleteOption) : Promise<CompleteResult> => {
               return Promise.resolve({
                   items: [
-                      { word: 'candidate_a', score: 0.1 },
-                      { word: 'candidate_b', score: 10 },
+                      { word: 'candidate_a', sourceScore: 0.1 },
+                      { word: 'candidate_b', sourceScore: 10 },
                       { word: 'candidate_c' },
                   ]
               })
