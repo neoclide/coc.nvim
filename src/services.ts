@@ -276,7 +276,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
         })
       },
       dispose: () => {
-        client.stop()
+        void client.stop()
         onDidServiceReady.dispose()
         disposeAll(disposables)
       },
