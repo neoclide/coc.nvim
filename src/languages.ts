@@ -723,7 +723,7 @@ class Languages {
     let label = item.label.trim()
     if (isSnippet && !hasAdditionalEdit) {
       let { insertText, textEdit } = item
-      insertText = textEdit ? textEdit.newText : insertText
+      insertText = textEdit ? textEdit.newText : insertText || label
       if (insertText.indexOf('$') == -1) {
         // fix wrong insert format
         isSnippet = false
