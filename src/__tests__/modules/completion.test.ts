@@ -439,31 +439,6 @@ describe('completion TextChangedP', () => {
     expect(items[0].word).toBe('foo#abc')
   })
 
-  it('should use source-provided score', async () => {
-      let source: ISource = {
-          priority: 0,
-          enable: true,
-          name: 'source',
-          sourceType: SourceType.Service,
-          doComplete: (_opt: CompleteOption) : Promise<CompleteResult> => {
-              return Promise.resolve({
-                  items: [
-                      { word: 'candidate_a', sourceScore: 0.1 },
-                      { word: 'candidate_b', sourceScore: 10 },
-                      { word: 'candidate_c' },
-                  ]
-              })
-          },
-      }
-      disposables.push(sources.addSource(source))
-      await nvim.input('ocand')
-      await helper.waitPopup()
-      let items = await helper.getItems()
-      expect(items[0].word).toBe('candidate_b')
-      expect(items[1].word).toBe('candidate_c')
-      expect(items[2].word).toBe('candidate_a')
-  })
-
   it('should do resolve for complete item', async () => {
     let source: ISource = {
       priority: 0,

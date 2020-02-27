@@ -2,7 +2,7 @@ import { CompletionItem, CompletionItemKind, InsertTextFormat, Position } from '
 import { SnippetParser } from '../snippets/parser'
 import { CompleteOption } from '../types'
 import { byteSlice, characterIndex } from './string'
-const logger = require('./logger')('util-complete')
+// const logger = require('./logger')('util-complete')
 
 export function getPosition(opt: CompleteOption): Position {
   let { line, linenr, colnr } = opt
