@@ -97,29 +97,6 @@ function! s:OpenConfig()
   execute 'edit '.home.'/coc-settings.json'
 endfunction
 
-function! s:OpenLocalConfig()
-  let currentDir = getcwd()
-  let fsRootDir = fnamemodify($HOME, ":p:h:h:h")
-
-  if currentDir == $HOME
-    echom "Can't resolve local config from current working directory."
-    return
-  endif
-
-  while isdirectory(currentDir) && !(currentDir ==# $HOME) && !(currentDir ==# fsRootDir)
-    if isdirectory(currentDir.'/.vim')
-      execute 'edit '.currentDir.'/.vim/coc-settings.json'
-      return
-    endif
-    let currentDir = fnamemodify(currentDir, ':p:h:h')
-  endwhile
-
-  if coc#util#prompt_confirm("No local config detected, would you like to create .vim/coc-settings.json?")
-    call mkdir('.vim', 'p')
-    execute 'edit .vim/coc-settings.json'
-  endif
-endfunction
-
 function! s:AddAnsiGroups() abort
   let color_map = {}
   let colors = ['#282828', '#cc241d', '#98971a', '#d79921', '#458588', '#b16286', '#689d6a', '#a89984', '#928374']
@@ -329,7 +306,7 @@ command! -nargs=0 CocNext         :call coc#rpc#notify('listNext', [])
 command! -nargs=0 CocDisable      :call s:Disable()
 command! -nargs=0 CocEnable       :call s:Enable()
 command! -nargs=0 CocConfig       :call s:OpenConfig()
-command! -nargs=0 CocLocalConfig  :call s:OpenLocalConfig()
+command! -nargs=0 CocLocalConfig  :call coc#rpc#notify('openLocalConfig', [])
 command! -nargs=0 CocRestart      :call coc#rpc#restart()
 command! -nargs=0 CocStart        :call coc#rpc#start_server()
 command! -nargs=0 CocRebuild      :call coc#util#rebuild()

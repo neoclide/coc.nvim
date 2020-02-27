@@ -3,18 +3,18 @@ import { EventEmitter } from 'events'
 import { CodeActionKind, Location } from 'vscode-languageserver-types'
 import commandManager from './commands'
 import completion from './completion'
+import Cursors from './cursors'
 import diagnosticManager from './diagnostic/manager'
 import extensions from './extensions'
 import Handler from './handler'
+import languages from './languages'
 import listManager from './list/manager'
 import services from './services'
 import snippetManager from './snippets/manager'
 import sources from './sources'
 import { Autocmd, OutputChannel, PatternType } from './types'
-import Cursors from './cursors'
 import clean from './util/clean'
 import workspace from './workspace'
-import languages from './languages'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -121,6 +121,9 @@ export default class Plugin extends EventEmitter {
     })
     this.addMethod('snippetCancel', () => {
       snippetManager.cancel()
+    })
+    this.addMethod('openLocalConfig', async () => {
+      await workspace.openLocalConfig()
     })
     this.addMethod('openLog', () => {
       let file = logger.getLogFile()

@@ -296,6 +296,22 @@ export class Workspace implements IWorkspace {
     }
   }
 
+  public async openLocalConfig(): Promise<void> {
+    let { root } = this
+    if (root == os.homedir()) {
+      this.showMessage(`Can't create local config in home directory`, 'warning')
+      return
+    }
+    let dir = path.join(root, '.vim')
+    if (!fs.existsSync(dir)) {
+      let res = await this.showPrompt(`Would you like to create folder'${root}/.vim'?`)
+      if (!res) return
+      fs.mkdirSync(dir)
+    }
+    let uri = URI.file(path.join(dir, 'coc-settings.json')).toString()
+    await this.jumpTo(uri)
+  }
+
   public get textDocuments(): TextDocument[] {
     let docs = []
     for (let b of this.buffers.values()) {
