@@ -32396,7 +32396,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "3e42e5a757" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "656ef31e74" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -49849,7 +49849,6 @@ class Languages {
                 if (!resolving)
                     return;
                 if (hasResolve && !resolvedIndexes.has(item.index)) {
-                    logger.debug('resolving:', resolving);
                     let resolved = await Promise.resolve(provider.resolveCompletionItem(resolving, token));
                     if (token.isCancellationRequested)
                         return;
@@ -50330,9 +50329,15 @@ class DiagnosticManager {
     create(name) {
         let collection = new collection_1.default(name);
         this.collections.push(collection);
+        // Used for refresh diagnostics on buferEnter when refreshAfterSave is true
+        // Note we can't make sure it work as expected when there're multiple sources
+        let createTime = Date.now();
+        let refreshed = false;
         collection.onDidDiagnosticsChange(async (uri) => {
-            if (this.config.refreshAfterSave)
+            if (this.config.refreshAfterSave &&
+                (refreshed || Date.now() - createTime > 5000))
                 return;
+            refreshed = true;
             this.refreshBuffer(uri);
         });
         collection.onDidDiagnosticsClear(uris => {
