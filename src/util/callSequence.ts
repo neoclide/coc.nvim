@@ -21,6 +21,7 @@ export default class CallSequence {
           }
         } catch (e) {
           reject(e)
+          return
         }
       }
       this._resolved = true

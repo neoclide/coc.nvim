@@ -54,7 +54,7 @@ export class DiagnosticBuffer implements Disposable {
     let bufnr: number
     sequence.addFunction(async () => {
       let arr = await nvim.eval(`[coc#util#valid_state(), bufwinid(${this.bufnr}), bufnr("%")]`) as [number, number, number]
-      if (arr[0] == 0 || !this.document) return false
+      if (arr[0] == 0 || !this.document) return true
       winid = arr[1]
       bufnr = arr[2]
     })
