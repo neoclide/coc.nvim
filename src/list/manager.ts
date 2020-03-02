@@ -39,6 +39,7 @@ export class ListManager implements Disposable {
   public config: ListConfiguration
   public worker: Worker
   private plugTs = 0
+  private historyAddOnClose = false
   private disposables: Disposable[] = []
   private savedHeight: number
   private args: string[] = []
@@ -57,6 +58,7 @@ export class ListManager implements Disposable {
   public init(nvim: Neovim): void {
     this.nvim = nvim
     this.config = new ListConfiguration()
+    this.historyAddOnClose = this.config.get<boolean>('historyAddOnClose', true)
     this.prompt = new Prompt(nvim, this.config)
     this.history = new History(this)
     this.mappings = new Mappings(this, nvim, this.config)
@@ -226,7 +228,7 @@ export class ListManager implements Disposable {
     await ui.echoMessage(item)
   }
 
-  public async cancel(close = true): Promise<void> {
+  public async cancel(close = true, add = false): Promise<void> {
     let { nvim, ui, savedHeight } = this
     if (!this.activated) {
       nvim.call('coc#list#stop_prompt', [], true)
@@ -238,7 +240,7 @@ export class ListManager implements Disposable {
     }
     this.activated = false
     this.worker.stop()
-    this.history.add()
+    if (add || this.historyAddOnClose) this.history.add()
     nvim.pauseNotification()
     nvim.command('pclose', true)
     this.prompt.cancel()
@@ -712,7 +714,7 @@ export class ListManager implements Disposable {
     let shouldCancel = action.persist !== true && action.name != 'preview'
     try {
       if (shouldCancel) {
-        await this.cancel()
+        await this.cancel(true, true)
       } else if (action.name != 'preview') {
         await nvim.call('coc#list#stop_prompt')
       }

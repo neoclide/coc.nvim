@@ -764,6 +764,11 @@
       "default": {},
       "description": "Custom keymappings on insert mode."
     },
+    "list.historyAddOnClose": {
+      "type": "boolean",
+      "default": true,
+      "description": "If set to false, an item will be added to the prompt history only when an action is actually executed"
+    },
     "list.source.outline.ctagsFilestypes": {
       "type": "array",
       "default": [],
