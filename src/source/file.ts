@@ -26,7 +26,7 @@ export default class File extends Source {
     })
   }
 
-  private resolveEnvVariables(str: string) {
+  private resolveEnvVariables(str: string): string {
     let replaced = str
     // windows
     replaced = replaced.replace(/%([^%]+)%/g, (_, n) => process.env[n])
