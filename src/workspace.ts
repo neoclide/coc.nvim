@@ -1244,7 +1244,9 @@ augroup coc_autocmd
   ${cmds.join('\n')}
 augroup end`
     try {
-      let filepath = path.join(os.tmpdir(), `coc-${process.pid}.vim`)
+      let dir = path.join(os.tmpdir(), 'coc.nvim')
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir)
+      let filepath = path.join(dir, `coc-${process.pid}.vim`)
       await writeFile(filepath, content)
       let cmd = `source ${filepath}`
       const isCygwin = await this.nvim.eval('has("win32unix")')
