@@ -26,9 +26,22 @@ export default class File extends Source {
     })
   }
 
+  private resolveEnvVariables(str: string) {
+    let replaced = str
+    // windows
+    replaced = replaced.replace(/%([^%]+)%/g, (_, n) => process.env[n])
+    // linux and mac
+    replaced = replaced.replace(
+      /\$([A-Z_]+[A-Z0-9_]*)|\${([A-Z0-9_]*)}/gi,
+      (_, a, b) => process.env[a || b]
+    )
+    return replaced
+  }
+
   private getPathOption(opt: CompleteOption): PathOption | null {
     let { line, colnr } = opt
     let part = byteSlice(line, 0, colnr - 1)
+    part = this.resolveEnvVariables(part)
     if (!part || part.slice(-2) == '//') return null
     let ms = part.match(pathRe)
     if (ms && ms.length) {
