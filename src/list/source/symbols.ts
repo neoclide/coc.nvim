@@ -15,12 +15,19 @@ export default class Symbols extends LocationList {
   public readonly description = 'search workspace symbols'
   public readonly detail = 'Symbols list is provided by server, it works on interactive mode only.'
   public name = 'symbols'
+  public options = [{
+    name: '-k, -kind KIND',
+    description: 'Filter symbols by kind.',
+    hasValue: true
+  }]
 
   public async loadItems(context: ListContext): Promise<ListItem[]> {
     let buf = await context.window.buffer
     let document = workspace.getDocument(buf.id)
     if (!document) return null
     let { input } = context
+    let args = this.parseArguments(context.args)
+    let filterKind = args.kind ? (args.kind as string).toLowerCase() : ''
     if (!context.options.interactive) {
       throw new Error('Symbols only works on interactive mode')
     }
@@ -31,6 +38,9 @@ export default class Symbols extends LocationList {
     let items: ListItem[] = []
     for (let s of symbols) {
       let kind = getSymbolKind(s.kind)
+      if (filterKind && kind.toLowerCase() != filterKind) {
+        continue
+      }
       let file = URI.parse(s.location.uri).fsPath
       if (isParentFolder(workspace.cwd, file)) {
         file = path.relative(workspace.cwd, file)
