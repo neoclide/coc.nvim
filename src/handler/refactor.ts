@@ -400,6 +400,7 @@ export default class Refactor {
     }
     if (this.changing) return
     let { uri } = e.textDocument
+    if (!('range' in e.contentChanges[0])) return
     let { range, text } = e.contentChanges[0]
     let filepath = URI.parse(uri).fsPath
     let fileItem = this.fileItems.find(o => o.filepath == filepath)
@@ -515,6 +516,7 @@ export default class Refactor {
     let { fileItems } = this
     if (!fileItems.length) return
     let change = e.contentChanges[0]
+    if (!('range' in change)) return
     let { original } = e
     if (change.range.end.line < 2) return
     doc.buffer.setOption('modified', true, true)

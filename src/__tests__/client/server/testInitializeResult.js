@@ -20,7 +20,7 @@ connection.onInitialize((params) => {
   assert.equal(params.capabilities.textDocument.completion.completionItem.preselectSupport, true);
   assert.equal(params.capabilities.textDocument.signatureHelp.signatureInformation.parameterInformation.labelOffsetSupport, true);
   assert.equal(params.capabilities.textDocument.definition.linkSupport, undefined);
-  // assert.equal(params.capabilities.textDocument.declaration.linkSupport, undefined);
+  assert.equal(params.capabilities.textDocument.declaration.linkSupport, undefined);
   assert.equal(params.capabilities.textDocument.implementation.linkSupport, undefined);
   assert.equal(params.capabilities.textDocument.typeDefinition.linkSupport, undefined);
   assert.equal(params.capabilities.textDocument.rename.prepareSupport, true);

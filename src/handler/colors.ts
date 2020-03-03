@@ -56,7 +56,6 @@ export default class Colors {
       if (workspace.insertMode) return
       let doc = workspace.getDocument(textDocument.uri)
       if (doc && doc.bufnr == workspace.bufnr) {
-        let { range, text } = contentChanges[0]
         await wait(50)
         await this.highlightColors(doc)
       }

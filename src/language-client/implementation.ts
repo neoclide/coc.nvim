@@ -2,12 +2,10 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { CancellationToken, ClientCapabilities, Definition, Disposable, DocumentSelector, ImplementationRequest, Position, ServerCapabilities, TextDocument, TextDocumentRegistrationOptions } from 'vscode-languageserver-protocol'
+import { CancellationToken, ClientCapabilities, Definition, Disposable, DocumentSelector, ImplementationOptions, ImplementationRegistrationOptions, ImplementationRequest, Position, ServerCapabilities, TextDocument } from 'vscode-languageserver-protocol'
 import languages from '../languages'
-import { ProviderResult } from '../provider'
-import * as Is from '../util/is'
+import { ImplementationProvider, ProviderResult } from '../provider'
 import { BaseLanguageClient, TextDocumentFeature } from './client'
-import * as UUID from './utils/uuid'
 import * as cv from './utils/converter'
 
 function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
@@ -18,66 +16,52 @@ function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
 }
 
 export interface ProvideImplementationSignature {
-  (document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Definition> // tslint:disable-line
+  (this: void, document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Definition> // tslint:disable-line
 }
 
 export interface ImplementationMiddleware {
   provideImplementation?: (this: void, document: TextDocument, position: Position, token: CancellationToken, next: ProvideImplementationSignature) => ProviderResult<Definition>
 }
 
-export class ImplementationFeature extends TextDocumentFeature<TextDocumentRegistrationOptions> {
+export class ImplementationFeature extends TextDocumentFeature<boolean | ImplementationOptions, ImplementationRegistrationOptions, ImplementationProvider> {
 
   constructor(client: BaseLanguageClient) {
     super(client, ImplementationRequest.type)
   }
 
   public fillClientCapabilities(capabilites: ClientCapabilities): void {
-    ensure(ensure(capabilites, 'textDocument')!, 'implementation')!.dynamicRegistration = true
+    const implementationSupport = ensure(ensure(capabilites, 'textDocument')!, 'implementation')!
+    implementationSupport.dynamicRegistration = true
+    // implementationSupport.linkSupport = true
   }
 
   public initialize(capabilities: ServerCapabilities, documentSelector: DocumentSelector): void {
-    if (!capabilities.implementationProvider) {
+    const [id, options] = this.getRegistration(documentSelector, capabilities.implementationProvider)
+    if (!id || !options) {
       return
     }
-    if (capabilities.implementationProvider === true) {
-      if (!documentSelector) {
-        return
-      }
-      this.register(this.messages, {
-        id: UUID.generateUuid(),
-        registerOptions: Object.assign({}, { documentSelector })
-      })
-    } else {
-      const implCapabilities = capabilities.implementationProvider
-      const id = Is.string(implCapabilities.id) && implCapabilities.id.length > 0 ? implCapabilities.id : UUID.generateUuid()
-      const selector = implCapabilities.documentSelector || documentSelector
-      if (selector) {
-        this.register(this.messages, {
-          id,
-          registerOptions: Object.assign({}, { documentSelector: selector })
-        })
-      }
-    }
+    this.register(this.messages, { id, registerOptions: options })
   }
 
-  protected registerLanguageProvider(options: TextDocumentRegistrationOptions): Disposable {
-    let client = this._client
-    let provideImplementation: ProvideImplementationSignature = (document, position, token) => {
-      return client.sendRequest(ImplementationRequest.type, cv.asTextDocumentPositionParams(document, position), token)
-        .then(res => res, error => {
-          client.logFailedRequest(ImplementationRequest.type, error)
-          return Promise.resolve(null)
+  protected registerLanguageProvider(options: ImplementationRegistrationOptions): [Disposable, ImplementationProvider] {
+    const provider: ImplementationProvider = {
+      provideImplementation: (document, position, token) => {
+        const client = this._client
+        const provideImplementation: ProvideImplementationSignature = (document, position, token) => {
+          return client.sendRequest(ImplementationRequest.type, cv.asTextDocumentPositionParams(document, position), token).then(
+            res => res, error => {
+              client.logFailedRequest(ImplementationRequest.type, error)
+              return Promise.resolve(null)
+            }
+          )
         }
-        )
+        const middleware = client.clientOptions.middleware!
+        return middleware.provideImplementation
+          ? middleware.provideImplementation(document, position, token, provideImplementation)
+          : provideImplementation(document, position, token)
+      }
     }
-    let middleware = client.clientOptions.middleware!
-    return languages.registerImplementationProvider(
-      options.documentSelector, {
-        provideImplementation: (document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Definition> => {
-          return middleware.provideImplementation
-            ? middleware.provideImplementation(document, position, token, provideImplementation)
-            : provideImplementation(document, position, token)
-        }
-      })
+
+    return [languages.registerImplementationProvider(options.documentSelector, provider), provider]
   }
 }

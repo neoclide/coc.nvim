@@ -4,12 +4,10 @@
  * ------------------------------------------------------------------------------------------ */
 'use strict'
 
-import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, FoldingRange, FoldingRangeProviderOptions, FoldingRangeRequest, FoldingRangeRequestParam, ServerCapabilities, StaticRegistrationOptions, TextDocument, TextDocumentRegistrationOptions } from 'vscode-languageserver-protocol'
+import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, FoldingRange, FoldingRangeOptions, FoldingRangeRegistrationOptions, FoldingRangeRequest, FoldingRangeRequestParam, ServerCapabilities, TextDocument } from 'vscode-languageserver-protocol'
 import languages from '../languages'
-import { FoldingContext, ProviderResult } from '../provider'
-import * as Is from '../util/is'
+import { FoldingContext, FoldingRangeProvider, ProviderResult } from '../provider'
 import { BaseLanguageClient, TextDocumentFeature } from './client'
-import * as UUID from './utils/uuid'
 
 function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
   if (target[key] === void 0) {
@@ -19,6 +17,7 @@ function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
 }
 
 export type ProvideFoldingRangeSignature = (
+  this: void,
   document: TextDocument,
   context: FoldingContext,
   token: CancellationToken
@@ -35,7 +34,7 @@ export interface FoldingRangeProviderMiddleware {
 }
 
 export class FoldingRangeFeature extends TextDocumentFeature<
-  TextDocumentRegistrationOptions
+  boolean | FoldingRangeOptions, FoldingRangeRegistrationOptions, FoldingRangeProvider
   > {
   constructor(client: BaseLanguageClient) {
     super(client, FoldingRangeRequest.type)
@@ -55,63 +54,37 @@ export class FoldingRangeFeature extends TextDocumentFeature<
     capabilities: ServerCapabilities,
     documentSelector: DocumentSelector
   ): void {
-    if (!capabilities.foldingRangeProvider) {
+    const [id, options] = this.getRegistration(documentSelector, capabilities.foldingRangeProvider)
+    if (!id || !options) {
       return
     }
-
-    const implCapabilities = capabilities.foldingRangeProvider as TextDocumentRegistrationOptions &
-      StaticRegistrationOptions &
-      FoldingRangeProviderOptions
-    const id =
-      Is.string(implCapabilities.id) && implCapabilities.id.length > 0
-        ? implCapabilities.id
-        : UUID.generateUuid()
-    const selector = implCapabilities.documentSelector || documentSelector
-    if (selector) {
-      this.register(this.messages, {
-        id,
-        registerOptions: Object.assign({}, { documentSelector: selector })
-      })
-    }
+    this.register(this.messages, { id, registerOptions: options })
   }
 
   protected registerLanguageProvider(
-    options: TextDocumentRegistrationOptions
-  ): Disposable {
-    let client = this._client
-    let provideFoldingRanges: ProvideFoldingRangeSignature = (
-      document,
-      _,
-      token
-    ) => {
-      const requestParams: FoldingRangeRequestParam = {
-        textDocument: {
-          uri: document.uri
-        }
-      }
-      return client
-        .sendRequest(FoldingRangeRequest.type, requestParams, token)
-        .then(res => res, (error: any) => {
-          client.logFailedRequest(FoldingRangeRequest.type, error)
-          return Promise.resolve(null)
-        })
-    }
-    let middleware = client.clientOptions.middleware!
-    return languages.registerFoldingRangeProvider(options.documentSelector!, {
-      provideFoldingRanges(
-        document: TextDocument,
-        context: FoldingContext,
-        token: CancellationToken
-      ): ProviderResult<FoldingRange[]> {
-        return middleware.provideFoldingRanges
-          ? middleware.provideFoldingRanges(
-            document,
-            context,
-            token,
-            provideFoldingRanges
+    options: FoldingRangeRegistrationOptions
+  ): [Disposable, FoldingRangeProvider] {
+    const provider: FoldingRangeProvider = {
+      provideFoldingRanges: (document, context, token) => {
+        const client = this._client
+        const provideFoldingRanges: ProvideFoldingRangeSignature = (document, _, token) => {
+          const requestParams: FoldingRangeRequestParam = {
+            textDocument: { uri: document.uri }
+          }
+          return client.sendRequest(FoldingRangeRequest.type, requestParams, token).then(
+            res => res, (error: any) => {
+              client.logFailedRequest(FoldingRangeRequest.type, error)
+              return Promise.resolve(null)
+            }
           )
+        }
+        const middleware = client.clientOptions.middleware!
+        return middleware.provideFoldingRanges
+          ? middleware.provideFoldingRanges(document, context, token, provideFoldingRanges)
           : provideFoldingRanges(document, context, token)
       }
-    })
+    }
+
+    return [languages.registerFoldingRangeProvider(options.documentSelector, provider), provider]
   }
 }

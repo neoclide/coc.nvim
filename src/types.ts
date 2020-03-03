@@ -349,6 +349,7 @@ export interface LanguageServerConfig {
   rootPatterns?: string[]
   ignoredRootPaths?: string[]
   initializationOptions?: any
+  progressOnInitialization?: boolean
   revealOutputChannelOn?: string
   configSection?: string
   stdioEncoding?: string
