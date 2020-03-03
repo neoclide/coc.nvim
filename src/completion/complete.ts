@@ -64,7 +64,7 @@ export default class Complete {
     // new option for each source
     let opt = Object.assign({}, this.option)
     let timeout = this.config.timeout
-    timeout = Math.max(Math.min(timeout, 5000), 1000)
+    timeout = Math.max(Math.min(timeout, 15000), 500)
     try {
       if (typeof source.shouldComplete === 'function') {
         let shouldRun = await Promise.resolve(source.shouldComplete(opt))
