@@ -138,11 +138,13 @@ export default class FloatFactory implements Disposable {
     if (alignTop) docs.reverse()
     await this.floatBuffer.setDocuments(docs, maxWidth)
     let { width } = this.floatBuffer
-    if (offsetX) {
-      offsetX = Math.min(col - 1, offsetX)
-      if (col - offsetX + width > columns) {
-        offsetX = col - offsetX + width - columns
-      }
+    // Ensure the floating window isn't tiny if the cursor is on the right:
+    // increase the offset to accommodate some minimum width.
+    // If we have offsetX, precise positioning is intended, force exact width.
+    let minWidth = offsetX ? width : Math.min(width, 50, maxWidth)
+    offsetX = Math.min(col - 1, offsetX)
+    if (col - offsetX + minWidth > columns) {
+      offsetX = col - offsetX + minWidth - columns
     }
     this.alignTop = alignTop
     return {
@@ -216,7 +218,7 @@ export default class FloatFactory implements Disposable {
         minwidth: config.width - 2,
         minheight: config.height,
         maxwidth: config.width - 2,
-        maxheight: config.height,
+        maxheight: this.maxHeight,
         firstline: alignTop ? -1 : 1
       })
       this.floatBuffer.setLines()
