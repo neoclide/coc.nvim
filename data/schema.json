@@ -376,7 +376,7 @@
       "type": "integer",
       "default": 5000,
       "minimum": 500,
-      "maximum": 5000,
+      "maximum": 15000,
       "description": "Timeout for completion, in miliseconds."
     },
     "suggest.minTriggerInputLength": {
