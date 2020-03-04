@@ -88,6 +88,11 @@
           "description": "Configure message level to show the output channel buffer",
           "enum": ["info", "warn", "error", "never"]
         },
+        "progressOnInitialization": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable progress request to languageserver"
+        },
         "initializationOptions": {
           "type": "object",
           "default": {},
@@ -132,6 +137,7 @@
         "filetypes": {},
         "additionalSchemes": {},
         "revealOutputChannelOn": {},
+        "progressOnInitialization": {},
         "initializationOptions": {},
         "settings": {},
         "stdioEncoding": {},
@@ -193,6 +199,7 @@
         "filetypes": {},
         "additionalSchemes": {},
         "revealOutputChannelOn": {},
+        "progressOnInitialization": {},
         "initializationOptions": {},
         "stdioEncoding": {},
         "settings": {},
@@ -241,6 +248,7 @@
         "filetypes": {},
         "additionalSchemes": {},
         "revealOutputChannelOn": {},
+        "progressOnInitialization": {},
         "initializationOptions": {},
         "stdioEncoding": {},
         "settings": {},
@@ -368,7 +376,7 @@
       "type": "integer",
       "default": 5000,
       "minimum": 500,
-      "maximum": 5000,
+      "maximum": 15000,
       "description": "Timeout for completion, in miliseconds."
     },
     "suggest.minTriggerInputLength": {
