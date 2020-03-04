@@ -8,7 +8,9 @@ function getLogFile(): string {
   if (file) return file
   let dir = process.env.XDG_RUNTIME_DIR
   if (dir) return path.join(dir, `coc-nvim-${process.pid}.log`)
-  return path.join(os.tmpdir(), `coc-nvim-${process.pid}.log`)
+  dir = path.join(os.tmpdir(), 'coc.nvim')
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir)
+  return path.join(dir, `coc-nvim-${process.pid}.log`)
 }
 
 const MAX_LOG_SIZE = 1024 * 1024
