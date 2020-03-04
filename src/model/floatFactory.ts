@@ -92,7 +92,9 @@ export default class FloatFactory implements Disposable {
         nvim.pauseNotification()
         win.setVar('float', 1, true)
         win.setOption('linebreak', true, true)
-        win.setOption('showbreak', 'NONE', true)
+        if (workspace.isVim && parseInt(workspace.env.version, 10) >= 8012281) {
+          win.setOption('showbreak', 'NONE', true)
+        }
         win.setOption('conceallevel', 2, true)
         await nvim.resumeNotification()
       }
@@ -195,7 +197,7 @@ export default class FloatFactory implements Disposable {
       if (!reuse) {
         nvim.command(`noa call win_gotoid(${this.window.id})`, true)
         this.window.setVar('float', 1, true)
-        nvim.command(`setl nospell nolist wrap linebreak foldcolumn=1`, true)
+        nvim.command(`setl nospell nolist wrap linebreak foldcolumn=1 showbreak=`, true)
         nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn colorcolumn=`, true)
         nvim.command(`setl signcolumn=no conceallevel=2 concealcursor=n`, true)
         nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating`, true)
