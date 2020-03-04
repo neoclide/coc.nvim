@@ -22356,7 +22356,7 @@ class Workspace {
                 if (!channel)
                     return '';
                 nvim.pauseNotification();
-                nvim.command('setlocal nospell nofoldenable wrap noswapfile', true);
+                nvim.command('setlocal nospell nofoldenable nowrap noswapfile', true);
                 nvim.command('setlocal buftype=nofile bufhidden=hide', true);
                 nvim.command('setfiletype log', true);
                 await nvim.resumeNotification();
@@ -32767,7 +32767,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "753df9c2af" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "027b7a76e9" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -51235,7 +51235,9 @@ class FloatFactory {
                 nvim.pauseNotification();
                 win.setVar('float', 1, true);
                 win.setOption('linebreak', true, true);
-                win.setOption('showbreak', '', true);
+                if (workspace_1.default.isVim && parseInt(workspace_1.default.env.version, 10) >= 8012281) {
+                    win.setOption('showbreak', 'NONE', true);
+                }
                 win.setOption('conceallevel', 2, true);
                 await nvim.resumeNotification();
             }
@@ -51282,11 +51284,13 @@ class FloatFactory {
             docs.reverse();
         await this.floatBuffer.setDocuments(docs, maxWidth);
         let { width } = this.floatBuffer;
-        if (offsetX) {
-            offsetX = Math.min(col - 1, offsetX);
-            if (col - offsetX + width > columns) {
-                offsetX = col - offsetX + width - columns;
-            }
+        // Ensure the floating window isn't tiny if the cursor is on the right:
+        // increase the offset to accommodate some minimum width.
+        // If we have offsetX, precise positioning is intended, force exact width.
+        let minWidth = offsetX ? width : Math.min(width, 50, maxWidth);
+        offsetX = Math.min(col - 1, offsetX);
+        if (col - offsetX + minWidth > columns) {
+            offsetX = col - offsetX + minWidth - columns;
         }
         this.alignTop = alignTop;
         return {
@@ -51345,7 +51349,7 @@ class FloatFactory {
             if (!reuse) {
                 nvim.command(`noa call win_gotoid(${this.window.id})`, true);
                 this.window.setVar('float', 1, true);
-                nvim.command(`setl nospell nolist wrap linebreak foldcolumn=1`, true);
+                nvim.command(`setl nospell nolist wrap linebreak foldcolumn=1 showbreak=`, true);
                 nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn colorcolumn=`, true);
                 nvim.command(`setl signcolumn=no conceallevel=2 concealcursor=n`, true);
                 nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating`, true);
@@ -51370,7 +51374,7 @@ class FloatFactory {
                 minwidth: config.width - 2,
                 minheight: config.height,
                 maxwidth: config.width - 2,
-                maxheight: config.height,
+                maxheight: this.maxHeight,
                 firstline: alignTop ? -1 : 1
             });
             this.floatBuffer.setLines();
@@ -57205,7 +57209,7 @@ class BaseLanguageClient {
         }
     }
     notifyFileEvent(event) {
-        var _a, _b;
+        var _a;
         const client = this;
         function didChangeWatchedFile(event) {
             client._fileEvents.push(event);
@@ -57224,7 +57228,7 @@ class BaseLanguageClient {
             });
         }
         const workSpaceMiddleware = (_a = this.clientOptions.middleware) === null || _a === void 0 ? void 0 : _a.workspace;
-        ((_b = workSpaceMiddleware) === null || _b === void 0 ? void 0 : _b.didChangeWatchedFile) ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event);
+        (workSpaceMiddleware === null || workSpaceMiddleware === void 0 ? void 0 : workSpaceMiddleware.didChangeWatchedFile) ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event);
     }
     forceDocumentSync() {
         let doc = workspace_1.default.getDocument(workspace_1.default.bufnr);
@@ -63434,7 +63438,7 @@ class Complete {
         // new option for each source
         let opt = Object.assign({}, this.option);
         let timeout = this.config.timeout;
-        timeout = Math.max(Math.min(timeout, 5000), 1000);
+        timeout = Math.max(Math.min(timeout, 15000), 500);
         try {
             if (typeof source.shouldComplete === 'function') {
                 let shouldRun = await Promise.resolve(source.shouldComplete(opt));
@@ -63968,7 +63972,7 @@ class Floating {
                 win.setVar('float', 1, true);
                 win.setVar('popup', 1, true);
                 nvim.command(`noa call win_gotoid(${win.id})`, true);
-                nvim.command(`setl nospell nolist wrap linebreak foldcolumn=1`, true);
+                nvim.command(`setl nospell nolist wrap linebreak foldcolumn=1 showbreak=`, true);
                 nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn colorcolumn=`, true);
                 nvim.command(`setl signcolumn=no conceallevel=2 concealcursor=n`, true);
                 nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating`, true);
@@ -64075,7 +64079,9 @@ class Floating {
                 win.setVar('float', 1, true);
                 win.setVar('popup', 1, true);
                 win.setOption('linebreak', true, true);
-                win.setOption('showbreak', '', true);
+                if (workspace_1.default.isVim && parseInt(workspace_1.default.env.version, 10) >= 8012281) {
+                    win.setOption('showbreak', '', true);
+                }
                 win.setOption('conceallevel', 2, true);
                 await nvim.resumeNotification();
             }

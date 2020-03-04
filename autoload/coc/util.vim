@@ -144,8 +144,11 @@ function! coc#util#close_popup()
 endfunction
 
 function! coc#util#version()
+  if s:is_vim
+    return string(v:versionlong)
+  endif
   let c = execute('silent version')
-  let lines = split(matchstr(c, 'NVIM v\zs[^\n-]*'))
+  let lines = split(matchstr(c,  'NVIM v\zs[^\n-]*'))
   return lines[0]
 endfunction
 
