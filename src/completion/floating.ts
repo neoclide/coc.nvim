@@ -167,7 +167,7 @@ export default class Floating {
         win.setVar('float', 1, true)
         win.setVar('popup', 1, true)
         win.setOption('linebreak', true, true)
-        win.setOption('showbreak', '', true)
+        win.setOption('showbreak', 'NONE', true)
         win.setOption('conceallevel', 2, true)
         await nvim.resumeNotification()
       }
