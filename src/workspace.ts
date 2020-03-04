@@ -178,7 +178,7 @@ export class Workspace implements IWorkspace {
         let channel = this.outputChannels.get(uri.path.slice(1))
         if (!channel) return ''
         nvim.pauseNotification()
-        nvim.command('setlocal nospell nofoldenable wrap noswapfile', true)
+        nvim.command('setlocal nospell nofoldenable nowrap noswapfile', true)
         nvim.command('setlocal buftype=nofile bufhidden=hide', true)
         nvim.command('setfiletype log', true)
         await nvim.resumeNotification()
