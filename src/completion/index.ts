@@ -362,6 +362,11 @@ export class Completion implements Disposable {
     }
     if (!this.isActivated || this.complete.isEmpty) return
     let search = content.slice(characterIndex(content, this.option.col))
+    if (search.length && !this.document.isWord(search[search.length - 1])) {
+      // Neither trigger nor word
+      this.stop()
+      return
+    }
     return await this.resumeCompletion(content, search)
   }
 

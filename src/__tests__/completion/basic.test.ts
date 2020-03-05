@@ -132,6 +132,33 @@ describe('completion', () => {
     disposable.dispose()
   })
 
+  it('should stop completion when type none trigger character', async () => {
+    await helper.edit()
+    let source: ISource = {
+      name: 'test',
+      priority: 10,
+      enable: true,
+      firstMatch: false,
+      sourceType: SourceType.Native,
+      triggerCharacters: [],
+      doComplete: async (): Promise<CompleteResult> => {
+        let result: CompleteResult = {
+          items: [{ word: 'if(' }]
+        }
+        return Promise.resolve(result)
+      }
+    }
+    let disposable = sources.addSource(source)
+    await nvim.setLine('')
+    await nvim.input('iif')
+    await helper.waitPopup()
+    await nvim.input('(')
+    await helper.wait(300)
+    let res = await helper.pumvisible()
+    expect(res).toBe(false)
+    disposable.dispose()
+  })
+
   it('should trigger on triggerCharacters', async () => {
     await helper.edit()
     let source: ISource = {
