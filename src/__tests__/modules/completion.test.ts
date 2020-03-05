@@ -420,7 +420,7 @@ describe('completion TextChangedP', () => {
     expect(line).toBe('foo')
   })
 
-  it('should filter on none keyword input', async () => {
+  it('should not filter on none keyword input', async () => {
     let source: ISource = {
       priority: 99,
       enable: true,
@@ -435,8 +435,8 @@ describe('completion TextChangedP', () => {
     await helper.waitPopup()
     await nvim.input('#')
     await helper.wait(100)
-    let items = await helper.getItems()
-    expect(items[0].word).toBe('foo#abc')
+    let res = await helper.pumvisible()
+    expect(res).toBe(false)
   })
 
   it('should use source-provided score', async () => {
