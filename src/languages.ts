@@ -730,7 +730,6 @@ class Languages {
       sourceScore: item['score'] || null,
       filterText: item.filterText || label,
       isSnippet,
-      noFilter: item.textEdit != null,
       dup: item.data && item.data.dup == 0 ? 0 : 1
     }
     if (item && item.detail && detailField != 'preview') {
