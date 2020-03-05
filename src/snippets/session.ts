@@ -134,9 +134,19 @@ export class SnippetSession {
     }
     let placeholder = this.findPlaceholder(edit.range)
     if (!placeholder) {
-      logger.info('Change outside placeholder, cancelling snippet session')
-      this.deactivate()
-      return
+      // issue #1601
+      // if we accept a completion, then the edit.range.end will be bigger than
+      // placeholder.range.end, because the placeholder.range.end is constantly
+      // updated when we're typeing in the same placeholder. However we're
+      // still in a right placeholder. In this case, we just want to use the
+      // current placeholder
+      if (comparePosition(edit.range.start, this.placeholder.range.start) === 0) {
+        placeholder = this.placeholder
+      } else {
+        logger.info('Change outside placeholder, cancelling snippet session')
+        this.deactivate()
+        return
+      }
     }
     if (placeholder.isFinalTabstop) {
       logger.info('Change final placeholder, cancelling snippet session')

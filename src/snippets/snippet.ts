@@ -141,9 +141,14 @@ export class CocSnippet {
   public updatePlaceholder(placeholder: CocSnippetPlaceholder, edit: TextEdit): { edits: TextEdit[], delta: number } {
     let { start, end } = edit.range
     let { range } = this
-    let { value, id, index } = placeholder
+    let { value, id, index, range: pRange } = placeholder
     let newText = editRange(placeholder.range, value, edit)
     let delta = 0
+    // when edit.range.end is bigger than the placeholder.range, this probably means we accepted a completion?
+    // in this case, just use the edit.newText
+    if (comparePosition(start, end) === 0 && comparePosition(end, pRange.end) !== 0) { // this seems to tell that we're accepting completion
+      newText = edit.newText
+    }
     if (newText.indexOf('\n') == -1) {
       for (let p of this._placeholders) {
         if (p.index == index &&
