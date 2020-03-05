@@ -122,7 +122,9 @@ endfunction
 function! coc#list#start_prompt()
   if s:activated | return | endif
   if s:gui
-    set guicursor+=a:ver1-CocCursorTransparent/lCursor
+    if has('nvim-0.5.0')
+      set guicursor+=a:ver1-CocCursorTransparent/lCursor
+    endif
   elseif s:is_vim
     set t_ve=
   endif
@@ -172,9 +174,11 @@ endfunction
 
 function! coc#list#stop_prompt(...)
   if get(a:, 1, 0) == 0
-    if s:gui && !empty(s:saved_cursor) 
-      set guicursor+=a:ver1-Cursor/lCursor
-      let &guicursor = s:saved_cursor
+    if s:gui && !empty(s:saved_cursor)
+      if has('nvim-0.5.0')
+        set guicursor+=a:ver1-Cursor/lCursor
+        let &guicursor = s:saved_cursor
+      endif
     elseif s:is_vim
       let &t_ve = s:saved_ve
     endif
