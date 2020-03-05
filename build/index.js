@@ -101,8 +101,19 @@ Object.defineProperty(console, 'log', {
 })
 const logger = __webpack_require__(2)('server')
 const attach = __webpack_require__(93).default
+const os = __webpack_require__(14)
+const path = __webpack_require__(20)
+const fs = __webpack_require__(4)
+const rimraf = __webpack_require__(242)
 
 attach({reader: process.stdin, writer: process.stdout})
+
+process.on('exit', () => {
+  let folder = path.join(os.tmpdir(), 'coc.nvim-' + process.pid)
+  if (fs.existsSync(folder)) {
+    rimraf.sync(folder)
+  }
+})
 
 process.on('uncaughtException', function (err) {
   let msg = 'Uncaught exception: ' + err.stack
@@ -1741,19 +1752,21 @@ function getLogFile() {
     let dir = process.env.XDG_RUNTIME_DIR;
     if (dir)
         return path_1.default.join(dir, `coc-nvim-${process.pid}.log`);
-    return path_1.default.join(os_1.default.tmpdir(), `coc-nvim-${process.pid}.log`);
+    dir = path_1.default.join(os_1.default.tmpdir(), `coc.nvim-${process.pid}`);
+    if (!fs_1.default.existsSync(dir))
+        fs_1.default.mkdirSync(dir);
+    return path_1.default.join(dir, `coc-nvim.log`);
 }
 const MAX_LOG_SIZE = 1024 * 1024;
 const MAX_LOG_BACKUPS = 10;
 let logfile = getLogFile();
 const level = process.env.NVIM_COC_LOG_LEVEL || 'info';
-if (!fs_1.default.existsSync(logfile)) {
+if (fs_1.default.existsSync(logfile)) {
+    // cleanup if exists
     try {
         fs_1.default.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 });
     }
     catch (e) {
-        logfile = path_1.default.join(os_1.default.tmpdir(), `coc-nvim-${process.pid}.log`);
-        fs_1.default.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 });
         // noop
     }
 }
@@ -10387,7 +10400,7 @@ exports.default = (opts, requestApi = true) => {
         clientReady = true;
         if (isTest)
             nvim.command(`let g:coc_node_channel_id = ${channelId}`, true);
-        let json = __webpack_require__(416);
+        let json = __webpack_require__(415);
         let { major, minor, patch } = semver_1.default.parse(json.version);
         nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {});
         let entered = await nvim.getVvar('vim_did_enter');
@@ -23399,7 +23412,7 @@ augroup coc_autocmd
   ${cmds.join('\n')}
 augroup end`;
         try {
-            let dir = path_1.default.join(os_1.default.tmpdir(), 'coc.nvim');
+            let dir = path_1.default.join(os_1.default.tmpdir(), `coc.nvim-${process.pid}`);
             if (!fs_1.default.existsSync(dir))
                 fs_1.default.mkdirSync(dir);
             let filepath = path_1.default.join(dir, `coc-${process.pid}.vim`);
@@ -32517,7 +32530,6 @@ const services_1 = tslib_1.__importDefault(__webpack_require__(354));
 const manager_3 = tslib_1.__importDefault(__webpack_require__(236));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(240));
 const types_1 = __webpack_require__(192);
-const clean_1 = tslib_1.__importDefault(__webpack_require__(415));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(190));
 const logger = __webpack_require__(2)('plugin');
 class Plugin extends events_1.EventEmitter {
@@ -32651,7 +32663,6 @@ class Plugin extends events_1.EventEmitter {
             nvim.setVar('WorkspaceFolders', workspace_1.default.folderPaths, true);
         });
         commands_1.default.init(nvim, this);
-        clean_1.default(); // tslint:disable-line
     }
     addMethod(name, fn) {
         Object.defineProperty(this, name, { value: fn });
@@ -32767,7 +32778,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "db09d34c86" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "ab29c13082" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -35200,6 +35211,11 @@ class Completion {
         if (!this.isActivated || this.complete.isEmpty)
             return;
         let search = content.slice(string_1.characterIndex(content, this.option.col));
+        if (search.length && !this.document.isWord(search[search.length - 1])) {
+            // Neither trigger nor word
+            this.stop();
+            return;
+        }
         return await this.resumeCompletion(content, search);
     }
     async triggerCompletion(document, pre, checkTrigger = true) {
@@ -39259,11 +39275,7 @@ class ExtensionManager {
         }
     }
     async _install(npm, def, info, onMessage) {
-        const filepath = path_1.default.join(os_1.default.tmpdir(), `${info.name}-`);
-        if (!fs_1.default.existsSync(path_1.default.dirname(filepath))) {
-            fs_1.default.mkdirSync(path_1.default.dirname(filepath));
-        }
-        let tmpFolder = await util_1.promisify(fs_1.default.mkdtemp)(filepath);
+        let tmpFolder = await util_1.promisify(fs_1.default.mkdtemp)(path_1.default.join(os_1.default.tmpdir(), `${info.name}-`));
         let url = info['dist.tarball'];
         onMessage(`Downloading from ${url}`);
         await download_1.default(url, { dest: tmpFolder });
@@ -39273,7 +39285,7 @@ class ExtensionManager {
             onMessage(`Installing dependencies.`);
             let p = new Promise((resolve, reject) => {
                 let args = ['install', '--ignore-scripts', '--no-lockfile', '--no-bin-links', '--production'];
-                if (info['dist.tarball'] && info['dist.tarball'].includes('github.com')) {
+                if (info['dist.tarball'] && info['dist.tarball'].indexOf('github.com') !== -1) {
                     args = ['install'];
                 }
                 const child = child_process_1.spawn(npm, args, { cwd: tmpFolder });
@@ -57547,7 +57559,7 @@ class ProgressPart {
     }
     report(params) {
         this._message = params.message ? params.message : '';
-        this._percentage = params.percentage ? params.percentage + '%' : '';
+        this._percentage = params.percentage ? params.percentage.toFixed(2) + '%' : '';
         this._workDoneStatus.text = `${this._title} ${this._message} ${this._percentage}`;
         this._workDoneStatus.show();
     }
@@ -68059,60 +68071,6 @@ exports.Mutex = Mutex;
 
 /***/ }),
 /* 415 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(3);
-const path_1 = tslib_1.__importDefault(__webpack_require__(20));
-const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
-const glob_1 = tslib_1.__importDefault(__webpack_require__(243));
-const os_1 = __webpack_require__(14);
-const util_1 = tslib_1.__importDefault(__webpack_require__(12));
-const fs_2 = __webpack_require__(203);
-async function default_1() {
-    if (global.hasOwnProperty('__TEST__'))
-        return;
-    try {
-        let dir = os_1.tmpdir();
-        let files = glob_1.default.sync(path_1.default.join(dir, '/coc-*.sock'));
-        for (let file of files) {
-            let valid = await fs_2.validSocket(file);
-            if (!valid)
-                await util_1.default.promisify(fs_1.default.unlink)(file);
-        }
-        files = glob_1.default.sync(path_1.default.join(dir, '/coc-nvim-tscancellation-*'));
-        for (let file of files) {
-            await util_1.default.promisify(fs_1.default.unlink)(file);
-        }
-        files = glob_1.default.sync(path_1.default.join(dir, '/ti-*.log'));
-        for (let file of files) {
-            await util_1.default.promisify(fs_1.default.unlink)(file);
-        }
-        files = glob_1.default.sync(path_1.default.join(dir, '/coc-*.vim'));
-        for (let file of files) {
-            if (path_1.default.basename(file) != `coc-${process.pid}.vim`) {
-                await util_1.default.promisify(fs_1.default.unlink)(file);
-            }
-        }
-        dir = process.env.XDG_RUNTIME_DIR || dir;
-        files = glob_1.default.sync(path_1.default.join(dir, '/coc-nvim-*.log'));
-        for (let file of files) {
-            if (path_1.default.basename(file) != `coc-nvim-${process.pid}.log`) {
-                await util_1.default.promisify(fs_1.default.unlink)(file);
-            }
-        }
-    }
-    catch (e) {
-        // noop
-    }
-}
-exports.default = default_1;
-//# sourceMappingURL=clean.js.map
-
-/***/ }),
-/* 416 */
 /***/ (function(module) {
 
 module.exports = JSON.parse("{\"name\":\"coc.nvim\",\"version\":\"0.0.75\",\"description\":\"LSP based intellisense engine for neovim & vim8.\",\"main\":\"./lib/index.js\",\"bin\":\"./bin/server.js\",\"scripts\":{\"clean\":\"rimraf lib build\",\"lint\":\"tslint -c tslint.json -p .\",\"build\":\"tsc -p tsconfig.json\",\"watch\":\"tsc -p tsconfig.json --watch true --sourceMap\",\"test\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --detectOpenHandles --forceExit\",\"test-build\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --coverage --forceExit\",\"prepare\":\"npm-run-all clean build\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/neoclide/coc.nvim.git\"},\"keywords\":[\"complete\",\"neovim\"],\"author\":\"Qiming Zhao <chemzqm@gmail.com>\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/neoclide/coc.nvim/issues\"},\"homepage\":\"https://github.com/neoclide/coc.nvim#readme\",\"jest\":{\"globals\":{\"__TEST__\":true},\"watchman\":false,\"clearMocks\":true,\"globalSetup\":\"./jest.js\",\"testEnvironment\":\"node\",\"moduleFileExtensions\":[\"ts\",\"tsx\",\"json\",\"js\"],\"transform\":{\"^.+\\\\.tsx?$\":\"ts-jest\"},\"testRegex\":\"src/__tests__/.*\\\\.(test|spec)\\\\.ts$\",\"coverageDirectory\":\"./coverage/\"},\"devDependencies\":{\"@chemzqm/tslint-config\":\"^1.0.18\",\"@types/debounce\":\"^3.0.0\",\"@types/fb-watchman\":\"^2.0.0\",\"@types/glob\":\"^7.1.1\",\"@types/jest\":\"^24.0.18\",\"@types/minimatch\":\"^3.0.3\",\"@types/mkdirp\":\"^0.5.2\",\"@types/node\":\"^12.12.17\",\"@types/semver\":\"^6.0.2\",\"@types/tar\":\"^4.0.3\",\"@types/tunnel\":\"^0.0.1\",\"@types/uuid\":\"^3.4.5\",\"@types/which\":\"^1.3.1\",\"colors\":\"^1.3.3\",\"jest\":\"24.9.0\",\"npm-run-all\":\"^4.1.5\",\"ts-jest\":\"^24.2.0\",\"tslint\":\"^5.19.0\",\"typescript\":\"^3.8.2\",\"vscode-languageserver\":\"^6.1.1\"},\"dependencies\":{\"@chemzqm/neovim\":\"5.1.9\",\"await-semaphore\":\"^0.1.3\",\"bser\":\"^2.1.0\",\"debounce\":\"^1.2.0\",\"fast-diff\":\"^1.2.0\",\"fb-watchman\":\"^2.0.0\",\"follow-redirects\":\"^1.9.0\",\"glob\":\"^7.1.4\",\"isuri\":\"^2.0.3\",\"jsonc-parser\":\"^2.1.1\",\"log4js\":\"^5.1.0\",\"minimatch\":\"^3.0.4\",\"mkdirp\":\"^0.5.1\",\"mv\":\"^2.1.1\",\"rc\":\"^1.2.8\",\"rimraf\":\"^3.0.0\",\"semver\":\"^6.3.0\",\"tar\":\"^4.4.10\",\"tslib\":\"^1.11.0\",\"tunnel\":\"^0.0.6\",\"uuid\":\"^3.3.3\",\"vscode-languageserver-protocol\":\"^3.15.3\",\"vscode-languageserver-types\":\"^3.15.1\",\"vscode-uri\":\"^2.0.3\",\"which\":\"^1.3.1\"}}");
