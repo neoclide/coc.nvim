@@ -197,7 +197,15 @@ export default class Complete {
         let filterText = item.filterText || item.word
         item.filterText = filterText
         if (filterText.length < input.length) continue
-        let score = item.kind && filterText == input ? 64 : matchScore(filterText, codes)
+        let score: number
+        if (item.kind && filterText == input) {
+          score = 64
+        } else {
+          score = matchScore(filterText, codes)
+          if (item.noFilter || score == 0) {
+            score = 1
+          }
+        }
         if (input.length && score == 0) continue
         if (priority > 90) maxScore = Math.max(maxScore, score)
         if (maxScore > 5 && priority <= 10 && score < maxScore) continue
