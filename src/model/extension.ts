@@ -77,11 +77,7 @@ export default class ExtensionManager {
   }
 
   private async _install(npm: string, def: string, info: Info, onMessage: (msg: string) => void): Promise<void> {
-    const filepath = path.join(os.tmpdir(), `${info.name}-`)
-    if (!fs.existsSync(path.dirname(filepath))) {
-      fs.mkdirSync(path.dirname(filepath))
-    }
-    let tmpFolder = await promisify(fs.mkdtemp)(filepath)
+    let tmpFolder = await promisify(fs.mkdtemp)(path.join(os.tmpdir(), `${info.name}-`))
     let url = info['dist.tarball']
     onMessage(`Downloading from ${url}`)
     await download(url, { dest: tmpFolder })
@@ -91,7 +87,7 @@ export default class ExtensionManager {
       onMessage(`Installing dependencies.`)
       let p = new Promise<void>((resolve, reject) => {
         let args = ['install', '--ignore-scripts', '--no-lockfile', '--no-bin-links', '--production']
-        if (info['dist.tarball'] && info['dist.tarball'].includes('github.com')) {
+        if (info['dist.tarball'] && info['dist.tarball'].indexOf('github.com') !== -1) {
           args = ['install']
         }
         const child = spawn(npm, args, { cwd: tmpFolder })

@@ -13,7 +13,6 @@ import services from './services'
 import snippetManager from './snippets/manager'
 import sources from './sources'
 import { Autocmd, OutputChannel, PatternType } from './types'
-import clean from './util/clean'
 import workspace from './workspace'
 const logger = require('./util/logger')('plugin')
 
@@ -148,7 +147,6 @@ export default class Plugin extends EventEmitter {
       nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
     })
     commandManager.init(nvim, this)
-    clean() // tslint:disable-line
   }
 
   private addMethod(name: string, fn: Function): any {

@@ -8,9 +8,9 @@ function getLogFile(): string {
   if (file) return file
   let dir = process.env.XDG_RUNTIME_DIR
   if (dir) return path.join(dir, `coc-nvim-${process.pid}.log`)
-  dir = path.join(os.tmpdir(), 'coc.nvim')
+  dir = path.join(os.tmpdir(), `coc.nvim-${process.pid}`)
   if (!fs.existsSync(dir)) fs.mkdirSync(dir)
-  return path.join(dir, `coc-nvim-${process.pid}.log`)
+  return path.join(dir, `coc-nvim.log`)
 }
 
 const MAX_LOG_SIZE = 1024 * 1024
@@ -18,12 +18,11 @@ const MAX_LOG_BACKUPS = 10
 let logfile = getLogFile()
 const level = process.env.NVIM_COC_LOG_LEVEL || 'info'
 
-if (!fs.existsSync(logfile)) {
+if (fs.existsSync(logfile)) {
+  // cleanup if exists
   try {
     fs.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 })
   } catch (e) {
-    logfile = path.join(os.tmpdir(), `coc-nvim-${process.pid}.log`)
-    fs.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 })
     // noop
   }
 }

@@ -65,7 +65,7 @@ export class Workspace implements IWorkspace {
   private schemeProviderMap: Map<string, TextDocumentContentProvider> = new Map()
   private namespaceMap: Map<string, number> = new Map()
   private disposables: Disposable[] = []
-  private setupDynamicAutocmd: Function & { clear(): void; }
+  private setupDynamicAutocmd: Function & { clear(): void }
   private watchedOptions: Set<string> = new Set()
 
   private _disposed = false
@@ -1244,7 +1244,7 @@ augroup coc_autocmd
   ${cmds.join('\n')}
 augroup end`
     try {
-      let dir = path.join(os.tmpdir(), 'coc.nvim')
+      let dir = path.join(os.tmpdir(), `coc.nvim-${process.pid}`)
       if (!fs.existsSync(dir)) fs.mkdirSync(dir)
       let filepath = path.join(dir, `coc-${process.pid}.vim`)
       await writeFile(filepath, content)
