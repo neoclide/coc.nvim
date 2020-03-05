@@ -677,7 +677,7 @@ class Languages {
       await doc.applyEdits(nvim, [{
         range: Range.create(linenr - 1, 0, linenr, 0),
         newText: `${start}${end}\n`
-      }])
+      }], false)
       // can't select, since additionalTextEdits would break selection
       let pos = Position.create(linenr - 1, range.start.character)
       return await snippetManager.insertSnippet(newText, false, Range.create(pos, pos))
