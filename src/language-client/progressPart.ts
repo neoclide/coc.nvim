@@ -46,7 +46,7 @@ export class ProgressPart {
 
 	private report(params: WorkDoneProgressReport | WorkDoneProgressBegin): void {
 		this._message = params.message ? params.message : ''
-		this._percentage = params.percentage ? params.percentage + '%' : ''
+		this._percentage = params.percentage ? params.percentage.toFixed(2) + '%' : ''
 
 		this._workDoneStatus.text = `${this._title} ${this._message} ${this._percentage}`
 		this._workDoneStatus.show()
