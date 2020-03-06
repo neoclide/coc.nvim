@@ -1527,7 +1527,8 @@ augroup end`
       return
     }
     let oldPath = URI.parse(doc.uri).fsPath
-    let newPath = await nvim.call('input', ['New path: ', oldPath, 'file'])
+    // await nvim.callAsync()
+    let newPath = await nvim.callAsync('coc#util#with_callback', ['input', ['New path: ', oldPath, 'file']])
     newPath = newPath ? newPath.trim() : null
     if (newPath == oldPath || !newPath) return
     let lines = await doc.buffer.lines
