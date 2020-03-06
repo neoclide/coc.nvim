@@ -32778,7 +32778,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "b7014fedae" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "a341915d65" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -57225,7 +57225,7 @@ class BaseLanguageClient {
         }
     }
     notifyFileEvent(event) {
-        var _a, _b;
+        var _a;
         const client = this;
         function didChangeWatchedFile(event) {
             client._fileEvents.push(event);
@@ -57244,7 +57244,7 @@ class BaseLanguageClient {
             });
         }
         const workSpaceMiddleware = (_a = this.clientOptions.middleware) === null || _a === void 0 ? void 0 : _a.workspace;
-        ((_b = workSpaceMiddleware) === null || _b === void 0 ? void 0 : _b.didChangeWatchedFile) ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event);
+        (workSpaceMiddleware === null || workSpaceMiddleware === void 0 ? void 0 : workSpaceMiddleware.didChangeWatchedFile) ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event);
     }
     forceDocumentSync() {
         let doc = workspace_1.default.getDocument(workspace_1.default.bufnr);
@@ -64029,9 +64029,9 @@ class Floating {
         this.popup.move({
             line: rect.row + 1,
             col: rect.col + 1,
-            minwidth: rect.width,
+            minwidth: rect.width - 4,
             minheight: rect.height,
-            maxwidth: rect.width,
+            maxwidth: rect.width - 4,
             maxheight: rect.height
         });
         this.popup.show();
