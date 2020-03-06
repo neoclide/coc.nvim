@@ -2252,6 +2252,8 @@ class DocumentSymbolFeature extends TextDocumentFeature<
 
 class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegistrationOptions, WorkspaceSymbolProvider
   > {
+  private documentSelector: DocumentSelector
+
   constructor(client: BaseLanguageClient) {
     super(client, WorkspaceSymbolRequest.type)
   }
@@ -2274,6 +2276,7 @@ class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegistratio
     if (!capabilities.workspaceSymbolProvider) {
       return
     }
+    this.documentSelector = documentSelector
     this.register(this.messages, {
       id: UUID.generateUuid(),
       registerOptions: capabilities.workspaceSymbolProvider === true ? { workDoneProgress: false } : capabilities.workspaceSymbolProvider
@@ -2298,8 +2301,7 @@ class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegistratio
           : provideWorkspaceSymbols(query, token)
       }
     }
-    // TODO: selector to null
-    return [languages.registerWorkspaceSymbolProvider(null, provider), provider]
+    return [languages.registerWorkspaceSymbolProvider(this.documentSelector, provider), provider]
   }
 }
 
