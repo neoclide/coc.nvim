@@ -102,9 +102,9 @@ export default class Floating {
     this.popup.move({
       line: rect.row + 1,
       col: rect.col + 1,
-      minwidth: rect.width,
+      minwidth: rect.width - 4,
       minheight: rect.height,
-      maxwidth: rect.width,
+      maxwidth: rect.width - 4,
       maxheight: rect.height
     })
     this.popup.show()
