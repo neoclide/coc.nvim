@@ -1820,7 +1820,7 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
       documentationFormat: [MarkupKind.Markdown, MarkupKind.PlainText],
       deprecatedSupport: true,
       preselectSupport: true,
-      tagSupport: { valueSet: [CompletionItemTag.Deprecated] },
+      // tagSupport: { valueSet: [CompletionItemTag.Deprecated] },
     }
     completion.completionItemKind = { valueSet: SupportedCompletionItemKinds }
   }
@@ -2332,9 +2332,9 @@ class CodeActionFeature extends TextDocumentFeature<boolean | CodeActionOptions,
     capabilities: ServerCapabilities,
     documentSelector: DocumentSelector
   ): void {
-    const options = this.getRegistrationOptions(documentSelector, capabilities.codeActionProvider);
+    const options = this.getRegistrationOptions(documentSelector, capabilities.codeActionProvider)
     if (!options) {
-      return;
+      return
     }
 
     this.register(this.messages, {
@@ -2365,15 +2365,15 @@ class CodeActionFeature extends TextDocumentFeature<boolean | CodeActionOptions,
               return values
             },
             (error) => {
-              client.logFailedRequest(CodeActionRequest.type, error);
-              return Promise.resolve([]);
+              client.logFailedRequest(CodeActionRequest.type, error)
+              return Promise.resolve([])
             }
-          );
-        };
-        const middleware = client.clientOptions.middleware!;
+          )
+        }
+        const middleware = client.clientOptions.middleware!
         return middleware.provideCodeActions
           ? middleware.provideCodeActions(document, range, context, token, _provideCodeActions)
-          : _provideCodeActions(document, range, context, token);
+          : _provideCodeActions(document, range, context, token)
       }
     }
 
@@ -2397,9 +2397,9 @@ class CodeLensFeature extends TextDocumentFeature<CodeLensOptions, CodeLensRegis
     capabilities: ServerCapabilities,
     documentSelector: DocumentSelector
   ): void {
-    const options = this.getRegistrationOptions(documentSelector, capabilities.codeLensProvider);
+    const options = this.getRegistrationOptions(documentSelector, capabilities.codeLensProvider)
     if (!options) {
-      return;
+      return
     }
     this.register(this.messages, {
       id: UUID.generateUuid(),
@@ -2437,14 +2437,14 @@ class CodeLensFeature extends TextDocumentFeature<CodeLensOptions, CodeLensRegis
               codeLens,
               token
             ).then(res => res, error => {
-              client.logFailedRequest(CodeLensResolveRequest.type, error);
-              return codeLens;
+              client.logFailedRequest(CodeLensResolveRequest.type, error)
+              return codeLens
             })
-          };
-          const middleware = client.clientOptions.middleware!;
+          }
+          const middleware = client.clientOptions.middleware!
           return middleware.resolveCodeLens
             ? middleware.resolveCodeLens(codeLens, token, resolveCodeLens)
-            : resolveCodeLens(codeLens, token);
+            : resolveCodeLens(codeLens, token)
         }
         : undefined
     }
@@ -2472,9 +2472,9 @@ class DocumentFormattingFeature extends TextDocumentFeature<
     capabilities: ServerCapabilities,
     documentSelector: DocumentSelector
   ): void {
-    const options = this.getRegistrationOptions(documentSelector, capabilities.documentFormattingProvider);
+    const options = this.getRegistrationOptions(documentSelector, capabilities.documentFormattingProvider)
     if (!options) {
-      return;
+      return
     }
     this.register(this.messages, {
       id: UUID.generateUuid(),
@@ -2527,9 +2527,9 @@ class DocumentRangeFormattingFeature extends TextDocumentFeature<
     capabilities: ServerCapabilities,
     documentSelector: DocumentSelector
   ): void {
-    const options = this.getRegistrationOptions(documentSelector, capabilities.documentRangeFormattingProvider);
+    const options = this.getRegistrationOptions(documentSelector, capabilities.documentRangeFormattingProvider)
     if (!options) {
-      return;
+      return
     }
     this.register(this.messages, {
       id: UUID.generateUuid(),
@@ -2578,9 +2578,9 @@ class DocumentOnTypeFormattingFeature extends TextDocumentFeature<
   }
 
   public initialize(capabilities: ServerCapabilities, documentSelector: DocumentSelector): void {
-    const options = this.getRegistrationOptions(documentSelector, capabilities.documentOnTypeFormattingProvider);
+    const options = this.getRegistrationOptions(documentSelector, capabilities.documentOnTypeFormattingProvider)
     if (!options) {
-      return;
+      return
     }
     this.register(this.messages, {
       id: UUID.generateUuid(),
@@ -2603,11 +2603,11 @@ class DocumentOnTypeFormattingFeature extends TextDocumentFeature<
             client.logFailedRequest(DocumentOnTypeFormattingRequest.type, error)
             return Promise.resolve([])
           })
-        };
-        const middleware = client.clientOptions.middleware!;
+        }
+        const middleware = client.clientOptions.middleware!
         return middleware.provideOnTypeFormattingEdits
           ? middleware.provideOnTypeFormattingEdits(document, position, ch, options, token, provideOnTypeFormattingEdits)
-          : provideOnTypeFormattingEdits(document, position, ch, options, token);
+          : provideOnTypeFormattingEdits(document, position, ch, options, token)
       }
     }
 
@@ -2632,12 +2632,12 @@ class RenameFeature extends TextDocumentFeature<boolean | RenameOptions, RenameR
     capabilities: ServerCapabilities,
     documentSelector: DocumentSelector
   ): void {
-    const options = this.getRegistrationOptions(documentSelector, capabilities.renameProvider);
+    const options = this.getRegistrationOptions(documentSelector, capabilities.renameProvider)
     if (!options) {
-      return;
+      return
     }
     if (Is.boolean(capabilities.renameProvider)) {
-      options.prepareProvider = false;
+      options.prepareProvider = false
     }
     this.register(this.messages, {
       id: UUID.generateUuid(),
@@ -2660,7 +2660,7 @@ class RenameFeature extends TextDocumentFeature<boolean | RenameOptions, RenameR
             return Promise.reject(new Error(error.message))
           })
         }
-        const middleware = client.clientOptions.middleware!;
+        const middleware = client.clientOptions.middleware!
         return middleware.provideRenameEdits
           ? middleware.provideRenameEdits(document, position, newName, token, provideRenameEdits)
           : provideRenameEdits(document, position, newName, token)
@@ -2681,21 +2681,21 @@ class RenameFeature extends TextDocumentFeature<boolean | RenameOptions, RenameR
                   return {
                     range: result.range,
                     placeholder: result.placeholder
-                  };
+                  }
                 }
                 // To cancel the rename vscode API expects a rejected promise.
-                return Promise.reject(new Error(`The element can't be renamed.`));
+                return Promise.reject(new Error(`The element can't be renamed.`))
               },
               (error: ResponseError<void>) => {
-                client.logFailedRequest(PrepareRenameRequest.type, error);
+                client.logFailedRequest(PrepareRenameRequest.type, error)
                 return Promise.reject(new Error(error.message))
               }
             )
           }
-          const middleware = client.clientOptions.middleware!;
+          const middleware = client.clientOptions.middleware!
           return middleware.prepareRename
             ? middleware.prepareRename(document, position, token, prepareRename)
-            : prepareRename(document, position, token);
+            : prepareRename(document, position, token)
         }
         : undefined
     }
@@ -2719,9 +2719,9 @@ class DocumentLinkFeature extends TextDocumentFeature<DocumentLinkOptions, Docum
     capabilities: ServerCapabilities,
     documentSelector: DocumentSelector
   ): void {
-    const options = this.getRegistrationOptions(documentSelector, capabilities.documentLinkProvider);
+    const options = this.getRegistrationOptions(documentSelector, capabilities.documentLinkProvider)
     if (!options) {
-      return;
+      return
     }
     this.register(this.messages, {
       id: UUID.generateUuid(),
@@ -2841,7 +2841,7 @@ class ConfigurationFeature implements DynamicFeature<DidChangeConfigurationRegis
       sections = configurationSection
     }
     if (sections !== void 0 && event !== void 0) {
-      const affected = sections.some((section) => event.affectsConfiguration(section));
+      const affected = sections.some((section) => event.affectsConfiguration(section))
       if (!affected) {
         return
       }
@@ -3260,26 +3260,26 @@ export abstract class BaseLanguageClient {
 
   public onProgress<P>(type: ProgressType<P>, token: string | number, handler: NotificationHandler<P>): Disposable {
     if (!this.isConnectionActive()) {
-      throw new Error('Language client is not ready yet');
+      throw new Error('Language client is not ready yet')
     }
     try {
-      return this._resolvedConnection!.onProgress(type, token, handler);
+      return this._resolvedConnection!.onProgress(type, token, handler)
     } catch (error) {
-      this.error(`Registering progress handler for token ${token} failed.`, error);
-      throw error;
+      this.error(`Registering progress handler for token ${token} failed.`, error)
+      throw error
     }
   }
 
   public sendProgress<P>(type: ProgressType<P>, token: string | number, value: P): void {
     if (!this.isConnectionActive()) {
-      throw new Error('Language client is not ready yet');
+      throw new Error('Language client is not ready yet')
     }
-    this.forceDocumentSync();
+    this.forceDocumentSync()
     try {
-      this._resolvedConnection!.sendProgress(type, token, value);
+      this._resolvedConnection!.sendProgress(type, token, value)
     } catch (error) {
-      this.error(`Sending progress for token ${token} failed.`, error);
-      throw error;
+      this.error(`Sending progress for token ${token} failed.`, error)
+      throw error
     }
   }
 
@@ -3551,11 +3551,11 @@ export abstract class BaseLanguageClient {
       initParams.workDoneToken = token
       return this.doInitialize(connection, initParams).then((result) => {
         part.done()
-        return result;
+        return result
       }, (error) => {
-        part.cancel();
-        throw error;
-      });
+        part.cancel()
+        throw error
+      })
     } else {
       return this.doInitialize(connection, initParams)
     }
@@ -3725,7 +3725,7 @@ export abstract class BaseLanguageClient {
         })
       })
     }
-    const workSpaceMiddleware = this.clientOptions.middleware?.workspace;
+    const workSpaceMiddleware = this.clientOptions.middleware?.workspace
     workSpaceMiddleware?.didChangeWatchedFile ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event)
   }
 
@@ -3991,7 +3991,7 @@ export abstract class BaseLanguageClient {
     const diagnostics = ensure(ensure(result, 'textDocument')!, 'publishDiagnostics')!
     diagnostics.relatedInformation = true
     diagnostics.versionSupport = false
-    diagnostics.tagSupport = { valueSet: [DiagnosticTag.Unnecessary, DiagnosticTag.Deprecated] }
+    // diagnostics.tagSupport = { valueSet: [DiagnosticTag.Unnecessary, DiagnosticTag.Deprecated] }
     for (let feature of this._features) {
       feature.fillClientCapabilities(result)
     }
@@ -4058,23 +4058,23 @@ export abstract class BaseLanguageClient {
   ): Promise<ApplyWorkspaceEditResponse> {
     // This is some sort of workaround since the version check should be done by VS Code in the Workspace.applyEdit.
     // However doing it here adds some safety since the server can lag more behind then an extension.
-    let workspaceEdit: WorkspaceEdit = params.edit;
-    let openTextDocuments: Map<string, TextDocument> = new Map<string, TextDocument>();
-    workspace.textDocuments.forEach((document) => openTextDocuments.set(document.uri.toString(), document));
-    let versionMismatch = false;
+    let workspaceEdit: WorkspaceEdit = params.edit
+    let openTextDocuments: Map<string, TextDocument> = new Map<string, TextDocument>()
+    workspace.textDocuments.forEach((document) => openTextDocuments.set(document.uri.toString(), document))
+    let versionMismatch = false
     if (workspaceEdit.documentChanges) {
       for (const change of workspaceEdit.documentChanges) {
         if (TextDocumentEdit.is(change) && change.textDocument.version && change.textDocument.version >= 0) {
-          let textDocument = openTextDocuments.get(change.textDocument.uri);
+          let textDocument = openTextDocuments.get(change.textDocument.uri)
           if (textDocument && textDocument.version !== change.textDocument.version) {
-            versionMismatch = true;
-            break;
+            versionMismatch = true
+            break
           }
         }
       }
     }
     if (versionMismatch) {
-      return Promise.resolve({ applied: false });
+      return Promise.resolve({ applied: false })
     }
     return workspace.applyEdit(params.edit).then(value => {
       return { applied: value }
