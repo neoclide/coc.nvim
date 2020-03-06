@@ -11,19 +11,8 @@ Object.defineProperty(console, 'log', {
 })
 const logger = require('../lib/util/logger')('server')
 const attach = require('../lib/attach').default
-const os = require('os')
-const path = require('path')
-const fs = require('fs')
-const rimraf = require('rimraf')
 
 attach({reader: process.stdin, writer: process.stdout})
-
-process.on('exit', () => {
-  let folder = path.join(os.tmpdir(), 'coc.nvim-' + process.pid)
-  if (fs.existsSync(folder)) {
-    rimraf.sync(folder)
-  }
-})
 
 process.on('uncaughtException', function (err) {
   let msg = 'Uncaught exception: ' + err.stack

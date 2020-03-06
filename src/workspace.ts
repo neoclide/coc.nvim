@@ -29,6 +29,7 @@ import { score } from './util/match'
 import { getChangedFromEdits } from './util/position'
 import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
+import rimraf from 'rimraf'
 import uuid = require('uuid/v1')
 
 declare var __webpack_require__: any
@@ -119,6 +120,12 @@ export class Workspace implements IWorkspace {
       })
     }
     this.configurations.updateUserConfig(this._env.config)
+    events.on('VimLeave', () => {
+      let folder = path.join(os.tmpdir(), 'coc.nvim-' + process.pid)
+      if (fs.existsSync(folder)) {
+        rimraf.sync(folder)
+      }
+    })
     events.on('InsertEnter', () => {
       this._insertMode = true
     }, null, this.disposables)

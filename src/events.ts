@@ -10,7 +10,7 @@ export type BufEvents = 'TextChangedI' | 'BufHidden' | 'BufEnter' | 'TextChanged
   | 'BufWritePost' | 'CursorHold' | 'InsertLeave' | 'TermOpen' | 'TermClose' | 'InsertEnter'
   | 'BufCreate' | 'BufUnload' | 'BufWritePre' | 'CursorHoldI' | 'TextChangedP' | 'Enter'
 
-export type EmptyEvents = 'FocusGained'
+export type EmptyEvents = 'FocusGained' | 'VimLeave'
 
 export type TextChangedEvent = 'TextChanged'
 
