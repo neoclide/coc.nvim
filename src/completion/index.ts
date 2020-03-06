@@ -6,7 +6,7 @@ import Document from '../model/document'
 import sources from '../sources'
 import { CompleteConfig, CompleteOption, ISource, PopupChangeEvent, PumBounding, RecentScore, VimCompleteItem } from '../types'
 import { disposeAll, wait } from '../util'
-import { byteSlice, characterIndex, isWord } from '../util/string'
+import { byteSlice, characterIndex } from '../util/string'
 import workspace from '../workspace'
 import Complete from './complete'
 import Floating from './floating'
@@ -362,14 +362,6 @@ export class Completion implements Disposable {
     }
     if (!this.isActivated || this.complete.isEmpty) return
     let search = content.slice(characterIndex(content, this.option.col))
-    if (search.length) {
-      let last = search[search.length - 1]
-      if (last.charCodeAt(0) < 128 && !isWord(last)) {
-        // Neither trigger none word
-        this.stop()
-      }
-      return
-    }
     return await this.resumeCompletion(content, search)
   }
 
