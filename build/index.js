@@ -32778,7 +32778,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "ab29c13082" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "2e4651b1b3" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -35211,9 +35211,12 @@ class Completion {
         if (!this.isActivated || this.complete.isEmpty)
             return;
         let search = content.slice(string_1.characterIndex(content, this.option.col));
-        if (search.length && !this.document.isWord(search[search.length - 1])) {
-            // Neither trigger nor word
-            this.stop();
+        if (search.length) {
+            let last = search[search.length - 1];
+            if (last.charCodeAt(0) < 128 && !string_1.isWord(last)) {
+                // Neither trigger none word
+                this.stop();
+            }
             return;
         }
         return await this.resumeCompletion(content, search);
@@ -48975,41 +48978,43 @@ const is_1 = __webpack_require__(194);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(190));
 const logger = __webpack_require__(2)('model-fetch');
 function getAgent(endpoint) {
-    let proxy = workspace_1.default.getConfiguration('http').get('proxy', '');
     let key = endpoint.protocol.startsWith('https') ? 'HTTPS_PROXY' : 'HTTP_PROXY';
     let env = process.env[key] || process.env[key.toLowerCase()];
-    if (!proxy && env) {
-        proxy = env;
-    }
-    const noProxy = process.env.NO_PROXY || process.env.no_proxy || null;
-    if (noProxy === '*') {
-        proxy = null;
-    }
-    else if (noProxy !== null) {
-        // canonicalize the hostname, so that 'oogle.com' won't match 'google.com'
-        const hostname = endpoint.hostname.replace(/^\.*/, '.').toLowerCase();
-        const port = endpoint.port || endpoint.protocol.startsWith('https') ? '443' : '80';
-        const noProxyList = noProxy.split(',');
-        for (let i = 0, len = noProxyList.length; i < len; i++) {
-            let noProxyItem = noProxyList[i].trim().toLowerCase();
-            // no_proxy can be granular at the port level, which complicates things a bit.
-            if (noProxyItem.indexOf(':') > -1) {
-                let noProxyItemParts = noProxyItem.split(':', 2);
-                let noProxyHost = noProxyItemParts[0].replace(/^\.*/, '.');
-                let noProxyPort = noProxyItemParts[1];
-                if (port === noProxyPort && hostname.endsWith(noProxyHost)) {
-                    proxy = null;
-                    break;
+    if (env) {
+        let noProxy = process.env.NO_PROXY || process.env.no_proxy;
+        if (noProxy === '*') {
+            env = null;
+        }
+        else if (noProxy) {
+            // canonicalize the hostname, so that 'oogle.com' won't match 'google.com'
+            const hostname = endpoint.hostname.replace(/^\.*/, '.').toLowerCase();
+            const port = endpoint.port || endpoint.protocol.startsWith('https') ? '443' : '80';
+            const noProxyList = noProxy.split(',');
+            for (let i = 0, len = noProxyList.length; i < len; i++) {
+                let noProxyItem = noProxyList[i].trim().toLowerCase();
+                // no_proxy can be granular at the port level, which complicates things a bit.
+                if (noProxyItem.indexOf(':') > -1) {
+                    let noProxyItemParts = noProxyItem.split(':', 2);
+                    let noProxyHost = noProxyItemParts[0].replace(/^\.*/, '.');
+                    let noProxyPort = noProxyItemParts[1];
+                    if (port === noProxyPort && hostname.endsWith(noProxyHost)) {
+                        env = null;
+                        break;
+                    }
                 }
-            }
-            else {
-                noProxyItem = noProxyItem.replace(/^\.*/, '.');
-                if (hostname.endsWith(noProxyItem)) {
-                    proxy = null;
-                    break;
+                else {
+                    noProxyItem = noProxyItem.replace(/^\.*/, '.');
+                    if (hostname.endsWith(noProxyItem)) {
+                        env = null;
+                        break;
+                    }
                 }
             }
         }
+    }
+    let proxy = workspace_1.default.getConfiguration('http').get('proxy', '');
+    if (!proxy && env) {
+        proxy = env;
     }
     if (proxy) {
         proxy = proxy.replace(/^https?:\/\//, '').replace(/\/$/, '');
@@ -55734,7 +55739,6 @@ class CompletionItemFeature extends TextDocumentFeature {
             documentationFormat: [vscode_languageserver_protocol_1.MarkupKind.Markdown, vscode_languageserver_protocol_1.MarkupKind.PlainText],
             deprecatedSupport: true,
             preselectSupport: true,
-            tagSupport: { valueSet: [vscode_languageserver_protocol_1.CompletionItemTag.Deprecated] },
         };
         completion.completionItemKind = { valueSet: SupportedCompletionItemKinds };
     }
@@ -57435,7 +57439,7 @@ class BaseLanguageClient {
         const diagnostics = ensure(ensure(result, 'textDocument'), 'publishDiagnostics');
         diagnostics.relatedInformation = true;
         diagnostics.versionSupport = false;
-        diagnostics.tagSupport = { valueSet: [vscode_languageserver_protocol_1.DiagnosticTag.Unnecessary, vscode_languageserver_protocol_1.DiagnosticTag.Deprecated] };
+        // diagnostics.tagSupport = { valueSet: [DiagnosticTag.Unnecessary, DiagnosticTag.Deprecated] }
         for (let feature of this._features) {
             feature.fillClientCapabilities(result);
         }
