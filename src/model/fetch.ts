@@ -9,41 +9,43 @@ import workspace from '../workspace'
 const logger = require('../util/logger')('model-fetch')
 
 export function getAgent(endpoint: UrlWithStringQuery): Agent {
-  let proxy = workspace.getConfiguration('http').get<string>('proxy', '')
   let key = endpoint.protocol.startsWith('https') ? 'HTTPS_PROXY' : 'HTTP_PROXY'
   let env = process.env[key] || process.env[key.toLowerCase()]
-  if (!proxy && env) {
-    proxy = env
-  }
-  const noProxy = process.env.NO_PROXY || process.env.no_proxy || null
-  if (noProxy === '*') {
-    proxy = null
-  } else if (noProxy !== null) {
-    // canonicalize the hostname, so that 'oogle.com' won't match 'google.com'
-    const hostname = endpoint.hostname.replace(/^\.*/, '.').toLowerCase()
-    const port = endpoint.port || endpoint.protocol.startsWith('https') ? '443' : '80'
-    const noProxyList = noProxy.split(',')
+  if (env) {
+    let noProxy = process.env.NO_PROXY || process.env.no_proxy
+    if (noProxy === '*') {
+      env = null
+    } else if (noProxy) {
+      // canonicalize the hostname, so that 'oogle.com' won't match 'google.com'
+      const hostname = endpoint.hostname.replace(/^\.*/, '.').toLowerCase()
+      const port = endpoint.port || endpoint.protocol.startsWith('https') ? '443' : '80'
+      const noProxyList = noProxy.split(',')
 
-    for (let i = 0, len = noProxyList.length; i < len; i++) {
-      let noProxyItem = noProxyList[i].trim().toLowerCase()
+      for (let i = 0, len = noProxyList.length; i < len; i++) {
+        let noProxyItem = noProxyList[i].trim().toLowerCase()
 
-      // no_proxy can be granular at the port level, which complicates things a bit.
-      if (noProxyItem.indexOf(':') > -1) {
-        let noProxyItemParts = noProxyItem.split(':', 2)
-        let noProxyHost = noProxyItemParts[0].replace(/^\.*/, '.')
-        let noProxyPort = noProxyItemParts[1]
-        if (port === noProxyPort && hostname.endsWith(noProxyHost)) {
-          proxy = null
-          break
-        }
-      } else {
-        noProxyItem = noProxyItem.replace(/^\.*/, '.')
-        if (hostname.endsWith(noProxyItem)) {
-          proxy = null
-          break
+        // no_proxy can be granular at the port level, which complicates things a bit.
+        if (noProxyItem.indexOf(':') > -1) {
+          let noProxyItemParts = noProxyItem.split(':', 2)
+          let noProxyHost = noProxyItemParts[0].replace(/^\.*/, '.')
+          let noProxyPort = noProxyItemParts[1]
+          if (port === noProxyPort && hostname.endsWith(noProxyHost)) {
+            env = null
+            break
+          }
+        } else {
+          noProxyItem = noProxyItem.replace(/^\.*/, '.')
+          if (hostname.endsWith(noProxyItem)) {
+            env = null
+            break
+          }
         }
       }
     }
+  }
+  let proxy = workspace.getConfiguration('http').get<string>('proxy', '')
+  if (!proxy && env) {
+    proxy = env
   }
   if (proxy) {
     proxy = proxy.replace(/^https?:\/\//, '').replace(/\/$/, '')
