@@ -32778,7 +32778,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "2e4651b1b3" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "b7014fedae" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -56057,6 +56057,7 @@ class WorkspaceSymbolFeature extends WorkspaceFeature {
         if (!capabilities.workspaceSymbolProvider) {
             return;
         }
+        this.documentSelector = documentSelector;
         this.register(this.messages, {
             id: UUID.generateUuid(),
             registerOptions: capabilities.workspaceSymbolProvider === true ? { workDoneProgress: false } : capabilities.workspaceSymbolProvider
@@ -56078,8 +56079,7 @@ class WorkspaceSymbolFeature extends WorkspaceFeature {
                     : provideWorkspaceSymbols(query, token);
             }
         };
-        // TODO: selector to null
-        return [languages_1.default.registerWorkspaceSymbolProvider(null, provider), provider];
+        return [languages_1.default.registerWorkspaceSymbolProvider(this.documentSelector, provider), provider];
     }
 }
 class CodeActionFeature extends TextDocumentFeature {
@@ -57225,7 +57225,7 @@ class BaseLanguageClient {
         }
     }
     notifyFileEvent(event) {
-        var _a;
+        var _a, _b;
         const client = this;
         function didChangeWatchedFile(event) {
             client._fileEvents.push(event);
@@ -57244,7 +57244,7 @@ class BaseLanguageClient {
             });
         }
         const workSpaceMiddleware = (_a = this.clientOptions.middleware) === null || _a === void 0 ? void 0 : _a.workspace;
-        (workSpaceMiddleware === null || workSpaceMiddleware === void 0 ? void 0 : workSpaceMiddleware.didChangeWatchedFile) ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event);
+        ((_b = workSpaceMiddleware) === null || _b === void 0 ? void 0 : _b.didChangeWatchedFile) ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event);
     }
     forceDocumentSync() {
         let doc = workspace_1.default.getDocument(workspace_1.default.bufnr);
