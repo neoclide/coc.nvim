@@ -32778,7 +32778,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "574ac33823" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "70dbceab2e" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -35211,14 +35211,6 @@ class Completion {
         if (!this.isActivated || this.complete.isEmpty)
             return;
         let search = content.slice(string_1.characterIndex(content, this.option.col));
-        if (search.length) {
-            let last = search[search.length - 1];
-            if (last.charCodeAt(0) < 128 && !string_1.isWord(last)) {
-                // Neither trigger none word
-                this.stop();
-            }
-            return;
-        }
         return await this.resumeCompletion(content, search);
     }
     async triggerCompletion(document, pre, checkTrigger = true) {
@@ -57225,7 +57217,7 @@ class BaseLanguageClient {
         }
     }
     notifyFileEvent(event) {
-        var _a;
+        var _a, _b;
         const client = this;
         function didChangeWatchedFile(event) {
             client._fileEvents.push(event);
@@ -57244,7 +57236,7 @@ class BaseLanguageClient {
             });
         }
         const workSpaceMiddleware = (_a = this.clientOptions.middleware) === null || _a === void 0 ? void 0 : _a.workspace;
-        (workSpaceMiddleware === null || workSpaceMiddleware === void 0 ? void 0 : workSpaceMiddleware.didChangeWatchedFile) ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event);
+        ((_b = workSpaceMiddleware) === null || _b === void 0 ? void 0 : _b.didChangeWatchedFile) ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event);
     }
     forceDocumentSync() {
         let doc = workspace_1.default.getDocument(workspace_1.default.bufnr);
@@ -64096,7 +64088,7 @@ class Floating {
                 win.setVar('popup', 1, true);
                 win.setOption('linebreak', true, true);
                 if (workspace_1.default.isVim && parseInt(workspace_1.default.env.version, 10) >= 8012281) {
-                    win.setOption('showbreak', '', true);
+                    win.setOption('showbreak', 'NONE', true);
                 }
                 win.setOption('conceallevel', 2, true);
                 await nvim.resumeNotification();
