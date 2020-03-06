@@ -278,7 +278,7 @@
     "suggest.enablePreselect": {
       "type": "boolean",
       "description": "Enable preselect feature, only works on neovim",
-      "default": true
+      "default": false
     },
     "suggest.maxPreviewWidth": {
       "type": "number",
