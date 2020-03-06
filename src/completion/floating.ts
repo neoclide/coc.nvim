@@ -168,7 +168,7 @@ export default class Floating {
         win.setVar('popup', 1, true)
         win.setOption('linebreak', true, true)
         if (workspace.isVim && parseInt(workspace.env.version, 10) >= 8012281) {
-          win.setOption('showbreak', '', true)
+          win.setOption('showbreak', 'NONE', true)
         }
         win.setOption('conceallevel', 2, true)
         await nvim.resumeNotification()
