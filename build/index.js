@@ -23690,7 +23690,8 @@ augroup end`;
             return;
         }
         let oldPath = vscode_uri_1.URI.parse(doc.uri).fsPath;
-        let newPath = await nvim.call('input', ['New path: ', oldPath, 'file']);
+        // await nvim.callAsync()
+        let newPath = await nvim.callAsync('coc#util#with_callback', ['input', ['New path: ', oldPath, 'file']]);
         newPath = newPath ? newPath.trim() : null;
         if (newPath == oldPath || !newPath)
             return;
@@ -35279,7 +35280,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f3ef5e6a41" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d5e12d81b2" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
