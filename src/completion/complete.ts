@@ -193,7 +193,7 @@ export default class Complete {
           continue
         }
         if ((!item.dup || source == 'tabnine') && words.has(word)) continue
-        if (removeDuplicateItems && !item.isSnippet && words.has(word)) continue
+        if (removeDuplicateItems && !item.isSnippet && words.has(word) && item.line == undefined) continue
         let filterText = item.filterText || item.word
         item.filterText = filterText
         if (filterText.length < input.length) continue
