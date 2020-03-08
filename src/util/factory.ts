@@ -154,7 +154,7 @@ function createSandbox(filename: string, logger: Logger): ISandbox {
 export function createExtension(id: string, filename: string): ExtensionExport {
   if (!fs.existsSync(filename)) {
     // tslint:disable-next-line:no-empty
-    return { activate: () => { }, deactivate: null }
+    throw new Error(`Cannot find main file ${filename} specified by package.json`)
   }
   const sandbox = createSandbox(filename, createLogger(`extension-${id}`))
 
