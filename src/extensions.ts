@@ -766,6 +766,17 @@ export class Extensions {
         if (!ext) {
           try {
             ext = createExtension(id, filename)
+
+            // check if activate is empty function like () => {}
+            const stringifyFunction = f => f
+              .toString()
+              .split('')
+              .filter(e => e !== ' ')
+              .join('')
+
+            if (stringifyFunction(ext.activate) === stringifyFunction(() => {})) {
+              workspace.showMessage(`extension doesn't contain main file ${filename}.`, 'error')
+            }
           } catch (e) {
             workspace.showMessage(`Error on load extension ${id} from ${filename}: ${e}`, 'error')
             logger.error(e)
