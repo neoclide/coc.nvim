@@ -603,7 +603,7 @@ export class ListManager implements Disposable {
     nvim.command('setl nomod', true)
     nvim.command('setl nomodifiable', true)
     nvim.command('normal! gg', true)
-    nvim.command('nnoremap q :bd!<CR>', true)
+    nvim.command('nnoremap <buffer> q :bd!<CR>', true)
     await nvim.resumeNotification()
   }
 
