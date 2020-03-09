@@ -1,14 +1,13 @@
 import { Neovim } from '@chemzqm/neovim'
 import * as language from 'vscode-languageserver-protocol'
-import { Disposable, Location, Position, TextEdit, CodeAction, Range, WorkspaceEdit, TextDocumentEdit } from 'vscode-languageserver-protocol'
-import { wait } from './util'
-import workspace from './workspace'
+import { CodeAction, Disposable, Location, Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
+import diagnosticManager from './diagnostic/manager'
+import Mru from './model/mru'
 import Plugin from './plugin'
 import snipetsManager from './snippets/manager'
-import diagnosticManager from './diagnostic/manager'
-import { URI } from 'vscode-uri'
-import Mru from './model/mru'
-import Handler from './handler'
+import { wait } from './util'
+import workspace from './workspace'
 const logger = require('./util/logger')('commands')
 
 // command center

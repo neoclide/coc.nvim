@@ -52,7 +52,7 @@ export default class Colors {
       }
     }, null, this.disposables)
 
-    workspace.onDidChangeTextDocument(async ({ textDocument, contentChanges }) => {
+    workspace.onDidChangeTextDocument(async ({ textDocument }) => {
       if (workspace.insertMode) return
       let doc = workspace.getDocument(textDocument.uri)
       if (doc && doc.bufnr == workspace.bufnr) {
