@@ -748,7 +748,7 @@ export class Extensions {
     let filename = path.join(root, packageJSON.main || 'index.js')
     let ext: ExtensionExport
     let subscriptions: Disposable[] = []
-    if (!fs.existsSync(filename)) {
+    if (packageJSON.main && !fs.existsSync(filename)) {
       workspace.showMessage(`extension "${id}" doesn't contain main file ${filename}.`, 'error')
       return
     }
