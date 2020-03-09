@@ -35280,7 +35280,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "2e9f0a2814" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "9e9b0ad3a2" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -39066,6 +39066,10 @@ class Extensions {
         let filename = path_1.default.join(root, packageJSON.main || 'index.js');
         let ext;
         let subscriptions = [];
+        if (packageJSON.main && !fs_1.default.existsSync(filename)) {
+            workspace_1.default.showMessage(`extension "${id}" doesn't contain main file ${filename}.`, 'error');
+            return;
+        }
         let extension = {
             activate: async () => {
                 if (isActive)
@@ -39164,7 +39168,6 @@ class Extensions {
         if (this.activated) {
             this.setupActiveEvents(id, packageJSON);
         }
-        return id;
     }
     async initializeRoot() {
         let root = this.root = await workspace_1.default.nvim.call('coc#util#extension_root');
@@ -57214,7 +57217,7 @@ class BaseLanguageClient {
         }
     }
     notifyFileEvent(event) {
-        var _a;
+        var _a, _b;
         const client = this;
         function didChangeWatchedFile(event) {
             client._fileEvents.push(event);
@@ -57233,7 +57236,7 @@ class BaseLanguageClient {
             });
         }
         const workSpaceMiddleware = (_a = this.clientOptions.middleware) === null || _a === void 0 ? void 0 : _a.workspace;
-        (workSpaceMiddleware === null || workSpaceMiddleware === void 0 ? void 0 : workSpaceMiddleware.didChangeWatchedFile) ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event);
+        ((_b = workSpaceMiddleware) === null || _b === void 0 ? void 0 : _b.didChangeWatchedFile) ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event);
     }
     forceDocumentSync() {
         let doc = workspace_1.default.getDocument(workspace_1.default.bufnr);
@@ -59066,7 +59069,7 @@ class ListManager {
         nvim.command('setl nomod', true);
         nvim.command('setl nomodifiable', true);
         nvim.command('normal! gg', true);
-        nvim.command('nnoremap q :bd!<CR>', true);
+        nvim.command('nnoremap <buffer> q :bd!<CR>', true);
         await nvim.resumeNotification();
     }
     get context() {
@@ -63584,7 +63587,7 @@ class Complete {
                 }
                 if ((!item.dup || source == 'tabnine') && words.has(word))
                     continue;
-                if (removeDuplicateItems && !item.isSnippet && words.has(word))
+                if (removeDuplicateItems && !item.isSnippet && words.has(word) && item.line == undefined)
                     continue;
                 let filterText = item.filterText || item.word;
                 item.filterText = filterText;
