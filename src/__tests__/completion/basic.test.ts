@@ -155,7 +155,7 @@ describe('completion', () => {
     await nvim.input('(')
     await helper.wait(300)
     let res = await helper.pumvisible()
-    expect(res).toBe(false)
+    expect(res).toBe(true)
     disposable.dispose()
   })
 
