@@ -396,7 +396,7 @@ export class Extensions {
       status.dispose()
       const sortedObj = { dependencies: {} }
       Object.keys(json.dependencies).sort().forEach(k => {
-          sortedObj.dependencies[k] = json.dependencies[k]
+        sortedObj.dependencies[k] = json.dependencies[k]
       })
       fs.writeFileSync(jsonFile, JSON.stringify(sortedObj, null, 2), { encoding: 'utf8' })
       workspace.showMessage(`Removed: ${ids.join(' ')}`)
@@ -741,13 +741,17 @@ export class Extensions {
     }
   }
 
-  private createExtension(root: string, packageJSON: any, isLocal = false): string {
+  private createExtension(root: string, packageJSON: any, isLocal = false): void {
     let id = `${packageJSON.name}`
     let isActive = false
     let exports = null
     let filename = path.join(root, packageJSON.main || 'index.js')
     let ext: ExtensionExport
     let subscriptions: Disposable[] = []
+    if (!fs.existsSync(filename)) {
+      workspace.showMessage(`extension "${id}" doesn't contain main file ${filename}.`, 'error')
+      return
+    }
     let extension: any = {
       activate: async (): Promise<API> => {
         if (isActive) return
@@ -843,7 +847,6 @@ export class Extensions {
     if (this.activated) {
       this.setupActiveEvents(id, packageJSON)
     }
-    return id
   }
 
   private async initializeRoot(): Promise<void> {
