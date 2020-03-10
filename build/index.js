@@ -28249,7 +28249,7 @@ class Document {
         try {
             let content = this.getDocumentContent();
             let endOffset = null;
-            if (cursor && cursor.bufnr == this.bufnr) {
+            if (!force && cursor && cursor.bufnr == this.bufnr) {
                 endOffset = this.getEndOffset(cursor.lnum, cursor.col, cursor.insert);
                 if (!cursor.insert && content.length < this.content.length) {
                     endOffset = endOffset + 1;
@@ -35043,8 +35043,11 @@ class Plugin extends events_1.EventEmitter {
             get: () => this.nvim
         });
         this.cursors = new cursors_1.default(nvim);
-        this.addMethod('hasProvider', async (id) => {
+        this.addMethod('hasProvider', (id) => {
             return this.handler.hasProvider(id);
+        });
+        this.addMethod('getTagList', async () => {
+            return await this.handler.getTagList();
         });
         this.addMethod('hasSelected', () => {
             return completion_1.default.hasSelected();
@@ -35280,7 +35283,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "857c221c55" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "f4400f58ef" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -65113,6 +65116,7 @@ const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(411));
 const refactor_1 = tslib_1.__importDefault(__webpack_require__(412));
 const search_1 = tslib_1.__importDefault(__webpack_require__(413));
 const debounce = __webpack_require__(179);
+const vscode_uri_1 = __webpack_require__(183);
 const logger = __webpack_require__(2)('Handler');
 const pairs = new Map([
     ['<', '>'],
@@ -65584,6 +65588,25 @@ class Handler {
             return -1;
         await document.applyEdits(this.nvim, textEdits);
         return 0;
+    }
+    async getTagList() {
+        let position = await workspace_1.default.getCursorPosition();
+        let document = await workspace_1.default.document;
+        let word = await this.nvim.call('expand', '<cword>');
+        if (!word)
+            return null;
+        if (!languages_1.default.hasProvider('definition', document.textDocument)) {
+            return null;
+        }
+        let definitions = await languages_1.default.getDefinition(document.textDocument, position);
+        return definitions.map(location => {
+            const filename = vscode_uri_1.URI.parse(location.uri).fsPath;
+            return {
+                name: word,
+                cmd: `${location.range.start.line + 1} | normal ${location.range.start.character + 1}|`,
+                filename,
+            };
+        });
     }
     async runCommand(id, ...args) {
         if (id) {
