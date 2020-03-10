@@ -45,6 +45,12 @@ export interface KeymapOption {
   repeat: boolean
 }
 
+export interface TagDefinition {
+  name: string
+  cmd: string
+  filename: string
+}
+
 export interface Autocmd {
   pattern?: string
   event: string | string[]

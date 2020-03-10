@@ -1339,6 +1339,12 @@ CocHasProvider({feature})
 	`declaration` `typeDefinition` `reference` `implementation` `codeLens`
 	`selectionRange`
 
+						*CocTagFunc()*
+CocTagFunc({pattern}, {flags}, {info})
+
+	Used for vim's 'tagfunc' option, to make tag search by |CTRL-]| use
+	coc.nvim as provider.
+
 ------------------------------------------------------------------------------
 
 Available Actions ~

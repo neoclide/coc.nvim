@@ -10,7 +10,7 @@ import FloatFactory from '../model/floatFactory'
 import { TextDocumentContentProvider } from '../provider'
 import services from '../services'
 import snippetManager from '../snippets/manager'
-import { CodeAction, Documentation } from '../types'
+import { CodeAction, Documentation, TagDefinition } from '../types'
 import { disposeAll, wait } from '../util'
 import { getSymbolKind } from '../util/convert'
 import { equals } from '../util/object'
@@ -23,6 +23,7 @@ import DocumentHighlighter from './documentHighlight'
 import Refactor from './refactor'
 import Search from './search'
 import debounce = require('debounce')
+import { URI } from 'vscode-uri'
 const logger = require('../util/logger')('Handler')
 const pairs: Map<string, string> = new Map([
   ['<', '>'],
@@ -525,6 +526,25 @@ export default class Handler {
     if (!textEdits) return - 1
     await document.applyEdits(this.nvim, textEdits)
     return 0
+  }
+
+  public async getTagList(): Promise<TagDefinition[] | null> {
+    let position = await workspace.getCursorPosition()
+    let document = await workspace.document
+    let word = await this.nvim.call('expand', '<cword>')
+    if (!word) return null
+    if (!languages.hasProvider('definition', document.textDocument)) {
+      return null
+    }
+    let definitions = await languages.getDefinition(document.textDocument, position)
+    return definitions.map(location => {
+      const filename = URI.parse(location.uri).fsPath
+      return {
+        name: word,
+        cmd: `${location.range.start.line + 1} | normal ${location.range.start.character + 1}|`,
+        filename,
+      }
+    })
   }
 
   public async runCommand(id?: string, ...args: any[]): Promise<any> {
