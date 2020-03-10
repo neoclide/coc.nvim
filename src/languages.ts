@@ -170,8 +170,8 @@ class Languages {
       priority: getConfig<number>('languageSourcePriority', 99),
       echodocSupport: getConfig<boolean>('echodocSupport', false),
       waitTime: getConfig<number>('triggerCompletionWait', 60),
-      detailField: getConfig<string>('detailField', 'abbr'),
-      detailMaxLength: getConfig<number>('detailMaxLength', 50),
+      detailField: getConfig<string>('detailField', 'menu'),
+      detailMaxLength: getConfig<number>('detailMaxLength', 100),
       invalidInsertCharacters: getConfig<string[]>('invalidInsertCharacters', [' ', '(', '<', '{', '[', '\r', '\n']),
     }
   }
