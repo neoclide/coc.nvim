@@ -298,7 +298,7 @@
     "suggest.labelMaxLength": {
       "type": "number",
       "description": "Max length of abbr that shown as label of complete item.",
-      "default": 50
+      "default": 200
     },
     "suggest.detailMaxLength": {
       "type": "number",

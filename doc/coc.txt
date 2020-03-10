@@ -135,7 +135,7 @@ Built in configurations:~
 
 "suggest.labelMaxLength":~
 
-	Maximum length of label shown in 'pum', default: `50`
+	Maximum length of label shown in 'pum', default: `200`
 
 "suggest.enablePreview":~
 
