@@ -258,7 +258,7 @@ describe('cursors#onchange', () => {
     let doc = await setup()
     await nvim.call('cursor', [1, 3])
     await nvim.command('normal! x')
-    doc.forceSync()
+    doc.forceSync(false)
     await helper.wait(100)
     let lines = await nvim.call('getline', [1, '$'])
     expect(lines).toEqual(['fo fo fo', 'ba ba'])
