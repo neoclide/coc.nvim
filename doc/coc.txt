@@ -135,7 +135,7 @@ Built in configurations:~
 
 "suggest.labelMaxLength":~
 
-	Maximum length of label shown in 'pum', default: `200`
+	Maximum length of label shown in 'pum', default: `50`
 
 "suggest.enablePreview":~
 
@@ -147,7 +147,7 @@ Built in configurations:~
 
 "suggest.detailMaxLength":~
 
-	Max length of detail that will be shown in popup menu, default: `100`
+	Max length of detail that will be shown in popup menu, default: `50`
 
 "suggest.detailField":~
 

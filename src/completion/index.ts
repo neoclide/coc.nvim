@@ -132,7 +132,7 @@ export class Completion implements Disposable {
       enablePreview: getConfig<boolean>('enablePreview', false),
       enablePreselect: getConfig<boolean>('enablePreselect', false),
       maxPreviewWidth: getConfig<number>('maxPreviewWidth', 80),
-      labelMaxLength: getConfig<number>('labelMaxLength', 200),
+      labelMaxLength: getConfig<number>('labelMaxLength', 50),
       triggerAfterInsertEnter: getConfig<boolean>('triggerAfterInsertEnter', false),
       noselect: getConfig<boolean>('noselect', true),
       numberSelect: getConfig<boolean>('numberSelect', false),

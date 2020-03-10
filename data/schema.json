@@ -298,12 +298,12 @@
     "suggest.labelMaxLength": {
       "type": "number",
       "description": "Max length of abbr that shown as label of complete item.",
-      "default": 200
+      "default": 50
     },
     "suggest.detailMaxLength": {
       "type": "number",
       "description": "Max length of detail that should be shown in popup menu.",
-      "default": 100
+      "default": 50
     },
     "suggest.detailField": {
       "type": "string",
