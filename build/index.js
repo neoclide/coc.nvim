@@ -35283,7 +35283,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f4400f58ef" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "2c7c3417b3" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -50854,17 +50854,17 @@ class Languages {
             priority: getConfig('languageSourcePriority', 99),
             echodocSupport: getConfig('echodocSupport', false),
             waitTime: getConfig('triggerCompletionWait', 60),
-            detailField: getConfig('detailField', 'abbr'),
-            detailMaxLength: getConfig('detailMaxLength', 50),
+            detailField: getConfig('detailField', 'menu'),
+            detailMaxLength: getConfig('detailMaxLength', 100),
             invalidInsertCharacters: getConfig('invalidInsertCharacters', [' ', '(', '<', '{', '[', '\r', '\n']),
         };
     }
     registerOnTypeFormattingEditProvider(selector, provider, triggerCharacters) {
         return this.onTypeFormatManager.register(selector, provider, triggerCharacters);
     }
-    registerCompletionItemProvider(name, shortcut, languageIds, provider, triggerCharacters = [], allCommitCharacters = [], priority) {
+    registerCompletionItemProvider(name, shortcut, languageIds, provider, triggerCharacters = [], priority, allCommitCharacters) {
         languageIds = typeof languageIds == 'string' ? [languageIds] : languageIds;
-        let source = this.createCompleteSource(name, shortcut, provider, languageIds, triggerCharacters, allCommitCharacters, priority);
+        let source = this.createCompleteSource(name, shortcut, provider, languageIds, triggerCharacters, allCommitCharacters || [], priority);
         sources_1.default.addSource(source);
         logger.debug('created service source', name);
         return {
@@ -53784,6 +53784,7 @@ function getLanguageServerOptions(id, name, config) {
         diagnosticCollectionName: name,
         outputChannelName: id,
         stdioEncoding: config.stdioEncoding || 'utf8',
+        progressOnInitialization: !!config.progressOnInitialization,
         initializationOptions: config.initializationOptions || {}
     };
     return [clientOptions, serverOptions];
@@ -55172,6 +55173,7 @@ class CompletionItemFeature extends TextDocumentFeature {
     registerLanguageProvider(options) {
         let triggerCharacters = options.triggerCharacters || [];
         let allCommitCharacters = options.allCommitCharacters || [];
+        let priority = options.priority;
         const provider = {
             provideCompletionItems: (document, position, token, context) => {
                 const client = this._client;
@@ -55203,7 +55205,7 @@ class CompletionItemFeature extends TextDocumentFeature {
                 : undefined
         };
         const languageIds = cv.asLanguageIds(options.documentSelector);
-        const disposable = languages_1.default.registerCompletionItemProvider(this._client.id, 'LS', languageIds, provider, triggerCharacters, allCommitCharacters);
+        const disposable = languages_1.default.registerCompletionItemProvider(this._client.id, 'LS', languageIds, provider, triggerCharacters, priority, allCommitCharacters);
         return [disposable, provider];
     }
 }
@@ -56954,10 +56956,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(190));
+const _disposables = new Map();
 class ProgressPart {
     constructor(_client, _token) {
         this._client = _client;
         this._token = _token;
+        if (_disposables.has(_token)) {
+            workspace_1.default.showMessage(`Progress for token ${_token} already registered`, 'warning');
+            return;
+        }
         this._workDoneStatus = workspace_1.default.createStatusBarItem(99, { progress: true });
         this._disposable = this._client.onProgress(vscode_languageserver_protocol_1.WorkDoneProgress.type, this._token, value => {
             switch (value.kind) {
@@ -56972,6 +56979,7 @@ class ProgressPart {
                     break;
             }
         });
+        _disposables.set(_token, this._disposable);
     }
     begin(params) {
         // TODO: WorkDoneProgressCancelNotification
@@ -56985,26 +56993,14 @@ class ProgressPart {
         this._workDoneStatus.show();
     }
     cancel() {
-        if (this._workDoneStatus) {
-            this._workDoneStatus.hide();
-            this._workDoneStatus.dispose();
-            this._workDoneStatus = undefined;
-        }
-        if (this._disposable) {
-            this._disposable.dispose();
-            this._disposable = undefined;
-        }
+        var _a, _b;
+        _disposables.clear();
+        (_a = this._disposable) === null || _a === void 0 ? void 0 : _a.dispose();
+        (_b = this._workDoneStatus) === null || _b === void 0 ? void 0 : _b.dispose();
     }
     done() {
-        if (this._workDoneStatus) {
-            this._workDoneStatus.hide();
-            this._workDoneStatus.dispose();
-            this._workDoneStatus = undefined;
-        }
-        if (this._disposable) {
-            this._disposable.dispose();
-            this._disposable = undefined;
-        }
+        var _a;
+        (_a = this._workDoneStatus) === null || _a === void 0 ? void 0 : _a.hide();
     }
 }
 exports.ProgressPart = ProgressPart;
@@ -63937,9 +63933,9 @@ class DiagnosticBuffer {
             this.setLocationlist(diagnostics, winid);
             this.addHighlight(diagnostics, winid);
             this.addDiagnosticVText(diagnostics);
-            let [, err] = await this.nvim.resumeNotification();
-            if (err)
-                logger.error('Diagnostic error:', err);
+            let res = await this.nvim.resumeNotification();
+            if (Array.isArray(res) && res[1])
+                logger.error('Diagnostic error:', res[1]);
         });
         sequence.start().then(async (canceled) => {
             if (!canceled) {
@@ -65603,7 +65599,7 @@ class Handler {
             const filename = vscode_uri_1.URI.parse(location.uri).fsPath;
             return {
                 name: word,
-                cmd: `${location.range.start.line + 1} | normal ${location.range.start.character + 1}|`,
+                cmd: `keepjumps ${location.range.start.line + 1} | normal ${location.range.start.character + 1}|`,
                 filename,
             };
         });
