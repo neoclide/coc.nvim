@@ -541,7 +541,7 @@ export default class Handler {
       const filename = URI.parse(location.uri).fsPath
       return {
         name: word,
-        cmd: `${location.range.start.line + 1} | normal ${location.range.start.character + 1}|`,
+        cmd: `keepjumps ${location.range.start.line + 1} | normal ${location.range.start.character + 1}|`,
         filename,
       }
     })
