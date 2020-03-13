@@ -1842,6 +1842,7 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
   protected registerLanguageProvider(options: CompletionRegistrationOptions): [Disposable, CompletionItemProvider] {
     let triggerCharacters = options.triggerCharacters || []
     let allCommitCharacters = options.allCommitCharacters || []
+    let priority = (options as any).priority as number
     const provider: CompletionItemProvider = {
       provideCompletionItems: (document: TextDocument, position: Position, token: CancellationToken, context: CompletionContext): ProviderResult<CompletionList | CompletionItem[]> => {
         const client = this._client
@@ -1884,7 +1885,14 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
     }
 
     const languageIds = cv.asLanguageIds(options.documentSelector!)
-    const disposable = languages.registerCompletionItemProvider(this._client.id, 'LS', languageIds, provider, triggerCharacters, allCommitCharacters)
+    const disposable = languages.registerCompletionItemProvider(
+      this._client.id,
+      'LS',
+      languageIds,
+      provider,
+      triggerCharacters,
+      priority,
+      allCommitCharacters)
     return [disposable, provider]
   }
 }

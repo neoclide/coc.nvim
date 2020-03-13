@@ -190,11 +190,11 @@ class Languages {
     languageIds: string | string[] | null,
     provider: CompletionItemProvider,
     triggerCharacters: string[] = [],
-    allCommitCharacters: string[] = [],
-    priority?: number
+    priority?: number,
+    allCommitCharacters?: string[]
   ): Disposable {
     languageIds = typeof languageIds == 'string' ? [languageIds] : languageIds
-    let source = this.createCompleteSource(name, shortcut, provider, languageIds, triggerCharacters, allCommitCharacters, priority)
+    let source = this.createCompleteSource(name, shortcut, provider, languageIds, triggerCharacters, allCommitCharacters || [], priority)
     sources.addSource(source)
     logger.debug('created service source', name)
     return {
@@ -512,7 +512,7 @@ class Languages {
     languageIds: string[] | null,
     triggerCharacters: string[],
     allCommitCharacters: string[],
-    priority?: number
+    priority?: number | undefined
   ): ISource {
     // track them for resolve
     let completeItems: CompletionItem[] = []
