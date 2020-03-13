@@ -136,7 +136,9 @@ endfunction
 
 function! s:notify(method, args) dict
   let channel = coc#client#get_channel(self)
-  if empty(channel) | return '' | endif
+  if empty(channel)
+    return ''
+  endif
   try
     if s:is_vim
       call ch_sendraw(channel, json_encode([0, [a:method, a:args]])."\n")
@@ -145,7 +147,9 @@ function! s:notify(method, args) dict
     endif
   catch /.*/
     if v:exception =~# 'E475'
-      if get(g:, 'coc_vim_leaving', 0) | return | endif
+      if get(g:, 'coc_vim_leaving', 0)
+        return
+      endif
       echohl Error | echom '['.self.name.'] server connection lost' | echohl None
       let name = self.name
       call s:on_exit(name, 0)

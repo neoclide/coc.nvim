@@ -125,8 +125,8 @@ function! s:AddAnsiGroups() abort
       let backgroundColor = color_map[key]
       exe 'hi default CocList'.foreground.background.' guifg='.foregroundColor.' guibg='.backgroundColor
     endfor
-    exe 'hi default CocListFg'.foreground. ' guifg='.foregroundColor
-    exe 'hi default CocListBg'.foreground. ' guibg='.foregroundColor
+    exe 'hi default CocListFg'.foreground. ' guifg='.foregroundColor. ' ctermfg='.foreground
+    exe 'hi default CocListBg'.foreground. ' guibg='.foregroundColor. ' ctermbg='.foreground
   endfor
 endfunction
 
@@ -149,12 +149,16 @@ function! s:Disable() abort
 endfunction
 
 function! s:Autocmd(...) abort
-  if !get(g:,'coc_workspace_initialized', 0) | return | endif
+  if !get(g:,'coc_workspace_initialized', 0)
+    return
+  endif
   call coc#rpc#notify('CocAutocmd', a:000)
 endfunction
 
 function! s:SyncAutocmd(...)
-  if !get(g:,'coc_workspace_initialized', 0) | return | endif
+  if !get(g:,'coc_workspace_initialized', 0)
+    return
+  endif
   if get(g:, 'coc_service_initialized', 0)
     call coc#rpc#request('CocAutocmd', a:000)
   else
