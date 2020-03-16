@@ -3543,7 +3543,7 @@ export abstract class BaseLanguageClient {
     this._clientOptions.invalidate()
     let initOption = this._clientOptions.value().initializationOptions
     let rootPath = this.resolveRootPath()
-    logger.debug(`initialize: initializationOptions = ${JSON.stringify(initOption)}`)
+    logger.debug(`initialize: initializationOptions`, initOption)
     if (!rootPath) return
     let initParams: any = {
       processId: process.pid,
@@ -4102,5 +4102,3 @@ export abstract class BaseLanguageClient {
     this.error(`Request ${type.method} failed.`, error)
   }
 }
-
-
