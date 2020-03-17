@@ -71,6 +71,7 @@ export function getAgent(endpoint: UrlWithStringQuery): Agent {
  */
 export default function fetch(url: string, data?: string | { [key: string]: any }, options: RequestOptions = {}): Promise<string | { [key: string]: any }> {
   logger.info('fetch:', url)
+  let rejectUnauthorized = workspace.getConfiguration('https').get<boolean>('rejectUnauthorized', true)
   let mod = url.startsWith('https') ? https : http
   let endpoint = parse(url)
   let agent = getAgent(endpoint)
@@ -81,6 +82,7 @@ export default function fetch(url: string, data?: string | { [key: string]: any 
     path: endpoint.path,
     protocol: url.startsWith('https') ? 'https:' : 'http:',
     agent,
+    rejectUnauthorized,
     headers: {
       'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64)',
       'Accept-Encoding': 'gzip'
