@@ -35283,7 +35283,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "2c7c3417b3" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "44b556ac6b" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -49977,6 +49977,7 @@ exports.getAgent = getAgent;
  */
 function fetch(url, data, options = {}) {
     logger.info('fetch:', url);
+    let rejectUnauthorized = workspace_1.default.getConfiguration('https').get('rejectUnauthorized', true);
     let mod = url.startsWith('https') ? follow_redirects_1.https : follow_redirects_1.http;
     let endpoint = url_1.parse(url);
     let agent = getAgent(endpoint);
@@ -49987,6 +49988,7 @@ function fetch(url, data, options = {}) {
         path: endpoint.path,
         protocol: url.startsWith('https') ? 'https:' : 'http:',
         agent,
+        rejectUnauthorized,
         headers: {
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64)',
             'Accept-Encoding': 'gzip'
@@ -56481,7 +56483,7 @@ class BaseLanguageClient {
         this._clientOptions.invalidate();
         let initOption = this._clientOptions.value().initializationOptions;
         let rootPath = this.resolveRootPath();
-        logger.debug(`initialize: initializationOptions = ${JSON.stringify(initOption)}`);
+        logger.debug(`initialize: initializationOptions`, initOption);
         if (!rootPath)
             return;
         let initParams = {
@@ -56988,8 +56990,8 @@ class ProgressPart {
     }
     report(params) {
         this._message = params.message ? params.message : '';
-        this._percentage = params.percentage ? params.percentage.toFixed(2) + '%' : '';
-        this._workDoneStatus.text = `${this._title} ${this._message} ${this._percentage}`;
+        this._percentage = params.percentage ? params.percentage.toFixed(0) + '%' : '';
+        this._workDoneStatus.text = `${this._percentage} ${this._title} ${this._message}`;
         this._workDoneStatus.show();
     }
     cancel() {
