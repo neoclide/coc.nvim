@@ -91,7 +91,7 @@
         "progressOnInitialization": {
           "type": "boolean",
           "default": true,
-          "description": "Enable progress request to languageserver"
+          "description": "Enable progress report on languageserver initialize."
         },
         "initializationOptions": {
           "type": "object",

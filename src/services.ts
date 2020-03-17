@@ -396,7 +396,7 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
     diagnosticCollectionName: name,
     outputChannelName: id,
     stdioEncoding: config.stdioEncoding || 'utf8',
-    progressOnInitialization: !!config.progressOnInitialization,
+    progressOnInitialization: config.progressOnInitialization !== false,
     initializationOptions: config.initializationOptions || {}
   }
   return [clientOptions, serverOptions]

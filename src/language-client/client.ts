@@ -21,7 +21,7 @@ import { ConfigurationWorkspaceMiddleware } from './configuration'
 import { DeclarationMiddleware } from './declaration'
 import { FoldingRangeProviderMiddleware } from './foldingRange'
 import { ImplementationMiddleware } from './implementation'
-import { ProgressPart } from './progressPart'
+import progressManager from './progressPart'
 import { SelectionRangeProviderMiddleware } from './selectionRange'
 import { TypeDefinitionMiddleware } from './typeDefinition'
 import { Delayer } from './utils/async'
@@ -123,6 +123,17 @@ class ConsoleLogger implements Logger {
   }
   public log(message: string): void {
     logger.log(message)
+  }
+}
+
+export class NullLogger implements Logger {
+  error(_message: string): void {
+  }
+  warn(_message: string): void {
+  }
+  info(_message: string): void {
+  }
+  log(_message: string): void {
   }
 }
 
@@ -1767,9 +1778,7 @@ abstract class WorkspaceFeature<RO, PR> implements DynamicFeature<RO> {
 
   public register(message: RPCMessageType, data: RegistrationData<RO>): void {
     if (message.method !== this.messages.method) {
-      throw new Error(
-        `Register called on wrong feature. Requested ${message.method} but reached feature ${this.messages.method}`
-      )
+      throw new Error(`Register called on wrong feature. Requested ${message.method} but reached feature ${this.messages.method}`)
     }
     const registration = this.registerLanguageProvider(data.registerOptions)
     this._registrations.set(data.id, { disposable: registration[0], provider: registration[1] })
@@ -2291,7 +2300,7 @@ class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegistratio
     })
   }
 
-  protected registerLanguageProvider(options: WorkspaceSymbolRegistrationOptions): [Disposable, WorkspaceSymbolProvider] {
+  protected registerLanguageProvider(_options: WorkspaceSymbolRegistrationOptions): [Disposable, WorkspaceSymbolProvider] {
     const provider: WorkspaceSymbolProvider = {
       provideWorkspaceSymbols: (query, token) => {
         const client = this._client
@@ -2722,7 +2731,8 @@ class DocumentLinkFeature extends TextDocumentFeature<DocumentLinkOptions, Docum
   public fillClientCapabilities(capabilites: ClientCapabilities): void {
     const documentLinkCapabilities = ensure(ensure(capabilites, 'textDocument')!, 'documentLink')!
     documentLinkCapabilities.dynamicRegistration = true
-    documentLinkCapabilities.tooltipSupport = true // TODO
+    // TODO support tooltip
+    documentLinkCapabilities.tooltipSupport = true
   }
 
   public initialize(
@@ -3040,7 +3050,6 @@ export abstract class BaseLanguageClient {
   private _connectionPromise: Promise<IConnection> | undefined
   private _resolvedConnection: IConnection | undefined
   private _initializeResult: InitializeResult | undefined
-  private _disposeOutputChannel: boolean
   private _outputChannel: OutputChannel | undefined
   private _capabilities: ServerCapabilities & ResolvedTextDocumentSyncCapabilities
 
@@ -3069,10 +3078,8 @@ export abstract class BaseLanguageClient {
       let clientOptions = clientOptionsFunc()
       if (clientOptions.outputChannel) {
         this._outputChannel = clientOptions.outputChannel
-        this._disposeOutputChannel = false
       } else {
         this._outputChannel = undefined
-        this._disposeOutputChannel = true
       }
 
       let eval_options = {
@@ -3541,26 +3548,27 @@ export abstract class BaseLanguageClient {
   private initialize(connection: IConnection): Promise<InitializeResult> {
     this.refreshTrace(connection, false)
     this._clientOptions.invalidate()
-    let initOption = this._clientOptions.value().initializationOptions
+    let { initializationOptions, progressOnInitialization } = this._clientOptions.value()
     let rootPath = this.resolveRootPath()
-    logger.debug(`initialize: initializationOptions`, initOption)
     if (!rootPath) return
     let initParams: any = {
       processId: process.pid,
       rootPath: rootPath ? rootPath : null,
       rootUri: rootPath ? cv.asUri(URI.file(rootPath)) : null,
       capabilities: this.computeClientCapabilities(),
-      initializationOptions: Is.func(initOption) ? initOption() : initOption,
+      initializationOptions: Is.func(initializationOptions) ? initializationOptions() : initializationOptions,
       trace: Trace.toString(this._trace),
-      workspaceFolders: null
+      workspaceFolders: null,
     }
     this.fillInitializeParams(initParams)
-    if (this._clientOptions.value().progressOnInitialization) {
+    if (progressOnInitialization) {
       const token: ProgressToken = UUID.generateUuid()
-      const part: ProgressPart = new ProgressPart(connection, token)
+      // same as VSCode
       initParams.workDoneToken = token
+      const part = progressManager.create(connection, token)
+      part.begin({ kind: 'begin', title: `Starting LS ${this.id}` })
       return this.doInitialize(connection, initParams).then((result) => {
-        part.done()
+        part.done('finished')
         return result
       }, (error) => {
         part.cancel()
@@ -3711,7 +3719,7 @@ export abstract class BaseLanguageClient {
   }
 
   private cleanUpChannel(): void {
-    if (this._outputChannel && this._disposeOutputChannel) {
+    if (this._outputChannel) {
       this._outputChannel.dispose()
       this._outputChannel = undefined
     }
@@ -3823,7 +3831,7 @@ export abstract class BaseLanguageClient {
       this.cleanUp(false, true)
     } else if (action === CloseAction.Restart) {
       this.info('Connection to server got closed. Server will restart.')
-      this.cleanUp(false, false)
+      this.cleanUp(false, true)
       this.state = ClientState.Initial
       this.start()
     }
