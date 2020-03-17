@@ -57,7 +57,7 @@ describe('Client integration', () => {
         }
       }
     }
-    let client = new lsclient.LanguageClient('css', 'Test Language Server', { deferredOptions: () => [clientOptions, serverOptions] })
+    let client = new lsclient.LanguageClient('css', 'Test Language Server', serverOptions, clientOptions)
     let disposable = client.start()
 
     assert.equal(client.initializeResult, undefined)

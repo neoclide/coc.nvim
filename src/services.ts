@@ -88,10 +88,6 @@ export class ServiceManager extends EventEmitter implements Disposable {
     return service
   }
 
-  private hasService(id: string): boolean {
-    return this.registered.has(id)
-  }
-
   private shouldStart(service: IServiceProvider): boolean {
     if (service.state != ServiceStat.Initial) {
       return false
@@ -172,21 +168,10 @@ export class ServiceManager extends EventEmitter implements Disposable {
   }
 
   private createCustomServices(): void {
-    let base = 'languageserver'
-    let lspConfig = workspace.getConfiguration().get<{ string: LanguageServerConfig }>(base, {} as any)
+    let lspConfig = workspace.getConfiguration().get<{ string: LanguageServerConfig }>('languageserver', {} as any)
     for (let key of Object.keys(lspConfig)) {
-      if (this.registered.get(key)) continue
       let config: LanguageServerConfig = lspConfig[key]
-      let id = `${base}.${key}`
-      if (config.enable === false || this.hasService(id)) continue
-      let lazy_opts = () => {
-        // re-read configuration
-        let lspConfig_ = workspace.getConfiguration().get<{ string: LanguageServerConfig }>(base, {} as any)
-        return getLanguageServerOptions(id, key, lspConfig_[key])
-      }
-      if (!lazy_opts()) continue
-      let client = new LanguageClient(id, key, { deferredOptions: lazy_opts })
-      this.registLanguageClient(client)
+      this.registLanguageClient(key, config)
     }
   }
 
@@ -242,26 +227,56 @@ export class ServiceManager extends EventEmitter implements Disposable {
     return await Promise.resolve(service.client.sendRequest(method, params))
   }
 
-  public registLanguageClient(client: LanguageClient): Disposable {
+  public registLanguageClient(client: LanguageClient): Disposable
+  public registLanguageClient(name: string, config: LanguageServerConfig): Disposable
+  public registLanguageClient(name: string | LanguageClient, config?: LanguageServerConfig): Disposable {
+    let id = typeof name === 'string' ? `languageserver.${name}` : name.name
     let disposables: Disposable[] = []
     let onDidServiceReady = new Emitter<void>()
-
+    let client: LanguageClient | null = typeof name === 'string' ? null : name
+    if (this.registered.has(id)) return
+    let created = false
     let service: IServiceProvider = {
-      client,
-      id: client.id,
-      name: client.name,
-      selector: client.clientOptions.documentSelector,
+      id,
+      name: typeof name === 'string' ? name : name.name,
+      selector: typeof name === 'string' ? getDocumentSelector(config.filetypes, config.additionalSchemes) : name.clientOptions.documentSelector,
       state: ServiceStat.Initial,
       onServiceReady: onDidServiceReady.event,
       start: (): Promise<void> => {
-        if (service.state != ServiceStat.Initial && service.state != ServiceStat.Stopped) {
+        if (service.state == ServiceStat.Starting || service.state == ServiceStat.Running) {
+          return
+        }
+        if (created && client) {
+          client.restart()
           return Promise.resolve()
         }
-        if (client.getPublicState() == State.Starting) {
-          return Promise.resolve()
+        if (!created) {
+          if (typeof name == 'string' && !client) {
+            let config: LanguageServerConfig = workspace.getConfiguration().get<{ string: LanguageServerConfig }>('languageserver', {} as any)[name]
+            if (!config || config.enable === false) return
+            let opts = getLanguageServerOptions(id, name, config)
+            if (!opts) return
+            client = new LanguageClient(id, name, opts[1], opts[0])
+            service.selector = opts[0].documentSelector
+            service.client = client
+          }
+          client.onDidChangeState(changeEvent => {
+            let { oldState, newState } = changeEvent
+            if (newState == State.Starting) {
+              service.state = ServiceStat.Starting
+            } else if (newState == State.Running) {
+              service.state = ServiceStat.Running
+            } else if (newState == State.Stopped) {
+              service.state = ServiceStat.Stopped
+            }
+            let oldStr = stateString(oldState)
+            let newStr = stateString(newState)
+            logger.info(`${client.name} state change: ${oldStr} => ${newStr}`)
+          }, null, disposables)
+          created = true
         }
         service.state = ServiceStat.Starting
-        logger.debug(`starting service: ${client.name}`)
+        logger.debug(`starting service: ${id}`)
         let disposable = client.start()
         disposables.push(disposable)
         return new Promise(resolve => {
@@ -269,42 +284,28 @@ export class ServiceManager extends EventEmitter implements Disposable {
             onDidServiceReady.fire(void 0)
             resolve()
           }, e => {
-            workspace.showMessage(`Server ${client.name} failed to start: ${e ? e.message : ''}`, 'error')
+            workspace.showMessage(`Server ${id} failed to start: ${e ? e.message : ''}`, 'error')
             service.state = ServiceStat.StartFailed
             resolve()
           })
         })
       },
-      dispose: () => {
-        void client.stop()
+      dispose: async () => {
         onDidServiceReady.dispose()
         disposeAll(disposables)
       },
       stop: async (): Promise<void> => {
-        return await Promise.resolve(client.stop())
+        await Promise.resolve(client.stop())
       },
       restart: async (): Promise<void> => {
-        if (service.state == ServiceStat.Running) {
-          await service.stop()
+        if (client) {
+          service.state = ServiceStat.Starting
+          client.restart()
+        } else {
+          await service.start()
         }
-        service.state = ServiceStat.Starting
-        client.restart()
       },
     }
-    client.onDidChangeState(changeEvent => {
-      let { oldState, newState } = changeEvent
-      if (newState == State.Starting) {
-        service.state = ServiceStat.Starting
-      } else if (newState == State.Running) {
-        service.state = ServiceStat.Running
-      } else if (newState == State.Stopped) {
-        service.state = ServiceStat.Stopped
-      }
-      let oldStr = stateString(oldState)
-      let newStr = stateString(newState)
-      logger.info(`${client.name} state change: ${oldStr} => ${newStr}`)
-    }, null, disposables)
-
     return this.regist(service)
   }
 }
@@ -369,16 +370,6 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
       })
     }
   }
-  let documentSelector: DocumentSelector = []
-  config.filetypes.forEach(filetype => {
-    let schemes = ['file', 'untitled'].concat(config.additionalSchemes || [])
-    documentSelector.push(...schemes.map(scheme => {
-      return { language: filetype, scheme }
-    }))
-  })
-  if (documentSelector.length == 0) {
-    documentSelector = [{ scheme: 'file' }, { scheme: 'untitled' }]
-  }
   let disableWorkspaceFolders = !!config.disableWorkspaceFolders
   let ignoredRootPaths = config.ignoredRootPaths || []
   ignoredRootPaths = ignoredRootPaths.map(s => s.replace(/^~/, os.homedir()))
@@ -388,7 +379,7 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
     disableDynamicRegister: !!config.disableDynamicRegister,
     disableCompletion: !!config.disableCompletion,
     disableDiagnostics: !!config.disableDiagnostics,
-    documentSelector,
+    documentSelector: getDocumentSelector(config.filetypes, config.additionalSchemes),
     revealOutputChannelOn: getRevealOutputChannelOn(config.revealOutputChannelOn),
     synchronize: {
       configurationSection: `${id}.settings`
@@ -415,6 +406,17 @@ export function getRevealOutputChannelOn(revealOn: string | undefined): RevealOu
     default:
       return RevealOutputChannelOn.Never
   }
+}
+
+export function getDocumentSelector(filetypes: string[], additionalSchemes?: string[]): DocumentSelector {
+  let documentSelector: DocumentSelector = []
+  filetypes.forEach(filetype => {
+    let schemes = ['file', 'untitled'].concat(additionalSchemes || [])
+    documentSelector.push(...schemes.map(scheme => {
+      return { language: filetype, scheme }
+    }))
+  })
+  return documentSelector
 }
 
 export function getTransportKind(config: LanguageServerConfig): Transport {
