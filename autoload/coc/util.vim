@@ -513,7 +513,7 @@ endfunction
 " cmd, cwd
 function! coc#util#open_terminal(opts) abort
   if s:is_vim && !exists('*term_start')
-    echohl WarningMsg | echon "Your vim doesn't have termnial support!" | echohl None
+    echohl WarningMsg | echon "Your vim doesn't have terminal support!" | echohl None
     return
   endif
   if get(a:opts, 'position', 'bottom') ==# 'bottom'
