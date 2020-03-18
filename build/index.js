@@ -35253,7 +35253,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "58c924e1e7" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "2401bc62e6" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -53604,6 +53604,9 @@ class ServiceManager extends events_1.EventEmitter {
                 if (service.state == types_1.ServiceStat.Starting || service.state == types_1.ServiceStat.Running) {
                     return;
                 }
+                if (client && !client.needsStart()) {
+                    return;
+                }
                 if (created && client) {
                     client.restart();
                     return Promise.resolve();
@@ -53637,12 +53640,10 @@ class ServiceManager extends events_1.EventEmitter {
                     }, null, disposables);
                     created = true;
                 }
-                if (client.needsStart()) {
-                    service.state = types_1.ServiceStat.Starting;
-                    logger.debug(`starting service: ${id}`);
-                    let disposable = client.start();
-                    disposables.push(disposable);
-                }
+                service.state = types_1.ServiceStat.Starting;
+                logger.debug(`starting service: ${id}`);
+                let disposable = client.start();
+                disposables.push(disposable);
                 return new Promise(resolve => {
                     client.onReady().then(() => {
                         onDidServiceReady.fire(void 0);
@@ -53659,6 +53660,8 @@ class ServiceManager extends events_1.EventEmitter {
                 util_1.disposeAll(disposables);
             },
             stop: async () => {
+                if (!client || !client.needsStop())
+                    return;
                 await Promise.resolve(client.stop());
             },
             restart: async () => {
