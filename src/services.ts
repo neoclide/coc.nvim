@@ -246,6 +246,9 @@ export class ServiceManager extends EventEmitter implements Disposable {
         if (service.state == ServiceStat.Starting || service.state == ServiceStat.Running) {
           return
         }
+        if (client && !client.needsStart()) {
+          return
+        }
         if (created && client) {
           client.restart()
           return Promise.resolve()
@@ -275,12 +278,10 @@ export class ServiceManager extends EventEmitter implements Disposable {
           }, null, disposables)
           created = true
         }
-        if (client.needsStart()) {
-          service.state = ServiceStat.Starting
-          logger.debug(`starting service: ${id}`)
-          let disposable = client.start()
-          disposables.push(disposable)
-        }
+        service.state = ServiceStat.Starting
+        logger.debug(`starting service: ${id}`)
+        let disposable = client.start()
+        disposables.push(disposable)
         return new Promise(resolve => {
           client.onReady().then(() => {
             onDidServiceReady.fire(void 0)
@@ -297,6 +298,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
         disposeAll(disposables)
       },
       stop: async (): Promise<void> => {
+        if (!client || !client.needsStop()) return
         await Promise.resolve(client.stop())
       },
       restart: async (): Promise<void> => {
