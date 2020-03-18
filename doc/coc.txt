@@ -867,17 +867,6 @@ g:coc_user_config				*g:coc_user_config*
 			User configuration object, define this variable when
 			you can't use |coc#config()|
 
-g:coc_extension_root				*g:coc_extension_root*
-
-			Deprecated: use `g:coc_data_home` instead.
-
-			Location that coc extensions would be installed to,
-			empty to use default location:
-			Windows:
-				`~/AppData/Local/coc/extensions`
-			Other:
-				`~/.config/coc/extensions`
-
 g:coc_global_extensions				*g:coc_global_extensions*
 
 			Global extension names to install when they aren't
@@ -901,7 +890,10 @@ g:coc_cygqwin_path_prefixes			*g:coc_cygqwin_path_prefixes*
 
 g:coc_enable_locationlist			*g:coc_enable_locationlist*
 
-			Open location list when location list changes.
+			Use location list of coc.nvim when jump locations.
+			Set it to 0 when you need customize behavior of
+			location jump by use |CocLocationsChange| and
+			|g:coc_jump_locations|
 
 			Default: 1
 
