@@ -388,17 +388,6 @@ g:coc_user_config 				*g:coc_user_config*
 
 			该设置仅在服务启动前有效。
 
-g:coc_extension_root 				*g:coc_extension_root*
-
-			已废弃：使用 `g:coc_data_home` 代替
-
-			自定义插件安装根目录，为空时使用默认地址。
-
-			Windows 系统:
-				`~/AppData/Local/coc/extensions`
-			其它:
-				`~/.config/coc/extensions`
-
 
 g:coc_global_extensions 			*g:coc_global_extensions*
 

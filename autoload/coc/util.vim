@@ -354,7 +354,7 @@ endfunction
 
 function! coc#util#get_config_home()
   if !empty(get(g:, 'coc_config_home', ''))
-      return g:coc_config_home
+      return expand(g:coc_config_home)
   endif
   if exists('$VIMCONFIG')
     return resolve($VIMCONFIG)
@@ -377,7 +377,7 @@ endfunction
 
 function! coc#util#get_data_home()
   if !empty(get(g:, 'coc_data_home', ''))
-    return g:coc_data_home
+    return resolve(expand(g:coc_data_home))
   endif
   if exists('$XDG_CONFIG_HOME')
     return resolve($XDG_CONFIG_HOME."/coc")
@@ -716,6 +716,7 @@ function! coc#util#install(...) abort
     echohl WarningMsg | echon '[coc.nvim] coc#util#install not needed for release branch.' | echohl None
     return
   endif
+  echohl WarningMsg | echon '[coc.nvim] coc#util#install support will be removed, please use release branch of coc.nvim' | echohl None
   let cmd = (s:is_win ? 'install.cmd' : './install.sh') . ' nightly'
   let cwd = getcwd()
   exe 'lcd '.s:root
@@ -735,18 +736,11 @@ function! coc#util#extension_root() abort
   if !empty($COC_TEST)
     return s:root.'/src/__tests__/extensions'
   endif
-  let dir = get(g:, 'coc_data_home', '')
-  if !empty(dir)
-    return dir.'/extensions'
+  if !empty(get(g:, 'coc_extension_root', ''))
+    echohl WarningMsg | echon "g:coc_extension_root variable is deprecated, use g:coc_data_home as parent folder of extensions." | echohl None
+    return resolve(expand(g:coc_extension_root))
   endif
-
-  let dir = get(g:, 'coc_extension_root', '')
-  if empty(dir)
-    let dir = coc#util#get_data_home().'/extensions'
-  else
-    echohl WarningMsg | echon "g:coc_extension_root has been deprecated, use g:coc_data_home instead" | echohl None
-  endif
-  return dir
+  return coc#util#get_data_home().'/extensions'
 endfunction
 
 function! coc#util#update_extensions(...) abort
