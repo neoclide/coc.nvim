@@ -35253,7 +35253,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "daefc02592" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "58c924e1e7" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -53637,10 +53637,12 @@ class ServiceManager extends events_1.EventEmitter {
                     }, null, disposables);
                     created = true;
                 }
-                service.state = types_1.ServiceStat.Starting;
-                logger.debug(`starting service: ${id}`);
-                let disposable = client.start();
-                disposables.push(disposable);
+                if (client.needsStart()) {
+                    service.state = types_1.ServiceStat.Starting;
+                    logger.debug(`starting service: ${id}`);
+                    let disposable = client.start();
+                    disposables.push(disposable);
+                }
                 return new Promise(resolve => {
                     client.onReady().then(() => {
                         onDidServiceReady.fire(void 0);
