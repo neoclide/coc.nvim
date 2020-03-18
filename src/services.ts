@@ -275,10 +275,12 @@ export class ServiceManager extends EventEmitter implements Disposable {
           }, null, disposables)
           created = true
         }
-        service.state = ServiceStat.Starting
-        logger.debug(`starting service: ${id}`)
-        let disposable = client.start()
-        disposables.push(disposable)
+        if (client.needsStart()) {
+          service.state = ServiceStat.Starting
+          logger.debug(`starting service: ${id}`)
+          let disposable = client.start()
+          disposables.push(disposable)
+        }
         return new Promise(resolve => {
           client.onReady().then(() => {
             onDidServiceReady.fire(void 0)
