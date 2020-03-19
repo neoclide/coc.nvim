@@ -1,4 +1,3 @@
-import { Neovim } from '@chemzqm/neovim'
 import { exec, ExecOptions } from 'child_process'
 import debounce from 'debounce'
 import fs from 'fs'
@@ -13,22 +12,9 @@ import * as platform from './platform'
 
 export { platform }
 const logger = require('./logger')('util-index')
-const prefix = '[coc.nvim] '
 
 export function escapeSingleQuote(str: string): string {
   return str.replace(/'/g, "''")
-}
-
-export function echoErr(nvim: Neovim, msg: string): void {
-  echoMsg(nvim, prefix + msg, 'Error') // tslint:disable-line
-}
-
-export function echoWarning(nvim: Neovim, msg: string): void {
-  echoMsg(nvim, prefix + msg, 'WarningMsg') // tslint:disable-line
-}
-
-export function echoMessage(nvim: Neovim, msg: string): void {
-  echoMsg(nvim, prefix + msg, 'MoreMsg') // tslint:disable-line
 }
 
 export function wait(ms: number): Promise<any> {
@@ -37,11 +23,6 @@ export function wait(ms: number): Promise<any> {
       resolve()
     }, ms)
   })
-}
-
-function echoMsg(nvim: Neovim, msg: string, hl: string): void {
-  let method = process.env.VIM_NODE_RPC == '1' ? 'callTimer' : 'call'
-  nvim[method]('coc#util#echo_messages', [hl, msg.split('\n')], true)
 }
 
 export function getUri(fullpath: string, id: number, buftype: string, isCygwin: boolean): string {

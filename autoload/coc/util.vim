@@ -268,11 +268,11 @@ function! coc#util#echo_messages(hl, msgs)
   if a:hl !~# 'Error' && (mode() !~# '\v^(i|n)$')
     return
   endif
-  execute 'echohl '.a:hl
   let msgs = filter(copy(a:msgs), '!empty(v:val)')
-  for msg in msgs
-    echom msg
-  endfor
+  execute 'echohl '.a:hl
+  echom a:msgs[0]
+  redraw
+  echo join(msgs, "\n")
   echohl None
 endfunction
 

@@ -285,10 +285,6 @@ export default class Plugin extends EventEmitter {
     channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM))
     channel.appendLine('platform: ' + process.platform)
     channel.appendLine('')
-    channel.appendLine('## Messages')
-    let msgs = await this.nvim.call('coc#rpc#get_errors') as string[]
-    channel.append(msgs.join('\n'))
-    channel.appendLine('')
     for (let ch of (workspace as any).outputChannels.values()) {
       if (ch.name !== 'info') {
         channel.appendLine(`## Output channel: ${ch.name}\n`)

@@ -24,7 +24,7 @@ import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, MessageLevel, MsgTypes, OutputChannel, PatternType, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, DidChangeTextDocumentParams } from './types'
 import { distinct } from './util/array'
 import { findUp, isFile, isParentFolder, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile, fixDriver } from './util/fs'
-import { disposeAll, echoErr, echoMessage, echoWarning, getKeymapModifier, isDocumentEdit, mkdirp, runCommand, wait, platform } from './util/index'
+import { disposeAll, getKeymapModifier, isDocumentEdit, mkdirp, runCommand, wait, platform } from './util/index'
 import { score } from './util/match'
 import { getChangedFromEdits } from './util/position'
 import { byteIndex, byteLength } from './util/string'
@@ -722,20 +722,21 @@ export class Workspace implements IWorkspace {
   public showMessage(msg: string, identify: MsgTypes = 'more'): void {
     if (this._blocking || !this.nvim) return
     let { messageLevel } = this
+    let method = process.env.VIM_NODE_RPC == '1' ? 'callTimer' : 'call'
+    let hl = 'Error'
     let level = MessageLevel.Error
-    let method = echoErr
     switch (identify) {
       case 'more':
         level = MessageLevel.More
-        method = echoMessage
+        hl = 'MoreMsg'
         break
       case 'warning':
         level = MessageLevel.Warning
-        method = echoWarning
+        hl = 'WarningMsg'
         break
     }
     if (level >= messageLevel) {
-      method(this.nvim, msg)
+      this.nvim[method]('coc#util#echo_messages', [hl, ('[coc.nvim]' + msg).split('\n')], true)
     }
   }
 
