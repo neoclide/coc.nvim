@@ -270,12 +270,9 @@ function! coc#util#echo_messages(hl, msgs)
   endif
   execute 'echohl '.a:hl
   let msgs = filter(copy(a:msgs), '!empty(v:val)')
-  " :echomsg can't print multiple lines without 'press ENTER' interruptions.
-  " Send the lines to messages first, then display them with :echo.
   for msg in msgs
-    echom msg | redraw
+    echom msg
   endfor
-  echo join(msgs, "\n")
   echohl None
 endfunction
 
