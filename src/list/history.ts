@@ -9,12 +9,14 @@ export default class History {
   private index = -1
   private loaded: string[] = []
   private current: string[] = []
+  private historyInput: string
 
   constructor(private manager: ListManager) {
     this.db = workspace.createDatabase('history')
     let { prompt } = manager
     prompt.onDidChangeInput(input => {
       if (input == this.curr) return
+      this.historyInput = ''
       let codes = getCharCodes(input)
       this.current = this.loaded.filter(s => fuzzyMatch(codes, s))
       this.index = -1
@@ -43,7 +45,7 @@ export default class History {
     let { loaded, db } = this
     let { name, prompt } = this.manager
     let { input } = prompt
-    if (!input || input.length < 2) return
+    if (!input || input.length < 1 || this.historyInput == input) return
     let idx = loaded.indexOf(input)
     if (idx != -1) loaded.splice(idx, 1)
     loaded.push(input)
@@ -61,7 +63,7 @@ export default class History {
     } else {
       this.index = index - 1
     }
-    this.manager.prompt.input = current[this.index] || ''
+    this.historyInput = this.manager.prompt.input = current[this.index] || ''
   }
 
   public next(): void {
@@ -72,6 +74,6 @@ export default class History {
     } else {
       this.index = index + 1
     }
-    this.manager.prompt.input = current[this.index] || ''
+    this.historyInput = this.manager.prompt.input = current[this.index] || ''
   }
 }
