@@ -35248,7 +35248,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "fa52e6ac4f" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "b7a597f7ae" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -56623,7 +56623,7 @@ class BaseLanguageClient {
         }
     }
     notifyFileEvent(event) {
-        var _a, _b;
+        var _a;
         const client = this;
         function didChangeWatchedFile(event) {
             client._fileEvents.push(event);
@@ -56642,7 +56642,7 @@ class BaseLanguageClient {
             });
         }
         const workSpaceMiddleware = (_a = this.clientOptions.middleware) === null || _a === void 0 ? void 0 : _a.workspace;
-        ((_b = workSpaceMiddleware) === null || _b === void 0 ? void 0 : _b.didChangeWatchedFile) ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event);
+        (workSpaceMiddleware === null || workSpaceMiddleware === void 0 ? void 0 : workSpaceMiddleware.didChangeWatchedFile) ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event);
     }
     forceDocumentSync() {
         let doc = workspace_1.default.getDocument(workspace_1.default.bufnr);
@@ -58810,6 +58810,7 @@ class History {
         prompt.onDidChangeInput(input => {
             if (input == this.curr)
                 return;
+            this.historyInput = '';
             let codes = fuzzy_1.getCharCodes(input);
             this.current = this.loaded.filter(s => fuzzy_1.fuzzyMatch(codes, s));
             this.index = -1;
@@ -58836,7 +58837,7 @@ class History {
         let { loaded, db } = this;
         let { name, prompt } = this.manager;
         let { input } = prompt;
-        if (!input || input.length < 2)
+        if (!input || input.length < 1 || this.historyInput == input)
             return;
         let idx = loaded.indexOf(input);
         if (idx != -1)
@@ -58857,7 +58858,7 @@ class History {
         else {
             this.index = index - 1;
         }
-        this.manager.prompt.input = current[this.index] || '';
+        this.historyInput = this.manager.prompt.input = current[this.index] || '';
     }
     next() {
         let { current, index } = this;
@@ -58869,7 +58870,7 @@ class History {
         else {
             this.index = index + 1;
         }
-        this.manager.prompt.input = current[this.index] || '';
+        this.historyInput = this.manager.prompt.input = current[this.index] || '';
     }
 }
 exports.default = History;
