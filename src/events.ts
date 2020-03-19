@@ -44,7 +44,7 @@ class Events {
 
   public async fire(event: string, args: any[]): Promise<void> {
     logger.debug('Event:', event, args)
-    let handlers = this.handlers.get(event)
+    let cbs = this.handlers.get(event)
     if (event == 'InsertEnter') {
       this.insertMode = true
     } else if (event == 'InsertLeave') {
@@ -64,15 +64,10 @@ class Events {
         insert: event == 'CursorMovedI'
       }
     }
-    if (handlers) {
-      try {
-        await Promise.all(handlers.map(fn => {
-          return Promise.resolve(fn.apply(null, args))
-        }))
-      } catch (e) {
-        logger.error(`Error on ${event}: `, e.stack)
-        workspace.showMessage(`Error on ${event}: ${e.message} `, 'error')
-      }
+    if (cbs) {
+      await Promise.all(cbs.map(fn => {
+        return fn(args)
+      }))
     }
   }
 
@@ -95,16 +90,33 @@ class Events {
   public on(event: 'InputChar', handler: (character: string, mode: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: AllEvents[] | AllEvents, handler: (...args: any[]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable {
     if (Array.isArray(event)) {
-      let disposables: Disposable[] = []
+      let arr = disposables || []
       for (let ev of event) {
-        disposables.push(this.on(ev as any, handler, thisArg, disposables))
+        this.on(ev as any, handler, thisArg, arr)
       }
       return Disposable.create(() => {
-        disposeAll(disposables)
+        disposeAll(arr)
       })
     } else {
       let arr = this.handlers.get(event) || []
-      arr.push(handler.bind(thisArg || null))
+      let timeout = event == 'BufWritePre' ? 1000 : 500
+      arr.push(args => {
+        return new Promise(resolve => {
+          let timer = setTimeout(() => {
+            logger.error(`Handler of ${event} caused more than ${timeout}ms`, handler.toString())
+            resolve()
+          }, timeout)
+          Promise.resolve(handler.apply(thisArg || null, args)).then(() => {
+            clearTimeout(timer)
+            resolve()
+          }, e => {
+            clearTimeout(timer)
+            workspace.showMessage(`Error on ${event}: ${e.message} `, 'error')
+            logger.error(`Handler Error on ${event}`, e.stack, handler.toString())
+            resolve()
+          })
+        })
+      })
       this.handlers.set(event, arr)
       let disposable = Disposable.create(() => {
         let idx = arr.indexOf(handler)
