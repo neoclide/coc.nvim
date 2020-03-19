@@ -35171,9 +35171,6 @@ class Plugin extends events_1.EventEmitter {
             }
             logger.info(`coc ${this.version} initialized with node: ${process.version}`);
             this.emit('ready');
-            setTimeout(() => {
-                workspace_1.default.showMessage('a\nb\nc\nd\ne\n', 'more');
-            }, 500);
         }
         catch (e) {
             this._ready = false;
