@@ -15252,7 +15252,7 @@ class Events {
     }
     async fire(event, args) {
         logger.debug('Event:', event, args);
-        let handlers = this.handlers.get(event);
+        let cbs = this.handlers.get(event);
         if (event == 'InsertEnter') {
             this.insertMode = true;
         }
@@ -15275,31 +15275,42 @@ class Events {
                 insert: event == 'CursorMovedI'
             };
         }
-        if (handlers) {
-            try {
-                await Promise.all(handlers.map(fn => {
-                    return Promise.resolve(fn.apply(null, args));
-                }));
-            }
-            catch (e) {
-                logger.error(`Error on ${event}: `, e.stack);
-                workspace_1.default.showMessage(`Error on ${event}: ${e.message} `, 'error');
-            }
+        if (cbs) {
+            await Promise.all(cbs.map(fn => {
+                return fn(args);
+            }));
         }
     }
     on(event, handler, thisArg, disposables) {
         if (Array.isArray(event)) {
-            let disposables = [];
+            let arr = disposables || [];
             for (let ev of event) {
-                disposables.push(this.on(ev, handler, thisArg, disposables));
+                this.on(ev, handler, thisArg, arr);
             }
             return vscode_languageserver_protocol_1.Disposable.create(() => {
-                util_1.disposeAll(disposables);
+                util_1.disposeAll(arr);
             });
         }
         else {
             let arr = this.handlers.get(event) || [];
-            arr.push(handler.bind(thisArg || null));
+            let timeout = event == 'BufWritePre' ? 1000 : 500;
+            arr.push(args => {
+                return new Promise(resolve => {
+                    let timer = setTimeout(() => {
+                        logger.error(`Handler of ${event} caused more than ${timeout}ms`, handler.toString());
+                        resolve();
+                    }, timeout);
+                    Promise.resolve(handler.apply(thisArg || null, args)).then(() => {
+                        clearTimeout(timer);
+                        resolve();
+                    }, e => {
+                        clearTimeout(timer);
+                        workspace_1.default.showMessage(`Error on ${event}: ${e.message} `, 'error');
+                        logger.error(`Handler Error on ${event}`, e.stack, handler.toString());
+                        resolve();
+                    });
+                });
+            });
             this.handlers.set(event, arr);
             let disposable = vscode_languageserver_protocol_1.Disposable.create(() => {
                 let idx = arr.indexOf(handler);
@@ -20555,23 +20566,10 @@ const which_1 = tslib_1.__importDefault(__webpack_require__(184));
 const platform = tslib_1.__importStar(__webpack_require__(188));
 exports.platform = platform;
 const logger = __webpack_require__(2)('util-index');
-const prefix = '[coc.nvim] ';
 function escapeSingleQuote(str) {
     return str.replace(/'/g, "''");
 }
 exports.escapeSingleQuote = escapeSingleQuote;
-function echoErr(nvim, msg) {
-    echoMsg(nvim, prefix + msg, 'Error'); // tslint:disable-line
-}
-exports.echoErr = echoErr;
-function echoWarning(nvim, msg) {
-    echoMsg(nvim, prefix + msg, 'WarningMsg'); // tslint:disable-line
-}
-exports.echoWarning = echoWarning;
-function echoMessage(nvim, msg) {
-    echoMsg(nvim, prefix + msg, 'MoreMsg'); // tslint:disable-line
-}
-exports.echoMessage = echoMessage;
 function wait(ms) {
     return new Promise(resolve => {
         setTimeout(() => {
@@ -20580,10 +20578,6 @@ function wait(ms) {
     });
 }
 exports.wait = wait;
-function echoMsg(nvim, msg, hl) {
-    let method = process.env.VIM_NODE_RPC == '1' ? 'callTimer' : 'call';
-    nvim[method]('coc#util#echo_messages', [hl, msg.split('\n')], true);
-}
 function getUri(fullpath, id, buftype, isCygwin) {
     if (!fullpath)
         return `untitled:${id}`;
@@ -22855,20 +22849,21 @@ class Workspace {
         if (this._blocking || !this.nvim)
             return;
         let { messageLevel } = this;
+        let method = process.env.VIM_NODE_RPC == '1' ? 'callTimer' : 'call';
+        let hl = 'Error';
         let level = types_1.MessageLevel.Error;
-        let method = index_1.echoErr;
         switch (identify) {
             case 'more':
                 level = types_1.MessageLevel.More;
-                method = index_1.echoMessage;
+                hl = 'MoreMsg';
                 break;
             case 'warning':
                 level = types_1.MessageLevel.Warning;
-                method = index_1.echoWarning;
+                hl = 'WarningMsg';
                 break;
         }
         if (level >= messageLevel) {
-            method(this.nvim, msg);
+            this.nvim[method]('coc#util#echo_messages', [hl, ('[coc.nvim]' + msg).split('\n')], true);
         }
     }
     /**
@@ -35176,6 +35171,9 @@ class Plugin extends events_1.EventEmitter {
             }
             logger.info(`coc ${this.version} initialized with node: ${process.version}`);
             this.emit('ready');
+            setTimeout(() => {
+                workspace_1.default.showMessage('a\nb\nc\nd\ne\n', 'more');
+            }, 500);
         }
         catch (e) {
             this._ready = false;
@@ -35253,7 +35251,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "0ca9f96f65" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "fa52e6ac4f" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -35271,10 +35269,6 @@ class Plugin extends events_1.EventEmitter {
         channel.appendLine('coc.nvim version: ' + this.version);
         channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM));
         channel.appendLine('platform: ' + process.platform);
-        channel.appendLine('');
-        channel.appendLine('## Messages');
-        let msgs = await this.nvim.call('coc#rpc#get_errors');
-        channel.append(msgs.join('\n'));
         channel.appendLine('');
         for (let ch of workspace_1.default.outputChannels.values()) {
             if (ch.name !== 'info') {
@@ -56632,7 +56626,7 @@ class BaseLanguageClient {
         }
     }
     notifyFileEvent(event) {
-        var _a;
+        var _a, _b;
         const client = this;
         function didChangeWatchedFile(event) {
             client._fileEvents.push(event);
@@ -56651,7 +56645,7 @@ class BaseLanguageClient {
             });
         }
         const workSpaceMiddleware = (_a = this.clientOptions.middleware) === null || _a === void 0 ? void 0 : _a.workspace;
-        (workSpaceMiddleware === null || workSpaceMiddleware === void 0 ? void 0 : workSpaceMiddleware.didChangeWatchedFile) ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event);
+        ((_b = workSpaceMiddleware) === null || _b === void 0 ? void 0 : _b.didChangeWatchedFile) ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event);
     }
     forceDocumentSync() {
         let doc = workspace_1.default.getDocument(workspace_1.default.bufnr);
@@ -60222,12 +60216,12 @@ function getPriority(stat) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
+const vscode_uri_1 = __webpack_require__(183);
+const util_1 = __webpack_require__(177);
 const fs_1 = __webpack_require__(202);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(189));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(371));
-const vscode_uri_1 = __webpack_require__(183);
-const util_1 = __webpack_require__(177);
-const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 class FoldList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -60253,7 +60247,7 @@ class FoldList extends basic_1.default {
             if (!stat || !stat.isDirectory()) {
                 let success = await util_1.mkdirp(dir);
                 if (!success) {
-                    util_1.echoErr(nvim, `Error creating new directory ${dir}`);
+                    workspace_1.default.showMessage(`Error creating new directory ${dir}`, 'error');
                     return;
                 }
             }
