@@ -556,7 +556,7 @@
     "diagnostic.enableHighlightLineNumber": {
       "type": "boolean",
       "default": true,
-      "description": "Enable highlighting line numbers for diagnostics."
+      "description": "Enable highlighting line numbers for diagnostics, only works with neovim and diagnostic.enableSign is true."
     },
     "diagnostic.enableMessage": {
       "type": "string",

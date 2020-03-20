@@ -35251,7 +35251,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "7a4f56eb9e" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "2b6373bf37" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -35914,26 +35914,18 @@ class DiagnosticManager {
         }, null, this.disposables);
         let { errorSign, warningSign, infoSign, hintSign } = this.config;
         nvim.pauseNotification();
-        let signError = `sign define CocError linehl=CocErrorLine texthl=CocErrorSign`;
-        let signWarning = `sign define CocWarning linehl=CocWarningLine texthl=CocWarningSign`;
-        let signInfo = `sign define CocInfo linehl=CocInfoLine  texthl=CocInfoSign`;
-        let signHint = `sign define CocHint linehl=CocHintLine  texthl=CocHintSign`;
+        let { enableHighlightLineNumber } = this.config;
         if (this.config.enableSign) {
-            signError += ` text=${errorSign}`;
-            signWarning += ` text=${warningSign}`;
-            signInfo += ` text=${infoSign}`;
-            signHint += ` text=${hintSign}`;
+            for (let kind of ['Error', 'Warning', 'Info', 'Hint']) {
+                let signText = this.config[kind.toLowerCase() + 'Sign'];
+                let cmd = `sign define Coc${kind} linehl=Coc${kind}Line`;
+                if (signText)
+                    cmd += ` texthl=Coc${kind}Sign text=${signText}`;
+                if (enableHighlightLineNumber)
+                    cmd += ` numhl=Coc${kind}Sign`;
+                nvim.command(cmd, true);
+            }
         }
-        if (workspace_1.default.isNvim && this.config.enableHighlightLineNumber) {
-            signError += ' numhl=CocErrorSign';
-            signWarning += ' numhl=CocWarningSign';
-            signInfo += ' numhl=CocInfoSign';
-            signHint += ' numhl=CocHintSign';
-        }
-        nvim.command(signError, true);
-        nvim.command(signWarning, true);
-        nvim.command(signInfo, true);
-        nvim.command(signHint, true);
         if (this.config.virtualText && workspace_1.default.isNvim) {
             nvim.call('coc#util#init_virtual_hl', [], true);
         }
@@ -64006,7 +63998,7 @@ class DiagnosticBuffer {
         }
     }
     addSigns(diagnostics) {
-        if (!this.config.enableSign && !this.config.enableHighlightLineNumber)
+        if (!this.config.enableSign)
             return;
         this.clearSigns();
         let { nvim, bufnr, signIds } = this;
