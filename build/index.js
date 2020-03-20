@@ -22310,7 +22310,10 @@ class Workspace {
             if (this.insertMode) {
                 let suggest = this.getConfiguration('suggest');
                 if (suggest.get('autoTrigger') == 'always') {
-                    console.error(`Some plugin change completeopt on insert mode!`); // tslint:disable-line
+                    let content = await this.nvim.call('execute', ['verbose set completeopt']);
+                    let lines = content.split(/\r?\n/);
+                    // tslint:disable-next-line: no-console
+                    console.error(`Some plugin change completeopt on insert mode: ${lines[lines.length - 1].trim()}!`);
                 }
             }
         }, this.disposables);
@@ -35248,7 +35251,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "b7a597f7ae" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "7a4f56eb9e" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
