@@ -167,7 +167,10 @@ export class Workspace implements IWorkspace {
       if (this.insertMode) {
         let suggest = this.getConfiguration('suggest')
         if (suggest.get<string>('autoTrigger') == 'always') {
-          console.error(`Some plugin change completeopt on insert mode!`) // tslint:disable-line
+          let content = await this.nvim.call('execute', ['verbose set completeopt']) as string
+          let lines = content.split(/\r?\n/)
+          // tslint:disable-next-line: no-console
+          console.error(`Some plugin change completeopt on insert mode: ${lines[lines.length - 1].trim()}!`)
         }
       }
     }, this.disposables)
