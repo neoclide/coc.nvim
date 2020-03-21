@@ -4,7 +4,8 @@
  * ------------------------------------------------------------------------------------------ */
 'use strict'
 
-import { CancellationToken, ClientCapabilities, Color, ColorInformation, ColorPresentation, ColorPresentationRequest, Disposable, DocumentColorOptions, DocumentColorRegistrationOptions, DocumentColorRequest, DocumentSelector, Range, ServerCapabilities, TextDocument } from 'vscode-languageserver-protocol'
+import { CancellationToken, ClientCapabilities, Color, ColorInformation, ColorPresentation, ColorPresentationRequest, Disposable, DocumentColorOptions, DocumentColorRegistrationOptions, DocumentColorRequest, DocumentSelector, Range, ServerCapabilities } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { DocumentColorProvider, ProviderResult } from '../provider'
 import { BaseLanguageClient, TextDocumentFeature } from './client'

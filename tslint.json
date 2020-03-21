@@ -3,7 +3,6 @@
   "rules": {
     "no-invalid-template-strings": false,
     "no-unused-expression": false,
-    "deprecation": false,
     "no-console": true
   },
   "linterOptions": {
