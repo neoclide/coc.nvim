@@ -2100,7 +2100,7 @@ Default mappings in insert mode:
 
 <Esc>       - cancel list session.
 <C-c>       - stop loading task.
-<C-v>       - paste text from register variable `@*` (system clipboard)
+<C-v>       - paste text from system clipboard.
 <C-l>       - reload list.
 <C-o>       - change to normal mode.
 <Down>      - select next line.
