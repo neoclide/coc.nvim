@@ -1443,6 +1443,7 @@ LIST MAPPINGS 					*coc-list-mappings*
 
 <Esc>       - 退出当前列表。
 <C-c>       - 结束后台任务。
+<C-v>       - 从系统粘贴板插入文本 `@*`。
 <C-l>       - 重载当前列表。
 <C-o>       - 切换到正常模式。
 <Down>      - 选择下一项。

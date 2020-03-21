@@ -26,6 +26,9 @@ export default class Mappings {
     this.add('insert', '<C-p>', () => {
       manager.history.previous()
     })
+    this.add('insert', '<C-v>', async () => {
+      await prompt.paste()
+    })
     this.add('insert', '<C-s>', () => {
       return manager.switchMatcher()
     })
