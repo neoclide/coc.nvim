@@ -460,7 +460,8 @@ g:coc_node_path 				*g:coc_node_path*
 
 			let g:coc_node_path = '/usr/local/opt/node@10/bin/node'
 <
-			该配置仅在手工编译代码时生效。
+			该配置仅在手工编译代码时生效, 路径支持包含 `~` 以及 `$`
+			开头的环境变量
 
 g:coc_node_args 				*g:coc_node_args*
 
