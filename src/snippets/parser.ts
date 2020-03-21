@@ -4,7 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CharCode } from '../util/charCode'
-import { Range, TextDocument } from 'vscode-languageserver-protocol'
+import { Range } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 const logger = require('../util/logger')('snippets-parser')
 
 export const enum TokenType {

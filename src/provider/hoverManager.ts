@@ -1,4 +1,5 @@
-import { CancellationToken, Disposable, DocumentSelector, Hover, Position, TextDocument } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, DocumentSelector, Hover, Position } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 import { HoverProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import uuid = require('uuid/v4')

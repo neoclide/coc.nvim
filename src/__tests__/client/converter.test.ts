@@ -1,4 +1,5 @@
-import { CompletionTriggerKind, Position, TextDocument, TextDocumentItem, TextDocumentSaveReason } from 'vscode-languageserver-protocol'
+import { CompletionTriggerKind, Position, TextDocumentItem, TextDocumentSaveReason } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import * as cv from '../../language-client/utils/converter'
 

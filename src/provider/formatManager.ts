@@ -1,4 +1,5 @@
-import { CancellationToken, Disposable, DocumentSelector, FormattingOptions, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, DocumentSelector, FormattingOptions, TextEdit } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DocumentFormattingEditProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import uuid = require('uuid/v4')

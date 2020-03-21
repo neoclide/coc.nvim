@@ -1,4 +1,5 @@
-import { TextDocument, TextEdit } from 'vscode-languageserver-types'
+import { TextEdit } from 'vscode-languageserver-types'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 import { diffLines, getChange, patchLine } from '../../util/diff'
 
 describe('diff lines', () => {

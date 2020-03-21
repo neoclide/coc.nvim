@@ -1,4 +1,5 @@
-import { CancellationToken, Disposable, DocumentSelector, Position, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, DocumentSelector, Position, TextEdit } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 import { isWord } from '../util/string'
 import workspace from '../workspace'
 import { OnTypeFormattingEditProvider } from './index'

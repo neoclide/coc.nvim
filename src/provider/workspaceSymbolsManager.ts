@@ -1,4 +1,5 @@
-import { CancellationToken, Disposable, DocumentSelector, SymbolInformation, TextDocument } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, DocumentSelector, SymbolInformation } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 import { WorkspaceSymbolProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import uuid = require('uuid/v4')

@@ -1,4 +1,5 @@
-import { CancellationToken, Disposable, DocumentSelector, Location, Position, TextDocument, LocationLink } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, DocumentSelector, Location, Position, LocationLink } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DeclarationProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import uuid = require('uuid/v4')

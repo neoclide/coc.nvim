@@ -1,4 +1,5 @@
-import { CancellationToken, Disposable, DocumentSelector, Position, Range, TextDocument, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, DocumentSelector, Position, Range, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 import { RenameProvider } from './index'
 import Manager from './manager'
 import uuid = require('uuid/v4')

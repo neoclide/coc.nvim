@@ -1,4 +1,5 @@
-import { Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
+import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 import { adjustPosition, comparePosition, editRange, getChangedPosition, rangeInRange } from '../util/position'
 import * as Snippets from "./parser"
 import { VariableResolver } from './parser'

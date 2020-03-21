@@ -1,6 +1,7 @@
 import helper from '../helper'
 import { Neovim } from '@chemzqm/neovim'
-import { Color, Range, TextDocument, CancellationToken, ColorInformation, ColorPresentation, Disposable } from 'vscode-languageserver-protocol'
+import { Color, Range, CancellationToken, ColorInformation, ColorPresentation, Disposable } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 import Colors from '../../handler/colors'
 import { toHexString } from '../../handler/highlighter'
 import languages from '../../languages'

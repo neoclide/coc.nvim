@@ -1,5 +1,5 @@
 import fastDiff from 'fast-diff'
-import { Range, TextDocument, TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol'
+import { Range, TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol'
 import { ChangedLines } from '../types'
 import { byteLength } from './string'
 const logger = require('./logger')('util-diff')

@@ -1,4 +1,5 @@
-import { Definition, DocumentSelector, Location, TextDocument } from 'vscode-languageserver-protocol'
+import { Definition, DocumentSelector, Location } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 import workspace from '../workspace'
 const logger = require('../util/logger')('provider-manager')
 

@@ -1,4 +1,5 @@
-import { Location, Range, TextDocument } from 'vscode-languageserver-protocol'
+import { Location, Range } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 import { parse, ParseError } from 'jsonc-parser'
 import { IConfigurationModel, ErrorItem } from '../types'
 import { emptyObject, objectLiteral } from '../util/is'
