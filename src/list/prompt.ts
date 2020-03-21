@@ -3,6 +3,7 @@ import { Emitter, Event } from 'vscode-languageserver-protocol'
 import { ListMode, ListOptions, Matcher } from '../types'
 import workspace from '../workspace'
 import ListConfiguration from './configuration'
+import clipboardy from 'clipboardy'
 const logger = require('../util/logger')('list-prompt')
 
 export default class Prompt {
@@ -194,12 +195,15 @@ export default class Prompt {
   }
 
   public async paste(): Promise<void> {
-    await this.eval('@*')
+    let text = await clipboardy.read()
+    text = text.replace(/\n/g, '')
+    if (!text) return
+    this.addText(text)
   }
 
   public async eval(expression: string): Promise<void> {
     let { cusorIndex, input } = this
-    let text = await this.nvim.eval(expression) as string
+    let text = await this.nvim.call('eval', [expression]) as string
     text = text.replace(/\n/g, '')
     this.addText(text)
   }
