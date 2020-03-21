@@ -35251,7 +35251,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "2b6373bf37" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "fb10a9caa1" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -35573,6 +35573,8 @@ class CommandManager {
         this.register({
             id: 'workspace.clearWatchman',
             execute: async () => {
+                if (false)
+                    {}
                 await workspace_1.default.runCommand('watchman watch-del-all');
             }
         }, false, 'run watch-del-all for watchman to free up memory.');
@@ -38049,8 +38051,6 @@ class SnippetSession {
     }
     async synchronizeUpdatedPlaceholders(change) {
         if (!this.isActive || !this.document || this.document.version - this.version == 1)
-            return;
-        if (!('range' in change))
             return;
         let edit = { range: change.range, newText: change.text };
         let { snippet } = this;
@@ -58964,6 +58964,9 @@ class Mappings {
         });
         this.add('insert', '<C-p>', () => {
             manager.history.previous();
+        });
+        this.add('insert', '<C-v>', async () => {
+            await prompt.paste();
         });
         this.add('insert', '<C-s>', () => {
             return manager.switchMatcher();

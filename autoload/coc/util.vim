@@ -189,7 +189,7 @@ function! coc#util#remote_fns(name)
 endfunction
 
 function! coc#util#job_command()
-  let node = get(g:, 'coc_node_path', 'node')
+  let node = expand(get(g:, 'coc_node_path', 'node'))
   if !executable(node)
     echohl Error | echom '[coc.nvim] '.node.' is not executable, checkout https://nodejs.org/en/download/' | echohl None
     return

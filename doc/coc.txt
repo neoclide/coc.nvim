@@ -951,7 +951,7 @@ g:coc_node_path					*g:coc_node_path*
 <
 			Use this when coc has problems with your system node,
 
-			Note: you have to use `$HOME` as home directory.
+			Note: you can use `~` as home directory.
 
 g:coc_force_debug				*g:coc_force_debug*
 
@@ -2100,6 +2100,7 @@ Default mappings in insert mode:
 
 <Esc>       - cancel list session.
 <C-c>       - stop loading task.
+<C-v>       - paste text from register variable `@*` (system clipboard)
 <C-l>       - reload list.
 <C-o>       - change to normal mode.
 <Down>      - select next line.

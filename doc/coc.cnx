@@ -460,7 +460,8 @@ g:coc_node_path 				*g:coc_node_path*
 
 			let g:coc_node_path = '/usr/local/opt/node@10/bin/node'
 <
-			该配置仅在手工编译代码时生效。
+			该配置仅在手工编译代码时生效, 路径支持包含 `~` 以及 `$`
+			开头的环境变量
 
 g:coc_node_args 				*g:coc_node_args*
 
@@ -1442,6 +1443,7 @@ LIST MAPPINGS 					*coc-list-mappings*
 
 <Esc>       - 退出当前列表。
 <C-c>       - 结束后台任务。
+<C-v>       - 从系统粘贴板插入文本 `@*`。
 <C-l>       - 重载当前列表。
 <C-o>       - 切换到正常模式。
 <Down>      - 选择下一项。
