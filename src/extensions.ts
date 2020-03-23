@@ -550,7 +550,7 @@ export class Extensions {
     this.list.push({ id, extension, deactivate, isLocal: true })
     let { contributes } = packageJSON
     if (contributes) {
-      let { configuration } = contributes
+      let { configuration, languages } = contributes
       if (configuration && configuration.properties) {
         let { properties } = configuration
         let props = {}
@@ -559,6 +559,8 @@ export class Extensions {
           if (val != null) props[key] = val
         }
         workspace.configurations.extendsDefaults(props)
+      }
+      if (languages && Array.isArray(languages)) {
       }
     }
     this._onDidLoadExtension.fire(extension)
