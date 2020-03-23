@@ -12,6 +12,7 @@ import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
 import { getSeverityName, getSeverityType, severityLevel } from './util'
+import semver from 'semver'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
@@ -140,9 +141,11 @@ export class DiagnosticManager implements Disposable {
     workspace.configurations.onError(async () => {
       this.setConfigurationErrors()
     }, null, this.disposables)
-    let { errorSign, warningSign, infoSign, hintSign } = this.config
-    nvim.pauseNotification()
     let { enableHighlightLineNumber } = this.config
+    if (!workspace.isNvim || semver.lt(workspace.env.version, 'v0.5.0')) {
+      enableHighlightLineNumber = false
+    }
+    nvim.pauseNotification()
     if (this.config.enableSign) {
       for (let kind of ['Error', 'Warning', 'Info', 'Hint']) {
         let signText = this.config[kind.toLowerCase() + 'Sign']
