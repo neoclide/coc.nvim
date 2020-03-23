@@ -96,6 +96,9 @@ export default class Plugin extends EventEmitter {
     this.addMethod('sendRequest', (id: string, method: string, params?: any) => {
       return services.sendRequest(id, method, params)
     })
+    this.addMethod('sendNotification', async (id: string, method: string, params?: any) => {
+      await services.sendNotification(id, method, params)
+    })
     this.addMethod('registNotification', async (id: string, method: string) => {
       await services.registNotification(id, method)
     })

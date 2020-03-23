@@ -1260,7 +1260,7 @@ coc#util#float_scroll({forward})
 CocRequest({id}, {method}, [{params}])
 
 	Send a request to language client of {id} with {method} and optional
-	{params}. eg: >
+	{params}. ex: >
 
 	call CocRequest('tslint', 'textDocument/tslint/allFixes',
 		\  {'textDocument': {'uri': 'file:///tmp'}})
@@ -1268,11 +1268,20 @@ CocRequest({id}, {method}, [{params}])
 	Vim error will be raised if the response contains an error.
 
 						*CocRequestAsync()*
+
 CocRequestAsync({id}, {method}, [{params}, [{callback}]])
 
-	Async request for remote language client. {callback} is called with
-	error and response.
+	Send async request to remote language server.
+	{callback} function is called with error and response.
 
+						*CocNotify()*
+
+CocNotify({id}, {method}, [{params}])
+
+	Send notification to remote language server, ex:
+>
+	call CocNotify('ccls', '$ccls/reload')
+<
 						*CocRegistNotification()*
 
 CocRegistNotification({id}, {method}, {callback})

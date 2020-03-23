@@ -37,6 +37,10 @@ function! CocRequest(...) abort
   return coc#rpc#request('sendRequest', a:000)
 endfunction
 
+function! CocNotify(...) abort
+  return coc#rpc#request('sendNotification', a:000)
+endfunction
+
 function! CocRegistNotification(id, method, cb) abort
   call coc#on_notify(a:id, a:method, a:cb)
 endfunction
