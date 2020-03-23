@@ -35360,6 +35360,9 @@ class Plugin extends events_1.EventEmitter {
         this.addMethod('sendRequest', (id, method, params) => {
             return services_1.default.sendRequest(id, method, params);
         });
+        this.addMethod('sendNotification', async (id, method, params) => {
+            await services_1.default.sendNotification(id, method, params);
+        });
         this.addMethod('registNotification', async (id, method) => {
             await services_1.default.registNotification(id, method);
         });
@@ -35531,7 +35534,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "43e91e71af" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "322876fe15" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -36093,6 +36096,7 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(189));
 const buffer_1 = __webpack_require__(432);
 const collection_1 = tslib_1.__importDefault(__webpack_require__(435));
 const util_2 = __webpack_require__(434);
+const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
 const logger = __webpack_require__(2)('diagnostic-manager');
 class DiagnosticManager {
     constructor() {
@@ -36194,9 +36198,11 @@ class DiagnosticManager {
         workspace_1.default.configurations.onError(async () => {
             this.setConfigurationErrors();
         }, null, this.disposables);
-        let { errorSign, warningSign, infoSign, hintSign } = this.config;
-        nvim.pauseNotification();
         let { enableHighlightLineNumber } = this.config;
+        if (!workspace_1.default.isNvim || semver_1.default.lt(workspace_1.default.env.version, 'v0.5.0')) {
+            enableHighlightLineNumber = false;
+        }
+        nvim.pauseNotification();
         if (this.config.enableSign) {
             for (let kind of ['Error', 'Warning', 'Info', 'Hint']) {
                 let signText = this.config[kind.toLowerCase() + 'Sign'];
@@ -53832,10 +53838,24 @@ class ServiceManager extends events_1.EventEmitter {
             await workspace_1.default.nvim.call('coc#do_notify', [id, method, result]);
         });
     }
-    async sendRequest(id, method, params) {
-        if (!method) {
-            throw new Error(`method required for sendRequest`);
+    async sendNotification(id, method, params) {
+        if (!method)
+            throw new Error(`method required for ontification`);
+        let service = this.getService(id);
+        // wait for extension activate
+        if (!service || !service.client)
+            throw new Error(`Language server ${id} not found`);
+        if (service.state == types_1.ServiceStat.Starting) {
+            await service.client.onReady();
         }
+        if (service.state != types_1.ServiceStat.Running) {
+            throw new Error(`Language server ${id} not running`);
+        }
+        await Promise.resolve(service.client.sendNotification(method, params));
+    }
+    async sendRequest(id, method, params) {
+        if (!method)
+            throw new Error(`method required for sendRequest`);
         let service = this.getService(id);
         // wait for extension activate
         if (!service)
@@ -56898,7 +56918,7 @@ class BaseLanguageClient {
         }
     }
     notifyFileEvent(event) {
-        var _a, _b;
+        var _a;
         const client = this;
         function didChangeWatchedFile(event) {
             client._fileEvents.push(event);
@@ -56917,7 +56937,7 @@ class BaseLanguageClient {
             });
         }
         const workSpaceMiddleware = (_a = this.clientOptions.middleware) === null || _a === void 0 ? void 0 : _a.workspace;
-        ((_b = workSpaceMiddleware) === null || _b === void 0 ? void 0 : _b.didChangeWatchedFile) ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event);
+        (workSpaceMiddleware === null || workSpaceMiddleware === void 0 ? void 0 : workSpaceMiddleware.didChangeWatchedFile) ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event);
     }
     forceDocumentSync() {
         let doc = workspace_1.default.getDocument(workspace_1.default.bufnr);

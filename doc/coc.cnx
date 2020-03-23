@@ -716,6 +716,14 @@ CocRequestAsync({id}, {method}, [{params}, [{callback}]])
 	{callback} 在请求完成后被调用，第一个参数总是 {error},
 	第二个参数为响应结果。
 
+						*CocNotify()*
+
+CocNotify({id}, {params})
+
+	向指定 language server 发送通知。
+>
+	call CocNotify('ccls', '$ccls/reload')
+
 						*CocLocations()*
 CocLocations({id}, {method}, [{params}, {openCommand}])
 
