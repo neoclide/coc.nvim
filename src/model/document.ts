@@ -91,6 +91,7 @@ export default class Document {
     }
     if (filetype == 'javascript.jsx') return 'javascriptreact'
     if (filetype == 'typescript.jsx' || filetype == 'typescript.tsx') return 'typescriptreact'
+    if (filetype == 'markdown.mdx') return 'mdx'
     return map[filetype] || filetype
   }
 
