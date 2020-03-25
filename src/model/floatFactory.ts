@@ -192,6 +192,7 @@ export default class FloatFactory implements Disposable {
       if (!reuse) this.window = await nvim.openFloatWindow(this.buffer, false, config)
     }
     if (token.isCancellationRequested) return false
+    let showBottom = alignTop && docs.length > 1
     nvim.pauseNotification()
     if (workspace.isNvim) {
       if (!reuse) {
@@ -207,7 +208,7 @@ export default class FloatFactory implements Disposable {
         nvim.command(`noa call win_gotoid(${this.window.id})`, true)
       }
       this.floatBuffer.setLines()
-      nvim.command(`normal! ${alignTop ? 'G' : 'gg'}0`, true)
+      nvim.command(`normal! ${showBottom ? 'G' : 'gg'}0`, true)
       nvim.command('noa wincmd p', true)
     } else {
       let filetypes = distinct(docs.map(d => d.filetype))
@@ -221,7 +222,7 @@ export default class FloatFactory implements Disposable {
         minheight: config.height,
         maxwidth: config.width - 2,
         maxheight: this.maxHeight,
-        firstline: alignTop ? -1 : 1
+        firstline: showBottom ? -1 : 1
       })
       this.floatBuffer.setLines()
       nvim.command('redraw', true)
