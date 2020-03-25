@@ -35534,7 +35534,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "322876fe15" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "0ffa74f59e" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -36913,6 +36913,7 @@ class FloatFactory {
         }
         if (token.isCancellationRequested)
             return false;
+        let showBottom = alignTop && docs.length > 1;
         nvim.pauseNotification();
         if (workspace_1.default.isNvim) {
             if (!reuse) {
@@ -36929,7 +36930,7 @@ class FloatFactory {
                 nvim.command(`noa call win_gotoid(${this.window.id})`, true);
             }
             this.floatBuffer.setLines();
-            nvim.command(`normal! ${alignTop ? 'G' : 'gg'}0`, true);
+            nvim.command(`normal! ${showBottom ? 'G' : 'gg'}0`, true);
             nvim.command('noa wincmd p', true);
         }
         else {
@@ -36944,7 +36945,7 @@ class FloatFactory {
                 minheight: config.height,
                 maxwidth: config.width - 2,
                 maxheight: this.maxHeight,
-                firstline: alignTop ? -1 : 1
+                firstline: showBottom ? -1 : 1
             });
             this.floatBuffer.setLines();
             nvim.command('redraw', true);
