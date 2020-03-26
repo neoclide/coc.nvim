@@ -43,7 +43,7 @@ export interface DiagnosticConfig {
   virtualTextLineSeparator: string
   filetypeMap: object
   format?: string
-  separateRelatedInformationAsDiagnostic?: boolean
+  separateRelatedInformationAsDiagnostics?: boolean
 }
 
 export class DiagnosticManager implements Disposable {
@@ -252,12 +252,12 @@ export class DiagnosticManager implements Disposable {
    */
   public getDiagnostics(uri: string): ReadonlyArray<Diagnostic> {
     let collections = this.getCollections(uri)
-    let { level, separateRelatedInformationAsDiagnostic } = this.config
+    let { level, separateRelatedInformationAsDiagnostics } = this.config
     let res: Diagnostic[] = []
     for (let collection of collections) {
       let items = collection.get(uri)
       if (!items) continue
-      if (separateRelatedInformationAsDiagnostic) {
+      if (separateRelatedInformationAsDiagnostics) {
         const relatedDiagnostics: Diagnostic[] = []
         items.map(diagnostic => {
           if (diagnostic.relatedInformation) {
@@ -590,7 +590,7 @@ export class DiagnosticManager implements Disposable {
       refreshAfterSave: getConfig<boolean>('refreshAfterSave', false),
       refreshOnInsertMode: getConfig<boolean>('refreshOnInsertMode', false),
       filetypeMap: getConfig<object>('filetypeMap', {}),
-      separateRelatedInformationAsDiagnostic: getConfig<boolean>('separateRelatedInformationAsDiagnostic', false),
+      separateRelatedInformationAsDiagnostics: getConfig<boolean>('separateRelatedInformationAsDiagnostics', false),
       format: getConfig<string>('format', '[%source%code] [%severity] %message')
     }
     this.enabled = getConfig<boolean>('enable', true)
