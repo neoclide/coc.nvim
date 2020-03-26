@@ -519,9 +519,11 @@ function walk(marker: Marker[], visitor: (marker: Marker) => boolean): void {
 export class TextmateSnippet extends Marker {
 
   private _placeholders?: { all: Placeholder[], last?: Placeholder }
+  private _variables?: Variable[]
 
   public get placeholderInfo(): { all: Placeholder[], last?: Placeholder } {
     if (!this._placeholders) {
+      this._variables = []
       // fill in placeholders
       let all: Placeholder[] = []
       let last: Placeholder | undefined
@@ -529,12 +531,22 @@ export class TextmateSnippet extends Marker {
         if (candidate instanceof Placeholder) {
           all.push(candidate)
           last = !last || last.index < candidate.index ? candidate : last
+        } else if (candidate instanceof Variable) {
+          let first = candidate.name.charCodeAt(0)
+          // not jumpover for uppercase variable.
+          if (first < 65 || first > 90) {
+            this._variables.push(candidate)
+          }
         }
         return true
       })
       this._placeholders = { all, last }
     }
     return this._placeholders
+  }
+
+  public get variables(): Variable[] {
+    return this._variables
   }
 
   public get placeholders(): Placeholder[] {
@@ -597,6 +609,17 @@ export class TextmateSnippet extends Marker {
       }
     }
     this._placeholders = undefined
+  }
+
+  public updateVariable(id: number, val: string): void {
+    const find = this.variables[id - this.maxIndexNumber - 1]
+    if (find) {
+      let variables = this.variables.filter(o => o.name == find.name)
+      for (let variable of variables) {
+        let newText = variable.transform ? variable.transform.resolve(val) : val
+        variable.setOnlyChild(new Text(newText))
+      }
+    }
   }
 
   /**
@@ -959,7 +982,6 @@ export class SnippetParser {
     }
 
     const variable = new Variable(name!)
-
     if (this._accept(TokenType.Colon)) {
       // ${foo:<children>}
       while (true) {

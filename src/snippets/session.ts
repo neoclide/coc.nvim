@@ -253,9 +253,8 @@ export class SnippetSession {
   }
 
   public findPlaceholder(range: Range): CocSnippetPlaceholder | null {
-    if (!this.snippet) return null
     let { placeholder } = this
-    if (rangeInRange(range, placeholder.range)) return placeholder
+    if (placeholder && rangeInRange(range, placeholder.range)) return placeholder
     return this.snippet.getPlaceholderByRange(range) || null
   }
 
