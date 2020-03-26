@@ -191,7 +191,7 @@ endfunction
 function! coc#util#job_command()
   let node = expand(get(g:, 'coc_node_path', 'node'))
   if !executable(node)
-    echohl Error | echom '[coc.nvim] '.node.' is not executable, checkout https://nodejs.org/en/download/' | echohl None
+    echohl Error | echom '[coc.nvim] "'.node.'" is not executable, checkout https://nodejs.org/en/download/' | echohl None
     return
   endif
   let bundle = s:root.'/build/index.js'
