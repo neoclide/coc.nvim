@@ -35534,7 +35534,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "0ffa74f59e" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "5aa8d887eb" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -37630,6 +37630,7 @@ function walk(marker, visitor) {
 class TextmateSnippet extends Marker {
     get placeholderInfo() {
         if (!this._placeholders) {
+            this._variables = [];
             // fill in placeholders
             let all = [];
             let last;
@@ -37638,11 +37639,17 @@ class TextmateSnippet extends Marker {
                     all.push(candidate);
                     last = !last || last.index < candidate.index ? candidate : last;
                 }
+                else if (candidate instanceof Variable) {
+                    this._variables.push(candidate);
+                }
                 return true;
             });
             this._placeholders = { all, last };
         }
         return this._placeholders;
+    }
+    get variables() {
+        return this._variables;
     }
     get placeholders() {
         const { all } = this.placeholderInfo;
@@ -37704,6 +37711,16 @@ class TextmateSnippet extends Marker {
             }
         }
         this._placeholders = undefined;
+    }
+    updateVariable(id, val) {
+        const find = this.variables[id - this.maxIndexNumber - 1];
+        if (find) {
+            let variables = this.variables.filter(o => o.name == find.name);
+            for (let variable of variables) {
+                let newText = variable.transform ? variable.transform.resolve(val) : val;
+                variable.setOnlyChild(new Text(newText));
+            }
+        }
     }
     /**
      * newText after update with value
@@ -67323,16 +67340,18 @@ class CocSnippet {
         };
         this.update();
     }
+    // adjust for edit before snippet
     adjustTextEdit(edit) {
-        let { range } = edit;
+        let { range, newText } = edit;
         if (position_1.comparePosition(this.range.start, range.end) < 0)
             return false;
-        if (edit.newText.indexOf('\n') == -1 &&
-            this.firstPlaceholder &&
-            position_1.comparePosition(this.firstPlaceholder.range.start, this.range.start) == 0 &&
-            position_1.comparePosition(range.start, range.end) == 0 &&
-            position_1.comparePosition(this.range.start, range.start) == 0) {
-            return false;
+        // check change of placeholder at beginning
+        if (newText.indexOf('\n') == -1
+            && position_1.comparePosition(range.start, range.end) == 0
+            && position_1.comparePosition(this.range.start, range.start) == 0) {
+            let idx = this._placeholders.findIndex(o => position_1.comparePosition(o.range.start, range.start) == 0);
+            if (idx !== -1)
+                return false;
         }
         let changed = position_1.getChangedPosition(this.range.start, edit);
         if (changed.line == 0 && changed.character == 0)
@@ -67355,10 +67374,24 @@ class CocSnippet {
         return vscode_languageserver_protocol_1.Range.create(position, vscode_languageserver_protocol_1.Position.create(position.line + pos.line, end));
     }
     get firstPlaceholder() {
-        return this.getPlaceholder(this.tmSnippet.minIndexNumber);
+        let index = 0;
+        for (let p of this._placeholders) {
+            if (p.index == 0)
+                continue;
+            if (index == 0 || p.index < index) {
+                index = p.index;
+            }
+        }
+        return this.getPlaceholder(index);
     }
     get lastPlaceholder() {
-        return this.getPlaceholder(this.tmSnippet.maxIndexNumber);
+        let index = 0;
+        for (let p of this._placeholders) {
+            if (index == 0 || p.index > index) {
+                index = p.index;
+            }
+        }
+        return this.getPlaceholder(index);
     }
     getPlaceholderById(id) {
         return this._placeholders.find(o => o.id == id);
@@ -67377,8 +67410,9 @@ class CocSnippet {
         return prev;
     }
     getNextPlaceholder(index) {
-        let max = this.tmSnippet.maxIndexNumber;
-        if (index == max)
+        let indexes = this._placeholders.map(o => o.index);
+        let max = Math.max.apply(null, indexes);
+        if (index >= max)
             return this.finalPlaceholder;
         let next = this.getPlaceholder(index + 1);
         if (!next)
@@ -67421,7 +67455,12 @@ class CocSnippet {
                 }
             }
         }
-        this.tmSnippet.updatePlaceholder(id, newText);
+        if (placeholder.isVariable) {
+            this.tmSnippet.updateVariable(id, newText);
+        }
+        else {
+            this.tmSnippet.updatePlaceholder(id, newText);
+        }
         let endPosition = position_1.adjustPosition(range.end, edit);
         let snippetEdit = {
             range: vscode_languageserver_protocol_1.Range.create(range.start, endPosition),
@@ -67432,16 +67471,22 @@ class CocSnippet {
     }
     update() {
         const snippet = this.tmSnippet;
-        const placeholders = snippet.placeholders;
         const { line, character } = this.position;
         const document = vscode_languageserver_textdocument_1.TextDocument.create('untitled:/1', 'snippet', 0, snippet.toString());
-        this._placeholders = placeholders.map((p, idx) => {
+        const { placeholders, variables, maxIndexNumber } = snippet;
+        let variableIndex = maxIndexNumber + 1;
+        this._placeholders = [...placeholders, ...variables].map((p, idx) => {
             const offset = snippet.offset(p);
             const position = document.positionAt(offset);
+            const isPlaceholder = p instanceof Snippets.Placeholder;
             const start = {
                 line: line + position.line,
                 character: position.line == 0 ? character + position.character : position.character
             };
+            let index = p instanceof Snippets.Placeholder ? p.index : variableIndex;
+            if (!isPlaceholder) {
+                variableIndex = variableIndex + 1;
+            }
             const value = p.toString();
             const lines = value.split('\n');
             let res = {
@@ -67452,15 +67497,16 @@ class CocSnippet {
                 transform: p.transform != null,
                 line: start.line,
                 id: idx,
-                index: p.index,
+                index,
                 value,
-                isFinalTabstop: p.isFinalTabstop,
+                isVariable: p instanceof Snippets.Variable,
+                isFinalTabstop: p.index === 0,
                 snippet: this
             };
             Object.defineProperty(res, 'snippet', {
                 enumerable: false
             });
-            if (p.choice) {
+            if (p instanceof Snippets.Placeholder && p.choice) {
                 let { options } = p.choice;
                 if (options && options.length) {
                     res.choice = options.map(o => o.value);

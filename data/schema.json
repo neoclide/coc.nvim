@@ -619,6 +619,11 @@
       "description": "Define the diagnostic format. Available parts: source, code, severity, message",
       "default": "[%source%code] [%severity] %message"
     },
+    "diagnostic.separateRelatedInformationAsDiagnostics": {
+      "type": "boolean",
+      "default": false,
+      "description": "Separate related information as diagnostics"
+    },
     "signature.enable": {
       "type": "boolean",
       "description": "Enable signature help when trigger character typed, require restart service on change.",

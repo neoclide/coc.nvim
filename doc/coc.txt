@@ -103,9 +103,9 @@ CONFIGURATION						*coc-configuration*
 
 Most of coc.nvim configuration is stored within `coc-settings` file that can
 be opened using `:CocConfig`. This will open either the global configuration
-file (located at `$HOME/.vim/coc-config` or
+file (located at `$HOME/.vim/coc-settings.json` or
 `$HOME/.config/nvim/coc-settings.json` by default) or the local configuration
-file which is located under the project root: `$ROOT/.vim/coc-config.json`
+file which is located under the project root: `$ROOT/.vim/coc-settings.json`
 (see `b:coc_root_patterns` for more information about project root). The
 location of global configuration can be modified using `g:coc_config_home`.
 
