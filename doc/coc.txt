@@ -1256,6 +1256,22 @@ coc#util#float_scroll({forward})
 	nnoremap <expr><C-f> coc#util#has_float() ? coc#util#float_scroll(1) : "\<C-f>"
 	nnoremap <expr><C-b> coc#util#has_float() ? coc#util#float_scroll(0) : "\<C-b>"
 <
+						*coc#util#root_patterns()*
+coc#util#root_patterns()
+
+	Get root patterns used for current document.
+
+	Result could be something like: >
+
+	{'global': ['.git', '.hg', '.projections.json'], 'buffer': [], 'server': v:null}
+<
+						*coc#util#get_config()*
+coc#util#get_config({key})
+
+	Get configuration (mostly defined in coc-settings.json)	by {key}, ex: >
+
+	:echo coc#util#get_config('coc.preferences')
+<
 						*CocRequest()*
 CocRequest({id}, {method}, [{params}])
 

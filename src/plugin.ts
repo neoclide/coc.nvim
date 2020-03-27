@@ -49,6 +49,10 @@ export default class Plugin extends EventEmitter {
     this.addMethod('codeActionRange', (start, end, only) => {
       return this.handler.codeActionRange(start, end, only)
     })
+    this.addMethod('getConfig', async key => {
+      let document = await workspace.document
+      return workspace.getConfiguration(key, document ? document.uri : undefined)
+    })
     this.addMethod('rootPatterns', bufnr => {
       let doc = workspace.getDocument(bufnr)
       if (!doc) return null
