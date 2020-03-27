@@ -251,6 +251,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
     let created = false
     let service: IServiceProvider = {
       id,
+      client,
       name: typeof name === 'string' ? name : name.name,
       selector: typeof name === 'string' ? getDocumentSelector(config.filetypes, config.additionalSchemes) : name.clientOptions.documentSelector,
       state: ServiceStat.Initial,
