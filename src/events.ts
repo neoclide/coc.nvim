@@ -1,7 +1,6 @@
 import { Disposable } from 'vscode-languageserver-protocol'
 import { PopupChangeEvent, VimCompleteItem } from './types'
 import { disposeAll } from './util'
-import workspace from './workspace'
 const logger = require('./util/logger')('events')
 
 export type Result = void | Promise<void>
@@ -65,9 +64,17 @@ class Events {
       }
     }
     if (cbs) {
-      await Promise.all(cbs.map(fn => {
-        return fn(args)
-      }))
+      try {
+        await Promise.all(cbs.map(fn => {
+          return fn(args)
+        }))
+      } catch (e) {
+        if (e.message && !e.message.startsWith('Timeout')) {
+          // tslint:disable-next-line: no-console
+          console.error(`Error on ${event}: ${e.message}${e.stack ? '\n' + e.stack : ''} `)
+        }
+        logger.error(`Handler Error on ${event}`, e.stack)
+      }
     }
   }
 
@@ -99,22 +106,24 @@ class Events {
       })
     } else {
       let arr = this.handlers.get(event) || []
-      let timeout = event == 'BufWritePre' ? 1000 : 500
+      let timeout = 2000
       arr.push(args => {
-        return new Promise(resolve => {
+        return new Promise((resolve, reject) => {
           let timer = setTimeout(() => {
-            logger.error(`Handler of ${event} caused more than ${timeout}ms`, handler.toString())
-            resolve()
+            reject(new Error(`Timeout handler of "${event}" after: ${timeout}ms`))
           }, timeout)
-          Promise.resolve(handler.apply(thisArg || null, args)).then(() => {
+          try {
+            Promise.resolve(handler.apply(thisArg || null, args)).then(() => {
+              clearTimeout(timer)
+              resolve()
+            }, e => {
+              clearTimeout(timer)
+              reject(e)
+            })
+          } catch (e) {
             clearTimeout(timer)
-            resolve()
-          }, e => {
-            clearTimeout(timer)
-            workspace.showMessage(`Error on ${event}: ${e.message} `, 'error')
-            logger.error(`Handler Error on ${event}`, e.stack, handler.toString())
-            resolve()
-          })
+            reject(e)
+          }
         })
       })
       this.handlers.set(event, arr)
