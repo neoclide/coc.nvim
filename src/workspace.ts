@@ -953,7 +953,11 @@ export class Workspace implements IWorkspace {
   public async deleteFile(filepath: string, opts: DeleteFileOptions = {}): Promise<void> {
     let { ignoreIfNotExists, recursive } = opts
     let stat = await statAsync(filepath.replace(/\/$/, ''))
-    let isDir = stat && stat.isDirectory() || filepath.endsWith('/')
+    let isDir = stat && stat.isDirectory()
+    if (filepath.endsWith('/') && !isDir) {
+      this.showMessage(`${filepath} is not directory`, 'error')
+      return
+    }
     if (!stat && !ignoreIfNotExists) {
       this.showMessage(`${filepath} not exists`, 'error')
       return
@@ -964,12 +968,17 @@ export class Workspace implements IWorkspace {
       return
     }
     try {
-      let method = isDir ? 'rmdir' : 'unlink'
-      await util.promisify(fs[method])(filepath)
+      if (isDir && recursive) {
+        rimraf.sync(filepath)
+      } else if (isDir) {
+        await util.promisify(fs.rmdir)(filepath)
+      } else {
+        await util.promisify(fs.unlink)(filepath)
+      }
       if (!isDir) {
         let uri = URI.file(filepath).toString()
         let doc = this.getDocument(uri)
-        if (doc) await this.nvim.command(`silent bwipeout ${doc.bufnr}`)
+        if (doc) await this.nvim.command(`silent! bwipeout ${doc.bufnr}`)
       }
     } catch (e) {
       this.showMessage(`Error on delete ${filepath}: ${e.message}`, 'error')
