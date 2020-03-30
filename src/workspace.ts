@@ -740,7 +740,7 @@ export class Workspace implements IWorkspace {
         break
     }
     if (level >= messageLevel) {
-      this.nvim[method]('coc#util#echo_messages', [hl, ('[coc.nvim]' + msg).split('\n')], true)
+      this.nvim[method]('coc#util#echo_messages', [hl, ('[coc.nvim] ' + msg).split('\n')], true)
     }
   }
 
