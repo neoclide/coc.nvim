@@ -1,12 +1,14 @@
 import { Neovim } from '@chemzqm/neovim'
+import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import { URI } from 'vscode-uri'
 import extensions from '../../extensions'
 import { ListContext, ListItem } from '../../types'
 import { wait } from '../../util'
 import { readdirAsync } from '../../util/fs'
-import BasicList from '../basic'
 import workspace from '../../workspace'
+import BasicList from '../basic'
 const logger = require('../../util/logger')('list-extensions')
 
 export default class ExtensionList extends BasicList {
@@ -26,6 +28,16 @@ export default class ExtensionList extends BasicList {
       }
       await wait(100)
     }, { persist: true, reload: true, parallel: true })
+
+    this.addAction('configuration', async item => {
+      let { root } = item.data
+      let jsonFile = path.join(root, 'package.json')
+      if (fs.existsSync(jsonFile)) {
+        let lines = fs.readFileSync(jsonFile, 'utf8').split(/\r?\n/)
+        let idx = lines.findIndex(s => s.indexOf('"contributes"') !== -1)
+        await workspace.jumpTo(URI.file(jsonFile).toString(), { line: idx == -1 ? 0 : idx, character: 0 })
+      }
+    })
 
     this.addAction('disable', async item => {
       let { id, state } = item.data
