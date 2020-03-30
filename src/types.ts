@@ -1233,6 +1233,15 @@ export interface ExtensionContext {
   logger: log4js.Logger
 }
 
+export type Language = {
+  id: string
+  extensions?: string[]
+  aliases?: string[]
+  filenames?: string[]
+  firstLine?: string
+  configuration: string
+}
+
 export interface IWorkspace {
   readonly nvim: Neovim
   readonly cwd: string
@@ -1288,4 +1297,5 @@ export interface IWorkspace {
   runTerminalCommand(cmd: string, cwd?: string, keepfocus?: boolean): Promise<TerminalResult>
   createStatusBarItem(priority?: number): StatusBarItem
   dispose(): void
+  addLanguage(lang: Language): void
 }

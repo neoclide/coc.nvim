@@ -34,6 +34,7 @@ export default class Document {
   // real current lines
   private lines: string[] = []
   private _filetype: string
+  private _extension: string
   private _uri: string
   private _changedtick: number
   private _words: string[] = []
@@ -79,6 +80,13 @@ export default class Document {
    */
   public get words(): string[] {
     return this._words
+  }
+
+  /**
+   * Return extension of document
+   */
+  public getFileExtension(fullpath: string): string {
+    return fullpath.split('.').pop()
   }
 
   /**
@@ -144,6 +152,7 @@ export default class Document {
       return false
     }
     this._filetype = this.convertFiletype(opts.filetype)
+    this._extension = this.getFileExtension(opts.fullpath)
     this.textDocument = TextDocument.create(uri, this.filetype, 1, this.getDocumentContent())
     this.setIskeyword(opts.iskeyword)
     this.gitCheck()
@@ -274,6 +283,10 @@ export default class Document {
    */
   public get filetype(): string {
     return this._filetype
+  }
+
+  public get extension(): string {
+    return this._extension
   }
 
   public get uri(): string {

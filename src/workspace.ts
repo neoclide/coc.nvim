@@ -22,7 +22,7 @@ import Task from './model/task'
 import TerminalModel from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, MessageLevel, MsgTypes, OutputChannel, PatternType, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, DidChangeTextDocumentParams } from './types'
+import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, Language, KeymapOption, LanguageServerConfig, MapMode, MessageLevel, MsgTypes, OutputChannel, PatternType, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, DidChangeTextDocumentParams } from './types'
 import { distinct } from './util/array'
 import { findUp, isFile, isParentFolder, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile, fixDriver } from './util/fs'
 import { disposeAll, getKeymapModifier, isDocumentEdit, mkdirp, runCommand, wait, platform } from './util/index'
@@ -39,6 +39,7 @@ const requireFunc = typeof __webpack_require__ === "function" ? __non_webpack_re
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 let NAME_SPACE = 1080
+
 
 export class Workspace implements IWorkspace {
   public readonly nvim: Neovim
@@ -58,6 +59,7 @@ export class Workspace implements IWorkspace {
   private _blocking = false
   private _initialized = false
   private _attached = false
+  private _languages: Language[] = []
   private buffers: Map<number, Document> = new Map()
   private autocmdMaxId = 0
   private autocmds: Map<number, Autocmd> = new Map()
@@ -382,7 +384,13 @@ export class Workspace implements IWorkspace {
   public get filetypes(): Set<string> {
     let res = new Set() as Set<string>
     for (let doc of this.documents) {
-      res.add(doc.filetype)
+      if (doc.filetype){
+        res.add(doc.filetype)
+      }
+      let langIds = this.findCustomLanguage(doc.extension)
+      for (let langId of langIds) {
+        res.add(langId)
+      }
     }
     return res
   }
@@ -1699,6 +1707,25 @@ augroup end`
     }
     patterns = patterns.concat(this.rootPatterns.get(filetype) || [])
     return patterns.length ? distinct(patterns) : null
+  }
+
+  public addLanguage(lang: Language): void {
+    this._languages.push(lang)
+  }
+
+  private findCustomLanguage(ext: string): string[] {
+    let result: string[] = []
+    for(let lang of this._languages) {
+      let { id, extensions } = lang
+      if(Array.isArray(extensions)) {
+        for (let extension of extensions) {
+          if (ext === extension){
+            result.push(id)
+          }
+        }
+      }
+    }
+    return result
   }
 }
 

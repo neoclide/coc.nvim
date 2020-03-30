@@ -28,6 +28,7 @@ import workspace from './workspace'
 const createLogger = require('./util/logger')
 const logger = createLogger('extensions')
 
+logger.debug('test')('hi')
 export type API = { [index: string]: any } | void | null | undefined
 
 export interface PropertyScheme {
@@ -126,6 +127,7 @@ export class Extensions {
     if (global.hasOwnProperty('__TEST__')) return
     for (let item of this.list) {
       let { id, packageJSON } = item.extension
+      this.setupCustomLanguages(packageJSON)
       this.setupActiveEvents(id, packageJSON)
     }
     // check extensions need watch & install
@@ -562,6 +564,7 @@ export class Extensions {
       }
     }
     this._onDidLoadExtension.fire(extension)
+    this.setupCustomLanguages(packageJSON)
     this.setupActiveEvents(id, packageJSON)
   }
 
@@ -673,6 +676,18 @@ export class Extensions {
   public addSchemeProperty(key: string, def: PropertyScheme): void {
     this._additionalSchemes[key] = def
     workspace.configurations.extendsDefaults({ [key]: def.default })
+  }
+
+  private setupCustomLanguages(packageJSON: any): void {
+    let { contributes } = packageJSON
+    if (!contributes)
+      return
+    let { languages }  = contributes
+    if (!languages || Array.isArray(languages))
+      return
+    for (let lang of languages) {
+      workspace.addLanguage(lang)
+    }
   }
 
   private setupActiveEvents(id: string, packageJSON: any): void {
@@ -845,6 +860,7 @@ export class Extensions {
     }
     this._onDidLoadExtension.fire(extension)
     if (this.activated) {
+      this.setupCustomLanguages(packageJSON)
       this.setupActiveEvents(id, packageJSON)
     }
   }
