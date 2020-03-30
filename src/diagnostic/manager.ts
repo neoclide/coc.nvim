@@ -143,7 +143,7 @@ export class DiagnosticManager implements Disposable {
       this.setConfigurationErrors()
     }, null, this.disposables)
     let { enableHighlightLineNumber } = this.config
-    if (!workspace.isNvim || semver.lt(workspace.env.version, 'v0.5.0')) {
+    if (!workspace.isNvim || semver.lt(workspace.env.version, 'v0.3.2')) {
       enableHighlightLineNumber = false
     }
     nvim.pauseNotification()
