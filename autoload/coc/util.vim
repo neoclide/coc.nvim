@@ -325,8 +325,12 @@ function! s:variables(bufnr) abort
   return variables
 endfunction
 
-function! coc#util#root_patterns()
+function! coc#util#root_patterns() abort
   return coc#rpc#request('rootPatterns', [bufnr('%')])
+endfunction
+
+function! coc#util#get_config(key) abort
+  return coc#rpc#request('getConfig', [a:key])
 endfunction
 
 function! coc#util#on_error(msg) abort
