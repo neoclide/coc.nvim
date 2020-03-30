@@ -1710,6 +1710,8 @@ augroup end`
   }
 
   public addLanguage(lang: Language): void {
+    logger.info('custom language detected')
+    logger.info(JSON.stringify(lang))
     this._languages.push(lang)
   }
 

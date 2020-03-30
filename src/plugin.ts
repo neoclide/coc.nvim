@@ -191,7 +191,7 @@ export default class Plugin extends EventEmitter {
           this.addCommand(cmd)
         }
       }
-      logger.info(`coc ${this.version} initialized with node: ${process.version} hi`)
+      logger.info(`coc ${this.version} initialized with node: ${process.version}`)
       this.emit('ready')
     } catch (e) {
       this._ready = false

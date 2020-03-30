@@ -682,7 +682,7 @@ export class Extensions {
     if (!contributes)
       return
     let { languages }  = contributes
-    if (!languages || Array.isArray(languages))
+    if (!languages || !Array.isArray(languages))
       return
     for (let lang of languages) {
       workspace.addLanguage(lang)
