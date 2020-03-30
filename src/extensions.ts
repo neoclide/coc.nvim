@@ -28,7 +28,6 @@ import workspace from './workspace'
 const createLogger = require('./util/logger')
 const logger = createLogger('extensions')
 
-logger.debug('test')('hi')
 export type API = { [index: string]: any } | void | null | undefined
 
 export interface PropertyScheme {
