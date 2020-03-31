@@ -460,7 +460,6 @@ function! coc#util#quickpick(title, items, cb) abort
       call a:cb(v:null, a:result)
     endfunction
     function! s:QuickpickFilter(id, key) closure
-      let g:k = a:key
       for i in range(1, len(a:items))
         if a:key == string(i)
           call popup_close(a:id, i)
