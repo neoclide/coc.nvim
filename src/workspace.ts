@@ -1060,13 +1060,11 @@ export class Workspace implements IWorkspace {
    * Show quickpick
    */
   public async showQuickpick(items: string[], placeholder = 'Choose by number'): Promise<number> {
-    let msgs = [placeholder + ':']
-    msgs = msgs.concat(items.map((str, index) => {
-      return `${index + 1}. ${str}`
-    }))
-    let res = await this.callAsync<string>('inputlist', [msgs])
+    let title = placeholder + ':'
+    items = items.map((s, idx) => `${idx + 1}. ${s}`)
+    let res = await this.nvim.callAsync('coc#util#quickpick', [title, items])
     let n = parseInt(res, 10)
-    if (isNaN(n) || n <= 0 || n > msgs.length) return -1
+    if (isNaN(n) || n <= 0 || n > items.length) return -1
     return n - 1
   }
 

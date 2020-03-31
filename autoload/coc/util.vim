@@ -454,6 +454,37 @@ function! coc#util#with_callback(method, args, cb)
   call timer_start(timeout, {-> s:Cb() })
 endfunction
 
+function! coc#util#quickpick(title, items, cb) abort
+  if exists('*popup_menu')
+    function! s:QuickpickHandler(id, result) closure
+      call a:cb(v:null, a:result)
+    endfunction
+    function! s:QuickpickFilter(id, key) closure
+      let g:k = a:key
+      for i in range(1, len(a:items))
+        if a:key == string(i)
+          call popup_close(a:id, i)
+          return 1
+        endif
+      endfor
+      " No shortcut, pass to generic filter
+      return popup_filter_menu(a:id, a:key)
+    endfunction
+    try
+      call popup_menu(a:items, #{
+        \ title: a:title,
+        \ filter: function('s:QuickpickFilter'),
+        \ callback: function('s:QuickpickHandler'),
+        \ })
+    catch /.*/
+      call a:cb(v:exception)
+    endtry
+  else
+    let res = inputlist([a:title] + a:items)
+    call a:cb(v:null, res)
+  endif
+endfunction
+
 function! coc#util#add_matchids(ids)
   let w:coc_matchids = get(w:, 'coc_matchids', []) + a:ids
 endfunction
