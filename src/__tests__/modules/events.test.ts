@@ -24,13 +24,13 @@ describe('register handler', () => {
       return new Promise(resolve => {
         setTimeout(() => {
           resolve()
-        }, 2000)
+        }, 5000)
       })
     }
     let disposable = events.on('FocusGained', fn, {})
     let ts = Date.now()
     await events.fire('FocusGained', [])
-    expect(Date.now() - ts).toBeLessThan(600)
+    expect(Date.now() - ts).toBeLessThan(2100)
     disposable.dispose()
   })
 })
