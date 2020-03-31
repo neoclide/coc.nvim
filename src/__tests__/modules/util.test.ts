@@ -11,6 +11,7 @@ import { score, positions } from '../../util/fzy'
 import { getHiglights } from '../../util/highlight'
 import { score as matchScore } from '../../util/match'
 import { mixin } from '../../util/object'
+import { Mutex } from '../../util/mutex'
 import { indexOf, resolveVariables } from '../../util/string'
 import helper from '../helper'
 import { ansiparse } from '../../util/ansiparse'
@@ -210,5 +211,46 @@ describe('ansiparse', () => {
       foreground: 'red',
       bold: true, text: 'history'
     })
+  })
+})
+
+describe('Mutex', () => {
+  test('mutex run in serial', async () => {
+    let lastTs: number
+    let fn = () => {
+      return new Promise(resolve => {
+        if (lastTs) {
+          let dt = Date.now() - lastTs
+          expect(dt).toBeGreaterThanOrEqual(300)
+        }
+        lastTs = Date.now()
+        setTimeout(() => {
+          resolve()
+        }, 300)
+      })
+    }
+    let mutex = new Mutex()
+    await Promise.all([
+      mutex.use(fn),
+      mutex.use(fn),
+      mutex.use(fn)
+    ])
+  })
+
+  test('mutex run after job finish', async () => {
+    let count = 0
+    let fn = () => {
+      return new Promise(resolve => {
+        count = count + 1
+        setTimeout(() => {
+          resolve()
+        }, 100)
+      })
+    }
+    let mutex = new Mutex()
+    await mutex.use(fn)
+    await helper.wait(10)
+    await mutex.use(fn)
+    expect(count).toBe(2)
   })
 })

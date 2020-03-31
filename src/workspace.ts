@@ -29,6 +29,7 @@ import { disposeAll, getKeymapModifier, isDocumentEdit, mkdirp, runCommand, wait
 import { score } from './util/match'
 import { getChangedFromEdits } from './util/position'
 import { byteIndex, byteLength } from './util/string'
+import { Mutex } from './util/mutex'
 import Watchman from './watchman'
 import rimraf from 'rimraf'
 import uuid = require('uuid/v1')
@@ -45,6 +46,7 @@ export class Workspace implements IWorkspace {
   public readonly version: string
   public readonly keymaps: Map<string, [Function, boolean]> = new Map()
   public bufnr: number
+  private mutex = new Mutex()
   private resolver: Resolver = new Resolver()
   private rootPatterns: Map<string, string[]> = new Map()
   private _workspaceFolders: WorkspaceFolder[] = []
@@ -55,7 +57,6 @@ export class Workspace implements IWorkspace {
   private _env: Env
   private _root: string
   private _cwd = process.cwd()
-  private _blocking = false
   private _initialized = false
   private _attached = false
   private buffers: Map<number, Document> = new Map()
@@ -319,8 +320,7 @@ export class Workspace implements IWorkspace {
       if (!res) return
       fs.mkdirSync(dir)
     }
-    let uri = URI.file(path.join(dir, 'coc-settings.json')).toString()
-    await this.jumpTo(uri)
+    await this.jumpTo(URI.file(path.join(dir, 'coc-settings.json')).toString())
   }
 
   public get textDocuments(): TextDocument[] {
@@ -724,7 +724,7 @@ export class Workspace implements IWorkspace {
    * Show message in vim.
    */
   public showMessage(msg: string, identify: MsgTypes = 'more'): void {
-    if (this._blocking || !this.nvim) return
+    if (this.mutex.busy || !this.nvim) return
     let { messageLevel } = this
     let method = process.env.VIM_NODE_RPC == '1' ? 'callTimer' : 'call'
     let hl = 'Error'
@@ -1060,22 +1060,34 @@ export class Workspace implements IWorkspace {
    * Show quickpick
    */
   public async showQuickpick(items: string[], placeholder = 'Choose by number'): Promise<number> {
-    let title = placeholder + ':'
-    items = items.map((s, idx) => `${idx + 1}. ${s}`)
-    let res = await this.nvim.callAsync('coc#util#quickpick', [title, items])
-    let n = parseInt(res, 10)
-    if (isNaN(n) || n <= 0 || n > items.length) return -1
-    return n - 1
+    let release = await this.mutex.acquire()
+    try {
+      let title = placeholder + ':'
+      items = items.map((s, idx) => `${idx + 1}. ${s}`)
+      let res = await this.nvim.callAsync('coc#util#quickpick', [title, items])
+      release()
+      let n = parseInt(res, 10)
+      if (isNaN(n) || n <= 0 || n > items.length) return -1
+      return n - 1
+    } catch (e) {
+      release()
+      return -1
+    }
   }
 
   /**
    * Prompt for confirm action.
    */
   public async showPrompt(title: string): Promise<boolean> {
-    this._blocking = true
-    let res = await this.nvim.callAsync('coc#util#with_callback', ['coc#util#prompt_confirm', [title]])
-    this._blocking = false
-    return res == 1
+    let release = await this.mutex.acquire()
+    try {
+      let res = await this.nvim.callAsync('coc#util#with_callback', ['coc#util#prompt_confirm', [title]])
+      release()
+      return res == 1
+    } catch (e) {
+      release()
+      return false
+    }
   }
 
   public async callAsync<T>(method: string, args: any[]): Promise<T> {
@@ -1495,7 +1507,7 @@ augroup end`
   }
 
   private async checkBuffer(bufnr: number): Promise<void> {
-    if (this._disposed) return
+    if (this._disposed || !bufnr) return
     let doc = this.getDocument(bufnr)
     if (!doc && !this.creatingSources.has(bufnr)) await this.onBufCreate(bufnr)
   }
