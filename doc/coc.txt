@@ -1999,7 +1999,7 @@ The following features are supported:
 
 LIST COMMAND						*coc-list-command*
 
-:CocList [{...options}] [{source}] [{...args}]		*CocList*
+:CocList [{...options}] [{source}] [{...args}]		*:CocList*
 
 		Open coc list of {source}, Ex: >
 
@@ -2015,18 +2015,18 @@ LIST COMMAND						*coc-list-command*
 
 		When {source} is empty, lists source is used.
 
-:CocListResume						*CocListResume*
+:CocListResume						*:CocListResume*
 
 		Reopen last opened list, input and cursor position will be
 		preserved.
 
-:CocPrev						*CocPrev*
+:CocPrev						*:CocPrev*
 
 		Invoke default action for the previous item in the last list.
 
 		Doesn't open the list window if it's closed.
 
-:CocNext						*CocNext*
+:CocNext						*:CocNext*
 
 		Invoke the default action for the next item in the last list.
 
