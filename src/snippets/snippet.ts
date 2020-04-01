@@ -190,19 +190,29 @@ export class CocSnippet {
     const { line, character } = this.position
     const document = TextDocument.create('untitled:/1', 'snippet', 0, snippet.toString())
     const { placeholders, variables, maxIndexNumber } = snippet
+    const variableIndexMap: Map<string, number> = new Map()
     let variableIndex = maxIndexNumber + 1
 
     this._placeholders = [...placeholders, ...variables].map((p, idx) => {
       const offset = snippet.offset(p)
       const position = document.positionAt(offset)
-      const isPlaceholder = p instanceof Snippets.Placeholder
       const start: Position = {
         line: line + position.line,
         character: position.line == 0 ? character + position.character : position.character
       }
-      let index = p instanceof Snippets.Placeholder ? p.index : variableIndex
-      if (!isPlaceholder) {
-        variableIndex = variableIndex + 1
+      let index: number
+      if (p instanceof Snippets.Variable) {
+        let key = p.name
+        if (variableIndexMap.has(key)) {
+          index = variableIndexMap.get(key)
+        } else {
+          variableIndexMap.set(key, variableIndex)
+          index = variableIndex
+          variableIndex = variableIndex + 1
+        }
+        // variableIndex = variableIndex + 1
+      } else {
+        index = p.index
       }
       const value = p.toString()
       const lines = value.split('\n')

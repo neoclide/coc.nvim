@@ -42,6 +42,7 @@ Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}
 ```
 
 in your `.vimrc` or `init.vim`, then restart Vim and run `:PlugInstall`.
+
 Checkout [Install
 coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim) Wiki for
 more info.

@@ -191,6 +191,19 @@ describe('SnippetSession#start', () => {
     expect(pos).toEqual({ line: 0, character: 2 })
   })
 
+  it('should jump to variable placeholder with same name only once', async () => {
+    let buf = await helper.edit()
+    let session = new SnippetSession(nvim, buf.id)
+    await session.start('${foo} ${foo} ${2:bar}', false)
+    await session.selectCurrentPlaceholder()
+    await helper.wait(100)
+    await session.nextPlaceholder()
+    await helper.wait(100)
+    await session.nextPlaceholder()
+    let pos = await workspace.getCursorPosition()
+    expect(pos).toEqual({ line: 0, character: 11 })
+  })
+
   it('should start nest snippet without select', async () => {
     let buf = await helper.edit()
     await nvim.command('startinsert')
