@@ -2,6 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, LocationLink, Position, Range, SelectionRange, SignatureHelp, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import commands from './commands'
+import events from './events'
 import diagnosticManager from './diagnostic/manager'
 import { CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
 import CodeActionManager from './provider/codeActionmanager'
@@ -669,6 +670,28 @@ class Languages {
     let { line, bufnr, linenr } = option
     let doc = workspace.getDocument(bufnr)
     if (!doc) return false
+    if (events.cursor.lnum == option.linenr + 1) {
+      // line break during completion
+      let preline = await nvim.call('getline', [option.linenr]) as string
+      let { length } = preline
+      let { range } = textEdit
+      if (length && range.start.character > length) {
+        line = line.slice(preline.length)
+        let spaceCount = 0
+        if (/^\s/.test(line)) {
+          spaceCount = line.match(/^\s+/)[0].length
+          line = line.slice(spaceCount)
+        }
+        range.start.character = range.start.character - length - spaceCount
+        range.end.character = range.end.character - length - spaceCount
+        range.start.line = range.start.line + 1
+        range.end.line = range.end.line + 1
+        linenr = linenr + 1
+      } else {
+        // can't handle
+        return false
+      }
+    }
     let { range, newText } = textEdit
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
     // replace inserted word
