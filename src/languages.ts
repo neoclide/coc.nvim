@@ -31,7 +31,7 @@ import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection
 import { wait } from './util'
 import * as complete from './util/complete'
 import { getChangedFromEdits, rangeOverlap } from './util/position'
-import { byteLength } from './util/string'
+import { byteLength, byteIndex } from './util/string'
 import workspace from './workspace'
 const logger = require('./util/logger')('languages')
 
@@ -559,18 +559,16 @@ class Languages {
         if (!result || token.isCancellationRequested) return null
         completeItems = Array.isArray(result) ? result : result.items
         if (!completeItems || completeItems.length == 0) return null
-        // used for fixed col
+        let startcol = this.getStartColumn(opt.line, completeItems)
         let option: CompleteOption = Object.assign({}, opt)
-        if (typeof (result as any).startcol == 'number') {
-          option.col = (result as any).startcol
-        }
+        if (startcol != null) option.col = startcol
         let items: VimCompleteItem[] = completeItems.map((o, index) => {
           let item = this.convertVimCompleteItem(o, shortcut, option)
           item.index = index
           return item
         })
         return {
-          startcol: (result as any).startcol,
+          startcol,
           isIncomplete: !!(result as CompletionList).isIncomplete,
           items
         }
@@ -738,6 +736,19 @@ class Languages {
     if (!snippet) changed = getChangedFromEdits(pos, textEdits)
     await document.applyEdits(this.nvim, textEdits)
     if (changed) await workspace.moveTo(Position.create(pos.line + changed.line, pos.character + changed.character))
+  }
+
+  private getStartColumn(line: string, items: CompletionItem[]): number | null {
+    let first = items[0]
+    if (!first.textEdit) return null
+    let { character } = first.textEdit.range.start
+    for (let i = 0; i < 10; i++) {
+      let o = items[i]
+      if (!o) break
+      if (!o.textEdit) return null
+      if (o.textEdit.range.start.character !== character) return null
+    }
+    return byteIndex(line, character)
   }
 
   private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption): VimCompleteItem {

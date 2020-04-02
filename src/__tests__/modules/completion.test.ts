@@ -324,6 +324,29 @@ describe('completion TextChangedP', () => {
     expect(col).toBe(7)
   })
 
+  it('should adjust completion position by textEdit start position', async () => {
+    let provider: CompletionItemProvider = {
+      provideCompletionItems: async (_document, _position, _token, context): Promise<CompletionItem[]> => {
+        if (!context.triggerCharacter) return
+        return [{
+          label: 'foo',
+          filterText: '?foo',
+          textEdit: {
+            range: Range.create(0, 0, 0, 1),
+            newText: 'foo'
+          }
+        }]
+      }
+    }
+    disposables.push(languages.registerCompletionItemProvider('fix', 'f', null, provider, ['?']))
+    await nvim.input('i?')
+    await helper.waitPopup()
+    await nvim.eval('feedkeys("\\<C-n>", "in")')
+    await helper.wait(200)
+    let line = await nvim.line
+    expect(line).toBe('foo')
+  })
+
   it('should fix cursor position with snippet on additionalTextEdits', async () => {
     await helper.createDocument()
     let provider: CompletionItemProvider = {
