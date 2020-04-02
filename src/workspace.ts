@@ -492,15 +492,36 @@ export class Workspace implements IWorkspace {
     let document = this.getDocument(bufnr)
     let uri = document ? document.uri : null
     let currEdits = null
+    let locations: Location[] = []
+    let changeCount = 0
+    const preferences = this.getConfiguration('coc.preferences')
+    let promptUser = !global.hasOwnProperty('__TEST__') && preferences.get<boolean>('promptWorkspaceEdit', true)
     try {
       if (documentChanges && documentChanges.length) {
-        let n = documentChanges.length
+        changeCount = documentChanges.length
+        if (promptUser) {
+          let count = 0
+          for (let c of documentChanges) {
+            if (isDocumentEdit(c)) {
+              if (this.getDocument((c as TextDocumentEdit).textDocument.uri) == null) {
+                count = count + 1
+              }
+            }
+          }
+          if (count) {
+            let res = await this.showPrompt(`${count} documents on disk would be loaded for change, confirm?`)
+            if (!res) return
+          }
+        }
         for (let change of documentChanges) {
           if (isDocumentEdit(change)) {
             let { textDocument, edits } = change as TextDocumentEdit
             if (URI.parse(textDocument.uri).toString() == uri) currEdits = edits
             let doc = await this.loadFile(textDocument.uri)
             await doc.applyEdits(nvim, edits)
+            for (let edit of edits) {
+              locations.push({ uri: doc.uri, range: edit.range })
+            }
           } else if (CreateFile.is(change)) {
             let file = URI.parse(change.uri).fsPath
             await this.createFile(file, change.options)
@@ -510,15 +531,26 @@ export class Workspace implements IWorkspace {
             await this.deleteFile(URI.parse(change.uri).fsPath, change.options)
           }
         }
-        this.showMessage(`${n} buffers changed.`)
       } else if (changes) {
-        await this.loadFiles(Object.keys(changes))
-        for (let uri of Object.keys(changes)) {
-          let document = await this.loadFile(uri)
-          if (URI.parse(uri).toString() == uri) currEdits = changes[uri]
-          await document.applyEdits(nvim, changes[uri])
+        let uris = Object.keys(changes)
+        let unloaded = uris.filter(uri => this.getDocument(uri) == null)
+        if (unloaded.length) {
+          if (promptUser) {
+            let res = await this.showPrompt(`${unloaded.length} documents on disk would be loaded for change, confirm?`)
+            if (!res) return
+          }
+          await this.loadFiles(unloaded)
         }
-        this.showMessage(`${Object.keys(changes).length} buffers changed.`)
+        for (let uri of Object.keys(changes)) {
+          let document = this.getDocument(uri)
+          if (URI.parse(uri).toString() == uri) currEdits = changes[uri]
+          let edits = changes[uri]
+          for (let edit of edits) {
+            locations.push({ uri: document.uri, range: edit.range })
+          }
+          await document.applyEdits(nvim, edits)
+        }
+        changeCount = uris.length
       }
       if (currEdits) {
         let changed = getChangedFromEdits({ line: cursor[0], character: cursor[1] }, currEdits)
@@ -526,6 +558,13 @@ export class Workspace implements IWorkspace {
           line: cursor[0] + changed.line,
           character: cursor[1] + changed.character
         })
+      }
+      if (locations.length) {
+        let items = await Promise.all(locations.map(loc => {
+          return this.getQuickfixItem(loc)
+        }))
+        await this.nvim.call('setqflist', [items])
+        this.showMessage(`changed ${changeCount} buffers, use :wa to save changes to disk or :copen to open quickfix list`, 'more')
       }
     } catch (e) {
       logger.error(e)

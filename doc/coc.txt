@@ -484,6 +484,11 @@ Built in configurations:~
 
 	Custom key mappings in the insert mode, default: `{}`
 
+"coc.preferences.promptWorkspaceEdit":~
+
+	Prompt confirm from user for workspace edit.
+	default: `true`
+
 "coc.preferences.useQuickfixForLocations":~
 
 	Use Vim's quickfix list for jump locations. Requires restart on change,

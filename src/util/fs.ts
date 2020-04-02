@@ -189,7 +189,7 @@ export function readFileLine(fullpath: string, count: number): Promise<string> {
 }
 
 export async function writeFile(fullpath: string, content: string): Promise<void> {
-  await util.promisify(fs.writeFile)(fullpath, content, {encoding: 'utf8', mode: 0o640})
+  await util.promisify(fs.writeFile)(fullpath, content, { encoding: 'utf8', mode: 0o640 })
 }
 
 export function validSocket(path: string): Promise<boolean> {
