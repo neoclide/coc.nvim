@@ -28,13 +28,10 @@ function registryUrl(scope = 'coc.nvim'): string {
 }
 
 export default class ExtensionManager {
-  private checked = false
   constructor(private root: string) {
   }
 
   private checkFolder(): void {
-    if (this.checked) return
-    this.checked = true
     let { root } = this
     mkdirp.sync(root)
     mkdirp.sync(path.join(root, 'node_modules/.cache'))
@@ -174,7 +171,9 @@ export default class ExtensionManager {
   }
 
   private async getInfoFromUri(uri: string): Promise<Info> {
-    if (uri.indexOf('github.com') == -1) return
+    if (uri.indexOf('github.com') == -1) {
+      throw new Error(`"${uri}" is not supported, coc.nvim support github.com only`)
+    }
     uri = uri.replace(/\/$/, '')
     let fileUrl = uri.replace('github.com', 'raw.githubusercontent.com') + '/master/package.json'
     let content = await fetch(fileUrl)
