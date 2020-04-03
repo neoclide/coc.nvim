@@ -1371,6 +1371,8 @@ CocTagFunc({pattern}, {flags}, {info})
 
 Available Actions ~
 
+Acceptable {action} names for |CocAction()| and |CocActionAsync|.
+
 "sourceStat"					*coc-action-sourceStat*
 
 	get the list of completion source stats for the current buffer.
