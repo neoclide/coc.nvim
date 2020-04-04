@@ -144,25 +144,33 @@ export class Extensions {
   public async updateExtensions(): Promise<Disposable | null> {
     if (!this.root) await this.initializeRoot()
     if (!this.npm) return
-    let lockedList = await this.getLockedList()
-    let stats = await this.globalExtensionStats()
-    stats = stats.filter(o => !this.disabled.has(o.id) && !lockedList.includes(o.id))
-    let names = stats.map(o => o.id)
-    let statusItem = workspace.createStatusBarItem(0, { progress: true })
-    statusItem.text = `Updating extensions.`
+    const lockedList = await this.getLockedList()
+    const allExtensionInfo = await this.globalExtensionStats()
+    const extensionsToUpdate = allExtensionInfo
+      .filter(o => !this.disabled.has(o.id) && !lockedList.includes(o.id))
+    const statusItem = workspace.createStatusBarItem(0, { progress: true })
+    statusItem.text = 'Updating extensions.'
     statusItem.show()
     this.db.push('lastUpdate', Date.now())
-    await concurrent(names.map(name => {
-      let o = stats.find(o => o.id == name)
+    await concurrent(extensionsToUpdate.map(extension => {
       return (): Promise<void> => {
-        return this.manager.update(this.npm, name, o.exotic ? o.uri : undefined).then(updated => {
-          if (updated) this.reloadExtension(name).logError()
+        return this.manager.update(
+          this.npm,
+          extension.id,
+          extension.exotic ? extension.uri : undefined
+        ).then(updated => {
+          if (updated) this.reloadExtension(extension.id).logError()
         }, err => {
-          workspace.showMessage(`Error on update ${name}: ${err}`)
+          workspace.showMessage(`Error on update ${extension.id}: ${err}`)
         })
       }
     }), 5)
-    workspace.showMessage('Update completed', 'more')
+    if (extensionsToUpdate.length > 0) {
+      const updatedNames = extensionsToUpdate.map(extension => extension.id)
+      workspace.showMessage(`Successfully Updated ${updatedNames.join(' ')}`, 'more')
+    } else {
+      workspace.showMessage('Everything is already up to date!')
+    }
     statusItem.dispose()
   }
 
