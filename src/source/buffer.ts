@@ -16,11 +16,16 @@ export default class Buffer extends Source {
     return this.getConfig('ignoreGitignore', true)
   }
 
+  public get ignoredFiletypes(): string[] {
+    return this.getConfig('ignoredFiletypes', [])
+  }
+
   private getWords(bufnr: number): string[] {
-    let { ignoreGitignore } = this
+    let { ignoreGitignore, ignoredFiletypes } = this
     let words: string[] = []
     workspace.documents.forEach(document => {
       if (document.bufnr == bufnr) return
+      if (ignoredFiletypes.indexOf(document.filetype) > -1) return
       if (ignoreGitignore && document.isIgnored) return
       for (let word of document.words) {
         if (words.indexOf(word) == -1) {

@@ -951,6 +951,14 @@
       "default": true,
       "description": "Ignore git ignored files for buffer words"
     },
+    "coc.source.buffer.ignoredFiletypes": {
+      "type": "array",
+      "default": [],
+      "description": "Filetypes that should be ignored for buffer words.",
+      "items": {
+        "type": "string"
+      }
+    },
     "coc.source.buffer.disableSyntaxes": {
       "type": "array",
       "default": [],
