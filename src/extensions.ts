@@ -149,7 +149,7 @@ export class Extensions {
     stats = stats.filter(o => !this.disabled.has(o.id) && !lockedList.includes(o.id))
     let names = stats.map(o => o.id)
     let statusItem = workspace.createStatusBarItem(0, { progress: true })
-    statusItem.text = `Updating extensions.`
+    statusItem.text = `Updating extensions...`
     statusItem.show()
     this.db.push('lastUpdate', Date.now())
     const updates: string[] = []
@@ -166,7 +166,11 @@ export class Extensions {
         })
       }
     }), 5)
-    workspace.showMessage(`Update extensions: ${updates.join(' ')}`, 'more')
+    if (updates.length) {
+      workspace.showMessage(`Update extensions: ${updates.join(' ')}`, 'more')
+    } else {
+      workspace.showMessage(`Update completed`)
+    }
     statusItem.dispose()
   }
 
