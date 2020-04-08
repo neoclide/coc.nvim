@@ -152,17 +152,21 @@ export class Extensions {
     statusItem.text = `Updating extensions.`
     statusItem.show()
     this.db.push('lastUpdate', Date.now())
+    const updates: string[] = []
     await concurrent(names.map(name => {
       let o = stats.find(o => o.id == name)
       return (): Promise<void> => {
         return this.manager.update(this.npm, name, o.exotic ? o.uri : undefined).then(updated => {
-          if (updated) this.reloadExtension(name).logError()
+          if (updated) {
+            updates.push(name)
+            this.reloadExtension(name).logError()
+          }
         }, err => {
-          workspace.showMessage(`Error on update ${name}: ${err}`)
+          workspace.showMessage(`Error on update ${name}: ${err}`, 'error')
         })
       }
     }), 5)
-    workspace.showMessage('Update completed', 'more')
+    workspace.showMessage(`Update extensions: ${updates.join(' ')}`, 'more')
     statusItem.dispose()
   }
 
