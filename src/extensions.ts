@@ -221,13 +221,15 @@ export class Extensions {
     let statusItem = workspace.createStatusBarItem(0, { progress: true })
     statusItem.show()
     statusItem.text = `Installing ${list.join(' ')}`
-    await Promise.all(list.map(def => {
-      return this.manager.install(npm, def).then(name => {
-        if (name) this.onExtensionInstall(name).logError()
-      }, err => {
-        workspace.showMessage(`Error on install ${def}: ${err}`)
-      })
-    }))
+    await concurrent(list.map(def => {
+      return (): Promise<void> => {
+        return this.manager.install(npm, def).then(name => {
+          if (name) this.onExtensionInstall(name).logError()
+        }, err => {
+          workspace.showMessage(`Error on install ${def}: ${err}`, 'error')
+        })
+      }
+    }), 3)
     statusItem.dispose()
   }
 
