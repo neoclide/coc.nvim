@@ -346,6 +346,7 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
     let changeBuffer = 1
     exe 'buffer '.a:bufnr
   endif
+  let storeView = winsaveview()
   if a:bufnr == curr || changeBuffer
     " replace
     if delCount == len(replacement)
@@ -361,6 +362,7 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
         let @" = saved_reg
       endif
     endif
+    call winrestview(storeView)
     if changeBuffer
       exe 'buffer '.curr
     endif
@@ -380,6 +382,7 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
         call deletebufline(a:bufnr, start, start + delCount - 1)
       endif
     endif
+    call winrestview(storeView)
   endif
 endfunction
 
