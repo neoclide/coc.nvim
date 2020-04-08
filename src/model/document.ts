@@ -132,11 +132,13 @@ export default class Document {
     let uri = this._uri = getUri(opts.fullpath, buffer.id, buftype, this.env.isCygwin)
     if (token.isCancellationRequested) return false
     try {
-      if (!this.env.isVim) {
-        let res = await this.attach()
-        if (!res) return false
-      } else {
-        this.lines = await buffer.lines
+      if (this.shouldAttach) {
+        if (this.env.isVim) {
+          this.lines = await buffer.lines
+        } else {
+          let res = await this.attach()
+          if (!res) return false
+        }
       }
       this.attached = true
     } catch (e) {
@@ -155,14 +157,9 @@ export default class Document {
   }
 
   private async attach(): Promise<boolean> {
-    if (this.shouldAttach) {
-      let attached = await this.buffer.attach(false)
-      if (!attached) return false
-      this.lines = await this.buffer.lines
-    } else {
-      this.lines = await this.buffer.lines
-      return true
-    }
+    let attached = await this.buffer.attach(false)
+    if (!attached) return false
+    this.lines = await this.buffer.lines
     if (!this.buffer.isAttached) return
     this.buffer.listen('lines', (...args: any[]) => {
       this.onChange.apply(this, args)
@@ -249,7 +246,8 @@ export default class Document {
         textDocument: { version, uri },
         contentChanges: changes
       })
-      this._words = this.chars.matchKeywords(this.lines.join('\n'))
+      let lines = this.lines.length > 30000 ? this.lines.slice(0, 30000) : this.lines
+      this._words = this.chars.matchKeywords(lines.join('\n'))
     } catch (e) {
       logger.error(e.message)
     }

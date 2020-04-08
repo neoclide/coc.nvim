@@ -809,9 +809,9 @@ VARIABLES					*coc-variables*
 
 b:coc_enabled					*b:coc_enabled*
 
-			Set to `0` on buffer create if you don't want
-			coc.nvim send buffer events for this buffer, including
-			buffer create, change and unload.
+			Set to `0` on buffer create if you don't want coc.nvim
+			receive content from buffer, usually used for improve
+			performance with large files.
 
 b:coc_root_patterns				*b:coc_root_patterns*
 
