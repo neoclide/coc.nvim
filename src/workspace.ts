@@ -878,7 +878,7 @@ export class Workspace implements IWorkspace {
    * Move cursor to position.
    */
   public async moveTo(position: Position): Promise<void> {
-    await this.nvim.call('coc#util#jumpTo', [position.line, position.character])
+    await this.callAsync('coc#util#jumpTo', [position.line, position.character])
   }
 
   /**
