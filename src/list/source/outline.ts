@@ -12,21 +12,16 @@ import LocationList from './location'
 import { getSymbolKind } from '../../util/convert'
 const logger = require('../../util/logger')('list-symbols')
 
-function getFilterText(s: DocumentSymbol | SymbolInformation, args: {[key: string]: string | boolean}): string {
-    let result = s.name
-    const kind = getSymbolKind(s.kind)
-    if (args.kind) {
-        result += ` ${kind}`
-    }
-
-    return result
+function getFilterText(s: DocumentSymbol | SymbolInformation, kind: string | null): string {
+  return `${s.name}${kind ? ` ${kind}` : ''}`
 }
 
 export default class Outline extends LocationList {
   public readonly description = 'symbols of current document'
   public name = 'outline'
   public options: ListArgument[] = [{
-    name: '-kind',
+    name: '-k, -kind KIND',
+    hasValue: true,
     description: 'filters also by kind',
   }]
 
@@ -43,6 +38,7 @@ export default class Outline extends LocationList {
     }
     if (!symbols) return await this.loadCtagsSymbols(document)
     if (symbols.length == 0) return []
+    let filterKind = args.kind ? (args.kind as string).toLowerCase() : null
     let items: ListItem[] = []
     let isSymbols = !symbols[0].hasOwnProperty('location')
     if (isSymbols) {
@@ -53,8 +49,9 @@ export default class Outline extends LocationList {
           let location = Location.create(document.uri, s.selectionRange)
           items.push({
             label: `${' '.repeat(level * 2)}${s.name}\t[${kind}]\t${s.range.start.line + 1}`,
-            filterText: getFilterText(s, args),
-            location
+            filterText: getFilterText(s, args.kind == '' ? kind : null),
+            location,
+            data: { kind }
           })
           if (s.children && s.children.length) {
             addSymbols(s.children, level + 1)
@@ -62,6 +59,9 @@ export default class Outline extends LocationList {
         }
       }
       addSymbols(symbols as DocumentSymbol[])
+      if (filterKind) {
+        items = items.filter(o => o.data.kind.toLowerCase().indexOf(filterKind) == 0)
+      }
     } else {
       (symbols as SymbolInformation[]).sort((a, b) => {
         let sa = a.location.range.start
@@ -72,12 +72,15 @@ export default class Outline extends LocationList {
       for (let s of symbols as SymbolInformation[]) {
         let kind = getSymbolKind(s.kind)
         if (s.name.endsWith(') callback')) continue
+        if (filterKind && kind.toLowerCase().indexOf(filterKind) != 0) {
+          continue
+        }
         if (s.location.uri === undefined) {
-            s.location.uri = document.uri
+          s.location.uri = document.uri
         }
         items.push({
           label: `${s.name} [${kind}] ${s.location.range.start.line + 1}`,
-          filterText: getFilterText(s, args),
+          filterText: getFilterText(s, args.kind == '' ? kind : null),
           location: s.location
         })
       }
