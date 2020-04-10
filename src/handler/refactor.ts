@@ -378,7 +378,7 @@ export default class Refactor {
     this.changing = false
     nvim.pauseNotification()
     buffer.setOption('modified', false, true)
-    nvim.command('wa', true)
+    nvim.command('silent noa wa', true)
     this.highlightLineNr()
     await nvim.resumeNotification()
     return true
