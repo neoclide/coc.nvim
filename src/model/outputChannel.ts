@@ -1,4 +1,5 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
+import { constants } from 'buffer'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { OutputChannel } from '../types'
 import { disposeAll } from '../util'
@@ -40,6 +41,9 @@ export default class BufferChannel implements OutputChannel {
   }
 
   public append(value: string): void {
+    if (this._content.length > constants.MAX_STRING_LENGTH) {
+      this.clear()
+    }
     this._content += value
     this.promise = this.promise.then(() => {
       return this._append(value, false)
@@ -47,6 +51,9 @@ export default class BufferChannel implements OutputChannel {
   }
 
   public appendLine(value: string): void {
+    if (this._content.length > constants.MAX_STRING_LENGTH) {
+      this.clear()
+    }
     this._content += value + '\n'
     this.promise = this.promise.then(() => {
       return this._append(value, true)
