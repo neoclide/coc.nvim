@@ -484,6 +484,11 @@ Built in configurations:~
 
 	Custom key mappings in the insert mode, default: `{}`
 
+"coc.preferences.promptWorkspaceEdit":~
+
+	Prompt confirm from user for workspace edit.
+	default: `true`
+
 "coc.preferences.useQuickfixForLocations":~
 
 	Use Vim's quickfix list for jump locations. Requires restart on change,
@@ -804,9 +809,9 @@ VARIABLES					*coc-variables*
 
 b:coc_enabled					*b:coc_enabled*
 
-			Set to `0` on buffer create if you don't want
-			coc.nvim send buffer events for this buffer, including
-			buffer create, change and unload.
+			Set to `0` on buffer create if you don't want coc.nvim
+			receive content from buffer, usually used for improve
+			performance with large files.
 
 b:coc_root_patterns				*b:coc_root_patterns*
 
@@ -1365,6 +1370,8 @@ CocTagFunc({pattern}, {flags}, {info})
 ------------------------------------------------------------------------------
 
 Available Actions ~
+
+Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 "sourceStat"					*coc-action-sourceStat*
 
@@ -1999,7 +2006,7 @@ The following features are supported:
 
 LIST COMMAND						*coc-list-command*
 
-:CocList [{...options}] [{source}] [{...args}]		*CocList*
+:CocList [{...options}] [{source}] [{...args}]		*:CocList*
 
 		Open coc list of {source}, Ex: >
 
@@ -2015,18 +2022,18 @@ LIST COMMAND						*coc-list-command*
 
 		When {source} is empty, lists source is used.
 
-:CocListResume						*CocListResume*
+:CocListResume						*:CocListResume*
 
 		Reopen last opened list, input and cursor position will be
 		preserved.
 
-:CocPrev						*CocPrev*
+:CocPrev						*:CocPrev*
 
 		Invoke default action for the previous item in the last list.
 
 		Doesn't open the list window if it's closed.
 
-:CocNext						*CocNext*
+:CocNext						*:CocNext*
 
 		Invoke the default action for the next item in the last list.
 

@@ -792,6 +792,11 @@
       "default": "<C-p>",
       "description": "Key used for jump to previous cursors position."
     },
+    "coc.preferences.promptWorkspaceEdit": {
+      "type": "boolean",
+      "description": "Prompt confirm from user for workspace edit.",
+      "default": true
+    },
     "coc.preferences.useQuickfixForLocations": {
       "type": "boolean",
       "description": "Use vim's quickfix list for jump locations,\n need restart on change.",
