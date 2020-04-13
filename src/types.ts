@@ -1121,9 +1121,9 @@ export interface OutputChannel {
   appendLine(value: string): void
 
   /**
-   * Removes all output from the channel.
+   * Removes output from the channel. Latest `keep` lines will be remained.
    */
-  clear(): void
+  clear(keep?: number): void
 
   /**
    * Reveal this channel in the UI.

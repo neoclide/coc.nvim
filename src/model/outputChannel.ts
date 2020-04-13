@@ -41,8 +41,8 @@ export default class BufferChannel implements OutputChannel {
   }
 
   public append(value: string): void {
-    if (this._content.length > constants.MAX_STRING_LENGTH) {
-      this.clear()
+    if (this._content.length >= constants.MAX_STRING_LENGTH) {
+      this.clear(10)
     }
     this._content += value
     this.promise = this.promise.then(() => {
@@ -51,8 +51,8 @@ export default class BufferChannel implements OutputChannel {
   }
 
   public appendLine(value: string): void {
-    if (this._content.length > constants.MAX_STRING_LENGTH) {
-      this.clear()
+    if (this._content.length >= constants.MAX_STRING_LENGTH) {
+      this.clear(10)
     }
     this._content += value + '\n'
     this.promise = this.promise.then(() => {
@@ -60,11 +60,16 @@ export default class BufferChannel implements OutputChannel {
     })
   }
 
-  public clear(): void {
-    this._content = ''
+  public clear(keep?: number): void {
+    let latest = []
+    if (keep) {
+      latest = this._content.split('\n').slice(-keep)
+    }
+
+    this._content = latest.join('\n')
     let { buffer } = this
     if (buffer) {
-      Promise.resolve(buffer.setLines([], {
+      Promise.resolve(buffer.setLines(latest, {
         start: 0,
         end: -1,
         strictIndexing: false
