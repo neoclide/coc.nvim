@@ -10,7 +10,7 @@ If you have question, please ask at https://gitter.im/neoclide/coc.nvim
 
 If the problem related to specific language server, please checkout: https://git.io/fjCEM
 
-If your have performance issue, checkout: https://git.io/fjCEX & https://git.io/fjCE1
+If your have performance issue, checkout: https://git.io/fjCEX & https://git.io/Jfe00
 -->
 
 ## Result from CocInfo
