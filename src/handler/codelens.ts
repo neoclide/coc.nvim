@@ -199,7 +199,7 @@ export default class CodeLensManager {
     let { nvim } = this
     let bufnr = await nvim.call('bufnr', '%')
     let line = (await nvim.call('line', '.') as number) - 1
-    let { codeLenes } = this.codeLensMap.get(bufnr)
+    let { codeLenes } = this.codeLensMap.get(bufnr) || {}
     if (!codeLenes || codeLenes.length == 0) {
       workspace.showMessage('No codeLenes available', 'warning')
       return
