@@ -41,7 +41,7 @@ export default class BufferChannel implements OutputChannel {
   }
 
   public append(value: string): void {
-    if (this._content.length >= constants.MAX_STRING_LENGTH) {
+    if (this._content.length + value.length >= constants.MAX_STRING_LENGTH) {
       this.clear(10)
     }
     this._content += value
@@ -51,7 +51,7 @@ export default class BufferChannel implements OutputChannel {
   }
 
   public appendLine(value: string): void {
-    if (this._content.length >= constants.MAX_STRING_LENGTH) {
+    if (this._content.length + value.length >= constants.MAX_STRING_LENGTH) {
       this.clear(10)
     }
     this._content += value + '\n'
