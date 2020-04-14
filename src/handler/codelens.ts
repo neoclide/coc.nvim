@@ -11,7 +11,7 @@ import workspace from '../workspace'
 const logger = require('../util/logger')('codelens')
 
 export interface CodeLensInfo {
-  codeLenes: CodeLens[]
+  codeLenses: CodeLens[]
   version: number
 }
 
@@ -40,7 +40,7 @@ export default class CodeLensManager {
       if (workspace.match(service.selector, doc.textDocument)) {
         this.resolveCodeLens.clear()
         await wait(2000)
-        await this.fetchDocumentCodeLenes()
+        await this.fetchDocumentCodeLenses()
       }
     })
     let timer: NodeJS.Timer
@@ -49,7 +49,7 @@ export default class CodeLensManager {
       if (doc && doc.bufnr == workspace.bufnr) {
         if (timer) clearTimeout(timer)
         setTimeout(async () => {
-          await this.fetchDocumentCodeLenes()
+          await this.fetchDocumentCodeLenses()
         }, 100)
       }
     }, null, this.disposables)
@@ -79,7 +79,7 @@ export default class CodeLensManager {
     events.on('BufEnter', bufnr => {
       setTimeout(async () => {
         if (workspace.bufnr == bufnr) {
-          await this.fetchDocumentCodeLenes()
+          await this.fetchDocumentCodeLenses()
         }
       }, 100)
     }, null, this.disposables)
@@ -90,12 +90,12 @@ export default class CodeLensManager {
       if (info && info.version != this.version) {
         this.resolveCodeLens.clear()
         await wait(50)
-        await this.fetchDocumentCodeLenes()
+        await this.fetchDocumentCodeLenses()
       }
     }, null, this.disposables)
 
     this.resolveCodeLens = debounce(() => {
-      this._resolveCodeLenes().catch(e => {
+      this._resolveCodeLenses().catch(e => {
         logger.error(e)
       })
     }, 200)
@@ -111,7 +111,7 @@ export default class CodeLensManager {
     this.enabled = nvim.hasFunction('nvim_buf_set_virtual_text') && config.get<boolean>('enable', true)
   }
 
-  private async fetchDocumentCodeLenes(retry = 0): Promise<void> {
+  private async fetchDocumentCodeLenses(retry = 0): Promise<void> {
     let doc = workspace.getDocument(workspace.bufnr)
     if (!doc) return
     let { uri, version, bufnr } = doc
@@ -120,12 +120,12 @@ export default class CodeLensManager {
     if (this.fetching.has(bufnr)) return
     this.fetching.add(bufnr)
     try {
-      let codeLenes = await languages.getCodeLens(document.textDocument)
-      if (codeLenes && codeLenes.length > 0) {
-        this.codeLensMap.set(document.bufnr, { codeLenes, version })
+      let codeLenses = await languages.getCodeLens(document.textDocument)
+      if (codeLenses && codeLenses.length > 0) {
+        this.codeLensMap.set(document.bufnr, { codeLenses, version })
         if (workspace.bufnr == document.bufnr) {
           this.resolveCodeLens.clear()
-          await this._resolveCodeLenes(true)
+          await this._resolveCodeLenses(true)
         }
       }
       this.fetching.delete(bufnr)
@@ -133,14 +133,14 @@ export default class CodeLensManager {
       this.fetching.delete(bufnr)
       logger.error(e)
       if (/timeout/.test(e.message) && retry < 5) {
-        this.fetchDocumentCodeLenes(retry + 1) // tslint:disable-line
+        this.fetchDocumentCodeLenses(retry + 1) // tslint:disable-line
       }
     }
   }
 
-  private async setVirtualText(buffer: Buffer, codeLenes: CodeLens[]): Promise<void> {
+  private async setVirtualText(buffer: Buffer, codeLenses: CodeLens[]): Promise<void> {
     let list: Map<number, CodeLens[]> = new Map()
-    for (let codeLens of codeLenes) {
+    for (let codeLens of codeLenses) {
       let { range, command } = codeLens
       if (!command) continue
       let { line } = range.start
@@ -151,8 +151,8 @@ export default class CodeLensManager {
       }
     }
     for (let lnum of list.keys()) {
-      let codeLenes = list.get(lnum)
-      let commands = codeLenes.map(codeLens => codeLens.command)
+      let codeLenses = list.get(lnum)
+      let commands = codeLenses.map(codeLens => codeLens.command)
       commands = commands.filter(c => c && c.title)
       let chunks = commands.map(c => [c.title + ' ', 'CocCodeLens'] as [string, string])
       chunks.unshift([`${this.separator} `, 'CocCodeLens'])
@@ -160,28 +160,28 @@ export default class CodeLensManager {
     }
   }
 
-  private async _resolveCodeLenes(clear = false): Promise<void> {
+  private async _resolveCodeLenses(clear = false): Promise<void> {
     let { nvim } = this
     let { bufnr } = workspace
-    let { codeLenes, version } = this.codeLensMap.get(bufnr) || {} as any
+    let { codeLenses, version } = this.codeLensMap.get(bufnr) || {} as any
     if (workspace.insertMode) return
-    if (codeLenes && codeLenes.length) {
+    if (codeLenses && codeLenses.length) {
       // resolve codeLens of current window
       let start = await nvim.call('line', 'w0')
       let end = await nvim.call('line', 'w$')
       if (version && this.version != version) return
       if (end >= start) {
-        codeLenes = codeLenes.filter(o => {
+        codeLenses = codeLenses.filter(o => {
           let lnum = o.range.start.line + 1
           return lnum >= start && lnum <= end
         })
-        if (codeLenes.length) {
-          await Promise.all(codeLenes.map(codeLens => {
+        if (codeLenses.length) {
+          await Promise.all(codeLenses.map(codeLens => {
             return languages.resolveCodeLens(codeLens)
           }))
         }
       } else {
-        codeLenes = null
+        codeLenses = null
       }
     }
     nvim.pauseNotification()
@@ -189,7 +189,7 @@ export default class CodeLensManager {
     if (doc && clear) {
       doc.clearMatchIds([this.srcId])
     }
-    if (codeLenes && codeLenes.length) await this.setVirtualText(doc.buffer, codeLenes)
+    if (codeLenses && codeLenses.length) await this.setVirtualText(doc.buffer, codeLenses)
     nvim.resumeNotification().catch(_e => {
       // noop
     })
@@ -199,13 +199,13 @@ export default class CodeLensManager {
     let { nvim } = this
     let bufnr = await nvim.call('bufnr', '%')
     let line = (await nvim.call('line', '.') as number) - 1
-    let { codeLenes } = this.codeLensMap.get(bufnr) || {}
-    if (!codeLenes || codeLenes.length == 0) {
-      workspace.showMessage('No codeLenes available', 'warning')
+    let { codeLenses } = this.codeLensMap.get(bufnr) || {}
+    if (!codeLenses || codeLenses.length == 0) {
+      workspace.showMessage('No codeLenses available', 'warning')
       return
     }
     let list: Map<number, CodeLens[]> = new Map()
-    for (let codeLens of codeLenes) {
+    for (let codeLens of codeLenses) {
       let { range, command } = codeLens
       if (!command) continue
       let { line } = range.start
@@ -223,13 +223,13 @@ export default class CodeLensManager {
       }
     }
     if (!current) {
-      workspace.showMessage('No codeLenes available', 'warning')
+      workspace.showMessage('No codeLenses available', 'warning')
       return
     }
     let commands = current.map(o => o.command)
     commands = commands.filter(c => c.command != null && c.command != '')
     if (commands.length == 0) {
-      workspace.showMessage('CodeLenes command not found', 'warning')
+      workspace.showMessage('CodeLenses command not found', 'warning')
     } else if (commands.length == 1) {
       commandManager.execute(commands[0])
     } else {
