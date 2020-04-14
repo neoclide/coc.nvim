@@ -3,9 +3,14 @@ let s:is_vim = !has('nvim')
 let s:is_win = has("win32") || has("win64")
 let s:clients = {}
 
-let s:logfile = tempname()
-if s:is_vim && get(g:, 'node_client_debug', 0)
-  call ch_logfile(s:logfile, 'w')
+if get(g:, 'node_client_debug', 0)
+  let $NODE_CLIENT_LOG_LEVEL = 'debug'
+  if exists('$NODE_CLIENT_LOG_FILE')
+    s:logfile = resolve($NODE_CLIENT_LOG_FILE)
+  else
+    let s:logfile = tempname()
+    let $NODE_CLIENT_LOG_FILE = s:logfile
+  endif
 endif
 
 " create a client
@@ -109,7 +114,7 @@ function! s:request(method, args) dict
     if s:is_vim
       let res = ch_evalexpr(channel, [a:method, a:args], {'timeout': 30000})
       if type(res) == 1 && res ==# ''
-        throw 'timeout after 30s'
+        throw 'request '.a:method. ' '.string(a:args).' timeout after 30s'
       endif
       let [l:errmsg, res] =  res
       if !empty(l:errmsg)
@@ -271,5 +276,9 @@ function! coc#client#restart_all()
 endfunction
 
 function! coc#client#open_log()
+  if !get(g:, 'node_client_debug', 0)
+    echohl Error | echon '[coc.nvim] use let g:node_client_debug = 1 in your vimrc to enabled debug mode.' | echohl None
+    return
+  endif
   execute 'vs '.s:logfile
 endfunction

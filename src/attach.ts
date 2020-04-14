@@ -62,14 +62,15 @@ export default (opts: Attach, requestApi = true): Plugin => {
       if (method == 'CocAutocmd') {
         await events.fire(args[0], args.slice(1))
         resp.send()
-        return
+      } else {
+        let m = method[0].toLowerCase() + method.slice(1)
+        if (typeof plugin[m] !== 'function') {
+          resp.send(`Method ${m} not found`, true)
+        } else {
+          let res = await Promise.resolve(plugin[m].apply(plugin, args))
+          resp.send(res)
+        }
       }
-      let m = method[0].toLowerCase() + method.slice(1)
-      if (typeof plugin[m] !== 'function') {
-        return resp.send(`Method ${m} not found`, true)
-      }
-      let res = await Promise.resolve(plugin[m].apply(plugin, args))
-      resp.send(res)
     } catch (e) {
       logger.error(`Error on "${method}": ` + e.stack)
       resp.send(e.message, true)
