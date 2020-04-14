@@ -1181,7 +1181,7 @@ export class Workspace implements IWorkspace {
    * Register keymap
    */
   public registerKeymap(modes: MapMode[], key: string, fn: Function, opts: Partial<KeymapOption> = {}): Disposable {
-    if (this.keymaps.has(key)) return
+    if (!key || this.keymaps.has(key)) return
     opts = Object.assign({ sync: true, cancel: true, silent: true, repeat: false }, opts)
     let { nvim } = this
     this.keymaps.set(key, [fn, !!opts.repeat])
@@ -1207,6 +1207,7 @@ export class Workspace implements IWorkspace {
    * Register expr keymap.
    */
   public registerExprKeymap(mode: 'i' | 'n' | 'v' | 's' | 'x', key: string, fn: Function, buffer = false): Disposable {
+    if (!key) return
     let id = uuid()
     let { nvim } = this
     this.keymaps.set(id, [fn, false])
