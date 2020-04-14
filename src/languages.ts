@@ -563,7 +563,7 @@ class Languages {
         let option: CompleteOption = Object.assign({}, opt)
         if (startcol != null) option.col = startcol
         let items: VimCompleteItem[] = completeItems.map((o, index) => {
-          let item = this.convertVimCompleteItem(o, shortcut, option)
+          let item = this.convertVimCompleteItem(o, shortcut, option, startcol)
           item.index = index
           return item
         })
@@ -751,7 +751,7 @@ class Languages {
     return byteIndex(line, character)
   }
 
-  private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption): VimCompleteItem {
+  private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption, startcol: number): VimCompleteItem {
     let { echodocSupport, detailField, detailMaxLength, invalidInsertCharacters } = this.completeConfig
     let hasAdditionalEdit = item.additionalTextEdits && item.additionalTextEdits.length > 0
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet || hasAdditionalEdit
@@ -763,7 +763,7 @@ class Languages {
       kind: complete.completionKindString(item.kind, this.completionItemKindMap, this.completeConfig.defaultKindText),
       sortText: item.sortText || null,
       sourceScore: item['score'] || null,
-      filterText: item.filterText || label,
+      filterText: startcol != null ? item.textEdit.newText : item.filterText || label,
       isSnippet,
       dup: item.data && item.data.dup == 0 ? 0 : 1
     }
