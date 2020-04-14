@@ -1250,6 +1250,12 @@ coc#util#has_float()
 
 	Check if coc float window exists.
 
+						*coc#util#float_hide()*
+
+coc#util#float_hide()
+
+	Close float windows created by coc.nvim.
+
 						*coc#util#float_scrollable()*
 
 coc#util#float_scrollable()
