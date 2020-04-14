@@ -10371,14 +10371,17 @@ exports.default = (opts, requestApi = true) => {
             if (method == 'CocAutocmd') {
                 await events_1.default.fire(args[0], args.slice(1));
                 resp.send();
-                return;
             }
-            let m = method[0].toLowerCase() + method.slice(1);
-            if (typeof plugin[m] !== 'function') {
-                return resp.send(`Method ${m} not found`, true);
+            else {
+                let m = method[0].toLowerCase() + method.slice(1);
+                if (typeof plugin[m] !== 'function') {
+                    resp.send(`Method ${m} not found`, true);
+                }
+                else {
+                    let res = await Promise.resolve(plugin[m].apply(plugin, args));
+                    resp.send(res);
+                }
             }
-            let res = await Promise.resolve(plugin[m].apply(plugin, args));
-            resp.send(res);
         }
         catch (e) {
             logger.error(`Error on "${method}": ` + e.stack);
@@ -10890,12 +10893,21 @@ class NvimTransport extends base_1.default {
     request(method, args, cb) {
         if (!this.attached)
             return cb([0, 'transport disconnected']);
+        let id = this.nextRequestId;
         this.nextRequestId = this.nextRequestId + 1;
-        this.debug('nvim request:', this.nextRequestId, method, args);
-        this.encodeStream.write(msgpack.encode([0, this.nextRequestId, method, args], {
+        let startTs = Date.now();
+        this.debug('request to nvim:', id, method, args);
+        this.encodeStream.write(msgpack.encode([0, id, method, args], {
             codec: this.codec,
         }));
-        this.pending.set(this.nextRequestId, cb);
+        let timer = setTimeout(() => {
+            this.debug(`request to nvim cost more than 1s`, method, args);
+        }, 1000);
+        this.pending.set(id, (err, res) => {
+            clearTimeout(timer);
+            this.debug('response of nvim:', id, `${Date.now() - startTs}ms`, res, err);
+            cb(err, res);
+        });
     }
     notify(method, args) {
         if (!this.attached)
@@ -10910,13 +10922,18 @@ class NvimTransport extends base_1.default {
         }));
     }
     createResponse(requestId) {
-        let called = false;
         let { encodeStream } = this;
+        let startTs = Date.now();
+        let called = false;
+        let timer = setTimeout(() => {
+            this.debug(`request to client cost more than 1s`, requestId);
+        }, 1000);
         return {
             send: (resp, isError) => {
+                clearTimeout(timer);
                 if (called || !this.attached)
                     return;
-                this.debug('response:', requestId, resp, isError == true);
+                this.debug('response of client:', requestId, `${Date.now() - startTs}ms`, resp, isError == true);
                 called = true;
                 encodeStream.write(msgpack.encode([
                     1,
@@ -14474,6 +14491,9 @@ class Transport extends events_1.EventEmitter {
             return;
         logger.debug(key, ...meta);
     }
+    info(key, ...meta) {
+        logger.info(key, ...meta);
+    }
     debugMessage(msg) {
         if (!debug)
             return;
@@ -14482,7 +14502,7 @@ class Transport extends events_1.EventEmitter {
             logger.debug('receive request:', msg.slice(1));
         }
         else if (msgType == 1) {
-            logger.debug('receive response:', msg.slice(1));
+            // logger.debug('receive response:', msg.slice(1))
         }
         else if (msgType == 2) {
             logger.debug('receive notification:', msg.slice(1));
@@ -14626,7 +14646,7 @@ class VimTransport extends base_1.default {
     constructor() {
         super();
         this.pending = new Map();
-        this.nextRequestId = 0;
+        this.nextRequestId = -1;
         this.attached = false;
         this.notifyMethod = process.env.COC_NVIM == '1' ? 'coc#api#notify' : 'nvim#api#notify';
     }
@@ -14671,13 +14691,19 @@ class VimTransport extends base_1.default {
     request(method, args, cb) {
         if (!this.attached)
             return cb([0, 'transport disconnected']);
-        if (!this.client.hasFunction(method)) {
-            // tslint:disable-next-line: no-console
-            console.error(`method: ${method} not supported.`);
-        }
+        let id = this.nextRequestId;
         this.nextRequestId = this.nextRequestId - 1;
-        let req = new request_1.default(this.connection, cb, this.nextRequestId);
-        this.pending.set(this.nextRequestId, req);
+        let startTs = Date.now();
+        this.debug('request to vim:', id, method, args);
+        let timer = setTimeout(() => {
+            this.debug(`request to vim cost more than 1s`, method, args);
+        }, 1000);
+        let req = new request_1.default(this.connection, (err, res) => {
+            clearTimeout(timer);
+            this.debug('response of vim:', id, `${Date.now() - startTs}ms`, res, err);
+            cb(err, res);
+        }, id);
+        this.pending.set(id, req);
         req.request(method, args);
     }
     notify(method, args) {
@@ -14696,14 +14722,20 @@ class VimTransport extends base_1.default {
     createResponse(requestId) {
         let called = false;
         let { connection } = this;
+        let startTs = Date.now();
+        let timer = setTimeout(() => {
+            this.debug(`request to client cost more than 1s`, requestId);
+        }, 1000);
         return {
             send: (resp, isError) => {
+                clearTimeout(timer);
                 if (called || !this.attached)
                     return;
                 called = true;
                 let err = null;
                 if (isError)
                     err = typeof resp === 'string' ? resp : resp.toString();
+                this.debug('response of client:', requestId, `${Date.now() - startTs}ms`, resp, isError == true);
                 connection.response(requestId, [err, isError ? null : resp]);
             }
         };
@@ -22442,7 +22474,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "fc983ce6dd" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "1c4d7e1d08" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -25260,7 +25292,7 @@ class Workspace {
      * Register keymap
      */
     registerKeymap(modes, key, fn, opts = {}) {
-        if (this.keymaps.has(key))
+        if (!key || this.keymaps.has(key))
             return;
         opts = Object.assign({ sync: true, cancel: true, silent: true, repeat: false }, opts);
         let { nvim } = this;
@@ -25287,6 +25319,8 @@ class Workspace {
      * Register expr keymap.
      */
     registerExprKeymap(mode, key, fn, buffer = false) {
+        if (!key)
+            return;
         let id = uuid();
         let { nvim } = this;
         this.keymaps.set(id, [fn, false]);
@@ -70400,7 +70434,7 @@ class CodeLensManager {
             if (workspace_1.default.match(service.selector, doc.textDocument)) {
                 this.resolveCodeLens.clear();
                 await util_1.wait(2000);
-                await this.fetchDocumentCodeLenes();
+                await this.fetchDocumentCodeLenses();
             }
         });
         let timer;
@@ -70410,7 +70444,7 @@ class CodeLensManager {
                 if (timer)
                     clearTimeout(timer);
                 setTimeout(async () => {
-                    await this.fetchDocumentCodeLenes();
+                    await this.fetchDocumentCodeLenses();
                 }, 100);
             }
         }, null, this.disposables);
@@ -70437,7 +70471,7 @@ class CodeLensManager {
         events_1.default.on('BufEnter', bufnr => {
             setTimeout(async () => {
                 if (workspace_1.default.bufnr == bufnr) {
-                    await this.fetchDocumentCodeLenes();
+                    await this.fetchDocumentCodeLenses();
                 }
             }, 100);
         }, null, this.disposables);
@@ -70447,11 +70481,11 @@ class CodeLensManager {
             if (info && info.version != this.version) {
                 this.resolveCodeLens.clear();
                 await util_1.wait(50);
-                await this.fetchDocumentCodeLenes();
+                await this.fetchDocumentCodeLenses();
             }
         }, null, this.disposables);
         this.resolveCodeLens = debounce_1.default(() => {
-            this._resolveCodeLenes().catch(e => {
+            this._resolveCodeLenses().catch(e => {
                 logger.error(e);
             });
         }, 200);
@@ -70465,7 +70499,7 @@ class CodeLensManager {
         this.separator = config.get('separator', '‣');
         this.enabled = nvim.hasFunction('nvim_buf_set_virtual_text') && config.get('enable', true);
     }
-    async fetchDocumentCodeLenes(retry = 0) {
+    async fetchDocumentCodeLenses(retry = 0) {
         let doc = workspace_1.default.getDocument(workspace_1.default.bufnr);
         if (!doc)
             return;
@@ -70477,12 +70511,12 @@ class CodeLensManager {
             return;
         this.fetching.add(bufnr);
         try {
-            let codeLenes = await languages_1.default.getCodeLens(document.textDocument);
-            if (codeLenes && codeLenes.length > 0) {
-                this.codeLensMap.set(document.bufnr, { codeLenes, version });
+            let codeLenses = await languages_1.default.getCodeLens(document.textDocument);
+            if (codeLenses && codeLenses.length > 0) {
+                this.codeLensMap.set(document.bufnr, { codeLenses, version });
                 if (workspace_1.default.bufnr == document.bufnr) {
                     this.resolveCodeLens.clear();
-                    await this._resolveCodeLenes(true);
+                    await this._resolveCodeLenses(true);
                 }
             }
             this.fetching.delete(bufnr);
@@ -70491,13 +70525,13 @@ class CodeLensManager {
             this.fetching.delete(bufnr);
             logger.error(e);
             if (/timeout/.test(e.message) && retry < 5) {
-                this.fetchDocumentCodeLenes(retry + 1); // tslint:disable-line
+                this.fetchDocumentCodeLenses(retry + 1); // tslint:disable-line
             }
         }
     }
-    async setVirtualText(buffer, codeLenes) {
+    async setVirtualText(buffer, codeLenses) {
         let list = new Map();
-        for (let codeLens of codeLenes) {
+        for (let codeLens of codeLenses) {
             let { range, command } = codeLens;
             if (!command)
                 continue;
@@ -70510,39 +70544,39 @@ class CodeLensManager {
             }
         }
         for (let lnum of list.keys()) {
-            let codeLenes = list.get(lnum);
-            let commands = codeLenes.map(codeLens => codeLens.command);
+            let codeLenses = list.get(lnum);
+            let commands = codeLenses.map(codeLens => codeLens.command);
             commands = commands.filter(c => c && c.title);
             let chunks = commands.map(c => [c.title + ' ', 'CocCodeLens']);
             chunks.unshift([`${this.separator} `, 'CocCodeLens']);
             await buffer.setVirtualText(this.srcId, lnum, chunks);
         }
     }
-    async _resolveCodeLenes(clear = false) {
+    async _resolveCodeLenses(clear = false) {
         let { nvim } = this;
         let { bufnr } = workspace_1.default;
-        let { codeLenes, version } = this.codeLensMap.get(bufnr) || {};
+        let { codeLenses, version } = this.codeLensMap.get(bufnr) || {};
         if (workspace_1.default.insertMode)
             return;
-        if (codeLenes && codeLenes.length) {
+        if (codeLenses && codeLenses.length) {
             // resolve codeLens of current window
             let start = await nvim.call('line', 'w0');
             let end = await nvim.call('line', 'w$');
             if (version && this.version != version)
                 return;
             if (end >= start) {
-                codeLenes = codeLenes.filter(o => {
+                codeLenses = codeLenses.filter(o => {
                     let lnum = o.range.start.line + 1;
                     return lnum >= start && lnum <= end;
                 });
-                if (codeLenes.length) {
-                    await Promise.all(codeLenes.map(codeLens => {
+                if (codeLenses.length) {
+                    await Promise.all(codeLenses.map(codeLens => {
                         return languages_1.default.resolveCodeLens(codeLens);
                     }));
                 }
             }
             else {
-                codeLenes = null;
+                codeLenses = null;
             }
         }
         nvim.pauseNotification();
@@ -70550,8 +70584,8 @@ class CodeLensManager {
         if (doc && clear) {
             doc.clearMatchIds([this.srcId]);
         }
-        if (codeLenes && codeLenes.length)
-            await this.setVirtualText(doc.buffer, codeLenes);
+        if (codeLenses && codeLenses.length)
+            await this.setVirtualText(doc.buffer, codeLenses);
         nvim.resumeNotification().catch(_e => {
             // noop
         });
@@ -70560,13 +70594,13 @@ class CodeLensManager {
         let { nvim } = this;
         let bufnr = await nvim.call('bufnr', '%');
         let line = await nvim.call('line', '.') - 1;
-        let { codeLenes } = this.codeLensMap.get(bufnr);
-        if (!codeLenes || codeLenes.length == 0) {
-            workspace_1.default.showMessage('No codeLenes available', 'warning');
+        let { codeLenses } = this.codeLensMap.get(bufnr) || {};
+        if (!codeLenses || codeLenses.length == 0) {
+            workspace_1.default.showMessage('No codeLenses available', 'warning');
             return;
         }
         let list = new Map();
-        for (let codeLens of codeLenes) {
+        for (let codeLens of codeLenses) {
             let { range, command } = codeLens;
             if (!command)
                 continue;
@@ -70586,13 +70620,13 @@ class CodeLensManager {
             }
         }
         if (!current) {
-            workspace_1.default.showMessage('No codeLenes available', 'warning');
+            workspace_1.default.showMessage('No codeLenses available', 'warning');
             return;
         }
         let commands = current.map(o => o.command);
         commands = commands.filter(c => c.command != null && c.command != '');
         if (commands.length == 0) {
-            workspace_1.default.showMessage('CodeLenes command not found', 'warning');
+            workspace_1.default.showMessage('CodeLenses command not found', 'warning');
         }
         else if (commands.length == 1) {
             commands_1.default.execute(commands[0]);
@@ -71422,7 +71456,7 @@ class Refactor {
         this.changing = false;
         nvim.pauseNotification();
         buffer.setOption('modified', false, true);
-        nvim.command('wa', true);
+        nvim.command('silent noa wa', true);
         this.highlightLineNr();
         await nvim.resumeNotification();
         return true;
@@ -72034,7 +72068,7 @@ exports.Mutex = Mutex;
 /* 447 */
 /***/ (function(module) {
 
-module.exports = JSON.parse("{\"name\":\"coc.nvim\",\"version\":\"0.0.78\",\"description\":\"LSP based intellisense engine for neovim & vim8.\",\"main\":\"./lib/index.js\",\"bin\":\"./bin/server.js\",\"scripts\":{\"clean\":\"rimraf lib build\",\"lint\":\"tslint -c tslint.json -p .\",\"build\":\"tsc -p tsconfig.json\",\"watch\":\"tsc -p tsconfig.json --watch true --sourceMap\",\"test\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --detectOpenHandles --forceExit\",\"test-build\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --coverage --forceExit\",\"prepare\":\"npm-run-all clean build\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/neoclide/coc.nvim.git\"},\"keywords\":[\"complete\",\"neovim\"],\"author\":\"Qiming Zhao <chemzqm@gmail.com>\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/neoclide/coc.nvim/issues\"},\"homepage\":\"https://github.com/neoclide/coc.nvim#readme\",\"jest\":{\"globals\":{\"__TEST__\":true},\"watchman\":false,\"clearMocks\":true,\"globalSetup\":\"./jest.js\",\"testEnvironment\":\"node\",\"moduleFileExtensions\":[\"ts\",\"tsx\",\"json\",\"js\"],\"transform\":{\"^.+\\\\.tsx?$\":\"ts-jest\"},\"testRegex\":\"src/__tests__/.*\\\\.(test|spec)\\\\.ts$\",\"coverageDirectory\":\"./coverage/\"},\"devDependencies\":{\"@chemzqm/tslint-config\":\"^1.0.18\",\"@types/debounce\":\"^3.0.0\",\"@types/fb-watchman\":\"^2.0.0\",\"@types/glob\":\"^7.1.1\",\"@types/jest\":\"^24.0.18\",\"@types/minimatch\":\"^3.0.3\",\"@types/mkdirp\":\"^0.5.2\",\"@types/node\":\"^12.12.17\",\"@types/semver\":\"^6.0.2\",\"@types/tar\":\"^4.0.3\",\"@types/tunnel\":\"^0.0.1\",\"@types/uuid\":\"^3.4.5\",\"@types/which\":\"^1.3.1\",\"colors\":\"^1.3.3\",\"jest\":\"24.9.0\",\"npm-run-all\":\"^4.1.5\",\"ts-jest\":\"^24.2.0\",\"tslint\":\"^5.19.0\",\"typescript\":\"^3.8.2\",\"vscode-languageserver\":\"^6.1.1\"},\"dependencies\":{\"@chemzqm/neovim\":\"5.1.9\",\"await-semaphore\":\"^0.1.3\",\"bser\":\"^2.1.0\",\"clipboardy\":\"^2.3.0\",\"debounce\":\"^1.2.0\",\"fast-diff\":\"^1.2.0\",\"fb-watchman\":\"^2.0.0\",\"follow-redirects\":\"^1.9.0\",\"glob\":\"^7.1.4\",\"isuri\":\"^2.0.3\",\"jsonc-parser\":\"^2.1.1\",\"log4js\":\"^5.1.0\",\"minimatch\":\"^3.0.4\",\"mkdirp\":\"^0.5.1\",\"mv\":\"^2.1.1\",\"rc\":\"^1.2.8\",\"rimraf\":\"^3.0.0\",\"semver\":\"^6.3.0\",\"tar\":\"^4.4.10\",\"tslib\":\"^1.11.0\",\"tunnel\":\"^0.0.6\",\"uuid\":\"^3.3.3\",\"vscode-languageserver-protocol\":\"^3.15.3\",\"vscode-languageserver-textdocument\":\"^1.0.1\",\"vscode-languageserver-types\":\"^3.15.1\",\"vscode-uri\":\"^2.0.3\",\"which\":\"^1.3.1\"}}");
+module.exports = JSON.parse("{\"name\":\"coc.nvim\",\"version\":\"0.0.78\",\"description\":\"LSP based intellisense engine for neovim & vim8.\",\"main\":\"./lib/index.js\",\"bin\":\"./bin/server.js\",\"scripts\":{\"clean\":\"rimraf lib build\",\"lint\":\"tslint -c tslint.json -p .\",\"build\":\"tsc -p tsconfig.json\",\"watch\":\"tsc -p tsconfig.json --watch true --sourceMap\",\"test\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --detectOpenHandles --forceExit\",\"test-build\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --coverage --forceExit\",\"prepare\":\"npm-run-all clean build\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/neoclide/coc.nvim.git\"},\"keywords\":[\"complete\",\"neovim\"],\"author\":\"Qiming Zhao <chemzqm@gmail.com>\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/neoclide/coc.nvim/issues\"},\"homepage\":\"https://github.com/neoclide/coc.nvim#readme\",\"jest\":{\"globals\":{\"__TEST__\":true},\"watchman\":false,\"clearMocks\":true,\"globalSetup\":\"./jest.js\",\"testEnvironment\":\"node\",\"moduleFileExtensions\":[\"ts\",\"tsx\",\"json\",\"js\"],\"transform\":{\"^.+\\\\.tsx?$\":\"ts-jest\"},\"testRegex\":\"src/__tests__/.*\\\\.(test|spec)\\\\.ts$\",\"coverageDirectory\":\"./coverage/\"},\"devDependencies\":{\"@chemzqm/tslint-config\":\"^1.0.18\",\"@types/debounce\":\"^3.0.0\",\"@types/fb-watchman\":\"^2.0.0\",\"@types/glob\":\"^7.1.1\",\"@types/jest\":\"^24.0.18\",\"@types/minimatch\":\"^3.0.3\",\"@types/mkdirp\":\"^0.5.2\",\"@types/node\":\"^12.12.17\",\"@types/semver\":\"^6.0.2\",\"@types/tar\":\"^4.0.3\",\"@types/tunnel\":\"^0.0.1\",\"@types/uuid\":\"^3.4.5\",\"@types/which\":\"^1.3.1\",\"colors\":\"^1.3.3\",\"jest\":\"24.9.0\",\"npm-run-all\":\"^4.1.5\",\"ts-jest\":\"^24.2.0\",\"tslint\":\"^5.19.0\",\"typescript\":\"^3.8.2\",\"vscode-languageserver\":\"^6.1.1\"},\"dependencies\":{\"@chemzqm/neovim\":\"5.2.0\",\"await-semaphore\":\"^0.1.3\",\"bser\":\"^2.1.0\",\"clipboardy\":\"^2.3.0\",\"debounce\":\"^1.2.0\",\"fast-diff\":\"^1.2.0\",\"fb-watchman\":\"^2.0.0\",\"follow-redirects\":\"^1.9.0\",\"glob\":\"^7.1.4\",\"isuri\":\"^2.0.3\",\"jsonc-parser\":\"^2.1.1\",\"log4js\":\"^5.1.0\",\"minimatch\":\"^3.0.4\",\"mkdirp\":\"^0.5.1\",\"mv\":\"^2.1.1\",\"rc\":\"^1.2.8\",\"rimraf\":\"^3.0.0\",\"semver\":\"^6.3.0\",\"tar\":\"^4.4.10\",\"tslib\":\"^1.11.0\",\"tunnel\":\"^0.0.6\",\"uuid\":\"^3.3.3\",\"vscode-languageserver-protocol\":\"^3.15.3\",\"vscode-languageserver-textdocument\":\"^1.0.1\",\"vscode-languageserver-types\":\"^3.15.1\",\"vscode-uri\":\"^2.0.3\",\"which\":\"^1.3.1\"}}");
 
 /***/ })
 /******/ ]);

@@ -1022,11 +1022,14 @@ g:WorkspaceFolders				*g:WorkspaceFolders*
 
 g:node_client_debug				*g:node_client_debug*
 
-			Enable debug mode of node client on vim8, use command: >
+			Enable debug mode of node client for check rpc
+			messages between vim and coc.nvim, use command: >
 
 			:call coc#client#open_log()
 <
 			to open the log file.
+
+			Default: `0`
 
 g:coc_cursors_activated				*g:coc_cursors_activated*
 
