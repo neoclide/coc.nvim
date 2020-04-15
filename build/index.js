@@ -22474,7 +22474,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "b86a118d15" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "8e132d7a1b" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -23252,27 +23252,12 @@ class DiagnosticManager {
      */
     getDiagnostics(uri) {
         let collections = this.getCollections(uri);
-        let { level, separateRelatedInformationAsDiagnostics } = this.config;
+        let { level } = this.config;
         let res = [];
         for (let collection of collections) {
             let items = collection.get(uri);
             if (!items)
                 continue;
-            if (separateRelatedInformationAsDiagnostics) {
-                const relatedDiagnostics = [];
-                items.map(diagnostic => {
-                    if (diagnostic.relatedInformation) {
-                        for (const info of diagnostic.relatedInformation) {
-                            const related = vscode_languageserver_protocol_1.Diagnostic.create(info.location.range, info.message);
-                            related.code = diagnostic.code;
-                            related.source = diagnostic.source;
-                            related.severity = vscode_languageserver_protocol_1.DiagnosticSeverity.Hint;
-                            relatedDiagnostics.push(related);
-                        }
-                    }
-                });
-                items = items.concat(relatedDiagnostics);
-            }
             if (level && level < vscode_languageserver_protocol_1.DiagnosticSeverity.Hint) {
                 items = items.filter(s => s.severity == null || s.severity <= level);
             }
@@ -23595,7 +23580,6 @@ class DiagnosticManager {
             refreshAfterSave: getConfig('refreshAfterSave', false),
             refreshOnInsertMode: getConfig('refreshOnInsertMode', false),
             filetypeMap: getConfig('filetypeMap', {}),
-            separateRelatedInformationAsDiagnostics: getConfig('separateRelatedInformationAsDiagnostics', false),
             format: getConfig('format', '[%source%code] [%severity] %message')
         };
         this.enabled = getConfig('enable', true);
@@ -30563,8 +30547,6 @@ class Document {
             return false;
         if (this.uri.endsWith('%5BCommand%20Line%5D'))
             return true;
-        logger.debug('maxFileSize:', maxFileSize);
-        logger.debug('size:', this.size);
         if (maxFileSize && this.size && maxFileSize < this.size)
             return false;
         return buftype == '' || buftype == 'acwrite';
@@ -51677,7 +51659,7 @@ class Languages {
         return await this.documentColorManager.provideDocumentColors(document, this.token);
     }
     async provideFoldingRanges(document, context) {
-        if (!this.formatRangeManager.hasProvider(document)) {
+        if (!this.foldingRangeManager.hasProvider(document)) {
             return null;
         }
         return await this.foldingRangeManager.provideFoldingRanges(document, context, this.token);
@@ -51802,7 +51784,7 @@ class Languages {
                     return null;
                 let startcol = this.getStartColumn(opt.line, completeItems);
                 let option = Object.assign({}, opt);
-                let prefix = '';
+                let prefix;
                 if (startcol != null && startcol < option.col) {
                     prefix = string_1.byteSlice(opt.line, startcol, option.col);
                     option.col = startcol;
@@ -52016,10 +51998,6 @@ class Languages {
         let hasAdditionalEdit = item.additionalTextEdits && item.additionalTextEdits.length > 0;
         let isSnippet = item.insertTextFormat === vscode_languageserver_protocol_1.InsertTextFormat.Snippet || hasAdditionalEdit;
         let label = item.label.trim();
-        let filterText = item.filterText || label;
-        if (prefix && !filterText.startsWith(prefix)) {
-            filterText = prefix + filterText;
-        }
         let obj = {
             word: complete.getWord(item, opt, invalidInsertCharacters),
             abbr: label,
@@ -52027,10 +52005,25 @@ class Languages {
             kind: complete.completionKindString(item.kind, this.completionItemKindMap, this.completeConfig.defaultKindText),
             sortText: item.sortText || null,
             sourceScore: item['score'] || null,
-            filterText,
+            filterText: item.filterText || label,
             isSnippet,
             dup: item.data && item.data.dup == 0 ? 0 : 1
         };
+        if (prefix) {
+            if (!obj.filterText.startsWith(prefix)) {
+                if (item.textEdit) {
+                    let newText = item.textEdit.newText.split(/\n/)[0];
+                    obj.filterText = newText.startsWith(prefix) ? newText : obj.filterText;
+                }
+                else {
+                    obj.filterText = `${prefix}${obj.filterText}`;
+                }
+            }
+            if (!item.textEdit && !obj.word.startsWith(prefix)) {
+                // fix remains completeItem that should not change startcol
+                obj.word = `${prefix}${obj.word}`;
+            }
+        }
         if (item && item.detail && detailField != 'preview') {
             let detail = item.detail.replace(/\n\s*/g, ' ');
             if (string_1.byteLength(detail) < detailMaxLength) {
@@ -53249,8 +53242,8 @@ function getWord(item, opt, invalidInsertCharacters) {
         && newText
         && newText.indexOf('$') !== -1) {
         let parser = new parser_1.SnippetParser();
-        let snippet = parser.text(newText);
-        word = snippet ? getValidWord(snippet, invalidInsertCharacters) : label;
+        let text = parser.text(newText);
+        word = text ? getValidWord(text, invalidInsertCharacters) : label;
     }
     else {
         word = getValidWord(newText, invalidInsertCharacters) || label;
@@ -57407,7 +57400,29 @@ class BaseLanguageClient {
         if (!this._diagnostics) {
             return;
         }
-        this._diagnostics.set(uri, diagnostics);
+        const separate = workspace_1.default.getConfiguration('diagnostic').get('separateRelatedInformationAsDiagnostics');
+        if (separate) {
+            const entries = new Map();
+            entries.set(uri, diagnostics);
+            for (const diagnostic of diagnostics) {
+                if (diagnostic.relatedInformation) {
+                    let message = `${diagnostic.message}\n\nRelated diagnostics: (Run \`:CocCommand workspace.diagnosticRelated\` to jump)\n`;
+                    for (const info of diagnostic.relatedInformation) {
+                        const basename = path_1.default.basename(vscode_uri_1.URI.parse(info.location.uri).fsPath);
+                        const ln = info.location.range.start.line;
+                        message = `${message}\n${basename}(line ${ln + 1}): ${info.message}`;
+                        const diags = entries.get(info.location.uri) || [];
+                        diags.push(vscode_languageserver_protocol_1.Diagnostic.create(info.location.range, info.message, vscode_languageserver_protocol_1.DiagnosticSeverity.Hint, diagnostic.code, diagnostic.source));
+                        entries.set(info.location.uri, diags);
+                    }
+                    diagnostic.message = message;
+                }
+                this._diagnostics.set(Array.from(entries));
+            }
+        }
+        else {
+            this._diagnostics.set(uri, diagnostics);
+        }
     }
     createConnection() {
         let errorHandler = (error, message, count) => {
@@ -60244,6 +60259,9 @@ class Prompt {
         this.requestInput = true;
     }
     async paste() {
+        if (global.hasOwnProperty('__TEST__')) {
+            return await this.eval('@*');
+        }
         let text = await clipboardy_1.default.read();
         text = text.replace(/\n/g, '');
         if (!text)
@@ -67382,34 +67400,26 @@ function matchScore(word, input) {
     let first = input[0];
     let idx = 1;
     let allowFuzzy = true;
-    if (!fuzzy_1.wordChar(first)) {
-        if (first != codes[0])
-            return 0;
-        score = 5;
+    if (fuzzy_1.caseMatch(first, curr)) {
+        score = first == curr ? 5 : 2.5;
         idx = 1;
     }
     else {
-        if (fuzzy_1.caseMatch(first, curr)) {
-            score = first == curr ? 5 : 2.5;
-            idx = 1;
-        }
-        else {
-            // first word 2.5/2
-            let next = nextWordIndex(1, codes);
-            if (next != -1) {
-                if (fuzzy_1.caseMatch(first, codes[next])) {
-                    score = first == codes[next] ? 2.5 : 2;
-                    idx = next + 1;
-                }
+        // first word 2.5/2
+        let next = nextWordIndex(1, codes);
+        if (next != -1) {
+            if (fuzzy_1.caseMatch(first, codes[next])) {
+                score = first == codes[next] ? 2.5 : 2;
+                idx = next + 1;
             }
-            if (score == 0) {
-                // first fuzzy 1/0.5
-                for (let i = 1; i < codes.length; i++) {
-                    if (fuzzy_1.caseMatch(first, codes[i])) {
-                        score = first == codes[i] ? 1 : 0.5;
-                        idx = i + 1;
-                        allowFuzzy = false;
-                    }
+        }
+        if (score == 0) {
+            // first fuzzy 1/0.5
+            for (let i = 1; i < codes.length; i++) {
+                if (fuzzy_1.caseMatch(first, codes[i])) {
+                    score = first == codes[i] ? 1 : 0.5;
+                    idx = i + 1;
+                    allowFuzzy = false;
                 }
             }
         }
