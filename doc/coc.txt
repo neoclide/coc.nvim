@@ -484,6 +484,10 @@ Built in configurations:~
 
 	Custom key mappings in the insert mode, default: `{}`
 
+"coc.preferences.maxFileSize":~
+
+	Maximum file size in bytes that coc.nvim should handle, default: `'10MB'`
+
 "coc.preferences.promptWorkspaceEdit":~
 
 	Prompt confirm from user for workspace edit.

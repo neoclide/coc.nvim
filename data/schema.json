@@ -792,6 +792,11 @@
       "default": "<C-p>",
       "description": "Key used for jump to previous cursors position."
     },
+    "coc.preferences.maxFileSize": {
+      "type": "string",
+      "default": "10MB",
+      "description": "Maximum file size in bytes that coc.nvim should handle, default '10MB'"
+    },
     "coc.preferences.promptWorkspaceEdit": {
       "type": "boolean",
       "description": "Prompt confirm from user for workspace edit.",
