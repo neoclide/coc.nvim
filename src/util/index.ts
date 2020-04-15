@@ -25,9 +25,13 @@ export function wait(ms: number): Promise<any> {
   })
 }
 
-export function getUri(fullpath: string, id: number, buftype: string, isCygwin: boolean): string {
+export function getUri(fullpath: string, id: number, buftype: string, isCygwin: boolean,
+                       uriReplacePatterns: [string, string][]): string {
   if (!fullpath) return `untitled:${id}`
   if (platform.isWindows && !isCygwin) fullpath = path.win32.normalize(fullpath)
+  for (const pattern of uriReplacePatterns) {
+    fullpath = fullpath.replace(pattern[0], pattern[1])
+  }
   if (path.isAbsolute(fullpath)) return URI.file(fullpath).toString()
   if (isuri.isValid(fullpath)) return URI.parse(fullpath).toString()
   if (buftype != '') return `${buftype}:${id}`

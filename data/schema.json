@@ -1010,6 +1010,14 @@
         "type": "string"
       }
     },
+    "coc.util.index.uriReplacePatterns": {
+      "type": "array",
+      "default": [],
+      "description": "Array of tuples [pattern, replacement]",
+      "items": {
+        "type": "[string, string]"
+      }
+    },
     "languageserver": {
       "type": "object",
       "default": {},

@@ -12,6 +12,7 @@ import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string
 import { Chars } from './chars'
 import { group, distinct } from '../util/array'
 import { comparePosition } from '../util/position'
+import workspace from '../workspace'
 const logger = require('../util/logger')('model-document')
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
@@ -133,7 +134,8 @@ export default class Document {
     this.variables = opts.variables
     this._changedtick = opts.changedtick
     this.eol = opts.eol == 1
-    let uri = this._uri = getUri(opts.fullpath, buffer.id, buftype, this.env.isCygwin)
+    let config = workspace.getConfiguration(`coc.util.index`)
+    let uri = this._uri = getUri(opts.fullpath, buffer.id, buftype, this.env.isCygwin, config.get('uriReplacePatterns', []))
     if (token.isCancellationRequested) return false
     try {
       if (this.shouldAttach) {
