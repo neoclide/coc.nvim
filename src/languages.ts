@@ -763,7 +763,7 @@ class Languages {
       kind: complete.completionKindString(item.kind, this.completionItemKindMap, this.completeConfig.defaultKindText),
       sortText: item.sortText || null,
       sourceScore: item['score'] || null,
-      filterText: startcol != null ? item.textEdit.newText : item.filterText || label,
+      filterText: (startcol != null && item.textEdit) ? item.textEdit.newText : item.filterText || label,
       isSnippet,
       dup: item.data && item.data.dup == 0 ? 0 : 1
     }
