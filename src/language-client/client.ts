@@ -3774,7 +3774,7 @@ export abstract class BaseLanguageClient {
 
       for (const diagnostic of diagnostics) {
         if (diagnostic.relatedInformation) {
-          let message = `${diagnostic.message}\n\nRelated diagnostics: (Run \`:CocCommand workspace.diagnosticRelated\` to jump)\n`
+          let message = `${diagnostic.message}\n\nRelated diagnostics:\n`
           for (const info of diagnostic.relatedInformation) {
             const basename = path.basename(URI.parse(info.location.uri).fsPath)
             const ln = info.location.range.start.line
