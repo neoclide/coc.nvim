@@ -3768,7 +3768,7 @@ export abstract class BaseLanguageClient {
     }
 
     const separate = workspace.getConfiguration('diagnostic').get('separateRelatedInformationAsDiagnostics') as boolean
-    if (separate) {
+    if (separate && diagnostics.length > 0) {
       const entries: Map<string, Diagnostic[]> = new Map()
       entries.set(uri, diagnostics)
 
