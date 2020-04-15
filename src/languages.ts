@@ -31,7 +31,7 @@ import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection
 import { wait } from './util'
 import * as complete from './util/complete'
 import { getChangedFromEdits, rangeOverlap } from './util/position'
-import { byteLength, byteIndex } from './util/string'
+import { byteLength, byteIndex, byteSlice } from './util/string'
 import workspace from './workspace'
 const logger = require('./util/logger')('languages')
 
@@ -553,7 +553,7 @@ class Languages {
           result = await Promise.resolve(provider.provideCompletionItems(doc.textDocument, position, token, context))
         } catch (e) {
           // don't disturb user
-          logger.error(`Source "${name}" complete error:`, e)
+          logger.error(`Complete "${name}" error:`, e)
           return null
         }
         if (!result || token.isCancellationRequested) return null
@@ -561,9 +561,13 @@ class Languages {
         if (!completeItems || completeItems.length == 0) return null
         let startcol = this.getStartColumn(opt.line, completeItems)
         let option: CompleteOption = Object.assign({}, opt)
-        if (startcol != null) option.col = startcol
+        let prefix = ''
+        if (startcol != null && startcol < option.col) {
+          prefix = byteSlice(opt.line, startcol, option.col)
+          option.col = startcol
+        }
         let items: VimCompleteItem[] = completeItems.map((o, index) => {
-          let item = this.convertVimCompleteItem(o, shortcut, option, startcol)
+          let item = this.convertVimCompleteItem(o, shortcut, option, prefix)
           item.index = index
           return item
         })
@@ -751,11 +755,15 @@ class Languages {
     return byteIndex(line, character)
   }
 
-  private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption, startcol: number): VimCompleteItem {
+  private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption, prefix: string): VimCompleteItem {
     let { echodocSupport, detailField, detailMaxLength, invalidInsertCharacters } = this.completeConfig
     let hasAdditionalEdit = item.additionalTextEdits && item.additionalTextEdits.length > 0
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet || hasAdditionalEdit
     let label = item.label.trim()
+    let filterText = item.filterText || label
+    if (prefix && !filterText.startsWith(prefix)) {
+      filterText = prefix + filterText
+    }
     let obj: VimCompleteItem = {
       word: complete.getWord(item, opt, invalidInsertCharacters),
       abbr: label,
@@ -763,7 +771,7 @@ class Languages {
       kind: complete.completionKindString(item.kind, this.completionItemKindMap, this.completeConfig.defaultKindText),
       sortText: item.sortText || null,
       sourceScore: item['score'] || null,
-      filterText: (startcol != null && item.textEdit) ? item.textEdit.newText : item.filterText || label,
+      filterText,
       isSnippet,
       dup: item.data && item.data.dup == 0 ? 0 : 1
     }
