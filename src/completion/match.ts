@@ -45,31 +45,25 @@ export function matchScore(word: string, input: number[]): number {
   let first = input[0]
   let idx = 1
   let allowFuzzy = true
-  if (!wordChar(first)) {
-    if (first != codes[0]) return 0
-    score = 5
+  if (caseMatch(first, curr)) {
+    score = first == curr ? 5 : 2.5
     idx = 1
   } else {
-    if (caseMatch(first, curr)) {
-      score = first == curr ? 5 : 2.5
-      idx = 1
-    } else {
-      // first word 2.5/2
-      let next = nextWordIndex(1, codes)
-      if (next != -1) {
-        if (caseMatch(first, codes[next])) {
-          score = first == codes[next] ? 2.5 : 2
-          idx = next + 1
-        }
+    // first word 2.5/2
+    let next = nextWordIndex(1, codes)
+    if (next != -1) {
+      if (caseMatch(first, codes[next])) {
+        score = first == codes[next] ? 2.5 : 2
+        idx = next + 1
       }
-      if (score == 0) {
-        // first fuzzy 1/0.5
-        for (let i = 1; i < codes.length; i++) {
-          if (caseMatch(first, codes[i])) {
-            score = first == codes[i] ? 1 : 0.5
-            idx = i + 1
-            allowFuzzy = false
-          }
+    }
+    if (score == 0) {
+      // first fuzzy 1/0.5
+      for (let i = 1; i < codes.length; i++) {
+        if (caseMatch(first, codes[i])) {
+          score = first == codes[i] ? 1 : 0.5
+          idx = i + 1
+          allowFuzzy = false
         }
       }
     }

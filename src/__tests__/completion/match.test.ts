@@ -7,6 +7,10 @@ function score(word: string, input: string): number {
 
 describe('matchScore', () => {
 
+  it('should match score for last letter', async () => {
+    expect(score('#!3', '3')).toBe(1)
+  })
+
   it('should match first letter', () => {
     expect(score('abc', 'a')).toBe(5)
     expect(score('Abc', 'a')).toBe(2.5)
