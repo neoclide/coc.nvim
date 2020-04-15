@@ -3767,14 +3767,23 @@ export abstract class BaseLanguageClient {
       return
     }
 
-    const separate = workspace.getConfiguration('diagnostic').get('separateRelatedInformationAsDiagnostics') as boolean
+    const config = workspace.getConfiguration('diagnostic')
+    const separate = config.get('separateRelatedInformationAsDiagnostics') as boolean
+    const showNavigationHint = config.get('showRelatedInformationNavigationHint') as boolean
     if (separate) {
       const entries: Map<string, Diagnostic[]> = new Map()
       entries.set(uri, diagnostics)
 
       for (const diagnostic of diagnostics) {
         if (diagnostic.relatedInformation) {
-          let message = `${diagnostic.message}\n\nRelated diagnostics: (Run \`:CocCommand workspace.diagnosticRelated\` to jump)\n`
+          let navigationHint;
+          if (showNavigationHint) {
+            navigationHint = " (Run \`:CocCommand workspace.diagnosticRelated\` to jump)";
+          } else {
+            navigationHint = "";
+          }
+
+          let message = `${diagnostic.message}\n\nRelated diagnostics:${navigationHint}\n`
           for (const info of diagnostic.relatedInformation) {
             const basename = path.basename(URI.parse(info.location.uri).fsPath)
             const ln = info.location.range.start.line
