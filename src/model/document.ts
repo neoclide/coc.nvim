@@ -27,6 +27,7 @@ export default class Document {
   public fetchContent: Function & { clear(): void }
   // start id for matchaddpos
   private colorId = 1080
+  private size: number
   private nvim: Neovim
   private eol = true
   private attached = false
@@ -43,7 +44,8 @@ export default class Document {
   public readonly onDocumentDetach: Event<string> = this._onDocumentDetach.event
   constructor(
     public readonly buffer: Buffer,
-    private env: Env) {
+    private env: Env,
+    private maxFileSize: number | null) {
     this.fireContentChanges = debounce(() => {
       this.nvim.mode.then(m => {
         if (m.blocking) {
@@ -64,9 +66,10 @@ export default class Document {
    * Currently only attach for empty and `acwrite` buftype.
    */
   public get shouldAttach(): boolean {
-    let { buftype } = this
+    let { buftype, maxFileSize } = this
     if (!this.getVar('enabled', true)) return false
     if (this.uri.endsWith('%5BCommand%20Line%5D')) return true
+    if (maxFileSize && this.size && maxFileSize < this.size) return false
     return buftype == '' || buftype == 'acwrite'
   }
 
@@ -126,6 +129,7 @@ export default class Document {
     let opts: BufferOption = await nvim.call('coc#util#get_bufoptions', buffer.id)
     if (opts == null) return false
     let buftype = this.buftype = opts.buftype
+    this.size = opts.size
     this.variables = opts.variables
     this._changedtick = opts.changedtick
     this.eol = opts.eol == 1

@@ -1,4 +1,5 @@
 import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
+import bytes from 'bytes'
 import debounce from 'debounce'
 import fs from 'fs'
 import os from 'os'
@@ -47,6 +48,7 @@ export class Workspace implements IWorkspace {
   public readonly keymaps: Map<string, [Function, boolean]> = new Map()
   public bufnr: number
   private mutex = new Mutex()
+  private maxFileSize: number
   private resolver: Resolver = new Resolver()
   private rootPatterns: Map<string, string[]> = new Map()
   private _workspaceFolders: WorkspaceFolder[] = []
@@ -113,6 +115,9 @@ export class Workspace implements IWorkspace {
     this.statusLine = new StatusLine(nvim)
     this._env = await nvim.call('coc#util#vim_info') as Env
     this._insertMode = this._env.mode.startsWith('insert')
+    let preferences = this.getConfiguration('coc.preferences')
+    let maxFileSize = preferences.get<string>('maxFileSize', '10MB')
+    this.maxFileSize = bytes.parse(maxFileSize)
     if (this._env.workspaceFolders) {
       this._workspaceFolders = this._env.workspaceFolders.map(f => {
         return {
@@ -1432,7 +1437,7 @@ augroup end`
     let source = new CancellationTokenSource()
     try {
       if (document) this.onBufUnload(bufnr, true).logError()
-      document = new Document(buffer, this._env)
+      document = new Document(buffer, this._env, this.maxFileSize)
       let token = source.token
       this.creatingSources.set(bufnr, source)
       let created = await document.init(this.nvim, token)

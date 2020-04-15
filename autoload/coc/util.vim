@@ -304,6 +304,7 @@ function! coc#util#get_bufoptions(bufnr) abort
   let bufname = bufname(a:bufnr)
   return {
         \ 'bufname': bufname,
+        \ 'size': getfsize(bufname),
         \ 'eol': getbufvar(a:bufnr, '&eol'),
         \ 'variables': s:variables(a:bufnr),
         \ 'fullpath': empty(bufname) ? '' : fnamemodify(bufname, ':p'),
