@@ -4,6 +4,9 @@
   "description": "LSP based intellisense engine for neovim & vim8.",
   "main": "./lib/index.js",
   "bin": "./bin/server.js",
+  "engines": {
+    "node": ">=8.10.0"
+  },
   "scripts": {
     "clean": "rimraf lib build",
     "lint": "tslint -c tslint.json -p .",
