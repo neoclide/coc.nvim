@@ -22474,7 +22474,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "ceb9e47d24" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "865f3cca4a" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -51613,7 +51613,7 @@ class Languages {
                 }
                 catch (e) {
                     // don't disturb user
-                    logger.error(`Source "${name}" complete error:`, e);
+                    logger.error(`Complete "${name}" error:`, e);
                     return null;
                 }
                 if (!result || token.isCancellationRequested)
@@ -51623,10 +51623,13 @@ class Languages {
                     return null;
                 let startcol = this.getStartColumn(opt.line, completeItems);
                 let option = Object.assign({}, opt);
-                if (startcol != null)
+                let prefix = '';
+                if (startcol != null && startcol < option.col) {
+                    prefix = string_1.byteSlice(opt.line, startcol, option.col);
                     option.col = startcol;
+                }
                 let items = completeItems.map((o, index) => {
-                    let item = this.convertVimCompleteItem(o, shortcut, option, startcol);
+                    let item = this.convertVimCompleteItem(o, shortcut, option, prefix);
                     item.index = index;
                     return item;
                 });
@@ -51829,11 +51832,15 @@ class Languages {
         }
         return string_1.byteIndex(line, character);
     }
-    convertVimCompleteItem(item, shortcut, opt, startcol) {
+    convertVimCompleteItem(item, shortcut, opt, prefix) {
         let { echodocSupport, detailField, detailMaxLength, invalidInsertCharacters } = this.completeConfig;
         let hasAdditionalEdit = item.additionalTextEdits && item.additionalTextEdits.length > 0;
         let isSnippet = item.insertTextFormat === vscode_languageserver_protocol_1.InsertTextFormat.Snippet || hasAdditionalEdit;
         let label = item.label.trim();
+        let filterText = item.filterText || label;
+        if (prefix && !filterText.startsWith(prefix)) {
+            filterText = prefix + filterText;
+        }
         let obj = {
             word: complete.getWord(item, opt, invalidInsertCharacters),
             abbr: label,
@@ -51841,7 +51848,7 @@ class Languages {
             kind: complete.completionKindString(item.kind, this.completionItemKindMap, this.completeConfig.defaultKindText),
             sortText: item.sortText || null,
             sourceScore: item['score'] || null,
-            filterText: startcol != null ? item.textEdit.newText : item.filterText || label,
+            filterText,
             isSnippet,
             dup: item.data && item.data.dup == 0 ? 0 : 1
         };
