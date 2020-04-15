@@ -561,7 +561,7 @@ class Languages {
         if (!completeItems || completeItems.length == 0) return null
         let startcol = this.getStartColumn(opt.line, completeItems)
         let option: CompleteOption = Object.assign({}, opt)
-        let prefix = ''
+        let prefix: string
         if (startcol != null && startcol < option.col) {
           prefix = byteSlice(opt.line, startcol, option.col)
           option.col = startcol
@@ -760,10 +760,6 @@ class Languages {
     let hasAdditionalEdit = item.additionalTextEdits && item.additionalTextEdits.length > 0
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet || hasAdditionalEdit
     let label = item.label.trim()
-    let filterText = item.filterText || label
-    if (prefix && !filterText.startsWith(prefix)) {
-      filterText = prefix + filterText
-    }
     let obj: VimCompleteItem = {
       word: complete.getWord(item, opt, invalidInsertCharacters),
       abbr: label,
@@ -771,9 +767,23 @@ class Languages {
       kind: complete.completionKindString(item.kind, this.completionItemKindMap, this.completeConfig.defaultKindText),
       sortText: item.sortText || null,
       sourceScore: item['score'] || null,
-      filterText,
+      filterText: item.filterText || label,
       isSnippet,
       dup: item.data && item.data.dup == 0 ? 0 : 1
+    }
+    if (prefix) {
+      if (!obj.filterText.startsWith(prefix)) {
+        if (item.textEdit) {
+          let newText = item.textEdit.newText.split(/\n/)[0]
+          obj.filterText = newText.startsWith(prefix) ? newText : obj.filterText
+        } else {
+          obj.filterText = `${prefix}${obj.filterText}`
+        }
+      }
+      if (!item.textEdit && !obj.word.startsWith(prefix)) {
+        // fix remains completeItem that should not change startcol
+        obj.word = `${prefix}${obj.word}`
+      }
     }
     if (item && item.detail && detailField != 'preview') {
       let detail = item.detail.replace(/\n\s*/g, ' ')

@@ -330,10 +330,9 @@ describe('completion TextChangedP', () => {
         if (!context.triggerCharacter) return
         return [{
           label: 'foo',
-          filterText: '?foo',
           textEdit: {
             range: Range.create(0, 0, 0, 1),
-            newText: 'foo'
+            newText: '?foo'
           }
         }]
       }
@@ -344,7 +343,7 @@ describe('completion TextChangedP', () => {
     await nvim.eval('feedkeys("\\<C-n>", "in")')
     await helper.wait(200)
     let line = await nvim.line
-    expect(line).toBe('foo')
+    expect(line).toBe('?foo')
   })
 
   it('should fix cursor position with snippet on additionalTextEdits', async () => {

@@ -49,8 +49,8 @@ export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsert
     && newText
     && newText.indexOf('$') !== -1) {
     let parser = new SnippetParser()
-    let snippet = parser.text(newText)
-    word = snippet ? getValidWord(snippet, invalidInsertCharacters) : label
+    let text = parser.text(newText)
+    word = text ? getValidWord(text, invalidInsertCharacters) : label
   } else {
     word = getValidWord(newText, invalidInsertCharacters) || label
   }
