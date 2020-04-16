@@ -991,11 +991,11 @@ export class Workspace implements IWorkspace {
         if (doc) {
           content = doc.getDocumentContent()
           encoding = await doc.buffer.getOption('fileencoding') as string
-          await nvim.command(`silent! ${doc.bufnr}bwipeout`)
+          await nvim.command(`silent! ${doc.bufnr}bwipeout!`)
         }
         let newDoc = this.getDocument(newUri)
         if (newDoc) {
-          await this.nvim.command(`silent! ${newDoc.bufnr}bwipeout`)
+          await this.nvim.command(`silent! ${newDoc.bufnr}bwipeout!`)
         }
         if (content) {
           await util.promisify(fs.unlink)(oldPath)
@@ -1051,7 +1051,7 @@ export class Workspace implements IWorkspace {
       if (!isDir) {
         let uri = URI.file(filepath).toString()
         let doc = this.getDocument(uri)
-        if (doc) await this.nvim.command(`silent! bwipeout ${doc.bufnr}`)
+        if (doc) await this.nvim.command(`silent! bwipeout! ${doc.bufnr}`)
       }
     } catch (e) {
       this.showMessage(`Error on delete ${filepath}: ${e.message}`, 'error')
