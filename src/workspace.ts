@@ -1661,7 +1661,7 @@ augroup end`
         res.push(change)
       }
     }
-    res.push(...documentEdits)
+    res.unshift(...documentEdits)
     return res
   }
 
