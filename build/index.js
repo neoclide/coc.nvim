@@ -22476,7 +22476,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "a8861272ab" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "312c7c4482" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -24984,7 +24984,9 @@ class Workspace {
      * Move cursor to position.
      */
     async moveTo(position) {
-        await this.callAsync('coc#util#jumpTo', [position.line, position.character]);
+        await this.nvim.call('coc#util#jumpTo', [position.line, position.character]);
+        if (this.isVim)
+            this.nvim.command('redraw', true);
     }
     /**
      * Create a file in vim and disk
@@ -25085,35 +25087,31 @@ class Workspace {
                 let newUri = vscode_uri_1.URI.file(newPath).toString();
                 let doc = this.getDocument(uri);
                 let isCurrent = doc.bufnr == this.bufnr;
-                let content;
-                let encoding;
-                if (doc) {
-                    content = doc.getDocumentContent();
-                    encoding = await doc.buffer.getOption('fileencoding');
-                    await nvim.command(`silent! ${doc.bufnr}bwipeout!`);
-                }
                 let newDoc = this.getDocument(newUri);
-                if (newDoc) {
-                    await this.nvim.command(`silent! ${newDoc.bufnr}bwipeout!`);
-                }
-                if (content) {
-                    await util_1.default.promisify(fs_1.default.unlink)(oldPath);
+                if (newDoc)
+                    await this.nvim.command(`silent ${newDoc.bufnr}bwipeout!`);
+                if (doc != null) {
+                    let content = doc.getDocumentContent();
+                    let encoding = await doc.buffer.getOption('fileencoding');
                     await util_1.default.promisify(fs_1.default.writeFile)(newPath, content, { encoding });
-                }
-                else {
-                    await fs_2.renameAsync(oldPath, newPath);
-                }
-                if (doc) {
+                    // open renamed file
                     if (!isCurrent) {
                         await nvim.call('coc#util#open_files', [[newPath]]);
+                        await nvim.command(`silent ${doc.bufnr}bwipeout!`);
                     }
                     else {
                         let view = await nvim.call('winsaveview');
                         nvim.pauseNotification();
-                        nvim.call('coc#util#open_file', ['edit', newPath], true);
+                        nvim.call('coc#util#open_file', ['keepalt edit', newPath], true);
+                        nvim.command(`silent ${doc.bufnr}bwipeout!`, true);
                         nvim.call('winrestview', [view], true);
                         await nvim.resumeNotification();
                     }
+                    // avoid vim detect file unlink
+                    await util_1.default.promisify(fs_1.default.unlink)(oldPath);
+                }
+                else {
+                    await fs_2.renameAsync(oldPath, newPath);
                 }
             }
         }
