@@ -14520,17 +14520,18 @@ class Transport extends events_1.EventEmitter {
         if (list.length) {
             this.paused = [];
             return new Promise((resolve, reject) => {
-                if (!isNotify)
+                if (!isNotify) {
                     return this.request('nvim_call_atomic', [list], (err, res) => {
                         if (err)
                             return reject(new Error(`call_atomic error: ${err[1]}`));
                         resolve(res);
                     });
+                }
                 this.notify('nvim_call_atomic', [list]);
                 resolve();
             });
         }
-        return isNotify ? null : Promise.resolve();
+        return isNotify ? null : Promise.resolve([[], undefined]);
     }
 }
 exports.default = Transport;
@@ -14806,8 +14807,6 @@ class Connection extends events_1.default {
         this.send([0, [event, data || null]]);
     }
     send(arr) {
-        if (debug)
-            logger.debug('send:', arr[0], arr.slice(1));
         try {
             this.writeable.write(JSON.stringify(arr) + '\n');
         }
@@ -22474,7 +22473,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "8e132d7a1b" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "14de259601" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -72275,7 +72274,7 @@ exports.Mutex = Mutex;
 /* 448 */
 /***/ (function(module) {
 
-module.exports = JSON.parse("{\"name\":\"coc.nvim\",\"version\":\"0.0.78\",\"description\":\"LSP based intellisense engine for neovim & vim8.\",\"main\":\"./lib/index.js\",\"bin\":\"./bin/server.js\",\"engines\":{\"node\":\">=8.10.0\"},\"scripts\":{\"clean\":\"rimraf lib build\",\"lint\":\"tslint -c tslint.json -p .\",\"build\":\"tsc -p tsconfig.json\",\"watch\":\"tsc -p tsconfig.json --watch true --sourceMap\",\"test\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --detectOpenHandles --forceExit\",\"test-build\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --coverage --forceExit\",\"prepare\":\"npm-run-all clean build\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/neoclide/coc.nvim.git\"},\"keywords\":[\"complete\",\"neovim\"],\"author\":\"Qiming Zhao <chemzqm@gmail.com>\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/neoclide/coc.nvim/issues\"},\"homepage\":\"https://github.com/neoclide/coc.nvim#readme\",\"jest\":{\"globals\":{\"__TEST__\":true},\"watchman\":false,\"clearMocks\":true,\"globalSetup\":\"./jest.js\",\"testEnvironment\":\"node\",\"moduleFileExtensions\":[\"ts\",\"tsx\",\"json\",\"js\"],\"transform\":{\"^.+\\\\.tsx?$\":\"ts-jest\"},\"testRegex\":\"src/__tests__/.*\\\\.(test|spec)\\\\.ts$\",\"coverageDirectory\":\"./coverage/\"},\"devDependencies\":{\"@chemzqm/tslint-config\":\"^1.0.18\",\"@types/debounce\":\"^3.0.0\",\"@types/fb-watchman\":\"^2.0.0\",\"@types/glob\":\"^7.1.1\",\"@types/jest\":\"^24.0.18\",\"@types/minimatch\":\"^3.0.3\",\"@types/mkdirp\":\"^0.5.2\",\"@types/node\":\"^12.12.17\",\"@types/semver\":\"^6.0.2\",\"@types/tar\":\"^4.0.3\",\"@types/tunnel\":\"^0.0.1\",\"@types/uuid\":\"^3.4.5\",\"@types/which\":\"^1.3.1\",\"colors\":\"^1.3.3\",\"jest\":\"24.9.0\",\"npm-run-all\":\"^4.1.5\",\"ts-jest\":\"^24.2.0\",\"tslint\":\"^5.19.0\",\"typescript\":\"^3.8.2\",\"vscode-languageserver\":\"^6.1.1\"},\"dependencies\":{\"@chemzqm/neovim\":\"5.2.0\",\"await-semaphore\":\"^0.1.3\",\"bser\":\"^2.1.0\",\"bytes\":\"^3.1.0\",\"clipboardy\":\"^2.3.0\",\"debounce\":\"^1.2.0\",\"fast-diff\":\"^1.2.0\",\"fb-watchman\":\"^2.0.0\",\"follow-redirects\":\"^1.9.0\",\"glob\":\"^7.1.4\",\"isuri\":\"^2.0.3\",\"jsonc-parser\":\"^2.1.1\",\"log4js\":\"^5.1.0\",\"minimatch\":\"^3.0.4\",\"mkdirp\":\"^0.5.1\",\"mv\":\"^2.1.1\",\"rc\":\"^1.2.8\",\"rimraf\":\"^3.0.0\",\"semver\":\"^6.3.0\",\"tar\":\"^4.4.10\",\"tslib\":\"^1.11.0\",\"tunnel\":\"^0.0.6\",\"uuid\":\"^3.3.3\",\"vscode-languageserver-protocol\":\"^3.15.3\",\"vscode-languageserver-textdocument\":\"^1.0.1\",\"vscode-languageserver-types\":\"^3.15.1\",\"vscode-uri\":\"^2.0.3\",\"which\":\"^1.3.1\"}}");
+module.exports = JSON.parse("{\"name\":\"coc.nvim\",\"version\":\"0.0.78\",\"description\":\"LSP based intellisense engine for neovim & vim8.\",\"main\":\"./lib/index.js\",\"bin\":\"./bin/server.js\",\"engines\":{\"node\":\">=8.10.0\"},\"scripts\":{\"clean\":\"rimraf lib build\",\"lint\":\"tslint -c tslint.json -p .\",\"build\":\"tsc -p tsconfig.json\",\"watch\":\"tsc -p tsconfig.json --watch true --sourceMap\",\"test\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --detectOpenHandles --forceExit\",\"test-build\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --coverage --forceExit\",\"prepare\":\"npm-run-all clean build\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/neoclide/coc.nvim.git\"},\"keywords\":[\"complete\",\"neovim\"],\"author\":\"Qiming Zhao <chemzqm@gmail.com>\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/neoclide/coc.nvim/issues\"},\"homepage\":\"https://github.com/neoclide/coc.nvim#readme\",\"jest\":{\"globals\":{\"__TEST__\":true},\"watchman\":false,\"clearMocks\":true,\"globalSetup\":\"./jest.js\",\"testEnvironment\":\"node\",\"moduleFileExtensions\":[\"ts\",\"tsx\",\"json\",\"js\"],\"transform\":{\"^.+\\\\.tsx?$\":\"ts-jest\"},\"testRegex\":\"src/__tests__/.*\\\\.(test|spec)\\\\.ts$\",\"coverageDirectory\":\"./coverage/\"},\"devDependencies\":{\"@chemzqm/tslint-config\":\"^1.0.18\",\"@types/debounce\":\"^3.0.0\",\"@types/fb-watchman\":\"^2.0.0\",\"@types/glob\":\"^7.1.1\",\"@types/jest\":\"^24.0.18\",\"@types/minimatch\":\"^3.0.3\",\"@types/mkdirp\":\"^0.5.2\",\"@types/node\":\"^12.12.17\",\"@types/semver\":\"^6.0.2\",\"@types/tar\":\"^4.0.3\",\"@types/tunnel\":\"^0.0.1\",\"@types/uuid\":\"^3.4.5\",\"@types/which\":\"^1.3.1\",\"colors\":\"^1.3.3\",\"jest\":\"24.9.0\",\"npm-run-all\":\"^4.1.5\",\"ts-jest\":\"^24.2.0\",\"tslint\":\"^5.19.0\",\"typescript\":\"^3.8.2\",\"vscode-languageserver\":\"^6.1.1\"},\"dependencies\":{\"@chemzqm/neovim\":\"5.2.1\",\"await-semaphore\":\"^0.1.3\",\"bser\":\"^2.1.0\",\"bytes\":\"^3.1.0\",\"clipboardy\":\"^2.3.0\",\"debounce\":\"^1.2.0\",\"fast-diff\":\"^1.2.0\",\"fb-watchman\":\"^2.0.0\",\"follow-redirects\":\"^1.9.0\",\"glob\":\"^7.1.4\",\"isuri\":\"^2.0.3\",\"jsonc-parser\":\"^2.1.1\",\"log4js\":\"^5.1.0\",\"minimatch\":\"^3.0.4\",\"mkdirp\":\"^0.5.1\",\"mv\":\"^2.1.1\",\"rc\":\"^1.2.8\",\"rimraf\":\"^3.0.0\",\"semver\":\"^6.3.0\",\"tar\":\"^4.4.10\",\"tslib\":\"^1.11.0\",\"tunnel\":\"^0.0.6\",\"uuid\":\"^3.3.3\",\"vscode-languageserver-protocol\":\"^3.15.3\",\"vscode-languageserver-textdocument\":\"^1.0.1\",\"vscode-languageserver-types\":\"^3.15.1\",\"vscode-uri\":\"^2.0.3\",\"which\":\"^1.3.1\"}}");
 
 /***/ })
 /******/ ]);
