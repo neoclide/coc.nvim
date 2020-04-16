@@ -855,6 +855,12 @@ b:coc_current_function				*b:coc_current_function*
 			Set `"coc.preferences.currentFunctionSymbolAutoUpdate": true`
 			in coc-settings.json to update it on CursorHold.
 
+g:coc_channel_timeout				*g:coc_channel_timeout*
+
+			Channel timeout in seconds for request to node client.
+
+			Default: 30
+
 g:coc_last_hover_message			*g:coc_last_hover_message*
 
 			Last message echoed from `doHover`, can be used in
