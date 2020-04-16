@@ -258,9 +258,6 @@ function! coc#util#jumpTo(line, character) abort
   let pre = strcharpart(content, 0, a:character)
   let col = strlen(pre) + 1
   call cursor(a:line + 1, col)
-  if s:is_vim
-    redraw
-  endif
 endfunction
 
 function! coc#util#echo_messages(hl, msgs)
