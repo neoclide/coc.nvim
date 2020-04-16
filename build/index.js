@@ -22214,7 +22214,7 @@ const manager_2 = tslib_1.__importDefault(__webpack_require__(367));
 const services_1 = tslib_1.__importDefault(__webpack_require__(351));
 const manager_3 = tslib_1.__importDefault(__webpack_require__(193));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(257));
-const types_1 = __webpack_require__(197);
+const types_1 = __webpack_require__(198);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(194));
 const logger = __webpack_require__(2)('plugin');
 class Plugin extends events_1.EventEmitter {
@@ -22473,7 +22473,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "7eb2d4c005" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "70ed90155c" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -23661,7 +23661,7 @@ const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(193));
 const util_1 = __webpack_require__(177);
-const object_1 = __webpack_require__(198);
+const object_1 = __webpack_require__(199);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(194));
 const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(346));
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(179));
@@ -24131,9 +24131,10 @@ const os_1 = tslib_1.__importDefault(__webpack_require__(14));
 const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 const util_1 = tslib_1.__importDefault(__webpack_require__(12));
 const vscode_languageserver_protocol_1 = __webpack_require__(150);
+const vscode_languageserver_textdocument_1 = __webpack_require__(196);
 const vscode_uri_1 = __webpack_require__(183);
 const which_1 = tslib_1.__importDefault(__webpack_require__(184));
-const configuration_1 = tslib_1.__importDefault(__webpack_require__(196));
+const configuration_1 = tslib_1.__importDefault(__webpack_require__(197));
 const shape_1 = tslib_1.__importDefault(__webpack_require__(214));
 const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const db_1 = tslib_1.__importDefault(__webpack_require__(215));
@@ -24146,7 +24147,7 @@ const status_1 = tslib_1.__importDefault(__webpack_require__(229));
 const task_1 = tslib_1.__importDefault(__webpack_require__(233));
 const terminal_1 = tslib_1.__importDefault(__webpack_require__(234));
 const willSaveHandler_1 = tslib_1.__importDefault(__webpack_require__(235));
-const types_1 = __webpack_require__(197);
+const types_1 = __webpack_require__(198);
 const array_1 = __webpack_require__(221);
 const fs_2 = __webpack_require__(209);
 const index_1 = __webpack_require__(177);
@@ -24557,7 +24558,8 @@ class Workspace {
     async getOffset() {
         let document = await this.document;
         let pos = await this.getCursorPosition();
-        return document.textDocument.offsetAt(pos);
+        let doc = vscode_languageserver_textdocument_1.TextDocument.create('file:///1', '', 0, document.getDocumentContent());
+        return doc.offsetAt(pos);
     }
     /**
      * Apply WorkspaceEdit.
@@ -24565,11 +24567,6 @@ class Workspace {
     async applyEdit(edit) {
         let { nvim } = this;
         let { documentChanges, changes } = edit;
-        if (documentChanges) {
-            documentChanges = this.mergeDocumentChanges(documentChanges);
-            if (!this.validteDocumentChanges(documentChanges))
-                return false;
-        }
         let [bufnr, cursor] = await nvim.eval('[bufnr("%"),coc#util#cursor()]');
         let document = this.getDocument(bufnr);
         let uri = document ? document.uri : null;
@@ -24580,22 +24577,22 @@ class Workspace {
         let promptUser = !global.hasOwnProperty('__TEST__') && preferences.get('promptWorkspaceEdit', true);
         try {
             if (documentChanges && documentChanges.length) {
-                changeCount = documentChanges.length;
+                let changedUris = this.getChangedUris(documentChanges);
+                changeCount = changedUris.length;
                 if (promptUser) {
-                    let count = 0;
-                    for (let c of documentChanges) {
-                        if (index_1.isDocumentEdit(c)) {
-                            if (this.getDocument(c.textDocument.uri) == null) {
-                                count = count + 1;
-                            }
+                    let diskCount = 0;
+                    for (let uri of changedUris) {
+                        if (!this.getDocument(uri)) {
+                            diskCount = diskCount + 1;
                         }
                     }
-                    if (count) {
-                        let res = await this.showPrompt(`${count} documents on disk would be loaded for change, confirm?`);
+                    if (diskCount) {
+                        let res = await this.showPrompt(`${diskCount} documents on disk would be loaded for change, confirm?`);
                         if (!res)
                             return;
                     }
                 }
+                let changedMap = new Map();
                 for (let change of documentChanges) {
                     if (index_1.isDocumentEdit(change)) {
                         let { textDocument, edits } = change;
@@ -24612,11 +24609,20 @@ class Workspace {
                         await this.createFile(file, change.options);
                     }
                     else if (vscode_languageserver_protocol_1.RenameFile.is(change)) {
+                        changedMap.set(change.oldUri, change.newUri);
                         await this.renameFile(vscode_uri_1.URI.parse(change.oldUri).fsPath, vscode_uri_1.URI.parse(change.newUri).fsPath, change.options);
                     }
                     else if (vscode_languageserver_protocol_1.DeleteFile.is(change)) {
                         await this.deleteFile(vscode_uri_1.URI.parse(change.uri).fsPath, change.options);
                     }
+                }
+                // fix location uris on renameFile
+                if (changedMap.size) {
+                    locations.forEach(location => {
+                        let newUri = changedMap.get(location.uri);
+                        if (newUri)
+                            location.uri = newUri;
+                    });
                 }
             }
             else if (changes) {
@@ -24660,7 +24666,7 @@ class Workspace {
         }
         catch (e) {
             logger.error(e);
-            this.showMessage(`Error on applyEdits: ${e}`, 'error');
+            this.showMessage(`Error on applyEdits: ${e.message}`, 'error');
             return false;
         }
         await index_1.wait(50);
@@ -25065,25 +25071,51 @@ class Workspace {
      */
     async renameFile(oldPath, newPath, opts = {}) {
         let { overwrite, ignoreIfExists } = opts;
-        let stat = await fs_2.statAsync(newPath);
-        if (stat && !overwrite && !ignoreIfExists) {
-            this.showMessage(`${newPath} already exists`, 'error');
-            return;
-        }
-        if (!stat || overwrite) {
-            try {
-                await fs_2.renameAsync(oldPath, newPath);
+        let { nvim } = this;
+        try {
+            let stat = await fs_2.statAsync(newPath);
+            if (stat && !overwrite && !ignoreIfExists) {
+                throw new Error(`${newPath} already exists`);
+            }
+            if (!stat || overwrite) {
                 let uri = vscode_uri_1.URI.file(oldPath).toString();
+                let newUri = vscode_uri_1.URI.file(newPath).toString();
                 let doc = this.getDocument(uri);
+                let isCurrent = doc.bufnr == this.bufnr;
+                let content;
+                let encoding;
                 if (doc) {
-                    await doc.buffer.setName(newPath);
-                    // avoid cancel by unload
-                    await this.onBufCreate(doc.bufnr);
+                    content = doc.getDocumentContent();
+                    encoding = await doc.buffer.getOption('fileencoding');
+                    await nvim.command(`silent! ${doc.bufnr}bwipeout`);
+                }
+                let newDoc = this.getDocument(newUri);
+                if (newDoc) {
+                    await this.nvim.command(`silent! ${newDoc.bufnr}bwipeout`);
+                }
+                if (content) {
+                    await util_1.default.promisify(fs_1.default.unlink)(oldPath);
+                    await util_1.default.promisify(fs_1.default.writeFile)(newPath, content, { encoding });
+                }
+                else {
+                    await fs_2.renameAsync(oldPath, newPath);
+                }
+                if (doc) {
+                    if (!isCurrent) {
+                        await nvim.call('coc#util#open_files', [[newPath]]);
+                    }
+                    else {
+                        let view = await nvim.call('winsaveview');
+                        nvim.pauseNotification();
+                        nvim.call('coc#util#open_file', ['edit', newPath], true);
+                        nvim.call('winrestview', [view], true);
+                        await nvim.resumeNotification();
+                    }
                 }
             }
-            catch (e) {
-                this.showMessage(`Rename error ${e.message}`, 'error');
-            }
+        }
+        catch (e) {
+            this.showMessage(`Rename error: ${e.message}`, 'error');
         }
     }
     /**
@@ -25463,42 +25495,55 @@ augroup end`;
         let winid = await this.nvim.call('win_getid');
         await events_1.default.fire('BufWinEnter', [bufnr, winid]);
     }
-    validteDocumentChanges(documentChanges) {
-        if (!documentChanges)
-            return true;
+    // count of document need change
+    getChangedUris(documentChanges) {
+        let uris = new Set();
+        let newUris = new Set();
         for (let change of documentChanges) {
             if (index_1.isDocumentEdit(change)) {
                 let { textDocument } = change;
                 let { uri, version } = textDocument;
-                let doc = this.getDocument(uri);
-                if (version && !doc) {
-                    this.showMessage(`${uri} not opened.`, 'error');
-                    return false;
+                if (!newUris.has(uri)) {
+                    uris.add(uri);
                 }
-                if (version && doc.version != version) {
-                    this.showMessage(`${uri} changed before apply edit`, 'error');
-                    return false;
-                }
-                if (!version && !doc) {
-                    if (!uri.startsWith('file')) {
-                        this.showMessage(`Can't apply edits to ${uri}.`, 'error');
-                        return false;
+                if (version != null) {
+                    let doc = this.getDocument(uri);
+                    if (!doc) {
+                        throw new Error(`${uri} not loaded`);
                     }
-                    let exists = fs_1.default.existsSync(vscode_uri_1.URI.parse(uri).fsPath);
-                    if (!exists) {
-                        this.showMessage(`File ${uri} not exists.`, 'error');
-                        return false;
+                    if (doc.version != version) {
+                        throw new Error(`${uri} changed before apply edit`);
+                    }
+                }
+                else if (fs_2.isFile(uri) && !this.getDocument(uri)) {
+                    let file = vscode_uri_1.URI.parse(uri).fsPath;
+                    if (!fs_1.default.existsSync(file)) {
+                        throw new Error(`file "${file}" not exists`);
                     }
                 }
             }
             else if (vscode_languageserver_protocol_1.CreateFile.is(change) || vscode_languageserver_protocol_1.DeleteFile.is(change)) {
                 if (!fs_2.isFile(change.uri)) {
-                    this.showMessage(`Chagne of scheme ${change.uri} not supported`, 'error');
-                    return false;
+                    throw new Error(`change of scheme ${change.uri} not supported`);
                 }
+                uris.add(change.uri);
+            }
+            else if (vscode_languageserver_protocol_1.RenameFile.is(change)) {
+                if (!fs_2.isFile(change.oldUri) || !fs_2.isFile(change.newUri)) {
+                    throw new Error(`change of scheme ${change.oldUri} not supported`);
+                }
+                let newFile = vscode_uri_1.URI.parse(change.newUri).fsPath;
+                if (fs_1.default.existsSync(newFile)) {
+                    throw new Error(`file "${newFile}" already exists for rename`);
+                }
+                uris.add(change.oldUri);
+                newUris.add(change.newUri);
+            }
+            else {
+                throw new Error(`Invalid document change: ${JSON.stringify(change, null, 2)}`);
             }
         }
-        return true;
+        return Array.from(uris);
     }
     createConfigurations() {
         let home = process.env.COC_VIMCONFIG || path_1.default.join(os_1.default.homedir(), '.vim');
@@ -25714,7 +25759,7 @@ augroup end`;
             fs_1.default.renameSync(oldPath, newPath);
         }
         let filepath = fs_2.isParentFolder(cwd, newPath) ? path_1.default.relative(cwd, newPath) : newPath;
-        let cursor = await nvim.call('getcurpos');
+        let view = await nvim.call('winsaveview');
         nvim.pauseNotification();
         if (oldPath.toLowerCase() == newPath.toLowerCase()) {
             nvim.command(`keepalt ${bufnr}bwipeout!`, true);
@@ -25728,7 +25773,7 @@ augroup end`;
             nvim.call('append', [0, lines], true);
             nvim.command('normal! Gdd', true);
         }
-        nvim.call('setpos', ['.', cursor], true);
+        nvim.call('winrestview', [view], true);
         await nvim.resumeNotification();
     }
     setMessageLevel() {
@@ -25744,27 +25789,6 @@ augroup end`;
             default:
                 this.messageLevel = types_1.MessageLevel.More;
         }
-    }
-    mergeDocumentChanges(changes) {
-        let res = [];
-        let documentEdits = [];
-        for (let change of changes) {
-            if (index_1.isDocumentEdit(change)) {
-                let { edits, textDocument } = change;
-                let documentEdit = documentEdits.find(o => o.textDocument.uri == textDocument.uri && o.textDocument.version === textDocument.version);
-                if (documentEdit) {
-                    documentEdit.edits.push(...edits);
-                }
-                else {
-                    documentEdits.push(change);
-                }
-            }
-            else {
-                res.push(change);
-            }
-        }
-        res.push(...documentEdits);
-        return res;
     }
     get folderPaths() {
         return this.workspaceFolders.map(f => vscode_uri_1.URI.parse(f.uri).fsPath);
@@ -26026,6 +26050,284 @@ function parse(val) {
 
 /***/ }),
 /* 196 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "TextDocument", function() { return TextDocument; });
+/* --------------------------------------------------------------------------------------------
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License. See License.txt in the project root for license information.
+ * ------------------------------------------------------------------------------------------ */
+
+var FullTextDocument = /** @class */ (function () {
+    function FullTextDocument(uri, languageId, version, content) {
+        this._uri = uri;
+        this._languageId = languageId;
+        this._version = version;
+        this._content = content;
+        this._lineOffsets = undefined;
+    }
+    Object.defineProperty(FullTextDocument.prototype, "uri", {
+        get: function () {
+            return this._uri;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(FullTextDocument.prototype, "languageId", {
+        get: function () {
+            return this._languageId;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(FullTextDocument.prototype, "version", {
+        get: function () {
+            return this._version;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    FullTextDocument.prototype.getText = function (range) {
+        if (range) {
+            var start = this.offsetAt(range.start);
+            var end = this.offsetAt(range.end);
+            return this._content.substring(start, end);
+        }
+        return this._content;
+    };
+    FullTextDocument.prototype.update = function (changes, version) {
+        for (var _i = 0, changes_1 = changes; _i < changes_1.length; _i++) {
+            var change = changes_1[_i];
+            if (FullTextDocument.isIncremental(change)) {
+                // makes sure start is before end
+                var range = getWellformedRange(change.range);
+                // update content
+                var startOffset = this.offsetAt(range.start);
+                var endOffset = this.offsetAt(range.end);
+                this._content = this._content.substring(0, startOffset) + change.text + this._content.substring(endOffset, this._content.length);
+                // update the offsets
+                var startLine = Math.max(range.start.line, 0);
+                var endLine = Math.max(range.end.line, 0);
+                var lineOffsets = this._lineOffsets;
+                var addedLineOffsets = computeLineOffsets(change.text, false, startOffset);
+                if (endLine - startLine === addedLineOffsets.length) {
+                    for (var i = 0, len = addedLineOffsets.length; i < len; i++) {
+                        lineOffsets[i + startLine + 1] = addedLineOffsets[i];
+                    }
+                }
+                else {
+                    if (addedLineOffsets.length < 10000) {
+                        lineOffsets.splice.apply(lineOffsets, [startLine + 1, endLine - startLine].concat(addedLineOffsets));
+                    }
+                    else { // avoid too many arguments for splice
+                        this._lineOffsets = lineOffsets = lineOffsets.slice(0, startLine + 1).concat(addedLineOffsets, lineOffsets.slice(endLine + 1));
+                    }
+                }
+                var diff = change.text.length - (endOffset - startOffset);
+                if (diff !== 0) {
+                    for (var i = startLine + 1 + addedLineOffsets.length, len = lineOffsets.length; i < len; i++) {
+                        lineOffsets[i] = lineOffsets[i] + diff;
+                    }
+                }
+            }
+            else if (FullTextDocument.isFull(change)) {
+                this._content = change.text;
+                this._lineOffsets = undefined;
+            }
+            else {
+                throw new Error('Unknown change event received');
+            }
+        }
+        this._version = version;
+    };
+    FullTextDocument.prototype.getLineOffsets = function () {
+        if (this._lineOffsets === undefined) {
+            this._lineOffsets = computeLineOffsets(this._content, true);
+        }
+        return this._lineOffsets;
+    };
+    FullTextDocument.prototype.positionAt = function (offset) {
+        offset = Math.max(Math.min(offset, this._content.length), 0);
+        var lineOffsets = this.getLineOffsets();
+        var low = 0, high = lineOffsets.length;
+        if (high === 0) {
+            return { line: 0, character: offset };
+        }
+        while (low < high) {
+            var mid = Math.floor((low + high) / 2);
+            if (lineOffsets[mid] > offset) {
+                high = mid;
+            }
+            else {
+                low = mid + 1;
+            }
+        }
+        // low is the least x for which the line offset is larger than the current offset
+        // or array.length if no line offset is larger than the current offset
+        var line = low - 1;
+        return { line: line, character: offset - lineOffsets[line] };
+    };
+    FullTextDocument.prototype.offsetAt = function (position) {
+        var lineOffsets = this.getLineOffsets();
+        if (position.line >= lineOffsets.length) {
+            return this._content.length;
+        }
+        else if (position.line < 0) {
+            return 0;
+        }
+        var lineOffset = lineOffsets[position.line];
+        var nextLineOffset = (position.line + 1 < lineOffsets.length) ? lineOffsets[position.line + 1] : this._content.length;
+        return Math.max(Math.min(lineOffset + position.character, nextLineOffset), lineOffset);
+    };
+    Object.defineProperty(FullTextDocument.prototype, "lineCount", {
+        get: function () {
+            return this.getLineOffsets().length;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    FullTextDocument.isIncremental = function (event) {
+        var candidate = event;
+        return candidate !== undefined && candidate !== null &&
+            typeof candidate.text === 'string' && candidate.range !== undefined &&
+            (candidate.rangeLength === undefined || typeof candidate.rangeLength === 'number');
+    };
+    FullTextDocument.isFull = function (event) {
+        var candidate = event;
+        return candidate !== undefined && candidate !== null &&
+            typeof candidate.text === 'string' && candidate.range === undefined && candidate.rangeLength === undefined;
+    };
+    return FullTextDocument;
+}());
+var TextDocument;
+(function (TextDocument) {
+    /**
+     * Creates a new text document.
+     *
+     * @param uri The document's uri.
+     * @param languageId  The document's language Id.
+     * @param version The document's initial version number.
+     * @param content The document's content.
+     */
+    function create(uri, languageId, version, content) {
+        return new FullTextDocument(uri, languageId, version, content);
+    }
+    TextDocument.create = create;
+    /**
+     * Updates a TextDocument by modifing its content.
+     *
+     * @param document the document to update. Only documents created by TextDocument.create are valid inputs.
+     * @param changes the changes to apply to the document.
+     * @returns The updated TextDocument. Note: That's the same document instance passed in as first parameter.
+     *
+     */
+    function update(document, changes, version) {
+        if (document instanceof FullTextDocument) {
+            document.update(changes, version);
+            return document;
+        }
+        else {
+            throw new Error('TextDocument.update: document must be created by TextDocument.create');
+        }
+    }
+    TextDocument.update = update;
+    function applyEdits(document, edits) {
+        var text = document.getText();
+        var sortedEdits = mergeSort(edits.map(getWellformedEdit), function (a, b) {
+            var diff = a.range.start.line - b.range.start.line;
+            if (diff === 0) {
+                return a.range.start.character - b.range.start.character;
+            }
+            return diff;
+        });
+        var lastModifiedOffset = 0;
+        var spans = [];
+        for (var _i = 0, sortedEdits_1 = sortedEdits; _i < sortedEdits_1.length; _i++) {
+            var e = sortedEdits_1[_i];
+            var startOffset = document.offsetAt(e.range.start);
+            if (startOffset < lastModifiedOffset) {
+                throw new Error('Overlapping edit');
+            }
+            else if (startOffset > lastModifiedOffset) {
+                spans.push(text.substring(lastModifiedOffset, startOffset));
+            }
+            if (e.newText.length) {
+                spans.push(e.newText);
+            }
+            lastModifiedOffset = document.offsetAt(e.range.end);
+        }
+        spans.push(text.substr(lastModifiedOffset));
+        return spans.join('');
+    }
+    TextDocument.applyEdits = applyEdits;
+})(TextDocument || (TextDocument = {}));
+function mergeSort(data, compare) {
+    if (data.length <= 1) {
+        // sorted
+        return data;
+    }
+    var p = (data.length / 2) | 0;
+    var left = data.slice(0, p);
+    var right = data.slice(p);
+    mergeSort(left, compare);
+    mergeSort(right, compare);
+    var leftIdx = 0;
+    var rightIdx = 0;
+    var i = 0;
+    while (leftIdx < left.length && rightIdx < right.length) {
+        var ret = compare(left[leftIdx], right[rightIdx]);
+        if (ret <= 0) {
+            // smaller_equal -> take left to preserve order
+            data[i++] = left[leftIdx++];
+        }
+        else {
+            // greater -> take right
+            data[i++] = right[rightIdx++];
+        }
+    }
+    while (leftIdx < left.length) {
+        data[i++] = left[leftIdx++];
+    }
+    while (rightIdx < right.length) {
+        data[i++] = right[rightIdx++];
+    }
+    return data;
+}
+function computeLineOffsets(text, isAtLineStart, textOffset) {
+    if (textOffset === void 0) { textOffset = 0; }
+    var result = isAtLineStart ? [textOffset] : [];
+    for (var i = 0; i < text.length; i++) {
+        var ch = text.charCodeAt(i);
+        if (ch === 13 /* CarriageReturn */ || ch === 10 /* LineFeed */) {
+            if (ch === 13 /* CarriageReturn */ && i + 1 < text.length && text.charCodeAt(i + 1) === 10 /* LineFeed */) {
+                i++;
+            }
+            result.push(textOffset + i + 1);
+        }
+    }
+    return result;
+}
+function getWellformedRange(range) {
+    var start = range.start;
+    var end = range.end;
+    if (start.line > end.line || (start.line === end.line && start.character > end.character)) {
+        return { start: end, end: start };
+    }
+    return range;
+}
+function getWellformedEdit(textEdit) {
+    var range = getWellformedRange(textEdit.range);
+    if (range !== textEdit.range) {
+        return { newText: textEdit.newText, range: range };
+    }
+    return textEdit;
+}
+
+
+/***/ }),
+/* 197 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -26037,13 +26339,13 @@ const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
 const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const vscode_uri_1 = __webpack_require__(183);
-const types_1 = __webpack_require__(197);
-const object_1 = __webpack_require__(198);
+const types_1 = __webpack_require__(198);
+const object_1 = __webpack_require__(199);
 const util_1 = __webpack_require__(177);
-const configuration_1 = __webpack_require__(200);
-const model_1 = __webpack_require__(201);
-const util_2 = __webpack_require__(202);
-const is_1 = __webpack_require__(199);
+const configuration_1 = __webpack_require__(201);
+const model_1 = __webpack_require__(202);
+const util_2 = __webpack_require__(203);
+const is_1 = __webpack_require__(200);
 const fs_2 = __webpack_require__(209);
 const logger = __webpack_require__(2)('configurations');
 function lookUp(tree, key) {
@@ -26365,7 +26667,7 @@ exports.default = Configurations;
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 197 */
+/* 198 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -26413,14 +26715,14 @@ var ServiceStat;
 //# sourceMappingURL=types.js.map
 
 /***/ }),
-/* 198 */
+/* 199 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const Is = tslib_1.__importStar(__webpack_require__(199));
+const Is = tslib_1.__importStar(__webpack_require__(200));
 function deepClone(obj) {
     if (!obj || typeof obj !== 'object') {
         return obj;
@@ -26547,7 +26849,7 @@ exports.equals = equals;
 //# sourceMappingURL=object.js.map
 
 /***/ }),
-/* 199 */
+/* 200 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -26601,13 +26903,13 @@ exports.typedArray = typedArray;
 //# sourceMappingURL=is.js.map
 
 /***/ }),
-/* 200 */
+/* 201 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const model_1 = __webpack_require__(201);
+const model_1 = __webpack_require__(202);
 class Configuration {
     constructor(_defaultConfiguration, _userConfiguration, _workspaceConfiguration, _memoryConfiguration = new model_1.ConfigurationModel()) {
         this._defaultConfiguration = _defaultConfiguration;
@@ -26664,15 +26966,15 @@ exports.Configuration = Configuration;
 //# sourceMappingURL=configuration.js.map
 
 /***/ }),
-/* 201 */
+/* 202 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const is_1 = __webpack_require__(199);
-const object_1 = __webpack_require__(198);
-const util_1 = __webpack_require__(202);
+const is_1 = __webpack_require__(200);
+const object_1 = __webpack_require__(199);
+const util_1 = __webpack_require__(203);
 class ConfigurationModel {
     constructor(_contents = {}) {
         this._contents = _contents;
@@ -26728,7 +27030,7 @@ exports.ConfigurationModel = ConfigurationModel;
 //# sourceMappingURL=model.js.map
 
 /***/ }),
-/* 202 */
+/* 203 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -26736,10 +27038,10 @@ exports.ConfigurationModel = ConfigurationModel;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(150);
-const vscode_languageserver_textdocument_1 = __webpack_require__(203);
+const vscode_languageserver_textdocument_1 = __webpack_require__(196);
 const jsonc_parser_1 = __webpack_require__(204);
-const is_1 = __webpack_require__(199);
-const object_1 = __webpack_require__(198);
+const is_1 = __webpack_require__(200);
+const object_1 = __webpack_require__(199);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
 const vscode_uri_1 = __webpack_require__(183);
 const path_1 = tslib_1.__importDefault(__webpack_require__(20));
@@ -26993,284 +27295,6 @@ function getChangedKeys(from, to) {
 }
 exports.getChangedKeys = getChangedKeys;
 //# sourceMappingURL=util.js.map
-
-/***/ }),
-/* 203 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "TextDocument", function() { return TextDocument; });
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-
-var FullTextDocument = /** @class */ (function () {
-    function FullTextDocument(uri, languageId, version, content) {
-        this._uri = uri;
-        this._languageId = languageId;
-        this._version = version;
-        this._content = content;
-        this._lineOffsets = undefined;
-    }
-    Object.defineProperty(FullTextDocument.prototype, "uri", {
-        get: function () {
-            return this._uri;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(FullTextDocument.prototype, "languageId", {
-        get: function () {
-            return this._languageId;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(FullTextDocument.prototype, "version", {
-        get: function () {
-            return this._version;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    FullTextDocument.prototype.getText = function (range) {
-        if (range) {
-            var start = this.offsetAt(range.start);
-            var end = this.offsetAt(range.end);
-            return this._content.substring(start, end);
-        }
-        return this._content;
-    };
-    FullTextDocument.prototype.update = function (changes, version) {
-        for (var _i = 0, changes_1 = changes; _i < changes_1.length; _i++) {
-            var change = changes_1[_i];
-            if (FullTextDocument.isIncremental(change)) {
-                // makes sure start is before end
-                var range = getWellformedRange(change.range);
-                // update content
-                var startOffset = this.offsetAt(range.start);
-                var endOffset = this.offsetAt(range.end);
-                this._content = this._content.substring(0, startOffset) + change.text + this._content.substring(endOffset, this._content.length);
-                // update the offsets
-                var startLine = Math.max(range.start.line, 0);
-                var endLine = Math.max(range.end.line, 0);
-                var lineOffsets = this._lineOffsets;
-                var addedLineOffsets = computeLineOffsets(change.text, false, startOffset);
-                if (endLine - startLine === addedLineOffsets.length) {
-                    for (var i = 0, len = addedLineOffsets.length; i < len; i++) {
-                        lineOffsets[i + startLine + 1] = addedLineOffsets[i];
-                    }
-                }
-                else {
-                    if (addedLineOffsets.length < 10000) {
-                        lineOffsets.splice.apply(lineOffsets, [startLine + 1, endLine - startLine].concat(addedLineOffsets));
-                    }
-                    else { // avoid too many arguments for splice
-                        this._lineOffsets = lineOffsets = lineOffsets.slice(0, startLine + 1).concat(addedLineOffsets, lineOffsets.slice(endLine + 1));
-                    }
-                }
-                var diff = change.text.length - (endOffset - startOffset);
-                if (diff !== 0) {
-                    for (var i = startLine + 1 + addedLineOffsets.length, len = lineOffsets.length; i < len; i++) {
-                        lineOffsets[i] = lineOffsets[i] + diff;
-                    }
-                }
-            }
-            else if (FullTextDocument.isFull(change)) {
-                this._content = change.text;
-                this._lineOffsets = undefined;
-            }
-            else {
-                throw new Error('Unknown change event received');
-            }
-        }
-        this._version = version;
-    };
-    FullTextDocument.prototype.getLineOffsets = function () {
-        if (this._lineOffsets === undefined) {
-            this._lineOffsets = computeLineOffsets(this._content, true);
-        }
-        return this._lineOffsets;
-    };
-    FullTextDocument.prototype.positionAt = function (offset) {
-        offset = Math.max(Math.min(offset, this._content.length), 0);
-        var lineOffsets = this.getLineOffsets();
-        var low = 0, high = lineOffsets.length;
-        if (high === 0) {
-            return { line: 0, character: offset };
-        }
-        while (low < high) {
-            var mid = Math.floor((low + high) / 2);
-            if (lineOffsets[mid] > offset) {
-                high = mid;
-            }
-            else {
-                low = mid + 1;
-            }
-        }
-        // low is the least x for which the line offset is larger than the current offset
-        // or array.length if no line offset is larger than the current offset
-        var line = low - 1;
-        return { line: line, character: offset - lineOffsets[line] };
-    };
-    FullTextDocument.prototype.offsetAt = function (position) {
-        var lineOffsets = this.getLineOffsets();
-        if (position.line >= lineOffsets.length) {
-            return this._content.length;
-        }
-        else if (position.line < 0) {
-            return 0;
-        }
-        var lineOffset = lineOffsets[position.line];
-        var nextLineOffset = (position.line + 1 < lineOffsets.length) ? lineOffsets[position.line + 1] : this._content.length;
-        return Math.max(Math.min(lineOffset + position.character, nextLineOffset), lineOffset);
-    };
-    Object.defineProperty(FullTextDocument.prototype, "lineCount", {
-        get: function () {
-            return this.getLineOffsets().length;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    FullTextDocument.isIncremental = function (event) {
-        var candidate = event;
-        return candidate !== undefined && candidate !== null &&
-            typeof candidate.text === 'string' && candidate.range !== undefined &&
-            (candidate.rangeLength === undefined || typeof candidate.rangeLength === 'number');
-    };
-    FullTextDocument.isFull = function (event) {
-        var candidate = event;
-        return candidate !== undefined && candidate !== null &&
-            typeof candidate.text === 'string' && candidate.range === undefined && candidate.rangeLength === undefined;
-    };
-    return FullTextDocument;
-}());
-var TextDocument;
-(function (TextDocument) {
-    /**
-     * Creates a new text document.
-     *
-     * @param uri The document's uri.
-     * @param languageId  The document's language Id.
-     * @param version The document's initial version number.
-     * @param content The document's content.
-     */
-    function create(uri, languageId, version, content) {
-        return new FullTextDocument(uri, languageId, version, content);
-    }
-    TextDocument.create = create;
-    /**
-     * Updates a TextDocument by modifing its content.
-     *
-     * @param document the document to update. Only documents created by TextDocument.create are valid inputs.
-     * @param changes the changes to apply to the document.
-     * @returns The updated TextDocument. Note: That's the same document instance passed in as first parameter.
-     *
-     */
-    function update(document, changes, version) {
-        if (document instanceof FullTextDocument) {
-            document.update(changes, version);
-            return document;
-        }
-        else {
-            throw new Error('TextDocument.update: document must be created by TextDocument.create');
-        }
-    }
-    TextDocument.update = update;
-    function applyEdits(document, edits) {
-        var text = document.getText();
-        var sortedEdits = mergeSort(edits.map(getWellformedEdit), function (a, b) {
-            var diff = a.range.start.line - b.range.start.line;
-            if (diff === 0) {
-                return a.range.start.character - b.range.start.character;
-            }
-            return diff;
-        });
-        var lastModifiedOffset = 0;
-        var spans = [];
-        for (var _i = 0, sortedEdits_1 = sortedEdits; _i < sortedEdits_1.length; _i++) {
-            var e = sortedEdits_1[_i];
-            var startOffset = document.offsetAt(e.range.start);
-            if (startOffset < lastModifiedOffset) {
-                throw new Error('Overlapping edit');
-            }
-            else if (startOffset > lastModifiedOffset) {
-                spans.push(text.substring(lastModifiedOffset, startOffset));
-            }
-            if (e.newText.length) {
-                spans.push(e.newText);
-            }
-            lastModifiedOffset = document.offsetAt(e.range.end);
-        }
-        spans.push(text.substr(lastModifiedOffset));
-        return spans.join('');
-    }
-    TextDocument.applyEdits = applyEdits;
-})(TextDocument || (TextDocument = {}));
-function mergeSort(data, compare) {
-    if (data.length <= 1) {
-        // sorted
-        return data;
-    }
-    var p = (data.length / 2) | 0;
-    var left = data.slice(0, p);
-    var right = data.slice(p);
-    mergeSort(left, compare);
-    mergeSort(right, compare);
-    var leftIdx = 0;
-    var rightIdx = 0;
-    var i = 0;
-    while (leftIdx < left.length && rightIdx < right.length) {
-        var ret = compare(left[leftIdx], right[rightIdx]);
-        if (ret <= 0) {
-            // smaller_equal -> take left to preserve order
-            data[i++] = left[leftIdx++];
-        }
-        else {
-            // greater -> take right
-            data[i++] = right[rightIdx++];
-        }
-    }
-    while (leftIdx < left.length) {
-        data[i++] = left[leftIdx++];
-    }
-    while (rightIdx < right.length) {
-        data[i++] = right[rightIdx++];
-    }
-    return data;
-}
-function computeLineOffsets(text, isAtLineStart, textOffset) {
-    if (textOffset === void 0) { textOffset = 0; }
-    var result = isAtLineStart ? [textOffset] : [];
-    for (var i = 0; i < text.length; i++) {
-        var ch = text.charCodeAt(i);
-        if (ch === 13 /* CarriageReturn */ || ch === 10 /* LineFeed */) {
-            if (ch === 13 /* CarriageReturn */ && i + 1 < text.length && text.charCodeAt(i + 1) === 10 /* LineFeed */) {
-                i++;
-            }
-            result.push(textOffset + i + 1);
-        }
-    }
-    return result;
-}
-function getWellformedRange(range) {
-    var start = range.start;
-    var end = range.end;
-    if (start.line > end.line || (start.line === end.line && start.character > end.character)) {
-        return { start: end, end: start };
-    }
-    return range;
-}
-function getWellformedEdit(textEdit) {
-    var range = getWellformedRange(textEdit.range);
-    if (range !== textEdit.range) {
-        return { newText: textEdit.newText, range: range };
-    }
-    return textEdit;
-}
-
 
 /***/ }),
 /* 204 */
@@ -29014,7 +29038,7 @@ function readFileLine(fullpath, count) {
 }
 exports.readFileLine = readFileLine;
 async function writeFile(fullpath, content) {
-    await util_1.default.promisify(fs_1.default.writeFile)(fullpath, content, { encoding: 'utf8', mode: 0o640 });
+    await util_1.default.promisify(fs_1.default.writeFile)(fullpath, content, { encoding: 'utf8' });
 }
 exports.writeFile = writeFile;
 function validSocket(path) {
@@ -30492,7 +30516,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(179));
 const vscode_languageserver_protocol_1 = __webpack_require__(150);
-const vscode_languageserver_textdocument_1 = __webpack_require__(203);
+const vscode_languageserver_textdocument_1 = __webpack_require__(196);
 const vscode_uri_1 = __webpack_require__(183);
 const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const diff_1 = __webpack_require__(217);
@@ -37547,7 +37571,7 @@ function onceStrict (fn) {
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_textdocument_1 = __webpack_require__(203);
+const vscode_languageserver_textdocument_1 = __webpack_require__(196);
 const logger = __webpack_require__(2)('snippets-parser');
 class Scanner {
     constructor() {
@@ -39536,7 +39560,7 @@ const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(258));
 const source_1 = tslib_1.__importDefault(__webpack_require__(423));
 const source_vim_1 = tslib_1.__importDefault(__webpack_require__(424));
-const types_1 = __webpack_require__(197);
+const types_1 = __webpack_require__(198);
 const util_2 = __webpack_require__(177);
 const fs_2 = __webpack_require__(209);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(194));
@@ -50533,7 +50557,7 @@ const follow_redirects_1 = __webpack_require__(274);
 const tunnel_1 = tslib_1.__importDefault(__webpack_require__(312));
 const url_1 = __webpack_require__(272);
 const zlib_1 = tslib_1.__importDefault(__webpack_require__(82));
-const is_1 = __webpack_require__(199);
+const is_1 = __webpack_require__(200);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(194));
 const logger = __webpack_require__(2)('model-fetch');
 function getAgent(endpoint) {
@@ -50973,7 +50997,7 @@ module.exports = require("tls");
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
-const object_1 = __webpack_require__(198);
+const object_1 = __webpack_require__(199);
 const logger = __webpack_require__(2)('model-memos');
 class Memos {
     constructor(filepath) {
@@ -51315,7 +51339,7 @@ const vscode_languageserver_protocol_1 = __webpack_require__(150);
 exports.Disposable = vscode_languageserver_protocol_1.Disposable;
 exports.Event = vscode_languageserver_protocol_1.Event;
 exports.Emitter = vscode_languageserver_protocol_1.Emitter;
-tslib_1.__exportStar(__webpack_require__(197), exports);
+tslib_1.__exportStar(__webpack_require__(198), exports);
 tslib_1.__exportStar(__webpack_require__(352), exports);
 var util_1 = __webpack_require__(177);
 exports.disposeAll = util_1.disposeAll;
@@ -51358,7 +51382,7 @@ const typeDefinitionManager_1 = tslib_1.__importDefault(__webpack_require__(343)
 const workspaceSymbolsManager_1 = tslib_1.__importDefault(__webpack_require__(344));
 const manager_2 = tslib_1.__importDefault(__webpack_require__(193));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(257));
-const types_1 = __webpack_require__(197);
+const types_1 = __webpack_require__(198);
 const util_1 = __webpack_require__(177);
 const complete = tslib_1.__importStar(__webpack_require__(345));
 const position_1 = __webpack_require__(222);
@@ -54084,7 +54108,7 @@ const net_1 = tslib_1.__importDefault(__webpack_require__(96));
 const os_1 = tslib_1.__importDefault(__webpack_require__(14));
 const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const language_client_1 = __webpack_require__(352);
-const types_1 = __webpack_require__(197);
+const types_1 = __webpack_require__(198);
 const util_1 = __webpack_require__(177);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(194));
 const logger = __webpack_require__(2)('services');
@@ -54573,9 +54597,9 @@ const os_1 = tslib_1.__importDefault(__webpack_require__(14));
 const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const which_1 = tslib_1.__importDefault(__webpack_require__(184));
-const types_1 = __webpack_require__(197);
+const types_1 = __webpack_require__(198);
 const util_1 = __webpack_require__(177);
-const Is = tslib_1.__importStar(__webpack_require__(199));
+const Is = tslib_1.__importStar(__webpack_require__(200));
 const processes_1 = __webpack_require__(348);
 const string_1 = __webpack_require__(219);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(194));
@@ -55053,7 +55077,7 @@ const vscode_uri_1 = __webpack_require__(183);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(190));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(322));
 const fs_1 = __webpack_require__(209);
-const Is = tslib_1.__importStar(__webpack_require__(199));
+const Is = tslib_1.__importStar(__webpack_require__(200));
 const lodash_1 = __webpack_require__(319);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(194));
 const progressPart_1 = tslib_1.__importDefault(__webpack_require__(354));
@@ -57400,12 +57424,12 @@ class BaseLanguageClient {
             return;
         }
         const separate = workspace_1.default.getConfiguration('diagnostic').get('separateRelatedInformationAsDiagnostics');
-        if (separate) {
+        if (separate && diagnostics.length > 0) {
             const entries = new Map();
             entries.set(uri, diagnostics);
             for (const diagnostic of diagnostics) {
                 if (diagnostic.relatedInformation) {
-                    let message = `${diagnostic.message}\n\nRelated diagnostics: (Run \`:CocCommand workspace.diagnosticRelated\` to jump)\n`;
+                    let message = `${diagnostic.message}\n\nRelated diagnostics:\n`;
                     for (const info of diagnostic.relatedInformation) {
                         const basename = path_1.default.basename(vscode_uri_1.URI.parse(info.location.uri).fsPath);
                         const ln = info.location.range.start.line;
@@ -66417,7 +66441,7 @@ function bestResult(results) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const types_1 = __webpack_require__(197);
+const types_1 = __webpack_require__(198);
 const string_1 = __webpack_require__(219);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(194));
 const logger = __webpack_require__(2)('model-source');
@@ -67766,7 +67790,7 @@ exports.default = createPopup;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(150);
-const vscode_languageserver_textdocument_1 = __webpack_require__(203);
+const vscode_languageserver_textdocument_1 = __webpack_require__(196);
 const position_1 = __webpack_require__(222);
 const Snippets = tslib_1.__importStar(__webpack_require__(254));
 const string_1 = __webpack_require__(219);
@@ -68060,7 +68084,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const callSequence_1 = tslib_1.__importDefault(__webpack_require__(435));
-const object_1 = __webpack_require__(198);
+const object_1 = __webpack_require__(199);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(194));
 const util_1 = __webpack_require__(436);
 const logger = __webpack_require__(2)('diagnostic-buffer');
@@ -68570,7 +68594,7 @@ const tslib_1 = __webpack_require__(3);
 const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(218));
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(179));
 const vscode_languageserver_types_1 = __webpack_require__(162);
-const vscode_languageserver_textdocument_1 = __webpack_require__(203);
+const vscode_languageserver_textdocument_1 = __webpack_require__(196);
 const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const util_1 = __webpack_require__(177);
 const array_1 = __webpack_require__(221);
@@ -69287,7 +69311,7 @@ const services_1 = tslib_1.__importDefault(__webpack_require__(351));
 const manager_3 = tslib_1.__importDefault(__webpack_require__(193));
 const util_1 = __webpack_require__(177);
 const convert_1 = __webpack_require__(413);
-const object_1 = __webpack_require__(198);
+const object_1 = __webpack_require__(199);
 const position_1 = __webpack_require__(222);
 const string_1 = __webpack_require__(219);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(194));
@@ -70878,7 +70902,7 @@ const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(322));
 const util_1 = __webpack_require__(177);
-const object_1 = __webpack_require__(198);
+const object_1 = __webpack_require__(199);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(194));
 const highlighter_1 = tslib_1.__importStar(__webpack_require__(443));
 const logger = __webpack_require__(2)('colors');
@@ -71082,7 +71106,7 @@ exports.default = Colors;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const array_1 = __webpack_require__(221);
-const object_1 = __webpack_require__(198);
+const object_1 = __webpack_require__(199);
 const position_1 = __webpack_require__(222);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(194));
 const logger = __webpack_require__(2)('highlighter');
@@ -71333,13 +71357,13 @@ const tslib_1 = __webpack_require__(3);
 const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(218));
 const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 const vscode_languageserver_types_1 = __webpack_require__(162);
-const vscode_languageserver_textdocument_1 = __webpack_require__(203);
+const vscode_languageserver_textdocument_1 = __webpack_require__(196);
 const vscode_uri_1 = __webpack_require__(183);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(190));
 const highligher_1 = tslib_1.__importDefault(__webpack_require__(349));
 const util_1 = __webpack_require__(177);
 const fs_1 = __webpack_require__(209);
-const object_1 = __webpack_require__(198);
+const object_1 = __webpack_require__(199);
 const string_1 = __webpack_require__(219);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(194));
 const logger = __webpack_require__(2)('refactor');
