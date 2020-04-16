@@ -10319,6 +10319,7 @@ const logger = __webpack_require__(2)('attach');
 const isTest = "none" == 'test';
 exports.default = (opts, requestApi = true) => {
     const nvim = neovim_1.attach(opts, log4js_1.default.getLogger('node-client'), requestApi);
+    const timeout = process.env.COC_CHANNEL_TIMEOUT ? parseInt(process.env.COC_CHANNEL_TIMEOUT, 10) : 30;
     // Overwriding the URI.file function in case of cygwin.
     nvim.eval('has("win32unix")?get(g:,"coc_cygqwin_path_prefixes", v:null):v:null').then(prefixes => {
         if (!prefixes)
@@ -10367,6 +10368,10 @@ exports.default = (opts, requestApi = true) => {
         }
     });
     nvim.on('request', async (method, args, resp) => {
+        let timer = setTimeout(() => {
+            logger.error(`Timeout on request "${method}": `, args);
+            resp.send(`request ${method} timeout after ${timeout}s`, true);
+        }, timeout * 1000);
         try {
             if (method == 'CocAutocmd') {
                 await events_1.default.fire(args[0], args.slice(1));
@@ -10382,8 +10387,10 @@ exports.default = (opts, requestApi = true) => {
                     resp.send(res);
                 }
             }
+            clearTimeout(timer);
         }
         catch (e) {
+            clearTimeout(timer);
             logger.error(`Error on "${method}": ` + e.stack);
             resp.send(e.message, true);
         }
@@ -15311,7 +15318,7 @@ class Events {
                 }));
             }
             catch (e) {
-                if (e.message && !e.message.startsWith('Timeout')) {
+                if (e.message) {
                     // tslint:disable-next-line: no-console
                     console.error(`Error on ${event}: ${e.message}${e.stack ? '\n' + e.stack : ''} `);
                 }
@@ -15331,20 +15338,16 @@ class Events {
         }
         else {
             let arr = this.handlers.get(event) || [];
-            let timeout = 2000;
+            let limit = 1000;
             arr.push(args => {
-                return new Promise((resolve, reject) => {
+                return new Promise(async (resolve, reject) => {
                     let timer = setTimeout(() => {
-                        reject(new Error(`Timeout handler of "${event}" after: ${timeout}ms`));
-                    }, timeout);
+                        logger.warn(`Handler of ${event} cost more than 1s`, handler.toString());
+                    }, limit);
                     try {
-                        Promise.resolve(handler.apply(thisArg || null, args)).then(() => {
-                            clearTimeout(timer);
-                            resolve();
-                        }, e => {
-                            clearTimeout(timer);
-                            reject(e);
-                        });
+                        await Promise.resolve(handler.apply(thisArg || null, args));
+                        clearTimeout(timer);
+                        resolve();
                     }
                     catch (e) {
                         clearTimeout(timer);
@@ -22473,7 +22476,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "70ed90155c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "a8861272ab" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -25087,11 +25090,11 @@ class Workspace {
                 if (doc) {
                     content = doc.getDocumentContent();
                     encoding = await doc.buffer.getOption('fileencoding');
-                    await nvim.command(`silent! ${doc.bufnr}bwipeout`);
+                    await nvim.command(`silent! ${doc.bufnr}bwipeout!`);
                 }
                 let newDoc = this.getDocument(newUri);
                 if (newDoc) {
-                    await this.nvim.command(`silent! ${newDoc.bufnr}bwipeout`);
+                    await this.nvim.command(`silent! ${newDoc.bufnr}bwipeout!`);
                 }
                 if (content) {
                     await util_1.default.promisify(fs_1.default.unlink)(oldPath);
@@ -25153,7 +25156,7 @@ class Workspace {
                 let uri = vscode_uri_1.URI.file(filepath).toString();
                 let doc = this.getDocument(uri);
                 if (doc)
-                    await this.nvim.command(`silent! bwipeout ${doc.bufnr}`);
+                    await this.nvim.command(`silent! bwipeout! ${doc.bufnr}`);
             }
         }
         catch (e) {
