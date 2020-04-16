@@ -986,33 +986,28 @@ export class Workspace implements IWorkspace {
         let newUri = URI.file(newPath).toString()
         let doc = this.getDocument(uri)
         let isCurrent = doc.bufnr == this.bufnr
-        let content: string
-        let encoding: string
-        if (doc) {
-          content = doc.getDocumentContent()
-          encoding = await doc.buffer.getOption('fileencoding') as string
-          await nvim.command(`silent! ${doc.bufnr}bwipeout!`)
-        }
         let newDoc = this.getDocument(newUri)
-        if (newDoc) {
-          await this.nvim.command(`silent! ${newDoc.bufnr}bwipeout!`)
-        }
-        if (content) {
-          await util.promisify(fs.unlink)(oldPath)
+        if (newDoc) await this.nvim.command(`silent ${newDoc.bufnr}bwipeout!`)
+        if (doc != null) {
+          let content = doc.getDocumentContent()
+          let encoding = await doc.buffer.getOption('fileencoding') as string
           await util.promisify(fs.writeFile)(newPath, content, { encoding })
-        } else {
-          await renameAsync(oldPath, newPath)
-        }
-        if (doc) {
+          // open renamed file
           if (!isCurrent) {
             await nvim.call('coc#util#open_files', [[newPath]])
+            await nvim.command(`silent ${doc.bufnr}bwipeout!`)
           } else {
             let view = await nvim.call('winsaveview')
             nvim.pauseNotification()
-            nvim.call('coc#util#open_file', ['edit', newPath], true)
+            nvim.call('coc#util#open_file', ['keepalt edit', newPath], true)
+            nvim.command(`silent ${doc.bufnr}bwipeout!`, true)
             nvim.call('winrestview', [view], true)
             await nvim.resumeNotification()
           }
+          // avoid vim detect file unlink
+          await util.promisify(fs.unlink)(oldPath)
+        } else {
+          await renameAsync(oldPath, newPath)
         }
       }
     } catch (e) {

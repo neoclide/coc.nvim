@@ -571,8 +571,8 @@ describe('workspace utility', () => {
   })
 
   it('should overwrite if file exists', async () => {
-    let filepath = path.join(__dirname, 'foo')
-    let newPath = path.join(__dirname, 'bar')
+    let filepath = path.join(os.tmpdir(), uuid())
+    let newPath = path.join(os.tmpdir(), uuid())
     await workspace.createFile(filepath)
     await workspace.createFile(newPath)
     await workspace.renameFile(filepath, newPath, { overwrite: true })
