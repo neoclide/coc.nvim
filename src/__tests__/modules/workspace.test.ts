@@ -11,6 +11,7 @@ import { ConfigurationTarget } from '../../types'
 import { disposeAll } from '../../util'
 import { readFile, writeFile } from '../../util/fs'
 import workspace from '../../workspace'
+import uuid from 'uuid/v4'
 import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
@@ -223,6 +224,50 @@ describe('workspace applyEdits', () => {
     let res = await workspace.applyEdit(workspaceEdit)
     expect(res).toBe(true)
     await workspace.deleteFile(newFile, { ignoreIfNotExists: true })
+  })
+
+  it('should support changes with edit and rename', async () => {
+    let file = await createTmpFile('test')
+    let doc = await helper.createDocument(file)
+    let newFile = path.join(os.tmpdir(), `coc-${process.pid}/${uuid()}`)
+    let newUri = URI.file(newFile).toString()
+    let edit: WorkspaceEdit = {
+      documentChanges: [
+        {
+          textDocument: {
+            version: null,
+            uri: doc.uri,
+          },
+          edits: [
+            {
+              range: {
+                start: {
+                  line: 0,
+                  character: 0
+                },
+                end: {
+                  line: 0,
+                  character: 4
+                }
+              },
+              newText: 'bar'
+            }
+          ]
+        },
+        {
+          oldUri: doc.uri,
+          newUri,
+          kind: 'rename'
+        }
+      ]
+    }
+    let res = await workspace.applyEdit(edit)
+    expect(res).toBe(true)
+    let curr = await workspace.document
+    expect(curr.uri).toBe(newUri)
+    expect(curr.getline(0)).toBe('bar')
+    let line = await nvim.line
+    expect(line).toBe('bar')
   })
 })
 

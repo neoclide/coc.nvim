@@ -489,10 +489,6 @@ export class Workspace implements IWorkspace {
   public async applyEdit(edit: WorkspaceEdit): Promise<boolean> {
     let { nvim } = this
     let { documentChanges, changes } = edit
-    if (documentChanges) {
-      documentChanges = this.mergeDocumentChanges(documentChanges)
-      if (!this.validteDocumentChanges(documentChanges)) return false
-    }
     let [bufnr, cursor] = await nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number]]
     let document = this.getDocument(bufnr)
     let uri = document ? document.uri : null
@@ -503,21 +499,19 @@ export class Workspace implements IWorkspace {
     let promptUser = !global.hasOwnProperty('__TEST__') && preferences.get<boolean>('promptWorkspaceEdit', true)
     try {
       if (documentChanges && documentChanges.length) {
-        changeCount = documentChanges.length
+        let changedUris = this.getChangedUris(documentChanges)
+        changeCount = changedUris.length
         if (promptUser) {
-          let count = 0
-          for (let c of documentChanges) {
-            if (isDocumentEdit(c)) {
-              if (this.getDocument((c as TextDocumentEdit).textDocument.uri) == null) {
-                count = count + 1
-              }
+          let diskCount = 0
+          for (let uri of changedUris) {
+            if (!this.getDocument(uri)) {
+              diskCount = diskCount + 1
             }
           }
-          if (count) {
-            let res = await this.showPrompt(`${count} documents on disk would be loaded for change, confirm?`)
-            if (!res) return
-          }
+          let res = await this.showPrompt(`${diskCount} documents on disk would be loaded for change, confirm?`)
+          if (!res) return
         }
+        let changedMap: Map<string, string> = new Map()
         for (let change of documentChanges) {
           if (isDocumentEdit(change)) {
             let { textDocument, edits } = change as TextDocumentEdit
@@ -531,10 +525,18 @@ export class Workspace implements IWorkspace {
             let file = URI.parse(change.uri).fsPath
             await this.createFile(file, change.options)
           } else if (RenameFile.is(change)) {
+            changedMap.set(change.oldUri, change.newUri)
             await this.renameFile(URI.parse(change.oldUri).fsPath, URI.parse(change.newUri).fsPath, change.options)
           } else if (DeleteFile.is(change)) {
             await this.deleteFile(URI.parse(change.uri).fsPath, change.options)
           }
+        }
+        // fix location uris on renameFile
+        if (changedMap.size) {
+          locations.forEach(location => {
+            let newUri = changedMap.get(location.uri)
+            if (newUri) location.uri = newUri
+          })
         }
       } else if (changes) {
         let uris = Object.keys(changes)
@@ -573,7 +575,7 @@ export class Workspace implements IWorkspace {
       }
     } catch (e) {
       logger.error(e)
-      this.showMessage(`Error on applyEdits: ${e}`, 'error')
+      this.showMessage(`Error on applyEdits: ${e.message}`, 'error')
       return false
     }
     await wait(50)
@@ -1371,41 +1373,47 @@ augroup end`
     await events.fire('BufWinEnter', [bufnr, winid])
   }
 
-  private validteDocumentChanges(documentChanges: any[] | null): boolean {
-    if (!documentChanges) return true
+  // count of document need change
+  private getChangedUris(documentChanges: any[] | null): string[] {
+    let uris: Set<string> = new Set()
+    let newUris: Set<string> = new Set()
     for (let change of documentChanges) {
       if (isDocumentEdit(change)) {
         let { textDocument } = change as TextDocumentEdit
         let { uri, version } = textDocument
-        let doc = this.getDocument(uri)
-        if (version && !doc) {
-          this.showMessage(`${uri} not opened.`, 'error')
-          return false
+        if (!newUris.has(uri)) {
+          uris.add(uri)
         }
-        if (version && doc.version != version) {
-          this.showMessage(`${uri} changed before apply edit`, 'error')
-          return false
-        }
-        if (!version && !doc) {
-          if (!uri.startsWith('file')) {
-            this.showMessage(`Can't apply edits to ${uri}.`, 'error')
-            return false
+        if (version != null) {
+          let doc = this.getDocument(uri)
+          if (!doc) {
+            throw new Error(`${uri} not loaded`)
           }
-          let exists = fs.existsSync(URI.parse(uri).fsPath)
-          if (!exists) {
-            this.showMessage(`File ${uri} not exists.`, 'error')
-            return false
+          if (doc.version != version) {
+            throw new Error(`${uri} changed before apply edit`)
+          }
+        } else if (isFile(uri) && !this.getDocument(uri)) {
+          let file = URI.parse(uri).fsPath
+          if (!fs.existsSync(file)) {
+            throw new Error(`file "${file}" not exists`)
           }
         }
-      }
-      else if (CreateFile.is(change) || DeleteFile.is(change)) {
+      } else if (CreateFile.is(change) || DeleteFile.is(change)) {
         if (!isFile(change.uri)) {
-          this.showMessage(`Chagne of scheme ${change.uri} not supported`, 'error')
-          return false
+          throw new Error(`change of scheme ${change.uri} not supported`)
         }
+        uris.add(change.uri)
+      } else if (RenameFile.is(change)) {
+        if (!isFile(change.oldUri) || !isFile(change.newUri)) {
+          throw new Error(`change of scheme ${change.oldUri} not supported`)
+        }
+        uris.add(change.oldUri)
+        newUris.add(change.newUri)
+      } else {
+        throw new Error(`Invalid document change: ${JSON.stringify(change, null, 2)}`)
       }
     }
-    return true
+    return Array.from(uris)
   }
 
   private createConfigurations(): Configurations {
@@ -1643,26 +1651,6 @@ augroup end`
       default:
         this.messageLevel = MessageLevel.More
     }
-  }
-
-  private mergeDocumentChanges(changes: (TextDocumentEdit | CreateFile | RenameFile | DeleteFile)[]): any[] {
-    let res: any[] = []
-    let documentEdits: TextDocumentEdit[] = []
-    for (let change of changes) {
-      if (isDocumentEdit(change)) {
-        let { edits, textDocument } = change as TextDocumentEdit
-        let documentEdit = documentEdits.find(o => o.textDocument.uri == textDocument.uri && o.textDocument.version === textDocument.version)
-        if (documentEdit) {
-          documentEdit.edits.push(...edits)
-        } else {
-          documentEdits.push(change as TextDocumentEdit)
-        }
-      } else {
-        res.push(change)
-      }
-    }
-    res.push(...documentEdits)
-    return res
   }
 
   public get folderPaths(): string[] {
