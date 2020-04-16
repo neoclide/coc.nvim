@@ -229,7 +229,7 @@ describe('workspace applyEdits', () => {
   it('should support changes with edit and rename', async () => {
     let file = await createTmpFile('test')
     let doc = await helper.createDocument(file)
-    let newFile = path.join(os.tmpdir(), `coc-${process.pid}/${uuid()}`)
+    let newFile = path.join(os.tmpdir(), `coc-${process.pid}/new-${uuid()}`)
     let newUri = URI.file(newFile).toString()
     let edit: WorkspaceEdit = {
       documentChanges: [
@@ -555,22 +555,19 @@ describe('workspace utility', () => {
     fs.unlinkSync(newPath)
   })
 
-  it('should rename buffer when necessary', async () => {
-    let dir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-workspace'))
-    let filepath = path.join(dir, 'old')
-    await writeFile(filepath, 'bar')
-    await nvim.call('coc#util#open_file', ['edit', filepath])
-    let uri = URI.file(filepath).toString()
-    await helper.wait(100)
+  it('should rename current buffer with another buffer', async () => {
+    let file = await createTmpFile('test')
+    let doc = await helper.createDocument(file)
+    await nvim.setLine('bar')
+    await helper.wait(50)
+    let newFile = path.join(os.tmpdir(), `coc-${process.pid}/new-${uuid()}`)
+    await workspace.renameFile(file, newFile)
+    let bufnr = await nvim.call('bufnr', ['%'])
+    expect(bufnr).toBeGreaterThan(doc.bufnr)
     let line = await nvim.line
     expect(line).toBe('bar')
-    let newFile = path.join(dir, 'new')
-    let newUri = URI.file(newFile).toString()
-    await workspace.renameFile(filepath, newFile, { overwrite: true })
-    let old = workspace.getDocument(uri)
-    expect(old).toBeNull()
-    let doc = workspace.getDocument(newUri)
-    expect(doc.uri).toBe(newUri)
+    let exists = fs.existsSync(newFile)
+    expect(exists).toBe(true)
   })
 
   it('should overwrite if file exists', async () => {

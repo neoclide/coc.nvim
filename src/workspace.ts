@@ -480,7 +480,8 @@ export class Workspace implements IWorkspace {
   public async getOffset(): Promise<number> {
     let document = await this.document
     let pos = await this.getCursorPosition()
-    return document.textDocument.offsetAt(pos)
+    let doc = TextDocument.create('file:///1', '', 0, document.getDocumentContent())
+    return doc.offsetAt(pos)
   }
 
   /**
@@ -508,8 +509,10 @@ export class Workspace implements IWorkspace {
               diskCount = diskCount + 1
             }
           }
-          let res = await this.showPrompt(`${diskCount} documents on disk would be loaded for change, confirm?`)
-          if (!res) return
+          if (diskCount) {
+            let res = await this.showPrompt(`${diskCount} documents on disk would be loaded for change, confirm?`)
+            if (!res) return
+          }
         }
         let changedMap: Map<string, string> = new Map()
         for (let change of documentChanges) {
@@ -972,24 +975,48 @@ export class Workspace implements IWorkspace {
    */
   public async renameFile(oldPath: string, newPath: string, opts: RenameFileOptions = {}): Promise<void> {
     let { overwrite, ignoreIfExists } = opts
-    let stat = await statAsync(newPath)
-    if (stat && !overwrite && !ignoreIfExists) {
-      this.showMessage(`${newPath} already exists`, 'error')
-      return
-    }
-    if (!stat || overwrite) {
-      try {
-        await renameAsync(oldPath, newPath)
-        let uri = URI.file(oldPath).toString()
-        let doc = this.getDocument(uri)
-        if (doc) {
-          await doc.buffer.setName(newPath)
-          // avoid cancel by unload
-          await this.onBufCreate(doc.bufnr)
-        }
-      } catch (e) {
-        this.showMessage(`Rename error ${e.message}`, 'error')
+    let { nvim } = this
+    try {
+      let stat = await statAsync(newPath)
+      if (stat && !overwrite && !ignoreIfExists) {
+        throw new Error(`${newPath} already exists`)
       }
+      if (!stat || overwrite) {
+        let uri = URI.file(oldPath).toString()
+        let newUri = URI.file(newPath).toString()
+        let doc = this.getDocument(uri)
+        let isCurrent = doc.bufnr == this.bufnr
+        let content: string
+        let encoding: string
+        if (doc) {
+          content = doc.getDocumentContent()
+          encoding = await doc.buffer.getOption('fileencoding') as string
+          await nvim.command(`silent! ${doc.bufnr}bwipeout`)
+        }
+        let newDoc = this.getDocument(newUri)
+        if (newDoc) {
+          await this.nvim.command(`silent! ${newDoc.bufnr}bwipeout`)
+        }
+        if (content) {
+          await util.promisify(fs.unlink)(oldPath)
+          await util.promisify(fs.writeFile)(newPath, content, { encoding })
+        } else {
+          await renameAsync(oldPath, newPath)
+        }
+        if (doc) {
+          if (!isCurrent) {
+            await nvim.call('coc#util#open_files', [[newPath]])
+          } else {
+            let view = await nvim.call('winsaveview')
+            nvim.pauseNotification()
+            nvim.call('coc#util#open_file', ['edit', newPath], true)
+            nvim.call('winrestview', [view], true)
+            await nvim.resumeNotification()
+          }
+        }
+      }
+    } catch (e) {
+      this.showMessage(`Rename error: ${e.message}`, 'error')
     }
   }
 
@@ -1407,6 +1434,10 @@ augroup end`
         if (!isFile(change.oldUri) || !isFile(change.newUri)) {
           throw new Error(`change of scheme ${change.oldUri} not supported`)
         }
+        let newFile = URI.parse(change.newUri).fsPath
+        if (fs.existsSync(newFile)) {
+          throw new Error(`file "${newFile}" already exists for rename`)
+        }
         uris.add(change.oldUri)
         newUris.add(change.newUri)
       } else {
@@ -1621,7 +1652,7 @@ augroup end`
       fs.renameSync(oldPath, newPath)
     }
     let filepath = isParentFolder(cwd, newPath) ? path.relative(cwd, newPath) : newPath
-    let cursor = await nvim.call('getcurpos')
+    let view = await nvim.call('winsaveview')
     nvim.pauseNotification()
     if (oldPath.toLowerCase() == newPath.toLowerCase()) {
       nvim.command(`keepalt ${bufnr}bwipeout!`, true)
@@ -1634,7 +1665,7 @@ augroup end`
       nvim.call('append', [0, lines], true)
       nvim.command('normal! Gdd', true)
     }
-    nvim.call('setpos', ['.', cursor], true)
+    nvim.call('winrestview', [view], true)
     await nvim.resumeNotification()
   }
 
