@@ -134,7 +134,7 @@ export default class Document {
     this.variables = opts.variables
     this._changedtick = opts.changedtick
     this.eol = opts.eol == 1
-    let config = workspace.getConfiguration(`coc.util.index`)
+    let config = workspace.getConfiguration(`coc.preferences`)
     let uri = this._uri = getUri(opts.fullpath, buffer.id, buftype, this.env.isCygwin, config.get('uriReplacePatterns', []))
     if (token.isCancellationRequested) return false
     try {
