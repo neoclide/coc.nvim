@@ -32,5 +32,5 @@ describe('register handler', () => {
     await events.fire('FocusGained', [])
     expect(Date.now() - ts).toBeLessThan(5100)
     disposable.dispose()
-  })
+  }, 10000)
 })
