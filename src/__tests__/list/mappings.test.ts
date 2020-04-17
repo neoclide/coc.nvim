@@ -1,4 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
+import clipboardy from 'clipboardy'
 import { CancellationToken } from 'vscode-jsonrpc'
 import BasicList from '../../list/basic'
 import manager from '../../list/manager'
@@ -585,7 +586,7 @@ describe('User mappings', () => {
     helper.updateConfiguration('list.insertMappings', {
       '<C-r>': 'prompt:paste',
     })
-    await nvim.command('let @* = "foo"')
+    await clipboardy.write('foo')
     await manager.start(['location'])
     await helper.wait(100)
     await nvim.eval(`feedkeys("\\<C-r>", "in")`)

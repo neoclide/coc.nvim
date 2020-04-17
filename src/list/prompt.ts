@@ -195,9 +195,6 @@ export default class Prompt {
   }
 
   public async paste(): Promise<void> {
-    if (global.hasOwnProperty('__TEST__')) {
-      return await this.eval('@*')
-    }
     let text = await clipboardy.read()
     text = text.replace(/\n/g, '')
     if (!text) return
