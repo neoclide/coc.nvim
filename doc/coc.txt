@@ -860,6 +860,14 @@ g:coc_channel_timeout				*g:coc_channel_timeout*
 
 			Default: 30
 
+g:coc_disable_transparent_cursor		*g:coc_disable_transparent_cursor*
+
+			Disable transparent cursor when CocList is activated.
+			Set it to `1` if you have issue with transparent
+			cursor.
+
+			Default: 0
+
 g:coc_last_hover_message			*g:coc_last_hover_message*
 
 			Last message echoed from `doHover`, can be used in

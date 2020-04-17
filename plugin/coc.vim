@@ -265,7 +265,9 @@ if has('nvim')
 else
   hi default link CocFloating Pmenu
 endif
-
+if has('nvim-0.5.0')
+  hi default CocCursorTransparent gui=strikethrough blend=100
+endif
 
 hi default link CocHoverRange     Search
 hi default link CocCursorRange    Search
