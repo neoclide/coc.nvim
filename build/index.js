@@ -10541,7 +10541,7 @@ class NeovimClient extends Neovim_1.Neovim {
         this.requestId = 1;
         this.responses = new Map();
         this.attachedBuffers = new Map();
-        this.pauseLevel = 0;
+        this.timers = new Map();
         Object.defineProperty(this, 'client', {
             value: this
         });
@@ -10580,6 +10580,9 @@ class NeovimClient extends Neovim_1.Neovim {
     }
     /* called when attach process disconnected*/
     detach() {
+        for (let timer of this.timers.values()) {
+            clearTimeout(timer);
+        }
         this.transport.detach();
         this.transportAttached = false;
     }
@@ -10759,30 +10762,30 @@ class NeovimClient extends Neovim_1.Neovim {
         }
     }
     pauseNotification() {
-        this.pauseLevel = this.pauseLevel + 1;
         this.transport.pauseNotification();
-        if (this.pauseTimer)
-            clearTimeout(this.pauseTimer);
-        this.pauseTimer = setTimeout(() => {
-            this.pauseLevel = 0;
-            // tslint:disable-next-line: no-floating-promises
-            this.transport.resumeNotification();
-        }, 50);
+        let pauseLevel = this.transport.pauseLevel;
+        let stack = Error().stack;
+        let timer = setTimeout(() => {
+            if (this.transport.pauseLevel >= pauseLevel) {
+                this.transport.cancelNotification();
+                logger.error(`pauseNotification not finished after 1s`, stack);
+            }
+        }, 2000);
+        this.timers.set(pauseLevel, timer);
     }
     resumeNotification(cancel, notify) {
-        if (this.pauseLevel == 0)
-            return Promise.resolve();
-        this.pauseLevel = this.pauseLevel - 1;
-        if (cancel)
-            return Promise.resolve();
-        if (this.pauseLevel == 0) {
-            if (this.pauseTimer)
-                clearTimeout(this.pauseTimer);
-            if (!notify)
-                return this.transport.resumeNotification();
-            this.transport.resumeNotification(true);
+        let { pauseLevel } = this.transport;
+        let timer = this.timers.get(pauseLevel);
+        if (timer) {
+            this.timers.delete(pauseLevel);
+            clearTimeout(timer);
         }
-        return Promise.resolve();
+        if (cancel)
+            return Promise.resolve(this.transport.cancelNotification());
+        if (notify) {
+            return Promise.resolve(this.transport.resumeNotification(true));
+        }
+        return Promise.resolve(this.transport.resumeNotification());
     }
     hasFunction(name) {
         if (!this.functions)
@@ -10919,9 +10922,12 @@ class NvimTransport extends base_1.default {
     notify(method, args) {
         if (!this.attached)
             return;
-        if (this._paused) {
-            this.paused.push([method, args]);
-            return;
+        if (this.pauseLevel != 0) {
+            let arr = this.paused.get(this.pauseLevel);
+            if (arr) {
+                arr.push([method, args]);
+                return;
+            }
         }
         this.debug('nvim notification:', method, args);
         this.encodeStream.write(msgpack.encode([2, method, args], {
@@ -14490,8 +14496,8 @@ const logger = logger_1.createLogger('transport');
 class Transport extends events_1.EventEmitter {
     constructor() {
         super(...arguments);
-        this._paused = false;
-        this.paused = [];
+        this.pauseLevel = 0;
+        this.paused = new Map();
     }
     debug(key, ...meta) {
         if (!debug)
@@ -14519,13 +14525,24 @@ class Transport extends events_1.EventEmitter {
         }
     }
     pauseNotification() {
-        this._paused = true;
+        this.pauseLevel = this.pauseLevel + 1;
+        this.paused.set(this.pauseLevel, []);
+    }
+    cancelNotification() {
+        let { pauseLevel } = this;
+        if (pauseLevel > 0) {
+            this.paused.delete(pauseLevel);
+            this.pauseLevel = pauseLevel - 1;
+        }
     }
     resumeNotification(isNotify = false) {
-        this._paused = false;
-        let list = this.paused;
-        if (list.length) {
-            this.paused = [];
+        let { pauseLevel } = this;
+        if (pauseLevel == 0)
+            return isNotify ? null : Promise.resolve([null, null]);
+        this.pauseLevel = pauseLevel - 1;
+        let list = this.paused.get(pauseLevel);
+        this.paused.delete(pauseLevel);
+        if (list && list.length) {
             return new Promise((resolve, reject) => {
                 if (!isNotify) {
                     return this.request('nvim_call_atomic', [list], (err, res) => {
@@ -14717,13 +14734,12 @@ class VimTransport extends base_1.default {
     notify(method, args) {
         if (!this.attached)
             return;
-        if (!this.client.hasFunction(method)) {
-            // tslint:disable-next-line: no-console
-            console.error(`method: ${method} not supported.`);
-        }
-        if (this._paused) {
-            this.paused.push([method, args]);
-            return;
+        if (this.pauseLevel != 0) {
+            let arr = this.paused.get(this.pauseLevel);
+            if (arr) {
+                arr.push([method, args]);
+                return;
+            }
         }
         this.connection.call(this.notifyMethod, [method.slice(5), args]);
     }
@@ -22476,7 +22492,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "ea5787c525" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "eb5bbfad09" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -24811,6 +24827,31 @@ class Workspace {
         return await fs_2.readFileLine(vscode_uri_1.URI.parse(uri).fsPath, line);
     }
     /**
+     * Get position for matchaddpos from range & uri
+     */
+    async getHighlightPositions(uri, range) {
+        let res = [];
+        if (position_1.comparePosition(range.start, range.end) == 0)
+            return [];
+        let arr = [];
+        for (let i = range.start.line; i <= range.end.line; i++) {
+            let curr = await this.getLine(uri, range.start.line);
+            if (!curr)
+                continue;
+            let sc = i == range.start.line ? range.start.character : 0;
+            let ec = i == range.end.line ? range.end.character : curr.length;
+            if (sc == ec)
+                continue;
+            arr.push([vscode_languageserver_protocol_1.Range.create(i, sc, i, ec), curr]);
+        }
+        for (let [r, line] of arr) {
+            let start = string_1.byteIndex(line, r.start.character) + 1;
+            let end = string_1.byteIndex(line, r.end.character) + 1;
+            res.push([r.start.line + 1, start, end - start]);
+        }
+        return res;
+    }
+    /**
      * Get WorkspaceFolder of uri
      */
     getWorkspaceFolder(uri) {
@@ -25548,9 +25589,6 @@ augroup end`;
     }
     createConfigurations() {
         let home = process.env.COC_VIMCONFIG || path_1.default.join(os_1.default.homedir(), '.vim');
-        if (global.hasOwnProperty('__TEST__')) {
-            home = path_1.default.join(this.pluginRoot, 'src/__tests__');
-        }
         let userConfigFile = path_1.default.join(home, CONFIG_FILE_NAME);
         return new configuration_1.default(userConfigFile, new shape_1.default(this));
     }
@@ -63737,7 +63775,6 @@ const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const vscode_uri_1 = __webpack_require__(183);
 const util_1 = __webpack_require__(177);
 const position_1 = __webpack_require__(222);
-const string_1 = __webpack_require__(219);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(194));
 const configuration_1 = tslib_1.__importDefault(__webpack_require__(368));
 const logger = __webpack_require__(2)('list-basic');
@@ -63939,6 +63976,7 @@ class BasicList {
         let [escaped, exists, valid] = res;
         let lnum = range.start.line + 1;
         let winid = context.listWindow.id;
+        let positions = await workspace_1.default.getHighlightPositions(uri, range);
         nvim.pauseNotification();
         nvim.command('pclose', true);
         if (this.splitRight || position == 'tab') {
@@ -63953,23 +63991,8 @@ class BasicList {
         }
         nvim.command(`exe ${lnum}`, true);
         nvim.command('setl winfixheight nofoldenable', true);
-        // highlight range
-        if (position_1.comparePosition(range.start, range.end) !== 0) {
-            let arr = [];
-            for (let i = range.start.line; i <= range.end.line; i++) {
-                let curr = await workspace_1.default.getLine(uri, range.start.line);
-                let sc = i == range.start.line ? range.start.character : 0;
-                let ec = i == range.end.line ? range.end.character : curr.length;
-                if (sc == ec)
-                    continue;
-                arr.push(vscode_languageserver_protocol_1.Range.create(i, sc, i, ec));
-            }
-            for (let r of arr) {
-                let line = await workspace_1.default.getLine(uri, r.start.line);
-                let start = string_1.byteIndex(line, r.start.character) + 1;
-                let end = string_1.byteIndex(line, r.end.character) + 1;
-                nvim.call('matchaddpos', [this.hlGroup, [[lnum, start, end - start]]], true);
-            }
+        for (let pos of positions) {
+            nvim.call('matchaddpos', [this.hlGroup, [pos]], true);
         }
         if (!exists)
             nvim.command('setl nobuflisted bufhidden=wipe', true);
@@ -72280,7 +72303,7 @@ exports.Mutex = Mutex;
 /* 448 */
 /***/ (function(module) {
 
-module.exports = JSON.parse("{\"name\":\"coc.nvim\",\"version\":\"0.0.78\",\"description\":\"LSP based intellisense engine for neovim & vim8.\",\"main\":\"./lib/index.js\",\"bin\":\"./bin/server.js\",\"engines\":{\"node\":\">=8.10.0\"},\"scripts\":{\"clean\":\"rimraf lib build\",\"lint\":\"tslint -c tslint.json -p .\",\"build\":\"tsc -p tsconfig.json\",\"watch\":\"tsc -p tsconfig.json --watch true --sourceMap\",\"test\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --detectOpenHandles --forceExit\",\"test-build\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --coverage --forceExit\",\"prepare\":\"npm-run-all clean build\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/neoclide/coc.nvim.git\"},\"keywords\":[\"complete\",\"neovim\"],\"author\":\"Qiming Zhao <chemzqm@gmail.com>\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/neoclide/coc.nvim/issues\"},\"homepage\":\"https://github.com/neoclide/coc.nvim#readme\",\"jest\":{\"globals\":{\"__TEST__\":true},\"watchman\":false,\"clearMocks\":true,\"globalSetup\":\"./jest.js\",\"testEnvironment\":\"node\",\"moduleFileExtensions\":[\"ts\",\"tsx\",\"json\",\"js\"],\"transform\":{\"^.+\\\\.tsx?$\":\"ts-jest\"},\"testRegex\":\"src/__tests__/.*\\\\.(test|spec)\\\\.ts$\",\"coverageDirectory\":\"./coverage/\"},\"devDependencies\":{\"@chemzqm/tslint-config\":\"^1.0.18\",\"@types/debounce\":\"^3.0.0\",\"@types/fb-watchman\":\"^2.0.0\",\"@types/glob\":\"^7.1.1\",\"@types/jest\":\"^24.0.18\",\"@types/minimatch\":\"^3.0.3\",\"@types/mkdirp\":\"^0.5.2\",\"@types/node\":\"^12.12.17\",\"@types/semver\":\"^6.0.2\",\"@types/tar\":\"^4.0.3\",\"@types/tunnel\":\"^0.0.1\",\"@types/uuid\":\"^3.4.5\",\"@types/which\":\"^1.3.1\",\"colors\":\"^1.3.3\",\"jest\":\"24.9.0\",\"npm-run-all\":\"^4.1.5\",\"ts-jest\":\"^24.2.0\",\"tslint\":\"^5.19.0\",\"typescript\":\"^3.8.2\",\"vscode-languageserver\":\"^6.1.1\"},\"dependencies\":{\"@chemzqm/neovim\":\"5.2.1\",\"await-semaphore\":\"^0.1.3\",\"bser\":\"^2.1.0\",\"bytes\":\"^3.1.0\",\"clipboardy\":\"^2.3.0\",\"debounce\":\"^1.2.0\",\"fast-diff\":\"^1.2.0\",\"fb-watchman\":\"^2.0.0\",\"follow-redirects\":\"^1.9.0\",\"glob\":\"^7.1.4\",\"isuri\":\"^2.0.3\",\"jsonc-parser\":\"^2.1.1\",\"log4js\":\"^5.1.0\",\"minimatch\":\"^3.0.4\",\"mkdirp\":\"^0.5.1\",\"mv\":\"^2.1.1\",\"rc\":\"^1.2.8\",\"rimraf\":\"^3.0.0\",\"semver\":\"^6.3.0\",\"tar\":\"^4.4.10\",\"tslib\":\"^1.11.0\",\"tunnel\":\"^0.0.6\",\"uuid\":\"^3.3.3\",\"vscode-languageserver-protocol\":\"^3.15.3\",\"vscode-languageserver-textdocument\":\"^1.0.1\",\"vscode-languageserver-types\":\"^3.15.1\",\"vscode-uri\":\"^2.0.3\",\"which\":\"^1.3.1\"}}");
+module.exports = JSON.parse("{\"name\":\"coc.nvim\",\"version\":\"0.0.78\",\"description\":\"LSP based intellisense engine for neovim & vim8.\",\"main\":\"./lib/index.js\",\"bin\":\"./bin/server.js\",\"engines\":{\"node\":\">=8.10.0\"},\"scripts\":{\"clean\":\"rimraf lib build\",\"lint\":\"tslint -c tslint.json -p .\",\"build\":\"tsc -p tsconfig.json\",\"watch\":\"tsc -p tsconfig.json --watch true --sourceMap\",\"test\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --detectOpenHandles --forceExit\",\"test-build\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --coverage --forceExit\",\"prepare\":\"npm-run-all clean build\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/neoclide/coc.nvim.git\"},\"keywords\":[\"complete\",\"neovim\"],\"author\":\"Qiming Zhao <chemzqm@gmail.com>\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/neoclide/coc.nvim/issues\"},\"homepage\":\"https://github.com/neoclide/coc.nvim#readme\",\"jest\":{\"globals\":{\"__TEST__\":true},\"watchman\":false,\"clearMocks\":true,\"globalSetup\":\"./jest.js\",\"testEnvironment\":\"node\",\"moduleFileExtensions\":[\"ts\",\"tsx\",\"json\",\"js\"],\"transform\":{\"^.+\\\\.tsx?$\":\"ts-jest\"},\"testRegex\":\"src/__tests__/.*\\\\.(test|spec)\\\\.ts$\",\"coverageDirectory\":\"./coverage/\"},\"devDependencies\":{\"@chemzqm/tslint-config\":\"^1.0.18\",\"@types/debounce\":\"^3.0.0\",\"@types/fb-watchman\":\"^2.0.0\",\"@types/glob\":\"^7.1.1\",\"@types/jest\":\"^24.0.18\",\"@types/minimatch\":\"^3.0.3\",\"@types/mkdirp\":\"^0.5.2\",\"@types/node\":\"^12.12.17\",\"@types/semver\":\"^6.0.2\",\"@types/tar\":\"^4.0.3\",\"@types/tunnel\":\"^0.0.1\",\"@types/uuid\":\"^3.4.5\",\"@types/which\":\"^1.3.1\",\"colors\":\"^1.3.3\",\"jest\":\"24.9.0\",\"npm-run-all\":\"^4.1.5\",\"ts-jest\":\"^24.2.0\",\"tslint\":\"^5.19.0\",\"typescript\":\"^3.8.2\",\"vscode-languageserver\":\"^6.1.1\"},\"dependencies\":{\"@chemzqm/neovim\":\"5.2.3\",\"await-semaphore\":\"^0.1.3\",\"bser\":\"^2.1.0\",\"bytes\":\"^3.1.0\",\"clipboardy\":\"^2.3.0\",\"debounce\":\"^1.2.0\",\"fast-diff\":\"^1.2.0\",\"fb-watchman\":\"^2.0.0\",\"follow-redirects\":\"^1.9.0\",\"glob\":\"^7.1.4\",\"isuri\":\"^2.0.3\",\"jsonc-parser\":\"^2.1.1\",\"log4js\":\"^5.1.0\",\"minimatch\":\"^3.0.4\",\"mkdirp\":\"^0.5.1\",\"mv\":\"^2.1.1\",\"rc\":\"^1.2.8\",\"rimraf\":\"^3.0.0\",\"semver\":\"^6.3.0\",\"tar\":\"^4.4.10\",\"tslib\":\"^1.11.0\",\"tunnel\":\"^0.0.6\",\"uuid\":\"^3.3.3\",\"vscode-languageserver-protocol\":\"^3.15.3\",\"vscode-languageserver-textdocument\":\"^1.0.1\",\"vscode-languageserver-types\":\"^3.15.1\",\"vscode-uri\":\"^2.0.3\",\"which\":\"^1.3.1\"}}");
 
 /***/ })
 /******/ ]);
