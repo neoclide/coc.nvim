@@ -3773,7 +3773,7 @@ export abstract class BaseLanguageClient {
       entries.set(uri, diagnostics)
 
       for (const diagnostic of diagnostics) {
-        if (diagnostic.relatedInformation) {
+        if (diagnostic.relatedInformation?.length) {
           let message = `${diagnostic.message}\n\nRelated diagnostics:\n`
           for (const info of diagnostic.relatedInformation) {
             const basename = path.basename(URI.parse(info.location.uri).fsPath)
