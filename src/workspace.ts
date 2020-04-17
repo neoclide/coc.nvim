@@ -28,7 +28,7 @@ import { distinct } from './util/array'
 import { findUp, isFile, isParentFolder, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile, fixDriver } from './util/fs'
 import { disposeAll, getKeymapModifier, isDocumentEdit, mkdirp, runCommand, wait, platform } from './util/index'
 import { score } from './util/match'
-import { getChangedFromEdits } from './util/position'
+import { getChangedFromEdits, comparePosition } from './util/position'
 import { byteIndex, byteLength } from './util/string'
 import { Mutex } from './util/mutex'
 import Watchman from './watchman'
@@ -711,6 +711,29 @@ export class Workspace implements IWorkspace {
     if (document) return document.getline(line) || ''
     if (!uri.startsWith('file:')) return ''
     return await readFileLine(URI.parse(uri).fsPath, line)
+  }
+
+  /**
+   * Get position for matchaddpos from range & uri
+   */
+  public async getHighlightPositions(uri: string, range: Range): Promise<[number, number, number][]> {
+    let res: [number, number, number][] = []
+    if (comparePosition(range.start, range.end) == 0) return []
+    let arr: [Range, string][] = []
+    for (let i = range.start.line; i <= range.end.line; i++) {
+      let curr = await this.getLine(uri, range.start.line)
+      if (!curr) continue
+      let sc = i == range.start.line ? range.start.character : 0
+      let ec = i == range.end.line ? range.end.character : curr.length
+      if (sc == ec) continue
+      arr.push([Range.create(i, sc, i, ec), curr])
+    }
+    for (let [r, line] of arr) {
+      let start = byteIndex(line, r.start.character) + 1
+      let end = byteIndex(line, r.end.character) + 1
+      res.push([r.start.line + 1, start, end - start])
+    }
+    return res
   }
 
   /**
