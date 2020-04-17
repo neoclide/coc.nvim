@@ -121,12 +121,14 @@ endfunction
 
 function! coc#list#start_prompt()
   if s:activated | return | endif
-  if s:gui
-    if has('nvim-0.5.0')
-      set guicursor+=a:ver1-CocCursorTransparent/lCursor
+  if !get(g:, 'coc_disable_transparent_cursor', 0)
+    if s:gui
+      if has('nvim-0.5.0') && !empty(s:saved_cursor)
+        set guicursor+=a:ver1-CocCursorTransparent/lCursor
+      endif
+    elseif s:is_vim
+      set t_ve=
     endif
-  elseif s:is_vim
-    set t_ve=
   endif
   let s:activated = 1
   try
@@ -173,7 +175,8 @@ function! coc#list#options(...)
 endfunction
 
 function! coc#list#stop_prompt(...)
-  if get(a:, 1, 0) == 0
+  if get(a:, 1, 0) == 0 && !get(g:, 'coc_disable_transparent_cursor',0)
+    " neovim has bug with revert empty &guicursor
     if s:gui && !empty(s:saved_cursor)
       if has('nvim-0.5.0')
         set guicursor+=a:ver1-Cursor/lCursor

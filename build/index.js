@@ -22476,7 +22476,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "312c7c4482" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "ea5787c525" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -40876,7 +40876,7 @@ class ExtensionManager {
         if (dependencies && Object.keys(dependencies).length) {
             onMessage(`Installing dependencies.`);
             let p = new Promise((resolve, reject) => {
-                let args = ['install', '--ignore-scripts', '--no-lockfile', '--no-bin-links', '--production'];
+                let args = ['install', '--ignore-scripts', '--no-lockfile', '--production'];
                 if (info['dist.tarball'] && info['dist.tarball'].indexOf('github.com') !== -1) {
                     args = ['install'];
                 }
@@ -58695,7 +58695,6 @@ const symbols_1 = tslib_1.__importDefault(__webpack_require__(417));
 const actions_1 = tslib_1.__importDefault(__webpack_require__(419));
 const ui_1 = tslib_1.__importDefault(__webpack_require__(420));
 const worker_1 = tslib_1.__importDefault(__webpack_require__(421));
-const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
 const logger = __webpack_require__(2)('list-manager');
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>'];
 class ListManager {
@@ -58716,10 +58715,6 @@ class ListManager {
         this.mappings = new mappings_1.default(this, nvim, this.config);
         this.worker = new worker_1.default(nvim, this);
         this.ui = new ui_1.default(nvim, this.config);
-        this.noGuicursor = workspace_1.default.isNvim && workspace_1.default.env.guicursor == '';
-        if (workspace_1.default.isNvim && semver_1.default.gte(workspace_1.default.env.version.split('\n', 1)[0], '0.5.0')) {
-            nvim.command('hi default CocCursorTransparent ctermfg=16 ctermbg=253 guifg=#000000 guibg=#00FF00 gui=strikethrough blend=100', true);
-        }
         events_1.default.on('VimResized', () => {
             if (this.isActivated)
                 nvim.command('redraw!', true);
@@ -58825,9 +58820,6 @@ class ListManager {
             this.currList = list;
             this.listArgs = listArgs;
             this.cwd = workspace_1.default.cwd;
-            if (this.noGuicursor) {
-                await this.nvim.command('noa set guicursor=a:block');
-            }
             await this.getCharMap();
             this.history.load();
             this.window = await this.nvim.window;
@@ -58895,10 +58887,6 @@ class ListManager {
         let { nvim, ui, savedHeight } = this;
         if (!this.activated) {
             nvim.call('coc#list#stop_prompt', [], true);
-            if (this.noGuicursor) {
-                await nvim.command('noa set guicursor=a:block');
-                nvim.command('noa set guicursor=', true);
-            }
             return;
         }
         this.activated = false;
@@ -58914,10 +58902,6 @@ class ListManager {
             }
         }
         await nvim.resumeNotification();
-        if (this.noGuicursor) {
-            await nvim.command('noa set guicursor=a:block');
-            nvim.command('noa set guicursor=', true);
-        }
     }
     async switchMatcher() {
         let { matcher, interactive } = this.listOptions;
@@ -60283,9 +60267,6 @@ class Prompt {
         this.requestInput = true;
     }
     async paste() {
-        if (global.hasOwnProperty('__TEST__')) {
-            return await this.eval('@*');
-        }
         let text = await clipboardy_1.default.read();
         text = text.replace(/\n/g, '');
         if (!text)
