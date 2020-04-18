@@ -15355,10 +15355,11 @@ class Events {
         else {
             let arr = this.handlers.get(event) || [];
             let limit = 1000;
+            let stack = Error().stack;
             arr.push(args => {
                 return new Promise(async (resolve, reject) => {
                     let timer = setTimeout(() => {
-                        logger.warn(`Handler of ${event} cost more than 1s`, handler.toString());
+                        logger.warn(`Handler of ${event} cost more than 1s`, stack);
                     }, limit);
                     try {
                         await Promise.resolve(handler.apply(thisArg || null, args));
@@ -22493,7 +22494,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "11631e5e06" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "237b0eb0f7" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -25316,9 +25317,9 @@ class Workspace {
     async showPrompt(title) {
         let release = await this.mutex.acquire();
         try {
-            let res = await this.nvim.callAsync('coc#util#with_callback', ['coc#util#prompt_confirm', [title]]);
+            let res = await this.nvim.callAsync('coc#util#prompt', [title]);
             release();
-            return res == 1;
+            return !!res;
         }
         catch (e) {
             release();
