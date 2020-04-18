@@ -1137,9 +1137,27 @@ export class Workspace implements IWorkspace {
     return await this.nvim.callAsync('coc#util#run_terminal', { cmd, cwd, keepfocus: keepfocus ? 1 : 0 }) as TerminalResult
   }
 
+  /**
+   * Open terminal buffer with cmd & opts
+   */
   public async openTerminal(cmd: string, opts: OpenTerminalOption = {}): Promise<number> {
     let bufnr = await this.nvim.call('coc#util#open_terminal', { cmd, ...opts })
     return bufnr as number
+  }
+
+  /**
+   * Expand filepath with `~` and/or environment placeholders
+   */
+  public expand(filepath: string): string {
+    if (filepath.startsWith('~')) {
+      filepath = os.homedir() + filepath.slice(1)
+    }
+    if (filepath.indexOf('$') !== -1) {
+      filepath = filepath.replace(/\$[\w]+/g, match => {
+        return process.env[match.replace('$', '')] || match
+      })
+    }
+    return filepath
   }
 
   public async createTerminal(opts: TerminalOptions): Promise<Terminal> {

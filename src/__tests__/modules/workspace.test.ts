@@ -2,6 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import uuid from 'uuid/v4'
 import { Disposable, Emitter } from 'vscode-languageserver-protocol'
 import { CreateFile, DeleteFile, Location, Position, Range, RenameFile, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
@@ -9,9 +10,8 @@ import events from '../../events'
 import { TextDocumentContentProvider } from '../../provider'
 import { ConfigurationTarget } from '../../types'
 import { disposeAll } from '../../util'
-import { readFile, writeFile } from '../../util/fs'
+import { readFile } from '../../util/fs'
 import workspace from '../../workspace'
-import uuid from 'uuid/v4'
 import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
@@ -395,6 +395,13 @@ describe('workspace methods', () => {
     buf = await helper.edit('tmp')
     doc = await workspace.document
     expect(doc.bufnr).toBe(buf.id)
+  })
+
+  it('should expand filepath', async () => {
+    let home = os.homedir()
+    let res = workspace.expand('~/$NODE_ENV/')
+    expect(res.startsWith(home)).toBeTruthy()
+    expect(res).toContain(process.env.NODE_ENV)
   })
 
   it('should run command', async () => {
