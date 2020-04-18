@@ -1,8 +1,8 @@
 import { debounce } from 'debounce'
 import fastDiff from 'fast-diff'
-import os from 'os'
 import fs from 'fs'
 import isuri from 'isuri'
+import mkdirp from 'mkdirp'
 import path from 'path'
 import rimraf from 'rimraf'
 import semver from 'semver'
@@ -16,8 +16,7 @@ import DB from './model/db'
 import ExtensionManager from './model/extension'
 import Memos from './model/memos'
 import { Extension, ExtensionContext, ExtensionInfo, ExtensionState } from './types'
-import { disposeAll, concurrent, wait } from './util'
-import mkdirp from 'mkdirp'
+import { concurrent, disposeAll, wait } from './util'
 import { distinct } from './util/array'
 import './util/extensions'
 import { createExtension, ExtensionExport } from './util/factory'
@@ -257,11 +256,9 @@ export class Extensions {
     return ids
   }
 
-  private get npm(): string {
+  public get npm(): string {
     let npm = workspace.getConfiguration('npm').get<string>('binPath', 'npm')
-    if (npm.startsWith('~')) {
-      npm = os.homedir() + npm.slice(1)
-    }
+    npm = workspace.expand(npm)
     for (let exe of [npm, 'yarnpkg', 'yarn', 'npm']) {
       try {
         let res = which.sync(exe)

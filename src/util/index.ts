@@ -56,6 +56,7 @@ export function runCommand(cmd: string, opts: ExecOptions = {}, timeout?: number
   if (!platform.isWindows) {
     opts.shell = opts.shell || process.env.SHELL
   }
+  opts.maxBuffer = 500 * 1024
   return new Promise<string>((resolve, reject) => {
     let timer: NodeJS.Timer
     if (timeout) {

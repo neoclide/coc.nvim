@@ -1,4 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
+import rimraf from 'rimraf'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -73,6 +74,23 @@ export default class ExtensionList extends BasicList {
       extensions.activate(id)
       await wait(100)
     }, { persist: true, reload: true })
+
+    this.addAction('fix', async item => {
+      let { root } = item.data
+      let { npm } = extensions
+      if (!npm) return
+      let folder = path.join(root, 'node_modules')
+      if (fs.existsSync(folder)) {
+        rimraf.sync(folder)
+      }
+      let terminal = await workspace.createTerminal({
+        cwd: root
+      })
+      let shown = await terminal.show(false)
+      if (!shown) return
+      workspace.nvim.command(`startinsert`, true)
+      terminal.sendText(`${npm} install --production --ignore-scripts --no-lockfile`, true)
+    })
 
     this.addMultipleAction('uninstall', async items => {
       let ids = []

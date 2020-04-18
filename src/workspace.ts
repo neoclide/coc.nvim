@@ -1131,7 +1131,7 @@ export class Workspace implements IWorkspace {
   }
 
   /**
-   * Run command in vim terminal
+   * Run command in vim terminal for result
    */
   public async runTerminalCommand(cmd: string, cwd = this.cwd, keepfocus = false): Promise<TerminalResult> {
     return await this.nvim.callAsync('coc#util#run_terminal', { cmd, cwd, keepfocus: keepfocus ? 1 : 0 }) as TerminalResult

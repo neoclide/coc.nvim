@@ -676,6 +676,14 @@ export interface RenameEvent {
   newUri: URI
 }
 
+export interface OpenTerminalOption {
+  cwd?: string
+  // default true
+  autoclose?: boolean
+  // default false
+  keepfocus?: boolean
+}
+
 export interface TerminalResult {
   bufnr: number
   success: boolean
