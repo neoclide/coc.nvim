@@ -22494,7 +22494,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "237b0eb0f7" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "70aac81740" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -32727,9 +32727,11 @@ exports.getChangedFromEdits = getChangedFromEdits;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const vscode_uri_1 = __webpack_require__(183);
-const path = __webpack_require__(20);
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(210));
+const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 const util_1 = __webpack_require__(177);
 const logger = __webpack_require__(2)('filesystem-watcher');
 class FileSystemWatcher {
@@ -32761,9 +32763,9 @@ class FileSystemWatcher {
         let { globPattern, ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents } = this;
         let disposable = await client.subscribe(globPattern, (change) => {
             let { root, files } = change;
-            files = files.filter(f => f.type == 'f');
+            files = files.filter(f => f.type == 'f' && minimatch_1.default(f.name, globPattern, { dot: true }));
             for (let file of files) {
-                let uri = vscode_uri_1.URI.file(path.join(root, file.name));
+                let uri = vscode_uri_1.URI.file(path_1.default.join(root, file.name));
                 if (!file.exists) {
                     if (!ignoreDeleteEvents)
                         this._onDidDelete.fire(uri);
@@ -32779,14 +32781,37 @@ class FileSystemWatcher {
                     }
                 }
             }
+            // file rename
             if (files.length == 2 && !files[0].exists && files[1].exists) {
                 let oldFile = files[0];
                 let newFile = files[1];
                 if (oldFile.size == newFile.size) {
                     this._onDidRename.fire({
-                        oldUri: vscode_uri_1.URI.file(path.join(root, oldFile.name)),
-                        newUri: vscode_uri_1.URI.file(path.join(root, newFile.name))
+                        oldUri: vscode_uri_1.URI.file(path_1.default.join(root, oldFile.name)),
+                        newUri: vscode_uri_1.URI.file(path_1.default.join(root, newFile.name))
                     });
+                }
+            }
+            // folder rename
+            let folders = change.files.filter(f => f.type == 'd').slice(-2);
+            if (folders.length == 2
+                && folders[0].exists != folders[1].exists
+                && folders[0].size == folders[1].size
+                && folders[0].mtime_ms == folders[1].mtime_ms) {
+                let newFolder = folders[0].exists ? folders[0].name : folders[1].name;
+                let oldFolder = folders[0].exists ? folders[1].name : folders[0].name;
+                let newFiles = files.filter(f => f.type == 'f' && f.name.startsWith(newFolder + path_1.default.sep));
+                if (newFiles.length) {
+                    for (let file of newFiles) {
+                        let oldFileName = oldFolder + file.name.slice(newFolder.length);
+                        let oldFile = files.find(f => f.type == 'f' && f.name == oldFileName);
+                        if (oldFile) {
+                            this._onDidRename.fire({
+                                oldUri: vscode_uri_1.URI.file(path_1.default.join(root, oldFile.name)),
+                                newUri: vscode_uri_1.URI.file(path_1.default.join(root, file.name))
+                            });
+                        }
+                    }
                 }
             }
         });
@@ -33858,8 +33883,6 @@ class Watchman {
             let ev = Object.assign({}, resp);
             if (this.relative_path)
                 ev.root = path_1.default.resolve(resp.root, this.relative_path);
-            // resp.root = this.relative_path
-            files.map(f => f.mtime_ms = +f.mtime_ms);
             this.appendOutput(`file change detected: ${JSON.stringify(ev, null, 2)}`);
             cb(ev);
         });
@@ -56271,10 +56294,10 @@ class WorkspaceSymbolFeature extends WorkspaceFeature {
         };
     }
     initialize(capabilities, documentSelector) {
+        this.documentSelector = documentSelector;
         if (!capabilities.workspaceSymbolProvider) {
             return;
         }
-        this.documentSelector = documentSelector;
         this.register(this.messages, {
             id: UUID.generateUuid(),
             registerOptions: capabilities.workspaceSymbolProvider === true ? { workDoneProgress: false } : capabilities.workspaceSymbolProvider
@@ -58876,15 +58899,17 @@ class ListManager {
         this.activated = true;
         let { list, options, listArgs } = res;
         try {
+            await this.getCharMap();
+            let res = await this.nvim.eval('[win_getid(),bufnr("%"),winheight("%")]');
             this.reset();
             this.listOptions = options;
             this.currList = list;
             this.listArgs = listArgs;
             this.cwd = workspace_1.default.cwd;
-            await this.getCharMap();
             this.history.load();
-            this.window = await this.nvim.window;
-            this.savedHeight = await this.window.height;
+            this.window = this.nvim.createWindow(res[0]);
+            this.buffer = this.nvim.createBuffer(res[1]);
+            this.savedHeight = res[2];
             this.prompt.start(options);
             await this.worker.loadItems();
         }
@@ -59337,6 +59362,7 @@ class ListManager {
             args: this.listArgs,
             input: this.prompt.input,
             window: this.window,
+            buffer: this.buffer,
             listWindow: this.ui.window,
             cwd: this.cwd
         };
