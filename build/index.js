@@ -22493,7 +22493,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "d1bbbf6b61" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "47a0fee339" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -33849,9 +33849,11 @@ class Watchman {
             if (!resp || resp.subscription != uid)
                 return;
             let { files } = resp;
-            if (!files || !files.length || !minimatch_1.default(files[0].name, globPattern))
+            if (!files)
                 return;
-            files = files.filter(f => f.type == 'f');
+            files = files.filter(f => f.type == 'f' && minimatch_1.default(f.name, globPattern, { dot: true }));
+            if (!files.length)
+                return;
             let ev = Object.assign({}, resp);
             if (this.relative_path)
                 ev.root = path_1.default.resolve(resp.root, this.relative_path);
