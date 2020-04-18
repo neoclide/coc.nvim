@@ -2289,10 +2289,10 @@ class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegistratio
     capabilities: ServerCapabilities,
     documentSelector: DocumentSelector | undefined
   ): void {
+    this.documentSelector = documentSelector
     if (!capabilities.workspaceSymbolProvider) {
       return
     }
-    this.documentSelector = documentSelector
     this.register(this.messages, {
       id: UUID.generateUuid(),
       registerOptions: capabilities.workspaceSymbolProvider === true ? { workDoneProgress: false } : capabilities.workspaceSymbolProvider
