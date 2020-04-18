@@ -1196,9 +1196,9 @@ export class Workspace implements IWorkspace {
   public async showPrompt(title: string): Promise<boolean> {
     let release = await this.mutex.acquire()
     try {
-      let res = await this.nvim.callAsync('coc#util#with_callback', ['coc#util#prompt_confirm', [title]])
+      let res = await this.nvim.callAsync('coc#util#prompt', [title])
       release()
-      return res == 1
+      return !!res
     } catch (e) {
       release()
       return false
