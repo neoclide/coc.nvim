@@ -1,4 +1,4 @@
-import { Neovim, Window } from '@chemzqm/neovim'
+import { Neovim, Window, Buffer } from '@chemzqm/neovim'
 import { RequestOptions } from 'http'
 import log4js from 'log4js'
 import { CancellationToken, CompletionTriggerKind, CreateFileOptions, DeleteFileOptions, Diagnostic, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFileOptions, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
@@ -804,6 +804,7 @@ export interface ListContext {
   cwd: string
   options: ListOptions
   window: Window
+  buffer: Buffer
   listWindow: Window
 }
 

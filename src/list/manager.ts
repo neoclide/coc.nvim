@@ -1,4 +1,4 @@
-import { Neovim, Window } from '@chemzqm/neovim'
+import { Neovim, Window, Buffer } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
@@ -48,6 +48,7 @@ export class ListManager implements Disposable {
   private currList: IList
   private cwd: string
   private window: Window
+  private buffer: Buffer
   private activated = false
   private executing = false
   private nvim: Neovim
@@ -150,15 +151,17 @@ export class ListManager implements Disposable {
     this.activated = true
     let { list, options, listArgs } = res
     try {
+      await this.getCharMap()
+      let res = await this.nvim.eval('[win_getid(),bufnr("%"),winheight("%")]')
       this.reset()
       this.listOptions = options
       this.currList = list
       this.listArgs = listArgs
       this.cwd = workspace.cwd
-      await this.getCharMap()
       this.history.load()
-      this.window = await this.nvim.window
-      this.savedHeight = await this.window.height
+      this.window = this.nvim.createWindow(res[0])
+      this.buffer = this.nvim.createBuffer(res[1])
+      this.savedHeight = res[2]
       this.prompt.start(options)
       await this.worker.loadItems()
     } catch (e) {
@@ -596,6 +599,7 @@ export class ListManager implements Disposable {
       args: this.listArgs,
       input: this.prompt.input,
       window: this.window,
+      buffer: this.buffer,
       listWindow: this.ui.window,
       cwd: this.cwd
     }
