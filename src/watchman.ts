@@ -121,8 +121,6 @@ export default class Watchman {
       if (!files.length) return
       let ev: FileChange = Object.assign({}, resp)
       if (this.relative_path) ev.root = path.resolve(resp.root, this.relative_path)
-      // resp.root = this.relative_path
-      files.map(f => f.mtime_ms = +f.mtime_ms)
       this.appendOutput(`file change detected: ${JSON.stringify(ev, null, 2)}`)
       cb(ev)
     })
