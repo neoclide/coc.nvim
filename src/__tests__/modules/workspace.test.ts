@@ -407,6 +407,14 @@ describe('workspace methods', () => {
     expect(res.success).toBe(true)
   })
 
+  it('should open temimal buffer', async () => {
+    let bufnr = await workspace.openTerminal('ls', { autoclose: false, keepfocus: false })
+    let curr = await nvim.eval('bufnr("%")')
+    expect(curr).toBe(bufnr)
+    let buftype = await nvim.eval('&buftype')
+    expect(buftype).toBe('terminal')
+  })
+
   it('should show mesages', async () => {
     await helper.edit()
     workspace.showMessage('error', 'error')

@@ -23,7 +23,7 @@ import Task from './model/task'
 import TerminalModel from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, MessageLevel, MsgTypes, OutputChannel, PatternType, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, DidChangeTextDocumentParams } from './types'
+import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, MessageLevel, MsgTypes, OutputChannel, PatternType, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, DidChangeTextDocumentParams, OpenTerminalOption } from './types'
 import { distinct } from './util/array'
 import { findUp, isFile, isParentFolder, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile, fixDriver } from './util/fs'
 import { disposeAll, getKeymapModifier, isDocumentEdit, mkdirp, runCommand, wait, platform } from './util/index'
@@ -1135,6 +1135,11 @@ export class Workspace implements IWorkspace {
    */
   public async runTerminalCommand(cmd: string, cwd = this.cwd, keepfocus = false): Promise<TerminalResult> {
     return await this.nvim.callAsync('coc#util#run_terminal', { cmd, cwd, keepfocus: keepfocus ? 1 : 0 }) as TerminalResult
+  }
+
+  public async openTerminal(cmd: string, opts: OpenTerminalOption = {}): Promise<number> {
+    let bufnr = await this.nvim.call('coc#util#open_terminal', { cmd, ...opts })
+    return bufnr as number
   }
 
   public async createTerminal(opts: TerminalOptions): Promise<Terminal> {
