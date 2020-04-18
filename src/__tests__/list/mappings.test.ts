@@ -586,6 +586,13 @@ describe('User mappings', () => {
     helper.updateConfiguration('list.insertMappings', {
       '<C-r>': 'prompt:paste',
     })
+    let text: string
+    clipboardy.write = async val => {
+      text = val
+    }
+    clipboardy.read = async () => {
+      return text
+    }
     await clipboardy.write('foo')
     await manager.start(['location'])
     await helper.wait(100)

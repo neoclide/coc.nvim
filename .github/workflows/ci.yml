@@ -32,7 +32,6 @@ jobs:
       - uses: actions/checkout@v2
       - name: yarn install
         run: |
-          sudo apt-get install -y xsel
           yarn global add typescript
           yarn
       - name: yarn lint
