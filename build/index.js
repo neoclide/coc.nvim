@@ -20675,6 +20675,7 @@ function runCommand(cmd, opts = {}, timeout) {
     if (!platform.isWindows) {
         opts.shell = opts.shell || process.env.SHELL;
     }
+    opts.maxBuffer = 500 * 1024;
     return new Promise((resolve, reject) => {
         let timer;
         if (timeout) {
@@ -22492,7 +22493,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "eb5bbfad09" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d1bbbf6b61" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -25252,10 +25253,31 @@ class Workspace {
         return index_1.runCommand(cmd, { cwd }, timeout);
     }
     /**
-     * Run command in vim terminal
+     * Run command in vim terminal for result
      */
     async runTerminalCommand(cmd, cwd = this.cwd, keepfocus = false) {
         return await this.nvim.callAsync('coc#util#run_terminal', { cmd, cwd, keepfocus: keepfocus ? 1 : 0 });
+    }
+    /**
+     * Open terminal buffer with cmd & opts
+     */
+    async openTerminal(cmd, opts = {}) {
+        let bufnr = await this.nvim.call('coc#util#open_terminal', Object.assign({ cmd }, opts));
+        return bufnr;
+    }
+    /**
+     * Expand filepath with `~` and/or environment placeholders
+     */
+    expand(filepath) {
+        if (filepath.startsWith('~')) {
+            filepath = os_1.default.homedir() + filepath.slice(1);
+        }
+        if (filepath.indexOf('$') !== -1) {
+            filepath = filepath.replace(/\$[\w]+/g, match => {
+                return process.env[match.replace('$', '')] || match;
+            });
+        }
+        return filepath;
     }
     async createTerminal(opts) {
         let cmd = opts.shellPath;
@@ -39954,9 +39976,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const debounce_1 = __webpack_require__(179);
 const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(218));
-const os_1 = tslib_1.__importDefault(__webpack_require__(14));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
 const isuri_1 = tslib_1.__importDefault(__webpack_require__(180));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(182));
 const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 const rimraf_1 = tslib_1.__importDefault(__webpack_require__(242));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
@@ -39970,7 +39992,6 @@ const db_1 = tslib_1.__importDefault(__webpack_require__(215));
 const extension_1 = tslib_1.__importDefault(__webpack_require__(259));
 const memos_1 = tslib_1.__importDefault(__webpack_require__(315));
 const util_2 = __webpack_require__(177);
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(182));
 const array_1 = __webpack_require__(221);
 __webpack_require__(316);
 const factory_1 = __webpack_require__(317);
@@ -40197,9 +40218,7 @@ class Extensions {
     }
     get npm() {
         let npm = workspace_1.default.getConfiguration('npm').get('binPath', 'npm');
-        if (npm.startsWith('~')) {
-            npm = os_1.default.homedir() + npm.slice(1);
-        }
+        npm = workspace_1.default.expand(npm);
         for (let exe of [npm, 'yarnpkg', 'yarn', 'npm']) {
             try {
                 let res = which_1.default.sync(exe);
@@ -57459,6 +57478,7 @@ class BaseLanguageClient {
         }
     }
     setDiagnostics(uri, diagnostics) {
+        var _a;
         if (!this._diagnostics) {
             return;
         }
@@ -57467,7 +57487,7 @@ class BaseLanguageClient {
             const entries = new Map();
             entries.set(uri, diagnostics);
             for (const diagnostic of diagnostics) {
-                if (diagnostic.relatedInformation) {
+                if ((_a = diagnostic.relatedInformation) === null || _a === void 0 ? void 0 : _a.length) {
                     let message = `${diagnostic.message}\n\nRelated diagnostics:\n`;
                     for (const info of diagnostic.relatedInformation) {
                         const basename = path_1.default.basename(vscode_uri_1.URI.parse(info.location.uri).fsPath);
@@ -64215,6 +64235,7 @@ exports.default = LocationList;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
+const rimraf_1 = tslib_1.__importDefault(__webpack_require__(242));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
 const os_1 = tslib_1.__importDefault(__webpack_require__(14));
 const path_1 = tslib_1.__importDefault(__webpack_require__(20));
@@ -64285,6 +64306,24 @@ class ExtensionList extends basic_1.default {
             extensions_1.default.activate(id);
             await util_1.wait(100);
         }, { persist: true, reload: true });
+        this.addAction('fix', async (item) => {
+            let { root } = item.data;
+            let { npm } = extensions_1.default;
+            if (!npm)
+                return;
+            let folder = path_1.default.join(root, 'node_modules');
+            if (fs_1.default.existsSync(folder)) {
+                rimraf_1.default.sync(folder);
+            }
+            let terminal = await workspace_1.default.createTerminal({
+                cwd: root
+            });
+            let shown = await terminal.show(false);
+            if (!shown)
+                return;
+            workspace_1.default.nvim.command(`startinsert`, true);
+            terminal.sendText(`${npm} install --production --ignore-scripts --no-lockfile`, true);
+        });
         this.addMultipleAction('uninstall', async (items) => {
             let ids = [];
             for (let item of items) {
