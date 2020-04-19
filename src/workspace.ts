@@ -1453,7 +1453,7 @@ augroup end`
         if (!newUris.has(uri)) {
           uris.add(uri)
         }
-        if (version != null) {
+        if (version != null && version > 0) {
           let doc = this.getDocument(uri)
           if (!doc) {
             throw new Error(`${uri} not loaded`)
