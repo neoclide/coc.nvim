@@ -1028,6 +1028,7 @@ function! coc#util#open_files(files)
     endfor
     noa close
   endif
+  doautocmd BufEnter
   return bufnrs
 endfunction
 
