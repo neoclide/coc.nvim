@@ -22494,7 +22494,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "ffcd2ed6ed" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "69763cb656" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -24266,7 +24266,7 @@ class Workspace {
             this._insertMode = false;
         }, null, this.disposables);
         events_1.default.on('BufEnter', this.onBufEnter, this, this.disposables);
-        events_1.default.on('CursorMoved', this.onCursorMoved, this, this.disposables);
+        events_1.default.on('CursorMoved', this.checkCurrentBuffer, this, this.disposables);
         events_1.default.on('DirChanged', this.onDirChanged, this, this.disposables);
         events_1.default.on('BufCreate', this.onBufCreate, this, this.disposables);
         events_1.default.on('BufUnload', this.onBufUnload, this, this.disposables);
@@ -24275,7 +24275,7 @@ class Workspace {
         events_1.default.on('BufWritePost', this.onBufWritePost, this, this.disposables);
         events_1.default.on('BufWritePre', this.onBufWritePre, this, this.disposables);
         events_1.default.on('FileType', this.onFileTypeChange, this, this.disposables);
-        events_1.default.on('CursorHold', this.checkBuffer, this, this.disposables);
+        events_1.default.on('CursorHold', this.checkCurrentBuffer, this, this.disposables);
         events_1.default.on('TextChanged', this.checkBuffer, this, this.disposables);
         events_1.default.on('BufReadCmd', this.onBufReadCmd, this, this.disposables);
         events_1.default.on('VimResized', (columns, lines) => {
@@ -25571,7 +25571,7 @@ augroup end`;
                 if (!newUris.has(uri)) {
                     uris.add(uri);
                 }
-                if (version != null) {
+                if (version != null && version > 0) {
                     let doc = this.getDocument(uri);
                     if (!doc) {
                         throw new Error(`${uri} not loaded`);
@@ -25692,7 +25692,7 @@ augroup end`;
                 this._root = vscode_uri_1.URI.parse(workspaceFolder.uri).fsPath;
         }
     }
-    async onCursorMoved(bufnr) {
+    async checkCurrentBuffer(bufnr) {
         this.bufnr = bufnr;
         await this.checkBuffer(bufnr);
     }
@@ -52118,9 +52118,8 @@ class Languages {
         };
         if (prefix) {
             if (!obj.filterText.startsWith(prefix)) {
-                if (item.textEdit) {
-                    let newText = item.textEdit.newText.split(/\n/)[0];
-                    obj.filterText = newText.startsWith(prefix) ? newText : obj.filterText;
+                if (item.textEdit && item.textEdit.newText.startsWith(prefix)) {
+                    obj.filterText = item.textEdit.newText.split(/\n/)[0];
                 }
                 else {
                     obj.filterText = `${prefix}${obj.filterText}`;
