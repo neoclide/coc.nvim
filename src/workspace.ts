@@ -939,7 +939,6 @@ export class Workspace implements IWorkspace {
         if (doc) return
         let encoding = await this.getFileEncoding()
         fs.writeFileSync(filepath, '', encoding || '')
-        await this.loadFile(uri)
       }
     }
   }
