@@ -1016,6 +1016,7 @@ function! coc#util#open_files(files)
       let bufnr = bufadd(file)
       call bufload(file)
       call add(bufnrs, bufnr(file))
+      call setbufvar(bufnr, '&buflisted', 1)
     endfor
   else
     noa keepalt 1new +setl\ bufhidden=wipe
