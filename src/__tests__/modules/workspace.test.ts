@@ -538,6 +538,8 @@ describe('workspace utility', () => {
   })
 
   it('should create file if not exists', async () => {
+    await helper.edit()
+    let bufnr = await nvim.eval('bufnr("%")')
     let filepath = path.join(__dirname, 'foo')
     await workspace.createFile(filepath, { ignoreIfExists: true })
     let exists = fs.existsSync(filepath)

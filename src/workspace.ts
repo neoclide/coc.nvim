@@ -140,7 +140,7 @@ export class Workspace implements IWorkspace {
       this._insertMode = false
     }, null, this.disposables)
     events.on('BufEnter', this.onBufEnter, this, this.disposables)
-    events.on('CursorMoved', this.onCursorMoved, this, this.disposables)
+    events.on('CursorMoved', this.checkCurrentBuffer, this, this.disposables)
     events.on('DirChanged', this.onDirChanged, this, this.disposables)
     events.on('BufCreate', this.onBufCreate, this, this.disposables)
     events.on('BufUnload', this.onBufUnload, this, this.disposables)
@@ -149,8 +149,8 @@ export class Workspace implements IWorkspace {
     events.on('BufWritePost', this.onBufWritePost, this, this.disposables)
     events.on('BufWritePre', this.onBufWritePre, this, this.disposables)
     events.on('FileType', this.onFileTypeChange, this, this.disposables)
-    events.on('CursorHold', this.checkBuffer as any, this, this.disposables)
-    events.on('TextChanged', this.checkBuffer as any, this, this.disposables)
+    events.on('CursorHold', this.checkCurrentBuffer, this, this.disposables)
+    events.on('TextChanged', this.checkBuffer, this, this.disposables)
     events.on('BufReadCmd', this.onBufReadCmd, this, this.disposables)
     events.on('VimResized', (columns, lines) => {
       Object.assign(this._env, { columns, lines })
@@ -1567,7 +1567,7 @@ augroup end`
     }
   }
 
-  private async onCursorMoved(bufnr: number): Promise<void> {
+  private async checkCurrentBuffer(bufnr: number): Promise<void> {
     this.bufnr = bufnr
     await this.checkBuffer(bufnr)
   }
