@@ -6,7 +6,7 @@ let s:clients = {}
 if get(g:, 'node_client_debug', 0)
   let $NODE_CLIENT_LOG_LEVEL = 'debug'
   if exists('$NODE_CLIENT_LOG_FILE')
-    s:logfile = resolve($NODE_CLIENT_LOG_FILE)
+    let s:logfile = resolve($NODE_CLIENT_LOG_FILE)
   else
     let s:logfile = tempname()
     let $NODE_CLIENT_LOG_FILE = s:logfile
