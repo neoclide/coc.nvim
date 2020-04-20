@@ -16,6 +16,7 @@ import { indexOf, resolveVariables } from '../../util/string'
 import helper from '../helper'
 import { ansiparse } from '../../util/ansiparse'
 import { getUri } from '../../util/index'
+import workspace from '../../workspace'
 
 let nvim: Neovim
 beforeAll(async () => {
@@ -257,16 +258,20 @@ describe('Mutex', () => {
 })
 
 describe('URI replace pattern', () => {
-  test('no replacement patterns gets URI like normal', () =>
-    expect(getUri('/Volumes/source_root/file.cc', 0, '', false, []))
+  let config = workspace.getConfiguration(`coc.preferences`)
+  test('no replacement patterns gets URI like normal', () => {
+    config.update('uriReplacePatterns', [])
+    expect(getUri('/Volumes/source_root/file.cc', 0, '', false))
         .toBe('file:///Volumes/source_root/file.cc')
-  )
-  test('replace pattern with empty string', () =>
-    expect(getUri('/Volumes/source_root/file.cc', 0, '', false, [['/Volumes', '']]))
+  })
+  test('replace pattern with empty string', () => {
+    config.update('uriReplacePatterns', [['/Volumes', '']])
+    expect(getUri('/Volumes/source_root/file.cc', 0, '', false))
         .toBe('file:///source_root/file.cc')
-  )
-  test('replace pattern with non-empty string', () =>
-    expect(getUri('/Volumes/source_root/file.cc', 0, '', false, [['/Volumes', '/code']]))
+  })
+  test('replace pattern with non-empty string', () => {
+    config.update('uriReplacePatterns', [['/Volumes', '/code']])
+    expect(getUri('/Volumes/source_root/file.cc', 0, '', false))
         .toBe('file:///code/source_root/file.cc')
-  )
+  })
 })
