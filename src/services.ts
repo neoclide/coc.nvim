@@ -360,7 +360,7 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
   let serverOptions: ServerOptions
   if (isModule) {
     serverOptions = {
-      module: module.toString(),
+      module: workspace.expand(module.toString()),
       runtime: config.runtime || process.execPath,
       args,
       transport: getTransportKind(config),
