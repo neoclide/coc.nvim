@@ -243,7 +243,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
   public registLanguageClient(client: LanguageClient): Disposable
   public registLanguageClient(name: string, config: LanguageServerConfig): Disposable
   public registLanguageClient(name: string | LanguageClient, config?: LanguageServerConfig): Disposable {
-    let id = typeof name === 'string' ? `languageserver.${name}` : name.name
+    let id = typeof name === 'string' ? `languageserver.${name}` : name.id
     let disposables: Disposable[] = []
     let onDidServiceReady = new Emitter<void>()
     let client: LanguageClient | null = typeof name === 'string' ? null : name
