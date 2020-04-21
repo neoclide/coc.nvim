@@ -390,7 +390,7 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
   }
   let disableWorkspaceFolders = !!config.disableWorkspaceFolders
   let ignoredRootPaths = config.ignoredRootPaths || []
-  ignoredRootPaths = ignoredRootPaths.map(s => s.replace(/^~/, os.homedir()))
+  ignoredRootPaths = ignoredRootPaths.map(s => workspace.expand(s))
   let clientOptions: LanguageClientOptions = {
     ignoredRootPaths,
     disableWorkspaceFolders,

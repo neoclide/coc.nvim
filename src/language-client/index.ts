@@ -423,12 +423,10 @@ export class LanguageClient extends BaseLanguageClient {
       options.env = options.env ? Object.assign({}, options.env, process.env) : process.env
       options.cwd = options.cwd || serverWorkingDir
       let cmd = json.command
-      if (cmd.startsWith('~')) {
-        cmd = os.homedir() + cmd.slice(1)
-      }
       if (cmd.indexOf('$') !== -1) {
         cmd = resolveVariables(cmd, { workspaceFolder: workspace.rootPath })
       }
+      cmd = workspace.expand(cmd)
       if (path.isAbsolute(cmd) && !fs.existsSync(cmd)) {
         logger.info(`${cmd} of ${this.id} not exists`)
         return

@@ -928,7 +928,7 @@ export class Workspace implements IWorkspace {
       // directory
       if (filepath.endsWith('/')) {
         try {
-          if (filepath.startsWith('~')) filepath = filepath.replace(/^~/, os.homedir())
+          filepath = this.expand(filepath)
           await mkdirp(filepath)
         } catch (e) {
           this.showMessage(`Can't create ${filepath}: ${e.message}`, 'error')
@@ -1151,6 +1151,9 @@ export class Workspace implements IWorkspace {
   public expand(filepath: string): string {
     if (filepath.startsWith('~')) {
       filepath = os.homedir() + filepath.slice(1)
+    }
+    if (filepath.startsWith('$HOME')) {
+      filepath = os.homedir() + filepath.slice(5)
     }
     if (filepath.indexOf('$') !== -1) {
       filepath = filepath.replace(/\$[\w]+/g, match => {
