@@ -22494,7 +22494,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "713767dc82" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "6e3ecc04cf" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54417,7 +54417,7 @@ class ServiceManager extends events_1.EventEmitter {
         return await Promise.resolve(service.client.sendRequest(method, params));
     }
     registLanguageClient(name, config) {
-        let id = typeof name === 'string' ? `languageserver.${name}` : name.name;
+        let id = typeof name === 'string' ? `languageserver.${name}` : name.id;
         let disposables = [];
         let onDidServiceReady = new vscode_languageserver_protocol_1.Emitter();
         let client = typeof name === 'string' ? null : name;
