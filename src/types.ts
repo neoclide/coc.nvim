@@ -255,6 +255,7 @@ export interface Env {
   readonly isVim: boolean
   readonly isCygwin: boolean
   readonly isMacvim: boolean
+  readonly isiTerm: boolean
   readonly version: string
   readonly locationlist: boolean
   readonly progpath: string

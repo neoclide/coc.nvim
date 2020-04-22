@@ -40,6 +40,15 @@ export default class ExtensionList extends BasicList {
       }
     })
 
+    this.addAction('open', async item => {
+      let { root } = item.data
+      if (workspace.env.isiTerm) {
+        nvim.call('coc#util#iterm_open', [root], true)
+      } else {
+        nvim.call('coc#util#open_url', [root], true)
+      }
+    })
+
     this.addAction('disable', async item => {
       let { id, state } = item.data
       if (state !== 'disabled') await extensions.toggleExtension(id)
