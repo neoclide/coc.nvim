@@ -408,6 +408,20 @@ describe('workspace methods', () => {
     expect(res).toContain(process.env.NODE_ENV)
   })
 
+  it('should expand variables', async () => {
+    expect(workspace.expand('${workspace}/foo')).toBe(`${workspace.root}/foo`)
+    expect(workspace.expand('${env:NODE_ENV}')).toBe(process.env.NODE_ENV)
+    expect(workspace.expand('${cwd}')).toBe(workspace.cwd)
+    let folder = path.dirname(workspace.root)
+    expect(workspace.expand('${workspaceFolderBasename}')).toBe(folder)
+    await helper.edit('bar.ts')
+    expect(workspace.expand('${file}')).toContain('bar')
+    expect(workspace.expand('${fileDirname}')).toBe(path.dirname(__dirname))
+    expect(workspace.expand('${fileExtname}')).toBe('.ts')
+    expect(workspace.expand('${fileBasename}')).toBe('bar.ts')
+    expect(workspace.expand('${fileBasenameNoExtension}')).toBe('bar')
+  })
+
   it('should run command', async () => {
     let res = await workspace.runCommand('ls', __dirname, 1)
     expect(res).toMatch('workspace')

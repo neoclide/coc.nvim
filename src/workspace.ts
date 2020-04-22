@@ -1149,14 +1149,45 @@ export class Workspace implements IWorkspace {
    * Expand filepath with `~` and/or environment placeholders
    */
   public expand(filepath: string): string {
+    if (!filepath) return filepath
     if (filepath.startsWith('~')) {
       filepath = os.homedir() + filepath.slice(1)
     }
-    if (filepath.startsWith('$HOME')) {
-      filepath = os.homedir() + filepath.slice(5)
-    }
     if (filepath.indexOf('$') !== -1) {
+      let doc = this.getDocument(this.bufnr)
+      let fsPath = doc ? URI.parse(doc.uri).fsPath : ''
+      filepath = filepath.replace(/\$\{(.*?)\}/g, (match: string, name: string) => {
+        if (name.startsWith('env:')) {
+          let key = name.split(':')[1]
+          let val = key ? process.env[key] : ''
+          return val
+        }
+        switch (name) {
+          case 'workspace':
+          case 'workspaceRoot':
+          case 'workspaceFolder':
+            return this.root
+          case 'workspaceFolderBasename':
+            return path.dirname(this.root)
+          case 'cwd':
+            return this.cwd
+          case 'file':
+            return fsPath
+          case 'fileDirname':
+            return fsPath ? path.dirname(fsPath) : ''
+          case 'fileExtname':
+            return fsPath ? path.extname(fsPath) : ''
+          case 'fileBasename':
+            return fsPath ? path.basename(fsPath) : ''
+          case 'fileBasenameNoExtension':
+            let basename = fsPath ? path.basename(fsPath) : ''
+            return basename ? basename.slice(0, basename.length - path.extname(basename).length) : ''
+          default:
+            return match
+        }
+      })
       filepath = filepath.replace(/\$[\w]+/g, match => {
+        if (match == '$HOME') return os.homedir()
         return process.env[match.replace('$', '')] || match
       })
     }
