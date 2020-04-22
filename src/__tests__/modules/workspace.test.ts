@@ -402,6 +402,10 @@ describe('workspace methods', () => {
     let res = workspace.expand('~/$NODE_ENV/')
     expect(res.startsWith(home)).toBeTruthy()
     expect(res).toContain(process.env.NODE_ENV)
+
+    res = workspace.expand('$HOME/$NODE_ENV/')
+    expect(res.startsWith(home)).toBeTruthy()
+    expect(res).toContain(process.env.NODE_ENV)
   })
 
   it('should run command', async () => {
