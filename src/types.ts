@@ -290,8 +290,6 @@ export interface SnippetManager {
   previousPlaceholder(): Promise<void>
 }
 
-export type ModuleResolve = () => Promise<string>
-
 export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o'
 
 export enum PatternType {
@@ -334,7 +332,7 @@ export interface ConfigurationChangeEvent {
 }
 
 export interface LanguageServerConfig {
-  module?: string | ModuleResolve
+  module?: string
   command?: string
   transport?: string
   transportPort?: number
