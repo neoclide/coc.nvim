@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        node-version: [10, 12, 13]
+        node-version: [10, 12, 13, 14]
 
     env:
       NODE_ENV: test
