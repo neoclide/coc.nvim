@@ -245,7 +245,7 @@ function! coc#util#jump(cmd, filepath, ...) abort
       exe a:cmd.' '.fnameescape(file)
     endif
   endif
-  if &l:filetype ==# ''
+  if &filetype ==# ''
     filetype detect
   endif
   if s:is_vim
@@ -674,6 +674,7 @@ function! coc#util#vim_info()
         \ 'isVim': has('nvim') ? v:false : v:true,
         \ 'isCygwin': has('win32unix') ? v:true : v:false,
         \ 'isMacvim': has('gui_macvim') ? v:true : v:false,
+        \ 'isiTerm': $TERM_PROGRAM ==# "iTerm.app",
         \ 'colorscheme': get(g:, 'colors_name', ''),
         \ 'workspaceFolders': get(g:, 'WorkspaceFolders', v:null),
         \ 'background': &background,

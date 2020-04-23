@@ -22494,7 +22494,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "6e3ecc04cf" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "9febe802b3" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -25044,8 +25044,7 @@ class Workspace {
             // directory
             if (filepath.endsWith('/')) {
                 try {
-                    if (filepath.startsWith('~'))
-                        filepath = filepath.replace(/^~/, os_1.default.homedir());
+                    filepath = this.expand(filepath);
                     await index_1.mkdirp(filepath);
                 }
                 catch (e) {
@@ -25270,11 +25269,47 @@ class Workspace {
      * Expand filepath with `~` and/or environment placeholders
      */
     expand(filepath) {
+        if (!filepath)
+            return filepath;
         if (filepath.startsWith('~')) {
             filepath = os_1.default.homedir() + filepath.slice(1);
         }
         if (filepath.indexOf('$') !== -1) {
+            let doc = this.getDocument(this.bufnr);
+            let fsPath = doc ? vscode_uri_1.URI.parse(doc.uri).fsPath : '';
+            filepath = filepath.replace(/\$\{(.*?)\}/g, (match, name) => {
+                if (name.startsWith('env:')) {
+                    let key = name.split(':')[1];
+                    let val = key ? process.env[key] : '';
+                    return val;
+                }
+                switch (name) {
+                    case 'workspace':
+                    case 'workspaceRoot':
+                    case 'workspaceFolder':
+                        return this.root;
+                    case 'workspaceFolderBasename':
+                        return path_1.default.dirname(this.root);
+                    case 'cwd':
+                        return this.cwd;
+                    case 'file':
+                        return fsPath;
+                    case 'fileDirname':
+                        return fsPath ? path_1.default.dirname(fsPath) : '';
+                    case 'fileExtname':
+                        return fsPath ? path_1.default.extname(fsPath) : '';
+                    case 'fileBasename':
+                        return fsPath ? path_1.default.basename(fsPath) : '';
+                    case 'fileBasenameNoExtension':
+                        let basename = fsPath ? path_1.default.basename(fsPath) : '';
+                        return basename ? basename.slice(0, basename.length - path_1.default.extname(basename).length) : '';
+                    default:
+                        return match;
+                }
+            });
             filepath = filepath.replace(/\$[\w]+/g, match => {
+                if (match == '$HOME')
+                    return os_1.default.homedir();
                 return process.env[match.replace('$', '')] || match;
             });
         }
@@ -32317,17 +32352,6 @@ function isTriggerCharacter(character) {
     return true;
 }
 exports.isTriggerCharacter = isTriggerCharacter;
-function resolveVariables(str, variables) {
-    const regexp = /\$\{(.*?)\}/g;
-    return str.replace(regexp, (match, name) => {
-        const newValue = variables[name] || process.env[name];
-        if (typeof newValue === 'string') {
-            return newValue;
-        }
-        return match;
-    });
-}
-exports.resolveVariables = resolveVariables;
 function isAsciiLetter(code) {
     if (code >= 65 && code <= 90)
         return true;
@@ -54188,7 +54212,6 @@ const tslib_1 = __webpack_require__(3);
 const events_1 = __webpack_require__(137);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
 const net_1 = tslib_1.__importDefault(__webpack_require__(96));
-const os_1 = tslib_1.__importDefault(__webpack_require__(14));
 const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const language_client_1 = __webpack_require__(352);
 const types_1 = __webpack_require__(198);
@@ -54532,17 +54555,15 @@ function getLanguageServerOptions(id, name, config) {
         workspace_1.default.showMessage(`Wrong configuration of LS "${name}", no command or module specified.`, 'error');
         return null;
     }
-    if (module && !fs_1.default.existsSync(module)) {
-        workspace_1.default.showMessage(`Module file "${module}" not found for LS "${name}"`, 'error');
-        return null;
-    }
-    if (filetypes.length == 0)
-        return;
-    let isModule = module != null;
     let serverOptions;
-    if (isModule) {
+    if (module) {
+        module = workspace_1.default.expand(module);
+        if (!fs_1.default.existsSync(module)) {
+            workspace_1.default.showMessage(`Module file "${module}" not found for LS "${name}"`, 'error');
+            return null;
+        }
         serverOptions = {
-            module: module.toString(),
+            module,
             runtime: config.runtime || process.execPath,
             args,
             transport: getTransportKind(config),
@@ -54560,7 +54581,9 @@ function getLanguageServerOptions(id, name, config) {
         serverOptions = () => {
             return new Promise((resolve, reject) => {
                 let client = new net_1.default.Socket();
-                client.connect(port, config.host || '127.0.0.1', () => {
+                let host = config.host || '127.0.0.1';
+                logger.info(`languageserver "${id}" connecting to ${host}:${port}`);
+                client.connect(port, host, () => {
                     resolve({
                         reader: client,
                         writer: client
@@ -54574,9 +54597,8 @@ function getLanguageServerOptions(id, name, config) {
     }
     let disableWorkspaceFolders = !!config.disableWorkspaceFolders;
     let ignoredRootPaths = config.ignoredRootPaths || [];
-    ignoredRootPaths = ignoredRootPaths.map(s => s.replace(/^~/, os_1.default.homedir()));
     let clientOptions = {
-        ignoredRootPaths,
+        ignoredRootPaths: ignoredRootPaths.map(s => workspace_1.default.expand(s)),
         disableWorkspaceFolders,
         disableDynamicRegister: !!config.disableDynamicRegister,
         disableCompletion: !!config.disableCompletion,
@@ -54676,7 +54698,6 @@ const tslib_1 = __webpack_require__(3);
  *--------------------------------------------------------------------------------------------*/
 const child_process_1 = tslib_1.__importDefault(__webpack_require__(178));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
-const os_1 = tslib_1.__importDefault(__webpack_require__(14));
 const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const which_1 = tslib_1.__importDefault(__webpack_require__(184));
@@ -54684,7 +54705,6 @@ const types_1 = __webpack_require__(198);
 const util_1 = __webpack_require__(177);
 const Is = tslib_1.__importStar(__webpack_require__(200));
 const processes_1 = __webpack_require__(348);
-const string_1 = __webpack_require__(219);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(194));
 const client_1 = __webpack_require__(353);
 const colorProvider_1 = __webpack_require__(358);
@@ -55007,12 +55027,7 @@ class LanguageClient extends client_1.BaseLanguageClient {
             options.env = options.env ? Object.assign({}, options.env, process.env) : process.env;
             options.cwd = options.cwd || serverWorkingDir;
             let cmd = json.command;
-            if (cmd.startsWith('~')) {
-                cmd = os_1.default.homedir() + cmd.slice(1);
-            }
-            if (cmd.indexOf('$') !== -1) {
-                cmd = string_1.resolveVariables(cmd, { workspaceFolder: workspace_1.default.rootPath });
-            }
+            cmd = workspace_1.default.expand(cmd);
             if (path_1.default.isAbsolute(cmd) && !fs_1.default.existsSync(cmd)) {
                 logger.info(`${cmd} of ${this.id} not exists`);
                 return;
@@ -64301,6 +64316,15 @@ class ExtensionList extends basic_1.default {
                 await workspace_1.default.jumpTo(vscode_uri_1.URI.file(jsonFile).toString(), { line: idx == -1 ? 0 : idx, character: 0 });
             }
         });
+        this.addAction('open', async (item) => {
+            let { root } = item.data;
+            if (workspace_1.default.env.isiTerm) {
+                nvim.call('coc#util#iterm_open', [root], true);
+            }
+            else {
+                nvim.call('coc#util#open_url', [root], true);
+            }
+        });
         this.addAction('disable', async (item) => {
             let { id, state } = item.data;
             if (state !== 'disabled')
@@ -66910,13 +66934,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(4));
 const minimatch_1 = tslib_1.__importDefault(__webpack_require__(210));
-const os_1 = tslib_1.__importDefault(__webpack_require__(14));
 const path_1 = tslib_1.__importDefault(__webpack_require__(20));
 const util_1 = tslib_1.__importDefault(__webpack_require__(12));
 const vscode_languageserver_protocol_1 = __webpack_require__(150);
 const source_1 = tslib_1.__importDefault(__webpack_require__(423));
 const fs_2 = __webpack_require__(209);
 const string_1 = __webpack_require__(219);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(194));
 const logger = __webpack_require__(2)('source-file');
 const pathRe = /(?:\.{0,2}|~|\$HOME|([\w]+)|)\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/;
 class File extends source_1.default {
@@ -66942,13 +66966,7 @@ class File extends source_1.default {
             return null;
         let ms = part.match(pathRe);
         if (ms && ms.length) {
-            let pathstr = ms[0];
-            if (pathstr.startsWith('~')) {
-                pathstr = os_1.default.homedir() + pathstr.slice(1);
-            }
-            if (pathstr.startsWith('$HOME')) {
-                pathstr = os_1.default.homedir() + pathstr.slice(5);
-            }
+            const pathstr = workspace_1.default.expand(ms[0]);
             let input = ms[0].match(/[^/]*$/)[0];
             return { pathstr, part: ms[1], startcol: colnr - input.length - 1, input };
         }
