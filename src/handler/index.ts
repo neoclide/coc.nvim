@@ -538,7 +538,8 @@ export default class Handler {
     }
     let definitions = await languages.getDefinition(document.textDocument, position)
     return definitions.map(location => {
-      const filename = URI.parse(location.uri).fsPath
+      let parsedURI = URI.parse(location.uri)
+      const filename = parsedURI.scheme == 'file' ? parsedURI.fsPath : parsedURI.toString()
       return {
         name: word,
         cmd: `keepjumps ${location.range.start.line + 1} | normal ${location.range.start.character + 1}|`,
