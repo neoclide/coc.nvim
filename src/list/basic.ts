@@ -7,7 +7,6 @@ import { ProviderResult } from '../provider'
 import { IList, ListAction, ListContext, ListItem, ListTask, LocationWithLine, WorkspaceConfiguration, ListArgument, PreiewOptions } from '../types'
 import { disposeAll } from '../util'
 import { comparePosition } from '../util/position'
-import { byteIndex } from '../util/string'
 import workspace from '../workspace'
 import ListConfiguration from './configuration'
 const logger = require('../util/logger')('list-basic')
@@ -228,6 +227,7 @@ export default abstract class BasicList implements IList, Disposable {
     let [escaped, exists, valid] = res
     let lnum = range.start.line + 1
     let winid = context.listWindow.id
+    let positions = await workspace.getHighlightPositions(uri, range)
     nvim.pauseNotification()
     nvim.command('pclose', true)
     if (this.splitRight || position == 'tab') {
@@ -240,22 +240,8 @@ export default abstract class BasicList implements IList, Disposable {
     }
     nvim.command(`exe ${lnum}`, true)
     nvim.command('setl winfixheight nofoldenable', true)
-    // highlight range
-    if (comparePosition(range.start, range.end) !== 0) {
-      let arr: Range[] = []
-      for (let i = range.start.line; i <= range.end.line; i++) {
-        let curr = await workspace.getLine(uri, range.start.line)
-        let sc = i == range.start.line ? range.start.character : 0
-        let ec = i == range.end.line ? range.end.character : curr.length
-        if (sc == ec) continue
-        arr.push(Range.create(i, sc, i, ec))
-      }
-      for (let r of arr) {
-        let line = await workspace.getLine(uri, r.start.line)
-        let start = byteIndex(line, r.start.character) + 1
-        let end = byteIndex(line, r.end.character) + 1
-        nvim.call('matchaddpos', [this.hlGroup, [[lnum, start, end - start]]], true)
-      }
+    for (let pos of positions) {
+      nvim.call('matchaddpos', [this.hlGroup, [pos]], true)
     }
     if (!exists) nvim.command('setl nobuflisted bufhidden=wipe', true)
     nvim.command('normal! zz', true)

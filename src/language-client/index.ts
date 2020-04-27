@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 import cp, { SpawnOptions } from 'child_process'
 import fs from 'fs'
-import os from 'os'
 import path from 'path'
 import { createClientPipeTransport, createClientSocketTransport, Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol'
 import which from 'which'
@@ -12,7 +11,6 @@ import { ServiceStat } from '../types'
 import { disposeAll } from '../util'
 import * as Is from '../util/is'
 import { terminate } from '../util/processes'
-import { resolveVariables } from '../util/string'
 import workspace from '../workspace'
 import { BaseLanguageClient, ClientState, DynamicFeature, LanguageClientOptions, MessageTransports, StaticFeature } from './client'
 import { ColorProviderFeature } from './colorProvider'
@@ -423,12 +421,7 @@ export class LanguageClient extends BaseLanguageClient {
       options.env = options.env ? Object.assign({}, options.env, process.env) : process.env
       options.cwd = options.cwd || serverWorkingDir
       let cmd = json.command
-      if (cmd.startsWith('~')) {
-        cmd = os.homedir() + cmd.slice(1)
-      }
-      if (cmd.indexOf('$') !== -1) {
-        cmd = resolveVariables(cmd, { workspaceFolder: workspace.rootPath })
-      }
+      cmd = workspace.expand(cmd)
       if (path.isAbsolute(cmd) && !fs.existsSync(cmd)) {
         logger.info(`${cmd} of ${this.id} not exists`)
         return

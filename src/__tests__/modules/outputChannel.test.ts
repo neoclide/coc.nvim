@@ -42,8 +42,8 @@ describe('OutputChannel', () => {
     await wait(100)
     let buf = await nvim.buffer
     c.appendLine('foo')
-    await wait(100)
-    let lines = await buf.getLines({ start: 0, end: -1, strictIndexing: false })
+    await wait(500)
+    let lines = await buf.lines
     expect(lines).toContain('foo')
   })
 

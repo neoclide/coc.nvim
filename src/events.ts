@@ -69,7 +69,7 @@ class Events {
           return fn(args)
         }))
       } catch (e) {
-        if (e.message && !e.message.startsWith('Timeout')) {
+        if (e.message) {
           // tslint:disable-next-line: no-console
           console.error(`Error on ${event}: ${e.message}${e.stack ? '\n' + e.stack : ''} `)
         }
@@ -106,22 +106,18 @@ class Events {
       })
     } else {
       let arr = this.handlers.get(event) || []
-      let timeout = 2000
+      let stack = Error().stack
       arr.push(args => {
-        return new Promise((resolve, reject) => {
-          let timer = setTimeout(() => {
-            reject(new Error(`Timeout handler of "${event}" after: ${timeout}ms`))
-          }, timeout)
+        return new Promise(async (resolve, reject) => {
+          let ts = Date.now()
           try {
-            Promise.resolve(handler.apply(thisArg || null, args)).then(() => {
-              clearTimeout(timer)
-              resolve()
-            }, e => {
-              clearTimeout(timer)
-              reject(e)
-            })
+            await Promise.resolve(handler.apply(thisArg || null, args))
+            let dt = Date.now() - ts
+            if (dt > 2000) {
+              logger.warn(`Handler of ${event} cost ${dt}ms`, stack)
+            }
+            resolve()
           } catch (e) {
-            clearTimeout(timer)
             reject(e)
           }
         })

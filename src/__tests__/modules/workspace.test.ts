@@ -2,6 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import uuid from 'uuid/v4'
 import { Disposable, Emitter } from 'vscode-languageserver-protocol'
 import { CreateFile, DeleteFile, Location, Position, Range, RenameFile, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
@@ -9,9 +10,8 @@ import events from '../../events'
 import { TextDocumentContentProvider } from '../../provider'
 import { ConfigurationTarget } from '../../types'
 import { disposeAll } from '../../util'
-import { readFile, writeFile } from '../../util/fs'
+import { readFile } from '../../util/fs'
 import workspace from '../../workspace'
-import uuid from 'uuid/v4'
 import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
@@ -229,7 +229,7 @@ describe('workspace applyEdits', () => {
   it('should support changes with edit and rename', async () => {
     let file = await createTmpFile('test')
     let doc = await helper.createDocument(file)
-    let newFile = path.join(os.tmpdir(), `coc-${process.pid}/${uuid()}`)
+    let newFile = path.join(os.tmpdir(), `coc-${process.pid}/new-${uuid()}`)
     let newUri = URI.file(newFile).toString()
     let edit: WorkspaceEdit = {
       documentChanges: [
@@ -397,6 +397,31 @@ describe('workspace methods', () => {
     expect(doc.bufnr).toBe(buf.id)
   })
 
+  it('should expand filepath', async () => {
+    let home = os.homedir()
+    let res = workspace.expand('~/$NODE_ENV/')
+    expect(res.startsWith(home)).toBeTruthy()
+    expect(res).toContain(process.env.NODE_ENV)
+
+    res = workspace.expand('$HOME/$NODE_ENV/')
+    expect(res.startsWith(home)).toBeTruthy()
+    expect(res).toContain(process.env.NODE_ENV)
+  })
+
+  it('should expand variables', async () => {
+    expect(workspace.expand('${workspace}/foo')).toBe(`${workspace.root}/foo`)
+    expect(workspace.expand('${env:NODE_ENV}')).toBe(process.env.NODE_ENV)
+    expect(workspace.expand('${cwd}')).toBe(workspace.cwd)
+    let folder = path.dirname(workspace.root)
+    expect(workspace.expand('${workspaceFolderBasename}')).toBe(folder)
+    await helper.edit('bar.ts')
+    expect(workspace.expand('${file}')).toContain('bar')
+    expect(workspace.expand('${fileDirname}')).toBe(path.dirname(__dirname))
+    expect(workspace.expand('${fileExtname}')).toBe('.ts')
+    expect(workspace.expand('${fileBasename}')).toBe('bar.ts')
+    expect(workspace.expand('${fileBasenameNoExtension}')).toBe('bar')
+  })
+
   it('should run command', async () => {
     let res = await workspace.runCommand('ls', __dirname, 1)
     expect(res).toMatch('workspace')
@@ -405,6 +430,14 @@ describe('workspace methods', () => {
   it('should run terminal command', async () => {
     let res = await workspace.runTerminalCommand('ls', __dirname)
     expect(res.success).toBe(true)
+  })
+
+  it('should open temimal buffer', async () => {
+    let bufnr = await workspace.openTerminal('ls', { autoclose: false, keepfocus: false })
+    let curr = await nvim.eval('bufnr("%")')
+    expect(curr).toBe(bufnr)
+    let buftype = await nvim.eval('&buftype')
+    expect(buftype).toBe('terminal')
   })
 
   it('should show mesages', async () => {
@@ -523,6 +556,8 @@ describe('workspace utility', () => {
   })
 
   it('should create file if not exists', async () => {
+    await helper.edit()
+    let bufnr = await nvim.eval('bufnr("%")')
     let filepath = path.join(__dirname, 'foo')
     await workspace.createFile(filepath, { ignoreIfExists: true })
     let exists = fs.existsSync(filepath)
@@ -555,27 +590,24 @@ describe('workspace utility', () => {
     fs.unlinkSync(newPath)
   })
 
-  it('should rename buffer when necessary', async () => {
-    let dir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-workspace'))
-    let filepath = path.join(dir, 'old')
-    await writeFile(filepath, 'bar')
-    await nvim.call('coc#util#open_file', ['edit', filepath])
-    let uri = URI.file(filepath).toString()
-    await helper.wait(100)
+  it('should rename current buffer with another buffer', async () => {
+    let file = await createTmpFile('test')
+    let doc = await helper.createDocument(file)
+    await nvim.setLine('bar')
+    await helper.wait(50)
+    let newFile = path.join(os.tmpdir(), `coc-${process.pid}/new-${uuid()}`)
+    await workspace.renameFile(file, newFile)
+    let bufnr = await nvim.call('bufnr', ['%'])
+    expect(bufnr).toBeGreaterThan(doc.bufnr)
     let line = await nvim.line
     expect(line).toBe('bar')
-    let newFile = path.join(dir, 'new')
-    let newUri = URI.file(newFile).toString()
-    await workspace.renameFile(filepath, newFile, { overwrite: true })
-    let old = workspace.getDocument(uri)
-    expect(old).toBeNull()
-    let doc = workspace.getDocument(newUri)
-    expect(doc.uri).toBe(newUri)
+    let exists = fs.existsSync(newFile)
+    expect(exists).toBe(true)
   })
 
   it('should overwrite if file exists', async () => {
-    let filepath = path.join(__dirname, 'foo')
-    let newPath = path.join(__dirname, 'bar')
+    let filepath = path.join(os.tmpdir(), uuid())
+    let newPath = path.join(os.tmpdir(), uuid())
     await workspace.createFile(filepath)
     await workspace.createFile(newPath)
     await workspace.renameFile(filepath, newPath, { overwrite: true })

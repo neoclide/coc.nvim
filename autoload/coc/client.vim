@@ -6,7 +6,7 @@ let s:clients = {}
 if get(g:, 'node_client_debug', 0)
   let $NODE_CLIENT_LOG_LEVEL = 'debug'
   if exists('$NODE_CLIENT_LOG_FILE')
-    s:logfile = resolve($NODE_CLIENT_LOG_FILE)
+    let s:logfile = resolve($NODE_CLIENT_LOG_FILE)
   else
     let s:logfile = tempname()
     let $NODE_CLIENT_LOG_FILE = s:logfile
@@ -37,8 +37,6 @@ endfunction
 function! s:start() dict
   if self.running | return | endif
   if s:is_vim
-    let $VIM_NODE_RPC = 1
-    let $COC_NVIM = 1
     let options = {
           \ 'in_mode': 'json',
           \ 'out_mode': 'json',
@@ -48,6 +46,17 @@ function! s:start() dict
           \}
     if has("patch-8.1.350")
       let options['noblock'] = 1
+    endif
+    if has("patch-8.0.0902")
+      let options['env'] = {
+        \ 'VIM_NODE_RPC': '1',
+        \ 'COC_NVIM': '1',
+        \ 'COC_CHANNEL_TIMEOUT': get(g:, 'coc_channel_timeout', 30),
+        \ }
+    else
+      let $VIM_NODE_RPC = 1
+      let $COC_NVIM = 1
+      let $COC_CHANNEL_TIMEOUT = get(g:, 'coc_channel_timeout', 30)
     endif
     let job = job_start(self.command, options)
     let status = job_status(job)
@@ -63,6 +72,9 @@ function! s:start() dict
           \ 'rpc': 1,
           \ 'on_stderr': {channel, msgs -> s:on_stderr(self.name, msgs)},
           \ 'on_exit': {channel, code -> s:on_exit(self.name, code)},
+          \ 'env': {
+          \   'COC_CHANNEL_TIMEOUT': get(g:, 'coc_channel_timeout', 30)
+          \  }
           \})
     if chan_id <= 0
       echohl Error | echom 'Failed to start '.self.name.' service' | echohl None
@@ -112,9 +124,9 @@ function! s:request(method, args) dict
   if empty(channel) | return '' | endif
   try
     if s:is_vim
-      let res = ch_evalexpr(channel, [a:method, a:args], {'timeout': 30000})
+      let res = ch_evalexpr(channel, [a:method, a:args], {'timeout': 60 * 1000})
       if type(res) == 1 && res ==# ''
-        throw 'request '.a:method. ' '.string(a:args).' timeout after 30s'
+        throw 'request '.a:method. ' '.string(a:args).' timeout after 60s'
       endif
       let [l:errmsg, res] =  res
       if !empty(l:errmsg)
@@ -122,8 +134,9 @@ function! s:request(method, args) dict
       else
         return res
       endif
+    else
+      return call('rpcrequest', [channel, a:method] + a:args)
     endif
-    return call('rpcrequest', [channel, a:method] + a:args)
   catch /.*/
     if v:exception =~# 'E475'
       if get(g:, 'coc_vim_leaving', 0) | return | endif

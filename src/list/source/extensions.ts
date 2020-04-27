@@ -1,4 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
+import rimraf from 'rimraf'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -39,6 +40,15 @@ export default class ExtensionList extends BasicList {
       }
     })
 
+    this.addAction('open', async item => {
+      let { root } = item.data
+      if (workspace.env.isiTerm) {
+        nvim.call('coc#util#iterm_open', [root], true)
+      } else {
+        nvim.call('coc#util#open_url', [root], true)
+      }
+    })
+
     this.addAction('disable', async item => {
       let { id, state } = item.data
       if (state !== 'disabled') await extensions.toggleExtension(id)
@@ -54,7 +64,7 @@ export default class ExtensionList extends BasicList {
       await extensions.toggleLock(id)
     }, { persist: true, reload: true })
 
-    this.addAction('doc', async item => {
+    this.addAction('readme', async item => {
       let { root } = item.data
       let files = await readdirAsync(root)
       let file = files.find(f => /^readme/i.test(f))
@@ -73,6 +83,27 @@ export default class ExtensionList extends BasicList {
       extensions.activate(id)
       await wait(100)
     }, { persist: true, reload: true })
+
+    this.addAction('fix', async item => {
+      let { root, isLocal } = item.data
+      let { npm } = extensions
+      if (isLocal) {
+        workspace.showMessage(`Can't fix for local extension.`, 'warning')
+        return
+      }
+      if (!npm) return
+      let folder = path.join(root, 'node_modules')
+      if (fs.existsSync(folder)) {
+        rimraf.sync(folder)
+      }
+      let terminal = await workspace.createTerminal({
+        cwd: root
+      })
+      let shown = await terminal.show(false)
+      if (!shown) return
+      workspace.nvim.command(`startinsert`, true)
+      terminal.sendText(`${npm} install --production --ignore-scripts --no-lockfile`, true)
+    })
 
     this.addMultipleAction('uninstall', async items => {
       let ids = []

@@ -69,7 +69,7 @@
         "filetypes": {
           "type": "array",
           "default": [],
-          "description": "Supported filetypes, use empty array for all filetypes.",
+          "description": "Supported filetypes, add * in array for all filetypes.",
           "items": {
             "type": "string"
           }

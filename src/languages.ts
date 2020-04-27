@@ -773,9 +773,8 @@ class Languages {
     }
     if (prefix) {
       if (!obj.filterText.startsWith(prefix)) {
-        if (item.textEdit) {
-          let newText = item.textEdit.newText.split(/\n/)[0]
-          obj.filterText = newText.startsWith(prefix) ? newText : obj.filterText
+        if (item.textEdit && item.textEdit.newText.startsWith(prefix)) {
+          obj.filterText = item.textEdit.newText.split(/\n/)[0]
         } else {
           obj.filterText = `${prefix}${obj.filterText}`
         }

@@ -83,7 +83,7 @@ export default class ExtensionManager {
     if (dependencies && Object.keys(dependencies).length) {
       onMessage(`Installing dependencies.`)
       let p = new Promise<void>((resolve, reject) => {
-        let args = ['install', '--ignore-scripts', '--no-lockfile', '--no-bin-links', '--production']
+        let args = ['install', '--ignore-scripts', '--no-lockfile', '--production']
         if (info['dist.tarball'] && info['dist.tarball'].indexOf('github.com') !== -1) {
           args = ['install']
         }

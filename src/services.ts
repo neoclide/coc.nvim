@@ -2,7 +2,6 @@ import { SpawnOptions } from 'child_process'
 import { EventEmitter } from 'events'
 import fs from 'fs'
 import net from 'net'
-import os from 'os'
 import { Disposable, DocumentSelector, Emitter } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Executable, ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, State, Transport, TransportKind } from './language-client'
@@ -243,7 +242,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
   public registLanguageClient(client: LanguageClient): Disposable
   public registLanguageClient(name: string, config: LanguageServerConfig): Disposable
   public registLanguageClient(name: string | LanguageClient, config?: LanguageServerConfig): Disposable {
-    let id = typeof name === 'string' ? `languageserver.${name}` : name.name
+    let id = typeof name === 'string' ? `languageserver.${name}` : name.id
     let disposables: Disposable[] = []
     let onDidServiceReady = new Emitter<void>()
     let client: LanguageClient | null = typeof name === 'string' ? null : name
@@ -351,16 +350,15 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
     workspace.showMessage(`Wrong configuration of LS "${name}", no command or module specified.`, 'error')
     return null
   }
-  if (module && !fs.existsSync(module as string)) {
-    workspace.showMessage(`Module file "${module}" not found for LS "${name}"`, 'error')
-    return null
-  }
-  if (filetypes.length == 0) return
-  let isModule = module != null
   let serverOptions: ServerOptions
-  if (isModule) {
+  if (module) {
+    module = workspace.expand(module)
+    if (!fs.existsSync(module as string)) {
+      workspace.showMessage(`Module file "${module}" not found for LS "${name}"`, 'error')
+      return null
+    }
     serverOptions = {
-      module: module.toString(),
+      module,
       runtime: config.runtime || process.execPath,
       args,
       transport: getTransportKind(config),
@@ -376,7 +374,9 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
     serverOptions = () => {
       return new Promise((resolve, reject) => {
         let client = new net.Socket()
-        client.connect(port, config.host || '127.0.0.1', () => {
+        let host = config.host || '127.0.0.1'
+        logger.info(`languageserver "${id}" connecting to ${host}:${port}`)
+        client.connect(port, host, () => {
           resolve({
             reader: client,
             writer: client
@@ -390,9 +390,8 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
   }
   let disableWorkspaceFolders = !!config.disableWorkspaceFolders
   let ignoredRootPaths = config.ignoredRootPaths || []
-  ignoredRootPaths = ignoredRootPaths.map(s => s.replace(/^~/, os.homedir()))
   let clientOptions: LanguageClientOptions = {
-    ignoredRootPaths,
+    ignoredRootPaths: ignoredRootPaths.map(s => workspace.expand(s)),
     disableWorkspaceFolders,
     disableDynamicRegister: !!config.disableDynamicRegister,
     disableCompletion: !!config.disableCompletion,

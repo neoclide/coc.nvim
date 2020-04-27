@@ -2289,10 +2289,10 @@ class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegistratio
     capabilities: ServerCapabilities,
     documentSelector: DocumentSelector | undefined
   ): void {
+    this.documentSelector = documentSelector
     if (!capabilities.workspaceSymbolProvider) {
       return
     }
-    this.documentSelector = documentSelector
     this.register(this.messages, {
       id: UUID.generateUuid(),
       registerOptions: capabilities.workspaceSymbolProvider === true ? { workDoneProgress: false } : capabilities.workspaceSymbolProvider
@@ -3773,7 +3773,7 @@ export abstract class BaseLanguageClient {
       entries.set(uri, diagnostics)
 
       for (const diagnostic of diagnostics) {
-        if (diagnostic.relatedInformation) {
+        if (diagnostic.relatedInformation?.length) {
           let message = `${diagnostic.message}\n\nRelated diagnostics:\n`
           for (const info of diagnostic.relatedInformation) {
             const basename = path.basename(URI.parse(info.location.uri).fsPath)

@@ -12,7 +12,7 @@ import { getHiglights } from '../../util/highlight'
 import { score as matchScore } from '../../util/match'
 import { mixin } from '../../util/object'
 import { Mutex } from '../../util/mutex'
-import { indexOf, resolveVariables } from '../../util/string'
+import { indexOf } from '../../util/string'
 import helper from '../helper'
 import { ansiparse } from '../../util/ansiparse'
 import { getUri } from '../../util/index'
@@ -76,13 +76,6 @@ describe('string test', () => {
   test('should find index', () => {
     expect(indexOf('a,b,c', ',', 2)).toBe(3)
     expect(indexOf('a,b,c', ',', 1)).toBe(1)
-  })
-
-  test('resolve variables', async () => {
-    let res = resolveVariables('${workspace}/foo', { workspace: '/home' })
-    expect(res).toBe('/home/foo')
-    expect(resolveVariables('${x}', {})).toBe('${x}')
-    expect(resolveVariables('${NODE_ENV}', {})).toBe('test')
   })
 })
 

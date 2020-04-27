@@ -129,8 +129,12 @@ function! s:AddAnsiGroups() abort
       let backgroundColor = color_map[key]
       exe 'hi default CocList'.foreground.background.' guifg='.foregroundColor.' guibg='.backgroundColor
     endfor
-    exe 'hi default CocListFg'.foreground. ' guifg='.foregroundColor. ' ctermfg='.foreground
-    exe 'hi default CocListBg'.foreground. ' guibg='.foregroundColor. ' ctermbg='.foreground
+    try
+      exe 'hi default CocListFg'.foreground. ' guifg='.foregroundColor. ' ctermfg='.foreground
+      exe 'hi default CocListBg'.foreground. ' guibg='.foregroundColor. ' ctermbg='.foreground
+    catch /.*/
+      " ignore invalid color
+    endtry
   endfor
 endfunction
 
@@ -261,7 +265,9 @@ if has('nvim')
 else
   hi default link CocFloating Pmenu
 endif
-
+if has('nvim-0.5.0')
+  hi default CocCursorTransparent gui=strikethrough blend=100
+endif
 
 hi default link CocHoverRange     Search
 hi default link CocCursorRange    Search

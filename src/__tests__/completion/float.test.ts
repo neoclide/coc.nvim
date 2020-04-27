@@ -83,7 +83,7 @@ describe('completion float', () => {
     await helper.wait(300)
     let floatWin = await helper.getFloat()
     let config = await floatWin.getConfig()
-    expect(config.col + config.width).toBeLessThan(80)
+    expect(config.col + config.width).toBeLessThan(180)
   })
 
   it('should redraw float window on item change', async () => {

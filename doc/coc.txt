@@ -11,7 +11,6 @@ Requirements					|coc-requirements|
 Installation					|coc-installation|
 Configuration					|coc-configuration|
 Completion					|coc-completion|
-LanguageServer					|coc-languageserver|
 Interface					|coc-interface|
   Key mappings					|coc-key-mappings|
   Variables						|coc-variables|
@@ -854,6 +853,20 @@ b:coc_current_function				*b:coc_current_function*
 
 			Set `"coc.preferences.currentFunctionSymbolAutoUpdate": true`
 			in coc-settings.json to update it on CursorHold.
+
+g:coc_channel_timeout				*g:coc_channel_timeout*
+
+			Channel timeout in seconds for request to node client.
+
+			Default: 30
+
+g:coc_disable_transparent_cursor		*g:coc_disable_transparent_cursor*
+
+			Disable transparent cursor when CocList is activated.
+			Set it to `1` if you have issue with transparent
+			cursor.
+
+			Default: 0
 
 g:coc_last_hover_message			*g:coc_last_hover_message*
 
@@ -2301,6 +2314,7 @@ extensions						*coc-list-extensions*
 	- 'enable' enable extension.
 	- 'lock' lock/unlock extension to current version.
 	- 'doc' view extension's README doc.
+	- 'fix' fix dependencies in terminal buffer.
 	- 'reload' reload extension.
 	- 'uninstall' uninstall extension.
 

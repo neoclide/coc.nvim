@@ -11,7 +11,6 @@
 安装					|coc-installation|
 设置 					|coc-configuration|
 补全   					|coc-completion|
-语言服务 				|coc-languageserver|
 接口					|coc-interface|
   快捷键 				  |coc-key-mappings|
   变量					  |coc-variables|
@@ -71,7 +70,7 @@ coc.nvim 使用 coc-settings.json 文件进行配置，该文件格式与工作�
 
 ==============================================================================
 
-安装						*coc-install*
+安装						*coc-installation*
 
 推荐使用 https://github.com/junegunn/vim-plug 添加
 >

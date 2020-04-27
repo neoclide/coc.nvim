@@ -1,4 +1,4 @@
-import { Neovim, Window } from '@chemzqm/neovim'
+import { Neovim, Window, Buffer } from '@chemzqm/neovim'
 import { RequestOptions } from 'http'
 import log4js from 'log4js'
 import { CancellationToken, CompletionTriggerKind, CreateFileOptions, DeleteFileOptions, Diagnostic, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFileOptions, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
@@ -255,6 +255,7 @@ export interface Env {
   readonly isVim: boolean
   readonly isCygwin: boolean
   readonly isMacvim: boolean
+  readonly isiTerm: boolean
   readonly version: string
   readonly locationlist: boolean
   readonly progpath: string
@@ -288,8 +289,6 @@ export interface SnippetManager {
   nextPlaceholder(): Promise<void>
   previousPlaceholder(): Promise<void>
 }
-
-export type ModuleResolve = () => Promise<string>
 
 export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o'
 
@@ -333,7 +332,7 @@ export interface ConfigurationChangeEvent {
 }
 
 export interface LanguageServerConfig {
-  module?: string | ModuleResolve
+  module?: string
   command?: string
   transport?: string
   transportPort?: number
@@ -676,6 +675,14 @@ export interface RenameEvent {
   newUri: URI
 }
 
+export interface OpenTerminalOption {
+  cwd?: string
+  // default true
+  autoclose?: boolean
+  // default false
+  keepfocus?: boolean
+}
+
 export interface TerminalResult {
   bufnr: number
   success: boolean
@@ -796,6 +803,7 @@ export interface ListContext {
   cwd: string
   options: ListOptions
   window: Window
+  buffer: Buffer
   listWindow: Window
 }
 

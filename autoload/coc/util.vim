@@ -245,7 +245,7 @@ function! coc#util#jump(cmd, filepath, ...) abort
       exe a:cmd.' '.fnameescape(file)
     endif
   endif
-  if &l:filetype ==# ''
+  if &filetype ==# ''
     filetype detect
   endif
   if s:is_vim
@@ -258,9 +258,6 @@ function! coc#util#jumpTo(line, character) abort
   let pre = strcharpart(content, 0, a:character)
   let col = strlen(pre) + 1
   call cursor(a:line + 1, col)
-  if s:is_vim
-    redraw
-  endif
 endfunction
 
 function! coc#util#echo_messages(hl, msgs)
@@ -485,6 +482,37 @@ function! coc#util#quickpick(title, items, cb) abort
   endif
 endfunction
 
+function! coc#util#prompt(title, cb) abort
+  if exists('*popup_dialog')
+    function! s:PromptHandler(id, result) closure
+      call a:cb(v:null, a:result)
+    endfunction
+    try
+      call popup_dialog(a:title. ' (y/n)', #{
+        \ filter: 'popup_filter_yesno',
+        \ callback: function('s:PromptHandler'),
+        \ })
+    catch /.*/
+      call a:cb(v:exception)
+    endtry
+  elseif !s:is_vim && exists('*confirm')
+    let choice = confirm(a:title, "&Yes\n&No")
+    call a:cb(v:null, choice == 1)
+  else
+    echohl MoreMsg
+    echom a:title.' (y/n)'
+    echohl None
+    let confirm = nr2char(getchar())
+    redraw!
+    if !(confirm ==? "y" || confirm ==? "\r")
+      echohl Moremsg | echo 'Cancelled.' | echohl None
+      return 0
+      call a:cb(v:null, 0)
+    end
+    call a:cb(v:null, 1)
+  endif
+endfunction
+
 function! coc#util#add_matchids(ids)
   let w:coc_matchids = get(w:, 'coc_matchids', []) + a:ids
 endfunction
@@ -646,6 +674,7 @@ function! coc#util#vim_info()
         \ 'isVim': has('nvim') ? v:false : v:true,
         \ 'isCygwin': has('win32unix') ? v:true : v:false,
         \ 'isMacvim': has('gui_macvim') ? v:true : v:false,
+        \ 'isiTerm': $TERM_PROGRAM ==# "iTerm.app",
         \ 'colorscheme': get(g:, 'colors_name', ''),
         \ 'workspaceFolders': get(g:, 'WorkspaceFolders', v:null),
         \ 'background': &background,
@@ -988,6 +1017,7 @@ function! coc#util#open_files(files)
       let bufnr = bufadd(file)
       call bufload(file)
       call add(bufnrs, bufnr(file))
+      call setbufvar(bufnr, '&buflisted', 1)
     endfor
   else
     noa keepalt 1new +setl\ bufhidden=wipe
@@ -1000,6 +1030,7 @@ function! coc#util#open_files(files)
     endfor
     noa close
   endif
+  doautocmd BufEnter
   return bufnrs
 endfunction
 

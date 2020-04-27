@@ -11,6 +11,7 @@ const isTest = process.env.NODE_ENV == 'test'
 
 export default (opts: Attach, requestApi = true): Plugin => {
   const nvim: NeovimClient = attach(opts, log4js.getLogger('node-client'), requestApi)
+  const timeout: number = process.env.COC_CHANNEL_TIMEOUT ? parseInt(process.env.COC_CHANNEL_TIMEOUT, 10) : 30
   // Overwriding the URI.file function in case of cygwin.
   nvim.eval('has("win32unix")?get(g:,"coc_cygqwin_path_prefixes", v:null):v:null').then(prefixes => {
     if (!prefixes) return
@@ -58,6 +59,10 @@ export default (opts: Attach, requestApi = true): Plugin => {
   })
 
   nvim.on('request', async (method: string, args, resp) => {
+    let timer = setTimeout(() => {
+      logger.error(`Timeout on request "${method}": `, args)
+      resp.send(`request ${method} timeout after ${timeout}s`, true)
+    }, timeout * 1000)
     try {
       if (method == 'CocAutocmd') {
         await events.fire(args[0], args.slice(1))
@@ -71,7 +76,9 @@ export default (opts: Attach, requestApi = true): Plugin => {
           resp.send(res)
         }
       }
+      clearTimeout(timer)
     } catch (e) {
+      clearTimeout(timer)
       logger.error(`Error on "${method}": ` + e.stack)
       resp.send(e.message, true)
     }

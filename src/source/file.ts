@@ -8,6 +8,7 @@ import Source from '../model/source'
 import { CompleteOption, CompleteResult, ISource, VimCompleteItem } from '../types'
 import { statAsync } from '../util/fs'
 import { byteSlice } from '../util/string'
+import workspace from '../workspace'
 const logger = require('../util/logger')('source-file')
 const pathRe = /(?:\.{0,2}|~|\$HOME|([\w]+)|)\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/
 
@@ -45,13 +46,7 @@ export default class File extends Source {
     if (!part || part.slice(-2) == '//') return null
     let ms = part.match(pathRe)
     if (ms && ms.length) {
-      let pathstr = ms[0]
-      if (pathstr.startsWith('~')) {
-        pathstr = os.homedir() + pathstr.slice(1)
-      }
-      if (pathstr.startsWith('$HOME')) {
-        pathstr = os.homedir() + pathstr.slice(5)
-      }
+      const pathstr = workspace.expand(ms[0])
       let input = ms[0].match(/[^/]*$/)[0]
       return { pathstr, part: ms[1], startcol: colnr - input.length - 1, input }
     }
