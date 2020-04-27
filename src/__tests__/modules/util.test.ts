@@ -15,8 +15,6 @@ import { Mutex } from '../../util/mutex'
 import { indexOf } from '../../util/string'
 import helper from '../helper'
 import { ansiparse } from '../../util/ansiparse'
-import { getUri } from '../../util/index'
-import workspace from '../../workspace'
 
 let nvim: Neovim
 beforeAll(async () => {
@@ -247,24 +245,5 @@ describe('Mutex', () => {
     await helper.wait(10)
     await mutex.use(fn)
     expect(count).toBe(2)
-  })
-})
-
-describe('URI replace pattern', () => {
-  let config = workspace.getConfiguration(`coc.preferences`)
-  test('no replacement patterns gets URI like normal', () => {
-    config.update('uriReplacePatterns', [])
-    expect(getUri('/Volumes/source_root/file.cc', 0, '', false))
-        .toBe('file:///Volumes/source_root/file.cc')
-  })
-  test('replace pattern with empty string', () => {
-    config.update('uriReplacePatterns', [['/Volumes', '']])
-    expect(getUri('/Volumes/source_root/file.cc', 0, '', false))
-        .toBe('file:///source_root/file.cc')
-  })
-  test('replace pattern with non-empty string', () => {
-    config.update('uriReplacePatterns', [['/Volumes', '/code']])
-    expect(getUri('/Volumes/source_root/file.cc', 0, '', false))
-        .toBe('file:///code/source_root/file.cc')
   })
 })

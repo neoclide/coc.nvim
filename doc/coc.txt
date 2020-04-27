@@ -910,6 +910,15 @@ g:coc_cygqwin_path_prefixes			*g:coc_cygqwin_path_prefixes*
 				`let g:coc_cygqwin_path_prefixes = `
 				`	\{'c:/Users/myUser': '/home/myUser'}`
 
+g:coc_uri_replace_patterns			*g:coc_uri_replace_patterns*
+
+			This map functions identically to
+			g:coc_cygqwin_path_prefixes except that it is used
+			regardless of whether you are running under cygwin.
+
+				`let g:coc_uri_replace_patterns = `
+				`	\{'/Volumes': '/code'}`
+
 g:coc_enable_locationlist			*g:coc_enable_locationlist*
 
 			Use location list of coc.nvim when jump locations.

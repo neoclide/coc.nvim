@@ -910,14 +910,6 @@
       "description": "Set to false to disable snippets support.",
       "default": true
     },
-    "coc.preferences.uriReplacePatterns": {
-      "type": "array",
-      "default": [],
-      "description": "Array of tuples [pattern, replacement]",
-      "items": {
-        "type": "[string, string]"
-      }
-    },
     "coc.source.around.enable": {
       "type": "boolean",
       "default": true

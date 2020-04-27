@@ -9,7 +9,6 @@ import { URI } from 'vscode-uri'
 import which from 'which'
 import { MapMode } from '../types'
 import * as platform from './platform'
-import workspace from '../workspace'
 
 export { platform }
 const logger = require('./logger')('util-index')
@@ -29,10 +28,6 @@ export function wait(ms: number): Promise<any> {
 export function getUri(fullpath: string, id: number, buftype: string, isCygwin: boolean): string {
   if (!fullpath) return `untitled:${id}`
   if (platform.isWindows && !isCygwin) fullpath = path.win32.normalize(fullpath)
-  let config = workspace.getConfiguration(`coc.preferences`)
-  for (const pattern of config.get('uriReplacePatterns', [])) {
-    fullpath = fullpath.replace(pattern[0], pattern[1])
-  }
   if (path.isAbsolute(fullpath)) return URI.file(fullpath).toString()
   if (isuri.isValid(fullpath)) return URI.parse(fullpath).toString()
   if (buftype != '') return `${buftype}:${id}`
