@@ -7,6 +7,7 @@ import { disposeAll } from '../util'
 import { equals } from '../util/object'
 import workspace from '../workspace'
 import FloatBuffer from './floatBuffer'
+import { combineConcurrent } from '../util/decorator'
 import debounce from 'debounce'
 import createPopup, { Popup } from './popup'
 import { distinct } from '../util/array'
@@ -77,6 +78,7 @@ export default class FloatFactory implements Disposable {
     }
   }
 
+  @combineConcurrent
   private async checkFloatBuffer(): Promise<void> {
     let { floatBuffer, nvim, window } = this
     if (this.env.textprop) {

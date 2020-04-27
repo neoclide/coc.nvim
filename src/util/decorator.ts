@@ -17,3 +17,27 @@ export function memorize<R extends (...args: any[]) => Promise<R>>(_target: any,
     })
   }
 }
+
+// Ensures an asynchronous method is not called concurrently.
+// If called while running, it returns a promise for the original call.
+// (Only methods without args are supported).
+export function combineConcurrent<R extends () => Promise<R>>(_target: any, key: string, descriptor: PropertyDescriptor) : void {
+  let fn = descriptor.value
+  if (typeof fn !== 'function') return
+  // The promise is stored in $foldConcurrent$foo while foo() is running.
+  let promiseKey = '$foldConcurrent$' + key
+
+  descriptor.value = function() : Promise<R> {
+    if (!this.hasOwnProperty(promiseKey)) {
+      // Avoid fn() in promise constructor, in case it returns synchronously.
+      let resolve
+      this[promiseKey] = new Promise((res, _) => resolve = res)
+      resolve((async () => {
+        let result = await fn.call(this)
+        delete this[promiseKey]
+        return result
+      })())
+    }
+    return this[promiseKey]
+  }
+}
