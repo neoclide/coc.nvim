@@ -106,19 +106,18 @@ class Events {
       })
     } else {
       let arr = this.handlers.get(event) || []
-      let limit = 1000
       let stack = Error().stack
       arr.push(args => {
         return new Promise(async (resolve, reject) => {
-          let timer = setTimeout(() => {
-            logger.warn(`Handler of ${event} cost more than 1s`, stack)
-          }, limit)
+          let ts = Date.now()
           try {
             await Promise.resolve(handler.apply(thisArg || null, args))
-            clearTimeout(timer)
+            let dt = Date.now() - ts
+            if (dt > 2000) {
+              logger.warn(`Handler of ${event} cost ${dt}ms`, stack)
+            }
             resolve()
           } catch (e) {
-            clearTimeout(timer)
             reject(e)
           }
         })
