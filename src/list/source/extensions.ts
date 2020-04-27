@@ -64,7 +64,7 @@ export default class ExtensionList extends BasicList {
       await extensions.toggleLock(id)
     }, { persist: true, reload: true })
 
-    this.addAction('doc', async item => {
+    this.addAction('readme', async item => {
       let { root } = item.data
       let files = await readdirAsync(root)
       let file = files.find(f => /^readme/i.test(f))
