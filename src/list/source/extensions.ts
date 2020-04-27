@@ -85,8 +85,12 @@ export default class ExtensionList extends BasicList {
     }, { persist: true, reload: true })
 
     this.addAction('fix', async item => {
-      let { root } = item.data
+      let { root, isLocal } = item.data
       let { npm } = extensions
+      if (isLocal) {
+        workspace.showMessage(`Can't fix for local extension.`, 'warning')
+        return
+      }
       if (!npm) return
       let folder = path.join(root, 'node_modules')
       if (fs.existsSync(folder)) {
