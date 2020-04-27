@@ -275,6 +275,7 @@ export class ListManager implements Disposable {
     }
     let shortcuts: Set<string> = new Set()
     let choices: string[] = []
+    let invalids: string[] = []
     for (let name of names) {
       let i = 0
       for (let ch of name) {
@@ -285,6 +286,13 @@ export class ListManager implements Disposable {
         }
         i++
       }
+      if (i == name.length) {
+        invalids.push(name)
+      }
+    }
+    if (invalids.length) {
+      logger.error(`Can't create shortcut for actions: ${invalids.join(',')} of "${currList.name}" list`)
+      names = names.filter(s => invalids.indexOf(s) == -1)
     }
     await nvim.call('coc#list#stop_prompt')
     let n = await nvim.call('confirm', ['Choose action:', choices.join('\n')]) as number
