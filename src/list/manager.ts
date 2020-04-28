@@ -712,6 +712,7 @@ export class ListManager implements Disposable {
         await nvim.call('coc#list#stop_prompt')
       }
       if (!shouldCancel && !this.isActivated) return
+      await this.nvim.command('stopinsert')
       if (action.multiple) {
         await Promise.resolve(action.execute(items, this.context))
       } else if (action.parallel) {
