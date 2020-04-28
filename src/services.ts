@@ -335,7 +335,7 @@ export function documentSelectorToLanguageIds(documentSelector: DocumentSelector
     return filter.language
   })
   res = res.filter(s => typeof s == 'string')
-  return res
+  return Array.from(new Set(res))
 }
 
 // convert config to options
