@@ -912,9 +912,9 @@ g:coc_cygqwin_path_prefixes			*g:coc_cygqwin_path_prefixes*
 
 g:coc_uri_prefix_replace_patterns			*g:coc_uri_prefix_replace_patterns*
 
-			This map allows defines URI prefix replacements. This is
-			useful in the case that an LSP requires code to adhere
-			to a particular directory structure. For example,
+			This map defines URI prefix replacements. This is useful
+			in the case that an LSP requires code to adhere to a
+			particular directory structure. For example,
 			`/Users/myUser/workspace` can be mapped to
 			`/home/myUser/workspace`.
 
