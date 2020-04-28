@@ -15354,20 +15354,19 @@ class Events {
         }
         else {
             let arr = this.handlers.get(event) || [];
-            let limit = 1000;
             let stack = Error().stack;
             arr.push(args => {
                 return new Promise(async (resolve, reject) => {
-                    let timer = setTimeout(() => {
-                        logger.warn(`Handler of ${event} cost more than 1s`, stack);
-                    }, limit);
+                    let ts = Date.now();
                     try {
                         await Promise.resolve(handler.apply(thisArg || null, args));
-                        clearTimeout(timer);
+                        let dt = Date.now() - ts;
+                        if (dt > 2000) {
+                            logger.warn(`Handler of ${event} cost ${dt}ms`, stack);
+                        }
                         resolve();
                     }
                     catch (e) {
-                        clearTimeout(timer);
                         reject(e);
                     }
                 });
@@ -22494,7 +22493,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "9febe802b3" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "bcb2fe977c" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54540,7 +54539,7 @@ function documentSelectorToLanguageIds(documentSelector) {
         return filter.language;
     });
     res = res.filter(s => typeof s == 'string');
-    return res;
+    return Array.from(new Set(res));
 }
 exports.documentSelectorToLanguageIds = documentSelectorToLanguageIds;
 // convert config to options
@@ -59039,6 +59038,7 @@ class ListManager {
         }
         let shortcuts = new Set();
         let choices = [];
+        let invalids = [];
         for (let name of names) {
             let i = 0;
             for (let ch of name) {
@@ -59049,6 +59049,13 @@ class ListManager {
                 }
                 i++;
             }
+            if (i == name.length) {
+                invalids.push(name);
+            }
+        }
+        if (invalids.length) {
+            logger.error(`Can't create shortcut for actions: ${invalids.join(',')} of "${currList.name}" list`);
+            names = names.filter(s => invalids.indexOf(s) == -1);
         }
         await nvim.call('coc#list#stop_prompt');
         let n = await nvim.call('confirm', ['Choose action:', choices.join('\n')]);
@@ -59475,6 +59482,7 @@ class ListManager {
             }
             if (!shouldCancel && !this.isActivated)
                 return;
+            await this.nvim.command('stopinsert');
             if (action.multiple) {
                 await Promise.resolve(action.execute(items, this.context));
             }
@@ -64339,7 +64347,7 @@ class ExtensionList extends basic_1.default {
             let { id } = item.data;
             await extensions_1.default.toggleLock(id);
         }, { persist: true, reload: true });
-        this.addAction('doc', async (item) => {
+        this.addAction('readme', async (item) => {
             let { root } = item.data;
             let files = await fs_2.readdirAsync(root);
             let file = files.find(f => /^readme/i.test(f));
@@ -64359,8 +64367,12 @@ class ExtensionList extends basic_1.default {
             await util_1.wait(100);
         }, { persist: true, reload: true });
         this.addAction('fix', async (item) => {
-            let { root } = item.data;
+            let { root, isLocal } = item.data;
             let { npm } = extensions_1.default;
+            if (isLocal) {
+                workspace_1.default.showMessage(`Can't fix for local extension.`, 'warning');
+                return;
+            }
             if (!npm)
                 return;
             let folder = path_1.default.join(root, 'node_modules');
@@ -69895,7 +69907,8 @@ class Handler {
         }
         let definitions = await languages_1.default.getDefinition(document.textDocument, position);
         return definitions.map(location => {
-            const filename = vscode_uri_1.URI.parse(location.uri).fsPath;
+            let parsedURI = vscode_uri_1.URI.parse(location.uri);
+            const filename = parsedURI.scheme == 'file' ? parsedURI.fsPath : parsedURI.toString();
             return {
                 name: word,
                 cmd: `keepjumps ${location.range.start.line + 1} | normal ${location.range.start.character + 1}|`,
