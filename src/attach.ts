@@ -22,8 +22,8 @@ export default (opts: Attach, requestApi = true): Plugin => {
       return old_uri(path)
     }
   }).logError()
-  // Overwriding the URI.file function in case coc_uri_replace_patterns is set.
-  nvim.eval('get(g:,"coc_uri_replace_patterns", v:null)').then(prefixes => {
+  // Overriding the URI.file function in case coc_uri_prefix_replace_patterns is set.
+  nvim.eval('get(g:,"coc_uri_prefix_replace_patterns", v:null)').then(prefixes => {
     if (!prefixes) return
     const old_uri = URI.file
     URI.file = (path): URI => {
