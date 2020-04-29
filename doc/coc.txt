@@ -910,6 +910,9 @@ g:coc_cygqwin_path_prefixes			*g:coc_cygqwin_path_prefixes*
 				`let g:coc_cygqwin_path_prefixes = `
 				`	\{'c:/Users/myUser': '/home/myUser'}`
 
+			Deprecated, use g:coc_uri_prefix_replace_patterns
+			instead.
+
 g:coc_uri_prefix_replace_patterns			*g:coc_uri_prefix_replace_patterns*
 
 			This map defines URI prefix replacements. This is useful

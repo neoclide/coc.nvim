@@ -123,6 +123,19 @@ function! coc#util#close(id) abort
   endif
 endfunction
 
+function! coc#util#path_replace_patterns() abort
+  if has('win32unix') && exists('g:coc_cygqwin_path_prefixes')
+    echohl WarningMsg 
+    echon 'g:coc_cygqwin_path_prefixes is deprecated, use g:coc_uri_prefix_replace_patterns instead' 
+    echohl None
+    return g:coc_cygqwin_path_prefixes
+  endif
+  if exists('g:coc_uri_prefix_replace_patterns')
+    return g:coc_uri_prefix_replace_patterns
+  endif
+  return v:null
+endfunction
+
 function! coc#util#win_position()
   let nr = winnr()
   let [row, col] = win_screenpos(nr)
