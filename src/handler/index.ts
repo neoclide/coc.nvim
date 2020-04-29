@@ -876,8 +876,6 @@ export default class Handler {
       this.signatureFactory.close()
       return
     }
-    let idx = Math.max(part.lastIndexOf(','), part.lastIndexOf('('))
-    if (idx != -1) position.character = idx + 1
     let tokenSource = this.signatureTokenSource = new CancellationTokenSource()
     let token = tokenSource.token
     let timer = setTimeout(() => {
