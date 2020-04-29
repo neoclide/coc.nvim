@@ -910,6 +910,21 @@ g:coc_cygqwin_path_prefixes			*g:coc_cygqwin_path_prefixes*
 				`let g:coc_cygqwin_path_prefixes = `
 				`	\{'c:/Users/myUser': '/home/myUser'}`
 
+			Deprecated, use g:coc_uri_prefix_replace_patterns
+			instead.
+
+g:coc_uri_prefix_replace_patterns			*g:coc_uri_prefix_replace_patterns*
+
+			This map defines URI prefix replacements. This is useful
+			in the case that an LSP requires code to adhere to a
+			particular directory structure. For example,
+			`/Users/myUser/workspace` can be mapped to
+			`/home/myUser/workspace`.
+
+
+				`let g:coc_uri_prefix_replace_patterns = `
+				`	\{'/Users': '/home'}`
+
 g:coc_enable_locationlist			*g:coc_enable_locationlist*
 
 			Use location list of coc.nvim when jump locations.

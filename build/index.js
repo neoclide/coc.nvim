@@ -10313,6 +10313,7 @@ const log4js_1 = tslib_1.__importDefault(__webpack_require__(5));
 const events_1 = tslib_1.__importDefault(__webpack_require__(149));
 const plugin_1 = tslib_1.__importDefault(__webpack_require__(189));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
+const is_1 = __webpack_require__(200);
 __webpack_require__(316);
 const vscode_uri_1 = __webpack_require__(183);
 const logger = __webpack_require__(2)('attach');
@@ -10320,16 +10321,15 @@ const isTest = "none" == 'test';
 exports.default = (opts, requestApi = true) => {
     const nvim = neovim_1.attach(opts, log4js_1.default.getLogger('node-client'), requestApi);
     const timeout = process.env.COC_CHANNEL_TIMEOUT ? parseInt(process.env.COC_CHANNEL_TIMEOUT, 10) : 30;
-    // Overwriding the URI.file function in case of cygwin.
-    nvim.eval('has("win32unix")?get(g:,"coc_cygqwin_path_prefixes", v:null):v:null').then(prefixes => {
-        if (!prefixes)
-            return;
-        const old_uri = vscode_uri_1.URI.file;
-        vscode_uri_1.URI.file = (path) => {
-            path = path.replace(/\\/g, '/');
-            Object.keys(prefixes).forEach(k => path = path.replace(new RegExp('^' + k, 'gi'), prefixes[k]));
-            return old_uri(path);
-        };
+    nvim.call('coc#util#path_replace_patterns').then(prefixes => {
+        if (is_1.objectLiteral(prefixes)) {
+            const old_uri = vscode_uri_1.URI.file;
+            vscode_uri_1.URI.file = (path) => {
+                path = path.replace(/\\/g, '/');
+                Object.keys(prefixes).forEach(k => path = path.replace(new RegExp('^' + k), prefixes[k]));
+                return old_uri(path);
+            };
+        }
     }).logError();
     const plugin = new plugin_1.default(nvim);
     let clientReady = false;
@@ -22493,7 +22493,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "bcb2fe977c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "030aef2f6d" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -33127,11 +33127,11 @@ exports.default = Resolver;
 Object.defineProperty(exports, "__esModule", { value: true });
 const logger = __webpack_require__(2)('util-decorator');
 function memorize(_target, key, descriptor) {
-    let fn = descriptor.get;
+    let fn = descriptor.value;
     if (typeof fn !== 'function')
         return;
     let memoKey = '$' + key;
-    descriptor.get = function (...args) {
+    descriptor.value = function (...args) {
         if (this.hasOwnProperty(memoKey))
             return Promise.resolve(this[memoKey]);
         return new Promise((resolve, reject) => {
