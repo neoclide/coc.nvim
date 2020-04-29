@@ -268,6 +268,12 @@ endif
 if has('nvim-0.5.0')
   hi default CocCursorTransparent gui=strikethrough blend=100
 endif
+if has('nvim')
+  hi default link CocErrorVirtualText   CocErrorSign
+  hi default link CocWarningVirtualText CocWarningSign
+  hi default link CocInfoVirtualText    CocInfoSign
+  hi default link CocHintVirtualText    CocHintSign
+endif
 
 hi default link CocHoverRange     Search
 hi default link CocCursorRange    Search
