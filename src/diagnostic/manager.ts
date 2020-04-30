@@ -557,7 +557,7 @@ export class DiagnosticManager implements Disposable {
       maxWindowWidth: getConfig<number>('maxWindowWidth', 80),
       enableMessage: getConfig<string>('enableMessage', 'always'),
       joinMessageLines: getConfig<boolean>('joinMessageLines', false),
-      messageDelay: getConfig<number>('messageDelay', 250),
+      messageDelay: getConfig<number>('messageDelay', 200),
       virtualText: getConfig<boolean>('virtualText', false),
       virtualTextPrefix: getConfig<string>('virtualTextPrefix', " "),
       virtualTextLineSeparator: getConfig<string>('virtualTextLineSeparator', " \\ "),
