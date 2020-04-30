@@ -65,9 +65,9 @@ export class DiagnosticManager implements Disposable {
       if (this.timer) clearTimeout(this.timer)
     }))
     events.on('CursorMoved', async () => {
+      if (this.config.enableMessage != 'always') return
       if (this.timer) clearTimeout(this.timer)
       this.timer = setTimeout(async () => {
-        if (this.config.enableMessage != 'always') return
         await this.echoMessage(true)
       }, this.config.messageDelay)
     }, null, this.disposables)
@@ -168,7 +168,8 @@ export class DiagnosticManager implements Disposable {
       let buf = new DiagnosticBuffer(doc.bufnr, this.config)
       this.buffers.push(buf)
       buf.onDidRefresh(() => {
-        if (workspace.insertMode) return
+        if (workspace.insertMode
+          || this.config.enableMessage == 'never') return
         this.echoMessage(true).logError()
       })
     }
@@ -294,7 +295,7 @@ export class DiagnosticManager implements Disposable {
   public async preview(): Promise<void> {
     let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number]]
     let { nvim } = this
-    let diagnostics = await this.getDiagnosticsAt(bufnr, cursor)
+    let diagnostics = this.getDiagnosticsAt(bufnr, cursor)
     if (diagnostics.length == 0) {
       nvim.command('pclose', true)
       workspace.showMessage(`Empty diagnostics`, 'warning')
@@ -328,14 +329,20 @@ export class DiagnosticManager implements Disposable {
       return
     }
     let { textDocument } = document
+    let pos: Position
     for (let i = ranges.length - 1; i >= 0; i--) {
       if (textDocument.offsetAt(ranges[i].end) < offset) {
-        await workspace.moveTo(ranges[i].start)
-        return
+        pos = ranges[i].start
+        break
+      } else if (i == 0) {
+        let wrapscan = await this.nvim.getOption('wrapscan')
+        if (wrapscan) pos = ranges[ranges.length - 1].start
       }
     }
-    if (await this.nvim.getOption('wrapscan')) {
-      await workspace.moveTo(ranges[ranges.length - 1].start)
+    if (pos) {
+      await workspace.moveTo(pos)
+      if (this.config.enableMessage == 'never') return
+      await this.echoMessage(false)
     }
   }
 
@@ -352,14 +359,20 @@ export class DiagnosticManager implements Disposable {
       return
     }
     let { textDocument } = document
+    let pos: Position
     for (let i = 0; i <= ranges.length - 1; i++) {
       if (textDocument.offsetAt(ranges[i].start) > offset) {
-        await workspace.moveTo(ranges[i].start)
-        return
+        pos = ranges[i].start
+        break
+      } else if (i == ranges.length - 1) {
+        let wrapscan = await this.nvim.getOption('wrapscan')
+        if (wrapscan) pos = ranges[0].start
       }
     }
-    if (await this.nvim.getOption('wrapscan')) {
-      await workspace.moveTo(ranges[0].start)
+    if (pos) {
+      await workspace.moveTo(pos)
+      if (this.config.enableMessage == 'never') return
+      await this.echoMessage(false)
     }
   }
 
@@ -402,7 +415,7 @@ export class DiagnosticManager implements Disposable {
     return res
   }
 
-  private async getDiagnosticsAt(bufnr: number, cursor: [number, number]): Promise<Diagnostic[]> {
+  private getDiagnosticsAt(bufnr: number, cursor: [number, number]): Diagnostic[] {
     let pos = Position.create(cursor[0], cursor[1])
     let buffer = this.buffers.find(o => o.bufnr == bufnr)
     if (!buffer) return []
@@ -417,7 +430,7 @@ export class DiagnosticManager implements Disposable {
 
   public async getCurrentDiagnostics(): Promise<Diagnostic[]> {
     let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number]]
-    return await this.getDiagnosticsAt(bufnr, cursor)
+    return this.getDiagnosticsAt(bufnr, cursor)
   }
 
   /**
@@ -425,15 +438,12 @@ export class DiagnosticManager implements Disposable {
    */
   public async echoMessage(truncate = false): Promise<void> {
     const config = this.config
-    if (!this.enabled || config.enableMessage == 'never') return
+    if (!this.enabled) return
     if (this.timer) clearTimeout(this.timer)
     let useFloat = config.messageTarget == 'float'
-    let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number]]
-    if (useFloat) {
-      let { buffer } = this.floatFactory
-      if (buffer && bufnr == buffer.id) return
-    }
-    let diagnostics = await this.getDiagnosticsAt(bufnr, cursor)
+    let [bufnr, cursor, filetype, mode] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),&filetype,mode()]') as [number, [number, number], string, string]
+    if (this.floatFactory.bufnr == bufnr || mode != 'n') return
+    let diagnostics = this.getDiagnosticsAt(bufnr, cursor)
     if (diagnostics.length == 0) {
       if (useFloat) {
         this.floatFactory.close()
@@ -449,7 +459,6 @@ export class DiagnosticManager implements Disposable {
     let docs: Documentation[] = []
     let ft = ''
     if (Object.keys(config.filetypeMap).length > 0) {
-      const filetype = await this.nvim.eval('&filetype') as string
       const defaultFiletype = config.filetypeMap['default'] || ''
       ft = config.filetypeMap[filetype] || (defaultFiletype == 'bufferType' ? filetype : defaultFiletype)
     }
@@ -537,12 +546,8 @@ export class DiagnosticManager implements Disposable {
 
   private setConfiguration(event?: ConfigurationChangeEvent): void {
     if (event && !event.affectsConfiguration('diagnostic')) return
-    let preferences = workspace.getConfiguration('coc.preferences.diagnostic')
     let config = workspace.getConfiguration('diagnostic')
-    function getConfig<T>(key: string, defaultValue: T): T {
-      return preferences.get<T>(key, config.get<T>(key, defaultValue))
-    }
-    let messageTarget = getConfig<string>('messageTarget', 'float')
+    let messageTarget = config.get<string>('messageTarget', 'float')
     if (messageTarget == 'float' && !workspace.env.floating && !workspace.env.textprop) {
       messageTarget = 'echo'
     }
@@ -550,32 +555,32 @@ export class DiagnosticManager implements Disposable {
       messageTarget,
       srcId: workspace.createNameSpace('coc-diagnostic') || 1000,
       virtualTextSrcId: workspace.createNameSpace('diagnostic-virtualText'),
-      checkCurrentLine: getConfig<boolean>('checkCurrentLine', false),
-      enableSign: getConfig<boolean>('enableSign', true),
-      enableHighlightLineNumber: getConfig<boolean>('enableHighlightLineNumber', true),
-      maxWindowHeight: getConfig<number>('maxWindowHeight', 10),
-      maxWindowWidth: getConfig<number>('maxWindowWidth', 80),
-      enableMessage: getConfig<string>('enableMessage', 'always'),
-      joinMessageLines: getConfig<boolean>('joinMessageLines', false),
-      messageDelay: getConfig<number>('messageDelay', 200),
-      virtualText: getConfig<boolean>('virtualText', false),
-      virtualTextPrefix: getConfig<string>('virtualTextPrefix', " "),
-      virtualTextLineSeparator: getConfig<string>('virtualTextLineSeparator', " \\ "),
-      virtualTextLines: getConfig<number>('virtualTextLines', 3),
-      displayByAle: getConfig<boolean>('displayByAle', false),
-      level: severityLevel(getConfig<string>('level', 'hint')),
-      locationlist: getConfig<boolean>('locationlist', true),
-      signOffset: getConfig<number>('signOffset', 1000),
-      errorSign: getConfig<string>('errorSign', '>>'),
-      warningSign: getConfig<string>('warningSign', '>>'),
-      infoSign: getConfig<string>('infoSign', '>>'),
-      hintSign: getConfig<string>('hintSign', '>>'),
-      refreshAfterSave: getConfig<boolean>('refreshAfterSave', false),
-      refreshOnInsertMode: getConfig<boolean>('refreshOnInsertMode', false),
-      filetypeMap: getConfig<object>('filetypeMap', {}),
-      format: getConfig<string>('format', '[%source%code] [%severity] %message')
+      checkCurrentLine: config.get<boolean>('checkCurrentLine', false),
+      enableSign: config.get<boolean>('enableSign', true),
+      enableHighlightLineNumber: config.get<boolean>('enableHighlightLineNumber', true),
+      maxWindowHeight: config.get<number>('maxWindowHeight', 10),
+      maxWindowWidth: config.get<number>('maxWindowWidth', 80),
+      enableMessage: config.get<string>('enableMessage', 'always'),
+      joinMessageLines: config.get<boolean>('joinMessageLines', false),
+      messageDelay: config.get<number>('messageDelay', 200),
+      virtualText: config.get<boolean>('virtualText', false),
+      virtualTextPrefix: config.get<string>('virtualTextPrefix', " "),
+      virtualTextLineSeparator: config.get<string>('virtualTextLineSeparator', " \\ "),
+      virtualTextLines: config.get<number>('virtualTextLines', 3),
+      displayByAle: config.get<boolean>('displayByAle', false),
+      level: severityLevel(config.get<string>('level', 'hint')),
+      locationlist: config.get<boolean>('locationlist', true),
+      signOffset: config.get<number>('signOffset', 1000),
+      errorSign: config.get<string>('errorSign', '>>'),
+      warningSign: config.get<string>('warningSign', '>>'),
+      infoSign: config.get<string>('infoSign', '>>'),
+      hintSign: config.get<string>('hintSign', '>>'),
+      refreshAfterSave: config.get<boolean>('refreshAfterSave', false),
+      refreshOnInsertMode: config.get<boolean>('refreshOnInsertMode', false),
+      filetypeMap: config.get<object>('filetypeMap', {}),
+      format: config.get<string>('format', '[%source%code] [%severity] %message')
     }
-    this.enabled = getConfig<boolean>('enable', true)
+    this.enabled = config.get<boolean>('enable', true)
     if (this.config.displayByAle) {
       this.enabled = false
     }
