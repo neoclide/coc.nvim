@@ -1,4 +1,4 @@
-import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
+import { Buffer, NeovimClient as Neovim, NeovimClient } from '@chemzqm/neovim'
 import bytes from 'bytes'
 import debounce from 'debounce'
 import fs from 'fs'

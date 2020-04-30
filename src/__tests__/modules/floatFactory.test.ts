@@ -119,7 +119,7 @@ describe('FloatFactory', () => {
       content: 'Declared in global namespace\n\ntypedef seL4_Uint64 seL4_Word'
     }]
     await floatFactory.create(docs, true)
-    let res = await floatFactory.getBoundings(docs)
+    let res = await floatFactory.attachDocuments(docs)
     expect(res.height).toBe(3)
   })
 })

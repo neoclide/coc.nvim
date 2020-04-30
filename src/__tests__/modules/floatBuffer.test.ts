@@ -43,12 +43,6 @@ describe('FloatBuffer', () => {
     expect(height).toBe(1)
   })
 
-  it('should be valid', async () => {
-    let buf = await create()
-    let valid = await buf.valid
-    expect(valid).toBe(true)
-  })
-
   it('should get code fragment #1', async () => {
     let buf = await create()
     let fragment: Fragment = {

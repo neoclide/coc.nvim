@@ -1,4 +1,4 @@
-import { Buffer, Neovim, Window } from '@chemzqm/neovim'
+import { Buffer, Neovim } from '@chemzqm/neovim'
 import { Highlight, getHiglights } from '../util/highlight'
 import { characterIndex, byteLength } from '../util/string'
 import { group } from '../util/array'
@@ -14,11 +14,7 @@ export default class FloatBuffer {
   private highlightTimeout = 500
   private tabstop = 2
   public width = 0
-  constructor(
-    private nvim: Neovim,
-    public buffer: Buffer,
-    private window?: Window
-  ) {
+  constructor(private nvim: Neovim, public readonly buffer: Buffer) {
     let config = workspace.getConfiguration('coc.preferences')
     this.enableHighlight = config.get<boolean>('enableFloatHighlight', true)
     this.highlightTimeout = config.get<number>('highlightTimeout', 500)
@@ -41,10 +37,6 @@ export default class FloatBuffer {
       }
     }
     return l + docs.length - 1
-  }
-
-  public get valid(): Promise<boolean> {
-    return this.buffer.valid
   }
 
   public calculateFragments(docs: Documentation[], maxWidth: number): Fragment[] {
@@ -97,10 +89,9 @@ export default class FloatBuffer {
 
   public async setDocuments(docs: Documentation[], maxWidth: number): Promise<void> {
     let fragments = this.calculateFragments(docs, maxWidth)
-    let filetype = await this.nvim.eval('&filetype') as string
     if (workspace.isNvim) {
       fragments = fragments.reduce((p, c) => {
-        p.push(...this.splitFragment(c, filetype))
+        p.push(...this.splitFragment(c, 'sh'))
         return p
       }, [])
     }
@@ -145,6 +136,10 @@ export default class FloatBuffer {
     return res
   }
 
+  public setFiletype(filetype: string): void {
+    this.nvim.call('setbufvar', [this.buffer.id, '&filetype', filetype], true)
+  }
+
   private fixFiletype(filetype: string): string {
     if (filetype == 'ts') return 'typescript'
     if (filetype == 'js') return 'javascript'
@@ -152,20 +147,18 @@ export default class FloatBuffer {
     return filetype
   }
 
-  public setLines(): void {
+  public setLines(winid?: number): void {
     let { buffer, lines, nvim, highlights } = this
-    nvim.call('clearmatches', this.window ? [this.window.id] : [], true)
+    nvim.call('clearmatches', winid ? [winid] : [], true)
     buffer.clearNamespace(-1, 0, -1)
     buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
-    if (highlights.length) {
+    if (highlights && highlights.length) {
       let positions: [number, number, number?][] = []
       for (let highlight of highlights) {
         buffer.addHighlight({
           srcId: workspace.createNameSpace('coc-float'),
           ...highlight
-        }).catch(_e => {
-          // noop
-        })
+        }).logError()
         if (highlight.isMarkdown) {
           let line = lines[highlight.line]
           if (line) {
@@ -182,8 +175,8 @@ export default class FloatBuffer {
         }
       }
       for (let arr of group(positions, 8)) {
-        if (this.window) {
-          nvim.call('win_execute', [this.window.id, `call matchaddpos('Conceal', ${JSON.stringify(arr)},11)`], true)
+        if (winid) {
+          nvim.call('win_execute', [winid, `call matchaddpos('Conceal', ${JSON.stringify(arr)},11)`], true)
         } else {
           nvim.call('matchaddpos', ['Conceal', arr, 11], true)
         }
@@ -192,8 +185,8 @@ export default class FloatBuffer {
     for (let arr of group(this.positions || [], 8)) {
       arr = arr.filter(o => o[2] != 0)
       if (arr.length) {
-        if (this.window) {
-          nvim.call('win_execute', [this.window.id, `call matchaddpos('CocUnderline', ${JSON.stringify(arr)},12)`], true)
+        if (winid) {
+          nvim.call('win_execute', [winid, `call matchaddpos('CocUnderline', ${JSON.stringify(arr)},12)`], true)
         } else {
           nvim.call('matchaddpos', ['CocUnderline', arr, 12], true)
         }
