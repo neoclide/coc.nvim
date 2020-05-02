@@ -84,12 +84,12 @@ export default class FloatFactory implements Disposable {
     return this.env.lines - this.env.cmdheight - 1
   }
 
-  private async attachDocuments(docs: Documentation[], offsetX = 0): Promise<WindowConfig> {
+  public async attachDocuments(docs: Documentation[], offsetX = 0): Promise<WindowConfig> {
     let { nvim, preferTop } = this
     let { columns, lines } = this
     let alignTop = false
     let [row, col] = await nvim.call('coc#util#win_position') as [number, number]
-    let maxWidth = this.maxWidth
+    let maxWidth = Math.min(this.maxWidth, columns)
     let height = this.floatBuffer.getHeight(docs, maxWidth)
     height = Math.min(height, this.maxHeight)
     if (!preferTop) {
@@ -104,18 +104,13 @@ export default class FloatFactory implements Disposable {
     if (alignTop) docs.reverse()
     await this.floatBuffer.setDocuments(docs, maxWidth)
     let { width } = this.floatBuffer
-    // Ensure the floating window isn't tiny if the cursor is on the right:
-    // increase the offset to accommodate some minimum width.
-    // If we have offsetX, precise positioning is intended, force exact width.
-    let minWidth = offsetX ? width : Math.min(width, 50, maxWidth)
-    offsetX = Math.min(col - 1, offsetX)
-    if (col - offsetX + minWidth > columns) {
-      offsetX = col - offsetX + minWidth - columns
+    if (col - offsetX + width > columns) {
+      offsetX = col + width - columns
     }
     this.alignTop = alignTop
     return {
       height: alignTop ? Math.max(1, Math.min(row, height)) : Math.max(1, Math.min(height, (lines - row))),
-      width: Math.min(columns, width),
+      width,
       row: alignTop ? - height : 1,
       col: offsetX == 0 ? 0 : - offsetX,
       relative: 'cursor'
@@ -124,31 +119,24 @@ export default class FloatFactory implements Disposable {
 
   public async create(docs: Documentation[], allowSelection = false, offsetX = 0): Promise<void> {
     if (!workspace.floatSupported) return
-    if (docs.length == 0) {
-      this.close()
-      return
-    }
     this.onCursorMoved.clear()
     if (docs.length == 0) {
       this.close()
       return
     }
-    this.creating = true
     this.cancel()
     let release = await this.mutex.acquire()
     try {
       await this.createPopup(docs, allowSelection, offsetX)
-      this.creating = false
       release()
     } catch (e) {
       logger.error(`Error on create popup:`, e.message)
       this.close()
-      this.creating = false
       release()
     }
   }
 
-  private async createPopup(docs: Documentation[], allowSelection = false, offsetX = 0): Promise<void> {
+  public async createPopup(docs: Documentation[], allowSelection = false, offsetX = 0): Promise<void> {
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
     this.floatBuffer = await this.createFloatBuffer()
