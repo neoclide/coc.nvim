@@ -66,6 +66,9 @@ export class DiagnosticBuffer implements Disposable {
       this.addHighlight(diagnostics, winid)
       this.addDiagnosticVText(diagnostics)
       let res = await this.nvim.resumeNotification()
+      if (workspace.isVim) {
+        this.nvim.command('redraw', true)
+      }
       if (Array.isArray(res) && res[1]) logger.error('Diagnostic error:', res[1])
     })
     sequence.start().then(async canceled => {
