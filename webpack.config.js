@@ -16,7 +16,8 @@ module.exports = {
   },
   plugins: [
     new webpack.DefinePlugin({
-      'process.env.REVISION': JSON.stringify(revision)
+      'process.env.REVISION': JSON.stringify(revision),
+      'process.env.VERSION': JSON.stringify(require('./package.json').version)
     })
   ],
   node: {

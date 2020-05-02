@@ -88,8 +88,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
   nvim.channelId.then(async channelId => {
     clientReady = true
     if (isTest) nvim.command(`let g:coc_node_channel_id = ${channelId}`, true)
-    let json = require('../package.json')
-    let { major, minor, patch } = semver.parse(json.version)
+    let { major, minor, patch } = semver.parse(process.env.VERSION)
     nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {})
     let entered = await nvim.getVvar('vim_did_enter')
     if (entered && !initialized) {

@@ -98,8 +98,7 @@ export class Workspace implements IWorkspace {
   public readonly configurations: Configurations
 
   constructor() {
-    let json = requireFunc('../package.json')
-    this.version = json.version
+    this.version = process.env.VERSION
     this.configurations = this.createConfigurations()
     this.willSaveUntilHandler = new WillSaveUntilHandler(this)
     this.setupDynamicAutocmd = debounce(() => {
