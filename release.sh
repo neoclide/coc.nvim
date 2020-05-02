@@ -7,7 +7,7 @@ git add package.json history.md
 tag=v$(json -f package.json version)
 git commit -a -m "Release $tag" &> /dev/null
 rm -rf build
-webpack
+npx webpack
 mkdir .release
 cp -r bin build autoload package.json plugin data Readme.md doc history.md .release
 git checkout release

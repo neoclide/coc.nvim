@@ -1,6 +1,6 @@
 const path = require('path')
 const cp = require('child_process')
-const webpack = require('/Users/chemzqm/.config/yarn/global/node_modules/webpack')
+const webpack = require('webpack')
 
 let res = cp.execSync('git rev-parse HEAD', {encoding: 'utf8'})
 let revision = res.slice(0, 10)
