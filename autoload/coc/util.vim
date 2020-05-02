@@ -123,6 +123,106 @@ function! coc#util#close(id) abort
   endif
 endfunction
 
+function! coc#util#get_float_mode(allow_selection, align_top, pum_align_top) abort
+  let mode = mode()
+  if pumvisible() && a:align_top == a:pum_align_top
+    return v:null
+  endif
+  let checked = (mode == 's' && a:allow_selection) || index(['i', 'n', 'ic'], mode) != -1
+  if !checked
+    return v:null
+  endif
+  if mode ==# 's'
+    call feedkeys("\x1b", 'in')
+  endif
+  if !s:is_vim && mode ==# 'i'
+    " helps to fix undo issue, don't know why.
+    call feedkeys("\<C-g>u", 'n')
+  endif
+  return mode
+endfunction
+
+" create buffer for popup/float window
+function! coc#util#create_float_buf(bufnr) abort
+  " reuse exists buffer
+  if a:bufnr && bufloaded(a:bufnr)
+    return [bufnr('%'), a:bufnr]
+  endif
+  if s:is_vim
+    noa let bufnr = bufadd(tempname())
+    noa call bufload(bufnr)
+    noa call setbufvar(bufnr, '&buftype', 'popup')
+    return [bufnr('%'), bufnr]
+  endif
+  noa let bufnr = nvim_create_buf(v:false, v:true)
+  noa call setbufvar(bufnr, '&buftype', 'nofile')
+  noa call setbufvar(bufnr, '&bufhidden', 'hide')
+  return [bufnr('%'), bufnr]
+endfunction
+
+" create/reuse float window for config position.
+function! coc#util#create_float_win(winnr, bufnr, config) abort
+  " use exists
+  if a:winnr
+    let [line, col] = s:popup_position(a:config)
+    if s:is_vim && !empty(popup_getoptions(a:winnr))
+      call popup_move(a:winnr, {
+        \ 'line': line,
+        \ 'col': col,
+        \ 'minwidth': a:config['width'] - 2,
+        \ 'minheight': a:config['height'],
+        \ 'maxwidth': a:config['width'] - 2,
+        \ 'maxheight': a:config['height'],
+        \ })
+      return a:winnr
+    endif
+    if !s:is_vim && nvim_win_is_valid(a:winnr)
+      call nvim_win_set_config(a:winnr, a:config)
+      return a:winnr
+    endif
+  endif
+  let winnr = 0
+  if s:is_vim
+    let [line, col] = s:popup_position(a:config)
+    let winnr = popup_create(a:bufnr, {
+        \ 'padding': [0, 1, 0, 1],
+        \ 'highlight': 'CocFloating',
+        \ 'fixed': 1,
+        \ 'line': line,
+        \ 'col': col,
+        \ 'minwidth': a:config['width'] - 2,
+        \ 'minheight': a:config['height'],
+        \ 'maxwidth': a:config['width'] - 2,
+        \ 'maxheight': a:config['height'],
+        \ })
+    if has("patch-8.1.2281")
+      call setwinvar(winnr, 'showbreak', 'NONE')
+    endif
+  else
+    let winnr = nvim_open_win(a:bufnr, 0, a:config)
+    call setwinvar(winnr, '&showbreak', '')
+    call setwinvar(winnr, '&foldcolumn', 1)
+    call setwinvar(winnr, '&list', 0)
+    call setwinvar(winnr, '&wrap', 1)
+    call setwinvar(winnr, '&number', 0)
+    call setwinvar(winnr, '&relativenumber', 0)
+    call setwinvar(winnr, '&cursorcolumn', 0)
+    call setwinvar(winnr, '&cursorline', 0)
+    call setwinvar(winnr, '&colorcolumn', 0)
+    call setwinvar(winnr, '&signcolumn', 'no')
+    call setwinvar(winnr, '&winhl', 'Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating')
+  endif
+  if !winnr
+    return 0
+  endif
+  call setwinvar(winnr, 'float', 1)
+  call setwinvar(winnr, '&wrap', 1)
+  call setwinvar(winnr, '&linebreak', 1)
+  call setwinvar(winnr, '&conceallevel', 2)
+  call coc#util#do_autocmd('CocOpenFloat')
+  return winnr
+endfunction
+
 function! coc#util#path_replace_patterns() abort
   if has('win32unix') && exists('g:coc_cygqwin_path_prefixes')
     echohl WarningMsg 
@@ -142,17 +242,10 @@ function! coc#util#win_position()
   return [row + winline() - 2, col + wincol() - 2]
 endfunction
 
-function! coc#util#close_popup()
-  if s:is_vim
-    if exists('*popup_close')
-      call popup_close(get(g:, 'coc_popup_id', 0))
-    endif
-  else
-    for winnr in range(1, winnr('$'))
-      if getwinvar(winnr, 'popup', 0)
-        exe winnr.'close!'
-      endif
-    endfor
+function! coc#util#close_pum_float()
+  if exists('g:coc_popup_id')
+    call coc#util#close_win(g:coc_popup_id)
+    unlet g:coc_popup_id
   endif
 endfunction
 
@@ -695,7 +788,7 @@ function! coc#util#vim_info()
         \ 'locationlist': get(g:,'coc_enable_locationlist', 1),
         \ 'progpath': v:progpath,
         \ 'guicursor': &guicursor,
-        \ 'textprop': has('textprop') && has('patch-8.1.1522') && !has('nvim') ? v:true : v:false,
+        \ 'textprop': has('textprop') && has('patch-8.1.1610') && !has('nvim') ? v:true : v:false,
         \}
 endfunction
 
@@ -1061,4 +1154,22 @@ function! coc#util#refactor_fold_text(lnum) abort
     let range = info[0].':'.info[1]
   endif
   return trim(getline(a:lnum)[3:]).' '.range
+endfunction
+
+function! s:popup_position(config) abort
+  let relative = a:config['relative']
+  if relative ==# 'cursor'
+    return [s:popup_cursor(a:config['row']), s:popup_cursor(a:config['col'])]
+  endif
+  return [a:config['row'] + 1, a:config['col'] + 1]
+endfunction
+
+function! s:popup_cursor(n) abort
+  if a:n == 0
+    return 'cursor'
+  endif
+  if a:n < 0
+    return 'cursor'.a:n
+  endif
+  return 'cursor+'.a:n
 endfunction

@@ -97,7 +97,7 @@ function! coc#_hide() abort
 endfunction
 
 function! coc#_cancel()
-  call coc#util#close_popup()
+  call coc#util#close_pum_float()
   " hack for close pum
   if pumvisible() && &paste != 1
     let g:coc#_context = {'start': 0, 'preselect': -1,'candidates': []}

@@ -1,7 +1,9 @@
 if exists('g:did_coc_loaded') || v:version < 800
   finish
 endif
-if has('nvim') && !has('nvim-0.3.0') | finish | endif
+if has('nvim') && !has('nvim-0.3.0') 
+  finish 
+endif
 let g:did_coc_loaded = 1
 let g:coc_service_initialized = 0
 let s:is_win = has('win32') || has('win64')
@@ -189,9 +191,7 @@ function! s:Enable()
     if exists('##CompleteChanged')
       autocmd CompleteChanged *   call s:Autocmd('MenuPopupChanged', get(v:, 'event', {}), win_screenpos(winnr())[0] + winline() - 2)
     endif
-    if exists('##MenuPopupChanged') || exists('##CompleteChanged')
-      autocmd CompleteDone      * call coc#util#close_popup()
-    endif
+    autocmd CompleteDone      * call coc#util#close_pum_float()
 
     if coc#rpc#started()
       autocmd VimEnter            * call coc#rpc#notify('VimEnter', [])

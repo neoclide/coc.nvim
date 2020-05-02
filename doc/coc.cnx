@@ -998,7 +998,7 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 :CocEnable 					*:CocEnable*
 
-		启用搜索 coc 功能。
+		启用所有 coc 功能。
 
 :CocRestart 					*:CocRestart*
 
