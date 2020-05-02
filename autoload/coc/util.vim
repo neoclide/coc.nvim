@@ -149,43 +149,47 @@ function! coc#util#create_float_buf(bufnr) abort
     return [bufnr('%'), a:bufnr]
   endif
   if s:is_vim
-    let bufnr = bufadd('')
-    call bufload(bufnr)
-    call setbufvar(bufnr, '&buftype', 'popup')
+    noa let bufnr = bufadd(tempname())
+    noa call bufload(bufnr)
+    noa call setbufvar(bufnr, '&buftype', 'popup')
     return [bufnr('%'), bufnr]
   endif
-  let bufnr = nvim_create_buf(v:false, v:true)
-  call setbufvar(bufnr, '&buftype', 'nofile')
-  call setbufvar(bufnr, '&bufhidden', 'hide')
+  noa let bufnr = nvim_create_buf(v:false, v:true)
+  noa call setbufvar(bufnr, '&buftype', 'nofile')
+  noa call setbufvar(bufnr, '&bufhidden', 'hide')
   return [bufnr('%'), bufnr]
 endfunction
 
 " create/reuse float window for config position.
-function! coc#util#create_float_win(winnr, bufnr, config, is_popup) abort
+function! coc#util#create_float_win(winnr, bufnr, config) abort
   " use exists
-  if a:winnr && !empty(popup_getoptions(a:winnr))
-    if s:is_vim
+  if a:winnr
+    let [line, col] = s:popup_position(a:config)
+    if s:is_vim && !empty(popup_getoptions(a:winnr))
       call popup_move(a:winnr, {
-        \ 'line': a:is_popup ? a:config['row'] +1 : s:popup_cursor(a:config['row']),
-        \ 'col': a:is_popup ? a:config['col'] +1 :s:popup_cursor(a:config['col']),
+        \ 'line': line,
+        \ 'col': col,
         \ 'minwidth': a:config['width'] - 2,
         \ 'minheight': a:config['height'],
         \ 'maxwidth': a:config['width'] - 2,
         \ 'maxheight': a:config['height'],
         \ })
-    else
-      call nvim_win_set_config(a:winnr, a:config)
+      return a:winnr
     endif
-    return a:winnr
+    if !s:is_vim && nvim_win_is_valid(a:winnr)
+      call nvim_win_set_config(a:winnr, a:config)
+      return a:winnr
+    endif
   endif
   let winnr = 0
   if s:is_vim
+    let [line, col] = s:popup_position(a:config)
     let winnr = popup_create(a:bufnr, {
         \ 'padding': [0, 1, 0, 1],
         \ 'highlight': 'CocFloating',
         \ 'fixed': 1,
-        \ 'line': a:is_popup ? a:config['row'] +1 : s:popup_cursor(a:config['row']),
-        \ 'col': a:is_popup ? a:config['col'] +1 :s:popup_cursor(a:config['col']),
+        \ 'line': line,
+        \ 'col': col,
         \ 'minwidth': a:config['width'] - 2,
         \ 'minheight': a:config['height'],
         \ 'maxwidth': a:config['width'] - 2,
@@ -194,7 +198,6 @@ function! coc#util#create_float_win(winnr, bufnr, config, is_popup) abort
     if has("patch-8.1.2281")
       call setwinvar(winnr, 'showbreak', 'NONE')
     endif
-    "call popup_show(winnr)
   else
     let winnr = nvim_open_win(a:bufnr, 0, a:config)
     call setwinvar(winnr, '&showbreak', '')
@@ -211,9 +214,6 @@ function! coc#util#create_float_win(winnr, bufnr, config, is_popup) abort
   endif
   if !winnr
     return 0
-  endif
-  if a:is_popup
-    let g:coc_popup_id = winnr
   endif
   call setwinvar(winnr, 'float', 1)
   call setwinvar(winnr, '&wrap', 1)
@@ -244,17 +244,8 @@ endfunction
 
 function! coc#util#close_pum_float()
   if exists('g:coc_popup_id')
-    if s:is_vim
-      if exists('*popup_close')
-        call popup_close(g:coc_popup_id, 0)
-        unlet g:coc_popup_id
-      endif
-    else
-      if nvim_win_is_valid(g:coc_popup_id)
-        call nvim_win_close(g:coc_popup_id, v:true)
-        unlet g:coc_popup_id
-      endif
-    endif
+    call coc#util#close_win(g:coc_popup_id)
+    unlet g:coc_popup_id
   endif
 endfunction
 
@@ -1163,6 +1154,14 @@ function! coc#util#refactor_fold_text(lnum) abort
     let range = info[0].':'.info[1]
   endif
   return trim(getline(a:lnum)[3:]).' '.range
+endfunction
+
+function! s:popup_position(config) abort
+  let relative = a:config['relative']
+  if relative ==# 'cursor'
+    return [s:popup_cursor(a:config['row']), s:popup_cursor(a:config['col'])]
+  endif
+  return [a:config['row'] + 1, a:config['col'] + 1]
 endfunction
 
 function! s:popup_cursor(n) abort

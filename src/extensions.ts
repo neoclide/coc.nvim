@@ -841,7 +841,7 @@ export class Extensions {
       }
       if (rootPatterns && rootPatterns.length) {
         for (let item of rootPatterns) {
-          workspace.addRootPatterns(item.filetype, item.patterns)
+          workspace.addRootPattern(item.filetype, item.patterns)
         }
       }
       if (commands && commands.length) {

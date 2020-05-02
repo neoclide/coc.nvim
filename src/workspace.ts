@@ -1,4 +1,4 @@
-import { Buffer, NeovimClient as Neovim, NeovimClient } from '@chemzqm/neovim'
+import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
 import bytes from 'bytes'
 import debounce from 'debounce'
 import fs from 'fs'
@@ -141,6 +141,7 @@ export class Workspace implements IWorkspace {
     }, null, this.disposables)
     events.on('BufEnter', this.onBufEnter, this, this.disposables)
     events.on('CursorMoved', this.checkCurrentBuffer, this, this.disposables)
+    events.on('CursorMovedI', this.checkCurrentBuffer, this, this.disposables)
     events.on('DirChanged', this.onDirChanged, this, this.disposables)
     events.on('BufCreate', this.onBufCreate, this, this.disposables)
     events.on('BufUnload', this.onBufUnload, this, this.disposables)
@@ -1794,7 +1795,7 @@ augroup end`
     })
   }
 
-  public addRootPatterns(filetype: string, rootPatterns: string[]): void {
+  public addRootPattern(filetype: string, rootPatterns: string[]): void {
     let patterns = this.rootPatterns.get(filetype) || []
     for (let p of rootPatterns) {
       if (patterns.indexOf(p) == -1) {

@@ -12,17 +12,11 @@ export default class FloatBuffer {
   private positions: [number, number, number?][] = []
   private enableHighlight = true
   private highlightTimeout = 500
-  private tabstop = 2
   public width = 0
   constructor(private nvim: Neovim, public readonly buffer: Buffer) {
     let config = workspace.getConfiguration('coc.preferences')
     this.enableHighlight = config.get<boolean>('enableFloatHighlight', true)
     this.highlightTimeout = config.get<number>('highlightTimeout', 500)
-    buffer.getOption('tabstop').then(val => {
-      this.tabstop = val as number
-    }, _e => {
-      // noop
-    })
   }
 
   public getHeight(docs: Documentation[], maxWidth: number): number {
@@ -39,21 +33,16 @@ export default class FloatBuffer {
     return l + docs.length - 1
   }
 
-  public calculateFragments(docs: Documentation[], maxWidth: number): Fragment[] {
+  private calculateFragments(docs: Documentation[], maxWidth: number): Fragment[] {
     let fragments: Fragment[] = []
     let idx = 0
     let currLine = 0
     let newLines: string[] = []
-    let fill = false
     let positions = this.positions = []
     for (let doc of docs) {
       let lines: string[] = []
       let content = doc.content.replace(/\s+$/, '')
       let arr = content.split(/\r?\n/)
-      if (['Error', 'Info', 'Warning', 'Hint'].indexOf(doc.filetype) !== -1) {
-        fill = true
-      }
-      // let [start, end] = doc.active || []
       for (let str of arr) {
         lines.push(str)
         if (doc.active) {
@@ -82,8 +71,7 @@ export default class FloatBuffer {
   }
 
   private getWidth(line: string): number {
-    let { tabstop } = this
-    line = line.replace(/\t/g, ' '.repeat(tabstop))
+    line = line.replace(/\t/g, '  ')
     return byteLength(line)
   }
 
@@ -119,7 +107,7 @@ export default class FloatBuffer {
       let ms = line.match(/^\s*```\s*(\w+)?/)
       if (ms != null) {
         if (lines.length) {
-          res.push({ lines, filetype: this.fixFiletype(filetype), start: curr - lines.length })
+          res.push({ lines, filetype: fixFiletype(filetype), start: curr - lines.length })
           lines = []
         }
         inBlock = !inBlock
@@ -130,21 +118,10 @@ export default class FloatBuffer {
       }
     }
     if (lines.length) {
-      res.push({ lines, filetype: this.fixFiletype(filetype), start: curr - lines.length })
+      res.push({ lines, filetype: fixFiletype(filetype), start: curr - lines.length })
       lines = []
     }
     return res
-  }
-
-  public setFiletype(filetype: string): void {
-    this.nvim.call('setbufvar', [this.buffer.id, '&filetype', filetype], true)
-  }
-
-  private fixFiletype(filetype: string): string {
-    if (filetype == 'ts') return 'typescript'
-    if (filetype == 'js') return 'javascript'
-    if (filetype == 'bash') return 'sh'
-    return filetype
   }
 
   public setLines(winid?: number): void {
@@ -193,4 +170,11 @@ export default class FloatBuffer {
       }
     }
   }
+}
+
+function fixFiletype(filetype: string): string {
+  if (filetype == 'ts') return 'typescript'
+  if (filetype == 'js') return 'javascript'
+  if (filetype == 'bash') return 'sh'
+  return filetype
 }

@@ -48,23 +48,20 @@ export default class Floating {
     if (token.isCancellationRequested) return
     let config = Object.assign({ relative: 'editor' }, rect)
     if (!config || token.isCancellationRequested) return
-    let winid = this.winid = await nvim.call('coc#util#create_float_win', [this.winid, this.bufnr, config, true])
-    if (!winid || token.isCancellationRequested) {
-      this.close()
-      return
-    }
-    logger.debug('winid:', winid)
+    let winid = this.winid = await nvim.call('coc#util#create_float_win', [this.winid, this.bufnr, config])
+    if (!winid || token.isCancellationRequested) return
     nvim.pauseNotification()
+    nvim.setVar('coc_popup_id', winid, true)
     if (workspace.isNvim) {
       nvim.command(`noa call win_gotoid(${winid})`, true)
       this.floatBuffer.setLines()
-      nvim.call(`cursor`, [1, 1], true)
+      nvim.command('noa normal! gg0', true)
       nvim.command('noa wincmd p', true)
     } else {
       let filetype = docs[0].filetype
       this.floatBuffer.setLines(winid)
       nvim.call('win_execute', [winid, `setfiletype ${filetype}`], true)
-      nvim.call('win_execute', [winid, `normal! gg0`], true)
+      nvim.call('win_execute', [winid, `noa normal! gg0`], true)
     }
     let [, err] = await nvim.resumeNotification()
     nvim.command('redraw', true)
@@ -92,7 +89,7 @@ export default class Floating {
     await floatBuffer.setDocuments(docs, maxWidth)
     let maxHeight = lines - bounding.row - workspace.env.cmdheight - 1
     return {
-      col: showRight ? bounding.col + pumWidth : bounding.col - floatBuffer.width,
+      col: showRight ? bounding.col + pumWidth : bounding.col - floatBuffer.width - 1,
       row: bounding.row,
       height: Math.min(maxHeight, floatBuffer.getHeight(docs, maxWidth)),
       width: floatBuffer.width

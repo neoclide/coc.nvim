@@ -954,8 +954,10 @@ export default class Handler {
       if (session && session.isActive) {
         let { value } = session.placeholder
         if (value.indexOf('\n') == -1) offset = value.length
+        this.signaturePosition = Position.create(position.line, position.character - value.length)
+      } else {
+        this.signaturePosition = position
       }
-      this.signaturePosition = position
       await this.signatureFactory.create(docs, true, offset)
       // show float
     } else {

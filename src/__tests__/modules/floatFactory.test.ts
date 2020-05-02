@@ -48,20 +48,6 @@ describe('FloatFactory', () => {
     expect(hasFloat).toBe(0)
   })
 
-  it('should hide on InsertLeave', async () => {
-    await nvim.input('i')
-    await helper.edit()
-    let docs: Documentation[] = [{
-      filetype: 'markdown',
-      content: 'foo'
-    }]
-    await floatFactory.create(docs)
-    await nvim.input('<esc>')
-    await helper.wait(30)
-    let hasFloat = await nvim.call('coc#util#has_float')
-    expect(hasFloat).toBe(0)
-  })
-
   it('should hide on CursorMoved', async () => {
     await helper.edit()
     await nvim.setLine('foo')
@@ -74,7 +60,7 @@ describe('FloatFactory', () => {
     expect(hasFloat).toBe(1)
     await helper.wait(30)
     await nvim.input('$')
-    await helper.wait(200)
+    await helper.wait(500)
     hasFloat = await nvim.call('coc#util#has_float')
     expect(hasFloat).toBe(0)
   })
