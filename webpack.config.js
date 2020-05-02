@@ -8,7 +8,8 @@ let revision = res.slice(0, 10)
 module.exports = {
   entry: './bin/server',
   target: 'node',
-  mode: 'none',
+  mode: 'production',
+  devtool: 'source-map',
   output: {
     path: path.resolve(__dirname, 'build'),
     filename: 'index.js'
