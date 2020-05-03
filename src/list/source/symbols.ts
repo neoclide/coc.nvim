@@ -1,4 +1,5 @@
 import path from 'path'
+import minimatch from 'minimatch'
 import { SymbolInformation, SymbolKind } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import languages from '../../languages'
@@ -35,6 +36,8 @@ export default class Symbols extends LocationList {
     if (!symbols) {
       throw new Error('Workspace symbols provider not found for current document')
     }
+    let config = this.getConfig()
+    let excludes = config.get<string[]>('excludes', [])
     let items: ListItem[] = []
     for (let s of symbols) {
       let kind = getSymbolKind(s.kind)
@@ -44,6 +47,9 @@ export default class Symbols extends LocationList {
       let file = URI.parse(s.location.uri).fsPath
       if (isParentFolder(workspace.cwd, file)) {
         file = path.relative(workspace.cwd, file)
+      }
+      if (excludes.some(p => minimatch(file, p))) {
+        continue
       }
       items.push({
         label: `${s.name} [${kind}]\t${file}`,

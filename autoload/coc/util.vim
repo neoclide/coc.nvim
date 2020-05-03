@@ -94,9 +94,10 @@ function! coc#util#cursor()
 endfunction
 
 function! coc#util#close_win(id)
-  if !has('nvim') && exists('*popup_close')
-    call popup_close(a:id)
-    return
+  if s:is_vim && exists('*popup_close')
+    if !empty(popup_getpos(a:id))
+      call popup_close(a:id)
+    endif
   endif
   if exists('*nvim_win_close')
     if nvim_win_is_valid(a:id)

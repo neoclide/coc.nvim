@@ -769,6 +769,14 @@
       "default": {},
       "description": "Custom keymappings on insert mode."
     },
+    "list.source.symbols.excludes": {
+      "type": "array",
+      "default": [],
+      "description": "Patterns of mimimatch for filepath to execlude from symbols list.",
+      "items": {
+        "type": "string"
+      }
+    },
     "list.source.outline.ctagsFilestypes": {
       "type": "array",
       "default": [],
