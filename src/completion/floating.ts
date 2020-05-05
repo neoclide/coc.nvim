@@ -9,6 +9,7 @@ interface Bounding {
   col: number
   width: number
   height: number
+  relative: string
 }
 
 export interface FloatingConfig {
@@ -55,14 +56,16 @@ export default class Floating {
   private async showDocumentationFloating(docs: Documentation[], bounding: PumBounding, token: CancellationToken): Promise<void> {
     let { nvim } = workspace
     this.floatBuffer = await this.createFloatBuffer()
-    let rect = await this.calculateBounding(docs, bounding)
+    let config = await this.calculateBounding(docs, bounding)
     if (token.isCancellationRequested) return
-    let config = Object.assign({ relative: 'editor' }, rect)
     if (!config || token.isCancellationRequested) return
     let winid = this.winid = await nvim.call('coc#util#create_float_win', [this.winid, this.bufnr, config])
-    if (!winid || token.isCancellationRequested) return
+    if (!winid) return
+    if (token.isCancellationRequested) {
+      this.close()
+      return
+    }
     nvim.pauseNotification()
-    nvim.setVar('coc_popup_id', winid, true)
     if (workspace.isNvim) {
       nvim.command(`noa call win_gotoid(${winid})`, true)
       this.floatBuffer.setLines()
@@ -104,7 +107,8 @@ export default class Floating {
       col: showRight ? bounding.col + pumWidth : bounding.col - floatBuffer.width - 1,
       row: bounding.row,
       height: Math.min(maxHeight, floatBuffer.getHeight(docs, maxWidth)),
-      width: floatBuffer.width
+      width: floatBuffer.width,
+      relative: 'editor'
     }
   }
 
