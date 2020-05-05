@@ -191,7 +191,6 @@ function! s:Enable()
     if exists('##CompleteChanged')
       autocmd CompleteChanged *   call s:Autocmd('MenuPopupChanged', get(v:, 'event', {}), win_screenpos(winnr())[0] + winline() - 2)
     endif
-    autocmd CompleteDone      * call coc#util#close_pum_float()
 
     if coc#rpc#started()
       autocmd VimEnter            * call coc#rpc#notify('VimEnter', [])

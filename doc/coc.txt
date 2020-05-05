@@ -1085,6 +1085,9 @@ g:coc_data_home					*g:coc_data_home*
 				`~/AppData/Local/coc`
 			Other:
 				`~/.config/coc`
+g:coc_last_float_win				*g:coc_last_float_win*
+
+			Window id of latest created float/popup window.
 
 ------------------------------------------------------------------------------
 
@@ -1835,6 +1838,9 @@ AUTOCMD							*coc-autocmds*
 :autocmd User CocOpenFloat {command}
 
 		Triggered when a floating window is opened.
+		The window is not focused, use
+		|g:coc_last_float_win| to get window id.
+
 						*CocTerminalOpen*
 
 :autocmd User CocTerminalOpen {command}
