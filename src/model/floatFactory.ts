@@ -8,7 +8,6 @@ import { Documentation, Env } from '../types'
 import { disposeAll, wait } from '../util'
 import workspace from '../workspace'
 import FloatBuffer from './floatBuffer'
-import { distinct } from '../util/array'
 const logger = require('../util/logger')('model-float')
 
 export interface WindowConfig {
@@ -156,17 +155,14 @@ export default class FloatFactory implements Disposable {
       nvim.command('noa wincmd p', true)
     } else {
       // no need to change cursor position
-      this.floatBuffer.setLines(this.winid)
-      nvim.call('win_execute', [this.winid, `noa normal! ${showBottom ? 'G' : 'gg'}0`], true)
-      let filetypes = distinct(docs.map(d => d.filetype))
-      if (filetypes.length == 1) {
-        nvim.call('win_execute', [winid, `setfiletype ${filetypes[0]}`], true)
-      }
+      this.floatBuffer.setLines(winid)
+      nvim.call('win_execute', [winid, `noa normal! ${showBottom ? 'G' : 'gg'}0`], true)
+      nvim.call('win_execute', [winid, `setfiletype ${docs[0].filetype}`], true)
       nvim.command('redraw', true)
     }
     let [, err] = await nvim.resumeNotification()
     if (err) throw new Error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
-    if (mode == 's') {
+    if (mode == 's' && !token.isCancellationRequested) {
       await snippetsManager.selectCurrentPlaceholder(false)
       await wait(50)
     }

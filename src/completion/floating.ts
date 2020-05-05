@@ -34,6 +34,17 @@ export default class Floating {
       maxPreviewWidth: configuration.get<number>('maxPreviewWidth', 80),
       enable: enableFloat
     }
+    if (enableFloat) {
+      workspace.registerAutocmd({
+        event: 'CompleteDone',
+        callback: async () => {
+          if (!this.winid) return
+          let { winid } = this
+          this.winid = null
+          await workspace.nvim.call('coc#util#close_win', [winid])
+        }
+      })
+    }
   }
 
   public async show(docs: Documentation[], bounding: PumBounding, token: CancellationToken): Promise<void> {
@@ -62,17 +73,18 @@ export default class Floating {
       this.floatBuffer.setLines(winid)
       nvim.call('win_execute', [winid, `setfiletype ${filetype}`], true)
       nvim.call('win_execute', [winid, `noa normal! gg0`], true)
+      nvim.command('redraw', true)
     }
     let [, err] = await nvim.resumeNotification()
-    nvim.command('redraw', true)
     // tslint:disable-next-line: no-console
     if (err) console.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
   }
 
   public close(): void {
     if (!this.winid) return
-    workspace.nvim.call('coc#util#close_pum_float', [], true)
+    let { winid } = this
     this.winid = null
+    workspace.nvim.call('coc#util#close_win', [winid], true)
   }
 
   private async calculateBounding(docs: Documentation[], bounding: PumBounding): Promise<Bounding> {
