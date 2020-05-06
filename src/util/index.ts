@@ -112,12 +112,11 @@ export function getKeymapModifier(mode: MapMode): string {
   return ''
 }
 
-export async function mkdirp(path: string, mode?: number): Promise<boolean> {
-  return new Promise(resolve => {
-    mkdir(path, { mode }, err => {
-      if (err) return resolve(false)
-      resolve(true)
-    })
+export function mkdirp(path: string, mode?: number): Promise<boolean> {
+  return mkdir(path, {mode}).then(() => {
+    return true
+  }, () => {
+    return false
   })
 }
 
