@@ -439,7 +439,7 @@ describe('User mappings', () => {
       '<C-x>': 'do:defaultaction',
       '<C-h>': 'do:help',
       '<C-d>': 'do:exit',
-      '<C-m>': 'do:toggleMode',
+      '<C-b>': 'do:toggleMode',
     })
     await manager.start(['location'])
     await helper.wait(200)
@@ -468,12 +468,6 @@ describe('User mappings', () => {
     await helper.wait(100)
     expect(manager.isActivated).toBe(false)
     await manager.start(['location'])
-    await nvim.eval('feedkeys("\\<C-m>", "in")')
-    await helper.wait(30)
-    expect(manager.isActivated).toBe(true)
-    let line = await helper.getCmdline()
-    expect(line).toBe('')
-    await manager.start(['location'])
     await nvim.eval('feedkeys("?", "in")')
     await helper.wait(30)
     await nvim.input('<CR>')
@@ -482,6 +476,12 @@ describe('User mappings', () => {
     await nvim.eval('feedkeys("\\<C-d>", "in")')
     await helper.wait(30)
     expect(manager.isActivated).toBe(false)
+    await manager.start(['location'])
+    await nvim.eval('feedkeys("\\<C-b>", "in")')
+    await helper.wait(100)
+    expect(manager.isActivated).toBe(true)
+    let line = await helper.getCmdline()
+    expect(line).toBe('')
   })
 
   it('should execute prompt mappings', async () => {
