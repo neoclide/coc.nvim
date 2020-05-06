@@ -159,6 +159,7 @@ function! coc#util#create_float_buf(bufnr) abort
   endif
   call setbufvar(bufnr, '&bufhidden', 'hide')
   call setbufvar(bufnr, '&swapfile', 0)
+  call setbufvar(bufnr, '&tabstop', 2)
   call setbufvar(bufnr, '&undolevels', -1)
   return [bufnr('%'), bufnr]
 endfunction
