@@ -481,15 +481,23 @@ endfunction
 
 function! coc#util#get_data_home()
   if !empty(get(g:, 'coc_data_home', ''))
-    return resolve(expand(g:coc_data_home))
+    let dir = resolve(expand(g:coc_data_home))
+  else
+    if exists('$XDG_CONFIG_HOME')
+      let dir = resolve($XDG_CONFIG_HOME."/coc")
+    else
+      if s:is_win
+        let dir = resolve(expand('~/AppData/Local/coc'))
+      else
+        let dir = resolve(expand('~/.config/coc'))
+      endif
+    endif
   endif
-  if exists('$XDG_CONFIG_HOME')
-    return resolve($XDG_CONFIG_HOME."/coc")
+  if !isdirectory(dir)
+    echohl MoreMsg | echom '[coc.nvim] creating data directory: '.dir | echohl None
+    call mkdir(dir, "p", 0755)
   endif
-  if s:is_win
-    return resolve($HOME.'/AppData/Local/coc')
-  endif
-  return resolve($HOME.'/.config/coc')
+  return dir
 endfunction
 
 function! coc#util#get_input()
@@ -904,9 +912,15 @@ function! coc#util#extension_root() abort
   endif
   if !empty(get(g:, 'coc_extension_root', ''))
     echohl WarningMsg | echon "g:coc_extension_root variable is deprecated, use g:coc_data_home as parent folder of extensions." | echohl None
-    return resolve(expand(g:coc_extension_root))
+    let folder = resolve(expand(g:coc_extension_root))
+  else
+    let folder = coc#util#get_data_home().'/extensions'
   endif
-  return coc#util#get_data_home().'/extensions'
+  if !isdirectory(folder)
+    echohl MoreMsg | echom '[coc.nvim] creating extensions directory: '.folder | echohl None
+    call mkdir(folder, "p", 0755)
+  endif
+  return folder
 endfunction
 
 function! coc#util#update_extensions(...) abort

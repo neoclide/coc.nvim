@@ -1,10 +1,8 @@
 /* tslint:disable:no-console */
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import rimraf from 'rimraf'
 import { URI } from 'vscode-uri'
 import os from 'os'
-import { mkdirp } from '../../util'
 import { isGitIgnored, findUp, resolveRoot, statAsync, parentDirs, isParentFolder } from '../../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
 import { score, positions } from '../../util/fzy'
@@ -42,15 +40,6 @@ describe('score test', () => {
   test('fzy#positions', async () => {
     let arr = positions("amuser", "app/models/user.rb")
     expect(arr).toEqual([0, 4, 11, 12, 13, 14])
-  })
-})
-
-describe('mkdirp', () => {
-  test('should mkdirp', async () => {
-    let dir = path.join(__dirname, 'a/b/c')
-    let res = await mkdirp(dir)
-    expect(res).toBe(true)
-    rimraf.sync(path.join(__dirname, 'a'))
   })
 })
 

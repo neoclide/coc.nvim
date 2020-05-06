@@ -2,7 +2,6 @@ import { exec, ExecOptions } from 'child_process'
 import debounce from 'debounce'
 import fs from 'fs'
 import isuri from 'isuri'
-import mkdir from 'mkdirp'
 import path from 'path'
 import { Disposable, TextDocumentIdentifier } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
@@ -110,14 +109,6 @@ export function getKeymapModifier(mode: MapMode): string {
   if (mode == 'i') return '<C-o>'
   if (mode == 's') return '<Esc>'
   return ''
-}
-
-export function mkdirp(path: string, mode?: number): Promise<boolean> {
-  return mkdir(path, {mode}).then(() => {
-    return true
-  }, () => {
-    return false
-  })
 }
 
 // consider textDocument without version to be valid

@@ -2,7 +2,6 @@ import { debounce } from 'debounce'
 import fastDiff from 'fast-diff'
 import fs from 'fs'
 import isuri from 'isuri'
-import mkdirp from 'mkdirp'
 import path from 'path'
 import rimraf from 'rimraf'
 import semver from 'semver'
@@ -858,9 +857,6 @@ export class Extensions {
 
   private async initializeRoot(): Promise<void> {
     let root = this.root = await workspace.nvim.call('coc#util#extension_root')
-    if (!fs.existsSync(root)) {
-      mkdirp.sync(root)
-    }
     let jsonFile = path.join(root, 'package.json')
     if (!fs.existsSync(jsonFile)) {
       fs.writeFileSync(jsonFile, '{"dependencies":{}}', 'utf8')
