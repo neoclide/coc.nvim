@@ -127,7 +127,6 @@ export class DiagnosticBuffer implements Disposable {
     this.clearSigns()
     let { nvim, bufnr, signIds } = this
     let signId = this.config.signOffset
-    signIds.clear()
     let lines: Set<number> = new Set()
     for (let diagnostic of diagnostics) {
       let { range, severity } = diagnostic

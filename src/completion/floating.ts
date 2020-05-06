@@ -88,6 +88,7 @@ export default class Floating {
     let { winid } = this
     this.winid = null
     workspace.nvim.call('coc#util#close_win', [winid], true)
+    if (workspace.isVim) workspace.nvim.command('redraw', true)
   }
 
   private async calculateBounding(docs: Documentation[], bounding: PumBounding): Promise<Bounding> {
