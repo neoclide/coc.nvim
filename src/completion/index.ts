@@ -10,6 +10,7 @@ import { byteSlice, characterIndex } from '../util/string'
 import workspace from '../workspace'
 import Complete from './complete'
 import Floating from './floating'
+import throttle from '../util/throttle'
 const logger = require('../util/logger')('completion')
 const completeItemKeys = ['abbr', 'menu', 'info', 'kind', 'icase', 'dup', 'empty', 'user_data']
 
@@ -46,7 +47,8 @@ export class Completion implements Disposable {
     events.on('TextChangedP', this.onTextChangedP, this, this.disposables)
     events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
     events.on('CompleteDone', this.onCompleteDone, this, this.disposables)
-    events.on('MenuPopupChanged', this.onPumChange, this, this.disposables)
+    let fn = throttle(this.onPumChange.bind(this), workspace.isVim ? 200 : 50)
+    events.on('MenuPopupChanged', fn as any, this, this.disposables)
     events.on('CursorMovedI', debounce(async (bufnr, cursor) => {
       // try trigger completion
       let doc = workspace.getDocument(bufnr)
