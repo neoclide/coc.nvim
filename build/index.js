@@ -22396,7 +22396,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "2bfec35e9b" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "200189d9aa" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -55641,8 +55641,12 @@ function getRevealOutputChannelOn(revealOn) {
 exports.getRevealOutputChannelOn = getRevealOutputChannelOn;
 function getDocumentSelector(filetypes, additionalSchemes) {
     let documentSelector = [];
+    let schemes = ['file', 'untitled'].concat(additionalSchemes || []);
+    if (!filetypes)
+        return schemes.map(s => {
+            return { scheme: s };
+        });
     filetypes.forEach(filetype => {
-        let schemes = ['file', 'untitled'].concat(additionalSchemes || []);
         documentSelector.push(...schemes.map(scheme => {
             return { language: filetype, scheme };
         }));
