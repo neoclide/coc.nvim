@@ -2,7 +2,7 @@ import { CancellationToken, Disposable, DocumentSelector, Position, Range, Works
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { RenameProvider } from './index'
 import Manager from './manager'
-import uuid = require('uuid/v4')
+import { v4 as uuid } from 'uuid'
 
 export default class RenameManager extends Manager<RenameProvider> implements Disposable {
 

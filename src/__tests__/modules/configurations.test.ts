@@ -6,7 +6,7 @@ import Configurations from '../../configuration'
 import { convertErrors, getChangedKeys, getConfigurationValue, getKeys, parseConfiguration } from '../../configuration/util'
 import { IConfigurationModel } from '../../types'
 import { URI } from 'vscode-uri'
-import uuidv1 = require('uuid/v1')
+import { v1 as uuidv1 } from 'uuid'
 
 const config = fs.readFileSync(path.join(__dirname, './settings.json'), 'utf8')
 const workspaceConfigFile = path.resolve(__dirname, '../sample/.vim/coc-settings.json')

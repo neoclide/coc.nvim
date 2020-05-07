@@ -9,7 +9,7 @@ import attach from '../attach'
 import Document from '../model/document'
 import Plugin from '../plugin'
 import workspace from '../workspace'
-import uuid from 'uuid/v4'
+import { v4 as uuid } from 'uuid'
 import { VimCompleteItem } from '../types'
 
 export interface CursorPosition {

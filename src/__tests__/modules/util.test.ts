@@ -203,7 +203,7 @@ describe('Mutex', () => {
       return new Promise(resolve => {
         if (lastTs) {
           let dt = Date.now() - lastTs
-          expect(dt).toBeGreaterThanOrEqual(300)
+          expect(dt).toBeGreaterThanOrEqual(298)
         }
         lastTs = Date.now()
         setTimeout(() => {

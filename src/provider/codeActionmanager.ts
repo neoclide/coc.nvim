@@ -2,7 +2,7 @@ import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Comma
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CodeActionProvider } from './index'
 import Manager, { ProviderItem } from './manager'
-import uuid = require('uuid/v4')
+import { v4 as uuid } from 'uuid'
 const logger = require('../util/logger')('codeActionManager')
 
 export default class CodeActionManager extends Manager<CodeActionProvider> implements Disposable {

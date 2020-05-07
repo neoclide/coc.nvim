@@ -5,7 +5,7 @@ import events from '../../events'
 import extensions, { API } from '../../extensions'
 import { Extension } from '../../types'
 import helper from '../helper'
-import uuidv1 = require('uuid/v1')
+import { v1 as uuidv1 } from 'uuid'
 
 let nvim: Neovim
 beforeAll(async () => {

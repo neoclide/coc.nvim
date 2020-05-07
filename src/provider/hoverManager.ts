@@ -2,7 +2,7 @@ import { CancellationToken, Disposable, DocumentSelector, Hover, Position } from
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { HoverProvider } from './index'
 import Manager, { ProviderItem } from './manager'
-import uuid = require('uuid/v4')
+import { v4 as uuid } from 'uuid'
 
 export default class HoverManager extends Manager<HoverProvider> implements Disposable {
 

@@ -2,7 +2,7 @@ import { CancellationToken, Disposable, DocumentSelector, FormattingOptions, Tex
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DocumentFormattingEditProvider } from './index'
 import Manager, { ProviderItem } from './manager'
-import uuid = require('uuid/v4')
+import { v4 as uuid } from 'uuid'
 
 export default class FormatManager extends Manager<DocumentFormattingEditProvider> implements Disposable {
 

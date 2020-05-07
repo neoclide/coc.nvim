@@ -2,7 +2,7 @@ import watchman, { Client } from 'fb-watchman'
 import os from 'os'
 import path from 'path'
 import { OutputChannel } from './types'
-import uuidv1 = require('uuid/v1')
+import { v1 as uuidv1 } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import minimatch from 'minimatch'
 const logger = require('./util/logger')('watchman')

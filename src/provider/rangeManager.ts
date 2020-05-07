@@ -2,7 +2,7 @@ import { SelectionRange, CancellationToken, Disposable, DocumentSelector, Positi
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { SelectionRangeProvider } from './index'
 import Manager from './manager'
-import uuid = require('uuid/v4')
+import { v4 as uuid } from 'uuid'
 
 export default class SelectionRangeManager extends Manager<SelectionRangeProvider> implements Disposable {
 

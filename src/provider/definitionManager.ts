@@ -2,7 +2,7 @@ import { CancellationToken, Disposable, DocumentSelector, Location, Position } f
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DefinitionProvider } from './index'
 import Manager, { ProviderItem } from './manager'
-import uuid = require('uuid/v4')
+import { v4 as uuid } from 'uuid'
 const logger = require('../util/logger')('definitionManager')
 
 export default class DefinitionManager extends Manager<DefinitionProvider> implements Disposable {

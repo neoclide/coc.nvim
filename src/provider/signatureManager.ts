@@ -2,7 +2,7 @@ import { CancellationToken, Disposable, DocumentSelector, Position, SignatureHel
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { SignatureHelpProvider } from './index'
 import Manager, { ProviderItem } from './manager'
-import uuid = require('uuid/v4')
+import { v4 as uuid } from 'uuid'
 
 export default class SignatureManager extends Manager<SignatureHelpProvider> implements Disposable {
 

@@ -8,7 +8,7 @@ import os from 'os'
 import fs from 'fs'
 import { byteLength } from './string'
 import { terminate } from './processes'
-import uuid = require('uuid/v4')
+import { v4 as uuid } from 'uuid'
 const logger = require('./logger')('util-highlights')
 
 export interface Highlight {

@@ -2,7 +2,7 @@ import { CancellationToken, CodeLens, Disposable, DocumentSelector } from 'vscod
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CodeLensProvider } from './index'
 import Manager, { ProviderItem } from './manager'
-import uuid = require('uuid/v4')
+import { v4 as uuid } from 'uuid'
 import { omit } from '../util/lodash'
 // const logger = require('../util/logger')('codeActionManager')
 
