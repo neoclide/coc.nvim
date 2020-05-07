@@ -22396,7 +22396,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "149c89f6dd" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "2bfec35e9b" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -22948,6 +22948,7 @@ exports.default = new CommandManager();
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(45);
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(219));
 const vscode_languageserver_protocol_1 = __webpack_require__(190);
 const vscode_uri_1 = __webpack_require__(222);
 const events_1 = tslib_1.__importDefault(__webpack_require__(189));
@@ -22987,6 +22988,17 @@ class DiagnosticManager {
                 await this.echoMessage(true);
             }, this.config.messageDelay);
         }, null, this.disposables);
+        if (this.config.virtualText) {
+            let fn = debounce_1.default(async (bufnr, cursor) => {
+                let buf = this.buffers.find(buf => buf.bufnr == bufnr);
+                if (buf)
+                    buf.showVirtualText(cursor[0]);
+            }, 100);
+            events_1.default.on('CursorMoved', fn, null, this.disposables);
+            this.disposables.push(vscode_languageserver_protocol_1.Disposable.create(() => {
+                fn.clear();
+            }));
+        }
         events_1.default.on('InsertEnter', async () => {
             if (this.timer)
                 clearTimeout(this.timer);
@@ -24449,6 +24461,7 @@ class Workspace {
         let changeCount = 0;
         const preferences = this.getConfiguration('coc.preferences');
         let promptUser = !global.hasOwnProperty('__TEST__') && preferences.get('promptWorkspaceEdit', true);
+        let listTarget = preferences.get('listOfWorkspaceEdit', 'quickfix');
         try {
             if (documentChanges && documentChanges.length) {
                 let changedUris = this.getChangedUris(documentChanges);
@@ -24534,8 +24547,14 @@ class Workspace {
                 let items = await Promise.all(locations.map(loc => {
                     return this.getQuickfixItem(loc);
                 }));
-                await this.nvim.call('setqflist', [items]);
-                this.showMessage(`changed ${changeCount} buffers, use :wa to save changes to disk or :copen to open quickfix list`, 'more');
+                if (listTarget == 'quickfix') {
+                    await this.nvim.call('setqflist', [items]);
+                    this.showMessage(`changed ${changeCount} buffers, use :wa to save changes to disk and :copen to open quickfix list`, 'more');
+                }
+                else if (listTarget == 'location') {
+                    await nvim.setVar('coc_jump_locations', items);
+                    this.showMessage(`changed ${changeCount} buffers, use :wa to save changes to disk and :CocList location to manage changed locations`, 'more');
+                }
             }
         }
         catch (e) {
@@ -69317,16 +69336,19 @@ class DiagnosticBuffer {
     _refresh(diagnostics) {
         if (object_1.equals(this.diagnostics, diagnostics))
             return;
+        this.diagnostics = diagnostics;
         let { nvim } = this;
         let sequence = this.sequence = new callSequence_1.default();
         let winid;
         let bufnr;
+        let lnum;
         sequence.addFunction(async () => {
-            let arr = await nvim.eval(`[coc#util#valid_state(), bufwinid(${this.bufnr}), bufnr("%")]`);
+            let arr = await nvim.eval(`[coc#util#valid_state(), bufwinid(${this.bufnr}), bufnr("%"), line(".")]`);
             if (arr[0] == 0 || !this.document)
                 return true;
             winid = arr[1];
             bufnr = arr[2];
+            lnum = arr[3];
         });
         sequence.addFunction(async () => {
             nvim.pauseNotification();
@@ -69334,7 +69356,9 @@ class DiagnosticBuffer {
             this.addSigns(diagnostics);
             this.setLocationlist(diagnostics, winid);
             this.addHighlight(diagnostics, winid);
-            this.addDiagnosticVText(diagnostics);
+            if (this.bufnr == bufnr && this.config.virtualText) {
+                this.showVirtualText(lnum);
+            }
             let res = await this.nvim.resumeNotification();
             if (workspace_1.default.isVim) {
                 this.nvim.command('redraw', true);
@@ -69344,7 +69368,6 @@ class DiagnosticBuffer {
         });
         sequence.start().then(async (canceled) => {
             if (!canceled) {
-                this.diagnostics = diagnostics;
                 this._onDidRefresh.fire(void 0);
             }
         }, e => {
@@ -69439,22 +69462,20 @@ class DiagnosticBuffer {
             this.nvim.call('coc#util#do_autocmd', ['CocDiagnosticChange'], true);
         }
     }
-    addDiagnosticVText(diagnostics) {
+    showVirtualText(lnum) {
         let { bufnr, nvim } = this;
-        if (!this.config.virtualText)
-            return;
         if (!nvim.hasFunction('nvim_buf_set_virtual_text'))
             return;
         let buffer = this.nvim.createBuffer(bufnr);
-        let lines = new Set();
         let srcId = this.config.virtualTextSrcId;
         let prefix = this.config.virtualTextPrefix;
+        let diagnostics = this.diagnostics.filter(d => {
+            let { start, end } = d.range;
+            return start.line <= lnum - 1 && end.line >= lnum - 1;
+        });
         buffer.clearNamespace(srcId);
         for (let diagnostic of diagnostics) {
             let { line } = diagnostic.range.start;
-            if (lines.has(line))
-                continue;
-            lines.add(line);
             let highlight = util_1.getNameFromSeverity(diagnostic.severity) + 'VirtualText';
             let msg = diagnostic.message.split(/\n/)
                 .map((l) => l.trim())
@@ -69512,14 +69533,15 @@ class DiagnosticBuffer {
     async clear() {
         if (this.sequence)
             this.sequence.cancel().logError();
+        this.diagnostics = [];
         let { nvim } = this;
         nvim.pauseNotification();
         this.clearHighlight();
         this.clearSigns();
         if (this.config.virtualText
-            && nvim.hasFunction('nvim_buf_set_virtual_text')
-            && this.document) {
-            this.document.buffer.clearNamespace(this.config.virtualTextSrcId);
+            && nvim.hasFunction('nvim_buf_set_virtual_text')) {
+            let buffer = nvim.createBuffer(this.bufnr);
+            buffer.clearNamespace(this.config.virtualTextSrcId);
         }
         this.setDiagnosticInfo(workspace_1.default.bufnr, []);
         await nvim.resumeNotification(false, true);
