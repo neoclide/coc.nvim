@@ -1,4 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
+import debounce from 'debounce'
 import { Diagnostic, DiagnosticSeverity, Disposable, Location, Position, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
@@ -71,6 +72,18 @@ export class DiagnosticManager implements Disposable {
         await this.echoMessage(true)
       }, this.config.messageDelay)
     }, null, this.disposables)
+
+    if (this.config.virtualText) {
+      let fn = debounce(async (bufnr, cursor) => {
+        let buf = this.buffers.find(buf => buf.bufnr == bufnr)
+        if (buf) buf.showVirtualText(cursor[0])
+      }, 100)
+      events.on('CursorMoved', fn, null, this.disposables)
+      this.disposables.push(Disposable.create(() => {
+        fn.clear()
+      }))
+    }
+
     events.on('InsertEnter', async () => {
       if (this.timer) clearTimeout(this.timer)
       this.floatFactory.close()
