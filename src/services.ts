@@ -425,10 +425,13 @@ export function getRevealOutputChannelOn(revealOn: string | undefined): RevealOu
   }
 }
 
-export function getDocumentSelector(filetypes: string[], additionalSchemes?: string[]): DocumentSelector {
+export function getDocumentSelector(filetypes: string[] | undefined, additionalSchemes?: string[]): DocumentSelector {
   let documentSelector: DocumentSelector = []
+  let schemes = ['file', 'untitled'].concat(additionalSchemes || [])
+  if (!filetypes) return schemes.map(s => {
+    return { scheme: s }
+  })
   filetypes.forEach(filetype => {
-    let schemes = ['file', 'untitled'].concat(additionalSchemes || [])
     documentSelector.push(...schemes.map(scheme => {
       return { language: filetype, scheme }
     }))
