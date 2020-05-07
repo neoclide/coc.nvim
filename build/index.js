@@ -22396,7 +22396,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "200189d9aa" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "e376abcffb" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -41192,6 +41192,7 @@ const util_1 = __webpack_require__(54);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(234));
 const download_1 = tslib_1.__importDefault(__webpack_require__(327));
 const fetch_1 = tslib_1.__importDefault(__webpack_require__(365));
+const rimraf_1 = tslib_1.__importDefault(__webpack_require__(295));
 const logger = __webpack_require__(44)('model-extension');
 function registryUrl(scope = 'coc.nvim') {
     const result = rc_1.default('npm', { registry: 'https://registry.npmjs.org/' });
@@ -41289,6 +41290,12 @@ class ExtensionManager {
         });
         fs_1.default.writeFileSync(jsonFile, JSON.stringify(sortedObj, null, 2), { encoding: 'utf8' });
         onMessage(`Moving to new folder.`);
+        if (typeof fs_1.default.rmdirSync === 'function') {
+            fs_1.default.rmdirSync(folder, { recursive: true });
+        }
+        else {
+            rimraf_1.default.sync(folder, { glob: false });
+        }
         await util_1.promisify(mv_1.default)(tmpFolder, folder, { mkdirp: true, clobber: true });
     }
     async install(npm, def) {
