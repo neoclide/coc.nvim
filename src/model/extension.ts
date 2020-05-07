@@ -5,7 +5,6 @@ import mv from 'mv'
 import os from 'os'
 import path from 'path'
 import rc from 'rc'
-import rimraf from 'rimraf'
 import semver from 'semver'
 import url from 'url'
 import { promisify } from 'util'
@@ -62,19 +61,16 @@ export default class ExtensionManager {
     } as Info
   }
 
-  private async removeFolder(folder: string): Promise<void> {
-    if (fs.existsSync(folder)) {
-      let stat = await promisify(fs.lstat)(folder)
-      if (stat.isSymbolicLink()) {
-        await promisify(fs.unlink)(folder)
-      } else {
-        await promisify(rimraf)(folder, { glob: false })
-      }
-    }
-  }
-
   private async _install(npm: string, def: string, info: Info, onMessage: (msg: string) => void): Promise<void> {
     let tmpFolder = await promisify(fs.mkdtemp)(path.join(os.tmpdir(), `${info.name}-`))
+    let folder = path.join(this.root, 'node_modules', info.name)
+    if (fs.existsSync(folder)) {
+      let stat = fs.statSync(folder)
+      if (!stat.isDirectory()) {
+        onMessage(`${folder} is not directory, skipped install of ${info.name}`)
+        return
+      }
+    }
     let url = info['dist.tarball']
     onMessage(`Downloading from ${url}`)
     await download(url, { dest: tmpFolder })
@@ -118,9 +114,7 @@ export default class ExtensionManager {
     })
     fs.writeFileSync(jsonFile, JSON.stringify(sortedObj, null, 2), { encoding: 'utf8' })
     onMessage(`Moving to new folder.`)
-    let folder = path.join(this.root, 'node_modules', info.name)
-    await this.removeFolder(folder)
-    await promisify(mv)(tmpFolder, folder, { mkdirp: true })
+    await promisify(mv)(tmpFolder, folder, { mkdirp: true, clobber: true })
   }
 
   public async install(npm: string, def: string): Promise<string> {
