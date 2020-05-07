@@ -178,10 +178,13 @@ export class DiagnosticBuffer implements Disposable {
     let buffer = this.nvim.createBuffer(bufnr)
     let srcId = this.config.virtualTextSrcId
     let prefix = this.config.virtualTextPrefix
-    let diagnostics = this.diagnostics.filter(d => {
-      let { start, end } = d.range
-      return start.line <= lnum - 1 && end.line >= lnum - 1
-    })
+    let diagnostics = this.diagnostics
+    if (this.config.virtualTextCurrentLineOnly) {
+      diagnostics = this.diagnostics.filter(d => {
+        let { start, end } = d.range
+        return start.line <= lnum - 1 && end.line >= lnum - 1
+      })
+    }
     buffer.clearNamespace(srcId)
     for (let diagnostic of diagnostics) {
       let { line } = diagnostic.range.start

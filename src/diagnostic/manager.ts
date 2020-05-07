@@ -21,7 +21,6 @@ export interface DiagnosticConfig {
   enableHighlightLineNumber: boolean
   checkCurrentLine: boolean
   enableMessage: string
-  virtualText: boolean
   displayByAle: boolean
   srcId: number
   locationlist: boolean
@@ -38,6 +37,8 @@ export interface DiagnosticConfig {
   maxWindowWidth: number
   refreshAfterSave: boolean
   refreshOnInsertMode: boolean
+  virtualText: boolean
+  virtualTextCurrentLineOnly: boolean
   virtualTextSrcId: number
   virtualTextPrefix: string
   virtualTextLines: number
@@ -73,7 +74,7 @@ export class DiagnosticManager implements Disposable {
       }, this.config.messageDelay)
     }, null, this.disposables)
 
-    if (this.config.virtualText) {
+    if (this.config.virtualText && this.config.virtualTextCurrentLineOnly) {
       let fn = debounce(async (bufnr, cursor) => {
         let buf = this.buffers.find(buf => buf.bufnr == bufnr)
         if (buf) buf.showVirtualText(cursor[0])
@@ -577,6 +578,7 @@ export class DiagnosticManager implements Disposable {
       joinMessageLines: config.get<boolean>('joinMessageLines', false),
       messageDelay: config.get<number>('messageDelay', 200),
       virtualText: config.get<boolean>('virtualText', false),
+      virtualTextCurrentLineOnly: config.get<boolean>('virtualTextCurrentLineOnly', true),
       virtualTextPrefix: config.get<string>('virtualTextPrefix', " "),
       virtualTextLineSeparator: config.get<string>('virtualTextLineSeparator', " \\ "),
       virtualTextLines: config.get<number>('virtualTextLines', 3),

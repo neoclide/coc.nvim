@@ -19,6 +19,7 @@ const config: DiagnosticConfig = {
   refreshOnInsertMode: false,
   virtualTextSrcId: 0,
   virtualText: false,
+  virtualTextCurrentLineOnly: true,
   virtualTextPrefix: " ",
   virtualTextLines: 3,
   virtualTextLineSeparator: " \\ ",
