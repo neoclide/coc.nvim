@@ -500,6 +500,7 @@ export class Workspace implements IWorkspace {
     let changeCount = 0
     const preferences = this.getConfiguration('coc.preferences')
     let promptUser = !global.hasOwnProperty('__TEST__') && preferences.get<boolean>('promptWorkspaceEdit', true)
+    let listTarget = preferences.get<string>('listOfWorkspaceEdit', 'quickfix')
     try {
       if (documentChanges && documentChanges.length) {
         let changedUris = this.getChangedUris(documentChanges)
@@ -575,8 +576,13 @@ export class Workspace implements IWorkspace {
         let items = await Promise.all(locations.map(loc => {
           return this.getQuickfixItem(loc)
         }))
-        await this.nvim.call('setqflist', [items])
-        this.showMessage(`changed ${changeCount} buffers, use :wa to save changes to disk or :copen to open quickfix list`, 'more')
+        if (listTarget == 'quickfix') {
+          await this.nvim.call('setqflist', [items])
+          this.showMessage(`changed ${changeCount} buffers, use :wa to save changes to disk and :copen to open quickfix list`, 'more')
+        } else if (listTarget == 'location') {
+          await nvim.setVar('coc_jump_locations', items)
+          this.showMessage(`changed ${changeCount} buffers, use :wa to save changes to disk and :CocList location to manage changed locations`, 'more')
+        }
       }
     } catch (e) {
       logger.error(e)

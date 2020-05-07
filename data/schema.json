@@ -807,8 +807,14 @@
     },
     "coc.preferences.promptWorkspaceEdit": {
       "type": "boolean",
-      "description": "Prompt confirm from user for workspace edit.",
+      "description": "Prompt confirm from user when apply workspace edit for unloaded files.",
       "default": true
+    },
+    "coc.preferences.listOfWorkspaceEdit": {
+      "type": "string",
+      "default": "quickfix",
+      "description": "List should contains changed locations after workspace edit, default to vim's quickfix",
+      "enum": ["quickfix", "location", "none"]
     },
     "coc.preferences.useQuickfixForLocations": {
       "type": "boolean",
