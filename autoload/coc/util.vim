@@ -140,17 +140,18 @@ function! coc#util#get_float_mode(allow_selection, align_top, pum_align_top) abo
     " helps to fix undo issue, don't know why.
     call feedkeys("\<C-g>u", 'n')
   endif
-  return mode
+  let pos = coc#util#win_position()
+  return [mode, bufnr('%'), pos]
 endfunction
 
 " create buffer for popup/float window
 function! coc#util#create_float_buf(bufnr) abort
   " reuse exists buffer
   if a:bufnr && bufloaded(a:bufnr)
-    return [bufnr('%'), a:bufnr]
+    return a:bufnr
   endif
   if s:is_vim
-    noa let bufnr = bufadd(tempname())
+    noa let bufnr = bufadd('')
     noa call bufload(bufnr)
     call setbufvar(bufnr, '&buftype', 'popup')
   else
@@ -161,7 +162,7 @@ function! coc#util#create_float_buf(bufnr) abort
   call setbufvar(bufnr, '&swapfile', 0)
   call setbufvar(bufnr, '&tabstop', 2)
   call setbufvar(bufnr, '&undolevels', -1)
-  return [bufnr('%'), bufnr]
+  return bufnr
 endfunction
 
 " create/reuse float window for config position.
@@ -178,17 +179,18 @@ function! coc#util#create_float_win(winid, bufnr, config) abort
         \ 'maxwidth': a:config['width'] - 2,
         \ 'maxheight': a:config['height'],
         \ })
-      return a:winid
+      return [a:winid, winbufnr(a:winid)]
     endif
     if !s:is_vim && nvim_win_is_valid(a:winid)
       call nvim_win_set_config(a:winid, a:config)
-      return a:winid
+      return [a:winid, winbufnr(a:winid)]
     endif
   endif
   let winid = 0
   if s:is_vim
     let [line, col] = s:popup_position(a:config)
-    let winid = popup_create(a:bufnr, {
+    let bufnr = coc#util#create_float_buf(a:bufnr)
+    let winid = popup_create(bufnr, {
         \ 'padding': [0, 1, 0, 1],
         \ 'highlight': 'CocFloating',
         \ 'fixed': 1,
@@ -203,7 +205,8 @@ function! coc#util#create_float_win(winid, bufnr, config) abort
       call setwinvar(winid, 'showbreak', 'NONE')
     endif
   else
-    let winid = nvim_open_win(a:bufnr, 0, a:config)
+    let bufnr = coc#util#create_float_buf(a:bufnr)
+    let winid = nvim_open_win(bufnr, 0, a:config)
     call setwinvar(winid, '&foldcolumn', 1)
     call setwinvar(winid, '&list', 0)
     call setwinvar(winid, '&wrap', 1)
@@ -216,7 +219,7 @@ function! coc#util#create_float_win(winid, bufnr, config) abort
     call setwinvar(winid, '&winhl', 'Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating')
   endif
   if winid <= 0
-    return 0
+    return null
   endif
   call setwinvar(winid, 'float', 1)
   call setwinvar(winid, '&wrap', 1)
@@ -224,7 +227,7 @@ function! coc#util#create_float_win(winid, bufnr, config) abort
   call setwinvar(winid, '&conceallevel', 2)
   let g:coc_last_float_win = winid
   call coc#util#do_autocmd('CocOpenFloat')
-  return winid
+  return [winid, winbufnr(winid)]
 endfunction
 
 function! coc#util#path_replace_patterns() abort
@@ -1184,4 +1187,13 @@ function! s:popup_cursor(n) abort
     return 'cursor'.a:n
   endif
   return 'cursor+'.a:n
+endfunction
+
+function! coc#util#set_buf_lines(bufnr, lines) abort
+  if !bufloaded(a:bufnr)
+    return
+  endif
+  let info = getbufinfo(a:bufnr)
+  noa call appendbufline(a:bufnr, '$', a:lines)
+  noa call deletebufline(a:bufnr, 1, info[0]['linecount'])
 endfunction
