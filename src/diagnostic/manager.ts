@@ -455,7 +455,7 @@ export class DiagnosticManager implements Disposable {
     if (this.timer) clearTimeout(this.timer)
     let useFloat = config.messageTarget == 'float'
     let [bufnr, cursor, filetype, mode] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),&filetype,mode()]') as [number, [number, number], string, string]
-    if (mode != 'n') return
+    if (mode != 'n' || bufnr == this.floatFactory.bufnr) return
     let diagnostics = this.getDiagnosticsAt(bufnr, cursor)
     if (diagnostics.length == 0) {
       if (useFloat) {

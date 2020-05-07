@@ -23,7 +23,7 @@ export interface WindowConfig {
 export default class FloatFactory implements Disposable {
   private targetBufnr: number
   private winid = 0
-  private bufnr = 0
+  private _bufnr = 0
   private mutex: Mutex
   private disposables: Disposable[] = []
   private floatBuffer: FloatBuffer
@@ -41,7 +41,7 @@ export default class FloatFactory implements Disposable {
     this.mutex = new Mutex()
     this.floatBuffer = new FloatBuffer(nvim)
     events.on('BufEnter', bufnr => {
-      if (bufnr == this.bufnr
+      if (bufnr == this._bufnr
         || bufnr == this.targetBufnr) return
       this.close()
     }, null, this.disposables)
@@ -58,7 +58,7 @@ export default class FloatFactory implements Disposable {
 
   private _onCursorMoved(): void {
     let { bufnr, insertMode } = workspace
-    if (bufnr == this.bufnr) return
+    if (bufnr == this._bufnr) return
     if (this.autoHide) {
       this.close()
       return
@@ -134,10 +134,10 @@ export default class FloatFactory implements Disposable {
     await floatBuffer.setDocuments(docs, config.width)
     if (token.isCancellationRequested) return
     // create window
-    let res = await this.nvim.call('coc#util#create_float_win', [this.winid, this.bufnr, config])
+    let res = await this.nvim.call('coc#util#create_float_win', [this.winid, this._bufnr, config])
     if (!res || token.isCancellationRequested) return
     let winid = this.winid = res[0]
-    let bufnr = this.bufnr = res[1]
+    let bufnr = this._bufnr = res[1]
     let showBottom = alignTop && docs.length > 1
     nvim.pauseNotification()
     if (workspace.isNvim) {
@@ -186,5 +186,9 @@ export default class FloatFactory implements Disposable {
       this.tokenSource.cancel()
     }
     disposeAll(this.disposables)
+  }
+
+  public get bufnr(): number {
+    return this._bufnr
   }
 }
