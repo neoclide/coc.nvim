@@ -1,10 +1,15 @@
-import { Buffer, Neovim } from '@chemzqm/neovim'
-import { Highlight, getHiglights } from '../util/highlight'
-import { characterIndex, byteLength } from '../util/string'
-import { group } from '../util/array'
+import { Neovim } from '@chemzqm/neovim'
 import { Documentation, Fragment } from '../types'
+import { group } from '../util/array'
+import { getHiglights, Highlight } from '../util/highlight'
+import { byteLength, characterIndex } from '../util/string'
 import workspace from '../workspace'
 const logger = require('../util/logger')('model-floatBuffer')
+
+export interface Dimension {
+  width: number
+  height: number
+}
 
 export default class FloatBuffer {
   private lines: string[] = []
@@ -12,71 +17,16 @@ export default class FloatBuffer {
   private positions: [number, number, number?][] = []
   private enableHighlight = true
   private highlightTimeout = 500
-  public width = 0
-  constructor(private nvim: Neovim, public readonly buffer: Buffer) {
+  private filetype: string
+  constructor(private nvim: Neovim) {
     let config = workspace.getConfiguration('coc.preferences')
     this.enableHighlight = config.get<boolean>('enableFloatHighlight', true)
     this.highlightTimeout = config.get<number>('highlightTimeout', 500)
   }
 
-  public getHeight(docs: Documentation[], maxWidth: number): number {
-    let l = 0
-    for (let doc of docs) {
-      let lines = doc.content.split(/\r?\n/)
-      if (doc.filetype == 'markdown') {
-        lines = lines.filter(s => !s.startsWith('```'))
-      }
-      for (let line of lines) {
-        l = l + Math.max(1, Math.ceil(byteLength(line) / (maxWidth - 4)))
-      }
-    }
-    return l + docs.length - 1
-  }
-
-  private calculateFragments(docs: Documentation[], maxWidth: number): Fragment[] {
-    let fragments: Fragment[] = []
-    let idx = 0
-    let currLine = 0
-    let newLines: string[] = []
-    let positions = this.positions = []
-    for (let doc of docs) {
-      let lines: string[] = []
-      let content = doc.content.replace(/\s+$/, '')
-      let arr = content.split(/\r?\n/)
-      for (let str of arr) {
-        lines.push(str)
-        if (doc.active) {
-          let part = str.slice(doc.active[0], doc.active[1])
-          positions.push([currLine + 1, doc.active[0] + 1, byteLength(part)])
-        }
-      }
-      fragments.push({
-        start: currLine,
-        lines,
-        filetype: doc.filetype
-      })
-      newLines.push(...lines.filter(s => !/^\s*```/.test(s)))
-      if (idx != docs.length - 1) {
-        newLines.push('—')
-        currLine = newLines.length
-      }
-      idx = idx + 1
-    }
-    let width = this.width = Math.min(Math.max(...newLines.map(s => this.getWidth(s))) + 2, maxWidth)
-    this.lines = newLines.map(s => {
-      if (s == '—') return '—'.repeat(width - 2)
-      return s
-    })
-    return fragments
-  }
-
-  private getWidth(line: string): number {
-    line = line.replace(/\t/g, '  ')
-    return byteLength(line)
-  }
-
-  public async setDocuments(docs: Documentation[], maxWidth: number): Promise<void> {
-    let fragments = this.calculateFragments(docs, maxWidth)
+  public async setDocuments(docs: Documentation[], width: number): Promise<void> {
+    let fragments = this.calculateFragments(docs, width)
+    this.filetype = docs[0].filetype
     if (workspace.isNvim) {
       fragments = fragments.reduce((p, c) => {
         p.push(...this.splitFragment(c, 'sh'))
@@ -124,11 +74,17 @@ export default class FloatBuffer {
     return res
   }
 
-  public setLines(winid?: number): void {
-    let { buffer, lines, nvim, highlights } = this
+  public setLines(bufnr: number, winid?: number): void {
+    let { lines, nvim, highlights } = this
+    let buffer = nvim.createBuffer(bufnr)
     nvim.call('clearmatches', winid ? [winid] : [], true)
-    buffer.clearNamespace(-1, 0, -1)
-    buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
+    // vim will clear text properties
+    if (workspace.isNvim) buffer.clearNamespace(-1, 0, -1)
+    if (workspace.isNvim) {
+      buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
+    } else {
+      nvim.call('coc#util#set_buf_lines', [bufnr, lines], true)
+    }
     if (highlights && highlights.length) {
       let positions: [number, number, number?][] = []
       for (let highlight of highlights) {
@@ -169,6 +125,68 @@ export default class FloatBuffer {
         }
       }
     }
+    if (winid && this.enableHighlight && this.filetype) {
+      nvim.call('win_execute', [winid, `setfiletype ${this.filetype}`], true)
+    }
+  }
+
+  private calculateFragments(docs: Documentation[], width: number): Fragment[] {
+    let fragments: Fragment[] = []
+    let idx = 0
+    let currLine = 0
+    let newLines: string[] = []
+    let positions = this.positions = []
+    for (let doc of docs) {
+      let lines: string[] = []
+      let arr = doc.content.split(/\r?\n/)
+      for (let str of arr) {
+        lines.push(str)
+        if (doc.active) {
+          let part = str.slice(doc.active[0], doc.active[1])
+          positions.push([currLine + 1, doc.active[0] + 1, byteLength(part)])
+        }
+      }
+      fragments.push({
+        start: currLine,
+        lines,
+        filetype: doc.filetype
+      })
+      newLines.push(...lines.filter(s => !/^\s*```/.test(s)))
+      if (idx != docs.length - 1) {
+        newLines.push('—')
+        currLine = newLines.length
+      }
+      idx = idx + 1
+    }
+    this.lines = newLines.map(s => {
+      if (s == '—') return '—'.repeat(width - 2)
+      return s
+    })
+    return fragments
+  }
+
+  public static getDimension(docs: Documentation[], maxWidth: number, maxHeight: number): Dimension {
+    // width contains padding
+    if (maxWidth == 0 || maxHeight == 0) return { width: 0, height: 0 }
+    let arr: number[] = []
+    for (let doc of docs) {
+      let lines = doc.content.split(/\r?\n/)
+      for (let line of lines) {
+        // lines excluded on neovim
+        if (doc.filetype == 'markdown'
+          && workspace.isNvim
+          && /^\s*```/.test(line)) {
+          continue
+        }
+        arr.push(byteLength(line) + 2)
+      }
+    }
+    let width = Math.min(Math.max(...arr), maxWidth)
+    let height = docs.length - 1
+    for (let w of arr) {
+      height = height + Math.ceil((w - 2) / (width - 2))
+    }
+    return { width, height: Math.min(height, maxHeight) }
   }
 }
 

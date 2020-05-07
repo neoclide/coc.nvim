@@ -14,34 +14,10 @@ afterAll(async () => {
 })
 
 async function create(): Promise<FloatBuffer> {
-  let buf = await nvim.createNewBuffer(false, false)
-  return new FloatBuffer(nvim, buf)
+  return new FloatBuffer(nvim)
 }
 
 describe('FloatBuffer', () => {
-
-  it('should get highlight', async () => {
-    let buf = await create()
-    let docs: Documentation[] = [{
-      filetype: 'markdown',
-      content: 'f'.repeat(81)
-    }, {
-      filetype: 'markdown',
-      content: 'b'.repeat(81)
-    }]
-    let height = buf.getHeight(docs, 80)
-    expect(height).toBe(5)
-  })
-
-  it('should get highlight with code block', async () => {
-    let buf = await create()
-    let docs: Documentation[] = [{
-      filetype: 'markdown',
-      content: '``` js\nlet x = 1;\n```'
-    }]
-    let height = buf.getHeight(docs, 80)
-    expect(height).toBe(1)
-  })
 
   it('should get code fragment #1', async () => {
     let buf = await create()
@@ -107,9 +83,10 @@ describe('FloatBuffer', () => {
     }]
     await buf.setDocuments(docs, 60)
     nvim.pauseNotification()
-    buf.setLines()
+    let buffer = await nvim.createNewBuffer(false, false)
+    buf.setLines(buffer.id)
     await nvim.resumeNotification()
-    let lines = await buf.buffer.lines
+    let lines = await buffer.lines
     expect(lines.length).toBe(4)
   })
 
@@ -123,11 +100,12 @@ describe('FloatBuffer', () => {
       content: "class Foo",
       active: [0, 5]
     }]
-    await buf.setDocuments(docs, 60)
+    await buf.setDocuments(docs, 16)
     nvim.pauseNotification()
-    buf.setLines()
+    let buffer = await nvim.createNewBuffer(false, false)
+    buf.setLines(buffer.id)
     await nvim.resumeNotification()
-    let lines = await buf.buffer.lines
+    let lines = await buffer.lines
     expect(lines).toEqual([
       '# head',
       '**note**',
@@ -135,5 +113,18 @@ describe('FloatBuffer', () => {
       '——————————————',
       'class Foo'
     ])
+  })
+
+  it('should get documents height & width', async () => {
+    let docs: Documentation[] = [{
+      filetype: 'markdown',
+      content: '# head\n**note**\n``` js\nconsole.log(3)\n```'
+    }, {
+      filetype: 'typescript',
+      content: "class Foo",
+      active: [0, 5]
+    }]
+    let res = FloatBuffer.getDimension(docs, 100, 100)
+    expect(res).toEqual({ width: 16, height: 5 })
   })
 })
