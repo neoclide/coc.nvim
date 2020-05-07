@@ -330,6 +330,10 @@ Built-in configurations:~
 
 	Use Neovim virtual text to display diagnostics, default: `false`
 
+"diagnostic.virtualTextCurrentLineOnly":~
+
+	Only show virtualText diagnostic on the cursors current line, default: true
+
 "diagnostic.virtualTextPrefix":~
 
 	The prefix added for virtual text diagnostics, default: `" "`
