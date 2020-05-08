@@ -332,7 +332,7 @@ Built-in configurations:~
 
 "diagnostic.virtualTextCurrentLineOnly":~
 
-	Only show virtualText diagnostic on the cursors current line, default: true
+	Only show virtualText diagnostic on current cursor line, default: true
 
 "diagnostic.virtualTextPrefix":~
 
