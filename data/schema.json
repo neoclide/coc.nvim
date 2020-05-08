@@ -533,6 +533,11 @@
       "description": "Use NeoVim virtual text to display diagnostics",
       "default": false
     },
+    "diagnostic.virtualTextCurrentLineOnly": {
+      "type": "boolean",
+      "description": "Only show virtualText diagnostic on current cursor line",
+      "default": "true"
+    },
     "diagnostic.virtualTextPrefix": {
       "type": "string",
       "description": "The prefix added virtual text diagnostics",
