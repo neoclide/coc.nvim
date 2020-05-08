@@ -324,6 +324,30 @@ describe('completion TextChangedP', () => {
     expect(col).toBe(7)
   })
 
+  it('should provide word when textEdit after startcol', async () => {
+    // some LS would send textEdit after first character,
+    // need fix the word from newText
+    let provider: CompletionItemProvider = {
+      provideCompletionItems: async (_, position): Promise<CompletionItem[]> => {
+        if (position.line != 0) return null
+        return [{
+          label: 'bar',
+          filterText: 'ar',
+          textEdit: {
+            range: Range.create(0, 1, 0, 1),
+            newText: 'ar'
+          }
+        }]
+      }
+    }
+    disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
+    await nvim.input('ib')
+    await helper.waitPopup()
+    let context = await nvim.getVar('coc#_context') as any
+    expect(context.start).toBe(1)
+    expect(context.candidates[0].word).toBe('ar')
+  })
+
   it('should adjust completion position by textEdit start position', async () => {
     let provider: CompletionItemProvider = {
       provideCompletionItems: async (_document, _position, _token, context): Promise<CompletionItem[]> => {
