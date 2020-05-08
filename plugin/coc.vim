@@ -1,8 +1,8 @@
 if exists('g:did_coc_loaded') || v:version < 800
   finish
 endif
-if has('nvim') && !has('nvim-0.3.0') 
-  finish 
+if has('nvim') && !has('nvim-0.3.0')
+  finish
 endif
 let g:did_coc_loaded = 1
 let g:coc_service_initialized = 0
