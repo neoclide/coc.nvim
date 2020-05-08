@@ -41,7 +41,7 @@ export default class RenameManager extends Manager<RenameProvider> implements Di
     if (provider.prepareRename == null) return null
     let res = await Promise.resolve(provider.prepareRename(document, position, token))
     // can not rename
-    if (res == null) false
+    if (res == null) return false
     return res
   }
 
