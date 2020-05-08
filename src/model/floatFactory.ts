@@ -140,6 +140,7 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     // calculat highlights
     await floatBuffer.setDocuments(docs, config.width)
     if (token.isCancellationRequested) return
+    if (mode == 's') nvim.call('feedkeys', ['\x1b', "in"], true)
     // create window
     let res = await this.nvim.call('coc#util#create_float_win', [this.winid, this._bufnr, config])
     if (!res || token.isCancellationRequested) return
@@ -175,9 +176,10 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     let { winid } = this
     this.cancel()
     if (winid) {
+      // TODO: sometimes this won't work at all
       this.nvim.call('coc#util#close_win', [winid], true)
-      if (workspace.isVim) this.nvim.command('redraw', true)
       this.winid = 0
+      if (workspace.isVim) this.nvim.command('redraw', true)
     }
   }
 

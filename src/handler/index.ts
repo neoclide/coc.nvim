@@ -223,12 +223,8 @@ export default class Handler {
     }, 100), null, this.disposables)
 
     if (this.preferences.currentFunctionSymbolAutoUpdate) {
-      events.on('CursorHold', async () => {
-        try {
-          await this.getCurrentFunctionSymbol()
-        } catch (e) {
-          logger.error(e)
-        }
+      events.on('CursorHold', () => {
+        this.getCurrentFunctionSymbol().logError()
       }, null, this.disposables)
     }
 
