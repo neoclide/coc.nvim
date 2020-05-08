@@ -3496,7 +3496,7 @@ export abstract class BaseLanguageClient {
       }).then(undefined, error => {
         this.state = ClientState.StartFailed
         this._onReadyCallbacks.reject(error)
-        this.error('Starting client failed: ', error)
+        this.error('Starting client failed ', error)
       })
     return Disposable.create(() => {
       if (this.needsStop()) {

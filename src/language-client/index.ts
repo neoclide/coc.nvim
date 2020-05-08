@@ -6,7 +6,6 @@ import cp, { SpawnOptions } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import { createClientPipeTransport, createClientSocketTransport, Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol'
-import which from 'which'
 import { ServiceStat } from '../types'
 import { disposeAll } from '../util'
 import * as Is from '../util/is'
@@ -270,7 +269,7 @@ export class LanguageClient extends BaseLanguageClient {
     super.handleConnectionClosed()
   }
 
-  protected async createMessageTransports(encoding: string): Promise<MessageTransports | null> {
+  protected createMessageTransports(encoding: string): Promise<MessageTransports | null> {
     function getEnvironment(env: any): any {
       if (!env) return process.env
       return Object.assign({}, process.env, env)
@@ -293,31 +292,32 @@ export class LanguageClient extends BaseLanguageClient {
     let server = this._serverOptions
     // We got a function.
     if (Is.func(server)) {
-      let result = await Promise.resolve(server())
-      if (MessageTransports.is(result)) {
-        this._isDetached = !!result.detached
-        return result
-      } else if (StreamInfo.is(result)) {
-        this._isDetached = !!result.detached
-        return {
-          reader: new StreamMessageReader(result.reader),
-          writer: new StreamMessageWriter(result.writer)
-        }
-      } else {
-        let cp: ChildProcess
-        if (ChildProcessInfo.is(result)) {
-          cp = result.process
-          this._isDetached = result.detached
+      return server().then(result => {
+        if (MessageTransports.is(result)) {
+          this._isDetached = !!result.detached
+          return result
+        } else if (StreamInfo.is(result)) {
+          this._isDetached = !!result.detached
+          return {
+            reader: new StreamMessageReader(result.reader),
+            writer: new StreamMessageWriter(result.writer)
+          }
         } else {
-          cp = result
-          this._isDetached = false
+          let cp: ChildProcess
+          if (ChildProcessInfo.is(result)) {
+            cp = result.process
+            this._isDetached = result.detached
+          } else {
+            cp = result
+            this._isDetached = false
+          }
+          cp.stderr.on('data', data => this.appendOutput(data, encoding))
+          return {
+            reader: new StreamMessageReader(cp.stdout),
+            writer: new StreamMessageWriter(cp.stdin)
+          }
         }
-        cp.stderr.on('data', data => this.appendOutput(data, encoding))
-        return {
-          reader: new StreamMessageReader(cp.stdout),
-          writer: new StreamMessageWriter(cp.stdin)
-        }
-      }
+      })
     }
     let json = server as NodeModule | Executable
     let runDebug = server as { run: any; debug: any }
@@ -331,124 +331,127 @@ export class LanguageClient extends BaseLanguageClient {
     } else {
       json = server as NodeModule | Executable
     }
-    let serverWorkingDir = await this._getServerWorkingDir(json.options)
-    if (NodeModule.is(json) && json.module) {
-      let node = json
-      let transport = node.transport || TransportKind.stdio
-      let args: string[] = []
-      let options: ForkOptions = node.options || Object.create(null)
-      let runtime = node.runtime || process.execPath
-      if (options.execArgv) options.execArgv.forEach(element => args.push(element))
-      if (transport != TransportKind.ipc) args.push(node.module)
-      if (node.args) node.args.forEach(element => args.push(element))
-      let execOptions: SpawnOptions = Object.create(null)
-      execOptions.cwd = serverWorkingDir
-      execOptions.env = getEnvironment(options.env)
-      let pipeName: string | undefined
-      if (transport === TransportKind.ipc) {
-        execOptions.stdio = [null, null, null]
-        args.push('--node-ipc')
-      } else if (transport === TransportKind.stdio) {
-        args.push('--stdio')
-      } else if (transport === TransportKind.pipe) {
-        pipeName = generateRandomPipeName()
-        args.push(`--pipe=${pipeName}`)
-      } else if (Transport.isSocket(transport)) {
-        args.push(`--socket=${transport.port}`)
-      }
-      args.push(`--clientProcessId=${process.pid.toString()}`)
-      if (transport === TransportKind.ipc) {
-        let forkOptions: cp.ForkOptions = {
-          cwd: serverWorkingDir,
-          env: getEnvironment(options.env),
-          stdio: [null, null, null, 'ipc'],
-          execPath: runtime,
-          execArgv: options.execArgv || [],
+    return this._getServerWorkingDir(json.options).then(serverWorkingDir => {
+      if (NodeModule.is(json) && json.module) {
+        let node = json
+        let transport = node.transport || TransportKind.stdio
+        let args: string[] = []
+        let options: ForkOptions = node.options || Object.create(null)
+        let runtime = node.runtime || process.execPath
+        if (options.execArgv) options.execArgv.forEach(element => args.push(element))
+        if (transport != TransportKind.ipc) args.push(node.module)
+        if (node.args) node.args.forEach(element => args.push(element))
+        let execOptions: SpawnOptions = Object.create(null)
+        execOptions.cwd = serverWorkingDir
+        execOptions.env = getEnvironment(options.env)
+        let pipeName: string | undefined
+        if (transport === TransportKind.ipc) {
+          execOptions.stdio = [null, null, null]
+          args.push('--node-ipc')
+        } else if (transport === TransportKind.stdio) {
+          args.push('--stdio')
+        } else if (transport === TransportKind.pipe) {
+          pipeName = generateRandomPipeName()
+          args.push(`--pipe=${pipeName}`)
+        } else if (Transport.isSocket(transport)) {
+          args.push(`--socket=${transport.port}`)
         }
-        let serverProcess = cp.fork(node.module, args, forkOptions)
+        args.push(`--clientProcessId=${process.pid.toString()}`)
+        if (transport === TransportKind.ipc) {
+          let forkOptions: cp.ForkOptions = {
+            cwd: serverWorkingDir,
+            env: getEnvironment(options.env),
+            stdio: [null, null, null, 'ipc'],
+            execPath: runtime,
+            execArgv: options.execArgv || [],
+          }
+          let serverProcess = cp.fork(node.module, args, forkOptions)
+          if (!serverProcess || !serverProcess.pid) {
+            return Promise.reject<MessageTransports>(`Launching server module "${node.module}" failed.`)
+          }
+          serverProcess.on('error', e => {
+            logger.error(e)
+          })
+          logger.info(`${this.id} started with ${serverProcess.pid}`)
+          this._serverProcess = serverProcess
+          serverProcess.stdout.on('data', data => this.appendOutput(data, encoding))
+          serverProcess.stderr.on('data', data => this.appendOutput(data, encoding))
+          return {
+            reader: new IPCMessageReader(serverProcess),
+            writer: new IPCMessageWriter(serverProcess)
+          }
+        } else if (transport === TransportKind.stdio) {
+          let serverProcess = cp.spawn(runtime, args, execOptions)
+          if (!serverProcess || !serverProcess.pid) {
+            return Promise.reject<MessageTransports>(`Launching server module "${node.module}" failed.`)
+          }
+          logger.info(`${this.id} started with ${serverProcess.pid}`)
+          this._serverProcess = serverProcess
+          serverProcess.stderr.on('data', data => this.appendOutput(data, encoding))
+          return {
+            reader: new StreamMessageReader(serverProcess.stdout),
+            writer: new StreamMessageWriter(serverProcess.stdin)
+          }
+        } else if (transport == TransportKind.pipe) {
+          return Promise.resolve(createClientPipeTransport(pipeName!)).then(transport => {
+            let process = cp.spawn(runtime, args, execOptions)
+            if (!process || !process.pid) {
+              return Promise.reject<MessageTransports>(`Launching server module "${node.module}" failed.`)
+            }
+            logger.info(`Language server ${this.id} started with ${process.pid}`)
+            this._serverProcess = process
+            process.stderr.on('data', data => this.appendOutput(data, encoding))
+            process.stdout.on('data', data => this.appendOutput(data, encoding))
+            return Promise.resolve(transport.onConnected()).then(protocol => {
+              return { reader: protocol[0], writer: protocol[1] }
+            })
+          })
+        } else if (Transport.isSocket(node.transport)) {
+          return Promise.resolve(createClientSocketTransport(node.transport.port)).then(transport => {
+            let process = cp.spawn(runtime, args, execOptions)
+            if (!process || !process.pid) {
+              return Promise.reject<MessageTransports>(`Launching server ${node.module} failed.`)
+            }
+            process.on('exit', code => {
+              if (code != 0) this.error(`command "${runtime} ${args.join(' ')}" exited with code: ${code}`)
+            })
+            logger.info(`Language server ${this.id} started with ${process.pid}`)
+            this._serverProcess = process
+            process.stderr.on('data', data => this.appendOutput(data, encoding))
+            process.stdout.on('data', data => this.appendOutput(data, encoding))
+            return Promise.resolve(transport.onConnected()).then(protocol => {
+              return { reader: protocol[0], writer: protocol[1] }
+            })
+          })
+        }
+      } else if (Executable.is(json) && json.command) {
+        let command: Executable = json as Executable
+        let args = command.args || []
+        let options = Object.assign({}, command.options)
+        options.env = options.env ? Object.assign({}, options.env, process.env) : process.env
+        options.cwd = serverWorkingDir
+        let cmd = workspace.expand(json.command)
+        let serverProcess = cp.spawn(cmd, args, options)
+        serverProcess.on('error', e => {
+          logger.error(e)
+        })
         if (!serverProcess || !serverProcess.pid) {
-          throw new Error(`Launching server ${node.module} failed.`)
+          return Promise.reject<MessageTransports>(`Launching server "${this.id}" using command ${command.command} failed.`)
         }
-        logger.info(`${this.id} started with ${serverProcess.pid}`)
-        this._serverProcess = serverProcess
-        serverProcess.stdout.on('data', data => this.appendOutput(data, encoding))
+        logger.info(`Language server "${this.id}" started with ${serverProcess.pid}`)
+        serverProcess.on('exit', code => {
+          if (code != 0) this.error(`${command.command} exited with code: ${code}`)
+        })
         serverProcess.stderr.on('data', data => this.appendOutput(data, encoding))
-        return {
-          reader: new IPCMessageReader(serverProcess),
-          writer: new IPCMessageWriter(serverProcess)
-        }
-      } else if (transport === TransportKind.stdio) {
-        let serverProcess = cp.spawn(runtime, args, execOptions)
-        if (!serverProcess || !serverProcess.pid) {
-          throw new Error(`Launching server ${node.module} failed.`)
-        }
-        logger.info(`${this.id} started with ${serverProcess.pid}`)
         this._serverProcess = serverProcess
-        serverProcess.stderr.on('data', data => this.appendOutput(data, encoding))
+        this._isDetached = !!options.detached
         return {
           reader: new StreamMessageReader(serverProcess.stdout),
           writer: new StreamMessageWriter(serverProcess.stdin)
         }
-      } else if (transport == TransportKind.pipe) {
-        let transport = await Promise.resolve(createClientPipeTransport(pipeName!))
-        let process = cp.spawn(runtime, args, execOptions)
-        if (!process || !process.pid) {
-          throw new Error(`Launching server ${node.module} failed.`)
-        }
-        logger.info(`${this.id} started with ${process.pid}`)
-        this._serverProcess = process
-        process.stderr.on('data', data => this.appendOutput(data, encoding))
-        process.stdout.on('data', data => this.appendOutput(data, encoding))
-        let protocol = await Promise.resolve(transport.onConnected())
-        return { reader: protocol[0], writer: protocol[1] }
-      } else if (Transport.isSocket(node.transport)) {
-        let transport = await Promise.resolve(createClientSocketTransport(node.transport.port))
-        let process = cp.spawn(runtime, args, execOptions)
-        if (!process || !process.pid) {
-          throw new Error(`Launching server ${node.module} failed.`)
-        }
-        logger.info(`${this.id} started with ${process.pid}`)
-        this._serverProcess = process
-        process.stderr.on('data', data => this.appendOutput(data, encoding))
-        process.stdout.on('data', data => this.appendOutput(data, encoding))
-        let protocol = await Promise.resolve(transport.onConnected())
-        return { reader: protocol[0], writer: protocol[1] }
       }
-    } else if (Executable.is(json) && json.command) {
-      let command: Executable = json as Executable
-      let args = command.args || []
-      let options = Object.assign({}, command.options)
-      options.env = options.env ? Object.assign({}, options.env, process.env) : process.env
-      options.cwd = options.cwd || serverWorkingDir
-      let cmd = json.command
-      cmd = workspace.expand(cmd)
-      if (path.isAbsolute(cmd) && !fs.existsSync(cmd)) {
-        logger.info(`${cmd} of ${this.id} not exists`)
-        return
-      }
-      try {
-        which.sync(cmd)
-      } catch (e) {
-        throw new Error(`Command "${cmd}" of ${this.id} is not executable: ${e}`)
-      }
-
-      let serverProcess = cp.spawn(cmd, args, options)
-      if (!serverProcess || !serverProcess.pid) {
-        throw new Error(`Launching server using command ${command.command} failed.`)
-      }
-      logger.info(`${this.id} started with ${serverProcess.pid}`)
-      serverProcess.on('exit', code => {
-        if (code != 0) this.error(`${command.command} exited with code: ${code}`)
-      })
-      serverProcess.stderr.on('data', data => this.appendOutput(data, encoding))
-      this._serverProcess = serverProcess
-      this._isDetached = !!options.detached
-      return {
-        reader: new StreamMessageReader(serverProcess.stdout),
-        writer: new StreamMessageWriter(serverProcess.stdin)
-      }
-    }
-    throw new Error(`Unsupported server configuration ` + JSON.stringify(server, null, 4))
+      return Promise.reject<MessageTransports>(`Unsupported server configuration ${JSON.stringify(server, null, 2)}`)
+    })
   }
 
   public registerProposedFeatures(): void {
@@ -490,9 +493,6 @@ export class LanguageClient extends BaseLanguageClient {
     if (global.hasOwnProperty('__TEST__')) {
       console.log(msg) // tslint:disable-line
       return
-    }
-    if (process.env.NVIM_COC_LOG_LEVEL == 'debug') {
-      logger.debug(`[${this.id}]`, msg)
     }
     this.outputChannel.append(msg.endsWith('\n') ? msg : msg + '\n')
   }

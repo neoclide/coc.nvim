@@ -1196,7 +1196,7 @@ export class Workspace implements IWorkspace {
       })
       filepath = filepath.replace(/\$[\w]+/g, match => {
         if (match == '$HOME') return os.homedir()
-        return process.env[match.replace('$', '')] || match
+        return process.env[match.slice(1)] || match
       })
     }
     return filepath

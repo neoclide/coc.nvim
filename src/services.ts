@@ -300,7 +300,8 @@ export class ServiceManager extends EventEmitter implements Disposable {
             onDidServiceReady.fire(void 0)
             resolve()
           }, e => {
-            workspace.showMessage(`Server ${id} failed to start: ${e ? e.message : ''}`, 'error')
+            workspace.showMessage(`Server ${id} failed to start: ${e}`, 'error')
+            logger.error(`Server ${id} failed to start:`, e)
             service.state = ServiceStat.StartFailed
             resolve()
           })
