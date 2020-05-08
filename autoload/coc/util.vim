@@ -133,9 +133,6 @@ function! coc#util#get_float_mode(allow_selection, align_top, pum_align_top) abo
   if !checked
     return v:null
   endif
-  if mode ==# 's'
-    call feedkeys("\x1b", 'in')
-  endif
   if !s:is_vim && mode ==# 'i'
     " helps to fix undo issue, don't know why.
     call feedkeys("\<C-g>u", 'n')
@@ -146,18 +143,18 @@ endfunction
 
 " create buffer for popup/float window
 function! coc#util#create_float_buf(bufnr) abort
-  " reuse exists buffer
+  " reuse buffer cause error on vim8
   if a:bufnr && bufloaded(a:bufnr)
     return a:bufnr
   endif
   if s:is_vim
     noa let bufnr = bufadd('')
     noa call bufload(bufnr)
-    call setbufvar(bufnr, '&buftype', 'popup')
   else
     noa let bufnr = nvim_create_buf(v:false, v:true)
-    call setbufvar(bufnr, '&buftype', 'nofile')
   endif
+  " Don't use popup filetype, it would crash on reuse!
+  call setbufvar(bufnr, '&buftype', 'nofile')
   call setbufvar(bufnr, '&bufhidden', 'hide')
   call setbufvar(bufnr, '&swapfile', 0)
   call setbufvar(bufnr, '&tabstop', 2)

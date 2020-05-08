@@ -22396,7 +22396,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "5a7f562378" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "be094451df" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -23733,6 +23733,8 @@ class FloatFactory extends events_1.default {
         await floatBuffer.setDocuments(docs, config.width);
         if (token.isCancellationRequested)
             return;
+        if (mode == 's')
+            nvim.call('feedkeys', ['\x1b', "in"], true);
         // create window
         let res = await this.nvim.call('coc#util#create_float_win', [this.winid, this._bufnr, config]);
         if (!res || token.isCancellationRequested)
@@ -23770,10 +23772,11 @@ class FloatFactory extends events_1.default {
         let { winid } = this;
         this.cancel();
         if (winid) {
+            // TODO: sometimes this won't work at all
             this.nvim.call('coc#util#close_win', [winid], true);
+            this.winid = 0;
             if (workspace_1.default.isVim)
                 this.nvim.command('redraw', true);
-            this.winid = 0;
         }
     }
     cancel() {
@@ -54199,7 +54202,7 @@ class RenameManager extends manager_1.default {
         let res = await Promise.resolve(provider.prepareRename(document, position, token));
         // can not rename
         if (res == null)
-            false;
+            return false;
         return res;
     }
     dispose() {
@@ -70729,13 +70732,8 @@ class Handler {
             }
         }, 100), null, this.disposables);
         if (this.preferences.currentFunctionSymbolAutoUpdate) {
-            events_1.default.on('CursorHold', async () => {
-                try {
-                    await this.getCurrentFunctionSymbol();
-                }
-                catch (e) {
-                    logger.error(e);
-                }
+            events_1.default.on('CursorHold', () => {
+                this.getCurrentFunctionSymbol().logError();
             }, null, this.disposables);
         }
         let provider = {
