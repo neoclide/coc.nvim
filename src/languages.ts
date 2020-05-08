@@ -563,10 +563,10 @@ class Languages {
         let option: CompleteOption = Object.assign({}, opt)
         let prefix: string
         if (startcol != null) {
-          option.col = startcol
           if (startcol < option.col) {
             prefix = byteSlice(opt.line, startcol, option.col)
           }
+          option.col = startcol
         }
         let items: VimCompleteItem[] = completeItems.map((o, index) => {
           let item = this.convertVimCompleteItem(o, shortcut, option, prefix)
