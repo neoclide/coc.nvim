@@ -83,9 +83,9 @@ And run: >
 
   :PlugInstall
 
-For other plugin managers, use code from release branch.
+For other plugin managers, use code from the release branch.
 
-Or use Vim's built in plugin ecosystem: >
+Or use Vim's built-in plugin ecosystem: >
 
   #!/bin/sh
   # for vim8
@@ -100,7 +100,7 @@ Or use Vim's built in plugin ecosystem: >
 ==============================================================================
 CONFIGURATION						*coc-configuration*
 
-Most of coc.nvim configuration is stored within `coc-settings` file that can
+Most of coc.nvim configuration is stored within `coc-settings.json` file that can
 be opened using `:CocConfig`. This will open either the global configuration
 file (located at `$HOME/.vim/coc-settings.json` or
 `$HOME/.config/nvim/coc-settings.json` by default) or the local configuration
@@ -114,7 +114,7 @@ the `coc-json` extension: `:CocInstall coc-json`.
 Check out https://github.com/neoclide/coc.nvim/wiki/Using-the-configuration-file
 for more details.
 
-Built in configurations:~
+Built-in configurations:~
 
 "http.proxy":~
 
@@ -329,6 +329,10 @@ Built in configurations:~
 "diagnostic.virtualText":~
 
 	Use Neovim virtual text to display diagnostics, default: `false`
+
+"diagnostic.virtualTextCurrentLineOnly":~
+
+	Only show virtualText diagnostic on current cursor line, default: true
 
 "diagnostic.virtualTextPrefix":~
 
@@ -2535,7 +2539,7 @@ A:	Yes, you can make coc send diagnostics to ale, just add >
 ------------------------------------------------------------------------------
 Q:	I want codeLens feature of LSP.
 
-A:	CodeLens support uses the virtual text feature of Neovim, its not
+A:	CodeLens support uses the virtual text feature of Neovim, it's not
 	enabled by default. To enable it, add: >
 
 	  "codeLens.enable": true,

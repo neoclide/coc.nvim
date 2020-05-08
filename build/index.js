@@ -22396,7 +22396,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "2d7dd4dbfe" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d9c79939f8" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -22409,7 +22409,8 @@ class Plugin extends events_1.EventEmitter {
         channel.appendLine('## versions');
         channel.appendLine('');
         let out = await this.nvim.call('execute', ['version']);
-        channel.appendLine('vim version: ' + out.trim().split('\n', 2)[0]);
+        let first = out.trim().split('\n', 2)[0].replace(/\(.*\)/, '').trim();
+        channel.appendLine('vim version: ' + first + `${workspace_1.default.isVim ? ' ' + workspace_1.default.env.version : ''}`);
         channel.appendLine('node version: ' + process.version);
         channel.appendLine('coc.nvim version: ' + this.version);
         channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM));
@@ -22988,7 +22989,7 @@ class DiagnosticManager {
                 await this.echoMessage(true);
             }, this.config.messageDelay);
         }, null, this.disposables);
-        if (this.config.virtualText) {
+        if (this.config.virtualText && this.config.virtualTextCurrentLineOnly) {
             let fn = debounce_1.default(async (bufnr, cursor) => {
                 let buf = this.buffers.find(buf => buf.bufnr == bufnr);
                 if (buf)
@@ -23385,7 +23386,7 @@ class DiagnosticManager {
             clearTimeout(this.timer);
         let useFloat = config.messageTarget == 'float';
         let [bufnr, cursor, filetype, mode] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),&filetype,mode()]');
-        if (mode != 'n')
+        if (mode != 'n' || bufnr == this.floatFactory.bufnr)
             return;
         let diagnostics = this.getDiagnosticsAt(bufnr, cursor);
         if (diagnostics.length == 0) {
@@ -23511,6 +23512,7 @@ class DiagnosticManager {
             joinMessageLines: config.get('joinMessageLines', false),
             messageDelay: config.get('messageDelay', 200),
             virtualText: config.get('virtualText', false),
+            virtualTextCurrentLineOnly: config.get('virtualTextCurrentLineOnly', true),
             virtualTextPrefix: config.get('virtualTextPrefix', " "),
             virtualTextLineSeparator: config.get('virtualTextLineSeparator', " \\ "),
             virtualTextLines: config.get('virtualTextLines', 3),
@@ -23622,7 +23624,7 @@ class FloatFactory {
         this.maxWidth = maxWidth;
         this.autoHide = autoHide;
         this.winid = 0;
-        this.bufnr = 0;
+        this._bufnr = 0;
         this.disposables = [];
         this.alignTop = false;
         this.pumAlignTop = false;
@@ -23631,7 +23633,7 @@ class FloatFactory {
         this.mutex = new mutex_1.Mutex();
         this.floatBuffer = new floatBuffer_1.default(nvim);
         events_1.default.on('BufEnter', bufnr => {
-            if (bufnr == this.bufnr
+            if (bufnr == this._bufnr
                 || bufnr == this.targetBufnr)
                 return;
             this.close();
@@ -23648,7 +23650,7 @@ class FloatFactory {
     }
     _onCursorMoved() {
         let { bufnr, insertMode } = workspace_1.default;
-        if (bufnr == this.bufnr)
+        if (bufnr == this._bufnr)
             return;
         if (this.autoHide) {
             this.close();
@@ -23724,11 +23726,11 @@ class FloatFactory {
         if (token.isCancellationRequested)
             return;
         // create window
-        let res = await this.nvim.call('coc#util#create_float_win', [this.winid, this.bufnr, config]);
+        let res = await this.nvim.call('coc#util#create_float_win', [this.winid, this._bufnr, config]);
         if (!res || token.isCancellationRequested)
             return;
         let winid = this.winid = res[0];
-        let bufnr = this.bufnr = res[1];
+        let bufnr = this._bufnr = res[1];
         let showBottom = alignTop && docs.length > 1;
         nvim.pauseNotification();
         if (workspace_1.default.isNvim) {
@@ -23777,6 +23779,9 @@ class FloatFactory {
             this.tokenSource.cancel();
         }
         util_1.disposeAll(this.disposables);
+    }
+    get bufnr() {
+        return this._bufnr;
     }
 }
 exports.default = FloatFactory;
@@ -41290,12 +41295,7 @@ class ExtensionManager {
         });
         fs_1.default.writeFileSync(jsonFile, JSON.stringify(sortedObj, null, 2), { encoding: 'utf8' });
         onMessage(`Moving to new folder.`);
-        if (typeof fs_1.default.rmdirSync === 'function') {
-            fs_1.default.rmdirSync(folder, { recursive: true });
-        }
-        else {
-            rimraf_1.default.sync(folder, { glob: false });
-        }
+        rimraf_1.default.sync(folder, { glob: false });
         await util_1.promisify(mv_1.default)(tmpFolder, folder, { mkdirp: true, clobber: true });
     }
     async install(npm, def) {
@@ -69480,10 +69480,13 @@ class DiagnosticBuffer {
         let buffer = this.nvim.createBuffer(bufnr);
         let srcId = this.config.virtualTextSrcId;
         let prefix = this.config.virtualTextPrefix;
-        let diagnostics = this.diagnostics.filter(d => {
-            let { start, end } = d.range;
-            return start.line <= lnum - 1 && end.line >= lnum - 1;
-        });
+        let diagnostics = this.diagnostics;
+        if (this.config.virtualTextCurrentLineOnly) {
+            diagnostics = this.diagnostics.filter(d => {
+                let { start, end } = d.range;
+                return start.line <= lnum - 1 && end.line >= lnum - 1;
+            });
+        }
         buffer.clearNamespace(srcId);
         for (let diagnostic of diagnostics) {
             let { line } = diagnostic.range.start;

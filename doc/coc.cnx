@@ -36,8 +36,8 @@
     已安装列表 				   |coc-list-lists|
 状态栏支持   		   		|coc-status|
   手动      	          		|coc-status-manual|
-  Airline 				|coc-status-airline|
-  Lightline  				|coc-stauts-lightline|
+  Airline 						|coc-status-airline|
+  Lightline  					|coc-stauts-lightline|
 常见问题				|coc-faq|
 更新日志				|coc-changelog|
 
@@ -120,7 +120,6 @@ coc.nvim 使用 coc-settings.json 文件进行配置，该文件格式与工作�
 
 保留使用当前的 `completeopt` ：
 >
-
 	"suggest.keepCompleteopt": true,
 <
 	注意： 如果你的 completeopt 包含 menu 选项，自动补全将被关闭。
