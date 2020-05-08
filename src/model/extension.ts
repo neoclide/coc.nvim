@@ -115,11 +115,7 @@ export default class ExtensionManager {
     })
     fs.writeFileSync(jsonFile, JSON.stringify(sortedObj, null, 2), { encoding: 'utf8' })
     onMessage(`Moving to new folder.`)
-    if (typeof fs.rmdirSync === 'function') {
-      fs.rmdirSync(folder, { recursive: true })
-    } else {
-      rimraf.sync(folder, { glob: false })
-    }
+    rimraf.sync(folder, { glob: false })
     await promisify(mv)(tmpFolder, folder, { mkdirp: true, clobber: true })
   }
 
