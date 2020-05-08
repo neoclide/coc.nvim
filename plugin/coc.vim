@@ -381,3 +381,7 @@ vnoremap <silent> <Plug>(coc-funcobj-i)        :<C-U>call coc#rpc#request('selec
 vnoremap <silent> <Plug>(coc-funcobj-a)        :<C-U>call coc#rpc#request('selectFunction', [v:false, visualmode()])<CR>
 onoremap <silent> <Plug>(coc-funcobj-i)        :<C-U>call coc#rpc#request('selectFunction', [v:true, ''])<CR>
 onoremap <silent> <Plug>(coc-funcobj-a)        :<C-U>call coc#rpc#request('selectFunction', [v:false, ''])<CR>
+vnoremap <silent> <Plug>(coc-classobj-i)        :<C-U>call coc#rpc#request('selectClass', [v:true, visualmode()])<CR>
+vnoremap <silent> <Plug>(coc-classobj-a)        :<C-U>call coc#rpc#request('selectClass', [v:false, visualmode()])<CR>
+onoremap <silent> <Plug>(coc-classobj-i)        :<C-U>call coc#rpc#request('selectClass', [v:true, ''])<CR>
+onoremap <silent> <Plug>(coc-classobj-a)        :<C-U>call coc#rpc#request('selectClass', [v:false, ''])<CR>
