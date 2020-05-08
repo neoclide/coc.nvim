@@ -141,7 +141,7 @@ function! coc#util#get_float_mode(allow_selection, align_top, pum_align_top) abo
     call feedkeys("\<C-g>u", 'n')
   endif
   let pos = coc#util#win_position()
-  return [mode, bufnr('%'), pos]
+  return [mode, bufnr('%'), pos, [line('.'), col('.')]]
 endfunction
 
 " create buffer for popup/float window
@@ -228,6 +228,13 @@ function! coc#util#create_float_win(winid, bufnr, config) abort
   let g:coc_last_float_win = winid
   call coc#util#do_autocmd('CocOpenFloat')
   return [winid, winbufnr(winid)]
+endfunction
+
+function! coc#util#valid_float_win(winid) abort
+  if s:is_vim
+    return !empty(popup_getoptions(a:winid))
+  endif
+  return nvim_win_is_valid(a:winid)
 endfunction
 
 function! coc#util#path_replace_patterns() abort

@@ -174,7 +174,6 @@ export default class FloatBuffer {
       for (let line of lines) {
         // lines excluded on neovim
         if (doc.filetype == 'markdown'
-          && workspace.isNvim
           && /^\s*```/.test(line)) {
           continue
         }
