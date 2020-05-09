@@ -28,7 +28,7 @@ interface Env {
   runtimepath: string
 }
 
-const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
+export const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
 const cache: { [hash: string]: Highlight[] } = {}
 let env: Env = null
 

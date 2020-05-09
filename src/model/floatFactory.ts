@@ -126,7 +126,7 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     }
   }
 
-  public async createPopup(docs: Documentation[], allowSelection = false, offsetX = 0): Promise<void> {
+  private async createPopup(docs: Documentation[], allowSelection = false, offsetX = 0): Promise<void> {
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
     let { nvim, alignTop, pumAlignTop, floatBuffer } = this
@@ -143,20 +143,20 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     if (mode == 's') nvim.call('feedkeys', ['\x1b', "in"], true)
     // create window
     let res = await this.nvim.call('coc#util#create_float_win', [this.winid, this._bufnr, config])
-    if (!res || token.isCancellationRequested) return
+    if (!res) return
     let winid = this.winid = res[0]
     let bufnr = this._bufnr = res[1]
-    let showBottom = alignTop && docs.length > 1
+    if (token.isCancellationRequested) return
     nvim.pauseNotification()
     if (workspace.isNvim) {
-      nvim.command(`noa call win_gotoid(${this.winid})`, true)
+      nvim.command(`noa call win_gotoid(${winid})`, true)
       this.floatBuffer.setLines(bufnr)
-      nvim.command(`noa normal! ${showBottom ? 'G' : 'gg'}0`, true)
+      nvim.command(`noa normal! gg0`, true)
       nvim.command('noa wincmd p', true)
     } else {
       // no need to change cursor position
       this.floatBuffer.setLines(bufnr, winid)
-      nvim.call('win_execute', [winid, `noa normal! ${showBottom ? 'G' : 'gg'}0`], true)
+      nvim.call('win_execute', [winid, `noa normal! gg0`], true)
       nvim.command('redraw', true)
     }
     this.emit('show', winid, bufnr)
