@@ -532,6 +532,9 @@ class Languages {
       sourceType: SourceType.Service,
       filetypes: languageIds,
       triggerCharacters: triggerCharacters || [],
+      toggle: () => {
+        source.enable = !source.enable
+      },
       doComplete: async (opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> => {
         let { triggerCharacter, bufnr } = opt
         resolvedIndexes = new Set()
