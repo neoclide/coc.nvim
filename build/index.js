@@ -22396,7 +22396,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "be094451df" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "853ea93761" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -52953,6 +52953,9 @@ class Languages {
             sourceType: types_1.SourceType.Service,
             filetypes: languageIds,
             triggerCharacters: triggerCharacters || [],
+            toggle: () => {
+                source.enable = !source.enable;
+            },
             doComplete: async (opt, token) => {
                 let { triggerCharacter, bufnr } = opt;
                 resolvedIndexes = new Set();
