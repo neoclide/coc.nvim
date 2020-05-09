@@ -807,9 +807,32 @@ normal mode, `v_` works for visual mode.
 
 			Select inside function, mapped to `if` by default.
 
+			Note: Requires 'textDocument.documentSymbol' support
+			from the language server.
+
 <Plug>(coc-funcobj-a)			*n_coc-funcobj-a* *v_coc-funcobj-a*
 
 			Select current function, mapped to `af` by default.
+
+			Note: Requires 'textDocument.documentSymbol' support
+			from the language server.
+
+<Plug>(coc-classobj-i)			*n_coc-classobj-i* *v_coc-classobj-i*
+
+			Select inside class/struct/interface, mapped to `ic`
+			by default.
+
+			Note: Requires 'textDocument.documentSymbol' support
+			from the language server.
+
+
+<Plug>(coc-classobj-a)			*n_coc-classobj-a* *v_coc-classobj-a*
+
+			Select current class/struct/interface, mapped to `ac`
+			by default.
+
+			Note: Requires 'textDocument.documentSymbol' support
+			from the language server.
 
 ------------------------------------------------------------------------------
 VARIABLES					*coc-variables*
