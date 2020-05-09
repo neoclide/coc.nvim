@@ -22207,6 +22207,9 @@ class Plugin extends events_1.EventEmitter {
         this.addMethod('selectFunction', async (inner, visualmode) => {
             return await this.handler.selectFunction(inner, visualmode);
         });
+        this.addMethod('selectClass', async (inner, visualmode) => {
+            return await this.handler.selectClass(inner, visualmode);
+        });
         this.addMethod('listResume', () => {
             return manager_2.default.resume();
         });
@@ -22396,7 +22399,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "853ea93761" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "6213212660" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -23737,22 +23740,23 @@ class FloatFactory extends events_1.default {
             nvim.call('feedkeys', ['\x1b', "in"], true);
         // create window
         let res = await this.nvim.call('coc#util#create_float_win', [this.winid, this._bufnr, config]);
-        if (!res || token.isCancellationRequested)
+        if (!res)
             return;
         let winid = this.winid = res[0];
         let bufnr = this._bufnr = res[1];
-        let showBottom = alignTop && docs.length > 1;
+        if (token.isCancellationRequested)
+            return;
         nvim.pauseNotification();
         if (workspace_1.default.isNvim) {
-            nvim.command(`noa call win_gotoid(${this.winid})`, true);
+            nvim.command(`noa call win_gotoid(${winid})`, true);
             this.floatBuffer.setLines(bufnr);
-            nvim.command(`noa normal! ${showBottom ? 'G' : 'gg'}0`, true);
+            nvim.command(`noa normal! gg0`, true);
             nvim.command('noa wincmd p', true);
         }
         else {
             // no need to change cursor position
             this.floatBuffer.setLines(bufnr, winid);
-            nvim.call('win_execute', [winid, `noa normal! ${showBottom ? 'G' : 'gg'}0`], true);
+            nvim.call('win_execute', [winid, `noa normal! gg0`], true);
             nvim.command('redraw', true);
         }
         this.emit('show', winid, bufnr);
@@ -54485,7 +54489,10 @@ class FloatBuffer {
     }
     async setDocuments(docs, width) {
         let fragments = this.calculateFragments(docs, width);
-        this.filetype = docs[0].filetype;
+        let { filetype } = docs[0];
+        if (highlight_1.diagnosticFiletypes.indexOf(filetype) == -1) {
+            this.filetype = filetype;
+        }
         if (workspace_1.default.isNvim) {
             fragments = fragments.reduce((p, c) => {
                 p.push(...this.splitFragment(c, 'sh'));
@@ -54610,18 +54617,15 @@ class FloatBuffer {
                 lines,
                 filetype: doc.filetype
             });
-            newLines.push(...lines.filter(s => !/^\s*```/.test(s)));
+            let filtered = doc.filetype == 'markdown' ? lines.filter(s => !/^\s*```/.test(s)) : lines;
+            newLines.push(...filtered);
             if (idx != docs.length - 1) {
-                newLines.push('—');
+                newLines.push('—'.repeat(width - 2));
                 currLine = newLines.length;
             }
             idx = idx + 1;
         }
-        this.lines = newLines.map(s => {
-            if (s == '—')
-                return '—'.repeat(width - 2);
-            return s;
-        });
+        this.lines = newLines;
         return fragments;
     }
     static getDimension(docs, maxWidth, maxHeight) {
@@ -54643,7 +54647,7 @@ class FloatBuffer {
         let width = Math.min(Math.max(...arr), maxWidth);
         let height = docs.length - 1;
         for (let w of arr) {
-            height = height + Math.ceil((w - 2) / (width - 2));
+            height = height + Math.max(Math.ceil((w - 2) / (width - 2)), 1);
         }
         return { width, height: Math.min(height, maxHeight) };
     }
@@ -54680,14 +54684,14 @@ const string_1 = __webpack_require__(266);
 const processes_1 = __webpack_require__(401);
 const uuid_1 = __webpack_require__(277);
 const logger = __webpack_require__(44)('util-highlights');
-const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint'];
+exports.diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint'];
 const cache = {};
 let env = null;
 // get highlights by send text to another neovim instance.
 function getHiglights(lines, filetype, timeout = 500) {
     const hlMap = new Map();
     const content = lines.join('\n');
-    if (diagnosticFiletypes.indexOf(filetype) != -1) {
+    if (exports.diagnosticFiletypes.indexOf(filetype) != -1) {
         let highlights = lines.map((line, i) => {
             return {
                 line: i,
@@ -71296,7 +71300,13 @@ class Handler {
         }
         return res;
     }
+    async selectClass(inner, visualmode) {
+        await this.selectSymbols(inner, visualmode, ['Interface', 'Struct', 'Class']);
+    }
     async selectFunction(inner, visualmode) {
+        await this.selectSymbols(inner, visualmode, ['Method', 'Function']);
+    }
+    async selectSymbols(inner, visualmode, supportedSymbols) {
         let { nvim } = this;
         let bufnr = await nvim.eval('bufnr("%")');
         let doc = workspace_1.default.getDocument(bufnr);
@@ -71316,10 +71326,7 @@ class Handler {
             return;
         }
         let properties = symbols.filter(s => s.kind == 'Property');
-        symbols = symbols.filter(s => [
-            'Method',
-            'Function',
-        ].includes(s.kind));
+        symbols = symbols.filter(s => supportedSymbols.includes(s.kind));
         let selectRange;
         for (let sym of symbols.reverse()) {
             if (sym.range && !object_1.equals(sym.range, range) && position_1.rangeInRange(range, sym.range)) {
