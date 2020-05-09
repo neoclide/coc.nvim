@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Documentation, Fragment } from '../types'
 import { group } from '../util/array'
-import { getHiglights, Highlight } from '../util/highlight'
+import { getHiglights, Highlight, diagnosticFiletypes } from '../util/highlight'
 import { byteLength, characterIndex } from '../util/string'
 import workspace from '../workspace'
 const logger = require('../util/logger')('model-floatBuffer')
@@ -26,7 +26,10 @@ export default class FloatBuffer {
 
   public async setDocuments(docs: Documentation[], width: number): Promise<void> {
     let fragments = this.calculateFragments(docs, width)
-    this.filetype = docs[0].filetype
+    let { filetype } = docs[0]
+    if (diagnosticFiletypes.indexOf(filetype) == -1) {
+      this.filetype = filetype
+    }
     if (workspace.isNvim) {
       fragments = fragments.reduce((p, c) => {
         p.push(...this.splitFragment(c, 'sh'))
@@ -151,17 +154,15 @@ export default class FloatBuffer {
         lines,
         filetype: doc.filetype
       })
-      newLines.push(...lines.filter(s => !/^\s*```/.test(s)))
+      let filtered = doc.filetype == 'markdown' ? lines.filter(s => !/^\s*```/.test(s)) : lines
+      newLines.push(...filtered)
       if (idx != docs.length - 1) {
-        newLines.push('—')
+        newLines.push('—'.repeat(width - 2))
         currLine = newLines.length
       }
       idx = idx + 1
     }
-    this.lines = newLines.map(s => {
-      if (s == '—') return '—'.repeat(width - 2)
-      return s
-    })
+    this.lines = newLines
     return fragments
   }
 
@@ -183,7 +184,7 @@ export default class FloatBuffer {
     let width = Math.min(Math.max(...arr), maxWidth)
     let height = docs.length - 1
     for (let w of arr) {
-      height = height + Math.ceil((w - 2) / (width - 2))
+      height = height + Math.max(Math.ceil((w - 2) / (width - 2)), 1)
     }
     return { width, height: Math.min(height, maxHeight) }
   }
