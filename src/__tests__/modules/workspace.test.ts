@@ -362,7 +362,6 @@ describe('workspace methods', () => {
 
   it('should echo lines', async () => {
     await workspace.echoLines(['a', 'b'])
-    await helper.wait(30)
     let ch = await nvim.call('screenchar', [79, 1])
     let s = String.fromCharCode(ch)
     expect(s).toBe('a')
@@ -529,9 +528,7 @@ describe('workspace utility', () => {
   })
 
   it('should loadFiles', async () => {
-    let files = ['a', 'b', 'c'].map(key => {
-      return URI.file(path.join(__dirname, key)).toString()
-    })
+    let files = ['a', 'b', 'c'].map(key => URI.file(path.join(__dirname, key)).toString())
     await workspace.loadFiles(files)
     for (let file of files) {
       let uri = URI.file(file).toString()
@@ -904,9 +901,7 @@ describe('workspace utility', () => {
   })
 
   it('should regist buffer expr keymap', async () => {
-    let fn = () => {
-      return '""'
-    }
+    let fn = () => '""'
     await nvim.input('i')
     let disposable = workspace.registerExprKeymap('i', '"', fn, true)
     await helper.wait(30)
@@ -1053,9 +1048,7 @@ describe('workspace textDocument content provider', () => {
 
   it('should regist document content provider', async () => {
     let provider: TextDocumentContentProvider = {
-      provideTextDocumentContent: (_uri, _token): string => {
-        return 'sample text'
-      }
+      provideTextDocumentContent: (_uri, _token): string => 'sample text'
     }
     workspace.registerTextDocumentContentProvider('test', provider)
     await helper.wait(100)
@@ -1071,9 +1064,7 @@ describe('workspace textDocument content provider', () => {
     let event = emitter.event
     let provider: TextDocumentContentProvider = {
       onDidChange: event,
-      provideTextDocumentContent: (_uri, _token): string => {
-        return text
-      }
+      provideTextDocumentContent: (_uri, _token): string => text
     }
     workspace.registerTextDocumentContentProvider('jdk', provider)
     await helper.wait(80)

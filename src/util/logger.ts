@@ -51,8 +51,6 @@ log4js.configure({
 
 module.exports = (name = 'coc-nvim'): log4js.Logger => {
   let logger = log4js.getLogger(name)
-    ; (logger as any).getLogFile = () => {
-      return logfile
-    }
+    ; (logger as any).getLogFile = () => logfile
   return logger
 }

@@ -14,7 +14,7 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "experimentalDecorators": true,
-    "lib": ["es2017", "es2018"],
+    "lib": ["es2017", "es2018", "es2019"],
     "declaration": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,

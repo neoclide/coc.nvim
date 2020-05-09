@@ -19,7 +19,7 @@ function access<T, K extends keyof T>(target: T | undefined, key: K): T[K] | und
 }
 
 function arrayDiff<T>(left: T[], right: T[]): T[] {
-  return left.filter(element => right.indexOf(element) < 0)
+  return left.filter(element => !right.includes(element))
 }
 
 export interface WorkspaceFolderWorkspaceMiddleware {
@@ -73,12 +73,10 @@ export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
         if (folders === void 0) {
           return null
         }
-        let result: WorkspaceFolder[] = folders.map(folder => {
-          return this.asProtocol(folder)
-        })
+        let result: WorkspaceFolder[] = folders.map(folder => this.asProtocol(folder))
         return result
       }
-      let middleware = client.clientOptions.middleware!.workspace
+      let middleware = client.clientOptions.middleware.workspace
       return middleware && middleware.workspaceFolders
         ? middleware.workspaceFolders(token, workspaceFolders)
         : workspaceFolders(token)
@@ -87,7 +85,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
     let id: string | undefined
     if (typeof value === 'string') {
       id = value
-    } else if (value === true) {
+    } else if (value) {
       id = UUID.generateUuid()
     }
     if (id) {
@@ -129,7 +127,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
       let didChangeWorkspaceFolders = (event: WorkspaceFoldersChangeEvent) => {
         this.doSendEvent(event.added, event.removed)
       }
-      let middleware = client.clientOptions.middleware!.workspace
+      let middleware = client.clientOptions.middleware.workspace
       middleware && middleware.didChangeWorkspaceFolders
         ? middleware.didChangeWorkspaceFolders(event, didChangeWorkspaceFolders)
         : didChangeWorkspaceFolders(event)

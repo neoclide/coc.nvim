@@ -1,4 +1,4 @@
-/*---------------------------------------------------------------------------------------------
+/* ---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
@@ -27,7 +27,7 @@ const logger = require('../util/logger')('language-client-index')
 
 export * from './client'
 
-declare var v8debug: any
+declare let v8debug: any
 
 export interface ExecutableOptions {
   cwd?: string
@@ -185,7 +185,7 @@ export class LanguageClient extends BaseLanguageClient {
       // first signature
       id = arg1.toLowerCase()
       name = arg1
-      serverOptions = arg2 as ServerOptions
+      serverOptions = arg2
       clientOptions = arg3 as LanguageClientOptions
       forceDebug = arg4 as boolean
     }
@@ -393,7 +393,7 @@ export class LanguageClient extends BaseLanguageClient {
             writer: new StreamMessageWriter(serverProcess.stdin)
           }
         } else if (transport == TransportKind.pipe) {
-          return Promise.resolve(createClientPipeTransport(pipeName!)).then(transport => {
+          return Promise.resolve(createClientPipeTransport(pipeName)).then(transport => {
             let process = cp.spawn(runtime, args, execOptions)
             if (!process || !process.pid) {
               return Promise.reject<MessageTransports>(`Launching server module "${node.module}" failed.`)
@@ -402,9 +402,7 @@ export class LanguageClient extends BaseLanguageClient {
             this._serverProcess = process
             process.stderr.on('data', data => this.appendOutput(data, encoding))
             process.stdout.on('data', data => this.appendOutput(data, encoding))
-            return Promise.resolve(transport.onConnected()).then(protocol => {
-              return { reader: protocol[0], writer: protocol[1] }
-            })
+            return Promise.resolve(transport.onConnected()).then(protocol => ({ reader: protocol[0], writer: protocol[1] }))
           })
         } else if (Transport.isSocket(node.transport)) {
           return Promise.resolve(createClientSocketTransport(node.transport.port)).then(transport => {
@@ -419,13 +417,11 @@ export class LanguageClient extends BaseLanguageClient {
             this._serverProcess = process
             process.stderr.on('data', data => this.appendOutput(data, encoding))
             process.stdout.on('data', data => this.appendOutput(data, encoding))
-            return Promise.resolve(transport.onConnected()).then(protocol => {
-              return { reader: protocol[0], writer: protocol[1] }
-            })
+            return Promise.resolve(transport.onConnected()).then(protocol => ({ reader: protocol[0], writer: protocol[1] }))
           })
         }
       } else if (Executable.is(json) && json.command) {
-        let command: Executable = json as Executable
+        let command: Executable = json
         let args = command.args || []
         let options = Object.assign({}, command.options)
         options.env = options.env ? Object.assign({}, options.env, process.env) : process.env
@@ -480,7 +476,7 @@ export class LanguageClient extends BaseLanguageClient {
     if (cwd) {
       // make sure the folder exists otherwise creating the process will fail
       return new Promise(s => {
-        fs.lstat(cwd!, (err, stats) => {
+        fs.lstat(cwd, (err, stats) => {
           s(!err && stats.isDirectory() ? cwd : undefined)
         })
       })
@@ -491,7 +487,7 @@ export class LanguageClient extends BaseLanguageClient {
   private appendOutput(data: any, encoding: string): void {
     let msg: string = Is.string(data) ? data : data.toString(encoding)
     if (global.hasOwnProperty('__TEST__')) {
-      console.log(msg) // tslint:disable-line
+      console.log(msg)
       return
     }
     this.outputChannel.append(msg.endsWith('\n') ? msg : msg + '\n')
@@ -516,7 +512,8 @@ export class SettingMonitor {
       dispose: () => {
         disposeAll(this._listeners)
         if (this._client.needsStop()) {
-          void this._client.stop()
+          // eslint-disable-next-line @typescript-eslint/no-floating-promises
+          this._client.stop()
         }
       }
     }
@@ -532,7 +529,8 @@ export class SettingMonitor {
     if (enabled && this._client.needsStart()) {
       this._client.start()
     } else if (!enabled && this._client.needsStop()) {
-      void this._client.stop()
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      this._client.stop()
     }
   }
 }

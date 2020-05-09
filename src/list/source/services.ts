@@ -21,9 +21,7 @@ export default class ServicesList extends BasicList {
 
   public async loadItems(_context: ListContext): Promise<ListItem[]> {
     let stats = services.getServiceStats()
-    stats.sort((a, b) => {
-      return a.id > b.id ? -1 : 1
-    })
+    stats.sort((a, b) => a.id > b.id ? -1 : 1)
     return stats.map(stat => {
       let prefix = stat.state == 'running' ? '*' : ' '
       return {

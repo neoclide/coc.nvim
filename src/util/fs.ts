@@ -14,7 +14,7 @@ export async function statAsync(filepath: string): Promise<fs.Stats | null> {
   let stat = null
   try {
     stat = await util.promisify(fs.stat)(filepath)
-  } catch (e) { } // tslint:disable-line
+  } catch (e) { }
   return stat
 }
 
@@ -26,7 +26,7 @@ export async function isDirectory(filepath: string): Promise<boolean> {
 export async function unlinkAsync(filepath: string): Promise<void> {
   try {
     await util.promisify(fs.unlink)(filepath)
-  } catch (e) { } // tslint:disable-line
+  } catch (e) { }
 }
 
 export function renameAsync(oldPath: string, newPath: string): Promise<void> {
@@ -46,13 +46,13 @@ export async function isGitIgnored(fullpath: string): Promise<boolean> {
   try {
     let { stdout } = await util.promisify(exec)('git rev-parse --show-toplevel', { cwd: path.dirname(fullpath) })
     root = stdout.trim()
-  } catch (e) { } // tslint:disable-line
+  } catch (e) { }
   if (!root) return false
   let file = path.relative(root, fullpath)
   try {
     let { stdout } = await util.promisify(exec)(`git check-ignore ${file}`, { cwd: root })
     return stdout.trim() == file
-  } catch (e) { } // tslint:disable-line
+  } catch (e) { }
   return false
 }
 
@@ -77,10 +77,10 @@ export function inDirectory(dir: string, subs: string[]): boolean {
     let files = fs.readdirSync(dir)
     for (let pattern of subs) {
       // note, only '*' expanded
-      let is_wildcard = (pattern.indexOf('*') !== -1)
+      let is_wildcard = (pattern.includes('*'))
       let res = is_wildcard ?
         (minimatch.match(files, pattern, { nobrace: true, noext: true, nocomment: true, nonegate: true, dot: true }).length !== 0) :
-        (files.indexOf(pattern) !== -1)
+        (files.includes(pattern))
       if (res) return true
     }
   } catch (e) {

@@ -12,7 +12,7 @@ export default class Around extends Source {
     })
   }
 
-  public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
+  public doComplete(opt: CompleteOption): Promise<CompleteResult> {
     let { bufnr, input } = opt
     if (input.length === 0) return null
     let document = workspace.getDocument(bufnr)
@@ -21,14 +21,12 @@ export default class Around extends Source {
     let moreWords = document.getMoreWords()
     words.push(...moreWords)
     words = this.filterWords(words, opt)
-    return {
-      items: words.map(word => {
-        return {
-          word,
-          menu: this.menu
-        }
-      })
-    }
+    return Promise.resolve({
+      items: words.map(word => ({
+        word,
+        menu: this.menu
+      }))
+    })
   }
 }
 

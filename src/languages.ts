@@ -55,7 +55,7 @@ function fixDocumentation(str: string): string {
   return str.replace(/&nbsp;/g, ' ')
 }
 
-export function check<R extends (...args: any[]) => Promise<R>>(_target: any, key: string, descriptor: any): void {
+export function check<R extends(...args: any[]) => Promise<R>>(_target: any, key: string, descriptor: any): void {
   let fn = descriptor.value
   if (typeof fn !== 'function') {
     return
@@ -64,7 +64,7 @@ export function check<R extends (...args: any[]) => Promise<R>>(_target: any, ke
   descriptor.value = function(...args: any[]): Promise<R> {
     let { cancelTokenSource } = this
     this.cancelTokenSource = new CancellationTokenSource()
-    return new Promise((resolve, reject): void => { // tslint:disable-line
+    return new Promise((resolve, reject): void => {
       let resolved = false
       let timer = setTimeout(() => {
         cancelTokenSource.cancel()
@@ -112,7 +112,7 @@ class Languages {
       let { languageId } = event.document
       let config = workspace.getConfiguration('coc.preferences', event.document.uri)
       let filetypes = config.get<string[]>('formatOnSaveFiletypes', [])
-      if (filetypes.indexOf(languageId) !== -1 || filetypes.some(item => item === '*')) {
+      if (filetypes.includes(languageId) || filetypes.some(item => item === '*')) {
         let willSaveWaitUntil = async (): Promise<TextEdit[]> => {
           let options = await workspace.getFormatOptions(event.document.uri)
           let textEdits = await this.provideDocumentFormattingEdits(event.document, options)
@@ -538,7 +538,7 @@ class Languages {
       doComplete: async (opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> => {
         let { triggerCharacter, bufnr } = opt
         resolvedIndexes = new Set()
-        let isTrigger = triggerCharacters && triggerCharacters.indexOf(triggerCharacter) != -1
+        let isTrigger = triggerCharacters && triggerCharacters.includes(triggerCharacter)
         let triggerKind: CompletionTriggerKind = CompletionTriggerKind.Invoked
         if (opt.triggerForInComplete) {
           triggerKind = CompletionTriggerKind.TriggerForIncompleteCompletions
@@ -623,11 +623,9 @@ class Languages {
         let item = completeItems[vimItem.index]
         if (!item) return
         let line = opt.linenr - 1
-        // tslint:disable-next-line: deprecation
         if (item.insertText && !item.textEdit) {
           item.textEdit = {
             range: Range.create(line, opt.col, line, opt.colnr - 1),
-            // tslint:disable-next-line: deprecation
             newText: item.insertText
           }
         }
@@ -659,7 +657,7 @@ class Languages {
         let completeItem = completeItems[item.index]
         if (!completeItem) return false
         let commitCharacters = completeItem.commitCharacters || allCommitCharacters
-        return commitCharacters.indexOf(character) !== -1
+        return commitCharacters.includes(character)
       }
     }
     return source
@@ -813,7 +811,7 @@ class Languages {
     if (echodocSupport && item.kind >= 2 && item.kind <= 4) {
       let fields = [item.detail || '', obj.abbr, obj.word]
       for (let s of fields) {
-        if (s.indexOf('(') !== -1) {
+        if (s.includes('(')) {
           obj.signature = s
           break
         }

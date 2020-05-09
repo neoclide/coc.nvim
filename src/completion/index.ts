@@ -93,7 +93,7 @@ export class Completion implements Disposable {
     if (!activated) return null
     if (!pre) return ''
     let input = byteSlice(pre, option.col)
-    if (option.blacklist && option.blacklist.indexOf(input) !== -1) return null
+    if (option.blacklist && option.blacklist.includes(input)) return null
     return input
   }
 
@@ -202,14 +202,14 @@ export class Completion implements Disposable {
 
   public hasSelected(): boolean {
     if (workspace.env.pumevent) return this.currItem != null
-    if (this.config.noselect === false) return true
+    if (!this.config.noselect) return true
     return this.isResolving
   }
 
   private async showCompletion(col: number, items: VimCompleteItem[]): Promise<void> {
     let { nvim, document, option } = this
     let { numberSelect, disableKind, labelMaxLength, disableMenuShortcut, disableMenu } = this.config
-    let preselect = this.config.enablePreselect ? items.findIndex(o => o.preselect == true) : -1
+    let preselect = this.config.enablePreselect ? items.findIndex(o => o.preselect) : -1
     if (numberSelect && option.input.length && !/^\d/.test(option.input)) {
       items = items.map((item, i) => {
         let idx = i + 1
@@ -270,7 +270,7 @@ export class Completion implements Disposable {
       let search = this.getResumeInput(content)
       if (complete.isCanceled) return
       let hasSelected = this.hasSelected()
-      if (hasSelected && this.completeOpt.indexOf('noselect') !== -1) return
+      if (hasSelected && this.completeOpt.includes('noselect')) return
       if (search == this.option.input) {
         let items = complete.filterResults(search, Math.floor(Date.now() / 1000))
         await this.showCompletion(option.col, items)
@@ -414,8 +414,6 @@ export class Completion implements Disposable {
       await sources.doCompleteDone(resolvedItem, opt)
       document.forceSync()
     } catch (e) {
-      // tslint:disable-next-line:no-console
-      console.error(e.stack)
       logger.error(`error on complete done`, e.stack)
     }
   }

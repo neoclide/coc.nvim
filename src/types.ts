@@ -375,7 +375,7 @@ export interface QuickfixItem {
   module?: string
   range?: Range
   text?: string
-  type?: string,
+  type?: string
   filename?: string
   bufnr?: number
   lnum?: number
@@ -554,7 +554,7 @@ export interface PopupOptions {
 }
 
 export interface PopupChangeEvent {
-  completed_item: VimCompleteItem,
+  completed_item: VimCompleteItem
   height: number
   width: number
   row: number
@@ -1097,7 +1097,8 @@ export interface TextDocumentWillSaveEvent {
 
 export interface Thenable<T> {
   then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => TResult | Thenable<TResult>): Thenable<TResult>
-  then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => void): Thenable<TResult> // tslint:disable-line
+  // eslint-disable-next-line @typescript-eslint/unified-signatures
+  then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => void): Thenable<TResult>
 }
 
 /**

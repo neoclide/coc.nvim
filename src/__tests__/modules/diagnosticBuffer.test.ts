@@ -80,7 +80,7 @@ describe('diagnostic buffer', () => {
     await buf.checkSigns()
     let content = await nvim.call('execute', [`sign place buffer=${buf.bufnr}`])
     let lines: string[] = content.split('\n')
-    let line = lines.find(s => s.indexOf('CocError') != -1)
+    let line = lines.find(s => s.includes('CocError'))
     expect(line).toBeUndefined()
   })
 
@@ -91,7 +91,7 @@ describe('diagnostic buffer', () => {
     await helper.wait(30)
     let content = await nvim.call('execute', [`sign place buffer=${buf.bufnr}`])
     let lines: string[] = content.split('\n')
-    let line = lines.find(s => s.indexOf('CocError') != -1)
+    let line = lines.find(s => s.includes('CocError'))
     expect(line).toBeDefined()
   })
 
@@ -134,7 +134,7 @@ describe('diagnostic buffer', () => {
     await buf.clear()
     let content = await nvim.call('execute', [`sign place buffer=${buf.bufnr}`])
     let lines: string[] = content.split('\n')
-    let line = lines.find(s => s.indexOf('CocError') != -1)
+    let line = lines.find(s => s.includes('CocError'))
     expect(line).toBeUndefined()
     await helper.wait(50)
     let buffer = await nvim.buffer

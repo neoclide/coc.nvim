@@ -140,6 +140,6 @@ describe('FloatBuffer', () => {
       }
     ]
     let res = FloatBuffer.getDimension(docs, 80, 100)
-    console.log(res)
+    expect(res).toEqual({ width: 80, height: 12 })
   })
 })

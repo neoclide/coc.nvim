@@ -20,13 +20,11 @@ describe('register handler', () => {
   })
 
   it('should resolve before timeout', async () => {
-    let fn = (): Promise<void> => {
-      return new Promise(resolve => {
+    let fn = (): Promise<void> => new Promise(resolve => {
         setTimeout(() => {
           resolve()
         }, 5000)
       })
-    }
     let disposable = events.on('FocusGained', fn, {})
     let ts = Date.now()
     await events.fire('FocusGained', [])

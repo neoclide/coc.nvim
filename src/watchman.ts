@@ -124,9 +124,7 @@ export default class Watchman {
       this.appendOutput(`file change detected: ${JSON.stringify(ev, null, 2)}`)
       cb(ev)
     })
-    return Disposable.create(() => {
-      return this.unsubscribe(subscribe)
-    })
+    return Disposable.create(() => this.unsubscribe(subscribe))
   }
 
   public unsubscribe(subscription: string): Promise<any> {

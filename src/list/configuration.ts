@@ -105,7 +105,7 @@ export default class ListConfiguration {
   }
 
   public fixKey(key: string): string {
-    if (validKeys.indexOf(key) !== -1) return key
+    if (validKeys.includes(key)) return key
     let find = validKeys.find(s => s.toLowerCase() == key.toLowerCase())
     if (find) return find
     workspace.showMessage(`Configured key "${key}" not supported.`, 'error')

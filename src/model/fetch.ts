@@ -25,7 +25,7 @@ export function getAgent(endpoint: UrlWithStringQuery): Agent {
         let noProxyItem = noProxyList[i].trim().toLowerCase()
 
         // no_proxy can be granular at the port level, which complicates things a bit.
-        if (noProxyItem.indexOf(':') > -1) {
+        if (noProxyItem.includes(':')) {
           let noProxyItemParts = noProxyItem.split(':', 2)
           let noProxyHost = noProxyItemParts[0].replace(/^\.*/, '.')
           let noProxyPort = noProxyItemParts[1]
@@ -95,7 +95,6 @@ export default function fetch(url: string, data?: string | { [key: string]: any 
     opts.method = 'POST'
   }
   return new Promise<string>((resolve, reject) => {
-    // tslint:disable-next-line: only-arrow-functions
     try {
       const req = mod.request(opts, res => {
         let readable: Readable = res
@@ -118,7 +117,7 @@ export default function fetch(url: string, data?: string | { [key: string]: any 
         readable.on('end', () => {
           let buf = Buffer.concat(chunks)
           let rawData = buf.toString(encoding)
-          if (/^application\/json/.test(contentType)) {
+          if (contentType.startsWith("application/json")) {
             try {
               const parsedData = JSON.parse(rawData)
               resolve(parsedData)

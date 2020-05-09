@@ -96,12 +96,10 @@ export default class ActionsList extends BasicList {
       return 0
     })
 
-    let items: ListItem[] = codeActions.map(action => {
-      return {
+    let items: ListItem[] = codeActions.map(action => ({
         label: `${action.title} ${action.clientId ? `[${action.clientId}]` : ''} ${action.kind ? `(${action.kind})` : ''}`,
         data: { action }
-      } as ListItem
-    })
+      } as ListItem))
     return items
   }
 

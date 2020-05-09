@@ -5,13 +5,11 @@ import { SymbolInformation, SymbolKind } from 'vscode-languageserver-types'
 import { NullLogger } from '../../language-client/client'
 
 class TestStream extends Duplex {
-  // tslint:disable-next-line: typedef
-  public _write(chunk: string, _encoding: string, done: () => void) {
+  public _write(chunk: string, _encoding: string, done: () => void): void {
     this.emit('data', chunk)
     done()
   }
 
-  // tslint:disable-next-line: no-empty
   public _read(_size: number): void {
   }
 }
@@ -81,7 +79,7 @@ describe('Connection Tests', () => {
     }
     serverConnection.onRequest(DocumentSymbolRequest.type, params => {
       expect(params.partialResultToken).toBe('3b1db4c9-e011-489e-a9d1-0653e64707c2')
-      serverConnection.sendProgress(progressType, params.partialResultToken!, [result])
+      serverConnection.sendProgress(progressType, params.partialResultToken, [result])
       return []
     })
 
@@ -98,7 +96,7 @@ describe('Connection Tests', () => {
   })
 
   it('should provide workDoneToken', async () => {
-    serverConnection.onRequest(DocumentSymbolRequest.type,params => {
+    serverConnection.onRequest(DocumentSymbolRequest.type, params => {
       expect(params.workDoneToken).toBe('3b1db4c9-e011-489e-a9d1-0653e64707c2')
       return []
     })
@@ -111,17 +109,17 @@ describe('Connection Tests', () => {
   })
 
   it('should report work done progress', async () => {
-    serverConnection.onRequest(DocumentSymbolRequest.type,params => {
+    serverConnection.onRequest(DocumentSymbolRequest.type, params => {
       expect(params.workDoneToken).toBe('3b1db4c9-e011-489e-a9d1-0653e64707c2')
-      serverConnection.sendProgress(progressType, params.workDoneToken!, {
+      serverConnection.sendProgress(progressType, params.workDoneToken, {
         kind: 'begin',
         title: 'progress'
       })
-      serverConnection.sendProgress(progressType, params.workDoneToken!, {
+      serverConnection.sendProgress(progressType, params.workDoneToken, {
         kind: 'report',
         message: 'message'
       })
-      serverConnection.sendProgress(progressType, params.workDoneToken!, {
+      serverConnection.sendProgress(progressType, params.workDoneToken, {
         kind: 'end',
         message: 'message'
       })
@@ -133,7 +131,7 @@ describe('Connection Tests', () => {
       workDoneToken: '3b1db4c9-e011-489e-a9d1-0653e64707c2'
     }
     let result = ''
-    clientConnection.onProgress(progressType, '3b1db4c9-e011-489e-a9d1-0653e64707c2',value => {
+    clientConnection.onProgress(progressType, '3b1db4c9-e011-489e-a9d1-0653e64707c2', value => {
       result += value.kind
     })
     await clientConnection.sendRequest(DocumentSymbolRequest.type, params)

@@ -81,7 +81,6 @@ export default class Floating {
     }
     let [, err] = await nvim.resumeNotification()
     if (workspace.isVim) nvim.command('redraw', true)
-    // tslint:disable-next-line: no-console
     if (err) console.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
   }
 

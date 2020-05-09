@@ -29,26 +29,20 @@ export default class Mappings {
     this.add('insert', '<C-v>', async () => {
       await prompt.paste()
     })
-    this.add('insert', '<C-s>', () => {
-      return manager.switchMatcher()
-    })
+    this.add('insert', '<C-s>', () => manager.switchMatcher())
     this.add('insert', ['<C-m>', '<cr>'], async () => {
       await manager.doAction()
     })
-    this.add('insert', ['<tab>', '<C-i>', '\t'], () => {
-      return manager.chooseAction()
-    })
+    this.add('insert', ['<tab>', '<C-i>', '\t'], () => manager.chooseAction())
     this.add('insert', '<C-o>', () => {
       manager.toggleMode()
     })
-    this.add('insert', '<C-c>', async () => {
+    this.add('insert', '<C-c>', () => {
       manager.stop()
       manager.prompt.start()
       return
     })
-    this.add('insert', '<esc>', () => {
-      return manager.cancel()
-    })
+    this.add('insert', '<esc>', () => manager.cancel())
     this.add('insert', '<C-l>', async () => {
       await manager.worker.loadItems(true)
     })
@@ -73,24 +67,12 @@ export default class Mappings {
     this.add('insert', '<C-u>', () => {
       prompt.removeAhead()
     })
-    this.add('insert', '<C-r>', () => {
-      return prompt.insertRegister()
-    })
-    this.add('insert', '<C-d>', () => {
-      return manager.feedkeys('<C-d>', false)
-    })
-    this.add('insert', '<PageUp>', () => {
-      return manager.feedkeys('<PageUp>', false)
-    })
-    this.add('insert', '<PageDown>', () => {
-      return manager.feedkeys('<PageDown>', false)
-    })
-    this.add('insert', '<down>', () => {
-      return manager.normal('j')
-    })
-    this.add('insert', '<up>', () => {
-      return manager.normal('k')
-    })
+    this.add('insert', '<C-r>', () => prompt.insertRegister())
+    this.add('insert', '<C-d>', () => manager.feedkeys('<C-d>', false))
+    this.add('insert', '<PageUp>', () => manager.feedkeys('<PageUp>', false))
+    this.add('insert', '<PageDown>', () => manager.feedkeys('<PageDown>', false))
+    this.add('insert', '<down>', () => manager.normal('j'))
+    this.add('insert', '<up>', () => manager.normal('k'))
     this.add('insert', ['<ScrollWheelUp>'], this.doScroll.bind(this, '<ScrollWheelUp>'))
     this.add('insert', ['<ScrollWheelDown>'], this.doScroll.bind(this, '<ScrollWheelDown>'))
     this.add('insert', ['<C-f>'], this.doScroll.bind(this, '<C-f>'))
@@ -99,45 +81,21 @@ export default class Mappings {
     this.add('normal', '<C-o>', () => {
       // do nothing, avoid buffer switch by accident
     })
-    this.add('normal', 't', () => {
-      return manager.doAction('tabe')
-    })
-    this.add('normal', 's', () => {
-      return manager.doAction('split')
-    })
-    this.add('normal', 'd', () => {
-      return manager.doAction('drop')
-    })
-    this.add('normal', ['<cr>', '<C-m>', '\r'], () => {
-      return manager.doAction()
-    })
-    this.add('normal', '<C-a>', () => {
-      return manager.ui.selectAll()
-    })
-    this.add('normal', ' ', () => {
-      return manager.ui.toggleSelection()
-    })
-    this.add('normal', 'p', () => {
-      return manager.togglePreview()
-    })
-    this.add('normal', ['<tab>', '\t', '<C-i>'], () => {
-      return manager.chooseAction()
-    })
+    this.add('normal', 't', () => manager.doAction('tabe'))
+    this.add('normal', 's', () => manager.doAction('split'))
+    this.add('normal', 'd', () => manager.doAction('drop'))
+    this.add('normal', ['<cr>', '<C-m>', '\r'], () => manager.doAction())
+    this.add('normal', '<C-a>', () => manager.ui.selectAll())
+    this.add('normal', ' ', () => manager.ui.toggleSelection())
+    this.add('normal', 'p', () => manager.togglePreview())
+    this.add('normal', ['<tab>', '\t', '<C-i>'], () => manager.chooseAction())
     this.add('normal', '<C-c>', () => {
       manager.stop()
     })
-    this.add('normal', '<esc>', () => {
-      return manager.cancel()
-    })
-    this.add('normal', '<C-l>', () => {
-      return manager.worker.loadItems(true)
-    })
-    this.add('normal', ['i', 'I', 'o', 'O', 'a', 'A'], () => {
-      return manager.toggleMode()
-    })
-    this.add('normal', '?', () => {
-      return manager.showHelp()
-    })
+    this.add('normal', '<esc>', () => manager.cancel())
+    this.add('normal', '<C-l>', () => manager.worker.loadItems(true))
+    this.add('normal', ['i', 'I', 'o', 'O', 'a', 'A'], () => manager.toggleMode())
+    this.add('normal', '?', () => manager.showHelp())
     this.add('normal', ':', async () => {
       await manager.cancel(false)
       await nvim.eval('feedkeys(":")')
@@ -167,11 +125,10 @@ export default class Mappings {
       } else if (key.startsWith('<') && key.endsWith('>')) {
         if (key.toLowerCase() == '<space>') {
           res.set(' ', value)
-        } else if (validKeys.indexOf(key) != -1) {
+        } else if (validKeys.includes(key)) {
           res.set(key, value)
         } else {
           let find = false
-          // tslint:disable-next-line: prefer-for-of
           for (let i = 0; i < validKeys.length; i++) {
             if (validKeys[i].toLowerCase() == key.toLowerCase()) {
               find = true
@@ -182,7 +139,6 @@ export default class Mappings {
           if (!find) workspace.showMessage(`Invalid mappings key: ${key}`, 'error')
         }
       } else {
-        // tslint:disable-next-line: no-console
         workspace.showMessage(`Invalid mappings key: ${key}`, 'error')
       }
     }
@@ -246,7 +202,7 @@ export default class Mappings {
   }
 
   private async evalExpression(expr: string, _mode: string): Promise<void> {
-    if (typeof expr != 'string' || expr.indexOf(':') == -1) {
+    if (typeof expr != 'string' || !expr.includes(':')) {
       await this.onError(`Invalid expression ${expr}`)
       return
     }
@@ -256,7 +212,7 @@ export default class Mappings {
     if (key == 'do') {
       switch (action) {
         case 'switch':
-          await manager.switchMatcher()
+          manager.switchMatcher()
           return
         case 'selectall':
           await manager.ui.selectAll()
@@ -318,7 +274,7 @@ export default class Mappings {
         case 'removeahead':
           return prompt.removeAhead()
         case 'insertregister':
-          await prompt.insertRegister()
+          prompt.insertRegister()
           return
         case 'paste':
           await prompt.paste()

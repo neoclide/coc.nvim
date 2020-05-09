@@ -46,8 +46,6 @@ export default class FoldList extends BasicList {
   }
 
   public async loadItems(_context: ListContext): Promise<ListItem[]> {
-    return workspace.folderPaths.map(p => {
-      return { label: p }
-    })
+    return workspace.folderPaths.map(p => ({ label: p }))
   }
 }

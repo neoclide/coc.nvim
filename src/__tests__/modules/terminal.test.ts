@@ -1,4 +1,3 @@
-/* tslint:disable:no-console */
 import { Neovim } from '@chemzqm/neovim'
 import helper from '../helper'
 import TerminalModel from '../../model/terminal'

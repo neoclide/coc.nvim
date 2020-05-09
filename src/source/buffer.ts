@@ -23,7 +23,7 @@ export default class Buffer extends Source {
       if (document.bufnr == bufnr) return
       if (ignoreGitignore && document.isIgnored) return
       for (let word of document.words) {
-        if (words.indexOf(word) == -1) {
+        if (!words.includes(word)) {
           words.push(word)
         }
       }
@@ -31,19 +31,17 @@ export default class Buffer extends Source {
     return words
   }
 
-  public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
+  public doComplete(opt: CompleteOption): Promise<CompleteResult> {
     let { bufnr, input } = opt
     if (input.length == 0) return null
     let words = this.getWords(bufnr)
     words = this.filterWords(words, opt)
-    return {
-      items: words.map(word => {
-        return {
-          word,
-          menu: this.menu
-        }
-      })
-    }
+    return Promise.resolve({
+      items: words.map(word => ({
+        word,
+        menu: this.menu
+      }))
+    })
   }
 }
 

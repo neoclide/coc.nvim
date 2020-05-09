@@ -35,7 +35,7 @@ export default class ExtensionList extends BasicList {
       let jsonFile = path.join(root, 'package.json')
       if (fs.existsSync(jsonFile)) {
         let lines = fs.readFileSync(jsonFile, 'utf8').split(/\r?\n/)
-        let idx = lines.findIndex(s => s.indexOf('"contributes"') !== -1)
+        let idx = lines.findIndex(s => s.includes('"contributes"'))
         await workspace.jumpTo(URI.file(jsonFile).toString(), { line: idx == -1 ? 0 : idx, character: 0 })
       }
     })
@@ -131,7 +131,7 @@ export default class ExtensionList extends BasicList {
         prefix = '?'
       }
       let root = await this.nvim.call('resolve', stat.root)
-      let locked = lockedList.indexOf(stat.id) !== -1
+      let locked = lockedList.includes(stat.id)
       items.push({
         label: `${prefix} ${stat.id}${locked ? ' ' : ''}\t${stat.isLocal ? '[RTP]\t' : ''}${stat.version}\t${root.replace(os.homedir(), '~')}`,
         filterText: stat.id,

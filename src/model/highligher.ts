@@ -22,7 +22,7 @@ export default class Highlighter {
   }
 
   public addLine(line: string, hlGroup?: string): void {
-    if (line.indexOf('\n') !== -1) {
+    if (line.includes('\n')) {
       for (let content of line.split(/\r?\n/)) {
         this.addLine(content, hlGroup)
       }
@@ -36,7 +36,7 @@ export default class Highlighter {
         hlGroup
       })
     } // '\x1b'
-    if (line.indexOf('\x1b') !== -1) {
+    if (line.includes('\x1b')) {
       let res = parseAnsiHighlights(line)
       for (let hl of res.highlights) {
         let { span, hlGroup } = hl
@@ -88,6 +88,7 @@ export default class Highlighter {
 
   // default to replace
   public render(buffer: Buffer, start = 0, end = -1): void {
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     buffer.setLines(this.lines, { start, end, strictIndexing: false }, true)
     for (let item of this.highlights) {
       buffer.addHighlight({

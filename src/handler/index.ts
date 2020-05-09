@@ -75,7 +75,7 @@ interface Preferences {
 export default class Handler {
   private preferences: Preferences
   private documentHighlighter: DocumentHighlighter
-  /*bufnr and srcId list*/
+  /* bufnr and srcId list*/
   private hoverPosition: [number, number, number]
   private colors: Colors
   private hoverFactory: FloatFactory
@@ -395,7 +395,7 @@ export default class Handler {
     } else {
       symbols.sort(sortSymbolInformations)
       for (let sym of symbols) {
-        let { name, kind, location, containerName } = sym as SymbolInformation
+        let { name, kind, location, containerName } = sym
         if (!containerName || !pre) {
           level = 0
         } else {
@@ -445,9 +445,7 @@ export default class Handler {
     let ranges = doc.getSymbolRanges(curname)
     return {
       changes: {
-        [doc.uri]: ranges.map(r => {
-          return { range: r, newText: curname }
-        })
+        [doc.uri]: ranges.map(r => ({ range: r, newText: curname }))
       }
     }
   }
@@ -848,9 +846,7 @@ export default class Handler {
       // changed by other process
       if (doc.changedtick != changedtick || edits == null) return
       if (insertLeave) {
-        edits = edits.filter(edit => {
-          return edit.range.start.line < position.line + 1
-        })
+        edits = edits.filter(edit => edit.range.start.line < position.line + 1)
       }
       if (edits && edits.length) {
         await doc.applyEdits(this.nvim, edits)
@@ -862,7 +858,7 @@ export default class Handler {
       }
     } catch (e) {
       if (!/timeout\s/.test(e.message)) {
-        console.error(`Error on formatOnType: ${e.message}`) // tslint:disable-line
+        console.error(`Error on formatOnType: ${e.message}`)
       }
     }
   }
@@ -954,7 +950,7 @@ export default class Handler {
       let session = snippetManager.getSession(document.bufnr)
       if (session && session.isActive) {
         let { value } = session.placeholder
-        if (value.indexOf('\n') == -1) offset = value.length
+        if (!value.includes('\n')) offset = value.length
         this.signaturePosition = Position.create(position.line, position.character - value.length)
       } else {
         this.signaturePosition = position
@@ -1037,7 +1033,7 @@ export default class Handler {
     if (len == 1 && openCommand !== false) {
       let location = definition[0] as Location
       if (LocationLink.is(definition[0])) {
-        let link = definition[0] as LocationLink
+        let link = definition[0]
         location = Location.create(link.targetUri, link.targetRange)
       }
       let { uri, range } = location
@@ -1192,7 +1188,7 @@ export default class Handler {
       } else if (typeof contents == 'string') {
         lines.push(...contents.split('\n'))
         docs.push({ content: contents, filetype: 'markdown' })
-      } else if (MarkedString.is(contents)) { // tslint:disable-line
+      } else if (MarkedString.is(contents)) {
         let content = contents.value.trim()
         if (target == 'preview') {
           content = '``` ' + contents.language + '\n' + content + '\n```'

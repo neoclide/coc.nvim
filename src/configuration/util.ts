@@ -8,7 +8,7 @@ import fs from 'fs'
 import { URI } from 'vscode-uri'
 import path from 'path'
 const logger = require('../util/logger')('configuration-util')
-declare var __webpack_require__: any
+declare let __webpack_require__: any
 const isWebpack = typeof __webpack_require__ === "function"
 const pluginRoot = isWebpack ? path.dirname(__dirname) : path.resolve(__dirname, '../..')
 
@@ -50,7 +50,7 @@ export function parseConfiguration(content: string): [ParseError[], any] {
     if (emptyObject(obj)) return {}
     let dest = {}
     for (let key of Object.keys(obj)) {
-      if (split && key.indexOf('.') !== -1) {
+      if (split && key.includes('.')) {
         let parts = key.split('.')
         let first = parts.shift()
         addProperty(dest, first, parts, obj[key])
@@ -185,7 +185,7 @@ function doRemoveFromValueTree(valueTree: any, segments: string[]): void {
     return
   }
 
-  if (Object.keys(valueTree).indexOf(first) !== -1) {
+  if (Object.keys(valueTree).includes(first)) {
     const value = valueTree[first]
     if (typeof value === 'object' && !Array.isArray(value)) {
       doRemoveFromValueTree(value, segments)
@@ -203,7 +203,7 @@ export function getConfigurationValue<T>(
 ): T {
   function accessSetting(config: any, path: string[]): any {
     let current = config
-    for (let i = 0; i < path.length; i++) { // tslint:disable-line
+    for (let i = 0; i < path.length; i++) {
       if (typeof current !== 'object' || current === null) {
         return undefined
       }
@@ -221,7 +221,7 @@ export function getConfigurationValue<T>(
 export function loadDefaultConfigurations(): IConfigurationModel {
   let file = path.join(pluginRoot, 'data/schema.json')
   if (!fs.existsSync(file)) {
-    console.error('schema.json not found, reinstall coc.nvim to fix this!') // tslint:disable-line
+    console.error('schema.json not found, reinstall coc.nvim to fix this!')
     return { contents: {} }
   }
   let content = fs.readFileSync(file, 'utf8')
@@ -231,7 +231,7 @@ export function loadDefaultConfigurations(): IConfigurationModel {
     let value = properties[key].default
     if (value !== undefined) {
       addToValueTree(config, key, value, message => {
-        logger.error(message) // tslint:disable-line
+        logger.error(message)
       })
     }
   })
@@ -255,12 +255,12 @@ export function getChangedKeys(from: { [key: string]: any }, to: { [key: string]
   let keys: string[] = []
   let fromKeys = getKeys(from)
   let toKeys = getKeys(to)
-  const added = toKeys.filter(key => fromKeys.indexOf(key) === -1)
-  const removed = fromKeys.filter(key => toKeys.indexOf(key) === -1)
+  const added = toKeys.filter(key => !fromKeys.includes(key))
+  const removed = fromKeys.filter(key => !toKeys.includes(key))
   keys.push(...added)
   keys.push(...removed)
   for (const key of fromKeys) {
-    if (toKeys.indexOf(key) == -1) continue
+    if (!toKeys.includes(key)) continue
     const value1 = getConfigurationValue<any>(from, key)
     const value2 = getConfigurationValue<any>(to, key)
     if (!equals(value1, value2)) {

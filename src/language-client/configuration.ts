@@ -16,7 +16,7 @@ export class ConfigurationFeature implements StaticFeature {
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
     capabilities.workspace = capabilities.workspace || {}
-    capabilities.workspace!.configuration = true
+    capabilities.workspace.configuration = true
   }
 
   public initialize(): void {
@@ -29,7 +29,7 @@ export class ConfigurationFeature implements StaticFeature {
         }
         return result
       }
-      let middleware = client.clientOptions.middleware!.workspace
+      let middleware = client.clientOptions.middleware.workspace
       return middleware && middleware.configuration
         ? middleware.configuration(params, token, configuration)
         : configuration(params, token)

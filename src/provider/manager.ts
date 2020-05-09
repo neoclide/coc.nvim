@@ -4,7 +4,7 @@ import workspace from '../workspace'
 const logger = require('../util/logger')('provider-manager')
 
 export interface ProviderItem<T> {
-  id: string,
+  id: string
   selector: DocumentSelector
   provider: T
   [index: string]: any
@@ -41,12 +41,8 @@ export default class Manager<T> {
 
   protected getProviders(document: TextDocument): ProviderItem<T>[] {
     let items = Array.from(this.providers)
-    items = items.filter(item => {
-      return workspace.match(item.selector, document) > 0
-    })
-    return items.sort((a, b) => {
-      return workspace.match(b.selector, document) - workspace.match(a.selector, document)
-    })
+    items = items.filter(item => workspace.match(item.selector, document) > 0)
+    return items.sort((a, b) => workspace.match(b.selector, document) - workspace.match(a.selector, document))
   }
 
   protected mergeDefinitions(arr: Definition[]): Location[] {

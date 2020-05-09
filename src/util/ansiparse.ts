@@ -30,7 +30,7 @@ const styles = {
   4: 'underline'
 }
 
-export function parseAnsiHighlights(line: string): { line: string, highlights: AnsiHighlight[] } {
+export function parseAnsiHighlights(line: string): { line: string; highlights: AnsiHighlight[] } {
   let items = ansiparse(line)
   let highlights: AnsiHighlight[] = []
   let newLabel = ''
@@ -104,9 +104,9 @@ export function ansiparse(str: string): AnsiItem[] {
     }
   }
 
-  for (let i = 0; i < str.length; i++) { // tslint:disable-line
+  for (let i = 0; i < str.length; i++) {
     if (matchingControl != null) {
-      if (matchingControl == '\x1b' && str[i] == '\[') {
+      if (matchingControl == '\x1b' && str[i] == '[') {
         //
         // We've matched full control code. Lets start matching formating data.
         //

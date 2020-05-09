@@ -62,7 +62,7 @@ export function isSingleLine(range: Range): boolean {
   return range.start.line == range.end.line
 }
 
-export function getChangedPosition(start: Position, edit: TextEdit): { line: number, character: number } {
+export function getChangedPosition(start: Position, edit: TextEdit): { line: number; character: number } {
   let { range, newText } = edit
   if (comparePosition(range.end, start) <= 0) {
     let lines = newText.split('\n')

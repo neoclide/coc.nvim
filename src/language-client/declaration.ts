@@ -50,15 +50,13 @@ export class DeclarationFeature extends TextDocumentFeature<boolean | Declaratio
     const provider: DeclarationProvider = {
       provideDeclaration: (document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Declaration> => {
         const client = this._client
-        const provideDeclaration: ProvideDeclarationSignature = (document, position, token) => {
-          return client.sendRequest(DeclarationRequest.type, asTextDocumentPositionParams(document, position), token).then(
+        const provideDeclaration: ProvideDeclarationSignature = (document, position, token) => client.sendRequest(DeclarationRequest.type, asTextDocumentPositionParams(document, position), token).then(
             res => res, error => {
               client.logFailedRequest(DeclarationRequest.type, error)
               return Promise.resolve(null)
             }
           )
-        }
-        const middleware = client.clientOptions.middleware!
+        const middleware = client.clientOptions.middleware
         return middleware.provideDeclaration
           ? middleware.provideDeclaration(document, position, token, provideDeclaration)
           : provideDeclaration(document, position, token)

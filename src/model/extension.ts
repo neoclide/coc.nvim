@@ -81,7 +81,7 @@ export default class ExtensionManager {
       onMessage(`Installing dependencies.`)
       let p = new Promise<void>((resolve, reject) => {
         let args = ['install', '--ignore-scripts', '--no-lockfile', '--production']
-        if (info['dist.tarball'] && info['dist.tarball'].indexOf('github.com') !== -1) {
+        if (info['dist.tarball'] && info['dist.tarball'].includes('github.com')) {
           args = ['install']
         }
         const child = spawn(npm, args, { cwd: tmpFolder })
@@ -93,7 +93,6 @@ export default class ExtensionManager {
         })
         child.on('exit', code => {
           if (code) {
-            // tslint:disable-next-line: no-console
             console.error(`${npm} install exited with ${code}, messages:\n${err}`)
           }
           resolve()
@@ -167,7 +166,7 @@ export default class ExtensionManager {
   }
 
   private async getInfoFromUri(uri: string): Promise<Info> {
-    if (uri.indexOf('github.com') == -1) {
+    if (!uri.includes('github.com')) {
       throw new Error(`"${uri}" is not supported, coc.nvim support github.com only`)
     }
     uri = uri.replace(/\/$/, '')

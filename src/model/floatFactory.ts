@@ -49,7 +49,7 @@ export default class FloatFactory extends EventEmitter implements Disposable {
         || bufnr == this.targetBufnr) return
       this.close()
     }, null, this.disposables)
-    events.on('MenuPopupChanged', async (ev, cursorline) => {
+    events.on('MenuPopupChanged', (ev, cursorline) => {
       let pumAlignTop = this.pumAlignTop = cursorline > ev.row
       if (pumAlignTop == this.alignTop) {
         this.close()

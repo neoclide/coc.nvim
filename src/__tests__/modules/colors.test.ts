@@ -23,9 +23,7 @@ beforeAll(async () => {
       _color: Color,
       _context: { document: TextDocument; range: Range },
       _token: CancellationToken
-    ): ColorPresentation[] => {
-      return [ColorPresentation.create('red'), ColorPresentation.create('#ff0000')]
-    },
+    ): ColorPresentation[] => [ColorPresentation.create('red'), ColorPresentation.create('#ff0000')],
     provideDocumentColors: (
       _document: TextDocument,
       _token: CancellationToken

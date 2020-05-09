@@ -108,11 +108,7 @@ export default abstract class BasicList implements IList, Disposable {
       name: 'quickfix',
       multiple: true,
       execute: async (items: ListItem[]) => {
-        let quickfixItems = await Promise.all(items.map(item => {
-          return this.convertLocation(item.location).then(loc => {
-            return workspace.getQuickfixItem(loc)
-          })
-        }))
+        let quickfixItems = await Promise.all(items.map(item => this.convertLocation(item.location).then(loc => workspace.getQuickfixItem(loc))))
         await nvim.call('setqflist', [quickfixItems])
         let openCommand = await nvim.getVar('coc_quickfix_open_command') as string
         nvim.command(typeof openCommand === 'string' ? openCommand : 'copen', true)
@@ -142,7 +138,7 @@ export default abstract class BasicList implements IList, Disposable {
     let line = await new Promise<string>(resolve => {
       rl.on('line', line => {
         if (resolved) return
-        if (line.indexOf(match) !== -1) {
+        if (line.includes(match)) {
           rl.removeAllListeners()
           rl.close()
           resolved = true
@@ -248,7 +244,6 @@ export default abstract class BasicList implements IList, Disposable {
     nvim.call('win_gotoid', [winid], true)
     if (workspace.isVim) nvim.command('redraw', true)
     let [, err] = await nvim.resumeNotification()
-    // tslint:disable-next-line: no-console
     if (err) console.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
   }
 
@@ -293,7 +288,6 @@ export default abstract class BasicList implements IList, Disposable {
     nvim.call('win_gotoid', [winid], true)
     if (workspace.isVim) nvim.command('redraw', true)
     let [, err] = await nvim.resumeNotification()
-    // tslint:disable-next-line: no-console
     if (err) console.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
   }
 

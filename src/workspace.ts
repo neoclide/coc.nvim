@@ -36,8 +36,8 @@ import Watchman from './watchman'
 import rimraf from 'rimraf'
 import { v1 as uuid } from 'uuid'
 
-declare var __webpack_require__: any
-declare var __non_webpack_require__: any
+declare let __webpack_require__: any
+declare let __non_webpack_require__: any
 const requireFunc = typeof __webpack_require__ === "function" ? __non_webpack_require__ : require
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
@@ -120,12 +120,10 @@ export class Workspace implements IWorkspace {
     let maxFileSize = preferences.get<string>('maxFileSize', '10MB')
     this.maxFileSize = bytes.parse(maxFileSize)
     if (this._env.workspaceFolders) {
-      this._workspaceFolders = this._env.workspaceFolders.map(f => {
-        return {
-          uri: URI.file(f).toString(),
-          name: path.dirname(f)
-        }
-      })
+      this._workspaceFolders = this._env.workspaceFolders.map(f => ({
+        uri: URI.file(f).toString(),
+        name: path.dirname(f)
+      }))
     }
     this.configurations.updateUserConfig(this._env.config)
     events.on('VimLeave', () => {
@@ -178,7 +176,6 @@ export class Workspace implements IWorkspace {
         if (suggest.get<string>('autoTrigger') == 'always') {
           let content = await this.nvim.call('execute', ['verbose set completeopt']) as string
           let lines = content.split(/\r?\n/)
-          // tslint:disable-next-line: no-console
           console.error(`Some plugin change completeopt on insert mode: ${lines[lines.length - 1].trim()}!`)
         }
       }
@@ -387,7 +384,7 @@ export class Workspace implements IWorkspace {
    * Current filetypes.
    */
   public get filetypes(): Set<string> {
-    let res = new Set() as Set<string>
+    let res = new Set<string>()
     for (let doc of this.documents) {
       res.add(doc.filetype)
     }
@@ -419,6 +416,7 @@ export class Workspace implements IWorkspace {
     return null
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   public async resolveRootFolder(uri: URI, patterns: string[]): Promise<string> {
     let { cwd } = this
     if (uri.scheme != 'file') return cwd
@@ -573,9 +571,7 @@ export class Workspace implements IWorkspace {
         })
       }
       if (locations.length) {
-        let items = await Promise.all(locations.map(loc => {
-          return this.getQuickfixItem(loc)
-        }))
+        let items = await Promise.all(locations.map(loc => this.getQuickfixItem(loc)))
         if (listTarget == 'quickfix') {
           await this.nvim.call('setqflist', [items])
           this.showMessage(`changed ${changeCount} buffers, use :wa to save changes to disk and :copen to open quickfix list`, 'more')
@@ -632,11 +628,11 @@ export class Workspace implements IWorkspace {
 
   public async getSelectedRange(mode: string, document: Document): Promise<Range | null> {
     let { nvim } = this
-    if (['v', 'V', 'char', 'line', '\x16'].indexOf(mode) == -1) {
+    if (!['v', 'V', 'char', 'line', '\x16'].includes(mode)) {
       this.showMessage(`Mode '${mode}' is not supported`, 'error')
       return null
     }
-    let isVisual = ['v', 'V', '\x16'].indexOf(mode) != -1
+    let isVisual = ['v', 'V', '\x16'].includes(mode)
     let [, sl, sc] = await nvim.call('getpos', isVisual ? `'<` : `'[`) as [number, number, number]
     let [, el, ec] = await nvim.call('getpos', isVisual ? `'>` : `']`) as [number, number, number]
     let range = Range.create(document.getPosition(sl, sc), document.getPosition(el, ec))
@@ -693,9 +689,7 @@ export class Workspace implements IWorkspace {
    * Populate locations to UI.
    */
   public async showLocations(locations: Location[]): Promise<void> {
-    let items = await Promise.all(locations.map(loc => {
-      return this.getQuickfixItem(loc)
-    }))
+    let items = await Promise.all(locations.map(loc => this.getQuickfixItem(loc)))
     let { nvim } = this
     const preferences = this.getConfiguration('coc.preferences')
     if (preferences.get<boolean>('useQuickfixForLocations', false)) {
@@ -797,7 +791,7 @@ export class Workspace implements IWorkspace {
       let last = lines[lines.length - 1]
       lines[cmdHeight - 1] = `${last.length == maxLen ? last.slice(0, -4) : last} ...`
     }
-    nvim.callTimer('coc#util#echo_lines', [lines], true)
+    await nvim.call('coc#util#echo_lines', [lines])
   }
 
   /**
@@ -869,17 +863,12 @@ export class Workspace implements IWorkspace {
    */
   public async getFormatOptions(uri?: string): Promise<FormattingOptions> {
     let doc: Document
-    if (uri) {
-      doc = this.getDocument(uri)
-    } else {
-      doc = this.getDocument(this.bufnr)
-    }
-    let tabSize = await this.getDocumentOption('shiftwidth', doc) as number
-    if (!tabSize) tabSize = await this.getDocumentOption('tabstop', doc) as number
-    let insertSpaces = (await this.getDocumentOption('expandtab', doc)) == 1
+    if (uri) doc = this.getDocument(uri)
+    let bufnr = doc ? doc.bufnr : 0
+    let [tabSize, insertSpaces] = await this.nvim.call('coc#util#get_format_opts', [bufnr]) as [number, number]
     return {
       tabSize,
-      insertSpaces
+      insertSpaces: insertSpaces == 1
     } as FormattingOptions
   }
 
@@ -1161,7 +1150,7 @@ export class Workspace implements IWorkspace {
     if (filepath.startsWith('~')) {
       filepath = os.homedir() + filepath.slice(1)
     }
-    if (filepath.indexOf('$') !== -1) {
+    if (filepath.includes('$')) {
       let doc = this.getDocument(this.bufnr)
       let fsPath = doc ? URI.parse(doc.uri).fsPath : ''
       filepath = filepath.replace(/\$\{(.*?)\}/g, (match: string, name: string) => {
@@ -1187,9 +1176,10 @@ export class Workspace implements IWorkspace {
             return fsPath ? path.extname(fsPath) : ''
           case 'fileBasename':
             return fsPath ? path.basename(fsPath) : ''
-          case 'fileBasenameNoExtension':
+          case 'fileBasenameNoExtension': {
             let basename = fsPath ? path.basename(fsPath) : ''
             return basename ? basename.slice(0, basename.length - path.extname(basename).length) : ''
+          }
           default:
             return match
         }
@@ -1271,7 +1261,7 @@ export class Workspace implements IWorkspace {
    */
   public registerTextDocumentContentProvider(scheme: string, provider: TextDocumentContentProvider): Disposable {
     this.schemeProviderMap.set(scheme, provider)
-    this.setupDynamicAutocmd() // tslint:disable-line
+    this.setupDynamicAutocmd()
     let disposables: Disposable[] = []
     if (provider.onDidChange) {
       provider.onDidChange(async uri => {
@@ -1357,9 +1347,8 @@ export class Workspace implements IWorkspace {
    */
   public createStatusBarItem(priority = 0, opt: StatusItemOption = {}): StatusBarItem {
     if (!this.statusLine) {
-      // tslint:disable-next-line: no-empty
       let fn = () => { }
-      return { text: '', show: fn, dispose: fn, hide: fn, priority: 0, isProgress: true }
+      return { text: '', show: fn, dispose: fn, hide: fn, priority: 0, isProgress: false }
     }
     return this.statusLine.createStatusBarItem(priority, opt.progress || false)
   }
@@ -1472,9 +1461,7 @@ augroup end`
     this._attached = true
     let buffers = await this.nvim.buffers
     let bufnr = this.bufnr = await this.nvim.call('bufnr', '%')
-    await Promise.all(buffers.map(buf => {
-      return this.onBufCreate(buf)
-    }))
+    await Promise.all(buffers.map(buf => this.onBufCreate(buf)))
     if (!this._initialized) {
       this._onDidWorkspaceInitialized.fire(void 0)
       this._initialized = true
@@ -1540,7 +1527,7 @@ augroup end`
   // events for sync buffer of vim
   private attachChangedEvents(): void {
     if (this.isVim) {
-      const onChange = async (bufnr: number) => {
+      const onChange = (bufnr: number) => {
         let doc = this.getDocument(bufnr)
         if (doc && doc.shouldAttach) doc.fetchContent()
       }
@@ -1581,7 +1568,7 @@ augroup end`
     if (document.buftype == '' && document.schema == 'file') {
       let config = this.getConfiguration('workspace')
       let filetypes = config.get<string[]>('ignoredFiletypes', [])
-      if (filetypes.indexOf(document.filetype) == -1) {
+      if (!filetypes.includes(document.filetype)) {
         let root = this.resolveRoot(document)
         if (root) {
           this.addWorkspaceFolder(root)
@@ -1599,7 +1586,7 @@ augroup end`
     logger.debug('buffer created', buffer.id)
   }
 
-  private async onBufEnter(bufnr: number): Promise<void> {
+  private onBufEnter(bufnr: number): void {
     this.bufnr = bufnr
     let doc = this.getDocument(bufnr)
     if (doc) {
@@ -1614,7 +1601,7 @@ augroup end`
     await this.checkBuffer(bufnr)
   }
 
-  private async onBufWritePost(bufnr: number): Promise<void> {
+  private onBufWritePost(bufnr: number): void {
     let doc = this.buffers.get(bufnr)
     if (!doc) return
     this._onDidSaveDocument.fire(doc.textDocument)
@@ -1805,7 +1792,7 @@ augroup end`
   public addRootPattern(filetype: string, rootPatterns: string[]): void {
     let patterns = this.rootPatterns.get(filetype) || []
     for (let p of rootPatterns) {
-      if (patterns.indexOf(p) == -1) {
+      if (!patterns.includes(p)) {
         patterns.push(p)
       }
     }
@@ -1814,15 +1801,6 @@ augroup end`
 
   public get insertMode(): boolean {
     return this._insertMode
-  }
-
-  private getDocumentOption(name: string, doc?: Document): Promise<any> {
-    if (doc) {
-      return doc.buffer.getOption(name).catch(_e => {
-        return this.nvim.getOption(name)
-      })
-    }
-    return this.nvim.getOption(name)
   }
 
   private addWorkspaceFolder(rootPath: string): WorkspaceFolder {
@@ -1843,12 +1821,12 @@ augroup end`
   }
 
   private getServerRootPatterns(filetype: string): string[] {
-    let lspConfig = this.getConfiguration().get<{ string: LanguageServerConfig }>('languageserver', {} as any)
+    let lspConfig = this.getConfiguration().get<{ key: LanguageServerConfig }>('languageserver', {} as any)
     let patterns: string[] = []
     for (let key of Object.keys(lspConfig)) {
       let config: LanguageServerConfig = lspConfig[key]
       let { filetypes, rootPatterns } = config
-      if (filetypes && rootPatterns && filetypes.indexOf(filetype) !== -1) {
+      if (filetypes && rootPatterns && filetypes.includes(filetype)) {
         patterns.push(...rootPatterns)
       }
     }

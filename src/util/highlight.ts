@@ -36,15 +36,13 @@ let env: Env = null
 export function getHiglights(lines: string[], filetype: string, timeout = 500): Promise<Highlight[]> {
   const hlMap: Map<number, string> = new Map()
   const content = lines.join('\n')
-  if (diagnosticFiletypes.indexOf(filetype) != -1) {
-    let highlights = lines.map((line, i) => {
-      return {
+  if (diagnosticFiletypes.includes(filetype)) {
+    let highlights = lines.map((line, i) => ({
         line: i,
         colStart: 0,
         colEnd: byteLength(line),
         hlGroup: `Coc${filetype}Float`
-      }
-    })
+      }))
     return Promise.resolve(highlights)
   }
   if (filetype == 'javascriptreact') {
@@ -53,9 +51,7 @@ export function getHiglights(lines: string[], filetype: string, timeout = 500): 
   if (filetype == 'typescriptreact') {
     filetype = 'typescript'
   }
-  let maxBytes = lines.reduce((p, c) => {
-    return Math.max(p, byteLength(c))
-  }, 0)
+  let maxBytes = lines.reduce((p, c) => Math.max(p, byteLength(c)), 0)
   const id = createHash('md5').update(content).digest('hex')
   if (cache[id]) return Promise.resolve(cache[id])
   if (workspace.env.isVim) return Promise.resolve([])
@@ -134,7 +130,6 @@ export function getHiglights(lines: string[], filetype: string, timeout = 500): 
                 let colStart = 0
                 let hlGroup = ''
                 let currId = 0
-                // tslint:disable-next-line: prefer-for-of
                 for (let i = 0; i < cells.length; i++) {
                   let cell = cells[i]
                   let [ch, hlId, repeat] = cell as [string, number?, number?]

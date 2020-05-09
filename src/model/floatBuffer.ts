@@ -27,7 +27,7 @@ export default class FloatBuffer {
   public async setDocuments(docs: Documentation[], width: number): Promise<void> {
     let fragments = this.calculateFragments(docs, width)
     let { filetype } = docs[0]
-    if (diagnosticFiletypes.indexOf(filetype) == -1) {
+    if (!diagnosticFiletypes.includes(filetype)) {
       this.filetype = filetype
     }
     if (workspace.isNvim) {
@@ -37,13 +37,7 @@ export default class FloatBuffer {
       }, [])
     }
     if (this.enableHighlight) {
-      let arr = await Promise.all(fragments.map(f => {
-        return getHiglights(f.lines, f.filetype, this.highlightTimeout).then(highlights => {
-          return highlights.map(highlight => {
-            return Object.assign({}, highlight, { line: highlight.line + f.start })
-          })
-        })
-      }))
+      let arr = await Promise.all(fragments.map(f => getHiglights(f.lines, f.filetype, this.highlightTimeout).then(highlights => highlights.map(highlight => Object.assign({}, highlight, { line: highlight.line + f.start })))))
       this.highlights = arr.reduce((p, c) => p.concat(c), [])
     } else {
       this.highlights = []
@@ -84,6 +78,7 @@ export default class FloatBuffer {
     // vim will clear text properties
     if (workspace.isNvim) buffer.clearNamespace(-1, 0, -1)
     if (workspace.isNvim) {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
     } else {
       nvim.call('coc#util#set_buf_lines', [bufnr, lines], true)
@@ -100,7 +95,7 @@ export default class FloatBuffer {
           if (line) {
             let before = line[characterIndex(line, highlight.colStart)]
             let after = line[characterIndex(line, highlight.colEnd) - 1]
-            if (before == after && ['_', '`', '*'].indexOf(before) !== -1) {
+            if (before == after && ['_', '`', '*'].includes(before)) {
               positions.push([highlight.line + 1, highlight.colStart + 1])
               positions.push([highlight.line + 1, highlight.colEnd])
             }

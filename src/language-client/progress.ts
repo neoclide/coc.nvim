@@ -11,7 +11,7 @@ import progressManager from './progressPart'
 
 function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
   if (target[key] === void 0) {
-    target[key] = Object.create(null) as any
+    target[key] = Object.create(null)
   }
   return target[key]
 }

@@ -1,6 +1,5 @@
 import fs from 'fs'
 import minimatch from 'minimatch'
-import os from 'os'
 import path from 'path'
 import util from 'util'
 import { Disposable } from 'vscode-languageserver-protocol'
@@ -43,7 +42,7 @@ export default class File extends Source {
     let { line, colnr } = opt
     let part = byteSlice(line, 0, colnr - 1)
     part = this.resolveEnvVariables(part)
-    if (!part || part.slice(-2) == '//') return null
+    if (!part || part.endsWith('//')) return null
     let ms = part.match(pathRe)
     if (ms && ms.length) {
       const pathstr = workspace.expand(ms[0])
@@ -69,7 +68,7 @@ export default class File extends Source {
     let ignorePatterns = this.getConfig('ignorePatterns', [])
     return files.filter(f => {
       if (f == null) return false
-      if (ignoreHidden && /^\./.test(f)) return false
+      if (ignoreHidden && f.startsWith(".")) return false
       for (let p of ignorePatterns) {
         if (minimatch(f, p, { dot: true })) return false
       }
@@ -79,15 +78,13 @@ export default class File extends Source {
 
   public async getItemsFromRoot(pathstr: string, root: string): Promise<VimCompleteItem[]> {
     let res = []
-    let part = /\/$/.test(pathstr) ? pathstr : path.dirname(pathstr)
+    let part = pathstr.endsWith("/") ? pathstr : path.dirname(pathstr)
     let dir = path.isAbsolute(pathstr) ? part : path.join(root, part)
     let stat = await statAsync(dir)
     if (stat && stat.isDirectory()) {
       let files = await util.promisify(fs.readdir)(dir)
       files = this.filterFiles(files)
-      let items = await Promise.all(files.map(filename => {
-        return this.getFileItem(dir, filename)
-      }))
+      let items = await Promise.all(files.map(filename => this.getFileItem(dir, filename)))
       res = res.concat(items)
     }
     res = res.filter(item => item != null)
@@ -109,10 +106,10 @@ export default class File extends Source {
     let ext = path.extname(path.basename(filepath))
     let cwd = await this.nvim.call('getcwd', [])
     let root
-    if (/^\./.test(pathstr)) {
+    if (pathstr.startsWith(".")) {
       root = filepath ? path.dirname(filepath) : cwd
-    } else if (/^\//.test(pathstr)) {
-      root = /\/$/.test(pathstr) ? pathstr : path.dirname(pathstr)
+    } else if (pathstr.startsWith("/")) {
+      root = pathstr.endsWith("/") ? pathstr : path.dirname(pathstr)
     } else if (part) {
       if (fs.existsSync(path.join(dirname, part))) {
         root = dirname
@@ -124,7 +121,7 @@ export default class File extends Source {
     }
     if (!root) return null
     let items = await this.getItemsFromRoot(pathstr, root)
-    let trimExt = this.trimSameExts.indexOf(ext) != -1
+    let trimExt = this.trimSameExts.includes(ext)
     let first = input[0]
     if (first && col == startcol) items = items.filter(o => o.word[0] === first)
     return {

@@ -132,9 +132,7 @@ describe('extensions active events', () => {
       }
     } as any
     Object.defineProperty(ext, 'isActive', {
-      get: () => {
-        return isActive
-      }
+      get: () => isActive
     })
     extensions.registerExtension(ext, () => {
       isActive = false

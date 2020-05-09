@@ -7,9 +7,7 @@ import { v4 as uuid } from 'uuid'
 export default class SignatureManager extends Manager<SignatureHelpProvider> implements Disposable {
 
   public register(selector: DocumentSelector, provider: SignatureHelpProvider, triggerCharacters?: string[]): Disposable {
-    let characters = triggerCharacters.reduce((p, c) => {
-      return p.concat(c.split(/\s*/g))
-    }, [] as string[])
+    let characters = triggerCharacters.reduce((p, c) => p.concat(c.split(/\s*/g)), [] as string[])
     let item: ProviderItem<SignatureHelpProvider> = {
       id: uuid(),
       selector,

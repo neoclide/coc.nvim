@@ -367,13 +367,13 @@ export default class Document {
     if (!chars.isKeywordChar('-')) return res
     for (let word of words) {
       word = word.replace(/^-+/, '')
-      if (word.indexOf('-') !== -1) {
+      if (word.includes('-')) {
         let parts = word.split('-')
         for (let part of parts) {
           if (
             part.length > 2 &&
-            res.indexOf(part) === -1 &&
-            words.indexOf(part) === -1
+            !res.includes(part) &&
+            !words.includes(part)
           ) {
             res.push(part)
           }
@@ -440,7 +440,7 @@ export default class Document {
     if (!this.env.isVim || !this.attached) return
     let { nvim, buffer } = this
     let { id } = buffer
-    let o = (await nvim.call('coc#util#get_content', id)) as any
+    let o = (await nvim.call('coc#util#get_content', id))
     if (!o) return
     let { content, changedtick } = o
     this._changedtick = changedtick
@@ -511,7 +511,7 @@ export default class Document {
     for (let i = start.length - 1; i >= 0; i--) {
       let c = start[i]
       if (c == ' ') break
-      if (!chars.isKeywordChar(c) && valids.indexOf(c) === -1) {
+      if (!chars.isKeywordChar(c) && !valids.includes(c)) {
         break
       }
       col = col - byteLength(c)
@@ -583,14 +583,13 @@ export default class Document {
         let { start, end } = range
         if (comparePosition(start, end) == 0) continue
         let line = this.getline(start.line)
-        // tslint:disable-next-line: no-floating-promises
         this.buffer.addHighlight({
           hlGroup,
           srcId,
           line: start.line,
           colStart: byteIndex(line, start.character),
           colEnd: end.line - start.line == 1 && end.character == 0 ? -1 : byteIndex(line, end.character)
-        })
+        }).logError()
       }
       res.push(srcId)
     }

@@ -65,7 +65,7 @@ export class ListManager implements Disposable {
       if (this.isActivated) nvim.command('redraw!', true)
     }, null, this.disposables)
     events.on('InputChar', this.onInputChar, this, this.disposables)
-    events.on('FocusGained', debounce(async () => {
+    events.on('FocusGained', debounce(() => {
       if (this.activated) this.prompt.drawPrompt()
     }, 100), null, this.disposables)
     events.on('BufEnter', debounce(async () => {
@@ -108,7 +108,7 @@ export class ListManager implements Disposable {
     this.ui.onDidClose(async () => {
       await this.cancel()
     }, null, this.disposables)
-    this.ui.onDidChange(async () => {
+    this.ui.onDidChange(() => {
       if (this.activated) {
         this.updateStatus()
       }
@@ -241,7 +241,7 @@ export class ListManager implements Disposable {
     await nvim.resumeNotification()
   }
 
-  public async switchMatcher(): Promise<void> {
+  public switchMatcher(): void {
     let { matcher, interactive } = this.listOptions
     if (interactive) return
     const list: Matcher[] = ['fuzzy', 'strict', 'regex']
@@ -249,7 +249,7 @@ export class ListManager implements Disposable {
     if (idx >= list.length) idx = 0
     this.listOptions.matcher = list[idx]
     this.prompt.matcher = list[idx]
-    await this.worker.drawItems()
+    this.worker.drawItems()
   }
 
   public async togglePreview(): Promise<void> {
@@ -292,7 +292,7 @@ export class ListManager implements Disposable {
     }
     if (invalids.length) {
       logger.error(`Can't create shortcut for actions: ${invalids.join(',')} of "${currList.name}" list`)
-      names = names.filter(s => invalids.indexOf(s) == -1)
+      names = names.filter(s => !invalids.includes(s))
     }
     await nvim.call('coc#list#stop_prompt')
     let n = await nvim.call('confirm', ['Choose action:', choices.join('\n')]) as number
@@ -310,7 +310,7 @@ export class ListManager implements Disposable {
     return this.currList
   }
 
-  public parseArgs(args: string[]): { list: IList, options: ListOptions, listArgs: string[] } | null {
+  public parseArgs(args: string[]): { list: IList; options: ListOptions; listArgs: string[] } | null {
     let options: string[] = []
     let interactive = false
     let autoPreview = false
@@ -381,9 +381,9 @@ export class ListManager implements Disposable {
         interactive,
         matcher,
         position,
-        ignorecase: options.indexOf('ignore-case') != -1 ? true : false,
-        mode: options.indexOf('normal') == -1 ? 'insert' : 'normal',
-        sort: options.indexOf('no-sort') == -1 ? true : false
+        ignorecase: options.includes('ignore-case') ? true : false,
+        mode: !options.includes('normal') ? 'insert' : 'normal',
+        sort: !options.includes('no-sort') ? true : false
       },
     }
   }
@@ -435,7 +435,7 @@ export class ListManager implements Disposable {
   private async onInsertInput(ch: string, charmod: number): Promise<void> {
     let { nvim } = this
     let inserted = this.charMap.get(ch) || ch
-    if (mouseKeys.indexOf(inserted) !== -1) {
+    if (mouseKeys.includes(inserted)) {
       await this.onMouseEvent(inserted)
       return
     }
@@ -466,7 +466,7 @@ export class ListManager implements Disposable {
 
   private async onNormalInput(ch: string, _charmod: number): Promise<void> {
     let inserted = this.charMap.get(ch) || ch
-    if (mouseKeys.indexOf(inserted) !== -1) {
+    if (mouseKeys.includes(inserted)) {
       await this.onMouseEvent(inserted)
       return
     }
@@ -704,7 +704,7 @@ export class ListManager implements Disposable {
     if (this.executing) return
     this.executing = true
     let { nvim } = this
-    let shouldCancel = action.persist !== true && action.name != 'preview'
+    let shouldCancel = !action.persist && action.name != 'preview'
     try {
       if (shouldCancel) {
         await this.cancel()
@@ -716,9 +716,7 @@ export class ListManager implements Disposable {
       if (action.multiple) {
         await Promise.resolve(action.execute(items, this.context))
       } else if (action.parallel) {
-        await Promise.all(items.map(item => {
-          return Promise.resolve(action.execute(item, this.context))
-        }))
+        await Promise.all(items.map(item => Promise.resolve(action.execute(item, this.context))))
       } else {
         for (let item of items) {
           await Promise.resolve(action.execute(item, this.context))
@@ -738,7 +736,6 @@ export class ListManager implements Disposable {
         if (action.reload) await this.worker.loadItems(true)
       }
     } catch (e) {
-      // tslint:disable-next-line: no-console
       console.error(e)
       if (!shouldCancel && this.activated) {
         this.prompt.start()

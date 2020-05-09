@@ -98,9 +98,7 @@ export default class Highlighter implements Disposable {
     let res: ColorRanges[] = []
     for (let info of infos) {
       let { color, range } = info
-      let idx = res.findIndex(o => {
-        return equals(toHexColor(o.color), toHexColor(color))
-      })
+      let idx = res.findIndex(o => equals(toHexColor(o.color), toHexColor(color)))
       if (idx == -1) {
         res.push({
           color,
@@ -134,7 +132,7 @@ function pad(str: string): string {
   return str.length == 1 ? `0${str}` : str
 }
 
-function toHexColor(color: Color): { red: number, green: number, blue: number } {
+function toHexColor(color: Color): { red: number; green: number; blue: number } {
   let { red, green, blue } = color
   return {
     red: Math.round(red * 255),

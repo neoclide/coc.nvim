@@ -259,7 +259,7 @@ export class SnippetSession {
   }
 
   public get placeholder(): CocSnippetPlaceholder {
-    if (!this.snippet) return
+    if (!this.snippet) return null
     return this.snippet.getPlaceholderById(this._currId)
   }
 

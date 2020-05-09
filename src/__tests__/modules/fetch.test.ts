@@ -41,22 +41,19 @@ describe('fetch', () => {
   it('should report valid proxy', async () => {
     helper.updateConfiguration('http.proxy', 'domain.com:1234')
     let agent = getAgent(parse('http://google.com'))
-    // @ts-ignore
-    let proxy = agent.options.proxy
+    let proxy = (agent as any).options.proxy
     expect(proxy.host).toBe('domain.com')
     expect(proxy.port).toBe(1234)
 
     helper.updateConfiguration('http.proxy', 'https://domain.com:1234')
     agent = getAgent(parse('http://google.com'))
-    // @ts-ignore
-    proxy = agent.options.proxy
+    proxy = (agent as any).options.proxy
     expect(proxy.host).toBe('domain.com')
     expect(proxy.port).toBe(1234)
 
     helper.updateConfiguration('http.proxy', 'user:pass@domain.com:1234')
     agent = getAgent(parse('http://google.com'))
-    // @ts-ignore
-    proxy = agent.options.proxy
+    proxy = (agent as any).options.proxy
     expect(proxy.host).toBe('domain.com')
     expect(proxy.port).toBe(1234)
     expect(proxy.proxyAuth).toBe('user:pass')

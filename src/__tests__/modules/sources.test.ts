@@ -29,9 +29,7 @@ describe('sources', () => {
       priority: 0,
       sourceType: SourceType.Service,
       triggerCharacters: [],
-      doComplete: () => {
-        return Promise.resolve({ items: [] })
-      },
+      doComplete: () => Promise.resolve({ items: [] }),
       onEnter: fn
     }
     sources.addSource(source)
@@ -74,9 +72,7 @@ describe('sources#refresh', () => {
       priority: 0,
       sourceType: SourceType.Service,
       triggerCharacters: [],
-      doComplete: () => {
-        return Promise.resolve({ items: [] })
-      },
+      doComplete: () => Promise.resolve({ items: [] }),
       refresh: fn
     }
     sources.addSource(source)
@@ -92,9 +88,7 @@ describe('sources#refresh', () => {
       priority: 0,
       sourceType: SourceType.Service,
       triggerCharacters: [],
-      doComplete: () => {
-        return Promise.resolve({ items: [] })
-      }
+      doComplete: () => Promise.resolve({ items: [] })
     }
     sources.addSource(source)
     await sources.refresh('refresh')
@@ -106,13 +100,11 @@ describe('sources#createSource', () => {
   it('should create source', async () => {
     let disposable = sources.createSource({
       name: 'custom',
-      doComplete: () => {
-        return Promise.resolve({
+      doComplete: () => Promise.resolve({
           items: [{
             word: 'custom'
           }]
         })
-      }
     })
     await helper.createDocument()
     await nvim.input('i')

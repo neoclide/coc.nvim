@@ -52,9 +52,7 @@ export default class Source implements ISource {
   public get triggerPatterns(): RegExp[] | null {
     let patterns = this.getConfig<any[]>('triggerPatterns', null)
     if (!patterns || patterns.length == 0) return null
-    return patterns.map(s => {
-      return (typeof s === 'string') ? new RegExp(s + '$') : s
-    })
+    return patterns.map(s => (typeof s === 'string') ? new RegExp(s + '$') : s)
   }
 
   public get shortcut(): string {
@@ -130,7 +128,7 @@ export default class Source implements ISource {
     let { chars } = document
     for (let i = start.length - 1; i >= 0; i--) {
       let c = start[i]
-      if (!chars.isKeywordChar(c) && valids.indexOf(c) === -1) {
+      if (!chars.isKeywordChar(c) && !valids.includes(c)) {
         break
       }
       input = `${c}${input}`
@@ -145,7 +143,7 @@ export default class Source implements ISource {
     let { disableSyntaxes } = this
     if (opt.synname && disableSyntaxes && disableSyntaxes.length) {
       let synname = (opt.synname || '').toLowerCase()
-      if (disableSyntaxes.findIndex(s => synname.indexOf(s.toLowerCase()) != -1) !== -1) {
+      if (disableSyntaxes.findIndex(s => synname.includes(s.toLowerCase())) !== -1) {
         return false
       }
     }

@@ -190,7 +190,7 @@ export default class Prompt {
     }
   }
 
-  public async insertRegister(): Promise<void> {
+  public insertRegister(): void {
     this.requestInput = true
   }
 
@@ -202,7 +202,6 @@ export default class Prompt {
   }
 
   public async eval(expression: string): Promise<void> {
-    let { cusorIndex, input } = this
     let text = await this.nvim.call('eval', [expression]) as string
     text = text.replace(/\n/g, '')
     this.addText(text)

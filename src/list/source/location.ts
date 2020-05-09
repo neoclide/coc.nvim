@@ -48,7 +48,7 @@ export default class LocationList extends BasicList {
       }
       return {
         label: `${filename} |${loc.type ? loc.type + ' ' : ''}${loc.lnum} col ${loc.col}| ${loc.text}`,
-        location: Location.create(loc.uri!, loc.range),
+        location: Location.create(loc.uri, loc.range),
         filterText
       } as ListItem
     })

@@ -526,7 +526,7 @@ export default class Refactor {
     let lineChange = lines.length - (range.end.line - range.start.line) - 1
     if (lineChange == 0) return
     let lineChanges: LineChange[] = []
-    if (text.indexOf('\u3000') !== -1) {
+    if (text.includes('\u3000')) {
       let startLine = range.start.line
       let diffs = fastDiff(original, text)
       let offset = 0

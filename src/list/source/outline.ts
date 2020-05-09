@@ -33,7 +33,7 @@ export default class Outline extends LocationList {
     let ctagsFilestypes = config.get<string[]>('ctagsFilestypes', [])
     let symbols: DocumentSymbol[] | SymbolInformation[] | null
     let args = this.parseArguments(context.args)
-    if (ctagsFilestypes.indexOf(document.filetype) == -1) {
+    if (!ctagsFilestypes.includes(document.filetype)) {
       symbols = await languages.getDocumentSymbol(document.textDocument)
     }
     if (!symbols) return await this.loadCtagsSymbols(document)
@@ -42,6 +42,7 @@ export default class Outline extends LocationList {
     let items: ListItem[] = []
     let isSymbols = !symbols[0].hasOwnProperty('location')
     if (isSymbols) {
+      // eslint-disable-next-line no-inner-declarations
       function addSymbols(symbols: DocumentSymbol[], level = 0): void {
         symbols.sort(sortSymbols)
         for (let s of symbols) {
@@ -72,7 +73,7 @@ export default class Outline extends LocationList {
       for (let s of symbols as SymbolInformation[]) {
         let kind = getSymbolKind(s.kind)
         if (s.name.endsWith(') callback')) continue
-        if (filterKind && kind.toLowerCase().indexOf(filterKind) != 0) {
+        if (filterKind && !kind.toLowerCase().startsWith(filterKind)) {
           continue
         }
         if (s.location.uri === undefined) {
@@ -97,9 +98,7 @@ export default class Outline extends LocationList {
     nvim.command('highlight default link CocOutlineName Normal', true)
     nvim.command('highlight default link CocOutlineKind Typedef', true)
     nvim.command('highlight default link CocOutlineLine Comment', true)
-    nvim.resumeNotification().catch(_e => {
-      // noop
-    })
+    nvim.resumeNotification(false, true).logError()
   }
 
   public async loadCtagsSymbols(document: Document): Promise<ListItem[]> {
@@ -141,9 +140,7 @@ export default class Outline extends LocationList {
         data: { line: lnum }
       })
     }
-    items.sort((a, b) => {
-      return a.data.line - b.data.line
-    })
+    items.sort((a, b) => a.data.line - b.data.line)
     return items
   }
 }

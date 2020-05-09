@@ -14,8 +14,7 @@ export class Mutex {
     return this.count == 0
   }
 
-  // tslint:disable-next-line: typedef
-  public acquire() {
+  public acquire(): Promise<() => void> {
     return new Promise<() => void>(res => {
       let task = () => {
         let released = false
@@ -34,8 +33,7 @@ export class Mutex {
 
   public use<T>(f: () => Promise<T>): Promise<T> {
     return this.acquire()
-      .then(release => {
-        return f()
+      .then(release => f()
           .then(res => {
             release()
             return res
@@ -43,7 +41,6 @@ export class Mutex {
           .catch(err => {
             release()
             throw err
-          })
-      })
+          }))
   }
 }

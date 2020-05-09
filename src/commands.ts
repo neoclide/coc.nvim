@@ -163,9 +163,7 @@ export class CommandManager implements Disposable {
     }, false, 'toggle auto update of extensions.')
     this.register({
       id: 'workspace.diagnosticRelated',
-      execute: () => {
-        return diagnosticManager.jumpRelated()
-      }
+      execute: () => diagnosticManager.jumpRelated()
     }, false, 'jump to related locations of current diagnostic.')
     this.register({
       id: 'workspace.showOutput',
@@ -294,7 +292,7 @@ export class CommandManager implements Disposable {
    * @return Disposable which unregisters this command on disposal.
    */
   public registerCommand(id: string, impl: (...args: any[]) => void, thisArg?: any, internal = false): Disposable {
-    if (/^_/.test(id)) internal = true
+    if (id.startsWith("_")) internal = true
     this.commands.set(id, new CommandItem(id, impl, thisArg, internal))
     return Disposable.create(() => {
       this.commands.delete(id)

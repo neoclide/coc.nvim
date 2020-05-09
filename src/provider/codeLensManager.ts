@@ -49,7 +49,6 @@ export default class CodeLensManager extends Manager<CodeLensProvider> implement
     let { source } = codeLens as any
     let provider = this.poviderById(source)
     if (!provider || typeof provider.resolveCodeLens != 'function') {
-      // tslint:disable-next-line:no-console
       console.error(`CodeLens Resolve not supported`)
       return codeLens
     }

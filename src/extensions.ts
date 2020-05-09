@@ -93,11 +93,9 @@ export class Extensions {
     stats = stats.concat(localStats)
     this.memos = new Memos(path.resolve(this.root, '../memos.json'))
     await this.loadFileExtensions()
-    await Promise.all(stats.map(stat => {
-      return this.loadExtension(stat.root, stat.isLocal).catch(e => {
-        workspace.showMessage(`Can't load extension from ${stat.root}: ${e.message}'`, 'error')
-      })
-    }))
+    await Promise.all(stats.map(stat => this.loadExtension(stat.root, stat.isLocal).catch(e => {
+      workspace.showMessage(`Can't load extension from ${stat.root}: ${e.message}'`, 'error')
+    })))
     // watch for new local extension
     workspace.watchOption('runtimepath', async (oldValue, newValue) => {
       let result = fastDiff(oldValue, newValue)
@@ -153,16 +151,14 @@ export class Extensions {
     const updates: string[] = []
     await concurrent(names.map(name => {
       let o = stats.find(o => o.id == name)
-      return (): Promise<void> => {
-        return this.manager.update(this.npm, name, o.exotic ? o.uri : undefined).then(updated => {
-          if (updated) {
-            updates.push(name)
-            this.reloadExtension(name).logError()
-          }
-        }, err => {
-          workspace.showMessage(`Error on update ${name}: ${err}`, 'error')
-        })
-      }
+      return (): Promise<void> => this.manager.update(this.npm, name, o.exotic ? o.uri : undefined).then(updated => {
+        if (updated) {
+          updates.push(name)
+          this.reloadExtension(name).logError()
+        }
+      }, err => {
+        workspace.showMessage(`Error on update ${name}: ${err}`, 'error')
+      })
     }), 5)
     if (updates.length) {
       workspace.showMessage(`Update extensions: ${updates.join(' ')}`, 'more')
@@ -179,12 +175,12 @@ export class Extensions {
       let folder = path.join(this.root, 'node_modules')
       if (fs.existsSync(folder)) {
         let files = await promisify(fs.readdir)(folder)
-        names = names.filter(s => files.indexOf(s) == -1)
+        names = names.filter(s => !files.includes(s))
       }
       let json = this.loadJson()
       if (json && json.dependencies) {
-        let vals = Object.values(json.dependencies) as string[]
-        names = names.filter(s => vals.findIndex(val => val.indexOf(s) !== -1) == -1)
+        let vals: string[] = Object.values(json.dependencies)
+        names = names.filter(s => /^https?:/.test(s) && vals.some(v => v.startsWith(s)))
       }
       this.installExtensions(names).logError()
     }
@@ -201,9 +197,7 @@ export class Extensions {
           client.subscribe('**/*.js', debounce(async () => {
             await this.reloadExtension(name)
             workspace.showMessage(`reloaded ${name}`)
-          }, 100)).catch(_e => {
-            // noop
-          })
+          }, 100)).logError()
         }
       }
     }
@@ -223,15 +217,11 @@ export class Extensions {
     let statusItem = workspace.createStatusBarItem(0, { progress: true })
     statusItem.show()
     statusItem.text = `Installing ${list.join(' ')}`
-    await concurrent(list.map(def => {
-      return (): Promise<void> => {
-        return this.manager.install(npm, def).then(name => {
-          if (name) this.onExtensionInstall(name).logError()
-        }, err => {
-          workspace.showMessage(`Error on install ${def}: ${err}`, 'error')
-        })
-      }
-    }), 3)
+    await concurrent(list.map(def => (): Promise<void> => this.manager.install(npm, def).then(name => {
+      if (name) this.onExtensionInstall(name).logError()
+    }, err => {
+      workspace.showMessage(`Error on install ${def}: ${err}`, 'error')
+    })), 3)
     statusItem.dispose()
   }
 
@@ -299,9 +289,7 @@ export class Extensions {
   public async getLockedList(): Promise<string[]> {
     let obj = await this.db.fetch('extension')
     obj = obj || {}
-    return Object.keys(obj).filter(id => {
-      return obj[id].locked === true
-    })
+    return Object.keys(obj).filter(id => obj[id].locked === true)
   }
 
   public async toggleLock(id: string): Promise<void> {
@@ -580,40 +568,38 @@ export class Extensions {
   private async globalExtensionStats(): Promise<ExtensionInfo[]> {
     let json = this.loadJson()
     if (!json || !json.dependencies) return []
-    let res: ExtensionInfo[] = await Promise.all(Object.keys(json.dependencies).map(key => {
-      return new Promise<ExtensionInfo>(async resolve => {
-        try {
-          let val = json.dependencies[key]
-          let root = path.join(this.root, 'node_modules', key)
-          let jsonFile = path.join(root, 'package.json')
-          let stat = await statAsync(jsonFile)
-          if (!stat || !stat.isFile()) return resolve(null)
-          let content = await readFile(jsonFile, 'utf8')
-          root = await realpathAsync(root)
-          let obj = JSON.parse(content)
-          let { engines } = obj
-          if (!engines || (!engines.hasOwnProperty('coc') && !engines.hasOwnProperty('vscode'))) {
-            return resolve(null)
-          }
-          let version = obj ? obj.version || '' : ''
-          let description = obj ? obj.description || '' : ''
-          let uri = isuri.isValid(val) ? val : null
-          resolve({
-            id: key,
-            isLocal: false,
-            version,
-            description,
-            exotic: /^https?:/.test(val),
-            uri,
-            root,
-            state: this.getExtensionState(key)
-          })
-        } catch (e) {
-          logger.error(e)
-          resolve(null)
+    let res: ExtensionInfo[] = await Promise.all(Object.keys(json.dependencies).map(key => new Promise<ExtensionInfo>(async resolve => {
+      try {
+        let val = json.dependencies[key]
+        let root = path.join(this.root, 'node_modules', key)
+        let jsonFile = path.join(root, 'package.json')
+        let stat = await statAsync(jsonFile)
+        if (!stat || !stat.isFile()) return resolve(null)
+        let content = await readFile(jsonFile, 'utf8')
+        root = await realpathAsync(root)
+        let obj = JSON.parse(content)
+        let { engines } = obj
+        if (!engines || (!engines.hasOwnProperty('coc') && !engines.hasOwnProperty('vscode'))) {
+          return resolve(null)
         }
-      })
-    }))
+        let version = obj ? obj.version || '' : ''
+        let description = obj ? obj.description || '' : ''
+        let uri = isuri.isValid(val) ? val : null
+        resolve({
+          id: key,
+          isLocal: false,
+          version,
+          description,
+          exotic: /^https?:/.test(val),
+          uri,
+          root,
+          state: this.getExtensionState(key)
+        })
+      } catch (e) {
+        logger.error(e)
+        resolve(null)
+      }
+    })))
     return res.filter(info => info != null)
   }
 
@@ -622,47 +608,45 @@ export class Extensions {
     let included = exclude.map(o => o.root)
     let names = exclude.map(o => o.id)
     let paths = runtimepath.split(',')
-    let res: ExtensionInfo[] = await Promise.all(paths.map(root => {
-      return new Promise<ExtensionInfo>(async resolve => {
-        try {
-          if (included.includes(root)) {
-            return resolve(null)
-          }
-          let jsonFile = path.join(root, 'package.json')
-          let stat = await statAsync(jsonFile)
-          if (!stat || !stat.isFile()) return resolve(null)
-          let content = await readFile(jsonFile, 'utf8')
-          let obj = JSON.parse(content)
-          let { engines } = obj
-          if (!engines || (!engines.hasOwnProperty('coc') && !engines.hasOwnProperty('vscode'))) {
-            return resolve(null)
-          }
-          if (names.indexOf(obj.name) !== -1) {
-            workspace.showMessage(`Skipped extension  "${root}", please remove "${obj.name}" from your vim's plugin manager.`, 'warning')
-            return resolve(null)
-          }
-          let version = obj ? obj.version || '' : ''
-          let description = obj ? obj.description || '' : ''
-          resolve({
-            id: obj.name,
-            isLocal: true,
-            version,
-            description,
-            exotic: false,
-            root,
-            state: this.getExtensionState(obj.name)
-          })
-        } catch (e) {
-          logger.error(e)
-          resolve(null)
+    let res: ExtensionInfo[] = await Promise.all(paths.map(root => new Promise<ExtensionInfo>(async resolve => {
+      try {
+        if (included.includes(root)) {
+          return resolve(null)
         }
-      })
-    }))
+        let jsonFile = path.join(root, 'package.json')
+        let stat = await statAsync(jsonFile)
+        if (!stat || !stat.isFile()) return resolve(null)
+        let content = await readFile(jsonFile, 'utf8')
+        let obj = JSON.parse(content)
+        let { engines } = obj
+        if (!engines || (!engines.hasOwnProperty('coc') && !engines.hasOwnProperty('vscode'))) {
+          return resolve(null)
+        }
+        if (names.includes(obj.name)) {
+          workspace.showMessage(`Skipped extension  "${root}", please remove "${obj.name}" from your vim's plugin manager.`, 'warning')
+          return resolve(null)
+        }
+        let version = obj ? obj.version || '' : ''
+        let description = obj ? obj.description || '' : ''
+        resolve({
+          id: obj.name,
+          isLocal: true,
+          version,
+          description,
+          exotic: false,
+          root,
+          state: this.getExtensionState(obj.name)
+        })
+      } catch (e) {
+        logger.error(e)
+        resolve(null)
+      }
+    })))
     return res.filter(info => info != null)
   }
 
   private isGlobalExtension(id: string): boolean {
-    return this.globalExtensions.indexOf(id) !== -1
+    return this.globalExtensions.includes(id)
   }
 
   private loadJson(): any {
@@ -690,7 +674,7 @@ export class Extensions {
     let active = () => {
       disposeAll(disposables)
       this.activate(id)
-      active = () => { } // tslint:disable-line
+      active = () => { }
     }
     let disposables: Disposable[] = []
     for (let eventName of activationEvents as string[]) {
@@ -766,9 +750,7 @@ export class Extensions {
           extensionPath: root,
           globalState: this.memos.createMemento(`${id}|global`),
           workspaceState: this.memos.createMemento(`${id}|${workspace.rootPath}`),
-          asAbsolutePath: relativePath => {
-            return path.join(root, relativePath)
-          },
+          asAbsolutePath: relativePath => path.join(root, relativePath),
           storagePath: path.join(this.root, `${id}-data`),
           logger: createLogger(id)
         }

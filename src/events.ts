@@ -65,12 +65,9 @@ class Events {
     }
     if (cbs) {
       try {
-        await Promise.all(cbs.map(fn => {
-          return fn(args)
-        }))
+        await Promise.all(cbs.map(fn => fn(args)))
       } catch (e) {
         if (e.message) {
-          // tslint:disable-next-line: no-console
           console.error(`Error on ${event}: ${e.message}${e.stack ? '\n' + e.stack : ''} `)
         }
         logger.error(`Handler Error on ${event}`, e.stack)
@@ -107,21 +104,23 @@ class Events {
     } else {
       let arr = this.handlers.get(event) || []
       let stack = Error().stack
-      arr.push(args => {
-        return new Promise(async (resolve, reject) => {
-          let ts = Date.now()
-          try {
-            await Promise.resolve(handler.apply(thisArg || null, args))
-            let dt = Date.now() - ts
-            if (dt > 2000) {
-              logger.warn(`Handler of ${event} cost ${dt}ms`, stack)
-            }
+      arr.push(args => new Promise((resolve, reject) => {
+        let timer
+        try {
+          Promise.resolve(handler.apply(thisArg || null, args)).then(() => {
+            if (timer) clearTimeout(timer)
             resolve()
-          } catch (e) {
+          }, e => {
+            if (timer) clearTimeout(timer)
             reject(e)
-          }
-        })
-      })
+          })
+          timer = setTimeout(() => {
+            logger.warn(`Handler of ${event} blocked more than 2s:`, stack)
+          }, 2000)
+        } catch (e) {
+          reject(e)
+        }
+      }))
       this.handlers.set(event, arr)
       let disposable = Disposable.create(() => {
         let idx = arr.indexOf(handler)

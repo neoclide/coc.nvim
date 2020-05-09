@@ -14,7 +14,6 @@ export function getPosition(opt: CompleteOption): Position {
 }
 
 export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsertCharacters: string[]): string {
-  // tslint:disable-next-line: deprecation
   let { label, data, insertTextFormat, insertText, textEdit } = item
   let word: string
   let newText: string
@@ -47,7 +46,7 @@ export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsert
   }
   if (insertTextFormat == InsertTextFormat.Snippet
     && newText
-    && newText.indexOf('$') !== -1) {
+    && newText.includes('$')) {
     let parser = new SnippetParser()
     let text = parser.text(newText)
     word = text ? getValidWord(text, invalidInsertCharacters) : label
@@ -79,7 +78,7 @@ export function getValidWord(text: string, invalidChars: string[]): string {
   if (!text) return ''
   for (let i = 0; i < text.length; i++) {
     let c = text[i]
-    if (invalidChars.indexOf(c) !== -1) {
+    if (invalidChars.includes(c)) {
       return text.slice(0, i)
     }
   }

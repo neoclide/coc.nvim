@@ -1,4 +1,4 @@
-/*---------------------------------------------------------------------------------------------
+/* ---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
@@ -58,20 +58,18 @@ export class TypeDefinitionFeature extends TextDocumentFeature<boolean | TypeDef
     const provider: TypeDefinitionProvider = {
       provideTypeDefinition: (document, position, token) => {
         const client = this._client
-        const provideTypeDefinition: ProvideTypeDefinitionSignature = (document, position, token) => {
-          return client.sendRequest(TypeDefinitionRequest.type, cv.asTextDocumentPositionParams(document, position), token).then(
+        const provideTypeDefinition: ProvideTypeDefinitionSignature = (document, position, token) => client.sendRequest(TypeDefinitionRequest.type, cv.asTextDocumentPositionParams(document, position), token).then(
             res => res, error => {
               client.logFailedRequest(TypeDefinitionRequest.type, error)
               return Promise.resolve(null)
             }
           )
-        }
-        const middleware = client.clientOptions.middleware!
+        const middleware = client.clientOptions.middleware
         return middleware.provideTypeDefinition
           ? middleware.provideTypeDefinition(document, position, token, provideTypeDefinition)
           : provideTypeDefinition(document, position, token)
       }
     }
-    return [languages.registerTypeDefinitionProvider(options.documentSelector!, provider), provider]
+    return [languages.registerTypeDefinitionProvider(options.documentSelector, provider), provider]
   }
 }

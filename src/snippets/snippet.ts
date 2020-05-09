@@ -50,7 +50,7 @@ export class CocSnippet {
     let { range, newText } = edit
     if (comparePosition(this.range.start, range.end) < 0) return false
     // check change of placeholder at beginning
-    if (newText.indexOf('\n') == -1
+    if (!newText.includes('\n')
       && comparePosition(range.start, range.end) == 0
       && comparePosition(this.range.start, range.start) == 0) {
       let idx = this._placeholders.findIndex(o => comparePosition(o.range.start, range.start) == 0)
@@ -131,9 +131,7 @@ export class CocSnippet {
   }
 
   public getPlaceholderByRange(range: Range): CocSnippetPlaceholder {
-    return this._placeholders.find(o => {
-      return rangeInRange(range, o.range)
-    })
+    return this._placeholders.find(o => rangeInRange(range, o.range))
   }
 
   public insertSnippet(placeholder: CocSnippetPlaceholder, snippet: string, range: Range): number {
@@ -155,13 +153,13 @@ export class CocSnippet {
 
   // update internal positions, no change of buffer
   // return TextEdit list when needed
-  public updatePlaceholder(placeholder: CocSnippetPlaceholder, edit: TextEdit): { edits: TextEdit[], delta: number } {
+  public updatePlaceholder(placeholder: CocSnippetPlaceholder, edit: TextEdit): { edits: TextEdit[]; delta: number } {
     let { start, end } = edit.range
     let { range } = this
     let { value, id, index } = placeholder
     let newText = editRange(placeholder.range, value, edit)
     let delta = 0
-    if (newText.indexOf('\n') == -1) {
+    if (!newText.includes('\n')) {
       for (let p of this._placeholders) {
         if (p.index == index &&
           p.id < id &&

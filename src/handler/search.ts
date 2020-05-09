@@ -30,7 +30,7 @@ class Task extends EventEmitter {
     let highlights: Range[] = []
     let create = true
     rl.on('line', content => {
-      if (content.indexOf(controlCode) !== -1) {
+      if (content.includes(controlCode)) {
         let items = ansiparse(content)
         if (items[0].foreground == 'black') {
           fileItem = { filepath: path.join(cwd, items[0].text), ranges: [] }
@@ -163,7 +163,8 @@ export default class Search {
             let buf = document.buffer
             nvim.pauseNotification()
             if (files == 0) {
-              buf.setLines(['No match found'], { start: 1, end: 2, strictIndexing: false })
+              // eslint-disable-next-line @typescript-eslint/no-floating-promises
+              buf.setLines(['No match found'], { start: 1, end: 2, strictIndexing: false }, true)
               buf.addHighlight({ line: 1, srcId: -1, colEnd: -1, colStart: 0, hlGroup: 'Error' }).logError()
               buf.setOption('modified', false, true)
             } else {

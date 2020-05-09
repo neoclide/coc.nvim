@@ -20,7 +20,6 @@ export interface CursorPosition {
 
 process.on('uncaughtException', err => {
   let msg = 'Uncaught exception: ' + err.stack
-  // tslint:disable-next-line: no-console
   console.error(msg)
 })
 export class Helper extends Emitter {

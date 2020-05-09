@@ -7,7 +7,7 @@
  * @return {Function} A new function that wraps the `func` function passed in.
  */
 
-export default function throttle(func: Function, wait: number): Function & { clear(): void; } {
+export default function throttle(func: Function, wait: number): Function & { clear(): void } {
   let args
   let rtn
   let timeoutID

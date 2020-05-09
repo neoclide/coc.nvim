@@ -11,7 +11,7 @@ beforeAll(async () => {
 })
 
 describe('Helper', () => {
-  it('should setup', async () => {
+  it('should setup', () => {
     expect(nvim).toBeTruthy()
     expect(plugin.isReady).toBeTruthy()
   })

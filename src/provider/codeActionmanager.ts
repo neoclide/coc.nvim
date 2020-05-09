@@ -32,7 +32,7 @@ export default class CodeActionManager extends Manager<CodeActionProvider> imple
     if (context.only) {
       let { only } = context
       providers = providers.filter(p => {
-        if (p.kinds && !p.kinds.some(kind => only.indexOf(kind) != -1)) {
+        if (p.kinds && !p.kinds.some(kind => only.includes(kind))) {
           return false
         }
         return true
@@ -50,7 +50,7 @@ export default class CodeActionManager extends Manager<CodeActionProvider> imple
             codeActions.push(CodeAction.create(action.title, action))
           } else {
             if (context.only) {
-              if (!action.kind || context.only.indexOf(action.kind) == -1) {
+              if (!action.kind || !context.only.includes(action.kind)) {
                 continue
               }
             }

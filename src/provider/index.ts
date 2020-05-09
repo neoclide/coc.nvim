@@ -233,6 +233,7 @@ export interface FoldingRangeProvider {
   /**
    * Returns a list of folding ranges or null and undefined if the provider
    * does not want to participate or was cancelled.
+   *
    * @param document The document in which the command was invoked.
    * @param context Additional context information (for future use)
    * @param token A cancellation token.
@@ -585,7 +586,7 @@ export interface DocumentColorProvider {
    * @return An array of color presentations or a thenable that resolves to such. The lack of a result
    * can be signaled by returning `undefined`, `null`, or an empty array.
    */
-  provideColorPresentations(color: Color, context: { document: TextDocument, range: Range }, token: CancellationToken): ProviderResult<ColorPresentation[]>
+  provideColorPresentations(color: Color, context: { document: TextDocument; range: Range }, token: CancellationToken): ProviderResult<ColorPresentation[]>
 }
 
 export interface TextDocumentContentProvider {

@@ -37,10 +37,10 @@ export default class ConfigurationProxy implements ConfigurationShape {
   }
 
   public $updateConfigurationOption(target: ConfigurationTarget, key: string, value: any): void {
-    this.modifyConfiguration(target, key, value) // tslint:disable-line
+    this.modifyConfiguration(target, key, value).logError()
   }
 
   public $removeConfigurationOption(target: ConfigurationTarget, key: string): void {
-    this.modifyConfiguration(target, key) // tslint:disable-line
+    this.modifyConfiguration(target, key).logError()
   }
 }

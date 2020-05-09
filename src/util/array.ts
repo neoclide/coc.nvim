@@ -1,7 +1,7 @@
 
 export function intersect<T>(array: T[], other: T[]): boolean {
   for (let item of other) {
-    if (array.indexOf(item) !== -1) {
+    if (array.includes(item)) {
       return true
     }
   }
@@ -27,9 +27,7 @@ export function group<T>(array: T[], size: number): T[][] {
  */
 export function distinct<T>(array: T[], keyFn?: (t: T) => string): T[] {
   if (!keyFn) {
-    return array.filter((element, position) => {
-      return array.indexOf(element) === position
-    })
+    return array.filter((element, position) => array.indexOf(element) === position)
   }
 
   const seen: { [key: string]: boolean } = Object.create(null)

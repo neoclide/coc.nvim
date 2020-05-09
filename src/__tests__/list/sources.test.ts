@@ -189,9 +189,7 @@ describe('list sources', () => {
   describe('symbols', () => {
     it('should load symbols source', async () => {
       let disposable = languages.registerWorkspaceSymbolProvider([{ scheme: 'file' }, { scheme: 'untitled' }], {
-        provideWorkspaceSymbols: () => {
-          return []
-        }
+        provideWorkspaceSymbols: () => []
       })
       await manager.start(['symbols'])
       await manager.ui.ready
@@ -204,9 +202,7 @@ describe('list sources', () => {
   describe('links', () => {
     it('should load links source', async () => {
       let disposable = languages.registerDocumentLinkProvider([{ scheme: 'file' }, { scheme: 'untitled' }], {
-        provideDocumentLinks: () => {
-          return []
-        }
+        provideDocumentLinks: () => []
       })
       await manager.start(['links'])
       await manager.ui.ready

@@ -29,9 +29,7 @@ export default class Complete {
     private sources: ISource[],
     private nvim: Neovim) {
     Object.defineProperty(this, 'recentScores', {
-      get: (): RecentScore => {
-        return recentScores || {}
-      }
+      get: (): RecentScore => recentScores || {}
     })
   }
 
@@ -56,7 +54,7 @@ export default class Complete {
   }
 
   public get isIncomplete(): boolean {
-    return this.results.findIndex(o => o.isIncomplete == true) !== -1
+    return this.results.findIndex(o => o.isIncomplete) !== -1
   }
 
   private async completeSource(source: ISource): Promise<void> {
@@ -146,11 +144,11 @@ export default class Complete {
 
   public async completeInComplete(resumeInput: string): Promise<VimCompleteItem[]> {
     let { results, document } = this
-    let remains = results.filter(res => res.isIncomplete != true)
+    let remains = results.filter(res => !res.isIncomplete)
     remains.forEach(res => {
       res.items.forEach(item => delete item.user_data)
     })
-    let arr = results.filter(res => res.isIncomplete == true)
+    let arr = results.filter(res => res.isIncomplete)
     let names = arr.map(o => o.source)
     let { input, colnr, linenr } = this.option
     Object.assign(this.option, {
@@ -160,7 +158,7 @@ export default class Complete {
       triggerCharacter: null,
       triggerForInComplete: true
     })
-    let sources = this.sources.filter(s => names.indexOf(s.name) !== -1)
+    let sources = this.sources.filter(s => names.includes(s.name))
     await Promise.all(sources.map(s => this.completeSource(s)))
     return this.filterResults(resumeInput, Math.floor(Date.now() / 1000))
   }
@@ -185,10 +183,10 @@ export default class Complete {
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let { items, source, priority } = res
-      // tslint:disable-next-line: prefer-for-of
       for (let idx = 0; idx < items.length; idx++) {
         let item = items[idx]
         let { word } = item
+        // eslint-disable-next-line no-control-regex
         if (asciiCharactersOnly && !/^[\x00-\x7F]*$/.test(word)) {
           continue
         }
@@ -289,9 +287,7 @@ export default class Complete {
     let codes = getCharCodes(input)
     for (let i = 0, l = results.length; i < l; i++) {
       let items = results[i].items
-      let idx = items.findIndex(item => {
-        return fuzzyMatch(codes, item.filterText || item.word)
-      })
+      let idx = items.findIndex(item => fuzzyMatch(codes, item.filterText || item.word))
       if (idx !== -1) return true
     }
     return false
@@ -344,7 +340,7 @@ export default class Complete {
     let idx = characterIndex(line, colnr - 1)
     if (idx == line.length) return ''
     let part = line.slice(idx - line.length)
-    return part.match(/^\S?[\w\-]*/)[0]
+    return part.match(/^\S?[\w-]*/)[0]
   }
 
   public dispose(): void {

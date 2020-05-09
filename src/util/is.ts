@@ -1,3 +1,4 @@
+/* eslint-disable id-blacklist */
 const hasOwnProperty = Object.prototype.hasOwnProperty
 
 export function boolean(value: any): value is boolean {

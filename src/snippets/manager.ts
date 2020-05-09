@@ -14,13 +14,6 @@ export class SnippetManager implements types.SnippetManager {
   private statusItem: types.StatusBarItem
 
   constructor() {
-    // tslint:disable-next-line:no-floating-promises
-    workspace.ready.then(() => {
-      let config = workspace.getConfiguration('coc.preferences')
-      this.statusItem = workspace.createStatusBarItem(0)
-      this.statusItem.text = config.get<string>('snippetStatusText', 'SNIP')
-    })
-
     workspace.onDidChangeTextDocument(async (e: DidChangeTextDocumentParams) => {
       let { uri } = e.textDocument
       let doc = workspace.getDocument(uri)
@@ -55,6 +48,12 @@ export class SnippetManager implements types.SnippetManager {
     }, null, this.disposables)
   }
 
+  public init(): void {
+    let config = workspace.getConfiguration('coc.preferences')
+    this.statusItem = workspace.createStatusBarItem(0)
+    this.statusItem.text = config.get<string>('snippetStatusText', 'SNIP')
+  }
+
   /**
    * Insert snippet at current cursor position
    */
@@ -84,7 +83,7 @@ export class SnippetManager implements types.SnippetManager {
 
   public isPlainText(text: string): boolean {
     let snippet = (new SnippetParser()).parse(text, true)
-    if (snippet.placeholders.every(p => p.isFinalTabstop == true && p.toString() == '')) {
+    if (snippet.placeholders.every(p => p.isFinalTabstop && p.toString() == '')) {
       return true
     }
     return false

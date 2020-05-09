@@ -1,4 +1,3 @@
-/* tslint:disable:no-console */
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { URI } from 'vscode-uri'
@@ -199,8 +198,7 @@ describe('ansiparse', () => {
 describe('Mutex', () => {
   test('mutex run in serial', async () => {
     let lastTs: number
-    let fn = () => {
-      return new Promise(resolve => {
+    let fn = () => new Promise<void>(resolve => {
         if (lastTs) {
           let dt = Date.now() - lastTs
           expect(dt).toBeGreaterThanOrEqual(298)
@@ -210,7 +208,6 @@ describe('Mutex', () => {
           resolve()
         }, 300)
       })
-    }
     let mutex = new Mutex()
     await Promise.all([
       mutex.use(fn),
@@ -221,14 +218,12 @@ describe('Mutex', () => {
 
   test('mutex run after job finish', async () => {
     let count = 0
-    let fn = () => {
-      return new Promise(resolve => {
+    let fn = () => new Promise<void>(resolve => {
         count = count + 1
         setTimeout(() => {
           resolve()
         }, 100)
       })
-    }
     let mutex = new Mutex()
     await mutex.use(fn)
     await helper.wait(10)

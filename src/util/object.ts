@@ -109,12 +109,12 @@ export function equals(one: any, other: any): boolean {
   } else {
     const oneKeys: string[] = []
 
-    for (key in one) { // tslint:disable-line
+    for (key in one) {
       oneKeys.push(key)
     }
     oneKeys.sort()
     const otherKeys: string[] = []
-    for (key in other) { // tslint:disable-line
+    for (key in other) {
       otherKeys.push(key)
     }
     otherKeys.sort()

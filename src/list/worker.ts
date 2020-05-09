@@ -32,7 +32,7 @@ export default class Worker {
 
   constructor(private nvim: Neovim, private manager: ListManager) {
     let { prompt } = manager
-    prompt.onDidChangeInput(async () => {
+    prompt.onDidChangeInput(() => {
       let { listOptions } = manager
       let { interactive } = listOptions
       let time = manager.getConfig<number>('interactiveDebounceTime', 100)
@@ -45,8 +45,8 @@ export default class Worker {
         }, time)
       } else if (this.length) {
         let wait = Math.max(Math.min(Math.floor(this.length / 200), 300), 50)
-        this.timer = setTimeout(async () => {
-          await this.drawItems()
+        this.timer = setTimeout(() => {
+          this.drawItems()
         }, wait)
       }
     })
@@ -64,7 +64,7 @@ export default class Worker {
     this._loading = loading
     let { nvim } = this
     if (loading) {
-      this.interval = setInterval(async () => {
+      this.interval = setInterval(() => {
         let idx = Math.floor((new Date()).getMilliseconds() / 100)
         nvim.pauseNotification()
         nvim.setVar('coc_list_loading_status', frames[idx], true)
@@ -161,7 +161,7 @@ export default class Worker {
           this._onDidChangeItems.fire({ items, highlights, append: true })
         }
       }
-      task.on('data', async item => {
+      task.on('data', item => {
         if (timer) clearTimeout(timer)
         if (token.isCancellationRequested) return
         if (interactive && this.input != currInput) return
@@ -194,7 +194,7 @@ export default class Worker {
         workspace.showMessage(`Task error: ${error.toString()}`, 'error')
         logger.error(error)
       })
-      task.on('end', async () => {
+      task.on('end', () => {
         task = null
         this.loading = false
         disposable.dispose()
@@ -210,7 +210,7 @@ export default class Worker {
   }
 
   // draw all items with filter if necessary
-  public async drawItems(): Promise<void> {
+  public drawItems(): void {
     let { totalItems } = this
     let { listOptions, isActivated } = this.manager
     if (!isActivated) return
@@ -258,7 +258,7 @@ export default class Worker {
     })
   }
 
-  private filterItems(items: ListItem[]): { items: ListItem[], highlights: ListHighlights[] } {
+  private filterItems(items: ListItem[]): { items: ListItem[]; highlights: ListHighlights[] } {
     let { input } = this.manager.prompt
     let highlights: ListHighlights[] = []
     let { sort, matcher, ignorecase } = this.manager.listOptions
@@ -292,7 +292,6 @@ export default class Worker {
           try {
             let regex = new RegExp(c, flags)
             p.push(regex)
-            // tslint:disable-next-line: no-empty
           } catch (e) { }
           return p
         }, [])
@@ -387,7 +386,7 @@ export default class Worker {
   // set correct label, add ansi highlights
   private parseListItemAnsi(item: ListItem): void {
     let { label } = item
-    if (item.ansiHighlights || label.indexOf(controlCode) == -1) return
+    if (item.ansiHighlights || !label.includes(controlCode)) return
     let { line, highlights } = parseAnsiHighlights(label)
     item.label = line
     item.ansiHighlights = highlights

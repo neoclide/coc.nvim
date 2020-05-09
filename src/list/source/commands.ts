@@ -49,9 +49,7 @@ export default class CommandsList extends BasicList {
         })
       }
     }
-    items.sort((a, b) => {
-      return b.data.score - a.data.score
-    })
+    items.sort((a, b) => b.data.score - a.data.score)
     return items
   }
 

@@ -4,7 +4,7 @@ class CallTest {
   public count = 0
 
   @decorator.memorize
-  public async memorized() : Promise<number> { return ++this.count }
+  public async memorized(): Promise<number> { return ++this.count }
 }
 
 describe('memorize', () => {

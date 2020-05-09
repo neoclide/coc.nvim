@@ -66,7 +66,7 @@ export class DiagnosticManager implements Disposable {
     this.disposables.push(Disposable.create(() => {
       if (this.timer) clearTimeout(this.timer)
     }))
-    events.on('CursorMoved', async () => {
+    events.on('CursorMoved', () => {
       if (this.config.enableMessage != 'always') return
       if (this.timer) clearTimeout(this.timer)
       this.timer = setTimeout(async () => {
@@ -75,7 +75,7 @@ export class DiagnosticManager implements Disposable {
     }, null, this.disposables)
 
     if (this.config.virtualText && this.config.virtualTextCurrentLineOnly) {
-      let fn = debounce(async (bufnr, cursor) => {
+      let fn = debounce((bufnr, cursor) => {
         let buf = this.buffers.find(buf => buf.bufnr == bufnr)
         if (buf) buf.showVirtualText(cursor[0])
       }, 100)
@@ -85,7 +85,7 @@ export class DiagnosticManager implements Disposable {
       }))
     }
 
-    events.on('InsertEnter', async () => {
+    events.on('InsertEnter', () => {
       if (this.timer) clearTimeout(this.timer)
       this.floatFactory.close()
     }, null, this.disposables)
@@ -134,7 +134,7 @@ export class DiagnosticManager implements Disposable {
       this.lastChanageTs = Date.now()
     }, null, this.disposables)
 
-    workspace.onDidChangeConfiguration(async e => {
+    workspace.onDidChangeConfiguration(e => {
       this.setConfiguration(e)
     }, null, this.disposables)
 
@@ -152,7 +152,7 @@ export class DiagnosticManager implements Disposable {
       this.disposeBuffer(doc.bufnr)
     }, null, this.disposables)
     this.setConfigurationErrors(true)
-    workspace.configurations.onError(async () => {
+    workspace.configurations.onError(() => {
       this.setConfigurationErrors()
     }, null, this.disposables)
     let { enableHighlightLineNumber } = this.config
@@ -221,7 +221,7 @@ export class DiagnosticManager implements Disposable {
     // Note we can't make sure it work as expected when there're multiple sources
     let createTime = Date.now()
     let refreshed = false
-    collection.onDidDiagnosticsChange(async uri => {
+    collection.onDidDiagnosticsChange(uri => {
       if (this.config.refreshAfterSave &&
         (refreshed || Date.now() - createTime > 5000)) return
       refreshed = true

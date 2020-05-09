@@ -63,12 +63,10 @@ const lineList: IList = {
     for (let i = 0; i < 100; i++) {
       lines.push(i.toString())
     }
-    return lines.map((line, idx) => {
-      return {
+    return lines.map((line, idx) => ({
         label: line,
         data: { line: idx }
-      }
-    })
+      }))
   }
 }
 
@@ -588,9 +586,7 @@ describe('User mappings', () => {
     clipboardy.write = async val => {
       text = val
     }
-    clipboardy.read = async () => {
-      return text
-    }
+    clipboardy.read = async () => text
     await clipboardy.write('foo')
     await manager.start(['location'])
     await helper.wait(100)

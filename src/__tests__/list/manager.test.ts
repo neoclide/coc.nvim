@@ -310,9 +310,7 @@ describe('list configuration', () => {
         }
       }],
       defaultAction: 'open',
-      loadItems: () => {
-        return Promise.resolve([{ label: 'foo' }, { label: 'bar' }])
-      },
+      loadItems: () => Promise.resolve([{ label: 'foo' }, { label: 'bar' }]),
       resolveItem: item => {
         item.label = item.label.slice(0, 1)
         return Promise.resolve(item)

@@ -45,9 +45,7 @@ export default class BufferChannel implements OutputChannel {
       this.clear(10)
     }
     this._content += value
-    this.promise = this.promise.then(() => {
-      return this._append(value, false)
-    })
+    this.promise = this.promise.then(() => this._append(value, false))
   }
 
   public appendLine(value: string): void {
@@ -55,9 +53,7 @@ export default class BufferChannel implements OutputChannel {
       this.clear(10)
     }
     this._content += value + '\n'
-    this.promise = this.promise.then(() => {
-      return this._append(value, true)
-    })
+    this.promise = this.promise.then(() => this._append(value, true))
   }
 
   public clear(keep?: number): void {

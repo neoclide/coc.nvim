@@ -66,7 +66,8 @@ export class ServiceManager extends EventEmitter implements Disposable {
     this.registered.set(id, service)
     logger.info(`registered service "${id}"`)
     if (this.shouldStart(service)) {
-      service.start() // tslint:disable-line
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      service.start()
     }
     if (service.state == ServiceStat.Running) {
       this.emit('ready', id)
@@ -76,6 +77,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
       this.emit('ready', id)
     }, null, this.disposables)
     return Disposable.create(() => {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       service.stop()
       service.dispose()
       this.registered.delete(id)
@@ -105,7 +107,8 @@ export class ServiceManager extends EventEmitter implements Disposable {
     let services = this.getServices(document)
     for (let service of services) {
       if (service.state == ServiceStat.Initial) {
-        service.start() // tslint:disable-line
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        service.start()
       }
     }
   }
@@ -168,7 +171,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
   }
 
   private createCustomServices(): void {
-    let lspConfig = workspace.getConfiguration().get<{ string: LanguageServerConfig }>('languageserver', {} as any)
+    let lspConfig = workspace.getConfiguration().get<{ key: LanguageServerConfig }>('languageserver', {} as any)
     for (let key of Object.keys(lspConfig)) {
       let config: LanguageServerConfig = lspConfig[key]
       this.registLanguageClient(key, config)
@@ -201,7 +204,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
       workspace.showMessage(`Not a language client: ${id}`, 'error')
       return
     }
-    let client = service.client as LanguageClient
+    let client = service.client
     client.onNotification(method, async result => {
       await workspace.nvim.call('coc#do_notify', [id, method, result])
     })
@@ -268,8 +271,8 @@ export class ServiceManager extends EventEmitter implements Disposable {
         }
         if (!created) {
           if (typeof name == 'string' && !client) {
-            let config: LanguageServerConfig = workspace.getConfiguration().get<{ string: LanguageServerConfig }>('languageserver', {} as any)[name]
-            if (!config || config.enable === false) return
+            let config: LanguageServerConfig = workspace.getConfiguration().get<{ key: LanguageServerConfig }>('languageserver', {} as any)[name]
+            if (!config || !config.enable) return
             let opts = getLanguageServerOptions(id, name, config)
             if (!opts) return
             client = new LanguageClient(id, name, opts[1], opts[0])
@@ -354,7 +357,7 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
   let serverOptions: ServerOptions
   if (module) {
     module = workspace.expand(module)
-    if (!fs.existsSync(module as string)) {
+    if (!fs.existsSync(module)) {
       workspace.showMessage(`Module file "${module}" not found for LS "${name}"`, 'error')
       return null
     }
@@ -372,22 +375,20 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
       options: getSpawnOptions(config)
     } as Executable
   } else if (port) {
-    serverOptions = () => {
-      return new Promise((resolve, reject) => {
-        let client = new net.Socket()
-        let host = config.host || '127.0.0.1'
-        logger.info(`languageserver "${id}" connecting to ${host}:${port}`)
-        client.connect(port, host, () => {
-          resolve({
-            reader: client,
-            writer: client
-          })
-        })
-        client.on('error', e => {
-          reject(new Error(`Connection error for ${id}: ${e.message}`))
+    serverOptions = () => new Promise((resolve, reject) => {
+      let client = new net.Socket()
+      let host = config.host || '127.0.0.1'
+      logger.info(`languageserver "${id}" connecting to ${host}:${port}`)
+      client.connect(port, host, () => {
+        resolve({
+          reader: client,
+          writer: client
         })
       })
-    }
+      client.on('error', e => {
+        reject(new Error(`Connection error for ${id}: ${e.message}`))
+      })
+    })
   }
   let disableWorkspaceFolders = !!config.disableWorkspaceFolders
   let ignoredRootPaths = config.ignoredRootPaths || []
@@ -405,7 +406,7 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
     diagnosticCollectionName: name,
     outputChannelName: id,
     stdioEncoding: config.stdioEncoding || 'utf8',
-    progressOnInitialization: config.progressOnInitialization !== false,
+    progressOnInitialization: config.progressOnInitialization,
     initializationOptions: config.initializationOptions || {}
   }
   return [clientOptions, serverOptions]
@@ -429,13 +430,9 @@ export function getRevealOutputChannelOn(revealOn: string | undefined): RevealOu
 export function getDocumentSelector(filetypes: string[] | undefined, additionalSchemes?: string[]): DocumentSelector {
   let documentSelector: DocumentSelector = []
   let schemes = ['file', 'untitled'].concat(additionalSchemes || [])
-  if (!filetypes) return schemes.map(s => {
-    return { scheme: s }
-  })
+  if (!filetypes) return schemes.map(s => ({ scheme: s }))
   filetypes.forEach(filetype => {
-    documentSelector.push(...schemes.map(scheme => {
-      return { language: filetype, scheme }
-    }))
+    documentSelector.push(...schemes.map(scheme => ({ language: filetype, scheme })))
   })
   return documentSelector
 }

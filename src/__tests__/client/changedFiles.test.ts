@@ -1,4 +1,4 @@
-/*tslint:disable*/
+/* eslint-disable */
 import helper from '../helper'
 // import * as assert from 'assert'
 import fs from 'fs'

@@ -132,8 +132,8 @@ export default class CodeLensManager {
     } catch (e) {
       this.fetching.delete(bufnr)
       logger.error(e)
-      if (/timeout/.test(e.message) && retry < 5) {
-        this.fetchDocumentCodeLenses(retry + 1) // tslint:disable-line
+      if (e.message.includes("timeout") && retry < 5) {
+        this.fetchDocumentCodeLenses(retry + 1).logError()
       }
     }
   }
@@ -176,9 +176,7 @@ export default class CodeLensManager {
           return lnum >= start && lnum <= end
         })
         if (codeLenses.length) {
-          await Promise.all(codeLenses.map(codeLens => {
-            return languages.resolveCodeLens(codeLens)
-          }))
+          await Promise.all(codeLenses.map(codeLens => languages.resolveCodeLens(codeLens)))
         }
       } else {
         codeLenses = null

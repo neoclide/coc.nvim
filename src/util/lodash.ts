@@ -29,7 +29,7 @@ export function defaults(obj: any, ...sources: any[]): any {
   sources.forEach(source => {
     if (source != null) {
       source = Object(source)
-      for (const key in source) { // tslint:disable-line
+      for (const key in source) {
         const value = obj[key]
         if (value === undefined ||
           (value === objectProto[key] && !hasOwnProperty.call(obj, key))) {
@@ -44,7 +44,7 @@ export function defaults(obj: any, ...sources: any[]): any {
 export function omit<T>(obj: T, properties: string[]): T {
   let o = {}
   for (let key of Object.keys(obj)) {
-    if (properties.indexOf(key) == -1) {
+    if (!properties.includes(key)) {
       o[key] = obj[key]
     }
   }

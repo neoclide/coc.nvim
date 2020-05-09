@@ -1,4 +1,4 @@
-/*tslint:disable*/
+/* eslint-disable */
 import { Disposable } from 'vscode-languageserver-protocol'
 
 export interface Task<T> {

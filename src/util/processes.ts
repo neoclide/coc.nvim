@@ -1,5 +1,5 @@
 
-/*---------------------------------------------------------------------------------------------
+/* ---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
@@ -7,7 +7,7 @@ import * as cp from 'child_process'
 import { join, dirname, resolve } from 'path'
 import ChildProcess = cp.ChildProcess
 
-declare var __webpack_require__: any
+declare let __webpack_require__: any
 const isWebpack = typeof __webpack_require__ === "function"
 const isWindows = process.platform === 'win32'
 const isMacintosh = process.platform === 'darwin'

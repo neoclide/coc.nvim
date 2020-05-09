@@ -39,7 +39,7 @@ export default class OnTypeFormatManager implements Disposable {
   public getProvider(document: TextDocument, triggerCharacter: string): OnTypeFormattingEditProvider | null {
     for (let o of this.providers) {
       let { triggerCharacters, selector } = o
-      if (workspace.match(selector, document) > 0 && triggerCharacters.indexOf(triggerCharacter) > -1) {
+      if (workspace.match(selector, document) > 0 && triggerCharacters.includes(triggerCharacter)) {
         return o.provider
       }
     }

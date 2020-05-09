@@ -46,16 +46,16 @@ export default (opts: Attach, requestApi = true): Plugin => {
       case 'CocAutocmd':
         await events.fire(args[0], args.slice(1))
         break
-      default:
+      default: {
         const m = method[0].toLowerCase() + method.slice(1)
         if (typeof plugin[m] == 'function') {
           try {
             await Promise.resolve(plugin[m].apply(plugin, args))
           } catch (e) {
-            // tslint:disable-next-line:no-console
             console.error(`error on notification '${method}': ${e}`)
           }
         }
+      }
     }
   })
 
@@ -97,7 +97,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
       await plugin.init()
     }
   }).catch(e => {
-    console.error(`Channel create error: ${e.message}`) // tslint:disable-line
+    console.error(`Channel create error: ${e.message}`)
   })
   return plugin
 }

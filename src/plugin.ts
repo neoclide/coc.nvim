@@ -28,27 +28,13 @@ export default class Plugin extends EventEmitter {
       get: () => this.nvim
     })
     this.cursors = new Cursors(nvim)
-    this.addMethod('hasProvider', (id: string) => {
-      return this.handler.hasProvider(id)
-    })
-    this.addMethod('getTagList', async () => {
-      return await this.handler.getTagList()
-    })
-    this.addMethod('hasSelected', () => {
-      return completion.hasSelected()
-    })
-    this.addMethod('listNames', () => {
-      return listManager.names
-    })
-    this.addMethod('search', (...args: string[]) => {
-      return this.handler.search(args)
-    })
-    this.addMethod('cursorsSelect', (bufnr: number, kind: string, mode: string) => {
-      return this.cursors.select(bufnr, kind, mode)
-    })
-    this.addMethod('codeActionRange', (start, end, only) => {
-      return this.handler.codeActionRange(start, end, only)
-    })
+    this.addMethod('hasProvider', (id: string) => this.handler.hasProvider(id))
+    this.addMethod('getTagList', async () => await this.handler.getTagList())
+    this.addMethod('hasSelected', () => completion.hasSelected())
+    this.addMethod('listNames', () => listManager.names)
+    this.addMethod('search', (...args: string[]) => this.handler.search(args))
+    this.addMethod('cursorsSelect', (bufnr: number, kind: string, mode: string) => this.cursors.select(bufnr, kind, mode))
+    this.addMethod('codeActionRange', (start, end, only) => this.handler.codeActionRange(start, end, only))
     this.addMethod('getConfig', async key => {
       let document = await workspace.document
       return workspace.getConfiguration(key, document ? document.uri : undefined)
@@ -71,9 +57,7 @@ export default class Plugin extends EventEmitter {
     this.addMethod('updateExtensions', async () => {
       await extensions.updateExtensions()
     })
-    this.addMethod('commandList', () => {
-      return commandManager.commandList.map(o => o.id)
-    })
+    this.addMethod('commandList', () => commandManager.commandList.map(o => o.id))
     this.addMethod('openList', async (...args: string[]) => {
       await this.ready
       await listManager.start(args)
@@ -82,27 +66,13 @@ export default class Plugin extends EventEmitter {
       await this.ready
       return await this.handler.runCommand(...args)
     })
-    this.addMethod('selectFunction', async (inner: boolean, visualmode: string) => {
-      return await this.handler.selectFunction(inner, visualmode)
-    })
-    this.addMethod('selectClass', async (inner: boolean, visualmode: string) => {
-      return await this.handler.selectClass(inner, visualmode)
-    })
-    this.addMethod('listResume', () => {
-      return listManager.resume()
-    })
-    this.addMethod('listPrev', () => {
-      return listManager.previous()
-    })
-    this.addMethod('listNext', () => {
-      return listManager.next()
-    })
-    this.addMethod('detach', () => {
-      return workspace.detach()
-    })
-    this.addMethod('sendRequest', (id: string, method: string, params?: any) => {
-      return services.sendRequest(id, method, params)
-    })
+    this.addMethod('selectFunction', async (inner: boolean, visualmode: string) => await this.handler.selectFunction(inner, visualmode))
+    this.addMethod('selectClass', async (inner: boolean, visualmode: string) => await this.handler.selectClass(inner, visualmode))
+    this.addMethod('listResume', () => listManager.resume())
+    this.addMethod('listPrev', () => listManager.previous())
+    this.addMethod('listNext', () => listManager.next())
+    this.addMethod('detach', () => workspace.detach())
+    this.addMethod('sendRequest', (id: string, method: string, params?: any) => services.sendRequest(id, method, params))
     this.addMethod('sendNotification', async (id: string, method: string, params?: any) => {
       await services.sendNotification(id, method, params)
     })
@@ -166,7 +136,7 @@ export default class Plugin extends EventEmitter {
     Object.defineProperty(this, name, { value: fn })
   }
 
-  public addCommand(cmd: { id: string, cmd: string, title?: string }): void {
+  public addCommand(cmd: { id: string; cmd: string; title?: string }): void {
     let id = `vim.${cmd.id}`
     commandManager.registerCommand(id, async () => {
       await this.nvim.command(cmd.cmd)
@@ -179,6 +149,7 @@ export default class Plugin extends EventEmitter {
     try {
       await extensions.init()
       await workspace.init()
+      snippetManager.init()
       completion.init()
       diagnosticManager.init()
       listManager.init(nvim)
@@ -202,14 +173,14 @@ export default class Plugin extends EventEmitter {
       this.emit('ready')
     } catch (e) {
       this._ready = false
-      console.error(`Error on initialize: ${e.stack}`) // tslint:disable-line
+      console.error(`Error on initialize: ${e.stack}`)
       logger.error(e.stack)
     }
 
     workspace.onDidOpenTextDocument(async doc => {
       if (!doc.uri.endsWith('coc-settings.json')) return
       if (extensions.has('coc-json') || extensions.isDisabled('coc-json')) return
-      workspace.showMessage(`Run :CocInstall coc-json for json intellisense`, 'more')
+      workspace.showMessage(`Run: CocInstall coc - json for json intellisense`, 'more')
     })
   }
 
@@ -242,7 +213,7 @@ export default class Plugin extends EventEmitter {
     if (Array.isArray(res)) {
       locations = res as Location[]
     } else if (res.hasOwnProperty('location') && res.hasOwnProperty('children')) {
-      function getLocation(item: any): void {
+      let getLocation = (item: any): void => {
         locations.push(item.location as Location)
         if (item.children && item.children.length) {
           for (let loc of item.children) {
@@ -257,7 +228,6 @@ export default class Plugin extends EventEmitter {
 
   public async snippetCheck(checkExpand: boolean, checkJump: boolean): Promise<boolean> {
     if (checkExpand && !extensions.has('coc-snippets')) {
-      // tslint:disable-next-line: no-console
       console.error('coc-snippets required for check expand status!')
       return false
     }

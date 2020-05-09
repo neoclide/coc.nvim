@@ -167,11 +167,9 @@ describe('completion', () => {
       enable: true,
       sourceType: SourceType.Native,
       triggerCharacters: ['.'],
-      doComplete: async (): Promise<CompleteResult> => {
-        return Promise.resolve({
+      doComplete: async (): Promise<CompleteResult> => Promise.resolve({
           items: [{ word: 'foo' }]
         })
-      }
     }
     sources.addSource(source)
     await nvim.input('i')
@@ -190,11 +188,9 @@ describe('completion', () => {
       name: 'trigger',
       priority: 10,
       sourceType: SourceType.Native,
-      doComplete: async (): Promise<CompleteResult> => {
-        return Promise.resolve({
+      doComplete: async (): Promise<CompleteResult> => Promise.resolve({
           items: [{ word: 'foo' }, { word: 'bar' }]
         })
-      }
     }
     let disposable = sources.addSource(source)
     await nvim.command('inoremap <silent><expr> <c-space> coc#refresh()')
@@ -214,11 +210,9 @@ describe('completion', () => {
       priority: 10,
       enable: true,
       sourceType: SourceType.Native,
-      doComplete: (): Promise<CompleteResult> => {
-        return Promise.resolve({
+      doComplete: (): Promise<CompleteResult> => Promise.resolve({
           items: [{ word: 'foo', info: 'bar' }]
         })
-      }
     }
     sources.addSource(source)
     await nvim.input('i')
@@ -242,11 +236,9 @@ describe('completion', () => {
       enable: true,
       sourceType: SourceType.Native,
       triggerPatterns: [/\w+\.$/],
-      doComplete: async (): Promise<CompleteResult> => {
-        return Promise.resolve({
+      doComplete: async (): Promise<CompleteResult> => Promise.resolve({
           items: [{ word: 'foo' }]
         })
-      }
     }
     sources.addSource(source)
     await nvim.input('i')
@@ -274,11 +266,9 @@ describe('completion', () => {
       enable: true,
       sourceType: SourceType.Native,
       triggerPatterns: [/^From:\s*/],
-      doComplete: async (): Promise<CompleteResult> => {
-        return Promise.resolve({
+      doComplete: async (): Promise<CompleteResult> => Promise.resolve({
           items: [{ word: 'foo' }]
         })
-      }
     }
     let disposable = sources.addSource(source)
     await nvim.input('o')
@@ -300,11 +290,9 @@ describe('completion', () => {
       enable: true,
       sourceType: SourceType.Native,
       triggerCharacters: ['.'],
-      doComplete: async (): Promise<CompleteResult> => {
-        return Promise.resolve({
+      doComplete: async (): Promise<CompleteResult> => Promise.resolve({
           items: [{ word: 'foo' }]
         })
-      }
     }
     sources.addSource(source)
     await nvim.setLine('.a')
@@ -376,13 +364,9 @@ describe('completion', () => {
       enable: true,
       sourceType: SourceType.Native,
       triggerCharacters: ['.'],
-      doComplete: async (): Promise<CompleteResult> => {
-        return Promise.resolve({
-          items: ['filename', 'filepath', 'filter', 'file'].map(key => {
-            return { word: key }
-          })
+      doComplete: async (): Promise<CompleteResult> => Promise.resolve({
+          items: ['filename', 'filepath', 'filter', 'file'].map(key => ({ word: key }))
         })
-      }
     }
     let disposable = sources.addSource(source)
     await nvim.input('i')
@@ -403,13 +387,9 @@ describe('completion', () => {
       enable: true,
       sourceType: SourceType.Native,
       triggerCharacters: ['.'],
-      doComplete: async (): Promise<CompleteResult> => {
-        return Promise.resolve({
-          items: ['a', 'b', 'c', 'd'].map(key => {
-            return { word: key.repeat(20) }
-          })
+      doComplete: async (): Promise<CompleteResult> => Promise.resolve({
+          items: ['a', 'b', 'c', 'd'].map(key => ({ word: key.repeat(20) }))
         })
-      }
     }
     let disposable = sources.addSource(source)
     await nvim.input('i')

@@ -87,7 +87,7 @@ export class ColorProviderFeature extends TextDocumentFeature<
             }
           )
         }
-        const middleware = client.clientOptions.middleware!
+        const middleware = client.clientOptions.middleware
         return middleware.provideColorPresentations
           ? middleware.provideColorPresentations(color, context, token, provideColorPresentations)
           : provideColorPresentations(color, context, token)
@@ -106,7 +106,7 @@ export class ColorProviderFeature extends TextDocumentFeature<
             }
           )
         }
-        const middleware = client.clientOptions.middleware!
+        const middleware = client.clientOptions.middleware
         return middleware.provideDocumentColors
           ? middleware.provideDocumentColors(document, token, provideDocumentColors)
           : provideDocumentColors(document, token)

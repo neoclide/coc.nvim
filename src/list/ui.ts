@@ -105,9 +105,7 @@ export default class ListUI {
     return window.cursor.then(cursor => {
       this.currIndex = cursor[0] - 1
       return this.items[this.currIndex]
-    }, _e => {
-      return null
-    })
+    }, _e => null)
   }
 
   public async echoMessage(item: ListItem): Promise<void> {
@@ -307,6 +305,7 @@ export default class ListUI {
         })
       })
     }
+    return Promise.reject(new Error('Not creating list'))
   }
 
   public async drawItems(items: ListItem[], name: string, listOptions: ListOptions, reload = false): Promise<void> {
@@ -378,6 +377,7 @@ export default class ListUI {
     if (workspace.isVim) {
       nvim.call('coc#list#setlines', [lines, append], true)
     } else {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       buf.setLines(lines, { start: append ? -1 : 0, end: -1, strictIndexing: false }, true)
     }
     nvim.command('setl nomodifiable', true)

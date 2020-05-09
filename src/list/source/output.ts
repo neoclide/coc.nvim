@@ -19,8 +19,6 @@ export default class OutputList extends BasicList {
 
   public async loadItems(_context: ListContext): Promise<ListItem[]> {
     let names = workspace.channelNames
-    return names.map(n => {
-      return { label: n }
-    })
+    return names.map(n => ({ label: n }))
   }
 }

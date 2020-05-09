@@ -79,7 +79,7 @@ export class FoldingRangeFeature extends TextDocumentFeature<
             }
           )
         }
-        const middleware = client.clientOptions.middleware!
+        const middleware = client.clientOptions.middleware
         return middleware.provideFoldingRanges
           ? middleware.provideFoldingRanges(document, context, token, provideFoldingRanges)
           : provideFoldingRanges(document, context, token)

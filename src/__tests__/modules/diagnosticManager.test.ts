@@ -158,7 +158,7 @@ describe('diagnostic manager', () => {
     await nvim.command('normal! G')
     let ranges = manager.getSortedRanges(doc.uri)
     ranges.reverse()
-    for (let i = 0; i < ranges.length; i++) { // tslint:disable-line
+    for (let i = 0; i < ranges.length; i++) {
       await manager.jumpPrevious()
       let pos = await workspace.getCursorPosition()
       expect(pos).toEqual(ranges[i].start)
@@ -169,7 +169,7 @@ describe('diagnostic manager', () => {
     let doc = await createDocument()
     await nvim.call('cursor', [0, 0])
     let ranges = manager.getSortedRanges(doc.uri)
-    for (let i = 0; i < ranges.length; i++) { // tslint:disable-line
+    for (let i = 0; i < ranges.length; i++) {
       await manager.jumpNext()
       let pos = await workspace.getCursorPosition()
       expect(pos).toEqual(ranges[i].start)

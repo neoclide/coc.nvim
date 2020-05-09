@@ -78,7 +78,7 @@ export default class Configurations {
     contents = deepClone(contents)
     Object.keys(props).forEach(key => {
       addToValueTree(contents, key, props[key], msg => {
-        logger.error(msg) // tslint:disable-line
+        logger.error(msg)
       })
     })
     let data: IConfigurationData = {
@@ -159,15 +159,15 @@ export default class Configurations {
     this._configuration = configuration
     this._onChange.fire({
       affectsConfiguration: (section, resource) => {
-        if (!resource || target != ConfigurationTarget.Workspace) return changed.indexOf(section) !== -1
+        if (!resource || target != ConfigurationTarget.Workspace) return changed.includes(section)
         let u = URI.parse(resource)
-        if (u.scheme !== 'file') return changed.indexOf(section) !== -1
+        if (u.scheme !== 'file') return changed.includes(section)
         let filepath = u.fsPath
         let preRoot = workspaceConfigFile ? path.resolve(workspaceConfigFile, '../..') : ''
         if (configFile && !isParentFolder(preRoot, filepath, true) && !isParentFolder(path.resolve(configFile, '../..'), filepath)) {
           return false
         }
-        return changed.indexOf(section) !== -1
+        return changed.includes(section)
       }
     })
   }
@@ -291,7 +291,7 @@ export default class Configurations {
     if (typeof config === 'object') {
       mixin(result, config, false)
     }
-    return deepFreeze(result) as WorkspaceConfiguration
+    return deepFreeze(result)
   }
 
   private getFolderConfiguration(uri: string): ConfigurationModel {

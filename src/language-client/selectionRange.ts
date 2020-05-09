@@ -60,12 +60,12 @@ export class SelectionRangeFeature extends TextDocumentFeature<boolean | Selecti
             }
           )
         }
-        const middleware = client.clientOptions.middleware!
+        const middleware = client.clientOptions.middleware
         return middleware.provideSelectionRanges
           ? middleware.provideSelectionRanges(document, positions, token, provideSelectionRanges)
           : provideSelectionRanges(document, positions, token)
       }
     }
-    return [languages.registerSelectionRangeProvider(options.documentSelector!, provider), provider]
+    return [languages.registerSelectionRangeProvider(options.documentSelector, provider), provider]
   }
 }

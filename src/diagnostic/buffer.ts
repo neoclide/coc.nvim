@@ -116,7 +116,7 @@ export class DiagnosticBuffer implements Disposable {
         let ms = line.match(/^\s*line=\d+\s+id=(\d+)\s+name=(\w+)/)
         if (!ms) continue
         let [, id, name] = ms
-        if (!signIds.has(Number(id)) && severityNames.indexOf(name) != -1) {
+        if (!signIds.has(Number(id)) && severityNames.includes(name)) {
           ids.push(id)
         }
       }
