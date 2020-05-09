@@ -1201,3 +1201,16 @@ function! coc#util#set_buf_lines(bufnr, lines) abort
   noa call appendbufline(a:bufnr, '$', a:lines)
   noa call deletebufline(a:bufnr, 1, info[0]['linecount'])
 endfunction
+
+" get tabsize & expandtab option
+function! coc#util#get_format_opts(bufnr) abort
+  if a:bufnr && bufloaded(a:bufnr)
+    let tabsize = getbufvar(a:bufnr, '&shiftwidth')
+    if tabsize == 0
+      let tabsize = getbufvar(a:bufnr, '&tabstop')
+    endif
+    return [tabsize, getbufvar(a:bufnr, '&expandtab')]
+  endif
+  let tabsize = &shiftwidth == 0 ? &tabstop : &shiftwidth
+  return [tabsize, &expandtab]
+endfunction
