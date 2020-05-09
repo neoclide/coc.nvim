@@ -893,18 +893,9 @@ function! coc#util#open_url(url)
 endfunction
 
 function! coc#util#install(...) abort
-  let opts = get(a:, 1, {})
-  if !isdirectory(s:root.'/src')
-    echohl WarningMsg | echon '[coc.nvim] coc#util#install not needed for release branch.' | echohl None
-    return
-  endif
-  echohl WarningMsg | echon '[coc.nvim] coc#util#install support will be removed, please use release branch of coc.nvim' | echohl None
-  let cmd = (s:is_win ? 'install.cmd' : './install.sh') . ' nightly'
-  let cwd = getcwd()
-  exe 'lcd '.s:root
-  exe '!'.cmd
-  exe 'lcd '.cwd
-  call coc#rpc#restart()
+  echohl Error 
+  echom '[coc.nvim] You have to build coc.nvim or use release branch, install script is removed!' 
+  echohl None
 endfunction
 
 function! coc#util#do_complete(name, opt, cb) abort

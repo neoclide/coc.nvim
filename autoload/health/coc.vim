@@ -42,7 +42,7 @@ function! s:checkCommand()
   endif
   let file = s:root.'/lib/attach.js'
   if !filereadable(file)
-    call health#report_error('Javascript entry not found, run ":call coc#util#install()" to fix it.')
+    call health#report_error('Javascript entry not found, run "yarn install" in folder of coc.nvim to fix it.')
   else
     call health#report_ok('Build javascript found')
   endif

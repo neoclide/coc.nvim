@@ -652,16 +652,6 @@ coc#util#get_data_home()
 
 	获取 `coc` 数据目录。
 
-						*coc#util#install()*
-coc#util#install([{config}])
-
-	安装打包后的 coc.nvim javascript 部分代码。
-
-	{config} 可包含:
-
-	- `terminal` 使用 terminal 来异步安装
-	- `tag` 安装最新的已发布版本
-
 						*coc#util#extension_root()*
 coc#util#extension_root()
 

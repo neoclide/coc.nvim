@@ -1261,16 +1261,6 @@ coc#util#get_data_home()
 
 	Get `coc` data directory.
 
-						*coc#util#install()*
-coc#util#install([{config}])
-
-	Install compiled javascript code of coc.nvim.
-
-	{config} could contains:
-
-	- `terminal` use terminal when specified.
-	- `tag` use latest tag when specified.
-
 						*coc#util#extension_root()*
 
 coc#util#extension_root()
