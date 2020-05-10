@@ -272,7 +272,8 @@ export class ServiceManager extends EventEmitter implements Disposable {
         if (!created) {
           if (typeof name == 'string' && !client) {
             let config: LanguageServerConfig = workspace.getConfiguration().get<{ key: LanguageServerConfig }>('languageserver', {} as any)[name]
-            if (!config || !config.enable) return
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-boolean-literal-compare
+            if (!config || config.enable === false) return
             let opts = getLanguageServerOptions(id, name, config)
             if (!opts) return
             client = new LanguageClient(id, name, opts[1], opts[0])

@@ -342,7 +342,7 @@ export interface LanguageServerConfig {
   disableDiagnostics?: boolean
   filetypes: string[]
   additionalSchemes: string[]
-  enable: boolean
+  enable?: boolean
   args?: string[]
   cwd?: string
   env?: any
