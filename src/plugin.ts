@@ -66,8 +66,7 @@ export default class Plugin extends EventEmitter {
       await this.ready
       return await this.handler.runCommand(...args)
     })
-    this.addMethod('selectFunction', async (inner: boolean, visualmode: string) => await this.handler.selectFunction(inner, visualmode))
-    this.addMethod('selectClass', async (inner: boolean, visualmode: string) => await this.handler.selectClass(inner, visualmode))
+    this.addMethod('selectSymbolRange', async (inner: boolean, visualmode: string, supportedSymbols: string[]) => await this.handler.selectSymbolRange(inner, visualmode, supportedSymbols))
     this.addMethod('listResume', () => listManager.resume())
     this.addMethod('listPrev', () => listManager.previous())
     this.addMethod('listNext', () => listManager.next())

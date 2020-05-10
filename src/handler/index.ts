@@ -771,15 +771,10 @@ export default class Handler {
     return res
   }
 
-  public async selectClass(inner: boolean, visualmode: string): Promise<void> {
-    await this.selectSymbols(inner, visualmode, ['Interface', 'Struct', 'Class'])
-  }
-
-  public async selectFunction(inner: boolean, visualmode: string): Promise<void> {
-    await this.selectSymbols(inner, visualmode, ['Method', 'Function'])
-  }
-
-  private async selectSymbols(inner: boolean, visualmode: string, supportedSymbols: string[]): Promise<void> {
+  /*
+   * supportedSymbols must be string values of symbolKind
+   */
+  public async selectSymbolRange(inner: boolean, visualmode: string, supportedSymbols: string[]): Promise<void> {
     let { nvim } = this
     let bufnr = await nvim.eval('bufnr("%")') as number
     let doc = workspace.getDocument(bufnr)
