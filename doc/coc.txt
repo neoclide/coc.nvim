@@ -125,8 +125,8 @@ Built-in configurations:~
 
 "http.proxyStrictSSL":~
 
-	 Controls whether the proxy server certificate should be verified
-	 against the list of supplied CAs, default: `true`
+	Controls whether the proxy server certificate should be verified
+	against the list of supplied CAs, default: `true`
 
 							*coc-config-suggest*
 "suggest.enablePreselect":~
@@ -135,7 +135,7 @@ Built-in configurations:~
 
 "suggest.maxPreviewWidth":~
 
-	Maximum width of floating preview window,  default: `80`
+	Maximum width of floating preview window, default: `80`
 
 "suggest.labelMaxLength":~
 
@@ -173,7 +173,7 @@ Built-in configurations:~
 
 "suggest.languageSourcePriority":~
 
-	Priority of language sources,  default: `99`
+	Priority of language sources, default: `99`
 
 "suggest.numberSelect":~
 
@@ -218,7 +218,7 @@ Built-in configurations:~
 
 "suggest.timeout":~
 
-	Timeout for completion (unit: milliseconds), default: `2000`
+	Timeout for completion (unit: milliseconds), default: `5000`
 
 "suggest.minTriggerInputLength":~
 
@@ -263,22 +263,22 @@ Built-in configurations:~
 
 "suggest.disableMenuShortcut":~
 
-	Disable shortcut of completion source in menu., default: `false`
+	Disable shortcut of completion source in menu, default: `false`
 
 "suggest.removeDuplicateItems":~
 
 	Remove completion items with duplicated word for all sources, snippet
-	items are excluded., default: `false`
+	items are excluded, default: `false`
 
 "suggest.defaultSortMethod":~
 
-	Default sorting behavior for suggested completion items., default:
+	Default sorting behavior for suggested completion items, default:
 	`length`
 
 "suggest.invalidInsertCharacters":~
 
 	Invalid character for strip valid word when inserting text of complete
-	item., default: ` ,(,<,{,[, `
+	item, default: ` ,(,<,{,[,\r,\n`
 
 "suggest.asciiCharactersOnly":~
 
@@ -286,7 +286,7 @@ Built-in configurations:~
 
 "suggest.completionItemKindLabels":~
 
-	Set custom labels to completion item kinds.,  default: `{}`.
+	Set custom labels to completion item kinds, default: `{}`.
 
 	Example configuration: with https://nerdfonts.com:  >
 
@@ -325,7 +325,7 @@ Built-in configurations:~
 
 "diagnostic.enableSign":~
 
-	Enable signs for diagnostics,  default: `true`
+	Enable signs for diagnostics, default: `true`
 
 "diagnostic.enableMessage":~
 
@@ -353,12 +353,12 @@ Built-in configurations:~
 
 	How long to wait (in milliseconds) before displaying the diagnostic
 	message with echo or float.
-	
+
 	Default: `200`
 
 "diagnostic.maxWindowWidth":~
 
-	Maximum width of diagnostics floating window., default: `80`
+	Maximum width of diagnostics floating window, default: `80`
 
 "diagnostic.checkCurrentLine":~
 
@@ -391,7 +391,8 @@ Built-in configurations:~
 
 "diagnostic.virtualTextCurrentLineOnly":~
 
-	Only show virtualText diagnostic on current cursor line, default: true
+	Only show virtualText diagnostic on current cursor line, default:
+	`true`
 
 "diagnostic.virtualTextPrefix":~
 
@@ -408,19 +409,19 @@ Built-in configurations:~
 
 "diagnostic.locationlist":~
 
-	Create location list for error & warning,  default: `true`
+	Create location list for error & warning, default: `true`
 
 "diagnostic.highlightOffset":~
 
-	Offset number of buffer.addHighlight, Neovim only.,  default: `1000`
+	Offset number of buffer.addHighlight, Neovim only, default: `1000`
 
 "diagnostic.signOffset":~
 
-	Offset number of sign,  default: `1000`
+	Offset number of sign, default: `1000`
 
 "diagnostic.errorSign":~
 
-	Sign of error diagnostics shown in the 'signcolumn',  default: `">>"`
+	Sign of error diagnostics shown in the 'signcolumn', default: `">>"`
 
 "diagnostic.warningSign":~
 
@@ -442,7 +443,7 @@ Built-in configurations:~
 
 	A map between buffer filetype and the filetype assigned to diagnostics.
 	To syntax highlight diagnostics withs their parent buffer type use
-	'\"default\": \"bufferType\"', default: `{}`
+	`"default": "bufferType"`, default: `{}`
 
 "diagnostic.format":~
 
@@ -462,7 +463,7 @@ Built-in configurations:~
 
 "signature.floatMaxWidth":~
 
-	Max width of signature float window., default: `60`
+	Max width of signature float window, default: `60`
 
 "signature.triggerSignatureWait":~
 
@@ -492,15 +493,15 @@ Built-in configurations:~
 							*coc-config-refactor*
 "refactor.openCommand":~
 
-	Open command for refactor window., default: `vsplit`
+	Open command for refactor window, default: `vsplit`
 
 "refactor.beforeContext":~
 
-	Print num lines of leading context before each match., default: `3`
+	Print num lines of leading context before each match, default: `3`
 
 "refactor.afterContext":~
 
-	Print num lines of trailing context after each match., default: `3`
+	Print num lines of trailing context after each match, default: `3`
 
 							*coc-config-codelens*
 "codeLens.enable":~
@@ -510,7 +511,7 @@ Built-in configurations:~
 
 "codeLens.separator":~
 
-	Separator text for `codeLens` in virtual text,  default: `"‣"`
+	Separator text for `codeLens` in virtual text, default: `"‣"`
 
 "workspace.ignoredFiletypes":~
 
@@ -520,7 +521,7 @@ Built-in configurations:~
 							*coc-config-list*
 "list.indicator":~
 
-	The character used as first character in prompt line,  default: `">"`
+	The character used as first character in prompt line, default: `">"`
 
 "list.maxHeight":~
 
@@ -553,11 +554,11 @@ Built-in configurations:~
 
 "list.nextKeymap":~
 
-	Key for selecting next line in the insert mode,  default: `"<C-j>"`
+	Key for selecting next line in the insert mode, default: `"<C-j>"`
 
 "list.previousKeymap":~
 
-	Key for selecting previous line in the insert mode,  default: `"<C-k>"`
+	Key for selecting previous line in the insert mode, default: `"<C-k>"`
 
 "list.extendedSearchMode": ~
 
@@ -574,15 +575,15 @@ Built-in configurations:~
 
 "list.interactiveDebounceTime":~
 
-	Debouce time for input change on interactive mode., default: `100`
+	Debouce time for input change on interactive mode, default: `100`
 
 "list.previewSplitRight":~
 
-	Use vsplit for preview window., default: `false`
+	Use vsplit for preview window, default: `false`
 
 "list.source.symbols.excludes":~
 
-	Patterns of mimimatch for filepath to execlude from symbols list.,
+	Patterns of mimimatch for filepath to execlude from symbols list,
 	default: `[]`
 
 "list.source.outline.ctagsFilestypes":~
@@ -687,7 +688,7 @@ Built-in configurations:~
 
 "coc.preferences.formatOnTypeFiletypes":~
 
-	Filetypes that should run format on typing,  default: `[]`
+	Filetypes that should run format on typing, default: `[]`
 
 	Note: takes effect when `coc.preferences.formatOnType` set `true`.
 
@@ -702,12 +703,12 @@ Built-in configurations:~
 
 "coc.preferences.highlightTimeout":~
 
-	Highlight timeout for buffer in floating window., default: `500`
+	Highlight timeout for buffer in floating window, default: `500`
 
 						*coc-config-cursors*
 "cursors.cancelKey":~
 
-	Key used for cancel cursors session., default: `<esc>`
+	Key used for cancel cursors session, default: `<esc>`
 
 "cursors.nextKey":~
 
@@ -715,7 +716,7 @@ Built-in configurations:~
 
 "cursors.previousKey":~
 
-	Key used for jump to previous cursors position., default: `<C-p>`
+	Key used for jump to previous cursors position, default: `<C-p>`
 
 						*coc-config-npm*
 "npm.binPath":~
@@ -1071,7 +1072,7 @@ g:coc_cygqwin_path_prefixes			*g:coc_cygqwin_path_prefixes*
 				`let g:coc_cygqwin_path_prefixes = `
 				`	\{'c:/Users/myUser': '/home/myUser'}`
 
-			Deprecated, use g:coc_uri_prefix_replace_patterns
+			Deprecated, use `g:coc_uri_prefix_replace_patterns`
 			instead.
 
 g:coc_uri_prefix_replace_patterns			*g:coc_uri_prefix_replace_patterns*
