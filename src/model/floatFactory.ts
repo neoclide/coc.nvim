@@ -10,6 +10,7 @@ import { disposeAll, wait } from '../util'
 import workspace from '../workspace'
 import FloatBuffer from './floatBuffer'
 import { equals } from '../util/object'
+import { byteLength } from '../util/string'
 const logger = require('../util/logger')('model-float')
 
 export interface WindowConfig {
@@ -87,7 +88,12 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     let { preferTop } = this
     let alignTop = false
     let [row, col] = win_position
-    if ((preferTop && row >= 3) || (!preferTop && row >= lines - row - 1)) {
+    let max = this.getMaxWindowHeight(docs)
+    if (preferTop && row >= max) {
+      alignTop = true
+    } else if (!preferTop && lines - row - 1 >= max) {
+      alignTop = false
+    } else if ((preferTop && row >= 3) || (!preferTop && row >= lines - row - 1)) {
       alignTop = true
     }
     let maxHeight = alignTop ? row : lines - row - 1
@@ -211,5 +217,22 @@ export default class FloatFactory extends EventEmitter implements Disposable {
   public async activated(): Promise<boolean> {
     if (!this.winid) return false
     return await this.nvim.call('coc#util#valid_float_win', [this.winid])
+  }
+
+  private getMaxWindowHeight(docs: Documentation[]): number {
+    let maxWidth = Math.min(this.maxWidth || 80, 80, this.env.columns)
+    let w = maxWidth - 2
+    let h = 0
+    for (let doc of docs) {
+      let lines = doc.content.split(/\r?\n/)
+      for (let s of lines) {
+        if (s.length == 0) {
+          h = h + 1
+        } else {
+          h = h + Math.ceil(byteLength(s.replace(/\t/g, '  ')) / w)
+        }
+      }
+    }
+    return Math.min(this.maxHeight, h)
   }
 }
