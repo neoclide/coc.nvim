@@ -179,7 +179,7 @@ export default class Plugin extends EventEmitter {
     workspace.onDidOpenTextDocument(async doc => {
       if (!doc.uri.endsWith('coc-settings.json')) return
       if (extensions.has('coc-json') || extensions.isDisabled('coc-json')) return
-      workspace.showMessage(`Run: CocInstall coc - json for json intellisense`, 'more')
+      workspace.showMessage(`Run: CocInstall coc-json for json intellisense`, 'more')
     })
   }
 
