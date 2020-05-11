@@ -17,7 +17,7 @@ import { getAgent } from './fetch'
  * @param {DownloadOptions} options contains dest folder and optional onProgress callback
  */
 export default function download(url: string, options: DownloadOptions): Promise<void> {
-  const rejectUnauthorized = workspace.getConfiguration('https').get<boolean>('rejectUnauthorized', true)
+  const rejectUnauthorized = workspace.getConfiguration('https').get<boolean>('proxyStrictSSL', true)
   let { dest, onProgress } = options
   if (!dest || !path.isAbsolute(dest)) {
     throw new Error(`Expect absolute file path for dest option.`)
