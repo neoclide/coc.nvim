@@ -267,6 +267,7 @@ export class Completion implements Disposable {
     }
     complete.onDidComplete(async () => {
       let content = await this.getPreviousContent(document)
+      if (!content) return
       let search = this.getResumeInput(content)
       if (complete.isCanceled) return
       let hasSelected = this.hasSelected()

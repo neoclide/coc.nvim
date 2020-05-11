@@ -7,7 +7,6 @@
 import { CancellationToken, ClientCapabilities, DidChangeWorkspaceFoldersNotification, DidChangeWorkspaceFoldersParams, Disposable, InitializeParams, RPCMessageType, ServerCapabilities, WorkspaceFolder, WorkspaceFoldersChangeEvent, WorkspaceFoldersRequest } from 'vscode-languageserver-protocol'
 import workspace from '../workspace'
 import { BaseLanguageClient, DynamicFeature, NextSignature, RegistrationData } from './client'
-import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 const logger = require('../util/logger')('language-client-workspaceFolder')
 
@@ -85,7 +84,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
     let id: string | undefined
     if (typeof value === 'string') {
       id = value
-    } else if (value) {
+    } else if (value === true) {
       id = UUID.generateUuid()
     }
     if (id) {

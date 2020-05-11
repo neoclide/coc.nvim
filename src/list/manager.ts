@@ -704,7 +704,7 @@ export class ListManager implements Disposable {
     if (this.executing) return
     this.executing = true
     let { nvim } = this
-    let shouldCancel = !action.persist && action.name != 'preview'
+    let shouldCancel = action.persist !== true && action.name != 'preview'
     try {
       if (shouldCancel) {
         await this.cancel()

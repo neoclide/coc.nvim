@@ -272,7 +272,6 @@ export class ServiceManager extends EventEmitter implements Disposable {
         if (!created) {
           if (typeof name == 'string' && !client) {
             let config: LanguageServerConfig = workspace.getConfiguration().get<{ key: LanguageServerConfig }>('languageserver', {} as any)[name]
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-boolean-literal-compare
             if (!config || config.enable === false) return
             let opts = getLanguageServerOptions(id, name, config)
             if (!opts) return
@@ -407,7 +406,7 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
     diagnosticCollectionName: name,
     outputChannelName: id,
     stdioEncoding: config.stdioEncoding || 'utf8',
-    progressOnInitialization: config.progressOnInitialization,
+    progressOnInitialization: config.progressOnInitialization !== false,
     initializationOptions: config.initializationOptions || {}
   }
   return [clientOptions, serverOptions]
