@@ -805,11 +805,42 @@ normal mode, `v_` works for visual mode.
 
 <Plug>(coc-funcobj-i)			*n_coc-funcobj-i* *v_coc-funcobj-i*
 
-			Select inside function, mapped to `if` by default.
+			Select inside function. Recommend mapping:
+			  xmap if <Plug>(coc-funcobj-i)
+			  omap if <Plug>(coc-funcobj-i)
+
+			Note: Requires 'textDocument.documentSymbol' support
+			from the language server.
 
 <Plug>(coc-funcobj-a)			*n_coc-funcobj-a* *v_coc-funcobj-a*
 
-			Select current function, mapped to `af` by default.
+			Select around function. Recommended mapping:
+			  xmap af <Plug>(coc-funcobj-a)
+			  omap af <Plug>(coc-funcobj-a)
+
+			Note: Requires 'textDocument.documentSymbol' support
+			from the language server.
+
+<Plug>(coc-classobj-i)			*n_coc-classobj-i* *v_coc-classobj-i*
+
+			Select inside class/struct/interface. Recommended
+			mapping:
+			  xmap ic <Plug>(coc-classobj-i)
+			  omap ic <Plug>(coc-classobj-i)
+
+			Note: Requires 'textDocument.documentSymbol' support
+			from the language server.
+
+
+<Plug>(coc-classobj-a)			*n_coc-classobj-a* *v_coc-classobj-a*
+
+			Select around class/struct/interface. Recommended
+			mapping:
+			  xmap ac <Plug>(coc-classobj-a)
+			  omap ac <Plug>(coc-classobj-a)
+
+			Note: Requires 'textDocument.documentSymbol' support
+			from the language server.
 
 ------------------------------------------------------------------------------
 VARIABLES					*coc-variables*
@@ -1260,16 +1291,6 @@ coc#util#get_config_home()
 coc#util#get_data_home()
 
 	Get `coc` data directory.
-
-						*coc#util#install()*
-coc#util#install([{config}])
-
-	Install compiled javascript code of coc.nvim.
-
-	{config} could contains:
-
-	- `terminal` use terminal when specified.
-	- `tag` use latest tag when specified.
 
 						*coc#util#extension_root()*
 

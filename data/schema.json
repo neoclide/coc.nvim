@@ -536,7 +536,7 @@
     "diagnostic.virtualTextCurrentLineOnly": {
       "type": "boolean",
       "description": "Only show virtualText diagnostic on current cursor line",
-      "default": "true"
+      "default": true
     },
     "diagnostic.virtualTextPrefix": {
       "type": "string",
