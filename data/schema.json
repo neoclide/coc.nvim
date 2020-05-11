@@ -264,10 +264,7 @@
     },
     "http.proxyStrictSSL": {
       "type": "boolean",
-      "default": true
-    },
-    "https.rejectUnauthorized": {
-      "type": "boolean",
+      "description": "Controls whether the proxy server certificate should be verified against the list of supplied CAs",
       "default": true
     },
     "npm.binPath": {
