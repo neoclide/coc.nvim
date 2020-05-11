@@ -1,9 +1,9 @@
 const path = require('path')
 const cp = require('child_process')
-const webpack = require('/Users/chemzqm/.config/yarn/global/node_modules/webpack')
-
 let res = cp.execSync('git rev-parse HEAD', {encoding: 'utf8'})
 let revision = res.slice(0, 10)
+let globalDir = cp.execSync('yarn global dir', {encoding: 'utf8'}).trim()
+const webpack = require(path.join(globalDir, 'node_modules/webpack'))
 
 module.exports = {
   entry: './bin/server',

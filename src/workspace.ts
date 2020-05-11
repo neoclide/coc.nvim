@@ -99,7 +99,7 @@ export class Workspace implements IWorkspace {
   public readonly configurations: Configurations
 
   constructor() {
-    let json = requireFunc('../package.json')
+    let json = require('../package.json')
     this.version = json.version
     this.configurations = this.createConfigurations()
     this.willSaveUntilHandler = new WillSaveUntilHandler(this)
