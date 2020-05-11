@@ -100,16 +100,18 @@ Or use Vim's built-in plugin ecosystem: >
 ==============================================================================
 CONFIGURATION						*coc-configuration*
 
-Most of coc.nvim configuration is stored within `coc-settings.json` file that can
-be opened using `:CocConfig`. This will open either the global configuration
-file (located at `$HOME/.vim/coc-settings.json` or
-`$HOME/.config/nvim/coc-settings.json` by default) or the local configuration
-file which is located under the project root: `$ROOT/.vim/coc-settings.json`
-(see `b:coc_root_patterns` for more information about project root). The
-location of global configuration can be modified using `g:coc_config_home`.
+Configurations of coc.nvim are stored in file names `coc-settings.json` that
+can be opened using |:CocConfig| for user configuration file or
+|:CocLocalConfig| for local configuration file.
+
+The location of global configuration can be configured by `g:coc_config_home`.
+
+Configure |b:coc_root_patterns| for project root resolve.
 
 To enable JSON completion and validation support of the settings file, install
-the `coc-json` extension: `:CocInstall coc-json`.
+the `coc-json` extension by command:
+
+	CocInstall coc-json
 
 Check out https://github.com/neoclide/coc.nvim/wiki/Using-the-configuration-file
 for more details.
@@ -259,6 +261,29 @@ Built-in configurations:~
 
 	Max items count for source priority bigger than or equal to `90`.
 
+"suggest.disableMenuShortcut":~
+
+	Disable shortcut of completion source in menu., default: `false`
+
+"suggest.removeDuplicateItems":~
+
+	Remove completion items with duplicated word for all sources, snippet
+	items are excluded., default: `false`
+
+"suggest.defaultSortMethod":~
+
+	Default sorting behavior for suggested completion items., default:
+	`length`
+
+"suggest.invalidInsertCharacters":~
+
+	Invalid character for strip valid word when inserting text of complete
+	item., default: ` ,(,<,{,[, `
+
+"suggest.asciiCharactersOnly":~
+
+	Suggest ASCII characters only, default: `false`
+
 "suggest.completionItemKindLabels":~
 
 	Set custom labels to completion item kinds.,  default: `{}`.
@@ -324,12 +349,16 @@ Built-in configurations:~
 
 	Valid options: ["hint", "information", "warning", "error"]
 
-"diagnostic.messageDelay"~
+"diagnostic.messageDelay":~
 
 	How long to wait (in milliseconds) before displaying the diagnostic
 	message with echo or float.
 	
 	Default: `200`
+
+"diagnostic.maxWindowWidth":~
+
+	Maximum width of diagnostics floating window., default: `80`
 
 "diagnostic.checkCurrentLine":~
 
@@ -431,6 +460,10 @@ Built-in configurations:~
 	Enable signature help when trigger character typed. Requires service restart
 	on change, default: `true`
 
+"signature.floatMaxWidth":~
+
+	Max width of signature float window., default: `60`
+
 "signature.triggerSignatureWait":~
 
 	Delay for signature request trigger (milliseconds), default: `50`.
@@ -455,6 +488,19 @@ Built-in configurations:~
 "signature.maxWindowHeight":~
 
 	Maximum height of floating window with the signature help, default: `8`
+
+							*coc-config-refactor*
+"refactor.openCommand":~
+
+	Open command for refactor window., default: `vsplit`
+
+"refactor.beforeContext":~
+
+	Print num lines of leading context before each match., default: `3`
+
+"refactor.afterContext":~
+
+	Print num lines of trailing context after each match., default: `3`
 
 							*coc-config-codelens*
 "codeLens.enable":~
@@ -525,6 +571,24 @@ Built-in configurations:~
 "list.insertMappings":~
 
 	Custom key mappings in the insert mode, default: `{}`
+
+"list.interactiveDebounceTime":~
+
+	Debouce time for input change on interactive mode., default: `100`
+
+"list.previewSplitRight":~
+
+	Use vsplit for preview window., default: `false`
+
+"list.source.symbols.excludes":~
+
+	Patterns of mimimatch for filepath to execlude from symbols list.,
+	default: `[]`
+
+"list.source.outline.ctagsFilestypes":~
+
+	Filetypes that should use `ctags` for outline instead of language server,
+	default: `[]`
 
 							*coc-config-preferences*
 "coc.preferences.maxFileSize":~
@@ -631,10 +695,27 @@ Built-in configurations:~
 
 	Enables snippets support, default: `true`
 
-"list.source.outline.ctagsFilestypes":~
+"coc.preferences.listOfWorkspaceEdit":~
 
-	Filetypes that should use `ctags` for outline instead of language server,
-	default: `[]`
+	List should contains changed locations after workspace edit, default
+	to vim's quickfix, default: `quickfix`
+
+"coc.preferences.highlightTimeout":~
+
+	Highlight timeout for buffer in floating window., default: `500`
+
+						*coc-config-cursors*
+"cursors.cancelKey":~
+
+	Key used for cancel cursors session., default: `<esc>`
+
+"cursors.nextKey":~
+
+	Key used for jump to next cursors position. , default: `<C-n>`
+
+"cursors.previousKey":~
+
+	Key used for jump to previous cursors position., default: `<C-p>`
 
 						*coc-config-npm*
 "npm.binPath":~
@@ -664,7 +745,7 @@ Tips:~
 - Snippet expand and additional edit feature of LSP requires confirm
   completion to work.
 
-- Floating window is available in Neovim >= 0.4.0.
+- Floating window is available on Neovim >= 0.4.0.
 
 ------------------------------------------------------------------------------
 

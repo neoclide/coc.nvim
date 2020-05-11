@@ -302,7 +302,7 @@ function! s:ShowInfo()
     if !filereadable(file)
       let file = s:root.'/build/index.js'
       if !filereadable(file)
-        call add(lines, 'Error: javascript bundle not found, run :call coc#util#install() to fix.')
+        call add(lines, 'Error: javascript bundle not found, please compile the code of coc.nvim.')
       endif
     endif
     if !empty(lines)
