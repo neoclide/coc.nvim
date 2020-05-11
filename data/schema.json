@@ -508,11 +508,6 @@
       "description": "How long to wait (in milliseconds) before displaying the diagnostic message with echo or float",
       "default": 200
     },
-    "diagnostic.joinMessageLines": {
-      "type": "boolean",
-      "description": "Join lines messages to reduce lines of floating window.",
-      "default": false
-    },
     "diagnostic.refreshOnInsertMode": {
       "type": "boolean",
       "description": "Enable diagnostic refresh on insert mode, default false.",
@@ -566,7 +561,7 @@
     "diagnostic.enableMessage": {
       "type": "string",
       "default": "always",
-      "description": "When to enable echo messages of diagnostics.",
+      "description": "When to enable show messages of diagnostics.",
       "enum": ["always", "jump", "never"]
     },
     "diagnostic.locationlist": {

@@ -1214,13 +1214,13 @@ export default class Handler {
 
   private getPreferences(): void {
     let config = workspace.getConfiguration('coc.preferences')
-    let signatureConfig = workspace.getConfiguration('signature')
     let hoverTarget = config.get<string>('hoverTarget', 'float')
     if (hoverTarget == 'float' && !workspace.env.floating && !workspace.env.textprop) {
       hoverTarget = 'preview'
     }
+    let signatureConfig = workspace.getConfiguration('signature')
     let signatureHelpTarget = signatureConfig.get<string>('target', 'float')
-    if (signatureHelpTarget == 'float' && !workspace.env.floating && !workspace.env.textprop) {
+    if (signatureHelpTarget == 'float' && !workspace.floatSupported) {
       signatureHelpTarget = 'echo'
     }
     this.labels = workspace.getConfiguration('suggest').get<any>('completionItemKindLabels', {})

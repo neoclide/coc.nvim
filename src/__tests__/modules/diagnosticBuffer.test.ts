@@ -7,7 +7,6 @@ import { wait } from '../../util'
 
 let nvim: Neovim
 const config: DiagnosticConfig = {
-  joinMessageLines: false,
   checkCurrentLine: false,
   enableSign: true,
   enableHighlightLineNumber: true,

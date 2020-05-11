@@ -32,7 +32,6 @@ export interface DiagnosticConfig {
   level: number
   messageTarget: string
   messageDelay: number
-  joinMessageLines: boolean
   maxWindowHeight: number
   maxWindowWidth: number
   refreshAfterSave: boolean
@@ -575,7 +574,6 @@ export class DiagnosticManager implements Disposable {
       maxWindowHeight: config.get<number>('maxWindowHeight', 10),
       maxWindowWidth: config.get<number>('maxWindowWidth', 80),
       enableMessage: config.get<string>('enableMessage', 'always'),
-      joinMessageLines: config.get<boolean>('joinMessageLines', false),
       messageDelay: config.get<number>('messageDelay', 200),
       virtualText: config.get<boolean>('virtualText', false),
       virtualTextCurrentLineOnly: config.get<boolean>('virtualTextCurrentLineOnly', true),
