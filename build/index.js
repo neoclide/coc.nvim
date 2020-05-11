@@ -22367,7 +22367,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "171c88cba4" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "5af5a806e2" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -23583,6 +23583,7 @@ const util_1 = __webpack_require__(217);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(234));
 const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(399));
 const object_1 = __webpack_require__(239);
+const string_1 = __webpack_require__(266);
 const logger = __webpack_require__(44)('model-float');
 // factory class for floating window
 class FloatFactory extends events_1.default {
@@ -23646,7 +23647,14 @@ class FloatFactory extends events_1.default {
         let { preferTop } = this;
         let alignTop = false;
         let [row, col] = win_position;
-        if ((preferTop && row >= 3) || (!preferTop && row >= lines - row - 1)) {
+        let max = this.getMaxWindowHeight(docs);
+        if (preferTop && row >= max) {
+            alignTop = true;
+        }
+        else if (!preferTop && lines - row - 1 >= max) {
+            alignTop = false;
+        }
+        else if ((preferTop && row >= 3) || (!preferTop && row >= lines - row - 1)) {
             alignTop = true;
         }
         let maxHeight = alignTop ? row : lines - row - 1;
@@ -23772,6 +23780,23 @@ class FloatFactory extends events_1.default {
         if (!this.winid)
             return false;
         return await this.nvim.call('coc#util#valid_float_win', [this.winid]);
+    }
+    getMaxWindowHeight(docs) {
+        let maxWidth = Math.min(this.maxWidth || 80, 80, this.env.columns);
+        let w = maxWidth - 2;
+        let h = 0;
+        for (let doc of docs) {
+            let lines = doc.content.split(/\r?\n/);
+            for (let s of lines) {
+                if (s.length == 0) {
+                    h = h + 1;
+                }
+                else {
+                    h = h + Math.ceil(string_1.byteLength(s.replace(/\t/g, '  ')) / w);
+                }
+            }
+        }
+        return Math.min(this.maxHeight, h);
     }
 }
 exports.default = FloatFactory;
