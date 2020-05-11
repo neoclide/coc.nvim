@@ -1,6 +1,6 @@
 *coc-nvim.txt*				LSP support for Vim & Neovim.
 
-Version: 0.0.57
+Version: 0.0.78
 Author: Qiming Zhao <chemzqm at gmail.com>
 License: MIT license
 
@@ -116,6 +116,7 @@ for more details.
 
 Built-in configurations:~
 
+							*coc-config-http*
 "http.proxy":~
 
 	HTTP proxy URI, used for extensions that send request, default: `""`
@@ -124,6 +125,7 @@ Built-in configurations:~
 
 	 default: `true`
 
+							*coc-config-suggest*
 "suggest.enablePreselect":~
 
 	Enable preselect feature on Neovim, default: `true`
@@ -160,6 +162,11 @@ Built-in configurations:~
 	How should completion be triggered, default: `"always"`
 
 	Valid options: ["always", "trigger", "none"]
+
+	- `always`: trigger suggest on word characters and trigger
+	  characters.
+	- `trigger`: trigger suggest on trigger characters only.
+	- `none`: no auto trigger at all.
 
 "suggest.languageSourcePriority":~
 
@@ -285,16 +292,43 @@ Built-in configurations:~
 		"default": "\uf29c"
 	}
 <
-
+							*coc-config-diagnostic*
 "diagnostic.enable":~
 
 	Display diagnostics, default: `true`
+
+"diagnostic.enableSign":~
+
+	Enable signs for diagnostics,  default: `true`
+
+"diagnostic.enableMessage":~
+
+	When to enable show messages of diagnostics.
+
+	Valid options: ["always","jump","never"], always means including
+	cursor hold and after jump to another diagnostic.
+
+	default: `"always"`
+
+"diagnostic.enableHighlightLineNumber":~
+
+	Enable highlighting line numbers for diagnostics, only works with
+	neovim and `diagnostic.enableSign` is true.
+
+	default: `true`
 
 "diagnostic.level":~
 
 	Filter diagnostics by severity, default: `"hint"`
 
 	Valid options: ["hint", "information", "warning", "error"]
+
+"diagnostic.messageDelay"~
+
+	How long to wait (in milliseconds) before displaying the diagnostic
+	message with echo or float.
+	
+	Default: `200`
 
 "diagnostic.checkCurrentLine":~
 
@@ -307,18 +341,13 @@ Built-in configurations:~
 
 	Valid options: ["echo", "float"]
 
-"diagnostic.joinMessageLines":~
-
-	Join messages to reduce the number of lines shown in the floating window,
-	default: `false`
-
 "diagnostic.refreshOnInsertMode":~
 
 	Refresh diagnostics when in insert mode, default: `false`
 
 "diagnostic.refreshAfterSave":~
 
-	Refresh diagnostics after save, default: `false`
+	Refresh diagnostics after file save only, default: `false`
 
 "diagnostic.displayByAle":~
 
@@ -346,16 +375,6 @@ Built-in configurations:~
 
 	The text that will mark a line end from the diagnostic message,
 	default: `" \\ "`
-
-"diagnostic.enableSign":~
-
-	Enable signs for diagnostics,  default: `true`
-
-"diagnostic.enableMessage":~
-
-	When to enable echo messages of diagnostics.,  default: `"always"`
-
-	Valid options: ["always","jump","never"]
 
 "diagnostic.locationlist":~
 
@@ -389,6 +408,23 @@ Built-in configurations:~
 
 	Maximum height of diagnostics floating window, default: `8`
 
+"diagnostic.filetypeMap":~
+
+	A map between buffer filetype and the filetype assigned to diagnostics.
+	To syntax highlight diagnostics withs their parent buffer type use
+	'\"default\": \"bufferType\"', default: `{}`
+
+"diagnostic.format":~
+
+	Define the diagnostic format.
+	Available parts: source, code, severity, message
+
+	Default: `[%source%code] [%severity] %message`
+
+"diagnostic.separateRelatedInformationAsDiagnostics":~
+
+	Separate related information as diagnostics, default: `false`
+
 "signature.enable":~
 
 	Enable signature help when trigger character typed. Requires service restart
@@ -419,6 +455,7 @@ Built-in configurations:~
 
 	Maximum height of floating window with the signature help, default: `8`
 
+							*coc-config-codelens*
 "codeLens.enable":~
 
 	Enable `codeLens` feature. Requires Neovim with virtual text feature,
@@ -433,6 +470,7 @@ Built-in configurations:~
 	Filetypes to ignore for workspace folder resolution,
 	default: `["markdown","log","txt","help"]`
 
+							*coc-config-list*
 "list.indicator":~
 
 	The character used as first character in prompt line,  default: `">"`
@@ -487,6 +525,7 @@ Built-in configurations:~
 
 	Custom key mappings in the insert mode, default: `{}`
 
+							*coc-config-preferences*
 "coc.preferences.maxFileSize":~
 
 	Maximum file size in bytes that coc.nvim should handle, default: `'10MB'`
@@ -509,8 +548,10 @@ Built-in configurations:~
 
 "coc.preferences.snippetStatusText":~
 
-	Text shown in 'statusline' to indicate snippet session is activate,
-	default: `"SNIP"`
+	Text shown in 'statusline' to indicate snippet session is activate.
+	Check |coc-status| for statusline integration.
+
+	Default: `"SNIP"`
 
 "coc.preferences.hoverTarget":~
 
@@ -518,13 +559,13 @@ Built-in configurations:~
 
 	Valid options: ["preview", "echo", "float"]
 
+"coc.preferences.previewAutoClose":~
+
+	Auto close preview window of hover upon cursor move, default: `true`
+
 "coc.preferences.colorSupport":~
 
 	Enable color highlight if Language Server support it, default: `true`
-
-"coc.preferences.previewAutoClose":~
-
-	Auto close preview window upon cursor move, default: `true`
 
 "coc.preferences.currentFunctionSymbolAutoUpdate":~
 
@@ -568,15 +609,16 @@ Built-in configurations:~
 
 	Valid options: ["more", "warning", "error"]
 
-"coc.preferences.bracketEnterImprove":~
-
-	Improve handling of pressing enter inside brackets (`<> {} [] ()`) by
-	adding a new empty line below and moving the cursor to it. Works with
-	`coc#on_enter()`, default: `true`
-
 "coc.preferences.formatOnType":~
 
 	Set to true to enable format on type, default: `false`
+
+"coc.preferences.bracketEnterImprove":~
+
+	Improve handling of pressing enter inside brackets (`<> {} [] ()`) by
+	adding a new empty line below and moving the cursor to it.
+
+	Works with |coc#on_enter()|, default: `true`
 
 "coc.preferences.formatOnTypeFiletypes":~
 
@@ -593,11 +635,13 @@ Built-in configurations:~
 	Filetypes that should use `ctags` for outline instead of language server,
 	default: `[]`
 
+						*coc-config-npm*
 "npm.binPath":~
 
 	Command or full path of npm or yarn executable for install/update
 	extensions, default: `npm`
 
+						*coc-config-languageserver*
 "languageserver":~
 
 	Dictionary of Language Servers, key is the ID corresponding server,
