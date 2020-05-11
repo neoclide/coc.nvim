@@ -20,7 +20,7 @@ Coc is an intellisense engine for Vim/Neovim.
 
 _True snippet and additional text editing support_
 
-Check out [Wiki](https://github.com/neoclide/coc.nvim/wiki), or
+Check out [Wiki](https://github.com/neoclide/coc.nvim/wiki), and
 [doc/coc.txt](doc/coc.txt) for the Vim interface.
 
 ## Quick Start
@@ -166,11 +166,10 @@ omap ic <Plug>(coc-classobj-i)
 xmap ac <Plug>(coc-classobj-a)
 omap ac <Plug>(coc-classobj-a)
 
-" Use <TAB> for selections ranges.
-" NOTE: Requires 'textDocument/selectionRange' support from the language server.
-" coc-tsserver, coc-python are the examples of servers that support it.
-nmap <silent> <TAB> <Plug>(coc-range-select)
-xmap <silent> <TAB> <Plug>(coc-range-select)
+" Use CTRL-S for selections ranges.
+" Requires 'textDocument/selectionRange' support of LS, ex: coc-tsserver
+nmap <silent> <C-s> <Plug>(coc-range-select)
+xmap <silent> <C-s> <Plug>(coc-range-select)
 
 " Add `:Format` command to format current buffer.
 command! -nargs=0 Format :call CocAction('format')

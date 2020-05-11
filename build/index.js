@@ -22187,8 +22187,7 @@ class Plugin extends events_1.EventEmitter {
             await this.ready;
             return await this.handler.runCommand(...args);
         });
-        this.addMethod('selectFunction', async (inner, visualmode) => await this.handler.selectFunction(inner, visualmode));
-        this.addMethod('selectClass', async (inner, visualmode) => await this.handler.selectClass(inner, visualmode));
+        this.addMethod('selectSymbolRange', async (inner, visualmode, supportedSymbols) => await this.handler.selectSymbolRange(inner, visualmode, supportedSymbols));
         this.addMethod('listResume', () => manager_2.default.resume());
         this.addMethod('listPrev', () => manager_2.default.previous());
         this.addMethod('listNext', () => manager_2.default.next());
@@ -22303,7 +22302,7 @@ class Plugin extends events_1.EventEmitter {
                 return;
             if (extensions_1.default.has('coc-json') || extensions_1.default.isDisabled('coc-json'))
                 return;
-            workspace_1.default.showMessage(`Run: CocInstall coc - json for json intellisense`, 'more');
+            workspace_1.default.showMessage(`Run: CocInstall coc-json for json intellisense`, 'more');
         });
     }
     get isReady() {
@@ -22368,7 +22367,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "657ca3c0fa" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "171c88cba4" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -23479,7 +23478,6 @@ class DiagnosticManager {
             maxWindowHeight: config.get('maxWindowHeight', 10),
             maxWindowWidth: config.get('maxWindowWidth', 80),
             enableMessage: config.get('enableMessage', 'always'),
-            joinMessageLines: config.get('joinMessageLines', false),
             messageDelay: config.get('messageDelay', 200),
             virtualText: config.get('virtualText', false),
             virtualTextCurrentLineOnly: config.get('virtualTextCurrentLineOnly', true),
@@ -39551,6 +39549,8 @@ class Completion {
         }
         complete.onDidComplete(async () => {
             let content = await this.getPreviousContent(document);
+            if (!content)
+                return;
             let search = this.getResumeInput(content);
             if (complete.isCanceled)
                 return;
@@ -55398,7 +55398,7 @@ class ServiceManager extends events_1.EventEmitter {
                 if (!created) {
                     if (typeof name == 'string' && !client) {
                         let config = workspace_1.default.getConfiguration().get('languageserver', {})[name];
-                        if (!config || !config.enable)
+                        if (!config || config.enable === false)
                             return;
                         let opts = getLanguageServerOptions(id, name, config);
                         if (!opts)
@@ -55540,7 +55540,7 @@ function getLanguageServerOptions(id, name, config) {
         diagnosticCollectionName: name,
         outputChannelName: id,
         stdioEncoding: config.stdioEncoding || 'utf8',
-        progressOnInitialization: config.progressOnInitialization,
+        progressOnInitialization: config.progressOnInitialization !== false,
         initializationOptions: config.initializationOptions || {}
     };
     return [clientOptions, serverOptions];
@@ -59550,7 +59550,7 @@ class WorkspaceFoldersFeature {
         if (typeof value === 'string') {
             id = value;
         }
-        else if (value) {
+        else if (value === true) {
             id = UUID.generateUuid();
         }
         if (id) {
@@ -60393,7 +60393,7 @@ class ListManager {
             return;
         this.executing = true;
         let { nvim } = this;
-        let shouldCancel = !action.persist && action.name != 'preview';
+        let shouldCancel = action.persist !== true && action.name != 'preview';
         try {
             if (shouldCancel) {
                 await this.cancel();
@@ -71084,13 +71084,10 @@ class Handler {
         }
         return res;
     }
-    async selectClass(inner, visualmode) {
-        await this.selectSymbols(inner, visualmode, ['Interface', 'Struct', 'Class']);
-    }
-    async selectFunction(inner, visualmode) {
-        await this.selectSymbols(inner, visualmode, ['Method', 'Function']);
-    }
-    async selectSymbols(inner, visualmode, supportedSymbols) {
+    /*
+     * supportedSymbols must be string values of symbolKind
+     */
+    async selectSymbolRange(inner, visualmode, supportedSymbols) {
         let { nvim } = this;
         let bufnr = await nvim.eval('bufnr("%")');
         let doc = workspace_1.default.getDocument(bufnr);
@@ -71558,13 +71555,13 @@ class Handler {
     }
     getPreferences() {
         let config = workspace_1.default.getConfiguration('coc.preferences');
-        let signatureConfig = workspace_1.default.getConfiguration('signature');
         let hoverTarget = config.get('hoverTarget', 'float');
         if (hoverTarget == 'float' && !workspace_1.default.env.floating && !workspace_1.default.env.textprop) {
             hoverTarget = 'preview';
         }
+        let signatureConfig = workspace_1.default.getConfiguration('signature');
         let signatureHelpTarget = signatureConfig.get('target', 'float');
-        if (signatureHelpTarget == 'float' && !workspace_1.default.env.floating && !workspace_1.default.env.textprop) {
+        if (signatureHelpTarget == 'float' && !workspace_1.default.floatSupported) {
             signatureHelpTarget = 'echo';
         }
         this.labels = workspace_1.default.getConfiguration('suggest').get('completionItemKindLabels', {});
