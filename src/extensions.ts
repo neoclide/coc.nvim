@@ -180,7 +180,7 @@ export class Extensions {
       let json = this.loadJson()
       if (json && json.dependencies) {
         let vals: string[] = Object.values(json.dependencies)
-        names = names.filter(s => /^https?:/.test(s) && vals.some(v => v.startsWith(s)))
+        names = names.filter(s => !vals.includes(s))
       }
       this.installExtensions(names).logError()
     }
