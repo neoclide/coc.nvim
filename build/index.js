@@ -20650,6 +20650,7 @@ const which_1 = tslib_1.__importDefault(__webpack_require__(223));
 const platform = tslib_1.__importStar(__webpack_require__(227));
 exports.platform = platform;
 const logger = __webpack_require__(44)('util-index');
+exports.CONFIG_FILE_NAME = 'coc-settings.json';
 function escapeSingleQuote(str) {
     return str.replace(/'/g, "''");
 }
@@ -22138,6 +22139,7 @@ const manager_3 = tslib_1.__importDefault(__webpack_require__(233));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(311));
 const types_1 = __webpack_require__(238);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(234));
+const util_1 = __webpack_require__(217);
 const logger = __webpack_require__(44)('plugin');
 class Plugin extends events_1.EventEmitter {
     constructor(nvim) {
@@ -22298,7 +22300,7 @@ class Plugin extends events_1.EventEmitter {
             logger.error(e.stack);
         }
         workspace_1.default.onDidOpenTextDocument(async (doc) => {
-            if (!doc.uri.endsWith('coc-settings.json'))
+            if (!doc.uri.endsWith(util_1.CONFIG_FILE_NAME))
                 return;
             if (extensions_1.default.has('coc-json') || extensions_1.default.isDisabled('coc-json'))
                 return;
@@ -22367,7 +22369,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "4f0a63a5d5" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "f8c05d3c9e" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -24059,9 +24061,7 @@ const mutex_1 = __webpack_require__(232);
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(291));
 const rimraf_1 = tslib_1.__importDefault(__webpack_require__(295));
 const uuid_1 = __webpack_require__(277);
-const requireFunc =  true ? require : undefined;
 const logger = __webpack_require__(44)('workspace');
-const CONFIG_FILE_NAME = 'coc-settings.json';
 let NAME_SPACE = 1080;
 class Workspace {
     constructor() {
@@ -24320,7 +24320,7 @@ class Workspace {
                 return;
             fs_1.default.mkdirSync(dir);
         }
-        await this.jumpTo(vscode_uri_1.URI.file(path_1.default.join(dir, 'coc-settings.json')).toString());
+        await this.jumpTo(vscode_uri_1.URI.file(path_1.default.join(dir, index_1.CONFIG_FILE_NAME)).toString());
     }
     get textDocuments() {
         let docs = [];
@@ -25521,7 +25521,7 @@ augroup end`;
     }
     createConfigurations() {
         let home = process.env.COC_VIMCONFIG || path_1.default.join(os_1.default.homedir(), '.vim');
-        let userConfigFile = path_1.default.join(home, CONFIG_FILE_NAME);
+        let userConfigFile = path_1.default.join(home, index_1.CONFIG_FILE_NAME);
         return new configuration_1.default(userConfigFile, new shape_1.default(this));
     }
     // events for sync buffer of vim
@@ -26606,7 +26606,7 @@ class Configurations {
         if (!this.hasFolderConfiguration(rootPath)) {
             let folder = fs_2.findUp('.vim', rootPath);
             if (folder && folder != os_1.default.homedir()) {
-                let file = path_1.default.join(folder, 'coc-settings.json');
+                let file = path_1.default.join(folder, util_1.CONFIG_FILE_NAME);
                 if (fs_1.default.existsSync(file)) {
                     this.addFolderFile(file);
                 }
@@ -30305,6 +30305,7 @@ const fs_1 = tslib_1.__importDefault(__webpack_require__(46));
 const jsonc_parser_1 = __webpack_require__(244);
 const path_1 = tslib_1.__importDefault(__webpack_require__(62));
 const vscode_uri_1 = __webpack_require__(222);
+const util_1 = __webpack_require__(217);
 const logger = __webpack_require__(44)('configuration-shape');
 class ConfigurationProxy {
     constructor(workspace) {
@@ -30331,7 +30332,7 @@ class ConfigurationProxy {
     }
     get workspaceConfigFile() {
         let folder = path_1.default.join(this.workspace.root, '.vim');
-        return path_1.default.join(folder, 'coc-settings.json');
+        return path_1.default.join(folder, util_1.CONFIG_FILE_NAME);
     }
     $updateConfigurationOption(target, key, value) {
         this.modifyConfiguration(target, key, value).logError();
@@ -30834,9 +30835,6 @@ class Document {
      */
     convertFiletype(filetype) {
         let map = this.env.filetypeMap;
-        if (filetype == 'json' && this.uri && this.uri.endsWith('coc-settings.json')) {
-            return 'jsonc';
-        }
         if (filetype == 'javascript.jsx')
             return 'javascriptreact';
         if (filetype == 'typescript.jsx' || filetype == 'typescript.tsx')
@@ -40445,17 +40443,7 @@ class Extensions {
     async checkExtensions() {
         let { globalExtensions, watchExtensions } = workspace_1.default.env;
         if (globalExtensions && globalExtensions.length) {
-            let names = globalExtensions.filter(name => !this.isDisabled(name));
-            let folder = path_1.default.join(this.root, 'node_modules');
-            if (fs_1.default.existsSync(folder)) {
-                let files = await util_1.promisify(fs_1.default.readdir)(folder);
-                names = names.filter(s => !files.includes(s));
-            }
-            let json = this.loadJson();
-            if (json && json.dependencies) {
-                let vals = Object.values(json.dependencies);
-                names = names.filter(s => /^https?:/.test(s) && vals.some(v => v.startsWith(s)));
-            }
+            let names = this.filterGlobalExtensions(globalExtensions);
             this.installExtensions(names).logError();
         }
         // watch for changes
@@ -41125,6 +41113,36 @@ class Extensions {
         if (this.activated) {
             this.setupActiveEvents(id, packageJSON);
         }
+    }
+    // extension must exists as folder and in package.json
+    filterGlobalExtensions(names) {
+        let filtered = names.filter(name => !this.disabled.has(name));
+        let folder = path_1.default.join(this.root, global.hasOwnProperty('__TEST__') ? '' : 'node_modules');
+        let json = this.loadJson();
+        let urls = [];
+        let exists = [];
+        if (json && json.dependencies) {
+            for (let key of Object.keys(json.dependencies)) {
+                let val = json.dependencies[key];
+                exists.push(key);
+                if (typeof val !== 'string')
+                    continue;
+                if (fs_1.default.existsSync(path_1.default.join(folder, key))) {
+                    if (/^https?:/.test(val)) {
+                        urls.push(val);
+                    }
+                    else {
+                        exists.push(key);
+                    }
+                }
+            }
+        }
+        filtered = filtered.filter(str => {
+            if (/^https?:/.test(str))
+                return !urls.some(url => url.startsWith(str));
+            return !exists.includes(str);
+        });
+        return filtered;
     }
     async initializeRoot() {
         let root = this.root = await workspace_1.default.nvim.call('coc#util#extension_root');
@@ -71603,7 +71621,7 @@ class Handler {
             triggerSignatureHelp: signatureConfig.get('enable', true),
             triggerSignatureWait: signatureConfig.get('triggerSignatureWait', 50),
             signaturePreferAbove: signatureConfig.get('preferShownAbove', true),
-            signatureFloatMaxWidth: signatureConfig.get('floatMaxWidth', 80),
+            signatureFloatMaxWidth: signatureConfig.get('floatMaxWidth', 60),
             signatureHideOnChange: signatureConfig.get('hideOnTextChange', false),
             formatOnType: config.get('formatOnType', false),
             formatOnTypeFiletypes: config.get('formatOnTypeFiletypes', []),
