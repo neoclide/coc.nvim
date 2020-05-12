@@ -26,7 +26,7 @@ import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, MessageLevel, MsgTypes, OutputChannel, PatternType, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, DidChangeTextDocumentParams, OpenTerminalOption } from './types'
 import { distinct } from './util/array'
 import { findUp, isFile, isParentFolder, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile, fixDriver } from './util/fs'
-import { disposeAll, getKeymapModifier, isDocumentEdit, runCommand, wait, platform } from './util/index'
+import { disposeAll, CONFIG_FILE_NAME, getKeymapModifier, isDocumentEdit, runCommand, wait, platform } from './util/index'
 import mkdirp from 'mkdirp'
 import { score } from './util/match'
 import { getChangedFromEdits, comparePosition } from './util/position'
@@ -36,11 +36,7 @@ import Watchman from './watchman'
 import rimraf from 'rimraf'
 import { v1 as uuid } from 'uuid'
 
-declare let __webpack_require__: any
-declare let __non_webpack_require__: any
-const requireFunc = typeof __webpack_require__ === "function" ? __non_webpack_require__ : require
 const logger = require('./util/logger')('workspace')
-const CONFIG_FILE_NAME = 'coc-settings.json'
 let NAME_SPACE = 1080
 
 export class Workspace implements IWorkspace {
@@ -324,7 +320,7 @@ export class Workspace implements IWorkspace {
       if (!res) return
       fs.mkdirSync(dir)
     }
-    await this.jumpTo(URI.file(path.join(dir, 'coc-settings.json')).toString())
+    await this.jumpTo(URI.file(path.join(dir, CONFIG_FILE_NAME)).toString())
   }
 
   public get textDocuments(): TextDocument[] {

@@ -14,6 +14,7 @@ import snippetManager from './snippets/manager'
 import sources from './sources'
 import { Autocmd, OutputChannel, PatternType } from './types'
 import workspace from './workspace'
+import { CONFIG_FILE_NAME } from './util'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -177,7 +178,7 @@ export default class Plugin extends EventEmitter {
     }
 
     workspace.onDidOpenTextDocument(async doc => {
-      if (!doc.uri.endsWith('coc-settings.json')) return
+      if (!doc.uri.endsWith(CONFIG_FILE_NAME)) return
       if (extensions.has('coc-json') || extensions.isDisabled('coc-json')) return
       workspace.showMessage(`Run: CocInstall coc-json for json intellisense`, 'more')
     })

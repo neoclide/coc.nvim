@@ -89,9 +89,6 @@ export default class Document {
    */
   public convertFiletype(filetype: string): string {
     let map = this.env.filetypeMap
-    if (filetype == 'json' && this.uri && this.uri.endsWith('coc-settings.json')) {
-      return 'jsonc'
-    }
     if (filetype == 'javascript.jsx') return 'javascriptreact'
     if (filetype == 'typescript.jsx' || filetype == 'typescript.tsx') return 'typescriptreact'
     return map[filetype] || filetype

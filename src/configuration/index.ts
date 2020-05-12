@@ -5,7 +5,7 @@ import { Emitter, Event, Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { ConfigurationChangeEvent, ConfigurationInspect, ConfigurationShape, ConfigurationTarget, ErrorItem, IConfigurationData, IConfigurationModel, WorkspaceConfiguration } from '../types'
 import { deepClone, deepFreeze, mixin } from '../util/object'
-import { watchFile, disposeAll } from '../util'
+import { watchFile, disposeAll, CONFIG_FILE_NAME } from '../util'
 import { Configuration } from './configuration'
 import { ConfigurationModel } from './model'
 import { addToValueTree, loadDefaultConfigurations, parseContentFromFile, getChangedKeys } from './util'
@@ -312,7 +312,7 @@ export default class Configurations {
     if (!this.hasFolderConfiguration(rootPath)) {
       let folder = findUp('.vim', rootPath)
       if (folder && folder != os.homedir()) {
-        let file = path.join(folder, 'coc-settings.json')
+        let file = path.join(folder, CONFIG_FILE_NAME)
         if (fs.existsSync(file)) {
           this.addFolderFile(file)
         }

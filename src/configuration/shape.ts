@@ -5,6 +5,7 @@ import path from 'path'
 import { FormattingOptions } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { ConfigurationShape, ConfigurationTarget, IWorkspace } from '../types'
+import { CONFIG_FILE_NAME } from '../util'
 const logger = require('../util/logger')('configuration-shape')
 
 export default class ConfigurationProxy implements ConfigurationShape {
@@ -33,7 +34,7 @@ export default class ConfigurationProxy implements ConfigurationShape {
 
   public get workspaceConfigFile(): string {
     let folder = path.join(this.workspace.root, '.vim')
-    return path.join(folder, 'coc-settings.json')
+    return path.join(folder, CONFIG_FILE_NAME)
   }
 
   public $updateConfigurationOption(target: ConfigurationTarget, key: string, value: any): void {

@@ -12,6 +12,8 @@ import * as platform from './platform'
 export { platform }
 const logger = require('./logger')('util-index')
 
+export const CONFIG_FILE_NAME = 'coc-settings.json'
+
 export function escapeSingleQuote(str: string): string {
   return str.replace(/'/g, "''")
 }
