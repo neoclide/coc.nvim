@@ -150,6 +150,7 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     // create window
     let res = await this.nvim.call('coc#util#create_float_win', [this.winid, this._bufnr, config])
     if (!res) return
+    this.onCursorMoved.clear()
     let winid = this.winid = res[0]
     let bufnr = this._bufnr = res[1]
     if (token.isCancellationRequested) return

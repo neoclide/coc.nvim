@@ -123,7 +123,7 @@ export default class Handler {
       if (cursor[0] - 1 == line) {
         let currline = doc.getline(cursor[0] - 1)
         let col = byteLength(currline.slice(0, character)) + 1
-        if (cursor[1] > col) return
+        if (cursor[1] >= col) return
       }
       this.signatureFactory.close()
     }, null, this.disposables)
