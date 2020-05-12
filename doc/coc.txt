@@ -727,8 +727,102 @@ Built-in configurations:~
 						*coc-config-languageserver*
 "languageserver":~
 
-	Dictionary of Language Servers, key is the ID corresponding server,
-	default: `{}`
+	Dictionary of Language Servers, key is the ID of corresponding server,
+	and value is configuration of languageserver. Default: `{}`
+
+	Properties of languageserver configuration:
+
+	- "enable": Change to `false` to disable that languageserver.
+
+	- "filetypes": Supported filetypes, add * in array for all filetypes.
+	  Note: it's required for start the languageserver, please make cure
+	  your filetype is expected by `:echo &filetype` command
+
+	- "additionalSchemes": Additional uri schemes, default schemes
+	  including file & untitled. 
+	  Note: you have to setup vim provide content for custom uri as well.
+
+	- "cwd": Working directory used to start languageserver, vim's cwd is
+	  used by default.
+
+	- "env": Environment variables for child process.
+
+	- "settings": Settings for languageserver, received on server
+	  initialiation.
+
+	- "trace.server": Trace level of communication between server and
+	  client that showed with output channel.
+
+	- "stdioEncoding": Encoding used for stdio of child process.
+
+	- "initializationOptions": Initialization options passed to
+	  languageserver (it's deprecated)
+
+	- "rootPatterns": Root patterns used to resolve rootPath from current
+	  file.
+
+	- "requireRootPattern": If true, doesn't start server when root
+	  pattern not found.
+
+	- "ignoredRootPaths": Absolute root paths that language server should
+	  not use as rootPath, higher priority than rootPatterns.
+
+	- "disableDynamicRegister": Disable dynamic registerCapability feature
+	  for this languageserver to avoid duplicated feature regstration.
+
+	- "disableWorkspaceFolders": Disable workspaceFolders feature for this
+	  languageserver.
+
+	- "disableDiagnostics": Disable handle diagnostics for this
+	  languageserver.
+
+	- "disableCompletion": Disable completion feature for this
+	  languageserver.
+
+	- "revealOutputChannelOn": Configure message level to show the output
+	  channel buffer.
+
+	- "progressOnInitialization": Enable progress report on languageserver
+	  initialize.
+
+Language server start with command:~
+
+	Additional fields can be used for command language server:
+
+	- "command": Executable program name in $PATH or absolute path of
+	  executable used for start languageserver.
+
+	- "args": Command line arguments of command.
+
+	- "detached": Detach language server when is true.
+
+	- "shell": Use shell for server process, default: `false`
+
+Language server start with module:~
+
+	Additional fields can be used forlanguage server started by node
+	module:
+
+	- "module": Absolute filepath of javascript file.
+	
+	- "args": Extra arguments used on fork javascript module.
+
+	- "runtime": Absolute path of node runtime, node runtime of coc.nvim
+	  is used by default.
+
+	- "execArgv": Argv passed to node on fork, normally used for
+	  debugging, ex: `["--nolazy", "--inspect-brk=6045"]`
+
+	- "transport": Transport kind used by server, could be 'ipc', 'stdio',
+	  'socket' and 'pipe'. 'ipc' is used by default (recommended).
+
+	- "transportPort": Port number used when transport is 'socket'.
+
+Language server use initialized socket server:~
+
+	- "port": Port number of socket server.
+
+	- "host": Host of socket server, default to `127.0.0.1`.
 
 ==============================================================================
 COMPLETION					*coc-completion*
