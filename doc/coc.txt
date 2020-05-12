@@ -513,6 +513,10 @@ Built-in configurations:~
 
 	Separator text for `codeLens` in virtual text, default: `"‣"`
 
+"codeLens.subseparator":~
+
+	Subseparator text for multiple `codeLens`es in virtual text, default: `" "`
+
 "workspace.ignoredFiletypes":~
 
 	Filetypes to ignore for workspace folder resolution,
