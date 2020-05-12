@@ -837,9 +837,8 @@ export class Extensions {
     if (json && json.dependencies) {
       for (let key of Object.keys(json.dependencies)) {
         let val = json.dependencies[key]
-        exists.push(key)
         if (typeof val !== 'string') continue
-        if (fs.existsSync(path.join(folder, key))) {
+        if (fs.existsSync(path.join(folder, key, 'package.json'))) {
           if (/^https?:/.test(val)) {
             urls.push(val)
           } else {
