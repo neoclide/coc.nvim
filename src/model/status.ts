@@ -4,7 +4,7 @@ import { StatusBarItem } from '../types'
 import { v1 as uuidv1 } from 'uuid'
 const logger = require('../util/logger')('model-status')
 
-const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+export const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 
 export default class StatusLine implements Disposable {
   private items: Map<string, StatusBarItem> = new Map()

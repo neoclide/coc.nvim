@@ -460,6 +460,13 @@ function! s:funcs.win_set_width(win_id, width) abort
   call win_gotoid(winid)
 endfunction
 
+function! s:funcs.win_set_buf(win_id, buf_id) abort
+  let winid = win_getid()
+  call win_gotoid(a:win_id)
+  execute 'buffer '.a:buf_id
+  call win_gotoid(winid)
+endfunction
+
 function! s:funcs.win_get_option(win_id, name) abort
   return gettabwinvar(0, a:win_id, '&'.a:name)
 endfunction

@@ -121,7 +121,7 @@ export function isDocumentEdit(edit: any): boolean {
   return true
 }
 
-export function concurrent(fns: (() => Promise<any>)[], limit = Infinity): Promise<any[]> {
+export function concurrent(fns: (() => Promise<any>)[], limit = Infinity, onProgress?: (count: number) => void): Promise<any[]> {
   if (fns.length == 0) return Promise.resolve([])
   return new Promise((resolve, rejrect) => {
     let remain = fns.slice()
@@ -131,6 +131,7 @@ export function concurrent(fns: (() => Promise<any>)[], limit = Infinity): Promi
         return resolve(results)
       }
       let list = remain.splice(0, limit)
+      if (onProgress) onProgress(list.length)
       Promise.all(list.map(fn => fn())).then(res => {
         results.push(...res)
         next()

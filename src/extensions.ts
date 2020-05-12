@@ -22,6 +22,7 @@ import { createExtension, ExtensionExport } from './util/factory'
 import { inDirectory, readdirAsync, readFile, realpathAsync, statAsync } from './util/fs'
 import Watchman from './watchman'
 import workspace from './workspace'
+import InstallBuffer from './model/installBuffer'
 
 const createLogger = require('./util/logger')
 const logger = createLogger('extensions')
@@ -66,6 +67,7 @@ export class Extensions {
   private _additionalSchemes: { [key: string]: PropertyScheme } = {}
   private activated = false
   private manager: ExtensionManager
+  private installBuffer: InstallBuffer
   public ready = true
   public readonly onDidLoadExtension: Event<Extension<API>> = this._onDidLoadExtension.event
   public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
@@ -80,6 +82,7 @@ export class Extensions {
     } else {
       await this.initializeRoot()
     }
+    this.installBuffer = new InstallBuffer()
     let data = loadJson(this.db.filepath) || {}
     let keys = Object.keys(data.extension || {})
     for (let key of keys) {
@@ -204,15 +207,19 @@ export class Extensions {
     if (missing.length) list.push(...missing)
     if (!list.length) return
     list = distinct(list)
-    let statusItem = workspace.createStatusBarItem(0, { progress: true })
-    statusItem.show()
-    statusItem.text = `Installing ${list.join(' ')}`
+    this.installBuffer.setExtensions(list)
+    let names = list.slice()
+    await this.installBuffer.show(workspace.nvim)
     await concurrent(list.map(def => (): Promise<void> => this.manager.install(npm, def).then(name => {
-      if (name) this.onExtensionInstall(name).logError()
+      this.installBuffer.finishProgress(def, true)
+      this.onExtensionInstall(name).logError()
     }, err => {
+      this.installBuffer.finishProgress(def, false)
       workspace.showMessage(`Error on install ${def}: ${err}`, 'error')
-    })), 3)
-    statusItem.dispose()
+    })), 3, count => {
+      let processing = names.splice(0, count)
+      if (processing.length) this.installBuffer.startProgress(processing)
+    })
   }
 
   /**
