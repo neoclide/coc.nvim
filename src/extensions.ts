@@ -171,17 +171,7 @@ export class Extensions {
   private async checkExtensions(): Promise<void> {
     let { globalExtensions, watchExtensions } = workspace.env
     if (globalExtensions && globalExtensions.length) {
-      let names = globalExtensions.filter(name => !this.isDisabled(name))
-      let folder = path.join(this.root, 'node_modules')
-      if (fs.existsSync(folder)) {
-        let files = await promisify(fs.readdir)(folder)
-        names = names.filter(s => !files.includes(s))
-      }
-      let json = this.loadJson()
-      if (json && json.dependencies) {
-        let vals: string[] = Object.values(json.dependencies)
-        names = names.filter(s => /^https?:/.test(s) && vals.some(v => v.startsWith(s)))
-      }
+      let names = this.filterGlobalExtensions(globalExtensions)
       this.installExtensions(names).logError()
     }
     // watch for changes
@@ -835,6 +825,34 @@ export class Extensions {
     if (this.activated) {
       this.setupActiveEvents(id, packageJSON)
     }
+  }
+
+  // extension must exists as folder and in package.json
+  public filterGlobalExtensions(names: string[]): string[] {
+    let filtered = names.filter(name => !this.disabled.has(name))
+    let folder = path.join(this.root, global.hasOwnProperty('__TEST__') ? '' : 'node_modules')
+    let json = this.loadJson()
+    let urls: string[] = []
+    let exists: string[] = []
+    if (json && json.dependencies) {
+      for (let key of Object.keys(json.dependencies)) {
+        let val = json.dependencies[key]
+        exists.push(key)
+        if (typeof val !== 'string') continue
+        if (fs.existsSync(path.join(folder, key))) {
+          if (/^https?:/.test(val)) {
+            urls.push(val)
+          } else {
+            exists.push(key)
+          }
+        }
+      }
+    }
+    filtered = filtered.filter(str => {
+      if (/^https?:/.test(str)) return !urls.some(url => url.startsWith(str))
+      return !exists.includes(str)
+    })
+    return filtered
   }
 
   private async initializeRoot(): Promise<void> {

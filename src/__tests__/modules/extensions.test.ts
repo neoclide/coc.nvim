@@ -28,6 +28,11 @@ describe('extensions', () => {
     expect(stat).toBe('activated')
   })
 
+  it('should filter global extensions', async () => {
+    let res = extensions.filterGlobalExtensions(['test', 'foo'])
+    expect(res).toEqual(['foo'])
+  })
+
   it('should load local extensions from &rtp', async () => {
     let folder = path.resolve(__dirname, '../extensions/local')
     await nvim.command(`set runtimepath^=${folder}`)
