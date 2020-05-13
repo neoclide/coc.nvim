@@ -67,6 +67,7 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
   private draw(buffer: Buffer): void {
     let first = this.finished ? 'Install finished' : 'Installing extensions...'
     let lines = [first, '', ...this.getLines()]
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
     if (this.finished && this.interval) {
       clearInterval(this.interval)
