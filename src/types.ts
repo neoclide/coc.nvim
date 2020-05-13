@@ -607,6 +607,7 @@ export interface CompleteConfig {
   removeDuplicateItems: boolean
   defaultSortMethod: string
   asciiCharactersOnly: boolean
+  reverseList: boolean
 }
 
 export interface WorkspaceConfiguration {

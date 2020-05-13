@@ -402,4 +402,27 @@ describe('completion', () => {
     }
     disposable.dispose()
   })
+
+  it('should reverse list of complete items', async () => {
+    helper.updateConfiguration('suggest.reverseList', true)
+    await helper.edit()
+    let source: ISource = {
+      name: 'high',
+      priority: 90,
+      enable: true,
+      sourceType: SourceType.Native,
+      triggerCharacters: ['.'],
+      doComplete: async (): Promise<CompleteResult> => Promise.resolve({
+          items: ['a', 'b', 'c', 'd'].map(key => ({ word: key }))
+        })
+    }
+    let disposable = sources.addSource(source)
+    await nvim.input('i')
+    await helper.wait(30)
+    await nvim.input('.')
+    await helper.waitPopup()
+    let items = await helper.getItems()
+    expect(items.map(item=>item.abbr)).toEqual(["d", "c", "b", "a"])
+    disposable.dispose()
+  })
 })

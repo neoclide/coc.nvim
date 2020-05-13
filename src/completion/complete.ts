@@ -261,7 +261,15 @@ export default class Complete {
           return a.filterText.length - b.filterText.length
       }
     })
-    return this.limitCompleteItems(arr.slice(0, this.config.maxItemCount))
+
+    let completeItems= this.limitCompleteItems(arr.slice(0, this.config.maxItemCount))
+
+    if (this.config.reverseList) {
+      completeItems = completeItems.reverse()
+    }
+    console.log(this.config.reverseList)
+
+    return completeItems
   }
 
   private limitCompleteItems(items: VimCompleteItem[]): VimCompleteItem[] {
