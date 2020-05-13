@@ -173,7 +173,7 @@ export default class FloatBuffer {
           && /^\s*```/.test(line)) {
           continue
         }
-        arr.push(byteLength(line) + 2)
+        arr.push(byteLength(line.replace(/\t/g, '  ')) + 2)
       }
     }
     let width = Math.min(Math.max(...arr), maxWidth)
