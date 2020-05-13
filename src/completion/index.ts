@@ -11,6 +11,7 @@ import workspace from '../workspace'
 import Complete from './complete'
 import Floating from './floating'
 import throttle from '../util/throttle'
+import { equals } from '../util/object'
 const logger = require('../util/logger')('completion')
 const completeItemKeys = ['abbr', 'menu', 'info', 'kind', 'icase', 'dup', 'empty', 'user_data']
 
@@ -46,9 +47,20 @@ export class Completion implements Disposable {
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
     events.on('TextChangedP', this.onTextChangedP, this, this.disposables)
     events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
-    events.on('CompleteDone', this.onCompleteDone, this, this.disposables)
-    let fn = throttle(this.onPumChange.bind(this), workspace.isVim ? 200 : 50)
-    events.on('MenuPopupChanged', fn as any, this, this.disposables)
+    let fn = throttle(this.onPumChange.bind(this), workspace.isVim ? 200 : 100)
+    events.on('CompleteDone', async item => {
+      this.currItem = null
+      await this.onCompleteDone(item)
+    }, this, this.disposables)
+    events.on('MenuPopupChanged', ev => {
+      if (!this.activated || this.isCommandLine) return
+      let { completed_item } = ev
+      let item = completed_item.hasOwnProperty('word') ? completed_item : null
+      if (equals(item, this.currItem)) return
+      this.cancel()
+      this.currItem = item
+      fn(ev)
+    }, this, this.disposables)
     events.on('CursorMovedI', debounce(async (bufnr, cursor) => {
       // try trigger completion
       let doc = workspace.getDocument(bufnr)
@@ -74,6 +86,10 @@ export class Completion implements Disposable {
   public get option(): CompleteOption {
     if (!this.complete) return null
     return this.complete.option
+  }
+
+  private get isCommandLine(): boolean {
+    return this.document && this.document.uri.endsWith('%5BCommand%20Line%5D')
   }
 
   private addRecent(word: string, bufnr: number): void {
@@ -481,13 +497,8 @@ export class Completion implements Disposable {
 
   public async onPumChange(ev: PopupChangeEvent): Promise<void> {
     if (!this.activated) return
-    if (this.document && this.document.uri.endsWith('%5BCommand%20Line%5D')) return
-    this.cancel()
     let { completed_item, col, row, height, width, scrollbar } = ev
     let bounding: PumBounding = { col, row, height, width, scrollbar }
-    this.currItem = completed_item.hasOwnProperty('word') ? completed_item : null
-    // it's pum change by vim, ignore it
-    if (this.lastInsert) return
     let resolvedItem = this.getCompleteItem(completed_item)
     if (!resolvedItem) {
       this.floating.close()
@@ -506,10 +517,8 @@ export class Completion implements Disposable {
     if (!docs || docs.length == 0) {
       this.floating.close()
     } else {
-      if (token.isCancellationRequested) return
       await this.floating.show(docs, bounding, token)
     }
-    this.resolveTokenSource = null
   }
 
   public start(complete: Complete): void {
@@ -555,9 +564,8 @@ export class Completion implements Disposable {
     }
     nvim.command(`let g:coc#_context['candidates'] = []`, true)
     nvim.call('coc#_hide', [], true)
-    nvim.resumeNotification(false, true).catch(_e => {
-      // noop
-    })
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    nvim.resumeNotification(false, true)
   }
 
   private getInput(document: Document, pre: string): string {
@@ -580,7 +588,7 @@ export class Completion implements Disposable {
   }
 
   private getCompleteItem(item: VimCompleteItem): VimCompleteItem | null {
-    if (!this.isActivated) return null
+    if (!this.isActivated || item == null) return null
     return this.complete.resolveCompletionItem(item)
   }
 

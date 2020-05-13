@@ -1,14 +1,14 @@
 import { attach, NeovimClient } from '@chemzqm/neovim'
 import * as cp from 'child_process'
 import { createHash } from 'crypto'
-import workspace from '../workspace'
-import path from 'path'
-import { omit } from './lodash'
-import os from 'os'
 import fs from 'fs'
-import { byteLength } from './string'
-import { terminate } from './processes'
+import os from 'os'
+import path from 'path'
 import { v4 as uuid } from 'uuid'
+import workspace from '../workspace'
+import { omit } from './lodash'
+import { terminate } from './processes'
+import { byteLength } from './string'
 const logger = require('./logger')('util-highlights')
 
 export interface Highlight {
@@ -38,11 +38,11 @@ export function getHiglights(lines: string[], filetype: string, timeout = 500): 
   const content = lines.join('\n')
   if (diagnosticFiletypes.includes(filetype)) {
     let highlights = lines.map((line, i) => ({
-        line: i,
-        colStart: 0,
-        colEnd: byteLength(line),
-        hlGroup: `Coc${filetype}Float`
-      }))
+      line: i,
+      colStart: 0,
+      colEnd: byteLength(line),
+      hlGroup: `Coc${filetype}Float`
+    }))
     return Promise.resolve(highlights)
   }
   if (filetype == 'javascriptreact') {
@@ -173,7 +173,7 @@ export function getHiglights(lines: string[], filetype: string, timeout = 500): 
       await nvim.callAtomic([
         ['nvim_set_option', ['runtimepath', env.runtimepath]],
         ['nvim_command', [`highlight! link Normal CocFloating`]],
-        ['nvim_command', [`runtime syntax/${filetype}.vim`]],
+        ['nvim_command', ['syntax enable']],
         ['nvim_command', [`colorscheme ${env.colorscheme || 'default'}`]],
         ['nvim_command', [`set background=${env.background}`]],
         ['nvim_command', ['set nowrap']],
@@ -181,11 +181,11 @@ export function getHiglights(lines: string[], filetype: string, timeout = 500): 
         ['nvim_command', ['set nobackup']],
         ['nvim_command', ['set noshowmode']],
         ['nvim_command', ['set noruler']],
+        ['nvim_command', ['set undolevels=-1']],
         ['nvim_command', ['set laststatus=0']],
+        ...lines.map((line, idx) => ['nvim_call_function', ['setline', [idx + 1, line]]]) as any,
+        ['nvim_command', [`runtime! syntax/${filetype}.vim`]]
       ])
-      let buf = await nvim.buffer
-      await buf.setLines(lines, { start: 0, end: -1, strictIndexing: false })
-      await buf.setOption('filetype', filetype)
       await nvim.uiAttach(maxBytes + 10, lines.length + 1, {
         ext_hlstate: true,
         ext_linegrid: true

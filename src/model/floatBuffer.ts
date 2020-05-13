@@ -124,7 +124,7 @@ export default class FloatBuffer {
       }
     }
     if (winid && this.enableHighlight && this.filetype) {
-      nvim.call('win_execute', [winid, `setfiletype ${this.filetype}`], true)
+      nvim.call('win_execute', [winid, `runtime! syntax/${this.filetype}.vim`], true)
     }
   }
 
