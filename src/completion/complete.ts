@@ -267,7 +267,6 @@ export default class Complete {
     if (this.config.reverseList) {
       completeItems = completeItems.reverse()
     }
-    console.log(this.config.reverseList)
 
     return completeItems
   }
