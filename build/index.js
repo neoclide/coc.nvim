@@ -22371,7 +22371,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "3f305ac739" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "0033e4e624" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -39325,6 +39325,7 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(234));
 const complete_1 = tslib_1.__importDefault(__webpack_require__(485));
 const floating_1 = tslib_1.__importDefault(__webpack_require__(487));
 const throttle_1 = tslib_1.__importDefault(__webpack_require__(488));
+const object_1 = __webpack_require__(239);
 const logger = __webpack_require__(44)('completion');
 const completeItemKeys = ['abbr', 'menu', 'info', 'kind', 'icase', 'dup', 'empty', 'user_data'];
 class Completion {
@@ -39348,9 +39349,22 @@ class Completion {
         events_1.default.on('InsertEnter', this.onInsertEnter, this, this.disposables);
         events_1.default.on('TextChangedP', this.onTextChangedP, this, this.disposables);
         events_1.default.on('TextChangedI', this.onTextChangedI, this, this.disposables);
-        events_1.default.on('CompleteDone', this.onCompleteDone, this, this.disposables);
-        let fn = throttle_1.default(this.onPumChange.bind(this), workspace_1.default.isVim ? 200 : 50);
-        events_1.default.on('MenuPopupChanged', fn, this, this.disposables);
+        let fn = throttle_1.default(this.onPumChange.bind(this), workspace_1.default.isVim ? 200 : 100);
+        events_1.default.on('CompleteDone', async (item) => {
+            this.currItem = null;
+            await this.onCompleteDone(item);
+        }, this, this.disposables);
+        events_1.default.on('MenuPopupChanged', ev => {
+            if (!this.activated || this.isCommandLine)
+                return;
+            let { completed_item } = ev;
+            let item = completed_item.hasOwnProperty('word') ? completed_item : null;
+            if (object_1.equals(item, this.currItem))
+                return;
+            this.cancel();
+            this.currItem = item;
+            fn(ev);
+        }, this, this.disposables);
         events_1.default.on('CursorMovedI', debounce_1.default(async (bufnr, cursor) => {
             // try trigger completion
             let doc = workspace_1.default.getDocument(bufnr);
@@ -39377,6 +39391,9 @@ class Completion {
         if (!this.complete)
             return null;
         return this.complete.option;
+    }
+    get isCommandLine() {
+        return this.document && this.document.uri.endsWith('%5BCommand%20Line%5D');
     }
     addRecent(word, bufnr) {
         if (!word)
@@ -39815,15 +39832,8 @@ class Completion {
     async onPumChange(ev) {
         if (!this.activated)
             return;
-        if (this.document && this.document.uri.endsWith('%5BCommand%20Line%5D'))
-            return;
-        this.cancel();
         let { completed_item, col, row, height, width, scrollbar } = ev;
         let bounding = { col, row, height, width, scrollbar };
-        this.currItem = completed_item.hasOwnProperty('word') ? completed_item : null;
-        // it's pum change by vim, ignore it
-        if (this.lastInsert)
-            return;
         let resolvedItem = this.getCompleteItem(completed_item);
         if (!resolvedItem) {
             this.floating.close();
@@ -39844,11 +39854,8 @@ class Completion {
             this.floating.close();
         }
         else {
-            if (token.isCancellationRequested)
-                return;
             await this.floating.show(docs, bounding, token);
         }
-        this.resolveTokenSource = null;
     }
     start(complete) {
         let { activated } = this;
@@ -39892,9 +39899,8 @@ class Completion {
         }
         nvim.command(`let g:coc#_context['candidates'] = []`, true);
         nvim.call('coc#_hide', [], true);
-        nvim.resumeNotification(false, true).catch(_e => {
-            // noop
-        });
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        nvim.resumeNotification(false, true);
     }
     getInput(document, pre) {
         let input = '';
@@ -39915,7 +39921,7 @@ class Completion {
         return `noinsert,menuone${preview}`;
     }
     getCompleteItem(item) {
-        if (!this.isActivated)
+        if (!this.isActivated || item == null)
             return null;
         return this.complete.resolveCompletionItem(item);
     }
@@ -54538,7 +54544,7 @@ class FloatBuffer {
             }
         }
         if (winid && this.enableHighlight && this.filetype) {
-            nvim.call('win_execute', [winid, `setfiletype ${this.filetype}`], true);
+            nvim.call('win_execute', [winid, `runtime! syntax/${this.filetype}.vim`], true);
         }
     }
     calculateFragments(docs, width) {
@@ -54620,14 +54626,14 @@ const tslib_1 = __webpack_require__(45);
 const neovim_1 = __webpack_require__(134);
 const cp = tslib_1.__importStar(__webpack_require__(218));
 const crypto_1 = __webpack_require__(200);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(234));
-const path_1 = tslib_1.__importDefault(__webpack_require__(62));
-const lodash_1 = __webpack_require__(374);
-const os_1 = tslib_1.__importDefault(__webpack_require__(56));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(46));
-const string_1 = __webpack_require__(266);
-const processes_1 = __webpack_require__(402);
+const os_1 = tslib_1.__importDefault(__webpack_require__(56));
+const path_1 = tslib_1.__importDefault(__webpack_require__(62));
 const uuid_1 = __webpack_require__(277);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(234));
+const lodash_1 = __webpack_require__(374);
+const processes_1 = __webpack_require__(402);
+const string_1 = __webpack_require__(266);
 const logger = __webpack_require__(44)('util-highlights');
 exports.diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint'];
 const cache = {};
@@ -54784,7 +54790,7 @@ function getHiglights(lines, filetype, timeout = 500) {
             await nvim.callAtomic([
                 ['nvim_set_option', ['runtimepath', env.runtimepath]],
                 ['nvim_command', [`highlight! link Normal CocFloating`]],
-                ['nvim_command', [`runtime syntax/${filetype}.vim`]],
+                ['nvim_command', ['syntax enable']],
                 ['nvim_command', [`colorscheme ${env.colorscheme || 'default'}`]],
                 ['nvim_command', [`set background=${env.background}`]],
                 ['nvim_command', ['set nowrap']],
@@ -54792,11 +54798,11 @@ function getHiglights(lines, filetype, timeout = 500) {
                 ['nvim_command', ['set nobackup']],
                 ['nvim_command', ['set noshowmode']],
                 ['nvim_command', ['set noruler']],
+                ['nvim_command', ['set undolevels=-1']],
                 ['nvim_command', ['set laststatus=0']],
+                ...lines.map((line, idx) => ['nvim_call_function', ['setline', [idx + 1, line]]]),
+                ['nvim_command', [`runtime! syntax/${filetype}.vim`]]
             ]);
-            let buf = await nvim.buffer;
-            await buf.setLines(lines, { start: 0, end: -1, strictIndexing: false });
-            await buf.setOption('filetype', filetype);
             await nvim.uiAttach(maxBytes + 10, lines.length + 1, {
                 ext_hlstate: true,
                 ext_linegrid: true
@@ -67722,6 +67728,7 @@ class InstallBuffer extends events_1.default {
     draw(buffer) {
         let first = this.finished ? 'Install finished' : 'Installing extensions...';
         let lines = [first, '', ...this.getLines()];
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
         buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true);
         if (this.finished && this.interval) {
             clearInterval(this.interval);
