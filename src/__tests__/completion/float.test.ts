@@ -14,16 +14,16 @@ beforeAll(async () => {
     enable: true,
     sourceType: SourceType.Native,
     doComplete: (): Promise<CompleteResult> => Promise.resolve({
-        items: [{
-          word: 'foo',
-          info: 'Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.'
-        }, {
-          word: 'foot',
-          info: 'foot'
-        }, {
-          word: 'football',
-        }]
-      })
+      items: [{
+        word: 'foo',
+        info: 'Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.'
+      }, {
+        word: 'foot',
+        info: 'foot'
+      }, {
+        word: 'football',
+      }]
+    })
   }
   sources.addSource(source)
 })
@@ -92,7 +92,7 @@ describe('completion float', () => {
     await nvim.input('<C-n>')
     await helper.wait(50)
     await nvim.input('<C-n>')
-    await helper.wait(100)
+    await helper.wait(300)
     let floatWin = await helper.getFloat()
     let buf = await floatWin.buffer
     let lines = await buf.lines
