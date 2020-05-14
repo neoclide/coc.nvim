@@ -51,6 +51,10 @@ export default class Collection implements DiagnosticCollection {
         let { range } = o
         range.start = range.start || Position.create(0, 0)
         range.end = range.end || Position.create(1, 0)
+        if (!o.message) {
+          o.message = ''
+          logger.error(`Diagnostic from ${this.name} received without message:`, o)
+        }
         if (emptyRange(range)) {
           o.range.end = {
             line: o.range.end.line,
