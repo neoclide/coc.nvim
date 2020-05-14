@@ -567,7 +567,7 @@ Built-in configurations:~
 "list.extendedSearchMode": ~
 
 	Enable extended search mode which allows multiple search patterns delimited
-	by spaces.
+	by spaces, default: `true`
 
 "list.normalMappings":~
 

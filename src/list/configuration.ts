@@ -1,5 +1,6 @@
 import workspace from '../workspace'
 import { WorkspaceConfiguration } from '../types'
+import EventEmitter from 'events'
 import { Disposable } from 'vscode-languageserver-protocol'
 
 export const validKeys = [
@@ -76,14 +77,16 @@ export const validKeys = [
   '<A-z>',
 ]
 
-export default class ListConfiguration {
+export default class ListConfiguration extends EventEmitter {
   private configuration: WorkspaceConfiguration
   private disposable: Disposable
   constructor() {
+    super()
     this.configuration = workspace.getConfiguration('list')
     this.disposable = workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('list')) {
         this.configuration = workspace.getConfiguration('list')
+        this.emit('change')
       }
     })
   }
@@ -102,6 +105,7 @@ export default class ListConfiguration {
 
   public dispose(): void {
     this.disposable.dispose()
+    this.removeAllListeners()
   }
 
   public fixKey(key: string): string {

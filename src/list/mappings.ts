@@ -102,19 +102,17 @@ export default class Mappings {
     })
     this.add('normal', ['<ScrollWheelUp>'], this.doScroll.bind(this, '<ScrollWheelUp>'))
     this.add('normal', ['<ScrollWheelDown>'], this.doScroll.bind(this, '<ScrollWheelDown>'))
-    let insertMappings = this.manager.getConfig<any>('insertMappings', {})
-    this.userInsertMappings = this.fixUserMappings(insertMappings)
-    let normalMappings = this.manager.getConfig<any>('normalMappings', {})
-    this.userNormalMappings = this.fixUserMappings(normalMappings)
-    workspace.onDidChangeConfiguration(e => {
-      if (e.affectsConfiguration('list')) {
-        let config = workspace.getConfiguration('list')
-        let insertMappings = config.get<any>('insertMappings', {})
-        this.userInsertMappings = this.fixUserMappings(insertMappings)
-        let normalMappings = config.get<any>('normalMappings', {})
-        this.userNormalMappings = this.fixUserMappings(normalMappings)
-      }
+    this.createMappings()
+    config.on('change', () => {
+      this.createMappings()
     })
+  }
+
+  private createMappings(): void {
+    let insertMappings = this.config.get<any>('insertMappings', {})
+    this.userInsertMappings = this.fixUserMappings(insertMappings)
+    let normalMappings = this.config.get<any>('normalMappings', {})
+    this.userNormalMappings = this.fixUserMappings(normalMappings)
   }
 
   private fixUserMappings(mappings: { [key: string]: string }): Map<string, string> {
