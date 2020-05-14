@@ -3436,10 +3436,9 @@ export abstract class BaseLanguageClient {
     this._providers = []
     // If we restart then the diagnostics collection is reused.
     if (!this._diagnostics) {
-      let { diagnosticCollectionName } = this._clientOptions
-      this._diagnostics = this._clientOptions
-        ? languages.createDiagnosticCollection(diagnosticCollectionName)
-        : languages.createDiagnosticCollection(this._id)
+      let opts = this._clientOptions
+      let name = opts.diagnosticCollectionName ? opts.diagnosticCollectionName : this._id
+      this._diagnostics = languages.createDiagnosticCollection(name)
     }
 
     this.state = ClientState.Starting
