@@ -17,6 +17,7 @@ export interface CodeLensInfo {
 
 export default class CodeLensManager {
   private separator: string
+  private subseparator: string
   private srcId: number
   private enabled: boolean
   private fetching: Set<number> = new Set()
@@ -108,6 +109,7 @@ export default class CodeLensManager {
       config = workspace.getConfiguration('codeLens')
     }
     this.separator = config.get<string>('separator', '‣')
+    this.subseparator = config.get<string>('subseparator', ' ')
     this.enabled = nvim.hasFunction('nvim_buf_set_virtual_text') && config.get<boolean>('enable', true)
   }
 
@@ -154,7 +156,15 @@ export default class CodeLensManager {
       let codeLenses = list.get(lnum)
       let commands = codeLenses.map(codeLens => codeLens.command)
       commands = commands.filter(c => c && c.title)
-      let chunks = commands.map(c => [c.title + ' ', 'CocCodeLens'] as [string, string])
+      let chunks = []
+      let n_commands = commands.length
+      for (let i = 0; i < n_commands; i++) {
+        let c = commands[i]
+        chunks.push([c.title, 'CocCodeLens'] as [string, string])
+        if (i != n_commands - 1) {
+          chunks.push([this.subseparator, 'CocCodeLens'] as [string, string])
+        }
+      }
       chunks.unshift([`${this.separator} `, 'CocCodeLens'])
       await buffer.setVirtualText(this.srcId, lnum, chunks)
     }
