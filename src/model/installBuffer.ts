@@ -18,6 +18,7 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
   private interval: NodeJS.Timer
 
   public setExtensions(names: string[]): void {
+    this.finished = false
     this.statMap.clear()
     this.names = names
     for (let name of names) {
@@ -79,7 +80,7 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
     nvim.pauseNotification()
     nvim.command('vs +enew', true)
     nvim.call('bufnr', ['%'], true)
-    nvim.command('setl buftype=nofile noswapfile scrolloff=0 wrap', true)
+    nvim.command('setl buftype=nofile noswapfile scrolloff=0 wrap undolevels=-1', true)
     nvim.command('wincmd p', true)
     let res = await nvim.resumeNotification()
     let bufnr = res && res[1] == null ? res[0][1] : null

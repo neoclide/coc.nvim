@@ -12,11 +12,12 @@ import which from 'which'
 import commandManager from './commands'
 import events from './events'
 import DB from './model/db'
-import ExtensionManager from './model/extension'
+import { createInstallerFactory } from './model/installer'
 import Memos from './model/memos'
+import { Mutex } from './util/mutex'
 import { Extension, ExtensionContext, ExtensionInfo, ExtensionState } from './types'
-import { concurrent, disposeAll, wait } from './util'
-import { distinct } from './util/array'
+import { disposeAll, wait } from './util'
+import { distinct, group } from './util/array'
 import './util/extensions'
 import { createExtension, ExtensionExport } from './util/factory'
 import { inDirectory, readdirAsync, readFile, realpathAsync, statAsync } from './util/fs'
@@ -58,6 +59,7 @@ function loadJson(file: string): any {
 export class Extensions {
   private list: ExtensionItem[] = []
   private disabled: Set<string> = new Set()
+  private mutex = new Mutex()
   private db: DB
   private memos: Memos
   private root: string
@@ -66,7 +68,6 @@ export class Extensions {
   private _onDidUnloadExtension = new Emitter<string>()
   private _additionalSchemes: { [key: string]: PropertyScheme } = {}
   private activated = false
-  private manager: ExtensionManager
   private installBuffer: InstallBuffer
   public ready = true
   public readonly onDidLoadExtension: Event<Extension<API>> = this._onDidLoadExtension.event
@@ -76,7 +77,6 @@ export class Extensions {
   public async init(): Promise<void> {
     if (global.hasOwnProperty('__TEST__')) {
       this.root = path.join(__dirname, './__tests__/extensions')
-      this.manager = new ExtensionManager(this.root)
       let filepath = path.join(this.root, 'db.json')
       this.db = new DB(filepath)
     } else {
@@ -146,27 +146,36 @@ export class Extensions {
     let lockedList = await this.getLockedList()
     let stats = await this.globalExtensionStats()
     stats = stats.filter(o => !this.disabled.has(o.id) && !lockedList.includes(o.id))
-    let names = stats.map(o => o.id)
     let statusItem = workspace.createStatusBarItem(0, { progress: true })
     statusItem.text = `Updating extensions...`
     statusItem.show()
     this.db.push('lastUpdate', Date.now())
     const updates: string[] = []
-    await concurrent(names.map(name => {
-      let o = stats.find(o => o.id == name)
-      return (): Promise<void> => this.manager.update(this.npm, name, o.exotic ? o.uri : undefined).then(updated => {
-        if (updated) {
-          updates.push(name)
-          this.reloadExtension(name).logError()
-        }
-      }, err => {
-        workspace.showMessage(`Error on update ${name}: ${err}`, 'error')
-      })
-    }), 5)
+    let groups = group(stats, 3)
+    let createInstaller = createInstallerFactory(this.npm, path.join(this.root, 'node_modules'))
+    for (let arr of groups) {
+      let release = await this.mutex.acquire()
+      try {
+        await Promise.all(arr.map(stat => {
+          let url = stat.exotic ? stat.uri : undefined
+          return createInstaller(stat.id).update(url).then(updated => {
+            if (updated) {
+              updates.push(stat.id)
+              this.reloadExtension(stat.id).logError()
+            }
+          }, err => {
+            workspace.showMessage(`Update ${stat.id} error: ${err}`, 'error')
+          })
+        }))
+        release()
+      } catch (e) {
+        logger.error(`Error on extension update:`, e)
+        workspace.showMessage(`Error on update: ${e}`, 'error')
+        release()
+      }
+    }
     if (updates.length) {
       workspace.showMessage(`Update extensions: ${updates.join(' ')}`, 'more')
-    } else {
-      workspace.showMessage(`Update completed`)
     }
     statusItem.dispose()
   }
@@ -201,25 +210,30 @@ export class Extensions {
    */
   public async installExtensions(list: string[] = []): Promise<void> {
     let { npm } = this
-    if (!npm) return
+    if (!npm || !list.length) return
     if (!this.root) await this.initializeRoot()
-    let missing = this.getMissingExtensions()
-    if (missing.length) list.push(...missing)
-    if (!list.length) return
     list = distinct(list)
     this.installBuffer.setExtensions(list)
-    let names = list.slice()
     await this.installBuffer.show(workspace.nvim)
-    await concurrent(list.map(def => (): Promise<void> => this.manager.install(npm, def).then(name => {
-      this.installBuffer.finishProgress(def, true)
-      this.onExtensionInstall(name).logError()
-    }, err => {
-      this.installBuffer.finishProgress(def, false)
-      workspace.showMessage(`Error on install ${def}: ${err}`, 'error')
-    })), 3, count => {
-      let processing = names.splice(0, count)
-      if (processing.length) this.installBuffer.startProgress(processing)
-    })
+    let createInstaller = createInstallerFactory(this.npm, path.join(this.root, 'node_modules'))
+    for (let keys of group(list, 3)) {
+      let release = await this.mutex.acquire()
+      try {
+        this.installBuffer.startProgress(keys)
+        await Promise.all(keys.map(key => createInstaller(key).install().then(name => {
+          this.installBuffer.finishProgress(key, true)
+          this.onExtensionInstall(name).logError()
+        }, err => {
+          this.installBuffer.finishProgress(key, false)
+          workspace.showMessage(`Error on install ${key}: ${err}`, 'error')
+        })))
+        release()
+      } catch (e) {
+        logger.error(`Error on extension install:`, e)
+        workspace.showMessage(`Error on install: ${e}`, 'error')
+        release()
+      }
+    }
   }
 
   /**
@@ -565,13 +579,19 @@ export class Extensions {
   private async globalExtensionStats(): Promise<ExtensionInfo[]> {
     let json = this.loadJson()
     if (!json || !json.dependencies) return []
+    let fixed = false
     let res: ExtensionInfo[] = await Promise.all(Object.keys(json.dependencies).map(key => new Promise<ExtensionInfo>(async resolve => {
       try {
         let val = json.dependencies[key]
         let root = path.join(this.root, 'node_modules', key)
         let jsonFile = path.join(root, 'package.json')
         let stat = await statAsync(jsonFile)
-        if (!stat || !stat.isFile()) return resolve(null)
+        if (!stat || !stat.isFile()) {
+          delete json.dependencies[key]
+          fixed = true
+          logger.error(`Can't find package.json for extension "${key}" at "${root}", removed from dependencies.`)
+          return resolve(null)
+        }
         let content = await readFile(jsonFile, 'utf8')
         root = await realpathAsync(root)
         let obj = JSON.parse(content)
@@ -597,6 +617,10 @@ export class Extensions {
         resolve(null)
       }
     })))
+    if (fixed && !global.hasOwnProperty('__TEST__')) {
+      let jsonFile = path.join(this.root, 'package.json')
+      fs.writeFileSync(jsonFile, JSON.stringify(json, null, 2), 'utf8')
+    }
     return res.filter(info => info != null)
   }
 
@@ -871,7 +895,6 @@ export class Extensions {
       let filepath = path.join(root, 'db.json')
       this.db = new DB(filepath)
     }
-    this.manager = new ExtensionManager(root)
   }
 }
 

@@ -13,16 +13,18 @@ const isTest = process.env.NODE_ENV == 'test'
 export default (opts: Attach, requestApi = true): Plugin => {
   const nvim: NeovimClient = attach(opts, log4js.getLogger('node-client'), requestApi)
   const timeout: number = process.env.COC_CHANNEL_TIMEOUT ? parseInt(process.env.COC_CHANNEL_TIMEOUT, 10) : 30
-  nvim.call('coc#util#path_replace_patterns').then(prefixes => {
-    if (objectLiteral(prefixes)) {
-      const old_uri = URI.file
-      URI.file = (path): URI => {
-        path = path.replace(/\\/g, '/')
-        Object.keys(prefixes).forEach(k => path = path.replace(new RegExp('^' + k), prefixes[k]))
-        return old_uri(path)
+  if (!global.hasOwnProperty('__TEST__')) {
+    nvim.call('coc#util#path_replace_patterns').then(prefixes => {
+      if (objectLiteral(prefixes)) {
+        const old_uri = URI.file
+        URI.file = (path): URI => {
+          path = path.replace(/\\/g, '/')
+          Object.keys(prefixes).forEach(k => path = path.replace(new RegExp('^' + k), prefixes[k]))
+          return old_uri(path)
+        }
       }
-    }
-  }).logError()
+    }).logError()
+  }
   const plugin = new Plugin(nvim)
   let clientReady = false
   let initialized = false

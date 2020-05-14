@@ -882,7 +882,16 @@ export interface PreiewOptions {
   lnum?: number
 }
 
-export interface DownloadOptions extends RequestOptions {
+export interface FetchOptions {
+  method?: string
+  user?: string
+  password?: string
+  headers?: any
+  timeout?: number
+  strictSSL?: boolean
+}
+
+export interface DownloadOptions extends FetchOptions {
   // absolute folder path
   dest: string
   onProgress?: (percent: number) => void
