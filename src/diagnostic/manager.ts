@@ -168,9 +168,6 @@ export class DiagnosticManager implements Disposable {
         nvim.command(cmd, true)
       }
     }
-    if (this.config.virtualText && workspace.isNvim) {
-      nvim.call('coc#util#init_virtual_hl', [], true)
-    }
     nvim.resumeNotification(false, true).logError()
   }
 
