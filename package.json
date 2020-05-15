@@ -98,7 +98,7 @@
     "rimraf": "^3.0.2",
     "semver": "^7.3.2",
     "tar": "^6.0.2",
-    "tslib": "^1.11.2",
+    "tslib": "^1.13.0",
     "tunnel": "^0.0.6",
     "uuid": "^7.0.3",
     "vscode-languageserver-protocol": "^3.15.3",
