@@ -204,6 +204,14 @@ nnoremap <silent> <space>k  :<C-u>CocPrev<CR>
 nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 ```
 
+## Language server configurating
+
+You also need to configure language to make command like `gd` work.
+
+Run `:CocConfig`, and refer [here](https://github.com/neoclide/coc.nvim/wiki/Language-servers) for details.
+
+Also, you may need to install needed language server for specific language if you haven't.
+
 ## Articles
 
 - [coc.nvim 插件体系介绍](https://zhuanlan.zhihu.com/p/65524706)
