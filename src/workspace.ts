@@ -25,7 +25,7 @@ import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, MessageLevel, MsgTypes, OutputChannel, PatternType, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, DidChangeTextDocumentParams, OpenTerminalOption } from './types'
 import { distinct } from './util/array'
-import { findUp, isFile, isParentFolder, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile, fixDriver } from './util/fs'
+import { findUp, isFile, isParentFolder, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile, fixDriver, inDirectory } from './util/fs'
 import { disposeAll, CONFIG_FILE_NAME, getKeymapModifier, isDocumentEdit, runCommand, wait, platform } from './util/index'
 import mkdirp from 'mkdirp'
 import { score } from './util/match'
@@ -104,6 +104,13 @@ export class Workspace implements IWorkspace {
         logger.error(e)
       })
     }, global.hasOwnProperty('__TEST__') ? 0 : 100)
+    let cwd = process.cwd()
+    if (cwd != os.homedir() && inDirectory(cwd, ['.vim'])) {
+      this._workspaceFolders.push({
+        uri: URI.file(cwd).toString(),
+        name: path.basename(cwd)
+      })
+    }
     this.setMessageLevel()
   }
 
@@ -1515,7 +1522,7 @@ augroup end`
   }
 
   private createConfigurations(): Configurations {
-    let home = process.env.COC_VIMCONFIG || path.join(os.homedir(), '.vim')
+    let home = path.normalize(process.env.COC_VIMCONFIG) || path.join(os.homedir(), '.vim')
     let userConfigFile = path.join(home, CONFIG_FILE_NAME)
     return new Configurations(userConfigFile, new ConfigurationShape(this))
   }

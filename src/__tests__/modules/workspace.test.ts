@@ -43,7 +43,7 @@ describe('workspace properties', () => {
     expect(textDocuments.length).toBe(1)
     expect(rootPath).toBe(process.cwd())
     expect(cwd).toBe(process.cwd())
-    expect(workspaceFolders.length).toBe(0)
+    expect(workspaceFolders.length).toBe(1)
   })
 
   it('should add workspaceFolder', async () => {

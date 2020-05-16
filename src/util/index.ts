@@ -87,11 +87,12 @@ export function watchFile(filepath: string, onChange: () => void): Disposable {
       callback()
     })
     return Disposable.create(() => {
+      callback.clear()
       watcher.close()
     })
   } catch (e) {
     return Disposable.create(() => {
-      // noop
+      callback.clear()
     })
   }
 }

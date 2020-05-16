@@ -50,6 +50,10 @@ export default class Configurations {
     }
     this._configuration = Configurations.parse(data)
     this.watchFile(userConfigFile, ConfigurationTarget.User)
+    let folderConfigFile = path.join(process.cwd(), `.vim/${CONFIG_FILE_NAME}`)
+    if (folderConfigFile != userConfigFile && fs.existsSync(folderConfigFile)) {
+      this.addFolderFile(folderConfigFile)
+    }
   }
 
   private parseContentFromFile(filepath: string): IConfigurationModel {
@@ -131,8 +135,7 @@ export default class Configurations {
   }
 
   private watchFile(filepath: string, target: ConfigurationTarget): void {
-    if (!fs.existsSync(filepath)) return
-    if (global.hasOwnProperty('__TEST__')) return
+    if (!fs.existsSync(filepath) || global.hasOwnProperty('__TEST__')) return
     let disposable = watchFile(filepath, () => {
       let model = this.parseContentFromFile(filepath)
       this.changeConfiguration(target, model, filepath)
