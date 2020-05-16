@@ -29,6 +29,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
   let clientReady = false
   let initialized = false
   nvim.on('notification', async (method, args) => {
+    let ts = Date.now()
     switch (method) {
       case 'VimEnter': {
         if (!initialized && clientReady) {
@@ -61,6 +62,8 @@ export default (opts: Attach, requestApi = true): Plugin => {
         }
       }
     }
+    let dt = Date.now() - ts
+    if (dt > 300) logger.error(`Notification cost more than 0.3s`, method, args)
   })
 
   nvim.on('request', async (method: string, args, resp) => {
