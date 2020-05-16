@@ -116,7 +116,7 @@ export default class FloatFactory extends EventEmitter implements Disposable {
   public async create(docs: Documentation[], allowSelection = false, offsetX = 0): Promise<void> {
     if (!workspace.floatSupported) return
     this.onCursorMoved.clear()
-    if (docs.length == 0) {
+    if (docs.length == 0 || docs.every(doc => doc.content.length == 0)) {
       this.close()
       return
     }
