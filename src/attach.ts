@@ -49,13 +49,15 @@ export default (opts: Attach, requestApi = true): Plugin => {
         await events.fire(args[0], args.slice(1))
         break
       default: {
-        const m = method[0].toLowerCase() + method.slice(1)
-        if (typeof plugin[m] == 'function') {
+        if (typeof plugin[method] == 'function') {
           try {
-            await Promise.resolve(plugin[m].apply(plugin, args))
+            await Promise.resolve(plugin[method].apply(plugin, args))
           } catch (e) {
-            console.error(`error on notification '${method}': ${e}`)
+            console.error(`error on notification "${method}": ${e}`)
+            logger.error(`Notification error:`, method, args, e)
           }
+        } else {
+          console.error(`Unknown notification method ${method}`)
         }
       }
     }
@@ -63,32 +65,31 @@ export default (opts: Attach, requestApi = true): Plugin => {
 
   nvim.on('request', async (method: string, args, resp) => {
     let timer = setTimeout(() => {
-      logger.error(`Timeout on request "${method}": `, args)
-      resp.send(`request ${method} timeout after ${timeout}s`, true)
-    }, timeout * 1000)
+      logger.error('Request cost more than 3s', method, args)
+    }, timeout * 3000)
     try {
       if (method == 'CocAutocmd') {
         await events.fire(args[0], args.slice(1))
         resp.send()
       } else {
-        let m = method[0].toLowerCase() + method.slice(1)
-        if (typeof plugin[m] !== 'function') {
-          resp.send(`Method ${m} not found`, true)
+        if (typeof plugin[method] !== 'function') {
+          resp.send(`Method "${method}" not exists with coc.nvim`, true)
         } else {
-          let res = await Promise.resolve(plugin[m].apply(plugin, args))
+          let res = await Promise.resolve(plugin[method].apply(plugin, args))
           resp.send(res)
         }
       }
       clearTimeout(timer)
     } catch (e) {
       clearTimeout(timer)
-      logger.error(`Error on "${method}": ` + e.stack)
       resp.send(e.message, true)
+      logger.error(`Request error:`, method, args, e)
     }
   })
 
   nvim.channelId.then(async channelId => {
     clientReady = true
+    // Used for test client on vim side
     if (isTest) nvim.command(`let g:coc_node_channel_id = ${channelId}`, true)
     let json = require('../package.json')
     let { major, minor, patch } = semver.parse(json.version)

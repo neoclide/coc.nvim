@@ -24,7 +24,7 @@ function! CocTagFunc(pattern, flags, info) abort
 endfunction
 
 function! CocAction(...) abort
-  return coc#rpc#request('CocAction', a:000)
+  return coc#rpc#request('cocAction', a:000)
 endfunction
 
 function! CocHasProvider(name) abort
@@ -32,7 +32,7 @@ function! CocHasProvider(name) abort
 endfunction
 
 function! CocActionAsync(...) abort
-  return s:AsyncRequest('CocAction', a:000)
+  return s:AsyncRequest('cocAction', a:000)
 endfunction
 
 function! CocRequest(...) abort
@@ -76,7 +76,7 @@ function! s:AsyncRequest(name, args) abort
 endfunction
 
 function! s:CommandList(...) abort
-  let list = coc#rpc#request('CommandList', a:000)
+  let list = coc#rpc#request('commandList', a:000)
   return join(list, "\n")
 endfunction
 
@@ -344,7 +344,7 @@ command! -nargs=0 CocRestart      :call coc#rpc#restart()
 command! -nargs=0 CocStart        :call coc#rpc#start_server()
 command! -nargs=0 CocRebuild      :call coc#util#rebuild()
 command! -nargs=+ -complete=custom,s:SearchOptions  CocSearch    :call coc#rpc#notify('search', [<f-args>])
-command! -nargs=+ -complete=custom,s:ExtensionList  CocUninstall :call coc#rpc#notify('CocAction', ['uninstallExtension', <f-args>])
+command! -nargs=+ -complete=custom,s:ExtensionList  CocUninstall :call CocActionAsync('uninstallExtension', <f-args>)
 command! -nargs=* -complete=custom,coc#list#options CocList      :call coc#rpc#notify('openList',  [<f-args>])
 command! -nargs=* -complete=custom,s:CommandList -range CocCommand :call coc#rpc#notify('runCommand', [<f-args>])
 command! -nargs=* -range CocAction :call coc#rpc#notify('codeActionRange', [<line1>, <line2>, <f-args>])

@@ -38,6 +38,7 @@ export default class Plugin extends EventEmitter {
     this.addMethod('codeActionRange', (start, end, only) => this.handler.codeActionRange(start, end, only))
     this.addMethod('getConfig', async key => {
       let document = await workspace.document
+      // eslint-disable-next-line id-blacklist
       return workspace.getConfiguration(key, document ? document.uri : undefined)
     })
     this.addMethod('rootPatterns', bufnr => {
@@ -147,8 +148,8 @@ export default class Plugin extends EventEmitter {
   public async init(): Promise<void> {
     let { nvim } = this
     try {
-      await extensions.init()
       await workspace.init()
+      await extensions.init()
       snippetManager.init()
       completion.init()
       diagnosticManager.init()
@@ -391,7 +392,7 @@ export default class Plugin extends EventEmitter {
         case 'extensionStats':
           return await extensions.getExtensionStates()
         case 'activeExtension':
-          return extensions.activate(args[1], false)
+          return extensions.activate(args[1])
         case 'deactivateExtension':
           return extensions.deactivate(args[1])
         case 'reloadExtension':

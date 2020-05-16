@@ -1403,7 +1403,7 @@ export class Workspace implements IWorkspace {
     for (let [id, autocmd] of this.autocmds.entries()) {
       let args = autocmd.arglist && autocmd.arglist.length ? ', ' + autocmd.arglist.join(', ') : ''
       let event = Array.isArray(autocmd.event) ? autocmd.event.join(',') : autocmd.event
-      let pattern = autocmd.pattern !== undefined ? autocmd.pattern : '*'
+      let pattern = autocmd.pattern != null ? autocmd.pattern : '*'
       if (/\buser\b/i.test(event)) {
         pattern = ''
       }
@@ -1413,7 +1413,7 @@ export class Workspace implements IWorkspace {
       cmds.push(`autocmd OptionSet ${key} call coc#rpc#notify('OptionSet',[expand('<amatch>'), v:option_old, v:option_new])`)
     }
     let content = `
-augroup coc_autocmd
+augroup coc_dynamic_autocmd
   autocmd!
   ${cmds.join('\n')}
 augroup end`
