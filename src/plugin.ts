@@ -110,7 +110,7 @@ export default class Plugin extends EventEmitter {
     })
     this.addMethod('openLog', () => {
       let file = logger.getLogFile()
-      nvim.call(`coc#util#open_file`, ['edit', file], true)
+      nvim.call(`coc#util#open_url`, [file], true)
     })
     this.addMethod('doKeymap', async (key: string, defaultReturn = '') => {
       let [fn, repeat] = workspace.keymaps.get(key)
