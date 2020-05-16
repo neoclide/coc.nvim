@@ -185,7 +185,7 @@ export default class Handler {
       let curr = Date.now()
       if (!lastInsert || curr - lastInsert > 500) return
       let doc = workspace.getDocument(bufnr)
-      if (!doc) return
+      if (!doc || doc.isCommandLine) return
       let { triggerSignatureHelp, triggerSignatureWait, formatOnType } = this.preferences
       if (!triggerSignatureHelp && !formatOnType) return
       let [pos, line] = await nvim.eval('[coc#util#cursor(), getline(".")]') as [[number, number], string]

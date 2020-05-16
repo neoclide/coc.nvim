@@ -73,6 +73,10 @@ export default class Document {
     return buftype == '' || buftype == 'acwrite'
   }
 
+  public get isCommandLine(): boolean {
+    return this.uri && this.uri.endsWith('%5BCommand%20Line%5D')
+  }
+
   public get enabled(): boolean {
     return this.getVar('enabled', true)
   }
