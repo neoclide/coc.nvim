@@ -28,7 +28,6 @@ export interface IModule {
 }
 
 const Module: IModule = require('module')
-
 const REMOVED_GLOBALS = [
   'reallyExit',
   'abort',
@@ -152,9 +151,10 @@ function createSandbox(filename: string, logger: Logger): ISandbox {
 }
 
 // inspiration drawn from Module
-export function createExtension(id: string, filename: string): ExtensionExport {
-  if (!fs.existsSync(filename)) {
-    return { activate: () => { }, deactivate: null }
+export function createExtension(id: string, filename: string, isEmpty = false): ExtensionExport {
+  if (isEmpty || !fs.existsSync(filename)) return {
+    activate: () => { },
+    deactivate: null
   }
   const sandbox = createSandbox(filename, createLogger(`extension-${id}`))
 

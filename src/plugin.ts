@@ -56,8 +56,8 @@ export default class Plugin extends EventEmitter {
     this.addMethod('saveRefactor', async (bufnr: number) => {
       await this.handler.saveRefactor(bufnr)
     })
-    this.addMethod('updateExtensions', async () => {
-      await extensions.updateExtensions()
+    this.addMethod('updateExtensions', async (sync?: boolean) => {
+      await extensions.updateExtensions(sync)
     })
     this.addMethod('commandList', () => commandManager.commandList.map(o => o.id))
     this.addMethod('openList', async (...args: string[]) => {
@@ -147,6 +147,7 @@ export default class Plugin extends EventEmitter {
 
   public async init(): Promise<void> {
     let { nvim } = this
+    let s = Date.now()
     try {
       await workspace.init()
       await extensions.init()
@@ -164,16 +165,9 @@ export default class Plugin extends EventEmitter {
       nvim.setVar('coc_service_initialized', 1, true)
       nvim.call('coc#util#do_autocmd', ['CocNvimInit'], true)
       this._ready = true
-      let cmds = await nvim.getVar('coc_vim_commands') as any[]
-      if (cmds && cmds.length) {
-        for (let cmd of cmds) {
-          this.addCommand(cmd)
-        }
-      }
-      logger.info(`coc ${this.version} initialized with node: ${process.version}`)
+      logger.info(`coc.nvim ${this.version} initialized with node: ${process.version} after ${Date.now() - s}ms`)
       this.emit('ready')
     } catch (e) {
-      this._ready = false
       console.error(`Error on initialize: ${e.stack}`)
       logger.error(e.stack)
     }

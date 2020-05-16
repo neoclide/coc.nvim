@@ -1,5 +1,4 @@
 import { Neovim, Window, Buffer } from '@chemzqm/neovim'
-import { RequestOptions } from 'http'
 import log4js from 'log4js'
 import { CancellationToken, CompletionTriggerKind, CreateFileOptions, DeleteFileOptions, Diagnostic, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFileOptions, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
@@ -10,6 +9,7 @@ import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import { ProviderResult, TextDocumentContentProvider } from './provider'
 import * as protocol from 'vscode-languageserver-protocol'
+import { ParsedUrlQueryInput } from 'querystring'
 
 export type MsgTypes = 'error' | 'warning' | 'more'
 export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
@@ -296,6 +296,13 @@ export enum PatternType {
   Buffer,
   LanguageServer,
   Global,
+}
+
+export enum ExtensionType {
+  Global,
+  Local,
+  SingleFile,
+  Internal
 }
 
 export enum SourceType {
@@ -884,17 +891,20 @@ export interface PreiewOptions {
 
 export interface FetchOptions {
   method?: string
+  timeout?: number
+  // use object literal for json formated data
+  data?: string | { [key: string]: any } | Buffer
+  query?: ParsedUrlQueryInput
+  headers?: any
   user?: string
   password?: string
-  headers?: any
-  timeout?: number
-  strictSSL?: boolean
 }
 
 export interface DownloadOptions extends FetchOptions {
   // absolute folder path
   dest: string
-  onProgress?: (percent: number) => void
+  extract?: boolean
+  onProgress?: (percent: string) => void
 }
 
 export interface AnsiItem {

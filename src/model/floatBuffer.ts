@@ -163,12 +163,11 @@ export default class FloatBuffer {
 
   public static getDimension(docs: Documentation[], maxWidth: number, maxHeight: number): Dimension {
     // width contains padding
-    if (maxWidth == 0 || maxHeight == 0) return { width: 0, height: 0 }
+    if (maxWidth <= 2 || maxHeight == 0) return { width: 0, height: 0 }
     let arr: number[] = []
     for (let doc of docs) {
       let lines = doc.content.split(/\r?\n/)
       for (let line of lines) {
-        // lines excluded on neovim
         if (doc.filetype == 'markdown'
           && /^\s*```/.test(line)) {
           continue
@@ -177,6 +176,7 @@ export default class FloatBuffer {
       }
     }
     let width = Math.min(Math.max(...arr), maxWidth)
+    if (width <= 2) return { width: 0, height: 0 }
     let height = docs.length - 1
     for (let w of arr) {
       height = height + Math.max(Math.ceil((w - 2) / (width - 2)), 1)

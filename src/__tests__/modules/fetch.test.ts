@@ -54,10 +54,18 @@ describe('fetch', () => {
 })
 
 describe('download', () => {
+  it('should download binary file', async () => {
+    let url = 'https://registry.npmjs.org/coc-pairs/-/coc-pairs-1.2.13.tgz'
+    let tmpFolder = await promisify(fs.mkdtemp)(path.join(os.tmpdir(), 'coc-test'))
+    let res = await download(url, { dest: tmpFolder })
+    expect(fs.existsSync(res)).toBe(true)
+    await promisify(rimraf)(tmpFolder, { glob: false })
+  })
+
   it('should download tgz', async () => {
     let url = 'https://registry.npmjs.org/coc-pairs/-/coc-pairs-1.2.13.tgz'
     let tmpFolder = await promisify(fs.mkdtemp)(path.join(os.tmpdir(), 'coc-test'))
-    await download(url, { dest: tmpFolder })
+    await download(url, { dest: tmpFolder, extract: true })
     let file = path.join(tmpFolder, 'package.json')
     expect(fs.existsSync(file)).toBe(true)
     await promisify(rimraf)(tmpFolder, { glob: false })

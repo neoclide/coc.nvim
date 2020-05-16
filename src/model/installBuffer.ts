@@ -13,17 +13,26 @@ export enum State {
 
 export default class InstallBuffer extends EventEmitter implements Disposable {
   private statMap: Map<string, State> = new Map()
+  private messagesMap: Map<string, string[]> = new Map()
   private names: string[] = []
-  private finished = false
   private interval: NodeJS.Timer
+  public bufnr: number
+
+  constructor(private isUpdate = false, private isSync = false) {
+    super()
+  }
 
   public setExtensions(names: string[]): void {
-    this.finished = false
     this.statMap.clear()
     this.names = names
     for (let name of names) {
       this.statMap.set(name, State.Waiting)
     }
+  }
+
+  public addMessage(name, msg: string): void {
+    let lines = this.messagesMap.get(name) || []
+    this.messagesMap.set(name, lines.concat(msg.trim().split(/\r?\n/)))
   }
 
   public startProgress(names: string[]): void {
@@ -34,17 +43,24 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
 
   public finishProgress(name, succeed = true): void {
     this.statMap.set(name, succeed ? State.Success : State.Faild)
-    let vals = Array.from(this.statMap.values())
-    if (vals.every(v => v == State.Success || v == State.Faild)) {
-      this.finished = true
+  }
+
+  public get remains(): number {
+    let count = 0
+    for (let name of this.names) {
+      let stat = this.statMap.get(name)
+      if (![State.Success, State.Faild].includes(stat)) {
+        count = count + 1
+      }
     }
+    return count
   }
 
   private getLines(): string[] {
     let lines: string[] = []
     for (let name of this.names) {
       let state = this.statMap.get(name)
-      let processText = ' '
+      let processText = '*'
       switch (state) {
         case State.Progressing: {
           let d = new Date()
@@ -59,32 +75,52 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
           processText = '✓'
           break
       }
-      lines.push(`- ${processText} ${name}${state == State.Progressing ? ' Downloading...' : ''}`)
+      let msgs = this.messagesMap.get(name) || []
+      lines.push(`- ${processText} ${name} ${msgs.length ? msgs[msgs.length - 1] : ''}`)
     }
     return lines
   }
 
+  public getMessages(line: number): string[] {
+    if (line <= 1) return []
+    let name = this.names[line - 2]
+    if (!name) return []
+    return this.messagesMap.get(name)
+  }
+
   // draw frame
   private draw(buffer: Buffer): void {
-    let first = this.finished ? 'Install finished' : 'Installing extensions...'
+    let { remains } = this
+    logger.debug('remains:', remains)
+    let first = remains == 0 ? `${this.isUpdate ? 'Update' : 'Install'} finished` : `Installing, ${remains} remains...`
     let lines = [first, '', ...this.getLines()]
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
-    if (this.finished && this.interval) {
+    if (remains == 0 && this.interval) {
       clearInterval(this.interval)
       this.interval = null
     }
   }
 
+  public highlight(nvim: Neovim): void {
+    nvim.call('matchadd', ['CocListFgCyan', '^\\-\\s\\zs\\*'], true)
+    nvim.call('matchadd', ['CocListFgGreen', '^\\-\\s\\zs✓'], true)
+    nvim.call('matchadd', ['CocListFgRed', '^\\-\\s\\zs✗'], true)
+    nvim.call('matchadd', ['CocListFgYellow', '^-.\\{3\\}\\zs\\S\\+'], true)
+  }
+
   public async show(nvim: Neovim): Promise<void> {
+    let { isSync } = this
     nvim.pauseNotification()
-    nvim.command('vs +enew', true)
+    nvim.command(isSync ? 'enew' : 'vs +enew', true)
     nvim.call('bufnr', ['%'], true)
-    nvim.command('setl buftype=nofile noswapfile scrolloff=0 wrap undolevels=-1', true)
-    nvim.command('wincmd p', true)
+    nvim.command('setl buftype=nofile bufhidden=wipe noswapfile nobuflisted scrolloff=0 wrap undolevels=-1', true)
+    this.highlight(nvim)
+    nvim.command(`wincmd ${isSync ? 'o' : 'p'}`, true)
     let res = await nvim.resumeNotification()
     let bufnr = res && res[1] == null ? res[0][1] : null
     if (!bufnr) return
+    this.bufnr = bufnr
     let buffer = nvim.createBuffer(bufnr)
     this.interval = setInterval(() => {
       this.draw(buffer)

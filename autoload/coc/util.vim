@@ -927,7 +927,7 @@ function! coc#util#update_extensions(...) abort
   if async
     call coc#rpc#notify('updateExtensions', [])
   else
-    call coc#rpc#request('updateExtensions', [])
+    call coc#rpc#request('updateExtensions', [v:true])
   endif
 endfunction
 

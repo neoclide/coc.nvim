@@ -23,9 +23,9 @@ export default class ExtensionList extends BasicList {
       let { id, state } = item.data
       if (state == 'disabled') return
       if (state == 'activated') {
-        extensions.deactivate(id)
+        await extensions.deactivate(id)
       } else {
-        extensions.activate(id)
+        await extensions.activate(id)
       }
       await wait(100)
     }, { persist: true, reload: true, parallel: true })
@@ -75,13 +75,8 @@ export default class ExtensionList extends BasicList {
     })
 
     this.addAction('reload', async item => {
-      let { id, state } = item.data
-      if (state == 'disabled') return
-      if (state == 'activated') {
-        extensions.deactivate(id)
-      }
-      extensions.activate(id)
-      await wait(100)
+      let { id } = item.data
+      await extensions.reloadExtension(id)
     }, { persist: true, reload: true })
 
     this.addAction('fix', async item => {

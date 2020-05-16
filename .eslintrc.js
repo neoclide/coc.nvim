@@ -274,8 +274,7 @@ module.exports = {
       "string",
       "Boolean",
       "boolean",
-      "Undefined",
-      "undefined"
+      "Undefined"
     ],
     "id-match": "error",
     "jsdoc/check-alignment": "error",

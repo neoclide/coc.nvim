@@ -8,6 +8,18 @@ export function intersect<T>(array: T[], other: T[]): boolean {
   return false
 }
 
+export function splitArray<T>(array: T[], fn: (item: T) => boolean): [T[], T[]] {
+  let res: [T[], T[]] = [[], []]
+  for (let item of array) {
+    if (fn(item)) {
+      res[0].push(item)
+    } else {
+      res[1].push(item)
+    }
+  }
+  return res
+}
+
 export function tail<T>(array: T[], n = 0): T {
   return array[array.length - (1 + n)]
 }

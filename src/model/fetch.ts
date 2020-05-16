@@ -5,6 +5,7 @@ import zlib from 'zlib'
 import { objectLiteral } from '../util/is'
 import workspace from '../workspace'
 import { FetchOptions } from '../types'
+import { stringify } from 'querystring'
 import createHttpProxyAgent, { HttpProxyAgent } from 'http-proxy-agent'
 import createHttpsProxyAgent, { HttpsProxyAgent } from 'https-proxy-agent'
 const logger = require('../util/logger')('model-fetch')
@@ -67,7 +68,7 @@ export function getAgent(endpoint: UrlWithStringQuery, options: ProxyOptions): H
       auth: proxyEndpoint.auth,
       rejectUnauthorized: typeof options.strictSSL === 'boolean' ? options.strictSSL : true
     }
-    logger.info(`Using proxy from ${options.proxyUrl ? 'configuration' : 'system environment'} for ${endpoint.hostname}:`, opts)
+    logger.info(`Using proxy ${proxy} from ${options.proxyUrl ? 'configuration' : 'system environment'} for ${endpoint.hostname}:`)
     return endpoint.protocol === 'http:' ? createHttpProxyAgent(opts) : createHttpsProxyAgent(opts)
   }
   return null
@@ -75,9 +76,14 @@ export function getAgent(endpoint: UrlWithStringQuery, options: ProxyOptions): H
 
 export function resolveRequestOptions(url: string, options: FetchOptions = {}): any {
   let config = workspace.getConfiguration('http')
+  let { data } = options
+  let dataType = getDataType(data)
   let proxyOptions: ProxyOptions = {
     proxyUrl: config.get<string>('proxy', ''),
     strictSSL: config.get<boolean>('proxyStrictSSL', true)
+  }
+  if (options.query && !url.includes('?')) {
+    url = `${url}?${stringify(options.query)}`
   }
   let endpoint = parse(url)
   let agent = getAgent(endpoint, proxyOptions)
@@ -88,10 +94,16 @@ export function resolveRequestOptions(url: string, options: FetchOptions = {}): 
     path: endpoint.path,
     agent,
     rejectUnauthorized: proxyOptions.strictSSL,
+    maxRedirects: 3,
     headers: Object.assign({
       'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64)',
       'Accept-Encoding': 'gzip, deflate'
     }, options.headers || {})
+  }
+  if (dataType == 'object') {
+    opts.headers['Content-Type'] = 'application/json'
+  } else if (dataType == 'string') {
+    opts.headers['Content-Type'] = 'text/plain'
   }
   if (options.user && options.password) {
     opts.auth = options.user + ':' + options.password
@@ -102,7 +114,7 @@ export function resolveRequestOptions(url: string, options: FetchOptions = {}): 
   return opts
 }
 
-function request(url: string, data: string | Buffer | { [key: string]: any }, opts: any): Promise<ResponseResult> {
+function request(url: string, data: any, opts: any): Promise<ResponseResult> {
   let mod = url.startsWith('https:') ? https : http
   return new Promise<ResponseResult>((resolve, reject) => {
     const req = mod.request(opts, res => {
@@ -153,10 +165,10 @@ function request(url: string, data: string | Buffer | { [key: string]: any }, op
     })
     req.on('error', reject)
     req.on('timeout', () => {
-      req.destroy(new Error(`request timeout after ${opts.timeout}ms`))
+      req.destroy(new Error(`Request timeout after ${opts.timeout}ms`))
     })
     if (data) {
-      if (typeof data == 'string' || Buffer.isBuffer(data)) {
+      if (typeof data === 'string' || Buffer.isBuffer(data)) {
         req.write(data)
       } else {
         req.write(JSON.stringify(data))
@@ -169,21 +181,37 @@ function request(url: string, data: string | Buffer | { [key: string]: any }, op
   })
 }
 
+function getDataType(data: any): string {
+  if (data === null) return 'null'
+  if (data === undefined) return 'undefined'
+  if (typeof data == 'string') return 'string'
+  if (Buffer.isBuffer(data)) return 'buffer'
+  if (Array.isArray(data) || objectLiteral(data)) return 'object'
+  return 'unknown'
+}
+
 /**
- * Fetch text from server
+ * Send request to server for response, supports:
+ *
+ * - Send json data and parse json response.
+ * - Throw error for failed response statusCode.
+ * - Timeout support (no timeout by default).
+ * - Send buffer (as data) and receive data (as response).
+ * - Proxy support from user configuration & environment.
+ * - Redirect support, limited to 3.
+ * - Response encoding support for gzip & deflate.
  */
-export default function fetch(
-  url: string,
-  data?: string | Buffer | { [key: string]: any },
-  options: FetchOptions = {}): Promise<ResponseResult> {
-  let opts = resolveRequestOptions(url, options)
-  if (data && !Buffer.isBuffer(data) && objectLiteral(data)) {
-    opts.headers['Content-Type'] = 'application/json'
+export default function fetch(url: string, options: FetchOptions = {}): Promise<ResponseResult> {
+  if (arguments.length > 2) {
+    logger.error(`Bad fetch arguments:`, ...arguments)
+    return Promise.reject(new Error(`Fetch API have changed to fetch(url, options)`))
   }
-  return request(url, data, opts).catch(err => {
+  let opts = resolveRequestOptions(url, options)
+  return request(url, options.data, opts).catch(err => {
+    logger.error(`Fetch error for ${url}:`, opts, err)
     if (opts.agent && opts.agent.proxy) {
       let { proxy } = opts.agent
-      throw new Error(`Error on fetch using proxy ${proxy.host}: ${err.message}`)
+      throw new Error(`Request failed using proxy ${proxy.host}: ${err.message}`)
     } else {
       throw err
     }
