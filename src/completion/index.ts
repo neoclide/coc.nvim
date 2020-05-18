@@ -51,6 +51,7 @@ export class Completion implements Disposable {
     events.on('CompleteDone', async item => {
       this.currItem = null
       this.cancel()
+      this.floating.close()
       await this.onCompleteDone(item)
     }, this, this.disposables)
     events.on('MenuPopupChanged', ev => {
