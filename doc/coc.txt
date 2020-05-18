@@ -633,6 +633,10 @@ Built-in configurations:~
 
 	Auto close preview window of hover upon cursor move, default: `true`
 
+"coc.preferences.previewMaxHeight":~
+
+	Max height of preview window for hover, default: `12`
+
 "coc.preferences.colorSupport":~
 
 	Enable color highlight if Language Server support it, default: `true`

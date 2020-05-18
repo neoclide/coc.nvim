@@ -68,6 +68,7 @@ interface Preferences {
   formatOnInsertLeave: boolean
   hoverTarget: string
   previewAutoClose: boolean
+  previewMaxHeight: number
   bracketEnterImprove: boolean
   currentFunctionSymbolAutoUpdate: boolean
 }
@@ -235,7 +236,7 @@ export default class Handler {
         nvim.command('setlocal conceallevel=2 nospell nofoldenable wrap', true)
         nvim.command('setlocal bufhidden=wipe nobuflisted', true)
         nvim.command('setfiletype markdown', true)
-        nvim.command(`exe "normal! z${this.documentLines.length}\\<cr>"`, true)
+        nvim.command(`exe "normal! z${Math.min(this.documentLines.length, this.preferences.previewMaxHeight)}\\<cr>"`, true)
         await nvim.resumeNotification()
         return this.documentLines.join('\n')
       }
@@ -1228,6 +1229,7 @@ export default class Handler {
       formatOnTypeFiletypes: config.get('formatOnTypeFiletypes', []),
       formatOnInsertLeave: config.get<boolean>('formatOnInsertLeave', false),
       bracketEnterImprove: config.get<boolean>('bracketEnterImprove', true),
+      previewMaxHeight: config.get<number>('previewMaxHeight', 12),
       previewAutoClose: config.get<boolean>('previewAutoClose', false),
       currentFunctionSymbolAutoUpdate: config.get<boolean>('currentFunctionSymbolAutoUpdate', false),
     }

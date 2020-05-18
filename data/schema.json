@@ -849,6 +849,11 @@
       "description": "Auto close preview window on cursor move.",
       "default": true
     },
+    "coc.preferences.previewMaxHeight": {
+      "type": "number",
+      "default": 12,
+      "description": "Max height of preview window for hover."
+    },
     "coc.preferences.currentFunctionSymbolAutoUpdate": {
       "type": "boolean",
       "description": "Automatically update the value of b:coc_current_function on CursorHold event",
