@@ -927,7 +927,7 @@ function! coc#util#update_extensions(...) abort
   if async
     call coc#rpc#notify('updateExtensions', [])
   else
-    call coc#rpc#request('updateExtensions', [])
+    call coc#rpc#request('updateExtensions', [v:true])
   endif
 endfunction
 
@@ -1080,15 +1080,6 @@ function! coc#util#pclose()
     if getwinvar(i, '&previewwindow')
       pclose
       redraw
-    endif
-  endfor
-endfunction
-
-function! coc#util#init_virtual_hl()
-  let names = ['Error', 'Warning', 'Info', 'Hint']
-  for name in names
-    if !hlexists('Coc'.name.'VirtualText')
-      exe 'hi default link Coc'.name.'VirtualText Coc'.name.'Sign'
     endif
   endfor
 endfunction

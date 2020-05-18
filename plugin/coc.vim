@@ -24,7 +24,7 @@ function! CocTagFunc(pattern, flags, info) abort
 endfunction
 
 function! CocAction(...) abort
-  return coc#rpc#request('CocAction', a:000)
+  return coc#rpc#request('cocAction', a:000)
 endfunction
 
 function! CocHasProvider(name) abort
@@ -32,7 +32,7 @@ function! CocHasProvider(name) abort
 endfunction
 
 function! CocActionAsync(...) abort
-  return s:AsyncRequest('CocAction', a:000)
+  return s:AsyncRequest('cocAction', a:000)
 endfunction
 
 function! CocRequest(...) abort
@@ -76,7 +76,7 @@ function! s:AsyncRequest(name, args) abort
 endfunction
 
 function! s:CommandList(...) abort
-  let list = coc#rpc#request('CommandList', a:000)
+  let list = coc#rpc#request('commandList', a:000)
   return join(list, "\n")
 endfunction
 
@@ -238,40 +238,52 @@ function! s:Enable()
     autocmd VimLeave            * call s:SyncAutocmd('VimLeave')
     autocmd BufReadCmd,FileReadCmd,SourceCmd list://* call coc#list#setup(expand('<amatch>'))
     autocmd BufWriteCmd __coc_refactor__* :call coc#rpc#notify('saveRefactor', [+expand('<abuf>')])
+    autocmd ColorScheme * call s:Hi()
   augroup end
 endfunction
 
-hi default CocUnderline    cterm=underline gui=underline
-hi default CocErrorSign    ctermfg=Red     guifg=#ff0000
-hi default CocWarningSign  ctermfg=Brown   guifg=#ff922b
-hi default CocInfoSign     ctermfg=Yellow  guifg=#fab005
-hi default CocHintSign     ctermfg=Blue    guifg=#15aabf
-hi default CocSelectedText ctermfg=Red     guifg=#fb4934
-hi default CocCodeLens     ctermfg=Gray    guifg=#999999
-hi default link CocErrorFloat       CocErrorSign
-hi default link CocWarningFloat     CocWarningSign
-hi default link CocInfoFloat        CocInfoSign
-hi default link CocHintFloat        CocHintSign
-hi default link CocErrorHighlight   CocUnderline
-hi default link CocWarningHighlight CocUnderline
-hi default link CocInfoHighlight    CocUnderline
-hi default link CocHintHighlight    CocUnderline
-hi default link CocListMode ModeMsg
-hi default link CocListPath Comment
-hi default link CocHighlightText  CursorColumn
-if has('nvim')
-  hi default link CocFloating NormalFloat
-else
-  hi default link CocFloating Pmenu
-endif
-if has('nvim-0.5.0')
-  hi default CocCursorTransparent gui=strikethrough blend=100
-endif
+function! s:Hi() abort
+  hi default CocUnderline    cterm=underline gui=underline
+  hi default CocErrorSign    ctermfg=Red     guifg=#ff0000
+  hi default CocWarningSign  ctermfg=Brown   guifg=#ff922b
+  hi default CocInfoSign     ctermfg=Yellow  guifg=#fab005
+  hi default CocHintSign     ctermfg=Blue    guifg=#15aabf
+  hi default CocSelectedText ctermfg=Red     guifg=#fb4934
+  hi default CocCodeLens     ctermfg=Gray    guifg=#999999
+  hi default link CocErrorFloat       CocErrorSign
+  hi default link CocWarningFloat     CocWarningSign
+  hi default link CocInfoFloat        CocInfoSign
+  hi default link CocHintFloat        CocHintSign
+  hi default link CocErrorHighlight   CocUnderline
+  hi default link CocWarningHighlight CocUnderline
+  hi default link CocInfoHighlight    CocUnderline
+  hi default link CocHintHighlight    CocUnderline
+  hi default link CocListMode ModeMsg
+  hi default link CocListPath Comment
+  hi default link CocHighlightText  CursorColumn
+  hi default link CocHoverRange     Search
+  hi default link CocCursorRange    Search
+  hi default link CocHighlightRead  CocHighlightText
+  hi default link CocHighlightWrite CocHighlightText
+  if has('nvim')
+    hi default link CocFloating NormalFloat
+  else
+    hi default link CocFloating Pmenu
+  endif
+  if has('nvim-0.5.0')
+    hi default CocCursorTransparent gui=strikethrough blend=100
+  endif
 
-hi default link CocHoverRange     Search
-hi default link CocCursorRange    Search
-hi default link CocHighlightRead  CocHighlightText
-hi default link CocHighlightWrite CocHighlightText
+  if has('nvim')
+    let names = ['Error', 'Warning', 'Info', 'Hint']
+    for name in names
+      if !hlexists('Coc'.name.'VirtualText')
+        exe 'hi default link Coc'.name.'VirtualText Coc'.name.'Sign'
+      endif
+    endfor
+  endif
+  call s:AddAnsiGroups()
+endfunction
 
 function! s:FormatFromSelected(type)
   call CocAction('formatSelected', a:type)
@@ -332,7 +344,7 @@ command! -nargs=0 CocRestart      :call coc#rpc#restart()
 command! -nargs=0 CocStart        :call coc#rpc#start_server()
 command! -nargs=0 CocRebuild      :call coc#util#rebuild()
 command! -nargs=+ -complete=custom,s:SearchOptions  CocSearch    :call coc#rpc#notify('search', [<f-args>])
-command! -nargs=+ -complete=custom,s:ExtensionList  CocUninstall :call coc#rpc#notify('CocAction', ['uninstallExtension', <f-args>])
+command! -nargs=+ -complete=custom,s:ExtensionList  CocUninstall :call CocActionAsync('uninstallExtension', <f-args>)
 command! -nargs=* -complete=custom,coc#list#options CocList      :call coc#rpc#notify('openList',  [<f-args>])
 command! -nargs=* -complete=custom,s:CommandList -range CocCommand :call coc#rpc#notify('runCommand', [<f-args>])
 command! -nargs=* -range CocAction :call coc#rpc#notify('codeActionRange', [<line1>, <line2>, <f-args>])
@@ -342,7 +354,7 @@ command! -nargs=0 -bar CocUpdateSync   :call coc#util#update_extensions()
 command! -nargs=* -bar -complete=custom,s:InstallOptions CocInstall   :call coc#util#install_extension([<f-args>])
 
 call s:Enable()
-call s:AddAnsiGroups()
+call s:Hi()
 
 vnoremap <Plug>(coc-range-select)          :<C-u>call       CocAction('rangeSelect',     visualmode(), v:true)<CR>
 vnoremap <Plug>(coc-range-select-backward) :<C-u>call       CocAction('rangeSelect',     visualmode(), v:false)<CR>

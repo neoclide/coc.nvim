@@ -228,8 +228,11 @@ function! coc#list#setup(source)
   call setwinvar(winnr(), '&statusline', join(statusParts, ' '))
   setl buftype=nofile nobuflisted nofen nowrap
   setl norelativenumber bufhidden=wipe cursorline winfixheight
-  setl tabstop=1 nolist nocursorcolumn
+  setl tabstop=1 nolist nocursorcolumn undolevels=-1
   setl signcolumn=auto
+  if exists('&cursorlineopt')
+    setl cursorlineopt=both
+  endif
   setl filetype=list
   syntax case ignore
   let source = a:source[8:]

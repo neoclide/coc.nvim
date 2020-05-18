@@ -668,6 +668,11 @@
       "description": "Separator text for codeLens in virtual text",
       "default": "‣"
     },
+    "codeLens.subseparator": {
+      "type": "string",
+      "description": "Subseparator between codeLenses in virtual text",
+      "default": " "
+    },
     "refactor.openCommand": {
       "type": "string",
       "description": "Open command for refactor window.",
