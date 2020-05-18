@@ -61,7 +61,7 @@ export function check(_target: any, key: string, descriptor: any): void {
     return
   }
 
-  descriptor.value = function(...args: any[]): Promise<R> {
+  descriptor.value = function(...args: any[]): Promise<any> {
     let { cancelTokenSource } = this
     this.cancelTokenSource = new CancellationTokenSource()
     return new Promise((resolve, reject): void => {
