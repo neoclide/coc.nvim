@@ -122,22 +122,26 @@ export function isDocumentEdit(edit: any): boolean {
   return true
 }
 
-export function concurrent(fns: (() => Promise<any>)[], limit = Infinity, onProgress?: (count: number) => void): Promise<any[]> {
-  if (fns.length == 0) return Promise.resolve([])
-  return new Promise((resolve, rejrect) => {
-    let remain = fns.slice()
-    let results = []
-    let next = () => {
-      if (remain.length == 0) {
-        return resolve(results)
-      }
-      let list = remain.splice(0, limit)
-      if (onProgress) onProgress(list.length)
-      Promise.all(list.map(fn => fn())).then(res => {
-        results.push(...res)
-        next()
-      }, rejrect)
+export function concurrent<T>(arr: T[], fn: (val: T) => Promise<void>, limit = 3): Promise<void> {
+  if (arr.length == 0) return Promise.resolve()
+  let finished = 0
+  let total = arr.length
+  let remain = arr.slice()
+  return new Promise(resolve => {
+    let run = (val): void => {
+      fn(val).finally(() => {
+        finished = finished + 1
+        if (finished == total) {
+          resolve()
+        } else if (remain.length) {
+          let next = remain.shift()
+          run(next)
+        }
+      })
     }
-    next()
+    for (let i = 0; i < Math.min(limit, remain.length); i++) {
+      let val = remain.shift()
+      run(val)
+    }
   })
 }

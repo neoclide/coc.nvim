@@ -17,7 +17,7 @@ import InstallBuffer from './model/installBuffer'
 import { createInstallerFactory } from './model/installer'
 import Memos from './model/memos'
 import { Documentation, Extension, ExtensionContext, ExtensionInfo, ExtensionState, ExtensionType } from './types'
-import { disposeAll, wait } from './util'
+import { disposeAll, wait, concurrent } from './util'
 import { distinct, splitArray } from './util/array'
 import './util/extensions'
 import { createExtension, ExtensionExport } from './util/factory'
@@ -905,33 +905,6 @@ export class Extensions {
       this._onDidUnloadExtension.fire(id)
     }
   }
-}
-
-export function concurrent<T>(arr: T[], fn: (val: T) => Promise<void>, limit = 3): Promise<void> {
-  if (arr.length == 0) return Promise.resolve()
-  let inProgress = 0
-  return new Promise(resolve => {
-    let remain = arr.slice()
-    let next = () => {
-      if (inProgress >= limit) return
-      if (remain.length == 0) {
-        return resolve()
-      }
-      let list = remain.splice(0, limit - inProgress)
-      for (let val of list) {
-        inProgress = inProgress + 1
-        fn(val).then(() => {
-          inProgress = inProgress - 1
-          next()
-        }, err => {
-          inProgress = inProgress - 1
-          logger.error(`Promise error`, err)
-          next()
-        })
-      }
-    }
-    next()
-  })
 }
 
 export default new Extensions()

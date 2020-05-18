@@ -134,7 +134,7 @@ export class Workspace implements IWorkspace {
       if (fs.existsSync(folder)) {
         rimraf.sync(folder)
       }
-    })
+    }, null, this.disposables)
     events.on('InsertEnter', () => {
       this._insertMode = true
     }, null, this.disposables)
