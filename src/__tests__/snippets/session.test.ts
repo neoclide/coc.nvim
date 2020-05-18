@@ -241,7 +241,7 @@ describe('SnippetSession#deactivate', () => {
       range: Range.create(0, 0, 0, 2),
       newText: ''
     }
-    await doc.applyEdits(nvim, [edit])
+    await doc.applyEdits([edit])
     await session.synchronizeUpdatedPlaceholders({ range: edit.range, text: edit.newText })
     expect(session.isActive).toBe(false)
   })
@@ -416,7 +416,7 @@ describe('SnippetSession#synchronizeUpdatedPlaceholders', () => {
     let session = new SnippetSession(nvim, buf.id)
     await session.start('a${1:b}c')
     let doc = await workspace.document
-    await doc.applyEdits(nvim, [{
+    await doc.applyEdits([{
       range: Range.create(0, 0, 0, 1),
       newText: ''
     }])

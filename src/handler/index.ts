@@ -174,7 +174,7 @@ export default class Handler {
               newText = newText + '\\ '
             }
             edits.push({ range: Range.create(pos, pos), newText })
-            await doc.applyEdits(nvim, edits)
+            await doc.applyEdits(edits)
             await workspace.moveTo(Position.create(line, newText.length - 1))
           }
         }
@@ -496,7 +496,7 @@ export default class Handler {
     let options = await workspace.getFormatOptions(document.uri)
     let textEdits = await languages.provideDocumentFormattingEdits(document.textDocument, options)
     if (!textEdits || textEdits.length == 0) return false
-    await document.applyEdits(this.nvim, textEdits)
+    await document.applyEdits(textEdits)
     return true
   }
 
@@ -518,7 +518,7 @@ export default class Handler {
     let options = await workspace.getFormatOptions(document.uri)
     let textEdits = await languages.provideDocumentRangeFormattingEdits(document.textDocument, range, options)
     if (!textEdits) return - 1
-    await document.applyEdits(this.nvim, textEdits)
+    await document.applyEdits(textEdits)
     return 0
   }
 
@@ -844,7 +844,7 @@ export default class Handler {
         edits = edits.filter(edit => edit.range.start.line < position.line + 1)
       }
       if (edits && edits.length) {
-        await doc.applyEdits(this.nvim, edits)
+        await doc.applyEdits(edits)
         let newLine = doc.getline(position.line)
         if (newLine.length > origLine.length) {
           let character = position.character + (newLine.length - origLine.length)

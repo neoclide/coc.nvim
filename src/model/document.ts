@@ -249,8 +249,7 @@ export default class Document {
         textDocument: { version, uri },
         contentChanges: changes
       })
-      let lines = this.lines.length > 30000 ? this.lines.slice(0, 30000) : this.lines
-      this._words = this.chars.matchKeywords(lines.join('\n'))
+      this._words = this.chars.matchKeywords(this.textDocument.getText())
     } catch (e) {
       logger.error(e.message)
     }
@@ -285,36 +284,31 @@ export default class Document {
     return this.textDocument ? this.textDocument.version : null
   }
 
-  public applyEdits(textEdit: TextEdit[], sync?: boolean): Promise<void>
-  public applyEdits(nvim: Neovim, textEdit: TextEdit[], sync?: boolean): Promise<void>
-  public async applyEdits(nvim: Neovim | TextEdit[], _edits: TextEdit[] | boolean, sync = true): Promise<void> {
-    let edits: TextEdit[] = []
-    if (Array.isArray(nvim)) {
-      sync = _edits == null ? true : _edits as boolean
-      edits = nvim
-    } else {
-      edits = _edits as TextEdit[] || []
+  public async applyEdits(edits: TextEdit[], sync = true): Promise<void> {
+    if (!Array.isArray(arguments[0]) && Array.isArray(arguments[1])) {
+      edits = arguments[1]
     }
     if (edits.length == 0) return
     edits.forEach(edit => {
       edit.newText = edit.newText.replace(/\r/g, '')
     })
-    let orig = this.lines.join('\n') + (this.eol ? '\n' : '')
-    let textDocument = TextDocument.create(this.uri, this.filetype, 1, orig)
-    let content = TextDocument.applyEdits(textDocument, edits)
+    let current = this.lines.join('\n') + (this.eol ? '\n' : '')
+    let textDocument = TextDocument.create(this.uri, this.filetype, 1, current)
+    // apply edits to current textDocument
+    let applied = TextDocument.applyEdits(textDocument, edits)
     // could be equal sometimes
-    if (orig === content) {
-      this.createDocument()
-    } else {
-      let d = diffLines(orig, content)
+    if (current !== applied) {
+      let d = diffLines(current, applied)
       await this.buffer.setLines(d.replacement, {
         start: d.start,
         end: d.end,
         strictIndexing: false
       })
+    }
+    if (sync) {
       // can't wait vim sync buffer
-      this.lines = (this.eol && content.endsWith('\n') ? content.slice(0, -1) : content).split('\n')
-      if (sync) this.forceSync()
+      this.lines = (this.eol && applied.endsWith('\n') ? applied.slice(0, -1) : applied).split('\n')
+      this.forceSync()
     }
   }
 

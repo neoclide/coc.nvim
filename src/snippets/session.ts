@@ -15,7 +15,7 @@ export class SnippetSession {
   private _isActive = false
   private _currId = 0
   // Get state of line where we inserted
-  private version = 0
+  private applying = false
   private preferComplete = false
   private _snippet: CocSnippet = null
   private _onCancelEvent = new Emitter<void>()
@@ -28,7 +28,7 @@ export class SnippetSession {
   }
 
   public async start(snippetString: string, select = true, range?: Range): Promise<boolean> {
-    const { document, nvim } = this
+    const { document } = this
     if (!document) return false
     if (!range) {
       let position = await workspace.getCursorPosition()
@@ -50,16 +50,18 @@ export class SnippetSession {
       inserted = inserted + currentIndent
     }
     if (snippet.isPlainText) {
+      document.forceSync()
       // insert as text
-      await document.applyEdits(nvim, [edit])
+      await document.applyEdits([edit])
       let placeholder = snippet.finalPlaceholder
       await workspace.moveTo(placeholder.range.start)
       return this._isActive
     }
     await document.patchChange()
     document.forceSync()
-    this.version = document.version
-    await document.applyEdits(nvim, [edit])
+    this.applying = true
+    await document.applyEdits([edit])
+    this.applying = false
     if (this._isActive) {
       // insert check
       let placeholder = this.findPlaceholder(range)
@@ -119,7 +121,7 @@ export class SnippetSession {
   }
 
   public async synchronizeUpdatedPlaceholders(change: TextDocumentContentChangeEvent): Promise<void> {
-    if (!this.isActive || !this.document || this.document.version - this.version == 1) return
+    if (!this.isActive || !this.document || this.applying) return
     let edit: TextEdit = { range: (change as any).range, newText: change.text }
     let { snippet } = this
     // change outside range
@@ -145,9 +147,9 @@ export class SnippetSession {
     this._currId = placeholder.id
     let { edits, delta } = snippet.updatePlaceholder(placeholder, edit)
     if (!edits.length) return
-    this.version = this.document.version
-    // let pos = await workspace.getCursorPosition()
-    await this.document.applyEdits(this.nvim, edits)
+    this.applying = true
+    await this.document.applyEdits(edits)
+    this.applying = false
     if (delta) {
       await this.nvim.call('coc#util#move_cursor', delta)
     }

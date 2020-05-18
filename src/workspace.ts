@@ -524,7 +524,7 @@ export class Workspace implements IWorkspace {
             let { textDocument, edits } = change as TextDocumentEdit
             if (URI.parse(textDocument.uri).toString() == uri) currEdits = edits
             let doc = await this.loadFile(textDocument.uri)
-            await doc.applyEdits(nvim, edits)
+            await doc.applyEdits(edits)
             for (let edit of edits) {
               locations.push({ uri: doc.uri, range: edit.range })
             }
@@ -562,7 +562,7 @@ export class Workspace implements IWorkspace {
           for (let edit of edits) {
             locations.push({ uri: document.uri, range: edit.range })
           }
-          await document.applyEdits(nvim, edits)
+          await document.applyEdits(edits)
         }
         changeCount = uris.length
       }

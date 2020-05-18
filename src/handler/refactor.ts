@@ -320,9 +320,7 @@ export default class Refactor {
     let doc = this.document
     if (!doc) return
     let { buffer } = doc
-    if (workspace.isVim) {
-      await (doc as any)._fetchContent()
-    }
+    await (doc as any)._fetchContent()
     doc.forceSync()
     let changes = await this.getFileChanges()
     if (!changes) return

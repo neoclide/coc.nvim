@@ -55,7 +55,7 @@ function fixDocumentation(str: string): string {
   return str.replace(/&nbsp;/g, ' ')
 }
 
-export function check<R extends(...args: any[]) => Promise<R>>(_target: any, key: string, descriptor: any): void {
+export function check<R extends (...args: any[]) => Promise<R>>(_target: any, key: string, descriptor: any): void {
   let fn = descriptor.value
   if (typeof fn !== 'function') {
     return
@@ -121,11 +121,7 @@ class Languages {
         event.waitUntil(willSaveWaitUntil())
       }
     }, null, 'languageserver')
-    workspace.ready.then(() => {
-      this.loadCompleteConfig()
-    }, _e => {
-      // noop
-    })
+    this.loadCompleteConfig()
     workspace.onDidChangeConfiguration(this.loadCompleteConfig, this)
   }
 
@@ -429,7 +425,7 @@ class Languages {
   }
 
   @check
-  public async provideColorPresentations(color: ColorInformation, document: TextDocument, ): Promise<ColorPresentation[]> {
+  public async provideColorPresentations(color: ColorInformation, document: TextDocument,): Promise<ColorPresentation[]> {
     return await this.documentColorManager.provideColorPresentations(color, document, this.token)
   }
 
@@ -703,7 +699,7 @@ class Languages {
     let start = line.substr(0, range.start.character)
     let end = line.substr(range.end.character)
     if (isSnippet) {
-      await doc.applyEdits(nvim, [{
+      await doc.applyEdits([{
         range: Range.create(linenr - 1, 0, linenr, 0),
         newText: `${start}${end}\n`
       }])
@@ -741,7 +737,7 @@ class Languages {
     let changed = null
     let pos = await workspace.getCursorPosition()
     if (!snippet) changed = getChangedFromEdits(pos, textEdits)
-    await document.applyEdits(this.nvim, textEdits)
+    await document.applyEdits(textEdits)
     if (changed) await workspace.moveTo(Position.create(pos.line + changed.line, pos.character + changed.character))
   }
 

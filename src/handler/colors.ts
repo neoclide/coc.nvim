@@ -105,9 +105,9 @@ export default class Colors {
     let presentation = presentations[res]
     let { textEdit, additionalTextEdits, label } = presentation
     if (!textEdit) textEdit = { range: info.range, newText: label }
-    await document.applyEdits(this.nvim, [textEdit])
+    await document.applyEdits([textEdit])
     if (additionalTextEdits) {
-      await document.applyEdits(this.nvim, additionalTextEdits)
+      await document.applyEdits(additionalTextEdits)
     }
   }
 
@@ -132,7 +132,7 @@ export default class Colors {
       alpha: 1
     })
     let document = await workspace.document
-    await document.applyEdits(this.nvim, [{
+    await document.applyEdits([{
       range: info.range,
       newText: `#${hex}`
     }])

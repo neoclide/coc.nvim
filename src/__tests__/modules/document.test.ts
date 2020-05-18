@@ -39,7 +39,7 @@ describe('document model properties', () => {
       range: Range.create(0, 0, 0, 0),
       newText: 'b\n'
     })
-    await doc.applyEdits(nvim, edits)
+    await doc.applyEdits(edits)
     let content = doc.getDocumentContent()
     expect(content).toBe('a\nb\n\n')
   })

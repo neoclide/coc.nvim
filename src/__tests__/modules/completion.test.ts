@@ -79,10 +79,10 @@ describe('completion start', () => {
       sourceType: SourceType.Service,
       triggerCharacters: ['.'],
       doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
-          setTimeout(() => {
-            resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
-          }, 600)
-        })
+        setTimeout(() => {
+          resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
+        }, 600)
+      })
     }
     disposables.push(sources.addSource(source))
     await helper.edit()
@@ -126,8 +126,8 @@ describe('completion resumeCompletion', () => {
       sourceType: SourceType.Service,
       triggerCharacters: ['.'],
       doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
-          resolve({ items: [{ word: 'foo bar' }] })
-        })
+        resolve({ items: [{ word: 'foo bar' }] })
+      })
     }
     sources.addSource(source)
     await helper.edit()
@@ -150,10 +150,10 @@ describe('completion resumeCompletion', () => {
       sourceType: SourceType.Service,
       triggerCharacters: ['.'],
       doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
-          setTimeout(() => {
-            resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
-          }, 60)
-        })
+        setTimeout(() => {
+          resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
+        }, 60)
+      })
     }
     sources.addSource(source)
     await helper.edit()
@@ -176,10 +176,10 @@ describe('completion resumeCompletion', () => {
       sourceType: SourceType.Service,
       triggerCharacters: ['.'],
       doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
-          setTimeout(() => {
-            resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
-          }, 600)
-        })
+        setTimeout(() => {
+          resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
+        }, 600)
+      })
     }
     disposables.push(sources.addSource(source))
     await helper.edit()
@@ -297,10 +297,10 @@ describe('completion TextChangedP', () => {
   it('should fix cursor position with plain text on additionalTextEdits', async () => {
     let provider: CompletionItemProvider = {
       provideCompletionItems: async (): Promise<CompletionItem[]> => [{
-          label: 'foo',
-          filterText: 'foo',
-          additionalTextEdits: [TextEdit.insert(Position.create(0, 0), 'a\nbar')]
-        }]
+        label: 'foo',
+        filterText: 'foo',
+        additionalTextEdits: [TextEdit.insert(Position.create(0, 0), 'a\nbar')]
+      }]
     }
     disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
     await nvim.input('if')
@@ -364,12 +364,12 @@ describe('completion TextChangedP', () => {
     await helper.createDocument()
     let provider: CompletionItemProvider = {
       provideCompletionItems: async (): Promise<CompletionItem[]> => [{
-          label: 'if',
-          insertTextFormat: InsertTextFormat.Snippet,
-          textEdit: { range: Range.create(0, 0, 0, 2), newText: 'if($1)' },
-          additionalTextEdits: [TextEdit.insert(Position.create(0, 0), 'bar ')],
-          preselect: true
-        }]
+        label: 'if',
+        insertTextFormat: InsertTextFormat.Snippet,
+        textEdit: { range: Range.create(0, 0, 0, 2), newText: 'if($1)' },
+        additionalTextEdits: [TextEdit.insert(Position.create(0, 0), 'bar ')],
+        preselect: true
+      }]
     }
     disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
     await nvim.input('iif')
@@ -386,12 +386,12 @@ describe('completion TextChangedP', () => {
   it('should fix cursor position with plain text snippet on additionalTextEdits', async () => {
     let provider: CompletionItemProvider = {
       provideCompletionItems: async (): Promise<CompletionItem[]> => [{
-          label: 'if',
-          insertTextFormat: InsertTextFormat.Snippet,
-          textEdit: { range: Range.create(0, 0, 0, 2), newText: 'do$0' },
-          additionalTextEdits: [TextEdit.insert(Position.create(0, 0), 'bar ')],
-          preselect: true
-        }]
+        label: 'if',
+        insertTextFormat: InsertTextFormat.Snippet,
+        textEdit: { range: Range.create(0, 0, 0, 2), newText: 'do$0' },
+        additionalTextEdits: [TextEdit.insert(Position.create(0, 0), 'bar ')],
+        preselect: true
+      }]
     }
     disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
     await nvim.input('iif')
@@ -411,12 +411,12 @@ describe('completion TextChangedP', () => {
     expect(res).toBe(true)
     let provider: CompletionItemProvider = {
       provideCompletionItems: async (): Promise<CompletionItem[]> => [{
-          label: 'if',
-          insertTextFormat: InsertTextFormat.Snippet,
-          insertText: 'do$0',
-          additionalTextEdits: [TextEdit.insert(Position.create(0, 0), 'bar ')],
-          preselect: true
-        }]
+        label: 'if',
+        insertTextFormat: InsertTextFormat.Snippet,
+        insertText: 'do$0',
+        additionalTextEdits: [TextEdit.insert(Position.create(0, 0), 'bar ')],
+        preselect: true
+      }]
     }
     disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
     await nvim.input('if')
@@ -433,11 +433,11 @@ describe('completion TextChangedP', () => {
   it('should fix input for snippet item', async () => {
     let provider: CompletionItemProvider = {
       provideCompletionItems: async (): Promise<CompletionItem[]> => [{
-          label: 'foo',
-          filterText: 'foo',
-          insertText: '${1:foo}($2)',
-          insertTextFormat: InsertTextFormat.Snippet,
-        }]
+        label: 'foo',
+        filterText: 'foo',
+        insertText: '${1:foo}($2)',
+        insertTextFormat: InsertTextFormat.Snippet,
+      }]
     }
     disposables.push(languages.registerCompletionItemProvider('snippets-test', 'st', null, provider))
     await nvim.input('if')
@@ -472,12 +472,12 @@ describe('completion TextChangedP', () => {
       name: 'source',
       sourceType: SourceType.Service,
       doComplete: (_opt: CompleteOption): Promise<CompleteResult> => Promise.resolve({
-          items: [
-            { word: 'candidate_a', sourceScore: 0.1 },
-            { word: 'candidate_b', sourceScore: 10 },
-            { word: 'candidate_c' },
-          ]
-        }),
+        items: [
+          { word: 'candidate_a', sourceScore: 0.1 },
+          { word: 'candidate_b', sourceScore: 10 },
+          { word: 'candidate_c' },
+        ]
+      }),
     }
     disposables.push(sources.addSource(source))
     await nvim.input('ocand')

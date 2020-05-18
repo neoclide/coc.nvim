@@ -1,4 +1,3 @@
-import { Neovim } from '@chemzqm/neovim'
 import { Disposable, TextEdit } from 'vscode-languageserver-protocol'
 import { IWorkspace, TextDocumentWillSaveEvent } from '../types'
 import { wait } from '../util'
@@ -13,13 +12,9 @@ export default class WillSaveUntilHandler {
   constructor(private workspace: IWorkspace) {
   }
 
-  private get nvim(): Neovim {
-    return this.workspace.nvim
-  }
-
   public addCallback(callback: Callback, thisArg: any, clientId: string): Disposable {
     let fn = (event: TextDocumentWillSaveEvent): Promise<void> => {
-      let { nvim, workspace } = this
+      let { workspace } = this
       let ev: TextDocumentWillSaveEvent = Object.assign({}, event)
       return new Promise(resolve => {
         let called = false
@@ -34,7 +29,7 @@ export default class WillSaveUntilHandler {
             clearTimeout(timer)
             let doc = workspace.getDocument(document.uri)
             if (doc && edits && TextEdit.is(edits[0])) {
-              doc.applyEdits(nvim, edits).then(() => {
+              doc.applyEdits(edits).then(() => {
                 // make sure server received ChangedText
                 setTimeout(resolve, 50)
               }, e => {
