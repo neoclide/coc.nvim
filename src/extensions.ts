@@ -410,46 +410,27 @@ export class Extensions {
     return false
   }
 
-  public async loadExtension(folder: string): Promise<boolean> {
+  public async loadExtension(folder: string, silent = false): Promise<boolean> {
     try {
       let parentFolder = path.dirname(folder)
       let isLocal = path.normalize(parentFolder) != path.normalize(this.modulesFolder)
+      await this.checkDirectory(folder)
       let jsonFile = path.join(folder, 'package.json')
-      if (!fs.existsSync(jsonFile)) {
-        throw new Error(`package.json not found in: ${folder}`)
-      }
-      let content = await readFile(jsonFile, 'utf8')
-      let packageJSON = JSON.parse(content)
-      let { name, engines, main } = packageJSON
-      if (!name || !engines) throw new Error(`can't find name & engines in ${jsonFile}`)
-      if (!engines || !objectLiteral(engines)) {
-        throw new Error(`invalid engines in ${jsonFile}`)
-      }
-      if (main && !fs.existsSync(path.join(folder, main))) {
-        throw new Error(`main file ${main} not found, you may need to build the project.`)
-      }
-      let keys = Object.keys(engines)
-      if (!keys.includes('coc') && !keys.includes('vscode')) {
-        throw new Error(`Required coc/vscode not found in engines: ${keys}`)
-      }
+      let packageJSON = JSON.parse(fs.readFileSync(jsonFile, 'utf8'))
+      let { name } = packageJSON
       if (this.isDisabled(name)) {
-        logger.warn(`skipped disabled extension ${name}`)
+        logger.warn(`skipped load of disabled extension ${name}`)
         return false
-      }
-      if (keys.includes('coc')) {
-        let required = engines['coc'].replace(/^\^/, '>=')
-        if (!semver.satisfies(workspace.version, required)) {
-          workspace.showMessage(`Please update coc.nvim, ${packageJSON.name} requires coc.nvim ${engines['coc']}`, 'warning')
-          return false
-        }
       }
       // unload if loaded
       await this.unloadExtension(name)
       this.createExtension(folder, Object.freeze(packageJSON), isLocal ? ExtensionType.Local : ExtensionType.Global)
       return true
     } catch (e) {
-      logger.error(`Error on load extension from ${folder}`, e)
-      workspace.showMessage(`Can't load extension from "${folder}": ${e.message}`)
+      if (!silent) {
+        logger.error(`Error on load extension from ${folder}`, e)
+        workspace.showMessage(`Can't load extension from "${folder}": ${e.message}`)
+      }
       return false
     }
   }
@@ -608,12 +589,14 @@ export class Extensions {
         let jsonFile = path.join(root, 'package.json')
         let stat = await statAsync(jsonFile)
         if (!stat || !stat.isFile()) return resolve(null)
-        let content = await readFile(jsonFile, 'utf8')
-        let obj = JSON.parse(content)
-        let { engines } = obj
-        if (!engines || (!engines.hasOwnProperty('coc') && !engines.hasOwnProperty('vscode'))) {
+        try {
+          await this.checkDirectory(root)
+        } catch (e) {
+          logger.error(e.message)
           return resolve(null)
         }
+        let content = await readFile(jsonFile, 'utf8')
+        let obj = JSON.parse(content)
         if (names.includes(obj.name)) {
           workspace.showMessage(`Skipped extension  "${root}", please remove "${obj.name}" from your vim's plugin manager.`, 'warning')
           return resolve(null)
@@ -894,6 +877,7 @@ export class Extensions {
   private canActivate(id: string): boolean {
     return !this.disabled.has(id) && this.extensions.has(id)
   }
+
   /**
    * Deactive & unregist extension
    */
@@ -903,6 +887,33 @@ export class Extensions {
       await this.deactivate(id)
       this.extensions.delete(id)
       this._onDidUnloadExtension.fire(id)
+    }
+  }
+
+  private async checkDirectory(folder: string): Promise<void> {
+    let jsonFile = path.join(folder, 'package.json')
+    if (!fs.existsSync(jsonFile)) {
+      throw new Error(`package.json not found in ${folder}`)
+    }
+    let content = await readFile(jsonFile, 'utf8')
+    let packageJSON = JSON.parse(content)
+    let { name, engines, main } = packageJSON
+    if (!name || !engines) throw new Error(`can't find name & engines in ${jsonFile}`)
+    if (!engines || !objectLiteral(engines)) {
+      throw new Error(`invalid engines in ${jsonFile}`)
+    }
+    if (main && !fs.existsSync(path.join(folder, main))) {
+      throw new Error(`main file ${main} not found, you may need to build the project.`)
+    }
+    let keys = Object.keys(engines)
+    if (!keys.includes('coc') && !keys.includes('vscode')) {
+      throw new Error(`Required coc/vscode not found in engines: ${keys}`)
+    }
+    if (keys.includes('coc')) {
+      let required = engines['coc'].replace(/^\^/, '>=')
+      if (!semver.satisfies(workspace.version, required)) {
+        throw new Error(`Please update coc.nvim, ${packageJSON.name} requires coc.nvim ${engines['coc']}`)
+      }
     }
   }
 }
