@@ -67,6 +67,7 @@ interface Preferences {
   formatOnTypeFiletypes: string[]
   formatOnInsertLeave: boolean
   hoverTarget: string
+  maxPreviewHeight: number
   previewAutoClose: boolean
   bracketEnterImprove: boolean
   currentFunctionSymbolAutoUpdate: boolean
@@ -235,7 +236,7 @@ export default class Handler {
         nvim.command('setlocal conceallevel=2 nospell nofoldenable wrap', true)
         nvim.command('setlocal bufhidden=wipe nobuflisted', true)
         nvim.command('setfiletype markdown', true)
-        nvim.command(`exe "normal! z${this.documentLines.length}\\<cr>"`, true)
+        nvim.command(`exe "normal! z${Math.min(this.documentLines.length, this.preferences.maxPreviewHeight)}\\<cr>"`, true)
         await nvim.resumeNotification()
         return this.documentLines.join('\n')
       }
@@ -1223,7 +1224,8 @@ export default class Handler {
     if (signatureHelpTarget == 'float' && !workspace.floatSupported) {
       signatureHelpTarget = 'echo'
     }
-    this.labels = workspace.getConfiguration('suggest').get<any>('completionItemKindLabels', {})
+    let suggest = workspace.getConfiguration('suggest')
+    this.labels = suggest.get<any>('completionItemKindLabels', {})
     this.preferences = {
       hoverTarget,
       signatureHelpTarget,
@@ -1237,6 +1239,7 @@ export default class Handler {
       formatOnTypeFiletypes: config.get('formatOnTypeFiletypes', []),
       formatOnInsertLeave: config.get<boolean>('formatOnInsertLeave', false),
       bracketEnterImprove: config.get<boolean>('bracketEnterImprove', true),
+      maxPreviewHeight: suggest.get<number>('maxPreviewHeight', 40),
       previewAutoClose: config.get<boolean>('previewAutoClose', false),
       currentFunctionSymbolAutoUpdate: config.get<boolean>('currentFunctionSymbolAutoUpdate', false),
     }

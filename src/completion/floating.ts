@@ -14,6 +14,7 @@ interface Bounding {
 
 export interface FloatingConfig {
   srcId: number
+  maxPreviewHeight: number
   maxPreviewWidth: number
   enable: boolean
 }
@@ -34,6 +35,7 @@ export default class Floating {
     }
     this.config = {
       srcId: workspace.createNameSpace('coc-pum-float'),
+      maxPreviewHeight: configuration.get<number>('maxPreviewHeight', 40),
       maxPreviewWidth: configuration.get<number>('maxPreviewWidth', 80),
       enable: enableFloat
     }
@@ -84,7 +86,7 @@ export default class Floating {
   private calculateBounding(docs: Documentation[], bounding: PumBounding): Bounding {
     let { config } = this
     let { columns, lines } = workspace.env
-    let { maxPreviewWidth } = config
+    let { maxPreviewHeight, maxPreviewWidth } = config
     let pumWidth = bounding.width + (bounding.scrollbar ? 1 : 0)
     let showRight = true
     let paddingRight = columns - bounding.col - pumWidth
@@ -92,6 +94,7 @@ export default class Floating {
     let maxWidth = showRight ? paddingRight - 1 : bounding.col - 1
     maxWidth = Math.min(maxPreviewWidth, maxWidth)
     let maxHeight = lines - bounding.row - workspace.env.cmdheight - 1
+    maxHeight = Math.min(maxPreviewHeight, maxHeight)
     let { width, height } = FloatBuffer.getDimension(docs, maxWidth, maxHeight)
     if (width == 0 || height == 0) return null
     return {

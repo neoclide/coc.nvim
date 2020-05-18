@@ -133,9 +133,13 @@ Built-in configurations:~
 
 	Enable preselect feature on Neovim, default: `true`
 
+"suggest.maxPreviewHeight":~
+
+	Maximum height of floating window or preview window, default: `40`
+
 "suggest.maxPreviewWidth":~
 
-	Maximum width of floating preview window, default: `80`
+	Maximum width of floating window, default: `80`
 
 "suggest.labelMaxLength":~
 

@@ -151,6 +151,7 @@ export class Completion implements Disposable {
       previewIsKeyword: getConfig<string>('previewIsKeyword', '@,48-57,_192-255'),
       enablePreview: getConfig<boolean>('enablePreview', false),
       enablePreselect: getConfig<boolean>('enablePreselect', false),
+      maxPreviewHeight: getConfig<number>('maxPreviewHeight', 40),
       maxPreviewWidth: getConfig<number>('maxPreviewWidth', 80),
       labelMaxLength: getConfig<number>('labelMaxLength', 200),
       triggerAfterInsertEnter: getConfig<boolean>('triggerAfterInsertEnter', false),

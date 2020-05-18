@@ -277,10 +277,15 @@
       "description": "Enable preselect feature, only works on neovim",
       "default": false
     },
+    "suggest.maxPreviewHeight": {
+      "type": "number",
+      "default": 40,
+      "description": "Maximum height of floating window or preview window."
+    },
     "suggest.maxPreviewWidth": {
       "type": "number",
       "default": 80,
-      "description": "Maximum width of floating preview window."
+      "description": "Maximum width of floating window."
     },
     "suggest.enablePreview": {
       "type": "boolean",
