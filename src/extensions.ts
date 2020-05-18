@@ -105,7 +105,7 @@ export class Extensions {
         if (changeType == 1) {
           let paths = value.replace(/,$/, '').split(',')
           for (let p of paths) {
-            if (p) await this.loadExtension(p)
+            if (p) await this.loadExtension(p, true)
           }
         }
       }
