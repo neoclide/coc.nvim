@@ -1,6 +1,7 @@
 import { Disposable } from 'vscode-languageserver-protocol'
 import { PopupChangeEvent, VimCompleteItem } from './types'
 import { disposeAll } from './util'
+import { equals } from './util/object'
 const logger = require('./util/logger')('events')
 
 export type Result = void | Promise<void>
@@ -56,12 +57,15 @@ class Events {
       await this.fire('InsertLeave', [args[0]])
     }
     if (event == 'CursorMoved' || event == 'CursorMovedI') {
-      this._cursor = {
+      let cursor = {
         bufnr: args[0],
         lnum: args[1][0],
         col: args[1][1],
         insert: event == 'CursorMovedI'
       }
+      // not handle CursorMoved when it's not moved at all
+      if (this._cursor && equals(this._cursor, cursor)) return
+      this._cursor = cursor
     }
     if (cbs) {
       try {
