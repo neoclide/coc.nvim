@@ -564,7 +564,7 @@ export class Extensions {
           version,
           description,
           exotic: /^https?:/.test(val),
-          uri,
+          uri: uri.replace(/\.git(#master)?$/, ''),
           root,
           state: this.getExtensionState(key)
         })
