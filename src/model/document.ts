@@ -18,7 +18,6 @@ export type LastChangeType = 'insert' | 'change' | 'delete'
 
 // wrapper class of TextDocument
 export default class Document {
-  public paused = false
   public buftype: string
   public isIgnored = false
   public chars: Chars
@@ -205,7 +204,6 @@ export default class Document {
    * Make sure current document synced correctly
    */
   public async checkDocument(): Promise<void> {
-    this.paused = false
     let { buffer } = this
     this._changedtick = await buffer.changedtick
     this.lines = await buffer.lines
@@ -220,14 +218,14 @@ export default class Document {
     return this.content != this.getDocumentContent()
   }
 
-  private _fireContentChanges(force = false): void {
-    let { paused, textDocument } = this
-    if (paused && !force) return
+  private _fireContentChanges(): void {
+    let { textDocument } = this
+    // if (paused && !force) return
     let { cursor } = events
     try {
       let content = this.getDocumentContent()
       let endOffset = null
-      if (!force && cursor && cursor.bufnr == this.bufnr) {
+      if (cursor && cursor.bufnr == this.bufnr) {
         endOffset = this.getEndOffset(cursor.lnum, cursor.col, cursor.insert)
         if (!cursor.insert && content.length < this.content.length) {
           endOffset = endOffset + 1
@@ -337,9 +335,9 @@ export default class Document {
   /**
    * Force emit change event when necessary.
    */
-  public forceSync(ignorePause = true): void {
+  public forceSync(): void {
     this.fireContentChanges.clear()
-    this._fireContentChanges(ignorePause)
+    this._fireContentChanges()
   }
 
   /**
@@ -723,7 +721,7 @@ export default class Document {
     // neovim not detach on `:checktime`
     if (this.attached) {
       this.attached = false
-      this.buffer.detach().catch(_e => {
+      this.buffer.detach().catch(() => {
         // noop
       })
       this._onDocumentDetach.fire(this.uri)

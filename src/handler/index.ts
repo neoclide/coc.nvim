@@ -191,7 +191,7 @@ export default class Handler {
       let [pos, line] = await nvim.eval('[coc#util#cursor(), getline(".")]') as [[number, number], string]
       let pre = pos[1] == 0 ? '' : line.slice(pos[1] - 1, pos[1])
       if (!pre || isWord(pre)) return
-      if (!doc.paused) await this.onCharacterType(pre, bufnr)
+      await this.onCharacterType(pre, bufnr)
       if (triggerSignatureHelp && languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
         doc.forceSync()
         await wait(Math.min(Math.max(triggerSignatureWait, 50), 300))
@@ -821,7 +821,7 @@ export default class Handler {
     if (!ch || isWord(ch) || !this.preferences.formatOnType) return
     if (snippetManager.getSession(bufnr) != null) return
     let doc = workspace.getDocument(bufnr)
-    if (!doc || doc.paused) return
+    if (!doc) return
     if (!languages.hasOnTypeProvider(ch, doc.textDocument)) return
     const filetypes = this.preferences.formatOnTypeFiletypes
     if (filetypes.length && !filetypes.includes(doc.filetype)) {

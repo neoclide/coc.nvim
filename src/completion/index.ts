@@ -538,8 +538,7 @@ export class Completion implements Disposable {
     if (!this.config.keepCompleteopt) {
       this.nvim.command(`noa set completeopt=${this.completeOpt}`, true)
     }
-    this.document.forceSync(true)
-    this.document.paused = true
+    this.document.forceSync()
   }
 
   private cancel(): void {
@@ -554,7 +553,6 @@ export class Completion implements Disposable {
     if (!this.activated) return
     this.currItem = null
     this.activated = false
-    this.document.paused = false
     this.document.fireContentChanges()
     if (this.complete) {
       this.complete.dispose()

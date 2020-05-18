@@ -3743,7 +3743,7 @@ export abstract class BaseLanguageClient {
 
   private forceDocumentSync(): void {
     let doc = workspace.getDocument(workspace.bufnr)
-    if (doc) doc.forceSync(false)
+    if (doc) doc.forceSync()
   }
 
   private handleDiagnostics(params: PublishDiagnosticsParams) {
