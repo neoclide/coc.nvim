@@ -3549,6 +3549,10 @@ export abstract class BaseLanguageClient {
       initializationOptions: Is.func(initializationOptions) ? initializationOptions() : initializationOptions,
       trace: Trace.toString(this._trace),
       workspaceFolders: null,
+      clientInfo: {
+        name: 'coc.nvim',
+        version: workspace.version
+      }
     }
     this.fillInitializeParams(initParams)
     if (progressOnInitialization) {
