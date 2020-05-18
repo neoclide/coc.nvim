@@ -251,7 +251,7 @@ module.exports = {
     ],
     "@typescript-eslint/unbound-method": "off",
     "@typescript-eslint/unified-signatures": "error",
-    "arrow-body-style": "error",
+    "arrow-body-style": "off",
     "arrow-parens": [
       "error",
       "as-needed"
