@@ -65,10 +65,7 @@ export default class Floating {
     if (!res) return
     let winid = this.winid = res[0]
     let bufnr = this.bufnr = res[1]
-    if (token.isCancellationRequested) {
-      this.close()
-      return
-    }
+    if (token.isCancellationRequested) return
     nvim.pauseNotification()
     if (workspace.isNvim) {
       nvim.command(`noa call win_gotoid(${winid})`, true)
@@ -79,9 +76,10 @@ export default class Floating {
       this.floatBuffer.setLines(bufnr, winid)
       nvim.call('win_execute', [winid, `noa normal! gg0`], true)
     }
+    nvim.command(`if !pumvisible() | call coc#util#close_win(${winid}) | endif`, true)
     let [, err] = await nvim.resumeNotification()
+    if (err) logger.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
     if (workspace.isVim) nvim.command('redraw', true)
-    if (err) console.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
   }
 
   public close(): void {

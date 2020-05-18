@@ -50,6 +50,7 @@ export class Completion implements Disposable {
     let fn = throttle(this.onPumChange.bind(this), workspace.isVim ? 200 : 100)
     events.on('CompleteDone', async item => {
       this.currItem = null
+      this.cancel()
       await this.onCompleteDone(item)
     }, this, this.disposables)
     events.on('MenuPopupChanged', ev => {
@@ -514,10 +515,14 @@ export class Completion implements Disposable {
       let isText = /^[\w-\s.,\t]+$/.test(info)
       docs = [{ filetype: isText ? 'txt' : this.document.filetype, content: info }]
     }
+    if (!this.isActivated) return
     if (!docs || docs.length == 0) {
       this.floating.close()
     } else {
       await this.floating.show(docs, bounding, token)
+      if (!this.isActivated) {
+        this.floating.close()
+      }
     }
   }
 
@@ -546,7 +551,6 @@ export class Completion implements Disposable {
   public stop(): void {
     let { nvim } = this
     if (!this.activated) return
-    this.cancel()
     this.currItem = null
     this.activated = false
     this.document.paused = false
