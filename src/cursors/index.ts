@@ -28,7 +28,7 @@ export default class Cursors {
   private winid: number
   private matchIds: number[] = []
   private textDocument: TextDocument
-  private version = -1
+  private changing = false
   private config: Config
   constructor(private nvim: Neovim) {
     this.loadConfig()
@@ -140,7 +140,7 @@ export default class Cursors {
     this.textDocument = doc.textDocument
     workspace.onDidChangeTextDocument(async e => {
       if (e.textDocument.uri != doc.uri) return
-      if (doc.version - this.version == 1 || !this.ranges.length) return
+      if (this.changing || !this.ranges.length) return
       let change = e.contentChanges[0]
       if (!('range' in change)) return
       let { original } = e
@@ -241,7 +241,7 @@ export default class Cursors {
     disposeAll(this.disposables)
     this._changed = false
     this.ranges = []
-    this.version = -1
+    this.changing = false
     this._activated = false
   }
 
@@ -356,7 +356,7 @@ export default class Cursors {
       }
     }
     let { nvim } = this
-    this.version = doc.version
+    this.changing = true
     // apply changes
     nvim.pauseNotification()
     nvim.command('undojoin', true)
@@ -368,6 +368,7 @@ export default class Cursors {
     }
     this.doHighlights()
     let [, err] = await nvim.resumeNotification()
+    this.changing = false
     if (err) logger.error(err)
   }
 
