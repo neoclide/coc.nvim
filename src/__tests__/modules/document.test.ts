@@ -1,7 +1,14 @@
+import fs from 'fs'
+import path from 'path'
 import { Neovim } from '@chemzqm/neovim'
 import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import workspace from '../../workspace'
 import helper from '../helper'
+import { TextDocument } from 'vscode-languageserver-textdocument'
+import { Disposable } from '@chemzqm/neovim/lib/api/Buffer'
+import { disposeAll } from '../../util'
+import Document from '../../model/document'
+import { URI } from 'vscode-uri'
 
 let nvim: Neovim
 jest.setTimeout(5000)
@@ -162,5 +169,98 @@ describe('document model properties', () => {
     await helper.wait(50)
     let content = doc.getDocumentContent()
     expect(content.indexOf('abc')).toBe(-1)
+  })
+})
+
+describe('document synchronize', () => {
+  it('should synchronize on lines change', async () => {
+    let document = await helper.createDocument()
+    let doc = TextDocument.create('untitled:1', 'txt', 1, document.getDocumentContent())
+    let disposables = []
+    document.onDocumentChange(e => {
+      TextDocument.update(doc, e.contentChanges, 2)
+    }, null, disposables)
+    // document.on
+    await nvim.setLine('abc')
+    document.forceSync()
+    expect(doc.getText()).toBe('abc\n')
+    disposeAll(disposables)
+  })
+
+  it('should synchronize changes after applyEdits', async () => {
+    let document = await helper.createDocument()
+    let doc = TextDocument.create('untitled:1', 'txt', 1, document.getDocumentContent())
+    let disposables = []
+    document.onDocumentChange(e => {
+      TextDocument.update(doc, e.contentChanges, 2)
+    }, null, disposables)
+    await nvim.setLine('abc')
+    await document.applyEdits([TextEdit.insert({ line: 0, character: 0 }, '')])
+    expect(doc.getText()).toBe('abc\n')
+    disposeAll(disposables)
+  })
+})
+
+describe('document recreate', () => {
+  async function assertDocument(fn: (doc: Document) => Promise<void>): Promise<void> {
+    let disposables: Disposable[] = []
+    let fsPath = path.join(__dirname, 'document.txt')
+    fs.writeFileSync(fsPath, '{\nfoo\n}\n', 'utf8')
+    await helper.edit(fsPath)
+    let document = await workspace.document
+    document.forceSync()
+    let doc = TextDocument.create(document.uri, 'txt', document.version, document.getDocumentContent())
+    let uri = doc.uri
+    workspace.onDidOpenTextDocument(e => {
+      if (e.uri == uri) {
+        doc = TextDocument.create(e.uri, 'txt', e.version, e.getText())
+      }
+    }, null, disposables)
+    workspace.onDidCloseTextDocument(e => {
+      if (e.uri == doc.uri) doc = null
+    }, null, disposables)
+    workspace.onDidChangeTextDocument(e => {
+      TextDocument.update(doc, e.contentChanges, e.textDocument.version)
+    }, null, disposables)
+    await fn(document)
+    document = await workspace.document
+    document.forceSync()
+    let text = document.getDocumentContent()
+    expect(doc).toBeDefined()
+    expect(doc.getText()).toBe(text)
+    disposeAll(disposables)
+    fs.unlinkSync(fsPath)
+  }
+
+  it('should synchronize after make changes', async () => {
+    await assertDocument(async () => {
+      await nvim.call('setline', [1, 'a'])
+      await nvim.call('setline', [2, 'b'])
+    })
+  })
+
+  it('should synchronize after edit', async () => {
+    await assertDocument(async doc => {
+      let fsPath = URI.parse(doc.uri).fsPath
+      fs.writeFileSync(fsPath, '{\n}\n', 'utf8')
+      await nvim.command('edit')
+      await helper.wait(50)
+      await nvim.call('deletebufline', [doc.bufnr, 1])
+      doc = await workspace.document
+      let content = doc.getDocumentContent()
+      expect(content).toBe('}\n')
+    })
+  })
+  it('should synchronize after force edit', async () => {
+    await assertDocument(async doc => {
+      let fsPath = URI.parse(doc.uri).fsPath
+      fs.writeFileSync(fsPath, '{\n}\n', 'utf8')
+      await nvim.command('edit')
+      await helper.wait(50)
+      await nvim.call('deletebufline', [doc.bufnr, 1])
+      doc = await workspace.document
+      let content = doc.getDocumentContent()
+      expect(content).toBe('}\n')
+    })
   })
 })

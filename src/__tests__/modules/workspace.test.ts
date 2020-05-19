@@ -1078,23 +1078,3 @@ describe('workspace textDocument content provider', () => {
     expect(lines).toEqual(['bar'])
   })
 })
-
-describe('workspace private', () => {
-
-  it('should init vim events', async () => {
-    let buf = await helper.edit()
-    await buf.detach()
-    let attached = buf.isAttached
-    expect(attached).toBe(false)
-    let doc = workspace.getDocument(buf.id)
-      ; (doc as any).env.isVim = true
-      ; (workspace as any).attachChangedEvents()
-    await nvim.setLine('abc')
-    await helper.wait(300)
-    expect(doc.content).toMatch('abc')
-    await nvim.input('Adef')
-    await nvim.call('coc#_hide')
-    await helper.wait(300)
-    expect(doc.getline(0)).toMatch('abcdef')
-  })
-})

@@ -1546,7 +1546,7 @@ augroup end`
     let document = this.getDocument(bufnr)
     let source = new CancellationTokenSource()
     try {
-      if (document) this.onBufUnload(bufnr, true).logError()
+      if (document) this.onBufUnload(bufnr, true)
       document = new Document(buffer, this._env, this.maxFileSize)
       let token = source.token
       this.creatingSources.set(bufnr, source)
@@ -1563,9 +1563,9 @@ augroup end`
     if (!document || !document.textDocument) return
     this.buffers.set(bufnr, document)
     if (document.enabled) {
-      document.onDocumentDetach(uri => {
-        let doc = this.getDocument(uri)
-        if (doc) this.onBufUnload(doc.bufnr).logError()
+      document.onDocumentDetach(bufnr => {
+        let doc = this.getDocument(bufnr)
+        if (doc) this.onBufUnload(doc.bufnr)
       })
     }
     if (document.buftype == '' && document.schema == 'file') {
@@ -1610,7 +1610,7 @@ augroup end`
     this._onDidSaveDocument.fire(doc.textDocument)
   }
 
-  private async onBufUnload(bufnr: number, recreate = false): Promise<void> {
+  private onBufUnload(bufnr: number, recreate = false): void {
     logger.debug('buffer unload', bufnr)
     if (!recreate) {
       let source = this.creatingSources.get(bufnr)
@@ -1628,9 +1628,8 @@ augroup end`
     if (doc) {
       this._onDidCloseDocument.fire(doc.textDocument)
       this.buffers.delete(bufnr)
-      if (!recreate) doc.detach()
+      doc.detach()
     }
-    await wait(10)
   }
 
   private async onBufWritePre(bufnr: number): Promise<void> {

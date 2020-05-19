@@ -1,17 +1,17 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { Emitter, Event, Position, Range, TextEdit, CancellationToken } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
-import { DidChangeTextDocumentParams, BufferOption, ChangeInfo, Env } from '../types'
 import events from '../events'
+import { BufferOption, ChangeInfo, DidChangeTextDocumentParams, Env } from '../types'
+import { distinct, group } from '../util/array'
 import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
-import { getUri, wait } from '../util/index'
+import { disposeAll, getUri } from '../util/index'
+import { comparePosition } from '../util/position'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
 import { Chars } from './chars'
-import { group, distinct } from '../util/array'
-import { comparePosition } from '../util/position'
 const logger = require('../util/logger')('model-document')
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
@@ -38,9 +38,10 @@ export default class Document {
   private _changedtick: number
   private _words: string[] = []
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
-  private _onDocumentDetach = new Emitter<string>()
+  private _onDocumentDetach = new Emitter<number>()
+  private disposables: Disposable[] = []
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
-  public readonly onDocumentDetach: Event<string> = this._onDocumentDetach.event
+  public readonly onDocumentDetach: Event<number> = this._onDocumentDetach.event
   constructor(
     public readonly buffer: Buffer,
     private env: Env,
@@ -135,20 +136,15 @@ export default class Document {
     this.eol = opts.eol == 1
     let uri = this._uri = getUri(opts.fullpath, buffer.id, buftype, this.env.isCygwin)
     if (token.isCancellationRequested) return false
-    try {
-      if (this.shouldAttach) {
-        if (this.env.isVim) {
-          this.lines = await buffer.lines
-        } else {
-          let res = await this.attach()
-          if (!res) return false
-        }
+    if (this.shouldAttach) {
+      if (this.env.isVim) {
+        this.lines = await buffer.lines
+      } else {
+        let res = await this.attach()
+        if (!res) return false
       }
-      this.attached = true
-    } catch (e) {
-      logger.error('attach error:', e)
-      return false
     }
+    this.attached = true
     this._filetype = this.convertFiletype(opts.filetype)
     this.textDocument = TextDocument.create(uri, this.filetype, 1, this.getDocumentContent())
     this.setIskeyword(opts.iskeyword)
@@ -164,20 +160,19 @@ export default class Document {
     let attached = await this.buffer.attach(false)
     if (!attached) return false
     this.lines = await this.buffer.lines
-    if (!this.buffer.isAttached) return
+    let lastChange: number
     this.buffer.listen('lines', (...args: any[]) => {
+      // avoid neovim send same change multiple times after checktime
+      if (lastChange == args[1]) return
+      lastChange = args[1]
       this.onChange.apply(this, args)
-    })
-    this.buffer.listen('detach', async () => {
-      await wait(30)
-      if (!this.attached) return
-      // it could be detached by `edit!`
-      let attached = await this.attach()
-      if (!attached) this.detach()
-    })
+    }, this.disposables)
+    this.buffer.listen('detach', async buf => {
+      this._onDocumentDetach.fire(buf.id)
+    }, this.disposables)
     this.buffer.listen('changedtick', (_buf: Buffer, tick: number) => {
       this._changedtick = tick
-    })
+    }, this.disposables)
     if (this.textDocument) {
       this.fireContentChanges()
     }
@@ -456,14 +451,6 @@ export default class Document {
   }
 
   /**
-   * Get changedtick from vim8, used by workspace
-   */
-  public async patchChangedTick(): Promise<void> {
-    if (!this.env.isVim || !this.attached) return
-    this._changedtick = await this.nvim.call('getbufvar', [this.bufnr, 'changedtick'])
-  }
-
-  /**
    * Get ranges of word in textDocument.
    */
   public getSymbolRanges(word: string): Range[] {
@@ -712,14 +699,10 @@ export default class Document {
    * @internal
    */
   public detach(): void {
-    // neovim not detach on `:checktime`
-    if (this.attached) {
-      this.attached = false
-      this.buffer.detach().catch(() => {
-        // noop
-      })
-      this._onDocumentDetach.fire(this.uri)
-    }
+    this.attached = false
+    disposeAll(this.disposables)
+    this.buffer.detach().logError()
+    this.disposables = []
     this.fetchContent.clear()
     this.fireContentChanges.clear()
     this._onDocumentChange.dispose()
