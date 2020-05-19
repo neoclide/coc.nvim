@@ -10,7 +10,7 @@ import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
 import { disposeAll, getUri } from '../util/index'
 import { comparePosition } from '../util/position'
-import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
+import { byteIndex, byteLength, byteSlice } from '../util/string'
 import { Chars } from './chars'
 const logger = require('../util/logger')('model-document')
 
@@ -222,9 +222,6 @@ export default class Document {
       let endOffset = null
       if (cursor && cursor.bufnr == this.bufnr) {
         endOffset = this.getEndOffset(cursor.lnum, cursor.col, cursor.insert)
-        if (!cursor.insert && content.length < this.content.length) {
-          endOffset = endOffset + 1
-        }
       }
       let change = getChange(this.content, content, endOffset)
       if (change == null) return
@@ -646,16 +643,26 @@ export default class Document {
     return { line: lnum - 1, character: pre.length }
   }
 
-  private getEndOffset(lnum: number, col: number, insert: boolean): number {
+  /**
+   * Get end offset from cursor position.
+   * For normal mode, use offset -1 when possible
+   */
+  public getEndOffset(lnum: number, col: number, insert: boolean): number {
     let total = 0
     let len = this.lines.length
     for (let i = lnum - 1; i < len; i++) {
       let line = this.lines[i]
-      if (i == lnum - 1 && line.length) {
-        if (!insert && byteLength(line) >= col) col = col + 1
-        total = total + line.slice(characterIndex(line, col - 1)).length
+      let l = line.length
+      if (i == lnum - 1 && l != 0) {
+        // current
+        let buf = global.Buffer.from(line, 'utf8')
+        let isEnd = buf.byteLength <= col - 1
+        if (!isEnd) {
+          total = total + buf.slice(col - 1, buf.length).toString('utf8').length
+          if (!insert) total = total - 1
+        }
       } else {
-        total = total + line.length
+        total = total + l
       }
       if (!this.eol && i == len - 1) break
       total = total + 1

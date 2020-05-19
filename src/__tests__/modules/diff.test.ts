@@ -134,6 +134,13 @@ describe('should get text edits', () => {
     applyEdits('  ', ' ')
   })
 
+  it('should prefer cursor position for change', async () => {
+    let res = getChange(' int n', ' n', 0)
+    expect(res).toEqual({ start: 1, end: 5, newText: '' })
+    res = getChange(' int n', ' n')
+    expect(res).toEqual({ start: 0, end: 4, newText: '' })
+  })
+
   it('should prefer next line for change', async () => {
     let res = getChange('a\nb', 'a\nc\nb')
     expect(res).toEqual({ start: 2, end: 2, newText: 'c\n' })
