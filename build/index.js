@@ -22520,7 +22520,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "38be308ba9" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "23d26d8e02" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -30936,9 +30936,6 @@ class Document {
             let endOffset = null;
             if (cursor && cursor.bufnr == this.bufnr) {
                 endOffset = this.getEndOffset(cursor.lnum, cursor.col, cursor.insert);
-                if (!cursor.insert && content.length < this.content.length) {
-                    endOffset = endOffset + 1;
-                }
             }
             let change = diff_1.getChange(this.content, content, endOffset);
             if (change == null)
@@ -31354,18 +31351,28 @@ class Document {
         let pre = string_1.byteSlice(line, 0, col - 1);
         return { line: lnum - 1, character: pre.length };
     }
+    /**
+     * Get end offset from cursor position.
+     * For normal mode, use offset -1 when possible
+     */
     getEndOffset(lnum, col, insert) {
         let total = 0;
         let len = this.lines.length;
         for (let i = lnum - 1; i < len; i++) {
             let line = this.lines[i];
-            if (i == lnum - 1 && line.length) {
-                if (!insert && string_1.byteLength(line) >= col)
-                    col = col + 1;
-                total = total + line.slice(string_1.characterIndex(line, col - 1)).length;
+            let l = line.length;
+            if (i == lnum - 1 && l != 0) {
+                // current
+                let buf = global.Buffer.from(line, 'utf8');
+                let isEnd = buf.byteLength <= col - 1;
+                if (!isEnd) {
+                    total = total + buf.slice(col - 1, buf.length).toString('utf8').length;
+                    if (!insert)
+                        total = total - 1;
+                }
             }
             else {
-                total = total + line.length;
+                total = total + l;
             }
             if (!this.eol && i == len - 1)
                 break;
@@ -31590,57 +31597,69 @@ function diffLines(from, to) {
 }
 exports.diffLines = diffLines;
 function getChange(oldStr, newStr, cursorEnd) {
-    let start = 0;
     let ol = oldStr.length;
     let nl = newStr.length;
     let max = Math.min(ol, nl);
     let newText = '';
+    let startOffset = 0;
     let endOffset = -1;
-    let maxEndOffset = -1;
+    let shouldLimit = false;
+    // find first endOffset, could <= this. one
     for (let i = 0; i <= max; i++) {
         if (cursorEnd != null && i == cursorEnd) {
             endOffset = i;
+            shouldLimit = true;
+            break;
         }
         if (oldStr[ol - i - 1] != newStr[nl - i - 1]) {
-            if (endOffset == -1)
-                endOffset = i;
-            maxEndOffset = i;
+            endOffset = i;
             break;
         }
     }
     if (endOffset == -1)
         return null;
+    // find start offset
     let remain = max - endOffset;
     if (remain == 0) {
-        start = 0;
+        startOffset = 0;
     }
     else {
         for (let i = 0; i <= remain; i++) {
             if (oldStr[i] != newStr[i] || i == remain) {
-                start = i;
+                startOffset = i;
                 break;
             }
         }
     }
-    if (maxEndOffset != -1
-        && maxEndOffset != endOffset
-        && start + maxEndOffset < max) {
-        endOffset = maxEndOffset;
-    }
-    let end = ol - endOffset;
-    newText = newStr.slice(start, nl - endOffset);
-    if (ol == nl && start == end)
-        return null;
-    // optimize for add new line(s)
-    if (start == end) {
-        let pre = start == 0 ? '' : newStr[start - 1];
-        if (pre && pre != '\n'
-            && oldStr[start] == '\n'
-            && newText.startsWith('\n')) {
-            return { start: start + 1, end: end + 1, newText: newText.slice(1) + '\n' };
+    // limit to minimal change
+    remain = remain - startOffset;
+    if (shouldLimit && remain > 0) {
+        let end = endOffset;
+        for (let i = 0; i < remain; i++) {
+            let oc = oldStr[ol - end - 1 - i];
+            let nc = newStr[nl - end - 1 - i];
+            if (oc == nc) {
+                endOffset = endOffset + 1;
+            }
+            else {
+                break;
+            }
         }
     }
-    return { start, end, newText };
+    let end = ol - endOffset;
+    if (ol == nl && startOffset == end)
+        return null;
+    newText = newStr.slice(startOffset, nl - endOffset);
+    // optimize for add new line(s)
+    if (startOffset == end) {
+        let pre = startOffset == 0 ? '' : newStr[startOffset - 1];
+        if (pre && pre != '\n'
+            && oldStr[startOffset] == '\n'
+            && newText.startsWith('\n')) {
+            return { start: startOffset + 1, end: end + 1, newText: newText.slice(1) + '\n' };
+        }
+    }
+    return { start: startOffset, end, newText };
 }
 exports.getChange = getChange;
 function patchLine(from, to, fill = ' ') {
@@ -70416,7 +70435,7 @@ class Cursors {
         this.ranges = [];
         this.disposables = [];
         this.matchIds = [];
-        this.version = -1;
+        this.changing = false;
         this.loadConfig();
         workspace_1.default.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('cursors')) {
@@ -70537,7 +70556,7 @@ class Cursors {
         workspace_1.default.onDidChangeTextDocument(async (e) => {
             if (e.textDocument.uri != doc.uri)
                 return;
-            if (doc.version - this.version == 1 || !this.ranges.length)
+            if (this.changing || !this.ranges.length)
                 return;
             let change = e.contentChanges[0];
             if (!('range' in change))
@@ -70653,7 +70672,7 @@ class Cursors {
         util_1.disposeAll(this.disposables);
         this._changed = false;
         this.ranges = [];
-        this.version = -1;
+        this.changing = false;
         this._activated = false;
     }
     unmap(key) {
@@ -70770,7 +70789,7 @@ class Cursors {
             }
         }
         let { nvim } = this;
-        this.version = doc.version;
+        this.changing = true;
         // apply changes
         nvim.pauseNotification();
         nvim.command('undojoin', true);
@@ -70782,6 +70801,7 @@ class Cursors {
         }
         this.doHighlights();
         let [, err] = await nvim.resumeNotification();
+        this.changing = false;
         if (err)
             logger.error(err);
     }
