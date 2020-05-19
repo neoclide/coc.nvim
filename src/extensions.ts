@@ -557,7 +557,7 @@ export class Extensions {
         }
         let version = obj ? obj.version || '' : ''
         let description = obj ? obj.description || '' : ''
-        let uri = isuri.isValid(val) ? val : null
+        let uri = isuri.isValid(val) ? val : ''
         resolve({
           id: key,
           isLocal: false,
