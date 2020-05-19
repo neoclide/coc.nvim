@@ -10534,8 +10534,6 @@ const Buffer_1 = __webpack_require__(175);
 const Window_1 = __webpack_require__(178);
 const Tabpage_1 = __webpack_require__(180);
 const logger_1 = __webpack_require__(182);
-exports.DETACH_BUFFER = Symbol('detachBuffer');
-exports.ATTACH_BUFFER = Symbol('attachBuffer');
 const logger = logger_1.createLogger('client');
 const isVim = process.env.VIM_NODE_RPC == '1';
 class AsyncResponse {
@@ -10639,12 +10637,9 @@ class NeovimClient extends Neovim_1.Neovim {
         if (method.endsWith('_event')) {
             if (method.startsWith('nvim_buf_')) {
                 const shortName = method.replace(/nvim_buf_(.*)_event/, '$1');
-                const buffer = args[0];
-                const { id } = buffer;
-                if (!this.isAttached(id)) {
-                    // this is a problem
+                const { id } = args[0];
+                if (!this.attachedBuffers.has(id))
                     return;
-                }
                 const bufferMap = this.attachedBuffers.get(id);
                 const cbs = bufferMap.get(shortName) || [];
                 cbs.forEach(cb => cb(...args));
@@ -10746,21 +10741,10 @@ class NeovimClient extends Neovim_1.Neovim {
             return null;
         });
     }
-    [exports.ATTACH_BUFFER](buffer) {
-        this.attachedBuffers.set(buffer.id, new Map());
-    }
-    [exports.DETACH_BUFFER](buffer) {
-        this.attachedBuffers.delete(buffer.id);
-    }
     attachBufferEvent(buffer, eventName, cb) {
-        if (!this.isAttached(buffer.id))
-            return;
-        const bufferMap = this.attachedBuffers.get(buffer.id);
-        if (!bufferMap.get(eventName)) {
-            bufferMap.set(eventName, []);
-        }
-        const cbs = bufferMap.get(eventName);
-        if (cbs.indexOf(cb) !== -1)
+        const bufferMap = this.attachedBuffers.get(buffer.id) || new Map();
+        const cbs = bufferMap.get(eventName) || [];
+        if (cbs.includes(cb))
             return;
         cbs.push(cb);
         bufferMap.set(eventName, cbs);
@@ -10772,16 +10756,10 @@ class NeovimClient extends Neovim_1.Neovim {
      */
     detachBufferEvent(buffer, eventName, cb) {
         const bufferMap = this.attachedBuffers.get(buffer.id);
-        if (!bufferMap)
+        if (!bufferMap || !bufferMap.has(eventName))
             return;
-        const handlers = (bufferMap.get(eventName) || []).filter(handler => handler !== cb);
-        // Remove eventName listener from bufferMap if no more handlers
-        if (!handlers.length) {
-            bufferMap.delete(eventName);
-        }
-        else {
-            bufferMap.set(eventName, handlers);
-        }
+        const handlers = bufferMap.get(eventName).filter(handler => handler !== cb);
+        bufferMap.set(eventName, handlers);
     }
     pauseNotification() {
         this.transport.pauseNotification();
@@ -13973,14 +13951,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const Base_1 = __webpack_require__(176);
-const client_1 = __webpack_require__(137);
 class Buffer extends Base_1.BaseApi {
     constructor() {
         super(...arguments);
         this.prefix = 'nvim_buf_';
-    }
-    get isAttached() {
-        return this.client.isAttached(this.id);
     }
     /**
      * Attach to buffer to listen to buffer events
@@ -13991,19 +13965,7 @@ class Buffer extends Base_1.BaseApi {
      */
     attach(sendBuffer = false, options = {}) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (this.isAttached)
-                return true;
-            let res = false;
-            try {
-                res = yield this.request(`${this.prefix}attach`, [sendBuffer, options]);
-            }
-            catch (e) {
-                res = false;
-            }
-            if (res) {
-                this.client[client_1.ATTACH_BUFFER](this);
-            }
-            return this.isAttached;
+            return yield this.request(`${this.prefix}attach`, [sendBuffer, options]);
         });
     }
     /**
@@ -14011,13 +13973,7 @@ class Buffer extends Base_1.BaseApi {
      */
     detach() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.client[client_1.DETACH_BUFFER](this);
-            try {
-                yield this.request(`${this.prefix}detach`, []);
-            }
-            catch (e) {
-                // noop
-            }
+            return yield this.request(`${this.prefix}detach`, []);
         });
     }
     /**
@@ -14232,17 +14188,15 @@ class Buffer extends Base_1.BaseApi {
     /**
      * Listens to buffer for events
      */
-    listen(eventName, cb) {
-        if (!this.isAttached) {
-            throw new Error('buffer not attached');
-        }
+    listen(eventName, cb, disposables) {
         this.client.attachBufferEvent(this, eventName, cb);
-        return () => {
-            this.unlisten(eventName, cb);
-        };
-    }
-    unlisten(eventName, cb) {
-        this.client.detachBufferEvent(this, eventName, cb);
+        if (disposables) {
+            disposables.push({
+                dispose: () => {
+                    this.client.detachBufferEvent(this, eventName, cb);
+                }
+            });
+        }
     }
 }
 exports.Buffer = Buffer;
@@ -22566,7 +22520,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "a5404ef5cd" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "38be308ba9" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -23123,7 +23077,7 @@ const vscode_uri_1 = __webpack_require__(222);
 const events_1 = tslib_1.__importDefault(__webpack_require__(189));
 const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(233));
 const util_1 = __webpack_require__(217);
-const position_1 = __webpack_require__(269);
+const position_1 = __webpack_require__(268);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
 const buffer_1 = __webpack_require__(498);
 const collection_1 = tslib_1.__importDefault(__webpack_require__(501));
@@ -23779,7 +23733,7 @@ const util_1 = __webpack_require__(217);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
 const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(408));
 const object_1 = __webpack_require__(228);
-const string_1 = __webpack_require__(266);
+const string_1 = __webpack_require__(267);
 const logger = __webpack_require__(44)('model-float');
 // factory class for floating window
 class FloatFactory extends events_1.default {
@@ -24245,13 +24199,13 @@ const task_1 = tslib_1.__importDefault(__webpack_require__(287));
 const terminal_1 = tslib_1.__importDefault(__webpack_require__(288));
 const willSaveHandler_1 = tslib_1.__importDefault(__webpack_require__(289));
 const types_1 = __webpack_require__(240);
-const array_1 = __webpack_require__(268);
+const array_1 = __webpack_require__(264);
 const fs_2 = __webpack_require__(249);
 const index_1 = __webpack_require__(217);
 const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(256));
 const match_1 = __webpack_require__(290);
-const position_1 = __webpack_require__(269);
-const string_1 = __webpack_require__(266);
+const position_1 = __webpack_require__(268);
+const string_1 = __webpack_require__(267);
 const mutex_1 = __webpack_require__(234);
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(291));
 const rimraf_1 = tslib_1.__importDefault(__webpack_require__(295));
@@ -25747,7 +25701,7 @@ augroup end`;
         let source = new vscode_languageserver_protocol_1.CancellationTokenSource();
         try {
             if (document)
-                this.onBufUnload(bufnr, true).logError();
+                this.onBufUnload(bufnr, true);
             document = new document_1.default(buffer, this._env, this.maxFileSize);
             let token = source.token;
             this.creatingSources.set(bufnr, source);
@@ -25767,10 +25721,10 @@ augroup end`;
             return;
         this.buffers.set(bufnr, document);
         if (document.enabled) {
-            document.onDocumentDetach(uri => {
-                let doc = this.getDocument(uri);
+            document.onDocumentDetach(bufnr => {
+                let doc = this.getDocument(bufnr);
                 if (doc)
-                    this.onBufUnload(doc.bufnr).logError();
+                    this.onBufUnload(doc.bufnr);
             });
         }
         if (document.buftype == '' && document.schema == 'file') {
@@ -25813,7 +25767,7 @@ augroup end`;
             return;
         this._onDidSaveDocument.fire(doc.textDocument);
     }
-    async onBufUnload(bufnr, recreate = false) {
+    onBufUnload(bufnr, recreate = false) {
         logger.debug('buffer unload', bufnr);
         if (!recreate) {
             let source = this.creatingSources.get(bufnr);
@@ -25831,10 +25785,8 @@ augroup end`;
         if (doc) {
             this._onDidCloseDocument.fire(doc.textDocument);
             this.buffers.delete(bufnr);
-            if (!recreate)
-                doc.detach();
+            doc.detach();
         }
-        await index_1.wait(10);
     }
     async onBufWritePre(bufnr) {
         let doc = this.buffers.get(bufnr);
@@ -30788,13 +30740,13 @@ const vscode_languageserver_protocol_1 = __webpack_require__(190);
 const vscode_languageserver_textdocument_1 = __webpack_require__(238);
 const vscode_uri_1 = __webpack_require__(222);
 const events_1 = tslib_1.__importDefault(__webpack_require__(189));
-const diff_1 = __webpack_require__(264);
+const array_1 = __webpack_require__(264);
+const diff_1 = __webpack_require__(265);
 const fs_1 = __webpack_require__(249);
 const index_1 = __webpack_require__(217);
-const string_1 = __webpack_require__(266);
-const chars_1 = __webpack_require__(267);
-const array_1 = __webpack_require__(268);
-const position_1 = __webpack_require__(269);
+const position_1 = __webpack_require__(268);
+const string_1 = __webpack_require__(267);
+const chars_1 = __webpack_require__(269);
 const logger = __webpack_require__(44)('model-document');
 // wrapper class of TextDocument
 class Document {
@@ -30812,6 +30764,7 @@ class Document {
         this._words = [];
         this._onDocumentChange = new vscode_languageserver_protocol_1.Emitter();
         this._onDocumentDetach = new vscode_languageserver_protocol_1.Emitter();
+        this.disposables = [];
         this.onDocumentChange = this._onDocumentChange.event;
         this.onDocumentDetach = this._onDocumentDetach.event;
         this.fireContentChanges = debounce_1.default(() => {
@@ -30902,23 +30855,17 @@ class Document {
         let uri = this._uri = index_1.getUri(opts.fullpath, buffer.id, buftype, this.env.isCygwin);
         if (token.isCancellationRequested)
             return false;
-        try {
-            if (this.shouldAttach) {
-                if (this.env.isVim) {
-                    this.lines = await buffer.lines;
-                }
-                else {
-                    let res = await this.attach();
-                    if (!res)
-                        return false;
-                }
+        if (this.shouldAttach) {
+            if (this.env.isVim) {
+                this.lines = await buffer.lines;
             }
-            this.attached = true;
+            else {
+                let res = await this.attach();
+                if (!res)
+                    return false;
+            }
         }
-        catch (e) {
-            logger.error('attach error:', e);
-            return false;
-        }
+        this.attached = true;
         this._filetype = this.convertFiletype(opts.filetype);
         this.textDocument = vscode_languageserver_textdocument_1.TextDocument.create(uri, this.filetype, 1, this.getDocumentContent());
         this.setIskeyword(opts.iskeyword);
@@ -30934,23 +30881,20 @@ class Document {
         if (!attached)
             return false;
         this.lines = await this.buffer.lines;
-        if (!this.buffer.isAttached)
-            return;
+        let lastChange;
         this.buffer.listen('lines', (...args) => {
-            this.onChange.apply(this, args);
-        });
-        this.buffer.listen('detach', async () => {
-            await index_1.wait(30);
-            if (!this.attached)
+            // avoid neovim send same change multiple times after checktime
+            if (lastChange == args[1])
                 return;
-            // it could be detached by `edit!`
-            let attached = await this.attach();
-            if (!attached)
-                this.detach();
-        });
+            lastChange = args[1];
+            this.onChange.apply(this, args);
+        }, this.disposables);
+        this.buffer.listen('detach', async (buf) => {
+            this._onDocumentDetach.fire(buf.id);
+        }, this.disposables);
         this.buffer.listen('changedtick', (_buf, tick) => {
             this._changedtick = tick;
-        });
+        }, this.disposables);
         if (this.textDocument) {
             this.fireContentChanges();
         }
@@ -31212,14 +31156,6 @@ class Document {
         lines[lnum - 1] = line;
     }
     /**
-     * Get changedtick from vim8, used by workspace
-     */
-    async patchChangedTick() {
-        if (!this.env.isVim || !this.attached)
-            return;
-        this._changedtick = await this.nvim.call('getbufvar', [this.bufnr, 'changedtick']);
-    }
-    /**
      * Get ranges of word in textDocument.
      */
     getSymbolRanges(word) {
@@ -31471,14 +31407,10 @@ class Document {
      * @internal
      */
     detach() {
-        // neovim not detach on `:checktime`
-        if (this.attached) {
-            this.attached = false;
-            this.buffer.detach().catch(() => {
-                // noop
-            });
-            this._onDocumentDetach.fire(this.uri);
-        }
+        this.attached = false;
+        index_1.disposeAll(this.disposables);
+        this.buffer.detach().logError();
+        this.disposables = [];
         this.fetchContent.clear();
         this.fireContentChanges.clear();
         this._onDocumentChange.dispose();
@@ -31546,9 +31478,84 @@ exports.default = Document;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+function intersect(array, other) {
+    for (let item of other) {
+        if (array.includes(item)) {
+            return true;
+        }
+    }
+    return false;
+}
+exports.intersect = intersect;
+function splitArray(array, fn) {
+    let res = [[], []];
+    for (let item of array) {
+        if (fn(item)) {
+            res[0].push(item);
+        }
+        else {
+            res[1].push(item);
+        }
+    }
+    return res;
+}
+exports.splitArray = splitArray;
+function tail(array, n = 0) {
+    return array[array.length - (1 + n)];
+}
+exports.tail = tail;
+function group(array, size) {
+    let len = array.length;
+    let res = [];
+    for (let i = 0; i < Math.ceil(len / size); i++) {
+        res.push(array.slice(i * size, (i + 1) * size));
+    }
+    return res;
+}
+exports.group = group;
+/**
+ * Removes duplicates from the given array. The optional keyFn allows to specify
+ * how elements are checked for equalness by returning a unique string for each.
+ */
+function distinct(array, keyFn) {
+    if (!keyFn) {
+        return array.filter((element, position) => array.indexOf(element) === position);
+    }
+    const seen = Object.create(null);
+    return array.filter(elem => {
+        const key = keyFn(elem);
+        if (seen[key]) {
+            return false;
+        }
+        seen[key] = true;
+        return true;
+    });
+}
+exports.distinct = distinct;
+function lastIndex(array, fn) {
+    let i = array.length - 1;
+    while (i >= 0) {
+        if (fn(array[i])) {
+            break;
+        }
+        i--;
+    }
+    return i;
+}
+exports.lastIndex = lastIndex;
+exports.flatMap = (xs, f) => xs.reduce((x, y) => [...x, ...f(y)], []);
+//# sourceMappingURL=array.js.map
+
+/***/ }),
+/* 265 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(45);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(265));
-const string_1 = __webpack_require__(266);
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(266));
+const string_1 = __webpack_require__(267);
 const logger = __webpack_require__(44)('util-diff');
 function diffLines(from, to) {
     let newLines = to.split('\n');
@@ -31662,7 +31669,7 @@ exports.patchLine = patchLine;
 //# sourceMappingURL=diff.js.map
 
 /***/ }),
-/* 265 */
+/* 266 */
 /***/ (function(module, exports) {
 
 /**
@@ -32442,7 +32449,7 @@ module.exports = diff;
 
 
 /***/ }),
-/* 266 */
+/* 267 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -32559,216 +32566,7 @@ exports.equalsIgnoreCase = equalsIgnoreCase;
 //# sourceMappingURL=string.js.map
 
 /***/ }),
-/* 267 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const logger = __webpack_require__(44)('model-chars');
-class Range {
-    constructor(start, end) {
-        this.start = start;
-        this.end = end ? end : start;
-    }
-    static fromKeywordOption(keywordOption) {
-        let parts = keywordOption.split(',');
-        let ranges = [];
-        for (let part of parts) {
-            if (part == '@') {
-                // isalpha() of c
-                ranges.push(new Range(65, 90));
-                ranges.push(new Range(97, 122));
-            }
-            else if (part == '@-@') {
-                ranges.push(new Range(64));
-            }
-            else if (/^([A-Za-z])-([A-Za-z])$/.test(part)) {
-                let ms = part.match(/^([A-Za-z])-([A-Za-z])$/);
-                ranges.push(new Range(ms[1].charCodeAt(0), ms[2].charCodeAt(0)));
-            }
-            else if (/^\d+-\d+$/.test(part)) {
-                let ms = part.match(/^(\d+)-(\d+)$/);
-                ranges.push(new Range(Number(ms[1]), Number(ms[2])));
-            }
-            else if (/^\d+$/.test(part)) {
-                ranges.push(new Range(Number(part)));
-            }
-            else {
-                let c = part.charCodeAt(0);
-                if (!ranges.some(o => o.contains(c))) {
-                    ranges.push(new Range(c));
-                }
-            }
-        }
-        return ranges;
-    }
-    contains(c) {
-        return c >= this.start && c <= this.end;
-    }
-}
-exports.Range = Range;
-class Chars {
-    constructor(keywordOption) {
-        this.ranges = [];
-        if (keywordOption)
-            this.ranges = Range.fromKeywordOption(keywordOption);
-    }
-    addKeyword(ch) {
-        let c = ch.charCodeAt(0);
-        let { ranges } = this;
-        if (!ranges.some(o => o.contains(c))) {
-            ranges.push(new Range(c));
-        }
-    }
-    clone() {
-        let chars = new Chars();
-        chars.ranges = this.ranges.slice();
-        return chars;
-    }
-    setKeywordOption(keywordOption) {
-        this.ranges = Range.fromKeywordOption(keywordOption);
-    }
-    matchKeywords(content, min = 3) {
-        let length = content.length;
-        if (length == 0)
-            return [];
-        let res = new Set();
-        let str = '';
-        let len = 0;
-        for (let i = 0; i < length; i++) {
-            let ch = content[i];
-            let code = ch.codePointAt(0);
-            if (len == 0 && code == 45)
-                continue;
-            let isKeyword = this.isKeywordCode(code);
-            if (isKeyword) {
-                if (len == 48)
-                    continue;
-                str = str + ch;
-                len = len + 1;
-            }
-            else {
-                if (len >= min && len < 48)
-                    res.add(str);
-                str = '';
-                len = 0;
-            }
-        }
-        if (len != 0)
-            res.add(str);
-        return Array.from(res);
-    }
-    isKeywordCode(code) {
-        if (code > 255)
-            return true;
-        if (code < 33)
-            return false;
-        return this.ranges.some(r => r.contains(code));
-    }
-    isKeywordChar(ch) {
-        let { ranges } = this;
-        let c = ch.charCodeAt(0);
-        if (c > 255)
-            return true;
-        if (c < 33)
-            return false;
-        return ranges.some(r => r.contains(c));
-    }
-    isKeyword(word) {
-        let { ranges } = this;
-        for (let i = 0, l = word.length; i < l; i++) {
-            let ch = word.charCodeAt(i);
-            // for speed
-            if (ch > 255)
-                return false;
-            if (ranges.some(r => r.contains(ch)))
-                continue;
-            return false;
-        }
-        return true;
-    }
-}
-exports.Chars = Chars;
-//# sourceMappingURL=chars.js.map
-
-/***/ }),
 /* 268 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-function intersect(array, other) {
-    for (let item of other) {
-        if (array.includes(item)) {
-            return true;
-        }
-    }
-    return false;
-}
-exports.intersect = intersect;
-function splitArray(array, fn) {
-    let res = [[], []];
-    for (let item of array) {
-        if (fn(item)) {
-            res[0].push(item);
-        }
-        else {
-            res[1].push(item);
-        }
-    }
-    return res;
-}
-exports.splitArray = splitArray;
-function tail(array, n = 0) {
-    return array[array.length - (1 + n)];
-}
-exports.tail = tail;
-function group(array, size) {
-    let len = array.length;
-    let res = [];
-    for (let i = 0; i < Math.ceil(len / size); i++) {
-        res.push(array.slice(i * size, (i + 1) * size));
-    }
-    return res;
-}
-exports.group = group;
-/**
- * Removes duplicates from the given array. The optional keyFn allows to specify
- * how elements are checked for equalness by returning a unique string for each.
- */
-function distinct(array, keyFn) {
-    if (!keyFn) {
-        return array.filter((element, position) => array.indexOf(element) === position);
-    }
-    const seen = Object.create(null);
-    return array.filter(elem => {
-        const key = keyFn(elem);
-        if (seen[key]) {
-            return false;
-        }
-        seen[key] = true;
-        return true;
-    });
-}
-exports.distinct = distinct;
-function lastIndex(array, fn) {
-    let i = array.length - 1;
-    while (i >= 0) {
-        if (fn(array[i])) {
-            break;
-        }
-        i--;
-    }
-    return i;
-}
-exports.lastIndex = lastIndex;
-exports.flatMap = (xs, f) => xs.reduce((x, y) => [...x, ...f(y)], []);
-//# sourceMappingURL=array.js.map
-
-/***/ }),
-/* 269 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -32915,6 +32713,140 @@ function getChangedFromEdits(start, edits) {
 }
 exports.getChangedFromEdits = getChangedFromEdits;
 //# sourceMappingURL=position.js.map
+
+/***/ }),
+/* 269 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const logger = __webpack_require__(44)('model-chars');
+class Range {
+    constructor(start, end) {
+        this.start = start;
+        this.end = end ? end : start;
+    }
+    static fromKeywordOption(keywordOption) {
+        let parts = keywordOption.split(',');
+        let ranges = [];
+        for (let part of parts) {
+            if (part == '@') {
+                // isalpha() of c
+                ranges.push(new Range(65, 90));
+                ranges.push(new Range(97, 122));
+            }
+            else if (part == '@-@') {
+                ranges.push(new Range(64));
+            }
+            else if (/^([A-Za-z])-([A-Za-z])$/.test(part)) {
+                let ms = part.match(/^([A-Za-z])-([A-Za-z])$/);
+                ranges.push(new Range(ms[1].charCodeAt(0), ms[2].charCodeAt(0)));
+            }
+            else if (/^\d+-\d+$/.test(part)) {
+                let ms = part.match(/^(\d+)-(\d+)$/);
+                ranges.push(new Range(Number(ms[1]), Number(ms[2])));
+            }
+            else if (/^\d+$/.test(part)) {
+                ranges.push(new Range(Number(part)));
+            }
+            else {
+                let c = part.charCodeAt(0);
+                if (!ranges.some(o => o.contains(c))) {
+                    ranges.push(new Range(c));
+                }
+            }
+        }
+        return ranges;
+    }
+    contains(c) {
+        return c >= this.start && c <= this.end;
+    }
+}
+exports.Range = Range;
+class Chars {
+    constructor(keywordOption) {
+        this.ranges = [];
+        if (keywordOption)
+            this.ranges = Range.fromKeywordOption(keywordOption);
+    }
+    addKeyword(ch) {
+        let c = ch.charCodeAt(0);
+        let { ranges } = this;
+        if (!ranges.some(o => o.contains(c))) {
+            ranges.push(new Range(c));
+        }
+    }
+    clone() {
+        let chars = new Chars();
+        chars.ranges = this.ranges.slice();
+        return chars;
+    }
+    setKeywordOption(keywordOption) {
+        this.ranges = Range.fromKeywordOption(keywordOption);
+    }
+    matchKeywords(content, min = 3) {
+        let length = content.length;
+        if (length == 0)
+            return [];
+        let res = new Set();
+        let str = '';
+        let len = 0;
+        for (let i = 0; i < length; i++) {
+            let ch = content[i];
+            let code = ch.codePointAt(0);
+            if (len == 0 && code == 45)
+                continue;
+            let isKeyword = this.isKeywordCode(code);
+            if (isKeyword) {
+                if (len == 48)
+                    continue;
+                str = str + ch;
+                len = len + 1;
+            }
+            else {
+                if (len >= min && len < 48)
+                    res.add(str);
+                str = '';
+                len = 0;
+            }
+        }
+        if (len != 0)
+            res.add(str);
+        return Array.from(res);
+    }
+    isKeywordCode(code) {
+        if (code > 255)
+            return true;
+        if (code < 33)
+            return false;
+        return this.ranges.some(r => r.contains(code));
+    }
+    isKeywordChar(ch) {
+        let { ranges } = this;
+        let c = ch.charCodeAt(0);
+        if (c > 255)
+            return true;
+        if (c < 33)
+            return false;
+        return ranges.some(r => r.contains(c));
+    }
+    isKeyword(word) {
+        let { ranges } = this;
+        for (let i = 0, l = word.length; i < l; i++) {
+            let ch = word.charCodeAt(i);
+            // for speed
+            if (ch > 255)
+                return false;
+            if (ranges.some(r => r.contains(ch)))
+                continue;
+            return false;
+        }
+        return true;
+    }
+}
+exports.Chars = Chars;
+//# sourceMappingURL=chars.js.map
 
 /***/ }),
 /* 270 */
@@ -37955,7 +37887,7 @@ function onceStrict (fn) {
 /* 307 */
 /***/ (function(module) {
 
-module.exports = JSON.parse("{\"name\":\"coc.nvim\",\"version\":\"0.0.78\",\"description\":\"LSP based intellisense engine for neovim & vim8.\",\"main\":\"./lib/index.js\",\"engines\":{\"node\":\">=8.10.0\"},\"scripts\":{\"clean\":\"rimraf lib build\",\"lint\":\"eslint . --ext .ts --quiet\",\"build\":\"tsc -p tsconfig.json\",\"watch\":\"tsc -p tsconfig.json --watch true --sourceMap\",\"test\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --detectOpenHandles --forceExit\",\"test-build\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --coverage --forceExit\",\"prepare\":\"npm-run-all clean build\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/neoclide/coc.nvim.git\"},\"keywords\":[\"complete\",\"neovim\"],\"author\":\"Qiming Zhao <chemzqm@gmail.com>\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/neoclide/coc.nvim/issues\"},\"homepage\":\"https://github.com/neoclide/coc.nvim#readme\",\"jest\":{\"globals\":{\"__TEST__\":true},\"watchman\":false,\"clearMocks\":true,\"globalSetup\":\"./jest.js\",\"testEnvironment\":\"node\",\"moduleFileExtensions\":[\"ts\",\"tsx\",\"json\",\"js\"],\"transform\":{\"^.+\\\\.tsx?$\":\"ts-jest\"},\"testRegex\":\"src/__tests__/.*\\\\.(test|spec)\\\\.ts$\",\"coverageDirectory\":\"./coverage/\"},\"devDependencies\":{\"@types/debounce\":\"^3.0.0\",\"@types/fb-watchman\":\"^2.0.0\",\"@types/glob\":\"^7.1.1\",\"@types/jest\":\"^25.2.1\",\"@types/minimatch\":\"^3.0.3\",\"@types/mkdirp\":\"^1.0.0\",\"@types/node\":\"^12.12.6\",\"@types/semver\":\"^7.1.0\",\"@types/tar\":\"^4.0.3\",\"@types/uuid\":\"^7.0.3\",\"@types/which\":\"^1.3.2\",\"@typescript-eslint/eslint-plugin\":\"^2.33.0\",\"@typescript-eslint/eslint-plugin-tslint\":\"^2.33.0\",\"@typescript-eslint/parser\":\"^2.33.0\",\"colors\":\"^1.4.0\",\"eslint\":\"^7.0.0\",\"eslint-config-prettier\":\"^6.11.0\",\"eslint-plugin-jest\":\"^23.10.0\",\"eslint-plugin-jsdoc\":\"^25.0.1\",\"jest\":\"25.5.4\",\"npm-run-all\":\"^4.1.5\",\"prettier\":\"^2.0.5\",\"ts-jest\":\"^25.5.0\",\"typescript\":\"^3.9.2\",\"vscode-languageserver\":\"^6.1.1\"},\"dependencies\":{\"@chemzqm/neovim\":\"^5.2.4\",\"await-semaphore\":\"^0.1.3\",\"bser\":\"^2.1.1\",\"bytes\":\"^3.1.0\",\"clipboardy\":\"^2.3.0\",\"debounce\":\"^1.2.0\",\"fast-diff\":\"^1.2.0\",\"fb-watchman\":\"^2.0.1\",\"follow-redirects\":\"^1.11.0\",\"glob\":\"^7.1.6\",\"http-proxy-agent\":\"^4.0.1\",\"https-proxy-agent\":\"^5.0.0\",\"isuri\":\"^2.0.3\",\"jsonc-parser\":\"^2.2.1\",\"log4js\":\"^6.2.1\",\"minimatch\":\"^3.0.4\",\"mkdirp\":\"^1.0.4\",\"mv\":\"^2.1.1\",\"rc\":\"^1.2.8\",\"rimraf\":\"^3.0.2\",\"semver\":\"^7.3.2\",\"tar\":\"^6.0.2\",\"tslib\":\"^1.11.2\",\"uuid\":\"^7.0.3\",\"vscode-languageserver-protocol\":\"^3.15.3\",\"vscode-languageserver-textdocument\":\"^1.0.1\",\"vscode-languageserver-types\":\"^3.15.1\",\"vscode-uri\":\"^2.1.1\",\"which\":\"^2.0.2\"}}");
+module.exports = JSON.parse("{\"name\":\"coc.nvim\",\"version\":\"0.0.78\",\"description\":\"LSP based intellisense engine for neovim & vim8.\",\"main\":\"./lib/index.js\",\"engines\":{\"node\":\">=8.10.0\"},\"scripts\":{\"clean\":\"rimraf lib build\",\"lint\":\"eslint . --ext .ts --quiet\",\"build\":\"tsc -p tsconfig.json\",\"watch\":\"tsc -p tsconfig.json --watch true --sourceMap\",\"test\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --detectOpenHandles --forceExit\",\"test-build\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --coverage --forceExit\",\"prepare\":\"npm-run-all clean build\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/neoclide/coc.nvim.git\"},\"keywords\":[\"complete\",\"neovim\"],\"author\":\"Qiming Zhao <chemzqm@gmail.com>\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/neoclide/coc.nvim/issues\"},\"homepage\":\"https://github.com/neoclide/coc.nvim#readme\",\"jest\":{\"globals\":{\"__TEST__\":true},\"watchman\":false,\"clearMocks\":true,\"globalSetup\":\"./jest.js\",\"testEnvironment\":\"node\",\"moduleFileExtensions\":[\"ts\",\"tsx\",\"json\",\"js\"],\"transform\":{\"^.+\\\\.tsx?$\":\"ts-jest\"},\"testRegex\":\"src/__tests__/.*\\\\.(test|spec)\\\\.ts$\",\"coverageDirectory\":\"./coverage/\"},\"devDependencies\":{\"@types/debounce\":\"^3.0.0\",\"@types/fb-watchman\":\"^2.0.0\",\"@types/glob\":\"^7.1.1\",\"@types/jest\":\"^25.2.1\",\"@types/minimatch\":\"^3.0.3\",\"@types/mkdirp\":\"^1.0.0\",\"@types/node\":\"^12.12.6\",\"@types/semver\":\"^7.1.0\",\"@types/tar\":\"^4.0.3\",\"@types/uuid\":\"^7.0.3\",\"@types/which\":\"^1.3.2\",\"@typescript-eslint/eslint-plugin\":\"^2.33.0\",\"@typescript-eslint/eslint-plugin-tslint\":\"^2.33.0\",\"@typescript-eslint/parser\":\"^2.33.0\",\"colors\":\"^1.4.0\",\"eslint\":\"^7.0.0\",\"eslint-config-prettier\":\"^6.11.0\",\"eslint-plugin-jest\":\"^23.10.0\",\"eslint-plugin-jsdoc\":\"^25.0.1\",\"jest\":\"25.5.4\",\"npm-run-all\":\"^4.1.5\",\"prettier\":\"^2.0.5\",\"ts-jest\":\"^25.5.0\",\"typescript\":\"^3.9.2\",\"vscode-languageserver\":\"^6.1.1\"},\"dependencies\":{\"@chemzqm/neovim\":\"^5.2.5\",\"await-semaphore\":\"^0.1.3\",\"bser\":\"^2.1.1\",\"bytes\":\"^3.1.0\",\"clipboardy\":\"^2.3.0\",\"debounce\":\"^1.2.0\",\"fast-diff\":\"^1.2.0\",\"fb-watchman\":\"^2.0.1\",\"follow-redirects\":\"^1.11.0\",\"glob\":\"^7.1.6\",\"http-proxy-agent\":\"^4.0.1\",\"https-proxy-agent\":\"^5.0.0\",\"isuri\":\"^2.0.3\",\"jsonc-parser\":\"^2.2.1\",\"log4js\":\"^6.2.1\",\"minimatch\":\"^3.0.4\",\"mkdirp\":\"^1.0.4\",\"mv\":\"^2.1.1\",\"rc\":\"^1.2.8\",\"rimraf\":\"^3.0.2\",\"semver\":\"^7.3.2\",\"tar\":\"^6.0.2\",\"tslib\":\"^1.11.2\",\"uuid\":\"^7.0.3\",\"vscode-languageserver-protocol\":\"^3.15.3\",\"vscode-languageserver-textdocument\":\"^1.0.1\",\"vscode-languageserver-types\":\"^3.15.1\",\"vscode-uri\":\"^2.1.1\",\"which\":\"^2.0.2\"}}");
 
 /***/ }),
 /* 308 */
@@ -39031,8 +38963,8 @@ const tslib_1 = __webpack_require__(45);
 const vscode_languageserver_protocol_1 = __webpack_require__(190);
 const completion_1 = tslib_1.__importDefault(__webpack_require__(310));
 const util_1 = __webpack_require__(217);
-const position_1 = __webpack_require__(269);
-const string_1 = __webpack_require__(266);
+const position_1 = __webpack_require__(268);
+const string_1 = __webpack_require__(267);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
 const snippet_1 = __webpack_require__(496);
 const variableResolve_1 = __webpack_require__(497);
@@ -39344,7 +39276,7 @@ const vscode_languageserver_protocol_1 = __webpack_require__(190);
 const events_1 = tslib_1.__importDefault(__webpack_require__(189));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(311));
 const util_1 = __webpack_require__(217);
-const string_1 = __webpack_require__(266);
+const string_1 = __webpack_require__(267);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
 const complete_1 = tslib_1.__importDefault(__webpack_require__(492));
 const floating_1 = tslib_1.__importDefault(__webpack_require__(494));
@@ -39969,7 +39901,7 @@ exports.default = new Completion();
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(45);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(265));
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(266));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(46));
 const path_1 = tslib_1.__importDefault(__webpack_require__(62));
 const util_1 = tslib_1.__importDefault(__webpack_require__(54));
@@ -39982,7 +39914,7 @@ const types_1 = __webpack_require__(240);
 const util_2 = __webpack_require__(217);
 const fs_2 = __webpack_require__(249);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
-const string_1 = __webpack_require__(266);
+const string_1 = __webpack_require__(267);
 const logger = __webpack_require__(44)('sources');
 class Sources {
     constructor() {
@@ -40328,7 +40260,7 @@ exports.default = new Sources();
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(45);
 const debounce_1 = __webpack_require__(219);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(265));
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(266));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(46));
 const isuri_1 = tslib_1.__importDefault(__webpack_require__(220));
 const path_1 = tslib_1.__importDefault(__webpack_require__(62));
@@ -40347,7 +40279,7 @@ const installer_1 = __webpack_require__(314);
 const memos_1 = tslib_1.__importDefault(__webpack_require__(378));
 const types_1 = __webpack_require__(240);
 const util_2 = __webpack_require__(217);
-const array_1 = __webpack_require__(268);
+const array_1 = __webpack_require__(264);
 __webpack_require__(379);
 const factory_1 = __webpack_require__(380);
 const fs_2 = __webpack_require__(249);
@@ -41222,7 +41154,7 @@ class Extensions {
         }
         let keys = Object.keys(engines);
         if (!keys.includes('coc') && !keys.includes('vscode')) {
-            throw new Error(`Required coc/vscode not found in engines: ${keys}`);
+            throw new Error(`Required coc/vscode not found in engines: ${jsonFile}`);
         }
         if (keys.includes('coc')) {
             let required = engines['coc'].replace(/^\^/, '>=');
@@ -53316,8 +53248,8 @@ const sources_1 = tslib_1.__importDefault(__webpack_require__(311));
 const types_1 = __webpack_require__(240);
 const util_1 = __webpack_require__(217);
 const complete = tslib_1.__importStar(__webpack_require__(407));
-const position_1 = __webpack_require__(269);
-const string_1 = __webpack_require__(266);
+const position_1 = __webpack_require__(268);
+const string_1 = __webpack_require__(267);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
 const logger = __webpack_require__(44)('languages');
 function fixDocumentation(str) {
@@ -54772,7 +54704,7 @@ exports.default = ImplementationManager;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(45);
 const vscode_languageserver_protocol_1 = __webpack_require__(190);
-const string_1 = __webpack_require__(266);
+const string_1 = __webpack_require__(267);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
 const logger = __webpack_require__(44)('onTypeFormatManager');
 class OnTypeFormatManager {
@@ -55100,7 +55032,7 @@ exports.default = WorkspaceSymbolManager;
 Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_languageserver_types_1 = __webpack_require__(202);
 const parser_1 = __webpack_require__(308);
-const string_1 = __webpack_require__(266);
+const string_1 = __webpack_require__(267);
 const logger = __webpack_require__(44)('util-complete');
 function getPosition(opt) {
     let { line, linenr, colnr } = opt;
@@ -55200,9 +55132,9 @@ exports.getValidWord = getValidWord;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(45);
-const array_1 = __webpack_require__(268);
+const array_1 = __webpack_require__(264);
 const highlight_1 = __webpack_require__(409);
-const string_1 = __webpack_require__(266);
+const string_1 = __webpack_require__(267);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
 const logger = __webpack_require__(44)('model-floatBuffer');
 class FloatBuffer {
@@ -55407,7 +55339,7 @@ const uuid_1 = __webpack_require__(277);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
 const lodash_1 = __webpack_require__(382);
 const processes_1 = __webpack_require__(410);
-const string_1 = __webpack_require__(266);
+const string_1 = __webpack_require__(267);
 const logger = __webpack_require__(44)('util-highlights');
 exports.diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint'];
 const cache = {};
@@ -55656,7 +55588,7 @@ exports.terminate = terminate;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const ansiparse_1 = __webpack_require__(412);
-const string_1 = __webpack_require__(266);
+const string_1 = __webpack_require__(267);
 /**
  * Build highlights, with lines and highlights
  */
@@ -55753,7 +55685,7 @@ exports.default = Highlighter;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const string_1 = __webpack_require__(266);
+const string_1 = __webpack_require__(267);
 const foregroundColors = {
     30: 'black',
     31: 'red',
@@ -65753,7 +65685,7 @@ const readline_1 = tslib_1.__importDefault(__webpack_require__(185));
 const vscode_languageserver_protocol_1 = __webpack_require__(190);
 const vscode_uri_1 = __webpack_require__(222);
 const util_1 = __webpack_require__(217);
-const position_1 = __webpack_require__(269);
+const position_1 = __webpack_require__(268);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
 const configuration_1 = tslib_1.__importDefault(__webpack_require__(430));
 const logger = __webpack_require__(44)('list-basic');
@@ -67856,10 +67788,10 @@ const tslib_1 = __webpack_require__(45);
 const vscode_languageserver_protocol_1 = __webpack_require__(190);
 const vscode_uri_1 = __webpack_require__(222);
 const ansiparse_1 = __webpack_require__(412);
-const diff_1 = __webpack_require__(264);
+const diff_1 = __webpack_require__(265);
 const fzy_1 = __webpack_require__(482);
 const score_1 = __webpack_require__(486);
-const string_1 = __webpack_require__(266);
+const string_1 = __webpack_require__(267);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 const logger = __webpack_require__(44)('list-worker');
@@ -68438,7 +68370,7 @@ function bestResult(results) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(45);
 const types_1 = __webpack_require__(240);
-const string_1 = __webpack_require__(266);
+const string_1 = __webpack_require__(267);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
 const logger = __webpack_require__(44)('model-source');
 class Source {
@@ -68605,7 +68537,7 @@ exports.default = Source;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(45);
 const fuzzy_1 = __webpack_require__(432);
-const string_1 = __webpack_require__(266);
+const string_1 = __webpack_require__(267);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
 const source_1 = tslib_1.__importDefault(__webpack_require__(487));
 const logger = __webpack_require__(44)('model-source-vim');
@@ -68833,7 +68765,7 @@ const util_1 = tslib_1.__importDefault(__webpack_require__(54));
 const vscode_languageserver_protocol_1 = __webpack_require__(190);
 const source_1 = tslib_1.__importDefault(__webpack_require__(487));
 const fs_2 = __webpack_require__(249);
-const string_1 = __webpack_require__(266);
+const string_1 = __webpack_require__(267);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
 const logger = __webpack_require__(44)('source-file');
 const pathRe = /(?:\.{0,2}|~|\$HOME|([\w]+)|)\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/;
@@ -68977,7 +68909,7 @@ exports.regist = regist;
 Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_languageserver_protocol_1 = __webpack_require__(190);
 const fuzzy_1 = __webpack_require__(432);
-const string_1 = __webpack_require__(266);
+const string_1 = __webpack_require__(267);
 const match_1 = __webpack_require__(493);
 const logger = __webpack_require__(44)('completion-complete');
 // first time completion
@@ -69655,9 +69587,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(45);
 const vscode_languageserver_protocol_1 = __webpack_require__(190);
 const vscode_languageserver_textdocument_1 = __webpack_require__(238);
-const position_1 = __webpack_require__(269);
+const position_1 = __webpack_require__(268);
 const Snippets = tslib_1.__importStar(__webpack_require__(308));
-const string_1 = __webpack_require__(266);
+const string_1 = __webpack_require__(267);
 const logger = __webpack_require__(44)('snippets-snipet');
 class CocSnippet {
     constructor(_snippetString, position, _variableResolver) {
@@ -70368,7 +70300,7 @@ exports.getLocationListItem = getLocationListItem;
 Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_languageserver_protocol_1 = __webpack_require__(190);
 const vscode_uri_1 = __webpack_require__(222);
-const position_1 = __webpack_require__(269);
+const position_1 = __webpack_require__(268);
 const logger = __webpack_require__(44)('diagnostic-collection');
 class Collection {
     constructor(owner) {
@@ -70465,14 +70397,14 @@ exports.default = Collection;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(45);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(265));
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(266));
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(219));
 const vscode_languageserver_types_1 = __webpack_require__(202);
 const vscode_languageserver_textdocument_1 = __webpack_require__(238);
 const events_1 = tslib_1.__importDefault(__webpack_require__(189));
 const util_1 = __webpack_require__(217);
-const array_1 = __webpack_require__(268);
-const position_1 = __webpack_require__(269);
+const array_1 = __webpack_require__(264);
+const position_1 = __webpack_require__(268);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
 const range_1 = tslib_1.__importDefault(__webpack_require__(503));
 const logger = __webpack_require__(44)('cursors');
@@ -71186,8 +71118,8 @@ const manager_3 = tslib_1.__importDefault(__webpack_require__(235));
 const util_1 = __webpack_require__(217);
 const convert_1 = __webpack_require__(477);
 const object_1 = __webpack_require__(228);
-const position_1 = __webpack_require__(269);
-const string_1 = __webpack_require__(266);
+const position_1 = __webpack_require__(268);
+const string_1 = __webpack_require__(267);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
 const codelens_1 = tslib_1.__importDefault(__webpack_require__(505));
 const colors_1 = tslib_1.__importDefault(__webpack_require__(506));
@@ -72977,9 +72909,9 @@ exports.default = Colors;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(45);
-const array_1 = __webpack_require__(268);
+const array_1 = __webpack_require__(264);
 const object_1 = __webpack_require__(228);
-const position_1 = __webpack_require__(269);
+const position_1 = __webpack_require__(268);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
 const logger = __webpack_require__(44)('highlighter');
 const usedColors = new Set();
@@ -73224,7 +73156,7 @@ exports.default = DocumentHighlighter;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(45);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(265));
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(266));
 const path_1 = tslib_1.__importDefault(__webpack_require__(62));
 const vscode_languageserver_types_1 = __webpack_require__(202);
 const vscode_languageserver_textdocument_1 = __webpack_require__(238);
@@ -73234,7 +73166,7 @@ const highligher_1 = tslib_1.__importDefault(__webpack_require__(411));
 const util_1 = __webpack_require__(217);
 const fs_1 = __webpack_require__(249);
 const object_1 = __webpack_require__(228);
-const string_1 = __webpack_require__(266);
+const string_1 = __webpack_require__(267);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
 const logger = __webpack_require__(44)('refactor');
 // cases: buffer change event
