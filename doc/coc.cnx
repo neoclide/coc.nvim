@@ -106,7 +106,7 @@ coc.nvim 使用 coc-settings.json 文件进行配置，该文件格式与工作�
 
 	"suggest.autoTrigger": "none",
 <
-进入插入模块即触发自动补全： >
+进入插入模式即触发自动补全： >
 
 	"suggest.triggerAfterInsertEnter": true,
 
