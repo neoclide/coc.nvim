@@ -907,7 +907,7 @@ export class Extensions {
     }
     let keys = Object.keys(engines)
     if (!keys.includes('coc') && !keys.includes('vscode')) {
-      throw new Error(`Required coc/vscode not found in engines: ${keys}`)
+      throw new Error(`Required coc/vscode not found in engines: ${jsonFile}`)
     }
     if (keys.includes('coc')) {
       let required = engines['coc'].replace(/^\^/, '>=')
