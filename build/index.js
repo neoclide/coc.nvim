@@ -22566,7 +22566,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "d7b3084375" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "a5404ef5cd" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -30940,13 +30940,13 @@ class Document {
             this.onChange.apply(this, args);
         });
         this.buffer.listen('detach', async () => {
-            logger.debug('detach:', this.buffer.id);
             await index_1.wait(30);
             if (!this.attached)
                 return;
             // it could be detached by `edit!`
-            // let attached = await this.attach()
-            // if (!attached) this.detach()
+            let attached = await this.attach();
+            if (!attached)
+                this.detach();
         });
         this.buffer.listen('changedtick', (_buf, tick) => {
             this._changedtick = tick;
@@ -30961,7 +30961,6 @@ class Document {
     ) {
         if (buf.id !== this.buffer.id || tick == null)
             return;
-        logger.debug('onChange:', firstline, lastline, linedata);
         this._changedtick = tick;
         let lines = this.lines.slice(0, firstline);
         lines = lines.concat(linedata, this.lines.slice(lastline));
@@ -40873,7 +40872,7 @@ class Extensions {
                     version,
                     description,
                     exotic: /^https?:/.test(val),
-                    uri: uri ? uri.replace(/\.git(#master)?$/, '') : null,
+                    uri: uri.replace(/\.git(#master)?$/, ''),
                     root,
                     state: this.getExtensionState(key)
                 });
