@@ -3,7 +3,6 @@ import { Neovim } from '@chemzqm/neovim'
 import { DiagnosticBuffer } from '../../diagnostic/buffer'
 import { DiagnosticConfig } from '../../diagnostic/manager'
 import { Range, DiagnosticSeverity, Diagnostic } from 'vscode-languageserver-types'
-import { wait } from '../../util'
 
 let nvim: Neovim
 const config: DiagnosticConfig = {
@@ -39,7 +38,7 @@ const config: DiagnosticConfig = {
 
 async function createDiagnosticBuffer(): Promise<DiagnosticBuffer> {
   let doc = await helper.createDocument()
-  return new DiagnosticBuffer(doc.bufnr, config)
+  return new DiagnosticBuffer(doc.bufnr, doc.uri, config)
 }
 
 function createDiagnostic(msg: string, range?: Range, severity?: DiagnosticSeverity): Diagnostic {
@@ -120,8 +119,7 @@ describe('diagnostic buffer', () => {
     let buf = await createDiagnosticBuffer()
     let winid = await nvim.call('bufwinid', buf.bufnr) as number
     buf.addHighlight([diagnostic], winid)
-    await wait(100)
-    expect(buf.matchIds.size).toBeGreaterThan(0)
+    expect(buf.hasHighlights()).toBe(true)
   })
 
   it('should clear all diagnostics', async () => {

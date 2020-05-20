@@ -1,7 +1,7 @@
 import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { CodeLens, Disposable } from 'vscode-languageserver-protocol'
-import { Document, WorkspaceConfiguration, ConfigurationChangeEvent } from '..'
+import { ConfigurationChangeEvent, Document } from '..'
 import commandManager from '../commands'
 import events from '../events'
 import languages from '../languages'
@@ -88,9 +88,7 @@ export default class CodeLensManager {
     }, null, this.disposables)
 
     this.resolveCodeLens = debounce(() => {
-      this._resolveCodeLenses().catch(e => {
-        logger.error(e)
-      })
+      this._resolveCodeLenses().logError()
     }, 200)
   }
 
@@ -100,7 +98,7 @@ export default class CodeLensManager {
     let config = workspace.getConfiguration('codeLens')
     if (e) {
       if (!this.enabled && config.get('enable')) {
-        this.fetchDocumentCodeLenses()
+        this.fetchDocumentCodeLenses().logError()
       } else if (this.enabled && config.get('enable') == false) {
         workspace.documents.forEach(doc => {
           this.clear(doc.bufnr)
@@ -196,9 +194,7 @@ export default class CodeLensManager {
       doc.clearMatchIds([this.srcId])
     }
     if (codeLenses && codeLenses.length) await this.setVirtualText(doc.buffer, codeLenses)
-    nvim.resumeNotification().catch(_e => {
-      // noop
-    })
+    await nvim.resumeNotification(false, true)
   }
 
   public async doAction(): Promise<void> {

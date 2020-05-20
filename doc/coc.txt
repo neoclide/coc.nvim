@@ -1093,6 +1093,10 @@ b:coc_suggest_disable				*b:coc_suggest_disable*
 			" Disable completion for python
 			autocmd FileType python let b:coc_suggest_disable = 1
 
+b:coc_diagnostic_disable			*b:coc_diagnostic_disable*
+
+			Disable diagnostic support of current buffer.
+
 b:coc_suggest_blacklist                         *b:coc_suggest_blacklist*
 
 			Words for which completion should be disabled. E.g.: >
@@ -1187,10 +1191,16 @@ g:coc_uri_prefix_replace_patterns			*g:coc_uri_prefix_replace_patterns*
 
 g:coc_enable_locationlist			*g:coc_enable_locationlist*
 
-			Use location list of coc.nvim when jump locations.
+			Use location list of |CocList| when jump to locations.
+
 			Set it to 0 when you need customize behavior of
 			location jump by use |CocLocationsChange| and
 			|g:coc_jump_locations|
+
+			If you want use vim's quickfix list instead, add
+			`"coc.preferences.useQuickfixForLocations": true`
+			in your configuration file, this configuration would
+			be ignored and no autocmd triggered.
 
 			Default: 1
 
@@ -2047,7 +2057,7 @@ AUTOCMD							*coc-autocmds*
 		For example, to disable auto preview of location list, use:
 >
 		let g:coc_enable_locationlist = 0
-		autocmd User CocLocationsChange CocList --normal -A location
+		autocmd User CocLocationsChange CocList --normal location
 <
 
 						*CocNvimInit*
