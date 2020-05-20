@@ -467,7 +467,7 @@ export class Extensions {
             let filepath = path.join(root, file.name)
             await this.loadExtensionFile(filepath)
           } else {
-            this.unloadExtension(id)
+            await this.unloadExtension(id)
           }
         }
       }).logError()
