@@ -1,7 +1,7 @@
 import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { CodeLens, Disposable } from 'vscode-languageserver-protocol'
-import { Document } from '..'
+import { Document, WorkspaceConfiguration, ConfigurationChangeEvent } from '..'
 import commandManager from '../commands'
 import events from '../events'
 import languages from '../languages'
@@ -25,19 +25,12 @@ export default class CodeLensManager {
   private codeLensMap: Map<number, CodeLensInfo> = new Map()
   private resolveCodeLens: Function & { clear(): void }
   constructor(private nvim: Neovim) {
-    this.init().catch(e => {
-      logger.error(e.message)
-    })
-  }
-
-  private async init(): Promise<void> {
     this.setConfiguration()
-    if (!this.enabled) return
     this.srcId = workspace.createNameSpace('coc-codelens') || 1080
     services.on('ready', async id => {
       let service = services.getService(id)
       let doc = workspace.getDocument(workspace.bufnr)
-      if (!doc) return
+      if (!doc || !this.enabled) return
       if (workspace.match(service.selector, doc.textDocument)) {
         this.resolveCodeLens.clear()
         await wait(2000)
@@ -46,6 +39,7 @@ export default class CodeLensManager {
     })
     let timer: NodeJS.Timer
     workspace.onDidChangeTextDocument(async e => {
+      if (!this.enabled) return
       let doc = workspace.getDocument(e.textDocument.uri)
       if (doc && doc.bufnr == workspace.bufnr) {
         if (timer) clearTimeout(timer)
@@ -55,29 +49,26 @@ export default class CodeLensManager {
       }
     }, null, this.disposables)
     workspace.onDidChangeConfiguration(e => {
-      if (e.affectsConfiguration('codelens')) {
-        this.setConfiguration()
-      }
+      this.setConfiguration(e)
     }, null, this.disposables)
 
     events.on(['TextChanged', 'TextChangedI'], async () => {
+      if (!this.enabled) return
       this.resolveCodeLens.clear()
     }, null, this.disposables)
 
     events.on('CursorMoved', () => {
+      if (!this.enabled) return
       this.resolveCodeLens()
     }, null, this.disposables)
 
     events.on('BufUnload', bufnr => {
-      let buf = this.nvim.createBuffer(bufnr)
-      if (this.nvim.hasFunction('nvim_create_namespace')) {
-        buf.clearNamespace(this.srcId)
-      } else {
-        buf.clearHighlight({ srcId: this.srcId })
-      }
+      if (!this.enabled) return
+      this.clear(bufnr)
     }, null, this.disposables)
 
     events.on('BufEnter', bufnr => {
+      if (!this.enabled) return
       setTimeout(async () => {
         if (workspace.bufnr == bufnr) {
           await this.fetchDocumentCodeLenses()
@@ -86,6 +77,7 @@ export default class CodeLensManager {
     }, null, this.disposables)
 
     events.on('InsertLeave', async () => {
+      if (!this.enabled) return
       let { bufnr } = workspace
       let info = this.codeLensMap.get(bufnr)
       if (info && info.version != this.version) {
@@ -102,11 +94,18 @@ export default class CodeLensManager {
     }, 200)
   }
 
-  private setConfiguration(): void {
+  private setConfiguration(e?: ConfigurationChangeEvent): void {
+    if (e && !e.affectsConfiguration('codeLens')) return
     let { nvim } = this
-    let config = workspace.getConfiguration('coc.preferences.codeLens')
-    if (Object.keys(config).length == 0) {
-      config = workspace.getConfiguration('codeLens')
+    let config = workspace.getConfiguration('codeLens')
+    if (e) {
+      if (!this.enabled && config.get('enable')) {
+        this.fetchDocumentCodeLenses()
+      } else if (this.enabled && config.get('enable') == false) {
+        workspace.documents.forEach(doc => {
+          this.clear(doc.bufnr)
+        })
+      }
     }
     this.separator = config.get<string>('separator', '‣')
     this.subseparator = config.get<string>('subseparator', ' ')
@@ -174,7 +173,6 @@ export default class CodeLensManager {
     let { nvim } = this
     let { bufnr } = workspace
     let { codeLenses, version } = this.codeLensMap.get(bufnr) || {} as any
-    if (workspace.insertMode) return
     if (codeLenses && codeLenses.length) {
       // resolve codeLens of current window
       let start = await nvim.call('line', 'w0')
@@ -244,6 +242,16 @@ export default class CodeLensManager {
       let res = await workspace.showQuickpick(commands.map(c => c.title))
       if (res == -1) return
       commandManager.execute(commands[res])
+    }
+  }
+
+  private clear(bufnr: number): void {
+    if (!this.enabled) return
+    let buf = this.nvim.createBuffer(bufnr)
+    if (this.nvim.hasFunction('nvim_create_namespace')) {
+      buf.clearNamespace(this.srcId)
+    } else {
+      buf.clearHighlight({ srcId: this.srcId })
     }
   }
 
