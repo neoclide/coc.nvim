@@ -375,7 +375,7 @@ describe('completion TextChangedP', () => {
     await nvim.input('iif')
     await helper.waitPopup()
     await helper.selectCompleteItem(0)
-    await helper.wait(300)
+    await helper.wait(500)
     let line = await nvim.line
     expect(line).toBe('bar if()')
     let [, lnum, col] = await nvim.call('getcurpos')
