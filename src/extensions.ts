@@ -891,6 +891,7 @@ export class Extensions {
   }
 
   private async checkDirectory(folder: string): Promise<void> {
+    if (folder.endsWith('coc.nvim')) return
     let jsonFile = path.join(folder, 'package.json')
     if (!fs.existsSync(jsonFile)) {
       throw new Error(`package.json not found in ${folder}`)
