@@ -417,6 +417,7 @@ export default class Plugin extends EventEmitter {
 
   public async dispose(): Promise<void> {
     this.removeAllListeners()
+    extensions.dispose()
     listManager.dispose()
     workspace.dispose()
     sources.dispose()

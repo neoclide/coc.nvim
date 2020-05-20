@@ -61,6 +61,16 @@ export interface Autocmd {
   callback: Function
 }
 
+export interface ExtensionJson {
+  name: string
+  main?: string
+  engines: {
+    [key: string]: string
+  }
+  version?: string
+  [key: string]: any
+}
+
 export interface ExtensionInfo {
   id: string
   version: string
@@ -70,6 +80,7 @@ export interface ExtensionInfo {
   uri?: string
   state: ExtensionState
   isLocal: boolean
+  packageJSON: Readonly<ExtensionJson>
 }
 
 export interface ErrorItem {

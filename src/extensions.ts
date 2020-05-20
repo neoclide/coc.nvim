@@ -21,7 +21,7 @@ import { disposeAll, wait, concurrent } from './util'
 import { distinct, splitArray } from './util/array'
 import './util/extensions'
 import { createExtension, ExtensionExport } from './util/factory'
-import { inDirectory, readdirAsync, readFile, realpathAsync, statAsync } from './util/fs'
+import { inDirectory, readdirAsync, readFile, realpathAsync } from './util/fs'
 import { objectLiteral } from './util/is'
 import Watchman from './watchman'
 import workspace from './workspace'
@@ -45,6 +45,7 @@ export interface ExtensionItem {
   type: Readonly<ExtensionType>
   extension: Extension<API>
   deactivate: () => void | Promise<void>
+  filepath?: string
   directory?: string
   isLocal: Readonly<boolean>
 }
@@ -71,6 +72,7 @@ export class Extensions {
   private _additionalSchemes: { [key: string]: PropertyScheme } = {}
   private activated = false
   private installBuffer: InstallBuffer
+  private disposables: Disposable[] = []
   public ready = true
   public readonly onDidLoadExtension: Event<Extension<API>> = this._onDidLoadExtension.event
   public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
@@ -96,8 +98,15 @@ export class Extensions {
     let localStats = await this.localExtensionStats(stats)
     stats = stats.concat(localStats)
     this.memos = new Memos(path.resolve(this.root, '../memos.json'))
+    stats.map(stat => {
+      let extensionType = stat.isLocal ? ExtensionType.Local : ExtensionType.Global
+      try {
+        this.createExtension(stat.root, stat.packageJSON, extensionType)
+      } catch (e) {
+        logger.error(`Error on create ${stat.root}:`, e)
+      }
+    })
     await this.loadFileExtensions()
-    await Promise.all(stats.map(stat => this.loadExtension(stat.root)))
     // watch for new local extension
     workspace.watchOption('runtimepath', async (oldValue, newValue) => {
       let result = fastDiff(oldValue, newValue)
@@ -105,7 +114,9 @@ export class Extensions {
         if (changeType == 1) {
           let paths = value.replace(/,$/, '').split(',')
           for (let p of paths) {
-            if (p) await this.loadExtension(p, true)
+            if (p && this.checkDirectory(p) === true) {
+              await this.loadExtension(p)
+            }
           }
         }
       }
@@ -187,16 +198,18 @@ export class Extensions {
     if (watchExtensions && watchExtensions.length) {
       let watchmanPath = workspace.getWatchmanPath()
       if (!watchmanPath) return
-      let stats = await this.getExtensionStates()
       for (let name of watchExtensions) {
-        let stat = stats.find(s => s.id == name)
-        if (stat && stat.state !== 'disabled') {
-          let directory = await promisify(fs.realpath)(stat.root)
+        let item = this.extensions.get(name)
+        if (item && item.directory) {
+          let directory = await promisify(fs.realpath)(item.directory)
           let client = await Watchman.createClient(watchmanPath, directory)
-          client.subscribe('**/*.js', debounce(async () => {
-            await this.reloadExtension(name)
-            workspace.showMessage(`reloaded ${name}`)
-          }, 100)).logError()
+          if (client) {
+            this.disposables.push(client)
+            client.subscribe('**/*.js', debounce(async () => {
+              await this.reloadExtension(name)
+              workspace.showMessage(`reloaded ${name}`)
+            }, 100)).logError()
+          }
         }
       }
     }
@@ -320,12 +333,8 @@ export class Extensions {
     } else {
       this.disabled.delete(id)
       let folder = path.join(this.modulesFolder, id)
-      if (this.globalExtensions.includes(id)
-        && fs.existsSync(folder)
-      ) {
+      if (fs.existsSync(folder)) {
         await this.loadExtension(folder)
-      } else {
-        throw new Error(`${id} not installed as global extension.`)
       }
     }
     await wait(200)
@@ -337,11 +346,16 @@ export class Extensions {
       workspace.showMessage(`Extension ${id} not registed`, 'error')
       return
     }
-    if (item.directory) {
+    if (item.type == ExtensionType.Internal) {
+      workspace.showMessage(`Can't reload internal extension "${item.id}"`, 'warning')
+      return
+    }
+    if (item.type == ExtensionType.SingleFile) {
+      await this.loadExtensionFile(item.filepath)
+    } else if (item.directory) {
       await this.loadExtension(item.directory)
     } else {
-      await this.deactivate(id)
-      await this.activate(id)
+      workspace.showMessage(`Can't reload extension ${item.id}`, 'warning')
     }
   }
 
@@ -410,27 +424,24 @@ export class Extensions {
     return false
   }
 
-  public async loadExtension(folder: string, silent = false): Promise<boolean> {
+  /**
+   * Load extension from folder, folder should contains coc extension.
+   */
+  public async loadExtension(folder: string): Promise<boolean> {
     try {
       let parentFolder = path.dirname(folder)
       let isLocal = path.normalize(parentFolder) != path.normalize(this.modulesFolder)
-      await this.checkDirectory(folder)
       let jsonFile = path.join(folder, 'package.json')
       let packageJSON = JSON.parse(fs.readFileSync(jsonFile, 'utf8'))
       let { name } = packageJSON
-      if (this.isDisabled(name)) {
-        logger.warn(`skipped load of disabled extension ${name}`)
-        return false
-      }
+      if (this.isDisabled(name)) return false
       // unload if loaded
       await this.unloadExtension(name)
       this.createExtension(folder, Object.freeze(packageJSON), isLocal ? ExtensionType.Local : ExtensionType.Global)
       return true
     } catch (e) {
-      if (!silent) {
-        logger.error(`Error on load extension from ${folder}`, e)
-        workspace.showMessage(`Can't load extension from "${folder}": ${e.message}`)
-      }
+      workspace.showMessage(`Error on load extension from "${folder}": ${e.message}`, 'error')
+      logger.error(`Error on load extension from ${folder}`, e)
       return false
     }
   }
@@ -443,6 +454,23 @@ export class Extensions {
     files = files.filter(f => f.endsWith('.js'))
     for (let file of files) {
       await this.loadExtensionFile(path.join(folder, file))
+    }
+    let watchmanPath = workspace.getWatchmanPath()
+    let client = await Watchman.createClient(watchmanPath, folder)
+    if (client) {
+      this.disposables.push(client)
+      client.subscribe('*.js', async ({ root, files }) => {
+        files = files.filter(f => f.type == 'f')
+        for (let file of files) {
+          let id = `single-` + path.basename(file.name, 'js')
+          if (file.exists) {
+            let filepath = path.join(root, file.name)
+            await this.loadExtensionFile(filepath)
+          } else {
+            this.unloadExtension(id)
+          }
+        }
+      }).logError()
     }
   }
 
@@ -538,23 +566,20 @@ export class Extensions {
   private async globalExtensionStats(): Promise<ExtensionInfo[]> {
     let json = this.loadJson()
     if (!json || !json.dependencies) return []
+    let { modulesFolder } = this
     let res: ExtensionInfo[] = await Promise.all(Object.keys(json.dependencies).map(key => new Promise<ExtensionInfo>(async resolve => {
       try {
         let val = json.dependencies[key]
-        let root = path.join(this.modulesFolder, key)
-        let jsonFile = path.join(root, 'package.json')
-        let stat = await statAsync(jsonFile)
-        if (!stat || !stat.isFile()) {
-          logger.error(`Can't find package.json for extension "${key}" at "${root}", fix it by :CocInstall ${key}`)
+        let root = path.join(modulesFolder, key)
+        let res = this.checkDirectory(root)
+        if (res instanceof Error) {
+          workspace.showMessage(`Unable to load global extension at ${root}: ${res.message}`, 'error')
+          logger.error(`Error on load ${root}`, res)
           return resolve(null)
         }
-        let content = await readFile(jsonFile, 'utf8')
+        let content = await readFile(path.join(root, 'package.json'), 'utf8')
         root = await realpathAsync(root)
         let obj = JSON.parse(content)
-        let { engines } = obj
-        if (!engines || (!engines.hasOwnProperty('coc') && !engines.hasOwnProperty('vscode'))) {
-          return resolve(null)
-        }
         let version = obj ? obj.version || '' : ''
         let description = obj ? obj.description || '' : ''
         let uri = isuri.isValid(val) ? val : ''
@@ -566,7 +591,8 @@ export class Extensions {
           exotic: /^https?:/.test(val),
           uri: uri.replace(/\.git(#master)?$/, ''),
           root,
-          state: this.getExtensionState(key)
+          state: this.getExtensionState(key),
+          packageJSON: Object.freeze(obj)
         })
       } catch (e) {
         logger.error(e)
@@ -583,18 +609,10 @@ export class Extensions {
     let paths = runtimepath.split(',')
     let res: ExtensionInfo[] = await Promise.all(paths.map(root => new Promise<ExtensionInfo>(async resolve => {
       try {
-        if (included.includes(root)) {
-          return resolve(null)
-        }
+        if (included.includes(root)) return resolve(null)
+        let res = this.checkDirectory(root)
+        if (res !== true) return resolve(null)
         let jsonFile = path.join(root, 'package.json')
-        let stat = await statAsync(jsonFile)
-        if (!stat || !stat.isFile()) return resolve(null)
-        try {
-          await this.checkDirectory(root)
-        } catch (e) {
-          logger.error(e.message)
-          return resolve(null)
-        }
         let content = await readFile(jsonFile, 'utf8')
         let obj = JSON.parse(content)
         if (names.includes(obj.name)) {
@@ -610,7 +628,8 @@ export class Extensions {
           description,
           exotic: false,
           root,
-          state: this.getExtensionState(obj.name)
+          state: this.getExtensionState(obj.name),
+          packageJSON: Object.freeze(obj)
         })
       } catch (e) {
         logger.error(e)
@@ -746,7 +765,7 @@ export class Extensions {
         isActive = true
         if (!ext) {
           try {
-            let isEmpty = (packageJSON.engines || {}).hasOwnProperty('vscode')
+            let isEmpty = !(packageJSON.engines || {}).hasOwnProperty('coc')
             ext = createExtension(id, filename, isEmpty)
           } catch (e) {
             logger.error(`Error on createExtension ${id} from ${filename}`, e)
@@ -786,6 +805,7 @@ export class Extensions {
       isLocal: type == ExtensionType.Local,
       extension,
       directory: root,
+      filepath: filename,
       deactivate: () => {
         if (!isActive) return
         isActive = false
@@ -890,32 +910,40 @@ export class Extensions {
     }
   }
 
-  private async checkDirectory(folder: string): Promise<void> {
-    if (folder.endsWith('coc.nvim')) return
-    let jsonFile = path.join(folder, 'package.json')
-    if (!fs.existsSync(jsonFile)) {
-      throw new Error(`package.json not found in ${folder}`)
-    }
-    let content = await readFile(jsonFile, 'utf8')
-    let packageJSON = JSON.parse(content)
-    let { name, engines, main } = packageJSON
-    if (!name || !engines) throw new Error(`can't find name & engines in ${jsonFile}`)
-    if (!engines || !objectLiteral(engines)) {
-      throw new Error(`invalid engines in ${jsonFile}`)
-    }
-    if (main && !fs.existsSync(path.join(folder, main))) {
-      throw new Error(`main file ${main} not found, you may need to build the project.`)
-    }
-    let keys = Object.keys(engines)
-    if (!keys.includes('coc') && !keys.includes('vscode')) {
-      throw new Error(`Required coc/vscode not found in engines: ${jsonFile}`)
-    }
-    if (keys.includes('coc')) {
-      let required = engines['coc'].replace(/^\^/, '>=')
-      if (!semver.satisfies(workspace.version, required)) {
-        throw new Error(`Please update coc.nvim, ${packageJSON.name} requires coc.nvim ${engines['coc']}`)
+  /**
+   * Check if folder contains extension, return Error
+   */
+  private checkDirectory(folder: string): boolean | Error {
+    try {
+      let jsonFile = path.join(folder, 'package.json')
+      if (!fs.existsSync(jsonFile)) throw new Error('package.json not found')
+      let packageJSON = JSON.parse(fs.readFileSync(jsonFile, 'utf8'))
+      let { name, engines, main } = packageJSON
+      if (!name || !engines) throw new Error(`can't find name & engines in package.json`)
+      if (!engines || !objectLiteral(engines)) {
+        throw new Error(`invalid engines in ${jsonFile}`)
       }
+      if (main && !fs.existsSync(path.join(folder, main))) {
+        throw new Error(`main file ${main} not found, you may need to build the project.`)
+      }
+      let keys = Object.keys(engines)
+      if (!keys.includes('coc') && !keys.includes('vscode')) {
+        throw new Error(`Engines in package.json doesn't have coc or vscode`)
+      }
+      if (keys.includes('coc')) {
+        let required = engines['coc'].replace(/^\^/, '>=')
+        if (!semver.satisfies(workspace.version, required)) {
+          throw new Error(`Please update coc.nvim, ${packageJSON.name} requires coc.nvim ${engines['coc']}`)
+        }
+      }
+      return true
+    } catch (e) {
+      return e
     }
+  }
+
+  public dispose(): void {
+    disposeAll(this.disposables)
   }
 }
 
