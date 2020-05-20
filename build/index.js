@@ -22284,10 +22284,10 @@ const events_1 = __webpack_require__(177);
 const vscode_languageserver_types_1 = __webpack_require__(202);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(231));
 const completion_1 = tslib_1.__importDefault(__webpack_require__(310));
-const cursors_1 = tslib_1.__importDefault(__webpack_require__(502));
+const cursors_1 = tslib_1.__importDefault(__webpack_require__(501));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(232));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(312));
-const handler_1 = tslib_1.__importDefault(__webpack_require__(504));
+const handler_1 = tslib_1.__importDefault(__webpack_require__(503));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(385));
 const manager_2 = tslib_1.__importDefault(__webpack_require__(429));
 const services_1 = tslib_1.__importDefault(__webpack_require__(413));
@@ -22520,7 +22520,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "23d26d8e02" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "42353685a1" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -22699,6 +22699,7 @@ class Plugin extends events_1.EventEmitter {
     }
     async dispose() {
         this.removeAllListeners();
+        extensions_1.default.dispose();
         manager_2.default.dispose();
         workspace_1.default.dispose();
         sources_1.default.dispose();
@@ -23072,6 +23073,7 @@ exports.default = new CommandManager();
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(45);
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(219));
+const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
 const vscode_languageserver_protocol_1 = __webpack_require__(190);
 const vscode_uri_1 = __webpack_require__(222);
 const events_1 = tslib_1.__importDefault(__webpack_require__(189));
@@ -23080,18 +23082,16 @@ const util_1 = __webpack_require__(217);
 const position_1 = __webpack_require__(268);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
 const buffer_1 = __webpack_require__(498);
-const collection_1 = tslib_1.__importDefault(__webpack_require__(501));
-const util_2 = __webpack_require__(500);
-const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
+const collection_1 = tslib_1.__importDefault(__webpack_require__(500));
+const util_2 = __webpack_require__(499);
 const logger = __webpack_require__(44)('diagnostic-manager');
 class DiagnosticManager {
     constructor() {
         this.enabled = true;
-        this.buffers = [];
+        this.buffers = new Map();
         this.lastMessage = '';
         this.collections = [];
         this.disposables = [];
-        this.lastChanageTs = 0;
     }
     init() {
         this.setConfiguration();
@@ -23113,9 +23113,11 @@ class DiagnosticManager {
         }, null, this.disposables);
         if (this.config.virtualText && this.config.virtualTextCurrentLineOnly) {
             let fn = debounce_1.default((bufnr, cursor) => {
-                let buf = this.buffers.find(buf => buf.bufnr == bufnr);
-                if (buf)
-                    buf.showVirtualText(cursor[0]);
+                let buf = this.buffers.get(bufnr);
+                if (buf) {
+                    let diagnostics = this.getDiagnostics(buf.uri);
+                    buf.showVirtualText(diagnostics, cursor[0]);
+                }
             }, 100);
             events_1.default.on('CursorMoved', fn, null, this.disposables);
             this.disposables.push(vscode_languageserver_protocol_1.Disposable.create(() => {
@@ -23134,45 +23136,37 @@ class DiagnosticManager {
                 return;
             let { refreshOnInsertMode, refreshAfterSave } = this.config;
             if (!refreshOnInsertMode && !refreshAfterSave) {
-                if (doc.dirty) {
-                    doc.forceSync();
-                    await util_1.wait(50);
-                }
-                let d = 300 - (Date.now() - this.lastChanageTs);
-                if (d > 0)
-                    await util_1.wait(d);
+                doc.forceSync();
                 this.refreshBuffer(doc.uri);
             }
         }, null, this.disposables);
-        events_1.default.on('BufEnter', async () => {
+        events_1.default.on('BufEnter', async (bufnr) => {
             if (this.timer)
                 clearTimeout(this.timer);
             if (!this.enabled || !this.config.locationlist)
                 return;
-            let doc = await workspace_1.default.document;
-            if (!doc || doc.buftype == 'quickfix')
+            let [curr, buftype, winid] = await nvim.eval(`[getloclist(win_getid(),{'title':1}),&buftype,win_getid()]`);
+            if (buftype == 'quickfix')
                 return;
-            if (this.shouldValidate(doc)) {
-                let refreshed = this.refreshBuffer(doc.uri);
-                if (refreshed)
-                    return;
+            let buf = this.buffers.get(bufnr);
+            if (buf) {
+                let diagnostics = this.getDiagnostics(buf.uri);
+                buf.setLocationlist(diagnostics, winid);
             }
-            let curr = await nvim.eval(`getloclist(win_getid(),{'title':1})`);
-            if (curr.title && curr.title.indexOf('Diagnostics of coc') != -1) {
-                await nvim.eval(`setloclist(win_getid(),[],'f')`);
+            else {
+                if (curr.title && curr.title.indexOf('Diagnostics of coc') != -1) {
+                    nvim.call('setloclist', [winid, [], 'f'], true);
+                }
             }
         }, null, this.disposables);
         events_1.default.on('BufWritePost', async (bufnr) => {
-            let buf = this.buffers.find(buf => buf.bufnr == bufnr);
-            if (buf)
-                await buf.checkSigns();
-            await util_1.wait(100);
-            if (this.config.refreshAfterSave) {
-                this.refreshBuffer(buf.uri);
-            }
-        }, null, this.disposables);
-        events_1.default.on(['TextChanged', 'TextChangedI'], () => {
-            this.lastChanageTs = Date.now();
+            let buf = this.buffers.get(bufnr);
+            if (!buf)
+                return;
+            await buf.checkSigns();
+            if (!this.config.refreshAfterSave)
+                return;
+            this.refreshBuffer(buf.uri);
         }, null, this.disposables);
         workspace_1.default.onDidChangeConfiguration(e => {
             this.setConfiguration(e);
@@ -23216,17 +23210,17 @@ class DiagnosticManager {
     createDiagnosticBuffer(doc) {
         if (!this.shouldValidate(doc))
             return;
-        let idx = this.buffers.findIndex(b => b.bufnr == doc.bufnr);
-        if (idx == -1) {
-            let buf = new buffer_1.DiagnosticBuffer(doc.bufnr, this.config);
-            this.buffers.push(buf);
-            buf.onDidRefresh(() => {
-                if (workspace_1.default.insertMode
-                    || this.config.enableMessage == 'never')
-                    return;
-                this.echoMessage(true).logError();
-            });
-        }
+        let { bufnr } = doc;
+        let buf = this.buffers.get(bufnr);
+        if (buf)
+            return;
+        buf = new buffer_1.DiagnosticBuffer(bufnr, doc.uri, this.config);
+        this.buffers.set(bufnr, buf);
+        buf.onDidRefresh(() => {
+            if (this.config.enableMessage == 'never')
+                return;
+            this.echoMessage(true).logError();
+        });
     }
     setConfigurationErrors(init) {
         let collections = this.collections;
@@ -23266,11 +23260,11 @@ class DiagnosticManager {
                 (refreshed || Date.now() - createTime > 5000))
                 return;
             refreshed = true;
-            this.refreshBuffer(uri);
+            this.refreshBuffer(uri, true);
         });
         collection.onDidDiagnosticsClear(uris => {
             for (let uri of uris) {
-                this.refreshBuffer(uri);
+                this.refreshBuffer(uri, true);
             }
         });
         collection.onDispose(() => {
@@ -23479,13 +23473,16 @@ class DiagnosticManager {
     }
     getDiagnosticsAt(bufnr, cursor) {
         let pos = vscode_languageserver_protocol_1.Position.create(cursor[0], cursor[1]);
-        let buffer = this.buffers.find(o => o.bufnr == bufnr);
+        let buffer = this.buffers.get(bufnr);
         if (!buffer)
             return [];
+        let diagnostics = this.getDiagnostics(buffer.uri);
         let { checkCurrentLine } = this.config;
-        let diagnostics = buffer.diagnostics.filter(o => position_1.positionInRange(pos, o.range) == 0);
-        if (diagnostics.length == 0 && checkCurrentLine) {
-            diagnostics = buffer.diagnostics.filter(o => position_1.lineInRange(pos.line, o.range));
+        if (checkCurrentLine) {
+            diagnostics = diagnostics.filter(o => position_1.lineInRange(pos.line, o.range));
+        }
+        else {
+            diagnostics = diagnostics.filter(o => position_1.positionInRange(pos, o.range) == 0);
         }
         diagnostics.sort((a, b) => a.severity - b.severity);
         return diagnostics;
@@ -23580,16 +23577,15 @@ class DiagnosticManager {
         }
     }
     disposeBuffer(bufnr) {
-        let idx = this.buffers.findIndex(buf => buf.bufnr == bufnr);
-        if (idx == -1)
+        let buf = this.buffers.get(bufnr);
+        if (!buf)
             return;
-        let buf = this.buffers[idx];
+        buf.clear().logError();
         buf.dispose();
-        this.buffers.splice(idx, 1);
+        this.buffers.delete(bufnr);
         for (let collection of this.collections) {
             collection.delete(buf.uri);
         }
-        buf.clear().logError();
     }
     hideFloat() {
         if (this.floatFactory) {
@@ -23597,13 +23593,14 @@ class DiagnosticManager {
         }
     }
     dispose() {
+        for (let buf of this.buffers.values()) {
+            buf.clear().logError();
+        }
         for (let collection of this.collections) {
             collection.dispose();
         }
-        if (this.floatFactory) {
-            this.floatFactory.dispose();
-        }
-        this.buffers.splice(0, this.buffers.length);
+        this.hideFloat();
+        this.buffers.clear();
         this.collections = [];
         util_1.disposeAll(this.disposables);
     }
@@ -23629,7 +23626,7 @@ class DiagnosticManager {
             maxWindowWidth: config.get('maxWindowWidth', 80),
             enableMessage: config.get('enableMessage', 'always'),
             messageDelay: config.get('messageDelay', 200),
-            virtualText: config.get('virtualText', false),
+            virtualText: config.get('virtualText', false) && this.nvim.hasFunction('nvim_buf_set_virtual_text'),
             virtualTextCurrentLineOnly: config.get('virtualTextCurrentLineOnly', true),
             virtualTextPrefix: config.get('virtualTextPrefix', " "),
             virtualTextLineSeparator: config.get('virtualTextLineSeparator', " \\ "),
@@ -23668,18 +23665,20 @@ class DiagnosticManager {
     shouldValidate(doc) {
         return doc != null && doc.buftype == '';
     }
-    refreshBuffer(uri) {
-        let { insertMode } = workspace_1.default;
-        if (insertMode && !this.config.refreshOnInsertMode)
-            return;
-        let buf = this.buffers.find(buf => buf.uri == uri);
+    refreshBuffer(uri, force = false) {
+        let buf = Array.from(this.buffers.values()).find(o => o.uri == uri);
         if (!buf)
-            return;
+            return false;
         let { displayByAle } = this.config;
         if (!displayByAle) {
             let diagnostics = this.getDiagnostics(uri);
             if (this.enabled) {
-                buf.refresh(diagnostics);
+                if (force) {
+                    buf.forceRefresh(diagnostics);
+                }
+                else {
+                    buf.refresh(diagnostics);
+                }
                 return true;
             }
         }
@@ -40326,6 +40325,7 @@ class Extensions {
         this._onDidUnloadExtension = new vscode_languageserver_protocol_1.Emitter();
         this._additionalSchemes = {};
         this.activated = false;
+        this.disposables = [];
         this.ready = true;
         this.onDidLoadExtension = this._onDidLoadExtension.event;
         this.onDidActiveExtension = this._onDidActiveExtension.event;
@@ -40353,8 +40353,16 @@ class Extensions {
         let localStats = await this.localExtensionStats(stats);
         stats = stats.concat(localStats);
         this.memos = new memos_1.default(path_1.default.resolve(this.root, '../memos.json'));
+        stats.map(stat => {
+            let extensionType = stat.isLocal ? types_1.ExtensionType.Local : types_1.ExtensionType.Global;
+            try {
+                this.createExtension(stat.root, stat.packageJSON, extensionType);
+            }
+            catch (e) {
+                logger.error(`Error on create ${stat.root}:`, e);
+            }
+        });
         await this.loadFileExtensions();
-        await Promise.all(stats.map(stat => this.loadExtension(stat.root)));
         // watch for new local extension
         workspace_1.default.watchOption('runtimepath', async (oldValue, newValue) => {
             let result = fast_diff_1.default(oldValue, newValue);
@@ -40362,8 +40370,9 @@ class Extensions {
                 if (changeType == 1) {
                     let paths = value.replace(/,$/, '').split(',');
                     for (let p of paths) {
-                        if (p)
-                            await this.loadExtension(p, true);
+                        if (p && this.checkDirectory(p) === true) {
+                            await this.loadExtension(p);
+                        }
                     }
                 }
             }
@@ -40447,16 +40456,18 @@ class Extensions {
             let watchmanPath = workspace_1.default.getWatchmanPath();
             if (!watchmanPath)
                 return;
-            let stats = await this.getExtensionStates();
             for (let name of watchExtensions) {
-                let stat = stats.find(s => s.id == name);
-                if (stat && stat.state !== 'disabled') {
-                    let directory = await util_1.promisify(fs_1.default.realpath)(stat.root);
+                let item = this.extensions.get(name);
+                if (item && item.directory) {
+                    let directory = await util_1.promisify(fs_1.default.realpath)(item.directory);
                     let client = await watchman_1.default.createClient(watchmanPath, directory);
-                    client.subscribe('**/*.js', debounce_1.debounce(async () => {
-                        await this.reloadExtension(name);
-                        workspace_1.default.showMessage(`reloaded ${name}`);
-                    }, 100)).logError();
+                    if (client) {
+                        this.disposables.push(client);
+                        client.subscribe('**/*.js', debounce_1.debounce(async () => {
+                            await this.reloadExtension(name);
+                            workspace_1.default.showMessage(`reloaded ${name}`);
+                        }, 100)).logError();
+                    }
                 }
             }
         }
@@ -40579,12 +40590,8 @@ class Extensions {
         else {
             this.disabled.delete(id);
             let folder = path_1.default.join(this.modulesFolder, id);
-            if (this.globalExtensions.includes(id)
-                && fs_1.default.existsSync(folder)) {
+            if (fs_1.default.existsSync(folder)) {
                 await this.loadExtension(folder);
-            }
-            else {
-                throw new Error(`${id} not installed as global extension.`);
             }
         }
         await util_2.wait(200);
@@ -40595,12 +40602,18 @@ class Extensions {
             workspace_1.default.showMessage(`Extension ${id} not registed`, 'error');
             return;
         }
-        if (item.directory) {
+        if (item.type == types_1.ExtensionType.Internal) {
+            workspace_1.default.showMessage(`Can't reload internal extension "${item.id}"`, 'warning');
+            return;
+        }
+        if (item.type == types_1.ExtensionType.SingleFile) {
+            await this.loadExtensionFile(item.filepath);
+        }
+        else if (item.directory) {
             await this.loadExtension(item.directory);
         }
         else {
-            await this.deactivate(id);
-            await this.activate(id);
+            workspace_1.default.showMessage(`Can't reload extension ${item.id}`, 'warning');
         }
     }
     /**
@@ -40667,28 +40680,26 @@ class Extensions {
         }
         return false;
     }
-    async loadExtension(folder, silent = false) {
+    /**
+     * Load extension from folder, folder should contains coc extension.
+     */
+    async loadExtension(folder) {
         try {
             let parentFolder = path_1.default.dirname(folder);
             let isLocal = path_1.default.normalize(parentFolder) != path_1.default.normalize(this.modulesFolder);
-            await this.checkDirectory(folder);
             let jsonFile = path_1.default.join(folder, 'package.json');
             let packageJSON = JSON.parse(fs_1.default.readFileSync(jsonFile, 'utf8'));
             let { name } = packageJSON;
-            if (this.isDisabled(name)) {
-                logger.warn(`skipped load of disabled extension ${name}`);
+            if (this.isDisabled(name))
                 return false;
-            }
             // unload if loaded
             await this.unloadExtension(name);
             this.createExtension(folder, Object.freeze(packageJSON), isLocal ? types_1.ExtensionType.Local : types_1.ExtensionType.Global);
             return true;
         }
         catch (e) {
-            if (!silent) {
-                logger.error(`Error on load extension from ${folder}`, e);
-                workspace_1.default.showMessage(`Can't load extension from "${folder}": ${e.message}`);
-            }
+            workspace_1.default.showMessage(`Error on load extension from "${folder}": ${e.message}`, 'error');
+            logger.error(`Error on load extension from ${folder}`, e);
             return false;
         }
     }
@@ -40702,6 +40713,24 @@ class Extensions {
         files = files.filter(f => f.endsWith('.js'));
         for (let file of files) {
             await this.loadExtensionFile(path_1.default.join(folder, file));
+        }
+        let watchmanPath = workspace_1.default.getWatchmanPath();
+        let client = await watchman_1.default.createClient(watchmanPath, folder);
+        if (client) {
+            this.disposables.push(client);
+            client.subscribe('*.js', async ({ root, files }) => {
+                files = files.filter(f => f.type == 'f');
+                for (let file of files) {
+                    let id = `single-` + path_1.default.basename(file.name, 'js');
+                    if (file.exists) {
+                        let filepath = path_1.default.join(root, file.name);
+                        await this.loadExtensionFile(filepath);
+                    }
+                    else {
+                        await this.unloadExtension(id);
+                    }
+                }
+            }).logError();
         }
     }
     /**
@@ -40797,23 +40826,20 @@ class Extensions {
         let json = this.loadJson();
         if (!json || !json.dependencies)
             return [];
+        let { modulesFolder } = this;
         let res = await Promise.all(Object.keys(json.dependencies).map(key => new Promise(async (resolve) => {
             try {
                 let val = json.dependencies[key];
-                let root = path_1.default.join(this.modulesFolder, key);
-                let jsonFile = path_1.default.join(root, 'package.json');
-                let stat = await fs_2.statAsync(jsonFile);
-                if (!stat || !stat.isFile()) {
-                    logger.error(`Can't find package.json for extension "${key}" at "${root}", fix it by :CocInstall ${key}`);
+                let root = path_1.default.join(modulesFolder, key);
+                let res = this.checkDirectory(root);
+                if (res instanceof Error) {
+                    workspace_1.default.showMessage(`Unable to load global extension at ${root}: ${res.message}`, 'error');
+                    logger.error(`Error on load ${root}`, res);
                     return resolve(null);
                 }
-                let content = await fs_2.readFile(jsonFile, 'utf8');
+                let content = await fs_2.readFile(path_1.default.join(root, 'package.json'), 'utf8');
                 root = await fs_2.realpathAsync(root);
                 let obj = JSON.parse(content);
-                let { engines } = obj;
-                if (!engines || (!engines.hasOwnProperty('coc') && !engines.hasOwnProperty('vscode'))) {
-                    return resolve(null);
-                }
                 let version = obj ? obj.version || '' : '';
                 let description = obj ? obj.description || '' : '';
                 let uri = isuri_1.default.isValid(val) ? val : '';
@@ -40825,7 +40851,8 @@ class Extensions {
                     exotic: /^https?:/.test(val),
                     uri: uri.replace(/\.git(#master)?$/, ''),
                     root,
-                    state: this.getExtensionState(key)
+                    state: this.getExtensionState(key),
+                    packageJSON: Object.freeze(obj)
                 });
             }
             catch (e) {
@@ -40842,20 +40869,12 @@ class Extensions {
         let paths = runtimepath.split(',');
         let res = await Promise.all(paths.map(root => new Promise(async (resolve) => {
             try {
-                if (included.includes(root)) {
+                if (included.includes(root))
                     return resolve(null);
-                }
+                let res = this.checkDirectory(root);
+                if (res !== true)
+                    return resolve(null);
                 let jsonFile = path_1.default.join(root, 'package.json');
-                let stat = await fs_2.statAsync(jsonFile);
-                if (!stat || !stat.isFile())
-                    return resolve(null);
-                try {
-                    await this.checkDirectory(root);
-                }
-                catch (e) {
-                    logger.error(e.message);
-                    return resolve(null);
-                }
                 let content = await fs_2.readFile(jsonFile, 'utf8');
                 let obj = JSON.parse(content);
                 if (names.includes(obj.name)) {
@@ -40871,7 +40890,8 @@ class Extensions {
                     description,
                     exotic: false,
                     root,
-                    state: this.getExtensionState(obj.name)
+                    state: this.getExtensionState(obj.name),
+                    packageJSON: Object.freeze(obj)
                 });
             }
             catch (e) {
@@ -41011,7 +41031,7 @@ class Extensions {
                 isActive = true;
                 if (!ext) {
                     try {
-                        let isEmpty = (packageJSON.engines || {}).hasOwnProperty('vscode');
+                        let isEmpty = !(packageJSON.engines || {}).hasOwnProperty('coc');
                         ext = factory_1.createExtension(id, filename, isEmpty);
                     }
                     catch (e) {
@@ -41052,6 +41072,7 @@ class Extensions {
             isLocal: type == types_1.ExtensionType.Local,
             extension,
             directory: root,
+            filepath: filename,
             deactivate: () => {
                 if (!isActive)
                     return;
@@ -41155,32 +41176,42 @@ class Extensions {
             this._onDidUnloadExtension.fire(id);
         }
     }
-    async checkDirectory(folder) {
-        let jsonFile = path_1.default.join(folder, 'package.json');
-        if (!fs_1.default.existsSync(jsonFile)) {
-            throw new Error(`package.json not found in ${folder}`);
-        }
-        let content = await fs_2.readFile(jsonFile, 'utf8');
-        let packageJSON = JSON.parse(content);
-        let { name, engines, main } = packageJSON;
-        if (!name || !engines)
-            throw new Error(`can't find name & engines in ${jsonFile}`);
-        if (!engines || !is_1.objectLiteral(engines)) {
-            throw new Error(`invalid engines in ${jsonFile}`);
-        }
-        if (main && !fs_1.default.existsSync(path_1.default.join(folder, main))) {
-            throw new Error(`main file ${main} not found, you may need to build the project.`);
-        }
-        let keys = Object.keys(engines);
-        if (!keys.includes('coc') && !keys.includes('vscode')) {
-            throw new Error(`Required coc/vscode not found in engines: ${jsonFile}`);
-        }
-        if (keys.includes('coc')) {
-            let required = engines['coc'].replace(/^\^/, '>=');
-            if (!semver_1.default.satisfies(workspace_1.default.version, required)) {
-                throw new Error(`Please update coc.nvim, ${packageJSON.name} requires coc.nvim ${engines['coc']}`);
+    /**
+     * Check if folder contains extension, return Error
+     */
+    checkDirectory(folder) {
+        try {
+            let jsonFile = path_1.default.join(folder, 'package.json');
+            if (!fs_1.default.existsSync(jsonFile))
+                throw new Error('package.json not found');
+            let packageJSON = JSON.parse(fs_1.default.readFileSync(jsonFile, 'utf8'));
+            let { name, engines, main } = packageJSON;
+            if (!name || !engines)
+                throw new Error(`can't find name & engines in package.json`);
+            if (!engines || !is_1.objectLiteral(engines)) {
+                throw new Error(`invalid engines in ${jsonFile}`);
             }
+            if (main && !fs_1.default.existsSync(path_1.default.join(folder, main))) {
+                throw new Error(`main file ${main} not found, you may need to build the project.`);
+            }
+            let keys = Object.keys(engines);
+            if (!keys.includes('coc') && !keys.includes('vscode')) {
+                throw new Error(`Engines in package.json doesn't have coc or vscode`);
+            }
+            if (keys.includes('coc')) {
+                let required = engines['coc'].replace(/^\^/, '>=');
+                if (!semver_1.default.satisfies(workspace_1.default.version, required)) {
+                    throw new Error(`Please update coc.nvim, ${packageJSON.name} requires coc.nvim ${engines['coc']}`);
+                }
+            }
+            return true;
         }
+        catch (e) {
+            return e;
+        }
+    }
+    dispose() {
+        util_2.disposeAll(this.disposables);
     }
 }
 exports.Extensions = Extensions;
@@ -69895,86 +69926,64 @@ exports.SnippetVariableResolver = SnippetVariableResolver;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(45);
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(219));
 const vscode_languageserver_protocol_1 = __webpack_require__(190);
-const callSequence_1 = tslib_1.__importDefault(__webpack_require__(499));
-const object_1 = __webpack_require__(228);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
-const util_1 = __webpack_require__(500);
+const util_1 = __webpack_require__(499);
 const logger = __webpack_require__(44)('diagnostic-buffer');
 const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint'];
 // maintains sign and highlightId
 class DiagnosticBuffer {
-    constructor(bufnr, config) {
+    constructor(bufnr, uri, config) {
+        this.bufnr = bufnr;
+        this.uri = uri;
         this.config = config;
         this.signIds = new Set();
-        this.sequence = null;
         this._onDidRefresh = new vscode_languageserver_protocol_1.Emitter();
         this.matchIds = new Set();
-        this.diagnostics = [];
         this.onDidRefresh = this._onDidRefresh.event;
-        this.bufnr = bufnr;
         this.srdId = workspace_1.default.createNameSpace('coc-diagnostic');
-        let timer = null;
-        let time = Date.now();
-        this.refresh = (diagnostics) => {
-            time = Date.now();
-            if (timer)
-                clearTimeout(timer);
-            timer = setTimeout(async () => {
-                let current = time;
-                if (this.sequence) {
-                    await this.sequence.cancel();
-                }
-                // staled
-                if (current != time || !this.document)
-                    return;
-                diagnostics.forEach(o => {
-                    o.range = this.fixRange(o.range);
-                });
-                this._refresh(diagnostics);
-            }, 30);
-        };
+        this.refresh = debounce_1.default((diagnostics) => {
+            this._refresh(diagnostics).logError();
+        }, 200);
     }
-    _refresh(diagnostics) {
-        if (object_1.equals(this.diagnostics, diagnostics))
-            return;
-        this.diagnostics = diagnostics;
+    /**
+     * Refresh diagnostics without debounce
+     */
+    forceRefresh(diagnostics) {
+        this.refresh.clear();
+        this._refresh(diagnostics).logError();
+    }
+    async _refresh(diagnostics) {
+        let { refreshOnInsertMode } = this.config;
+        diagnostics.forEach(o => {
+            o.range = this.fixRange(o.range);
+        });
         let { nvim } = this;
-        let sequence = this.sequence = new callSequence_1.default();
-        let winid;
-        let bufnr;
-        let lnum;
-        sequence.addFunction(async () => {
-            let arr = await nvim.eval(`[coc#util#valid_state(), bufwinid(${this.bufnr}), bufnr("%"), line(".")]`);
-            if (arr[0] == 0 || !this.document)
-                return true;
-            winid = arr[1];
-            bufnr = arr[2];
-            lnum = arr[3];
-        });
-        sequence.addFunction(async () => {
-            nvim.pauseNotification();
-            this.setDiagnosticInfo(bufnr, diagnostics);
-            this.addSigns(diagnostics);
-            this.setLocationlist(diagnostics, winid);
-            this.addHighlight(diagnostics, winid);
-            if (this.bufnr == bufnr && this.config.virtualText) {
-                this.showVirtualText(lnum);
-            }
-            let res = await this.nvim.resumeNotification();
-            if (workspace_1.default.isVim) {
-                this.nvim.command('redraw', true);
-            }
-            if (Array.isArray(res) && res[1])
-                logger.error('Diagnostic error:', res[1]);
-        });
-        sequence.start().then(async (canceled) => {
-            if (!canceled) {
-                this._onDidRefresh.fire(void 0);
-            }
-        }, e => {
-            logger.error(e);
-        });
+        let arr = await nvim.eval(`[coc#util#check_refresh(${this.bufnr}),mode(), bufwinid(${this.bufnr}), bufnr("%"), line(".")]`);
+        if (arr[0] == 0)
+            return;
+        let mode = arr[1];
+        if (!refreshOnInsertMode && mode.startsWith('i') && diagnostics.length)
+            return;
+        let winid = arr[2];
+        let bufnr = arr[3];
+        let lnum = arr[4];
+        nvim.pauseNotification();
+        this.setDiagnosticInfo(bufnr, diagnostics);
+        this.addSigns(diagnostics);
+        this.setLocationlist(diagnostics, winid);
+        this.addHighlight(diagnostics, winid);
+        if (this.bufnr == bufnr) {
+            this.showVirtualText(diagnostics, lnum);
+        }
+        let res = await this.nvim.resumeNotification();
+        if (workspace_1.default.isVim) {
+            this.nvim.command('redraw', true);
+        }
+        if (Array.isArray(res) && res[1])
+            throw new Error(res[1]);
+        this._onDidRefresh.fire(void 0);
     }
     setLocationlist(diagnostics, winid) {
         if (!this.config.locationlist)
@@ -70064,16 +70073,15 @@ class DiagnosticBuffer {
             this.nvim.call('coc#util#do_autocmd', ['CocDiagnosticChange'], true);
         }
     }
-    showVirtualText(lnum) {
-        let { bufnr, nvim } = this;
-        if (!nvim.hasFunction('nvim_buf_set_virtual_text'))
+    showVirtualText(diagnostics, lnum) {
+        let { bufnr, config } = this;
+        if (!config.virtualText)
             return;
         let buffer = this.nvim.createBuffer(bufnr);
         let srcId = this.config.virtualTextSrcId;
         let prefix = this.config.virtualTextPrefix;
-        let diagnostics = this.diagnostics;
         if (this.config.virtualTextCurrentLineOnly) {
-            diagnostics = this.diagnostics.filter(d => {
+            diagnostics = diagnostics.filter(d => {
                 let { start, end } = d.range;
                 return start.line <= lnum - 1 && end.line >= lnum - 1;
             });
@@ -70091,17 +70099,21 @@ class DiagnosticBuffer {
         }
     }
     clearHighlight() {
-        let { matchIds } = this;
-        if (!this.document)
-            return;
-        this.document.clearMatchIds(matchIds);
+        let { matchIds, document } = this;
+        if (document) {
+            document.clearMatchIds(matchIds);
+        }
         this.matchIds.clear();
     }
     addHighlight(diagnostics, winid) {
         this.clearHighlight();
         if (diagnostics.length == 0)
             return;
-        if (winid == -1 && workspace_1.default.isVim && !workspace_1.default.env.textprop)
+        // can't add highlight for old vim
+        if (winid <= 0 && workspace_1.default.isVim && !workspace_1.default.env.textprop)
+            return;
+        let { document } = this;
+        if (!document)
             return;
         const highlights = new Map();
         for (let diagnostic of diagnostics) {
@@ -70112,17 +70124,19 @@ class DiagnosticBuffer {
             highlights.set(hlGroup, ranges);
         }
         for (let [hlGroup, ranges] of highlights.entries()) {
-            let matchIds = this.document.highlightRanges(ranges, hlGroup, this.srdId);
+            let matchIds = document.highlightRanges(ranges, hlGroup, this.srdId);
             for (let id of matchIds)
                 this.matchIds.add(id);
         }
     }
     // fix range out of total characters
     fixRange(range) {
+        if (!range)
+            return vscode_languageserver_protocol_1.Range.create(0, 0, 1, 0);
         let { start, end } = range;
         if (start.line != end.line)
             return range;
-        let line = this.document.getline(start.line);
+        let line = this.document ? this.document.getline(start.line) : null;
         if (!line)
             return range;
         if (start.character < line.length)
@@ -70136,36 +70150,27 @@ class DiagnosticBuffer {
      * @returns {Promise<void>}
      */
     async clear() {
-        if (this.sequence)
-            this.sequence.cancel().logError();
-        this.diagnostics = [];
+        this.refresh.clear();
         let { nvim } = this;
         nvim.pauseNotification();
         this.clearHighlight();
         this.clearSigns();
-        if (this.config.virtualText
-            && nvim.hasFunction('nvim_buf_set_virtual_text')) {
+        if (this.config.virtualText) {
             let buffer = nvim.createBuffer(this.bufnr);
             buffer.clearNamespace(this.config.virtualTextSrcId);
         }
         this.setDiagnosticInfo(workspace_1.default.bufnr, []);
         await nvim.resumeNotification(false, true);
     }
+    hasHighlights() {
+        return this.matchIds.size > 0;
+    }
     dispose() {
-        if (this.sequence) {
-            this.sequence.cancel().logError();
-        }
+        this.refresh.clear();
         this._onDidRefresh.dispose();
     }
     get document() {
-        if (!this.bufnr)
-            return null;
-        return workspace_1.default.getDocument(this.bufnr);
-    }
-    get uri() {
-        if (!this.document)
-            return null;
-        return this.document.uri;
+        return workspace_1.default.getDocument(this.uri);
     }
     get nvim() {
         return workspace_1.default.nvim;
@@ -70176,59 +70181,6 @@ exports.DiagnosticBuffer = DiagnosticBuffer;
 
 /***/ }),
 /* 499 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-class CallSequence {
-    constructor() {
-        this.funcs = new Set();
-        this._canceled = false;
-        this._resolved = false;
-    }
-    addFunction(fn) {
-        this.funcs.add(fn);
-    }
-    start() {
-        this.promise = new Promise(async (resolve, reject) => {
-            for (let fn of this.funcs) {
-                if (this._canceled)
-                    return resolve(true);
-                try {
-                    let cancel = await Promise.resolve(fn());
-                    if (cancel === true) {
-                        this._canceled = true;
-                        return resolve(true);
-                    }
-                }
-                catch (e) {
-                    reject(e);
-                    return;
-                }
-            }
-            this._resolved = true;
-            resolve(false);
-        });
-        return this.promise;
-    }
-    ready() {
-        return this.promise;
-    }
-    cancel() {
-        if (this._resolved)
-            return Promise.resolve(void 0);
-        if (this._canceled)
-            return this.promise;
-        this._canceled = true;
-        return this.promise;
-    }
-}
-exports.default = CallSequence;
-//# sourceMappingURL=callSequence.js.map
-
-/***/ }),
-/* 500 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -70311,7 +70263,7 @@ exports.getLocationListItem = getLocationListItem;
 //# sourceMappingURL=util.js.map
 
 /***/ }),
-/* 501 */
+/* 500 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -70409,7 +70361,7 @@ exports.default = Collection;
 //# sourceMappingURL=collection.js.map
 
 /***/ }),
-/* 502 */
+/* 501 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -70425,7 +70377,7 @@ const util_1 = __webpack_require__(217);
 const array_1 = __webpack_require__(264);
 const position_1 = __webpack_require__(268);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
-const range_1 = tslib_1.__importDefault(__webpack_require__(503));
+const range_1 = tslib_1.__importDefault(__webpack_require__(502));
 const logger = __webpack_require__(44)('cursors');
 class Cursors {
     constructor(nvim) {
@@ -71052,7 +71004,7 @@ function equalEdit(one, two) {
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 503 */
+/* 502 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -71119,7 +71071,7 @@ exports.default = TextRange;
 //# sourceMappingURL=range.js.map
 
 /***/ }),
-/* 504 */
+/* 503 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -71141,11 +71093,11 @@ const object_1 = __webpack_require__(228);
 const position_1 = __webpack_require__(268);
 const string_1 = __webpack_require__(267);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
-const codelens_1 = tslib_1.__importDefault(__webpack_require__(505));
-const colors_1 = tslib_1.__importDefault(__webpack_require__(506));
-const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(508));
-const refactor_1 = tslib_1.__importDefault(__webpack_require__(509));
-const search_1 = tslib_1.__importDefault(__webpack_require__(510));
+const codelens_1 = tslib_1.__importDefault(__webpack_require__(504));
+const colors_1 = tslib_1.__importDefault(__webpack_require__(505));
+const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(507));
+const refactor_1 = tslib_1.__importDefault(__webpack_require__(508));
+const search_1 = tslib_1.__importDefault(__webpack_require__(509));
 const debounce = __webpack_require__(219);
 const vscode_uri_1 = __webpack_require__(222);
 const logger = __webpack_require__(44)('Handler');
@@ -72443,7 +72395,7 @@ function isDocumentSymbols(a) {
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 505 */
+/* 504 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -72464,19 +72416,12 @@ class CodeLensManager {
         this.fetching = new Set();
         this.disposables = [];
         this.codeLensMap = new Map();
-        this.init().catch(e => {
-            logger.error(e.message);
-        });
-    }
-    async init() {
         this.setConfiguration();
-        if (!this.enabled)
-            return;
         this.srcId = workspace_1.default.createNameSpace('coc-codelens') || 1080;
         services_1.default.on('ready', async (id) => {
             let service = services_1.default.getService(id);
             let doc = workspace_1.default.getDocument(workspace_1.default.bufnr);
-            if (!doc)
+            if (!doc || !this.enabled)
                 return;
             if (workspace_1.default.match(service.selector, doc.textDocument)) {
                 this.resolveCodeLens.clear();
@@ -72486,6 +72431,8 @@ class CodeLensManager {
         });
         let timer;
         workspace_1.default.onDidChangeTextDocument(async (e) => {
+            if (!this.enabled)
+                return;
             let doc = workspace_1.default.getDocument(e.textDocument.uri);
             if (doc && doc.bufnr == workspace_1.default.bufnr) {
                 if (timer)
@@ -72496,26 +72443,26 @@ class CodeLensManager {
             }
         }, null, this.disposables);
         workspace_1.default.onDidChangeConfiguration(e => {
-            if (e.affectsConfiguration('codelens')) {
-                this.setConfiguration();
-            }
+            this.setConfiguration(e);
         }, null, this.disposables);
         events_1.default.on(['TextChanged', 'TextChangedI'], async () => {
+            if (!this.enabled)
+                return;
             this.resolveCodeLens.clear();
         }, null, this.disposables);
         events_1.default.on('CursorMoved', () => {
+            if (!this.enabled)
+                return;
             this.resolveCodeLens();
         }, null, this.disposables);
         events_1.default.on('BufUnload', bufnr => {
-            let buf = this.nvim.createBuffer(bufnr);
-            if (this.nvim.hasFunction('nvim_create_namespace')) {
-                buf.clearNamespace(this.srcId);
-            }
-            else {
-                buf.clearHighlight({ srcId: this.srcId });
-            }
+            if (!this.enabled)
+                return;
+            this.clear(bufnr);
         }, null, this.disposables);
         events_1.default.on('BufEnter', bufnr => {
+            if (!this.enabled)
+                return;
             setTimeout(async () => {
                 if (workspace_1.default.bufnr == bufnr) {
                     await this.fetchDocumentCodeLenses();
@@ -72523,6 +72470,8 @@ class CodeLensManager {
             }, 100);
         }, null, this.disposables);
         events_1.default.on('InsertLeave', async () => {
+            if (!this.enabled)
+                return;
             let { bufnr } = workspace_1.default;
             let info = this.codeLensMap.get(bufnr);
             if (info && info.version != this.version) {
@@ -72532,16 +72481,23 @@ class CodeLensManager {
             }
         }, null, this.disposables);
         this.resolveCodeLens = debounce_1.default(() => {
-            this._resolveCodeLenses().catch(e => {
-                logger.error(e);
-            });
+            this._resolveCodeLenses().logError();
         }, 200);
     }
-    setConfiguration() {
+    setConfiguration(e) {
+        if (e && !e.affectsConfiguration('codeLens'))
+            return;
         let { nvim } = this;
-        let config = workspace_1.default.getConfiguration('coc.preferences.codeLens');
-        if (Object.keys(config).length == 0) {
-            config = workspace_1.default.getConfiguration('codeLens');
+        let config = workspace_1.default.getConfiguration('codeLens');
+        if (e) {
+            if (!this.enabled && config.get('enable')) {
+                this.fetchDocumentCodeLenses().logError();
+            }
+            else if (this.enabled && config.get('enable') == false) {
+                workspace_1.default.documents.forEach(doc => {
+                    this.clear(doc.bufnr);
+                });
+            }
         }
         this.separator = config.get('separator', '‣');
         this.subseparator = config.get('subseparator', ' ');
@@ -72612,8 +72568,6 @@ class CodeLensManager {
         let { nvim } = this;
         let { bufnr } = workspace_1.default;
         let { codeLenses, version } = this.codeLensMap.get(bufnr) || {};
-        if (workspace_1.default.insertMode)
-            return;
         if (codeLenses && codeLenses.length) {
             // resolve codeLens of current window
             let start = await nvim.call('line', 'w0');
@@ -72640,9 +72594,7 @@ class CodeLensManager {
         }
         if (codeLenses && codeLenses.length)
             await this.setVirtualText(doc.buffer, codeLenses);
-        nvim.resumeNotification().catch(_e => {
-            // noop
-        });
+        await nvim.resumeNotification(false, true);
     }
     async doAction() {
         let { nvim } = this;
@@ -72692,6 +72644,17 @@ class CodeLensManager {
             commands_1.default.execute(commands[res]);
         }
     }
+    clear(bufnr) {
+        if (!this.enabled)
+            return;
+        let buf = this.nvim.createBuffer(bufnr);
+        if (this.nvim.hasFunction('nvim_create_namespace')) {
+            buf.clearNamespace(this.srcId);
+        }
+        else {
+            buf.clearHighlight({ srcId: this.srcId });
+        }
+    }
     validDocument(doc) {
         if (!doc)
             return false;
@@ -72714,7 +72677,7 @@ exports.default = CodeLensManager;
 //# sourceMappingURL=codelens.js.map
 
 /***/ }),
-/* 506 */
+/* 505 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -72728,7 +72691,7 @@ const languages_1 = tslib_1.__importDefault(__webpack_require__(385));
 const util_1 = __webpack_require__(217);
 const object_1 = __webpack_require__(228);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
-const highlighter_1 = tslib_1.__importStar(__webpack_require__(507));
+const highlighter_1 = tslib_1.__importStar(__webpack_require__(506));
 const logger = __webpack_require__(44)('colors');
 class Colors {
     constructor(nvim) {
@@ -72922,7 +72885,7 @@ exports.default = Colors;
 //# sourceMappingURL=colors.js.map
 
 /***/ }),
-/* 507 */
+/* 506 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -73068,7 +73031,7 @@ function isDark(color) {
 //# sourceMappingURL=highlighter.js.map
 
 /***/ }),
-/* 508 */
+/* 507 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -73169,7 +73132,7 @@ exports.default = DocumentHighlighter;
 //# sourceMappingURL=documentHighlight.js.map
 
 /***/ }),
-/* 509 */
+/* 508 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -73846,14 +73809,14 @@ function emptyWorkspaceEdit(edit) {
 //# sourceMappingURL=refactor.js.map
 
 /***/ }),
-/* 510 */
+/* 509 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(45);
-const await_semaphore_1 = __webpack_require__(511);
+const await_semaphore_1 = __webpack_require__(510);
 const child_process_1 = __webpack_require__(218);
 const events_1 = __webpack_require__(177);
 const path_1 = tslib_1.__importDefault(__webpack_require__(62));
@@ -74050,7 +74013,7 @@ exports.default = Search;
 //# sourceMappingURL=search.js.map
 
 /***/ }),
-/* 511 */
+/* 510 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";

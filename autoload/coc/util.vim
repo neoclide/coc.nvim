@@ -262,8 +262,11 @@ function! coc#util#version()
   return lines[0]
 endfunction
 
-function! coc#util#valid_state()
-  if s:is_vim && mode() !=# 'n'
+function! coc#util#check_refresh(bufnr)
+  if !bufloaded(a:bufnr)
+    return 0
+  endif
+  if getbufvar(a:bufnr, 'coc_diagnostic_disable', 0)
     return 0
   endif
   if get(g: , 'EasyMotion_loaded', 0)
