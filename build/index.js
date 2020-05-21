@@ -22520,7 +22520,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "04f94eba65" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "05f8f7bd71" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -23505,8 +23505,8 @@ class DiagnosticManager {
         if (this.timer)
             clearTimeout(this.timer);
         let useFloat = config.messageTarget == 'float';
-        let [bufnr, cursor, filetype, mode] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),&filetype,mode()]');
-        if (mode != 'n' || bufnr == this.floatFactory.bufnr)
+        let [bufnr, cursor, filetype, mode, disabled] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),&filetype,mode(),get(b:,"coc_diagnostic_disable",0)]');
+        if (mode != 'n' || bufnr == this.floatFactory.bufnr || disabled)
             return;
         let diagnostics = this.getDiagnosticsAt(bufnr, cursor);
         if (diagnostics.length == 0) {
