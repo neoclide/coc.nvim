@@ -15316,7 +15316,7 @@ class Events {
                 await Promise.all(cbs.map(fn => fn(args)));
             }
             catch (e) {
-                if (e.message) {
+                if (e.message && e.message.indexOf('transport disconnected') == -1) {
                     console.error(`Error on ${event}: ${e.message}${e.stack ? '\n' + e.stack : ''} `);
                 }
                 logger.error(`Handler Error on ${event}`, e.stack);
@@ -22294,8 +22294,8 @@ const services_1 = tslib_1.__importDefault(__webpack_require__(413));
 const manager_3 = tslib_1.__importDefault(__webpack_require__(235));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(311));
 const types_1 = __webpack_require__(240);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
 const util_1 = __webpack_require__(217);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(236));
 const logger = __webpack_require__(44)('plugin');
 class Plugin extends events_1.EventEmitter {
     constructor(nvim) {
@@ -22520,7 +22520,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "42353685a1" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "0c2ff5e505" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -22648,6 +22648,10 @@ class Plugin extends events_1.EventEmitter {
                     return services_1.default.toggle(args[1]);
                 case 'codeAction':
                     return handler.doCodeAction(args[1], args[2]);
+                case 'organizeImport':
+                    return handler.doCodeAction(null, [vscode_languageserver_types_1.CodeActionKind.SourceOrganizeImports]);
+                case 'fixAll':
+                    return handler.doCodeAction(null, [vscode_languageserver_types_1.CodeActionKind.SourceFixAll]);
                 case 'doCodeAction':
                     return await handler.applyCodeAction(args[1]);
                 case 'codeActions':
@@ -24714,13 +24718,16 @@ class Workspace {
             }
             if (locations.length) {
                 let items = await Promise.all(locations.map(loc => this.getQuickfixItem(loc)));
+                let silent = locations.every(l => l.uri == uri);
                 if (listTarget == 'quickfix') {
                     await this.nvim.call('setqflist', [items]);
-                    this.showMessage(`changed ${changeCount} buffers, use :wa to save changes to disk and :copen to open quickfix list`, 'more');
+                    if (!silent)
+                        this.showMessage(`changed ${changeCount} buffers, use :wa to save changes to disk and :copen to open quickfix list`, 'more');
                 }
                 else if (listTarget == 'location') {
                     await nvim.setVar('coc_jump_locations', items);
-                    this.showMessage(`changed ${changeCount} buffers, use :wa to save changes to disk and :CocList location to manage changed locations`, 'more');
+                    if (!silent)
+                        this.showMessage(`changed ${changeCount} buffers, use :wa to save changes to disk and :CocList location to manage changed locations`, 'more');
                 }
             }
         }
@@ -24770,11 +24777,20 @@ class Workspace {
     createMru(name) {
         return new mru_1.default(name);
     }
+    /**
+     * Get selected range for current document
+     */
     async getSelectedRange(mode, document) {
         let { nvim } = this;
+        if (mode == 'n') {
+            let line = await nvim.call('line', ['.']);
+            let content = document.getline(line - 1);
+            if (!content.length)
+                return null;
+            return vscode_languageserver_protocol_1.Range.create(line - 1, 0, line - 1, content.length);
+        }
         if (!['v', 'V', 'char', 'line', '\x16'].includes(mode)) {
-            this.showMessage(`Mode '${mode}' is not supported`, 'error');
-            return null;
+            throw new Error(`Mode '${mode}' not supported`);
         }
         let isVisual = ['v', 'V', '\x16'].includes(mode);
         let [, sl, sc] = await nvim.call('getpos', isVisual ? `'<` : `'[`);
@@ -40413,10 +40429,10 @@ class Extensions {
             let ts = this.db.fetch('lastUpdate');
             if (ts && Number(ts) > day.getTime())
                 return;
-            this.updateExtensions().logError();
+            this.updateExtensions(false, true).logError();
         }
     }
-    async updateExtensions(sync) {
+    async updateExtensions(sync, silent = false) {
         if (!this.root)
             await this.initializeRoot();
         if (!this.npm)
@@ -40425,7 +40441,7 @@ class Extensions {
         let stats = await this.globalExtensionStats();
         stats = stats.filter(o => ![...lockedList, ...this.disabled].includes(o.id));
         this.db.push('lastUpdate', Date.now());
-        let installBuffer = this.installBuffer = new installBuffer_1.default(true, sync);
+        let installBuffer = this.installBuffer = new installBuffer_1.default(true, sync, silent);
         installBuffer.setExtensions(stats.map(o => o.id));
         await installBuffer.show(workspace_1.default.nvim);
         let createInstaller = installer_1.createInstallerFactory(this.npm, this.modulesFolder);
@@ -41237,10 +41253,11 @@ var State;
     State[State["Success"] = 3] = "Success";
 })(State = exports.State || (exports.State = {}));
 class InstallBuffer extends events_1.default {
-    constructor(isUpdate = false, isSync = false) {
+    constructor(isUpdate = false, isSync = false, silent = false) {
         super();
         this.isUpdate = isUpdate;
         this.isSync = isSync;
+        this.silent = silent;
         this.statMap = new Map();
         this.messagesMap = new Map();
         this.names = [];
@@ -41327,6 +41344,8 @@ class InstallBuffer extends events_1.default {
     }
     async show(nvim) {
         let { isSync } = this;
+        if (this.silent)
+            return;
         nvim.pauseNotification();
         nvim.command(isSync ? 'enew' : 'vs +enew', true);
         nvim.call('bufnr', ['%'], true);
@@ -54086,6 +54105,7 @@ const tslib_1 = __webpack_require__(45);
 const vscode_languageserver_protocol_1 = __webpack_require__(190);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(387));
 const uuid_1 = __webpack_require__(277);
+const array_1 = __webpack_require__(264);
 const logger = __webpack_require__(44)('codeActionManager');
 class CodeActionManager extends manager_1.default {
     register(selector, provider, clientId, codeActionKinds) {
@@ -54128,7 +54148,15 @@ class CodeActionManager extends manager_1.default {
                     }
                     else {
                         if (context.only) {
-                            if (!action.kind || !context.only.includes(action.kind)) {
+                            if (!action.kind)
+                                continue;
+                            let { only } = context;
+                            if (array_1.intersect(only, [vscode_languageserver_protocol_1.CodeActionKind.Source, vscode_languageserver_protocol_1.CodeActionKind.Refactor])) {
+                                if (!only.includes(action.kind.split('.', 2)[0])) {
+                                    continue;
+                                }
+                            }
+                            else if (!context.only.includes(action.kind)) {
                                 continue;
                             }
                         }
@@ -55262,15 +55290,26 @@ class FloatBuffer {
         if (highlights && highlights.length) {
             let positions = [];
             for (let highlight of highlights) {
+                if (highlight.hlGroup == 'htmlBold') {
+                    highlight.hlGroup = 'CocBold';
+                }
                 buffer.addHighlight(Object.assign({ srcId: workspace_1.default.createNameSpace('coc-float') }, highlight)).logError();
                 if (highlight.isMarkdown) {
                     let line = lines[highlight.line];
                     if (line) {
-                        let before = line[string_1.characterIndex(line, highlight.colStart)];
-                        let after = line[string_1.characterIndex(line, highlight.colEnd) - 1];
+                        let si = string_1.characterIndex(line, highlight.colStart);
+                        let ei = string_1.characterIndex(line, highlight.colEnd) - 1;
+                        let before = line[si];
+                        let after = line[ei];
                         if (before == after && ['_', '`', '*'].includes(before)) {
-                            positions.push([highlight.line + 1, highlight.colStart + 1]);
-                            positions.push([highlight.line + 1, highlight.colEnd]);
+                            if (before == '_' && line[si + 1] == '_' && line[ei - 1] == '_' && si + 1 < ei - 1) {
+                                positions.push([highlight.line + 1, highlight.colStart + 1, 2]);
+                                positions.push([highlight.line + 1, highlight.colEnd - 1, 2]);
+                            }
+                            else {
+                                positions.push([highlight.line + 1, highlight.colStart + 1]);
+                                positions.push([highlight.line + 1, highlight.colEnd]);
+                            }
                         }
                         if (highlight.colEnd - highlight.colStart == 2 && before == '\\') {
                             positions.push([highlight.line + 1, highlight.colStart + 1]);
@@ -71601,17 +71640,7 @@ class Handler {
         let document = workspace_1.default.getDocument(bufnr);
         if (!document)
             return [];
-        if (!range) {
-            const position = await workspace_1.default.getCursorPosition();
-            range = document.getWordRangeAtPosition(position);
-        }
-        if (!range) {
-            let lnum = await this.nvim.call('line', ['.']);
-            range = {
-                start: { line: lnum - 1, character: 0 },
-                end: { line: lnum, character: 0 }
-            };
-        }
+        range = range || vscode_languageserver_protocol_1.Range.create(0, 0, document.lineCount, 0);
         let diagnostics = manager_1.default.getDiagnosticsInRange(document.textDocument, range);
         let context = { diagnostics };
         if (only && Array.isArray(only))
@@ -71643,23 +71672,23 @@ class Handler {
         if (mode)
             range = await workspace_1.default.getSelectedRange(mode, workspace_1.default.getDocument(bufnr));
         let codeActions = await this.getCodeActions(bufnr, range, Array.isArray(only) ? only : null);
+        if (only && typeof only == 'string') {
+            codeActions = codeActions.filter(o => o.title == only || (o.command && o.command.title == only));
+        }
         if (!codeActions || codeActions.length == 0) {
-            workspace_1.default.showMessage('No action available', 'warning');
+            workspace_1.default.showMessage(`CodeAction${only ? ' ' + only : ''} not found`, 'warning');
             return;
         }
-        if (only && typeof only == 'string') {
-            let action = codeActions.find(o => o.title == only || (o.command && o.command.title == only));
-            if (!action)
-                return workspace_1.default.showMessage(`action "${only}" not found.`, 'warning');
-            await this.applyCodeAction(action);
-        }
-        else {
+        if (!only || codeActions.length > 1) {
             let idx = await workspace_1.default.showQuickpick(codeActions.map(o => o.title));
             if (idx == -1)
                 return;
             let action = codeActions[idx];
             if (action)
                 await this.applyCodeAction(action);
+        }
+        else {
+            await this.applyCodeAction(codeActions[0]);
         }
     }
     /**
