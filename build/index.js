@@ -22520,7 +22520,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "881f98ce99" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "04f94eba65" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -55371,7 +55371,7 @@ class FloatBuffer {
             let filtered = doc.filetype == 'markdown' ? lines.filter(s => !/^\s*```/.test(s)) : lines;
             newLines.push(...filtered);
             if (idx != docs.length - 1) {
-                newLines.push('—'.repeat(width - 2));
+                newLines.push('\u2500'.repeat(width - 2));
                 currLine = newLines.length;
             }
             idx = idx + 1;

@@ -205,19 +205,19 @@ function! coc#util#create_float_win(winid, bufnr, config) abort
     let bufnr = coc#util#create_float_buf(a:bufnr)
     let winid = nvim_open_win(bufnr, 0, a:config)
     call setwinvar(winid, '&foldcolumn', 1)
-    call setwinvar(winid, '&list', 0)
-    call setwinvar(winid, '&wrap', 1)
-    call setwinvar(winid, '&number', 0)
-    call setwinvar(winid, '&relativenumber', 0)
-    call setwinvar(winid, '&cursorcolumn', 0)
-    call setwinvar(winid, '&cursorline', 0)
-    call setwinvar(winid, '&colorcolumn', 0)
-    call setwinvar(winid, '&signcolumn', 'no')
     call setwinvar(winid, '&winhl', 'Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating')
   endif
   if winid <= 0
     return null
   endif
+  call setwinvar(winid, '&list', 0)
+  call setwinvar(winid, '&wrap', 1)
+  call setwinvar(winid, '&number', 0)
+  call setwinvar(winid, '&relativenumber', 0)
+  call setwinvar(winid, '&cursorcolumn', 0)
+  call setwinvar(winid, '&cursorline', 0)
+  call setwinvar(winid, '&colorcolumn', 0)
+  call setwinvar(winid, '&signcolumn', 'no')
   call setwinvar(winid, 'float', 1)
   call setwinvar(winid, '&wrap', 1)
   call setwinvar(winid, '&linebreak', 1)
@@ -803,7 +803,7 @@ function! coc#util#vim_info()
         \ 'locationlist': get(g:,'coc_enable_locationlist', 1),
         \ 'progpath': v:progpath,
         \ 'guicursor': &guicursor,
-        \ 'textprop': has('textprop') && has('patch-8.1.1610') && !has('nvim') ? v:true : v:false,
+        \ 'textprop': has('textprop') && has('patch-8.1.1719') && !has('nvim') ? v:true : v:false,
         \}
 endfunction
 
@@ -1179,12 +1179,10 @@ function! s:popup_cursor(n) abort
 endfunction
 
 function! coc#util#set_buf_lines(bufnr, lines) abort
-  if !bufloaded(a:bufnr)
-    return
+  let res = setbufline(a:bufnr, 1, a:lines)
+  if res == 0
+    call deletebufline(a:bufnr, len(a:lines) + 1, '$')
   endif
-  let info = getbufinfo(a:bufnr)
-  noa call appendbufline(a:bufnr, '$', a:lines)
-  noa call deletebufline(a:bufnr, 1, info[0]['linecount'])
 endfunction
 
 " get tabsize & expandtab option
