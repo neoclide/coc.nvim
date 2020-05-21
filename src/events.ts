@@ -71,7 +71,7 @@ class Events {
       try {
         await Promise.all(cbs.map(fn => fn(args)))
       } catch (e) {
-        if (e.message) {
+        if (e.message && e.message.indexOf('transport disconnected') == -1) {
           console.error(`Error on ${event}: ${e.message}${e.stack ? '\n' + e.stack : ''} `)
         }
         logger.error(`Handler Error on ${event}`, e.stack)
