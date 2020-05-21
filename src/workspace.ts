@@ -575,12 +575,13 @@ export class Workspace implements IWorkspace {
       }
       if (locations.length) {
         let items = await Promise.all(locations.map(loc => this.getQuickfixItem(loc)))
+        let silent = locations.every(l => l.uri == uri)
         if (listTarget == 'quickfix') {
           await this.nvim.call('setqflist', [items])
-          this.showMessage(`changed ${changeCount} buffers, use :wa to save changes to disk and :copen to open quickfix list`, 'more')
+          if (!silent) this.showMessage(`changed ${changeCount} buffers, use :wa to save changes to disk and :copen to open quickfix list`, 'more')
         } else if (listTarget == 'location') {
           await nvim.setVar('coc_jump_locations', items)
-          this.showMessage(`changed ${changeCount} buffers, use :wa to save changes to disk and :CocList location to manage changed locations`, 'more')
+          if (!silent) this.showMessage(`changed ${changeCount} buffers, use :wa to save changes to disk and :CocList location to manage changed locations`, 'more')
         }
       }
     } catch (e) {
@@ -629,11 +630,13 @@ export class Workspace implements IWorkspace {
     return new Mru(name)
   }
 
+  /**
+   * Get selected range for current document
+   */
   public async getSelectedRange(mode: string, document: Document): Promise<Range | null> {
     let { nvim } = this
     if (!['v', 'V', 'char', 'line', '\x16'].includes(mode)) {
-      this.showMessage(`Mode '${mode}' is not supported`, 'error')
-      return null
+      throw new Error(`Mode '${mode}' not supported`)
     }
     let isVisual = ['v', 'V', '\x16'].includes(mode)
     let [, sl, sc] = await nvim.call('getpos', isVisual ? `'<` : `'[`) as [number, number, number]
