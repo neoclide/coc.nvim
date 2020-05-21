@@ -148,6 +148,12 @@ export default class FloatBuffer {
       let lines: string[] = []
       let arr = doc.content.split(/\r?\n/)
       for (let str of arr) {
+        if (doc.filetype == 'markdown') {
+          // replace `\` surrounded by `__` because bug of markdown highlight in vim.
+          str = str.replace(/__(.+?)__/g, (_, p1) => {
+            return `__${p1.replace(/\\/g, '')}__`
+          })
+        }
         lines.push(str)
         if (doc.active) {
           let part = str.slice(doc.active[0], doc.active[1])
