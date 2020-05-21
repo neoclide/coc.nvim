@@ -131,7 +131,7 @@ Built-in configurations:~
 							*coc-config-suggest*
 "suggest.enablePreselect":~
 
-	Enable preselect feature on Neovim, default: `true`
+	Enable preselect feature on Neovim, default: `false`
 
 "suggest.maxPreviewWidth":~
 
