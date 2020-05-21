@@ -979,7 +979,7 @@ normal mode, `v_` works for visual mode.
 
 <Plug>(coc-codeaction)				*n_coc-codeaction*
 
-			Get and run code action(s) for current line.
+			Get and run code action(s) for current file.
 
 <Plug>(coc-codeaction-selected)			*n_coc-codeaction-selected*
 						*v_coc-codeaction-selected*
@@ -1902,15 +1902,37 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	Requires a language server that supports color representation
 	requests.
 
-"codeActions" [{visualmode}] [{only}]		*coc-action-codeActions*
+"codeActions" [{mode}] [{only}]			*coc-action-codeActions*
 
-	Get codeActions of current range.
+	Get and invoke codeActions on current document, quickpick menu would
+	be shown when there're many codeActions.
 
-	{visualmode} can be result of |visualmode()| for visual selected
-	range, When it's empty string or not exists use current line.
+	{mode} can be result of |visualmode()| for visual selected
+	range.  When it's falsy value, current file is used as range.
 
-	{only} can be used to limit codeActionKind, possible values:
-	'refactor', 'quickfix' and 'source'.
+	{only} can be array of codeActionKind, possible values including:
+	 - 'refactor': Base kind for refactoring actions
+	 - 'quickfix': base kind for quickfix actions
+	 - 'refactor.extract': Base kind for refactoring extraction actions
+	 - 'refactor.inline': Base kind for refactoring inline actions
+	 - 'refactor.rewrite': Base kind for refactoring rewrite actions
+	 - 'source': Base kind for source actions
+	 - 'source.organizeImports': Base kind for an organize imports source
+	   action
+	 - 'source.fixAll': Base kind for auto-fix source actions
+
+	{only} can also be string, which means filter by tilte of codeAction.
+
+"organizeImport" 				*coc-action-organizeImport*
+
+	Run organize import codeAction for current buffer.
+	Show warning when codeAction not found.
+
+"fixAll" 					*coc-action-fixAll*
+
+	Run fixAll codeAction ofr current buffer.
+	Show warning when codeAction not found.
+	
 
 "quickfixes" [{visualmode}]			*coc-action-quickfixes*
 

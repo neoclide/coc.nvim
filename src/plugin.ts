@@ -13,8 +13,8 @@ import services from './services'
 import snippetManager from './snippets/manager'
 import sources from './sources'
 import { Autocmd, OutputChannel, PatternType } from './types'
-import workspace from './workspace'
 import { CONFIG_FILE_NAME } from './util'
+import workspace from './workspace'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -171,7 +171,6 @@ export default class Plugin extends EventEmitter {
       console.error(`Error on initialize: ${e.stack}`)
       logger.error(e.stack)
     }
-
     workspace.onDidOpenTextDocument(async doc => {
       if (!doc.uri.endsWith(CONFIG_FILE_NAME)) return
       if (extensions.has('coc-json') || extensions.isDisabled('coc-json')) return
@@ -367,6 +366,10 @@ export default class Plugin extends EventEmitter {
           return services.toggle(args[1])
         case 'codeAction':
           return handler.doCodeAction(args[1], args[2])
+        case 'organizeImport':
+          return handler.doCodeAction(null, [CodeActionKind.SourceOrganizeImports])
+        case 'fixAll':
+          return handler.doCodeAction(null, [CodeActionKind.SourceFixAll])
         case 'doCodeAction':
           return await handler.applyCodeAction(args[1])
         case 'codeActions':

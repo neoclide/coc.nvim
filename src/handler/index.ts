@@ -558,17 +558,7 @@ export default class Handler {
   public async getCodeActions(bufnr: number, range?: Range, only?: CodeActionKind[]): Promise<CodeAction[]> {
     let document = workspace.getDocument(bufnr)
     if (!document) return []
-    if (!range) {
-      const position = await workspace.getCursorPosition()
-      range = document.getWordRangeAtPosition(position)
-    }
-    if (!range) {
-      let lnum = await this.nvim.call('line', ['.'])
-      range = {
-        start: { line: lnum - 1, character: 0 },
-        end: { line: lnum, character: 0 }
-      }
-    }
+    range = range || Range.create(0, 0, document.lineCount, 0)
     let diagnostics = diagnosticManager.getDiagnosticsInRange(document.textDocument, range)
     let context: CodeActionContext = { diagnostics }
     if (only && Array.isArray(only)) context.only = only
@@ -598,19 +588,20 @@ export default class Handler {
     let range: Range
     if (mode) range = await workspace.getSelectedRange(mode, workspace.getDocument(bufnr))
     let codeActions = await this.getCodeActions(bufnr, range, Array.isArray(only) ? only : null)
+    if (only && typeof only == 'string') {
+      codeActions = codeActions.filter(o => o.title == only || (o.command && o.command.title == only))
+    }
     if (!codeActions || codeActions.length == 0) {
-      workspace.showMessage('No action available', 'warning')
+      workspace.showMessage(`CodeAction${only ? ' ' + only : ''} not found`, 'warning')
       return
     }
-    if (only && typeof only == 'string') {
-      let action = codeActions.find(o => o.title == only || (o.command && o.command.title == only))
-      if (!action) return workspace.showMessage(`action "${only}" not found.`, 'warning')
-      await this.applyCodeAction(action)
-    } else {
+    if (!only || codeActions.length > 1) {
       let idx = await workspace.showQuickpick(codeActions.map(o => o.title))
       if (idx == -1) return
       let action = codeActions[idx]
       if (action) await this.applyCodeAction(action)
+    } else {
+      await this.applyCodeAction(codeActions[0])
     }
   }
 
