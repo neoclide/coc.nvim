@@ -364,6 +364,7 @@ vnoremap <Plug>(coc-format-selected)       :<C-u>call       CocActionAsync('form
 vnoremap <Plug>(coc-codeaction-selected)   :<C-u>call       CocActionAsync('codeAction',         visualmode())<CR>
 nnoremap <Plug>(coc-codeaction-selected)   :<C-u>set        operatorfunc=<SID>CodeActionFromSelected<CR>g@
 nnoremap <Plug>(coc-codeaction)            :<C-u>call       CocActionAsync('codeAction',         '')<CR>
+nnoremap <Plug>(coc-codeaction-line)       :<C-u>call       CocActionAsync('codeAction',         'n')<CR>
 nnoremap <Plug>(coc-rename)                :<C-u>call       CocActionAsync('rename')<CR>
 nnoremap <Plug>(coc-format-selected)       :<C-u>set        operatorfunc=<SID>FormatFromSelected<CR>g@
 nnoremap <Plug>(coc-format)                :<C-u>call       CocActionAsync('format')<CR>

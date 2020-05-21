@@ -981,6 +981,10 @@ normal mode, `v_` works for visual mode.
 
 			Get and run code action(s) for current file.
 
+<Plug>(coc-codeaction-line)			*n_coc-codeaction-line*
+
+			Get and run code action(s) for current line.
+
 <Plug>(coc-codeaction-selected)			*n_coc-codeaction-selected*
 						*v_coc-codeaction-selected*
 
