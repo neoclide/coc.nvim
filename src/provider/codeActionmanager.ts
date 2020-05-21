@@ -3,6 +3,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CodeActionProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
+import { intersect } from '../util/array'
 const logger = require('../util/logger')('codeActionManager')
 
 export default class CodeActionManager extends Manager<CodeActionProvider> implements Disposable {
@@ -50,7 +51,13 @@ export default class CodeActionManager extends Manager<CodeActionProvider> imple
             codeActions.push(CodeAction.create(action.title, action))
           } else {
             if (context.only) {
-              if (!action.kind || !context.only.includes(action.kind)) {
+              if (!action.kind) continue
+              let { only } = context
+              if (intersect(only, [CodeActionKind.Source, CodeActionKind.Refactor])) {
+                if (!only.includes(action.kind.split('.', 2)[0])) {
+                  continue
+                }
+              } else if (!context.only.includes(action.kind)) {
                 continue
               }
             }
