@@ -86,6 +86,9 @@ export default class FloatBuffer {
     if (highlights && highlights.length) {
       let positions: [number, number, number?][] = []
       for (let highlight of highlights) {
+        if (highlight.hlGroup == 'htmlBold') {
+          highlight.hlGroup = 'CocBold'
+        }
         buffer.addHighlight({
           srcId: workspace.createNameSpace('coc-float'),
           ...highlight
@@ -93,11 +96,18 @@ export default class FloatBuffer {
         if (highlight.isMarkdown) {
           let line = lines[highlight.line]
           if (line) {
-            let before = line[characterIndex(line, highlight.colStart)]
-            let after = line[characterIndex(line, highlight.colEnd) - 1]
+            let si = characterIndex(line, highlight.colStart)
+            let ei = characterIndex(line, highlight.colEnd) - 1
+            let before = line[si]
+            let after = line[ei]
             if (before == after && ['_', '`', '*'].includes(before)) {
-              positions.push([highlight.line + 1, highlight.colStart + 1])
-              positions.push([highlight.line + 1, highlight.colEnd])
+              if (before == '_' && line[si + 1] == '_' && line[ei - 1] == '_' && si + 1 < ei - 1) {
+                positions.push([highlight.line + 1, highlight.colStart + 1, 2])
+                positions.push([highlight.line + 1, highlight.colEnd - 1, 2])
+              } else {
+                positions.push([highlight.line + 1, highlight.colStart + 1])
+                positions.push([highlight.line + 1, highlight.colEnd])
+              }
             }
             if (highlight.colEnd - highlight.colStart == 2 && before == '\\') {
               positions.push([highlight.line + 1, highlight.colStart + 1])

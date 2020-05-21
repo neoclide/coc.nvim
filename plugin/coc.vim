@@ -244,6 +244,7 @@ endfunction
 
 function! s:Hi() abort
   hi default CocUnderline    cterm=underline gui=underline
+  hi default CocBold         term=bold cterm=bold gui=bold
   hi default CocErrorSign    ctermfg=Red     guifg=#ff0000
   hi default CocWarningSign  ctermfg=Brown   guifg=#ff922b
   hi default CocInfoSign     ctermfg=Yellow  guifg=#fab005
