@@ -156,18 +156,18 @@ export class Extensions {
       let day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (interval == 'daily' ? 0 : 7))
       let ts = this.db.fetch('lastUpdate')
       if (ts && Number(ts) > day.getTime()) return
-      this.updateExtensions().logError()
+      this.updateExtensions(false, true).logError()
     }
   }
 
-  public async updateExtensions(sync?: boolean): Promise<Disposable | null> {
+  public async updateExtensions(sync?: boolean, silent = false): Promise<Disposable | null> {
     if (!this.root) await this.initializeRoot()
     if (!this.npm) return
     let lockedList = await this.getLockedList()
     let stats = await this.globalExtensionStats()
     stats = stats.filter(o => ![...lockedList, ...this.disabled].includes(o.id))
     this.db.push('lastUpdate', Date.now())
-    let installBuffer = this.installBuffer = new InstallBuffer(true, sync)
+    let installBuffer = this.installBuffer = new InstallBuffer(true, sync, silent)
     installBuffer.setExtensions(stats.map(o => o.id))
     await installBuffer.show(workspace.nvim)
     let createInstaller = createInstallerFactory(this.npm, this.modulesFolder)

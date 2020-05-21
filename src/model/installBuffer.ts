@@ -18,7 +18,7 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
   private interval: NodeJS.Timer
   public bufnr: number
 
-  constructor(private isUpdate = false, private isSync = false) {
+  constructor(private isUpdate = false, private isSync = false, private silent = false) {
     super()
   }
 
@@ -111,6 +111,7 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
 
   public async show(nvim: Neovim): Promise<void> {
     let { isSync } = this
+    if (this.silent) return
     nvim.pauseNotification()
     nvim.command(isSync ? 'enew' : 'vs +enew', true)
     nvim.call('bufnr', ['%'], true)
