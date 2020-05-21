@@ -22520,7 +22520,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "0c2ff5e505" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "881f98ce99" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -55351,6 +55351,12 @@ class FloatBuffer {
             let lines = [];
             let arr = doc.content.split(/\r?\n/);
             for (let str of arr) {
+                if (doc.filetype == 'markdown') {
+                    // replace `\` surrounded by `__` because bug of markdown highlight in vim.
+                    str = str.replace(/__(.+?)__/g, (_, p1) => {
+                        return `__${p1.replace(/\\/g, '')}__`;
+                    });
+                }
                 lines.push(str);
                 if (doc.active) {
                     let part = str.slice(doc.active[0], doc.active[1]);
