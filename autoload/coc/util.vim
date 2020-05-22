@@ -1129,10 +1129,14 @@ function! coc#util#open_files(files)
   " added on latest vim8
   if exists('*bufadd') && exists('*bufload')
     for file in a:files
-      let bufnr = bufadd(file)
-      call bufload(file)
-      call add(bufnrs, bufnr(file))
-      call setbufvar(bufnr, '&buflisted', 1)
+      if bufloaded(file)
+        call add(bufnrs, bufnr(file))
+      else
+        let bufnr = bufadd(file)
+        call bufload(file)
+        call add(bufnrs, bufnr)
+        call setbufvar(bufnr, '&buflisted', 1)
+      endif
     endfor
   else
     noa keepalt 1new +setl\ bufhidden=wipe
