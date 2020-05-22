@@ -1,9 +1,50 @@
 if exists('g:did_coc_loaded') || v:version < 800
   finish
 endif
-if has('nvim') && !has('nvim-0.3.0')
-  finish
-endif
+
+function! s:checkVersion() abort
+  let l:unsupported = 0
+  if get(g:, 'coc_disable_startup_warning', 0) != 1
+    if has('nvim')
+      let l:unsupported = !has('nvim-0.3.2')
+    else
+      let l:unsupported = !has('patch-8.0.1453')
+    endif
+
+    if l:unsupported == 1
+      echohl Error
+      echom "coc.nvim requires at least Vim 8.0.1453 or Neovim 0.3.2, but you're using an older version."
+      echom "Please upgrade your (neo)vim."
+      echom "You can set this to make this error message go away:"
+      echom "    let g:coc_disable_startup_warning = 1"
+      echom "Note that some features may error out or behave incorrectly."
+      echom "Please do not report bugs unless you're using at least Vim 8.0.1453 or Neovim 0.3.2."
+      echohl None
+      sleep 2
+    else
+      if has('nvim') && !has('nvim-0.4.3')
+        echohl WarningMsg
+        echom "coc.nvim works best on neovim >= 0.4.3, consider upgrade your neovim."
+        echom "You can set this to make this error message go away:"
+        echom "    let g:coc_disable_startup_warning = 1"
+        echom "Note that some features may behave incorrectly."
+        echohl None
+        sleep 2
+      elseif !has('nvim') && !has('patch-8.1.1719')
+        echohl WarningMsg
+        echom "coc.nvim need vim >= 8.1.1719 to support features like popup and text property."
+        echom "Consider upgrade your vim for better experience."
+        echom "You can set this to make this error message go away:"
+        echom "    let g:coc_disable_startup_warning = 1"
+        echohl None
+        sleep 2
+      endif
+    endif
+  endif
+endfunction
+
+call s:checkVersion()
+
 let g:did_coc_loaded = 1
 let g:coc_service_initialized = 0
 let s:is_win = has('win32') || has('win64')
