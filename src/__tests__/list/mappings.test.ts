@@ -64,9 +64,9 @@ const lineList: IList = {
       lines.push(i.toString())
     }
     return lines.map((line, idx) => ({
-        label: line,
-        data: { line: idx }
-      }))
+      label: line,
+      data: { line: idx }
+    }))
   }
 }
 
@@ -163,13 +163,13 @@ describe('list insert mappings', () => {
   it('should move cursor by <PageUp> and <PageDown>', async () => {
     let disposable = manager.registerList(lineList)
     await manager.start(['lines'])
-    await helper.wait(60)
+    await helper.wait(100)
     await nvim.eval('feedkeys("\\<PageDown>", "in")')
-    await helper.wait(60)
+    await helper.wait(100)
     let line = await nvim.eval('line(".")')
     expect(line).toBeGreaterThan(1)
     await nvim.eval('feedkeys("\\<PageUp>", "in")')
-    await helper.wait(60)
+    await helper.wait(100)
     disposable.dispose()
   })
 
