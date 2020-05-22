@@ -28,7 +28,7 @@ export class DiagnosticBuffer {
     this.srdId = workspace.createNameSpace('coc-diagnostic')
     this.refresh = debounce((diagnostics: Diagnostic[]) => {
       this._refresh(diagnostics).logError()
-    }, 200)
+    }, 300)
   }
 
   /**

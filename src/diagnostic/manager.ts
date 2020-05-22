@@ -213,7 +213,7 @@ export class DiagnosticManager implements Disposable {
       if (this.config.refreshAfterSave &&
         (refreshed || Date.now() - createTime > 5000)) return
       refreshed = true
-      this.refreshBuffer(uri, true)
+      this.refreshBuffer(uri)
     })
     collection.onDidDiagnosticsClear(uris => {
       for (let uri of uris) {
@@ -611,8 +611,9 @@ export class DiagnosticManager implements Disposable {
   public refreshBuffer(uri: string, force = false): boolean {
     let buf = Array.from(this.buffers.values()).find(o => o.uri == uri)
     if (!buf) return false
-    let { displayByAle } = this.config
+    let { displayByAle, refreshOnInsertMode } = this.config
     if (!displayByAle) {
+      if (refreshOnInsertMode && workspace.insertMode) return false
       let diagnostics = this.getDiagnostics(uri)
       if (this.enabled) {
         if (force) {

@@ -57,7 +57,7 @@ export default class Document {
     }, 200)
     this.fetchContent = debounce(() => {
       this._fetchContent().logError()
-    }, 50)
+    }, 100)
   }
 
   /**
