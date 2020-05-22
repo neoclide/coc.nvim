@@ -18,7 +18,10 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
   private interval: NodeJS.Timer
   public bufnr: number
 
-  constructor(private isUpdate = false, private isSync = false, private silent = false) {
+  constructor(
+    private isUpdate = false,
+    private isSync = false,
+    private silent = false) {
     super()
   }
 
@@ -89,9 +92,8 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
   }
 
   // draw frame
-  private draw(buffer: Buffer): void {
+  private draw(nvim: Neovim, buffer: Buffer): void {
     let { remains } = this
-    logger.debug('remains:', remains)
     let first = remains == 0 ? `${this.isUpdate ? 'Update' : 'Install'} finished` : `Installing, ${remains} remains...`
     let lines = [first, '', ...this.getLines()]
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -99,6 +101,9 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
     if (remains == 0 && this.interval) {
       clearInterval(this.interval)
       this.interval = null
+    }
+    if (process.env.VIM_NODE_RPC) {
+      nvim.command('redraw', true)
     }
   }
 
@@ -124,7 +129,7 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
     this.bufnr = bufnr
     let buffer = nvim.createBuffer(bufnr)
     this.interval = setInterval(() => {
-      this.draw(buffer)
+      this.draw(nvim, buffer)
     }, 100)
   }
 
