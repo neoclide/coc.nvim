@@ -13,13 +13,19 @@ function! s:checkEnvironment() abort
   endif
   let output = system(node . ' --version')
   if v:shell_error && output !=# ""
-    echohl Error | echom output | echohl None
-    return
+    let valid = 0
+    call health#report_error(output)
   endif
   let ms = matchlist(output, 'v\(\d\+\).\(\d\+\).\(\d\+\)')
-  if empty(ms) || str2nr(ms[1]) < 8 || (str2nr(ms[1]) == 8 && str2nr(ms[2]) < 10)
+  if empty(ms)
+    let valid = 0
+    call health#report_error('Unable to detect version of node, make sure your node executable is http://nodejs.org/')
+  elseif str2nr(ms[1]) < 8 || (str2nr(ms[1]) == 8 && str2nr(ms[2]) < 10)
     let valid = 0
     call health#report_error('Node.js version '.output.' < 8.10.0, please upgrade node.js')
+  elseif str2nr(ms[1]) < 10 || (str2nr(ms[1]) == 10 && str2nr(ms[2]) < 13)
+    let valid = 0
+    call health#report_warn('Node.js version '.output.' < 10.13.0, please upgrade node.js')
   endif
   if valid
     call health#report_ok('Environment check passed')
