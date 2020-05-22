@@ -52,10 +52,12 @@ function! s:start() dict
         \ 'VIM_NODE_RPC': '1',
         \ 'COC_NVIM': '1',
         \ 'COC_CHANNEL_TIMEOUT': get(g:, 'coc_channel_timeout', 30),
+        \ 'COC_NO_WARNINGS': get(g:, 'coc_disable_startup_warning', 0)
         \ }
     else
       let $VIM_NODE_RPC = 1
       let $COC_NVIM = 1
+      let $COC_NO_WARNINGS = get(g:, 'coc_disable_startup_warning', 0)
       let $COC_CHANNEL_TIMEOUT = get(g:, 'coc_channel_timeout', 30)
     endif
     let job = job_start(self.command, options)
@@ -68,13 +70,21 @@ function! s:start() dict
     let self['running'] = 1
     let self['channel'] = job_getchannel(job)
   else
+    let env = {}
+    if has('nvim-0.5.0')
+      let env = {
+        \   'COC_CHANNEL_TIMEOUT': get(g:, 'coc_channel_timeout', 30),
+        \   'COC_NO_WARNINGS': get(g:, 'coc_disable_startup_warning', 0),
+        \ }
+    else
+      let $COC_NO_WARNINGS = get(g:, 'coc_disable_startup_warning', 0)
+      let $COC_CHANNEL_TIMEOUT = get(g:, 'coc_channel_timeout', 30)
+    endif
     let chan_id = jobstart(self.command, {
           \ 'rpc': 1,
           \ 'on_stderr': {channel, msgs -> s:on_stderr(self.name, msgs)},
           \ 'on_exit': {channel, code -> s:on_exit(self.name, code)},
-          \ 'env': {
-          \   'COC_CHANNEL_TIMEOUT': get(g:, 'coc_channel_timeout', 30)
-          \  }
+          \ 'env': env
           \})
     if chan_id <= 0
       echohl Error | echom 'Failed to start '.self.name.' service' | echohl None

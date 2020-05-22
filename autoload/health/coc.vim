@@ -23,9 +23,9 @@ function! s:checkEnvironment() abort
   elseif str2nr(ms[1]) < 8 || (str2nr(ms[1]) == 8 && str2nr(ms[2]) < 10)
     let valid = 0
     call health#report_error('Node.js version '.output.' < 8.10.0, please upgrade node.js')
-  elseif str2nr(ms[1]) < 10 || (str2nr(ms[1]) == 10 && str2nr(ms[2]) < 13)
+  elseif str2nr(ms[1]) < 10 || (str2nr(ms[1]) == 10 && str2nr(ms[2]) < 12)
     let valid = 0
-    call health#report_warn('Node.js version '.output.' < 10.13.0, please upgrade node.js')
+    call health#report_warn('Node.js version '.trim(output).' < 10.12.0, please upgrade node.js')
   endif
   if valid
     call health#report_ok('Environment check passed')
@@ -41,16 +41,18 @@ function! s:checkEnvironment() abort
 endfunction
 
 function! s:checkCommand()
-  let file = s:root.'/build/index.js'
-  if filereadable(file) && !get(g:, 'coc_force_debug', 0)
-    call health#report_ok('Javascript bundle found')
-    return
-  endif
   let file = s:root.'/lib/attach.js'
-  if !filereadable(file)
-    call health#report_error('Javascript entry not found, run "yarn install" in folder of coc.nvim to fix it.')
+  if filereadable(file)
+    call health#report_ok('Javascript entry lib/attach.js found')
+  elseif isdirectory(s:root.'/src')
+    call health#report_error('Javascript entry not found, run "yarn install --frozen-lockfile" in terminal to fix it.')
   else
-    call health#report_ok('Build javascript found')
+    let file = s:root.'/build/index.js'
+    if filereadable(file)
+      call health#report_ok('Javascript bundle build/index.js found')
+    else
+    call health#report_error('Javascript entry not found, reinstall coc.nvim to fix it.')
+    endif
   endif
 endfunction
 

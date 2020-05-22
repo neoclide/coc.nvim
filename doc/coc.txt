@@ -1268,11 +1268,12 @@ g:coc_node_path					*g:coc_node_path*
 
 			Note: you can use `~` as home directory.
 
-g:coc_force_debug				*g:coc_force_debug*
+g:coc_force_bundle				*g:coc_force_bundle*
 
-			Coc would use the precompiled bundle when the bundle
-			file exists, set this to 1 to use compiled code instead
-			of bundle.
+			When lib folder with javascript code exists, coc.nvim
+			would use compiled javascript from lib folder, set
+			this variable to `1` if you want it use
+			`build/index.js` created by webpack.
 
 			Default: 0
 

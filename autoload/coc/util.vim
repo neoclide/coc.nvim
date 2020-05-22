@@ -307,20 +307,24 @@ function! coc#util#job_command()
     echohl Error | echom '[coc.nvim] "'.node.'" is not executable, checkout https://nodejs.org/en/download/' | echohl None
     return
   endif
-  let bundle = s:root.'/build/index.js'
-  if filereadable(bundle) && !get(g:, 'coc_force_debug', 0)
+  if filereadable(s:root.'/lib/attach.js') && !get(g:, 'coc_force_bundle', 0)
+    "use javascript from lib
+    return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/bin/server.js']
+  else
+    if !filereadable(s:root.'/build/index.js')
+      if isdirectory(s:root.'/src')
+        if get(g:, 'coc_force_bundle', 0)
+          echohl Error | echom '[coc.nvim] build/index.js not found, use webpack to create bundle' | echohl None
+        else
+          echohl Error | echom '[coc.nvim] javascript file not found, use "yarn install --frozen-lockfile" to compile' | echohl None
+        endif
+      else
+        echohl Error | echom '[coc.nvim] build/index.js not found, reinstall coc.nvim to fix.' | echohl None
+      endif
+      return
+    endif
     return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/build/index.js']
   endif
-  let file = s:root.'/lib/attach.js'
-  if !filereadable(file)
-    if !filereadable(bundle)
-      echohl Error | echom '[coc.nvim] javascript file not found, please compile the code or use release branch.' | echohl None
-    else
-      echohl Error | echom '[coc.nvim] compiled javascript file not found, remove let g:coc_force_debug = 1 in your vimrc.' | echohl None
-    endif
-    return
-  endif
-  return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/bin/server.js']
 endfunction
 
 function! coc#util#echo_hover(msg)

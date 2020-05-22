@@ -95,6 +95,11 @@ if (!semver.gte(version, '8.10.0')) {
   console.error('node version ' + version + ' < 8.10.0, please upgrade nodejs, or use `let g:coc_node_path = "/path/to/node"` in your vimrc')
   process.exit()
 }
+if (!semver.gte(version, '10.12.0')) {
+  if (process.env.COC_NO_WARNINGS != '1') {
+    console.error('node version ' + version + ' < 10.12.0, upgrade nodejs or use `let g:coc_disable_startup_warning = 1` to disable this warning.')
+  }
+}
 Object.defineProperty(console, 'log', {
   value: function () {
     logger.info(...arguments)
@@ -23221,6 +23226,7 @@ exports.typedArray = typedArray;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
+const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const events_1 = __webpack_require__(197);
 const vscode_languageserver_types_1 = __webpack_require__(222);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(251));
@@ -23461,7 +23467,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "b3dcc2c494" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "f552d4d75d" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -23478,6 +23484,7 @@ class Plugin extends events_1.EventEmitter {
         channel.appendLine('vim version: ' + first + `${workspace_1.default.isVim ? ' ' + workspace_1.default.env.version : ''}`);
         channel.appendLine('node version: ' + process.version);
         channel.appendLine('coc.nvim version: ' + this.version);
+        channel.appendLine('coc.nivm directory: ' + path_1.default.dirname(__dirname));
         channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM));
         channel.appendLine('platform: ' + process.platform);
         channel.appendLine('');
@@ -41420,10 +41427,14 @@ class Extensions {
                     let client = await watchman_1.default.createClient(watchmanPath, directory);
                     if (client) {
                         this.disposables.push(client);
-                        client.subscribe('**/*.js', debounce_1.debounce(async () => {
+                        client.subscribe('**/*.js', async () => {
                             await this.reloadExtension(name);
                             workspace_1.default.showMessage(`reloaded ${name}`);
-                        }, 100)).logError();
+                        }).then(disposable => {
+                            this.disposables.push(disposable);
+                        }, e => {
+                            logger.error(e);
+                        });
                     }
                 }
             }
@@ -41672,23 +41683,29 @@ class Extensions {
             await this.loadExtensionFile(path_1.default.join(folder, file));
         }
         let watchmanPath = workspace_1.default.getWatchmanPath();
+        if (!watchmanPath)
+            return;
         let client = await watchman_1.default.createClient(watchmanPath, folder);
-        if (client) {
-            this.disposables.push(client);
-            client.subscribe('*.js', async ({ root, files }) => {
-                files = files.filter(f => f.type == 'f');
-                for (let file of files) {
-                    let id = `single-` + path_1.default.basename(file.name, 'js');
-                    if (file.exists) {
-                        let filepath = path_1.default.join(root, file.name);
-                        await this.loadExtensionFile(filepath);
-                    }
-                    else {
-                        await this.unloadExtension(id);
-                    }
+        if (!client)
+            return;
+        this.disposables.push(client);
+        client.subscribe('*.js', async ({ root, files }) => {
+            files = files.filter(f => f.type == 'f');
+            for (let file of files) {
+                let id = `single-` + path_1.default.basename(file.name, 'js');
+                if (file.exists) {
+                    let filepath = path_1.default.join(root, file.name);
+                    await this.loadExtensionFile(filepath);
                 }
-            }).logError();
-        }
+                else {
+                    await this.unloadExtension(id);
+                }
+            }
+        }).then(disposable => {
+            this.disposables.push(disposable);
+        }, e => {
+            logger.error(e);
+        });
     }
     /**
      * Load single javascript file as extension.
