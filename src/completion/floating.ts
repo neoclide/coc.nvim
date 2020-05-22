@@ -67,10 +67,10 @@ export default class Floating {
     } else {
       this.floatBuffer.setLines(bufnr, winid)
       nvim.call('win_execute', [winid, `noa normal! gg0`], true)
+      nvim.command('redraw', true)
     }
     let [, err] = await nvim.resumeNotification()
     if (err) logger.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
-    if (workspace.isVim) nvim.command('redraw', true)
   }
 
   public close(): void {
