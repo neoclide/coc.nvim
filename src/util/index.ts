@@ -129,7 +129,7 @@ export function concurrent<T>(arr: T[], fn: (val: T) => Promise<void>, limit = 3
   let remain = arr.slice()
   return new Promise(resolve => {
     let run = (val): void => {
-      fn(val).finally(() => {
+      let cb = () => {
         finished = finished + 1
         if (finished == total) {
           resolve()
@@ -137,7 +137,8 @@ export function concurrent<T>(arr: T[], fn: (val: T) => Promise<void>, limit = 3
           let next = remain.shift()
           run(next)
         }
-      })
+      }
+      fn(val).then(cb, cb)
     }
     for (let i = 0; i < Math.min(limit, remain.length); i++) {
       let val = remain.shift()
