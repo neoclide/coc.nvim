@@ -444,11 +444,11 @@ g:coc_selectmode_mapping			*g:coc_selectmode_mapping*
 			默认: 1
 
 
-g:coc_force_debug  				*g:coc_force_debug*
+g:coc_force_bundle  				*g:coc_force_bundle*
 
 
-			强制使用编译后的代码 javascript 代码，默认情况下如果存在
-			已编译版本， coc 将优先使用已编译版本。
+			默认情况下 coc 优先使用 lib 文件夹下的 js 文件。设置为 `1`
+			强制使用 webpack 编译的 `build/index.js` 文件。
 
 			默认: 0
 
