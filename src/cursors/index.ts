@@ -367,6 +367,7 @@ export default class Cursors {
       nvim.call('cursor', [cursor.lnum, cursor.col + changed], true)
     }
     this.doHighlights()
+    if (workspace.isNvim) nvim.command('redraw', true)
     let [, err] = await nvim.resumeNotification()
     this.changing = false
     if (err) logger.error(err)

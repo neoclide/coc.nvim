@@ -1098,19 +1098,21 @@ endfunction
 
 function! coc#util#change_lines(bufnr, list) abort
   if !bufloaded(a:bufnr) | return | endif
-  let bufnr = bufnr('%')
-  let changeBuffer = bufnr != a:bufnr
-  if changeBuffer
-    exe 'buffer '.a:bufnr
-  endif
-  for [lnum, line] in a:list
-    call setline(lnum + 1, line)
-  endfor
-  if changeBuffer
-    exe 'buffer '.bufnr
-  endif
-  if s:is_vim
-    redraw
+  if exists('*setbufline')
+    for [lnum, line] in a:list
+      call setbufline(a:bufnr, lnum + 1, line)
+    endfor
+  elseif a:bufnr == bufnr('%')
+    for [lnum, line] in a:list
+      call setline(lnum + 1, line)
+    endfor
+  else
+    let bufnr = bufnr('%')
+    exe 'noa buffer '.a:bufnr
+    for [lnum, line] in a:list
+      call setline(lnum + 1, line)
+    endfor
+    exe 'noa buffer '.bufnr
   endif
 endfunction
 
