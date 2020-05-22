@@ -23467,7 +23467,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f552d4d75d" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "0c973a7a47" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -24212,7 +24212,7 @@ class DiagnosticManager {
                 (refreshed || Date.now() - createTime > 5000))
                 return;
             refreshed = true;
-            this.refreshBuffer(uri, true);
+            this.refreshBuffer(uri);
         });
         collection.onDidDiagnosticsClear(uris => {
             for (let uri of uris) {
@@ -24621,8 +24621,10 @@ class DiagnosticManager {
         let buf = Array.from(this.buffers.values()).find(o => o.uri == uri);
         if (!buf)
             return false;
-        let { displayByAle } = this.config;
+        let { displayByAle, refreshOnInsertMode } = this.config;
         if (!displayByAle) {
+            if (refreshOnInsertMode && workspace_1.default.insertMode)
+                return false;
             let diagnostics = this.getDiagnostics(uri);
             if (this.enabled) {
                 if (force) {
@@ -31741,7 +31743,7 @@ class Document {
         }, 200);
         this.fetchContent = debounce_1.default(() => {
             this._fetchContent().logError();
-        }, 50);
+        }, 100);
     }
     /**
      * Check if current document should be attached for changes.
@@ -70541,12 +70543,11 @@ class Floating {
         else {
             this.floatBuffer.setLines(bufnr, winid);
             nvim.call('win_execute', [winid, `noa normal! gg0`], true);
+            nvim.command('redraw', true);
         }
         let [, err] = await nvim.resumeNotification();
         if (err)
             logger.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`);
-        if (workspace_1.default.isVim)
-            nvim.command('redraw', true);
     }
     close() {
         if (!this.winid)
@@ -70950,7 +70951,7 @@ class DiagnosticBuffer {
         this.srdId = workspace_1.default.createNameSpace('coc-diagnostic');
         this.refresh = debounce_1.default((diagnostics) => {
             this._refresh(diagnostics).logError();
-        }, 200);
+        }, 300);
     }
     /**
      * Refresh diagnostics without debounce
@@ -71757,6 +71758,8 @@ class Cursors {
             nvim.call('cursor', [cursor.lnum, cursor.col + changed], true);
         }
         this.doHighlights();
+        if (workspace_1.default.isNvim)
+            nvim.command('redraw', true);
         let [, err] = await nvim.resumeNotification();
         this.changing = false;
         if (err)
