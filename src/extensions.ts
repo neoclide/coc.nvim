@@ -205,10 +205,14 @@ export class Extensions {
           let client = await Watchman.createClient(watchmanPath, directory)
           if (client) {
             this.disposables.push(client)
-            client.subscribe('**/*.js', debounce(async () => {
+            client.subscribe('**/*.js', async () => {
               await this.reloadExtension(name)
               workspace.showMessage(`reloaded ${name}`)
-            }, 100)).logError()
+            }).then(disposable => {
+              this.disposables.push(disposable)
+            }, e => {
+              logger.error(e)
+            })
           }
         }
       }
@@ -456,22 +460,26 @@ export class Extensions {
       await this.loadExtensionFile(path.join(folder, file))
     }
     let watchmanPath = workspace.getWatchmanPath()
+    if (!watchmanPath) return
     let client = await Watchman.createClient(watchmanPath, folder)
-    if (client) {
-      this.disposables.push(client)
-      client.subscribe('*.js', async ({ root, files }) => {
-        files = files.filter(f => f.type == 'f')
-        for (let file of files) {
-          let id = `single-` + path.basename(file.name, 'js')
-          if (file.exists) {
-            let filepath = path.join(root, file.name)
-            await this.loadExtensionFile(filepath)
-          } else {
-            await this.unloadExtension(id)
-          }
+    if (!client) return
+    this.disposables.push(client)
+    client.subscribe('*.js', async ({ root, files }) => {
+      files = files.filter(f => f.type == 'f')
+      for (let file of files) {
+        let id = `single-` + path.basename(file.name, 'js')
+        if (file.exists) {
+          let filepath = path.join(root, file.name)
+          await this.loadExtensionFile(filepath)
+        } else {
+          await this.unloadExtension(id)
         }
-      }).logError()
-    }
+      }
+    }).then(disposable => {
+      this.disposables.push(disposable)
+    }, e => {
+      logger.error(e)
+    })
   }
 
   /**
