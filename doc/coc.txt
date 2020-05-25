@@ -1784,10 +1784,6 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	Rename the symbol under the cursor position, user will be prompted for
 	a new name.
 
-"workspaceSymbols"				*coc-action-workspaceSymbols*
-
-	Search for workspace symbols.
-
 "selectionRanges"				*coc-action-selectionRanges*
 
 	Get selection ranges of current position from language server.
