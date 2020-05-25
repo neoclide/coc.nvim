@@ -145,7 +145,7 @@ export default class Handler {
     }, null, this.disposables)
     events.on('Enter', async bufnr => {
       let { bracketEnterImprove } = this.preferences
-      await this.onCharacterType('\n', bufnr)
+      await this.tryFormatOnType('\n', bufnr)
       if (bracketEnterImprove) {
         let line = (await nvim.call('line', '.') as number) - 1
         let doc = workspace.getDocument(bufnr)
@@ -186,13 +186,13 @@ export default class Handler {
       let curr = Date.now()
       if (!lastInsert || curr - lastInsert > 500) return
       let doc = workspace.getDocument(bufnr)
-      if (!doc || doc.isCommandLine) return
+      if (!doc || doc.isCommandLine || !doc.shouldAttach) return
       let { triggerSignatureHelp, triggerSignatureWait, formatOnType } = this.preferences
       if (!triggerSignatureHelp && !formatOnType) return
       let [pos, line] = await nvim.eval('[coc#util#cursor(), getline(".")]') as [[number, number], string]
       let pre = pos[1] == 0 ? '' : line.slice(pos[1] - 1, pos[1])
       if (!pre || isWord(pre)) return
-      await this.onCharacterType(pre, bufnr)
+      await this.tryFormatOnType(pre, bufnr)
       if (triggerSignatureHelp && languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
         doc.forceSync()
         await wait(Math.min(Math.max(triggerSignatureWait, 50), 300))
@@ -210,7 +210,7 @@ export default class Handler {
       if (!this.preferences.formatOnInsertLeave) return
       await wait(30)
       if (workspace.insertMode) return
-      await this.onCharacterType('\n', bufnr, true)
+      await this.tryFormatOnType('\n', bufnr, true)
     }, null, this.disposables)
     events.on('CursorMoved', debounce((bufnr: number, cursor: [number, number]) => {
       if (!this.preferences.previewAutoClose || !this.hoverPosition) return
@@ -809,7 +809,7 @@ export default class Handler {
     if (selectRange) await workspace.selectRange(selectRange)
   }
 
-  private async onCharacterType(ch: string, bufnr: number, insertLeave = false): Promise<void> {
+  private async tryFormatOnType(ch: string, bufnr: number, insertLeave = false): Promise<void> {
     if (!ch || isWord(ch) || !this.preferences.formatOnType) return
     if (snippetManager.getSession(bufnr) != null) return
     let doc = workspace.getDocument(bufnr)

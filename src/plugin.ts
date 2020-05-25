@@ -23,6 +23,7 @@ export default class Plugin extends EventEmitter {
   private handler: Handler
   private infoChannel: OutputChannel
   private cursors: Cursors
+  private actions: Map<string, Function> = new Map()
 
   constructor(public nvim: Neovim) {
     super()
@@ -128,13 +129,234 @@ export default class Plugin extends EventEmitter {
         await extensions.loadExtension(folder)
       }
     })
+    this.addMethod('snippetCheck', async (checkExpand: boolean, checkJump: boolean) => {
+      if (checkExpand && !extensions.has('coc-snippets')) {
+        console.error('coc-snippets required for check expand status!')
+        return false
+      }
+      if (checkJump) {
+        let jumpable = snippetManager.jumpable()
+        if (jumpable) return true
+      }
+      if (checkExpand) {
+        let api = extensions.getExtensionApi('coc-snippets') as any
+        if (api && api.hasOwnProperty('expandable')) {
+          let expandable = await Promise.resolve(api.expandable())
+          if (expandable) return true
+        }
+      }
+      return false
+    })
+    this.addMethod('showInfo', async () => {
+      if (!this.infoChannel) {
+        this.infoChannel = workspace.createOutputChannel('info')
+      } else {
+        this.infoChannel.clear()
+      }
+      let channel = this.infoChannel
+      channel.appendLine('## versions')
+      channel.appendLine('')
+      let out = await this.nvim.call('execute', ['version']) as string
+      let first = out.trim().split('\n', 2)[0].replace(/\(.*\)/, '').trim()
+      channel.appendLine('vim version: ' + first + `${workspace.isVim ? ' ' + workspace.env.version : ''}`)
+      channel.appendLine('node version: ' + process.version)
+      channel.appendLine('coc.nvim version: ' + this.version)
+      channel.appendLine('coc.nivm directory: ' + path.dirname(__dirname))
+      channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM))
+      channel.appendLine('platform: ' + process.platform)
+      channel.appendLine('')
+      for (let ch of (workspace as any).outputChannels.values()) {
+        if (ch.name !== 'info') {
+          channel.appendLine(`## Output channel: ${ch.name}\n`)
+          channel.append(ch.content)
+          channel.appendLine('')
+        }
+      }
+      channel.show()
+    })
+    // register actions
+    this.addAction('links', () => {
+      return this.handler.links()
+    })
+    this.addAction('openLink', () => {
+      return this.handler.openLink()
+    })
+    this.addAction('pickColor', () => {
+      return this.handler.pickColor()
+    })
+    this.addAction('colorPresentation', () => {
+      return this.handler.pickPresentation()
+    })
+    this.addAction('highlight', async () => {
+      await this.handler.highlight()
+    })
+    this.addAction('fold', (kind?: string) => {
+      return this.handler.fold(kind)
+    })
+    this.addAction('startCompletion', async option => {
+      await completion.startCompletion(option)
+    })
+    this.addAction('sourceStat', () => {
+      return sources.sourceStats()
+    })
+    this.addAction('refreshSource', async name => {
+      await sources.refresh(name)
+    })
+    this.addAction('tokenSource', name => {
+      sources.toggleSource(name)
+    })
+    this.addAction('diagnosticInfo', async () => {
+      await diagnosticManager.echoMessage()
+    })
+    this.addAction('diagnosticNext', async severity => {
+      await diagnosticManager.jumpNext(severity)
+    })
+    this.addAction('diagnosticPrevious', async severity => {
+      await diagnosticManager.jumpPrevious(severity)
+    })
+    this.addAction('diagnosticPreview', async () => {
+      await diagnosticManager.preview()
+    })
+    this.addAction('diagnosticList', () => {
+      return diagnosticManager.getDiagnosticList()
+    })
+    this.addAction('jumpDefinition', openCommand => {
+      return this.handler.gotoDefinition(openCommand)
+    })
+    this.addAction('jumpDeclaration', openCommand => {
+      return this.handler.gotoDeclaration(openCommand)
+    })
+    this.addAction('jumpImplementation', openCommand => {
+      return this.handler.gotoImplementation(openCommand)
+    })
+    this.addAction('jumpTypeDefinition', openCommand => {
+      return this.handler.gotoTypeDefinition(openCommand)
+    })
+    this.addAction('jumpReferences', openCommand => {
+      return this.handler.gotoReferences(openCommand)
+    })
+    this.addAction('doHover', () => {
+      return this.handler.onHover()
+    })
+    this.addAction('showSignatureHelp', () => {
+      return this.handler.showSignatureHelp()
+    })
+    this.addAction('documentSymbols', () => {
+      return this.handler.getDocumentSymbols()
+    })
+    this.addAction('symbolRanges', () => {
+      return this.handler.getSymbolsRanges()
+    })
+    this.addAction('selectionRanges', () => {
+      return this.handler.getSelectionRanges()
+    })
+    this.addAction('rangeSelect', (visualmode, forward) => {
+      return this.handler.selectRange(visualmode, forward)
+    })
+    this.addAction('rename', newName => {
+      return this.handler.rename(newName)
+    })
+    this.addAction('getWorkspaceSymbols', async (input: string, bufnr: number) => {
+      if (!bufnr) bufnr = await this.nvim.eval('bufnr("%")') as number
+      let document = workspace.getDocument(bufnr)
+      if (!document) return
+      return await languages.getWorkspaceSymbols(document.textDocument, input)
+    })
+    this.addAction('formatSelected', mode => {
+      return this.handler.documentRangeFormatting(mode)
+    })
+    this.addAction('format', () => {
+      return this.handler.documentFormatting()
+    })
+    this.addAction('commands', () => {
+      return this.handler.getCommands()
+    })
+    this.addAction('services', () => {
+      return services.getServiceStats()
+    })
+    this.addAction('toggleService', name => {
+      return services.toggle(name)
+    })
+    this.addAction('codeAction', (mode, only) => {
+      return this.handler.doCodeAction(mode, only)
+    })
+    this.addAction('organizeImport', () => {
+      return this.handler.doCodeAction(null, [CodeActionKind.SourceOrganizeImports])
+    })
+    this.addAction('fixAll', () => {
+      return this.handler.doCodeAction(null, [CodeActionKind.SourceFixAll])
+    })
+    this.addAction('doCodeAction', codeAction => {
+      return this.handler.applyCodeAction(codeAction)
+    })
+    this.addAction('codeActions', (mode, only) => {
+      return this.handler.getCurrentCodeActions(mode, only)
+    })
+    this.addAction('quickfixes', mode => {
+      return this.handler.getCurrentCodeActions(mode, [CodeActionKind.QuickFix])
+    })
+    this.addAction('codeLensAction', () => {
+      return this.handler.doCodeLensAction()
+    })
+    this.addAction('runCommand', (...args: any[]) => {
+      return this.handler.runCommand(...args)
+    })
+    this.addAction('doQuickfix', () => {
+      return this.handler.doQuickfix()
+    })
+    this.addAction('refactor', () => {
+      return this.handler.doRefactor()
+    })
+    this.addAction('repeatCommand', () => {
+      return commandManager.repeatCommand()
+    })
+    this.addAction('extensionStats', () => {
+      return extensions.getExtensionStates()
+    })
+    this.addAction('activeExtension', name => {
+      return extensions.activate(name)
+    })
+    this.addAction('deactivateExtension', name => {
+      return extensions.deactivate(name)
+    })
+    this.addAction('reloadExtension', name => {
+      return extensions.reloadExtension(name)
+    })
+    this.addAction('toggleExtension', name => {
+      return extensions.toggleExtension(name)
+    })
+    this.addAction('uninstallExtension', (...args: string[]) => {
+      return extensions.uninstallExtension(args)
+    })
+    this.addAction('getCurrentFunctionSymbol', () => {
+      return this.handler.getCurrentFunctionSymbol()
+    })
+    this.addAction('getWordEdit', () => {
+      return this.handler.getWordEdit()
+    })
+    this.addAction('addRanges', async ranges => {
+      await this.cursors.addRanges(ranges)
+    })
+    this.addAction('currentWorkspacePath', () => {
+      return workspace.rootPath
+    })
     workspace.onDidChangeWorkspaceFolders(() => {
       nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
     })
     commandManager.init(nvim, this)
   }
 
+  private addAction(key: string, fn: Function): void {
+    if (this.actions.has(key)) {
+      throw new Error(`Action ${key} already exists`)
+    }
+    this.actions.set(key, fn)
+  }
+
   private addMethod(name: string, fn: Function): any {
+    if (this.hasOwnProperty(name)) {
+      throw new Error(`Method ${name} already exists`)
+    }
     Object.defineProperty(this, name, { value: fn })
   }
 
@@ -152,6 +374,9 @@ export default class Plugin extends EventEmitter {
     try {
       await workspace.init()
       await extensions.init()
+      for (let item of workspace.env.vimCommands) {
+        this.addCommand(item)
+      }
       snippetManager.init()
       completion.init()
       diagnosticManager.init()
@@ -221,196 +446,20 @@ export default class Plugin extends EventEmitter {
     await this.handler.handleLocations(locations, openCommand)
   }
 
-  public async snippetCheck(checkExpand: boolean, checkJump: boolean): Promise<boolean> {
-    if (checkExpand && !extensions.has('coc-snippets')) {
-      console.error('coc-snippets required for check expand status!')
-      return false
-    }
-    if (checkJump) {
-      let jumpable = snippetManager.jumpable()
-      if (jumpable) return true
-    }
-    if (checkExpand) {
-      let api = extensions.getExtensionApi('coc-snippets') as any
-      if (api && api.hasOwnProperty('expandable')) {
-        let expandable = await Promise.resolve(api.expandable())
-        if (expandable) return true
-      }
-    }
-    return false
-  }
-
-  public get version(): string {
+  private get version(): string {
     return workspace.version + (process.env.REVISION ? '-' + process.env.REVISION : '')
-  }
-
-  public async showInfo(): Promise<void> {
-    if (!this.infoChannel) {
-      this.infoChannel = workspace.createOutputChannel('info')
-    } else {
-      this.infoChannel.clear()
-    }
-    let channel = this.infoChannel
-    channel.appendLine('## versions')
-    channel.appendLine('')
-    let out = await this.nvim.call('execute', ['version']) as string
-    let first = out.trim().split('\n', 2)[0].replace(/\(.*\)/, '').trim()
-    channel.appendLine('vim version: ' + first + `${workspace.isVim ? ' ' + workspace.env.version : ''}`)
-    channel.appendLine('node version: ' + process.version)
-    channel.appendLine('coc.nvim version: ' + this.version)
-    channel.appendLine('coc.nivm directory: ' + path.dirname(__dirname))
-    channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM))
-    channel.appendLine('platform: ' + process.platform)
-    channel.appendLine('')
-    for (let ch of (workspace as any).outputChannels.values()) {
-      if (ch.name !== 'info') {
-        channel.appendLine(`## Output channel: ${ch.name}\n`)
-        channel.append(ch.content)
-        channel.appendLine('')
-      }
-    }
-    channel.show()
   }
 
   public async cocAction(...args: any[]): Promise<any> {
     if (!this._ready) return
-    let { handler } = this
+    let [method, ...others] = args
+    let fn = this.actions.get(method)
+    if (!fn) {
+      workspace.showMessage(`Method "${method}" not exists for CocAction.`, 'error')
+      return
+    }
     try {
-      switch (args[0] as string) {
-        case 'links': {
-          return await handler.links()
-        }
-        case 'openLink': {
-          return await handler.openLink()
-        }
-        case 'pickColor': {
-          return await handler.pickColor()
-        }
-        case 'colorPresentation': {
-          return await handler.pickPresentation()
-        }
-        case 'highlight': {
-          await handler.highlight()
-          break
-        }
-        case 'fold': {
-          return await handler.fold(args[1])
-        }
-        case 'startCompletion':
-          await completion.startCompletion(args[1])
-          break
-        case 'sourceStat':
-          return sources.sourceStats()
-        case 'refreshSource':
-          await sources.refresh(args[1])
-          break
-        case 'toggleSource':
-          sources.toggleSource(args[1])
-          break
-        case 'diagnosticInfo':
-          await diagnosticManager.echoMessage()
-          break
-        case 'diagnosticNext':
-          await diagnosticManager.jumpNext(args[1])
-          break
-        case 'diagnosticPrevious':
-          await diagnosticManager.jumpPrevious(args[1])
-          break
-        case 'diagnosticPreview':
-          await diagnosticManager.preview()
-          break
-        case 'diagnosticList':
-          return diagnosticManager.getDiagnosticList()
-        case 'jumpDefinition':
-          return await handler.gotoDefinition(args[1])
-        case 'jumpDeclaration':
-          return await handler.gotoDeclaration(args[1])
-        case 'jumpImplementation':
-          return await handler.gotoImplementation(args[1])
-        case 'jumpTypeDefinition':
-          return await handler.gotoTypeDefinition(args[1])
-        case 'jumpReferences':
-          return await handler.gotoReferences(args[1])
-        case 'doHover':
-          return await handler.onHover()
-        case 'showSignatureHelp':
-          return await handler.showSignatureHelp()
-        case 'documentSymbols':
-          return await handler.getDocumentSymbols()
-        case 'symbolRanges':
-          return await handler.getSymbolsRanges()
-        case 'selectionRanges':
-          return await handler.getSelectionRanges()
-        case 'rangeSelect':
-          return await handler.selectRange(args[1], args[2])
-        case 'rename':
-          await handler.rename(args[1])
-          return
-        case 'workspaceSymbols':
-          this.nvim.command('CocList -I symbols', true)
-          return
-        case 'getWorkspaceSymbols': {
-          let bufnr = args[2]
-          if (!bufnr) bufnr = await this.nvim.eval('bufnr("%")') as number
-          let document = workspace.getDocument(bufnr)
-          if (!document) return
-          return await languages.getWorkspaceSymbols(document.textDocument, args[1])
-        }
-        case 'formatSelected':
-          return await handler.documentRangeFormatting(args[1])
-        case 'format':
-          return await handler.documentFormatting()
-        case 'commands':
-          return await handler.getCommands()
-        case 'services':
-          return services.getServiceStats()
-        case 'toggleService':
-          return services.toggle(args[1])
-        case 'codeAction':
-          return handler.doCodeAction(args[1], args[2])
-        case 'organizeImport':
-          return handler.doCodeAction(null, [CodeActionKind.SourceOrganizeImports])
-        case 'fixAll':
-          return handler.doCodeAction(null, [CodeActionKind.SourceFixAll])
-        case 'doCodeAction':
-          return await handler.applyCodeAction(args[1])
-        case 'codeActions':
-          return await handler.getCurrentCodeActions(args[1], args[2])
-        case 'quickfixes':
-          return await handler.getCurrentCodeActions(args[1], [CodeActionKind.QuickFix])
-        case 'codeLensAction':
-          return handler.doCodeLensAction()
-        case 'runCommand':
-          return await handler.runCommand(...args.slice(1))
-        case 'doQuickfix':
-          return await handler.doQuickfix()
-        case 'refactor':
-          return await handler.doRefactor()
-        case 'repeatCommand':
-          return await commandManager.repeatCommand()
-        case 'extensionStats':
-          return await extensions.getExtensionStates()
-        case 'activeExtension':
-          return extensions.activate(args[1])
-        case 'deactivateExtension':
-          return extensions.deactivate(args[1])
-        case 'reloadExtension':
-          return await extensions.reloadExtension(args[1])
-        case 'toggleExtension':
-          return await extensions.toggleExtension(args[1])
-        case 'uninstallExtension':
-          return await extensions.uninstallExtension(args.slice(1))
-        case 'getCurrentFunctionSymbol':
-          return await handler.getCurrentFunctionSymbol()
-        case 'getWordEdit':
-          return await handler.getWordEdit()
-        case 'addRanges':
-          return await this.cursors.addRanges(args[1])
-        case 'currentWorkspacePath':
-          return workspace.rootPath
-        default:
-          workspace.showMessage(`unknown action ${args[0]}`, 'error')
-      }
+      await Promise.resolve(fn.apply(null, others))
     } catch (e) {
       let message = e.hasOwnProperty('message') ? e.message : e.toString()
       if (!/\btimeout\b/.test(message)) {

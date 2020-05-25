@@ -27,12 +27,12 @@ describe('help tags', () => {
   })
 
   it('should return jumpable', async () => {
-    let jumpable = await helper.plugin.snippetCheck(false, true)
+    let jumpable = await (helper.plugin as any).snippetCheck(false, true)
     expect(jumpable).toBe(false)
   })
 
   it('should show CocInfo', async () => {
-    await helper.plugin.showInfo()
+    await (helper.plugin as any).showInfo()
     await helper.wait(300)
     let line = await nvim.line
     expect(line).toMatch('versions')

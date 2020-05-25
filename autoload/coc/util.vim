@@ -807,6 +807,7 @@ function! coc#util#vim_info()
         \ 'locationlist': get(g:,'coc_enable_locationlist', 1),
         \ 'progpath': v:progpath,
         \ 'guicursor': &guicursor,
+        \ 'vimCommands': get(g:, 'coc_vim_commands', []),
         \ 'textprop': has('textprop') && has('patch-8.1.1719') && !has('nvim') ? v:true : v:false,
         \}
 endfunction

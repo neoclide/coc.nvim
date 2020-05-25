@@ -271,6 +271,13 @@ export interface Env {
   readonly locationlist: boolean
   readonly progpath: string
   readonly textprop: boolean
+  readonly vimCommands: CommandConfig[]
+}
+
+export interface CommandConfig {
+  id: string
+  cmd: string
+  title?: string
 }
 
 export interface Fragment {
