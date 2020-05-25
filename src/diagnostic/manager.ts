@@ -14,6 +14,7 @@ import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
 import { getSeverityName, getSeverityType, severityLevel } from './util'
+import { equals } from '../util/object'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
@@ -50,6 +51,7 @@ export class DiagnosticManager implements Disposable {
   public config: DiagnosticConfig
   public enabled = true
   private readonly buffers: Map<number, DiagnosticBuffer> = new Map()
+  private readonly diagnosticsMap: Map<number, Diagnostic[]> = new Map()
   private lastMessage = ''
   private floatFactory: FloatFactory
   private collections: DiagnosticCollection[] = []
@@ -105,14 +107,19 @@ export class DiagnosticManager implements Disposable {
     events.on('BufEnter', async bufnr => {
       if (this.timer) clearTimeout(this.timer)
       if (!this.enabled || !this.config.locationlist) return
-      let [curr, buftype, winid] = await nvim.eval(`[getloclist(win_getid(),{'title':1}),&buftype,win_getid()]`) as any
-      if (buftype == 'quickfix') return
+      let [curr, buftype, winid, currbuf] = await nvim.eval(`[getloclist(win_getid(),{'title':1}),&buftype,win_getid(),bufnr('%')]`) as any
+      if (buftype == 'quickfix' || currbuf != bufnr) return
       let buf = this.buffers.get(bufnr)
       if (buf) {
         let diagnostics = this.getDiagnostics(buf.uri)
+        if (equals(this.diagnosticsMap.get(winid), diagnostics)) {
+          return
+        }
         buf.setLocationlist(diagnostics, winid)
+        this.diagnosticsMap.set(winid, diagnostics)
       } else {
         if (curr.title && curr.title.indexOf('Diagnostics of coc') != -1) {
+          this.diagnosticsMap.set(winid, [])
           nvim.call('setloclist', [winid, [], 'f'], true)
         }
       }

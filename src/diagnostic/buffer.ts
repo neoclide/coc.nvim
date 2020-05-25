@@ -60,10 +60,10 @@ export class DiagnosticBuffer {
     if (this.bufnr == bufnr) {
       this.showVirtualText(diagnostics, lnum)
     }
-    let res = await this.nvim.resumeNotification()
     if (workspace.isVim) {
       this.nvim.command('redraw', true)
     }
+    let res = await this.nvim.resumeNotification()
     if (Array.isArray(res) && res[1]) throw new Error(res[1])
     this._onDidRefresh.fire(void 0)
   }
