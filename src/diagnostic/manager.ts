@@ -620,7 +620,7 @@ export class DiagnosticManager implements Disposable {
     if (!buf) return false
     let { displayByAle, refreshOnInsertMode } = this.config
     if (!displayByAle) {
-      if (refreshOnInsertMode && workspace.insertMode) return false
+      if (!refreshOnInsertMode && workspace.insertMode) return false
       let diagnostics = this.getDiagnostics(uri)
       if (this.enabled) {
         if (force) {
