@@ -115,6 +115,13 @@ describe('extensions', () => {
     let res = extensions.getExtensionApi('test') as any
     expect(typeof res.echo).toBe('function')
   })
+
+  it('should load single file extension', async () => {
+    let filepath = path.join(__dirname, '../extensions/root.js')
+    await extensions.loadExtensionFile(filepath)
+    let res = await extensions.call('single-root', 'root', [])
+    expect(res.endsWith('extensions')).toBe(true)
+  })
 })
 
 describe('extensions active events', () => {

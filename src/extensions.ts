@@ -487,10 +487,12 @@ export class Extensions {
    */
   public async loadExtensionFile(filepath: string): Promise<void> {
     let filename = path.basename(filepath)
-    let name = 'single-' + path.basename(filepath, 'js')
+    let name = 'single-' + path.basename(filepath, '.js')
     if (this.isDisabled(name)) return
     let root = path.dirname(filepath)
-    let packageJSON = { name, main: filename }
+    let packageJSON = {
+      name, main: filename, engines: { coc: '^0.0.78' }
+    }
     await this.unloadExtension(name)
     this.createExtension(root, packageJSON, ExtensionType.SingleFile)
   }
@@ -671,7 +673,6 @@ export class Extensions {
         workspace.showMessage(`Error on activate extension ${id}: ${e.message}`)
         logger.error(`Error on activate extension ${id}`, e)
       })
-      logger.debug('activate:', id)
       return
     }
     let disposables: Disposable[] = []
@@ -782,6 +783,7 @@ export class Extensions {
         }
         try {
           exports = await Promise.resolve(ext.activate(context))
+          logger.debug('activate:', id)
         } catch (e) {
           isActive = false
           logger.error(`Error on active extension ${id}: ${e.stack}`, e)
