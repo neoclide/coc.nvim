@@ -459,7 +459,7 @@ export default class Plugin extends EventEmitter {
       return
     }
     try {
-      await Promise.resolve(fn.apply(null, others))
+      return await Promise.resolve(fn.apply(null, others))
     } catch (e) {
       let message = e.hasOwnProperty('message') ? e.message : e.toString()
       if (!/\btimeout\b/.test(message)) {
