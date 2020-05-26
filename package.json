@@ -91,7 +91,7 @@
     "https-proxy-agent": "^5.0.0",
     "isuri": "^2.0.3",
     "jsonc-parser": "^2.2.1",
-    "log4js": "^6.2.1",
+    "log4js": "^6.3.0",
     "minimatch": "^3.0.4",
     "mkdirp": "^1.0.4",
     "mv": "^2.1.1",
