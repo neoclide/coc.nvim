@@ -14,8 +14,6 @@
 
 ---
 
-An featured javascript engine for Vim8/Neovim.
-
 <img alt="Gif" src="https://user-images.githubusercontent.com/251450/55285193-400a9000-53b9-11e9-8cff-ffe4983c5947.gif" width="60%" />
 
 _True snippet and additional text editing support_
@@ -51,10 +49,10 @@ Checkout [Install
 coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim) for
 more info.
 
-Next you **have to** install coc extension or configure language servers for
+You **have to** install coc extension or configure language servers for
 LSP support.
 
-Install extension to get LSP support:
+Install extensions like:
 
     :CocInstall coc-json coc-tsserver
 
@@ -62,21 +60,25 @@ Or configure language server in `coc-settings.json` opened by
 `:CocConfig`, like:
 
 ```json
-"languageserver": {
-  "command": "gopls",
-  "rootPatterns": ["go.mod"],
-  "trace.server": "verbose",
-  "filetypes": ["go"]
+{
+  "languageserver": {
+    "command": "gopls",
+    "rootPatterns": ["go.mod"],
+    "trace.server": "verbose",
+    "filetypes": ["go"]
+  }
 }
 ```
 
-Next read wiki more details:
+Checkout wiki more details:
 
 - [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
 - [Using the configuration file](https://github.com/neoclide/coc.nvim/wiki/Using-the-configuration-file)
 - [Using coc extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
 - [Configure language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers)
 - [F.A.Q](https://github.com/neoclide/coc.nvim/wiki/F.A.Q)
+
+Checkout `:h coc-nvim` for vim interface.
 
 ## Example vim configuration
 
