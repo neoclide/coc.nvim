@@ -825,7 +825,7 @@
     },
     "coc.preferences.extensionUpdateCheck": {
       "type": "string",
-      "default": "daily",
+      "default": "never",
       "description": "Interval for check extension update, could be daily, weekly, never",
       "enum": ["daily", "weekly", "never"]
     },

@@ -150,7 +150,7 @@ export class Extensions {
     // check extensions need watch & install
     this.checkExtensions().logError()
     let config = workspace.getConfiguration('coc.preferences')
-    let interval = config.get<string>('extensionUpdateCheck', 'daily')
+    let interval = config.get<string>('extensionUpdateCheck', 'never')
     if (interval != 'never') {
       let now = new Date()
       let day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (interval == 'daily' ? 0 : 7))
