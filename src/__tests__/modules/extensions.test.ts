@@ -119,8 +119,7 @@ describe('extensions', () => {
   it('should load single file extension', async () => {
     let filepath = path.join(__dirname, '../extensions/root.js')
     await extensions.loadExtensionFile(filepath)
-    let res = await extensions.call('single-root', 'root', [])
-    expect(res.endsWith('extensions')).toBe(true)
+    expect(extensions.has('single-root')).toBe(true)
   })
 })
 
