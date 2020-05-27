@@ -6,7 +6,7 @@
   <p align="center">
     <a href="/LICENSE.md"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
     <a href="https://salt.bountysource.com/teams/coc-nvim"><img alt="Bountysource" src="https://img.shields.io/bountysource/team/coc-nvim/activity.svg?style=flat-square"></a>
-    <a href="https://github.com/neoclide/coc.nvim/actions"><img alt="Actions" src="https://github.com/neoclide/coc.nvim/workflows/coc.nvim%20CI/badge.svg?style=flat-square"></a>
+    <a href="https://github.com/neoclide/coc.nvim/actions"><img alt="Actions" src="https://img.shields.io/github/workflow/status/neoclide/coc.nvim/coc.nvim%20CI?style=flat-square"></a>
     <a href="/doc/coc.txt"><img alt="Doc" src="https://img.shields.io/badge/doc-%3Ah%20coc.txt-brightgreen.svg?style=flat-square"></a>
     <a href="https://gitter.im/neoclide/coc.nvim"><img alt="Gitter" src="https://img.shields.io/gitter/room/neoclide/coc.nvim.svg?style=flat-square"></a>
   </p>
@@ -70,7 +70,7 @@ Or configure language server in `coc-settings.json` opened by
 }
 ```
 
-Checkout wiki more details:
+Checkout wiki for more details:
 
 - [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
 - [Using the configuration file](https://github.com/neoclide/coc.nvim/wiki/Using-the-configuration-file)
