@@ -832,9 +832,6 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	重命名当前光标所在字符。
 
-"workspaceSymbols" 				*coc-action-workspaceSymbols*
-
-	搜索工作目录下所有符号。
 
 "selectionRanges" 				*coc-action-selectionRanges*
 

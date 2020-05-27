@@ -23249,6 +23249,7 @@ class Plugin extends events_1.EventEmitter {
         super();
         this.nvim = nvim;
         this._ready = false;
+        this.actions = new Map();
         Object.defineProperty(workspace_1.default, 'nvim', {
             get: () => this.nvim
         });
@@ -23354,12 +23355,237 @@ class Plugin extends events_1.EventEmitter {
                 await extensions_1.default.loadExtension(folder);
             }
         });
+        this.addMethod('snippetCheck', async (checkExpand, checkJump) => {
+            if (checkExpand && !extensions_1.default.has('coc-snippets')) {
+                console.error('coc-snippets required for check expand status!');
+                return false;
+            }
+            if (checkJump) {
+                let jumpable = manager_3.default.jumpable();
+                if (jumpable)
+                    return true;
+            }
+            if (checkExpand) {
+                let api = extensions_1.default.getExtensionApi('coc-snippets');
+                if (api && api.hasOwnProperty('expandable')) {
+                    let expandable = await Promise.resolve(api.expandable());
+                    if (expandable)
+                        return true;
+                }
+            }
+            return false;
+        });
+        this.addMethod('showInfo', async () => {
+            if (!this.infoChannel) {
+                this.infoChannel = workspace_1.default.createOutputChannel('info');
+            }
+            else {
+                this.infoChannel.clear();
+            }
+            let channel = this.infoChannel;
+            channel.appendLine('## versions');
+            channel.appendLine('');
+            let out = await this.nvim.call('execute', ['version']);
+            let first = out.trim().split('\n', 2)[0].replace(/\(.*\)/, '').trim();
+            channel.appendLine('vim version: ' + first + `${workspace_1.default.isVim ? ' ' + workspace_1.default.env.version : ''}`);
+            channel.appendLine('node version: ' + process.version);
+            channel.appendLine('coc.nvim version: ' + this.version);
+            channel.appendLine('coc.nivm directory: ' + path_1.default.dirname(__dirname));
+            channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM));
+            channel.appendLine('platform: ' + process.platform);
+            channel.appendLine('');
+            for (let ch of workspace_1.default.outputChannels.values()) {
+                if (ch.name !== 'info') {
+                    channel.appendLine(`## Output channel: ${ch.name}\n`);
+                    channel.append(ch.content);
+                    channel.appendLine('');
+                }
+            }
+            channel.show();
+        });
+        // register actions
+        this.addAction('links', () => {
+            return this.handler.links();
+        });
+        this.addAction('openLink', () => {
+            return this.handler.openLink();
+        });
+        this.addAction('pickColor', () => {
+            return this.handler.pickColor();
+        });
+        this.addAction('colorPresentation', () => {
+            return this.handler.pickPresentation();
+        });
+        this.addAction('highlight', async () => {
+            await this.handler.highlight();
+        });
+        this.addAction('fold', (kind) => {
+            return this.handler.fold(kind);
+        });
+        this.addAction('startCompletion', async (option) => {
+            await completion_1.default.startCompletion(option);
+        });
+        this.addAction('sourceStat', () => {
+            return sources_1.default.sourceStats();
+        });
+        this.addAction('refreshSource', async (name) => {
+            await sources_1.default.refresh(name);
+        });
+        this.addAction('tokenSource', name => {
+            sources_1.default.toggleSource(name);
+        });
+        this.addAction('diagnosticInfo', async () => {
+            await manager_1.default.echoMessage();
+        });
+        this.addAction('diagnosticNext', async (severity) => {
+            await manager_1.default.jumpNext(severity);
+        });
+        this.addAction('diagnosticPrevious', async (severity) => {
+            await manager_1.default.jumpPrevious(severity);
+        });
+        this.addAction('diagnosticPreview', async () => {
+            await manager_1.default.preview();
+        });
+        this.addAction('diagnosticList', () => {
+            return manager_1.default.getDiagnosticList();
+        });
+        this.addAction('jumpDefinition', openCommand => {
+            return this.handler.gotoDefinition(openCommand);
+        });
+        this.addAction('jumpDeclaration', openCommand => {
+            return this.handler.gotoDeclaration(openCommand);
+        });
+        this.addAction('jumpImplementation', openCommand => {
+            return this.handler.gotoImplementation(openCommand);
+        });
+        this.addAction('jumpTypeDefinition', openCommand => {
+            return this.handler.gotoTypeDefinition(openCommand);
+        });
+        this.addAction('jumpReferences', openCommand => {
+            return this.handler.gotoReferences(openCommand);
+        });
+        this.addAction('doHover', () => {
+            return this.handler.onHover();
+        });
+        this.addAction('showSignatureHelp', () => {
+            return this.handler.showSignatureHelp();
+        });
+        this.addAction('documentSymbols', () => {
+            return this.handler.getDocumentSymbols();
+        });
+        this.addAction('symbolRanges', () => {
+            return this.handler.getSymbolsRanges();
+        });
+        this.addAction('selectionRanges', () => {
+            return this.handler.getSelectionRanges();
+        });
+        this.addAction('rangeSelect', (visualmode, forward) => {
+            return this.handler.selectRange(visualmode, forward);
+        });
+        this.addAction('rename', newName => {
+            return this.handler.rename(newName);
+        });
+        this.addAction('getWorkspaceSymbols', async (input, bufnr) => {
+            if (!bufnr)
+                bufnr = await this.nvim.eval('bufnr("%")');
+            let document = workspace_1.default.getDocument(bufnr);
+            if (!document)
+                return;
+            return await languages_1.default.getWorkspaceSymbols(document.textDocument, input);
+        });
+        this.addAction('formatSelected', mode => {
+            return this.handler.documentRangeFormatting(mode);
+        });
+        this.addAction('format', () => {
+            return this.handler.documentFormatting();
+        });
+        this.addAction('commands', () => {
+            return this.handler.getCommands();
+        });
+        this.addAction('services', () => {
+            return services_1.default.getServiceStats();
+        });
+        this.addAction('toggleService', name => {
+            return services_1.default.toggle(name);
+        });
+        this.addAction('codeAction', (mode, only) => {
+            return this.handler.doCodeAction(mode, only);
+        });
+        this.addAction('organizeImport', () => {
+            return this.handler.doCodeAction(null, [vscode_languageserver_types_1.CodeActionKind.SourceOrganizeImports]);
+        });
+        this.addAction('fixAll', () => {
+            return this.handler.doCodeAction(null, [vscode_languageserver_types_1.CodeActionKind.SourceFixAll]);
+        });
+        this.addAction('doCodeAction', codeAction => {
+            return this.handler.applyCodeAction(codeAction);
+        });
+        this.addAction('codeActions', (mode, only) => {
+            return this.handler.getCurrentCodeActions(mode, only);
+        });
+        this.addAction('quickfixes', mode => {
+            return this.handler.getCurrentCodeActions(mode, [vscode_languageserver_types_1.CodeActionKind.QuickFix]);
+        });
+        this.addAction('codeLensAction', () => {
+            return this.handler.doCodeLensAction();
+        });
+        this.addAction('runCommand', (...args) => {
+            return this.handler.runCommand(...args);
+        });
+        this.addAction('doQuickfix', () => {
+            return this.handler.doQuickfix();
+        });
+        this.addAction('refactor', () => {
+            return this.handler.doRefactor();
+        });
+        this.addAction('repeatCommand', () => {
+            return commands_1.default.repeatCommand();
+        });
+        this.addAction('extensionStats', () => {
+            return extensions_1.default.getExtensionStates();
+        });
+        this.addAction('activeExtension', name => {
+            return extensions_1.default.activate(name);
+        });
+        this.addAction('deactivateExtension', name => {
+            return extensions_1.default.deactivate(name);
+        });
+        this.addAction('reloadExtension', name => {
+            return extensions_1.default.reloadExtension(name);
+        });
+        this.addAction('toggleExtension', name => {
+            return extensions_1.default.toggleExtension(name);
+        });
+        this.addAction('uninstallExtension', (...args) => {
+            return extensions_1.default.uninstallExtension(args);
+        });
+        this.addAction('getCurrentFunctionSymbol', () => {
+            return this.handler.getCurrentFunctionSymbol();
+        });
+        this.addAction('getWordEdit', () => {
+            return this.handler.getWordEdit();
+        });
+        this.addAction('addRanges', async (ranges) => {
+            await this.cursors.addRanges(ranges);
+        });
+        this.addAction('currentWorkspacePath', () => {
+            return workspace_1.default.rootPath;
+        });
         workspace_1.default.onDidChangeWorkspaceFolders(() => {
             nvim.setVar('WorkspaceFolders', workspace_1.default.folderPaths, true);
         });
         commands_1.default.init(nvim, this);
     }
+    addAction(key, fn) {
+        if (this.actions.has(key)) {
+            throw new Error(`Action ${key} already exists`);
+        }
+        this.actions.set(key, fn);
+    }
     addMethod(name, fn) {
+        if (this.hasOwnProperty(name)) {
+            throw new Error(`Method ${name} already exists`);
+        }
         Object.defineProperty(this, name, { value: fn });
     }
     addCommand(cmd) {
@@ -23376,6 +23602,9 @@ class Plugin extends events_1.EventEmitter {
         try {
             await workspace_1.default.init();
             await extensions_1.default.init();
+            for (let item of workspace_1.default.env.vimCommands) {
+                this.addCommand(item);
+            }
             manager_3.default.init();
             completion_1.default.init();
             manager_1.default.init();
@@ -23446,199 +23675,20 @@ class Plugin extends events_1.EventEmitter {
         }
         await this.handler.handleLocations(locations, openCommand);
     }
-    async snippetCheck(checkExpand, checkJump) {
-        if (checkExpand && !extensions_1.default.has('coc-snippets')) {
-            console.error('coc-snippets required for check expand status!');
-            return false;
-        }
-        if (checkJump) {
-            let jumpable = manager_3.default.jumpable();
-            if (jumpable)
-                return true;
-        }
-        if (checkExpand) {
-            let api = extensions_1.default.getExtensionApi('coc-snippets');
-            if (api && api.hasOwnProperty('expandable')) {
-                let expandable = await Promise.resolve(api.expandable());
-                if (expandable)
-                    return true;
-            }
-        }
-        return false;
-    }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "0c973a7a47" : undefined);
-    }
-    async showInfo() {
-        if (!this.infoChannel) {
-            this.infoChannel = workspace_1.default.createOutputChannel('info');
-        }
-        else {
-            this.infoChannel.clear();
-        }
-        let channel = this.infoChannel;
-        channel.appendLine('## versions');
-        channel.appendLine('');
-        let out = await this.nvim.call('execute', ['version']);
-        let first = out.trim().split('\n', 2)[0].replace(/\(.*\)/, '').trim();
-        channel.appendLine('vim version: ' + first + `${workspace_1.default.isVim ? ' ' + workspace_1.default.env.version : ''}`);
-        channel.appendLine('node version: ' + process.version);
-        channel.appendLine('coc.nvim version: ' + this.version);
-        channel.appendLine('coc.nivm directory: ' + path_1.default.dirname(__dirname));
-        channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM));
-        channel.appendLine('platform: ' + process.platform);
-        channel.appendLine('');
-        for (let ch of workspace_1.default.outputChannels.values()) {
-            if (ch.name !== 'info') {
-                channel.appendLine(`## Output channel: ${ch.name}\n`);
-                channel.append(ch.content);
-                channel.appendLine('');
-            }
-        }
-        channel.show();
+        return workspace_1.default.version + ( true ? '-' + "3c774fbfa5" : undefined);
     }
     async cocAction(...args) {
         if (!this._ready)
             return;
-        let { handler } = this;
+        let [method, ...others] = args;
+        let fn = this.actions.get(method);
+        if (!fn) {
+            workspace_1.default.showMessage(`Method "${method}" not exists for CocAction.`, 'error');
+            return;
+        }
         try {
-            switch (args[0]) {
-                case 'links': {
-                    return await handler.links();
-                }
-                case 'openLink': {
-                    return await handler.openLink();
-                }
-                case 'pickColor': {
-                    return await handler.pickColor();
-                }
-                case 'colorPresentation': {
-                    return await handler.pickPresentation();
-                }
-                case 'highlight': {
-                    await handler.highlight();
-                    break;
-                }
-                case 'fold': {
-                    return await handler.fold(args[1]);
-                }
-                case 'startCompletion':
-                    await completion_1.default.startCompletion(args[1]);
-                    break;
-                case 'sourceStat':
-                    return sources_1.default.sourceStats();
-                case 'refreshSource':
-                    await sources_1.default.refresh(args[1]);
-                    break;
-                case 'toggleSource':
-                    sources_1.default.toggleSource(args[1]);
-                    break;
-                case 'diagnosticInfo':
-                    await manager_1.default.echoMessage();
-                    break;
-                case 'diagnosticNext':
-                    await manager_1.default.jumpNext(args[1]);
-                    break;
-                case 'diagnosticPrevious':
-                    await manager_1.default.jumpPrevious(args[1]);
-                    break;
-                case 'diagnosticPreview':
-                    await manager_1.default.preview();
-                    break;
-                case 'diagnosticList':
-                    return manager_1.default.getDiagnosticList();
-                case 'jumpDefinition':
-                    return await handler.gotoDefinition(args[1]);
-                case 'jumpDeclaration':
-                    return await handler.gotoDeclaration(args[1]);
-                case 'jumpImplementation':
-                    return await handler.gotoImplementation(args[1]);
-                case 'jumpTypeDefinition':
-                    return await handler.gotoTypeDefinition(args[1]);
-                case 'jumpReferences':
-                    return await handler.gotoReferences(args[1]);
-                case 'doHover':
-                    return await handler.onHover();
-                case 'showSignatureHelp':
-                    return await handler.showSignatureHelp();
-                case 'documentSymbols':
-                    return await handler.getDocumentSymbols();
-                case 'symbolRanges':
-                    return await handler.getSymbolsRanges();
-                case 'selectionRanges':
-                    return await handler.getSelectionRanges();
-                case 'rangeSelect':
-                    return await handler.selectRange(args[1], args[2]);
-                case 'rename':
-                    await handler.rename(args[1]);
-                    return;
-                case 'workspaceSymbols':
-                    this.nvim.command('CocList -I symbols', true);
-                    return;
-                case 'getWorkspaceSymbols': {
-                    let bufnr = args[2];
-                    if (!bufnr)
-                        bufnr = await this.nvim.eval('bufnr("%")');
-                    let document = workspace_1.default.getDocument(bufnr);
-                    if (!document)
-                        return;
-                    return await languages_1.default.getWorkspaceSymbols(document.textDocument, args[1]);
-                }
-                case 'formatSelected':
-                    return await handler.documentRangeFormatting(args[1]);
-                case 'format':
-                    return await handler.documentFormatting();
-                case 'commands':
-                    return await handler.getCommands();
-                case 'services':
-                    return services_1.default.getServiceStats();
-                case 'toggleService':
-                    return services_1.default.toggle(args[1]);
-                case 'codeAction':
-                    return handler.doCodeAction(args[1], args[2]);
-                case 'organizeImport':
-                    return handler.doCodeAction(null, [vscode_languageserver_types_1.CodeActionKind.SourceOrganizeImports]);
-                case 'fixAll':
-                    return handler.doCodeAction(null, [vscode_languageserver_types_1.CodeActionKind.SourceFixAll]);
-                case 'doCodeAction':
-                    return await handler.applyCodeAction(args[1]);
-                case 'codeActions':
-                    return await handler.getCurrentCodeActions(args[1], args[2]);
-                case 'quickfixes':
-                    return await handler.getCurrentCodeActions(args[1], [vscode_languageserver_types_1.CodeActionKind.QuickFix]);
-                case 'codeLensAction':
-                    return handler.doCodeLensAction();
-                case 'runCommand':
-                    return await handler.runCommand(...args.slice(1));
-                case 'doQuickfix':
-                    return await handler.doQuickfix();
-                case 'refactor':
-                    return await handler.doRefactor();
-                case 'repeatCommand':
-                    return await commands_1.default.repeatCommand();
-                case 'extensionStats':
-                    return await extensions_1.default.getExtensionStates();
-                case 'activeExtension':
-                    return extensions_1.default.activate(args[1]);
-                case 'deactivateExtension':
-                    return extensions_1.default.deactivate(args[1]);
-                case 'reloadExtension':
-                    return await extensions_1.default.reloadExtension(args[1]);
-                case 'toggleExtension':
-                    return await extensions_1.default.toggleExtension(args[1]);
-                case 'uninstallExtension':
-                    return await extensions_1.default.uninstallExtension(args.slice(1));
-                case 'getCurrentFunctionSymbol':
-                    return await handler.getCurrentFunctionSymbol();
-                case 'getWordEdit':
-                    return await handler.getWordEdit();
-                case 'addRanges':
-                    return await this.cursors.addRanges(args[1]);
-                case 'currentWorkspacePath':
-                    return workspace_1.default.rootPath;
-                default:
-                    workspace_1.default.showMessage(`unknown action ${args[0]}`, 'error');
-            }
+            return await Promise.resolve(fn.apply(null, others));
         }
         catch (e) {
             let message = e.hasOwnProperty('message') ? e.message : e.toString();
@@ -24036,11 +24086,13 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const buffer_1 = __webpack_require__(518);
 const collection_1 = tslib_1.__importDefault(__webpack_require__(520));
 const util_2 = __webpack_require__(519);
+const object_1 = __webpack_require__(248);
 const logger = __webpack_require__(64)('diagnostic-manager');
 class DiagnosticManager {
     constructor() {
         this.enabled = true;
         this.buffers = new Map();
+        this.diagnosticsMap = new Map();
         this.lastMessage = '';
         this.collections = [];
         this.disposables = [];
@@ -24097,16 +24149,21 @@ class DiagnosticManager {
                 clearTimeout(this.timer);
             if (!this.enabled || !this.config.locationlist)
                 return;
-            let [curr, buftype, winid] = await nvim.eval(`[getloclist(win_getid(),{'title':1}),&buftype,win_getid()]`);
-            if (buftype == 'quickfix')
+            let [curr, buftype, winid, currbuf] = await nvim.eval(`[getloclist(win_getid(),{'title':1}),&buftype,win_getid(),bufnr('%')]`);
+            if (buftype == 'quickfix' || currbuf != bufnr)
                 return;
             let buf = this.buffers.get(bufnr);
             if (buf) {
                 let diagnostics = this.getDiagnostics(buf.uri);
+                if (object_1.equals(this.diagnosticsMap.get(winid), diagnostics)) {
+                    return;
+                }
                 buf.setLocationlist(diagnostics, winid);
+                this.diagnosticsMap.set(winid, diagnostics);
             }
             else {
                 if (curr.title && curr.title.indexOf('Diagnostics of coc') != -1) {
+                    this.diagnosticsMap.set(winid, []);
                     nvim.call('setloclist', [winid, [], 'f'], true);
                 }
             }
@@ -24623,7 +24680,7 @@ class DiagnosticManager {
             return false;
         let { displayByAle, refreshOnInsertMode } = this.config;
         if (!displayByAle) {
-            if (refreshOnInsertMode && workspace_1.default.insertMode)
+            if (!refreshOnInsertMode && workspace_1.default.insertMode)
                 return false;
             let diagnostics = this.getDiagnostics(uri);
             if (this.enabled) {
@@ -41372,7 +41429,7 @@ class Extensions {
         // check extensions need watch & install
         this.checkExtensions().logError();
         let config = workspace_1.default.getConfiguration('coc.preferences');
-        let interval = config.get('extensionUpdateCheck', 'daily');
+        let interval = config.get('extensionUpdateCheck', 'never');
         if (interval != 'never') {
             let now = new Date();
             let day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (interval == 'daily' ? 0 : 7));
@@ -41714,11 +41771,13 @@ class Extensions {
      */
     async loadExtensionFile(filepath) {
         let filename = path_1.default.basename(filepath);
-        let name = 'single-' + path_1.default.basename(filepath, 'js');
+        let name = 'single-' + path_1.default.basename(filepath, '.js');
         if (this.isDisabled(name))
             return;
         let root = path_1.default.dirname(filepath);
-        let packageJSON = { name, main: filename };
+        let packageJSON = {
+            name, main: filename, engines: { coc: '^0.0.78' }
+        };
         await this.unloadExtension(name);
         this.createExtension(root, packageJSON, types_1.ExtensionType.SingleFile);
     }
@@ -41900,7 +41959,6 @@ class Extensions {
                 workspace_1.default.showMessage(`Error on activate extension ${id}: ${e.message}`);
                 logger.error(`Error on activate extension ${id}`, e);
             });
-            logger.debug('activate:', id);
             return;
         }
         let disposables = [];
@@ -42017,6 +42075,7 @@ class Extensions {
                 }
                 try {
                     exports = await Promise.resolve(ext.activate(context));
+                    logger.debug('activate:', id);
                 }
                 catch (e) {
                     isActive = false;
@@ -70983,10 +71042,10 @@ class DiagnosticBuffer {
         if (this.bufnr == bufnr) {
             this.showVirtualText(diagnostics, lnum);
         }
-        let res = await this.nvim.resumeNotification();
         if (workspace_1.default.isVim) {
             this.nvim.command('redraw', true);
         }
+        let res = await this.nvim.resumeNotification();
         if (Array.isArray(res) && res[1])
             throw new Error(res[1]);
         this._onDidRefresh.fire(void 0);
@@ -72174,7 +72233,7 @@ class Handler {
         }, null, this.disposables);
         events_1.default.on('Enter', async (bufnr) => {
             let { bracketEnterImprove } = this.preferences;
-            await this.onCharacterType('\n', bufnr);
+            await this.tryFormatOnType('\n', bufnr);
             if (bracketEnterImprove) {
                 let line = await nvim.call('line', '.') - 1;
                 let doc = workspace_1.default.getDocument(bufnr);
@@ -72217,7 +72276,7 @@ class Handler {
             if (!lastInsert || curr - lastInsert > 500)
                 return;
             let doc = workspace_1.default.getDocument(bufnr);
-            if (!doc || doc.isCommandLine)
+            if (!doc || doc.isCommandLine || !doc.shouldAttach)
                 return;
             let { triggerSignatureHelp, triggerSignatureWait, formatOnType } = this.preferences;
             if (!triggerSignatureHelp && !formatOnType)
@@ -72226,7 +72285,7 @@ class Handler {
             let pre = pos[1] == 0 ? '' : line.slice(pos[1] - 1, pos[1]);
             if (!pre || string_1.isWord(pre))
                 return;
-            await this.onCharacterType(pre, bufnr);
+            await this.tryFormatOnType(pre, bufnr);
             if (triggerSignatureHelp && languages_1.default.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
                 doc.forceSync();
                 await util_1.wait(Math.min(Math.max(triggerSignatureWait, 50), 300));
@@ -72247,7 +72306,7 @@ class Handler {
             await util_1.wait(30);
             if (workspace_1.default.insertMode)
                 return;
-            await this.onCharacterType('\n', bufnr, true);
+            await this.tryFormatOnType('\n', bufnr, true);
         }, null, this.disposables);
         events_1.default.on('CursorMoved', debounce((bufnr, cursor) => {
             if (!this.preferences.previewAutoClose || !this.hoverPosition)
@@ -72860,7 +72919,7 @@ class Handler {
         if (selectRange)
             await workspace_1.default.selectRange(selectRange);
     }
-    async onCharacterType(ch, bufnr, insertLeave = false) {
+    async tryFormatOnType(ch, bufnr, insertLeave = false) {
         if (!ch || string_1.isWord(ch) || !this.preferences.formatOnType)
             return;
         if (manager_3.default.getSession(bufnr) != null)
