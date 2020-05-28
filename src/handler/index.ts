@@ -870,6 +870,7 @@ export default class Handler {
       if (active) signatures.unshift(active)
     }
     if (this.preferences.signatureHelpTarget == 'float') {
+      let offset = 0
       let paramDoc: string | MarkupContent = null
       let docs: Documentation[] = signatures.reduce((p: Documentation[], c, idx) => {
         let activeIndexes: [number, number] = null
@@ -897,6 +898,9 @@ export default class Handler {
         if (activeIndexes == null) {
           activeIndexes = [nameIndex + 1, nameIndex + 1]
         }
+        if (offset == 0) {
+          offset = activeIndexes[0] + 1
+        }
         p.push({
           content: c.label,
           filetype: document.filetype,
@@ -923,11 +927,10 @@ export default class Handler {
         }
         return p
       }, [])
-      let offset = 0
       let session = snippetManager.getSession(document.bufnr)
       if (session && session.isActive) {
         let { value } = session.placeholder
-        if (!value.includes('\n')) offset = value.length
+        if (!value.includes('\n')) offset += value.length
         this.signaturePosition = Position.create(position.line, position.character - value.length)
       } else {
         this.signaturePosition = position
