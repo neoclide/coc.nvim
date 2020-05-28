@@ -175,7 +175,7 @@ describe('completion resumeCompletion', () => {
       name: 'slow',
       sourceType: SourceType.Service,
       triggerCharacters: ['.'],
-      doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+      doComplete: (): Promise<CompleteResult> => new Promise(resolve => {
         setTimeout(() => {
           resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
         }, 600)

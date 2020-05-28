@@ -612,7 +612,7 @@ export class DiagnosticManager implements Disposable {
   }
 
   private shouldValidate(doc: Document | null): boolean {
-    return doc != null && doc.buftype == ''
+    return doc != null && doc.buftype == '' && doc.attached
   }
 
   public refreshBuffer(uri: string, force = false): boolean {

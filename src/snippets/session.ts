@@ -3,7 +3,6 @@ import { FormattingOptions } from 'jsonc-parser'
 import { Emitter, Event, Range, TextDocumentContentChangeEvent, TextEdit } from 'vscode-languageserver-protocol'
 import completion from '../completion'
 import Document from '../model/document'
-import { wait } from '../util'
 import { comparePosition, positionInRange, rangeInRange } from '../util/position'
 import { byteLength } from '../util/string'
 import workspace from '../workspace'
@@ -29,7 +28,7 @@ export class SnippetSession {
 
   public async start(snippetString: string, select = true, range?: Range): Promise<boolean> {
     const { document } = this
-    if (!document) return false
+    if (!document || !document.attached) return false
     if (!range) {
       let position = await workspace.getCursorPosition()
       range = Range.create(position, position)
@@ -50,7 +49,7 @@ export class SnippetSession {
       inserted = inserted + currentIndent
     }
     if (snippet.isPlainText) {
-      document.forceSync()
+      await document.patchChange()
       // insert as text
       await document.applyEdits([edit])
       let placeholder = snippet.finalPlaceholder
@@ -58,7 +57,6 @@ export class SnippetSession {
       return this._isActive
     }
     await document.patchChange()
-    document.forceSync()
     this.applying = true
     await document.applyEdits([edit])
     this.applying = false
@@ -105,16 +103,16 @@ export class SnippetSession {
   }
 
   public async nextPlaceholder(): Promise<void> {
-    await this.documentSynchronize()
     if (!this.isActive) return
+    await this.document.patchChange()
     let curr = this.placeholder
     let next = this.snippet.getNextPlaceholder(curr.index)
     await this.selectPlaceholder(next)
   }
 
   public async previousPlaceholder(): Promise<void> {
-    await this.documentSynchronize()
     if (!this.isActive) return
+    await this.document.patchChange()
     let curr = this.placeholder
     let prev = this.snippet.getPrevPlaceholder(curr.index)
     await this.selectPlaceholder(prev)
@@ -236,13 +234,6 @@ export class SnippetSession {
   private async getVirtualCol(line: number, col: number): Promise<number> {
     let { nvim } = this
     return await nvim.eval(`virtcol([${line}, ${col}])`) as number
-  }
-
-  private async documentSynchronize(): Promise<void> {
-    if (!this.isActive) return
-    await this.document.patchChange()
-    this.document.forceSync()
-    await wait(50)
   }
 
   public async checkPosition(): Promise<void> {

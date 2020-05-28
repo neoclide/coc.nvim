@@ -319,6 +319,7 @@ export class Sources {
       res.push({
         name: item.name,
         priority: item.priority,
+        triggerCharacters: item.triggerCharacters || [],
         shortcut: item.shortcut || '',
         filetypes: item.filetypes || [],
         filepath: item.filepath || '',

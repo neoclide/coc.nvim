@@ -599,6 +599,7 @@ export interface CompleteResult {
 export interface SourceStat {
   name: string
   priority: number
+  triggerCharacters: string[]
   type: string
   shortcut: string
   filepath: string

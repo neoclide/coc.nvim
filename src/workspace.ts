@@ -765,7 +765,7 @@ export class Workspace implements IWorkspace {
   public async readFile(uri: string): Promise<string> {
     let document = this.getDocument(uri)
     if (document) {
-      document.forceSync()
+      await document.patchChange()
       return document.content
     }
     let u = URI.parse(uri)
@@ -1541,7 +1541,7 @@ augroup end`
     if (this.isVim) {
       const onChange = (bufnr: number) => {
         let doc = this.getDocument(bufnr)
-        if (doc && doc.shouldAttach) doc.fetchContent()
+        if (doc && doc.attached) doc.fetchContent()
       }
       events.on('TextChangedI', onChange, null, this.disposables)
       events.on('TextChanged', onChange, null, this.disposables)

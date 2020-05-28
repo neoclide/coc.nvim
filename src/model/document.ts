@@ -26,13 +26,13 @@ export default class Document {
   public fetchContent: Function & { clear(): void }
   // start id for matchaddpos
   private colorId = 1080
-  private size: number
+  private size = 0
   private nvim: Neovim
   private eol = true
-  private attached = false
   private variables: { [key: string]: any }
   // real current lines
   private lines: string[] = []
+  private _attached = false
   private _filetype: string
   private _uri: string
   private _changedtick: number
@@ -69,7 +69,9 @@ export default class Document {
     let { buftype, maxFileSize } = this
     if (!this.getVar('enabled', true)) return false
     if (this.uri.endsWith('%5BCommand%20Line%5D')) return true
-    if (maxFileSize && this.size && maxFileSize < this.size) return false
+    // too big
+    if (this.size == -2) return false
+    if (maxFileSize && this.size > maxFileSize) return false
     return buftype == '' || buftype == 'acwrite'
   }
 
@@ -130,21 +132,17 @@ export default class Document {
     let opts: BufferOption = await nvim.call('coc#util#get_bufoptions', buffer.id)
     if (opts == null) return false
     let buftype = this.buftype = opts.buftype
-    this.size = opts.size
+    this.size = typeof opts.size == 'number' ? opts.size : 0
     this.variables = opts.variables
     this._changedtick = opts.changedtick
     this.eol = opts.eol == 1
     let uri = this._uri = getUri(opts.fullpath, buffer.id, buftype, this.env.isCygwin)
     if (token.isCancellationRequested) return false
     if (this.shouldAttach) {
-      if (this.env.isVim) {
-        this.lines = await buffer.lines
-      } else {
-        let res = await this.attach()
-        if (!res) return false
-      }
+      let res = await this.attach()
+      if (!res) return false
+      this._attached = true
     }
-    this.attached = true
     this._filetype = this.convertFiletype(opts.filetype)
     this.textDocument = TextDocument.create(uri, this.filetype, 1, this.getDocumentContent())
     this.setIskeyword(opts.iskeyword)
@@ -157,6 +155,10 @@ export default class Document {
   }
 
   private async attach(): Promise<boolean> {
+    if (this.env.isVim) {
+      this.lines = await this.nvim.call('getbufline', [this.bufnr, 1, '$'])
+      return true
+    }
     let attached = await this.buffer.attach(false)
     if (!attached) return false
     this.lines = await this.buffer.lines
@@ -422,29 +424,42 @@ export default class Document {
   }
 
   private async _fetchContent(): Promise<void> {
-    if (!this.env.isVim || !this.attached) return
+    if (!this.env.isVim || !this._attached) return
     let { nvim, buffer } = this
     let { id } = buffer
     let o = (await nvim.call('coc#util#get_content', id))
     if (!o) return
     let { content, changedtick } = o
+    if (this._changedtick == changedtick) return
     this._changedtick = changedtick
     let newLines: string[] = content.split('\n')
     this.lines = newLines
+    this.fireContentChanges.clear()
     this._fireContentChanges()
   }
 
   /**
-   * Get change from vim8, used by workspace
+   * Get and synchronize change
    */
-  public async patchChange(): Promise<void> {
-    if (!this.env.isVim || !this.attached) return
-    let change = await this.nvim.call('coc#util#get_changeinfo', []) as ChangeInfo
-    if (change.changedtick == this._changedtick) return
-    let { lines } = this
-    let { lnum, line, changedtick } = change
-    this._changedtick = changedtick
-    lines[lnum - 1] = line
+  public async patchChange(currentLine?: boolean): Promise<void> {
+    if (!this._attached) return
+    if (this.env.isVim) {
+      if (currentLine) {
+        let change = await this.nvim.call('coc#util#get_changeinfo', []) as ChangeInfo
+        if (change.changedtick == this._changedtick) return
+        let { lines } = this
+        let { lnum, line, changedtick } = change
+        this._changedtick = changedtick
+        lines[lnum - 1] = line
+        this.forceSync()
+      } else {
+        this.fetchContent.clear()
+        await this._fetchContent()
+      }
+    } else {
+      // we have latest lines aftet TextChange on neovim
+      this.forceSync()
+    }
   }
 
   /**
@@ -706,14 +721,20 @@ export default class Document {
    * @internal
    */
   public detach(): void {
-    this.attached = false
+    this._attached = false
     disposeAll(this.disposables)
-    this.buffer.detach().logError()
+    this.buffer.detach().catch(() => {
+      // ignore invalid buffer error
+    })
     this.disposables = []
     this.fetchContent.clear()
     this.fireContentChanges.clear()
     this._onDocumentChange.dispose()
     this._onDocumentDetach.dispose()
+  }
+
+  public get attached(): boolean {
+    return this._attached
   }
 
   /**

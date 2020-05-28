@@ -73,10 +73,8 @@ export default class WillSaveUntilHandler {
     let doc = workspace.getDocument(document.uri)
     if (!doc) return
     let now = Date.now()
-    if (doc.dirty) {
-      doc.forceSync()
-      await wait(60)
-    }
+    await doc.patchChange()
+    await wait(60)
     for (let fn of callbacks) {
       event.document = doc.textDocument
       try {

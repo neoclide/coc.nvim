@@ -416,13 +416,14 @@ endfunction
 function! coc#util#get_bufoptions(bufnr) abort
   if !bufloaded(a:bufnr) | return v:null | endif
   let bufname = bufname(a:bufnr)
+  let buftype = getbufvar(a:bufnr, '&buftype')
   return {
         \ 'bufname': bufname,
-        \ 'size': getfsize(bufname),
+        \ 'size': buftype ==# '' ? getfsize(bufname) : -1,
         \ 'eol': getbufvar(a:bufnr, '&eol'),
+        \ 'buftype': buftype,
         \ 'variables': s:variables(a:bufnr),
         \ 'fullpath': empty(bufname) ? '' : fnamemodify(bufname, ':p'),
-        \ 'buftype': getbufvar(a:bufnr, '&buftype'),
         \ 'filetype': getbufvar(a:bufnr, '&filetype'),
         \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
         \ 'changedtick': getbufvar(a:bufnr, 'changedtick'),
@@ -551,7 +552,7 @@ function! coc#util#get_complete_option()
   let synname = synIDattr(synID(pos[1], l:start, 1),"name")
   return {
         \ 'word': matchstr(line[l:start : ], '^\k\+'),
-        \ 'input': input,
+        \ 'input': empty(input) ? '' : input,
         \ 'line': line,
         \ 'filetype': &filetype,
         \ 'filepath': expand('%:p'),
@@ -1159,6 +1160,10 @@ function! coc#util#refactor_foldlevel(lnum) abort
   let line = getline(a:lnum)
   if line =~# '^\%u3000\s*$' | return 0 | endif
   return 1
+endfunction
+
+function! coc#util#get_pretext() abort
+  return strpart(getline('.'), 0, col('.') - 1)
 endfunction
 
 function! coc#util#refactor_fold_text(lnum) abort

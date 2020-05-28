@@ -186,19 +186,18 @@ export default class Handler {
       let curr = Date.now()
       if (!lastInsert || curr - lastInsert > 500) return
       let doc = workspace.getDocument(bufnr)
-      if (!doc || doc.isCommandLine || !doc.shouldAttach) return
-      let { triggerSignatureHelp, triggerSignatureWait, formatOnType } = this.preferences
+      if (!doc || doc.isCommandLine || !doc.attached) return
+      let { triggerSignatureHelp, formatOnType } = this.preferences
       if (!triggerSignatureHelp && !formatOnType) return
       let [pos, line] = await nvim.eval('[coc#util#cursor(), getline(".")]') as [[number, number], string]
       let pre = pos[1] == 0 ? '' : line.slice(pos[1] - 1, pos[1])
       if (!pre || isWord(pre)) return
       await this.tryFormatOnType(pre, bufnr)
       if (triggerSignatureHelp && languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
-        doc.forceSync()
-        await wait(Math.min(Math.max(triggerSignatureWait, 50), 300))
-        if (!workspace.insertMode) return
         try {
-          let cursor = await nvim.call('coc#util#cursor')
+          let [mode, cursor] = await nvim.eval('[mode(),coc#util#cursor()]') as [string, [number, number]]
+          if (mode !== 'i') return
+          await synchronizeDocument(doc)
           await this.triggerSignatureHelp(doc, { line: cursor[0], character: cursor[1] })
         } catch (e) {
           logger.error(`Error on signature help:`, e)
@@ -433,10 +432,7 @@ export default class Handler {
     if (!range || emptyRange(range)) return null
     let curname = doc.textDocument.getText(range)
     if (languages.hasProvider('rename', doc.textDocument)) {
-      if (doc.dirty) {
-        doc.forceSync()
-        await wait(30)
-      }
+      await synchronizeDocument(doc)
       let res = await languages.prepareRename(doc.textDocument, position)
       if (res === false) return null
       let edit = await languages.provideRenameEdits(doc.textDocument, position, curname)
@@ -463,10 +459,7 @@ export default class Handler {
       workspace.showMessage(`Rename provider not found for current document`, 'error')
       return false
     }
-    if (doc.dirty) {
-      doc.forceSync()
-      await wait(30)
-    }
+    await synchronizeDocument(doc)
     let res = await languages.prepareRename(doc.textDocument, position)
     if (res === false) {
       workspace.showMessage('Invalid position for renmame', 'error')
@@ -822,13 +815,10 @@ export default class Handler {
     }
     let position = await workspace.getCursorPosition()
     let origLine = doc.getline(position.line)
-    let { changedtick, dirty } = doc
-    if (dirty) {
-      doc.forceSync()
-      await wait(50)
-    }
     let pos: Position = insertLeave ? { line: position.line, character: origLine.length } : position
     try {
+      let { changedtick } = doc
+      await synchronizeDocument(doc)
       let edits = await languages.provideDocumentOnTypeEdits(ch, doc.textDocument, pos)
       // changed by other process
       if (doc.changedtick != changedtick || edits == null) return
@@ -1221,7 +1211,7 @@ export default class Handler {
       signatureHelpTarget,
       signatureMaxHeight: signatureConfig.get<number>('maxWindowHeight', 8),
       triggerSignatureHelp: signatureConfig.get<boolean>('enable', true),
-      triggerSignatureWait: signatureConfig.get<number>('triggerSignatureWait', 50),
+      triggerSignatureWait: Math.max(signatureConfig.get<number>('triggerSignatureWait', 50), 50),
       signaturePreferAbove: signatureConfig.get<boolean>('preferShownAbove', true),
       signatureFloatMaxWidth: signatureConfig.get<number>('floatMaxWidth', 60),
       signatureHideOnChange: signatureConfig.get<boolean>('hideOnTextChange', false),
@@ -1318,4 +1308,12 @@ function isEmpty(location: any): boolean {
 
 function isDocumentSymbols(a: DocumentSymbol[] | SymbolInformation[]): a is DocumentSymbol[] {
   return isDocumentSymbol(a[0])
+}
+
+async function synchronizeDocument(doc: Document): Promise<void> {
+  let { changedtick } = doc
+  await doc.patchChange()
+  if (changedtick != doc.changedtick) {
+    await wait(50)
+  }
 }
