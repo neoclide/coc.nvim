@@ -1107,7 +1107,8 @@ b:coc_diagnostic_disable			*b:coc_diagnostic_disable*
 
 b:coc_suggest_blacklist                         *b:coc_suggest_blacklist*
 
-			Words for which completion should be disabled. E.g.: >
+			List of input words for which completion should not
+			be triggered.  E.g.: >
 
 			" Disable completion for 'end' in lua files
 			autocmd FileType lua let b:coc_suggest_blacklist = ["end"]
@@ -2801,49 +2802,25 @@ Check out https://github.com/neoclide/coc.nvim/wiki/Create-custom-source
 FAQ							*coc-faq*
 
 ------------------------------------------------------------------------------
-Q:	I need documentation for completion items.
+Q:	I got the error message with xxx provider not found.
 
-A:	Preview window of Vim is disabled by default. You can enable it by
-	adding `"suggest.enablePreview":true` to your settings file.
+A:	It means you don't have coc extension or languageserver that provide
+	this feature, you have to install extension for it or configure
+	languageserver.
 
-	However, it doesn't work when the server only sends documentation on
-	complete item change, you will need floating window support then,
-	check out: https://bit.ly/2NCVh5P
+	Note some languageserver may not have that feature supported, please
+	checkout it's documentation.
 
-------------------------------------------------------------------------------
-Q:	I want to use ale for diagnostics.
+Q:	Syntax highlight on float/popup doesn't looks right.
 
-A:	Yes, you can make coc send diagnostics to ale, just add >
+A:	On neovim, coc.nivm uses background neovim instance which load syntax
+	plugins only for generate highlights, it may not what you would expect.
 
-	"diagnostic.displayByAle": true,
-<
-	to your coc-settings.json
+Q: 	I don't have float/popup window shown up.
 
-------------------------------------------------------------------------------
-Q:	I want codeLens feature of LSP.
+A: 	For vim8,  make sure `echo has('textprop') && has('patch-8.1.1719')`
+	echo 1. For neovim, you need neovim >= 0.4.3.
 
-A:	CodeLens support uses the virtual text feature of Neovim, it's not
-	enabled by default. To enable it, add: >
-
-	  "codeLens.enable": true,
-<
-	to your coc-settings.json
-
-------------------------------------------------------------------------------
-Q:	I want to highlight codes in markdown documentation.
-
-A:	Use a markdown plugin which could provide fancy code highlighting,
-	like https://github.com/tpope/vim-markdown, and use settings like:
->
-	let g:markdown_fenced_languages = ['css', 'js=javascript']
-<
-	in your .vimrc.
-
-
-==============================================================================
-CHANGELOG						*coc-changelog*
-
-Check out ../history.md
 
 ==============================================================================
 vim:tw=78:nosta:noet:ts=8:sts=0:ft=help:noet:fen:fdm=marker:

@@ -23676,7 +23676,7 @@ class Plugin extends events_1.EventEmitter {
         await this.handler.handleLocations(locations, openCommand);
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "3c774fbfa5" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "6fc0d73c13" : undefined);
     }
     async cocAction(...args) {
         if (!this._ready)
@@ -24672,7 +24672,7 @@ class DiagnosticManager {
         return this.collections.filter(c => c.has(uri));
     }
     shouldValidate(doc) {
-        return doc != null && doc.buftype == '';
+        return doc != null && doc.buftype == '' && doc.attached;
     }
     refreshBuffer(uri, force = false) {
         let buf = Array.from(this.buffers.values()).find(o => o.uri == uri);
@@ -25927,7 +25927,7 @@ class Workspace {
     async readFile(uri) {
         let document = this.getDocument(uri);
         if (document) {
-            document.forceSync();
+            await document.patchChange();
             return document.content;
         }
         let u = vscode_uri_1.URI.parse(uri);
@@ -26707,7 +26707,7 @@ augroup end`;
         if (this.isVim) {
             const onChange = (bufnr) => {
                 let doc = this.getDocument(bufnr);
-                if (doc && doc.shouldAttach)
+                if (doc && doc.attached)
                     doc.fetchContent();
             };
             events_1.default.on('TextChangedI', onChange, null, this.disposables);
@@ -31779,10 +31779,11 @@ class Document {
         this.isIgnored = false;
         // start id for matchaddpos
         this.colorId = 1080;
+        this.size = 0;
         this.eol = true;
-        this.attached = false;
         // real current lines
         this.lines = [];
+        this._attached = false;
         this._words = [];
         this._onDocumentChange = new vscode_languageserver_protocol_1.Emitter();
         this._onDocumentDetach = new vscode_languageserver_protocol_1.Emitter();
@@ -31813,7 +31814,10 @@ class Document {
             return false;
         if (this.uri.endsWith('%5BCommand%20Line%5D'))
             return true;
-        if (maxFileSize && this.size && maxFileSize < this.size)
+        // too big
+        if (this.size == -2)
+            return false;
+        if (maxFileSize && this.size > maxFileSize)
             return false;
         return buftype == '' || buftype == 'acwrite';
     }
@@ -31870,7 +31874,7 @@ class Document {
         if (opts == null)
             return false;
         let buftype = this.buftype = opts.buftype;
-        this.size = opts.size;
+        this.size = typeof opts.size == 'number' ? opts.size : 0;
         this.variables = opts.variables;
         this._changedtick = opts.changedtick;
         this.eol = opts.eol == 1;
@@ -31878,16 +31882,11 @@ class Document {
         if (token.isCancellationRequested)
             return false;
         if (this.shouldAttach) {
-            if (this.env.isVim) {
-                this.lines = await buffer.lines;
-            }
-            else {
-                let res = await this.attach();
-                if (!res)
-                    return false;
-            }
+            let res = await this.attach();
+            if (!res)
+                return false;
+            this._attached = true;
         }
-        this.attached = true;
         this._filetype = this.convertFiletype(opts.filetype);
         this.textDocument = vscode_languageserver_textdocument_1.TextDocument.create(uri, this.filetype, 1, this.getDocumentContent());
         this.setIskeyword(opts.iskeyword);
@@ -31899,6 +31898,10 @@ class Document {
         return true;
     }
     async attach() {
+        if (this.env.isVim) {
+            this.lines = await this.nvim.call('getbufline', [this.bufnr, 1, '$']);
+            return true;
+        }
         let attached = await this.buffer.attach(false);
         if (!attached)
             return false;
@@ -32147,7 +32150,7 @@ class Document {
         this.textDocument = vscode_languageserver_textdocument_1.TextDocument.create(uri, filetype, version, this.getDocumentContent());
     }
     async _fetchContent() {
-        if (!this.env.isVim || !this.attached)
+        if (!this.env.isVim || !this._attached)
             return;
         let { nvim, buffer } = this;
         let { id } = buffer;
@@ -32155,24 +32158,40 @@ class Document {
         if (!o)
             return;
         let { content, changedtick } = o;
+        if (this._changedtick == changedtick)
+            return;
         this._changedtick = changedtick;
         let newLines = content.split('\n');
         this.lines = newLines;
+        this.fireContentChanges.clear();
         this._fireContentChanges();
     }
     /**
-     * Get change from vim8, used by workspace
+     * Get and synchronize change
      */
-    async patchChange() {
-        if (!this.env.isVim || !this.attached)
+    async patchChange(currentLine) {
+        if (!this._attached)
             return;
-        let change = await this.nvim.call('coc#util#get_changeinfo', []);
-        if (change.changedtick == this._changedtick)
-            return;
-        let { lines } = this;
-        let { lnum, line, changedtick } = change;
-        this._changedtick = changedtick;
-        lines[lnum - 1] = line;
+        if (this.env.isVim) {
+            if (currentLine) {
+                let change = await this.nvim.call('coc#util#get_changeinfo', []);
+                if (change.changedtick == this._changedtick)
+                    return;
+                let { lines } = this;
+                let { lnum, line, changedtick } = change;
+                this._changedtick = changedtick;
+                lines[lnum - 1] = line;
+                this.forceSync();
+            }
+            else {
+                this.fetchContent.clear();
+                await this._fetchContent();
+            }
+        }
+        else {
+            // we have latest lines aftet TextChange on neovim
+            this.forceSync();
+        }
     }
     /**
      * Get ranges of word in textDocument.
@@ -32436,14 +32455,19 @@ class Document {
      * @internal
      */
     detach() {
-        this.attached = false;
+        this._attached = false;
         index_1.disposeAll(this.disposables);
-        this.buffer.detach().logError();
+        this.buffer.detach().catch(() => {
+            // ignore invalid buffer error
+        });
         this.disposables = [];
         this.fetchContent.clear();
         this.fireContentChanges.clear();
         this._onDocumentChange.dispose();
         this._onDocumentDetach.dispose();
+    }
+    get attached() {
+        return this._attached;
     }
     /**
      * Get localify bonus map.
@@ -34952,10 +34976,8 @@ class WillSaveUntilHandler {
         if (!doc)
             return;
         let now = Date.now();
-        if (doc.dirty) {
-            doc.forceSync();
-            await util_1.wait(60);
-        }
+        await doc.patchChange();
+        await util_1.wait(60);
         for (let fn of callbacks) {
             event.document = doc.textDocument;
             try {
@@ -40003,7 +40025,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const completion_1 = tslib_1.__importDefault(__webpack_require__(330));
-const util_1 = __webpack_require__(237);
 const position_1 = __webpack_require__(288);
 const string_1 = __webpack_require__(287);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
@@ -40028,7 +40049,7 @@ class SnippetSession {
     }
     async start(snippetString, select = true, range) {
         const { document } = this;
-        if (!document)
+        if (!document || !document.attached)
             return false;
         if (!range) {
             let position = await workspace_1.default.getCursorPosition();
@@ -40050,7 +40071,7 @@ class SnippetSession {
             inserted = inserted + currentIndent;
         }
         if (snippet.isPlainText) {
-            document.forceSync();
+            await document.patchChange();
             // insert as text
             await document.applyEdits([edit]);
             let placeholder = snippet.finalPlaceholder;
@@ -40058,7 +40079,6 @@ class SnippetSession {
             return this._isActive;
         }
         await document.patchChange();
-        document.forceSync();
         this.applying = true;
         await document.applyEdits([edit]);
         this.applying = false;
@@ -40104,17 +40124,17 @@ class SnippetSession {
         return this._isActive;
     }
     async nextPlaceholder() {
-        await this.documentSynchronize();
         if (!this.isActive)
             return;
+        await this.document.patchChange();
         let curr = this.placeholder;
         let next = this.snippet.getNextPlaceholder(curr.index);
         await this.selectPlaceholder(next);
     }
     async previousPlaceholder() {
-        await this.documentSynchronize();
         if (!this.isActive)
             return;
+        await this.document.patchChange();
         let curr = this.placeholder;
         let prev = this.snippet.getPrevPlaceholder(curr.index);
         await this.selectPlaceholder(prev);
@@ -40248,13 +40268,6 @@ class SnippetSession {
         let { nvim } = this;
         return await nvim.eval(`virtcol([${line}, ${col}])`);
     }
-    async documentSynchronize() {
-        if (!this.isActive)
-            return;
-        await this.document.patchChange();
-        this.document.forceSync();
-        await util_1.wait(50);
-    }
     async checkPosition() {
         if (!this.isActive)
             return;
@@ -40335,8 +40348,6 @@ class Completion {
         this.changedTick = 0;
         this.insertCharTs = 0;
         this.insertLeaveTs = 0;
-        // only used when no pum change event
-        this.isResolving = false;
     }
     init() {
         this.config = this.getCompleteConfig();
@@ -40364,18 +40375,13 @@ class Completion {
             this.currItem = item;
             fn(ev);
         }, this, this.disposables);
-        events_1.default.on('CursorMovedI', debounce_1.default(async (bufnr, cursor) => {
+        // check if we need trigger after complete done
+        events_1.default.on('CursorMovedI', debounce_1.default(async (bufnr) => {
+            if (this.complete)
+                return;
             // try trigger completion
             let doc = workspace_1.default.getDocument(bufnr);
-            if (this.isActivated || !doc || cursor[1] == 1 || !this.latestInsertChar)
-                return;
-            let line = doc.getline(cursor[0] - 1);
-            if (!line)
-                return;
-            let pre = string_1.byteSlice(line, 0, cursor[1] - 1);
-            if (sources_1.default.shouldTrigger(pre, doc.filetype)) {
-                await this.triggerCompletion(doc, pre, false);
-            }
+            await this.triggerSourceCompletion(doc);
         }, 50));
         workspace_1.default.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('suggest')) {
@@ -40399,12 +40405,8 @@ class Completion {
             return;
         this.recentScores[`${bufnr}|${word}`] = Date.now();
     }
-    async getPreviousContent(document) {
-        let [, lnum, col] = await this.nvim.call('getcurpos');
-        if (this.option && lnum != this.option.linenr)
-            return null;
-        let line = document.getline(lnum - 1);
-        return col == 1 ? '' : string_1.byteSlice(line, 0, col - 1);
+    async getPreviousContent() {
+        return await this.nvim.eval(`strpart(getline('.'), 0, col('.') - 1)`);
     }
     getResumeInput(pre) {
         let { option, activated } = this;
@@ -40490,9 +40492,8 @@ class Completion {
             return;
         if (search == this.input && !force)
             return;
-        let last = search == null ? '' : search.slice(-1);
-        if (last.length == 0 ||
-            /\s/.test(last) ||
+        if (!search.length ||
+            search.endsWith(' ') ||
             sources_1.default.shouldTrigger(pre, document.filetype) ||
             search.length < complete.input.length) {
             this.stop();
@@ -40500,13 +40501,11 @@ class Completion {
         }
         this.input = search;
         let items;
-        if (complete.isIncomplete && document.chars.isKeywordChar(last)) {
+        if (complete.isIncomplete) {
             await document.patchChange();
-            document.forceSync();
-            await util_1.wait(30);
             items = await complete.completeInComplete(search);
             // check search change
-            let content = await this.getPreviousContent(document);
+            let content = await this.getPreviousContent();
             let curr = this.getResumeInput(content);
             if (curr != search)
                 return;
@@ -40527,7 +40526,7 @@ class Completion {
             return this.currItem != null;
         if (!this.config.noselect)
             return true;
-        return this.isResolving;
+        return false;
     }
     async showCompletion(col, items) {
         let { nvim, document, option } = this;
@@ -40586,6 +40585,7 @@ class Completion {
         }
         if (!arr.length)
             return;
+        await document.patchChange();
         let complete = new complete_1.default(option, document, this.recentScores, config, arr, nvim);
         this.start(complete);
         let items = await this.complete.doComplete();
@@ -40596,43 +40596,41 @@ class Completion {
             return;
         }
         complete.onDidComplete(async () => {
-            let content = await this.getPreviousContent(document);
-            if (!content)
+            let content = await this.getPreviousContent();
+            if (!content || complete.isCanceled)
                 return;
             let search = this.getResumeInput(content);
-            if (complete.isCanceled)
-                return;
             let hasSelected = this.hasSelected();
             if (hasSelected && this.completeOpt.includes('noselect'))
                 return;
-            if (search == this.option.input) {
+            let { input } = this.option;
+            if (search.startsWith(input)) {
                 let items = complete.filterResults(search, Math.floor(Date.now() / 1000));
                 await this.showCompletion(option.col, items);
-                return;
             }
-            await this.resumeCompletion(content, search, true);
         });
         if (items.length) {
-            let content = await this.getPreviousContent(document);
+            let content = await this.getPreviousContent();
             let search = this.getResumeInput(content);
             if (complete.isCanceled)
                 return;
             if (search == this.option.input) {
                 await this.showCompletion(option.col, items);
-                return;
             }
-            await this.resumeCompletion(content, search, true);
+            else {
+                await this.resumeCompletion(content, search, true);
+            }
         }
     }
     async onTextChangedP() {
         let { option, document } = this;
         if (!option)
             return;
-        await document.patchChange();
+        await document.patchChange(true);
         let hasInsert = this.latestInsert != null;
         this.lastInsert = null;
         // avoid trigger filter on pumvisible
-        if (document.changedtick == this.changedTick)
+        if (document.changedtick == this.changedTick || !this.activated)
             return;
         let line = document.getline(option.linenr - 1);
         let curr = line.match(/^\s*/)[0];
@@ -40642,12 +40640,9 @@ class Completion {
             this.stop();
             return;
         }
-        if (!hasInsert) {
-            // this could be wrong, but can't avoid.
-            this.isResolving = true;
+        if (!hasInsert)
             return;
-        }
-        let pre = await this.getPreviousContent(document);
+        let pre = await this.getPreviousContent();
         if (!pre)
             return;
         let search = this.getResumeInput(pre);
@@ -40662,23 +40657,22 @@ class Completion {
         let { nvim, latestInsertChar } = this;
         this.lastInsert = null;
         let document = workspace_1.default.getDocument(workspace_1.default.bufnr);
-        if (!document)
+        if (!document || !document.attached)
             return;
-        await document.patchChange();
-        if (!this.isActivated) {
-            if (!latestInsertChar)
-                return;
-            let pre = await this.getPreviousContent(document);
+        // try trigger on character type
+        if (!this.activated && latestInsertChar) {
+            let pre = await this.getPreviousContent();
             await this.triggerCompletion(document, pre);
             return;
         }
-        if (bufnr !== this.bufnr)
+        // not completing
+        if (!this.activated || this.bufnr != bufnr)
             return;
         // check commit character
-        if (this.config.acceptSuggestionOnCommitCharacter
-            && this.currItem
+        if (this.currItem
+            && this.config.acceptSuggestionOnCommitCharacter
             && latestInsertChar
-            && !this.document.isWord(latestInsertChar)) {
+            && !document.isWord(latestInsertChar)) {
             let resolvedItem = this.getCompleteItem(this.currItem);
             if (sources_1.default.shouldCommit(resolvedItem, latestInsertChar)) {
                 let { linenr, col, line, colnr } = this.option;
@@ -40688,24 +40682,26 @@ class Completion {
                 await nvim.call('coc#util#setline', [linenr, newLine]);
                 let curcol = col + word.length + 2;
                 await nvim.call('cursor', [linenr, curcol]);
+                await document.patchChange();
                 return;
             }
         }
-        let content = await this.getPreviousContent(document);
-        if (content == null) {
-            // cursor line changed
+        let [lnum, content] = await this.nvim.eval(`[line('.'),strpart(getline('.'), 0, col('.') - 1)]`);
+        if (!this.activated)
+            return;
+        let { col, linenr } = this.option;
+        if (!content || lnum != linenr) {
             this.stop();
             return;
         }
-        // check trigger character
+        // prefer trigger completion
         if (sources_1.default.shouldTrigger(content, document.filetype)) {
             await this.triggerCompletion(document, content, false);
-            return;
         }
-        if (!this.isActivated || this.complete.isEmpty)
-            return;
-        let search = content.slice(string_1.characterIndex(content, this.option.col));
-        return await this.resumeCompletion(content, search);
+        else {
+            let search = content.slice(string_1.characterIndex(content, col));
+            await this.resumeCompletion(content, search);
+        }
     }
     async triggerCompletion(document, pre, checkTrigger = true) {
         // check trigger
@@ -40717,19 +40713,23 @@ class Completion {
         let option = await this.nvim.call('coc#util#get_complete_option');
         if (!option)
             return;
-        this.fixCompleteOption(option);
         option.triggerCharacter = pre.slice(-1);
         logger.debug('trigger completion with', option);
         await this.startCompletion(option);
     }
-    fixCompleteOption(opt) {
-        if (workspace_1.default.isVim) {
-            for (let key of ['word', 'input', 'line', 'filetype']) {
-                if (opt[key] == null) {
-                    opt[key] = '';
-                }
-            }
+    async triggerSourceCompletion(doc) {
+        if (!doc || !doc.attached)
+            return false;
+        let [bufnr, pre] = await this.nvim.eval(`[bufnr('%'),strpart(getline('.'), 0, col('.') - 1)]`);
+        if (doc.bufnr != bufnr || this.complete)
+            return false;
+        if (sources_1.default.shouldTrigger(pre, doc.filetype)) {
+            this.triggerCompletion(doc, pre, false).catch(e => {
+                logger.error(e);
+            });
+            return true;
         }
+        return false;
     }
     async onCompleteDone(item) {
         let { document } = this;
@@ -40752,41 +40752,30 @@ class Completion {
             if (this.insertCharTs != timestamp
                 || this.insertLeaveTs != insertLeaveTs)
                 return;
-            await document.patchChange();
-            let content = await this.getPreviousContent(document);
+            let content = await this.getPreviousContent();
             if (!content.endsWith(resolvedItem.word))
                 return;
             await sources_1.default.doCompleteDone(resolvedItem, opt);
-            document.forceSync();
+            await document.patchChange();
         }
         catch (e) {
             logger.error(`error on complete done`, e.stack);
         }
     }
-    async onInsertLeave(bufnr) {
+    async onInsertLeave() {
         this.insertLeaveTs = Date.now();
-        if (this.isActivated) {
-            let doc = workspace_1.default.getDocument(bufnr);
-            if (doc)
-                doc.forceSync();
-            this.stop();
-        }
+        this.stop();
     }
     async onInsertEnter(bufnr) {
-        if (!this.config.triggerAfterInsertEnter)
+        if (!this.config.triggerAfterInsertEnter || this.config.autoTrigger !== 'always')
             return;
-        let document = workspace_1.default.getDocument(bufnr);
-        if (!document)
+        let doc = workspace_1.default.getDocument(bufnr);
+        if (!doc || !doc.attached)
             return;
-        await document.patchChange();
-        if (!document)
-            return;
-        let cursor = await this.nvim.call('coc#util#cursor');
-        let line = document.getline(cursor[0]);
-        let pre = string_1.byteSlice(line, 0, cursor[1]);
+        let pre = await this.getPreviousContent();
         if (!pre)
             return;
-        await this.triggerCompletion(document, pre, false);
+        await this.triggerCompletion(doc, pre);
     }
     async onInsertCharPre(character) {
         this.lastInsert = {
@@ -40809,6 +40798,8 @@ class Completion {
         return latestInsert.character;
     }
     async shouldTrigger(document, pre) {
+        if (!document.attached)
+            return false;
         if (pre.length == 0 || /\s/.test(pre[pre.length - 1]))
             return false;
         let autoTrigger = this.config.autoTrigger;
@@ -40816,7 +40807,7 @@ class Completion {
             return false;
         if (sources_1.default.shouldTrigger(pre, document.filetype))
             return true;
-        if (autoTrigger !== 'always')
+        if (autoTrigger !== 'always' || this.isActivated)
             return false;
         let last = pre.slice(-1);
         if (last && (document.isWord(pre.slice(-1)) || last.codePointAt(0) > 255)) {
@@ -40864,7 +40855,6 @@ class Completion {
     start(complete) {
         let { activated } = this;
         this.activated = true;
-        this.isResolving = false;
         if (activated) {
             this.complete.dispose();
         }
@@ -40872,7 +40862,6 @@ class Completion {
         if (!this.config.keepCompleteopt) {
             this.nvim.command(`noa set completeopt=${this.completeOpt}`, true);
         }
-        this.document.forceSync();
     }
     cancel() {
         if (this.resolveTokenSource) {
@@ -41255,6 +41244,7 @@ class Sources {
             res.push({
                 name: item.name,
                 priority: item.priority,
+                triggerCharacters: item.triggerCharacters || [],
                 shortcut: item.shortcut || '',
                 filetypes: item.filetypes || [],
                 filepath: item.filepath || '',
@@ -67964,6 +67954,7 @@ class SourcesList extends basic_1.default {
                 await this.jumpTo(location);
         });
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async loadItems(_context) {
         let stats = sources_1.default.sourceStats();
         stats.sort((a, b) => {
@@ -67978,7 +67969,7 @@ class SourcesList extends basic_1.default {
                 location = vscode_languageserver_types_1.Location.create(vscode_uri_1.URI.file(stat.filepath).toString(), vscode_languageserver_types_1.Range.create(0, 0, 0, 0));
             }
             return {
-                label: `${prefix}\t${stat.name}\t[${stat.shortcut}]\t${stat.priority}\t${stat.filetypes.join(',')}`,
+                label: `${prefix} ${fixWidth(stat.name, 22)} ${fixWidth('[' + stat.shortcut + ']', 10)} ${fixWidth(stat.triggerCharacters.join(''), 10)} ${fixWidth(stat.priority.toString(), 3)} ${stat.filetypes.join(',')}`,
                 location,
                 data: { name: stat.name }
             };
@@ -67989,18 +67980,25 @@ class SourcesList extends basic_1.default {
         nvim.pauseNotification();
         nvim.command('syntax match CocSourcesPrefix /\\v^./ contained containedin=CocSourcesLine', true);
         nvim.command('syntax match CocSourcesName /\\v%3c\\S+/ contained containedin=CocSourcesLine', true);
-        nvim.command('syntax match CocSourcesType /\\v\\t\\[\\w+\\]/ contained containedin=CocSourcesLine', true);
+        nvim.command('syntax match CocSourcesType /\\v%25v.*%36v/ contained containedin=CocSourcesLine', true);
+        nvim.command('syntax match CocSourcesPriority /\\v%46v.*%50v/ contained containedin=CocSourcesLine', true);
         nvim.command('syntax match CocSourcesFileTypes /\\v\\S+$/ contained containedin=CocSourcesLine', true);
         nvim.command('highlight default link CocSourcesPrefix Special', true);
         nvim.command('highlight default link CocSourcesName Type', true);
+        nvim.command('highlight default link CocSourcesPriority Number', true);
         nvim.command('highlight default link CocSourcesFileTypes Comment', true);
         nvim.command('highlight default link CocSourcesType Statement', true);
-        nvim.resumeNotification().catch(_e => {
-            // noop
-        });
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        nvim.resumeNotification(false, true);
     }
 }
 exports.default = SourcesList;
+function fixWidth(str, width) {
+    if (str.length > width) {
+        return str.slice(0, width - 1) + '.';
+    }
+    return str + ' '.repeat(width - str.length);
+}
 //# sourceMappingURL=sources.js.map
 
 /***/ }),
@@ -72276,9 +72274,9 @@ class Handler {
             if (!lastInsert || curr - lastInsert > 500)
                 return;
             let doc = workspace_1.default.getDocument(bufnr);
-            if (!doc || doc.isCommandLine || !doc.shouldAttach)
+            if (!doc || doc.isCommandLine || !doc.attached)
                 return;
-            let { triggerSignatureHelp, triggerSignatureWait, formatOnType } = this.preferences;
+            let { triggerSignatureHelp, formatOnType } = this.preferences;
             if (!triggerSignatureHelp && !formatOnType)
                 return;
             let [pos, line] = await nvim.eval('[coc#util#cursor(), getline(".")]');
@@ -72287,12 +72285,11 @@ class Handler {
                 return;
             await this.tryFormatOnType(pre, bufnr);
             if (triggerSignatureHelp && languages_1.default.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
-                doc.forceSync();
-                await util_1.wait(Math.min(Math.max(triggerSignatureWait, 50), 300));
-                if (!workspace_1.default.insertMode)
-                    return;
                 try {
-                    let cursor = await nvim.call('coc#util#cursor');
+                    let [mode, cursor] = await nvim.eval('[mode(),coc#util#cursor()]');
+                    if (mode !== 'i')
+                        return;
+                    await synchronizeDocument(doc);
                     await this.triggerSignatureHelp(doc, { line: cursor[0], character: cursor[1] });
                 }
                 catch (e) {
@@ -72534,10 +72531,7 @@ class Handler {
             return null;
         let curname = doc.textDocument.getText(range);
         if (languages_1.default.hasProvider('rename', doc.textDocument)) {
-            if (doc.dirty) {
-                doc.forceSync();
-                await util_1.wait(30);
-            }
+            await synchronizeDocument(doc);
             let res = await languages_1.default.prepareRename(doc.textDocument, position);
             if (res === false)
                 return null;
@@ -72567,10 +72561,7 @@ class Handler {
             workspace_1.default.showMessage(`Rename provider not found for current document`, 'error');
             return false;
         }
-        if (doc.dirty) {
-            doc.forceSync();
-            await util_1.wait(30);
-        }
+        await synchronizeDocument(doc);
         let res = await languages_1.default.prepareRename(doc.textDocument, position);
         if (res === false) {
             workspace_1.default.showMessage('Invalid position for renmame', 'error');
@@ -72936,13 +72927,10 @@ class Handler {
         }
         let position = await workspace_1.default.getCursorPosition();
         let origLine = doc.getline(position.line);
-        let { changedtick, dirty } = doc;
-        if (dirty) {
-            doc.forceSync();
-            await util_1.wait(50);
-        }
         let pos = insertLeave ? { line: position.line, character: origLine.length } : position;
         try {
+            let { changedtick } = doc;
+            await synchronizeDocument(doc);
             let edits = await languages_1.default.provideDocumentOnTypeEdits(ch, doc.textDocument, pos);
             // changed by other process
             if (doc.changedtick != changedtick || edits == null)
@@ -72996,6 +72984,7 @@ class Handler {
                 signatures.unshift(active);
         }
         if (this.preferences.signatureHelpTarget == 'float') {
+            let offset = 0;
             let paramDoc = null;
             let docs = signatures.reduce((p, c, idx) => {
                 let activeIndexes = null;
@@ -73024,6 +73013,9 @@ class Handler {
                 if (activeIndexes == null) {
                     activeIndexes = [nameIndex + 1, nameIndex + 1];
                 }
+                if (offset == 0) {
+                    offset = activeIndexes[0] + 1;
+                }
                 p.push({
                     content: c.label,
                     filetype: document.filetype,
@@ -73050,12 +73042,11 @@ class Handler {
                 }
                 return p;
             }, []);
-            let offset = 0;
             let session = manager_3.default.getSession(document.bufnr);
             if (session && session.isActive) {
                 let { value } = session.placeholder;
                 if (!value.includes('\n'))
-                    offset = value.length;
+                    offset += value.length;
                 this.signaturePosition = vscode_languageserver_protocol_1.Position.create(position.line, position.character - value.length);
             }
             else {
@@ -73357,7 +73348,7 @@ class Handler {
             signatureHelpTarget,
             signatureMaxHeight: signatureConfig.get('maxWindowHeight', 8),
             triggerSignatureHelp: signatureConfig.get('enable', true),
-            triggerSignatureWait: signatureConfig.get('triggerSignatureWait', 50),
+            triggerSignatureWait: Math.max(signatureConfig.get('triggerSignatureWait', 50), 50),
             signaturePreferAbove: signatureConfig.get('preferShownAbove', true),
             signatureFloatMaxWidth: signatureConfig.get('floatMaxWidth', 60),
             signatureHideOnChange: signatureConfig.get('hideOnTextChange', false),
@@ -73449,6 +73440,13 @@ function isEmpty(location) {
 }
 function isDocumentSymbols(a) {
     return isDocumentSymbol(a[0]);
+}
+async function synchronizeDocument(doc) {
+    let { changedtick } = doc;
+    await doc.patchChange();
+    if (changedtick != doc.changedtick) {
+        await util_1.wait(50);
+    }
 }
 //# sourceMappingURL=index.js.map
 
