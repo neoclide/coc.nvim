@@ -761,7 +761,7 @@ export class Extensions {
     let subscriptions: Disposable[] = []
     let extension: any = {
       activate: async (): Promise<API> => {
-        if (isActive) return
+        if (isActive) return exports as API
         let context: ExtensionContext = {
           subscriptions,
           extensionPath: root,
