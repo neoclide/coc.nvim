@@ -183,6 +183,14 @@ export class Workspace implements IWorkspace {
         }
       }
     }, this.disposables)
+    this.watchGlobal('coc_enabled', async (oldValue, newValue) => {
+      if (newValue == oldValue) return
+      if (newValue == 1) {
+        await this.attach()
+      } else {
+        await this.detach()
+      }
+    }, this.disposables)
     let provider: TextDocumentContentProvider = {
       onDidChange: null,
       provideTextDocumentContent: async (uri: URI) => {
