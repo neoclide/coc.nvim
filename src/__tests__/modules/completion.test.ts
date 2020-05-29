@@ -67,7 +67,6 @@ describe('completion start', () => {
     await nvim.call('cursor', [1, 2])
     let option: CompleteOption = await nvim.call('coc#util#get_complete_option')
     await completion.startCompletion(option)
-    await helper.wait(30)
     expect(completion.isActivated).toBe(true)
   })
 
@@ -149,7 +148,7 @@ describe('completion resumeCompletion', () => {
       name: 'source',
       sourceType: SourceType.Service,
       triggerCharacters: ['.'],
-      doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+      doComplete: (): Promise<CompleteResult> => new Promise(resolve => {
         setTimeout(() => {
           resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
         }, 60)
@@ -628,7 +627,6 @@ describe('completion trigger', () => {
     await helper.wait(100)
     expect(completion.isActivated).toBe(false)
     config.update('autoTrigger', 'always')
-    await helper.wait(100)
   })
 
   it('should trigger complete on trigger patterns match', async () => {

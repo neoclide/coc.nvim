@@ -487,7 +487,15 @@ export interface CompleteOption {
   readonly synname: string
   readonly source?: string
   readonly blacklist: string[]
+  readonly changedtick: number
   triggerForInComplete?: boolean
+}
+
+export interface InsertChange {
+  lnum: number
+  col: number
+  pre: string
+  changedtick: number
 }
 
 export interface PumBounding {

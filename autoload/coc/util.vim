@@ -561,6 +561,7 @@ function! coc#util#get_complete_option()
         \ 'colnr' : pos[2],
         \ 'col': l:start,
         \ 'synname': synname,
+        \ 'changedtick': b:changedtick,
         \ 'blacklist': blacklist,
         \}
 endfunction

@@ -321,7 +321,7 @@
     },
     "suggest.numberSelect": {
       "type": "boolean",
-      "description": "Input number to select complete item, it could wrong when using <up> and <down> to select complete item",
+      "description": "Input number to select complete item, it's neovim only and requires CompleteChanged event to work.",
       "default": false
     },
     "suggest.disableKind": {

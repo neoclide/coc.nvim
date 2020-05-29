@@ -1,25 +1,25 @@
 import { Disposable } from 'vscode-languageserver-protocol'
-import { PopupChangeEvent, VimCompleteItem } from './types'
+import { PopupChangeEvent, InsertChange, VimCompleteItem } from './types'
 import { disposeAll } from './util'
 import { equals } from './util/object'
 const logger = require('./util/logger')('events')
 
 export type Result = void | Promise<void>
 
-export type BufEvents = 'TextChangedI' | 'BufHidden' | 'BufEnter' | 'TextChanged'
-  | 'BufWritePost' | 'CursorHold' | 'InsertLeave' | 'TermOpen' | 'TermClose' | 'InsertEnter'
-  | 'BufCreate' | 'BufUnload' | 'BufWritePre' | 'CursorHoldI' | 'TextChangedP' | 'Enter'
+export type BufEvents = 'BufHidden' | 'BufEnter' | 'BufWritePost'
+  | 'CursorHold' | 'InsertLeave' | 'TermOpen' | 'TermClose' | 'InsertEnter'
+  | 'BufCreate' | 'BufUnload' | 'BufWritePre' | 'CursorHoldI' | 'Enter'
 
 export type EmptyEvents = 'FocusGained' | 'VimLeave'
 
-export type TextChangedEvent = 'TextChanged'
+export type InsertChangeEvents = 'TextChangedP' | 'TextChangedI'
 
 export type TaskEvents = 'TaskExit' | 'TaskStderr' | 'TaskStdout'
 
-export type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents |
-  'CompleteDone' | 'MenuPopupChanged' | 'InsertCharPre' | 'FileType' |
-  'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'DirChanged' | 'OptionSet' |
-  'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar'
+export type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents
+  | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged'
+  | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized'
+  | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar'
 
 export type MoveEvents = 'CursorMoved' | 'CursorMovedI'
 
@@ -82,7 +82,8 @@ class Events {
   public on(event: EmptyEvents | AllEvents[], handler: () => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: BufEvents, handler: (bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: MoveEvents, handler: (bufnr: number, cursor: [number, number]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: TextChangedEvent, handler: (bufnr: number, changedtick: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: InsertChangeEvents, handler: (bufnr: number, info: InsertChange) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'TextChanged', handler: (bufnr: number, changedtick: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TaskExit', handler: (id: string, code: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TaskStderr' | 'TaskStdout', handler: (id: string, lines: string[]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'BufReadCmd', handler: (scheme: string, fullpath: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
