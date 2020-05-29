@@ -151,7 +151,7 @@ export default class FloatBuffer {
         if (doc.filetype == 'markdown') {
           // replace `\` surrounded by `__` because bug of markdown highlight in vim.
           str = str.replace(/__(.+?)__/g, (_, p1) => {
-            return `__${p1.replace(/\\/g, '')}__`
+            return `__${p1.replace(/\\_/g, '_').replace(/\\\\/g, '\\')}__`
           })
         }
         lines.push(str)
