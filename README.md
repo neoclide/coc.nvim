@@ -62,10 +62,12 @@ Or configure language server in `coc-settings.json` opened by
 ```json
 {
   "languageserver": {
-    "command": "gopls",
-    "rootPatterns": ["go.mod"],
-    "trace.server": "verbose",
-    "filetypes": ["go"]
+    "go": {
+      "command": "gopls",
+      "rootPatterns": ["go.mod"],
+      "trace.server": "verbose",
+      "filetypes": ["go"]
+    }
   }
 }
 ```
