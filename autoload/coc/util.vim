@@ -550,6 +550,7 @@ function! coc#util#get_complete_option()
     return
   endif
   let synname = synIDattr(synID(pos[1], l:start, 1),"name")
+  let disabled_sources = get(b:, 'coc_disabled_sources', [])
   return {
         \ 'word': matchstr(line[l:start : ], '^\k\+'),
         \ 'input': empty(input) ? '' : input,
@@ -563,6 +564,7 @@ function! coc#util#get_complete_option()
         \ 'synname': synname,
         \ 'changedtick': b:changedtick,
         \ 'blacklist': blacklist,
+        \ 'disabled_sources': disabled_sources,
         \}
 endfunction
 

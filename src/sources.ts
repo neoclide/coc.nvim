@@ -210,16 +210,17 @@ export class Sources {
   }
 
   public getCompleteSources(opt: CompleteOption): ISource[] {
-    let { filetype } = opt
+    let { filetype, disabled_sources } = opt
     let pre = byteSlice(opt.line, 0, opt.colnr - 1)
     let isTriggered = opt.input == '' && opt.triggerCharacter
-    if (isTriggered) return this.getTriggerSources(pre, filetype)
+    if (isTriggered) return this.getTriggerSources(pre, filetype, disabled_sources)
     let character = pre.length ? pre[pre.length - 1] : ''
     return this.sources.filter(source => {
-      let { filetypes, triggerOnly, enable } = source
-      if (!enable || (filetypes && !filetypes.includes(filetype))) {
+      let { triggerOnly } = source
+      if (this.isSourceDisabled(source, filetype, disabled_sources)) {
         return false
       }
+
       if (triggerOnly && !this.checkTrigger(source, pre, character)) {
         return false
       }
@@ -251,15 +252,19 @@ export class Sources {
     return idx !== -1
   }
 
-  public getTriggerSources(pre: string, languageId: string): ISource[] {
+  public getTriggerSources(pre: string, languageId: string, disabled_sources: string[]): ISource[] {
     let character = pre.length ? pre[pre.length - 1] : ''
     return this.sources.filter(source => {
-      let { filetypes, enable } = source
-      if (!enable || (filetypes && !filetypes.includes(languageId))) {
+      if (this.isSourceDisabled(source, languageId, disabled_sources)) {
         return false
       }
       return this.checkTrigger(source, pre, character)
     })
+  }
+
+  private isSourceDisabled(source: ISource, filetype: string, disabled_sources: string[]) {
+    let { enable, name, filetypes } = source
+    return !enable || disabled_sources.includes(name) || (filetypes && !filetypes.includes(filetype))
   }
 
   public getSourcesForFiletype(filetype: string, isTriggered: boolean): ISource[] {

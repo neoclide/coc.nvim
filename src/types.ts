@@ -489,6 +489,7 @@ export interface CompleteOption {
   readonly blacklist: string[]
   readonly changedtick: number
   triggerForInComplete?: boolean
+  disabled_sources: string[]
 }
 
 export interface InsertChange {

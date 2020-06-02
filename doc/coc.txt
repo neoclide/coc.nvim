@@ -1084,6 +1084,15 @@ b:coc_enabled					*b:coc_enabled*
 			receive content from buffer, usually used for improve
 			performance with large files.
 
+b:coc_disabled_sources				*b:coc_disabled_sources*
+
+			Disable specified sources on a buffer level.
+			For example, to disable `tag` source in sql, do this:
+>
+			autocmd FileType sql let b:coc_disabled_sources =
+			\ ['tag']
+<
+
 b:coc_root_patterns				*b:coc_root_patterns*
 
 			Root patterns used for resolving workspaceFolder for
