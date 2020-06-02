@@ -206,6 +206,7 @@ function! coc#util#create_float_win(winid, bufnr, config) abort
     let winid = nvim_open_win(bufnr, 0, a:config)
     call setwinvar(winid, '&foldcolumn', 1)
     call setwinvar(winid, '&winhl', 'Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating')
+    call setwinvar(winid, '&signcolumn', 'no')
   endif
   if winid <= 0
     return null
@@ -217,7 +218,6 @@ function! coc#util#create_float_win(winid, bufnr, config) abort
   call setwinvar(winid, '&cursorcolumn', 0)
   call setwinvar(winid, '&cursorline', 0)
   call setwinvar(winid, '&colorcolumn', 0)
-  call setwinvar(winid, '&signcolumn', 'no')
   call setwinvar(winid, 'float', 1)
   call setwinvar(winid, '&wrap', 1)
   call setwinvar(winid, '&linebreak', 1)
