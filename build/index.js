@@ -23676,7 +23676,7 @@ class Plugin extends events_1.EventEmitter {
         await this.handler.handleLocations(locations, openCommand);
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "95e7ca8324" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "4d98f9059c" : undefined);
     }
     async cocAction(...args) {
         if (!this._ready)
@@ -40325,7 +40325,6 @@ exports.normalizeSnippetString = normalizeSnippetString;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(239));
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const events_1 = tslib_1.__importDefault(__webpack_require__(209));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(331));
@@ -40375,14 +40374,6 @@ class Completion {
             this.currItem = item;
             fn(ev);
         }, this, this.disposables);
-        // check if we need trigger after complete done
-        events_1.default.on('CursorMovedI', debounce_1.default(async (bufnr) => {
-            if (this.complete)
-                return;
-            // try trigger completion
-            let doc = workspace_1.default.getDocument(bufnr);
-            await this.triggerSourceCompletion(doc);
-        }, 50));
         workspace_1.default.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('suggest')) {
                 Object.assign(this.config, this.getCompleteConfig());
@@ -42353,7 +42344,9 @@ class InstallBuffer extends events_1.default {
         nvim.call('bufnr', ['%'], true);
         nvim.command('setl buftype=nofile bufhidden=wipe noswapfile nobuflisted scrolloff=0 wrap undolevels=-1', true);
         this.highlight(nvim);
-        nvim.command(`wincmd ${isSync ? 'o' : 'p'}`, true);
+        if (!isSync) {
+            nvim.command(`wincmd p`, true);
+        }
         let res = await nvim.resumeNotification();
         let bufnr = res && res[1] == null ? res[0][1] : null;
         if (!bufnr)

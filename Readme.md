@@ -39,7 +39,7 @@ For [vim-plug](https://github.com/junegunn/vim-plug) users:
 " Use release branch (recommend)
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 
-" Or build from source code by use yarn: https://yarnpkg.com
+" Or build from source code by using yarn: https://yarnpkg.com
 Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}
 ```
 
@@ -62,10 +62,12 @@ Or configure language server in `coc-settings.json` opened by
 ```json
 {
   "languageserver": {
-    "command": "gopls",
-    "rootPatterns": ["go.mod"],
-    "trace.server": "verbose",
-    "filetypes": ["go"]
+    "go": {
+      "command": "gopls",
+      "rootPatterns": ["go.mod"],
+      "trace.server": "verbose",
+      "filetypes": ["go"]
+    }
   }
 }
 ```
