@@ -122,7 +122,9 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
     nvim.call('bufnr', ['%'], true)
     nvim.command('setl buftype=nofile bufhidden=wipe noswapfile nobuflisted scrolloff=0 wrap undolevels=-1', true)
     this.highlight(nvim)
-    nvim.command(`wincmd ${isSync ? 'o' : 'p'}`, true)
+    if (!isSync) {
+      nvim.command(`wincmd p`, true)
+    }
     let res = await nvim.resumeNotification()
     let bufnr = res && res[1] == null ? res[0][1] : null
     if (!bufnr) return
