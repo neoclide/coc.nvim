@@ -1,5 +1,4 @@
 import { Neovim } from '@chemzqm/neovim'
-import debounce from 'debounce'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
 import Document from '../model/document'
@@ -61,13 +60,6 @@ export class Completion implements Disposable {
       this.currItem = item
       fn(ev)
     }, this, this.disposables)
-    // check if we need trigger after complete done
-    events.on('CursorMovedI', debounce(async bufnr => {
-      if (this.complete) return
-      // try trigger completion
-      let doc = workspace.getDocument(bufnr)
-      await this.triggerSourceCompletion(doc)
-    }, 50))
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('suggest')) {
         Object.assign(this.config, this.getCompleteConfig())

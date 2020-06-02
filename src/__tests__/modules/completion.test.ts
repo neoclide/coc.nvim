@@ -571,28 +571,6 @@ describe('completion resume', () => {
 })
 
 describe('completion trigger', () => {
-  it('should trigger completion on CursorMovedI', async () => {
-    let source: ISource = {
-      priority: 0,
-      enable: true,
-      name: 'trigger',
-      sourceType: SourceType.Service,
-      triggerCharacters: ['>'],
-      doComplete: async (opt: CompleteOption): Promise<CompleteResult> => {
-        if (opt.triggerCharacter == '>') {
-          return { items: [{ word: 'foo' }] }
-        }
-        return null
-      }
-    }
-    disposables.push(sources.addSource(source))
-    await helper.edit()
-    await nvim.input('i><esc>a')
-    await helper.waitPopup()
-    let items = await helper.getItems()
-    expect(items.length).toBe(1)
-  })
-
   it('should trigger completion on type trigger character', async () => {
     let source: ISource = {
       priority: 1,
