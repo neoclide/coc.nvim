@@ -347,16 +347,21 @@ function! s:ShowInfo()
     else
       let output = trim(system(node . ' --version'))
       let ms = matchlist(output, 'v\(\d\+\).\(\d\+\).\(\d\+\)')
-      if empty(ms) || str2nr(ms[1]) < 8 || (str2nr(ms[1]) == 8 && str2nr(ms[2]) < 10)
-        call add(lines, 'Error: Node version '.output.' < 8.10.0, please upgrade node.js')
+      if empty(ms) || str2nr(ms[1]) < 10 || (str2nr(ms[1]) == 10 && str2nr(ms[2]) < 12)
+        call add(lines, 'Error: Node version '.output.' < 10.12.0, please upgrade node.js')
       endif
     endif
     " check bundle
-    let file = s:root.'/lib/attach.js'
-    if !filereadable(file)
-      let file = s:root.'/build/index.js'
+    let file = s:root.'/bin/server.js'
+    if filereadable(file)
+      let file = s:root.'/lib/attach.js'
       if !filereadable(file)
         call add(lines, 'Error: javascript bundle not found, please compile the code of coc.nvim.')
+      endif
+    else
+      let file = s:root.'/build/index.js'
+      if !filereadable(file)
+        call add(lines, 'Error: javascript bundle not found, please remove coc.nvim folder and reinstall it.')
       endif
     endif
     if !empty(lines)
@@ -365,9 +370,9 @@ function! s:ShowInfo()
       call setline(1, lines)
     else
       if get(g:, 'coc_start_at_startup',1)
-        echohl MoreMsg | echon 'Start on startup is disabled, try :CocStart' | echohl None
-      else
         echohl MoreMsg | echon 'Service stopped for some unknown reason, try :CocStart' | echohl None
+      else
+        echohl MoreMsg | echon 'Start on startup is disabled, try :CocStart' | echohl None
       endif
     endif
   endif

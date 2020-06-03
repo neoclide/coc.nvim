@@ -307,20 +307,17 @@ function! coc#util#job_command()
     echohl Error | echom '[coc.nvim] "'.node.'" is not executable, checkout https://nodejs.org/en/download/' | echohl None
     return
   endif
-  if filereadable(s:root.'/lib/attach.js') && !get(g:, 'coc_force_bundle', 0)
+  if filereadable(s:root.'/bin/server.js') && !get(g:, 'coc_force_bundle', 0)
+    if !filereadable(s:root.'/lib/attach.js')
+      echohl Error | echom '[coc.nvim] javascript bundle not found, running :call coc#util#install()' | echohl None
+      call coc#util#install()
+      return
+    endif
     "use javascript from lib
     return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/bin/server.js']
   else
     if !filereadable(s:root.'/build/index.js')
-      if isdirectory(s:root.'/src')
-        if get(g:, 'coc_force_bundle', 0)
-          echohl Error | echom '[coc.nvim] build/index.js not found, use webpack to create bundle' | echohl None
-        else
-          echohl Error | echom '[coc.nvim] javascript file not found, use "yarn install --frozen-lockfile" to compile' | echohl None
-        endif
-      else
-        echohl Error | echom '[coc.nvim] build/index.js not found, reinstall coc.nvim to fix.' | echohl None
-      endif
+      echohl Error | echom '[coc.nvim] build/index.js not found, reinstall coc.nvim to fix it.' | echohl None
       return
     endif
     return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/build/index.js']
@@ -902,10 +899,12 @@ function! coc#util#open_url(url)
   endif
 endfunction
 
-function! coc#util#install(...) abort
-  echohl Error 
-  echom '[coc.nvim] You have to build coc.nvim or use release branch, install script is removed!' 
-  echohl None
+function! coc#util#install() abort
+  call coc#util#open_terminal({
+        \ 'cwd': s:root,
+        \ 'cmd': 'yarn install --frozen-lockfile',
+        \ 'autoclose': 0,
+        \ })
 endfunction
 
 function! coc#util#do_complete(name, opt, cb) abort
