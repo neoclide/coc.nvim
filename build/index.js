@@ -23676,7 +23676,7 @@ class Plugin extends events_1.EventEmitter {
         await this.handler.handleLocations(locations, openCommand);
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "4d98f9059c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "4aaf5bf73c" : undefined);
     }
     async cocAction(...args) {
         if (!this._ready)
@@ -42343,6 +42343,9 @@ class InstallBuffer extends events_1.default {
         nvim.command(isSync ? 'enew' : 'vs +enew', true);
         nvim.call('bufnr', ['%'], true);
         nvim.command('setl buftype=nofile bufhidden=wipe noswapfile nobuflisted scrolloff=0 wrap undolevels=-1', true);
+        if (!isSync) {
+            nvim.command('nnoremap <silent><nowait><buffer> q :q<CR>', true);
+        }
         this.highlight(nvim);
         if (!isSync) {
             nvim.command(`wincmd p`, true);
