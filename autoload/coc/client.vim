@@ -49,11 +49,12 @@ function! s:start() dict
     endif
     if has("patch-8.0.0902")
       let options['env'] = {
-        \ 'VIM_NODE_RPC': '1',
-        \ 'COC_NVIM': '1',
-        \ 'COC_CHANNEL_TIMEOUT': get(g:, 'coc_channel_timeout', 30),
-        \ 'COC_NO_WARNINGS': get(g:, 'coc_disable_startup_warning', 0)
-        \ }
+            \ 'NODE_NO_WARNINGS': '1',
+            \ 'VIM_NODE_RPC': '1',
+            \ 'COC_NVIM': '1',
+            \ 'COC_CHANNEL_TIMEOUT': get(g:, 'coc_channel_timeout', 30),
+            \ 'COC_NO_WARNINGS': get(g:, 'coc_disable_startup_warning', 0)
+            \ }
     else
       let $VIM_NODE_RPC = 1
       let $COC_NVIM = 1
@@ -73,9 +74,10 @@ function! s:start() dict
     let env = {}
     if has('nvim-0.5.0')
       let env = {
-        \   'COC_CHANNEL_TIMEOUT': get(g:, 'coc_channel_timeout', 30),
-        \   'COC_NO_WARNINGS': get(g:, 'coc_disable_startup_warning', 0),
-        \ }
+            \ 'NODE_NO_WARNINGS': '1',
+            \ 'COC_CHANNEL_TIMEOUT': get(g:, 'coc_channel_timeout', 30),
+            \ 'COC_NO_WARNINGS': get(g:, 'coc_disable_startup_warning', 0),
+            \ }
     else
       let $COC_NO_WARNINGS = get(g:, 'coc_disable_startup_warning', 0)
       let $COC_CHANNEL_TIMEOUT = get(g:, 'coc_channel_timeout', 30)

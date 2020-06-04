@@ -23676,7 +23676,7 @@ class Plugin extends events_1.EventEmitter {
         await this.handler.handleLocations(locations, openCommand);
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "4aaf5bf73c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "fd6f1a5ed4" : undefined);
     }
     async cocAction(...args) {
         if (!this._ready)
@@ -25362,6 +25362,9 @@ class Workspace {
                 await this.detach();
             }
         }, this.disposables);
+        this.watchGlobal('coc_sources_disable_map', async (_, newValue) => {
+            this.env.disabledSources = newValue;
+        });
         let provider = {
             onDidChange: null,
             provideTextDocumentContent: async (uri) => {
@@ -31784,6 +31787,8 @@ class Document {
         // real current lines
         this.lines = [];
         this._attached = false;
+        this._previewwindow = false;
+        this._winid = -1;
         this._words = [];
         this._onDocumentChange = new vscode_languageserver_protocol_1.Emitter();
         this._onDocumentDetach = new vscode_languageserver_protocol_1.Emitter();
@@ -31863,6 +31868,18 @@ class Document {
         return this.lines.length;
     }
     /**
+     * Window ID when buffer create, could be -1 when no window associated.
+     */
+    get winid() {
+        return this._winid;
+    }
+    /**
+     * Returns if current document is opended with previewwindow
+     */
+    get previewwindow() {
+        return this._previewwindow;
+    }
+    /**
      * Initialize document model.
      *
      * @internal
@@ -31874,6 +31891,8 @@ class Document {
         if (opts == null)
             return false;
         let buftype = this.buftype = opts.buftype;
+        this._previewwindow = opts.previewwindow;
+        this._winid = opts.winid;
         this.size = typeof opts.size == 'number' ? opts.size : 0;
         this.variables = opts.variables;
         this._changedtick = opts.changedtick;
@@ -40689,20 +40708,6 @@ class Completion {
         logger.debug('trigger completion with', option);
         await this.startCompletion(option);
     }
-    async triggerSourceCompletion(doc) {
-        if (!doc || !doc.attached)
-            return false;
-        let [bufnr, pre] = await this.nvim.eval(`[bufnr('%'),strpart(getline('.'), 0, col('.') - 1)]`);
-        if (doc.bufnr != bufnr || this.complete)
-            return false;
-        if (sources_1.default.shouldTrigger(pre, doc.filetype)) {
-            this.triggerCompletion(doc, pre, false).catch(e => {
-                logger.error(e);
-            });
-            return true;
-        }
-        return false;
-    }
     async onCompleteDone(item) {
         let { document, isActivated } = this;
         if (!isActivated || !document || !item.hasOwnProperty('word'))
@@ -41121,16 +41126,24 @@ class Sources {
     getCompleteSources(opt) {
         let { filetype } = opt;
         let pre = string_1.byteSlice(opt.line, 0, opt.colnr - 1);
-        let isTriggered = opt.input == '' && opt.triggerCharacter;
+        let isTriggered = opt.input == '' && !!opt.triggerCharacter;
         if (isTriggered)
             return this.getTriggerSources(pre, filetype);
-        let character = pre.length ? pre[pre.length - 1] : '';
+        return this.getNormalSources(opt.filetype);
+    }
+    /**
+     * Get sources should be used without trigger.
+     *
+     * @param {string} filetype
+     * @returns {ISource[]}
+     */
+    getNormalSources(filetype) {
         return this.sources.filter(source => {
             let { filetypes, triggerOnly, enable } = source;
-            if (!enable || (filetypes && !filetypes.includes(filetype))) {
+            if (!enable || triggerOnly || (filetypes && !filetypes.includes(filetype))) {
                 return false;
             }
-            if (triggerOnly && !this.checkTrigger(source, pre, character)) {
+            if (this.disabledByLanguageId(source, filetype)) {
                 return false;
             }
             return true;
@@ -41149,39 +41162,21 @@ class Sources {
         return false;
     }
     shouldTrigger(pre, languageId) {
-        let last = pre.length ? pre[pre.length - 1] : '';
-        let idx = this.sources.findIndex(s => {
-            let { enable, triggerCharacters, triggerPatterns, filetypes } = s;
-            if (!enable || (filetypes && !filetypes.includes(languageId)))
-                return false;
-            if (last && triggerCharacters)
-                return triggerCharacters.includes(last);
-            if (triggerPatterns)
-                return triggerPatterns.findIndex(p => p.test(pre)) !== -1;
-            return false;
-        });
-        return idx !== -1;
+        let sources = this.getTriggerSources(pre, languageId);
+        return sources.length > 0;
     }
     getTriggerSources(pre, languageId) {
         let character = pre.length ? pre[pre.length - 1] : '';
+        if (!character)
+            return [];
         return this.sources.filter(source => {
             let { filetypes, enable } = source;
             if (!enable || (filetypes && !filetypes.includes(languageId))) {
                 return false;
             }
-            return this.checkTrigger(source, pre, character);
-        });
-    }
-    getSourcesForFiletype(filetype, isTriggered) {
-        return this.sources.filter(source => {
-            let { filetypes } = source;
-            if (source.triggerOnly && !isTriggered) {
+            if (this.disabledByLanguageId(source, languageId))
                 return false;
-            }
-            if (source.enable && (!filetypes || filetypes.includes(filetype))) {
-                return true;
-            }
-            return false;
+            return this.checkTrigger(source, pre, character);
         });
     }
     addSource(source) {
@@ -41255,6 +41250,11 @@ class Sources {
         }
         let source = new source_1.default(Object.assign({ sourceType: types_1.SourceType.Service }, config));
         return this.addSource(source);
+    }
+    disabledByLanguageId(source, languageId) {
+        let map = workspace_1.default.env.disabledSources;
+        let list = map ? map[languageId] : [];
+        return Array.isArray(list) && list.includes(source.name);
     }
     dispose() {
         util_2.disposeAll(this.disposables);
@@ -67920,7 +67920,9 @@ const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_types_1 = __webpack_require__(222);
 const vscode_uri_1 = __webpack_require__(242);
 const sources_1 = tslib_1.__importDefault(__webpack_require__(331));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
+const logger = __webpack_require__(64)('list-sources');
 class SourcesList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -67942,8 +67944,11 @@ class SourcesList extends basic_1.default {
         });
     }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async loadItems(_context) {
+    async loadItems(context) {
         let stats = sources_1.default.sourceStats();
+        let filetype = await context.buffer.getOption('filetype');
+        let map = workspace_1.default.env.disabledSources;
+        let disables = map ? map[filetype] || [] : [];
         stats.sort((a, b) => {
             if (a.type != b.type)
                 return a.type < b.type ? 1 : -1;
@@ -67951,6 +67956,9 @@ class SourcesList extends basic_1.default {
         });
         return stats.map(stat => {
             let prefix = stat.disabled ? ' ' : '*';
+            if (disables && disables.includes(stat.name)) {
+                prefix = '-';
+            }
             let location;
             if (stat.filepath) {
                 location = vscode_languageserver_types_1.Location.create(vscode_uri_1.URI.file(stat.filepath).toString(), vscode_languageserver_types_1.Range.create(0, 0, 0, 0));
