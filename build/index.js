@@ -11283,7 +11283,7 @@ const is_1 = __webpack_require__(249);
 __webpack_require__(399);
 const vscode_uri_1 = __webpack_require__(242);
 const logger = __webpack_require__(64)('attach');
-const isTest = "none" == 'test';
+const isTest = global.hasOwnProperty('__TEST__');
 exports.default = (opts, requestApi = true) => {
     const nvim = neovim_1.attach(opts, log4js_1.default.getLogger('node-client'), requestApi);
     const timeout = process.env.COC_CHANNEL_TIMEOUT ? parseInt(process.env.COC_CHANNEL_TIMEOUT, 10) : 30;
@@ -23240,7 +23240,7 @@ const manager_2 = tslib_1.__importDefault(__webpack_require__(449));
 const services_1 = tslib_1.__importDefault(__webpack_require__(433));
 const manager_3 = tslib_1.__importDefault(__webpack_require__(255));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(331));
-const types_1 = __webpack_require__(260);
+const types_1 = __webpack_require__(261);
 const util_1 = __webpack_require__(237);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const logger = __webpack_require__(64)('plugin');
@@ -23298,7 +23298,6 @@ class Plugin extends events_1.EventEmitter {
         this.addMethod('listResume', () => manager_2.default.resume());
         this.addMethod('listPrev', () => manager_2.default.previous());
         this.addMethod('listNext', () => manager_2.default.next());
-        this.addMethod('detach', () => workspace_1.default.detach());
         this.addMethod('sendRequest', (id, method, params) => services_1.default.sendRequest(id, method, params));
         this.addMethod('sendNotification', async (id, method, params) => {
             await services_1.default.sendNotification(id, method, params);
@@ -23338,6 +23337,12 @@ class Plugin extends events_1.EventEmitter {
         this.addMethod('openLog', () => {
             let file = logger.getLogFile();
             nvim.call(`coc#util#open_url`, [file], true);
+        });
+        this.addMethod('attach', () => {
+            return workspace_1.default.attach();
+        });
+        this.addMethod('detach', () => {
+            return workspace_1.default.detach();
         });
         this.addMethod('doKeymap', async (key, defaultReturn = '') => {
             let [fn, repeat] = workspace_1.default.keymaps.get(key);
@@ -23600,8 +23605,8 @@ class Plugin extends events_1.EventEmitter {
         let { nvim } = this;
         let s = Date.now();
         try {
-            await workspace_1.default.init();
             await extensions_1.default.init();
+            await workspace_1.default.init();
             for (let item of workspace_1.default.env.vimCommands) {
                 this.addCommand(item);
             }
@@ -23616,6 +23621,7 @@ class Plugin extends events_1.EventEmitter {
             this.handler = new handler_1.default(nvim);
             services_1.default.init();
             await extensions_1.default.activateExtensions();
+            workspace_1.default.setupDynamicAutocmd(true);
             nvim.setVar('coc_service_initialized', 1, true);
             nvim.call('coc#util#do_autocmd', ['CocNvimInit'], true);
             this._ready = true;
@@ -23629,9 +23635,9 @@ class Plugin extends events_1.EventEmitter {
         workspace_1.default.onDidOpenTextDocument(async (doc) => {
             if (!doc.uri.endsWith(util_1.CONFIG_FILE_NAME))
                 return;
-            if (extensions_1.default.has('coc-json') || extensions_1.default.isDisabled('coc-json'))
+            if (extensions_1.default.has('coc-json'))
                 return;
-            workspace_1.default.showMessage(`Run: CocInstall coc-json for json intellisense`, 'more');
+            workspace_1.default.showMessage(`Run :CocInstall coc-json for json intellisense`, 'more');
         });
     }
     get isReady() {
@@ -23676,7 +23682,7 @@ class Plugin extends events_1.EventEmitter {
         await this.handler.handleLocations(locations, openCommand);
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "fd6f1a5ed4" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d5471449bf" : undefined);
     }
     async cocAction(...args) {
         if (!this._ready)
@@ -25185,21 +25191,21 @@ exports.default = new SnippetManager();
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const bytes_1 = tslib_1.__importDefault(__webpack_require__(257));
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(239));
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(257));
+const bytes_1 = tslib_1.__importDefault(__webpack_require__(258));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const os_1 = tslib_1.__importDefault(__webpack_require__(76));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const util_1 = tslib_1.__importDefault(__webpack_require__(74));
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_languageserver_textdocument_1 = __webpack_require__(258);
+const vscode_languageserver_textdocument_1 = __webpack_require__(259);
 const vscode_uri_1 = __webpack_require__(242);
 const which_1 = tslib_1.__importDefault(__webpack_require__(243));
-const configuration_1 = tslib_1.__importDefault(__webpack_require__(259));
-const shape_1 = tslib_1.__importDefault(__webpack_require__(274));
+const configuration_1 = tslib_1.__importDefault(__webpack_require__(260));
+const shape_1 = tslib_1.__importDefault(__webpack_require__(275));
 const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const db_1 = tslib_1.__importDefault(__webpack_require__(275));
-const document_1 = tslib_1.__importDefault(__webpack_require__(283));
+const db_1 = tslib_1.__importDefault(__webpack_require__(276));
+const document_1 = tslib_1.__importDefault(__webpack_require__(284));
 const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(290));
 const mru_1 = tslib_1.__importDefault(__webpack_require__(291));
 const outputChannel_1 = tslib_1.__importDefault(__webpack_require__(292));
@@ -25208,11 +25214,11 @@ const status_1 = tslib_1.__importDefault(__webpack_require__(296));
 const task_1 = tslib_1.__importDefault(__webpack_require__(307));
 const terminal_1 = tslib_1.__importDefault(__webpack_require__(308));
 const willSaveHandler_1 = tslib_1.__importDefault(__webpack_require__(309));
-const types_1 = __webpack_require__(260);
-const array_1 = __webpack_require__(284);
-const fs_2 = __webpack_require__(269);
+const types_1 = __webpack_require__(261);
+const array_1 = __webpack_require__(285);
+const fs_2 = __webpack_require__(270);
 const index_1 = __webpack_require__(237);
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(276));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(277));
 const match_1 = __webpack_require__(310);
 const position_1 = __webpack_require__(288);
 const string_1 = __webpack_require__(287);
@@ -25243,6 +25249,7 @@ class Workspace {
         this.namespaceMap = new Map();
         this.disposables = [];
         this.watchedOptions = new Set();
+        this._dynAutocmd = false;
         this._disposed = false;
         this._onDidOpenDocument = new vscode_languageserver_protocol_1.Emitter();
         this._onDidCloseDocument = new vscode_languageserver_protocol_1.Emitter();
@@ -25254,6 +25261,7 @@ class Workspace {
         this._onDidWorkspaceInitialized = new vscode_languageserver_protocol_1.Emitter();
         this._onDidOpenTerminal = new vscode_languageserver_protocol_1.Emitter();
         this._onDidCloseTerminal = new vscode_languageserver_protocol_1.Emitter();
+        this._onDidRuntimePathChange = new vscode_languageserver_protocol_1.Emitter();
         this.onDidCloseTerminal = this._onDidCloseTerminal.event;
         this.onDidOpenTerminal = this._onDidOpenTerminal.event;
         this.onDidChangeWorkspaceFolders = this._onDidChangeWorkspaceFolders.event;
@@ -25264,15 +25272,11 @@ class Workspace {
         this.onDidSaveTextDocument = this._onDidSaveDocument.event;
         this.onDidChangeConfiguration = this._onDidChangeConfiguration.event;
         this.onDidWorkspaceInitialized = this._onDidWorkspaceInitialized.event;
+        this.onDidRuntimePathChange = this._onDidRuntimePathChange.event;
         let json = __webpack_require__(327);
         this.version = json.version;
         this.configurations = this.createConfigurations();
         this.willSaveUntilHandler = new willSaveHandler_1.default(this);
-        this.setupDynamicAutocmd = debounce_1.default(() => {
-            this._setupDynamicAutocmd().catch(e => {
-                logger.error(e);
-            });
-        }, global.hasOwnProperty('__TEST__') ? 0 : 100);
         let cwd = process.cwd();
         if (cwd != os_1.default.homedir() && fs_2.inDirectory(cwd, ['.vim'])) {
             this._workspaceFolders.push({
@@ -25331,7 +25335,14 @@ class Workspace {
         this.configurations.onDidChange(e => {
             this._onDidChangeConfiguration.fire(e);
         }, null, this.disposables);
-        this.watchOption('runtimepath', (_, newValue) => {
+        this.watchOption('runtimepath', (oldValue, newValue) => {
+            let result = fast_diff_1.default(oldValue, newValue);
+            for (let [changeType, value] of result) {
+                if (changeType == 1) {
+                    let paths = value.replace(/,$/, '').split(',');
+                    this._onDidRuntimePathChange.fire(paths);
+                }
+            }
             this._env.runtimepath = newValue;
         }, this.disposables);
         this.watchOption('iskeyword', (_, newValue) => {
@@ -25350,16 +25361,6 @@ class Workspace {
                     let lines = content.split(/\r?\n/);
                     console.error(`Some plugin change completeopt on insert mode: ${lines[lines.length - 1].trim()}!`);
                 }
-            }
-        }, this.disposables);
-        this.watchGlobal('coc_enabled', async (oldValue, newValue) => {
-            if (newValue == oldValue)
-                return;
-            if (newValue == 1) {
-                await this.attach();
-            }
-            else {
-                await this.detach();
             }
         }, this.disposables);
         this.watchGlobal('coc_sources_disable_map', async (_, newValue) => {
@@ -26544,7 +26545,6 @@ class Workspace {
         index_1.disposeAll(this.disposables);
         watchman_1.default.dispose();
         this.configurations.dispose();
-        this.setupDynamicAutocmd.clear();
         this.buffers.clear();
         if (this.statusLine)
             this.statusLine.dispose();
@@ -26577,7 +26577,10 @@ class Workspace {
     createTask(id) {
         return new task_1.default(this.nvim, id);
     }
-    async _setupDynamicAutocmd() {
+    setupDynamicAutocmd(initialize = false) {
+        if (!initialize && !this._dynAutocmd)
+            return;
+        this._dynAutocmd = true;
         let schemes = this.schemeProviderMap.keys();
         let cmds = [];
         for (let scheme of schemes) {
@@ -26598,20 +26601,19 @@ class Workspace {
         let content = `
 augroup coc_dynamic_autocmd
   autocmd!
-  ${cmds.join('\n')}
+  ${cmds.join('\n  ')}
 augroup end`;
         try {
             let dir = path_1.default.join(os_1.default.tmpdir(), `coc.nvim-${process.pid}`);
             if (!fs_1.default.existsSync(dir))
                 fs_1.default.mkdirSync(dir);
             let filepath = path_1.default.join(dir, `coc-${process.pid}.vim`);
-            await fs_2.writeFile(filepath, content);
+            fs_1.default.writeFileSync(filepath, content, 'utf8');
             let cmd = `source ${filepath}`;
-            const isCygwin = await this.nvim.eval('has("win32unix")');
-            if (isCygwin && index_1.platform.isWindows) {
+            if (this.env.isCygwin && index_1.platform.isWindows) {
                 cmd = `execute "source" . substitute(system('cygpath ${filepath.replace(/\\/g, '/')}'), '\\n', '', 'g')`;
             }
-            await this.nvim.command(cmd);
+            this.nvim.command(cmd).logError();
         }
         catch (e) {
             this.showMessage(`Can't create tmp file: ${e.message}`, 'error');
@@ -27023,6 +27025,786 @@ exports.default = new Workspace();
 
 /***/ }),
 /* 257 */
+/***/ (function(module, exports) {
+
+/**
+ * This library modifies the diff-patch-match library by Neil Fraser
+ * by removing the patch and match functionality and certain advanced
+ * options in the diff function. The original license is as follows:
+ *
+ * ===
+ *
+ * Diff Match and Patch
+ *
+ * Copyright 2006 Google Inc.
+ * http://code.google.com/p/google-diff-match-patch/
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+/**
+ * The data structure representing a diff is an array of tuples:
+ * [[DIFF_DELETE, 'Hello'], [DIFF_INSERT, 'Goodbye'], [DIFF_EQUAL, ' world.']]
+ * which means: delete 'Hello', add 'Goodbye' and keep ' world.'
+ */
+var DIFF_DELETE = -1;
+var DIFF_INSERT = 1;
+var DIFF_EQUAL = 0;
+
+
+/**
+ * Find the differences between two texts.  Simplifies the problem by stripping
+ * any common prefix or suffix off the texts before diffing.
+ * @param {string} text1 Old string to be diffed.
+ * @param {string} text2 New string to be diffed.
+ * @param {Int|Object} [cursor_pos] Edit position in text1 or object with more info
+ * @return {Array} Array of diff tuples.
+ */
+function diff_main(text1, text2, cursor_pos, _fix_unicode) {
+  // Check for equality
+  if (text1 === text2) {
+    if (text1) {
+      return [[DIFF_EQUAL, text1]];
+    }
+    return [];
+  }
+
+  if (cursor_pos != null) {
+    var editdiff = find_cursor_edit_diff(text1, text2, cursor_pos);
+    if (editdiff) {
+      return editdiff;
+    }
+  }
+
+  // Trim off common prefix (speedup).
+  var commonlength = diff_commonPrefix(text1, text2);
+  var commonprefix = text1.substring(0, commonlength);
+  text1 = text1.substring(commonlength);
+  text2 = text2.substring(commonlength);
+
+  // Trim off common suffix (speedup).
+  commonlength = diff_commonSuffix(text1, text2);
+  var commonsuffix = text1.substring(text1.length - commonlength);
+  text1 = text1.substring(0, text1.length - commonlength);
+  text2 = text2.substring(0, text2.length - commonlength);
+
+  // Compute the diff on the middle block.
+  var diffs = diff_compute_(text1, text2);
+
+  // Restore the prefix and suffix.
+  if (commonprefix) {
+    diffs.unshift([DIFF_EQUAL, commonprefix]);
+  }
+  if (commonsuffix) {
+    diffs.push([DIFF_EQUAL, commonsuffix]);
+  }
+  diff_cleanupMerge(diffs, _fix_unicode);
+  return diffs;
+};
+
+
+/**
+ * Find the differences between two texts.  Assumes that the texts do not
+ * have any common prefix or suffix.
+ * @param {string} text1 Old string to be diffed.
+ * @param {string} text2 New string to be diffed.
+ * @return {Array} Array of diff tuples.
+ */
+function diff_compute_(text1, text2) {
+  var diffs;
+
+  if (!text1) {
+    // Just add some text (speedup).
+    return [[DIFF_INSERT, text2]];
+  }
+
+  if (!text2) {
+    // Just delete some text (speedup).
+    return [[DIFF_DELETE, text1]];
+  }
+
+  var longtext = text1.length > text2.length ? text1 : text2;
+  var shorttext = text1.length > text2.length ? text2 : text1;
+  var i = longtext.indexOf(shorttext);
+  if (i !== -1) {
+    // Shorter text is inside the longer text (speedup).
+    diffs = [
+      [DIFF_INSERT, longtext.substring(0, i)],
+      [DIFF_EQUAL, shorttext],
+      [DIFF_INSERT, longtext.substring(i + shorttext.length)]
+    ];
+    // Swap insertions for deletions if diff is reversed.
+    if (text1.length > text2.length) {
+      diffs[0][0] = diffs[2][0] = DIFF_DELETE;
+    }
+    return diffs;
+  }
+
+  if (shorttext.length === 1) {
+    // Single character string.
+    // After the previous speedup, the character can't be an equality.
+    return [[DIFF_DELETE, text1], [DIFF_INSERT, text2]];
+  }
+
+  // Check to see if the problem can be split in two.
+  var hm = diff_halfMatch_(text1, text2);
+  if (hm) {
+    // A half-match was found, sort out the return data.
+    var text1_a = hm[0];
+    var text1_b = hm[1];
+    var text2_a = hm[2];
+    var text2_b = hm[3];
+    var mid_common = hm[4];
+    // Send both pairs off for separate processing.
+    var diffs_a = diff_main(text1_a, text2_a);
+    var diffs_b = diff_main(text1_b, text2_b);
+    // Merge the results.
+    return diffs_a.concat([[DIFF_EQUAL, mid_common]], diffs_b);
+  }
+
+  return diff_bisect_(text1, text2);
+};
+
+
+/**
+ * Find the 'middle snake' of a diff, split the problem in two
+ * and return the recursively constructed diff.
+ * See Myers 1986 paper: An O(ND) Difference Algorithm and Its Variations.
+ * @param {string} text1 Old string to be diffed.
+ * @param {string} text2 New string to be diffed.
+ * @return {Array} Array of diff tuples.
+ * @private
+ */
+function diff_bisect_(text1, text2) {
+  // Cache the text lengths to prevent multiple calls.
+  var text1_length = text1.length;
+  var text2_length = text2.length;
+  var max_d = Math.ceil((text1_length + text2_length) / 2);
+  var v_offset = max_d;
+  var v_length = 2 * max_d;
+  var v1 = new Array(v_length);
+  var v2 = new Array(v_length);
+  // Setting all elements to -1 is faster in Chrome & Firefox than mixing
+  // integers and undefined.
+  for (var x = 0; x < v_length; x++) {
+    v1[x] = -1;
+    v2[x] = -1;
+  }
+  v1[v_offset + 1] = 0;
+  v2[v_offset + 1] = 0;
+  var delta = text1_length - text2_length;
+  // If the total number of characters is odd, then the front path will collide
+  // with the reverse path.
+  var front = (delta % 2 !== 0);
+  // Offsets for start and end of k loop.
+  // Prevents mapping of space beyond the grid.
+  var k1start = 0;
+  var k1end = 0;
+  var k2start = 0;
+  var k2end = 0;
+  for (var d = 0; d < max_d; d++) {
+    // Walk the front path one step.
+    for (var k1 = -d + k1start; k1 <= d - k1end; k1 += 2) {
+      var k1_offset = v_offset + k1;
+      var x1;
+      if (k1 === -d || (k1 !== d && v1[k1_offset - 1] < v1[k1_offset + 1])) {
+        x1 = v1[k1_offset + 1];
+      } else {
+        x1 = v1[k1_offset - 1] + 1;
+      }
+      var y1 = x1 - k1;
+      while (
+        x1 < text1_length && y1 < text2_length &&
+        text1.charAt(x1) === text2.charAt(y1)
+      ) {
+        x1++;
+        y1++;
+      }
+      v1[k1_offset] = x1;
+      if (x1 > text1_length) {
+        // Ran off the right of the graph.
+        k1end += 2;
+      } else if (y1 > text2_length) {
+        // Ran off the bottom of the graph.
+        k1start += 2;
+      } else if (front) {
+        var k2_offset = v_offset + delta - k1;
+        if (k2_offset >= 0 && k2_offset < v_length && v2[k2_offset] !== -1) {
+          // Mirror x2 onto top-left coordinate system.
+          var x2 = text1_length - v2[k2_offset];
+          if (x1 >= x2) {
+            // Overlap detected.
+            return diff_bisectSplit_(text1, text2, x1, y1);
+          }
+        }
+      }
+    }
+
+    // Walk the reverse path one step.
+    for (var k2 = -d + k2start; k2 <= d - k2end; k2 += 2) {
+      var k2_offset = v_offset + k2;
+      var x2;
+      if (k2 === -d || (k2 !== d && v2[k2_offset - 1] < v2[k2_offset + 1])) {
+        x2 = v2[k2_offset + 1];
+      } else {
+        x2 = v2[k2_offset - 1] + 1;
+      }
+      var y2 = x2 - k2;
+      while (
+        x2 < text1_length && y2 < text2_length &&
+        text1.charAt(text1_length - x2 - 1) === text2.charAt(text2_length - y2 - 1)
+      ) {
+        x2++;
+        y2++;
+      }
+      v2[k2_offset] = x2;
+      if (x2 > text1_length) {
+        // Ran off the left of the graph.
+        k2end += 2;
+      } else if (y2 > text2_length) {
+        // Ran off the top of the graph.
+        k2start += 2;
+      } else if (!front) {
+        var k1_offset = v_offset + delta - k2;
+        if (k1_offset >= 0 && k1_offset < v_length && v1[k1_offset] !== -1) {
+          var x1 = v1[k1_offset];
+          var y1 = v_offset + x1 - k1_offset;
+          // Mirror x2 onto top-left coordinate system.
+          x2 = text1_length - x2;
+          if (x1 >= x2) {
+            // Overlap detected.
+            return diff_bisectSplit_(text1, text2, x1, y1);
+          }
+        }
+      }
+    }
+  }
+  // Diff took too long and hit the deadline or
+  // number of diffs equals number of characters, no commonality at all.
+  return [[DIFF_DELETE, text1], [DIFF_INSERT, text2]];
+};
+
+
+/**
+ * Given the location of the 'middle snake', split the diff in two parts
+ * and recurse.
+ * @param {string} text1 Old string to be diffed.
+ * @param {string} text2 New string to be diffed.
+ * @param {number} x Index of split point in text1.
+ * @param {number} y Index of split point in text2.
+ * @return {Array} Array of diff tuples.
+ */
+function diff_bisectSplit_(text1, text2, x, y) {
+  var text1a = text1.substring(0, x);
+  var text2a = text2.substring(0, y);
+  var text1b = text1.substring(x);
+  var text2b = text2.substring(y);
+
+  // Compute both diffs serially.
+  var diffs = diff_main(text1a, text2a);
+  var diffsb = diff_main(text1b, text2b);
+
+  return diffs.concat(diffsb);
+};
+
+
+/**
+ * Determine the common prefix of two strings.
+ * @param {string} text1 First string.
+ * @param {string} text2 Second string.
+ * @return {number} The number of characters common to the start of each
+ *     string.
+ */
+function diff_commonPrefix(text1, text2) {
+  // Quick check for common null cases.
+  if (!text1 || !text2 || text1.charAt(0) !== text2.charAt(0)) {
+    return 0;
+  }
+  // Binary search.
+  // Performance analysis: http://neil.fraser.name/news/2007/10/09/
+  var pointermin = 0;
+  var pointermax = Math.min(text1.length, text2.length);
+  var pointermid = pointermax;
+  var pointerstart = 0;
+  while (pointermin < pointermid) {
+    if (
+      text1.substring(pointerstart, pointermid) ==
+      text2.substring(pointerstart, pointermid)
+    ) {
+      pointermin = pointermid;
+      pointerstart = pointermin;
+    } else {
+      pointermax = pointermid;
+    }
+    pointermid = Math.floor((pointermax - pointermin) / 2 + pointermin);
+  }
+
+  if (is_surrogate_pair_start(text1.charCodeAt(pointermid - 1))) {
+    pointermid--;
+  }
+
+  return pointermid;
+};
+
+
+/**
+ * Determine the common suffix of two strings.
+ * @param {string} text1 First string.
+ * @param {string} text2 Second string.
+ * @return {number} The number of characters common to the end of each string.
+ */
+function diff_commonSuffix(text1, text2) {
+  // Quick check for common null cases.
+  if (!text1 || !text2 || text1.slice(-1) !== text2.slice(-1)) {
+    return 0;
+  }
+  // Binary search.
+  // Performance analysis: http://neil.fraser.name/news/2007/10/09/
+  var pointermin = 0;
+  var pointermax = Math.min(text1.length, text2.length);
+  var pointermid = pointermax;
+  var pointerend = 0;
+  while (pointermin < pointermid) {
+    if (
+      text1.substring(text1.length - pointermid, text1.length - pointerend) ==
+      text2.substring(text2.length - pointermid, text2.length - pointerend)
+    ) {
+      pointermin = pointermid;
+      pointerend = pointermin;
+    } else {
+      pointermax = pointermid;
+    }
+    pointermid = Math.floor((pointermax - pointermin) / 2 + pointermin);
+  }
+
+  if (is_surrogate_pair_end(text1.charCodeAt(text1.length - pointermid))) {
+    pointermid--;
+  }
+
+  return pointermid;
+};
+
+
+/**
+ * Do the two texts share a substring which is at least half the length of the
+ * longer text?
+ * This speedup can produce non-minimal diffs.
+ * @param {string} text1 First string.
+ * @param {string} text2 Second string.
+ * @return {Array.<string>} Five element Array, containing the prefix of
+ *     text1, the suffix of text1, the prefix of text2, the suffix of
+ *     text2 and the common middle.  Or null if there was no match.
+ */
+function diff_halfMatch_(text1, text2) {
+  var longtext = text1.length > text2.length ? text1 : text2;
+  var shorttext = text1.length > text2.length ? text2 : text1;
+  if (longtext.length < 4 || shorttext.length * 2 < longtext.length) {
+    return null;  // Pointless.
+  }
+
+  /**
+   * Does a substring of shorttext exist within longtext such that the substring
+   * is at least half the length of longtext?
+   * Closure, but does not reference any external variables.
+   * @param {string} longtext Longer string.
+   * @param {string} shorttext Shorter string.
+   * @param {number} i Start index of quarter length substring within longtext.
+   * @return {Array.<string>} Five element Array, containing the prefix of
+   *     longtext, the suffix of longtext, the prefix of shorttext, the suffix
+   *     of shorttext and the common middle.  Or null if there was no match.
+   * @private
+   */
+  function diff_halfMatchI_(longtext, shorttext, i) {
+    // Start with a 1/4 length substring at position i as a seed.
+    var seed = longtext.substring(i, i + Math.floor(longtext.length / 4));
+    var j = -1;
+    var best_common = '';
+    var best_longtext_a, best_longtext_b, best_shorttext_a, best_shorttext_b;
+    while ((j = shorttext.indexOf(seed, j + 1)) !== -1) {
+      var prefixLength = diff_commonPrefix(
+        longtext.substring(i), shorttext.substring(j));
+      var suffixLength = diff_commonSuffix(
+        longtext.substring(0, i), shorttext.substring(0, j));
+      if (best_common.length < suffixLength + prefixLength) {
+        best_common = shorttext.substring(
+          j - suffixLength, j) + shorttext.substring(j, j + prefixLength);
+        best_longtext_a = longtext.substring(0, i - suffixLength);
+        best_longtext_b = longtext.substring(i + prefixLength);
+        best_shorttext_a = shorttext.substring(0, j - suffixLength);
+        best_shorttext_b = shorttext.substring(j + prefixLength);
+      }
+    }
+    if (best_common.length * 2 >= longtext.length) {
+      return [
+        best_longtext_a, best_longtext_b,
+        best_shorttext_a, best_shorttext_b, best_common
+      ];
+    } else {
+      return null;
+    }
+  }
+
+  // First check if the second quarter is the seed for a half-match.
+  var hm1 = diff_halfMatchI_(longtext, shorttext, Math.ceil(longtext.length / 4));
+  // Check again based on the third quarter.
+  var hm2 = diff_halfMatchI_(longtext, shorttext, Math.ceil(longtext.length / 2));
+  var hm;
+  if (!hm1 && !hm2) {
+    return null;
+  } else if (!hm2) {
+    hm = hm1;
+  } else if (!hm1) {
+    hm = hm2;
+  } else {
+    // Both matched.  Select the longest.
+    hm = hm1[4].length > hm2[4].length ? hm1 : hm2;
+  }
+
+  // A half-match was found, sort out the return data.
+  var text1_a, text1_b, text2_a, text2_b;
+  if (text1.length > text2.length) {
+    text1_a = hm[0];
+    text1_b = hm[1];
+    text2_a = hm[2];
+    text2_b = hm[3];
+  } else {
+    text2_a = hm[0];
+    text2_b = hm[1];
+    text1_a = hm[2];
+    text1_b = hm[3];
+  }
+  var mid_common = hm[4];
+  return [text1_a, text1_b, text2_a, text2_b, mid_common];
+};
+
+
+/**
+ * Reorder and merge like edit sections.  Merge equalities.
+ * Any edit section can move as long as it doesn't cross an equality.
+ * @param {Array} diffs Array of diff tuples.
+ * @param {boolean} fix_unicode Whether to normalize to a unicode-correct diff
+ */
+function diff_cleanupMerge(diffs, fix_unicode) {
+  diffs.push([DIFF_EQUAL, '']);  // Add a dummy entry at the end.
+  var pointer = 0;
+  var count_delete = 0;
+  var count_insert = 0;
+  var text_delete = '';
+  var text_insert = '';
+  var commonlength;
+  while (pointer < diffs.length) {
+    if (pointer < diffs.length - 1 && !diffs[pointer][1]) {
+      diffs.splice(pointer, 1);
+      continue;
+    }
+    switch (diffs[pointer][0]) {
+      case DIFF_INSERT:
+
+        count_insert++;
+        text_insert += diffs[pointer][1];
+        pointer++;
+        break;
+      case DIFF_DELETE:
+        count_delete++;
+        text_delete += diffs[pointer][1];
+        pointer++;
+        break;
+      case DIFF_EQUAL:
+        var previous_equality = pointer - count_insert - count_delete - 1;
+        if (fix_unicode) {
+          // prevent splitting of unicode surrogate pairs.  when fix_unicode is true,
+          // we assume that the old and new text in the diff are complete and correct
+          // unicode-encoded JS strings, but the tuple boundaries may fall between
+          // surrogate pairs.  we fix this by shaving off stray surrogates from the end
+          // of the previous equality and the beginning of this equality.  this may create
+          // empty equalities or a common prefix or suffix.  for example, if AB and AC are
+          // emojis, `[[0, 'A'], [-1, 'BA'], [0, 'C']]` would turn into deleting 'ABAC' and
+          // inserting 'AC', and then the common suffix 'AC' will be eliminated.  in this
+          // particular case, both equalities go away, we absorb any previous inequalities,
+          // and we keep scanning for the next equality before rewriting the tuples.
+          if (previous_equality >= 0 && ends_with_pair_start(diffs[previous_equality][1])) {
+            var stray = diffs[previous_equality][1].slice(-1);
+            diffs[previous_equality][1] = diffs[previous_equality][1].slice(0, -1);
+            text_delete = stray + text_delete;
+            text_insert = stray + text_insert;
+            if (!diffs[previous_equality][1]) {
+              // emptied out previous equality, so delete it and include previous delete/insert
+              diffs.splice(previous_equality, 1);
+              pointer--;
+              var k = previous_equality - 1;
+              if (diffs[k] && diffs[k][0] === DIFF_INSERT) {
+                count_insert++;
+                text_insert = diffs[k][1] + text_insert;
+                k--;
+              }
+              if (diffs[k] && diffs[k][0] === DIFF_DELETE) {
+                count_delete++;
+                text_delete = diffs[k][1] + text_delete;
+                k--;
+              }
+              previous_equality = k;
+            }
+          }
+          if (starts_with_pair_end(diffs[pointer][1])) {
+            var stray = diffs[pointer][1].charAt(0);
+            diffs[pointer][1] = diffs[pointer][1].slice(1);
+            text_delete += stray;
+            text_insert += stray;
+          }
+        }
+        if (pointer < diffs.length - 1 && !diffs[pointer][1]) {
+          // for empty equality not at end, wait for next equality
+          diffs.splice(pointer, 1);
+          break;
+        }
+        if (text_delete.length > 0 || text_insert.length > 0) {
+          // note that diff_commonPrefix and diff_commonSuffix are unicode-aware
+          if (text_delete.length > 0 && text_insert.length > 0) {
+            // Factor out any common prefixes.
+            commonlength = diff_commonPrefix(text_insert, text_delete);
+            if (commonlength !== 0) {
+              if (previous_equality >= 0) {
+                diffs[previous_equality][1] += text_insert.substring(0, commonlength);
+              } else {
+                diffs.splice(0, 0, [DIFF_EQUAL, text_insert.substring(0, commonlength)]);
+                pointer++;
+              }
+              text_insert = text_insert.substring(commonlength);
+              text_delete = text_delete.substring(commonlength);
+            }
+            // Factor out any common suffixes.
+            commonlength = diff_commonSuffix(text_insert, text_delete);
+            if (commonlength !== 0) {
+              diffs[pointer][1] =
+                text_insert.substring(text_insert.length - commonlength) + diffs[pointer][1];
+              text_insert = text_insert.substring(0, text_insert.length - commonlength);
+              text_delete = text_delete.substring(0, text_delete.length - commonlength);
+            }
+          }
+          // Delete the offending records and add the merged ones.
+          var n = count_insert + count_delete;
+          if (text_delete.length === 0 && text_insert.length === 0) {
+            diffs.splice(pointer - n, n);
+            pointer = pointer - n;
+          } else if (text_delete.length === 0) {
+            diffs.splice(pointer - n, n, [DIFF_INSERT, text_insert]);
+            pointer = pointer - n + 1;
+          } else if (text_insert.length === 0) {
+            diffs.splice(pointer - n, n, [DIFF_DELETE, text_delete]);
+            pointer = pointer - n + 1;
+          } else {
+            diffs.splice(pointer - n, n, [DIFF_DELETE, text_delete], [DIFF_INSERT, text_insert]);
+            pointer = pointer - n + 2;
+          }
+        }
+        if (pointer !== 0 && diffs[pointer - 1][0] === DIFF_EQUAL) {
+          // Merge this equality with the previous one.
+          diffs[pointer - 1][1] += diffs[pointer][1];
+          diffs.splice(pointer, 1);
+        } else {
+          pointer++;
+        }
+        count_insert = 0;
+        count_delete = 0;
+        text_delete = '';
+        text_insert = '';
+        break;
+    }
+  }
+  if (diffs[diffs.length - 1][1] === '') {
+    diffs.pop();  // Remove the dummy entry at the end.
+  }
+
+  // Second pass: look for single edits surrounded on both sides by equalities
+  // which can be shifted sideways to eliminate an equality.
+  // e.g: A<ins>BA</ins>C -> <ins>AB</ins>AC
+  var changes = false;
+  pointer = 1;
+  // Intentionally ignore the first and last element (don't need checking).
+  while (pointer < diffs.length - 1) {
+    if (diffs[pointer - 1][0] === DIFF_EQUAL &&
+      diffs[pointer + 1][0] === DIFF_EQUAL) {
+      // This is a single edit surrounded by equalities.
+      if (diffs[pointer][1].substring(diffs[pointer][1].length -
+        diffs[pointer - 1][1].length) === diffs[pointer - 1][1]) {
+        // Shift the edit over the previous equality.
+        diffs[pointer][1] = diffs[pointer - 1][1] +
+          diffs[pointer][1].substring(0, diffs[pointer][1].length -
+            diffs[pointer - 1][1].length);
+        diffs[pointer + 1][1] = diffs[pointer - 1][1] + diffs[pointer + 1][1];
+        diffs.splice(pointer - 1, 1);
+        changes = true;
+      } else if (diffs[pointer][1].substring(0, diffs[pointer + 1][1].length) ==
+        diffs[pointer + 1][1]) {
+        // Shift the edit over the next equality.
+        diffs[pointer - 1][1] += diffs[pointer + 1][1];
+        diffs[pointer][1] =
+          diffs[pointer][1].substring(diffs[pointer + 1][1].length) +
+          diffs[pointer + 1][1];
+        diffs.splice(pointer + 1, 1);
+        changes = true;
+      }
+    }
+    pointer++;
+  }
+  // If shifts were made, the diff needs reordering and another shift sweep.
+  if (changes) {
+    diff_cleanupMerge(diffs, fix_unicode);
+  }
+};
+
+function is_surrogate_pair_start(charCode) {
+  return charCode >= 0xD800 && charCode <= 0xDBFF;
+}
+
+function is_surrogate_pair_end(charCode) {
+  return charCode >= 0xDC00 && charCode <= 0xDFFF;
+}
+
+function starts_with_pair_end(str) {
+  return is_surrogate_pair_end(str.charCodeAt(0));
+}
+
+function ends_with_pair_start(str) {
+  return is_surrogate_pair_start(str.charCodeAt(str.length - 1));
+}
+
+function remove_empty_tuples(tuples) {
+  var ret = [];
+  for (var i = 0; i < tuples.length; i++) {
+    if (tuples[i][1].length > 0) {
+      ret.push(tuples[i]);
+    }
+  }
+  return ret;
+}
+
+function make_edit_splice(before, oldMiddle, newMiddle, after) {
+  if (ends_with_pair_start(before) || starts_with_pair_end(after)) {
+    return null;
+  }
+  return remove_empty_tuples([
+    [DIFF_EQUAL, before],
+    [DIFF_DELETE, oldMiddle],
+    [DIFF_INSERT, newMiddle],
+    [DIFF_EQUAL, after]
+  ]);
+}
+
+function find_cursor_edit_diff(oldText, newText, cursor_pos) {
+  // note: this runs after equality check has ruled out exact equality
+  var oldRange = typeof cursor_pos === 'number' ?
+    { index: cursor_pos, length: 0 } : cursor_pos.oldRange;
+  var newRange = typeof cursor_pos === 'number' ?
+    null : cursor_pos.newRange;
+  // take into account the old and new selection to generate the best diff
+  // possible for a text edit.  for example, a text change from "xxx" to "xx"
+  // could be a delete or forwards-delete of any one of the x's, or the
+  // result of selecting two of the x's and typing "x".
+  var oldLength = oldText.length;
+  var newLength = newText.length;
+  if (oldRange.length === 0 && (newRange === null || newRange.length === 0)) {
+    // see if we have an insert or delete before or after cursor
+    var oldCursor = oldRange.index;
+    var oldBefore = oldText.slice(0, oldCursor);
+    var oldAfter = oldText.slice(oldCursor);
+    var maybeNewCursor = newRange ? newRange.index : null;
+    editBefore: {
+      // is this an insert or delete right before oldCursor?
+      var newCursor = oldCursor + newLength - oldLength;
+      if (maybeNewCursor !== null && maybeNewCursor !== newCursor) {
+        break editBefore;
+      }
+      if (newCursor < 0 || newCursor > newLength) {
+        break editBefore;
+      }
+      var newBefore = newText.slice(0, newCursor);
+      var newAfter = newText.slice(newCursor);
+      if (newAfter !== oldAfter) {
+        break editBefore;
+      }
+      var prefixLength = Math.min(oldCursor, newCursor);
+      var oldPrefix = oldBefore.slice(0, prefixLength);
+      var newPrefix = newBefore.slice(0, prefixLength);
+      if (oldPrefix !== newPrefix) {
+        break editBefore;
+      }
+      var oldMiddle = oldBefore.slice(prefixLength);
+      var newMiddle = newBefore.slice(prefixLength);
+      return make_edit_splice(oldPrefix, oldMiddle, newMiddle, oldAfter);
+    }
+    editAfter: {
+      // is this an insert or delete right after oldCursor?
+      if (maybeNewCursor !== null && maybeNewCursor !== oldCursor) {
+        break editAfter;
+      }
+      var cursor = oldCursor;
+      var newBefore = newText.slice(0, cursor);
+      var newAfter = newText.slice(cursor);
+      if (newBefore !== oldBefore) {
+        break editAfter;
+      }
+      var suffixLength = Math.min(oldLength - cursor, newLength - cursor);
+      var oldSuffix = oldAfter.slice(oldAfter.length - suffixLength);
+      var newSuffix = newAfter.slice(newAfter.length - suffixLength);
+      if (oldSuffix !== newSuffix) {
+        break editAfter;
+      }
+      var oldMiddle = oldAfter.slice(0, oldAfter.length - suffixLength);
+      var newMiddle = newAfter.slice(0, newAfter.length - suffixLength);
+      return make_edit_splice(oldBefore, oldMiddle, newMiddle, oldSuffix);
+    }
+  }
+  if (oldRange.length > 0 && newRange && newRange.length === 0) {
+    replaceRange: {
+      // see if diff could be a splice of the old selection range
+      var oldPrefix = oldText.slice(0, oldRange.index);
+      var oldSuffix = oldText.slice(oldRange.index + oldRange.length);
+      var prefixLength = oldPrefix.length;
+      var suffixLength = oldSuffix.length;
+      if (newLength < prefixLength + suffixLength) {
+        break replaceRange;
+      }
+      var newPrefix = newText.slice(0, prefixLength);
+      var newSuffix = newText.slice(newLength - suffixLength);
+      if (oldPrefix !== newPrefix || oldSuffix !== newSuffix) {
+        break replaceRange;
+      }
+      var oldMiddle = oldText.slice(prefixLength, oldLength - suffixLength);
+      var newMiddle = newText.slice(prefixLength, newLength - suffixLength);
+      return make_edit_splice(oldPrefix, oldMiddle, newMiddle, oldSuffix);
+    }
+  }
+
+  return null;
+}
+
+function diff(text1, text2, cursor_pos) {
+  // only pass fix_unicode=true at the top level, not when diff_main is
+  // recursively invoked
+  return diff_main(text1, text2, cursor_pos, true);
+}
+
+diff.INSERT = DIFF_INSERT;
+diff.DELETE = DIFF_DELETE;
+diff.EQUAL = DIFF_EQUAL;
+
+module.exports = diff;
+
+
+/***/ }),
+/* 258 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -27191,7 +27973,7 @@ function parse(val) {
 
 
 /***/ }),
-/* 258 */
+/* 259 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -27469,7 +28251,7 @@ function getWellformedEdit(textEdit) {
 
 
 /***/ }),
-/* 259 */
+/* 260 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -27481,14 +28263,14 @@ const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const vscode_uri_1 = __webpack_require__(242);
-const types_1 = __webpack_require__(260);
+const types_1 = __webpack_require__(261);
 const object_1 = __webpack_require__(248);
 const util_1 = __webpack_require__(237);
-const configuration_1 = __webpack_require__(261);
-const model_1 = __webpack_require__(262);
-const util_2 = __webpack_require__(263);
+const configuration_1 = __webpack_require__(262);
+const model_1 = __webpack_require__(263);
+const util_2 = __webpack_require__(264);
 const is_1 = __webpack_require__(249);
-const fs_2 = __webpack_require__(269);
+const fs_2 = __webpack_require__(270);
 const logger = __webpack_require__(64)('configurations');
 function lookUp(tree, key) {
     if (key) {
@@ -27811,7 +28593,7 @@ exports.default = Configurations;
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 260 */
+/* 261 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -27866,13 +28648,13 @@ var ServiceStat;
 //# sourceMappingURL=types.js.map
 
 /***/ }),
-/* 261 */
+/* 262 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const model_1 = __webpack_require__(262);
+const model_1 = __webpack_require__(263);
 class Configuration {
     constructor(_defaultConfiguration, _userConfiguration, _workspaceConfiguration, _memoryConfiguration = new model_1.ConfigurationModel()) {
         this._defaultConfiguration = _defaultConfiguration;
@@ -27929,7 +28711,7 @@ exports.Configuration = Configuration;
 //# sourceMappingURL=configuration.js.map
 
 /***/ }),
-/* 262 */
+/* 263 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -27937,7 +28719,7 @@ exports.Configuration = Configuration;
 Object.defineProperty(exports, "__esModule", { value: true });
 const is_1 = __webpack_require__(249);
 const object_1 = __webpack_require__(248);
-const util_1 = __webpack_require__(263);
+const util_1 = __webpack_require__(264);
 class ConfigurationModel {
     constructor(_contents = {}) {
         this._contents = _contents;
@@ -27992,7 +28774,7 @@ exports.ConfigurationModel = ConfigurationModel;
 //# sourceMappingURL=model.js.map
 
 /***/ }),
-/* 263 */
+/* 264 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -28000,8 +28782,8 @@ exports.ConfigurationModel = ConfigurationModel;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_languageserver_textdocument_1 = __webpack_require__(258);
-const jsonc_parser_1 = __webpack_require__(264);
+const vscode_languageserver_textdocument_1 = __webpack_require__(259);
+const jsonc_parser_1 = __webpack_require__(265);
 const is_1 = __webpack_require__(249);
 const object_1 = __webpack_require__(248);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
@@ -28259,7 +29041,7 @@ exports.getChangedKeys = getChangedKeys;
 //# sourceMappingURL=util.js.map
 
 /***/ }),
-/* 264 */
+/* 265 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -28278,10 +29060,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "format", function() { return format; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "modify", function() { return modify; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "applyEdits", function() { return applyEdits; });
-/* harmony import */ var _impl_format__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(265);
-/* harmony import */ var _impl_edit__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(267);
-/* harmony import */ var _impl_scanner__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(266);
-/* harmony import */ var _impl_parser__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(268);
+/* harmony import */ var _impl_format__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(266);
+/* harmony import */ var _impl_edit__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(268);
+/* harmony import */ var _impl_scanner__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(267);
+/* harmony import */ var _impl_parser__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(269);
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -28401,14 +29183,14 @@ function applyEdits(text, edits) {
 
 
 /***/ }),
-/* 265 */
+/* 266 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "format", function() { return format; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "isEOL", function() { return isEOL; });
-/* harmony import */ var _scanner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(266);
+/* harmony import */ var _scanner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(267);
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -28606,7 +29388,7 @@ function isEOL(text, offset) {
 
 
 /***/ }),
-/* 266 */
+/* 267 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -28978,7 +29760,7 @@ function isDigit(ch) {
 
 
 /***/ }),
-/* 267 */
+/* 268 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -28987,8 +29769,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "setProperty", function() { return setProperty; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "applyEdit", function() { return applyEdit; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "isWS", function() { return isWS; });
-/* harmony import */ var _format__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(265);
-/* harmony import */ var _parser__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(268);
+/* harmony import */ var _format__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(266);
+/* harmony import */ var _parser__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(269);
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -29160,7 +29942,7 @@ function isWS(text, offset) {
 
 
 /***/ }),
-/* 268 */
+/* 269 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -29176,7 +29958,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "visit", function() { return visit; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "stripComments", function() { return stripComments; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getNodeType", function() { return getNodeType; });
-/* harmony import */ var _scanner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(266);
+/* harmony import */ var _scanner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(267);
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -29806,7 +30588,7 @@ function getNodeType(value) {
 
 
 /***/ }),
-/* 269 */
+/* 270 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -29820,7 +30602,7 @@ const os_1 = tslib_1.__importDefault(__webpack_require__(76));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const readline_1 = tslib_1.__importDefault(__webpack_require__(205));
 const util_1 = tslib_1.__importDefault(__webpack_require__(74));
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(270));
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
 const logger = __webpack_require__(64)('util-fs');
 async function statAsync(filepath) {
     let stat = null;
@@ -30072,7 +30854,7 @@ exports.fixDriver = fixDriver;
 //# sourceMappingURL=fs.js.map
 
 /***/ }),
-/* 270 */
+/* 271 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = minimatch
@@ -30084,7 +30866,7 @@ try {
 } catch (er) {}
 
 var GLOBSTAR = minimatch.GLOBSTAR = Minimatch.GLOBSTAR = {}
-var expand = __webpack_require__(271)
+var expand = __webpack_require__(272)
 
 var plTypes = {
   '!': { open: '(?:(?!(?:', close: '))[^/]*?)'},
@@ -31001,11 +31783,11 @@ function regExpEscape (s) {
 
 
 /***/ }),
-/* 271 */
+/* 272 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var concatMap = __webpack_require__(272);
-var balanced = __webpack_require__(273);
+var concatMap = __webpack_require__(273);
+var balanced = __webpack_require__(274);
 
 module.exports = expandTop;
 
@@ -31208,7 +31990,7 @@ function expand(str, isTop) {
 
 
 /***/ }),
-/* 272 */
+/* 273 */
 /***/ (function(module, exports) {
 
 module.exports = function (xs, fn) {
@@ -31227,7 +32009,7 @@ var isArray = Array.isArray || function (xs) {
 
 
 /***/ }),
-/* 273 */
+/* 274 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -31293,7 +32075,7 @@ function range(a, b, str) {
 
 
 /***/ }),
-/* 274 */
+/* 275 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -31301,7 +32083,7 @@ function range(a, b, str) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const jsonc_parser_1 = __webpack_require__(264);
+const jsonc_parser_1 = __webpack_require__(265);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const vscode_uri_1 = __webpack_require__(242);
 const util_1 = __webpack_require__(237);
@@ -31344,7 +32126,7 @@ exports.default = ConfigurationProxy;
 //# sourceMappingURL=shape.js.map
 
 /***/ }),
-/* 275 */
+/* 276 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -31352,7 +32134,7 @@ exports.default = ConfigurationProxy;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(276));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(277));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 class DB {
     constructor(filepath) {
@@ -31486,15 +32268,15 @@ exports.default = DB;
 //# sourceMappingURL=db.js.map
 
 /***/ }),
-/* 276 */
+/* 277 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const optsArg = __webpack_require__(277)
-const pathArg = __webpack_require__(278)
+const optsArg = __webpack_require__(278)
+const pathArg = __webpack_require__(279)
 
-const {mkdirpNative, mkdirpNativeSync} = __webpack_require__(279)
-const {mkdirpManual, mkdirpManualSync} = __webpack_require__(281)
-const {useNative, useNativeSync} = __webpack_require__(282)
+const {mkdirpNative, mkdirpNativeSync} = __webpack_require__(280)
+const {mkdirpManual, mkdirpManualSync} = __webpack_require__(282)
+const {useNative, useNativeSync} = __webpack_require__(283)
 
 
 const mkdirp = (path, opts) => {
@@ -31523,7 +32305,7 @@ module.exports = mkdirp
 
 
 /***/ }),
-/* 277 */
+/* 278 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const { promisify } = __webpack_require__(74)
@@ -31552,7 +32334,7 @@ module.exports = optsArg
 
 
 /***/ }),
-/* 278 */
+/* 279 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const platform = process.env.__TESTING_MKDIRP_PLATFORM__ || process.platform
@@ -31587,12 +32369,12 @@ module.exports = pathArg
 
 
 /***/ }),
-/* 279 */
+/* 280 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const {dirname} = __webpack_require__(82)
-const {findMade, findMadeSync} = __webpack_require__(280)
-const {mkdirpManual, mkdirpManualSync} = __webpack_require__(281)
+const {findMade, findMadeSync} = __webpack_require__(281)
+const {mkdirpManual, mkdirpManualSync} = __webpack_require__(282)
 
 const mkdirpNative = (path, opts) => {
   opts.recursive = true
@@ -31632,7 +32414,7 @@ module.exports = {mkdirpNative, mkdirpNativeSync}
 
 
 /***/ }),
-/* 280 */
+/* 281 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const {dirname} = __webpack_require__(82)
@@ -31667,7 +32449,7 @@ module.exports = {findMade, findMadeSync}
 
 
 /***/ }),
-/* 281 */
+/* 282 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const {dirname} = __webpack_require__(82)
@@ -31737,7 +32519,7 @@ module.exports = {mkdirpManual, mkdirpManualSync}
 
 
 /***/ }),
-/* 282 */
+/* 283 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const fs = __webpack_require__(66)
@@ -31753,7 +32535,7 @@ module.exports = {useNative, useNativeSync}
 
 
 /***/ }),
-/* 283 */
+/* 284 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -31762,12 +32544,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(239));
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_languageserver_textdocument_1 = __webpack_require__(258);
+const vscode_languageserver_textdocument_1 = __webpack_require__(259);
 const vscode_uri_1 = __webpack_require__(242);
 const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const array_1 = __webpack_require__(284);
-const diff_1 = __webpack_require__(285);
-const fs_1 = __webpack_require__(269);
+const array_1 = __webpack_require__(285);
+const diff_1 = __webpack_require__(286);
+const fs_1 = __webpack_require__(270);
 const index_1 = __webpack_require__(237);
 const position_1 = __webpack_require__(288);
 const string_1 = __webpack_require__(287);
@@ -32544,7 +33326,7 @@ exports.default = Document;
 //# sourceMappingURL=document.js.map
 
 /***/ }),
-/* 284 */
+/* 285 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -32619,14 +33401,14 @@ exports.flatMap = (xs, f) => xs.reduce((x, y) => [...x, ...f(y)], []);
 //# sourceMappingURL=array.js.map
 
 /***/ }),
-/* 285 */
+/* 286 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(286));
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(257));
 const string_1 = __webpack_require__(287);
 const logger = __webpack_require__(64)('util-diff');
 function diffLines(from, to) {
@@ -32751,786 +33533,6 @@ function patchLine(from, to, fill = ' ') {
 }
 exports.patchLine = patchLine;
 //# sourceMappingURL=diff.js.map
-
-/***/ }),
-/* 286 */
-/***/ (function(module, exports) {
-
-/**
- * This library modifies the diff-patch-match library by Neil Fraser
- * by removing the patch and match functionality and certain advanced
- * options in the diff function. The original license is as follows:
- *
- * ===
- *
- * Diff Match and Patch
- *
- * Copyright 2006 Google Inc.
- * http://code.google.com/p/google-diff-match-patch/
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-
-/**
- * The data structure representing a diff is an array of tuples:
- * [[DIFF_DELETE, 'Hello'], [DIFF_INSERT, 'Goodbye'], [DIFF_EQUAL, ' world.']]
- * which means: delete 'Hello', add 'Goodbye' and keep ' world.'
- */
-var DIFF_DELETE = -1;
-var DIFF_INSERT = 1;
-var DIFF_EQUAL = 0;
-
-
-/**
- * Find the differences between two texts.  Simplifies the problem by stripping
- * any common prefix or suffix off the texts before diffing.
- * @param {string} text1 Old string to be diffed.
- * @param {string} text2 New string to be diffed.
- * @param {Int|Object} [cursor_pos] Edit position in text1 or object with more info
- * @return {Array} Array of diff tuples.
- */
-function diff_main(text1, text2, cursor_pos, _fix_unicode) {
-  // Check for equality
-  if (text1 === text2) {
-    if (text1) {
-      return [[DIFF_EQUAL, text1]];
-    }
-    return [];
-  }
-
-  if (cursor_pos != null) {
-    var editdiff = find_cursor_edit_diff(text1, text2, cursor_pos);
-    if (editdiff) {
-      return editdiff;
-    }
-  }
-
-  // Trim off common prefix (speedup).
-  var commonlength = diff_commonPrefix(text1, text2);
-  var commonprefix = text1.substring(0, commonlength);
-  text1 = text1.substring(commonlength);
-  text2 = text2.substring(commonlength);
-
-  // Trim off common suffix (speedup).
-  commonlength = diff_commonSuffix(text1, text2);
-  var commonsuffix = text1.substring(text1.length - commonlength);
-  text1 = text1.substring(0, text1.length - commonlength);
-  text2 = text2.substring(0, text2.length - commonlength);
-
-  // Compute the diff on the middle block.
-  var diffs = diff_compute_(text1, text2);
-
-  // Restore the prefix and suffix.
-  if (commonprefix) {
-    diffs.unshift([DIFF_EQUAL, commonprefix]);
-  }
-  if (commonsuffix) {
-    diffs.push([DIFF_EQUAL, commonsuffix]);
-  }
-  diff_cleanupMerge(diffs, _fix_unicode);
-  return diffs;
-};
-
-
-/**
- * Find the differences between two texts.  Assumes that the texts do not
- * have any common prefix or suffix.
- * @param {string} text1 Old string to be diffed.
- * @param {string} text2 New string to be diffed.
- * @return {Array} Array of diff tuples.
- */
-function diff_compute_(text1, text2) {
-  var diffs;
-
-  if (!text1) {
-    // Just add some text (speedup).
-    return [[DIFF_INSERT, text2]];
-  }
-
-  if (!text2) {
-    // Just delete some text (speedup).
-    return [[DIFF_DELETE, text1]];
-  }
-
-  var longtext = text1.length > text2.length ? text1 : text2;
-  var shorttext = text1.length > text2.length ? text2 : text1;
-  var i = longtext.indexOf(shorttext);
-  if (i !== -1) {
-    // Shorter text is inside the longer text (speedup).
-    diffs = [
-      [DIFF_INSERT, longtext.substring(0, i)],
-      [DIFF_EQUAL, shorttext],
-      [DIFF_INSERT, longtext.substring(i + shorttext.length)]
-    ];
-    // Swap insertions for deletions if diff is reversed.
-    if (text1.length > text2.length) {
-      diffs[0][0] = diffs[2][0] = DIFF_DELETE;
-    }
-    return diffs;
-  }
-
-  if (shorttext.length === 1) {
-    // Single character string.
-    // After the previous speedup, the character can't be an equality.
-    return [[DIFF_DELETE, text1], [DIFF_INSERT, text2]];
-  }
-
-  // Check to see if the problem can be split in two.
-  var hm = diff_halfMatch_(text1, text2);
-  if (hm) {
-    // A half-match was found, sort out the return data.
-    var text1_a = hm[0];
-    var text1_b = hm[1];
-    var text2_a = hm[2];
-    var text2_b = hm[3];
-    var mid_common = hm[4];
-    // Send both pairs off for separate processing.
-    var diffs_a = diff_main(text1_a, text2_a);
-    var diffs_b = diff_main(text1_b, text2_b);
-    // Merge the results.
-    return diffs_a.concat([[DIFF_EQUAL, mid_common]], diffs_b);
-  }
-
-  return diff_bisect_(text1, text2);
-};
-
-
-/**
- * Find the 'middle snake' of a diff, split the problem in two
- * and return the recursively constructed diff.
- * See Myers 1986 paper: An O(ND) Difference Algorithm and Its Variations.
- * @param {string} text1 Old string to be diffed.
- * @param {string} text2 New string to be diffed.
- * @return {Array} Array of diff tuples.
- * @private
- */
-function diff_bisect_(text1, text2) {
-  // Cache the text lengths to prevent multiple calls.
-  var text1_length = text1.length;
-  var text2_length = text2.length;
-  var max_d = Math.ceil((text1_length + text2_length) / 2);
-  var v_offset = max_d;
-  var v_length = 2 * max_d;
-  var v1 = new Array(v_length);
-  var v2 = new Array(v_length);
-  // Setting all elements to -1 is faster in Chrome & Firefox than mixing
-  // integers and undefined.
-  for (var x = 0; x < v_length; x++) {
-    v1[x] = -1;
-    v2[x] = -1;
-  }
-  v1[v_offset + 1] = 0;
-  v2[v_offset + 1] = 0;
-  var delta = text1_length - text2_length;
-  // If the total number of characters is odd, then the front path will collide
-  // with the reverse path.
-  var front = (delta % 2 !== 0);
-  // Offsets for start and end of k loop.
-  // Prevents mapping of space beyond the grid.
-  var k1start = 0;
-  var k1end = 0;
-  var k2start = 0;
-  var k2end = 0;
-  for (var d = 0; d < max_d; d++) {
-    // Walk the front path one step.
-    for (var k1 = -d + k1start; k1 <= d - k1end; k1 += 2) {
-      var k1_offset = v_offset + k1;
-      var x1;
-      if (k1 === -d || (k1 !== d && v1[k1_offset - 1] < v1[k1_offset + 1])) {
-        x1 = v1[k1_offset + 1];
-      } else {
-        x1 = v1[k1_offset - 1] + 1;
-      }
-      var y1 = x1 - k1;
-      while (
-        x1 < text1_length && y1 < text2_length &&
-        text1.charAt(x1) === text2.charAt(y1)
-      ) {
-        x1++;
-        y1++;
-      }
-      v1[k1_offset] = x1;
-      if (x1 > text1_length) {
-        // Ran off the right of the graph.
-        k1end += 2;
-      } else if (y1 > text2_length) {
-        // Ran off the bottom of the graph.
-        k1start += 2;
-      } else if (front) {
-        var k2_offset = v_offset + delta - k1;
-        if (k2_offset >= 0 && k2_offset < v_length && v2[k2_offset] !== -1) {
-          // Mirror x2 onto top-left coordinate system.
-          var x2 = text1_length - v2[k2_offset];
-          if (x1 >= x2) {
-            // Overlap detected.
-            return diff_bisectSplit_(text1, text2, x1, y1);
-          }
-        }
-      }
-    }
-
-    // Walk the reverse path one step.
-    for (var k2 = -d + k2start; k2 <= d - k2end; k2 += 2) {
-      var k2_offset = v_offset + k2;
-      var x2;
-      if (k2 === -d || (k2 !== d && v2[k2_offset - 1] < v2[k2_offset + 1])) {
-        x2 = v2[k2_offset + 1];
-      } else {
-        x2 = v2[k2_offset - 1] + 1;
-      }
-      var y2 = x2 - k2;
-      while (
-        x2 < text1_length && y2 < text2_length &&
-        text1.charAt(text1_length - x2 - 1) === text2.charAt(text2_length - y2 - 1)
-      ) {
-        x2++;
-        y2++;
-      }
-      v2[k2_offset] = x2;
-      if (x2 > text1_length) {
-        // Ran off the left of the graph.
-        k2end += 2;
-      } else if (y2 > text2_length) {
-        // Ran off the top of the graph.
-        k2start += 2;
-      } else if (!front) {
-        var k1_offset = v_offset + delta - k2;
-        if (k1_offset >= 0 && k1_offset < v_length && v1[k1_offset] !== -1) {
-          var x1 = v1[k1_offset];
-          var y1 = v_offset + x1 - k1_offset;
-          // Mirror x2 onto top-left coordinate system.
-          x2 = text1_length - x2;
-          if (x1 >= x2) {
-            // Overlap detected.
-            return diff_bisectSplit_(text1, text2, x1, y1);
-          }
-        }
-      }
-    }
-  }
-  // Diff took too long and hit the deadline or
-  // number of diffs equals number of characters, no commonality at all.
-  return [[DIFF_DELETE, text1], [DIFF_INSERT, text2]];
-};
-
-
-/**
- * Given the location of the 'middle snake', split the diff in two parts
- * and recurse.
- * @param {string} text1 Old string to be diffed.
- * @param {string} text2 New string to be diffed.
- * @param {number} x Index of split point in text1.
- * @param {number} y Index of split point in text2.
- * @return {Array} Array of diff tuples.
- */
-function diff_bisectSplit_(text1, text2, x, y) {
-  var text1a = text1.substring(0, x);
-  var text2a = text2.substring(0, y);
-  var text1b = text1.substring(x);
-  var text2b = text2.substring(y);
-
-  // Compute both diffs serially.
-  var diffs = diff_main(text1a, text2a);
-  var diffsb = diff_main(text1b, text2b);
-
-  return diffs.concat(diffsb);
-};
-
-
-/**
- * Determine the common prefix of two strings.
- * @param {string} text1 First string.
- * @param {string} text2 Second string.
- * @return {number} The number of characters common to the start of each
- *     string.
- */
-function diff_commonPrefix(text1, text2) {
-  // Quick check for common null cases.
-  if (!text1 || !text2 || text1.charAt(0) !== text2.charAt(0)) {
-    return 0;
-  }
-  // Binary search.
-  // Performance analysis: http://neil.fraser.name/news/2007/10/09/
-  var pointermin = 0;
-  var pointermax = Math.min(text1.length, text2.length);
-  var pointermid = pointermax;
-  var pointerstart = 0;
-  while (pointermin < pointermid) {
-    if (
-      text1.substring(pointerstart, pointermid) ==
-      text2.substring(pointerstart, pointermid)
-    ) {
-      pointermin = pointermid;
-      pointerstart = pointermin;
-    } else {
-      pointermax = pointermid;
-    }
-    pointermid = Math.floor((pointermax - pointermin) / 2 + pointermin);
-  }
-
-  if (is_surrogate_pair_start(text1.charCodeAt(pointermid - 1))) {
-    pointermid--;
-  }
-
-  return pointermid;
-};
-
-
-/**
- * Determine the common suffix of two strings.
- * @param {string} text1 First string.
- * @param {string} text2 Second string.
- * @return {number} The number of characters common to the end of each string.
- */
-function diff_commonSuffix(text1, text2) {
-  // Quick check for common null cases.
-  if (!text1 || !text2 || text1.slice(-1) !== text2.slice(-1)) {
-    return 0;
-  }
-  // Binary search.
-  // Performance analysis: http://neil.fraser.name/news/2007/10/09/
-  var pointermin = 0;
-  var pointermax = Math.min(text1.length, text2.length);
-  var pointermid = pointermax;
-  var pointerend = 0;
-  while (pointermin < pointermid) {
-    if (
-      text1.substring(text1.length - pointermid, text1.length - pointerend) ==
-      text2.substring(text2.length - pointermid, text2.length - pointerend)
-    ) {
-      pointermin = pointermid;
-      pointerend = pointermin;
-    } else {
-      pointermax = pointermid;
-    }
-    pointermid = Math.floor((pointermax - pointermin) / 2 + pointermin);
-  }
-
-  if (is_surrogate_pair_end(text1.charCodeAt(text1.length - pointermid))) {
-    pointermid--;
-  }
-
-  return pointermid;
-};
-
-
-/**
- * Do the two texts share a substring which is at least half the length of the
- * longer text?
- * This speedup can produce non-minimal diffs.
- * @param {string} text1 First string.
- * @param {string} text2 Second string.
- * @return {Array.<string>} Five element Array, containing the prefix of
- *     text1, the suffix of text1, the prefix of text2, the suffix of
- *     text2 and the common middle.  Or null if there was no match.
- */
-function diff_halfMatch_(text1, text2) {
-  var longtext = text1.length > text2.length ? text1 : text2;
-  var shorttext = text1.length > text2.length ? text2 : text1;
-  if (longtext.length < 4 || shorttext.length * 2 < longtext.length) {
-    return null;  // Pointless.
-  }
-
-  /**
-   * Does a substring of shorttext exist within longtext such that the substring
-   * is at least half the length of longtext?
-   * Closure, but does not reference any external variables.
-   * @param {string} longtext Longer string.
-   * @param {string} shorttext Shorter string.
-   * @param {number} i Start index of quarter length substring within longtext.
-   * @return {Array.<string>} Five element Array, containing the prefix of
-   *     longtext, the suffix of longtext, the prefix of shorttext, the suffix
-   *     of shorttext and the common middle.  Or null if there was no match.
-   * @private
-   */
-  function diff_halfMatchI_(longtext, shorttext, i) {
-    // Start with a 1/4 length substring at position i as a seed.
-    var seed = longtext.substring(i, i + Math.floor(longtext.length / 4));
-    var j = -1;
-    var best_common = '';
-    var best_longtext_a, best_longtext_b, best_shorttext_a, best_shorttext_b;
-    while ((j = shorttext.indexOf(seed, j + 1)) !== -1) {
-      var prefixLength = diff_commonPrefix(
-        longtext.substring(i), shorttext.substring(j));
-      var suffixLength = diff_commonSuffix(
-        longtext.substring(0, i), shorttext.substring(0, j));
-      if (best_common.length < suffixLength + prefixLength) {
-        best_common = shorttext.substring(
-          j - suffixLength, j) + shorttext.substring(j, j + prefixLength);
-        best_longtext_a = longtext.substring(0, i - suffixLength);
-        best_longtext_b = longtext.substring(i + prefixLength);
-        best_shorttext_a = shorttext.substring(0, j - suffixLength);
-        best_shorttext_b = shorttext.substring(j + prefixLength);
-      }
-    }
-    if (best_common.length * 2 >= longtext.length) {
-      return [
-        best_longtext_a, best_longtext_b,
-        best_shorttext_a, best_shorttext_b, best_common
-      ];
-    } else {
-      return null;
-    }
-  }
-
-  // First check if the second quarter is the seed for a half-match.
-  var hm1 = diff_halfMatchI_(longtext, shorttext, Math.ceil(longtext.length / 4));
-  // Check again based on the third quarter.
-  var hm2 = diff_halfMatchI_(longtext, shorttext, Math.ceil(longtext.length / 2));
-  var hm;
-  if (!hm1 && !hm2) {
-    return null;
-  } else if (!hm2) {
-    hm = hm1;
-  } else if (!hm1) {
-    hm = hm2;
-  } else {
-    // Both matched.  Select the longest.
-    hm = hm1[4].length > hm2[4].length ? hm1 : hm2;
-  }
-
-  // A half-match was found, sort out the return data.
-  var text1_a, text1_b, text2_a, text2_b;
-  if (text1.length > text2.length) {
-    text1_a = hm[0];
-    text1_b = hm[1];
-    text2_a = hm[2];
-    text2_b = hm[3];
-  } else {
-    text2_a = hm[0];
-    text2_b = hm[1];
-    text1_a = hm[2];
-    text1_b = hm[3];
-  }
-  var mid_common = hm[4];
-  return [text1_a, text1_b, text2_a, text2_b, mid_common];
-};
-
-
-/**
- * Reorder and merge like edit sections.  Merge equalities.
- * Any edit section can move as long as it doesn't cross an equality.
- * @param {Array} diffs Array of diff tuples.
- * @param {boolean} fix_unicode Whether to normalize to a unicode-correct diff
- */
-function diff_cleanupMerge(diffs, fix_unicode) {
-  diffs.push([DIFF_EQUAL, '']);  // Add a dummy entry at the end.
-  var pointer = 0;
-  var count_delete = 0;
-  var count_insert = 0;
-  var text_delete = '';
-  var text_insert = '';
-  var commonlength;
-  while (pointer < diffs.length) {
-    if (pointer < diffs.length - 1 && !diffs[pointer][1]) {
-      diffs.splice(pointer, 1);
-      continue;
-    }
-    switch (diffs[pointer][0]) {
-      case DIFF_INSERT:
-
-        count_insert++;
-        text_insert += diffs[pointer][1];
-        pointer++;
-        break;
-      case DIFF_DELETE:
-        count_delete++;
-        text_delete += diffs[pointer][1];
-        pointer++;
-        break;
-      case DIFF_EQUAL:
-        var previous_equality = pointer - count_insert - count_delete - 1;
-        if (fix_unicode) {
-          // prevent splitting of unicode surrogate pairs.  when fix_unicode is true,
-          // we assume that the old and new text in the diff are complete and correct
-          // unicode-encoded JS strings, but the tuple boundaries may fall between
-          // surrogate pairs.  we fix this by shaving off stray surrogates from the end
-          // of the previous equality and the beginning of this equality.  this may create
-          // empty equalities or a common prefix or suffix.  for example, if AB and AC are
-          // emojis, `[[0, 'A'], [-1, 'BA'], [0, 'C']]` would turn into deleting 'ABAC' and
-          // inserting 'AC', and then the common suffix 'AC' will be eliminated.  in this
-          // particular case, both equalities go away, we absorb any previous inequalities,
-          // and we keep scanning for the next equality before rewriting the tuples.
-          if (previous_equality >= 0 && ends_with_pair_start(diffs[previous_equality][1])) {
-            var stray = diffs[previous_equality][1].slice(-1);
-            diffs[previous_equality][1] = diffs[previous_equality][1].slice(0, -1);
-            text_delete = stray + text_delete;
-            text_insert = stray + text_insert;
-            if (!diffs[previous_equality][1]) {
-              // emptied out previous equality, so delete it and include previous delete/insert
-              diffs.splice(previous_equality, 1);
-              pointer--;
-              var k = previous_equality - 1;
-              if (diffs[k] && diffs[k][0] === DIFF_INSERT) {
-                count_insert++;
-                text_insert = diffs[k][1] + text_insert;
-                k--;
-              }
-              if (diffs[k] && diffs[k][0] === DIFF_DELETE) {
-                count_delete++;
-                text_delete = diffs[k][1] + text_delete;
-                k--;
-              }
-              previous_equality = k;
-            }
-          }
-          if (starts_with_pair_end(diffs[pointer][1])) {
-            var stray = diffs[pointer][1].charAt(0);
-            diffs[pointer][1] = diffs[pointer][1].slice(1);
-            text_delete += stray;
-            text_insert += stray;
-          }
-        }
-        if (pointer < diffs.length - 1 && !diffs[pointer][1]) {
-          // for empty equality not at end, wait for next equality
-          diffs.splice(pointer, 1);
-          break;
-        }
-        if (text_delete.length > 0 || text_insert.length > 0) {
-          // note that diff_commonPrefix and diff_commonSuffix are unicode-aware
-          if (text_delete.length > 0 && text_insert.length > 0) {
-            // Factor out any common prefixes.
-            commonlength = diff_commonPrefix(text_insert, text_delete);
-            if (commonlength !== 0) {
-              if (previous_equality >= 0) {
-                diffs[previous_equality][1] += text_insert.substring(0, commonlength);
-              } else {
-                diffs.splice(0, 0, [DIFF_EQUAL, text_insert.substring(0, commonlength)]);
-                pointer++;
-              }
-              text_insert = text_insert.substring(commonlength);
-              text_delete = text_delete.substring(commonlength);
-            }
-            // Factor out any common suffixes.
-            commonlength = diff_commonSuffix(text_insert, text_delete);
-            if (commonlength !== 0) {
-              diffs[pointer][1] =
-                text_insert.substring(text_insert.length - commonlength) + diffs[pointer][1];
-              text_insert = text_insert.substring(0, text_insert.length - commonlength);
-              text_delete = text_delete.substring(0, text_delete.length - commonlength);
-            }
-          }
-          // Delete the offending records and add the merged ones.
-          var n = count_insert + count_delete;
-          if (text_delete.length === 0 && text_insert.length === 0) {
-            diffs.splice(pointer - n, n);
-            pointer = pointer - n;
-          } else if (text_delete.length === 0) {
-            diffs.splice(pointer - n, n, [DIFF_INSERT, text_insert]);
-            pointer = pointer - n + 1;
-          } else if (text_insert.length === 0) {
-            diffs.splice(pointer - n, n, [DIFF_DELETE, text_delete]);
-            pointer = pointer - n + 1;
-          } else {
-            diffs.splice(pointer - n, n, [DIFF_DELETE, text_delete], [DIFF_INSERT, text_insert]);
-            pointer = pointer - n + 2;
-          }
-        }
-        if (pointer !== 0 && diffs[pointer - 1][0] === DIFF_EQUAL) {
-          // Merge this equality with the previous one.
-          diffs[pointer - 1][1] += diffs[pointer][1];
-          diffs.splice(pointer, 1);
-        } else {
-          pointer++;
-        }
-        count_insert = 0;
-        count_delete = 0;
-        text_delete = '';
-        text_insert = '';
-        break;
-    }
-  }
-  if (diffs[diffs.length - 1][1] === '') {
-    diffs.pop();  // Remove the dummy entry at the end.
-  }
-
-  // Second pass: look for single edits surrounded on both sides by equalities
-  // which can be shifted sideways to eliminate an equality.
-  // e.g: A<ins>BA</ins>C -> <ins>AB</ins>AC
-  var changes = false;
-  pointer = 1;
-  // Intentionally ignore the first and last element (don't need checking).
-  while (pointer < diffs.length - 1) {
-    if (diffs[pointer - 1][0] === DIFF_EQUAL &&
-      diffs[pointer + 1][0] === DIFF_EQUAL) {
-      // This is a single edit surrounded by equalities.
-      if (diffs[pointer][1].substring(diffs[pointer][1].length -
-        diffs[pointer - 1][1].length) === diffs[pointer - 1][1]) {
-        // Shift the edit over the previous equality.
-        diffs[pointer][1] = diffs[pointer - 1][1] +
-          diffs[pointer][1].substring(0, diffs[pointer][1].length -
-            diffs[pointer - 1][1].length);
-        diffs[pointer + 1][1] = diffs[pointer - 1][1] + diffs[pointer + 1][1];
-        diffs.splice(pointer - 1, 1);
-        changes = true;
-      } else if (diffs[pointer][1].substring(0, diffs[pointer + 1][1].length) ==
-        diffs[pointer + 1][1]) {
-        // Shift the edit over the next equality.
-        diffs[pointer - 1][1] += diffs[pointer + 1][1];
-        diffs[pointer][1] =
-          diffs[pointer][1].substring(diffs[pointer + 1][1].length) +
-          diffs[pointer + 1][1];
-        diffs.splice(pointer + 1, 1);
-        changes = true;
-      }
-    }
-    pointer++;
-  }
-  // If shifts were made, the diff needs reordering and another shift sweep.
-  if (changes) {
-    diff_cleanupMerge(diffs, fix_unicode);
-  }
-};
-
-function is_surrogate_pair_start(charCode) {
-  return charCode >= 0xD800 && charCode <= 0xDBFF;
-}
-
-function is_surrogate_pair_end(charCode) {
-  return charCode >= 0xDC00 && charCode <= 0xDFFF;
-}
-
-function starts_with_pair_end(str) {
-  return is_surrogate_pair_end(str.charCodeAt(0));
-}
-
-function ends_with_pair_start(str) {
-  return is_surrogate_pair_start(str.charCodeAt(str.length - 1));
-}
-
-function remove_empty_tuples(tuples) {
-  var ret = [];
-  for (var i = 0; i < tuples.length; i++) {
-    if (tuples[i][1].length > 0) {
-      ret.push(tuples[i]);
-    }
-  }
-  return ret;
-}
-
-function make_edit_splice(before, oldMiddle, newMiddle, after) {
-  if (ends_with_pair_start(before) || starts_with_pair_end(after)) {
-    return null;
-  }
-  return remove_empty_tuples([
-    [DIFF_EQUAL, before],
-    [DIFF_DELETE, oldMiddle],
-    [DIFF_INSERT, newMiddle],
-    [DIFF_EQUAL, after]
-  ]);
-}
-
-function find_cursor_edit_diff(oldText, newText, cursor_pos) {
-  // note: this runs after equality check has ruled out exact equality
-  var oldRange = typeof cursor_pos === 'number' ?
-    { index: cursor_pos, length: 0 } : cursor_pos.oldRange;
-  var newRange = typeof cursor_pos === 'number' ?
-    null : cursor_pos.newRange;
-  // take into account the old and new selection to generate the best diff
-  // possible for a text edit.  for example, a text change from "xxx" to "xx"
-  // could be a delete or forwards-delete of any one of the x's, or the
-  // result of selecting two of the x's and typing "x".
-  var oldLength = oldText.length;
-  var newLength = newText.length;
-  if (oldRange.length === 0 && (newRange === null || newRange.length === 0)) {
-    // see if we have an insert or delete before or after cursor
-    var oldCursor = oldRange.index;
-    var oldBefore = oldText.slice(0, oldCursor);
-    var oldAfter = oldText.slice(oldCursor);
-    var maybeNewCursor = newRange ? newRange.index : null;
-    editBefore: {
-      // is this an insert or delete right before oldCursor?
-      var newCursor = oldCursor + newLength - oldLength;
-      if (maybeNewCursor !== null && maybeNewCursor !== newCursor) {
-        break editBefore;
-      }
-      if (newCursor < 0 || newCursor > newLength) {
-        break editBefore;
-      }
-      var newBefore = newText.slice(0, newCursor);
-      var newAfter = newText.slice(newCursor);
-      if (newAfter !== oldAfter) {
-        break editBefore;
-      }
-      var prefixLength = Math.min(oldCursor, newCursor);
-      var oldPrefix = oldBefore.slice(0, prefixLength);
-      var newPrefix = newBefore.slice(0, prefixLength);
-      if (oldPrefix !== newPrefix) {
-        break editBefore;
-      }
-      var oldMiddle = oldBefore.slice(prefixLength);
-      var newMiddle = newBefore.slice(prefixLength);
-      return make_edit_splice(oldPrefix, oldMiddle, newMiddle, oldAfter);
-    }
-    editAfter: {
-      // is this an insert or delete right after oldCursor?
-      if (maybeNewCursor !== null && maybeNewCursor !== oldCursor) {
-        break editAfter;
-      }
-      var cursor = oldCursor;
-      var newBefore = newText.slice(0, cursor);
-      var newAfter = newText.slice(cursor);
-      if (newBefore !== oldBefore) {
-        break editAfter;
-      }
-      var suffixLength = Math.min(oldLength - cursor, newLength - cursor);
-      var oldSuffix = oldAfter.slice(oldAfter.length - suffixLength);
-      var newSuffix = newAfter.slice(newAfter.length - suffixLength);
-      if (oldSuffix !== newSuffix) {
-        break editAfter;
-      }
-      var oldMiddle = oldAfter.slice(0, oldAfter.length - suffixLength);
-      var newMiddle = newAfter.slice(0, newAfter.length - suffixLength);
-      return make_edit_splice(oldBefore, oldMiddle, newMiddle, oldSuffix);
-    }
-  }
-  if (oldRange.length > 0 && newRange && newRange.length === 0) {
-    replaceRange: {
-      // see if diff could be a splice of the old selection range
-      var oldPrefix = oldText.slice(0, oldRange.index);
-      var oldSuffix = oldText.slice(oldRange.index + oldRange.length);
-      var prefixLength = oldPrefix.length;
-      var suffixLength = oldSuffix.length;
-      if (newLength < prefixLength + suffixLength) {
-        break replaceRange;
-      }
-      var newPrefix = newText.slice(0, prefixLength);
-      var newSuffix = newText.slice(newLength - suffixLength);
-      if (oldPrefix !== newPrefix || oldSuffix !== newSuffix) {
-        break replaceRange;
-      }
-      var oldMiddle = oldText.slice(prefixLength, oldLength - suffixLength);
-      var newMiddle = newText.slice(prefixLength, newLength - suffixLength);
-      return make_edit_splice(oldPrefix, oldMiddle, newMiddle, oldSuffix);
-    }
-  }
-
-  return null;
-}
-
-function diff(text1, text2, cursor_pos) {
-  // only pass fix_unicode=true at the top level, not when diff_main is
-  // recursively invoked
-  return diff_main(text1, text2, cursor_pos, true);
-}
-
-diff.INSERT = DIFF_INSERT;
-diff.DELETE = DIFF_DELETE;
-diff.EQUAL = DIFF_EQUAL;
-
-module.exports = diff;
-
 
 /***/ }),
 /* 287 */
@@ -33942,7 +33944,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const vscode_uri_1 = __webpack_require__(242);
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(270));
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const util_1 = __webpack_require__(237);
 const logger = __webpack_require__(64)('filesystem-watcher');
@@ -34048,7 +34050,7 @@ const tslib_1 = __webpack_require__(65);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const util_1 = tslib_1.__importDefault(__webpack_require__(74));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(276));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(277));
 /**
  * Mru - manage string items as lines in mru file.
  */
@@ -34260,7 +34262,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const util_1 = __webpack_require__(237);
-const fs_1 = __webpack_require__(269);
+const fs_1 = __webpack_require__(270);
 const decorator_1 = __webpack_require__(295);
 const logger = __webpack_require__(64)('model-resolver');
 class Resolver {
@@ -35020,7 +35022,7 @@ exports.default = WillSaveUntilHandler;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(270));
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
 const vscode_uri_1 = __webpack_require__(242);
 function score(selector, uri, languageId) {
     if (Array.isArray(selector)) {
@@ -35108,7 +35110,7 @@ const os_1 = tslib_1.__importDefault(__webpack_require__(76));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const uuid_1 = __webpack_require__(297);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(270));
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
 const logger = __webpack_require__(64)('watchman');
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch'];
 const clientsMap = new Map();
@@ -36876,7 +36878,7 @@ module.exports = glob
 
 var fs = __webpack_require__(66)
 var rp = __webpack_require__(317)
-var minimatch = __webpack_require__(270)
+var minimatch = __webpack_require__(271)
 var Minimatch = minimatch.Minimatch
 var inherits = __webpack_require__(319)
 var EE = __webpack_require__(197).EventEmitter
@@ -38089,7 +38091,7 @@ globSync.GlobSync = GlobSync
 
 var fs = __webpack_require__(66)
 var rp = __webpack_require__(317)
-var minimatch = __webpack_require__(270)
+var minimatch = __webpack_require__(271)
 var Minimatch = minimatch.Minimatch
 var Glob = __webpack_require__(316).Glob
 var util = __webpack_require__(74)
@@ -38591,7 +38593,7 @@ function ownProp (obj, field) {
 }
 
 var path = __webpack_require__(82)
-var minimatch = __webpack_require__(270)
+var minimatch = __webpack_require__(271)
 var isAbsolute = __webpack_require__(321)
 var Minimatch = minimatch.Minimatch
 
@@ -38982,7 +38984,7 @@ module.exports = JSON.parse("{\"name\":\"coc.nvim\",\"version\":\"0.0.78\",\"des
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_textdocument_1 = __webpack_require__(258);
+const vscode_languageserver_textdocument_1 = __webpack_require__(259);
 const logger = __webpack_require__(64)('snippets-parser');
 class Scanner {
     constructor() {
@@ -40918,7 +40920,7 @@ exports.default = new Completion();
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(286));
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(257));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const util_1 = tslib_1.__importDefault(__webpack_require__(74));
@@ -40927,9 +40929,9 @@ const events_1 = tslib_1.__importDefault(__webpack_require__(209));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(332));
 const source_1 = tslib_1.__importDefault(__webpack_require__(507));
 const source_vim_1 = tslib_1.__importDefault(__webpack_require__(508));
-const types_1 = __webpack_require__(260);
+const types_1 = __webpack_require__(261);
 const util_2 = __webpack_require__(237);
-const fs_2 = __webpack_require__(269);
+const fs_2 = __webpack_require__(270);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const string_1 = __webpack_require__(287);
 const logger = __webpack_require__(64)('sources');
@@ -41273,7 +41275,6 @@ exports.default = new Sources();
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const debounce_1 = __webpack_require__(239);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(286));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const isuri_1 = tslib_1.__importDefault(__webpack_require__(240));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
@@ -41285,20 +41286,21 @@ const vscode_uri_1 = __webpack_require__(242);
 const which_1 = tslib_1.__importDefault(__webpack_require__(243));
 const commands_1 = tslib_1.__importDefault(__webpack_require__(251));
 const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const db_1 = tslib_1.__importDefault(__webpack_require__(275));
+const db_1 = tslib_1.__importDefault(__webpack_require__(276));
 const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(253));
 const installBuffer_1 = tslib_1.__importDefault(__webpack_require__(333));
 const installer_1 = __webpack_require__(334);
 const memos_1 = tslib_1.__importDefault(__webpack_require__(398));
-const types_1 = __webpack_require__(260);
+const types_1 = __webpack_require__(261);
 const util_2 = __webpack_require__(237);
-const array_1 = __webpack_require__(284);
+const array_1 = __webpack_require__(285);
 __webpack_require__(399);
 const factory_1 = __webpack_require__(400);
-const fs_2 = __webpack_require__(269);
+const fs_2 = __webpack_require__(270);
 const is_1 = __webpack_require__(249);
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(311));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(277));
 const createLogger = __webpack_require__(64);
 const logger = createLogger('extensions');
 function loadJson(file) {
@@ -41325,16 +41327,19 @@ class Extensions {
         this.onDidLoadExtension = this._onDidLoadExtension.event;
         this.onDidActiveExtension = this._onDidActiveExtension.event;
         this.onDidUnloadExtension = this._onDidUnloadExtension.event;
+        let folder = global.hasOwnProperty('__TEST__') ? path_1.default.join(__dirname, '__tests__') : process.env.COC_DATA_HOME;
+        let root = this.root = path_1.default.join(folder, 'extensions');
+        if (!fs_1.default.existsSync(root)) {
+            mkdirp_1.default.sync(root);
+        }
+        let jsonFile = path_1.default.join(root, 'package.json');
+        if (!fs_1.default.existsSync(jsonFile)) {
+            fs_1.default.writeFileSync(jsonFile, '{"dependencies":{}}', 'utf8');
+        }
+        let filepath = path_1.default.join(root, 'db.json');
+        this.db = new db_1.default(filepath);
     }
     async init() {
-        if (global.hasOwnProperty('__TEST__')) {
-            this.root = path_1.default.join(__dirname, './__tests__/extensions');
-            let filepath = path_1.default.join(this.root, 'db.json');
-            this.db = new db_1.default(filepath);
-        }
-        else {
-            await this.initializeRoot();
-        }
         let data = loadJson(this.db.filepath) || {};
         let keys = Object.keys(data.extension || {});
         for (let key of keys) {
@@ -41345,7 +41350,7 @@ class Extensions {
         if (process.env.COC_NO_PLUGINS)
             return;
         let stats = await this.globalExtensionStats();
-        let localStats = await this.localExtensionStats(stats);
+        let localStats = await this.localExtensionStats(stats.map(o => o.id));
         stats = stats.concat(localStats);
         this.memos = new memos_1.default(path_1.default.resolve(this.root, '../memos.json'));
         stats.map(stat => {
@@ -41358,20 +41363,6 @@ class Extensions {
             }
         });
         await this.loadFileExtensions();
-        // watch for new local extension
-        workspace_1.default.watchOption('runtimepath', async (oldValue, newValue) => {
-            let result = fast_diff_1.default(oldValue, newValue);
-            for (let [changeType, value] of result) {
-                if (changeType == 1) {
-                    let paths = value.replace(/,$/, '').split(',');
-                    for (let p of paths) {
-                        if (p && this.checkDirectory(p) === true) {
-                            await this.loadExtension(p);
-                        }
-                    }
-                }
-            }
-        });
         commands_1.default.register({
             id: 'extensions.forceUpdateAll',
             execute: async () => {
@@ -41380,6 +41371,21 @@ class Extensions {
                 await this.installExtensions(arr);
             }
         }, false, 'remove all global extensions and install them');
+        workspace_1.default.onDidRuntimePathChange(async (paths) => {
+            for (let p of paths) {
+                if (p && this.checkDirectory(p) === true) {
+                    await this.loadExtension(p);
+                }
+            }
+        }, null, this.disposables);
+    }
+    async activateExtensions() {
+        this.activated = true;
+        for (let item of this.extensions.values()) {
+            let { id, packageJSON } = item.extension;
+            await this.setupActiveEvents(id, packageJSON);
+        }
+        // make sure workspace.env exists
         let floatFactory = new floatFactory_1.default(workspace_1.default.nvim, workspace_1.default.env);
         events_1.default.on('CursorMoved', debounce_1.debounce(async (bufnr) => {
             if (this.installBuffer && bufnr == this.installBuffer.bufnr) {
@@ -41389,13 +41395,6 @@ class Extensions {
                 await floatFactory.create(docs, false);
             }
         }, 500));
-    }
-    async activateExtensions() {
-        this.activated = true;
-        for (let item of this.extensions.values()) {
-            let { id, packageJSON } = item.extension;
-            await this.setupActiveEvents(id, packageJSON);
-        }
         if (global.hasOwnProperty('__TEST__'))
             return;
         // check extensions need watch & install
@@ -41412,8 +41411,6 @@ class Extensions {
         }
     }
     async updateExtensions(sync, silent = false) {
-        if (!this.root)
-            await this.initializeRoot();
         if (!this.npm)
             return;
         let lockedList = await this.getLockedList();
@@ -41478,8 +41475,6 @@ class Extensions {
         let { npm } = this;
         if (!npm || !list.length)
             return;
-        if (!this.root)
-            await this.initializeRoot();
         list = array_1.distinct(list);
         let installBuffer = this.installBuffer = new installBuffer_1.default();
         installBuffer.setExtensions(list);
@@ -41555,7 +41550,7 @@ class Extensions {
     }
     async getExtensionStates() {
         let globalStats = await this.globalExtensionStats();
-        let localStats = await this.localExtensionStats(globalStats);
+        let localStats = await this.localExtensionStats([]);
         return globalStats.concat(localStats);
     }
     async getLockedList() {
@@ -41869,23 +41864,19 @@ class Extensions {
         })));
         return res.filter(info => info != null);
     }
-    async localExtensionStats(exclude) {
+    async localExtensionStats(excludes) {
         let runtimepath = await workspace_1.default.nvim.eval('&runtimepath');
-        let included = exclude.map(o => o.root);
-        let names = exclude.map(o => o.id);
         let paths = runtimepath.split(',');
         let res = await Promise.all(paths.map(root => new Promise(async (resolve) => {
             try {
-                if (included.includes(root))
-                    return resolve(null);
                 let res = this.checkDirectory(root);
                 if (res !== true)
                     return resolve(null);
                 let jsonFile = path_1.default.join(root, 'package.json');
                 let content = await fs_2.readFile(jsonFile, 'utf8');
                 let obj = JSON.parse(content);
-                if (names.includes(obj.name)) {
-                    workspace_1.default.showMessage(`Skipped extension  "${root}", please remove "${obj.name}" from your vim's plugin manager.`, 'warning');
+                if (excludes.includes(obj.name)) {
+                    workspace_1.default.showMessage(`Skipped load vim plugin from "${root}", "${obj.name}" already global extension.`, 'warning');
                     return resolve(null);
                 }
                 let version = obj ? obj.version || '' : '';
@@ -42158,17 +42149,6 @@ class Extensions {
     get modulesFolder() {
         return path_1.default.join(this.root, global.hasOwnProperty('__TEST__') ? '' : 'node_modules');
     }
-    async initializeRoot() {
-        let root = this.root = await workspace_1.default.nvim.call('coc#util#extension_root');
-        let jsonFile = path_1.default.join(root, 'package.json');
-        if (!fs_1.default.existsSync(jsonFile)) {
-            fs_1.default.writeFileSync(jsonFile, '{"dependencies":{}}', 'utf8');
-        }
-        if (!this.db) {
-            let filepath = path_1.default.join(root, 'db.json');
-            this.db = new db_1.default(filepath);
-        }
-    }
     canActivate(id) {
         return !this.disabled.has(id) && this.extensions.has(id);
     }
@@ -42380,7 +42360,7 @@ const tslib_1 = __webpack_require__(65);
 const child_process_1 = __webpack_require__(238);
 const readline_1 = tslib_1.__importDefault(__webpack_require__(205));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(276));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(277));
 const mv_1 = tslib_1.__importDefault(__webpack_require__(335));
 const os_1 = tslib_1.__importDefault(__webpack_require__(76));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
@@ -43354,7 +43334,7 @@ function rmkidsSync (p, options) {
 module.exports = glob
 
 var fs = __webpack_require__(66)
-var minimatch = __webpack_require__(270)
+var minimatch = __webpack_require__(271)
 var Minimatch = minimatch.Minimatch
 var inherits = __webpack_require__(319)
 var EE = __webpack_require__(197).EventEmitter
@@ -44086,7 +44066,7 @@ module.exports = globSync
 globSync.GlobSync = GlobSync
 
 var fs = __webpack_require__(66)
-var minimatch = __webpack_require__(270)
+var minimatch = __webpack_require__(271)
 var Minimatch = minimatch.Minimatch
 var Glob = __webpack_require__(338).Glob
 var util = __webpack_require__(74)
@@ -44563,7 +44543,7 @@ function ownProp (obj, field) {
 }
 
 var path = __webpack_require__(82)
-var minimatch = __webpack_require__(270)
+var minimatch = __webpack_require__(271)
 var isAbsolute = __webpack_require__(321)
 var Minimatch = minimatch.Minimatch
 
@@ -45747,7 +45727,7 @@ const tslib_1 = __webpack_require__(65);
 const follow_redirects_1 = __webpack_require__(349);
 const uuid_1 = __webpack_require__(297);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(276));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(277));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const tar_1 = tslib_1.__importDefault(__webpack_require__(357));
 const fetch_1 = __webpack_require__(387);
@@ -52417,7 +52397,7 @@ module.exports = Unpack
 // TODO: This should probably be a class, not functionally
 // passing around state in a gazillion args.
 
-const mkdirp = __webpack_require__(276)
+const mkdirp = __webpack_require__(277)
 const fs = __webpack_require__(66)
 const path = __webpack_require__(82)
 const chownr = __webpack_require__(384)
@@ -54222,7 +54202,7 @@ const events_1 = tslib_1.__importDefault(__webpack_require__(209));
 exports.events = events_1.default;
 const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
 exports.languages = languages_1.default;
-const document_1 = tslib_1.__importDefault(__webpack_require__(283));
+const document_1 = tslib_1.__importDefault(__webpack_require__(284));
 exports.Document = document_1.default;
 const mru_1 = tslib_1.__importDefault(__webpack_require__(291));
 exports.Mru = mru_1.default;
@@ -54268,7 +54248,7 @@ const vscode_languageserver_protocol_1 = __webpack_require__(210);
 exports.Disposable = vscode_languageserver_protocol_1.Disposable;
 exports.Event = vscode_languageserver_protocol_1.Event;
 exports.Emitter = vscode_languageserver_protocol_1.Emitter;
-tslib_1.__exportStar(__webpack_require__(260), exports);
+tslib_1.__exportStar(__webpack_require__(261), exports);
 tslib_1.__exportStar(__webpack_require__(434), exports);
 var util_1 = __webpack_require__(237);
 exports.disposeAll = util_1.disposeAll;
@@ -54312,7 +54292,7 @@ const typeDefinitionManager_1 = tslib_1.__importDefault(__webpack_require__(425)
 const workspaceSymbolsManager_1 = tslib_1.__importDefault(__webpack_require__(426));
 const manager_2 = tslib_1.__importDefault(__webpack_require__(255));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(331));
-const types_1 = __webpack_require__(260);
+const types_1 = __webpack_require__(261);
 const util_1 = __webpack_require__(237);
 const complete = tslib_1.__importStar(__webpack_require__(427));
 const position_1 = __webpack_require__(288);
@@ -55103,7 +55083,7 @@ const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
 const uuid_1 = __webpack_require__(297);
-const array_1 = __webpack_require__(284);
+const array_1 = __webpack_require__(285);
 const logger = __webpack_require__(64)('codeActionManager');
 class CodeActionManager extends manager_1.default {
     register(selector, provider, clientId, codeActionKinds) {
@@ -56208,7 +56188,7 @@ exports.getValidWord = getValidWord;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const array_1 = __webpack_require__(284);
+const array_1 = __webpack_require__(285);
 const highlight_1 = __webpack_require__(429);
 const string_1 = __webpack_require__(287);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
@@ -57003,7 +56983,7 @@ const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const net_1 = tslib_1.__importDefault(__webpack_require__(156));
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const language_client_1 = __webpack_require__(434);
-const types_1 = __webpack_require__(260);
+const types_1 = __webpack_require__(261);
 const util_1 = __webpack_require__(237);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const logger = __webpack_require__(64)('services');
@@ -57491,7 +57471,7 @@ const child_process_1 = tslib_1.__importDefault(__webpack_require__(238));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const types_1 = __webpack_require__(260);
+const types_1 = __webpack_require__(261);
 const util_1 = __webpack_require__(237);
 const Is = tslib_1.__importStar(__webpack_require__(249));
 const processes_1 = __webpack_require__(430);
@@ -57964,7 +57944,7 @@ const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const vscode_uri_1 = __webpack_require__(242);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(251));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
-const fs_1 = __webpack_require__(269);
+const fs_1 = __webpack_require__(270);
 const Is = tslib_1.__importStar(__webpack_require__(249));
 const lodash_1 = __webpack_require__(402);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
@@ -67085,7 +67065,7 @@ const tslib_1 = __webpack_require__(65);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(252));
 const location_1 = tslib_1.__importDefault(__webpack_require__(491));
-const fs_1 = __webpack_require__(269);
+const fs_1 = __webpack_require__(270);
 const logger = __webpack_require__(64)('list-symbols');
 class DiagnosticsList extends location_1.default {
     constructor() {
@@ -67139,7 +67119,7 @@ const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const vscode_uri_1 = __webpack_require__(242);
-const fs_1 = __webpack_require__(269);
+const fs_1 = __webpack_require__(270);
 const logger = __webpack_require__(64)('list-location');
 class LocationList extends basic_1.default {
     constructor(nvim) {
@@ -67220,7 +67200,7 @@ const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const vscode_uri_1 = __webpack_require__(242);
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(332));
 const util_1 = __webpack_require__(237);
-const fs_2 = __webpack_require__(269);
+const fs_2 = __webpack_require__(270);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
 const logger = __webpack_require__(64)('list-extensions');
@@ -67403,8 +67383,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const vscode_uri_1 = __webpack_require__(242);
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(276));
-const fs_1 = __webpack_require__(269);
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(277));
+const fs_1 = __webpack_require__(270);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
 class FoldList extends basic_1.default {
@@ -67461,7 +67441,7 @@ const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
 const vscode_languageserver_types_1 = __webpack_require__(222);
 const vscode_uri_1 = __webpack_require__(242);
-const fs_1 = __webpack_require__(269);
+const fs_1 = __webpack_require__(270);
 class LinksList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -67603,7 +67583,7 @@ const vscode_uri_1 = __webpack_require__(242);
 const which_1 = tslib_1.__importDefault(__webpack_require__(243));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
 const util_1 = __webpack_require__(237);
-const fs_1 = __webpack_require__(269);
+const fs_1 = __webpack_require__(270);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const location_1 = tslib_1.__importDefault(__webpack_require__(491));
 const convert_1 = __webpack_require__(497);
@@ -68005,13 +67985,13 @@ function fixWidth(str, width) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(270));
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
 const vscode_uri_1 = __webpack_require__(242);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const location_1 = tslib_1.__importDefault(__webpack_require__(491));
 const convert_1 = __webpack_require__(497);
-const fs_1 = __webpack_require__(269);
+const fs_1 = __webpack_require__(270);
 const fzy_1 = __webpack_require__(502);
 const logger = __webpack_require__(64)('list-symbols');
 class Symbols extends location_1.default {
@@ -68897,7 +68877,7 @@ const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const vscode_uri_1 = __webpack_require__(242);
 const ansiparse_1 = __webpack_require__(432);
-const diff_1 = __webpack_require__(285);
+const diff_1 = __webpack_require__(286);
 const fzy_1 = __webpack_require__(502);
 const score_1 = __webpack_require__(506);
 const string_1 = __webpack_require__(287);
@@ -69478,7 +69458,7 @@ function bestResult(results) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const types_1 = __webpack_require__(260);
+const types_1 = __webpack_require__(261);
 const string_1 = __webpack_require__(287);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const logger = __webpack_require__(64)('model-source');
@@ -69868,12 +69848,12 @@ exports.regist = regist;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(270));
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const util_1 = tslib_1.__importDefault(__webpack_require__(74));
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const source_1 = tslib_1.__importDefault(__webpack_require__(507));
-const fs_2 = __webpack_require__(269);
+const fs_2 = __webpack_require__(270);
 const string_1 = __webpack_require__(287);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const logger = __webpack_require__(64)('source-file');
@@ -70694,7 +70674,7 @@ exports.default = throttle;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_languageserver_textdocument_1 = __webpack_require__(258);
+const vscode_languageserver_textdocument_1 = __webpack_require__(259);
 const position_1 = __webpack_require__(288);
 const Snippets = tslib_1.__importStar(__webpack_require__(328));
 const string_1 = __webpack_require__(287);
@@ -71426,13 +71406,13 @@ exports.default = Collection;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(286));
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(257));
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(239));
 const vscode_languageserver_types_1 = __webpack_require__(222);
-const vscode_languageserver_textdocument_1 = __webpack_require__(258);
+const vscode_languageserver_textdocument_1 = __webpack_require__(259);
 const events_1 = tslib_1.__importDefault(__webpack_require__(209));
 const util_1 = __webpack_require__(237);
-const array_1 = __webpack_require__(284);
+const array_1 = __webpack_require__(285);
 const position_1 = __webpack_require__(288);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const range_1 = tslib_1.__importDefault(__webpack_require__(522));
@@ -73943,7 +73923,7 @@ exports.default = Colors;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const array_1 = __webpack_require__(284);
+const array_1 = __webpack_require__(285);
 const object_1 = __webpack_require__(248);
 const position_1 = __webpack_require__(288);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
@@ -74190,15 +74170,15 @@ exports.default = DocumentHighlighter;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(286));
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(257));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const vscode_languageserver_types_1 = __webpack_require__(222);
-const vscode_languageserver_textdocument_1 = __webpack_require__(258);
+const vscode_languageserver_textdocument_1 = __webpack_require__(259);
 const vscode_uri_1 = __webpack_require__(242);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(251));
 const highligher_1 = tslib_1.__importDefault(__webpack_require__(431));
 const util_1 = __webpack_require__(237);
-const fs_1 = __webpack_require__(269);
+const fs_1 = __webpack_require__(270);
 const object_1 = __webpack_require__(248);
 const string_1 = __webpack_require__(287);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));

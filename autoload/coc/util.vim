@@ -93,6 +93,19 @@ function! coc#util#cursor()
   return [pos[1] - 1, strchars(content)]
 endfunction
 
+" close all float/popup window
+function! coc#util#close_floats() abort
+  if s:is_vim && exists('*popup_clear')
+    call popup_clear()
+  elseif has('nvim')
+    for id in nvim_list_wins()
+      if !empty(nvim_win_get_config(id)['relative'])
+        call nvim_win_close(id, 1)
+      endif
+    endfor
+  endif
+endfunction
+
 function! coc#util#close_win(id)
   if s:is_vim && exists('*popup_close')
     if !empty(popup_getpos(a:id))
@@ -927,15 +940,9 @@ function! coc#util#extension_root() abort
     return s:root.'/src/__tests__/extensions'
   endif
   if !empty(get(g:, 'coc_extension_root', ''))
-    echohl WarningMsg | echon "g:coc_extension_root variable is deprecated, use g:coc_data_home as parent folder of extensions." | echohl None
-    let folder = resolve(expand(g:coc_extension_root))
-  else
-    let folder = coc#util#get_data_home().'/extensions'
+    echohl Error | echon 'g:coc_extension_root not used any more, use g:coc_data_home instead' | echohl None
   endif
-  if !isdirectory(folder)
-    echohl MoreMsg | echom '[coc.nvim] creating extensions directory: '.folder | echohl None
-    call mkdir(folder, "p", 0755)
-  endif
+  let folder = coc#util#get_data_home().'/extensions'
   return folder
 endfunction
 

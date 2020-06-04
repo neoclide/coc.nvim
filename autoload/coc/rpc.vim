@@ -76,11 +76,7 @@ function! coc#rpc#restart()
   if empty(s:client)
     call coc#rpc#start_server()
   else
-    for i in range(1, winnr('$'))
-      if getwinvar(i, 'float')
-        execute i.'wincmd c'
-      endif
-    endfor
+    call coc#util#close_floats()
     call coc#rpc#request('detach', [])
     sleep 100m
     let s:client['command'] = coc#util#job_command()
