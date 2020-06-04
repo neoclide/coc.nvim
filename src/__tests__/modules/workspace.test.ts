@@ -35,7 +35,7 @@ afterEach(async () => {
 describe('workspace properties', () => {
 
   it('should have initialized', () => {
-    let { nvim, workspaceFolders, channelNames, rootPath, cwd, documents, initialized, textDocuments } = workspace
+    let { nvim, channelNames, rootPath, cwd, documents, initialized, textDocuments } = workspace
     expect(nvim).toBeTruthy()
     expect(initialized).toBe(true)
     expect(channelNames.length).toBe(0)
@@ -43,7 +43,6 @@ describe('workspace properties', () => {
     expect(textDocuments.length).toBe(1)
     expect(rootPath).toBe(process.cwd())
     expect(cwd).toBe(process.cwd())
-    expect(workspaceFolders.length).toBe(1)
   })
 
   it('should add workspaceFolder', async () => {
@@ -861,7 +860,7 @@ describe('workspace utility', () => {
     expect(event.regtype).toBe('V')
     expect(event.operator).toBe('y')
     expect(event.regcontents).toEqual(['foo'])
-    expect(eventCount).toEqual(3)
+    expect(eventCount).toBeGreaterThan(2)
     disposables.forEach(d => d.dispose())
   })
 

@@ -940,15 +940,9 @@ function! coc#util#extension_root() abort
     return s:root.'/src/__tests__/extensions'
   endif
   if !empty(get(g:, 'coc_extension_root', ''))
-    echohl WarningMsg | echon "g:coc_extension_root variable is deprecated, use g:coc_data_home as parent folder of extensions." | echohl None
-    let folder = resolve(expand(g:coc_extension_root))
-  else
-    let folder = coc#util#get_data_home().'/extensions'
+    echohl Error | echon 'g:coc_extension_root not used any more, use g:coc_data_home instead' | echohl None
   endif
-  if !isdirectory(folder)
-    echohl MoreMsg | echom '[coc.nvim] creating extensions directory: '.folder | echohl None
-    call mkdir(folder, "p", 0755)
-  endif
+  let folder = coc#util#get_data_home().'/extensions'
   return folder
 endfunction
 

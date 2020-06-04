@@ -377,8 +377,8 @@ export default class Plugin extends EventEmitter {
     let { nvim } = this
     let s = Date.now()
     try {
-      await workspace.init()
       await extensions.init()
+      await workspace.init()
       for (let item of workspace.env.vimCommands) {
         this.addCommand(item)
       }
@@ -393,6 +393,7 @@ export default class Plugin extends EventEmitter {
       this.handler = new Handler(nvim)
       services.init()
       await extensions.activateExtensions()
+      workspace.setupDynamicAutocmd(true)
       nvim.setVar('coc_service_initialized', 1, true)
       nvim.call('coc#util#do_autocmd', ['CocNvimInit'], true)
       this._ready = true
@@ -404,8 +405,8 @@ export default class Plugin extends EventEmitter {
     }
     workspace.onDidOpenTextDocument(async doc => {
       if (!doc.uri.endsWith(CONFIG_FILE_NAME)) return
-      if (extensions.has('coc-json') || extensions.isDisabled('coc-json')) return
-      workspace.showMessage(`Run: CocInstall coc-json for json intellisense`, 'more')
+      if (extensions.has('coc-json')) return
+      workspace.showMessage(`Run :CocInstall coc-json for json intellisense`, 'more')
     })
   }
 

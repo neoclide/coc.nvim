@@ -8,7 +8,7 @@ import { objectLiteral } from './util/is'
 import './util/extensions'
 import { URI } from 'vscode-uri'
 const logger = require('./util/logger')('attach')
-const isTest = process.env.NODE_ENV == 'test'
+const isTest = global.hasOwnProperty('__TEST__')
 
 export default (opts: Attach, requestApi = true): Plugin => {
   const nvim: NeovimClient = attach(opts, log4js.getLogger('node-client'), requestApi)

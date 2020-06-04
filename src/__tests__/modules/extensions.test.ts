@@ -34,7 +34,7 @@ describe('extensions', () => {
   it('should load local extensions from &rtp', async () => {
     let folder = path.resolve(__dirname, '../extensions/vim/local')
     await nvim.command(`set runtimepath^=${folder}`)
-    await helper.wait(200)
+    await helper.wait(300)
     let stat = extensions.getExtensionState('local')
     expect(stat).toBe('activated')
   })

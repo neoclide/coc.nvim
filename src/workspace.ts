@@ -1,6 +1,6 @@
 import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
+import fastDiff from 'fast-diff'
 import bytes from 'bytes'
-import debounce from 'debounce'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -67,9 +67,9 @@ export class Workspace implements IWorkspace {
   private schemeProviderMap: Map<string, TextDocumentContentProvider> = new Map()
   private namespaceMap: Map<string, number> = new Map()
   private disposables: Disposable[] = []
-  private setupDynamicAutocmd: Function & { clear(): void }
   private watchedOptions: Set<string> = new Set()
 
+  private _dynAutocmd = false
   private _disposed = false
   private _onDidOpenDocument = new Emitter<TextDocument>()
   private _onDidCloseDocument = new Emitter<TextDocument>()
@@ -81,6 +81,7 @@ export class Workspace implements IWorkspace {
   private _onDidWorkspaceInitialized = new Emitter<void>()
   private _onDidOpenTerminal = new Emitter<Terminal>()
   private _onDidCloseTerminal = new Emitter<Terminal>()
+  private _onDidRuntimePathChange = new Emitter<string[]>()
 
   public readonly onDidCloseTerminal: Event<Terminal> = this._onDidCloseTerminal.event
   public readonly onDidOpenTerminal: Event<Terminal> = this._onDidOpenTerminal.event
@@ -92,6 +93,7 @@ export class Workspace implements IWorkspace {
   public readonly onDidSaveTextDocument: Event<TextDocument> = this._onDidSaveDocument.event
   public readonly onDidChangeConfiguration: Event<ConfigurationChangeEvent> = this._onDidChangeConfiguration.event
   public readonly onDidWorkspaceInitialized: Event<void> = this._onDidWorkspaceInitialized.event
+  public readonly onDidRuntimePathChange: Event<string[]> = this._onDidRuntimePathChange.event
   public readonly configurations: Configurations
 
   constructor() {
@@ -99,11 +101,6 @@ export class Workspace implements IWorkspace {
     this.version = json.version
     this.configurations = this.createConfigurations()
     this.willSaveUntilHandler = new WillSaveUntilHandler(this)
-    this.setupDynamicAutocmd = debounce(() => {
-      this._setupDynamicAutocmd().catch(e => {
-        logger.error(e)
-      })
-    }, global.hasOwnProperty('__TEST__') ? 0 : 100)
     let cwd = process.cwd()
     if (cwd != os.homedir() && inDirectory(cwd, ['.vim'])) {
       this._workspaceFolders.push({
@@ -163,8 +160,14 @@ export class Workspace implements IWorkspace {
     this.configurations.onDidChange(e => {
       this._onDidChangeConfiguration.fire(e)
     }, null, this.disposables)
-
-    this.watchOption('runtimepath', (_, newValue: string) => {
+    this.watchOption('runtimepath', (oldValue, newValue: string) => {
+      let result = fastDiff(oldValue, newValue)
+      for (let [changeType, value] of result) {
+        if (changeType == 1) {
+          let paths = value.replace(/,$/, '').split(',')
+          this._onDidRuntimePathChange.fire(paths)
+        }
+      }
       this._env.runtimepath = newValue
     }, this.disposables)
     this.watchOption('iskeyword', (_, newValue: string) => {
@@ -1371,7 +1374,6 @@ export class Workspace implements IWorkspace {
     disposeAll(this.disposables)
     Watchman.dispose()
     this.configurations.dispose()
-    this.setupDynamicAutocmd.clear()
     this.buffers.clear()
     if (this.statusLine) this.statusLine.dispose()
   }
@@ -1405,7 +1407,9 @@ export class Workspace implements IWorkspace {
     return new Task(this.nvim, id)
   }
 
-  private async _setupDynamicAutocmd(): Promise<void> {
+  public setupDynamicAutocmd(initialize = false): void {
+    if (!initialize && !this._dynAutocmd) return
+    this._dynAutocmd = true
     let schemes = this.schemeProviderMap.keys()
     let cmds: string[] = []
     for (let scheme of schemes) {
@@ -1426,19 +1430,18 @@ export class Workspace implements IWorkspace {
     let content = `
 augroup coc_dynamic_autocmd
   autocmd!
-  ${cmds.join('\n')}
+  ${cmds.join('\n  ')}
 augroup end`
     try {
       let dir = path.join(os.tmpdir(), `coc.nvim-${process.pid}`)
       if (!fs.existsSync(dir)) fs.mkdirSync(dir)
       let filepath = path.join(dir, `coc-${process.pid}.vim`)
-      await writeFile(filepath, content)
+      fs.writeFileSync(filepath, content, 'utf8')
       let cmd = `source ${filepath}`
-      const isCygwin = await this.nvim.eval('has("win32unix")')
-      if (isCygwin && platform.isWindows) {
+      if (this.env.isCygwin && platform.isWindows) {
         cmd = `execute "source" . substitute(system('cygpath ${filepath.replace(/\\/g, '/')}'), '\\n', '', 'g')`
       }
-      await this.nvim.command(cmd)
+      this.nvim.command(cmd).logError()
     } catch (e) {
       this.showMessage(`Can't create tmp file: ${e.message}`, 'error')
     }
