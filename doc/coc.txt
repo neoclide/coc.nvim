@@ -1601,6 +1601,14 @@ coc#util#get_config({key})
 
 	:echo coc#util#get_config('coc.preferences')
 <
+						*coc#util#close_floats()*
+coc#util#close_floats({key})
+
+	Close all float/popup windows, works on vim and neovim.
+
+	Note: Popup/float windows created by other plugins will also be
+	cleared.
+
 						*CocRequest()*
 CocRequest({id}, {method}, [{params}])
 

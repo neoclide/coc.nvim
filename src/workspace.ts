@@ -183,14 +183,6 @@ export class Workspace implements IWorkspace {
         }
       }
     }, this.disposables)
-    this.watchGlobal('coc_enabled', async (oldValue, newValue) => {
-      if (newValue == oldValue) return
-      if (newValue == 1) {
-        await this.attach()
-      } else {
-        await this.detach()
-      }
-    }, this.disposables)
     this.watchGlobal('coc_sources_disable_map', async (_, newValue) => {
       this.env.disabledSources = newValue
     })
@@ -1471,7 +1463,7 @@ augroup end`
     }, 30)
   }
 
-  private async attach(): Promise<void> {
+  public async attach(): Promise<void> {
     if (this._attached) return
     this._attached = true
     let buffers = await this.nvim.buffers

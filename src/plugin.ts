@@ -74,7 +74,6 @@ export default class Plugin extends EventEmitter {
     this.addMethod('listResume', () => listManager.resume())
     this.addMethod('listPrev', () => listManager.previous())
     this.addMethod('listNext', () => listManager.next())
-    this.addMethod('detach', () => workspace.detach())
     this.addMethod('sendRequest', (id: string, method: string, params?: any) => services.sendRequest(id, method, params))
     this.addMethod('sendNotification', async (id: string, method: string, params?: any) => {
       await services.sendNotification(id, method, params)
@@ -113,6 +112,12 @@ export default class Plugin extends EventEmitter {
     this.addMethod('openLog', () => {
       let file = logger.getLogFile()
       nvim.call(`coc#util#open_url`, [file], true)
+    })
+    this.addMethod('attach', () => {
+      return workspace.attach()
+    })
+    this.addMethod('detach', () => {
+      return workspace.detach()
     })
     this.addMethod('doKeymap', async (key: string, defaultReturn = '') => {
       let [fn, repeat] = workspace.keymaps.get(key)

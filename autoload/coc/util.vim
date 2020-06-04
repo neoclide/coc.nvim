@@ -93,6 +93,19 @@ function! coc#util#cursor()
   return [pos[1] - 1, strchars(content)]
 endfunction
 
+" close all float/popup window
+function! coc#util#close_floats() abort
+  if s:is_vim && exists('*popup_clear')
+    call popup_clear()
+  elseif has('nvim')
+    for id in nvim_list_wins()
+      if !empty(nvim_win_get_config(id)['relative'])
+        call nvim_win_close(id, 1)
+      endif
+    endfor
+  endif
+endfunction
+
 function! coc#util#close_win(id)
   if s:is_vim && exists('*popup_close')
     if !empty(popup_getpos(a:id))
