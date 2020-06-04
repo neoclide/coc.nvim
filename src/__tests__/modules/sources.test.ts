@@ -50,6 +50,14 @@ describe('sources', () => {
     expect(s.enable).toBe(false)
     sources.toggleSource('around')
   })
+
+  it('should disable source by coc_sources_disable_map', async () => {
+    await nvim.command('let g:coc_sources_disable_map = {"python": ["around", "buffer"]}')
+    let res = sources.getNormalSources('python')
+    await nvim.command('let g:coc_sources_disable_map = {}')
+    expect(res.find(o => o.name == 'around')).toBeUndefined()
+    expect(res.find(o => o.name == 'buffer')).toBeUndefined()
+  })
 })
 
 describe('sources#has', () => {
@@ -101,10 +109,10 @@ describe('sources#createSource', () => {
     let disposable = sources.createSource({
       name: 'custom',
       doComplete: () => Promise.resolve({
-          items: [{
-            word: 'custom'
-          }]
-        })
+        items: [{
+          word: 'custom'
+        }]
+      })
     })
     await helper.createDocument()
     await nvim.input('i')

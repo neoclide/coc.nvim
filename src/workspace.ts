@@ -191,6 +191,9 @@ export class Workspace implements IWorkspace {
         await this.detach()
       }
     }, this.disposables)
+    this.watchGlobal('coc_sources_disable_map', async (_, newValue) => {
+      this.env.disabledSources = newValue
+    })
     let provider: TextDocumentContentProvider = {
       onDidChange: null,
       provideTextDocumentContent: async (uri: URI) => {

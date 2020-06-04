@@ -249,6 +249,7 @@ export interface Terminal {
 export interface Env {
   completeOpt: string
   runtimepath: string
+  disabledSources: { [filetype: string]: string[] }
   readonly guicursor: string
   readonly mode: string
   readonly floating: boolean

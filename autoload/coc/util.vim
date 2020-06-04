@@ -815,6 +815,7 @@ function! coc#util#vim_info()
         \ 'guicursor': &guicursor,
         \ 'vimCommands': get(g:, 'coc_vim_commands', []),
         \ 'textprop': has('textprop') && has('patch-8.1.1719') && !has('nvim') ? v:true : v:false,
+        \ 'disabledSources': get(g:, 'coc_sources_disable_map', {}),
         \}
 endfunction
 

@@ -357,19 +357,6 @@ export class Completion implements Disposable {
     await this.startCompletion(option)
   }
 
-  private async triggerSourceCompletion(doc: Document): Promise<boolean> {
-    if (!doc || !doc.attached) return false
-    let [bufnr, pre] = await this.nvim.eval(`[bufnr('%'),strpart(getline('.'), 0, col('.') - 1)]`) as [number, string]
-    if (doc.bufnr != bufnr || this.complete) return false
-    if (sources.shouldTrigger(pre, doc.filetype)) {
-      this.triggerCompletion(doc, pre, false).catch(e => {
-        logger.error(e)
-      })
-      return true
-    }
-    return false
-  }
-
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
     let { document, isActivated } = this
     if (!isActivated || !document || !item.hasOwnProperty('word')) return

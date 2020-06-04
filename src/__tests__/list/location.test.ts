@@ -38,6 +38,7 @@ describe('list commands', () => {
   it('should highlight ranges', async () => {
     await manager.start(['--normal', '--auto-preview', 'location'])
     await helper.wait(300)
+    manager.prompt.cancel()
     await nvim.command('wincmd k')
     let name = await nvim.eval('bufname("%")')
     expect(name).toMatch(__filename)

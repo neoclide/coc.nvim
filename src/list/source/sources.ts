@@ -2,8 +2,10 @@ import { Neovim } from '@chemzqm/neovim'
 import { Location, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import sources from '../../sources'
+import workspace from '../../workspace'
 import { ListContext, ListItem } from '../../types'
 import BasicList from '../basic'
+const logger = require('../../util/logger')('list-sources')
 
 export default class SourcesList extends BasicList {
   public readonly defaultAction = 'toggle'
@@ -30,14 +32,20 @@ export default class SourcesList extends BasicList {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public async loadItems(_context: ListContext): Promise<ListItem[]> {
+  public async loadItems(context: ListContext): Promise<ListItem[]> {
     let stats = sources.sourceStats()
+    let filetype = await context.buffer.getOption('filetype') as string
+    let map = workspace.env.disabledSources
+    let disables = map ? map[filetype] || [] : []
     stats.sort((a, b) => {
       if (a.type != b.type) return a.type < b.type ? 1 : -1
       return a.name > b.name ? -1 : 1
     })
     return stats.map(stat => {
       let prefix = stat.disabled ? ' ' : '*'
+      if (disables && disables.includes(stat.name)) {
+        prefix = '-'
+      }
       let location: Location
       if (stat.filepath) {
         location = Location.create(URI.file(stat.filepath).toString(), Range.create(0, 0, 0, 0))

@@ -212,22 +212,31 @@ export class Sources {
   public getCompleteSources(opt: CompleteOption): ISource[] {
     let { filetype } = opt
     let pre = byteSlice(opt.line, 0, opt.colnr - 1)
-    let isTriggered = opt.input == '' && opt.triggerCharacter
+    let isTriggered = opt.input == '' && !!opt.triggerCharacter
     if (isTriggered) return this.getTriggerSources(pre, filetype)
-    let character = pre.length ? pre[pre.length - 1] : ''
+    return this.getNormalSources(opt.filetype)
+  }
+
+  /**
+   * Get sources should be used without trigger.
+   *
+   * @param {string} filetype
+   * @returns {ISource[]}
+   */
+  public getNormalSources(filetype: string): ISource[] {
     return this.sources.filter(source => {
       let { filetypes, triggerOnly, enable } = source
-      if (!enable || (filetypes && !filetypes.includes(filetype))) {
+      if (!enable || triggerOnly || (filetypes && !filetypes.includes(filetype))) {
         return false
       }
-      if (triggerOnly && !this.checkTrigger(source, pre, character)) {
+      if (this.disabledByLanguageId(source, filetype)) {
         return false
       }
       return true
     })
   }
 
-  public checkTrigger(source: ISource, pre: string, character: string): boolean {
+  private checkTrigger(source: ISource, pre: string, character: string): boolean {
     let { triggerCharacters, triggerPatterns } = source
     if (!triggerCharacters && !triggerPatterns) return false
     if (character && triggerCharacters && triggerCharacters.includes(character)) {
@@ -240,38 +249,20 @@ export class Sources {
   }
 
   public shouldTrigger(pre: string, languageId: string): boolean {
-    let last = pre.length ? pre[pre.length - 1] : ''
-    let idx = this.sources.findIndex(s => {
-      let { enable, triggerCharacters, triggerPatterns, filetypes } = s
-      if (!enable || (filetypes && !filetypes.includes(languageId))) return false
-      if (last && triggerCharacters) return triggerCharacters.includes(last)
-      if (triggerPatterns) return triggerPatterns.findIndex(p => p.test(pre)) !== -1
-      return false
-    })
-    return idx !== -1
+    let sources = this.getTriggerSources(pre, languageId)
+    return sources.length > 0
   }
 
   public getTriggerSources(pre: string, languageId: string): ISource[] {
     let character = pre.length ? pre[pre.length - 1] : ''
+    if (!character) return []
     return this.sources.filter(source => {
       let { filetypes, enable } = source
       if (!enable || (filetypes && !filetypes.includes(languageId))) {
         return false
       }
+      if (this.disabledByLanguageId(source, languageId)) return false
       return this.checkTrigger(source, pre, character)
-    })
-  }
-
-  public getSourcesForFiletype(filetype: string, isTriggered: boolean): ISource[] {
-    return this.sources.filter(source => {
-      let { filetypes } = source
-      if (source.triggerOnly && !isTriggered) {
-        return false
-      }
-      if (source.enable && (!filetypes || filetypes.includes(filetype))) {
-        return true
-      }
-      return false
     })
   }
 
@@ -349,6 +340,12 @@ export class Sources {
     }
     let source = new Source(Object.assign({ sourceType: SourceType.Service } as any, config))
     return this.addSource(source)
+  }
+
+  private disabledByLanguageId(source: ISource, languageId: string): boolean {
+    let map = workspace.env.disabledSources
+    let list = map ? map[languageId] : []
+    return Array.isArray(list) && list.includes(source.name)
   }
 
   public dispose(): void {
