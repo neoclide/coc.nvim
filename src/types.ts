@@ -424,6 +424,8 @@ export interface ChangeItem {
 export interface BufferOption {
   eol: number
   size: number
+  winid: number
+  previewwindow: boolean
   variables: { [key: string]: any }
   bufname: string
   fullpath: string

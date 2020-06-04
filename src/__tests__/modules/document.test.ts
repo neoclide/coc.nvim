@@ -170,6 +170,14 @@ describe('document model properties', () => {
     let content = doc.getDocumentContent()
     expect(content.indexOf('abc')).toBe(-1)
   })
+
+  it('should get lineCount, previewwindow, winid', async () => {
+    let doc = await helper.createDocument()
+    let { lineCount, winid, previewwindow } = doc
+    expect(lineCount).toBe(1)
+    expect(winid != -1).toBe(true)
+    expect(previewwindow).toBe(false)
+  })
 })
 
 describe('document synchronize', () => {

@@ -33,6 +33,8 @@ export default class Document {
   // real current lines
   private lines: string[] = []
   private _attached = false
+  private _previewwindow = false
+  private _winid = -1
   private _filetype: string
   private _uri: string
   private _changedtick: number
@@ -122,6 +124,20 @@ export default class Document {
   }
 
   /**
+   * Window ID when buffer create, could be -1 when no window associated.
+   */
+  public get winid(): number {
+    return this._winid
+  }
+
+  /**
+   * Returns if current document is opended with previewwindow
+   */
+  public get previewwindow(): boolean {
+    return this._previewwindow
+  }
+
+  /**
    * Initialize document model.
    *
    * @internal
@@ -132,6 +148,8 @@ export default class Document {
     let opts: BufferOption = await nvim.call('coc#util#get_bufoptions', buffer.id)
     if (opts == null) return false
     let buftype = this.buftype = opts.buftype
+    this._previewwindow = opts.previewwindow
+    this._winid = opts.winid
     this.size = typeof opts.size == 'number' ? opts.size : 0
     this.variables = opts.variables
     this._changedtick = opts.changedtick

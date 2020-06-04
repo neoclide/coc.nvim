@@ -414,11 +414,18 @@ function! coc#util#get_bufoptions(bufnr) abort
   if !bufloaded(a:bufnr) | return v:null | endif
   let bufname = bufname(a:bufnr)
   let buftype = getbufvar(a:bufnr, '&buftype')
+  let previewwindow = 0
+  let winid = bufwinid(a:bufnr)
+  if winid != -1
+    let previewwindow = getwinvar(winid, '&previewwindow', 0)
+  endif
   return {
         \ 'bufname': bufname,
         \ 'size': buftype ==# '' ? getfsize(bufname) : -1,
         \ 'eol': getbufvar(a:bufnr, '&eol'),
         \ 'buftype': buftype,
+        \ 'winid': winid,
+        \ 'previewwindow': previewwindow == 0 ? v:false : v:true,
         \ 'variables': s:variables(a:bufnr),
         \ 'fullpath': empty(bufname) ? '' : fnamemodify(bufname, ':p'),
         \ 'filetype': getbufvar(a:bufnr, '&filetype'),

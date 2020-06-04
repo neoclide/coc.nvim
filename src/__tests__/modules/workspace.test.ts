@@ -1037,10 +1037,6 @@ describe('workspace events', () => {
     await helper.wait(100)
     let doc = workspace.getDocument(buf.id)
     expect(doc).toBeDefined()
-    await nvim.setLine('foo')
-    await helper.wait(30)
-    let content = doc.getDocumentContent()
-    expect(content).toMatch('foo')
   })
 })
 
