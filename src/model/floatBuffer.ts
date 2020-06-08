@@ -168,7 +168,7 @@ export default class FloatBuffer {
       let filtered = doc.filetype == 'markdown' ? lines.filter(s => !/^\s*```/.test(s)) : lines
       newLines.push(...filtered)
       if (idx != docs.length - 1) {
-        newLines.push('\u2500'.repeat(width - 2))
+        newLines.push('—'.repeat(width - 2))
         currLine = newLines.length
       }
       idx = idx + 1
