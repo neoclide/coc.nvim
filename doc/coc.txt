@@ -2831,7 +2831,7 @@ A:	It means you don't have coc extension or languageserver that provide
 
 Q:	Syntax highlight on float/popup doesn't looks right.
 
-A:	On neovim, coc.nivm uses background neovim instance which load syntax
+A:	On neovim, coc.nvim uses background neovim instance which load syntax
 	plugins only for generate highlights, it may not what you would expect.
 
 Q: 	I don't have float/popup window shown up.

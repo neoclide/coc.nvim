@@ -166,7 +166,7 @@ export default class Plugin extends EventEmitter {
       channel.appendLine('vim version: ' + first + `${workspace.isVim ? ' ' + workspace.env.version : ''}`)
       channel.appendLine('node version: ' + process.version)
       channel.appendLine('coc.nvim version: ' + this.version)
-      channel.appendLine('coc.nivm directory: ' + path.dirname(__dirname))
+      channel.appendLine('coc.nvim directory: ' + path.dirname(__dirname))
       channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM))
       channel.appendLine('platform: ' + process.platform)
       channel.appendLine('')
