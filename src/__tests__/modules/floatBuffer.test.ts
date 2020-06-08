@@ -110,7 +110,7 @@ describe('FloatBuffer', () => {
       '# head',
       '**note**',
       'console.log(3)',
-      '──────────────',
+      '——————————————',
       'class Foo'
     ])
   })
