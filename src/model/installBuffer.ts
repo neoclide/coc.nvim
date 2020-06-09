@@ -120,7 +120,7 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
     nvim.pauseNotification()
     nvim.command(isSync ? 'enew' : 'vs +enew', true)
     nvim.call('bufnr', ['%'], true)
-    nvim.command('setl buftype=nofile bufhidden=wipe noswapfile nobuflisted scrolloff=0 wrap undolevels=-1', true)
+    nvim.command('setl buftype=nofile bufhidden=wipe noswapfile nobuflisted wrap undolevels=-1', true)
     if (!isSync) {
       nvim.command('nnoremap <silent><nowait><buffer> q :q<CR>', true)
     }
