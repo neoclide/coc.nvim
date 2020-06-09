@@ -4,6 +4,7 @@ import { URI } from 'vscode-uri'
 import { Variable, VariableResolver } from "./parser"
 import { Neovim } from '@chemzqm/neovim'
 import Document from '../model/document'
+import clipboardy from 'clipboardy'
 const logger = require('../util/logger')('snippets-variable')
 
 export class SnippetVariableResolver implements VariableResolver {
@@ -15,7 +16,8 @@ export class SnippetVariableResolver implements VariableResolver {
 
   public async init(document: Document): Promise<void> {
     let filepath = URI.parse(document.uri).fsPath
-    let [lnum, line, cword, selected, clipboard, yank] = await this.nvim.eval(`[line('.'),getline('.'),expand('<cword>'),get(g:,'coc_selected_text', ''),getreg('+'),getreg('"')]`) as any[]
+    let [lnum, line, cword, selected, yank] = await this.nvim.eval(`[line('.'),getline('.'),expand('<cword>'),get(g:,'coc_selected_text', ''),getreg('"')]`) as any[]
+    let clipboard = await clipboardy.read()
     Object.assign(this._variableToValue, {
       YANK: yank || undefined,
       CLIPBOARD: clipboard || undefined,
