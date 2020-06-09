@@ -26,6 +26,7 @@ import { TypeDefinitionMiddleware } from './typeDefinition'
 import { Delayer } from './utils/async'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
+import completion from '../completion'
 import { WorkspaceFolderWorkspaceMiddleware } from './workspaceFolders'
 
 const logger = require('../util/logger')('language-client-client')
@@ -3746,6 +3747,7 @@ export abstract class BaseLanguageClient {
   }
 
   private forceDocumentSync(): void {
+    if (completion.isActivated) return
     let doc = workspace.getDocument(workspace.bufnr)
     if (doc) doc.forceSync()
   }

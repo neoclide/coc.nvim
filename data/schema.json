@@ -383,10 +383,10 @@
     },
     "suggest.triggerCompletionWait": {
       "type": "integer",
-      "default": 60,
-      "minimum": 50,
-      "maximum": 300,
-      "description": "Wait time between trigger character type and completion start, for wait server content synchronize."
+      "default": 50,
+      "minimum": 30,
+      "maximum": 500,
+      "description": "Wait time between text change and completion start, cancel completion when text changed during wait."
     },
     "suggest.echodocSupport": {
       "type": "boolean",

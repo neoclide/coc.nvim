@@ -628,6 +628,7 @@ export interface CompleteConfig {
   maxPreviewWidth: number
   autoTrigger: string
   previewIsKeyword: string
+  triggerCompletionWait: number
   minTriggerInputLength: number
   triggerAfterInsertEnter: boolean
   acceptSuggestionOnCommitCharacter: boolean

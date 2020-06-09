@@ -208,8 +208,7 @@ export default class Refactor {
       logger.error(err)
       return
     }
-    await (document as any)._fetchContent()
-    document.forceSync()
+    await document.patchChange()
     await commands.executeCommand('editor.action.addRanges', hlRanges)
   }
 

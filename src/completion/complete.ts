@@ -344,6 +344,7 @@ export default class Complete {
   }
 
   public dispose(): void {
+    if (this._canceled) return
     this._onDidComplete.dispose()
     this._canceled = true
     for (let tokenSource of this.tokenSources.values()) {

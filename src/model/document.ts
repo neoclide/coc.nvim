@@ -49,13 +49,7 @@ export default class Document {
     private env: Env,
     private maxFileSize: number | null) {
     this.fireContentChanges = debounce(() => {
-      this.nvim.mode.then(m => {
-        if (m.blocking) {
-          this.fireContentChanges()
-          return
-        }
-        this._fireContentChanges()
-      }).logError()
+      this._fireContentChanges()
     }, 200)
     this.fetchContent = debounce(() => {
       this._fetchContent().logError()

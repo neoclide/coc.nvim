@@ -47,7 +47,7 @@ export class Completion implements Disposable {
     let fn = throttle(this.onPumChange.bind(this), workspace.isVim ? 200 : 100)
     events.on('CompleteDone', async item => {
       this.currItem = null
-      this.cancel()
+      this.cancelResolve()
       this.floating.close()
       await this.onCompleteDone(item)
     }, this, this.disposables)
@@ -56,13 +56,13 @@ export class Completion implements Disposable {
       let { completed_item } = ev
       let item = completed_item.hasOwnProperty('word') ? completed_item : null
       if (equals(item, this.currItem)) return
-      this.cancel()
+      this.cancelResolve()
       this.currItem = item
       fn(ev)
     }, this, this.disposables)
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('suggest')) {
-        Object.assign(this.config, this.getCompleteConfig())
+        this.config = this.getCompleteConfig()
       }
     }, null, this.disposables)
   }
@@ -95,14 +95,13 @@ export class Completion implements Disposable {
   }
 
   private getCompleteConfig(): CompleteConfig {
-    let config = workspace.getConfiguration('coc.preferences')
     let suggest = workspace.getConfiguration('suggest')
     function getConfig<T>(key, defaultValue: T): T {
-      return config.get<T>(key, suggest.get<T>(key, defaultValue))
+      return suggest.get<T>(key, suggest.get<T>(key, defaultValue))
     }
     let keepCompleteopt = getConfig<boolean>('keepCompleteopt', false)
     let autoTrigger = getConfig<string>('autoTrigger', 'always')
-    if (keepCompleteopt) {
+    if (keepCompleteopt && autoTrigger != 'none') {
       let { completeOpt } = workspace
       if (!completeOpt.includes('noinsert') && !completeOpt.includes('noselect')) {
         autoTrigger = 'none'
@@ -122,6 +121,7 @@ export class Completion implements Disposable {
       enablePreview: getConfig<boolean>('enablePreview', false),
       enablePreselect: getConfig<boolean>('enablePreselect', false),
       maxPreviewWidth: getConfig<number>('maxPreviewWidth', 80),
+      triggerCompletionWait: getConfig<number>('triggerCompletionWait', 50),
       labelMaxLength: getConfig<number>('labelMaxLength', 200),
       triggerAfterInsertEnter: getConfig<boolean>('triggerAfterInsertEnter', false),
       noselect: getConfig<boolean>('noselect', true),
@@ -239,9 +239,13 @@ export class Completion implements Disposable {
       if (s) arr.push(s)
     }
     if (!arr.length) return
+    await document.patchChange()
+    await wait(this.config.triggerCompletionWait)
+    // it get changed, not complete
+    if (document.changedtick != option.changedtick) return
     let complete = new Complete(option, document, this.recentScores, config, arr, nvim)
     this.start(complete)
-    await document.patchChange()
+    await wait(this.config.triggerCompletionWait)
     let items = await this.complete.doComplete()
     if (complete.isCanceled) return
     if (items.length == 0 && !complete.isCompleting) {
@@ -478,7 +482,7 @@ export class Completion implements Disposable {
     }
   }
 
-  private cancel(): void {
+  private cancelResolve(): void {
     if (this.resolveTokenSource) {
       this.resolveTokenSource.cancel()
       this.resolveTokenSource = null

@@ -228,7 +228,7 @@ Built-in configurations:~
 "suggest.triggerCompletionWait":~
 
 	Delay between typing the trigger character and completion start which
-	initiates server synchronization, default: `60`
+	initiates server synchronization, default: `50`
 
 "suggest.echodocSupport":~
 
