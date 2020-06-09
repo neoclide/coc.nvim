@@ -23682,7 +23682,7 @@ class Plugin extends events_1.EventEmitter {
         await this.handler.handleLocations(locations, openCommand);
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "8d6a49c9ae" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d48afceae9" : undefined);
     }
     async cocAction(...args) {
         if (!this._ready)
@@ -70924,7 +70924,13 @@ class SnippetVariableResolver {
     async init(document) {
         let filepath = vscode_uri_1.URI.parse(document.uri).fsPath;
         let [lnum, line, cword, selected, yank] = await this.nvim.eval(`[line('.'),getline('.'),expand('<cword>'),get(g:,'coc_selected_text', ''),getreg('"')]`);
-        let clipboard = await clipboardy_1.default.read();
+        let clipboard = '';
+        try {
+            clipboard = await clipboardy_1.default.read();
+        }
+        catch (e) {
+            logger.error(`Error with clipboardy:`, e.message);
+        }
         Object.assign(this._variableToValue, {
             YANK: yank || undefined,
             CLIPBOARD: clipboard || undefined,
