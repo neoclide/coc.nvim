@@ -98,9 +98,16 @@ function! coc#util#close_floats() abort
   if s:is_vim && exists('*popup_clear')
     call popup_clear()
   elseif has('nvim')
+    let exists = exists('*nvim_win_get_config')
     for id in nvim_list_wins()
-      if !empty(nvim_win_get_config(id)['relative'])
-        call nvim_win_close(id, 1)
+      if exists
+        if !empty(nvim_win_get_config(id)['relative'])
+          call nvim_win_close(id, 1)
+        endif
+      else
+        if getwinvar(id, 'float', 0)
+          call nvim_win_close(id, 1)
+        endif
       endif
     endfor
   endif
