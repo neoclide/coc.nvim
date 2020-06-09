@@ -694,13 +694,11 @@ class Languages {
     let start = line.substr(0, range.start.character)
     let end = line.substr(range.end.character)
     if (isSnippet) {
-      await doc.applyEdits([{
-        range: Range.create(linenr - 1, 0, linenr, 0),
-        newText: `${start}${end}\n`
-      }])
+      let currline = doc.getline(linenr - 1)
+      let endCharacter = currline.length - end.length
+      let r = Range.create(linenr - 1, range.start.character, linenr - 1, endCharacter)
       // can't select, since additionalTextEdits would break selection
-      let pos = Position.create(linenr - 1, range.start.character)
-      return await snippetManager.insertSnippet(newText, false, Range.create(pos, pos))
+      return await snippetManager.insertSnippet(newText, false, r)
     }
     let newLines = `${start}${newText}${end}`.split('\n')
     if (newLines.length == 1) {
