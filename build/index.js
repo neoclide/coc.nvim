@@ -23682,7 +23682,7 @@ class Plugin extends events_1.EventEmitter {
         await this.handler.handleLocations(locations, openCommand);
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "18715d5c4c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "8d6a49c9ae" : undefined);
     }
     async cocAction(...args) {
         if (!this._ready)
@@ -70895,6 +70895,7 @@ const tslib_1 = __webpack_require__(65);
 const path = tslib_1.__importStar(__webpack_require__(82));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const vscode_uri_1 = __webpack_require__(242);
+const clipboardy_1 = tslib_1.__importDefault(__webpack_require__(455));
 const logger = __webpack_require__(64)('snippets-variable');
 class SnippetVariableResolver {
     constructor() {
@@ -70922,7 +70923,8 @@ class SnippetVariableResolver {
     }
     async init(document) {
         let filepath = vscode_uri_1.URI.parse(document.uri).fsPath;
-        let [lnum, line, cword, selected, clipboard, yank] = await this.nvim.eval(`[line('.'),getline('.'),expand('<cword>'),get(g:,'coc_selected_text', ''),getreg('+'),getreg('"')]`);
+        let [lnum, line, cword, selected, yank] = await this.nvim.eval(`[line('.'),getline('.'),expand('<cword>'),get(g:,'coc_selected_text', ''),getreg('"')]`);
+        let clipboard = await clipboardy_1.default.read();
         Object.assign(this._variableToValue, {
             YANK: yank || undefined,
             CLIPBOARD: clipboard || undefined,
