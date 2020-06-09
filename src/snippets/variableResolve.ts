@@ -17,7 +17,12 @@ export class SnippetVariableResolver implements VariableResolver {
   public async init(document: Document): Promise<void> {
     let filepath = URI.parse(document.uri).fsPath
     let [lnum, line, cword, selected, yank] = await this.nvim.eval(`[line('.'),getline('.'),expand('<cword>'),get(g:,'coc_selected_text', ''),getreg('"')]`) as any[]
-    let clipboard = await clipboardy.read()
+    let clipboard = ''
+    try {
+      clipboard = await clipboardy.read()
+    } catch (e) {
+      logger.error(`Error with clipboardy:`, e.message)
+    }
     Object.assign(this._variableToValue, {
       YANK: yank || undefined,
       CLIPBOARD: clipboard || undefined,
