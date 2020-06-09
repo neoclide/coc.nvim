@@ -98,9 +98,16 @@ function! coc#util#close_floats() abort
   if s:is_vim && exists('*popup_clear')
     call popup_clear()
   elseif has('nvim')
+    let exists = exists('*nvim_win_get_config')
     for id in nvim_list_wins()
-      if !empty(nvim_win_get_config(id)['relative'])
-        call nvim_win_close(id, 1)
+      if exists
+        if !empty(nvim_win_get_config(id)['relative'])
+          call nvim_win_close(id, 1)
+        endif
+      else
+        if getwinvar(id, 'float', 0)
+          call nvim_win_close(id, 1)
+        endif
       endif
     endfor
   endif
@@ -315,7 +322,11 @@ function! coc#util#remote_fns(name)
 endfunction
 
 function! coc#util#job_command()
-  let node = expand(get(g:, 'coc_node_path', 'node'))
+  if (has_key(g:, 'coc_node_path'))
+    let node = expand(g:coc_node_path)
+  else
+    let node = 'node'
+  endif
   if !executable(node)
     echohl Error | echom '[coc.nvim] "'.node.'" is not executable, checkout https://nodejs.org/en/download/' | echohl None
     return
