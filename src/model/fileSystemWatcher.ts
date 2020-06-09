@@ -69,7 +69,8 @@ export default class FileSystemWatcher implements Disposable {
       }
       // folder rename
       let folders = change.files.filter(f => f.type == 'd').slice(-2)
-      if (folders[0].exists != folders[1].exists
+      if (folders.length == 2
+        && folders[0].exists != folders[1].exists
         && folders[0].mtime_ms == folders[1].mtime_ms
       ) {
         let newFolder = folders[0].exists ? folders[0].name : folders[1].name
