@@ -241,7 +241,7 @@ export class Completion implements Disposable {
     if (!arr.length) return
     await document.patchChange()
     await wait(this.config.triggerCompletionWait)
-    // it get changed, not complete
+    // document get changed, not complete
     if (document.changedtick != option.changedtick) return
     let complete = new Complete(option, document, this.recentScores, config, arr, nvim)
     this.start(complete)
@@ -297,6 +297,7 @@ export class Completion implements Disposable {
 
   private async onTextChangedI(bufnr: number, info: InsertChange): Promise<void> {
     let { nvim, latestInsertChar, option } = this
+    let noChange = this.pretext == info.pre
     let pretext = this.pretext = info.pre
     this.lastInsert = null
     let document = workspace.getDocument(bufnr)
@@ -308,13 +309,12 @@ export class Completion implements Disposable {
       return
     }
     // Ignore change with other buffer
-    if (!option || bufnr != option.bufnr) return
-    // Check if the change is valid for resume
-    if (option.linenr != info.lnum || option.col >= info.col - 1) {
-      if (sources.shouldTrigger(pretext, document.filetype)) {
-        await this.triggerCompletion(document, pretext, false)
-        return
-      }
+    if (!option) return
+    // Completion is canceled by <C-e>
+    if (noChange
+      || bufnr != option.bufnr
+      || option.linenr != info.lnum
+      || option.col >= info.col - 1) {
       this.stop()
       return
     }

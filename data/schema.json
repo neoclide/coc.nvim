@@ -274,7 +274,7 @@
     },
     "suggest.enablePreselect": {
       "type": "boolean",
-      "description": "Enable preselect feature, only works on neovim",
+      "description": "Enable preselect feature of LSP, only works on neovim",
       "default": false
     },
     "suggest.maxPreviewWidth": {
@@ -321,7 +321,7 @@
     },
     "suggest.numberSelect": {
       "type": "boolean",
-      "description": "Input number to select complete item, it's neovim only and requires CompleteChanged event to work.",
+      "description": "Input number to select complete item, works on neovim >= 0.4.3 only.",
       "default": false
     },
     "suggest.disableKind": {

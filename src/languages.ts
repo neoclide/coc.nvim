@@ -725,8 +725,8 @@ class Languages {
     if (!textEdits || textEdits.length == 0) return
     let document = workspace.getDocument(bufnr)
     if (!document) return
-    await (document as any)._fetchContent()
-    // how to move cursor after edit
+    await document.patchChange(true)
+    // move cursor after edit
     let changed = null
     let pos = await workspace.getCursorPosition()
     if (!snippet) changed = getChangedFromEdits(pos, textEdits)
