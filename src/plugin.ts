@@ -38,6 +38,7 @@ export default class Plugin extends EventEmitter {
     this.addMethod('search', (...args: string[]) => this.handler.search(args))
     this.addMethod('cursorsSelect', (bufnr: number, kind: string, mode: string) => this.cursors.select(bufnr, kind, mode))
     this.addMethod('codeActionRange', (start, end, only) => this.handler.codeActionRange(start, end, only))
+    this.addMethod('fillDiagnostics', (bufnr: number) => diagnosticManager.setLocationlist(bufnr))
     this.addMethod('getConfig', async key => {
       let document = await workspace.document
       // eslint-disable-next-line id-blacklist

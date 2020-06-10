@@ -2,10 +2,9 @@ import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { Diagnostic, DiagnosticSeverity, Emitter, Event, Range } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
-import { LocationListItem } from '../types'
 import workspace from '../workspace'
 import { DiagnosticConfig } from './manager'
-import { getLocationListItem, getNameFromSeverity } from './util'
+import { getNameFromSeverity } from './util'
 const logger = require('../util/logger')('diagnostic-buffer')
 const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint']
 
@@ -45,18 +44,16 @@ export class DiagnosticBuffer {
       o.range = this.fixRange(o.range)
     })
     let { nvim } = this
-    let arr = await nvim.eval(`[coc#util#check_refresh(${this.bufnr}),mode(), bufwinid(${this.bufnr}), bufnr("%"), line(".")]`) as [number, string, number, number, number]
+    let arr = await nvim.eval(`[coc#util#check_refresh(${this.bufnr}),mode(),bufnr("%"), line(".")]`) as [number, string, number, number]
     if (arr[0] == 0) return
     let mode = arr[1]
     if (!refreshOnInsertMode && mode.startsWith('i') && diagnostics.length) return
-    let winid = arr[2]
-    let bufnr = arr[3]
-    let lnum = arr[4]
+    let bufnr = arr[2]
+    let lnum = arr[3]
     nvim.pauseNotification()
     this.setDiagnosticInfo(bufnr, diagnostics)
     this.addSigns(diagnostics)
-    this.setLocationlist(diagnostics, winid)
-    this.addHighlight(diagnostics, winid)
+    this.addHighlight(diagnostics, bufnr)
     if (this.bufnr == bufnr) {
       this.showVirtualText(diagnostics, lnum)
     }
@@ -66,19 +63,6 @@ export class DiagnosticBuffer {
     let res = await this.nvim.resumeNotification()
     if (Array.isArray(res) && res[1]) throw new Error(res[1])
     this._onDidRefresh.fire(void 0)
-  }
-
-  public setLocationlist(diagnostics: ReadonlyArray<Diagnostic>, winid: number): void {
-    if (!this.config.locationlist) return
-    let { nvim, bufnr } = this
-    // not shown
-    if (winid == -1) return
-    let items: LocationListItem[] = []
-    for (let diagnostic of diagnostics) {
-      let item = getLocationListItem(diagnostic.source, bufnr, diagnostic)
-      items.push(item)
-    }
-    nvim.call('setloclist', [winid, [], ' ', { title: 'Diagnostics of coc', items }], true)
   }
 
   private clearSigns(): void {
@@ -188,11 +172,11 @@ export class DiagnosticBuffer {
     this.matchIds.clear()
   }
 
-  public addHighlight(diagnostics: ReadonlyArray<Diagnostic>, winid): void {
+  public addHighlight(diagnostics: ReadonlyArray<Diagnostic>, bufnr: number): void {
     this.clearHighlight()
     if (diagnostics.length == 0) return
     // can't add highlight for old vim
-    if (winid <= 0 && workspace.isVim && !workspace.env.textprop) return
+    if (workspace.isVim && !workspace.env.textprop && bufnr != this.bufnr) return
     let { document } = this
     if (!document) return
     const highlights: Map<string, Range[]> = new Map()

@@ -7,14 +7,13 @@ import { URI } from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
 import FloatFactory from '../model/floatFactory'
-import { ConfigurationChangeEvent, DiagnosticItem, Documentation } from '../types'
+import { ConfigurationChangeEvent, DiagnosticItem, Documentation, LocationListItem } from '../types'
 import { disposeAll } from '../util'
 import { comparePosition, lineInRange, positionInRange, rangeIntersect } from '../util/position'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
-import { getSeverityName, getSeverityType, severityLevel } from './util'
-import { equals } from '../util/object'
+import { getSeverityName, getSeverityType, severityLevel, getLocationListItem } from './util'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
@@ -24,7 +23,6 @@ export interface DiagnosticConfig {
   enableMessage: string
   displayByAle: boolean
   srcId: number
-  locationlist: boolean
   signOffset: number
   errorSign: string
   warningSign: string
@@ -51,7 +49,6 @@ export class DiagnosticManager implements Disposable {
   public config: DiagnosticConfig
   public enabled = true
   private readonly buffers: Map<number, DiagnosticBuffer> = new Map()
-  private readonly diagnosticsMap: Map<number, Diagnostic[]> = new Map()
   private lastMessage = ''
   private floatFactory: FloatFactory
   private collections: DiagnosticCollection[] = []
@@ -74,19 +71,20 @@ export class DiagnosticManager implements Disposable {
       }, this.config.messageDelay)
     }, null, this.disposables)
 
-    if (this.config.virtualText && this.config.virtualTextCurrentLineOnly) {
-      let fn = debounce((bufnr, cursor) => {
-        let buf = this.buffers.get(bufnr)
-        if (buf) {
-          let diagnostics = this.getDiagnostics(buf.uri)
-          buf.showVirtualText(diagnostics, cursor[0])
-        }
-      }, 100)
-      events.on('CursorMoved', fn, null, this.disposables)
-      this.disposables.push(Disposable.create(() => {
-        fn.clear()
-      }))
-    }
+    let fn = debounce((bufnr, cursor) => {
+      if (!this.config.virtualText || !this.config.virtualTextCurrentLineOnly) {
+        return
+      }
+      let buf = this.buffers.get(bufnr)
+      if (buf) {
+        let diagnostics = this.getDiagnostics(buf.uri)
+        buf.showVirtualText(diagnostics, cursor[0])
+      }
+    }, 100)
+    events.on('CursorMoved', fn, null, this.disposables)
+    this.disposables.push(Disposable.create(() => {
+      fn.clear()
+    }))
 
     events.on('InsertEnter', () => {
       if (this.timer) clearTimeout(this.timer)
@@ -99,36 +97,18 @@ export class DiagnosticManager implements Disposable {
       if (!doc || !this.shouldValidate(doc)) return
       let { refreshOnInsertMode, refreshAfterSave } = this.config
       if (!refreshOnInsertMode && !refreshAfterSave) {
-        doc.forceSync()
+        await doc.patchChange()
         this.refreshBuffer(doc.uri)
       }
     }, null, this.disposables)
 
-    events.on('BufEnter', async bufnr => {
+    events.on('BufEnter', async () => {
       if (this.timer) clearTimeout(this.timer)
-      if (!this.enabled || !this.config.locationlist) return
-      let [curr, buftype, winid, currbuf] = await nvim.eval(`[getloclist(win_getid(),{'title':1}),&buftype,win_getid(),bufnr('%')]`) as any
-      if (buftype == 'quickfix' || currbuf != bufnr) return
-      let buf = this.buffers.get(bufnr)
-      if (buf) {
-        let diagnostics = this.getDiagnostics(buf.uri)
-        if (equals(this.diagnosticsMap.get(winid), diagnostics)) {
-          return
-        }
-        buf.setLocationlist(diagnostics, winid)
-        this.diagnosticsMap.set(winid, diagnostics)
-      } else {
-        if (curr.title && curr.title.indexOf('Diagnostics of coc') != -1) {
-          this.diagnosticsMap.set(winid, [])
-          nvim.call('setloclist', [winid, [], 'f'], true)
-        }
-      }
     }, null, this.disposables)
 
     events.on('BufWritePost', async bufnr => {
       let buf = this.buffers.get(bufnr)
       if (!buf) return
-      await buf.checkSigns()
       if (!this.config.refreshAfterSave) return
       this.refreshBuffer(buf.uri)
     }, null, this.disposables)
@@ -182,6 +162,19 @@ export class DiagnosticManager implements Disposable {
       if (this.config.enableMessage == 'never') return
       this.echoMessage(true).logError()
     })
+  }
+
+  public async setLocationlist(bufnr: number): Promise<void> {
+    let buf = this.buffers.get(bufnr)
+    let diagnostics = buf ? this.getDiagnostics(buf.uri) : []
+    let items: LocationListItem[] = []
+    for (let diagnostic of diagnostics) {
+      let item = getLocationListItem(diagnostic.source, bufnr, diagnostic)
+      items.push(item)
+    }
+    let curr = await this.nvim.call('getloclist', [0, { title: 1 }]) as any
+    let action = curr.title && curr.title.indexOf('Diagnostics of coc') != -1 ? 'r' : ' '
+    await this.nvim.call('setloclist', [0, [], action, { title: 'Diagnostics of coc', items }])
   }
 
   public setConfigurationErrors(init?: boolean): void {
@@ -541,6 +534,7 @@ export class DiagnosticManager implements Disposable {
   public dispose(): void {
     for (let buf of this.buffers.values()) {
       buf.clear().logError()
+      buf.dispose()
     }
     for (let collection of this.collections) {
       collection.dispose()
@@ -580,7 +574,6 @@ export class DiagnosticManager implements Disposable {
       virtualTextLines: config.get<number>('virtualTextLines', 3),
       displayByAle: config.get<boolean>('displayByAle', false),
       level: severityLevel(config.get<string>('level', 'hint')),
-      locationlist: config.get<boolean>('locationlist', true),
       signOffset: config.get<number>('signOffset', 1000),
       errorSign: config.get<string>('errorSign', '>>'),
       warningSign: config.get<string>('warningSign', '>>'),

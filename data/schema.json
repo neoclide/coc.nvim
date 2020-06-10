@@ -561,11 +561,6 @@
       "description": "When to enable show messages of diagnostics.",
       "enum": ["always", "jump", "never"]
     },
-    "diagnostic.locationlist": {
-      "type": "boolean",
-      "description": "Create location list for error & warning",
-      "default": true
-    },
     "diagnostic.highlightOffset": {
       "type": "number",
       "description": "Offset number of buffer.addHighlight, neovim only.",

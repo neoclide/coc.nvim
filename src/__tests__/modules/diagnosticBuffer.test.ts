@@ -24,7 +24,6 @@ const config: DiagnosticConfig = {
   displayByAle: false,
   srcId: 1000,
   level: DiagnosticSeverity.Hint,
-  locationlist: true,
   signOffset: 1000,
   errorSign: '>>',
   warningSign: '>>',
@@ -60,15 +59,6 @@ afterEach(async () => {
 })
 
 describe('diagnostic buffer', () => {
-
-  it('should set locationlist', async () => {
-    let diagnostic = createDiagnostic('foo')
-    let buf = await createDiagnosticBuffer()
-    let winid = await nvim.call('bufwinid', buf.bufnr) as number
-    buf.setLocationlist([diagnostic], winid)
-    let curr = await nvim.call('getloclist', [winid, { title: 1 }])
-    expect(curr.title).toBe('Diagnostics of coc')
-  })
 
   it('should check signs', async () => {
     let buf = await createDiagnosticBuffer()
@@ -117,8 +107,7 @@ describe('diagnostic buffer', () => {
   it('should add highlight neovim', async () => {
     let diagnostic = createDiagnostic('foo')
     let buf = await createDiagnosticBuffer()
-    let winid = await nvim.call('bufwinid', buf.bufnr) as number
-    buf.addHighlight([diagnostic], winid)
+    buf.addHighlight([diagnostic], buf.bufnr)
     expect(buf.hasHighlights()).toBe(true)
   })
 
