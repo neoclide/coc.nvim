@@ -23682,7 +23682,7 @@ class Plugin extends events_1.EventEmitter {
         await this.handler.handleLocations(locations, openCommand);
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "d48afceae9" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "2984f28855" : undefined);
     }
     async cocAction(...args) {
         if (!this._ready)
@@ -40575,7 +40575,7 @@ class Completion {
             return;
         await document.patchChange();
         await util_1.wait(this.config.triggerCompletionWait);
-        // it get changed, not complete
+        // document get changed, not complete
         if (document.changedtick != option.changedtick)
             return;
         let complete = new complete_1.default(option, document, this.recentScores, config, arr, nvim);
@@ -40638,6 +40638,7 @@ class Completion {
     }
     async onTextChangedI(bufnr, info) {
         let { nvim, latestInsertChar, option } = this;
+        let noChange = this.pretext == info.pre;
         let pretext = this.pretext = info.pre;
         this.lastInsert = null;
         let document = workspace_1.default.getDocument(bufnr);
@@ -40651,14 +40652,13 @@ class Completion {
             return;
         }
         // Ignore change with other buffer
-        if (!option || bufnr != option.bufnr)
+        if (!option)
             return;
-        // Check if the change is valid for resume
-        if (option.linenr != info.lnum || option.col >= info.col - 1) {
-            if (sources_1.default.shouldTrigger(pretext, document.filetype)) {
-                await this.triggerCompletion(document, pretext, false);
-                return;
-            }
+        // Completion is canceled by <C-e>
+        if (noChange
+            || bufnr != option.bufnr
+            || option.linenr != info.lnum
+            || option.col >= info.col - 1) {
             this.stop();
             return;
         }
@@ -54889,8 +54889,8 @@ class Languages {
         let document = workspace_1.default.getDocument(bufnr);
         if (!document)
             return;
-        await document._fetchContent();
-        // how to move cursor after edit
+        await document.patchChange(true);
+        // move cursor after edit
         let changed = null;
         let pos = await workspace_1.default.getCursorPosition();
         if (!snippet)
@@ -74442,8 +74442,7 @@ class Refactor {
         if (!doc)
             return;
         let { buffer } = doc;
-        await doc._fetchContent();
-        doc.forceSync();
+        await doc.patchChange();
         let changes = await this.getFileChanges();
         if (!changes)
             return;
