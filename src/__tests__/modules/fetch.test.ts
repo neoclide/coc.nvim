@@ -26,7 +26,7 @@ describe('fetch', () => {
   it('should fetch json', async () => {
     let res = await fetch('https://nodejs.org/dist/index.json')
     expect(Array.isArray(res)).toBe(true)
-  })
+  }, 10000)
 
   it('should throw on request error', async () => {
     let err
@@ -60,7 +60,7 @@ describe('download', () => {
     let res = await download(url, { dest: tmpFolder })
     expect(fs.existsSync(res)).toBe(true)
     await promisify(rimraf)(tmpFolder, { glob: false })
-  })
+  }, 10000)
 
   it('should download tgz', async () => {
     let url = 'https://registry.npmjs.org/coc-pairs/-/coc-pairs-1.2.13.tgz'

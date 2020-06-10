@@ -371,10 +371,12 @@ describe('completion TextChangedP', () => {
       }]
     }
     disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
-    await nvim.input('iif')
+    await nvim.input('ii')
     await helper.waitPopup()
-    await helper.selectCompleteItem(0)
-    await helper.wait(500)
+    let res = await helper.getItems()
+    let idx = res.findIndex(o => o.menu == '[edit]')
+    await helper.selectCompleteItem(idx)
+    await helper.wait(300)
     let line = await nvim.line
     expect(line).toBe('bar if()')
     let [, lnum, col] = await nvim.call('getcurpos')
@@ -544,7 +546,7 @@ describe('completion option', () => {
   })
 })
 
-describe('completion resume', () => {
+describe('completion TextChangedI', () => {
   it('should respect commitCharacter on TextChangedI', async () => {
     let source: ISource = {
       priority: 0,
@@ -567,6 +569,16 @@ describe('completion resume', () => {
     await nvim.input('.')
     await helper.wait(100)
     sources.removeSource(source)
+  })
+
+  it('should cancel completion when for same pretext', async () => {
+    await nvim.setLine('foo')
+    await nvim.input('of')
+    await helper.pumvisible()
+    await helper.wait(10)
+    await nvim.call('coc#_cancel', [])
+    await helper.wait(10)
+    expect(completion.isActivated).toBe(false)
   })
 })
 
