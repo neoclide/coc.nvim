@@ -23261,6 +23261,7 @@ class Plugin extends events_1.EventEmitter {
         this.addMethod('search', (...args) => this.handler.search(args));
         this.addMethod('cursorsSelect', (bufnr, kind, mode) => this.cursors.select(bufnr, kind, mode));
         this.addMethod('codeActionRange', (start, end, only) => this.handler.codeActionRange(start, end, only));
+        this.addMethod('fillDiagnostics', (bufnr) => manager_1.default.setLocationlist(bufnr));
         this.addMethod('getConfig', async (key) => {
             let document = await workspace_1.default.document;
             // eslint-disable-next-line id-blacklist
@@ -23682,7 +23683,7 @@ class Plugin extends events_1.EventEmitter {
         await this.handler.handleLocations(locations, openCommand);
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "2984f28855" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "c83813f730" : undefined);
     }
     async cocAction(...args) {
         if (!this._ready)
@@ -24092,13 +24093,11 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const buffer_1 = __webpack_require__(518);
 const collection_1 = tslib_1.__importDefault(__webpack_require__(520));
 const util_2 = __webpack_require__(519);
-const object_1 = __webpack_require__(248);
 const logger = __webpack_require__(64)('diagnostic-manager');
 class DiagnosticManager {
     constructor() {
         this.enabled = true;
         this.buffers = new Map();
-        this.diagnosticsMap = new Map();
         this.lastMessage = '';
         this.collections = [];
         this.disposables = [];
@@ -24121,19 +24120,20 @@ class DiagnosticManager {
                 await this.echoMessage(true);
             }, this.config.messageDelay);
         }, null, this.disposables);
-        if (this.config.virtualText && this.config.virtualTextCurrentLineOnly) {
-            let fn = debounce_1.default((bufnr, cursor) => {
-                let buf = this.buffers.get(bufnr);
-                if (buf) {
-                    let diagnostics = this.getDiagnostics(buf.uri);
-                    buf.showVirtualText(diagnostics, cursor[0]);
-                }
-            }, 100);
-            events_1.default.on('CursorMoved', fn, null, this.disposables);
-            this.disposables.push(vscode_languageserver_protocol_1.Disposable.create(() => {
-                fn.clear();
-            }));
-        }
+        let fn = debounce_1.default((bufnr, cursor) => {
+            if (!this.config.virtualText || !this.config.virtualTextCurrentLineOnly) {
+                return;
+            }
+            let buf = this.buffers.get(bufnr);
+            if (buf) {
+                let diagnostics = this.getDiagnostics(buf.uri);
+                buf.showVirtualText(diagnostics, cursor[0]);
+            }
+        }, 100);
+        events_1.default.on('CursorMoved', fn, null, this.disposables);
+        this.disposables.push(vscode_languageserver_protocol_1.Disposable.create(() => {
+            fn.clear();
+        }));
         events_1.default.on('InsertEnter', () => {
             if (this.timer)
                 clearTimeout(this.timer);
@@ -24146,39 +24146,18 @@ class DiagnosticManager {
                 return;
             let { refreshOnInsertMode, refreshAfterSave } = this.config;
             if (!refreshOnInsertMode && !refreshAfterSave) {
-                doc.forceSync();
+                await doc.patchChange();
                 this.refreshBuffer(doc.uri);
             }
         }, null, this.disposables);
-        events_1.default.on('BufEnter', async (bufnr) => {
+        events_1.default.on('BufEnter', async () => {
             if (this.timer)
                 clearTimeout(this.timer);
-            if (!this.enabled || !this.config.locationlist)
-                return;
-            let [curr, buftype, winid, currbuf] = await nvim.eval(`[getloclist(win_getid(),{'title':1}),&buftype,win_getid(),bufnr('%')]`);
-            if (buftype == 'quickfix' || currbuf != bufnr)
-                return;
-            let buf = this.buffers.get(bufnr);
-            if (buf) {
-                let diagnostics = this.getDiagnostics(buf.uri);
-                if (object_1.equals(this.diagnosticsMap.get(winid), diagnostics)) {
-                    return;
-                }
-                buf.setLocationlist(diagnostics, winid);
-                this.diagnosticsMap.set(winid, diagnostics);
-            }
-            else {
-                if (curr.title && curr.title.indexOf('Diagnostics of coc') != -1) {
-                    this.diagnosticsMap.set(winid, []);
-                    nvim.call('setloclist', [winid, [], 'f'], true);
-                }
-            }
         }, null, this.disposables);
         events_1.default.on('BufWritePost', async (bufnr) => {
             let buf = this.buffers.get(bufnr);
             if (!buf)
                 return;
-            await buf.checkSigns();
             if (!this.config.refreshAfterSave)
                 return;
             this.refreshBuffer(buf.uri);
@@ -24236,6 +24215,18 @@ class DiagnosticManager {
                 return;
             this.echoMessage(true).logError();
         });
+    }
+    async setLocationlist(bufnr) {
+        let buf = this.buffers.get(bufnr);
+        let diagnostics = buf ? this.getDiagnostics(buf.uri) : [];
+        let items = [];
+        for (let diagnostic of diagnostics) {
+            let item = util_2.getLocationListItem(diagnostic.source, bufnr, diagnostic);
+            items.push(item);
+        }
+        let curr = await this.nvim.call('getloclist', [0, { title: 1 }]);
+        let action = curr.title && curr.title.indexOf('Diagnostics of coc') != -1 ? 'r' : ' ';
+        await this.nvim.call('setloclist', [0, [], action, { title: 'Diagnostics of coc', items }]);
     }
     setConfigurationErrors(init) {
         let collections = this.collections;
@@ -24610,6 +24601,7 @@ class DiagnosticManager {
     dispose() {
         for (let buf of this.buffers.values()) {
             buf.clear().logError();
+            buf.dispose();
         }
         for (let collection of this.collections) {
             collection.dispose();
@@ -24648,7 +24640,6 @@ class DiagnosticManager {
             virtualTextLines: config.get('virtualTextLines', 3),
             displayByAle: config.get('displayByAle', false),
             level: util_2.severityLevel(config.get('level', 'hint')),
-            locationlist: config.get('locationlist', true),
             signOffset: config.get('signOffset', 1000),
             errorSign: config.get('errorSign', '>>'),
             warningSign: config.get('warningSign', '>>'),
@@ -71001,20 +70992,18 @@ class DiagnosticBuffer {
             o.range = this.fixRange(o.range);
         });
         let { nvim } = this;
-        let arr = await nvim.eval(`[coc#util#check_refresh(${this.bufnr}),mode(), bufwinid(${this.bufnr}), bufnr("%"), line(".")]`);
+        let arr = await nvim.eval(`[coc#util#check_refresh(${this.bufnr}),mode(),bufnr("%"), line(".")]`);
         if (arr[0] == 0)
             return;
         let mode = arr[1];
         if (!refreshOnInsertMode && mode.startsWith('i') && diagnostics.length)
             return;
-        let winid = arr[2];
-        let bufnr = arr[3];
-        let lnum = arr[4];
+        let bufnr = arr[2];
+        let lnum = arr[3];
         nvim.pauseNotification();
         this.setDiagnosticInfo(bufnr, diagnostics);
         this.addSigns(diagnostics);
-        this.setLocationlist(diagnostics, winid);
-        this.addHighlight(diagnostics, winid);
+        this.addHighlight(diagnostics, bufnr);
         if (this.bufnr == bufnr) {
             this.showVirtualText(diagnostics, lnum);
         }
@@ -71025,20 +71014,6 @@ class DiagnosticBuffer {
         if (Array.isArray(res) && res[1])
             throw new Error(res[1]);
         this._onDidRefresh.fire(void 0);
-    }
-    setLocationlist(diagnostics, winid) {
-        if (!this.config.locationlist)
-            return;
-        let { nvim, bufnr } = this;
-        // not shown
-        if (winid == -1)
-            return;
-        let items = [];
-        for (let diagnostic of diagnostics) {
-            let item = util_1.getLocationListItem(diagnostic.source, bufnr, diagnostic);
-            items.push(item);
-        }
-        nvim.call('setloclist', [winid, [], ' ', { title: 'Diagnostics of coc', items }], true);
     }
     clearSigns() {
         let { nvim, signIds, bufnr } = this;
@@ -71146,12 +71121,12 @@ class DiagnosticBuffer {
         }
         this.matchIds.clear();
     }
-    addHighlight(diagnostics, winid) {
+    addHighlight(diagnostics, bufnr) {
         this.clearHighlight();
         if (diagnostics.length == 0)
             return;
         // can't add highlight for old vim
-        if (winid <= 0 && workspace_1.default.isVim && !workspace_1.default.env.textprop)
+        if (workspace_1.default.isVim && !workspace_1.default.env.textprop && bufnr != this.bufnr)
             return;
         let { document } = this;
         if (!document)

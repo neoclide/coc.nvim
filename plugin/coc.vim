@@ -186,6 +186,16 @@ function! s:CursorRangeFromSelected(type, ...) abort
   call coc#rpc#request('cursorsSelect', [bufnr('%'), 'operator', a:type])
 endfunction
 
+function! s:OpenDiagnostics(...) abort
+  let height = get(a:, 1, 0)
+  call coc#rpc#request('fillDiagnostics', [bufnr('%')])
+  if height
+    execute ':lopen '.height
+   else
+    lopen
+  endif
+endfunction
+
 function! s:Disable() abort
   if get(g:, 'coc_enabled', 0) == 0
     return
@@ -386,6 +396,7 @@ function! s:ShowInfo()
   endif
 endfunction
 
+command! -nargs=? CocDiagnostics  :call s:OpenDiagnostics(<f-args>)
 command! -nargs=0 CocInfo         :call s:ShowInfo()
 command! -nargs=0 CocOpenLog      :call coc#rpc#notify('openLog',  [])
 command! -nargs=0 CocListResume   :call coc#rpc#notify('listResume', [])

@@ -407,10 +407,6 @@ Built-in configurations:~
 	The text that will mark a line end from the diagnostic message,
 	default: `" \\ "`
 
-"diagnostic.locationlist":~
-
-	Create location list for error & warning, default: `true`
-
 "diagnostic.highlightOffset":~
 
 	Offset number of buffer.addHighlight, Neovim only, default: `1000`
@@ -2092,6 +2088,10 @@ COMMANDS						*coc-commands*
 
 		Show version and log information in a split window, useful for
 		submitting a bug report.
+
+:CocDiagnostics	[height] 			*:CocDiagnostics*
+
+		Open vim's |location-list| with diagnostics of current buffer.
 
 ------------------------------------------------------------------------------
 AUTOCMD							*coc-autocmds*
