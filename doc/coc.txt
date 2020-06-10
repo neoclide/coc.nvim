@@ -1906,9 +1906,13 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Reload an activated extension.
 
+"activeExtension" {id}				*coc-action-activeExtension*
+
+	Activate extension of {id}.
+
 "deactivateExtension" {id}			*coc-action-deactivateExtension*
 
-	Deactivate an extension of {id}.
+	Deactivate extension of {id}.
 
 "pickColor"					*coc-action-pickColor*
 
