@@ -319,8 +319,7 @@ export default class Refactor {
     let doc = this.document
     if (!doc) return
     let { buffer } = doc
-    await (doc as any)._fetchContent()
-    doc.forceSync()
+    await doc.patchChange()
     let changes = await this.getFileChanges()
     if (!changes) return
     changes.sort((a, b) => a.lnum - b.lnum)
