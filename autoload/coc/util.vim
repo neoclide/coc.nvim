@@ -947,14 +947,13 @@ function! coc#util#do_complete(name, opt, cb) abort
 endfunction
 
 function! coc#util#extension_root() abort
-  if !empty($COC_TEST)
+  if get(g:, 'coc_node_env', '') ==# 'test'
     return s:root.'/src/__tests__/extensions'
   endif
   if !empty(get(g:, 'coc_extension_root', ''))
     echohl Error | echon 'g:coc_extension_root not used any more, use g:coc_data_home instead' | echohl None
   endif
-  let folder = coc#util#get_data_home().'/extensions'
-  return folder
+  return coc#util#get_data_home().'/extensions'
 endfunction
 
 function! coc#util#update_extensions(...) abort

@@ -4,7 +4,7 @@ let s:name = 'coc'
 let s:is_vim = !has('nvim')
 
 function! coc#rpc#start_server()
-  if $NODE_ENV ==# 'test'
+  if get(g:, 'coc_node_env', '') ==# 'test'
     " server already started
     let s:client = coc#client#create(s:name, [])
     let s:client['running'] = 1

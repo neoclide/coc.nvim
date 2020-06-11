@@ -1,4 +1,3 @@
-let $NODE_ENV='test'
 set nocompatible
 
 set hidden
@@ -16,7 +15,7 @@ set shortmess=at
 let s:dir = expand('<sfile>:h')
 let s:root = expand('<sfile>:h:h:h')
 let g:coc_watch_extensions = ['test']
-let $COC_TEST = 1
+let g:coc_node_env = 'test'
 
 autocmd BufNewFile,BufRead *.ts  set filetype=typescript
 

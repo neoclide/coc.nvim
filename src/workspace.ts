@@ -431,7 +431,7 @@ export class Workspace implements IWorkspace {
    * doesn't fail when watchman not found.
    */
   public createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher {
-    let watchmanPath = process.env.NODE_ENV == 'test' ? null : this.getWatchmanPath()
+    let watchmanPath = global.hasOwnProperty('__TEST__') ? null : this.getWatchmanPath()
     let channel: OutputChannel = watchmanPath ? this.createOutputChannel('watchman') : null
     let promise = watchmanPath ? Watchman.createClient(watchmanPath, this.root, channel) : Promise.resolve(null)
     let watcher = new FileSystemWatcher(

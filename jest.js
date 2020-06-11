@@ -8,8 +8,8 @@ process.on('uncaughtException', function (err) {
 })
 
 module.exports = async () => {
-  let dataHome = path.join(os.tmpdir(), `coc-${process.pid}`)
-  fs.mkdirSync(dataHome)
+  let dataHome = path.join(os.tmpdir(), `coc-test/${process.pid}`)
+  fs.mkdirSync(dataHome, {recursive: true})
   process.env.NODE_ENV = 'test'
   process.env.COC_DATA_HOME = dataHome
   process.env.COC_VIMCONFIG = path.join(__dirname, 'src/__tests__')
