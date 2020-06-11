@@ -37,6 +37,7 @@ function! coc#snippet#enable()
     return
   endif
   let b:coc_snippet_active = 1
+  silent! unlet g:coc_selected_text
   call coc#snippet#_select_mappings()
   let nextkey = get(g:, 'coc_snippet_next', '<C-j>')
   let prevkey = get(g:, 'coc_snippet_prev', '<C-k>')

@@ -792,7 +792,7 @@ class Languages {
     } else {
       obj.info = ''
     }
-    if (!obj.word) obj.empty = 1
+    if (obj.word == '') obj.empty = 1
     if (item.textEdit) obj.line = opt.line
     if (item.kind == CompletionItemKind.Folder && !obj.abbr.endsWith('/')) {
       obj.abbr = obj.abbr + '/'
