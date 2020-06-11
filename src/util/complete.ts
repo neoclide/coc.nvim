@@ -53,7 +53,7 @@ export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsert
   } else {
     word = getValidWord(newText, invalidInsertCharacters) || label
   }
-  return word
+  return word || ''
 }
 
 export function getDocumentation(item: CompletionItem): string {
