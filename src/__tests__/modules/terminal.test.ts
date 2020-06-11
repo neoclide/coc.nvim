@@ -8,7 +8,7 @@ beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
   terminal = new TerminalModel('sh', [], nvim)
-  await terminal.start()
+  await terminal.start(__dirname, { COC_TERMINAL: `option '-term'` })
 })
 
 afterAll(async () => {
@@ -20,6 +20,18 @@ describe('terminal properties', () => {
   it('should get name', () => {
     let name = terminal.name
     expect(name).toBe('sh')
+  })
+
+  it('should have correct cwd and env', async () => {
+    let bufnr = terminal.bufnr
+    terminal.sendText('echo $PWD')
+    await helper.wait(300)
+    let lines = await nvim.call('getbufline', [bufnr, 1, '$']) as string[]
+    expect(lines.includes(__dirname)).toBe(true)
+    terminal.sendText('echo $COC_TERMINAL')
+    await helper.wait(300)
+    lines = await nvim.call('getbufline', [bufnr, 1, '$']) as string[]
+    expect(lines.includes(`option '-term'`)).toBe(true)
   })
 
   it('should get pid', async () => {
@@ -37,13 +49,5 @@ describe('terminal properties', () => {
     await terminal.show()
     let winnr = await nvim.call('bufwinnr', terminal.bufnr)
     expect(winnr != -1).toBe(true)
-  })
-
-  it('should send text', async () => {
-    terminal.sendText('ls')
-    await helper.wait(100)
-    let buf = nvim.createBuffer(terminal.bufnr)
-    let lines = await buf.lines
-    expect(lines.join('\n')).toMatch('vimrc')
   })
 })
