@@ -23683,7 +23683,7 @@ class Plugin extends events_1.EventEmitter {
         await this.handler.handleLocations(locations, openCommand);
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "c83813f730" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "151645d8de" : undefined);
     }
     async cocAction(...args) {
         if (!this._ready)
@@ -23853,8 +23853,6 @@ class CommandManager {
         this.register({
             id: 'workspace.clearWatchman',
             execute: async () => {
-                if (false)
-                    {}
                 await workspace_1.default.runCommand('watchman watch-del-all');
             }
         }, false, 'run watch-del-all for watchman to free up memory.');
@@ -24767,6 +24765,11 @@ class FloatFactory extends events_1.default {
                 return;
             this.close();
         }, null, this.disposables);
+        events_2.default.on('InsertEnter', bufnr => {
+            if (bufnr == this._bufnr)
+                return;
+            this.close();
+        });
         events_2.default.on('MenuPopupChanged', (ev, cursorline) => {
             let pumAlignTop = this.pumAlignTop = cursorline > ev.row;
             if (pumAlignTop == this.alignTop) {
@@ -25078,7 +25081,7 @@ class SnippetManager {
      * Insert snippet at current cursor position
      */
     async insertSnippet(snippet, select = true, range) {
-        let { nvim, bufnr } = workspace_1.default;
+        let { bufnr } = workspace_1.default;
         let session = this.getSession(bufnr);
         if (!session) {
             session = new session_1.SnippetSession(workspace_1.default.nvim, bufnr);
@@ -25097,7 +25100,6 @@ class SnippetManager {
         else if (session) {
             session.deactivate();
         }
-        nvim.command('silent! unlet g:coc_last_placeholder g:coc_selected_text', true);
         return isActive;
     }
     isPlainText(text) {
@@ -25576,7 +25578,7 @@ class Workspace {
      * doesn't fail when watchman not found.
      */
     createFileSystemWatcher(globPattern, ignoreCreate, ignoreChange, ignoreDelete) {
-        let watchmanPath =  false ? undefined : this.getWatchmanPath();
+        let watchmanPath = global.hasOwnProperty('__TEST__') ? null : this.getWatchmanPath();
         let channel = watchmanPath ? this.createOutputChannel('watchman') : null;
         let promise = watchmanPath ? watchman_1.default.createClient(watchmanPath, this.root, channel) : Promise.resolve(null);
         let watcher = new fileSystemWatcher_1.default(promise, globPattern, !!ignoreCreate, !!ignoreChange, !!ignoreDelete);
@@ -54954,7 +54956,7 @@ class Languages {
         else {
             obj.info = '';
         }
-        if (!obj.word)
+        if (obj.word == '')
             obj.empty = 1;
         if (item.textEdit)
             obj.line = opt.line;

@@ -33,11 +33,14 @@ function! coc#snippet#show_choices(lnum, col, len, values) abort
 endfunction
 
 function! coc#snippet#enable()
+  if get(b:, 'coc_snippet_active', 0) == 1
+    return
+  endif
   let b:coc_snippet_active = 1
+  silent! unlet g:coc_selected_text
   call coc#snippet#_select_mappings()
   let nextkey = get(g:, 'coc_snippet_next', '<C-j>')
   let prevkey = get(g:, 'coc_snippet_prev', '<C-k>')
-  nnoremap <buffer> <silent> <esc> :call coc#rpc#request('snippetCancel', [])<cr>
   if maparg(nextkey, 'i') =~# 'expand-jump'
     let s:map_next = 0
   endif
@@ -56,7 +59,6 @@ function! coc#snippet#disable()
   let b:coc_snippet_active = 0
   let nextkey = get(g:, 'coc_snippet_next', '<C-j>')
   let prevkey = get(g:, 'coc_snippet_prev', '<C-k>')
-  silent! nunmap <buffer> <esc>
   if s:map_next
     silent! execute 'iunmap <buffer> <silent> '.nextkey
   endif

@@ -17,6 +17,19 @@ function! coc#terminal#start(cmd, cwd, env) abort
     exe 'doautocmd User CocTerminalOpen'
   endif
   let bufnr = bufnr('%')
+  let env = {}
+  let original = {}
+  if !empty(a:env)
+    " use env option when possible
+    if s:is_vim
+      let env = copy(a:env)
+    else
+      for key in keys(a:env)
+        let original[key] = getenv(key)
+        call setenv(key, a:env[key])
+      endfor
+    endif
+  endif
 
   function! s:OnExit(status) closure
     if a:status == 0
@@ -25,16 +38,17 @@ function! coc#terminal#start(cmd, cwd, env) abort
   endfunction
 
   if has('nvim')
-    if !empty(a:env)
-      for key in keys(a:env)
-        execute 'let $'.key." = '".a:env[key]."'"
-      endfor
-    endif
     let job_id = termopen(a:cmd, {
           \ 'cwd': cwd,
           \ 'pty': 1,
           \ 'on_exit': {job, status -> s:OnExit(status)},
+          \ 'env': env,
           \ })
+    if !empty(original)
+      for key in keys(original)
+        call setenv(key, original[key])
+      endfor
+    endif
     if job_id == 0
       throw 'create terminal job failed'
     endif
@@ -49,7 +63,7 @@ function! coc#terminal#start(cmd, cwd, env) abort
           \ 'term_finish': 'close',
           \ 'exit_cb': {job, status -> s:OnExit(status)},
           \ 'curwin': 1,
-          \ 'env': a:env,
+          \ 'env': env,
           \})
     if res == 0
       throw 'create terminal job failed'

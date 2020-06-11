@@ -36,6 +36,7 @@ function! s:checkVersion() abort
         echom "Consider upgrade your vim for better experience."
         echom "You can set this to make this error message go away:"
         echom "    let g:coc_disable_startup_warning = 1"
+        echom "Note that some features may behave incorrectly."
         echohl None
         sleep 2
       endif
