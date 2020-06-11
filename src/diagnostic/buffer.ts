@@ -40,9 +40,6 @@ export class DiagnosticBuffer {
 
   private async _refresh(diagnostics: ReadonlyArray<Diagnostic>): Promise<void> {
     let { refreshOnInsertMode } = this.config
-    diagnostics.forEach(o => {
-      o.range = this.fixRange(o.range)
-    })
     let { nvim } = this
     let arr = await nvim.eval(`[coc#util#check_refresh(${this.bufnr}),mode(),bufnr("%"), line(".")]`) as [number, string, number, number]
     if (arr[0] == 0) return
@@ -51,7 +48,7 @@ export class DiagnosticBuffer {
     let bufnr = arr[2]
     let lnum = arr[3]
     nvim.pauseNotification()
-    this.setDiagnosticInfo(bufnr, diagnostics)
+    this.setDiagnosticInfo(diagnostics)
     this.addSigns(diagnostics)
     this.addHighlight(diagnostics, bufnr)
     if (this.bufnr == bufnr) {
@@ -111,7 +108,7 @@ export class DiagnosticBuffer {
     }
   }
 
-  public setDiagnosticInfo(bufnr: number, diagnostics: ReadonlyArray<Diagnostic>): void {
+  public setDiagnosticInfo(diagnostics: ReadonlyArray<Diagnostic>): void {
     let lnums = [0, 0, 0, 0]
     let info = { error: 0, warning: 0, information: 0, hint: 0, lnums }
     for (let diagnostic of diagnostics) {
@@ -134,9 +131,7 @@ export class DiagnosticBuffer {
       }
     }
     this.nvim.call('coc#util#set_buf_var', [this.bufnr, 'coc_diagnostic_info', info], true)
-    if (bufnr == this.bufnr) {
-      this.nvim.call('coc#util#do_autocmd', ['CocDiagnosticChange'], true)
-    }
+    this.nvim.call('coc#util#do_autocmd', ['CocDiagnosticChange'], true)
   }
 
   public showVirtualText(diagnostics: ReadonlyArray<Diagnostic>, lnum: number): void {
@@ -179,6 +174,7 @@ export class DiagnosticBuffer {
     if (workspace.isVim && !workspace.env.textprop && bufnr != this.bufnr) return
     let { document } = this
     if (!document) return
+    // TODO support DiagnosticTag
     const highlights: Map<string, Range[]> = new Map()
     for (let diagnostic of diagnostics) {
       let { range, severity } = diagnostic
@@ -191,17 +187,6 @@ export class DiagnosticBuffer {
       let matchIds = document.highlightRanges(ranges, hlGroup, this.srdId)
       for (let id of matchIds) this.matchIds.add(id)
     }
-  }
-
-  // fix range out of total characters
-  private fixRange(range: Range | undefined): Range {
-    if (!range) return Range.create(0, 0, 1, 0)
-    let { start, end } = range
-    if (start.line != end.line) return range
-    let line = this.document ? this.document.getline(start.line) : null
-    if (!line) return range
-    if (start.character < line.length) return range
-    return Range.create(start.line, line.length - 1, start.line, line.length)
   }
 
   /**
@@ -220,7 +205,7 @@ export class DiagnosticBuffer {
       let buffer = nvim.createBuffer(this.bufnr)
       buffer.clearNamespace(this.config.virtualTextSrcId)
     }
-    this.setDiagnosticInfo(workspace.bufnr, [])
+    this.setDiagnosticInfo([])
     await nvim.resumeNotification(false, true)
   }
 

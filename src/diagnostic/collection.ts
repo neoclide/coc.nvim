@@ -1,4 +1,4 @@
-import { Diagnostic, Emitter, Event, Position } from 'vscode-languageserver-protocol'
+import { Diagnostic, Emitter, Event, Range } from 'vscode-languageserver-protocol'
 import { DiagnosticCollection } from '../types'
 import { URI } from 'vscode-uri'
 import { emptyRange } from '../util/position'
@@ -46,16 +46,10 @@ export default class Collection implements DiagnosticCollection {
     for (let item of diagnosticsPerFile) {
       let [uri, diagnostics] = item
       uri = URI.parse(uri).toString()
-
       diagnostics.forEach(o => {
-        let { range } = o
-        range.start = range.start || Position.create(0, 0)
-        range.end = range.end || Position.create(1, 0)
-        if (!o.message) {
-          o.message = ''
-          logger.error(`Diagnostic from ${this.name} received without message:`, o)
-        }
-        if (emptyRange(range)) {
+        o.range = o.range || Range.create(0, 0, 1, 0)
+        o.message = o.message || 'Empty error message'
+        if (emptyRange(o.range)) {
           o.range.end = {
             line: o.range.end.line,
             character: o.range.end.character + 1
@@ -63,7 +57,6 @@ export default class Collection implements DiagnosticCollection {
         }
         o.source = o.source || this.name
       })
-
       this.diagnosticsMap.set(uri, diagnostics)
       this._onDidDiagnosticsChange.fire(uri)
     }

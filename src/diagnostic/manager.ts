@@ -93,11 +93,12 @@ export class DiagnosticManager implements Disposable {
 
     events.on('InsertLeave', async bufnr => {
       this.floatFactory.close()
+      if (!this.buffers.has(bufnr)) return
       let doc = workspace.getDocument(bufnr)
-      if (!doc || !this.shouldValidate(doc)) return
+      if (!doc) return
+      doc.forceSync()
       let { refreshOnInsertMode, refreshAfterSave } = this.config
       if (!refreshOnInsertMode && !refreshAfterSave) {
-        await doc.patchChange()
         this.refreshBuffer(doc.uri)
       }
     }, null, this.disposables)

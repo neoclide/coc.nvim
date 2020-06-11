@@ -92,7 +92,7 @@ describe('diagnostic buffer', () => {
       createDiagnostic('bar', r, DiagnosticSeverity.Information)
     ]
     let buf = await createDiagnosticBuffer()
-    buf.setDiagnosticInfo(buf.bufnr, diagnostics)
+    buf.setDiagnosticInfo(diagnostics)
     let buffer = await nvim.buffer
     let res = await buffer.getVar('coc_diagnostic_info')
     expect(res).toEqual({
