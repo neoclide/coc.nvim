@@ -134,6 +134,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
 
   public stopAll(): void {
     for (let service of this.registered.values()) {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       service.stop()
     }
   }
