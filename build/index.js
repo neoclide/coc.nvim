@@ -11299,6 +11299,7 @@ exports.default = (opts, requestApi = true) => {
             }
         }).logError();
     }
+    nvim.setVar('coc_process_pid', process.pid, true);
     const plugin = new plugin_1.default(nvim);
     let clientReady = false;
     let initialized = false;
@@ -11323,14 +11324,19 @@ exports.default = (opts, requestApi = true) => {
                 await events_1.default.fire(args[0], args.slice(1));
                 break;
             default: {
-                if (typeof plugin[method] == 'function') {
-                    try {
-                        await Promise.resolve(plugin[method].apply(plugin, args));
-                    }
-                    catch (e) {
-                        console.error(`error on notification "${method}": ${e}`);
-                        logger.error(`Notification error:`, method, args, e);
-                    }
+                let exists = plugin.hasAction(method);
+                if (!exists) {
+                    if (global.hasOwnProperty('__TEST__'))
+                        return;
+                    console.error(`action "${method}" not registered`);
+                    return;
+                }
+                try {
+                    await plugin.cocAction(method, ...args);
+                }
+                catch (e) {
+                    console.error(`Error on notification "${method}": ${e.message || e.toString()}`);
+                    logger.error(`Notification error:`, method, args, e);
                 }
             }
         }
@@ -11345,19 +11351,17 @@ exports.default = (opts, requestApi = true) => {
                 resp.send();
             }
             else {
-                if (typeof plugin[method] !== 'function') {
-                    resp.send(`Method "${method}" not exists with coc.nvim`, true);
+                if (!plugin.hasAction(method)) {
+                    throw new Error(`action "${method}" not registered`);
                 }
-                else {
-                    let res = await Promise.resolve(plugin[method].apply(plugin, args));
-                    resp.send(res);
-                }
+                let res = await plugin.cocAction(method, ...args);
+                resp.send(res);
             }
             clearTimeout(timer);
         }
         catch (e) {
             clearTimeout(timer);
-            resp.send(e.message, true);
+            resp.send(e.message || e.toString(), true);
             logger.error(`Request error:`, method, args, e);
         }
     });
@@ -23226,8 +23230,8 @@ exports.typedArray = typedArray;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const events_1 = __webpack_require__(197);
+const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const vscode_languageserver_types_1 = __webpack_require__(222);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(251));
 const completion_1 = tslib_1.__importDefault(__webpack_require__(330));
@@ -23254,20 +23258,20 @@ class Plugin extends events_1.EventEmitter {
             get: () => this.nvim
         });
         this.cursors = new cursors_1.default(nvim);
-        this.addMethod('hasProvider', (id) => this.handler.hasProvider(id));
-        this.addMethod('getTagList', async () => await this.handler.getTagList());
-        this.addMethod('hasSelected', () => completion_1.default.hasSelected());
-        this.addMethod('listNames', () => manager_2.default.names);
-        this.addMethod('search', (...args) => this.handler.search(args));
-        this.addMethod('cursorsSelect', (bufnr, kind, mode) => this.cursors.select(bufnr, kind, mode));
-        this.addMethod('codeActionRange', (start, end, only) => this.handler.codeActionRange(start, end, only));
-        this.addMethod('fillDiagnostics', (bufnr) => manager_1.default.setLocationlist(bufnr));
-        this.addMethod('getConfig', async (key) => {
+        this.addAction('hasProvider', (id) => this.handler.hasProvider(id));
+        this.addAction('getTagList', async () => await this.handler.getTagList());
+        this.addAction('hasSelected', () => completion_1.default.hasSelected());
+        this.addAction('listNames', () => manager_2.default.names);
+        this.addAction('search', (...args) => this.handler.search(args));
+        this.addAction('cursorsSelect', (bufnr, kind, mode) => this.cursors.select(bufnr, kind, mode));
+        this.addAction('codeActionRange', (start, end, only) => this.handler.codeActionRange(start, end, only));
+        this.addAction('fillDiagnostics', (bufnr) => manager_1.default.setLocationlist(bufnr));
+        this.addAction('getConfig', async (key) => {
             let document = await workspace_1.default.document;
             // eslint-disable-next-line id-blacklist
             return workspace_1.default.getConfiguration(key, document ? document.uri : undefined);
         });
-        this.addMethod('rootPatterns', bufnr => {
+        this.addAction('rootPatterns', bufnr => {
             let doc = workspace_1.default.getDocument(bufnr);
             if (!doc)
                 return null;
@@ -23277,36 +23281,32 @@ class Plugin extends events_1.EventEmitter {
                 global: workspace_1.default.getRootPatterns(doc, types_1.PatternType.Global)
             };
         });
-        this.addMethod('installExtensions', async (...list) => {
+        this.addAction('installExtensions', async (...list) => {
             await extensions_1.default.installExtensions(list);
         });
-        this.addMethod('saveRefactor', async (bufnr) => {
+        this.addAction('saveRefactor', async (bufnr) => {
             await this.handler.saveRefactor(bufnr);
         });
-        this.addMethod('updateExtensions', async (sync) => {
+        this.addAction('updateExtensions', async (sync) => {
             await extensions_1.default.updateExtensions(sync);
         });
-        this.addMethod('commandList', () => commands_1.default.commandList.map(o => o.id));
-        this.addMethod('openList', async (...args) => {
+        this.addAction('commandList', () => commands_1.default.commandList.map(o => o.id));
+        this.addAction('openList', async (...args) => {
             await this.ready;
             await manager_2.default.start(args);
         });
-        this.addMethod('runCommand', async (...args) => {
-            await this.ready;
-            return await this.handler.runCommand(...args);
-        });
-        this.addMethod('selectSymbolRange', async (inner, visualmode, supportedSymbols) => await this.handler.selectSymbolRange(inner, visualmode, supportedSymbols));
-        this.addMethod('listResume', () => manager_2.default.resume());
-        this.addMethod('listPrev', () => manager_2.default.previous());
-        this.addMethod('listNext', () => manager_2.default.next());
-        this.addMethod('sendRequest', (id, method, params) => services_1.default.sendRequest(id, method, params));
-        this.addMethod('sendNotification', async (id, method, params) => {
+        this.addAction('selectSymbolRange', async (inner, visualmode, supportedSymbols) => await this.handler.selectSymbolRange(inner, visualmode, supportedSymbols));
+        this.addAction('listResume', () => manager_2.default.resume());
+        this.addAction('listPrev', () => manager_2.default.previous());
+        this.addAction('listNext', () => manager_2.default.next());
+        this.addAction('sendRequest', (id, method, params) => services_1.default.sendRequest(id, method, params));
+        this.addAction('sendNotification', async (id, method, params) => {
             await services_1.default.sendNotification(id, method, params);
         });
-        this.addMethod('registNotification', async (id, method) => {
+        this.addAction('registNotification', async (id, method) => {
             await services_1.default.registNotification(id, method);
         });
-        this.addMethod('doAutocmd', async (id, ...args) => {
+        this.addAction('doAutocmd', async (id, ...args) => {
             let autocmd = workspace_1.default.autocmds.get(id);
             if (autocmd) {
                 try {
@@ -23318,34 +23318,34 @@ class Plugin extends events_1.EventEmitter {
                 }
             }
         });
-        this.addMethod('updateConfig', (section, val) => {
+        this.addAction('updateConfig', (section, val) => {
             workspace_1.default.configurations.updateUserConfig({ [section]: val });
         });
-        this.addMethod('snippetNext', async () => {
+        this.addAction('snippetNext', async () => {
             await manager_3.default.nextPlaceholder();
             return '';
         });
-        this.addMethod('snippetPrev', async () => {
+        this.addAction('snippetPrev', async () => {
             await manager_3.default.previousPlaceholder();
             return '';
         });
-        this.addMethod('snippetCancel', () => {
+        this.addAction('snippetCancel', () => {
             manager_3.default.cancel();
         });
-        this.addMethod('openLocalConfig', async () => {
+        this.addAction('openLocalConfig', async () => {
             await workspace_1.default.openLocalConfig();
         });
-        this.addMethod('openLog', () => {
+        this.addAction('openLog', () => {
             let file = logger.getLogFile();
             nvim.call(`coc#util#open_url`, [file], true);
         });
-        this.addMethod('attach', () => {
+        this.addAction('attach', () => {
             return workspace_1.default.attach();
         });
-        this.addMethod('detach', () => {
+        this.addAction('detach', () => {
             return workspace_1.default.detach();
         });
-        this.addMethod('doKeymap', async (key, defaultReturn = '') => {
+        this.addAction('doKeymap', async (key, defaultReturn = '') => {
             let [fn, repeat] = workspace_1.default.keymaps.get(key);
             if (!fn) {
                 logger.error(`keymap for ${key} not found`);
@@ -23356,12 +23356,12 @@ class Plugin extends events_1.EventEmitter {
                 await nvim.command(`silent! call repeat#set("\\<Plug>(coc-${key})", -1)`);
             return res || defaultReturn;
         });
-        this.addMethod('registExtensions', async (...folders) => {
+        this.addAction('registExtensions', async (...folders) => {
             for (let folder of folders) {
                 await extensions_1.default.loadExtension(folder);
             }
         });
-        this.addMethod('snippetCheck', async (checkExpand, checkJump) => {
+        this.addAction('snippetCheck', async (checkExpand, checkJump) => {
             if (checkExpand && !extensions_1.default.has('coc-snippets')) {
                 console.error('coc-snippets required for check expand status!');
                 return false;
@@ -23381,7 +23381,7 @@ class Plugin extends events_1.EventEmitter {
             }
             return false;
         });
-        this.addMethod('showInfo', async () => {
+        this.addAction('showInfo', async () => {
             if (!this.infoChannel) {
                 this.infoChannel = workspace_1.default.createOutputChannel('info');
             }
@@ -23409,7 +23409,9 @@ class Plugin extends events_1.EventEmitter {
             }
             channel.show();
         });
-        // register actions
+        this.addAction('findLocations', (id, method, params, openCommand) => {
+            return this.handler.findLocations(id, method, params, openCommand);
+        });
         this.addAction('links', () => {
             return this.handler.links();
         });
@@ -23588,12 +23590,6 @@ class Plugin extends events_1.EventEmitter {
         }
         this.actions.set(key, fn);
     }
-    addMethod(name, fn) {
-        if (this.hasOwnProperty(name)) {
-            throw new Error(`Method ${name} already exists`);
-        }
-        Object.defineProperty(this, name, { value: fn });
-    }
     addCommand(cmd) {
         let id = `vim.${cmd.id}`;
         commands_1.default.registerCommand(id, async () => {
@@ -23616,7 +23612,6 @@ class Plugin extends events_1.EventEmitter {
             manager_1.default.init();
             manager_2.default.init(nvim);
             nvim.setVar('coc_workspace_initialized', 1, true);
-            nvim.setVar('coc_process_pid', process.pid, true);
             nvim.setVar('WorkspaceFolders', workspace_1.default.folderPaths, true);
             sources_1.default.init();
             this.handler = new handler_1.default(nvim);
@@ -23653,66 +23648,27 @@ class Plugin extends events_1.EventEmitter {
             });
         });
     }
-    async findLocations(id, method, params, openCommand) {
-        let { document, position } = await workspace_1.default.getCurrentState();
-        params = params || {};
-        Object.assign(params, {
-            textDocument: { uri: document.uri },
-            position
-        });
-        let res = await services_1.default.sendRequest(id, method, params);
-        if (!res) {
-            workspace_1.default.showMessage(`Locations of "${method}" not found!`, 'warning');
-            return;
-        }
-        let locations = [];
-        if (Array.isArray(res)) {
-            locations = res;
-        }
-        else if (res.hasOwnProperty('location') && res.hasOwnProperty('children')) {
-            let getLocation = (item) => {
-                locations.push(item.location);
-                if (item.children && item.children.length) {
-                    for (let loc of item.children) {
-                        getLocation(loc);
-                    }
-                }
-            };
-            getLocation(res);
-        }
-        await this.handler.handleLocations(locations, openCommand);
-    }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "151645d8de" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "9248f43d6c" : undefined);
     }
-    async cocAction(...args) {
-        if (!this._ready)
-            return;
-        let [method, ...others] = args;
+    hasAction(method) {
+        return this.actions.has(method);
+    }
+    async cocAction(method, ...args) {
+        if (!this._ready) {
+            logger.warn(`Plugin not ready when received "${method}"`, args);
+        }
+        await this.ready;
         let fn = this.actions.get(method);
-        if (!fn) {
-            workspace_1.default.showMessage(`Method "${method}" not exists for CocAction.`, 'error');
-            return;
-        }
-        try {
-            return await Promise.resolve(fn.apply(null, others));
-        }
-        catch (e) {
-            let message = e.hasOwnProperty('message') ? e.message : e.toString();
-            if (!/\btimeout\b/.test(message)) {
-                workspace_1.default.showMessage(`Error on '${args[0]}': ${message}`, 'error');
-            }
-            if (e.stack)
-                logger.error(e.stack);
-        }
+        return await Promise.resolve(fn.apply(null, args));
     }
-    async dispose() {
+    dispose() {
         this.removeAllListeners();
         extensions_1.default.dispose();
         manager_2.default.dispose();
         workspace_1.default.dispose();
         sources_1.default.dispose();
-        await services_1.default.stopAll();
+        services_1.default.stopAll();
         services_1.default.dispose();
         if (this.handler) {
             this.handler.dispose();
@@ -24139,12 +24095,14 @@ class DiagnosticManager {
         }, null, this.disposables);
         events_1.default.on('InsertLeave', async (bufnr) => {
             this.floatFactory.close();
-            let doc = workspace_1.default.getDocument(bufnr);
-            if (!doc || !this.shouldValidate(doc))
+            if (!this.buffers.has(bufnr))
                 return;
+            let doc = workspace_1.default.getDocument(bufnr);
+            if (!doc)
+                return;
+            doc.forceSync();
             let { refreshOnInsertMode, refreshAfterSave } = this.config;
             if (!refreshOnInsertMode && !refreshAfterSave) {
-                await doc.patchChange();
                 this.refreshBuffer(doc.uri);
             }
         }, null, this.disposables);
@@ -56126,7 +56084,7 @@ function getWord(item, opt, invalidInsertCharacters) {
     else {
         word = getValidWord(newText, invalidInsertCharacters) || label;
     }
-    return word;
+    return word || '';
 }
 exports.getWord = getWord;
 function getDocumentation(item) {
@@ -57083,9 +57041,9 @@ class ServiceManager extends events_1.EventEmitter {
         }
         return Promise.resolve(service.stop());
     }
-    async stopAll() {
+    stopAll() {
         for (let service of this.registered.values()) {
-            await Promise.resolve(service.stop());
+            service.stop();
         }
     }
     async toggle(id) {
@@ -70990,9 +70948,6 @@ class DiagnosticBuffer {
     }
     async _refresh(diagnostics) {
         let { refreshOnInsertMode } = this.config;
-        diagnostics.forEach(o => {
-            o.range = this.fixRange(o.range);
-        });
         let { nvim } = this;
         let arr = await nvim.eval(`[coc#util#check_refresh(${this.bufnr}),mode(),bufnr("%"), line(".")]`);
         if (arr[0] == 0)
@@ -71003,7 +70958,7 @@ class DiagnosticBuffer {
         let bufnr = arr[2];
         let lnum = arr[3];
         nvim.pauseNotification();
-        this.setDiagnosticInfo(bufnr, diagnostics);
+        this.setDiagnosticInfo(diagnostics);
         this.addSigns(diagnostics);
         this.addHighlight(diagnostics, bufnr);
         if (this.bufnr == bufnr) {
@@ -71064,7 +71019,7 @@ class DiagnosticBuffer {
             signId = signId + 1;
         }
     }
-    setDiagnosticInfo(bufnr, diagnostics) {
+    setDiagnosticInfo(diagnostics) {
         let lnums = [0, 0, 0, 0];
         let info = { error: 0, warning: 0, information: 0, hint: 0, lnums };
         for (let diagnostic of diagnostics) {
@@ -71087,9 +71042,7 @@ class DiagnosticBuffer {
             }
         }
         this.nvim.call('coc#util#set_buf_var', [this.bufnr, 'coc_diagnostic_info', info], true);
-        if (bufnr == this.bufnr) {
-            this.nvim.call('coc#util#do_autocmd', ['CocDiagnosticChange'], true);
-        }
+        this.nvim.call('coc#util#do_autocmd', ['CocDiagnosticChange'], true);
     }
     showVirtualText(diagnostics, lnum) {
         let { bufnr, config } = this;
@@ -71133,6 +71086,7 @@ class DiagnosticBuffer {
         let { document } = this;
         if (!document)
             return;
+        // TODO support DiagnosticTag
         const highlights = new Map();
         for (let diagnostic of diagnostics) {
             let { range, severity } = diagnostic;
@@ -71146,20 +71100,6 @@ class DiagnosticBuffer {
             for (let id of matchIds)
                 this.matchIds.add(id);
         }
-    }
-    // fix range out of total characters
-    fixRange(range) {
-        if (!range)
-            return vscode_languageserver_protocol_1.Range.create(0, 0, 1, 0);
-        let { start, end } = range;
-        if (start.line != end.line)
-            return range;
-        let line = this.document ? this.document.getline(start.line) : null;
-        if (!line)
-            return range;
-        if (start.character < line.length)
-            return range;
-        return vscode_languageserver_protocol_1.Range.create(start.line, line.length - 1, start.line, line.length);
     }
     /**
      * Used on buffer unload
@@ -71177,7 +71117,7 @@ class DiagnosticBuffer {
             let buffer = nvim.createBuffer(this.bufnr);
             buffer.clearNamespace(this.config.virtualTextSrcId);
         }
-        this.setDiagnosticInfo(workspace_1.default.bufnr, []);
+        this.setDiagnosticInfo([]);
         await nvim.resumeNotification(false, true);
     }
     hasHighlights() {
@@ -71325,14 +71265,9 @@ class Collection {
             let [uri, diagnostics] = item;
             uri = vscode_uri_1.URI.parse(uri).toString();
             diagnostics.forEach(o => {
-                let { range } = o;
-                range.start = range.start || vscode_languageserver_protocol_1.Position.create(0, 0);
-                range.end = range.end || vscode_languageserver_protocol_1.Position.create(1, 0);
-                if (!o.message) {
-                    o.message = '';
-                    logger.error(`Diagnostic from ${this.name} received without message:`, o);
-                }
-                if (position_1.emptyRange(range)) {
+                o.range = o.range || vscode_languageserver_protocol_1.Range.create(0, 0, 1, 0);
+                o.message = o.message || 'Empty error message';
+                if (position_1.emptyRange(o.range)) {
                     o.range.end = {
                         line: o.range.end.line,
                         character: o.range.end.character + 1
@@ -73080,6 +73015,32 @@ class Handler {
             return false;
         let position = await workspace_1.default.getCursorPosition();
         return await this.triggerSignatureHelp(document, position);
+    }
+    async findLocations(id, method, params, openCommand) {
+        let { document, position } = await workspace_1.default.getCurrentState();
+        params = params || {};
+        Object.assign(params, {
+            textDocument: { uri: document.uri },
+            position
+        });
+        let res = await services_1.default.sendRequest(id, method, params);
+        res = res || [];
+        let locations = [];
+        if (Array.isArray(res)) {
+            locations = res;
+        }
+        else if (res.hasOwnProperty('location') && res.hasOwnProperty('children')) {
+            let getLocation = (item) => {
+                locations.push(item.location);
+                if (item.children && item.children.length) {
+                    for (let loc of item.children) {
+                        getLocation(loc);
+                    }
+                }
+            };
+            getLocation(res);
+        }
+        await this.handleLocations(locations, openCommand);
     }
     async handleLocations(definition, openCommand) {
         if (!definition)

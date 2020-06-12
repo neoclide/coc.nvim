@@ -65,16 +65,16 @@ function! CocTagFunc(pattern, flags, info) abort
   return coc#rpc#request('getTagList', [])
 endfunction
 
-function! CocAction(...) abort
-  return coc#rpc#request('cocAction', a:000)
+function! CocAction(name, ...) abort
+  return coc#rpc#request(a:name, a:000)
 endfunction
 
 function! CocHasProvider(name) abort
   return coc#rpc#request('hasProvider', [a:name])
 endfunction
 
-function! CocActionAsync(...) abort
-  return s:AsyncRequest('cocAction', a:000)
+function! CocActionAsync(name, ...) abort
+  return s:AsyncRequest(a:name, a:000)
 endfunction
 
 function! CocRequest(...) abort
@@ -104,7 +104,7 @@ function! CocRequestAsync(...)
 endfunction
 
 function! s:AsyncRequest(name, args) abort
-  let Cb = a:args[len(a:args) - 1]
+  let Cb = empty(a:args)? v:null : a:args[len(a:args) - 1]
   if type(Cb) == 2
     if !coc#rpc#ready()
       call Cb('service not started', v:null)
