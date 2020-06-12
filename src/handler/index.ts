@@ -1005,6 +1005,32 @@ export default class Handler {
     return await this.triggerSignatureHelp(document, position)
   }
 
+  public async findLocations(id: string, method: string, params: any, openCommand?: string | false): Promise<void> {
+    let { document, position } = await workspace.getCurrentState()
+    params = params || {}
+    Object.assign(params, {
+      textDocument: { uri: document.uri },
+      position
+    })
+    let res: any = await services.sendRequest(id, method, params)
+    res = res || []
+    let locations: Location[] = []
+    if (Array.isArray(res)) {
+      locations = res as Location[]
+    } else if (res.hasOwnProperty('location') && res.hasOwnProperty('children')) {
+      let getLocation = (item: any): void => {
+        locations.push(item.location as Location)
+        if (item.children && item.children.length) {
+          for (let loc of item.children) {
+            getLocation(loc)
+          }
+        }
+      }
+      getLocation(res)
+    }
+    await this.handleLocations(locations, openCommand)
+  }
+
   public async handleLocations(definition: Definition | LocationLink[], openCommand?: string | false): Promise<void> {
     if (!definition) return
     let locations: Location[] = Array.isArray(definition) ? definition as Location[] : [definition]

@@ -1,7 +1,7 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import path from 'path'
 import { EventEmitter } from 'events'
-import { CodeActionKind, Location } from 'vscode-languageserver-types'
+import path from 'path'
+import { CodeActionKind } from 'vscode-languageserver-types'
 import commandManager from './commands'
 import completion from './completion'
 import Cursors from './cursors'
@@ -31,20 +31,20 @@ export default class Plugin extends EventEmitter {
       get: () => this.nvim
     })
     this.cursors = new Cursors(nvim)
-    this.addMethod('hasProvider', (id: string) => this.handler.hasProvider(id))
-    this.addMethod('getTagList', async () => await this.handler.getTagList())
-    this.addMethod('hasSelected', () => completion.hasSelected())
-    this.addMethod('listNames', () => listManager.names)
-    this.addMethod('search', (...args: string[]) => this.handler.search(args))
-    this.addMethod('cursorsSelect', (bufnr: number, kind: string, mode: string) => this.cursors.select(bufnr, kind, mode))
-    this.addMethod('codeActionRange', (start, end, only) => this.handler.codeActionRange(start, end, only))
-    this.addMethod('fillDiagnostics', (bufnr: number) => diagnosticManager.setLocationlist(bufnr))
-    this.addMethod('getConfig', async key => {
+    this.addAction('hasProvider', (id: string) => this.handler.hasProvider(id))
+    this.addAction('getTagList', async () => await this.handler.getTagList())
+    this.addAction('hasSelected', () => completion.hasSelected())
+    this.addAction('listNames', () => listManager.names)
+    this.addAction('search', (...args: string[]) => this.handler.search(args))
+    this.addAction('cursorsSelect', (bufnr: number, kind: string, mode: string) => this.cursors.select(bufnr, kind, mode))
+    this.addAction('codeActionRange', (start, end, only) => this.handler.codeActionRange(start, end, only))
+    this.addAction('fillDiagnostics', (bufnr: number) => diagnosticManager.setLocationlist(bufnr))
+    this.addAction('getConfig', async key => {
       let document = await workspace.document
       // eslint-disable-next-line id-blacklist
       return workspace.getConfiguration(key, document ? document.uri : undefined)
     })
-    this.addMethod('rootPatterns', bufnr => {
+    this.addAction('rootPatterns', bufnr => {
       let doc = workspace.getDocument(bufnr)
       if (!doc) return null
       return {
@@ -53,36 +53,32 @@ export default class Plugin extends EventEmitter {
         global: workspace.getRootPatterns(doc, PatternType.Global)
       }
     })
-    this.addMethod('installExtensions', async (...list: string[]) => {
+    this.addAction('installExtensions', async (...list: string[]) => {
       await extensions.installExtensions(list)
     })
-    this.addMethod('saveRefactor', async (bufnr: number) => {
+    this.addAction('saveRefactor', async (bufnr: number) => {
       await this.handler.saveRefactor(bufnr)
     })
-    this.addMethod('updateExtensions', async (sync?: boolean) => {
+    this.addAction('updateExtensions', async (sync?: boolean) => {
       await extensions.updateExtensions(sync)
     })
-    this.addMethod('commandList', () => commandManager.commandList.map(o => o.id))
-    this.addMethod('openList', async (...args: string[]) => {
+    this.addAction('commandList', () => commandManager.commandList.map(o => o.id))
+    this.addAction('openList', async (...args: string[]) => {
       await this.ready
       await listManager.start(args)
     })
-    this.addMethod('runCommand', async (...args: string[]) => {
-      await this.ready
-      return await this.handler.runCommand(...args)
-    })
-    this.addMethod('selectSymbolRange', async (inner: boolean, visualmode: string, supportedSymbols: string[]) => await this.handler.selectSymbolRange(inner, visualmode, supportedSymbols))
-    this.addMethod('listResume', () => listManager.resume())
-    this.addMethod('listPrev', () => listManager.previous())
-    this.addMethod('listNext', () => listManager.next())
-    this.addMethod('sendRequest', (id: string, method: string, params?: any) => services.sendRequest(id, method, params))
-    this.addMethod('sendNotification', async (id: string, method: string, params?: any) => {
+    this.addAction('selectSymbolRange', async (inner: boolean, visualmode: string, supportedSymbols: string[]) => await this.handler.selectSymbolRange(inner, visualmode, supportedSymbols))
+    this.addAction('listResume', () => listManager.resume())
+    this.addAction('listPrev', () => listManager.previous())
+    this.addAction('listNext', () => listManager.next())
+    this.addAction('sendRequest', (id: string, method: string, params?: any) => services.sendRequest(id, method, params))
+    this.addAction('sendNotification', async (id: string, method: string, params?: any) => {
       await services.sendNotification(id, method, params)
     })
-    this.addMethod('registNotification', async (id: string, method: string) => {
+    this.addAction('registNotification', async (id: string, method: string) => {
       await services.registNotification(id, method)
     })
-    this.addMethod('doAutocmd', async (id: number, ...args: []) => {
+    this.addAction('doAutocmd', async (id: number, ...args: []) => {
       let autocmd = (workspace as any).autocmds.get(id) as Autocmd
       if (autocmd) {
         try {
@@ -93,34 +89,34 @@ export default class Plugin extends EventEmitter {
         }
       }
     })
-    this.addMethod('updateConfig', (section: string, val: any) => {
+    this.addAction('updateConfig', (section: string, val: any) => {
       workspace.configurations.updateUserConfig({ [section]: val })
     })
-    this.addMethod('snippetNext', async () => {
+    this.addAction('snippetNext', async () => {
       await snippetManager.nextPlaceholder()
       return ''
     })
-    this.addMethod('snippetPrev', async () => {
+    this.addAction('snippetPrev', async () => {
       await snippetManager.previousPlaceholder()
       return ''
     })
-    this.addMethod('snippetCancel', () => {
+    this.addAction('snippetCancel', () => {
       snippetManager.cancel()
     })
-    this.addMethod('openLocalConfig', async () => {
+    this.addAction('openLocalConfig', async () => {
       await workspace.openLocalConfig()
     })
-    this.addMethod('openLog', () => {
+    this.addAction('openLog', () => {
       let file = logger.getLogFile()
       nvim.call(`coc#util#open_url`, [file], true)
     })
-    this.addMethod('attach', () => {
+    this.addAction('attach', () => {
       return workspace.attach()
     })
-    this.addMethod('detach', () => {
+    this.addAction('detach', () => {
       return workspace.detach()
     })
-    this.addMethod('doKeymap', async (key: string, defaultReturn = '') => {
+    this.addAction('doKeymap', async (key: string, defaultReturn = '') => {
       let [fn, repeat] = workspace.keymaps.get(key)
       if (!fn) {
         logger.error(`keymap for ${key} not found`)
@@ -130,12 +126,12 @@ export default class Plugin extends EventEmitter {
       if (repeat) await nvim.command(`silent! call repeat#set("\\<Plug>(coc-${key})", -1)`)
       return res || defaultReturn
     })
-    this.addMethod('registExtensions', async (...folders: string[]) => {
+    this.addAction('registExtensions', async (...folders: string[]) => {
       for (let folder of folders) {
         await extensions.loadExtension(folder)
       }
     })
-    this.addMethod('snippetCheck', async (checkExpand: boolean, checkJump: boolean) => {
+    this.addAction('snippetCheck', async (checkExpand: boolean, checkJump: boolean) => {
       if (checkExpand && !extensions.has('coc-snippets')) {
         console.error('coc-snippets required for check expand status!')
         return false
@@ -153,7 +149,7 @@ export default class Plugin extends EventEmitter {
       }
       return false
     })
-    this.addMethod('showInfo', async () => {
+    this.addAction('showInfo', async () => {
       if (!this.infoChannel) {
         this.infoChannel = workspace.createOutputChannel('info')
       } else {
@@ -180,7 +176,9 @@ export default class Plugin extends EventEmitter {
       }
       channel.show()
     })
-    // register actions
+    this.addAction('findLocations', (id: string, method: string, params: any, openCommand?: string | false) => {
+      return this.handler.findLocations(id, method, params, openCommand)
+    })
     this.addAction('links', () => {
       return this.handler.links()
     })
@@ -359,13 +357,6 @@ export default class Plugin extends EventEmitter {
     this.actions.set(key, fn)
   }
 
-  private addMethod(name: string, fn: Function): any {
-    if (this.hasOwnProperty(name)) {
-      throw new Error(`Method ${name} already exists`)
-    }
-    Object.defineProperty(this, name, { value: fn })
-  }
-
   public addCommand(cmd: { id: string; cmd: string; title?: string }): void {
     let id = `vim.${cmd.id}`
     commandManager.registerCommand(id, async () => {
@@ -388,7 +379,6 @@ export default class Plugin extends EventEmitter {
       diagnosticManager.init()
       listManager.init(nvim)
       nvim.setVar('coc_workspace_initialized', 1, true)
-      nvim.setVar('coc_process_pid', process.pid, true)
       nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
       sources.init()
       this.handler = new Handler(nvim)
@@ -424,65 +414,30 @@ export default class Plugin extends EventEmitter {
     })
   }
 
-  public async findLocations(id: string, method: string, params: any, openCommand?: string | false): Promise<void> {
-    let { document, position } = await workspace.getCurrentState()
-    params = params || {}
-    Object.assign(params, {
-      textDocument: { uri: document.uri },
-      position
-    })
-    let res: any = await services.sendRequest(id, method, params)
-    if (!res) {
-      workspace.showMessage(`Locations of "${method}" not found!`, 'warning')
-      return
-    }
-    let locations: Location[] = []
-    if (Array.isArray(res)) {
-      locations = res as Location[]
-    } else if (res.hasOwnProperty('location') && res.hasOwnProperty('children')) {
-      let getLocation = (item: any): void => {
-        locations.push(item.location as Location)
-        if (item.children && item.children.length) {
-          for (let loc of item.children) {
-            getLocation(loc)
-          }
-        }
-      }
-      getLocation(res)
-    }
-    await this.handler.handleLocations(locations, openCommand)
-  }
-
   private get version(): string {
     return workspace.version + (process.env.REVISION ? '-' + process.env.REVISION : '')
   }
 
-  public async cocAction(...args: any[]): Promise<any> {
-    if (!this._ready) return
-    let [method, ...others] = args
-    let fn = this.actions.get(method)
-    if (!fn) {
-      workspace.showMessage(`Method "${method}" not exists for CocAction.`, 'error')
-      return
-    }
-    try {
-      return await Promise.resolve(fn.apply(null, others))
-    } catch (e) {
-      let message = e.hasOwnProperty('message') ? e.message : e.toString()
-      if (!/\btimeout\b/.test(message)) {
-        workspace.showMessage(`Error on '${args[0]}': ${message}`, 'error')
-      }
-      if (e.stack) logger.error(e.stack)
-    }
+  public hasAction(method: string): boolean {
+    return this.actions.has(method)
   }
 
-  public async dispose(): Promise<void> {
+  public async cocAction(method: string, ...args: any[]): Promise<any> {
+    if (!this._ready) {
+      logger.warn(`Plugin not ready when received "${method}"`, args)
+    }
+    await this.ready
+    let fn = this.actions.get(method)
+    return await Promise.resolve(fn.apply(null, args))
+  }
+
+  public dispose(): void {
     this.removeAllListeners()
     extensions.dispose()
     listManager.dispose()
     workspace.dispose()
     sources.dispose()
-    await services.stopAll()
+    services.stopAll()
     services.dispose()
     if (this.handler) {
       this.handler.dispose()

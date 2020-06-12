@@ -132,9 +132,9 @@ export class ServiceManager extends EventEmitter implements Disposable {
     return Promise.resolve(service.stop())
   }
 
-  public async stopAll(): Promise<void> {
+  public stopAll(): void {
     for (let service of this.registered.values()) {
-      await Promise.resolve(service.stop())
+      service.stop()
     }
   }
 

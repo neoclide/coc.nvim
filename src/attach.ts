@@ -25,6 +25,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
       }
     }).logError()
   }
+  nvim.setVar('coc_process_pid', process.pid, true)
   const plugin = new Plugin(nvim)
   let clientReady = false
   let initialized = false
@@ -49,13 +50,17 @@ export default (opts: Attach, requestApi = true): Plugin => {
         await events.fire(args[0], args.slice(1))
         break
       default: {
-        if (typeof plugin[method] == 'function') {
-          try {
-            await Promise.resolve(plugin[method].apply(plugin, args))
-          } catch (e) {
-            console.error(`error on notification "${method}": ${e}`)
-            logger.error(`Notification error:`, method, args, e)
-          }
+        let exists = plugin.hasAction(method)
+        if (!exists) {
+          if (global.hasOwnProperty('__TEST__')) return
+          console.error(`action "${method}" not registered`)
+          return
+        }
+        try {
+          await plugin.cocAction(method, ...args)
+        } catch (e) {
+          console.error(`Error on notification "${method}": ${e.message || e.toString()}`)
+          logger.error(`Notification error:`, method, args, e)
         }
       }
     }
@@ -70,17 +75,16 @@ export default (opts: Attach, requestApi = true): Plugin => {
         await events.fire(args[0], args.slice(1))
         resp.send()
       } else {
-        if (typeof plugin[method] !== 'function') {
-          resp.send(`Method "${method}" not exists with coc.nvim`, true)
-        } else {
-          let res = await Promise.resolve(plugin[method].apply(plugin, args))
-          resp.send(res)
+        if (!plugin.hasAction(method)) {
+          throw new Error(`action "${method}" not registered`)
         }
+        let res = await plugin.cocAction(method, ...args)
+        resp.send(res)
       }
       clearTimeout(timer)
     } catch (e) {
       clearTimeout(timer)
-      resp.send(e.message, true)
+      resp.send(e.message || e.toString(), true)
       logger.error(`Request error:`, method, args, e)
     }
   })

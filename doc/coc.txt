@@ -1310,7 +1310,7 @@ g:coc_jump_locations					*g:coc_jump_locations*
 
 g:coc_process_pid					*g:coc_process_pid*
 
-			Process pid of coc service.
+			Process pid of coc.nvim service.
 
 g:coc_status_error_sign					*g:coc_status_error_sign*
 
@@ -1660,8 +1660,10 @@ CocAction({action}, [...{args}])			*CocAction()*
 
 CocActionAsync({action}, [...{args}, [{callback}]])
 
-	Call CocAction without blocking vim UI, the callback is called with
-	`error` as the first argument and `response` as the second argument.
+	Call CocAction without blocking vim.
+
+	Optional callback is called with `error` as the first argument and
+	`response` as the second argument.
 
 CocHasProvider({feature})				*CocHasProvider()*
 
