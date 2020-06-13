@@ -341,7 +341,7 @@ b:coc_additional_keywords			*b:coc_additional_keywords*
 
 			生成单词列表所用的额外 keyword 字符，例如： >
 
-			" Add keyword characers for css
+			" Add keyword characters for css
 			autocmd FileType css let b:coc_additional_keywords = ["-"]
 
 b:coc_suggest_blacklist 				*b:coc_suggest_blacklist*

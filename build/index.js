@@ -11541,6 +11541,9 @@ class NeovimClient extends Neovim_1.Neovim {
             client: this
         });
     }
+    send(arr) {
+        this.transport.send(arr);
+    }
     /** Attaches msgpack to read/write streams * */
     attach({ reader, writer, }, requestApi = true) {
         this.transport.attach(writer, reader, this);
@@ -11851,7 +11854,7 @@ class NvimTransport extends base_1.default {
     }
     request(method, args, cb) {
         if (!this.attached)
-            return cb([0, 'transport disconnected']);
+            return;
         let id = this.nextRequestId;
         this.nextRequestId = this.nextRequestId + 1;
         let startTs = Date.now();
@@ -11880,6 +11883,11 @@ class NvimTransport extends base_1.default {
         }
         this.debug('nvim notification:', method, args);
         this.encodeStream.write(msgpack.encode([2, method, args], {
+            codec: this.codec,
+        }));
+    }
+    send(arr) {
+        this.encodeStream.write(msgpack.encode(arr, {
             codec: this.codec,
         }));
     }
@@ -15628,6 +15636,9 @@ class VimTransport extends base_1.default {
                 req.callback(this.client, err, result);
             }
         });
+    }
+    send(arr) {
+        this.connection.send(arr);
     }
     detach() {
         if (!this.attached)
@@ -23649,7 +23660,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "9248f43d6c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "3478962539" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -38914,7 +38925,7 @@ function onceStrict (fn) {
 /* 327 */
 /***/ (function(module) {
 
-module.exports = JSON.parse("{\"name\":\"coc.nvim\",\"version\":\"0.0.78\",\"description\":\"LSP based intellisense engine for neovim & vim8.\",\"main\":\"./lib/index.js\",\"engines\":{\"node\":\">=8.10.0\"},\"scripts\":{\"clean\":\"rimraf lib build\",\"lint\":\"eslint . --ext .ts --quiet\",\"build\":\"tsc -p tsconfig.json\",\"watch\":\"tsc -p tsconfig.json --watch true --sourceMap\",\"test\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --detectOpenHandles --forceExit\",\"test-build\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --coverage --forceExit\",\"prepare\":\"npm-run-all clean build\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/neoclide/coc.nvim.git\"},\"keywords\":[\"complete\",\"neovim\"],\"author\":\"Qiming Zhao <chemzqm@gmail.com>\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/neoclide/coc.nvim/issues\"},\"homepage\":\"https://github.com/neoclide/coc.nvim#readme\",\"jest\":{\"globals\":{\"__TEST__\":true},\"watchman\":false,\"clearMocks\":true,\"globalSetup\":\"./jest.js\",\"testEnvironment\":\"node\",\"moduleFileExtensions\":[\"ts\",\"tsx\",\"json\",\"js\"],\"transform\":{\"^.+\\\\.tsx?$\":\"ts-jest\"},\"testRegex\":\"src/__tests__/.*\\\\.(test|spec)\\\\.ts$\",\"coverageDirectory\":\"./coverage/\"},\"devDependencies\":{\"@types/debounce\":\"^3.0.0\",\"@types/fb-watchman\":\"^2.0.0\",\"@types/glob\":\"^7.1.1\",\"@types/jest\":\"^25.2.1\",\"@types/minimatch\":\"^3.0.3\",\"@types/mkdirp\":\"^1.0.0\",\"@types/node\":\"^12.12.6\",\"@types/semver\":\"^7.1.0\",\"@types/tar\":\"^4.0.3\",\"@types/uuid\":\"^7.0.3\",\"@types/which\":\"^1.3.2\",\"@typescript-eslint/eslint-plugin\":\"^2.33.0\",\"@typescript-eslint/eslint-plugin-tslint\":\"^2.33.0\",\"@typescript-eslint/parser\":\"^2.33.0\",\"colors\":\"^1.4.0\",\"eslint\":\"^7.0.0\",\"eslint-config-prettier\":\"^6.11.0\",\"eslint-plugin-jest\":\"^23.10.0\",\"eslint-plugin-jsdoc\":\"^25.0.1\",\"jest\":\"25.5.4\",\"npm-run-all\":\"^4.1.5\",\"prettier\":\"^2.0.5\",\"ts-jest\":\"^25.5.0\",\"typescript\":\"^3.9.2\",\"vscode-languageserver\":\"^6.1.1\"},\"dependencies\":{\"@chemzqm/neovim\":\"^5.2.5\",\"await-semaphore\":\"^0.1.3\",\"bser\":\"^2.1.1\",\"bytes\":\"^3.1.0\",\"clipboardy\":\"^2.3.0\",\"debounce\":\"^1.2.0\",\"fast-diff\":\"^1.2.0\",\"fb-watchman\":\"^2.0.1\",\"follow-redirects\":\"^1.11.0\",\"glob\":\"^7.1.6\",\"http-proxy-agent\":\"^4.0.1\",\"https-proxy-agent\":\"^5.0.0\",\"isuri\":\"^2.0.3\",\"jsonc-parser\":\"^2.2.1\",\"log4js\":\"^6.2.1\",\"minimatch\":\"^3.0.4\",\"mkdirp\":\"^1.0.4\",\"mv\":\"^2.1.1\",\"promise.prototype.finally\":\"^3.1.2\",\"rc\":\"^1.2.8\",\"rimraf\":\"^3.0.2\",\"semver\":\"^7.3.2\",\"tar\":\"^6.0.2\",\"tslib\":\"^1.11.2\",\"uuid\":\"^7.0.3\",\"vscode-languageserver-protocol\":\"^3.15.3\",\"vscode-languageserver-textdocument\":\"^1.0.1\",\"vscode-languageserver-types\":\"^3.15.1\",\"vscode-uri\":\"^2.1.1\",\"which\":\"^2.0.2\"}}");
+module.exports = JSON.parse("{\"name\":\"coc.nvim\",\"version\":\"0.0.78\",\"description\":\"LSP based intellisense engine for neovim & vim8.\",\"main\":\"./lib/index.js\",\"engines\":{\"node\":\">=8.10.0\"},\"scripts\":{\"clean\":\"rimraf lib build\",\"lint\":\"eslint . --ext .ts --quiet\",\"build\":\"tsc -p tsconfig.json\",\"watch\":\"tsc -p tsconfig.json --watch true --sourceMap\",\"test\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --detectOpenHandles --forceExit\",\"test-build\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --coverage --forceExit\",\"prepare\":\"npm-run-all clean build\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/neoclide/coc.nvim.git\"},\"keywords\":[\"complete\",\"neovim\"],\"author\":\"Qiming Zhao <chemzqm@gmail.com>\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/neoclide/coc.nvim/issues\"},\"homepage\":\"https://github.com/neoclide/coc.nvim#readme\",\"jest\":{\"globals\":{\"__TEST__\":true},\"watchman\":false,\"clearMocks\":true,\"globalSetup\":\"./jest.js\",\"testEnvironment\":\"node\",\"moduleFileExtensions\":[\"ts\",\"tsx\",\"json\",\"js\"],\"transform\":{\"^.+\\\\.tsx?$\":\"ts-jest\"},\"testRegex\":\"src/__tests__/.*\\\\.(test|spec)\\\\.ts$\",\"coverageDirectory\":\"./coverage/\"},\"devDependencies\":{\"@types/debounce\":\"^3.0.0\",\"@types/fb-watchman\":\"^2.0.0\",\"@types/glob\":\"^7.1.1\",\"@types/jest\":\"^25.2.1\",\"@types/minimatch\":\"^3.0.3\",\"@types/mkdirp\":\"^1.0.0\",\"@types/node\":\"^12.12.6\",\"@types/semver\":\"^7.1.0\",\"@types/tar\":\"^4.0.3\",\"@types/uuid\":\"^7.0.3\",\"@types/which\":\"^1.3.2\",\"@typescript-eslint/eslint-plugin\":\"^2.33.0\",\"@typescript-eslint/eslint-plugin-tslint\":\"^2.33.0\",\"@typescript-eslint/parser\":\"^2.33.0\",\"colors\":\"^1.4.0\",\"eslint\":\"^7.0.0\",\"eslint-config-prettier\":\"^6.11.0\",\"eslint-plugin-jest\":\"^23.10.0\",\"eslint-plugin-jsdoc\":\"^25.0.1\",\"jest\":\"25.5.4\",\"npm-run-all\":\"^4.1.5\",\"prettier\":\"^2.0.5\",\"ts-jest\":\"^25.5.0\",\"typescript\":\"^3.9.2\",\"vscode-languageserver\":\"^6.1.1\"},\"dependencies\":{\"@chemzqm/neovim\":\"^5.2.6\",\"await-semaphore\":\"^0.1.3\",\"bser\":\"^2.1.1\",\"bytes\":\"^3.1.0\",\"clipboardy\":\"^2.3.0\",\"debounce\":\"^1.2.0\",\"fast-diff\":\"^1.2.0\",\"fb-watchman\":\"^2.0.1\",\"follow-redirects\":\"^1.11.0\",\"glob\":\"^7.1.6\",\"http-proxy-agent\":\"^4.0.1\",\"https-proxy-agent\":\"^5.0.0\",\"isuri\":\"^2.0.3\",\"jsonc-parser\":\"^2.2.1\",\"log4js\":\"^6.2.1\",\"minimatch\":\"^3.0.4\",\"mkdirp\":\"^1.0.4\",\"mv\":\"^2.1.1\",\"promise.prototype.finally\":\"^3.1.2\",\"rc\":\"^1.2.8\",\"rimraf\":\"^3.0.2\",\"semver\":\"^7.3.2\",\"tar\":\"^6.0.2\",\"tslib\":\"^1.11.2\",\"uuid\":\"^7.0.3\",\"vscode-languageserver-protocol\":\"^3.15.3\",\"vscode-languageserver-textdocument\":\"^1.0.1\",\"vscode-languageserver-types\":\"^3.15.1\",\"vscode-uri\":\"^2.1.1\",\"which\":\"^2.0.2\"}}");
 
 /***/ }),
 /* 328 */
@@ -57043,6 +57054,7 @@ class ServiceManager extends events_1.EventEmitter {
     }
     stopAll() {
         for (let service of this.registered.values()) {
+            // eslint-disable-next-line @typescript-eslint/no-floating-promises
             service.stop();
         }
     }
@@ -57893,7 +57905,6 @@ const progressPart_1 = tslib_1.__importDefault(__webpack_require__(436));
 const async_1 = __webpack_require__(437);
 const cv = tslib_1.__importStar(__webpack_require__(438));
 const UUID = tslib_1.__importStar(__webpack_require__(439));
-const completion_1 = tslib_1.__importDefault(__webpack_require__(330));
 const logger = __webpack_require__(64)('language-client-client');
 class ConsoleLogger {
     error(message) {
@@ -58961,6 +58972,9 @@ class DocumentSymbolFeature extends TextDocumentFeature {
             valueSet: SupportedSymbolKinds
         };
         symbolCapabilities.hierarchicalDocumentSymbolSupport = true;
+        symbolCapabilities.tagSupport = {
+            valueSet: SupportedSymbolTags
+        };
     }
     initialize(capabilities, documentSelector) {
         const options = this.getRegistrationOptions(documentSelector, capabilities.documentSymbolProvider);
@@ -59017,6 +59031,9 @@ class WorkspaceSymbolFeature extends WorkspaceFeature {
         symbolCapabilities.dynamicRegistration = true;
         symbolCapabilities.symbolKind = {
             valueSet: SupportedSymbolKinds
+        };
+        symbolCapabilities.tagSupport = {
+            valueSet: SupportedSymbolTags
         };
     }
     initialize(capabilities, documentSelector) {
@@ -59725,11 +59742,10 @@ class BaseLanguageClient {
     get initializeResult() {
         return this._initializeResult;
     }
-    sendRequest(type, ...params) {
+    async sendRequest(type, ...params) {
         if (!this.isConnectionActive()) {
             throw new Error('Language client is not ready yet');
         }
-        this.forceDocumentSync();
         try {
             return this._resolvedConnection.sendRequest(type, ...params);
         }
@@ -59754,7 +59770,6 @@ class BaseLanguageClient {
         if (!this.isConnectionActive()) {
             throw new Error('Language client is not ready yet');
         }
-        this.forceDocumentSync();
         try {
             this._resolvedConnection.sendNotification(type, params);
         }
@@ -59791,7 +59806,6 @@ class BaseLanguageClient {
         if (!this.isConnectionActive()) {
             throw new Error('Language client is not ready yet');
         }
-        this.forceDocumentSync();
         try {
             this._resolvedConnection.sendProgress(type, token, value);
         }
@@ -60201,7 +60215,6 @@ class BaseLanguageClient {
                 client.onReady().then(() => {
                     client.resolveConnection().then(connection => {
                         if (client.isConnectionActive()) {
-                            client.forceDocumentSync();
                             connection.didChangeWatchedFiles({ changes: client._fileEvents });
                         }
                         client._fileEvents = [];
@@ -60213,13 +60226,6 @@ class BaseLanguageClient {
         }
         const workSpaceMiddleware = (_a = this.clientOptions.middleware) === null || _a === void 0 ? void 0 : _a.workspace;
         ((_b = workSpaceMiddleware) === null || _b === void 0 ? void 0 : _b.didChangeWatchedFile) ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event);
-    }
-    forceDocumentSync() {
-        if (completion_1.default.isActivated)
-            return;
-        let doc = workspace_1.default.getDocument(workspace_1.default.bufnr);
-        if (doc)
-            doc.forceSync();
     }
     handleDiagnostics(params) {
         if (!this._diagnostics) {
@@ -60432,7 +60438,7 @@ class BaseLanguageClient {
         const diagnostics = ensure(ensure(result, 'textDocument'), 'publishDiagnostics');
         diagnostics.relatedInformation = true;
         diagnostics.versionSupport = false;
-        // diagnostics.tagSupport = { valueSet: [DiagnosticTag.Unnecessary, DiagnosticTag.Deprecated] }
+        diagnostics.tagSupport = { valueSet: [vscode_languageserver_protocol_1.DiagnosticTag.Unnecessary, vscode_languageserver_protocol_1.DiagnosticTag.Deprecated] };
         for (let feature of this._features) {
             feature.fillClientCapabilities(result);
         }
@@ -61786,6 +61792,7 @@ class ListManager {
         let interactive = false;
         let autoPreview = false;
         let numberSelect = false;
+        let noQuit = false;
         let name;
         let input = '';
         let matcher = 'fuzzy';
@@ -61841,6 +61848,9 @@ class ListManager {
             else if (opt == '--ignore-case' || opt == '--normal' || opt == '--no-sort') {
                 options.push(opt.slice(2));
             }
+            else if (opt == '--no-quit') {
+                noQuit = true;
+            }
             else {
                 workspace_1.default.showMessage(`Invalid option "${opt}" of list`, 'error');
                 return null;
@@ -61861,6 +61871,7 @@ class ListManager {
             options: {
                 numberSelect,
                 autoPreview,
+                noQuit,
                 input,
                 interactive,
                 matcher,
@@ -61947,7 +61958,7 @@ class ListManager {
             let code = s.codePointAt(0);
             if (code == 65533)
                 return;
-            // exclude control characer
+            // exclude control character
             if (code < 32 || code >= 127 && code <= 159)
                 return;
             await this.prompt.acceptCharacter(s);
@@ -62180,18 +62191,20 @@ class ListManager {
     async doItemAction(items, action) {
         if (this.executing)
             return;
+        let { noQuit } = this.listOptions;
         this.executing = true;
-        let { nvim } = this;
-        let shouldCancel = action.persist !== true && action.name != 'preview';
+        let persist = this.isActivated && (action.persist === true || action.name == 'preview');
+        noQuit = noQuit && this.isActivated;
         try {
-            if (shouldCancel) {
-                await this.cancel();
+            if (!persist) {
+                if (noQuit) {
+                    this.nvim.call('coc#list#stop_prompt', [], true);
+                    this.nvim.call('win_gotoid', [this.context.window.id], true);
+                }
+                else {
+                    await this.cancel();
+                }
             }
-            else if (action.name != 'preview') {
-                await nvim.call('coc#list#stop_prompt');
-            }
-            if (!shouldCancel && !this.isActivated)
-                return;
             await this.nvim.command('stopinsert');
             if (action.multiple) {
                 await Promise.resolve(action.execute(items, this.context));
@@ -62204,26 +62217,15 @@ class ListManager {
                     await Promise.resolve(action.execute(item, this.context));
                 }
             }
-            if (!shouldCancel) {
-                if (!this.isActivated) {
-                    this.nvim.command('pclose', true);
-                    return;
-                }
-                nvim.pauseNotification();
-                if (action.name != 'preview') {
-                    this.prompt.start();
-                }
+            if (persist) {
+                this.prompt.start();
                 this.ui.restoreWindow();
-                nvim.resumeNotification(false, true).logError();
                 if (action.reload)
                     await this.worker.loadItems(true);
             }
         }
         catch (e) {
             console.error(e);
-            if (!shouldCancel && this.activated) {
-                this.prompt.start();
-            }
         }
         this.executing = false;
     }
@@ -72071,6 +72073,7 @@ class Handler {
         this.disposables = [];
         this.labels = {};
         this.selectionRange = null;
+        this.formatting = false;
         this.getPreferences();
         workspace_1.default.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('coc.preferences')) {
@@ -72161,8 +72164,9 @@ class Handler {
         }, null, this.disposables);
         events_1.default.on('TextChangedI', async (bufnr) => {
             let curr = Date.now();
-            if (!lastInsert || curr - lastInsert > 500)
+            if (!lastInsert || curr - lastInsert > 300)
                 return;
+            lastInsert = null;
             let doc = workspace_1.default.getDocument(bufnr);
             if (!doc || doc.isCommandLine || !doc.attached)
                 return;
@@ -72801,6 +72805,8 @@ class Handler {
             await workspace_1.default.selectRange(selectRange);
     }
     async tryFormatOnType(ch, bufnr, insertLeave = false) {
+        if (this.formatting)
+            return;
         if (!ch || string_1.isWord(ch) || !this.preferences.formatOnType)
             return;
         if (manager_3.default.getSession(bufnr) != null)
@@ -72815,6 +72821,7 @@ class Handler {
             // Only check formatOnTypeFiletypes when set, avoid breaking change
             return;
         }
+        this.formatting = true;
         let position = await workspace_1.default.getCursorPosition();
         let origLine = doc.getline(position.line);
         let pos = insertLeave ? { line: position.line, character: origLine.length } : position;
@@ -72829,12 +72836,11 @@ class Handler {
                 edits = edits.filter(edit => edit.range.start.line < position.line + 1);
             }
             if (edits && edits.length) {
+                let changed = position_1.getChangedFromEdits(position, edits);
                 await doc.applyEdits(edits);
-                let newLine = doc.getline(position.line);
-                if (newLine.length > origLine.length) {
-                    let character = position.character + (newLine.length - origLine.length);
-                    await workspace_1.default.moveTo(vscode_languageserver_protocol_1.Position.create(position.line, character));
-                }
+                let to = changed ? vscode_languageserver_protocol_1.Position.create(position.line + changed.line, position.character + changed.character) : null;
+                if (to)
+                    await workspace_1.default.moveTo(to);
             }
         }
         catch (e) {
@@ -72842,6 +72848,7 @@ class Handler {
                 console.error(`Error on formatOnType: ${e.message}`);
             }
         }
+        this.formatting = false;
     }
     async triggerSignatureHelp(document, position) {
         if (this.signatureTokenSource) {
@@ -74262,6 +74269,9 @@ class Refactor {
         if (count == 2 && hlRanges.length) {
             let pos = hlRanges[0].start;
             nvim.call('coc#util#jumpTo', [pos.line, pos.character], true);
+        }
+        if (workspace_1.default.isVim) {
+            nvim.command('redraw', true);
         }
         let [, err] = await nvim.resumeNotification();
         if (err) {

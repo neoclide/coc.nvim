@@ -694,7 +694,7 @@
     "list.indicator": {
       "type": "string",
       "default": ">",
-      "description": "The characer used as first characer in prompt line"
+      "description": "The character used as first character in prompt line"
     },
     "list.interactiveDebounceTime": {
       "type": "number",

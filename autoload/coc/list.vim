@@ -167,7 +167,7 @@ endfunction
 function! coc#list#options(...)
   let list = ['--top', '--tab', '--normal', '--no-sort', '--input', '--strict',
         \ '--regex', '--interactive', '--number-select', '--auto-preview',
-        \ '--ignore-case']
+        \ '--ignore-case', '--no-quit']
   if get(g:, 'coc_enabled', 0)
     let names = coc#rpc#request('listNames', [])
     call extend(list, names)
