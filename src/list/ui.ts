@@ -311,8 +311,9 @@ export default class ListUI {
   public async drawItems(items: ListItem[], name: string, listOptions: ListOptions, reload = false): Promise<void> {
     let { bufnr, config, nvim } = this
     this.newTab = listOptions.position == 'tab'
-    let maxHeight = config.get<number>('maxHeight', 12)
-    let height = Math.max(1, Math.min(items.length, maxHeight))
+    let maxHeight = config.get<number>('maxHeight', 10)
+    let minHeight = config.get<number>('minHeight', 1)
+    let height = Math.min(Math.max(minHeight, items.length), maxHeight)
     let limitLines = config.get<number>('limitLines', 30000)
     let curr = this.items[this.index]
     this.items = items.slice(0, limitLines)
@@ -362,8 +363,9 @@ export default class ListUI {
       nvim.call('clearmatches', [], true)
     }
     if (resize) {
-      let maxHeight = config.get<number>('maxHeight', 12)
-      let height = Math.max(1, Math.min(this.items.length, maxHeight))
+      let maxHeight = config.get<number>('maxHeight', 10)
+      let minHeight = config.get<number>('minHeight', 1)
+      let height = Math.min(Math.max(minHeight, this.items.length), maxHeight)
       this.height = height
       nvim.call('coc#list#set_height', [height], true)
     }

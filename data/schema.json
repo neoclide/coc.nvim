@@ -706,6 +706,11 @@
       "default": 10,
       "description": "Maximum height of list window."
     },
+    "list.minHeight": {
+      "type": "number",
+      "default": 1,
+      "description": "Minimum height of list window."
+    },
     "list.signOffset": {
       "type": "number",
       "default": 900,
