@@ -14,7 +14,7 @@ import { CodeAction, Documentation, TagDefinition } from '../types'
 import { disposeAll, wait } from '../util'
 import { getSymbolKind } from '../util/convert'
 import { equals } from '../util/object'
-import { emptyRange, positionInRange, rangeInRange } from '../util/position'
+import { emptyRange, positionInRange, rangeInRange, getChangedFromEdits } from '../util/position'
 import { byteLength, isWord } from '../util/string'
 import workspace from '../workspace'
 import CodeLensManager from './codelens'
@@ -89,6 +89,7 @@ export default class Handler {
   private labels: { [key: string]: string } = {}
   private selectionRange: SelectionRange = null
   private signaturePosition: Position
+  private formatting = false
 
   constructor(private nvim: Neovim) {
     this.getPreferences()
@@ -184,7 +185,8 @@ export default class Handler {
 
     events.on('TextChangedI', async bufnr => {
       let curr = Date.now()
-      if (!lastInsert || curr - lastInsert > 500) return
+      if (!lastInsert || curr - lastInsert > 300) return
+      lastInsert = null
       let doc = workspace.getDocument(bufnr)
       if (!doc || doc.isCommandLine || !doc.attached) return
       let { triggerSignatureHelp, formatOnType } = this.preferences
@@ -803,6 +805,7 @@ export default class Handler {
   }
 
   private async tryFormatOnType(ch: string, bufnr: number, insertLeave = false): Promise<void> {
+    if (this.formatting) return
     if (!ch || isWord(ch) || !this.preferences.formatOnType) return
     if (snippetManager.getSession(bufnr) != null) return
     let doc = workspace.getDocument(bufnr)
@@ -813,6 +816,7 @@ export default class Handler {
       // Only check formatOnTypeFiletypes when set, avoid breaking change
       return
     }
+    this.formatting = true
     let position = await workspace.getCursorPosition()
     let origLine = doc.getline(position.line)
     let pos: Position = insertLeave ? { line: position.line, character: origLine.length } : position
@@ -826,18 +830,17 @@ export default class Handler {
         edits = edits.filter(edit => edit.range.start.line < position.line + 1)
       }
       if (edits && edits.length) {
+        let changed = getChangedFromEdits(position, edits)
         await doc.applyEdits(edits)
-        let newLine = doc.getline(position.line)
-        if (newLine.length > origLine.length) {
-          let character = position.character + (newLine.length - origLine.length)
-          await workspace.moveTo(Position.create(position.line, character))
-        }
+        let to = changed ? Position.create(position.line + changed.line, position.character + changed.character) : null
+        if (to) await workspace.moveTo(to)
       }
     } catch (e) {
       if (!/timeout\s/.test(e.message)) {
         console.error(`Error on formatOnType: ${e.message}`)
       }
     }
+    this.formatting = false
   }
 
   private async triggerSignatureHelp(document: Document, position: Position): Promise<boolean> {

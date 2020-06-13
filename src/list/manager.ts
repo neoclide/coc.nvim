@@ -462,7 +462,7 @@ export class ListManager implements Disposable {
     for (let s of ch) {
       let code = s.codePointAt(0)
       if (code == 65533) return
-      // exclude control characer
+      // exclude control character
       if (code < 32 || code >= 127 && code <= 159) return
       await this.prompt.acceptCharacter(s)
     }

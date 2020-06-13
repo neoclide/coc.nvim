@@ -203,6 +203,9 @@ export default class Refactor {
       let pos = hlRanges[0].start
       nvim.call('coc#util#jumpTo', [pos.line, pos.character], true)
     }
+    if (workspace.isVim) {
+      nvim.command('redraw', true)
+    }
     let [, err] = await nvim.resumeNotification()
     if (err) {
       logger.error(err)
