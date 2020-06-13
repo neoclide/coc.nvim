@@ -66,6 +66,17 @@ describe('list commands', () => {
     expect(line).toBe(2)
   })
 
+  it('should not quit list with --no-quit', async () => {
+    await manager.start(['--normal', '--no-quit', 'location'])
+    await helper.wait(300)
+    let winnr = await nvim.eval('win_getid()')
+    await manager.doAction()
+    await helper.wait(100)
+    let wins = await nvim.windows
+    let ids = wins.map(o => o.id)
+    expect(ids).toContain(winnr)
+  })
+
   it('should goto next & previous', async () => {
     await manager.start(['location'])
     await helper.wait(100)
@@ -95,6 +106,7 @@ describe('list commands', () => {
       ignorecase: true,
       position: 'top',
       mode: 'normal',
+      noQuit: false,
       sort: false
     })
   })

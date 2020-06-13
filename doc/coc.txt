@@ -1681,9 +1681,9 @@ CocTagFunc({pattern}, {flags}, {info})			*CocTagFunc()*
 	coc.nvim as provider.
 
 ------------------------------------------------------------------------------
-
+							*coc-action*
 Available Actions ~
-
+								
 Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 "sourceStat"						*coc-action-sourceStat*
@@ -2427,6 +2427,12 @@ Command options						*coc-list-options*
 --auto-preview
 -A
 	Start a preview for the current item on the visible list.
+
+--no-quit
+
+	Not quit list session after do action.
+
+	Note: you may need to refresh the list for current state.
 
 ------------------------------------------------------------------------------
 

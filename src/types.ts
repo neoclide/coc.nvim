@@ -833,6 +833,7 @@ export interface ListOptions {
   matcher: Matcher
   autoPreview: boolean
   numberSelect: boolean
+  noQuit: boolean
 }
 
 export interface ListContext {

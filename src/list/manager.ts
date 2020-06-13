@@ -315,6 +315,7 @@ export class ListManager implements Disposable {
     let interactive = false
     let autoPreview = false
     let numberSelect = false
+    let noQuit = false
     let name: string
     let input = ''
     let matcher: Matcher = 'fuzzy'
@@ -357,6 +358,8 @@ export class ListManager implements Disposable {
         position = 'tab'
       } else if (opt == '--ignore-case' || opt == '--normal' || opt == '--no-sort') {
         options.push(opt.slice(2))
+      } else if (opt == '--no-quit') {
+        noQuit = true
       } else {
         workspace.showMessage(`Invalid option "${opt}" of list`, 'error')
         return null
@@ -377,6 +380,7 @@ export class ListManager implements Disposable {
       options: {
         numberSelect,
         autoPreview,
+        noQuit,
         input,
         interactive,
         matcher,
@@ -702,16 +706,19 @@ export class ListManager implements Disposable {
 
   private async doItemAction(items: ListItem[], action: ListAction): Promise<void> {
     if (this.executing) return
+    let { noQuit } = this.listOptions
     this.executing = true
-    let { nvim } = this
-    let shouldCancel = action.persist !== true && action.name != 'preview'
+    let persist = this.isActivated && (action.persist === true || action.name == 'preview')
+    noQuit = noQuit && this.isActivated
     try {
-      if (shouldCancel) {
-        await this.cancel()
-      } else if (action.name != 'preview') {
-        await nvim.call('coc#list#stop_prompt')
+      if (!persist) {
+        if (noQuit) {
+          this.nvim.call('coc#list#stop_prompt', [], true)
+          this.nvim.call('win_gotoid', [this.context.window.id], true)
+        } else {
+          await this.cancel()
+        }
       }
-      if (!shouldCancel && !this.isActivated) return
       await this.nvim.command('stopinsert')
       if (action.multiple) {
         await Promise.resolve(action.execute(items, this.context))
@@ -722,24 +729,13 @@ export class ListManager implements Disposable {
           await Promise.resolve(action.execute(item, this.context))
         }
       }
-      if (!shouldCancel) {
-        if (!this.isActivated) {
-          this.nvim.command('pclose', true)
-          return
-        }
-        nvim.pauseNotification()
-        if (action.name != 'preview') {
-          this.prompt.start()
-        }
+      if (persist) {
+        this.prompt.start()
         this.ui.restoreWindow()
-        nvim.resumeNotification(false, true).logError()
         if (action.reload) await this.worker.loadItems(true)
       }
     } catch (e) {
       console.error(e)
-      if (!shouldCancel && this.activated) {
-        this.prompt.start()
-      }
     }
     this.executing = false
   }
