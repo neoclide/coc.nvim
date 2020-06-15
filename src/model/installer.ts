@@ -12,6 +12,7 @@ import workspace from '../workspace'
 import download from './download'
 import fetch from './fetch'
 import rimraf from 'rimraf'
+import { statAsync } from '../util/fs'
 const logger = require('../util/logger')('model-installer')
 
 export interface Info {
@@ -160,10 +161,17 @@ export class Installer {
     Object.keys(obj.dependencies).sort().forEach(k => {
       sortedObj.dependencies[k] = obj.dependencies[k]
     })
-    this.log(`Update package.json at ${jsonFile}`)
-    fs.writeFileSync(jsonFile, JSON.stringify(sortedObj, null, 2), { encoding: 'utf8' })
-    rimraf.sync(folder, { glob: false })
+    let stat = await statAsync(folder)
+    if (stat) {
+      if (stat.isDirectory()) {
+        rimraf.sync(folder, { glob: false })
+      } else {
+        fs.unlinkSync(folder)
+      }
+    }
     await promisify(mv)(tmpFolder, folder, { mkdirp: true, clobber: true })
+    fs.writeFileSync(jsonFile, JSON.stringify(sortedObj, null, 2), { encoding: 'utf8' })
+    this.log(`Update package.json at ${jsonFile}`)
     this.log(`Installed extension ${this.name}@${info.version} at ${folder}`)
   }
 
