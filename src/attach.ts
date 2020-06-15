@@ -57,6 +57,10 @@ export default (opts: Attach, requestApi = true): Plugin => {
           return
         }
         try {
+          if (!plugin.isReady) {
+            logger.warn(`Plugin not ready when received "${method}"`, args)
+          }
+          await plugin.ready
           await plugin.cocAction(method, ...args)
         } catch (e) {
           console.error(`Error on notification "${method}": ${e.message || e.toString()}`)
@@ -77,6 +81,9 @@ export default (opts: Attach, requestApi = true): Plugin => {
       } else {
         if (!plugin.hasAction(method)) {
           throw new Error(`action "${method}" not registered`)
+        }
+        if (!plugin.isReady) {
+          logger.warn(`Plugin not ready when received "${method}"`, args)
         }
         let res = await plugin.cocAction(method, ...args)
         resp.send(res)

@@ -426,10 +426,6 @@ export default class Plugin extends EventEmitter {
   }
 
   public async cocAction(method: string, ...args: any[]): Promise<any> {
-    if (!this._ready) {
-      logger.warn(`Plugin not ready when received "${method}"`, args)
-    }
-    await this.ready
     let fn = this.actions.get(method)
     return await Promise.resolve(fn.apply(null, args))
   }
