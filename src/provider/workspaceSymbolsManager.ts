@@ -1,36 +1,36 @@
-import { CancellationToken, Disposable, DocumentSelector, SymbolInformation } from 'vscode-languageserver-protocol'
+import { v4 as uuid } from 'uuid'
+import { CancellationToken, Disposable, SymbolInformation } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { WorkspaceSymbolProvider } from './index'
-import Manager, { ProviderItem } from './manager'
-import { v4 as uuid } from 'uuid'
 
-export default class WorkspaceSymbolManager extends Manager<WorkspaceSymbolProvider> implements Disposable {
+export default class WorkspaceSymbolManager implements Disposable {
+  private providers: Map<string, WorkspaceSymbolProvider> = new Map()
 
-  public register(selector: DocumentSelector, provider: WorkspaceSymbolProvider): Disposable {
-    let item: ProviderItem<WorkspaceSymbolProvider> = {
-      id: uuid(),
-      selector,
-      provider
-    }
-    this.providers.add(item)
+  public register(provider: WorkspaceSymbolProvider): Disposable {
+    let id = uuid()
+    this.providers.set(id, provider)
     return Disposable.create(() => {
-      this.providers.delete(item)
+      this.providers.delete(id)
     })
   }
 
   public async provideWorkspaceSymbols(
-    document: TextDocument,
+    _document: TextDocument,
     query: string,
     token: CancellationToken
   ): Promise<SymbolInformation[]> {
-    let item = this.getProvider(document)
-    if (!item) return null
-    let { provider } = item
-    let res = await Promise.resolve(provider.provideWorkspaceSymbols(query, token))
-    res = res || []
-    for (let sym of res) {
-      (sym as any).source = item.id
-    }
+    let entries = Array.from(this.providers.entries())
+    if (!entries.length) return []
+    let res: SymbolInformation[] = []
+    await Promise.all(entries.map(o => {
+      let [id, p] = o
+      console.log(id)
+      console.log(p)
+      return Promise.resolve(p.provideWorkspaceSymbols(query, token)).then(item => {
+        (item as any).source = id
+        res.push(...item)
+      })
+    }))
     return res
   }
 
@@ -38,16 +38,19 @@ export default class WorkspaceSymbolManager extends Manager<WorkspaceSymbolProvi
     symbolInfo: SymbolInformation,
     token: CancellationToken
   ): Promise<SymbolInformation> {
-    let item = Array.from(this.providers).find(o => o.id == (symbolInfo as any).source)
-    if (!item) return
-    let { provider } = item
+    let provider = this.providers.get((symbolInfo as any).source)
+    if (!provider) return
     if (typeof provider.resolveWorkspaceSymbol != 'function') {
       return Promise.resolve(symbolInfo)
     }
     return await Promise.resolve(provider.resolveWorkspaceSymbol(symbolInfo, token))
   }
 
+  public hasProvider(): boolean {
+    return this.providers.size > 0
+  }
+
   public dispose(): void {
-    this.providers = new Set()
+    this.providers = new Map()
   }
 }

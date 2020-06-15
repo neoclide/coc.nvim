@@ -188,7 +188,7 @@ describe('list sources', () => {
 
   describe('symbols', () => {
     it('should load symbols source', async () => {
-      let disposable = languages.registerWorkspaceSymbolProvider([{ scheme: 'file' }, { scheme: 'untitled' }], {
+      let disposable = languages.registerWorkspaceSymbolProvider({
         provideWorkspaceSymbols: () => []
       })
       await manager.start(['symbols'])

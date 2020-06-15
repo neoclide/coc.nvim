@@ -26,7 +26,6 @@ import { TypeDefinitionMiddleware } from './typeDefinition'
 import { Delayer } from './utils/async'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
-import completion from '../completion'
 import { WorkspaceFolderWorkspaceMiddleware } from './workspaceFolders'
 
 const logger = require('../util/logger')('language-client-client')
@@ -1752,13 +1751,8 @@ export interface WorkspaceProviderFeature<PR> {
   getProviders(): PR[]
 }
 
-interface WorkspaceFeatureRegistration<PR> {
-  disposable: Disposable
-  provider: PR
-}
-
 abstract class WorkspaceFeature<RO, PR> implements DynamicFeature<RO> {
-  protected _registrations: Map<string, WorkspaceFeatureRegistration<PR>> = new Map()
+  protected _registrations: Map<string, Disposable> = new Map()
 
   constructor(
     protected _client: BaseLanguageClient,
@@ -1781,31 +1775,21 @@ abstract class WorkspaceFeature<RO, PR> implements DynamicFeature<RO> {
       throw new Error(`Register called on wrong feature. Requested ${message.method} but reached feature ${this.messages.method}`)
     }
     const registration = this.registerLanguageProvider(data.registerOptions)
-    this._registrations.set(data.id, { disposable: registration[0], provider: registration[1] })
+    this._registrations.set(data.id, registration)
   }
 
-  protected abstract registerLanguageProvider(options: RO): [Disposable, PR]
+  protected abstract registerLanguageProvider(options: RO): Disposable
 
   public unregister(id: string): void {
     const registration = this._registrations.get(id)
-    if (registration) {
-      registration.disposable.dispose()
-    }
+    if (registration) registration.dispose()
   }
 
   public dispose(): void {
     this._registrations.forEach(value => {
-      value.disposable.dispose()
+      value.dispose()
     })
     this._registrations.clear()
-  }
-
-  public getProviders(): PR[] {
-    const result: PR[] = []
-    for (const registration of this._registrations.values()) {
-      result.push(registration.provider)
-    }
-    return result
   }
 }
 
@@ -2303,7 +2287,7 @@ class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegistratio
     })
   }
 
-  protected registerLanguageProvider(_options: WorkspaceSymbolRegistrationOptions): [Disposable, WorkspaceSymbolProvider] {
+  protected registerLanguageProvider(_options: WorkspaceSymbolRegistrationOptions): Disposable {
     const provider: WorkspaceSymbolProvider = {
       provideWorkspaceSymbols: (query, token) => {
         const client = this._client
@@ -2321,7 +2305,7 @@ class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegistratio
           : provideWorkspaceSymbols(query, token)
       }
     }
-    return [languages.registerWorkspaceSymbolProvider(this.documentSelector, provider), provider]
+    return languages.registerWorkspaceSymbolProvider(provider)
   }
 }
 

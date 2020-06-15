@@ -266,8 +266,11 @@ class Languages {
     return this.renameManager.register(selector, provider)
   }
 
-  public registerWorkspaceSymbolProvider(selector: DocumentSelector, provider: WorkspaceSymbolProvider): Disposable {
-    return this.workspaceSymbolsManager.register(selector, provider)
+  public registerWorkspaceSymbolProvider(provider: WorkspaceSymbolProvider): Disposable {
+    if (arguments.length > 1 && typeof arguments[1].provideWorkspaceSymbols === 'function') {
+      provider = arguments[1]
+    }
+    return this.workspaceSymbolsManager.register(provider)
   }
 
   public registerDocumentFormatProvider(selector: DocumentSelector, provider: DocumentFormattingEditProvider, priority = 0): Disposable {
@@ -462,7 +465,7 @@ class Languages {
       case 'codeAction':
         return this.codeActionManager.hasProvider(document)
       case 'workspaceSymbols':
-        return this.workspaceSymbolsManager.hasProvider(document)
+        return this.workspaceSymbolsManager.hasProvider()
       case 'formatRange':
         return this.formatRangeManager.hasProvider(document)
       case 'hover':
