@@ -89,7 +89,6 @@ export default class Handler {
   private labels: { [key: string]: string } = {}
   private selectionRange: SelectionRange = null
   private signaturePosition: Position
-  private formatting = false
 
   constructor(private nvim: Neovim) {
     this.getPreferences()
@@ -762,10 +761,9 @@ export default class Handler {
    * supportedSymbols must be string values of symbolKind
    */
   public async selectSymbolRange(inner: boolean, visualmode: string, supportedSymbols: string[]): Promise<void> {
-    let { nvim } = this
-    let bufnr = await nvim.eval('bufnr("%")') as number
-    let doc = workspace.getDocument(bufnr)
-    if (!doc) return
+    let doc = await workspace.document
+    if (!doc || !doc.attached) return
+    await synchronizeDocument(doc)
     let range: Range
     if (visualmode) {
       range = await workspace.getSelectedRange(visualmode, doc)
@@ -805,42 +803,27 @@ export default class Handler {
   }
 
   private async tryFormatOnType(ch: string, bufnr: number, insertLeave = false): Promise<void> {
-    if (this.formatting) return
     if (!ch || isWord(ch) || !this.preferences.formatOnType) return
-    if (snippetManager.getSession(bufnr) != null) return
     let doc = workspace.getDocument(bufnr)
-    if (!doc) return
+    if (!doc || !doc.attached) return
     if (!languages.hasOnTypeProvider(ch, doc.textDocument)) return
     const filetypes = this.preferences.formatOnTypeFiletypes
     if (filetypes.length && !filetypes.includes(doc.filetype)) {
       // Only check formatOnTypeFiletypes when set, avoid breaking change
       return
     }
-    this.formatting = true
     let position = await workspace.getCursorPosition()
     let origLine = doc.getline(position.line)
     let pos: Position = insertLeave ? { line: position.line, character: origLine.length } : position
-    try {
-      let { changedtick } = doc
-      await synchronizeDocument(doc)
-      let edits = await languages.provideDocumentOnTypeEdits(ch, doc.textDocument, pos)
-      // changed by other process
-      if (doc.changedtick != changedtick || edits == null) return
-      if (insertLeave) {
-        edits = edits.filter(edit => edit.range.start.line < position.line + 1)
-      }
-      if (edits && edits.length) {
-        let changed = getChangedFromEdits(position, edits)
-        await doc.applyEdits(edits)
-        let to = changed ? Position.create(position.line + changed.line, position.character + changed.character) : null
-        if (to) await workspace.moveTo(to)
-      }
-    } catch (e) {
-      if (!/timeout\s/.test(e.message)) {
-        console.error(`Error on formatOnType: ${e.message}`)
-      }
+    let { changedtick } = doc
+    await synchronizeDocument(doc)
+    let edits = await languages.provideDocumentOnTypeEdits(ch, doc.textDocument, pos)
+    if (edits && edits.length && doc.changedtick == changedtick) {
+      let changed = getChangedFromEdits(position, edits)
+      await doc.applyEdits(edits)
+      let to = changed ? Position.create(position.line + changed.line, position.character + changed.character) : null
+      if (to) await workspace.moveTo(to)
     }
-    this.formatting = false
   }
 
   private async triggerSignatureHelp(document: Document, position: Position): Promise<boolean> {
