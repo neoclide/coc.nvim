@@ -360,7 +360,7 @@ function! s:ShowInfo()
   else
     let lines = []
     echomsg 'coc.nvim service not started, checking environment...'
-    let node = get(g:, 'coc_node_path', 'node')
+    let node = get(g:, 'coc_node_path', $COC_NODE_PATH == '' ? 'node' : $COC_NODE_PATH)
     if !executable(node)
       call add(lines, 'Error: '.node.' is not executable!')
     else

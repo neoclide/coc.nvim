@@ -6,7 +6,7 @@ function! s:checkEnvironment() abort
     let valid = 0
     call health#report_error('Neovim version not satisfied, 0.3.0 and above required')
   endif
-  let node = get(g:, 'coc_node_path', 'node')
+  let node = get(g:, 'coc_node_path', $COC_NODE_PATH == '' ? 'node' : $COC_NODE_PATH)
   if !executable(node)
     let valid = 0
     call health#report_error('Executable node.js not found, install node.js from http://nodejs.org/')
