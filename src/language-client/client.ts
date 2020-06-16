@@ -316,7 +316,7 @@ class DefaultErrorHandler implements ErrorHandler {
     } else {
       let diff = this.restarts[this.restarts.length - 1] - this.restarts[0]
       if (diff <= 3 * 60 * 1000) {
-        logger.error(`The ${this.name} server crashed 5 times in the last 3 minutes. The server will not be restarted.`)
+        workspace.showMessage(`The "${this.name}" server crashed 5 times in the last 3 minutes. The server will not be restarted.`, 'error')
         return CloseAction.DoNotRestart
       } else {
         this.restarts.shift()
