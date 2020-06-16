@@ -67,16 +67,16 @@ export default class Plugin extends EventEmitter {
       await this.ready
       await listManager.start(args)
     })
-    this.addAction('selectSymbolRange', async (inner: boolean, visualmode: string, supportedSymbols: string[]) => await this.handler.selectSymbolRange(inner, visualmode, supportedSymbols))
+    this.addAction('selectSymbolRange', (inner: boolean, visualmode: string, supportedSymbols: string[]) => this.handler.selectSymbolRange(inner, visualmode, supportedSymbols))
     this.addAction('listResume', () => listManager.resume())
     this.addAction('listPrev', () => listManager.previous())
     this.addAction('listNext', () => listManager.next())
     this.addAction('sendRequest', (id: string, method: string, params?: any) => services.sendRequest(id, method, params))
-    this.addAction('sendNotification', async (id: string, method: string, params?: any) => {
-      await services.sendNotification(id, method, params)
+    this.addAction('sendNotification', (id: string, method: string, params?: any) => {
+      return services.sendNotification(id, method, params)
     })
-    this.addAction('registNotification', async (id: string, method: string) => {
-      await services.registNotification(id, method)
+    this.addAction('registNotification', (id: string, method: string) => {
+      return services.registNotification(id, method)
     })
     this.addAction('doAutocmd', async (id: number, ...args: []) => {
       let autocmd = (workspace as any).autocmds.get(id) as Autocmd
