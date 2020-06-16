@@ -11332,6 +11332,10 @@ exports.default = (opts, requestApi = true) => {
                     return;
                 }
                 try {
+                    if (!plugin.isReady) {
+                        logger.warn(`Plugin not ready when received "${method}"`, args);
+                    }
+                    await plugin.ready;
                     await plugin.cocAction(method, ...args);
                 }
                 catch (e) {
@@ -11353,6 +11357,9 @@ exports.default = (opts, requestApi = true) => {
             else {
                 if (!plugin.hasAction(method)) {
                     throw new Error(`action "${method}" not registered`);
+                }
+                if (!plugin.isReady) {
+                    logger.warn(`Plugin not ready when received "${method}"`, args);
                 }
                 let res = await plugin.cocAction(method, ...args);
                 resp.send(res);
@@ -23306,16 +23313,16 @@ class Plugin extends events_1.EventEmitter {
             await this.ready;
             await manager_2.default.start(args);
         });
-        this.addAction('selectSymbolRange', async (inner, visualmode, supportedSymbols) => await this.handler.selectSymbolRange(inner, visualmode, supportedSymbols));
+        this.addAction('selectSymbolRange', (inner, visualmode, supportedSymbols) => this.handler.selectSymbolRange(inner, visualmode, supportedSymbols));
         this.addAction('listResume', () => manager_2.default.resume());
         this.addAction('listPrev', () => manager_2.default.previous());
         this.addAction('listNext', () => manager_2.default.next());
         this.addAction('sendRequest', (id, method, params) => services_1.default.sendRequest(id, method, params));
-        this.addAction('sendNotification', async (id, method, params) => {
-            await services_1.default.sendNotification(id, method, params);
+        this.addAction('sendNotification', (id, method, params) => {
+            return services_1.default.sendNotification(id, method, params);
         });
-        this.addAction('registNotification', async (id, method) => {
-            await services_1.default.registNotification(id, method);
+        this.addAction('registNotification', (id, method) => {
+            return services_1.default.registNotification(id, method);
         });
         this.addAction('doAutocmd', async (id, ...args) => {
             let autocmd = workspace_1.default.autocmds.get(id);
@@ -23590,6 +23597,9 @@ class Plugin extends events_1.EventEmitter {
         this.addAction('currentWorkspacePath', () => {
             return workspace_1.default.rootPath;
         });
+        this.addAction('addCommand', cmd => {
+            this.addCommand(cmd);
+        });
         workspace_1.default.onDidChangeWorkspaceFolders(() => {
             nvim.setVar('WorkspaceFolders', workspace_1.default.folderPaths, true);
         });
@@ -23660,16 +23670,12 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "3478962539" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "2407993395" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
     }
     async cocAction(method, ...args) {
-        if (!this._ready) {
-            logger.warn(`Plugin not ready when received "${method}"`, args);
-        }
-        await this.ready;
         let fn = this.actions.get(method);
         return await Promise.resolve(fn.apply(null, args));
     }
@@ -42330,6 +42336,7 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const download_1 = tslib_1.__importDefault(__webpack_require__(348));
 const fetch_1 = tslib_1.__importDefault(__webpack_require__(387));
 const rimraf_1 = tslib_1.__importDefault(__webpack_require__(315));
+const fs_2 = __webpack_require__(270);
 const logger = __webpack_require__(64)('model-installer');
 function registryUrl(scope = 'coc.nvim') {
     const result = rc_1.default('npm', { registry: 'https://registry.npmjs.org/' });
@@ -42469,10 +42476,18 @@ class Installer {
         Object.keys(obj.dependencies).sort().forEach(k => {
             sortedObj.dependencies[k] = obj.dependencies[k];
         });
-        this.log(`Update package.json at ${jsonFile}`);
-        fs_1.default.writeFileSync(jsonFile, JSON.stringify(sortedObj, null, 2), { encoding: 'utf8' });
-        rimraf_1.default.sync(folder, { glob: false });
+        let stat = await fs_2.statAsync(folder);
+        if (stat) {
+            if (stat.isDirectory()) {
+                rimraf_1.default.sync(folder, { glob: false });
+            }
+            else {
+                fs_1.default.unlinkSync(folder);
+            }
+        }
         await util_1.promisify(mv_1.default)(tmpFolder, folder, { mkdirp: true, clobber: true });
+        fs_1.default.writeFileSync(jsonFile, JSON.stringify(sortedObj, null, 2), { encoding: 'utf8' });
+        this.log(`Update package.json at ${jsonFile}`);
         this.log(`Installed extension ${this.name}@${info.version} at ${folder}`);
     }
     async getInfo() {
@@ -54434,8 +54449,11 @@ class Languages {
     registerRenameProvider(selector, provider) {
         return this.renameManager.register(selector, provider);
     }
-    registerWorkspaceSymbolProvider(selector, provider) {
-        return this.workspaceSymbolsManager.register(selector, provider);
+    registerWorkspaceSymbolProvider(provider) {
+        if (arguments.length > 1 && typeof arguments[1].provideWorkspaceSymbols === 'function') {
+            provider = arguments[1];
+        }
+        return this.workspaceSymbolsManager.register(provider);
     }
     registerDocumentFormatProvider(selector, provider, priority = 0) {
         return this.formatManager.register(selector, provider, priority);
@@ -54582,7 +54600,7 @@ class Languages {
             case 'codeAction':
                 return this.codeActionManager.hasProvider(document);
             case 'workspaceSymbols':
-                return this.workspaceSymbolsManager.hasProvider(document);
+                return this.workspaceSymbolsManager.hasProvider();
             case 'formatRange':
                 return this.formatRangeManager.hasProvider(document);
             case 'hover':
@@ -55986,46 +56004,49 @@ exports.default = TypeDefinitionManager;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
 const uuid_1 = __webpack_require__(297);
-class WorkspaceSymbolManager extends manager_1.default {
-    register(selector, provider) {
-        let item = {
-            id: uuid_1.v4(),
-            selector,
-            provider
-        };
-        this.providers.add(item);
+const vscode_languageserver_protocol_1 = __webpack_require__(210);
+class WorkspaceSymbolManager {
+    constructor() {
+        this.providers = new Map();
+    }
+    register(provider) {
+        let id = uuid_1.v4();
+        this.providers.set(id, provider);
         return vscode_languageserver_protocol_1.Disposable.create(() => {
-            this.providers.delete(item);
+            this.providers.delete(id);
         });
     }
-    async provideWorkspaceSymbols(document, query, token) {
-        let item = this.getProvider(document);
-        if (!item)
-            return null;
-        let { provider } = item;
-        let res = await Promise.resolve(provider.provideWorkspaceSymbols(query, token));
-        res = res || [];
-        for (let sym of res) {
-            sym.source = item.id;
-        }
+    async provideWorkspaceSymbols(_document, query, token) {
+        let entries = Array.from(this.providers.entries());
+        if (!entries.length)
+            return [];
+        let res = [];
+        await Promise.all(entries.map(o => {
+            let [id, p] = o;
+            console.log(id);
+            console.log(p);
+            return Promise.resolve(p.provideWorkspaceSymbols(query, token)).then(item => {
+                item.source = id;
+                res.push(...item);
+            });
+        }));
         return res;
     }
     async resolveWorkspaceSymbol(symbolInfo, token) {
-        let item = Array.from(this.providers).find(o => o.id == symbolInfo.source);
-        if (!item)
+        let provider = this.providers.get(symbolInfo.source);
+        if (!provider)
             return;
-        let { provider } = item;
         if (typeof provider.resolveWorkspaceSymbol != 'function') {
             return Promise.resolve(symbolInfo);
         }
         return await Promise.resolve(provider.resolveWorkspaceSymbol(symbolInfo, token));
     }
+    hasProvider() {
+        return this.providers.size > 0;
+    }
     dispose() {
-        this.providers = new Set();
+        this.providers = new Map();
     }
 }
 exports.default = WorkspaceSymbolManager;
@@ -58025,7 +58046,7 @@ class DefaultErrorHandler {
         else {
             let diff = this.restarts[this.restarts.length - 1] - this.restarts[0];
             if (diff <= 3 * 60 * 1000) {
-                logger.error(`The ${this.name} server crashed 5 times in the last 3 minutes. The server will not be restarted.`);
+                workspace_1.default.showMessage(`The "${this.name}" server crashed 5 times in the last 3 minutes. The server will not be restarted.`, 'error');
                 return CloseAction.DoNotRestart;
             }
             else {
@@ -58679,26 +58700,18 @@ class WorkspaceFeature {
             throw new Error(`Register called on wrong feature. Requested ${message.method} but reached feature ${this.messages.method}`);
         }
         const registration = this.registerLanguageProvider(data.registerOptions);
-        this._registrations.set(data.id, { disposable: registration[0], provider: registration[1] });
+        this._registrations.set(data.id, registration);
     }
     unregister(id) {
         const registration = this._registrations.get(id);
-        if (registration) {
-            registration.disposable.dispose();
-        }
+        if (registration)
+            registration.dispose();
     }
     dispose() {
         this._registrations.forEach(value => {
-            value.disposable.dispose();
+            value.dispose();
         });
         this._registrations.clear();
-    }
-    getProviders() {
-        const result = [];
-        for (const registration of this._registrations.values()) {
-            result.push(registration.provider);
-        }
-        return result;
     }
 }
 class CompletionItemFeature extends TextDocumentFeature {
@@ -59062,7 +59075,7 @@ class WorkspaceSymbolFeature extends WorkspaceFeature {
                     : provideWorkspaceSymbols(query, token);
             }
         };
-        return [languages_1.default.registerWorkspaceSymbolProvider(this.documentSelector, provider), provider];
+        return languages_1.default.registerWorkspaceSymbolProvider(provider);
     }
 }
 class CodeActionFeature extends TextDocumentFeature {
@@ -68642,8 +68655,7 @@ class ListUI {
     async drawItems(items, name, listOptions, reload = false) {
         let { bufnr, config, nvim } = this;
         this.newTab = listOptions.position == 'tab';
-        let maxHeight = config.get('maxHeight', 12);
-        let height = Math.max(1, Math.min(items.length, maxHeight));
+        let height = this.calculateListHeight(items);
         let limitLines = config.get('limitLines', 30000);
         let curr = this.items[this.index];
         this.items = items.slice(0, limitLines);
@@ -68682,6 +68694,14 @@ class ListUI {
             return;
         await this.setLines(append.map(item => item.label), curr > 0, this.currIndex);
     }
+    calculateListHeight(items) {
+        let { config } = this;
+        let maxHeight = config.get('maxHeight', 10);
+        let minHeight = config.get('minHeight', 1);
+        let height = Math.min(Math.max(minHeight, items.length), maxHeight);
+        this.height = Math.max(1, height);
+        return this.height;
+    }
     async setLines(lines, append = false, index) {
         let { nvim, bufnr, window, config } = this;
         if (!bufnr || !window)
@@ -68694,9 +68714,7 @@ class ListUI {
             nvim.call('clearmatches', [], true);
         }
         if (resize) {
-            let maxHeight = config.get('maxHeight', 12);
-            let height = Math.max(1, Math.min(this.items.length, maxHeight));
-            this.height = height;
+            let height = this.calculateListHeight(this.items);
             nvim.call('coc#list#set_height', [height], true);
         }
         if (!append) {
@@ -72073,7 +72091,6 @@ class Handler {
         this.disposables = [];
         this.labels = {};
         this.selectionRange = null;
-        this.formatting = false;
         this.getPreferences();
         workspace_1.default.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('coc.preferences')) {
@@ -72760,11 +72777,10 @@ class Handler {
      * supportedSymbols must be string values of symbolKind
      */
     async selectSymbolRange(inner, visualmode, supportedSymbols) {
-        let { nvim } = this;
-        let bufnr = await nvim.eval('bufnr("%")');
-        let doc = workspace_1.default.getDocument(bufnr);
-        if (!doc)
+        let doc = await workspace_1.default.document;
+        if (!doc || !doc.attached)
             return;
+        await synchronizeDocument(doc);
         let range;
         if (visualmode) {
             range = await workspace_1.default.getSelectedRange(visualmode, doc);
@@ -72805,14 +72821,10 @@ class Handler {
             await workspace_1.default.selectRange(selectRange);
     }
     async tryFormatOnType(ch, bufnr, insertLeave = false) {
-        if (this.formatting)
-            return;
         if (!ch || string_1.isWord(ch) || !this.preferences.formatOnType)
             return;
-        if (manager_3.default.getSession(bufnr) != null)
-            return;
         let doc = workspace_1.default.getDocument(bufnr);
-        if (!doc)
+        if (!doc || !doc.attached)
             return;
         if (!languages_1.default.hasOnTypeProvider(ch, doc.textDocument))
             return;
@@ -72821,34 +72833,19 @@ class Handler {
             // Only check formatOnTypeFiletypes when set, avoid breaking change
             return;
         }
-        this.formatting = true;
         let position = await workspace_1.default.getCursorPosition();
         let origLine = doc.getline(position.line);
         let pos = insertLeave ? { line: position.line, character: origLine.length } : position;
-        try {
-            let { changedtick } = doc;
-            await synchronizeDocument(doc);
-            let edits = await languages_1.default.provideDocumentOnTypeEdits(ch, doc.textDocument, pos);
-            // changed by other process
-            if (doc.changedtick != changedtick || edits == null)
-                return;
-            if (insertLeave) {
-                edits = edits.filter(edit => edit.range.start.line < position.line + 1);
-            }
-            if (edits && edits.length) {
-                let changed = position_1.getChangedFromEdits(position, edits);
-                await doc.applyEdits(edits);
-                let to = changed ? vscode_languageserver_protocol_1.Position.create(position.line + changed.line, position.character + changed.character) : null;
-                if (to)
-                    await workspace_1.default.moveTo(to);
-            }
+        let { changedtick } = doc;
+        await synchronizeDocument(doc);
+        let edits = await languages_1.default.provideDocumentOnTypeEdits(ch, doc.textDocument, pos);
+        if (edits && edits.length && doc.changedtick == changedtick) {
+            let changed = position_1.getChangedFromEdits(position, edits);
+            await doc.applyEdits(edits);
+            let to = changed ? vscode_languageserver_protocol_1.Position.create(position.line + changed.line, position.character + changed.character) : null;
+            if (to)
+                await workspace_1.default.moveTo(to);
         }
-        catch (e) {
-            if (!/timeout\s/.test(e.message)) {
-                console.error(`Error on formatOnType: ${e.message}`);
-            }
-        }
-        this.formatting = false;
     }
     async triggerSignatureHelp(document, position) {
         if (this.signatureTokenSource) {
