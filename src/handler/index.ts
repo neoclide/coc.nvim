@@ -804,6 +804,7 @@ export default class Handler {
 
   private async tryFormatOnType(ch: string, bufnr: number, insertLeave = false): Promise<void> {
     if (!ch || isWord(ch) || !this.preferences.formatOnType) return
+    if (snippetManager.getSession(bufnr) != null) return
     let doc = workspace.getDocument(bufnr)
     if (!doc || !doc.attached) return
     if (!languages.hasOnTypeProvider(ch, doc.textDocument)) return
