@@ -23670,7 +23670,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "2407993395" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "f00e036800" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -72822,6 +72822,8 @@ class Handler {
     }
     async tryFormatOnType(ch, bufnr, insertLeave = false) {
         if (!ch || string_1.isWord(ch) || !this.preferences.formatOnType)
+            return;
+        if (manager_3.default.getSession(bufnr) != null)
             return;
         let doc = workspace_1.default.getDocument(bufnr);
         if (!doc || !doc.attached)
