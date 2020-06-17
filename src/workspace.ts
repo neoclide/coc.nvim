@@ -705,6 +705,7 @@ export class Workspace implements IWorkspace {
     if (preferences.get<boolean>('useQuickfixForLocations', false)) {
       await nvim.call('setqflist', [items])
       nvim.command('copen', true)
+      nvim.command('cfirst', true)
     } else {
       await nvim.setVar('coc_jump_locations', items)
       if (this.env.locationlist) {
