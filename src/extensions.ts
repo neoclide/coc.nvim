@@ -621,8 +621,12 @@ export class Extensions {
         let jsonFile = path.join(root, 'package.json')
         let content = await readFile(jsonFile, 'utf8')
         let obj = JSON.parse(content)
+        if (this.extensions.has(obj.name)) {
+          logger.info(`Extension "${obj.name}" in runtimepath already loaded.`)
+          return resolve(null)
+        }
         if (excludes.includes(obj.name)) {
-          workspace.showMessage(`Skipped load vim plugin from "${root}", "${obj.name}" already global extension.`, 'warning')
+          logger.info(`Skipped load vim plugin from "${root}", "${obj.name}" already global extension.`)
           return resolve(null)
         }
         let version = obj ? obj.version || '' : ''
