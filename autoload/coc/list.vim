@@ -167,7 +167,7 @@ endfunction
 function! coc#list#options(...)
   let list = ['--top', '--tab', '--normal', '--no-sort', '--input', '--strict',
         \ '--regex', '--interactive', '--number-select', '--auto-preview',
-        \ '--ignore-case', '--no-quit']
+        \ '--ignore-case', '--no-quit', '--first']
   if get(g:, 'coc_enabled', 0)
     let names = coc#rpc#request('listNames', [])
     call extend(list, names)
@@ -189,6 +189,7 @@ function! coc#list#stop_prompt(...)
   endif
   if s:activated
     let s:activated = 0
+    echo ""
     call feedkeys("\u26d4", 'int')
   endif
 endfunction
@@ -230,6 +231,7 @@ function! coc#list#setup(source)
   setl norelativenumber bufhidden=wipe cursorline winfixheight
   setl tabstop=1 nolist nocursorcolumn undolevels=-1
   setl signcolumn=auto
+  setl scrolloff=0
   if exists('&cursorlineopt')
     setl cursorlineopt=both
   endif

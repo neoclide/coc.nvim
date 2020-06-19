@@ -23670,7 +23670,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f00e036800" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "475932ddf5" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -41840,8 +41840,12 @@ class Extensions {
                 let jsonFile = path_1.default.join(root, 'package.json');
                 let content = await fs_2.readFile(jsonFile, 'utf8');
                 let obj = JSON.parse(content);
+                if (this.extensions.has(obj.name)) {
+                    logger.info(`Extension "${obj.name}" in runtimepath already loaded.`);
+                    return resolve(null);
+                }
                 if (excludes.includes(obj.name)) {
-                    workspace_1.default.showMessage(`Skipped load vim plugin from "${root}", "${obj.name}" already global extension.`, 'warning');
+                    logger.info(`Skipped load vim plugin from "${root}", "${obj.name}" already global extension.`);
                     return resolve(null);
                 }
                 let version = obj ? obj.version || '' : '';
@@ -61586,10 +61590,13 @@ class ListManager {
         }, 100), null, this.disposables);
         this.ui.onDidChangeLine(this.resolveItem, this, this.disposables);
         this.ui.onDidLineChange(this.resolveItem, this, this.disposables);
-        this.ui.onDidOpen(() => {
+        this.ui.onDidOpen(async () => {
             if (this.currList) {
                 if (typeof this.currList.doHighlight == 'function') {
                     this.currList.doHighlight();
+                }
+                if (this.listOptions.first) {
+                    await this.doAction();
                 }
             }
         }, null, this.disposables);
@@ -61712,7 +61719,7 @@ class ListManager {
         await ui.echoMessage(item);
     }
     async cancel(close = true) {
-        let { nvim, ui, savedHeight } = this;
+        let { nvim, ui, savedHeight, window } = this;
         if (!this.activated) {
             nvim.call('coc#list#stop_prompt', [], true);
             return;
@@ -61725,10 +61732,11 @@ class ListManager {
         this.prompt.cancel();
         if (close) {
             ui.hide();
-            if (this.window) {
-                nvim.call('coc#list#restore', [this.window.id, savedHeight], true);
+            if (window) {
+                nvim.call('coc#list#restore', [window.id, savedHeight], true);
             }
         }
+        nvim.command('redraw', true);
         await nvim.resumeNotification();
     }
     switchMatcher() {
@@ -61806,6 +61814,7 @@ class ListManager {
         let autoPreview = false;
         let numberSelect = false;
         let noQuit = false;
+        let first = false;
         let name;
         let input = '';
         let matcher = 'fuzzy';
@@ -61861,6 +61870,9 @@ class ListManager {
             else if (opt == '--ignore-case' || opt == '--normal' || opt == '--no-sort') {
                 options.push(opt.slice(2));
             }
+            else if (opt == '--first') {
+                first = true;
+            }
             else if (opt == '--no-quit') {
                 noQuit = true;
             }
@@ -61885,6 +61897,7 @@ class ListManager {
                 numberSelect,
                 autoPreview,
                 noQuit,
+                first,
                 input,
                 interactive,
                 matcher,
@@ -62230,7 +62243,7 @@ class ListManager {
                     await Promise.resolve(action.execute(item, this.context));
                 }
             }
-            if (persist) {
+            if (persist || noQuit) {
                 this.prompt.start();
                 this.ui.restoreWindow();
                 if (action.reload)
@@ -62259,8 +62272,11 @@ class ListManager {
     }
     get defaultAction() {
         let { currList } = this;
-        let { defaultAction } = currList;
-        return currList.actions.find(o => o.name == defaultAction);
+        let { defaultAction, actions } = currList;
+        let action = actions.find(o => o.name == defaultAction);
+        if (!action)
+            throw new Error(`default action "${defaultAction}" not found`);
+        return action;
     }
 }
 exports.ListManager = ListManager;
@@ -62690,12 +62706,13 @@ class Mappings {
     async doInsertKeymap(key) {
         let nextKey = this.config.nextKey;
         let previousKey = this.config.previousKey;
+        let { ui } = this.manager;
         if (key == nextKey) {
-            await this.manager.normal('j');
+            ui.index = ui.index + 1;
             return true;
         }
         if (key == previousKey) {
-            await this.manager.normal('k');
+            ui.index = ui.index - 1;
             return true;
         }
         let expr = this.userInsertMappings.get(key);
@@ -62922,8 +62939,6 @@ class Prompt {
     }
     cancel() {
         let { nvim } = this;
-        nvim.command('echo ""', true);
-        nvim.command('redraw', true);
         nvim.call('coc#list#stop_prompt', [], true);
     }
     reset() {
@@ -68536,12 +68551,11 @@ class ListUI {
         this.window = null;
     }
     hide() {
-        let { bufnr, window, nvim } = this;
+        let { window, nvim } = this;
         if (window) {
+            this._bufnr = 0;
+            this.window = null;
             nvim.call('coc#util#close', [window.id], true);
-        }
-        if (bufnr) {
-            nvim.command(`silent! bd! ${bufnr}`, true);
         }
     }
     async resume(name, listOptions) {
@@ -68739,9 +68753,12 @@ class ListUI {
             let height = this.newTab ? workspace_1.default.env.lines : this.height;
             this.doHighlight(Math.max(0, index - height), Math.min(index + height + 1, this.length - 1));
         }
-        if (!append)
+        if (!append) {
+            this.currIndex = index;
             window.notify('nvim_win_set_cursor', [[index + 1, 0]]);
-        this._onDidChange.fire();
+        }
+        if (!append)
+            this._onDidChange.fire();
         if (workspace_1.default.isVim)
             nvim.command('redraw', true);
         let res = await nvim.resumeNotification();
