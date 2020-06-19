@@ -325,7 +325,7 @@ function! coc#util#job_command()
   if (has_key(g:, 'coc_node_path'))
     let node = expand(g:coc_node_path)
   else
-    let node = 'node'
+    let node = $COC_NODE_PATH == '' ? 'node' : $COC_NODE_PATH
   endif
   if !executable(node)
     echohl Error | echom '[coc.nvim] "'.node.'" is not executable, checkout https://nodejs.org/en/download/' | echohl None
