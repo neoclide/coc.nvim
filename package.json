@@ -85,7 +85,7 @@
     "debounce": "^1.2.0",
     "fast-diff": "^1.2.0",
     "fb-watchman": "^2.0.1",
-    "follow-redirects": "^1.11.0",
+    "follow-redirects": "^1.12.1",
     "glob": "^7.1.6",
     "http-proxy-agent": "^4.0.1",
     "https-proxy-agent": "^5.0.0",
