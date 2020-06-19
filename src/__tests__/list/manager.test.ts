@@ -1,4 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
+import path from 'path'
 import manager from '../../list/manager'
 import { QuickfixItem, IList } from '../../types'
 import helper from '../helper'
@@ -77,6 +78,17 @@ describe('list commands', () => {
     expect(ids).toContain(winnr)
   })
 
+  it('should do default action for first item', async () => {
+    await manager.start(['--normal', '--first', 'location'])
+    await helper.wait(100)
+    let name = await nvim.eval('bufname("%")') as string
+    let filename = path.basename(__filename)
+    expect(name.includes(filename)).toBe(true)
+    let pos = await nvim.eval('getcurpos()')
+    expect(pos[1]).toBe(1)
+    expect(pos[2]).toBe(2)
+  })
+
   it('should goto next & previous', async () => {
     await manager.start(['location'])
     await helper.wait(100)
@@ -100,6 +112,7 @@ describe('list commands', () => {
     expect(opts).toEqual({
       numberSelect: true,
       autoPreview: true,
+      first: false,
       input: 'test',
       interactive: false,
       matcher: 'strict',

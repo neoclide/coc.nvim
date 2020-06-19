@@ -834,6 +834,7 @@ export interface ListOptions {
   autoPreview: boolean
   numberSelect: boolean
   noQuit: boolean
+  first: boolean
 }
 
 export interface ListContext {

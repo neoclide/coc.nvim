@@ -62,8 +62,6 @@ export default class Prompt {
 
   public cancel(): void {
     let { nvim } = this
-    nvim.command('echo ""', true)
-    nvim.command('redraw', true)
     nvim.call('coc#list#stop_prompt', [], true)
   }
 

@@ -2434,6 +2434,11 @@ Command options						*coc-list-options*
 
 	Note: you may need to refresh the list for current state.
 
+--first
+
+	Invoke default action for first list item on list open.
+	Nothing happens when the list is empty.
+
 ------------------------------------------------------------------------------
 
 LIST CONFIGURATION					*coc-list-configuration*

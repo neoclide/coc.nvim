@@ -146,12 +146,13 @@ export default class Mappings {
   public async doInsertKeymap(key: string): Promise<boolean> {
     let nextKey = this.config.nextKey
     let previousKey = this.config.previousKey
+    let { ui } = this.manager
     if (key == nextKey) {
-      await this.manager.normal('j')
+      ui.index = ui.index + 1
       return true
     }
     if (key == previousKey) {
-      await this.manager.normal('k')
+      ui.index = ui.index - 1
       return true
     }
     let expr = this.userInsertMappings.get(key)

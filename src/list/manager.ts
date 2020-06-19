@@ -98,10 +98,13 @@ export class ListManager implements Disposable {
     }, 100), null, this.disposables)
     this.ui.onDidChangeLine(this.resolveItem, this, this.disposables)
     this.ui.onDidLineChange(this.resolveItem, this, this.disposables)
-    this.ui.onDidOpen(() => {
+    this.ui.onDidOpen(async () => {
       if (this.currList) {
         if (typeof this.currList.doHighlight == 'function') {
           this.currList.doHighlight()
+        }
+        if (this.listOptions.first) {
+          await this.doAction()
         }
       }
     }, null, this.disposables)
@@ -221,7 +224,7 @@ export class ListManager implements Disposable {
   }
 
   public async cancel(close = true): Promise<void> {
-    let { nvim, ui, savedHeight } = this
+    let { nvim, ui, savedHeight, window } = this
     if (!this.activated) {
       nvim.call('coc#list#stop_prompt', [], true)
       return
@@ -234,10 +237,11 @@ export class ListManager implements Disposable {
     this.prompt.cancel()
     if (close) {
       ui.hide()
-      if (this.window) {
-        nvim.call('coc#list#restore', [this.window.id, savedHeight], true)
+      if (window) {
+        nvim.call('coc#list#restore', [window.id, savedHeight], true)
       }
     }
+    nvim.command('redraw', true)
     await nvim.resumeNotification()
   }
 
@@ -316,6 +320,7 @@ export class ListManager implements Disposable {
     let autoPreview = false
     let numberSelect = false
     let noQuit = false
+    let first = false
     let name: string
     let input = ''
     let matcher: Matcher = 'fuzzy'
@@ -358,6 +363,8 @@ export class ListManager implements Disposable {
         position = 'tab'
       } else if (opt == '--ignore-case' || opt == '--normal' || opt == '--no-sort') {
         options.push(opt.slice(2))
+      } else if (opt == '--first') {
+        first = true
       } else if (opt == '--no-quit') {
         noQuit = true
       } else {
@@ -381,6 +388,7 @@ export class ListManager implements Disposable {
         numberSelect,
         autoPreview,
         noQuit,
+        first,
         input,
         interactive,
         matcher,
@@ -729,7 +737,7 @@ export class ListManager implements Disposable {
           await Promise.resolve(action.execute(item, this.context))
         }
       }
-      if (persist) {
+      if (persist || noQuit) {
         this.prompt.start()
         this.ui.restoreWindow()
         if (action.reload) await this.worker.loadItems(true)
@@ -756,8 +764,10 @@ export class ListManager implements Disposable {
 
   private get defaultAction(): ListAction {
     let { currList } = this
-    let { defaultAction } = currList
-    return currList.actions.find(o => o.name == defaultAction)
+    let { defaultAction, actions } = currList
+    let action = actions.find(o => o.name == defaultAction)
+    if (!action) throw new Error(`default action "${defaultAction}" not found`)
+    return action
   }
 }
 

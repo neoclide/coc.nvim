@@ -192,12 +192,11 @@ export default class ListUI {
   }
 
   public hide(): void {
-    let { bufnr, window, nvim } = this
+    let { window, nvim } = this
     if (window) {
+      this._bufnr = 0
+      this.window = null
       nvim.call('coc#util#close', [window.id], true)
-    }
-    if (bufnr) {
-      nvim.command(`silent! bd! ${bufnr}`, true)
     }
   }
 
@@ -394,8 +393,12 @@ export default class ListUI {
       let height = this.newTab ? workspace.env.lines : this.height
       this.doHighlight(Math.max(0, index - height), Math.min(index + height + 1, this.length - 1))
     }
-    if (!append) window.notify('nvim_win_set_cursor', [[index + 1, 0]])
-    this._onDidChange.fire()
+    if (!append) {
+      this.currIndex = index
+      window.notify('nvim_win_set_cursor', [[index + 1, 0]])
+    }
+    if (!append)
+      this._onDidChange.fire()
     if (workspace.isVim) nvim.command('redraw', true)
     let res = await nvim.resumeNotification()
     if (res[1]) logger.error(res[1])
