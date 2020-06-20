@@ -781,6 +781,9 @@ Built-in configurations:~
 	- "disableWorkspaceFolders": Disable workspaceFolders feature for this
 	  languageserver.
 
+	- "disableSnippetCompletion": Disable snippet completion feature for
+	  this languageserver.
+
 	- "disableDiagnostics": Disable handle diagnostics for this
 	  languageserver.
 

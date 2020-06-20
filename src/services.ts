@@ -392,10 +392,12 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
     })
   }
   let disableWorkspaceFolders = !!config.disableWorkspaceFolders
+  let disableSnippetCompletion = !!config.disableSnippetCompletion
   let ignoredRootPaths = config.ignoredRootPaths || []
   let clientOptions: LanguageClientOptions = {
     ignoredRootPaths: ignoredRootPaths.map(s => workspace.expand(s)),
     disableWorkspaceFolders,
+    disableSnippetCompletion,
     disableDynamicRegister: !!config.disableDynamicRegister,
     disableCompletion: !!config.disableCompletion,
     disableDiagnostics: !!config.disableDiagnostics,

@@ -25,6 +25,11 @@
           "default": false,
           "description": "Disable workspaceFolders feature for this languageserver."
         },
+        "disableSnippetCompletion": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable completion snippet feature for this languageserver, the languageserver may not respect it."
+        },
         "disableDiagnostics": {
           "type": "boolean",
           "default": false,
@@ -127,6 +132,7 @@
           "description": "Host of server"
         },
         "disableWorkspaceFolders": {},
+        "disableSnippetCompletion": {},
         "disableDynamicRegister": {},
         "disableDiagnostics": {},
         "disableCompletion": {},
@@ -191,6 +197,7 @@
         "enable": {},
         "disableDynamicRegister": {},
         "disableWorkspaceFolders": {},
+        "disableSnippetCompletion": {},
         "disableDiagnostics": {},
         "disableCompletion": {},
         "rootPatterns": {},
@@ -240,6 +247,7 @@
         "enable": {},
         "disableDynamicRegister": {},
         "disableWorkspaceFolders": {},
+        "disableSnippetCompletion": {},
         "disableDiagnostics": {},
         "disableCompletion": {},
         "rootPatterns": {},
