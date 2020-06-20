@@ -65,7 +65,7 @@
     "@typescript-eslint/eslint-plugin-tslint": "^2.33.0",
     "@typescript-eslint/parser": "^2.33.0",
     "colors": "^1.4.0",
-    "eslint": "^7.0.0",
+    "eslint": "^7.3.0",
     "eslint-config-prettier": "^6.11.0",
     "eslint-plugin-jest": "^23.10.0",
     "eslint-plugin-jsdoc": "^25.0.1",
