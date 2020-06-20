@@ -23670,7 +23670,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "475932ddf5" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "75b3100777" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -54078,7 +54078,7 @@ function createExtension(id, filename, isEmpty = false) {
             activate: () => { },
             deactivate: null
         };
-    const sandbox = createSandbox(filename, createLogger(`extension-${id}`));
+    const sandbox = createSandbox(filename, createLogger(`extension:${id}`));
     delete Module._cache[requireFunc.resolve(filename)];
     // attempt to import plugin
     // Require plugin to export activate & deactivate
@@ -56028,8 +56028,6 @@ class WorkspaceSymbolManager {
         let res = [];
         await Promise.all(entries.map(o => {
             let [id, p] = o;
-            console.log(id);
-            console.log(p);
             return Promise.resolve(p.provideWorkspaceSymbols(query, token)).then(item => {
                 item.source = id;
                 res.push(...item);
@@ -61575,19 +61573,23 @@ class ListManager {
         this.ui.onDidChangeLine(debounce_1.default(async () => {
             if (!this.activated)
                 return;
-            let previewing = await nvim.call('coc#util#has_preview');
-            let mode = await this.nvim.mode;
-            if (mode.blocking || mode.mode != 'n')
+            let [previewing, mode] = await nvim.eval('[coc#util#has_preview(),mode()]');
+            if (!previewing || mode != 'n')
                 return;
             if (previewing)
                 await this.doAction('preview');
-        }, 100), null, this.disposables);
+        }, 50), null, this.disposables);
         this.ui.onDidLineChange(debounce_1.default(async () => {
-            let { autoPreview } = this.listOptions;
-            if (!autoPreview || !this.activated)
+            if (!this.activated)
                 return;
+            let { autoPreview } = this.listOptions;
+            if (!autoPreview) {
+                let [previewing, mode] = await nvim.eval('[coc#util#has_preview(),mode()]');
+                if (!previewing || mode != 'n')
+                    return;
+            }
             await this.doAction('preview');
-        }, 100), null, this.disposables);
+        }, 50), null, this.disposables);
         this.ui.onDidChangeLine(this.resolveItem, this, this.disposables);
         this.ui.onDidLineChange(this.resolveItem, this, this.disposables);
         this.ui.onDidOpen(async () => {
@@ -61721,7 +61723,7 @@ class ListManager {
     async cancel(close = true) {
         let { nvim, ui, savedHeight, window } = this;
         if (!this.activated) {
-            nvim.call('coc#list#stop_prompt', [], true);
+            await nvim.call('coc#list#stop_prompt', []);
             return;
         }
         this.activated = false;
@@ -61821,6 +61823,7 @@ class ListManager {
         let position = 'bottom';
         let listArgs = [];
         let listOptions = [];
+        let noResize = false;
         for (let arg of args) {
             if (!name && arg.startsWith('-')) {
                 listOptions.push(arg);
@@ -61876,6 +61879,9 @@ class ListManager {
             else if (opt == '--no-quit') {
                 noQuit = true;
             }
+            else if (opt == '--no-resize') {
+                noResize = true;
+            }
             else {
                 workspace_1.default.showMessage(`Invalid option "${opt}" of list`, 'error');
                 return null;
@@ -61896,6 +61902,7 @@ class ListManager {
             options: {
                 numberSelect,
                 autoPreview,
+                noResize,
                 noQuit,
                 first,
                 input,
@@ -62157,7 +62164,7 @@ class ListManager {
                 type: 'string',
                 enum: ['--top', '--normal', '--no-sort', '--input', '--tab',
                     '--strict', '--regex', '--ignore-case', '--number-select',
-                    '--interactive', '--auto-preview']
+                    '--interactive', '--auto-preview', '--first', '--no-quit', '--no-resize']
             }
         });
         extensions_1.default.addSchemeProperty(`list.source.${name}.defaultArgs`, {
@@ -62218,20 +62225,22 @@ class ListManager {
         if (this.executing)
             return;
         let { noQuit } = this.listOptions;
+        let { nvim } = this;
         this.executing = true;
         let persist = this.isActivated && (action.persist === true || action.name == 'preview');
         noQuit = noQuit && this.isActivated;
         try {
             if (!persist) {
                 if (noQuit) {
-                    this.nvim.call('coc#list#stop_prompt', [], true);
-                    this.nvim.call('win_gotoid', [this.context.window.id], true);
+                    nvim.pauseNotification();
+                    nvim.call('coc#list#stop_prompt', [], true);
+                    nvim.call('win_gotoid', [this.context.window.id], true);
+                    await nvim.resumeNotification();
                 }
                 else {
                     await this.cancel();
                 }
             }
-            await this.nvim.command('stopinsert');
             if (action.multiple) {
                 await Promise.resolve(action.execute(items, this.context));
             }
@@ -62243,9 +62252,15 @@ class ListManager {
                     await Promise.resolve(action.execute(item, this.context));
                 }
             }
-            if (persist || noQuit) {
+            if (persist) {
+                nvim.pauseNotification();
                 this.prompt.start();
                 this.ui.restoreWindow();
+                await nvim.resumeNotification();
+                if (action.reload)
+                    await this.worker.loadItems(true);
+            }
+            else if (noQuit) {
                 if (action.reload)
                     await this.worker.loadItems(true);
             }
@@ -68382,6 +68397,7 @@ class ListUI {
         this.nvim = nvim;
         this.config = config;
         this.newTab = false;
+        this.noResize = false;
         this._bufnr = 0;
         this.currIndex = 0;
         this.highlights = [];
@@ -68417,11 +68433,7 @@ class ListUI {
                 clearTimeout(timer);
             if (bufnr != this.bufnr)
                 return;
-            let lnum = cursor[0];
-            if (this.currIndex + 1 != lnum) {
-                this.currIndex = lnum - 1;
-                this._onDidChangeLine.fire(lnum);
-            }
+            this.onLineChange(cursor[0] - 1);
         }, null, this.disposables);
         events_1.default.on('CursorMoved', debounce(async (bufnr) => {
             if (bufnr != this.bufnr)
@@ -68435,10 +68447,16 @@ class ListUI {
             await nvim.resumeNotification(false, true);
         }, 100));
     }
+    onLineChange(index) {
+        if (this.currIndex != index) {
+            this.currIndex = index;
+            this._onDidChangeLine.fire(index);
+        }
+    }
     set index(n) {
         if (n < 0 || n >= this.items.length)
             return;
-        this.currIndex = n;
+        this.onLineChange(n);
         if (this.window) {
             let { nvim } = this;
             nvim.pauseNotification();
@@ -68667,11 +68685,13 @@ class ListUI {
         return Promise.reject(new Error('Not creating list'));
     }
     async drawItems(items, name, listOptions, reload = false) {
+        var _a, _b;
         let { bufnr, config, nvim } = this;
         this.newTab = listOptions.position == 'tab';
+        this.noResize = listOptions.noResize;
+        let prevLabel = (_a = this.items[this.currIndex]) === null || _a === void 0 ? void 0 : _a.label;
         let height = this.calculateListHeight(items);
         let limitLines = config.get('limitLines', 30000);
-        let curr = this.items[this.index];
         this.items = items.slice(0, limitLines);
         if (bufnr == 0 && !this.creating) {
             this.creating = true;
@@ -68687,10 +68707,11 @@ class ListUI {
         }
         let lines = this.items.map(item => item.label);
         this.clearSelection();
-        await this.setLines(lines, false, reload ? this.currIndex : 0);
-        let item = this.items[this.index] || { label: '' };
-        if (!curr || curr.label != item.label) {
-            this._onDidLineChange.fire(this.index + 1);
+        let newIndex = reload ? this.currIndex : 0;
+        await this.setLines(lines, false, newIndex);
+        let currLabel = (_b = this.items[newIndex]) === null || _b === void 0 ? void 0 : _b.label;
+        if (currLabel != prevLabel) {
+            this._onDidLineChange.fire(this.currIndex + 1);
         }
     }
     async appendItems(items) {
@@ -68721,6 +68742,8 @@ class ListUI {
         if (!bufnr || !window)
             return;
         let resize = !this.newTab && config.get('autoResize', true);
+        if (this.noResize === true)
+            resize = false;
         let buf = nvim.createBuffer(bufnr);
         nvim.pauseNotification();
         nvim.call('win_gotoid', window.id, true);

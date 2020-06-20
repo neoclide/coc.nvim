@@ -20,6 +20,7 @@ Interface					|coc-interface|
   Highlights					|coc-highlights|
 List						|coc-list|
   List command					|coc-list-command|
+  List command options 				|coc-list-options|
   List configuration				|coc-list-configuration|
   List mappings					|coc-list-mappings|
   list sources					|coc-list-sources|
@@ -525,6 +526,10 @@ Built-in configurations:~
 "list.maxHeight":~
 
 	Maximum height of list window, default: `10`
+
+"list.minHeight":~
+
+	Minimum height of list windows, default: `1`
 
 "list.signOffset":~
 
@@ -2357,6 +2362,8 @@ LIST COMMAND						*coc-list-command*
 
 		See |coc-list-options| for available list options,
 
+		Also check |coc-config-list| for list configuration.
+
 		{args} are sent to source during the fetching of list.
 		Press `?` on normal mode to get supported {args} of current
 		list.
@@ -2380,7 +2387,8 @@ LIST COMMAND						*coc-list-command*
 
 		Doesn't open the list window if it's closed.
 
-Command options						*coc-list-options*
+							*coc-list-options*
+Options of CocList command~
 
 --top
 	Show list as top window.
@@ -2428,6 +2436,11 @@ Command options						*coc-list-options*
 -A
 	Start a preview for the current item on the visible list.
 
+--no-resize
+
+	Disable resize of list window, override `list.autoResize`
+	configuration.
+
 --no-quit
 
 	Not quit list session after do action.
@@ -2445,8 +2458,10 @@ LIST CONFIGURATION					*coc-list-configuration*
 
 Use `coc-settings.json` for configuration of lists.
 
-The general configuration of list starts with `list.` checkout
-|coc-configuration| or type `list.` in your settings file to get the list.
+The general configuration of list starts with 'list.'.
+
+Checkout |coc-config-list| or type `list.` in your settings file to get completion
+list.
 
 For configuration of a specified list, use section that starts with:
 `list.source.{name}`, where `{name}` is the name of list.
@@ -2458,11 +2473,11 @@ Use `list.source.{name}.defaultOptions` setting like: >
 	// make symbols list use normal mode and interactive by default
 	"list.source.symbols.defaultOptions": ["--interactive", "--number-select"],
 <
-	Note: some list like symbols only work in interactive mode, you must
-	include `--interactive` to `defaultOptions`.
+Note: some list like symbols only work in interactive mode, you must
+include `--interactive` to `defaultOptions`.
 
-Note: default options will not be used when there're options or arguments
-passed with |:CocList| command.
+Note: default options will not be used when there're options passed
+with |:CocList| command.
 
 Config default arguments:~
 
@@ -2474,7 +2489,7 @@ Use `list.source.{name}.defaultArgs` setting like: >
 Note: default arguments used only when arguments from |:CocList| command is
 empty.
 
-Type `?` on normal mode to get supported arguments.
+Note: Type `?` on normal mode to get supported arguments of current list.
 
 ------------------------------------------------------------------------------
 
