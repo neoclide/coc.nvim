@@ -113,14 +113,6 @@ describe('snippet provider', () => {
     expect(snippetManager.session).toBeNull()
   })
 
-  it('should dispose', async () => {
-    await helper.createDocument()
-    let active = await snippetManager.insertSnippet('${1:foo}')
-    expect(active).toBe(true)
-    snippetManager.dispose()
-    expect(snippetManager.session).toBe(null)
-  })
-
   it('should start new session if session exists', async () => {
     await helper.createDocument()
     await nvim.setLine('bar')
@@ -193,8 +185,24 @@ describe('snippet provider', () => {
     expect(jumpable).toBe(false)
   })
 
-  it('should check plain text snippet', async () => {
-    expect(snippetManager.isPlainText('import ${0}')).toBe(true)
-    expect(snippetManager.isPlainText('import ${0:Data}')).toBe(false)
+  it('should synchronize text on change final placeholder', async () => {
+    let doc = await helper.createDocument()
+    await nvim.command('startinsert')
+    let res = await snippetManager.insertSnippet('$0empty$0')
+    expect(res).toBe(true)
+    await nvim.input('abc')
+    await nvim.input('<esc>')
+    await helper.wait(200)
+    await doc.patchChange()
+    let line = await nvim.line
+    expect(line).toBe('abcemptyabc')
+  })
+
+  it('should dispose', async () => {
+    await helper.createDocument()
+    let active = await snippetManager.insertSnippet('${1:foo}')
+    expect(active).toBe(true)
+    snippetManager.dispose()
+    expect(snippetManager.session).toBe(null)
   })
 })

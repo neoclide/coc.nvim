@@ -626,9 +626,6 @@ class Languages {
         if (vimItem.line) Object.assign(opt, { line: vimItem.line })
         try {
           let isSnippet = await this.applyTextEdit(item, opt)
-          if (isSnippet && snippetManager.isPlainText(item.textEdit.newText)) {
-            isSnippet = false
-          }
           let { additionalTextEdits } = item
           if (additionalTextEdits && item.textEdit) {
             let r = item.textEdit.range

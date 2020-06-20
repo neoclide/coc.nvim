@@ -61,7 +61,7 @@ export class SnippetSession {
     await document.applyEdits([edit])
     this.applying = false
     if (this._isActive) {
-      // insert check
+      // find valid placeholder
       let placeholder = this.findPlaceholder(range)
       // insert to placeholder
       if (placeholder && !placeholder.isFinalTabstop) {
@@ -137,7 +137,7 @@ export class SnippetSession {
       this.deactivate()
       return
     }
-    if (placeholder.isFinalTabstop) {
+    if (placeholder.isFinalTabstop && snippet.finalCount <= 1) {
       logger.info('Change final placeholder, cancelling snippet session')
       this.deactivate()
       return
@@ -167,12 +167,14 @@ export class SnippetSession {
     this._currId = placeholder.id
     if (placeholder.choice) {
       await nvim.call('coc#snippet#show_choices', [start.line + 1, col, len, placeholder.choice])
+      if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)
     } else {
-      await this.select(placeholder.range, placeholder.value, triggerAutocmd)
+      await this.select(placeholder, triggerAutocmd)
     }
   }
 
-  private async select(range: Range, text: string, triggerAutocmd = true): Promise<void> {
+  private async select(placeholder: CocSnippetPlaceholder, triggerAutocmd = true): Promise<void> {
+    let { range, value, isFinalTabstop } = placeholder
     let { document, nvim } = this
     let { start, end } = range
     let { textDocument } = document
@@ -182,7 +184,7 @@ export class SnippetSession {
     let endLine = document.getline(end.line)
     let endCol = endLine ? byteLength(endLine.slice(0, end.character)) : 0
     nvim.setVar('coc_last_placeholder', {
-      current_text: text,
+      current_text: value,
       start: { line: start.line, col },
       end: { line: end.line, col: endCol }
     }, true)
@@ -193,7 +195,7 @@ export class SnippetSession {
       await nvim.eval(`feedkeys("${pre}\\<C-y>", 'in')`)
       return
     }
-    let resetVirtualEdit = false
+    // create move cmd
     if (mode != 'n') move_cmd += "\\<Esc>"
     if (len == 0) {
       if (col == 0 || (!mode.startsWith('i') && col < byteLength(line))) {
@@ -219,16 +221,21 @@ export class SnippetSession {
       move_cmd += `o${start.line + 1}G${col + 1}|o\\<c-g>`
     }
     nvim.pauseNotification()
-    if (ve != 'onemore') {
-      resetVirtualEdit = true
-      nvim.setOption('virtualedit', 'onemore', true)
-    }
-    nvim.command(`noa call cursor(${start.line + 1},${col + (move_cmd == 'a' ? 0 : 1)})`, true)
+    nvim.setOption('virtualedit', 'onemore', true)
+    nvim.call('cursor', [start.line + 1, col + (move_cmd == 'a' ? 0 : 1)], true)
     nvim.call('eval', [`feedkeys("${move_cmd}", 'in')`], true)
-    if (resetVirtualEdit) nvim.setOption('virtualedit', ve, true)
+    nvim.setOption('virtualedit', ve, true)
+    if (isFinalTabstop) {
+      if (this.snippet.finalCount == 1) {
+        logger.info('Jump to final placeholder, cancelling snippet session')
+        this.deactivate()
+      } else {
+        nvim.call('coc#snippet#disable', [], true)
+      }
+    }
     if (workspace.env.isVim) nvim.command('redraw', true)
     await nvim.resumeNotification()
-    if (triggerAutocmd) nvim.command('silent doautocmd User CocJumpPlaceholder', true)
+    if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)
   }
 
   private async getVirtualCol(line: number, col: number): Promise<number> {

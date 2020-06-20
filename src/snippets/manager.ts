@@ -1,9 +1,8 @@
-import { DidChangeTextDocumentParams, Disposable, Range } from 'vscode-languageserver-protocol'
+import { Disposable, Range } from 'vscode-languageserver-protocol'
 import events from '../events'
 import * as types from '../types'
 import workspace from '../workspace'
 import * as Snippets from "./parser"
-import { SnippetParser } from './parser'
 import { SnippetSession } from './session'
 import { SnippetVariableResolver } from './variableResolve'
 const logger = require('../util/logger')('snippets-manager')
@@ -14,12 +13,9 @@ export class SnippetManager implements types.SnippetManager {
   private statusItem: types.StatusBarItem
 
   constructor() {
-    workspace.onDidChangeTextDocument(async (e: DidChangeTextDocumentParams) => {
-      let { uri } = e.textDocument
-      let doc = workspace.getDocument(uri)
-      if (!doc) return
-      let session = this.getSession(doc.bufnr)
-      if (session && session.isActive) {
+    workspace.onDidChangeTextDocument(async (e: types.DidChangeTextDocumentParams) => {
+      let session = this.getSession(e.bufnr)
+      if (session) {
         await session.synchronizeUpdatedPlaceholders(e.contentChanges[0])
       }
     }, null, this.disposables)
@@ -77,14 +73,6 @@ export class SnippetManager implements types.SnippetManager {
       session.deactivate()
     }
     return isActive
-  }
-
-  public isPlainText(text: string): boolean {
-    let snippet = (new SnippetParser()).parse(text, true)
-    if (snippet.placeholders.every(p => p.isFinalTabstop && p.toString() == '')) {
-      return true
-    }
-    return false
   }
 
   public async selectCurrentPlaceholder(triggerAutocmd = true): Promise<void> {

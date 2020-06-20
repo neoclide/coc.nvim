@@ -63,7 +63,12 @@ export class CocSnippet {
   }
 
   public get isPlainText(): boolean {
-    return this._placeholders.every(p => p.isFinalTabstop && p.value == '')
+    if (this._placeholders.length > 1) return false
+    return this._placeholders.every(o => o.value == '')
+  }
+
+  public get finalCount(): number {
+    return this._placeholders.filter(o => o.isFinalTabstop).length
   }
 
   public toString(): string {
