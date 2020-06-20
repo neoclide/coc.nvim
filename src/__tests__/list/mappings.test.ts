@@ -70,6 +70,8 @@ const lineList: IList = {
   }
 }
 
+jest.setTimeout(5000)
+
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
@@ -463,7 +465,7 @@ describe('User mappings', () => {
     expect(manager.isActivated).toBe(false)
     await manager.start(['location'])
     await nvim.eval('feedkeys("\\<C-q>", "in")')
-    await helper.wait(100)
+    await helper.wait(30)
     expect(manager.isActivated).toBe(false)
     await manager.start(['location'])
     await nvim.eval('feedkeys("?", "in")')

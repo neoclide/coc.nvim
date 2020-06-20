@@ -120,6 +120,7 @@ describe('list commands', () => {
       position: 'top',
       mode: 'normal',
       noQuit: false,
+      noResize: false,
       sort: false
     })
   })
