@@ -23670,7 +23670,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "75b3100777" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d351d5da8b" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -57343,10 +57343,12 @@ function getLanguageServerOptions(id, name, config) {
         });
     }
     let disableWorkspaceFolders = !!config.disableWorkspaceFolders;
+    let disableSnippetCompletion = !!config.disableSnippetCompletion;
     let ignoredRootPaths = config.ignoredRootPaths || [];
     let clientOptions = {
         ignoredRootPaths: ignoredRootPaths.map(s => workspace_1.default.expand(s)),
         disableWorkspaceFolders,
+        disableSnippetCompletion,
         disableDynamicRegister: !!config.disableDynamicRegister,
         disableCompletion: !!config.disableCompletion,
         disableDiagnostics: !!config.disableDiagnostics,
@@ -58721,11 +58723,12 @@ class CompletionItemFeature extends TextDocumentFeature {
         super(client, vscode_languageserver_protocol_1.CompletionRequest.type);
     }
     fillClientCapabilities(capabilites) {
+        let snippetSupport = this._client.clientOptions.disableSnippetCompletion !== true;
         let completion = ensure(ensure(capabilites, 'textDocument'), 'completion');
         completion.dynamicRegistration = true;
         completion.contextSupport = true;
         completion.completionItem = {
-            snippetSupport: true,
+            snippetSupport,
             commitCharactersSupport: true,
             documentationFormat: [vscode_languageserver_protocol_1.MarkupKind.Markdown, vscode_languageserver_protocol_1.MarkupKind.PlainText],
             deprecatedSupport: true,
@@ -59682,6 +59685,7 @@ class BaseLanguageClient {
         }
         this._clientOptions = {
             disableWorkspaceFolders: clientOptions.disableWorkspaceFolders,
+            disableSnippetCompletion: clientOptions.disableSnippetCompletion,
             disableDynamicRegister: clientOptions.disableDynamicRegister,
             disableDiagnostics: clientOptions.disableDiagnostics,
             disableCompletion: clientOptions.disableCompletion,
