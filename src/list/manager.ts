@@ -86,16 +86,19 @@ export class ListManager implements Disposable {
     }, 100), null, this.disposables)
     this.ui.onDidChangeLine(debounce(async () => {
       if (!this.activated) return
-      let previewing = await nvim.call('coc#util#has_preview')
-      let mode = await this.nvim.mode
-      if (mode.blocking || mode.mode != 'n') return
+      let [previewing, mode] = await nvim.eval('[coc#util#has_preview(),mode()]') as [number, string]
+      if (!previewing || mode != 'n') return
       if (previewing) await this.doAction('preview')
-    }, 100), null, this.disposables)
+    }, 50), null, this.disposables)
     this.ui.onDidLineChange(debounce(async () => {
+      if (!this.activated) return
       let { autoPreview } = this.listOptions
-      if (!autoPreview || !this.activated) return
+      if (!autoPreview) {
+        let [previewing, mode] = await nvim.eval('[coc#util#has_preview(),mode()]') as [number, string]
+        if (!previewing || mode != 'n') return
+      }
       await this.doAction('preview')
-    }, 100), null, this.disposables)
+    }, 50), null, this.disposables)
     this.ui.onDidChangeLine(this.resolveItem, this, this.disposables)
     this.ui.onDidLineChange(this.resolveItem, this, this.disposables)
     this.ui.onDidOpen(async () => {
@@ -226,7 +229,7 @@ export class ListManager implements Disposable {
   public async cancel(close = true): Promise<void> {
     let { nvim, ui, savedHeight, window } = this
     if (!this.activated) {
-      nvim.call('coc#list#stop_prompt', [], true)
+      await nvim.call('coc#list#stop_prompt', [])
       return
     }
     this.activated = false
@@ -327,6 +330,7 @@ export class ListManager implements Disposable {
     let position = 'bottom'
     let listArgs: string[] = []
     let listOptions: string[] = []
+    let noResize = false
     for (let arg of args) {
       if (!name && arg.startsWith('-')) {
         listOptions.push(arg)
@@ -367,6 +371,8 @@ export class ListManager implements Disposable {
         first = true
       } else if (opt == '--no-quit') {
         noQuit = true
+      } else if (opt == '--no-resize') {
+        noResize = true
       } else {
         workspace.showMessage(`Invalid option "${opt}" of list`, 'error')
         return null
@@ -387,6 +393,7 @@ export class ListManager implements Disposable {
       options: {
         numberSelect,
         autoPreview,
+        noResize,
         noQuit,
         first,
         input,
@@ -647,7 +654,7 @@ export class ListManager implements Disposable {
         type: 'string',
         enum: ['--top', '--normal', '--no-sort', '--input', '--tab',
           '--strict', '--regex', '--ignore-case', '--number-select',
-          '--interactive', '--auto-preview']
+          '--interactive', '--auto-preview', '--first', '--no-quit', '--no-resize']
       }
     })
     extensions.addSchemeProperty(`list.source.${name}.defaultArgs`, {
@@ -715,19 +722,21 @@ export class ListManager implements Disposable {
   private async doItemAction(items: ListItem[], action: ListAction): Promise<void> {
     if (this.executing) return
     let { noQuit } = this.listOptions
+    let { nvim } = this
     this.executing = true
     let persist = this.isActivated && (action.persist === true || action.name == 'preview')
     noQuit = noQuit && this.isActivated
     try {
       if (!persist) {
         if (noQuit) {
-          this.nvim.call('coc#list#stop_prompt', [], true)
-          this.nvim.call('win_gotoid', [this.context.window.id], true)
+          nvim.pauseNotification()
+          nvim.call('coc#list#stop_prompt', [], true)
+          nvim.call('win_gotoid', [this.context.window.id], true)
+          await nvim.resumeNotification()
         } else {
           await this.cancel()
         }
       }
-      await this.nvim.command('stopinsert')
       if (action.multiple) {
         await Promise.resolve(action.execute(items, this.context))
       } else if (action.parallel) {
@@ -737,9 +746,13 @@ export class ListManager implements Disposable {
           await Promise.resolve(action.execute(item, this.context))
         }
       }
-      if (persist || noQuit) {
+      if (persist) {
+        nvim.pauseNotification()
         this.prompt.start()
         this.ui.restoreWindow()
+        await nvim.resumeNotification()
+        if (action.reload) await this.worker.loadItems(true)
+      } else if (noQuit) {
         if (action.reload) await this.worker.loadItems(true)
       }
     } catch (e) {

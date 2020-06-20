@@ -21,6 +21,7 @@ export default class ListUI {
   public window: Window
   private height: number
   private newTab = false
+  private noResize = false
   private _bufnr = 0
   private currIndex = 0
   private highlights: ListHighlights[] = []
@@ -60,11 +61,7 @@ export default class ListUI {
     events.on('CursorMoved', async (bufnr, cursor) => {
       if (timer) clearTimeout(timer)
       if (bufnr != this.bufnr) return
-      let lnum = cursor[0]
-      if (this.currIndex + 1 != lnum) {
-        this.currIndex = lnum - 1
-        this._onDidChangeLine.fire(lnum)
-      }
+      this.onLineChange(cursor[0] - 1)
     }, null, this.disposables)
 
     events.on('CursorMoved', debounce(async bufnr => {
@@ -78,9 +75,16 @@ export default class ListUI {
     }, 100))
   }
 
+  private onLineChange(index: number): void {
+    if (this.currIndex != index) {
+      this.currIndex = index
+      this._onDidChangeLine.fire(index)
+    }
+  }
+
   public set index(n: number) {
     if (n < 0 || n >= this.items.length) return
-    this.currIndex = n
+    this.onLineChange(n)
     if (this.window) {
       let { nvim } = this
       nvim.pauseNotification()
@@ -310,9 +314,10 @@ export default class ListUI {
   public async drawItems(items: ListItem[], name: string, listOptions: ListOptions, reload = false): Promise<void> {
     let { bufnr, config, nvim } = this
     this.newTab = listOptions.position == 'tab'
+    this.noResize = listOptions.noResize
+    let prevLabel = this.items[this.currIndex]?.label
     let height = this.calculateListHeight(items)
     let limitLines = config.get<number>('limitLines', 30000)
-    let curr = this.items[this.index]
     this.items = items.slice(0, limitLines)
     if (bufnr == 0 && !this.creating) {
       this.creating = true
@@ -327,10 +332,11 @@ export default class ListUI {
     }
     let lines = this.items.map(item => item.label)
     this.clearSelection()
-    await this.setLines(lines, false, reload ? this.currIndex : 0)
-    let item = this.items[this.index] || { label: '' }
-    if (!curr || curr.label != item.label) {
-      this._onDidLineChange.fire(this.index + 1)
+    let newIndex = reload ? this.currIndex : 0
+    await this.setLines(lines, false, newIndex)
+    let currLabel = this.items[newIndex]?.label
+    if (currLabel != prevLabel) {
+      this._onDidLineChange.fire(this.currIndex + 1)
     }
   }
 
@@ -363,6 +369,7 @@ export default class ListUI {
     let { nvim, bufnr, window, config } = this
     if (!bufnr || !window) return
     let resize = !this.newTab && config.get<boolean>('autoResize', true)
+    if (this.noResize === true) resize = false
     let buf = nvim.createBuffer(bufnr)
     nvim.pauseNotification()
     nvim.call('win_gotoid', window.id, true)
