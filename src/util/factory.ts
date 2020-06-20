@@ -156,7 +156,7 @@ export function createExtension(id: string, filename: string, isEmpty = false): 
     activate: () => { },
     deactivate: null
   }
-  const sandbox = createSandbox(filename, createLogger(`extension-${id}`))
+  const sandbox = createSandbox(filename, createLogger(`extension:${id}`))
 
   delete Module._cache[requireFunc.resolve(filename)]
 
