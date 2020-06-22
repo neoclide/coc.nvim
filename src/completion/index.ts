@@ -246,6 +246,7 @@ export class Completion implements Disposable {
     let complete = new Complete(option, document, this.recentScores, config, arr, nvim)
     this.start(complete)
     await wait(this.config.triggerCompletionWait)
+    if (!this.complete) return
     let items = await this.complete.doComplete()
     if (complete.isCanceled) return
     if (items.length == 0 && !complete.isCompleting) {
