@@ -23670,7 +23670,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "bcdcd543b9" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "3e5a86c1f8" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -40545,6 +40545,8 @@ class Completion {
         let complete = new complete_1.default(option, document, this.recentScores, config, arr, nvim);
         this.start(complete);
         await util_1.wait(this.config.triggerCompletionWait);
+        if (!this.complete)
+            return;
         let items = await this.complete.doComplete();
         if (complete.isCanceled)
             return;
