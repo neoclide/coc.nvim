@@ -621,7 +621,8 @@ export class Extensions {
         let jsonFile = path.join(root, 'package.json')
         let content = await readFile(jsonFile, 'utf8')
         let obj = JSON.parse(content)
-        if (this.extensions.has(obj.name)) {
+        let exist = this.extensions.get(obj.name)
+        if (exist && !exist.isLocal) {
           logger.info(`Extension "${obj.name}" in runtimepath already loaded.`)
           return resolve(null)
         }
