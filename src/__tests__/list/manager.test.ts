@@ -47,6 +47,14 @@ describe('list commands', () => {
     expect(line).toMatch(/manager.test.ts/)
   })
 
+  it('should cancel exists session', async () => {
+    await manager.start(['extensions'])
+    await helper.wait(100)
+    await manager.start(['location'])
+    expect(manager.isActivated).toBe(true)
+    expect(manager.name).toBe('location')
+  })
+
   it('should get list names', () => {
     let names = manager.names
     expect(names.length > 0).toBe(true)

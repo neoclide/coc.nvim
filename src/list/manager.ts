@@ -150,7 +150,9 @@ export class ListManager implements Disposable {
   }
 
   public async start(args: string[]): Promise<void> {
-    if (this.activated) return
+    if (this.activated) {
+      await this.cancel(true)
+    }
     let res = this.parseArgs(args)
     if (!res) return
     this.args = args
