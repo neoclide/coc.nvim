@@ -23670,7 +23670,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "3e5a86c1f8" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "263ec93b2c" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -25064,12 +25064,8 @@ class SnippetManager {
             });
         }
         let isActive = await session.start(snippet, select, range);
-        if (isActive) {
+        if (isActive)
             this.statusItem.show();
-        }
-        else if (session) {
-            session.deactivate();
-        }
         return isActive;
     }
     async selectCurrentPlaceholder(triggerAutocmd = true) {
@@ -39419,8 +39415,8 @@ class TextmateSnippet extends Marker {
             return;
         let { index } = placeholder;
         const document = vscode_languageserver_textdocument_1.TextDocument.create('untitled:/1', 'snippet', 0, placeholder.toString());
-        snippet = vscode_languageserver_textdocument_1.TextDocument.applyEdits(document, [{ range, newText: snippet.replace(/\$0$/, '') }]);
-        let nested = new SnippetParser().parse(snippet, false);
+        snippet = vscode_languageserver_textdocument_1.TextDocument.applyEdits(document, [{ range, newText: snippet }]);
+        let nested = new SnippetParser().parse(snippet, true);
         let maxIndexAdded = nested.maxIndexNumber;
         let totalAdd = maxIndexAdded + -1;
         for (let p of nested.placeholders) {
@@ -40039,14 +40035,6 @@ class SnippetSession {
             edit.newText = edit.newText + currentIndent;
             inserted = inserted + currentIndent;
         }
-        if (snippet.isPlainText) {
-            await document.patchChange();
-            // insert as text
-            await document.applyEdits([edit]);
-            let placeholder = snippet.finalPlaceholder;
-            await workspace_1.default.moveTo(placeholder.range.start);
-            return this._isActive;
-        }
         await document.patchChange();
         this.applying = true;
         await document.applyEdits([edit]);
@@ -40064,6 +40052,12 @@ class SnippetSession {
                     await this.selectPlaceholder(p);
                 return true;
             }
+        }
+        if (snippet.isPlainText) {
+            this.deactivate();
+            let placeholder = snippet.finalPlaceholder;
+            await workspace_1.default.moveTo(placeholder.range.start);
+            return false;
         }
         // new snippet
         this._snippet = snippet;
@@ -41838,7 +41832,8 @@ class Extensions {
                 let jsonFile = path_1.default.join(root, 'package.json');
                 let content = await fs_2.readFile(jsonFile, 'utf8');
                 let obj = JSON.parse(content);
-                if (this.extensions.has(obj.name)) {
+                let exist = this.extensions.get(obj.name);
+                if (exist && !exist.isLocal) {
                     logger.info(`Extension "${obj.name}" in runtimepath already loaded.`);
                     return resolve(null);
                 }
@@ -61640,8 +61635,9 @@ class ListManager {
         this.registerList(new actions_1.default(nvim));
     }
     async start(args) {
-        if (this.activated)
-            return;
+        if (this.activated) {
+            await this.cancel(true);
+        }
         let res = this.parseArgs(args);
         if (!res)
             return;
@@ -68455,14 +68451,11 @@ class ListUI {
     set index(n) {
         if (n < 0 || n >= this.items.length)
             return;
-        this.onLineChange(n);
-        if (this.window) {
-            let { nvim } = this;
-            nvim.pauseNotification();
-            this.setCursor(n + 1, 0);
-            nvim.command('redraw', true);
-            nvim.resumeNotification(false, true).logError();
-        }
+        let { nvim } = this;
+        nvim.pauseNotification();
+        this.setCursor(n + 1, 0);
+        nvim.command('redraw', true);
+        nvim.resumeNotification(false, true).logError();
     }
     get index() {
         return this.currIndex;
@@ -68831,15 +68824,16 @@ class ListUI {
         }
     }
     setCursor(lnum, col) {
-        let { window, bufnr, items } = this;
+        let { window, items } = this;
         let max = items.length == 0 ? 1 : items.length;
-        if (!bufnr || !window || lnum > max)
+        if (lnum > max)
             return;
-        window.notify('nvim_win_set_cursor', [[lnum, col]]);
         if (this.currIndex + 1 != lnum) {
             this.currIndex = lnum - 1;
             this._onDidChangeLine.fire(lnum);
         }
+        if (window)
+            window.notify('nvim_win_set_cursor', [[lnum, col]]);
     }
     addHighlights(highlights, append = false) {
         let limitLines = this.config.get('limitLines', 1000);
