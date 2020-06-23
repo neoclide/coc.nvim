@@ -84,14 +84,11 @@ export default class ListUI {
 
   public set index(n: number) {
     if (n < 0 || n >= this.items.length) return
-    this.onLineChange(n)
-    if (this.window) {
-      let { nvim } = this
-      nvim.pauseNotification()
-      this.setCursor(n + 1, 0)
-      nvim.command('redraw', true)
-      nvim.resumeNotification(false, true).logError()
-    }
+    let { nvim } = this
+    nvim.pauseNotification()
+    this.setCursor(n + 1, 0)
+    nvim.command('redraw', true)
+    nvim.resumeNotification(false, true).logError()
   }
 
   public get index(): number {
@@ -458,14 +455,14 @@ export default class ListUI {
   }
 
   public setCursor(lnum: number, col: number): void {
-    let { window, bufnr, items } = this
+    let { window, items } = this
     let max = items.length == 0 ? 1 : items.length
-    if (!bufnr || !window || lnum > max) return
-    window.notify('nvim_win_set_cursor', [[lnum, col]])
+    if (lnum > max) return
     if (this.currIndex + 1 != lnum) {
       this.currIndex = lnum - 1
       this._onDidChangeLine.fire(lnum)
     }
+    if (window) window.notify('nvim_win_set_cursor', [[lnum, col]])
   }
 
   public addHighlights(highlights: ListHighlights[], append = false): void {
