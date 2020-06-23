@@ -570,8 +570,8 @@ export class TextmateSnippet extends Marker {
     if (!placeholder) return
     let { index } = placeholder
     const document = TextDocument.create('untitled:/1', 'snippet', 0, placeholder.toString())
-    snippet = TextDocument.applyEdits(document, [{ range, newText: snippet.replace(/\$0$/, '') }])
-    let nested = new SnippetParser().parse(snippet, false)
+    snippet = TextDocument.applyEdits(document, [{ range, newText: snippet }])
+    let nested = new SnippetParser().parse(snippet, true)
     let maxIndexAdded = nested.maxIndexNumber
     let totalAdd = maxIndexAdded + - 1
     for (let p of nested.placeholders) {

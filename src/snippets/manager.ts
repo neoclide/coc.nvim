@@ -67,11 +67,7 @@ export class SnippetManager implements types.SnippetManager {
       })
     }
     let isActive = await session.start(snippet, select, range)
-    if (isActive) {
-      this.statusItem.show()
-    } else if (session) {
-      session.deactivate()
-    }
+    if (isActive) this.statusItem.show()
     return isActive
   }
 

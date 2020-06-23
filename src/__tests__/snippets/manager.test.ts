@@ -137,6 +137,17 @@ describe('snippet provider', () => {
     expect(active).toBe(true)
   })
 
+  it('should insert nest plain snippet', async () => {
+    await helper.createDocument()
+    await snippetManager.insertSnippet('${1:foo} ${2:bar}')
+    await nvim.input('<backspace>')
+    await helper.wait(100)
+    let active = await snippetManager.insertSnippet('bar')
+    expect(active).toBe(true)
+    let cursor = await nvim.call('coc#util#cursor')
+    expect(cursor).toEqual([0, 3])
+  })
+
   it('should resolve variables', async () => {
     await helper.createDocument()
     await snippetManager.insertSnippet('${foo:abcdef} ${bar}')

@@ -48,14 +48,6 @@ export class SnippetSession {
       edit.newText = edit.newText + currentIndent
       inserted = inserted + currentIndent
     }
-    if (snippet.isPlainText) {
-      await document.patchChange()
-      // insert as text
-      await document.applyEdits([edit])
-      let placeholder = snippet.finalPlaceholder
-      await workspace.moveTo(placeholder.range.start)
-      return this._isActive
-    }
     await document.patchChange()
     this.applying = true
     await document.applyEdits([edit])
@@ -72,6 +64,12 @@ export class SnippetSession {
         if (select) await this.selectPlaceholder(p)
         return true
       }
+    }
+    if (snippet.isPlainText) {
+      this.deactivate()
+      let placeholder = snippet.finalPlaceholder
+      await workspace.moveTo(placeholder.range.start)
+      return false
     }
     // new snippet
     this._snippet = snippet
