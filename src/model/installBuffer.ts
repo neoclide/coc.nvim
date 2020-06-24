@@ -125,9 +125,6 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
       nvim.command('nnoremap <silent><nowait><buffer> q :q<CR>', true)
     }
     this.highlight(nvim)
-    if (!isSync) {
-      nvim.command(`wincmd p`, true)
-    }
     let res = await nvim.resumeNotification()
     let bufnr = res && res[1] == null ? res[0][1] : null
     if (!bufnr) return
