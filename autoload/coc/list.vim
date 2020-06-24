@@ -231,7 +231,9 @@ function! coc#list#setup(source)
   setl norelativenumber bufhidden=wipe cursorline winfixheight
   setl tabstop=1 nolist nocursorcolumn undolevels=-1
   setl signcolumn=auto
-  setl scrolloff=0
+  if has('nvim-0.5.0') || has('patch-8.1.0864')
+    setl scrolloff=0
+  endif
   if exists('&cursorlineopt')
     setl cursorlineopt=both
   endif
