@@ -23670,7 +23670,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "263ec93b2c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "551353208d" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -42289,9 +42289,6 @@ class InstallBuffer extends events_1.default {
             nvim.command('nnoremap <silent><nowait><buffer> q :q<CR>', true);
         }
         this.highlight(nvim);
-        if (!isSync) {
-            nvim.command(`wincmd p`, true);
-        }
         let res = await nvim.resumeNotification();
         let bufnr = res && res[1] == null ? res[0][1] : null;
         if (!bufnr)
