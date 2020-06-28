@@ -617,7 +617,7 @@ class Languages {
         let item = completeItems[vimItem.index]
         if (!item) return
         let line = opt.linenr - 1
-        if (item.insertText && !item.textEdit) {
+        if (item.insertText !== undefined && !item.textEdit) {
           item.textEdit = {
             range: Range.create(line, opt.col, line, opt.colnr - 1),
             newText: item.insertText
