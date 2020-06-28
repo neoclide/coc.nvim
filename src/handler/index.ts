@@ -488,6 +488,7 @@ export default class Handler {
     let bufnr = await this.nvim.eval('bufnr("%")') as number
     let document = workspace.getDocument(bufnr)
     if (!document) return false
+    await synchronizeDocument(document)
     let options = await workspace.getFormatOptions(document.uri)
     let textEdits = await languages.provideDocumentFormattingEdits(document.textDocument, options)
     if (!textEdits || textEdits.length == 0) return false
@@ -498,6 +499,7 @@ export default class Handler {
   public async documentRangeFormatting(mode: string): Promise<number> {
     let document = await workspace.document
     if (!document) return -1
+    await synchronizeDocument(document)
     let range: Range
     if (mode) {
       range = await workspace.getSelectedRange(mode, document)
@@ -581,7 +583,10 @@ export default class Handler {
   public async doCodeAction(mode: string | null, only?: CodeActionKind[] | string): Promise<void> {
     let bufnr = await this.nvim.call('bufnr', '%')
     let range: Range
-    if (mode) range = await workspace.getSelectedRange(mode, workspace.getDocument(bufnr))
+    let doc = workspace.getDocument(bufnr)
+    if (!doc) return
+    await synchronizeDocument(doc)
+    if (mode) range = await workspace.getSelectedRange(mode, doc)
     let codeActions = await this.getCodeActions(bufnr, range, Array.isArray(only) ? only : null)
     if (only && typeof only == 'string') {
       codeActions = codeActions.filter(o => o.title == only || (o.command && o.command.title == only))
