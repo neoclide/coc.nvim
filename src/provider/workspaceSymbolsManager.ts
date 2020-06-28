@@ -25,8 +25,10 @@ export default class WorkspaceSymbolManager implements Disposable {
     await Promise.all(entries.map(o => {
       let [id, p] = o
       return Promise.resolve(p.provideWorkspaceSymbols(query, token)).then(item => {
-        (item as any).source = id
-        res.push(...item)
+        if (item) {
+          (item as any).source = id
+          res.push(...item)
+        }
       })
     }))
     return res
