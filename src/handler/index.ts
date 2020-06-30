@@ -662,6 +662,11 @@ export default class Handler {
 
   public async fold(kind?: string): Promise<boolean> {
     let document = await workspace.document
+    if (!document || !document.attached) {
+      workspace.showMessage('document not attached', 'warning')
+      return false
+    }
+    await synchronizeDocument(document)
     let win = await this.nvim.window
     let foldmethod = await win.getOption('foldmethod')
     if (foldmethod != 'manual') {
