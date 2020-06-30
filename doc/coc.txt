@@ -1714,6 +1714,11 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Show diagnostic message at the current position, do not truncate.
 
+"diagnosticToggle"					*coc-action-diagnosticToggle*
+
+	Enable/disable diagnostics on the fly, not work when `displayByAle` is
+	enabled.
+
 "diagnosticPreview"					*coc-action-diagnosticPreview*
 
 	Show diagnostics under current cursor in preview window.

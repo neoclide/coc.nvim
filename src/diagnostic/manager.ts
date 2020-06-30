@@ -609,6 +609,28 @@ export class DiagnosticManager implements Disposable {
     return doc != null && doc.buftype == '' && doc.attached
   }
 
+  public clearDiagnostic(bufnr: number): void {
+    let buf = this.buffers.get(bufnr)
+    if (!buf) return
+    for (let collection of this.collections) {
+      collection.delete(buf.uri)
+    }
+    buf.clear().logError()
+  }
+
+  public toggleDiagnostic(): void {
+    let { enabled } = this
+    this.enabled = !enabled
+    for (let buf of this.buffers.values()) {
+      if (this.enabled) {
+        let diagnostics = this.getDiagnostics(buf.uri)
+        buf.forceRefresh(diagnostics)
+      } else {
+        buf.clear().logError()
+      }
+    }
+  }
+
   public refreshBuffer(uri: string, force = false): boolean {
     let buf = Array.from(this.buffers.values()).find(o => o.uri == uri)
     if (!buf) return false

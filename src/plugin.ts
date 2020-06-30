@@ -212,6 +212,9 @@ export default class Plugin extends EventEmitter {
     this.addAction('diagnosticInfo', async () => {
       await diagnosticManager.echoMessage()
     })
+    this.addAction('diagnosticToggle', () => {
+      diagnosticManager.toggleDiagnostic()
+    })
     this.addAction('diagnosticNext', async severity => {
       await diagnosticManager.jumpNext(severity)
     })

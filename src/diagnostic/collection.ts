@@ -65,7 +65,6 @@ export default class Collection implements DiagnosticCollection {
 
   public delete(uri: string): void {
     this.diagnosticsMap.delete(uri)
-    this._onDidDiagnosticsChange.fire(uri)
   }
 
   public clear(): void {
