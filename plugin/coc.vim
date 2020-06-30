@@ -144,9 +144,6 @@ endfunction
 
 function! s:OpenConfig()
   let home = coc#util#get_config_home()
-  if home =~# '^\~'
-    let home = substitute(home, '\~', $HOME,'')
-  endif
   if !isdirectory(home)
     call mkdir(home, 'p')
   endif
