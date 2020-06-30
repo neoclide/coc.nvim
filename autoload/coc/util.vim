@@ -502,7 +502,7 @@ endfunction
 
 function! coc#util#get_config_home()
   if !empty(get(g:, 'coc_config_home', ''))
-      return expand(g:coc_config_home)
+      return resolve(expand(g:coc_config_home))
   endif
   if exists('$VIMCONFIG')
     return resolve($VIMCONFIG)

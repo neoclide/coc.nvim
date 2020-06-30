@@ -23463,6 +23463,9 @@ class Plugin extends events_1.EventEmitter {
         this.addAction('diagnosticInfo', async () => {
             await manager_1.default.echoMessage();
         });
+        this.addAction('diagnosticToggle', () => {
+            manager_1.default.toggleDiagnostic();
+        });
         this.addAction('diagnosticNext', async (severity) => {
             await manager_1.default.jumpNext(severity);
         });
@@ -23670,7 +23673,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "551353208d" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "55ff49c9b7" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -23942,6 +23945,32 @@ class CommandManager {
                 await workspace_1.default.moveTo(ranges[0].start);
             }
         }, false, 'Jump to next symbol highlight position.');
+        this.register({
+            id: 'document.jumpToPrevSymbol',
+            execute: async () => {
+                let doc = await workspace_1.default.document;
+                if (!doc)
+                    return;
+                let ranges = await plugin.cocAction('symbolRanges');
+                if (!ranges)
+                    return;
+                let { textDocument } = doc;
+                let offset = await workspace_1.default.getOffset();
+                ranges.sort((a, b) => {
+                    if (a.start.line != b.start.line) {
+                        return a.start.line - b.start.line;
+                    }
+                    return a.start.character - b.start.character;
+                });
+                for (let i = ranges.length - 1; i >= 0; i--) {
+                    if (textDocument.offsetAt(ranges[i].end) < offset) {
+                        await workspace_1.default.moveTo(ranges[i].start);
+                        return;
+                    }
+                }
+                await workspace_1.default.moveTo(ranges[ranges.length - 1].start);
+            }
+        }, false, 'Jump to previous symbol highlight position.');
     }
     get commandList() {
         let res = [];
@@ -24643,6 +24672,28 @@ class DiagnosticManager {
     }
     shouldValidate(doc) {
         return doc != null && doc.buftype == '' && doc.attached;
+    }
+    clearDiagnostic(bufnr) {
+        let buf = this.buffers.get(bufnr);
+        if (!buf)
+            return;
+        for (let collection of this.collections) {
+            collection.delete(buf.uri);
+        }
+        buf.clear().logError();
+    }
+    toggleDiagnostic() {
+        let { enabled } = this;
+        this.enabled = !enabled;
+        for (let buf of this.buffers.values()) {
+            if (this.enabled) {
+                let diagnostics = this.getDiagnostics(buf.uri);
+                buf.forceRefresh(diagnostics);
+            }
+            else {
+                buf.clear().logError();
+            }
+        }
     }
     refreshBuffer(uri, force = false) {
         let buf = Array.from(this.buffers.values()).find(o => o.uri == uri);
@@ -54747,7 +54798,7 @@ class Languages {
                 if (!item)
                     return;
                 let line = opt.linenr - 1;
-                if (item.insertText && !item.textEdit) {
+                if (item.insertText != null && !item.textEdit) {
                     item.textEdit = {
                         range: vscode_languageserver_protocol_1.Range.create(line, opt.col, line, opt.colnr - 1),
                         newText: item.insertText
@@ -56016,8 +56067,10 @@ class WorkspaceSymbolManager {
         await Promise.all(entries.map(o => {
             let [id, p] = o;
             return Promise.resolve(p.provideWorkspaceSymbols(query, token)).then(item => {
-                item.source = id;
-                res.push(...item);
+                if (item) {
+                    item.source = id;
+                    res.push(...item);
+                }
             });
         }));
         return res;
@@ -71337,7 +71390,6 @@ class Collection {
     }
     delete(uri) {
         this.diagnosticsMap.delete(uri);
-        this._onDidDiagnosticsChange.fire(uri);
     }
     clear() {
         let uris = Array.from(this.diagnosticsMap.keys());
@@ -72535,6 +72587,7 @@ class Handler {
         let document = workspace_1.default.getDocument(bufnr);
         if (!document)
             return false;
+        await synchronizeDocument(document);
         let options = await workspace_1.default.getFormatOptions(document.uri);
         let textEdits = await languages_1.default.provideDocumentFormattingEdits(document.textDocument, options);
         if (!textEdits || textEdits.length == 0)
@@ -72546,6 +72599,7 @@ class Handler {
         let document = await workspace_1.default.document;
         if (!document)
             return -1;
+        await synchronizeDocument(document);
         let range;
         if (mode) {
             range = await workspace_1.default.getSelectedRange(mode, document);
@@ -72634,8 +72688,12 @@ class Handler {
     async doCodeAction(mode, only) {
         let bufnr = await this.nvim.call('bufnr', '%');
         let range;
+        let doc = workspace_1.default.getDocument(bufnr);
+        if (!doc)
+            return;
+        await synchronizeDocument(doc);
         if (mode)
-            range = await workspace_1.default.getSelectedRange(mode, workspace_1.default.getDocument(bufnr));
+            range = await workspace_1.default.getSelectedRange(mode, doc);
         let codeActions = await this.getCodeActions(bufnr, range, Array.isArray(only) ? only : null);
         if (only && typeof only == 'string') {
             codeActions = codeActions.filter(o => o.title == only || (o.command && o.command.title == only));
