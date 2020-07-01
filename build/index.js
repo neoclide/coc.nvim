@@ -23673,7 +23673,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "55ff49c9b7" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "e9ce9768e2" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -39468,24 +39468,25 @@ class TextmateSnippet extends Marker {
         const document = vscode_languageserver_textdocument_1.TextDocument.create('untitled:/1', 'snippet', 0, placeholder.toString());
         snippet = vscode_languageserver_textdocument_1.TextDocument.applyEdits(document, [{ range, newText: snippet }]);
         let nested = new SnippetParser().parse(snippet, true);
-        let maxIndexAdded = nested.maxIndexNumber;
-        let totalAdd = maxIndexAdded + -1;
+        let maxIndexAdded = nested.maxIndexNumber + 1;
+        let indexes = [];
         for (let p of nested.placeholders) {
             if (p.isFinalTabstop) {
-                p.index = maxIndexAdded + index + 1;
+                p.index = maxIndexAdded + index;
             }
             else {
                 p.index = p.index + index;
             }
+            indexes.push(p.index);
         }
         this.walk(m => {
             if (m instanceof Placeholder && m.index > index) {
-                m.index = m.index + totalAdd + 1;
+                m.index = m.index + maxIndexAdded;
             }
             return true;
         });
         this.replace(placeholder, nested.children);
-        return index + 1;
+        return Math.min.apply(null, indexes);
     }
     updatePlaceholder(id, val) {
         const placeholder = this.placeholders[id];
@@ -40300,6 +40301,8 @@ class SnippetSession {
         }
     }
     findPlaceholder(range) {
+        if (!this.snippet)
+            return null;
         let { placeholder } = this;
         if (placeholder && position_1.rangeInRange(range, placeholder.range))
             return placeholder;
@@ -40582,16 +40585,13 @@ class Completion {
         }
         if (!arr.length)
             return;
-        await document.patchChange();
         await util_1.wait(this.config.triggerCompletionWait);
+        await document.patchChange();
         // document get changed, not complete
         if (document.changedtick != option.changedtick)
             return;
         let complete = new complete_1.default(option, document, this.recentScores, config, arr, nvim);
         this.start(complete);
-        await util_1.wait(this.config.triggerCompletionWait);
-        if (!this.complete)
-            return;
         let items = await this.complete.doComplete();
         if (complete.isCanceled)
             return;
@@ -40730,9 +40730,6 @@ class Completion {
         let timestamp = this.insertCharTs;
         let insertLeaveTs = this.insertLeaveTs;
         try {
-            let visible = await this.nvim.call('pumvisible');
-            if (visible)
-                return;
             await sources_1.default.doCompleteResolve(resolvedItem, (new vscode_languageserver_protocol_1.CancellationTokenSource()).token);
             this.addRecent(resolvedItem.word, document.bufnr);
             // Wait possible TextChangedI
@@ -40740,10 +40737,10 @@ class Completion {
             if (this.insertCharTs != timestamp
                 || this.insertLeaveTs != insertLeaveTs)
                 return;
-            await document.patchChange();
-            let pre = await this.nvim.eval(`strpart(getline('.'), 0, col('.') - 1)`);
-            if (!pre.endsWith(resolvedItem.word))
+            let [visible, lnum, pre] = await this.nvim.eval(`[pumvisible(),line('.'),strpart(getline('.'), 0, col('.') - 1)]`);
+            if (visible || lnum != opt.linenr || this.activated || !pre.endsWith(resolvedItem.word))
                 return;
+            await document.patchChange();
             await sources_1.default.doCompleteDone(resolvedItem, opt);
         }
         catch (e) {
@@ -54287,7 +54284,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(251));
-const events_1 = tslib_1.__importDefault(__webpack_require__(209));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(252));
 const codeActionmanager_1 = tslib_1.__importDefault(__webpack_require__(406));
 const codeLensManager_1 = tslib_1.__importDefault(__webpack_require__(408));
@@ -54852,30 +54848,19 @@ class Languages {
         let doc = workspace_1.default.getDocument(bufnr);
         if (!doc)
             return false;
-        if (events_1.default.cursor.lnum == option.linenr + 1) {
-            // line break during completion
-            let preline = await nvim.call('getline', [option.linenr]);
-            let { length } = preline;
-            let { range } = textEdit;
-            if (length && range.start.character > length) {
-                line = line.slice(preline.length);
-                let spaceCount = 0;
-                if (/^\s/.test(line)) {
-                    spaceCount = line.match(/^\s+/)[0].length;
-                    line = line.slice(spaceCount);
-                }
-                range.start.character = range.start.character - length - spaceCount;
-                range.end.character = range.end.character - length - spaceCount;
-                range.start.line = range.start.line + 1;
-                range.end.line = range.end.line + 1;
-                linenr = linenr + 1;
+        let { range, newText } = textEdit;
+        // handle possible indent change for textEdit
+        let oi = line.match(/^\s*/)[0];
+        let ci = doc.getline(linenr - 1).match(/^\s*/)[0];
+        if (oi != ci) {
+            let c = ci.length - oi.length;
+            if (range.start.line == linenr - 1) {
+                range.start.character = range.start.character + c;
             }
-            else {
-                // can't handle
-                return false;
+            if (range.end.line == linenr - 1) {
+                range.end.character = range.end.character + c;
             }
         }
-        let { range, newText } = textEdit;
         let isSnippet = item.insertTextFormat === vscode_languageserver_protocol_1.InsertTextFormat.Snippet;
         // replace inserted word
         let start = line.substr(0, range.start.character);
@@ -70924,8 +70909,7 @@ class CocSnippet {
                 index,
                 value,
                 isVariable: p instanceof Snippets.Variable,
-                isFinalTabstop: p.index === 0,
-                snippet: this
+                isFinalTabstop: p.index === 0
             };
             Object.defineProperty(res, 'snippet', {
                 enumerable: false
@@ -72771,6 +72755,11 @@ class Handler {
     }
     async fold(kind) {
         let document = await workspace_1.default.document;
+        if (!document || !document.attached) {
+            workspace_1.default.showMessage('document not attached', 'warning');
+            return false;
+        }
+        await synchronizeDocument(document);
         let win = await this.nvim.window;
         let foldmethod = await win.getOption('foldmethod');
         if (foldmethod != 'manual') {
