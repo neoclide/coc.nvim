@@ -164,7 +164,7 @@ describe('SnippetSession#start', () => {
     await session.nextPlaceholder()
     await session.nextPlaceholder()
     let pos = await workspace.getCursorPosition()
-    expect(pos).toEqual({ line: 0, character: 9 })
+    expect(pos).toEqual({ line: 0, character: 8 })
   })
 
   it('should jump to variable placeholder', async () => {

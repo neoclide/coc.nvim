@@ -572,23 +572,24 @@ export class TextmateSnippet extends Marker {
     const document = TextDocument.create('untitled:/1', 'snippet', 0, placeholder.toString())
     snippet = TextDocument.applyEdits(document, [{ range, newText: snippet }])
     let nested = new SnippetParser().parse(snippet, true)
-    let maxIndexAdded = nested.maxIndexNumber
-    let totalAdd = maxIndexAdded + - 1
+    let maxIndexAdded = nested.maxIndexNumber + 1
+    let indexes: number[] = []
     for (let p of nested.placeholders) {
       if (p.isFinalTabstop) {
-        p.index = maxIndexAdded + index + 1
+        p.index = maxIndexAdded + index
       } else {
         p.index = p.index + index
       }
+      indexes.push(p.index)
     }
     this.walk(m => {
       if (m instanceof Placeholder && m.index > index) {
-        m.index = m.index + totalAdd + 1
+        m.index = m.index + maxIndexAdded
       }
       return true
     })
     this.replace(placeholder, nested.children)
-    return index + 1
+    return Math.min.apply(null, indexes)
   }
 
   public updatePlaceholder(id: number, val: string): void {

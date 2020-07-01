@@ -17,7 +17,6 @@ export interface CocSnippetPlaceholder {
   transform: boolean
   isVariable: boolean
   choice?: string[]
-  snippet: CocSnippet
 }
 
 export class CocSnippet {
@@ -230,8 +229,7 @@ export class CocSnippet {
         index,
         value,
         isVariable: p instanceof Snippets.Variable,
-        isFinalTabstop: (p as Snippets.Placeholder).index === 0,
-        snippet: this
+        isFinalTabstop: (p as Snippets.Placeholder).index === 0
       }
       Object.defineProperty(res, 'snippet', {
         enumerable: false
