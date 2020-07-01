@@ -239,14 +239,12 @@ export class Completion implements Disposable {
       if (s) arr.push(s)
     }
     if (!arr.length) return
-    await document.patchChange()
     await wait(this.config.triggerCompletionWait)
+    await document.patchChange()
     // document get changed, not complete
     if (document.changedtick != option.changedtick) return
     let complete = new Complete(option, document, this.recentScores, config, arr, nvim)
     this.start(complete)
-    await wait(this.config.triggerCompletionWait)
-    if (!this.complete) return
     let items = await this.complete.doComplete()
     if (complete.isCanceled) return
     if (items.length == 0 && !complete.isCompleting) {
@@ -372,17 +370,15 @@ export class Completion implements Disposable {
     let timestamp = this.insertCharTs
     let insertLeaveTs = this.insertLeaveTs
     try {
-      let visible = await this.nvim.call('pumvisible')
-      if (visible) return
       await sources.doCompleteResolve(resolvedItem, (new CancellationTokenSource()).token)
       this.addRecent(resolvedItem.word, document.bufnr)
       // Wait possible TextChangedI
       await wait(50)
       if (this.insertCharTs != timestamp
         || this.insertLeaveTs != insertLeaveTs) return
+      let [visible, lnum, pre] = await this.nvim.eval(`[pumvisible(),line('.'),strpart(getline('.'), 0, col('.') - 1)]`) as [number, number, string]
+      if (visible || lnum != opt.linenr || this.activated || !pre.endsWith(resolvedItem.word)) return
       await document.patchChange()
-      let pre = await this.nvim.eval(`strpart(getline('.'), 0, col('.') - 1)`) as string
-      if (!pre.endsWith(resolvedItem.word)) return
       await sources.doCompleteDone(resolvedItem, opt)
     } catch (e) {
       logger.error(`error on complete done`, e.stack)
