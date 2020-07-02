@@ -8,6 +8,7 @@ import { byteLength } from '../util/string'
 import workspace from '../workspace'
 import { CocSnippet, CocSnippetPlaceholder } from "./snippet"
 import { SnippetVariableResolver } from "./variableResolve"
+import { wait } from '../util'
 const logger = require('../util/logger')('snippets-session')
 
 export class SnippetSession {
@@ -218,10 +219,15 @@ export class SnippetSession {
       col = await this.getVirtualCol(start.line + 1, col)
       move_cmd += `o${start.line + 1}G${col + 1}|o\\<c-g>`
     }
+    if (mode == 'i' && move_cmd == "\\<Esc>a") {
+      move_cmd = ''
+    }
     nvim.pauseNotification()
     nvim.setOption('virtualedit', 'onemore', true)
     nvim.call('cursor', [start.line + 1, col + (move_cmd == 'a' ? 0 : 1)], true)
-    nvim.call('eval', [`feedkeys("${move_cmd}", 'in')`], true)
+    if (move_cmd) {
+      nvim.call('eval', [`feedkeys("${move_cmd}", 'in')`], true)
+    }
     nvim.setOption('virtualedit', ve, true)
     if (isFinalTabstop) {
       if (this.snippet.finalCount == 1) {

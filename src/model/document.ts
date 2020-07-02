@@ -290,7 +290,7 @@ export default class Document {
     return this.textDocument ? this.textDocument.version : null
   }
 
-  public async applyEdits(edits: TextEdit[], sync = true): Promise<void> {
+  public async applyEdits(edits: TextEdit[]): Promise<void> {
     if (!Array.isArray(arguments[0]) && Array.isArray(arguments[1])) {
       edits = arguments[1]
     }
@@ -310,8 +310,6 @@ export default class Document {
         end: d.end,
         strictIndexing: false
       })
-    }
-    if (sync) {
       // can't wait vim sync buffer
       this.lines = (this.eol && applied.endsWith('\n') ? applied.slice(0, -1) : applied).split('\n')
       this.forceSync()
