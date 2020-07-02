@@ -23673,7 +23673,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "e9ce9768e2" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "1edf0790b2" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -32808,7 +32808,7 @@ class Document {
     get version() {
         return this.textDocument ? this.textDocument.version : null;
     }
-    async applyEdits(edits, sync = true) {
+    async applyEdits(edits) {
         if (!Array.isArray(arguments[0]) && Array.isArray(arguments[1])) {
             edits = arguments[1];
         }
@@ -32829,8 +32829,6 @@ class Document {
                 end: d.end,
                 strictIndexing: false
             });
-        }
-        if (sync) {
             // can't wait vim sync buffer
             this.lines = (this.eol && applied.endsWith('\n') ? applied.slice(0, -1) : applied).split('\n');
             this.forceSync();
@@ -40267,10 +40265,15 @@ class SnippetSession {
             col = await this.getVirtualCol(start.line + 1, col);
             move_cmd += `o${start.line + 1}G${col + 1}|o\\<c-g>`;
         }
+        if (mode == 'i' && move_cmd == "\\<Esc>a") {
+            move_cmd = '';
+        }
         nvim.pauseNotification();
         nvim.setOption('virtualedit', 'onemore', true);
         nvim.call('cursor', [start.line + 1, col + (move_cmd == 'a' ? 0 : 1)], true);
-        nvim.call('eval', [`feedkeys("${move_cmd}", 'in')`], true);
+        if (move_cmd) {
+            nvim.call('eval', [`feedkeys("${move_cmd}", 'in')`], true);
+        }
         nvim.setOption('virtualedit', ve, true);
         if (isFinalTabstop) {
             if (this.snippet.finalCount == 1) {
