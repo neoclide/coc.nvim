@@ -1882,7 +1882,7 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
 
     const languageIds = cv.asLanguageIds(options.documentSelector!)
     const disposable = languages.registerCompletionItemProvider(
-      this._client.id,
+      this._client.id + `(${languageIds})`,
       'LS',
       languageIds,
       provider,
