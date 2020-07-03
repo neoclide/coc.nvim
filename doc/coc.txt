@@ -1308,9 +1308,11 @@ g:coc_watch_extensions					*g:coc_watch_extensions*
 
 g:coc_quickfix_open_command				*g:coc_quickfix_open_command*
 
-	Open command used for open quickfix.  Used by quickfix action of list
-	sources.
-
+	Command used for open quickfix list.  To jump fist position after
+	quickfix list opend, you can use:
+>
+	let g:coc_quickfix_open_command = 'copen|cfirst'
+<
 	Default: |copen|
 
 g:WorkspaceFolders					*g:WorkspaceFolders*

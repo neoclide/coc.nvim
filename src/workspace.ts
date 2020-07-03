@@ -703,8 +703,13 @@ export class Workspace implements IWorkspace {
     let { nvim } = this
     const preferences = this.getConfiguration('coc.preferences')
     if (preferences.get<boolean>('useQuickfixForLocations', false)) {
-      await nvim.call('setqflist', [items])
-      nvim.command('copen', true)
+      let openCommand = await nvim.getVar('coc_quickfix_open_command') as string
+      nvim.command(typeof openCommand === 'string' ? openCommand : 'copen', true)
+      nvim.pauseNotification()
+      nvim.call('setqflist', [items], true)
+      nvim.command(openCommand, true)
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      nvim.resumeNotification(false, true)
     } else {
       await nvim.setVar('coc_jump_locations', items)
       if (this.env.locationlist) {
