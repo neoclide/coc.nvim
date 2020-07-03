@@ -23673,7 +23673,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "b7844d1fa2" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "c9246e45a1" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -25870,8 +25870,13 @@ class Workspace {
         let { nvim } = this;
         const preferences = this.getConfiguration('coc.preferences');
         if (preferences.get('useQuickfixForLocations', false)) {
-            await nvim.call('setqflist', [items]);
-            nvim.command('copen', true);
+            let openCommand = await nvim.getVar('coc_quickfix_open_command');
+            nvim.command(typeof openCommand === 'string' ? openCommand : 'copen', true);
+            nvim.pauseNotification();
+            nvim.call('setqflist', [items], true);
+            nvim.command(openCommand, true);
+            // eslint-disable-next-line @typescript-eslint/no-floating-promises
+            nvim.resumeNotification(false, true);
         }
         else {
             await nvim.setVar('coc_jump_locations', items);
