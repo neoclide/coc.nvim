@@ -23673,7 +23673,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "1edf0790b2" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "b7844d1fa2" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -72718,7 +72718,7 @@ class Handler {
         return await this.getCodeActions(bufnr, range, only);
     }
     async doQuickfix() {
-        let actions = await this.getCurrentCodeActions(null, [vscode_languageserver_protocol_1.CodeActionKind.QuickFix]);
+        let actions = await this.getCurrentCodeActions('n', [vscode_languageserver_protocol_1.CodeActionKind.QuickFix]);
         if (!actions || actions.length == 0) {
             workspace_1.default.showMessage('No quickfix action available', 'warning');
             return false;
