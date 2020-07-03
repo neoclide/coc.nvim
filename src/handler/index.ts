@@ -621,7 +621,7 @@ export default class Handler {
   }
 
   public async doQuickfix(): Promise<boolean> {
-    let actions = await this.getCurrentCodeActions(null, [CodeActionKind.QuickFix])
+    let actions = await this.getCurrentCodeActions('n', [CodeActionKind.QuickFix])
     if (!actions || actions.length == 0) {
       workspace.showMessage('No quickfix action available', 'warning')
       return false
