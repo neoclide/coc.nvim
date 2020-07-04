@@ -3,7 +3,7 @@ import debounce from 'debounce'
 import fs from 'fs'
 import isuri from 'isuri'
 import path from 'path'
-import { Disposable, TextDocumentIdentifier } from 'vscode-languageserver-protocol'
+import { Disposable, TextEdit, TextDocumentIdentifier, TextDocumentEdit, Range, Position } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import which from 'which'
 import { MapMode } from '../types'
@@ -115,10 +115,31 @@ export function getKeymapModifier(mode: MapMode): string {
 }
 
 // consider textDocument without version to be valid
-export function isDocumentEdit(edit: any): boolean {
+export function isDocumentEdit(edit: any): edit is TextDocumentEdit {
   if (edit == null) return false
   if (!TextDocumentIdentifier.is(edit.textDocument)) return false
   if (!Array.isArray(edit.edits)) return false
+  if (edit.edits.some(edit => !isTextEdit(edit))) return false
+  return true
+}
+
+export function isTextEdit(edit: any): edit is TextEdit {
+  if (typeof edit !== 'object' || edit === null) return false
+  if (typeof edit.newText !== 'string') return false
+  if (!isRange(edit.range)) return false
+  return true
+}
+
+export function isRange(range: any): range is Range {
+  if (typeof range !== 'object') return false
+  if (!isPosition(range.start) || !isPosition(range.end)) return false
+  return true
+}
+
+export function isPosition(position: any): position is Position {
+  if (typeof position !== 'object') return false
+  if (typeof position.line !== 'number') return false
+  if (typeof position.character !== 'number') return false
   return true
 }
 
