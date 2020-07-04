@@ -8,7 +8,7 @@ import { BufferOption, ChangeInfo, DidChangeTextDocumentParams, Env } from '../t
 import { distinct, group } from '../util/array'
 import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
-import { disposeAll, getUri } from '../util/index'
+import { disposeAll, getUri, isTextEdit } from '../util/index'
 import { comparePosition } from '../util/position'
 import { byteIndex, byteLength, byteSlice } from '../util/string'
 import { Chars } from './chars'
@@ -295,6 +295,7 @@ export default class Document {
       edits = arguments[1]
     }
     if (edits.length == 0) return
+    edits = edits.filter(isTextEdit)
     edits.forEach(edit => {
       edit.newText = edit.newText.replace(/\r/g, '')
     })
