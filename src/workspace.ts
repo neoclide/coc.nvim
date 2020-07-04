@@ -519,7 +519,7 @@ export class Workspace implements IWorkspace {
         let changedMap: Map<string, string> = new Map()
         for (let change of documentChanges) {
           if (isDocumentEdit(change)) {
-            let { textDocument, edits } = change as TextDocumentEdit
+            let { textDocument, edits } = change
             if (URI.parse(textDocument.uri).toString() == uri) currEdits = edits
             let doc = await this.loadFile(textDocument.uri)
             await doc.applyEdits(edits)
@@ -1492,7 +1492,7 @@ augroup end`
     let newUris: Set<string> = new Set()
     for (let change of documentChanges) {
       if (isDocumentEdit(change)) {
-        let { textDocument } = change as TextDocumentEdit
+        let { textDocument } = change
         let { uri, version } = textDocument
         if (!newUris.has(uri)) {
           uris.add(uri)
