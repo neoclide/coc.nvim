@@ -366,22 +366,21 @@ function! coc#util#execute(cmd)
 endfunction
 
 function! coc#util#jump(cmd, filepath, ...) abort
+  silent! normal! m'
   let path = a:filepath
   if (has('win32unix'))
     let path = substitute(a:filepath, '\v\\', '/', 'g')
   endif
   let file = fnamemodify(path, ":~:.")
-  if a:cmd =~# '^tab'
-    exe a:cmd.' '.fnameescape(file)
-    if !empty(get(a:, 1, []))
-      call cursor(a:1[0], a:1[1])
+  exe a:cmd.' '.fnameescape(file)
+  if !empty(get(a:, 1, []))
+    let line = getline(a:1[0] + 1)
+    " TODO need to use utf16 here
+    let col = byteidx(line, a:1[1]) + 1
+    if col == 0
+      let col = 999
     endif
-  else
-    if !empty(get(a:, 1, []))
-      exe a:cmd.' +call\ cursor('.a:1[0].','.a:1[1].')'.' '.fnameescape(file)
-    else
-      exe a:cmd.' '.fnameescape(file)
-    endif
+    call cursor(a:1[0] + 1, col)
   endif
   if &filetype ==# ''
     filetype detect

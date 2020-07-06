@@ -1,10 +1,13 @@
 import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
-import fastDiff from 'fast-diff'
 import bytes from 'bytes'
+import fastDiff from 'fast-diff'
 import fs from 'fs'
+import mkdirp from 'mkdirp'
 import os from 'os'
 import path from 'path'
+import rimraf from 'rimraf'
 import util from 'util'
+import { v1 as uuid } from 'uuid'
 import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, LocationLink, Position, Range, RenameFile, RenameFileOptions, TextDocumentEdit, TextDocumentSaveReason, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
@@ -23,18 +26,15 @@ import Task from './model/task'
 import TerminalModel from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, MessageLevel, MsgTypes, OutputChannel, PatternType, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, DidChangeTextDocumentParams, OpenTerminalOption } from './types'
+import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, PatternType, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { distinct } from './util/array'
-import { findUp, isFile, isParentFolder, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile, fixDriver, inDirectory } from './util/fs'
-import { disposeAll, CONFIG_FILE_NAME, getKeymapModifier, isDocumentEdit, runCommand, wait, platform } from './util/index'
-import mkdirp from 'mkdirp'
+import { findUp, fixDriver, inDirectory, isFile, isParentFolder, readFile, readFileLine, renameAsync, resolveRoot, statAsync } from './util/fs'
+import { CONFIG_FILE_NAME, disposeAll, getKeymapModifier, isDocumentEdit, platform, runCommand, wait } from './util/index'
 import { score } from './util/match'
-import { getChangedFromEdits, comparePosition } from './util/position'
-import { byteIndex, byteLength } from './util/string'
 import { Mutex } from './util/mutex'
+import { comparePosition, getChangedFromEdits } from './util/position'
+import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
-import rimraf from 'rimraf'
-import { v1 as uuid } from 'uuid'
 
 const logger = require('./util/logger')('workspace')
 let NAME_SPACE = 1080
@@ -896,20 +896,21 @@ export class Workspace implements IWorkspace {
     let { nvim } = this
     let doc = this.getDocument(uri)
     let bufnr = doc ? doc.bufnr : -1
-    await nvim.command(`normal! m'`)
-    if (bufnr == this.bufnr && jumpCommand == 'edit') {
-      if (position) await this.moveTo(position)
-    } else if (bufnr != -1 && jumpCommand == 'edit') {
-      let moveCmd = ''
+    if (bufnr != -1 && jumpCommand == 'edit') {
+      // use buffer command since edit command would reload the buffer
+      nvim.pauseNotification()
+      nvim.command(`silent! normal! m'`, true)
+      nvim.command(`buffer ${bufnr}`, true)
       if (position) {
         let line = doc.getline(position.line)
         let col = byteLength(line.slice(0, position.character)) + 1
-        moveCmd = position ? `+call\\ cursor(${position.line + 1},${col})` : ''
+        nvim.call('cursor', [position.line + 1, col], true)
       }
-      await this.nvim.call('coc#util#execute', [`buffer ${moveCmd} ${bufnr}`])
+      if (this.isVim) nvim.command('redraw', true)
+      await nvim.resumeNotification()
     } else {
       let { fsPath, scheme } = URI.parse(uri)
-      let pos = position == null ? null : [position.line + 1, position.character + 1]
+      let pos = position == null ? null : [position.line, position.character]
       if (scheme == 'file') {
         let bufname = fixDriver(path.normalize(fsPath))
         await this.nvim.call('coc#util#jump', [jumpCommand, bufname, pos])
