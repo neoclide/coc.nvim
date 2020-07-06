@@ -344,11 +344,11 @@ function! s:Hi() abort
 endfunction
 
 function! s:FormatFromSelected(type)
-  call CocAction('formatSelected', a:type)
+  call CocActionAsync('formatSelected', a:type)
 endfunction
 
 function! s:CodeActionFromSelected(type)
-  call CocAction('codeAction', a:type)
+  call CocActionAsync('codeAction', a:type)
 endfunction
 
 function! s:ShowInfo()
