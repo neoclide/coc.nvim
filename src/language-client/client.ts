@@ -1801,6 +1801,7 @@ export interface ProvideResolveFeature<T1 extends Function, T2 extends Function>
 }
 
 class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, CompletionRegistrationOptions, CompletionItemProvider> {
+  private index: number
   constructor(client: BaseLanguageClient) {
     super(client, CompletionRequest.type)
   }
@@ -1825,6 +1826,7 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
     capabilities: ServerCapabilities,
     documentSelector: DocumentSelector
   ): void {
+    this.index = 0
     const options = this.getRegistrationOptions(documentSelector, capabilities.completionProvider)
     if (!options) {
       return
@@ -1839,6 +1841,7 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
     let triggerCharacters = options.triggerCharacters || []
     let allCommitCharacters = options.allCommitCharacters || []
     let priority = (options as any).priority as number
+    this.index = this.index + 1
     const provider: CompletionItemProvider = {
       provideCompletionItems: (document: TextDocument, position: Position, token: CancellationToken, context: CompletionContext): ProviderResult<CompletionList | CompletionItem[]> => {
         const client = this._client
@@ -1882,7 +1885,7 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
 
     const languageIds = cv.asLanguageIds(options.documentSelector!)
     const disposable = languages.registerCompletionItemProvider(
-      this._client.id,
+      this._client.id + '-' + this.index,
       'LS',
       languageIds,
       provider,
