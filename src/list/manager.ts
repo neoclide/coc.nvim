@@ -210,6 +210,24 @@ export class ListManager implements Disposable {
     if (items.length) await this.doItemAction(items, action)
   }
 
+  public async first(): Promise<void> {
+    let { ui } = this
+    let item = this.ui.firstItem
+    if (!item) return
+    ui.index = 0
+    await this.doItemAction([item], this.defaultAction)
+    await ui.echoMessage(item)
+  }
+
+  public async last(): Promise<void> {
+    let { ui } = this
+    let item = this.ui.lastItem
+    if (!item) return
+    ui.index = this.ui.length - 1
+    await this.doItemAction([item], this.defaultAction)
+    await ui.echoMessage(item)
+  }
+
   public async previous(): Promise<void> {
     let { ui } = this
     let item = ui.getItem(-1)

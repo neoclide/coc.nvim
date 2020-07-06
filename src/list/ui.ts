@@ -95,6 +95,14 @@ export default class ListUI {
     return this.currIndex
   }
 
+  public get firstItem(): ListItem {
+    return this.items[0]
+  }
+
+  public get lastItem(): ListItem {
+    return this.items[this.items.length - 1]
+  }
+
   public getItem(delta: number): ListItem {
     let { currIndex } = this
     return this.items[currIndex + delta]

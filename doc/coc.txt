@@ -2363,6 +2363,14 @@ LIST COMMAND						*coc-list-command*
 
 	Doesn't open the list window if it's closed.
 
+:CocFirst						*:CocFirst*
+
+	Invoke default action for first item in the last list.
+
+:CocLast						*:CocLast*
+
+	Invoke default action for last item in the last list.
+
 							*coc-list-options*
 Options of CocList command~
 
