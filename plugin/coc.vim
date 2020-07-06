@@ -344,11 +344,11 @@ function! s:Hi() abort
 endfunction
 
 function! s:FormatFromSelected(type)
-  call CocAction('formatSelected', a:type)
+  call CocActionAsync('formatSelected', a:type)
 endfunction
 
 function! s:CodeActionFromSelected(type)
-  call CocAction('codeAction', a:type)
+  call CocActionAsync('codeAction', a:type)
 endfunction
 
 function! s:ShowInfo()
@@ -400,6 +400,8 @@ command! -nargs=0 CocOpenLog      :call coc#rpc#notify('openLog',  [])
 command! -nargs=0 CocListResume   :call coc#rpc#notify('listResume', [])
 command! -nargs=0 CocPrev         :call coc#rpc#notify('listPrev', [])
 command! -nargs=0 CocNext         :call coc#rpc#notify('listNext', [])
+command! -nargs=0 CocFirst        :call coc#rpc#notify('listFirst', [])
+command! -nargs=0 CocLast         :call coc#rpc#notify('listLast', [])
 command! -nargs=0 CocDisable      :call s:Disable()
 command! -nargs=0 CocEnable       :call s:Enable(0)
 command! -nargs=0 CocConfig       :call s:OpenConfig()

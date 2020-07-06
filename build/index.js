@@ -23262,7 +23262,7 @@ const manager_2 = tslib_1.__importDefault(__webpack_require__(449));
 const services_1 = tslib_1.__importDefault(__webpack_require__(433));
 const manager_3 = tslib_1.__importDefault(__webpack_require__(255));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(331));
-const types_1 = __webpack_require__(261);
+const types_1 = __webpack_require__(294);
 const util_1 = __webpack_require__(237);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const logger = __webpack_require__(64)('plugin');
@@ -23496,6 +23496,12 @@ class Plugin extends events_1.EventEmitter {
         this.addAction('doHover', () => {
             return this.handler.onHover();
         });
+        this.addAction('listFirst', () => {
+            return manager_2.default.first();
+        });
+        this.addAction('listLast', () => {
+            return manager_2.default.last();
+        });
         this.addAction('showSignatureHelp', () => {
             return this.handler.showSignatureHelp();
         });
@@ -23673,7 +23679,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "c9246e45a1" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "5d0557f13f" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -24088,7 +24094,7 @@ const vscode_uri_1 = __webpack_require__(242);
 const events_1 = tslib_1.__importDefault(__webpack_require__(209));
 const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(253));
 const util_1 = __webpack_require__(237);
-const position_1 = __webpack_require__(288);
+const position_1 = __webpack_require__(310);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const buffer_1 = __webpack_require__(518);
 const collection_1 = tslib_1.__importDefault(__webpack_require__(520));
@@ -24764,7 +24770,7 @@ const util_1 = __webpack_require__(237);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(428));
 const object_1 = __webpack_require__(248);
-const string_1 = __webpack_require__(287);
+const string_1 = __webpack_require__(309);
 const logger = __webpack_require__(64)('model-float');
 // factory class for floating window
 class FloatFactory extends events_1.default {
@@ -25193,41 +25199,41 @@ exports.default = new SnippetManager();
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(257));
-const bytes_1 = tslib_1.__importDefault(__webpack_require__(258));
+const bytes_1 = tslib_1.__importDefault(__webpack_require__(257));
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(258));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(259));
 const os_1 = tslib_1.__importDefault(__webpack_require__(76));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
+const rimraf_1 = tslib_1.__importDefault(__webpack_require__(266));
 const util_1 = tslib_1.__importDefault(__webpack_require__(74));
+const uuid_1 = __webpack_require__(282);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_languageserver_textdocument_1 = __webpack_require__(259);
+const vscode_languageserver_textdocument_1 = __webpack_require__(292);
 const vscode_uri_1 = __webpack_require__(242);
 const which_1 = tslib_1.__importDefault(__webpack_require__(243));
-const configuration_1 = tslib_1.__importDefault(__webpack_require__(260));
-const shape_1 = tslib_1.__importDefault(__webpack_require__(275));
+const configuration_1 = tslib_1.__importDefault(__webpack_require__(293));
+const shape_1 = tslib_1.__importDefault(__webpack_require__(304));
 const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const db_1 = tslib_1.__importDefault(__webpack_require__(276));
-const document_1 = tslib_1.__importDefault(__webpack_require__(284));
-const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(290));
-const mru_1 = tslib_1.__importDefault(__webpack_require__(291));
-const outputChannel_1 = tslib_1.__importDefault(__webpack_require__(292));
-const resolver_1 = tslib_1.__importDefault(__webpack_require__(294));
-const status_1 = tslib_1.__importDefault(__webpack_require__(296));
-const task_1 = tslib_1.__importDefault(__webpack_require__(307));
-const terminal_1 = tslib_1.__importDefault(__webpack_require__(308));
-const willSaveHandler_1 = tslib_1.__importDefault(__webpack_require__(309));
-const types_1 = __webpack_require__(261);
-const array_1 = __webpack_require__(285);
-const fs_2 = __webpack_require__(270);
+const db_1 = tslib_1.__importDefault(__webpack_require__(305));
+const document_1 = tslib_1.__importDefault(__webpack_require__(306));
+const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(312));
+const mru_1 = tslib_1.__importDefault(__webpack_require__(313));
+const outputChannel_1 = tslib_1.__importDefault(__webpack_require__(314));
+const resolver_1 = tslib_1.__importDefault(__webpack_require__(316));
+const status_1 = tslib_1.__importDefault(__webpack_require__(318));
+const task_1 = tslib_1.__importDefault(__webpack_require__(319));
+const terminal_1 = tslib_1.__importDefault(__webpack_require__(320));
+const willSaveHandler_1 = tslib_1.__importDefault(__webpack_require__(321));
+const types_1 = __webpack_require__(294);
+const array_1 = __webpack_require__(307);
+const fs_2 = __webpack_require__(303);
 const index_1 = __webpack_require__(237);
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(277));
-const match_1 = __webpack_require__(310);
-const position_1 = __webpack_require__(288);
-const string_1 = __webpack_require__(287);
+const match_1 = __webpack_require__(322);
 const mutex_1 = __webpack_require__(254);
-const watchman_1 = tslib_1.__importDefault(__webpack_require__(311));
-const rimraf_1 = tslib_1.__importDefault(__webpack_require__(315));
-const uuid_1 = __webpack_require__(297);
+const position_1 = __webpack_require__(310);
+const string_1 = __webpack_require__(309);
+const watchman_1 = tslib_1.__importDefault(__webpack_require__(323));
 const logger = __webpack_require__(64)('workspace');
 let NAME_SPACE = 1080;
 class Workspace {
@@ -26062,23 +26068,23 @@ class Workspace {
         let { nvim } = this;
         let doc = this.getDocument(uri);
         let bufnr = doc ? doc.bufnr : -1;
-        await nvim.command(`normal! m'`);
-        if (bufnr == this.bufnr && jumpCommand == 'edit') {
-            if (position)
-                await this.moveTo(position);
-        }
-        else if (bufnr != -1 && jumpCommand == 'edit') {
-            let moveCmd = '';
+        if (bufnr != -1 && jumpCommand == 'edit') {
+            // use buffer command since edit command would reload the buffer
+            nvim.pauseNotification();
+            nvim.command(`silent! normal! m'`, true);
+            nvim.command(`buffer ${bufnr}`, true);
             if (position) {
                 let line = doc.getline(position.line);
                 let col = string_1.byteLength(line.slice(0, position.character)) + 1;
-                moveCmd = position ? `+call\\ cursor(${position.line + 1},${col})` : '';
+                nvim.call('cursor', [position.line + 1, col], true);
             }
-            await this.nvim.call('coc#util#execute', [`buffer ${moveCmd} ${bufnr}`]);
+            if (this.isVim)
+                nvim.command('redraw', true);
+            await nvim.resumeNotification();
         }
         else {
             let { fsPath, scheme } = vscode_uri_1.URI.parse(uri);
-            let pos = position == null ? null : [position.line + 1, position.character + 1];
+            let pos = position == null ? null : [position.line, position.character];
             if (scheme == 'file') {
                 let bufname = fs_2.fixDriver(path_1.default.normalize(fsPath));
                 await this.nvim.call('coc#util#jump', [jumpCommand, bufname, pos]);
@@ -27032,6 +27038,175 @@ exports.default = new Workspace();
 
 /***/ }),
 /* 257 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/*!
+ * bytes
+ * Copyright(c) 2012-2014 TJ Holowaychuk
+ * Copyright(c) 2015 Jed Watson
+ * MIT Licensed
+ */
+
+
+
+/**
+ * Module exports.
+ * @public
+ */
+
+module.exports = bytes;
+module.exports.format = format;
+module.exports.parse = parse;
+
+/**
+ * Module variables.
+ * @private
+ */
+
+var formatThousandsRegExp = /\B(?=(\d{3})+(?!\d))/g;
+
+var formatDecimalsRegExp = /(?:\.0*|(\.[^0]+)0+)$/;
+
+var map = {
+  b:  1,
+  kb: 1 << 10,
+  mb: 1 << 20,
+  gb: 1 << 30,
+  tb: Math.pow(1024, 4),
+  pb: Math.pow(1024, 5),
+};
+
+var parseRegExp = /^((-|\+)?(\d+(?:\.\d+)?)) *(kb|mb|gb|tb|pb)$/i;
+
+/**
+ * Convert the given value in bytes into a string or parse to string to an integer in bytes.
+ *
+ * @param {string|number} value
+ * @param {{
+ *  case: [string],
+ *  decimalPlaces: [number]
+ *  fixedDecimals: [boolean]
+ *  thousandsSeparator: [string]
+ *  unitSeparator: [string]
+ *  }} [options] bytes options.
+ *
+ * @returns {string|number|null}
+ */
+
+function bytes(value, options) {
+  if (typeof value === 'string') {
+    return parse(value);
+  }
+
+  if (typeof value === 'number') {
+    return format(value, options);
+  }
+
+  return null;
+}
+
+/**
+ * Format the given value in bytes into a string.
+ *
+ * If the value is negative, it is kept as such. If it is a float,
+ * it is rounded.
+ *
+ * @param {number} value
+ * @param {object} [options]
+ * @param {number} [options.decimalPlaces=2]
+ * @param {number} [options.fixedDecimals=false]
+ * @param {string} [options.thousandsSeparator=]
+ * @param {string} [options.unit=]
+ * @param {string} [options.unitSeparator=]
+ *
+ * @returns {string|null}
+ * @public
+ */
+
+function format(value, options) {
+  if (!Number.isFinite(value)) {
+    return null;
+  }
+
+  var mag = Math.abs(value);
+  var thousandsSeparator = (options && options.thousandsSeparator) || '';
+  var unitSeparator = (options && options.unitSeparator) || '';
+  var decimalPlaces = (options && options.decimalPlaces !== undefined) ? options.decimalPlaces : 2;
+  var fixedDecimals = Boolean(options && options.fixedDecimals);
+  var unit = (options && options.unit) || '';
+
+  if (!unit || !map[unit.toLowerCase()]) {
+    if (mag >= map.pb) {
+      unit = 'PB';
+    } else if (mag >= map.tb) {
+      unit = 'TB';
+    } else if (mag >= map.gb) {
+      unit = 'GB';
+    } else if (mag >= map.mb) {
+      unit = 'MB';
+    } else if (mag >= map.kb) {
+      unit = 'KB';
+    } else {
+      unit = 'B';
+    }
+  }
+
+  var val = value / map[unit.toLowerCase()];
+  var str = val.toFixed(decimalPlaces);
+
+  if (!fixedDecimals) {
+    str = str.replace(formatDecimalsRegExp, '$1');
+  }
+
+  if (thousandsSeparator) {
+    str = str.replace(formatThousandsRegExp, thousandsSeparator);
+  }
+
+  return str + unitSeparator + unit;
+}
+
+/**
+ * Parse the string value into an integer in bytes.
+ *
+ * If no unit is given, it is assumed the value is in bytes.
+ *
+ * @param {number|string} val
+ *
+ * @returns {number|null}
+ * @public
+ */
+
+function parse(val) {
+  if (typeof val === 'number' && !isNaN(val)) {
+    return val;
+  }
+
+  if (typeof val !== 'string') {
+    return null;
+  }
+
+  // Test if the string passed is valid
+  var results = parseRegExp.exec(val);
+  var floatValue;
+  var unit = 'b';
+
+  if (!results) {
+    // Nothing could be extracted from the given string
+    floatValue = parseInt(val, 10);
+    unit = 'b'
+  } else {
+    // Retrieve the value and the unit
+    floatValue = parseFloat(results[1]);
+    unit = results[4].toLowerCase();
+  }
+
+  return Math.floor(map[unit] * floatValue);
+}
+
+
+/***/ }),
+/* 258 */
 /***/ (function(module, exports) {
 
 /**
@@ -27811,3057 +27986,1817 @@ module.exports = diff;
 
 
 /***/ }),
-/* 258 */
+/* 259 */
 /***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
-/*!
- * bytes
- * Copyright(c) 2012-2014 TJ Holowaychuk
- * Copyright(c) 2015 Jed Watson
- * MIT Licensed
- */
+const optsArg = __webpack_require__(260)
+const pathArg = __webpack_require__(261)
+
+const {mkdirpNative, mkdirpNativeSync} = __webpack_require__(262)
+const {mkdirpManual, mkdirpManualSync} = __webpack_require__(264)
+const {useNative, useNativeSync} = __webpack_require__(265)
 
 
-
-/**
- * Module exports.
- * @public
- */
-
-module.exports = bytes;
-module.exports.format = format;
-module.exports.parse = parse;
-
-/**
- * Module variables.
- * @private
- */
-
-var formatThousandsRegExp = /\B(?=(\d{3})+(?!\d))/g;
-
-var formatDecimalsRegExp = /(?:\.0*|(\.[^0]+)0+)$/;
-
-var map = {
-  b:  1,
-  kb: 1 << 10,
-  mb: 1 << 20,
-  gb: 1 << 30,
-  tb: Math.pow(1024, 4),
-  pb: Math.pow(1024, 5),
-};
-
-var parseRegExp = /^((-|\+)?(\d+(?:\.\d+)?)) *(kb|mb|gb|tb|pb)$/i;
-
-/**
- * Convert the given value in bytes into a string or parse to string to an integer in bytes.
- *
- * @param {string|number} value
- * @param {{
- *  case: [string],
- *  decimalPlaces: [number]
- *  fixedDecimals: [boolean]
- *  thousandsSeparator: [string]
- *  unitSeparator: [string]
- *  }} [options] bytes options.
- *
- * @returns {string|number|null}
- */
-
-function bytes(value, options) {
-  if (typeof value === 'string') {
-    return parse(value);
-  }
-
-  if (typeof value === 'number') {
-    return format(value, options);
-  }
-
-  return null;
+const mkdirp = (path, opts) => {
+  path = pathArg(path)
+  opts = optsArg(opts)
+  return useNative(opts)
+    ? mkdirpNative(path, opts)
+    : mkdirpManual(path, opts)
 }
 
-/**
- * Format the given value in bytes into a string.
- *
- * If the value is negative, it is kept as such. If it is a float,
- * it is rounded.
- *
- * @param {number} value
- * @param {object} [options]
- * @param {number} [options.decimalPlaces=2]
- * @param {number} [options.fixedDecimals=false]
- * @param {string} [options.thousandsSeparator=]
- * @param {string} [options.unit=]
- * @param {string} [options.unitSeparator=]
- *
- * @returns {string|null}
- * @public
- */
-
-function format(value, options) {
-  if (!Number.isFinite(value)) {
-    return null;
-  }
-
-  var mag = Math.abs(value);
-  var thousandsSeparator = (options && options.thousandsSeparator) || '';
-  var unitSeparator = (options && options.unitSeparator) || '';
-  var decimalPlaces = (options && options.decimalPlaces !== undefined) ? options.decimalPlaces : 2;
-  var fixedDecimals = Boolean(options && options.fixedDecimals);
-  var unit = (options && options.unit) || '';
-
-  if (!unit || !map[unit.toLowerCase()]) {
-    if (mag >= map.pb) {
-      unit = 'PB';
-    } else if (mag >= map.tb) {
-      unit = 'TB';
-    } else if (mag >= map.gb) {
-      unit = 'GB';
-    } else if (mag >= map.mb) {
-      unit = 'MB';
-    } else if (mag >= map.kb) {
-      unit = 'KB';
-    } else {
-      unit = 'B';
-    }
-  }
-
-  var val = value / map[unit.toLowerCase()];
-  var str = val.toFixed(decimalPlaces);
-
-  if (!fixedDecimals) {
-    str = str.replace(formatDecimalsRegExp, '$1');
-  }
-
-  if (thousandsSeparator) {
-    str = str.replace(formatThousandsRegExp, thousandsSeparator);
-  }
-
-  return str + unitSeparator + unit;
+const mkdirpSync = (path, opts) => {
+  path = pathArg(path)
+  opts = optsArg(opts)
+  return useNativeSync(opts)
+    ? mkdirpNativeSync(path, opts)
+    : mkdirpManualSync(path, opts)
 }
 
-/**
- * Parse the string value into an integer in bytes.
- *
- * If no unit is given, it is assumed the value is in bytes.
- *
- * @param {number|string} val
- *
- * @returns {number|null}
- * @public
- */
+mkdirp.sync = mkdirpSync
+mkdirp.native = (path, opts) => mkdirpNative(pathArg(path), optsArg(opts))
+mkdirp.manual = (path, opts) => mkdirpManual(pathArg(path), optsArg(opts))
+mkdirp.nativeSync = (path, opts) => mkdirpNativeSync(pathArg(path), optsArg(opts))
+mkdirp.manualSync = (path, opts) => mkdirpManualSync(pathArg(path), optsArg(opts))
 
-function parse(val) {
-  if (typeof val === 'number' && !isNaN(val)) {
-    return val;
-  }
-
-  if (typeof val !== 'string') {
-    return null;
-  }
-
-  // Test if the string passed is valid
-  var results = parseRegExp.exec(val);
-  var floatValue;
-  var unit = 'b';
-
-  if (!results) {
-    // Nothing could be extracted from the given string
-    floatValue = parseInt(val, 10);
-    unit = 'b'
-  } else {
-    // Retrieve the value and the unit
-    floatValue = parseFloat(results[1]);
-    unit = results[4].toLowerCase();
-  }
-
-  return Math.floor(map[unit] * floatValue);
-}
-
-
-/***/ }),
-/* 259 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "TextDocument", function() { return TextDocument; });
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-
-var FullTextDocument = /** @class */ (function () {
-    function FullTextDocument(uri, languageId, version, content) {
-        this._uri = uri;
-        this._languageId = languageId;
-        this._version = version;
-        this._content = content;
-        this._lineOffsets = undefined;
-    }
-    Object.defineProperty(FullTextDocument.prototype, "uri", {
-        get: function () {
-            return this._uri;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(FullTextDocument.prototype, "languageId", {
-        get: function () {
-            return this._languageId;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(FullTextDocument.prototype, "version", {
-        get: function () {
-            return this._version;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    FullTextDocument.prototype.getText = function (range) {
-        if (range) {
-            var start = this.offsetAt(range.start);
-            var end = this.offsetAt(range.end);
-            return this._content.substring(start, end);
-        }
-        return this._content;
-    };
-    FullTextDocument.prototype.update = function (changes, version) {
-        for (var _i = 0, changes_1 = changes; _i < changes_1.length; _i++) {
-            var change = changes_1[_i];
-            if (FullTextDocument.isIncremental(change)) {
-                // makes sure start is before end
-                var range = getWellformedRange(change.range);
-                // update content
-                var startOffset = this.offsetAt(range.start);
-                var endOffset = this.offsetAt(range.end);
-                this._content = this._content.substring(0, startOffset) + change.text + this._content.substring(endOffset, this._content.length);
-                // update the offsets
-                var startLine = Math.max(range.start.line, 0);
-                var endLine = Math.max(range.end.line, 0);
-                var lineOffsets = this._lineOffsets;
-                var addedLineOffsets = computeLineOffsets(change.text, false, startOffset);
-                if (endLine - startLine === addedLineOffsets.length) {
-                    for (var i = 0, len = addedLineOffsets.length; i < len; i++) {
-                        lineOffsets[i + startLine + 1] = addedLineOffsets[i];
-                    }
-                }
-                else {
-                    if (addedLineOffsets.length < 10000) {
-                        lineOffsets.splice.apply(lineOffsets, [startLine + 1, endLine - startLine].concat(addedLineOffsets));
-                    }
-                    else { // avoid too many arguments for splice
-                        this._lineOffsets = lineOffsets = lineOffsets.slice(0, startLine + 1).concat(addedLineOffsets, lineOffsets.slice(endLine + 1));
-                    }
-                }
-                var diff = change.text.length - (endOffset - startOffset);
-                if (diff !== 0) {
-                    for (var i = startLine + 1 + addedLineOffsets.length, len = lineOffsets.length; i < len; i++) {
-                        lineOffsets[i] = lineOffsets[i] + diff;
-                    }
-                }
-            }
-            else if (FullTextDocument.isFull(change)) {
-                this._content = change.text;
-                this._lineOffsets = undefined;
-            }
-            else {
-                throw new Error('Unknown change event received');
-            }
-        }
-        this._version = version;
-    };
-    FullTextDocument.prototype.getLineOffsets = function () {
-        if (this._lineOffsets === undefined) {
-            this._lineOffsets = computeLineOffsets(this._content, true);
-        }
-        return this._lineOffsets;
-    };
-    FullTextDocument.prototype.positionAt = function (offset) {
-        offset = Math.max(Math.min(offset, this._content.length), 0);
-        var lineOffsets = this.getLineOffsets();
-        var low = 0, high = lineOffsets.length;
-        if (high === 0) {
-            return { line: 0, character: offset };
-        }
-        while (low < high) {
-            var mid = Math.floor((low + high) / 2);
-            if (lineOffsets[mid] > offset) {
-                high = mid;
-            }
-            else {
-                low = mid + 1;
-            }
-        }
-        // low is the least x for which the line offset is larger than the current offset
-        // or array.length if no line offset is larger than the current offset
-        var line = low - 1;
-        return { line: line, character: offset - lineOffsets[line] };
-    };
-    FullTextDocument.prototype.offsetAt = function (position) {
-        var lineOffsets = this.getLineOffsets();
-        if (position.line >= lineOffsets.length) {
-            return this._content.length;
-        }
-        else if (position.line < 0) {
-            return 0;
-        }
-        var lineOffset = lineOffsets[position.line];
-        var nextLineOffset = (position.line + 1 < lineOffsets.length) ? lineOffsets[position.line + 1] : this._content.length;
-        return Math.max(Math.min(lineOffset + position.character, nextLineOffset), lineOffset);
-    };
-    Object.defineProperty(FullTextDocument.prototype, "lineCount", {
-        get: function () {
-            return this.getLineOffsets().length;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    FullTextDocument.isIncremental = function (event) {
-        var candidate = event;
-        return candidate !== undefined && candidate !== null &&
-            typeof candidate.text === 'string' && candidate.range !== undefined &&
-            (candidate.rangeLength === undefined || typeof candidate.rangeLength === 'number');
-    };
-    FullTextDocument.isFull = function (event) {
-        var candidate = event;
-        return candidate !== undefined && candidate !== null &&
-            typeof candidate.text === 'string' && candidate.range === undefined && candidate.rangeLength === undefined;
-    };
-    return FullTextDocument;
-}());
-var TextDocument;
-(function (TextDocument) {
-    /**
-     * Creates a new text document.
-     *
-     * @param uri The document's uri.
-     * @param languageId  The document's language Id.
-     * @param version The document's initial version number.
-     * @param content The document's content.
-     */
-    function create(uri, languageId, version, content) {
-        return new FullTextDocument(uri, languageId, version, content);
-    }
-    TextDocument.create = create;
-    /**
-     * Updates a TextDocument by modifing its content.
-     *
-     * @param document the document to update. Only documents created by TextDocument.create are valid inputs.
-     * @param changes the changes to apply to the document.
-     * @returns The updated TextDocument. Note: That's the same document instance passed in as first parameter.
-     *
-     */
-    function update(document, changes, version) {
-        if (document instanceof FullTextDocument) {
-            document.update(changes, version);
-            return document;
-        }
-        else {
-            throw new Error('TextDocument.update: document must be created by TextDocument.create');
-        }
-    }
-    TextDocument.update = update;
-    function applyEdits(document, edits) {
-        var text = document.getText();
-        var sortedEdits = mergeSort(edits.map(getWellformedEdit), function (a, b) {
-            var diff = a.range.start.line - b.range.start.line;
-            if (diff === 0) {
-                return a.range.start.character - b.range.start.character;
-            }
-            return diff;
-        });
-        var lastModifiedOffset = 0;
-        var spans = [];
-        for (var _i = 0, sortedEdits_1 = sortedEdits; _i < sortedEdits_1.length; _i++) {
-            var e = sortedEdits_1[_i];
-            var startOffset = document.offsetAt(e.range.start);
-            if (startOffset < lastModifiedOffset) {
-                throw new Error('Overlapping edit');
-            }
-            else if (startOffset > lastModifiedOffset) {
-                spans.push(text.substring(lastModifiedOffset, startOffset));
-            }
-            if (e.newText.length) {
-                spans.push(e.newText);
-            }
-            lastModifiedOffset = document.offsetAt(e.range.end);
-        }
-        spans.push(text.substr(lastModifiedOffset));
-        return spans.join('');
-    }
-    TextDocument.applyEdits = applyEdits;
-})(TextDocument || (TextDocument = {}));
-function mergeSort(data, compare) {
-    if (data.length <= 1) {
-        // sorted
-        return data;
-    }
-    var p = (data.length / 2) | 0;
-    var left = data.slice(0, p);
-    var right = data.slice(p);
-    mergeSort(left, compare);
-    mergeSort(right, compare);
-    var leftIdx = 0;
-    var rightIdx = 0;
-    var i = 0;
-    while (leftIdx < left.length && rightIdx < right.length) {
-        var ret = compare(left[leftIdx], right[rightIdx]);
-        if (ret <= 0) {
-            // smaller_equal -> take left to preserve order
-            data[i++] = left[leftIdx++];
-        }
-        else {
-            // greater -> take right
-            data[i++] = right[rightIdx++];
-        }
-    }
-    while (leftIdx < left.length) {
-        data[i++] = left[leftIdx++];
-    }
-    while (rightIdx < right.length) {
-        data[i++] = right[rightIdx++];
-    }
-    return data;
-}
-function computeLineOffsets(text, isAtLineStart, textOffset) {
-    if (textOffset === void 0) { textOffset = 0; }
-    var result = isAtLineStart ? [textOffset] : [];
-    for (var i = 0; i < text.length; i++) {
-        var ch = text.charCodeAt(i);
-        if (ch === 13 /* CarriageReturn */ || ch === 10 /* LineFeed */) {
-            if (ch === 13 /* CarriageReturn */ && i + 1 < text.length && text.charCodeAt(i + 1) === 10 /* LineFeed */) {
-                i++;
-            }
-            result.push(textOffset + i + 1);
-        }
-    }
-    return result;
-}
-function getWellformedRange(range) {
-    var start = range.start;
-    var end = range.end;
-    if (start.line > end.line || (start.line === end.line && start.character > end.character)) {
-        return { start: end, end: start };
-    }
-    return range;
-}
-function getWellformedEdit(textEdit) {
-    var range = getWellformedRange(textEdit.range);
-    if (range !== textEdit.range) {
-        return { newText: textEdit.newText, range: range };
-    }
-    return textEdit;
-}
+module.exports = mkdirp
 
 
 /***/ }),
 /* 260 */
 /***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
+const { promisify } = __webpack_require__(74)
+const fs = __webpack_require__(66)
+const optsArg = opts => {
+  if (!opts)
+    opts = { mode: 0o777, fs }
+  else if (typeof opts === 'object')
+    opts = { mode: 0o777, fs, ...opts }
+  else if (typeof opts === 'number')
+    opts = { mode: opts, fs }
+  else if (typeof opts === 'string')
+    opts = { mode: parseInt(opts, 8), fs }
+  else
+    throw new TypeError('invalid options argument')
 
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(65);
-const os_1 = tslib_1.__importDefault(__webpack_require__(76));
-const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_uri_1 = __webpack_require__(242);
-const types_1 = __webpack_require__(261);
-const object_1 = __webpack_require__(248);
-const util_1 = __webpack_require__(237);
-const configuration_1 = __webpack_require__(262);
-const model_1 = __webpack_require__(263);
-const util_2 = __webpack_require__(264);
-const is_1 = __webpack_require__(249);
-const fs_2 = __webpack_require__(270);
-const logger = __webpack_require__(64)('configurations');
-function lookUp(tree, key) {
-    if (key) {
-        if (tree && tree.hasOwnProperty(key))
-            return tree[key];
-        const parts = key.split('.');
-        let node = tree;
-        for (let i = 0; node && i < parts.length; i++) {
-            node = node[parts[i]];
-        }
-        return node;
-    }
-    return tree;
+  opts.mkdir = opts.mkdir || opts.fs.mkdir || fs.mkdir
+  opts.mkdirAsync = promisify(opts.mkdir)
+  opts.stat = opts.stat || opts.fs.stat || fs.stat
+  opts.statAsync = promisify(opts.stat)
+  opts.statSync = opts.statSync || opts.fs.statSync || fs.statSync
+  opts.mkdirSync = opts.mkdirSync || opts.fs.mkdirSync || fs.mkdirSync
+  return opts
 }
-class Configurations {
-    constructor(userConfigFile, _proxy) {
-        this.userConfigFile = userConfigFile;
-        this._proxy = _proxy;
-        this._errorItems = [];
-        this._folderConfigurations = new Map();
-        this._onError = new vscode_languageserver_protocol_1.Emitter();
-        this._onChange = new vscode_languageserver_protocol_1.Emitter();
-        this.disposables = [];
-        this.onError = this._onError.event;
-        this.onDidChange = this._onChange.event;
-        let user = this.parseContentFromFile(userConfigFile);
-        let data = {
-            defaults: util_2.loadDefaultConfigurations(),
-            user,
-            workspace: { contents: {} }
-        };
-        this._configuration = Configurations.parse(data);
-        this.watchFile(userConfigFile, types_1.ConfigurationTarget.User);
-        let folderConfigFile = path_1.default.join(process.cwd(), `.vim/${util_1.CONFIG_FILE_NAME}`);
-        if (folderConfigFile != userConfigFile && fs_1.default.existsSync(folderConfigFile)) {
-            this.addFolderFile(folderConfigFile);
-        }
-    }
-    parseContentFromFile(filepath) {
-        if (!filepath)
-            return { contents: {} };
-        let uri = vscode_uri_1.URI.file(filepath).toString();
-        this._errorItems = this._errorItems.filter(o => o.location.uri != uri);
-        let res = util_2.parseContentFromFile(filepath, errors => {
-            this._errorItems.push(...errors);
-        });
-        this._onError.fire(this._errorItems);
-        return res;
-    }
-    get errorItems() {
-        return this._errorItems;
-    }
-    get foldConfigurations() {
-        return this._folderConfigurations;
-    }
-    // used for extensions, no change event fired
-    extendsDefaults(props) {
-        let { defaults } = this._configuration;
-        let { contents } = defaults;
-        contents = object_1.deepClone(contents);
-        Object.keys(props).forEach(key => {
-            util_2.addToValueTree(contents, key, props[key], msg => {
-                logger.error(msg);
-            });
-        });
-        let data = {
-            defaults: { contents },
-            user: this._configuration.user,
-            workspace: this._configuration.workspace
-        };
-        this._configuration = Configurations.parse(data);
-    }
-    // change user configuration, without change file
-    updateUserConfig(props) {
-        if (!props || Object.keys(props).length == 0)
-            return;
-        let { user } = this._configuration;
-        let model = user.clone();
-        Object.keys(props).forEach(key => {
-            let val = props[key];
-            if (val === undefined) {
-                model.removeValue(key);
-            }
-            else if (is_1.objectLiteral(val)) {
-                for (let k of Object.keys(val)) {
-                    model.setValue(`${key}.${k}`, val[k]);
-                }
-            }
-            else {
-                model.setValue(key, val);
-            }
-        });
-        this.changeConfiguration(types_1.ConfigurationTarget.User, model);
-    }
-    get defaults() {
-        return this._configuration.defaults;
-    }
-    get user() {
-        return this._configuration.user;
-    }
-    get workspace() {
-        return this._configuration.workspace;
-    }
-    addFolderFile(filepath) {
-        let { _folderConfigurations } = this;
-        if (_folderConfigurations.has(filepath))
-            return;
-        if (path_1.default.resolve(filepath, '../..') == os_1.default.homedir())
-            return;
-        let model = this.parseContentFromFile(filepath);
-        this.watchFile(filepath, types_1.ConfigurationTarget.Workspace);
-        this.changeConfiguration(types_1.ConfigurationTarget.Workspace, model, filepath);
-    }
-    watchFile(filepath, target) {
-        if (!fs_1.default.existsSync(filepath) || global.hasOwnProperty('__TEST__'))
-            return;
-        let disposable = util_1.watchFile(filepath, () => {
-            let model = this.parseContentFromFile(filepath);
-            this.changeConfiguration(target, model, filepath);
-        });
-        this.disposables.push(disposable);
-    }
-    // create new configuration and fire change event
-    changeConfiguration(target, model, configFile) {
-        let { defaults, user, workspace } = this._configuration;
-        let { workspaceConfigFile } = this;
-        let data = {
-            defaults: target == types_1.ConfigurationTarget.Global ? model : defaults,
-            user: target == types_1.ConfigurationTarget.User ? model : user,
-            workspace: target == types_1.ConfigurationTarget.Workspace ? model : workspace,
-        };
-        let configuration = Configurations.parse(data);
-        let changed = util_2.getChangedKeys(this._configuration.getValue(), configuration.getValue());
-        if (target == types_1.ConfigurationTarget.Workspace && configFile) {
-            this._folderConfigurations.set(configFile, new model_1.ConfigurationModel(model.contents));
-            this.workspaceConfigFile = configFile;
-        }
-        if (changed.length == 0)
-            return;
-        this._configuration = configuration;
-        this._onChange.fire({
-            affectsConfiguration: (section, resource) => {
-                if (!resource || target != types_1.ConfigurationTarget.Workspace)
-                    return changed.includes(section);
-                let u = vscode_uri_1.URI.parse(resource);
-                if (u.scheme !== 'file')
-                    return changed.includes(section);
-                let filepath = u.fsPath;
-                let preRoot = workspaceConfigFile ? path_1.default.resolve(workspaceConfigFile, '../..') : '';
-                if (configFile && !fs_2.isParentFolder(preRoot, filepath, true) && !fs_2.isParentFolder(path_1.default.resolve(configFile, '../..'), filepath)) {
-                    return false;
-                }
-                return changed.includes(section);
-            }
-        });
-    }
-    setFolderConfiguration(uri) {
-        let u = vscode_uri_1.URI.parse(uri);
-        if (u.scheme != 'file')
-            return;
-        let filepath = u.fsPath;
-        for (let [configFile, model] of this.foldConfigurations) {
-            let root = path_1.default.resolve(configFile, '../..');
-            if (fs_2.isParentFolder(root, filepath, true) && this.workspaceConfigFile != configFile) {
-                this.changeConfiguration(types_1.ConfigurationTarget.Workspace, model, configFile);
-                break;
-            }
-        }
-    }
-    hasFolderConfiguration(filepath) {
-        let { folders } = this;
-        return folders.findIndex(f => fs_2.isParentFolder(f, filepath, true)) !== -1;
-    }
-    getConfigFile(target) {
-        if (target == types_1.ConfigurationTarget.Global)
-            return null;
-        if (target == types_1.ConfigurationTarget.User)
-            return this.userConfigFile;
-        return this.workspaceConfigFile;
-    }
-    get folders() {
-        let res = [];
-        let { _folderConfigurations } = this;
-        for (let folder of _folderConfigurations.keys()) {
-            res.push(path_1.default.resolve(folder, '../..'));
-        }
-        return res;
-    }
-    get configuration() {
-        return this._configuration;
-    }
-    /**
-     * getConfiguration
-     *
-     * @public
-     * @param {string} section
-     * @returns {WorkspaceConfiguration}
-     */
-    getConfiguration(section, resource) {
-        let configuration;
-        if (resource) {
-            let { defaults, user } = this._configuration;
-            configuration = new configuration_1.Configuration(defaults, user, this.getFolderConfiguration(resource));
-        }
-        else {
-            configuration = this._configuration;
-        }
-        const config = Object.freeze(lookUp(configuration.getValue(null), section));
-        const result = {
-            has(key) {
-                return typeof lookUp(config, key) !== 'undefined';
-            },
-            get: (key, defaultValue) => {
-                let result = lookUp(config, key);
-                if (result == null)
-                    return defaultValue;
-                return result;
-            },
-            update: (key, value, isUser = false) => {
-                let s = section ? `${section}.${key}` : key;
-                let target = isUser ? types_1.ConfigurationTarget.User : types_1.ConfigurationTarget.Workspace;
-                let model = target == types_1.ConfigurationTarget.User ? this.user.clone() : this.workspace.clone();
-                if (value == undefined) {
-                    model.removeValue(s);
-                }
-                else {
-                    model.setValue(s, value);
-                }
-                if (target == types_1.ConfigurationTarget.Workspace && !this.workspaceConfigFile && this._proxy) {
-                    let file = this.workspaceConfigFile = this._proxy.workspaceConfigFile;
-                    if (!fs_1.default.existsSync(file)) {
-                        let folder = path_1.default.dirname(file);
-                        if (!fs_1.default.existsSync(folder))
-                            fs_1.default.mkdirSync(folder);
-                        fs_1.default.writeFileSync(file, '{}', { encoding: 'utf8' });
-                    }
-                }
-                this.changeConfiguration(target, model, target == types_1.ConfigurationTarget.Workspace ? this.workspaceConfigFile : this.userConfigFile);
-                if (this._proxy && !global.hasOwnProperty('__TEST__')) {
-                    if (value == undefined) {
-                        this._proxy.$removeConfigurationOption(target, s);
-                    }
-                    else {
-                        this._proxy.$updateConfigurationOption(target, s, value);
-                    }
-                }
-            },
-            inspect: (key) => {
-                key = section ? `${section}.${key}` : key;
-                const config = this._configuration.inspect(key);
-                if (config) {
-                    return {
-                        key,
-                        defaultValue: config.default,
-                        globalValue: config.user,
-                        workspaceValue: config.workspace,
-                    };
-                }
-                return undefined;
-            }
-        };
-        Object.defineProperty(result, 'has', {
-            enumerable: false
-        });
-        Object.defineProperty(result, 'get', {
-            enumerable: false
-        });
-        Object.defineProperty(result, 'update', {
-            enumerable: false
-        });
-        Object.defineProperty(result, 'inspect', {
-            enumerable: false
-        });
-        if (typeof config === 'object') {
-            object_1.mixin(result, config, false);
-        }
-        return object_1.deepFreeze(result);
-    }
-    getFolderConfiguration(uri) {
-        let u = vscode_uri_1.URI.parse(uri);
-        if (u.scheme != 'file')
-            return new model_1.ConfigurationModel();
-        let filepath = u.fsPath;
-        for (let [configFile, model] of this.foldConfigurations) {
-            let root = path_1.default.resolve(configFile, '../..');
-            if (fs_2.isParentFolder(root, filepath, true))
-                return model;
-        }
-        return new model_1.ConfigurationModel();
-    }
-    checkFolderConfiguration(uri) {
-        let u = vscode_uri_1.URI.parse(uri);
-        if (u.scheme != 'file')
-            return;
-        let rootPath = path_1.default.dirname(u.fsPath);
-        if (!this.hasFolderConfiguration(rootPath)) {
-            let folder = fs_2.findUp('.vim', rootPath);
-            if (folder && folder != os_1.default.homedir()) {
-                let file = path_1.default.join(folder, util_1.CONFIG_FILE_NAME);
-                if (fs_1.default.existsSync(file)) {
-                    this.addFolderFile(file);
-                }
-            }
-        }
-        else {
-            this.setFolderConfiguration(uri);
-        }
-    }
-    static parse(data) {
-        const defaultConfiguration = new model_1.ConfigurationModel(data.defaults.contents);
-        const userConfiguration = new model_1.ConfigurationModel(data.user.contents);
-        const workspaceConfiguration = new model_1.ConfigurationModel(data.workspace.contents);
-        return new configuration_1.Configuration(defaultConfiguration, userConfiguration, workspaceConfiguration, new model_1.ConfigurationModel());
-    }
-    dispose() {
-        util_1.disposeAll(this.disposables);
-    }
-}
-exports.default = Configurations;
-//# sourceMappingURL=index.js.map
+module.exports = optsArg
+
 
 /***/ }),
 /* 261 */
 /***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
+const platform = process.env.__TESTING_MKDIRP_PLATFORM__ || process.platform
+const { resolve, parse } = __webpack_require__(82)
+const pathArg = path => {
+  if (/\0/.test(path)) {
+    // simulate same failure that node raises
+    throw Object.assign(
+      new TypeError('path must be a string without null bytes'),
+      {
+        path,
+        code: 'ERR_INVALID_ARG_VALUE',
+      }
+    )
+  }
 
-Object.defineProperty(exports, "__esModule", { value: true });
-var PatternType;
-(function (PatternType) {
-    PatternType[PatternType["Buffer"] = 0] = "Buffer";
-    PatternType[PatternType["LanguageServer"] = 1] = "LanguageServer";
-    PatternType[PatternType["Global"] = 2] = "Global";
-})(PatternType = exports.PatternType || (exports.PatternType = {}));
-var ExtensionType;
-(function (ExtensionType) {
-    ExtensionType[ExtensionType["Global"] = 0] = "Global";
-    ExtensionType[ExtensionType["Local"] = 1] = "Local";
-    ExtensionType[ExtensionType["SingleFile"] = 2] = "SingleFile";
-    ExtensionType[ExtensionType["Internal"] = 3] = "Internal";
-})(ExtensionType = exports.ExtensionType || (exports.ExtensionType = {}));
-var SourceType;
-(function (SourceType) {
-    SourceType[SourceType["Native"] = 0] = "Native";
-    SourceType[SourceType["Remote"] = 1] = "Remote";
-    SourceType[SourceType["Service"] = 2] = "Service";
-})(SourceType = exports.SourceType || (exports.SourceType = {}));
-var MessageLevel;
-(function (MessageLevel) {
-    MessageLevel[MessageLevel["More"] = 0] = "More";
-    MessageLevel[MessageLevel["Warning"] = 1] = "Warning";
-    MessageLevel[MessageLevel["Error"] = 2] = "Error";
-})(MessageLevel = exports.MessageLevel || (exports.MessageLevel = {}));
-var ConfigurationTarget;
-(function (ConfigurationTarget) {
-    ConfigurationTarget[ConfigurationTarget["Global"] = 0] = "Global";
-    ConfigurationTarget[ConfigurationTarget["User"] = 1] = "User";
-    ConfigurationTarget[ConfigurationTarget["Workspace"] = 2] = "Workspace";
-})(ConfigurationTarget = exports.ConfigurationTarget || (exports.ConfigurationTarget = {}));
-var DiagnosticKind;
-(function (DiagnosticKind) {
-    DiagnosticKind[DiagnosticKind["Syntax"] = 0] = "Syntax";
-    DiagnosticKind[DiagnosticKind["Semantic"] = 1] = "Semantic";
-    DiagnosticKind[DiagnosticKind["Suggestion"] = 2] = "Suggestion";
-})(DiagnosticKind = exports.DiagnosticKind || (exports.DiagnosticKind = {}));
-var ServiceStat;
-(function (ServiceStat) {
-    ServiceStat[ServiceStat["Initial"] = 0] = "Initial";
-    ServiceStat[ServiceStat["Starting"] = 1] = "Starting";
-    ServiceStat[ServiceStat["StartFailed"] = 2] = "StartFailed";
-    ServiceStat[ServiceStat["Running"] = 3] = "Running";
-    ServiceStat[ServiceStat["Stopping"] = 4] = "Stopping";
-    ServiceStat[ServiceStat["Stopped"] = 5] = "Stopped";
-})(ServiceStat = exports.ServiceStat || (exports.ServiceStat = {}));
-//# sourceMappingURL=types.js.map
+  path = resolve(path)
+  if (platform === 'win32') {
+    const badWinChars = /[*|"<>?:]/
+    const {root} = parse(path)
+    if (badWinChars.test(path.substr(root.length))) {
+      throw Object.assign(new Error('Illegal characters in path.'), {
+        path,
+        code: 'EINVAL',
+      })
+    }
+  }
+
+  return path
+}
+module.exports = pathArg
+
 
 /***/ }),
 /* 262 */
 /***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
+const {dirname} = __webpack_require__(82)
+const {findMade, findMadeSync} = __webpack_require__(263)
+const {mkdirpManual, mkdirpManualSync} = __webpack_require__(264)
 
-Object.defineProperty(exports, "__esModule", { value: true });
-const model_1 = __webpack_require__(263);
-class Configuration {
-    constructor(_defaultConfiguration, _userConfiguration, _workspaceConfiguration, _memoryConfiguration = new model_1.ConfigurationModel()) {
-        this._defaultConfiguration = _defaultConfiguration;
-        this._userConfiguration = _userConfiguration;
-        this._workspaceConfiguration = _workspaceConfiguration;
-        this._memoryConfiguration = _memoryConfiguration;
-    }
-    getConsolidateConfiguration() {
-        if (!this._consolidateConfiguration) {
-            this._consolidateConfiguration = this._defaultConfiguration.merge(this._userConfiguration, this._workspaceConfiguration, this._memoryConfiguration);
-            this._consolidateConfiguration = this._consolidateConfiguration.freeze();
-        }
-        return this._consolidateConfiguration;
-    }
-    getValue(section) {
-        let configuration = this.getConsolidateConfiguration();
-        return configuration.getValue(section);
-    }
-    inspect(key) {
-        const consolidateConfigurationModel = this.getConsolidateConfiguration();
-        const { _workspaceConfiguration, _memoryConfiguration } = this;
-        return {
-            default: this._defaultConfiguration.freeze().getValue(key),
-            user: this._userConfiguration.freeze().getValue(key),
-            workspace: _workspaceConfiguration.freeze().getValue(key),
-            memory: _memoryConfiguration.freeze().getValue(key),
-            value: consolidateConfigurationModel.getValue(key)
-        };
-    }
-    get defaults() {
-        return this._defaultConfiguration;
-    }
-    get user() {
-        return this._userConfiguration;
-    }
-    get workspace() {
-        return this._workspaceConfiguration;
-    }
-    toData() {
-        return {
-            defaults: {
-                contents: this._defaultConfiguration.contents
-            },
-            user: {
-                contents: this._userConfiguration.contents
-            },
-            workspace: {
-                contents: this._workspaceConfiguration.contents
-            }
-        };
-    }
+const mkdirpNative = (path, opts) => {
+  opts.recursive = true
+  const parent = dirname(path)
+  if (parent === path)
+    return opts.mkdirAsync(path, opts)
+
+  return findMade(opts, path).then(made =>
+    opts.mkdirAsync(path, opts).then(() => made)
+    .catch(er => {
+      if (er.code === 'ENOENT')
+        return mkdirpManual(path, opts)
+      else
+        throw er
+    }))
 }
-exports.Configuration = Configuration;
-//# sourceMappingURL=configuration.js.map
+
+const mkdirpNativeSync = (path, opts) => {
+  opts.recursive = true
+  const parent = dirname(path)
+  if (parent === path)
+    return opts.mkdirSync(path, opts)
+
+  const made = findMadeSync(opts, path)
+  try {
+    opts.mkdirSync(path, opts)
+    return made
+  } catch (er) {
+    if (er.code === 'ENOENT')
+      return mkdirpManualSync(path, opts)
+    else
+      throw er
+  }
+}
+
+module.exports = {mkdirpNative, mkdirpNativeSync}
+
 
 /***/ }),
 /* 263 */
 /***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
+const {dirname} = __webpack_require__(82)
 
-Object.defineProperty(exports, "__esModule", { value: true });
-const is_1 = __webpack_require__(249);
-const object_1 = __webpack_require__(248);
-const util_1 = __webpack_require__(264);
-class ConfigurationModel {
-    constructor(_contents = {}) {
-        this._contents = _contents;
-    }
-    get contents() {
-        return this._contents;
-    }
-    clone() {
-        return new ConfigurationModel(object_1.deepClone(this._contents));
-    }
-    getValue(section) {
-        let res = section
-            ? util_1.getConfigurationValue(this.contents, section)
-            : this.contents;
-        return res;
-    }
-    merge(...others) {
-        const contents = object_1.deepClone(this.contents);
-        for (const other of others) {
-            this.mergeContents(contents, other.contents);
-        }
-        return new ConfigurationModel(contents);
-    }
-    freeze() {
-        if (!Object.isFrozen(this._contents)) {
-            Object.freeze(this._contents);
-        }
-        return this;
-    }
-    mergeContents(source, target) {
-        for (const key of Object.keys(target)) {
-            if (key in source) {
-                if (is_1.objectLiteral(source[key]) && is_1.objectLiteral(target[key])) {
-                    this.mergeContents(source[key], target[key]);
-                    continue;
-                }
-            }
-            source[key] = object_1.deepClone(target[key]);
-        }
-    }
-    // Update methods
-    setValue(key, value) {
-        util_1.addToValueTree(this.contents, key, value, message => {
-            console.error(message);
-        });
-    }
-    removeValue(key) {
-        util_1.removeFromValueTree(this.contents, key);
-    }
+const findMade = (opts, parent, path = undefined) => {
+  // we never want the 'made' return value to be a root directory
+  if (path === parent)
+    return Promise.resolve()
+
+  return opts.statAsync(parent).then(
+    st => st.isDirectory() ? path : undefined, // will fail later
+    er => er.code === 'ENOENT'
+      ? findMade(opts, dirname(parent), parent)
+      : undefined
+  )
 }
-exports.ConfigurationModel = ConfigurationModel;
-//# sourceMappingURL=model.js.map
+
+const findMadeSync = (opts, parent, path = undefined) => {
+  if (path === parent)
+    return undefined
+
+  try {
+    return opts.statSync(parent).isDirectory() ? path : undefined
+  } catch (er) {
+    return er.code === 'ENOENT'
+      ? findMadeSync(opts, dirname(parent), parent)
+      : undefined
+  }
+}
+
+module.exports = {findMade, findMadeSync}
+
 
 /***/ }),
 /* 264 */
 /***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
+const {dirname} = __webpack_require__(82)
 
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_languageserver_textdocument_1 = __webpack_require__(259);
-const jsonc_parser_1 = __webpack_require__(265);
-const is_1 = __webpack_require__(249);
-const object_1 = __webpack_require__(248);
-const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const vscode_uri_1 = __webpack_require__(242);
-const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const logger = __webpack_require__(64)('configuration-util');
-const isWebpack = typeof __webpack_require__ === "function";
-const pluginRoot = isWebpack ? path_1.default.dirname(__dirname) : path_1.default.resolve(__dirname, '../..');
-function parseContentFromFile(filepath, onError) {
-    if (!filepath || !fs_1.default.existsSync(filepath))
-        return { contents: {} };
-    let content;
-    let uri = vscode_uri_1.URI.file(filepath).toString();
+const mkdirpManual = (path, opts, made) => {
+  opts.recursive = false
+  const parent = dirname(path)
+  if (parent === path) {
+    return opts.mkdirAsync(path, opts).catch(er => {
+      // swallowed by recursive implementation on posix systems
+      // any other error is a failure
+      if (er.code !== 'EISDIR')
+        throw er
+    })
+  }
+
+  return opts.mkdirAsync(path, opts).then(() => made || path, er => {
+    if (er.code === 'ENOENT')
+      return mkdirpManual(parent, opts)
+        .then(made => mkdirpManual(path, opts, made))
+    if (er.code !== 'EEXIST' && er.code !== 'EROFS')
+      throw er
+    return opts.statAsync(path).then(st => {
+      if (st.isDirectory())
+        return made
+      else
+        throw er
+    }, () => { throw er })
+  })
+}
+
+const mkdirpManualSync = (path, opts, made) => {
+  const parent = dirname(path)
+  opts.recursive = false
+
+  if (parent === path) {
     try {
-        content = fs_1.default.readFileSync(filepath, 'utf8');
+      return opts.mkdirSync(path, opts)
+    } catch (er) {
+      // swallowed by recursive implementation on posix systems
+      // any other error is a failure
+      if (er.code !== 'EISDIR')
+        throw er
+      else
+        return
     }
-    catch (_e) {
-        content = '';
+  }
+
+  try {
+    opts.mkdirSync(path, opts)
+    return made || path
+  } catch (er) {
+    if (er.code === 'ENOENT')
+      return mkdirpManualSync(path, opts, mkdirpManualSync(parent, opts, made))
+    if (er.code !== 'EEXIST' && er.code !== 'EROFS')
+      throw er
+    try {
+      if (!opts.statSync(path).isDirectory())
+        throw er
+    } catch (_) {
+      throw er
     }
-    let [errors, contents] = parseConfiguration(content);
-    if (errors && errors.length) {
-        onError(convertErrors(uri, content, errors));
-    }
-    return { contents };
+  }
 }
-exports.parseContentFromFile = parseContentFromFile;
-function parseConfiguration(content) {
-    if (content.length == 0)
-        return [[], {}];
-    let errors = [];
-    let data = jsonc_parser_1.parse(content, errors, { allowTrailingComma: true });
-    function addProperty(current, key, remains, value) {
-        if (remains.length == 0) {
-            current[key] = convert(value);
-        }
-        else {
-            if (!current[key])
-                current[key] = {};
-            let o = current[key];
-            let first = remains.shift();
-            addProperty(o, first, remains, value);
-        }
-    }
-    function convert(obj, split = false) {
-        if (!is_1.objectLiteral(obj))
-            return obj;
-        if (is_1.emptyObject(obj))
-            return {};
-        let dest = {};
-        for (let key of Object.keys(obj)) {
-            if (split && key.includes('.')) {
-                let parts = key.split('.');
-                let first = parts.shift();
-                addProperty(dest, first, parts, obj[key]);
-            }
-            else {
-                dest[key] = convert(obj[key]);
-            }
-        }
-        return dest;
-    }
-    return [errors, convert(data, true)];
-}
-exports.parseConfiguration = parseConfiguration;
-function convertErrors(uri, content, errors) {
-    let items = [];
-    let document = vscode_languageserver_textdocument_1.TextDocument.create(uri, 'json', 0, content);
-    for (let err of errors) {
-        let msg = 'parse error';
-        switch (err.error) {
-            case 2:
-                msg = 'invalid number';
-                break;
-            case 8:
-                msg = 'close brace expected';
-                break;
-            case 5:
-                msg = 'colon expected';
-                break;
-            case 6:
-                msg = 'comma expected';
-                break;
-            case 9:
-                msg = 'end of file expected';
-                break;
-            case 16:
-                msg = 'invaliad character';
-                break;
-            case 10:
-                msg = 'invalid commment token';
-                break;
-            case 15:
-                msg = 'invalid escape character';
-                break;
-            case 1:
-                msg = 'invalid symbol';
-                break;
-            case 14:
-                msg = 'invalid unicode';
-                break;
-            case 3:
-                msg = 'property name expected';
-                break;
-            case 13:
-                msg = 'unexpected end of number';
-                break;
-            case 12:
-                msg = 'unexpected end of string';
-                break;
-            case 11:
-                msg = 'unexpected end of comment';
-                break;
-            case 4:
-                msg = 'value expected';
-                break;
-            default:
-                msg = 'Unknwn error';
-                break;
-        }
-        let range = {
-            start: document.positionAt(err.offset),
-            end: document.positionAt(err.offset + err.length),
-        };
-        let loc = vscode_languageserver_protocol_1.Location.create(uri, range);
-        items.push({ location: loc, message: msg });
-    }
-    return items;
-}
-exports.convertErrors = convertErrors;
-function addToValueTree(settingsTreeRoot, key, value, conflictReporter) {
-    const segments = key.split('.');
-    const last = segments.pop();
-    let curr = settingsTreeRoot;
-    for (let i = 0; i < segments.length; i++) {
-        let s = segments[i];
-        let obj = curr[s];
-        switch (typeof obj) {
-            case 'function': {
-                obj = curr[s] = {};
-                break;
-            }
-            case 'undefined': {
-                obj = curr[s] = {};
-                break;
-            }
-            case 'object':
-                break;
-            default:
-                conflictReporter(`Ignoring ${key} as ${segments
-                    .slice(0, i + 1)
-                    .join('.')} is ${JSON.stringify(obj)}`);
-                return;
-        }
-        curr = obj;
-    }
-    if (typeof curr === 'object') {
-        curr[last] = value; // workaround https://github.com/Microsoft/vscode/issues/13606
-    }
-    else {
-        conflictReporter(`Ignoring ${key} as ${segments.join('.')} is ${JSON.stringify(curr)}`);
-    }
-}
-exports.addToValueTree = addToValueTree;
-function removeFromValueTree(valueTree, key) {
-    const segments = key.split('.');
-    doRemoveFromValueTree(valueTree, segments);
-}
-exports.removeFromValueTree = removeFromValueTree;
-function doRemoveFromValueTree(valueTree, segments) {
-    const first = segments.shift();
-    if (segments.length === 0) {
-        // Reached last segment
-        delete valueTree[first];
-        return;
-    }
-    if (Object.keys(valueTree).includes(first)) {
-        const value = valueTree[first];
-        if (typeof value === 'object' && !Array.isArray(value)) {
-            doRemoveFromValueTree(value, segments);
-            if (Object.keys(value).length === 0) {
-                delete valueTree[first];
-            }
-        }
-    }
-}
-function getConfigurationValue(config, settingPath, defaultValue) {
-    function accessSetting(config, path) {
-        let current = config;
-        for (let i = 0; i < path.length; i++) {
-            if (typeof current !== 'object' || current === null) {
-                return undefined;
-            }
-            current = current[path[i]];
-        }
-        return current;
-    }
-    const path = settingPath.split('.');
-    const result = accessSetting(config, path);
-    return typeof result === 'undefined' ? defaultValue : result;
-}
-exports.getConfigurationValue = getConfigurationValue;
-function loadDefaultConfigurations() {
-    let file = path_1.default.join(pluginRoot, 'data/schema.json');
-    if (!fs_1.default.existsSync(file)) {
-        console.error('schema.json not found, reinstall coc.nvim to fix this!');
-        return { contents: {} };
-    }
-    let content = fs_1.default.readFileSync(file, 'utf8');
-    let { properties } = JSON.parse(content);
-    let config = {};
-    Object.keys(properties).forEach(key => {
-        let value = properties[key].default;
-        if (value !== undefined) {
-            addToValueTree(config, key, value, message => {
-                logger.error(message);
-            });
-        }
-    });
-    return { contents: config };
-}
-exports.loadDefaultConfigurations = loadDefaultConfigurations;
-function getKeys(obj, curr) {
-    let keys = [];
-    for (let key of Object.keys(obj)) {
-        let val = obj[key];
-        let newKey = curr ? `${curr}.${key}` : key;
-        keys.push(newKey);
-        if (is_1.objectLiteral(val)) {
-            keys.push(...getKeys(val, newKey));
-        }
-    }
-    return keys;
-}
-exports.getKeys = getKeys;
-function getChangedKeys(from, to) {
-    let keys = [];
-    let fromKeys = getKeys(from);
-    let toKeys = getKeys(to);
-    const added = toKeys.filter(key => !fromKeys.includes(key));
-    const removed = fromKeys.filter(key => !toKeys.includes(key));
-    keys.push(...added);
-    keys.push(...removed);
-    for (const key of fromKeys) {
-        if (!toKeys.includes(key))
-            continue;
-        const value1 = getConfigurationValue(from, key);
-        const value2 = getConfigurationValue(to, key);
-        if (!object_1.equals(value1, value2)) {
-            keys.push(key);
-        }
-    }
-    return keys;
-}
-exports.getChangedKeys = getChangedKeys;
-//# sourceMappingURL=util.js.map
+
+module.exports = {mkdirpManual, mkdirpManualSync}
+
 
 /***/ }),
 /* 265 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "createScanner", function() { return createScanner; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getLocation", function() { return getLocation; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "parse", function() { return parse; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "parseTree", function() { return parseTree; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "findNodeAtLocation", function() { return findNodeAtLocation; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "findNodeAtOffset", function() { return findNodeAtOffset; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getNodePath", function() { return getNodePath; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getNodeValue", function() { return getNodeValue; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "visit", function() { return visit; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "stripComments", function() { return stripComments; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "printParseErrorCode", function() { return printParseErrorCode; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "format", function() { return format; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "modify", function() { return modify; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "applyEdits", function() { return applyEdits; });
-/* harmony import */ var _impl_format__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(266);
-/* harmony import */ var _impl_edit__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(268);
-/* harmony import */ var _impl_scanner__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(267);
-/* harmony import */ var _impl_parser__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(269);
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
+const fs = __webpack_require__(66)
 
+const version = process.env.__TESTING_MKDIRP_NODE_VERSION__ || process.version
+const versArr = version.replace(/^v/, '').split('.')
+const hasNative = +versArr[0] > 10 || +versArr[0] === 10 && +versArr[1] >= 12
 
+const useNative = !hasNative ? () => false : opts => opts.mkdir === fs.mkdir
+const useNativeSync = !hasNative ? () => false : opts => opts.mkdirSync === fs.mkdirSync
 
-
-
-/**
- * Creates a JSON scanner on the given text.
- * If ignoreTrivia is set, whitespaces or comments are ignored.
- */
-var createScanner = _impl_scanner__WEBPACK_IMPORTED_MODULE_2__["createScanner"];
-/**
- * For a given offset, evaluate the location in the JSON document. Each segment in the location path is either a property name or an array index.
- */
-var getLocation = _impl_parser__WEBPACK_IMPORTED_MODULE_3__["getLocation"];
-/**
- * Parses the given text and returns the object the JSON content represents. On invalid input, the parser tries to be as fault tolerant as possible, but still return a result.
- * Therefore, always check the errors list to find out if the input was valid.
- */
-var parse = _impl_parser__WEBPACK_IMPORTED_MODULE_3__["parse"];
-/**
- * Parses the given text and returns a tree representation the JSON content. On invalid input, the parser tries to be as fault tolerant as possible, but still return a result.
- */
-var parseTree = _impl_parser__WEBPACK_IMPORTED_MODULE_3__["parseTree"];
-/**
- * Finds the node at the given path in a JSON DOM.
- */
-var findNodeAtLocation = _impl_parser__WEBPACK_IMPORTED_MODULE_3__["findNodeAtLocation"];
-/**
- * Finds the innermost node at the given offset. If includeRightBound is set, also finds nodes that end at the given offset.
- */
-var findNodeAtOffset = _impl_parser__WEBPACK_IMPORTED_MODULE_3__["findNodeAtOffset"];
-/**
- * Gets the JSON path of the given JSON DOM node
- */
-var getNodePath = _impl_parser__WEBPACK_IMPORTED_MODULE_3__["getNodePath"];
-/**
- * Evaluates the JavaScript object of the given JSON DOM node
- */
-var getNodeValue = _impl_parser__WEBPACK_IMPORTED_MODULE_3__["getNodeValue"];
-/**
- * Parses the given text and invokes the visitor functions for each object, array and literal reached.
- */
-var visit = _impl_parser__WEBPACK_IMPORTED_MODULE_3__["visit"];
-/**
- * Takes JSON with JavaScript-style comments and remove
- * them. Optionally replaces every none-newline character
- * of comments with a replaceCharacter
- */
-var stripComments = _impl_parser__WEBPACK_IMPORTED_MODULE_3__["stripComments"];
-function printParseErrorCode(code) {
-    switch (code) {
-        case 1 /* InvalidSymbol */: return 'InvalidSymbol';
-        case 2 /* InvalidNumberFormat */: return 'InvalidNumberFormat';
-        case 3 /* PropertyNameExpected */: return 'PropertyNameExpected';
-        case 4 /* ValueExpected */: return 'ValueExpected';
-        case 5 /* ColonExpected */: return 'ColonExpected';
-        case 6 /* CommaExpected */: return 'CommaExpected';
-        case 7 /* CloseBraceExpected */: return 'CloseBraceExpected';
-        case 8 /* CloseBracketExpected */: return 'CloseBracketExpected';
-        case 9 /* EndOfFileExpected */: return 'EndOfFileExpected';
-        case 10 /* InvalidCommentToken */: return 'InvalidCommentToken';
-        case 11 /* UnexpectedEndOfComment */: return 'UnexpectedEndOfComment';
-        case 12 /* UnexpectedEndOfString */: return 'UnexpectedEndOfString';
-        case 13 /* UnexpectedEndOfNumber */: return 'UnexpectedEndOfNumber';
-        case 14 /* InvalidUnicode */: return 'InvalidUnicode';
-        case 15 /* InvalidEscapeCharacter */: return 'InvalidEscapeCharacter';
-        case 16 /* InvalidCharacter */: return 'InvalidCharacter';
-    }
-    return '<unknown ParseErrorCode>';
-}
-/**
- * Computes the edits needed to format a JSON document.
- *
- * @param documentText The input text
- * @param range The range to format or `undefined` to format the full content
- * @param options The formatting options
- * @returns A list of edit operations describing the formatting changes to the original document. Edits can be either inserts, replacements or
- * removals of text segments. All offsets refer to the original state of the document. No two edits must change or remove the same range of
- * text in the original document. However, multiple edits can have
- * the same offset, for example multiple inserts, or an insert followed by a remove or replace. The order in the array defines which edit is applied first.
- * To apply edits to an input, you can use `applyEdits`.
- */
-function format(documentText, range, options) {
-    return _impl_format__WEBPACK_IMPORTED_MODULE_0__["format"](documentText, range, options);
-}
-/**
- * Computes the edits needed to modify a value in the JSON document.
- *
- * @param documentText The input text
- * @param path The path of the value to change. The path represents either to the document root, a property or an array item.
- * If the path points to an non-existing property or item, it will be created.
- * @param value The new value for the specified property or item. If the value is undefined,
- * the property or item will be removed.
- * @param options Options
- * @returns A list of edit operations describing the formatting changes to the original document. Edits can be either inserts, replacements or
- * removals of text segments. All offsets refer to the original state of the document. No two edits must change or remove the same range of
- * text in the original document. However, multiple edits can have
- * the same offset, for example multiple inserts, or an insert followed by a remove or replace. The order in the array defines which edit is applied first.
- * To apply edits to an input, you can use `applyEdits`.
- */
-function modify(text, path, value, options) {
-    return _impl_edit__WEBPACK_IMPORTED_MODULE_1__["setProperty"](text, path, value, options.formattingOptions, options.getInsertionIndex);
-}
-/**
- * Applies edits to a input string.
- */
-function applyEdits(text, edits) {
-    for (var i = edits.length - 1; i >= 0; i--) {
-        text = _impl_edit__WEBPACK_IMPORTED_MODULE_1__["applyEdit"](text, edits[i]);
-    }
-    return text;
-}
+module.exports = {useNative, useNativeSync}
 
 
 /***/ }),
 /* 266 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "format", function() { return format; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "isEOL", function() { return isEOL; });
-/* harmony import */ var _scanner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(267);
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
+const assert = __webpack_require__(108)
+const path = __webpack_require__(82)
+const fs = __webpack_require__(66)
+let glob = undefined
+try {
+  glob = __webpack_require__(267)
+} catch (_err) {
+  // treat glob as optional.
+}
 
+const defaultGlobOpts = {
+  nosort: true,
+  silent: true
+}
 
-function format(documentText, range, options) {
-    var initialIndentLevel;
-    var formatText;
-    var formatTextStart;
-    var rangeStart;
-    var rangeEnd;
-    if (range) {
-        rangeStart = range.offset;
-        rangeEnd = rangeStart + range.length;
-        formatTextStart = rangeStart;
-        while (formatTextStart > 0 && !isEOL(documentText, formatTextStart - 1)) {
-            formatTextStart--;
-        }
-        var endOffset = rangeEnd;
-        while (endOffset < documentText.length && !isEOL(documentText, endOffset)) {
-            endOffset++;
-        }
-        formatText = documentText.substring(formatTextStart, endOffset);
-        initialIndentLevel = computeIndentLevel(formatText, options);
-    }
-    else {
-        formatText = documentText;
-        initialIndentLevel = 0;
-        formatTextStart = 0;
-        rangeStart = 0;
-        rangeEnd = documentText.length;
-    }
-    var eol = getEOL(options, documentText);
-    var lineBreak = false;
-    var indentLevel = 0;
-    var indentValue;
-    if (options.insertSpaces) {
-        indentValue = repeat(' ', options.tabSize || 4);
-    }
-    else {
-        indentValue = '\t';
-    }
-    var scanner = Object(_scanner__WEBPACK_IMPORTED_MODULE_0__["createScanner"])(formatText, false);
-    var hasError = false;
-    function newLineAndIndent() {
-        return eol + repeat(indentValue, initialIndentLevel + indentLevel);
-    }
-    function scanNext() {
-        var token = scanner.scan();
-        lineBreak = false;
-        while (token === 15 /* Trivia */ || token === 14 /* LineBreakTrivia */) {
-            lineBreak = lineBreak || (token === 14 /* LineBreakTrivia */);
-            token = scanner.scan();
-        }
-        hasError = token === 16 /* Unknown */ || scanner.getTokenError() !== 0 /* None */;
-        return token;
-    }
-    var editOperations = [];
-    function addEdit(text, startOffset, endOffset) {
-        if (!hasError && startOffset < rangeEnd && endOffset > rangeStart && documentText.substring(startOffset, endOffset) !== text) {
-            editOperations.push({ offset: startOffset, length: endOffset - startOffset, content: text });
-        }
-    }
-    var firstToken = scanNext();
-    if (firstToken !== 17 /* EOF */) {
-        var firstTokenStart = scanner.getTokenOffset() + formatTextStart;
-        var initialIndent = repeat(indentValue, initialIndentLevel);
-        addEdit(initialIndent, formatTextStart, firstTokenStart);
-    }
-    while (firstToken !== 17 /* EOF */) {
-        var firstTokenEnd = scanner.getTokenOffset() + scanner.getTokenLength() + formatTextStart;
-        var secondToken = scanNext();
-        var replaceContent = '';
-        while (!lineBreak && (secondToken === 12 /* LineCommentTrivia */ || secondToken === 13 /* BlockCommentTrivia */)) {
-            // comments on the same line: keep them on the same line, but ignore them otherwise
-            var commentTokenStart = scanner.getTokenOffset() + formatTextStart;
-            addEdit(' ', firstTokenEnd, commentTokenStart);
-            firstTokenEnd = scanner.getTokenOffset() + scanner.getTokenLength() + formatTextStart;
-            replaceContent = secondToken === 12 /* LineCommentTrivia */ ? newLineAndIndent() : '';
-            secondToken = scanNext();
-        }
-        if (secondToken === 2 /* CloseBraceToken */) {
-            if (firstToken !== 1 /* OpenBraceToken */) {
-                indentLevel--;
-                replaceContent = newLineAndIndent();
-            }
-        }
-        else if (secondToken === 4 /* CloseBracketToken */) {
-            if (firstToken !== 3 /* OpenBracketToken */) {
-                indentLevel--;
-                replaceContent = newLineAndIndent();
-            }
-        }
-        else {
-            switch (firstToken) {
-                case 3 /* OpenBracketToken */:
-                case 1 /* OpenBraceToken */:
-                    indentLevel++;
-                    replaceContent = newLineAndIndent();
-                    break;
-                case 5 /* CommaToken */:
-                case 12 /* LineCommentTrivia */:
-                    replaceContent = newLineAndIndent();
-                    break;
-                case 13 /* BlockCommentTrivia */:
-                    if (lineBreak) {
-                        replaceContent = newLineAndIndent();
-                    }
-                    else {
-                        // symbol following comment on the same line: keep on same line, separate with ' '
-                        replaceContent = ' ';
-                    }
-                    break;
-                case 6 /* ColonToken */:
-                    replaceContent = ' ';
-                    break;
-                case 10 /* StringLiteral */:
-                    if (secondToken === 6 /* ColonToken */) {
-                        replaceContent = '';
-                        break;
-                    }
-                // fall through
-                case 7 /* NullKeyword */:
-                case 8 /* TrueKeyword */:
-                case 9 /* FalseKeyword */:
-                case 11 /* NumericLiteral */:
-                case 2 /* CloseBraceToken */:
-                case 4 /* CloseBracketToken */:
-                    if (secondToken === 12 /* LineCommentTrivia */ || secondToken === 13 /* BlockCommentTrivia */) {
-                        replaceContent = ' ';
-                    }
-                    else if (secondToken !== 5 /* CommaToken */ && secondToken !== 17 /* EOF */) {
-                        hasError = true;
-                    }
-                    break;
-                case 16 /* Unknown */:
-                    hasError = true;
-                    break;
-            }
-            if (lineBreak && (secondToken === 12 /* LineCommentTrivia */ || secondToken === 13 /* BlockCommentTrivia */)) {
-                replaceContent = newLineAndIndent();
-            }
-        }
-        var secondTokenStart = scanner.getTokenOffset() + formatTextStart;
-        addEdit(replaceContent, firstTokenEnd, secondTokenStart);
-        firstToken = secondToken;
-    }
-    return editOperations;
+// for EMFILE handling
+let timeout = 0
+
+const isWindows = (process.platform === "win32")
+
+const defaults = options => {
+  const methods = [
+    'unlink',
+    'chmod',
+    'stat',
+    'lstat',
+    'rmdir',
+    'readdir'
+  ]
+  methods.forEach(m => {
+    options[m] = options[m] || fs[m]
+    m = m + 'Sync'
+    options[m] = options[m] || fs[m]
+  })
+
+  options.maxBusyTries = options.maxBusyTries || 3
+  options.emfileWait = options.emfileWait || 1000
+  if (options.glob === false) {
+    options.disableGlob = true
+  }
+  if (options.disableGlob !== true && glob === undefined) {
+    throw Error('glob dependency not found, set `options.disableGlob = true` if intentional')
+  }
+  options.disableGlob = options.disableGlob || false
+  options.glob = options.glob || defaultGlobOpts
 }
-function repeat(s, count) {
-    var result = '';
-    for (var i = 0; i < count; i++) {
-        result += s;
+
+const rimraf = (p, options, cb) => {
+  if (typeof options === 'function') {
+    cb = options
+    options = {}
+  }
+
+  assert(p, 'rimraf: missing path')
+  assert.equal(typeof p, 'string', 'rimraf: path should be a string')
+  assert.equal(typeof cb, 'function', 'rimraf: callback function required')
+  assert(options, 'rimraf: invalid options argument provided')
+  assert.equal(typeof options, 'object', 'rimraf: options should be object')
+
+  defaults(options)
+
+  let busyTries = 0
+  let errState = null
+  let n = 0
+
+  const next = (er) => {
+    errState = errState || er
+    if (--n === 0)
+      cb(errState)
+  }
+
+  const afterGlob = (er, results) => {
+    if (er)
+      return cb(er)
+
+    n = results.length
+    if (n === 0)
+      return cb()
+
+    results.forEach(p => {
+      const CB = (er) => {
+        if (er) {
+          if ((er.code === "EBUSY" || er.code === "ENOTEMPTY" || er.code === "EPERM") &&
+              busyTries < options.maxBusyTries) {
+            busyTries ++
+            // try again, with the same exact callback as this one.
+            return setTimeout(() => rimraf_(p, options, CB), busyTries * 100)
+          }
+
+          // this one won't happen if graceful-fs is used.
+          if (er.code === "EMFILE" && timeout < options.emfileWait) {
+            return setTimeout(() => rimraf_(p, options, CB), timeout ++)
+          }
+
+          // already gone
+          if (er.code === "ENOENT") er = null
+        }
+
+        timeout = 0
+        next(er)
+      }
+      rimraf_(p, options, CB)
+    })
+  }
+
+  if (options.disableGlob || !glob.hasMagic(p))
+    return afterGlob(null, [p])
+
+  options.lstat(p, (er, stat) => {
+    if (!er)
+      return afterGlob(null, [p])
+
+    glob(p, options.glob, afterGlob)
+  })
+
+}
+
+// Two possible strategies.
+// 1. Assume it's a file.  unlink it, then do the dir stuff on EPERM or EISDIR
+// 2. Assume it's a directory.  readdir, then do the file stuff on ENOTDIR
+//
+// Both result in an extra syscall when you guess wrong.  However, there
+// are likely far more normal files in the world than directories.  This
+// is based on the assumption that a the average number of files per
+// directory is >= 1.
+//
+// If anyone ever complains about this, then I guess the strategy could
+// be made configurable somehow.  But until then, YAGNI.
+const rimraf_ = (p, options, cb) => {
+  assert(p)
+  assert(options)
+  assert(typeof cb === 'function')
+
+  // sunos lets the root user unlink directories, which is... weird.
+  // so we have to lstat here and make sure it's not a dir.
+  options.lstat(p, (er, st) => {
+    if (er && er.code === "ENOENT")
+      return cb(null)
+
+    // Windows can EPERM on stat.  Life is suffering.
+    if (er && er.code === "EPERM" && isWindows)
+      fixWinEPERM(p, options, er, cb)
+
+    if (st && st.isDirectory())
+      return rmdir(p, options, er, cb)
+
+    options.unlink(p, er => {
+      if (er) {
+        if (er.code === "ENOENT")
+          return cb(null)
+        if (er.code === "EPERM")
+          return (isWindows)
+            ? fixWinEPERM(p, options, er, cb)
+            : rmdir(p, options, er, cb)
+        if (er.code === "EISDIR")
+          return rmdir(p, options, er, cb)
+      }
+      return cb(er)
+    })
+  })
+}
+
+const fixWinEPERM = (p, options, er, cb) => {
+  assert(p)
+  assert(options)
+  assert(typeof cb === 'function')
+
+  options.chmod(p, 0o666, er2 => {
+    if (er2)
+      cb(er2.code === "ENOENT" ? null : er)
+    else
+      options.stat(p, (er3, stats) => {
+        if (er3)
+          cb(er3.code === "ENOENT" ? null : er)
+        else if (stats.isDirectory())
+          rmdir(p, options, er, cb)
+        else
+          options.unlink(p, cb)
+      })
+  })
+}
+
+const fixWinEPERMSync = (p, options, er) => {
+  assert(p)
+  assert(options)
+
+  try {
+    options.chmodSync(p, 0o666)
+  } catch (er2) {
+    if (er2.code === "ENOENT")
+      return
+    else
+      throw er
+  }
+
+  let stats
+  try {
+    stats = options.statSync(p)
+  } catch (er3) {
+    if (er3.code === "ENOENT")
+      return
+    else
+      throw er
+  }
+
+  if (stats.isDirectory())
+    rmdirSync(p, options, er)
+  else
+    options.unlinkSync(p)
+}
+
+const rmdir = (p, options, originalEr, cb) => {
+  assert(p)
+  assert(options)
+  assert(typeof cb === 'function')
+
+  // try to rmdir first, and only readdir on ENOTEMPTY or EEXIST (SunOS)
+  // if we guessed wrong, and it's not a directory, then
+  // raise the original error.
+  options.rmdir(p, er => {
+    if (er && (er.code === "ENOTEMPTY" || er.code === "EEXIST" || er.code === "EPERM"))
+      rmkids(p, options, cb)
+    else if (er && er.code === "ENOTDIR")
+      cb(originalEr)
+    else
+      cb(er)
+  })
+}
+
+const rmkids = (p, options, cb) => {
+  assert(p)
+  assert(options)
+  assert(typeof cb === 'function')
+
+  options.readdir(p, (er, files) => {
+    if (er)
+      return cb(er)
+    let n = files.length
+    if (n === 0)
+      return options.rmdir(p, cb)
+    let errState
+    files.forEach(f => {
+      rimraf(path.join(p, f), options, er => {
+        if (errState)
+          return
+        if (er)
+          return cb(errState = er)
+        if (--n === 0)
+          options.rmdir(p, cb)
+      })
+    })
+  })
+}
+
+// this looks simpler, and is strictly *faster*, but will
+// tie up the JavaScript thread and fail on excessively
+// deep directory trees.
+const rimrafSync = (p, options) => {
+  options = options || {}
+  defaults(options)
+
+  assert(p, 'rimraf: missing path')
+  assert.equal(typeof p, 'string', 'rimraf: path should be a string')
+  assert(options, 'rimraf: missing options')
+  assert.equal(typeof options, 'object', 'rimraf: options should be object')
+
+  let results
+
+  if (options.disableGlob || !glob.hasMagic(p)) {
+    results = [p]
+  } else {
+    try {
+      options.lstatSync(p)
+      results = [p]
+    } catch (er) {
+      results = glob.sync(p, options.glob)
     }
-    return result;
-}
-function computeIndentLevel(content, options) {
-    var i = 0;
-    var nChars = 0;
-    var tabSize = options.tabSize || 4;
-    while (i < content.length) {
-        var ch = content.charAt(i);
-        if (ch === ' ') {
-            nChars++;
-        }
-        else if (ch === '\t') {
-            nChars += tabSize;
-        }
-        else {
-            break;
-        }
-        i++;
+  }
+
+  if (!results.length)
+    return
+
+  for (let i = 0; i < results.length; i++) {
+    const p = results[i]
+
+    let st
+    try {
+      st = options.lstatSync(p)
+    } catch (er) {
+      if (er.code === "ENOENT")
+        return
+
+      // Windows can EPERM on stat.  Life is suffering.
+      if (er.code === "EPERM" && isWindows)
+        fixWinEPERMSync(p, options, er)
     }
-    return Math.floor(nChars / tabSize);
-}
-function getEOL(options, text) {
-    for (var i = 0; i < text.length; i++) {
-        var ch = text.charAt(i);
-        if (ch === '\r') {
-            if (i + 1 < text.length && text.charAt(i + 1) === '\n') {
-                return '\r\n';
-            }
-            return '\r';
-        }
-        else if (ch === '\n') {
-            return '\n';
-        }
+
+    try {
+      // sunos lets the root user unlink directories, which is... weird.
+      if (st && st.isDirectory())
+        rmdirSync(p, options, null)
+      else
+        options.unlinkSync(p)
+    } catch (er) {
+      if (er.code === "ENOENT")
+        return
+      if (er.code === "EPERM")
+        return isWindows ? fixWinEPERMSync(p, options, er) : rmdirSync(p, options, er)
+      if (er.code !== "EISDIR")
+        throw er
+
+      rmdirSync(p, options, er)
     }
-    return (options && options.eol) || '\n';
+  }
 }
-function isEOL(text, offset) {
-    return '\r\n'.indexOf(text.charAt(offset)) !== -1;
+
+const rmdirSync = (p, options, originalEr) => {
+  assert(p)
+  assert(options)
+
+  try {
+    options.rmdirSync(p)
+  } catch (er) {
+    if (er.code === "ENOENT")
+      return
+    if (er.code === "ENOTDIR")
+      throw originalEr
+    if (er.code === "ENOTEMPTY" || er.code === "EEXIST" || er.code === "EPERM")
+      rmkidsSync(p, options)
+  }
 }
+
+const rmkidsSync = (p, options) => {
+  assert(p)
+  assert(options)
+  options.readdirSync(p).forEach(f => rimrafSync(path.join(p, f), options))
+
+  // We only end up here once we got ENOTEMPTY at least once, and
+  // at this point, we are guaranteed to have removed all the kids.
+  // So, we know that it won't be ENOENT or ENOTDIR or anything else.
+  // try really hard to delete stuff on windows, because it has a
+  // PROFOUNDLY annoying habit of not closing handles promptly when
+  // files are deleted, resulting in spurious ENOTEMPTY errors.
+  const retries = isWindows ? 100 : 1
+  let i = 0
+  do {
+    let threw = true
+    try {
+      const ret = options.rmdirSync(p, options)
+      threw = false
+      return ret
+    } finally {
+      if (++i < retries && threw)
+        continue
+    }
+  } while (true)
+}
+
+module.exports = rimraf
+rimraf.sync = rimrafSync
 
 
 /***/ }),
 /* 267 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "createScanner", function() { return createScanner; });
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
+// Approach:
+//
+// 1. Get the minimatch set
+// 2. For each pattern in the set, PROCESS(pattern, false)
+// 3. Store matches per-set, then uniq them
+//
+// PROCESS(pattern, inGlobStar)
+// Get the first [n] items from pattern that are all strings
+// Join these together.  This is PREFIX.
+//   If there is no more remaining, then stat(PREFIX) and
+//   add to matches if it succeeds.  END.
+//
+// If inGlobStar and PREFIX is symlink and points to dir
+//   set ENTRIES = []
+// else readdir(PREFIX) as ENTRIES
+//   If fail, END
+//
+// with ENTRIES
+//   If pattern[n] is GLOBSTAR
+//     // handle the case where the globstar match is empty
+//     // by pruning it out, and testing the resulting pattern
+//     PROCESS(pattern[0..n] + pattern[n+1 .. $], false)
+//     // handle other cases.
+//     for ENTRY in ENTRIES (not dotfiles)
+//       // attach globstar + tail onto the entry
+//       // Mark that this entry is a globstar match
+//       PROCESS(pattern[0..n] + ENTRY + pattern[n .. $], true)
+//
+//   else // not globstar
+//     for ENTRY in ENTRIES (not dotfiles, unless pattern[n] is dot)
+//       Test ENTRY against pattern[n]
+//       If fails, continue
+//       If passes, PROCESS(pattern[0..n] + item + pattern[n+1 .. $])
+//
+// Caveat:
+//   Cache all stats and readdirs results to minimize syscall.  Since all
+//   we ever care about is existence and directory-ness, we can just keep
+//   `true` for files, and [children,...] for directories, or `false` for
+//   things that don't exist.
 
-/**
- * Creates a JSON scanner on the given text.
- * If ignoreTrivia is set, whitespaces or comments are ignored.
- */
-function createScanner(text, ignoreTrivia) {
-    if (ignoreTrivia === void 0) { ignoreTrivia = false; }
-    var len = text.length;
-    var pos = 0, value = '', tokenOffset = 0, token = 16 /* Unknown */, lineNumber = 0, lineStartOffset = 0, tokenLineStartOffset = 0, prevTokenLineStartOffset = 0, scanError = 0 /* None */;
-    function scanHexDigits(count, exact) {
-        var digits = 0;
-        var value = 0;
-        while (digits < count || !exact) {
-            var ch = text.charCodeAt(pos);
-            if (ch >= 48 /* _0 */ && ch <= 57 /* _9 */) {
-                value = value * 16 + ch - 48 /* _0 */;
-            }
-            else if (ch >= 65 /* A */ && ch <= 70 /* F */) {
-                value = value * 16 + ch - 65 /* A */ + 10;
-            }
-            else if (ch >= 97 /* a */ && ch <= 102 /* f */) {
-                value = value * 16 + ch - 97 /* a */ + 10;
-            }
-            else {
-                break;
-            }
-            pos++;
-            digits++;
-        }
-        if (digits < count) {
-            value = -1;
-        }
-        return value;
-    }
-    function setPosition(newPosition) {
-        pos = newPosition;
-        value = '';
-        tokenOffset = 0;
-        token = 16 /* Unknown */;
-        scanError = 0 /* None */;
-    }
-    function scanNumber() {
-        var start = pos;
-        if (text.charCodeAt(pos) === 48 /* _0 */) {
-            pos++;
-        }
-        else {
-            pos++;
-            while (pos < text.length && isDigit(text.charCodeAt(pos))) {
-                pos++;
-            }
-        }
-        if (pos < text.length && text.charCodeAt(pos) === 46 /* dot */) {
-            pos++;
-            if (pos < text.length && isDigit(text.charCodeAt(pos))) {
-                pos++;
-                while (pos < text.length && isDigit(text.charCodeAt(pos))) {
-                    pos++;
-                }
-            }
-            else {
-                scanError = 3 /* UnexpectedEndOfNumber */;
-                return text.substring(start, pos);
-            }
-        }
-        var end = pos;
-        if (pos < text.length && (text.charCodeAt(pos) === 69 /* E */ || text.charCodeAt(pos) === 101 /* e */)) {
-            pos++;
-            if (pos < text.length && text.charCodeAt(pos) === 43 /* plus */ || text.charCodeAt(pos) === 45 /* minus */) {
-                pos++;
-            }
-            if (pos < text.length && isDigit(text.charCodeAt(pos))) {
-                pos++;
-                while (pos < text.length && isDigit(text.charCodeAt(pos))) {
-                    pos++;
-                }
-                end = pos;
-            }
-            else {
-                scanError = 3 /* UnexpectedEndOfNumber */;
-            }
-        }
-        return text.substring(start, end);
-    }
-    function scanString() {
-        var result = '', start = pos;
-        while (true) {
-            if (pos >= len) {
-                result += text.substring(start, pos);
-                scanError = 2 /* UnexpectedEndOfString */;
-                break;
-            }
-            var ch = text.charCodeAt(pos);
-            if (ch === 34 /* doubleQuote */) {
-                result += text.substring(start, pos);
-                pos++;
-                break;
-            }
-            if (ch === 92 /* backslash */) {
-                result += text.substring(start, pos);
-                pos++;
-                if (pos >= len) {
-                    scanError = 2 /* UnexpectedEndOfString */;
-                    break;
-                }
-                var ch2 = text.charCodeAt(pos++);
-                switch (ch2) {
-                    case 34 /* doubleQuote */:
-                        result += '\"';
-                        break;
-                    case 92 /* backslash */:
-                        result += '\\';
-                        break;
-                    case 47 /* slash */:
-                        result += '/';
-                        break;
-                    case 98 /* b */:
-                        result += '\b';
-                        break;
-                    case 102 /* f */:
-                        result += '\f';
-                        break;
-                    case 110 /* n */:
-                        result += '\n';
-                        break;
-                    case 114 /* r */:
-                        result += '\r';
-                        break;
-                    case 116 /* t */:
-                        result += '\t';
-                        break;
-                    case 117 /* u */:
-                        var ch3 = scanHexDigits(4, true);
-                        if (ch3 >= 0) {
-                            result += String.fromCharCode(ch3);
-                        }
-                        else {
-                            scanError = 4 /* InvalidUnicode */;
-                        }
-                        break;
-                    default:
-                        scanError = 5 /* InvalidEscapeCharacter */;
-                }
-                start = pos;
-                continue;
-            }
-            if (ch >= 0 && ch <= 0x1f) {
-                if (isLineBreak(ch)) {
-                    result += text.substring(start, pos);
-                    scanError = 2 /* UnexpectedEndOfString */;
-                    break;
-                }
-                else {
-                    scanError = 6 /* InvalidCharacter */;
-                    // mark as error but continue with string
-                }
-            }
-            pos++;
-        }
-        return result;
-    }
-    function scanNext() {
-        value = '';
-        scanError = 0 /* None */;
-        tokenOffset = pos;
-        lineStartOffset = lineNumber;
-        prevTokenLineStartOffset = tokenLineStartOffset;
-        if (pos >= len) {
-            // at the end
-            tokenOffset = len;
-            return token = 17 /* EOF */;
-        }
-        var code = text.charCodeAt(pos);
-        // trivia: whitespace
-        if (isWhiteSpace(code)) {
-            do {
-                pos++;
-                value += String.fromCharCode(code);
-                code = text.charCodeAt(pos);
-            } while (isWhiteSpace(code));
-            return token = 15 /* Trivia */;
-        }
-        // trivia: newlines
-        if (isLineBreak(code)) {
-            pos++;
-            value += String.fromCharCode(code);
-            if (code === 13 /* carriageReturn */ && text.charCodeAt(pos) === 10 /* lineFeed */) {
-                pos++;
-                value += '\n';
-            }
-            lineNumber++;
-            tokenLineStartOffset = pos;
-            return token = 14 /* LineBreakTrivia */;
-        }
-        switch (code) {
-            // tokens: []{}:,
-            case 123 /* openBrace */:
-                pos++;
-                return token = 1 /* OpenBraceToken */;
-            case 125 /* closeBrace */:
-                pos++;
-                return token = 2 /* CloseBraceToken */;
-            case 91 /* openBracket */:
-                pos++;
-                return token = 3 /* OpenBracketToken */;
-            case 93 /* closeBracket */:
-                pos++;
-                return token = 4 /* CloseBracketToken */;
-            case 58 /* colon */:
-                pos++;
-                return token = 6 /* ColonToken */;
-            case 44 /* comma */:
-                pos++;
-                return token = 5 /* CommaToken */;
-            // strings
-            case 34 /* doubleQuote */:
-                pos++;
-                value = scanString();
-                return token = 10 /* StringLiteral */;
-            // comments
-            case 47 /* slash */:
-                var start = pos - 1;
-                // Single-line comment
-                if (text.charCodeAt(pos + 1) === 47 /* slash */) {
-                    pos += 2;
-                    while (pos < len) {
-                        if (isLineBreak(text.charCodeAt(pos))) {
-                            break;
-                        }
-                        pos++;
-                    }
-                    value = text.substring(start, pos);
-                    return token = 12 /* LineCommentTrivia */;
-                }
-                // Multi-line comment
-                if (text.charCodeAt(pos + 1) === 42 /* asterisk */) {
-                    pos += 2;
-                    var safeLength = len - 1; // For lookahead.
-                    var commentClosed = false;
-                    while (pos < safeLength) {
-                        var ch = text.charCodeAt(pos);
-                        if (ch === 42 /* asterisk */ && text.charCodeAt(pos + 1) === 47 /* slash */) {
-                            pos += 2;
-                            commentClosed = true;
-                            break;
-                        }
-                        pos++;
-                        if (isLineBreak(ch)) {
-                            if (ch === 13 /* carriageReturn */ && text.charCodeAt(pos) === 10 /* lineFeed */) {
-                                pos++;
-                            }
-                            lineNumber++;
-                            tokenLineStartOffset = pos;
-                        }
-                    }
-                    if (!commentClosed) {
-                        pos++;
-                        scanError = 1 /* UnexpectedEndOfComment */;
-                    }
-                    value = text.substring(start, pos);
-                    return token = 13 /* BlockCommentTrivia */;
-                }
-                // just a single slash
-                value += String.fromCharCode(code);
-                pos++;
-                return token = 16 /* Unknown */;
-            // numbers
-            case 45 /* minus */:
-                value += String.fromCharCode(code);
-                pos++;
-                if (pos === len || !isDigit(text.charCodeAt(pos))) {
-                    return token = 16 /* Unknown */;
-                }
-            // found a minus, followed by a number so
-            // we fall through to proceed with scanning
-            // numbers
-            case 48 /* _0 */:
-            case 49 /* _1 */:
-            case 50 /* _2 */:
-            case 51 /* _3 */:
-            case 52 /* _4 */:
-            case 53 /* _5 */:
-            case 54 /* _6 */:
-            case 55 /* _7 */:
-            case 56 /* _8 */:
-            case 57 /* _9 */:
-                value += scanNumber();
-                return token = 11 /* NumericLiteral */;
-            // literals and unknown symbols
-            default:
-                // is a literal? Read the full word.
-                while (pos < len && isUnknownContentCharacter(code)) {
-                    pos++;
-                    code = text.charCodeAt(pos);
-                }
-                if (tokenOffset !== pos) {
-                    value = text.substring(tokenOffset, pos);
-                    // keywords: true, false, null
-                    switch (value) {
-                        case 'true': return token = 8 /* TrueKeyword */;
-                        case 'false': return token = 9 /* FalseKeyword */;
-                        case 'null': return token = 7 /* NullKeyword */;
-                    }
-                    return token = 16 /* Unknown */;
-                }
-                // some
-                value += String.fromCharCode(code);
-                pos++;
-                return token = 16 /* Unknown */;
-        }
-    }
-    function isUnknownContentCharacter(code) {
-        if (isWhiteSpace(code) || isLineBreak(code)) {
-            return false;
-        }
-        switch (code) {
-            case 125 /* closeBrace */:
-            case 93 /* closeBracket */:
-            case 123 /* openBrace */:
-            case 91 /* openBracket */:
-            case 34 /* doubleQuote */:
-            case 58 /* colon */:
-            case 44 /* comma */:
-            case 47 /* slash */:
-                return false;
-        }
-        return true;
-    }
-    function scanNextNonTrivia() {
-        var result;
-        do {
-            result = scanNext();
-        } while (result >= 12 /* LineCommentTrivia */ && result <= 15 /* Trivia */);
-        return result;
-    }
-    return {
-        setPosition: setPosition,
-        getPosition: function () { return pos; },
-        scan: ignoreTrivia ? scanNextNonTrivia : scanNext,
-        getToken: function () { return token; },
-        getTokenValue: function () { return value; },
-        getTokenOffset: function () { return tokenOffset; },
-        getTokenLength: function () { return pos - tokenOffset; },
-        getTokenStartLine: function () { return lineStartOffset; },
-        getTokenStartCharacter: function () { return tokenOffset - prevTokenLineStartOffset; },
-        getTokenError: function () { return scanError; },
-    };
+module.exports = glob
+
+var fs = __webpack_require__(66)
+var rp = __webpack_require__(268)
+var minimatch = __webpack_require__(270)
+var Minimatch = minimatch.Minimatch
+var inherits = __webpack_require__(274)
+var EE = __webpack_require__(197).EventEmitter
+var path = __webpack_require__(82)
+var assert = __webpack_require__(108)
+var isAbsolute = __webpack_require__(276)
+var globSync = __webpack_require__(277)
+var common = __webpack_require__(278)
+var alphasort = common.alphasort
+var alphasorti = common.alphasorti
+var setopts = common.setopts
+var ownProp = common.ownProp
+var inflight = __webpack_require__(279)
+var util = __webpack_require__(74)
+var childrenIgnored = common.childrenIgnored
+var isIgnored = common.isIgnored
+
+var once = __webpack_require__(281)
+
+function glob (pattern, options, cb) {
+  if (typeof options === 'function') cb = options, options = {}
+  if (!options) options = {}
+
+  if (options.sync) {
+    if (cb)
+      throw new TypeError('callback provided to sync glob')
+    return globSync(pattern, options)
+  }
+
+  return new Glob(pattern, options, cb)
 }
-function isWhiteSpace(ch) {
-    return ch === 32 /* space */ || ch === 9 /* tab */ || ch === 11 /* verticalTab */ || ch === 12 /* formFeed */ ||
-        ch === 160 /* nonBreakingSpace */ || ch === 5760 /* ogham */ || ch >= 8192 /* enQuad */ && ch <= 8203 /* zeroWidthSpace */ ||
-        ch === 8239 /* narrowNoBreakSpace */ || ch === 8287 /* mathematicalSpace */ || ch === 12288 /* ideographicSpace */ || ch === 65279 /* byteOrderMark */;
+
+glob.sync = globSync
+var GlobSync = glob.GlobSync = globSync.GlobSync
+
+// old api surface
+glob.glob = glob
+
+function extend (origin, add) {
+  if (add === null || typeof add !== 'object') {
+    return origin
+  }
+
+  var keys = Object.keys(add)
+  var i = keys.length
+  while (i--) {
+    origin[keys[i]] = add[keys[i]]
+  }
+  return origin
 }
-function isLineBreak(ch) {
-    return ch === 10 /* lineFeed */ || ch === 13 /* carriageReturn */ || ch === 8232 /* lineSeparator */ || ch === 8233 /* paragraphSeparator */;
+
+glob.hasMagic = function (pattern, options_) {
+  var options = extend({}, options_)
+  options.noprocess = true
+
+  var g = new Glob(pattern, options)
+  var set = g.minimatch.set
+
+  if (!pattern)
+    return false
+
+  if (set.length > 1)
+    return true
+
+  for (var j = 0; j < set[0].length; j++) {
+    if (typeof set[0][j] !== 'string')
+      return true
+  }
+
+  return false
 }
-function isDigit(ch) {
-    return ch >= 48 /* _0 */ && ch <= 57 /* _9 */;
+
+glob.Glob = Glob
+inherits(Glob, EE)
+function Glob (pattern, options, cb) {
+  if (typeof options === 'function') {
+    cb = options
+    options = null
+  }
+
+  if (options && options.sync) {
+    if (cb)
+      throw new TypeError('callback provided to sync glob')
+    return new GlobSync(pattern, options)
+  }
+
+  if (!(this instanceof Glob))
+    return new Glob(pattern, options, cb)
+
+  setopts(this, pattern, options)
+  this._didRealPath = false
+
+  // process each pattern in the minimatch set
+  var n = this.minimatch.set.length
+
+  // The matches are stored as {<filename>: true,...} so that
+  // duplicates are automagically pruned.
+  // Later, we do an Object.keys() on these.
+  // Keep them as a list so we can fill in when nonull is set.
+  this.matches = new Array(n)
+
+  if (typeof cb === 'function') {
+    cb = once(cb)
+    this.on('error', cb)
+    this.on('end', function (matches) {
+      cb(null, matches)
+    })
+  }
+
+  var self = this
+  this._processing = 0
+
+  this._emitQueue = []
+  this._processQueue = []
+  this.paused = false
+
+  if (this.noprocess)
+    return this
+
+  if (n === 0)
+    return done()
+
+  var sync = true
+  for (var i = 0; i < n; i ++) {
+    this._process(this.minimatch.set[i], i, false, done)
+  }
+  sync = false
+
+  function done () {
+    --self._processing
+    if (self._processing <= 0) {
+      if (sync) {
+        process.nextTick(function () {
+          self._finish()
+        })
+      } else {
+        self._finish()
+      }
+    }
+  }
+}
+
+Glob.prototype._finish = function () {
+  assert(this instanceof Glob)
+  if (this.aborted)
+    return
+
+  if (this.realpath && !this._didRealpath)
+    return this._realpath()
+
+  common.finish(this)
+  this.emit('end', this.found)
+}
+
+Glob.prototype._realpath = function () {
+  if (this._didRealpath)
+    return
+
+  this._didRealpath = true
+
+  var n = this.matches.length
+  if (n === 0)
+    return this._finish()
+
+  var self = this
+  for (var i = 0; i < this.matches.length; i++)
+    this._realpathSet(i, next)
+
+  function next () {
+    if (--n === 0)
+      self._finish()
+  }
+}
+
+Glob.prototype._realpathSet = function (index, cb) {
+  var matchset = this.matches[index]
+  if (!matchset)
+    return cb()
+
+  var found = Object.keys(matchset)
+  var self = this
+  var n = found.length
+
+  if (n === 0)
+    return cb()
+
+  var set = this.matches[index] = Object.create(null)
+  found.forEach(function (p, i) {
+    // If there's a problem with the stat, then it means that
+    // one or more of the links in the realpath couldn't be
+    // resolved.  just return the abs value in that case.
+    p = self._makeAbs(p)
+    rp.realpath(p, self.realpathCache, function (er, real) {
+      if (!er)
+        set[real] = true
+      else if (er.syscall === 'stat')
+        set[p] = true
+      else
+        self.emit('error', er) // srsly wtf right here
+
+      if (--n === 0) {
+        self.matches[index] = set
+        cb()
+      }
+    })
+  })
+}
+
+Glob.prototype._mark = function (p) {
+  return common.mark(this, p)
+}
+
+Glob.prototype._makeAbs = function (f) {
+  return common.makeAbs(this, f)
+}
+
+Glob.prototype.abort = function () {
+  this.aborted = true
+  this.emit('abort')
+}
+
+Glob.prototype.pause = function () {
+  if (!this.paused) {
+    this.paused = true
+    this.emit('pause')
+  }
+}
+
+Glob.prototype.resume = function () {
+  if (this.paused) {
+    this.emit('resume')
+    this.paused = false
+    if (this._emitQueue.length) {
+      var eq = this._emitQueue.slice(0)
+      this._emitQueue.length = 0
+      for (var i = 0; i < eq.length; i ++) {
+        var e = eq[i]
+        this._emitMatch(e[0], e[1])
+      }
+    }
+    if (this._processQueue.length) {
+      var pq = this._processQueue.slice(0)
+      this._processQueue.length = 0
+      for (var i = 0; i < pq.length; i ++) {
+        var p = pq[i]
+        this._processing--
+        this._process(p[0], p[1], p[2], p[3])
+      }
+    }
+  }
+}
+
+Glob.prototype._process = function (pattern, index, inGlobStar, cb) {
+  assert(this instanceof Glob)
+  assert(typeof cb === 'function')
+
+  if (this.aborted)
+    return
+
+  this._processing++
+  if (this.paused) {
+    this._processQueue.push([pattern, index, inGlobStar, cb])
+    return
+  }
+
+  //console.error('PROCESS %d', this._processing, pattern)
+
+  // Get the first [n] parts of pattern that are all strings.
+  var n = 0
+  while (typeof pattern[n] === 'string') {
+    n ++
+  }
+  // now n is the index of the first one that is *not* a string.
+
+  // see if there's anything else
+  var prefix
+  switch (n) {
+    // if not, then this is rather simple
+    case pattern.length:
+      this._processSimple(pattern.join('/'), index, cb)
+      return
+
+    case 0:
+      // pattern *starts* with some non-trivial item.
+      // going to readdir(cwd), but not include the prefix in matches.
+      prefix = null
+      break
+
+    default:
+      // pattern has some string bits in the front.
+      // whatever it starts with, whether that's 'absolute' like /foo/bar,
+      // or 'relative' like '../baz'
+      prefix = pattern.slice(0, n).join('/')
+      break
+  }
+
+  var remain = pattern.slice(n)
+
+  // get the list of entries.
+  var read
+  if (prefix === null)
+    read = '.'
+  else if (isAbsolute(prefix) || isAbsolute(pattern.join('/'))) {
+    if (!prefix || !isAbsolute(prefix))
+      prefix = '/' + prefix
+    read = prefix
+  } else
+    read = prefix
+
+  var abs = this._makeAbs(read)
+
+  //if ignored, skip _processing
+  if (childrenIgnored(this, read))
+    return cb()
+
+  var isGlobStar = remain[0] === minimatch.GLOBSTAR
+  if (isGlobStar)
+    this._processGlobStar(prefix, read, abs, remain, index, inGlobStar, cb)
+  else
+    this._processReaddir(prefix, read, abs, remain, index, inGlobStar, cb)
+}
+
+Glob.prototype._processReaddir = function (prefix, read, abs, remain, index, inGlobStar, cb) {
+  var self = this
+  this._readdir(abs, inGlobStar, function (er, entries) {
+    return self._processReaddir2(prefix, read, abs, remain, index, inGlobStar, entries, cb)
+  })
+}
+
+Glob.prototype._processReaddir2 = function (prefix, read, abs, remain, index, inGlobStar, entries, cb) {
+
+  // if the abs isn't a dir, then nothing can match!
+  if (!entries)
+    return cb()
+
+  // It will only match dot entries if it starts with a dot, or if
+  // dot is set.  Stuff like @(.foo|.bar) isn't allowed.
+  var pn = remain[0]
+  var negate = !!this.minimatch.negate
+  var rawGlob = pn._glob
+  var dotOk = this.dot || rawGlob.charAt(0) === '.'
+
+  var matchedEntries = []
+  for (var i = 0; i < entries.length; i++) {
+    var e = entries[i]
+    if (e.charAt(0) !== '.' || dotOk) {
+      var m
+      if (negate && !prefix) {
+        m = !e.match(pn)
+      } else {
+        m = e.match(pn)
+      }
+      if (m)
+        matchedEntries.push(e)
+    }
+  }
+
+  //console.error('prd2', prefix, entries, remain[0]._glob, matchedEntries)
+
+  var len = matchedEntries.length
+  // If there are no matched entries, then nothing matches.
+  if (len === 0)
+    return cb()
+
+  // if this is the last remaining pattern bit, then no need for
+  // an additional stat *unless* the user has specified mark or
+  // stat explicitly.  We know they exist, since readdir returned
+  // them.
+
+  if (remain.length === 1 && !this.mark && !this.stat) {
+    if (!this.matches[index])
+      this.matches[index] = Object.create(null)
+
+    for (var i = 0; i < len; i ++) {
+      var e = matchedEntries[i]
+      if (prefix) {
+        if (prefix !== '/')
+          e = prefix + '/' + e
+        else
+          e = prefix + e
+      }
+
+      if (e.charAt(0) === '/' && !this.nomount) {
+        e = path.join(this.root, e)
+      }
+      this._emitMatch(index, e)
+    }
+    // This was the last one, and no stats were needed
+    return cb()
+  }
+
+  // now test all matched entries as stand-ins for that part
+  // of the pattern.
+  remain.shift()
+  for (var i = 0; i < len; i ++) {
+    var e = matchedEntries[i]
+    var newPattern
+    if (prefix) {
+      if (prefix !== '/')
+        e = prefix + '/' + e
+      else
+        e = prefix + e
+    }
+    this._process([e].concat(remain), index, inGlobStar, cb)
+  }
+  cb()
+}
+
+Glob.prototype._emitMatch = function (index, e) {
+  if (this.aborted)
+    return
+
+  if (isIgnored(this, e))
+    return
+
+  if (this.paused) {
+    this._emitQueue.push([index, e])
+    return
+  }
+
+  var abs = isAbsolute(e) ? e : this._makeAbs(e)
+
+  if (this.mark)
+    e = this._mark(e)
+
+  if (this.absolute)
+    e = abs
+
+  if (this.matches[index][e])
+    return
+
+  if (this.nodir) {
+    var c = this.cache[abs]
+    if (c === 'DIR' || Array.isArray(c))
+      return
+  }
+
+  this.matches[index][e] = true
+
+  var st = this.statCache[abs]
+  if (st)
+    this.emit('stat', e, st)
+
+  this.emit('match', e)
+}
+
+Glob.prototype._readdirInGlobStar = function (abs, cb) {
+  if (this.aborted)
+    return
+
+  // follow all symlinked directories forever
+  // just proceed as if this is a non-globstar situation
+  if (this.follow)
+    return this._readdir(abs, false, cb)
+
+  var lstatkey = 'lstat\0' + abs
+  var self = this
+  var lstatcb = inflight(lstatkey, lstatcb_)
+
+  if (lstatcb)
+    fs.lstat(abs, lstatcb)
+
+  function lstatcb_ (er, lstat) {
+    if (er && er.code === 'ENOENT')
+      return cb()
+
+    var isSym = lstat && lstat.isSymbolicLink()
+    self.symlinks[abs] = isSym
+
+    // If it's not a symlink or a dir, then it's definitely a regular file.
+    // don't bother doing a readdir in that case.
+    if (!isSym && lstat && !lstat.isDirectory()) {
+      self.cache[abs] = 'FILE'
+      cb()
+    } else
+      self._readdir(abs, false, cb)
+  }
+}
+
+Glob.prototype._readdir = function (abs, inGlobStar, cb) {
+  if (this.aborted)
+    return
+
+  cb = inflight('readdir\0'+abs+'\0'+inGlobStar, cb)
+  if (!cb)
+    return
+
+  //console.error('RD %j %j', +inGlobStar, abs)
+  if (inGlobStar && !ownProp(this.symlinks, abs))
+    return this._readdirInGlobStar(abs, cb)
+
+  if (ownProp(this.cache, abs)) {
+    var c = this.cache[abs]
+    if (!c || c === 'FILE')
+      return cb()
+
+    if (Array.isArray(c))
+      return cb(null, c)
+  }
+
+  var self = this
+  fs.readdir(abs, readdirCb(this, abs, cb))
+}
+
+function readdirCb (self, abs, cb) {
+  return function (er, entries) {
+    if (er)
+      self._readdirError(abs, er, cb)
+    else
+      self._readdirEntries(abs, entries, cb)
+  }
+}
+
+Glob.prototype._readdirEntries = function (abs, entries, cb) {
+  if (this.aborted)
+    return
+
+  // if we haven't asked to stat everything, then just
+  // assume that everything in there exists, so we can avoid
+  // having to stat it a second time.
+  if (!this.mark && !this.stat) {
+    for (var i = 0; i < entries.length; i ++) {
+      var e = entries[i]
+      if (abs === '/')
+        e = abs + e
+      else
+        e = abs + '/' + e
+      this.cache[e] = true
+    }
+  }
+
+  this.cache[abs] = entries
+  return cb(null, entries)
+}
+
+Glob.prototype._readdirError = function (f, er, cb) {
+  if (this.aborted)
+    return
+
+  // handle errors, and cache the information
+  switch (er.code) {
+    case 'ENOTSUP': // https://github.com/isaacs/node-glob/issues/205
+    case 'ENOTDIR': // totally normal. means it *does* exist.
+      var abs = this._makeAbs(f)
+      this.cache[abs] = 'FILE'
+      if (abs === this.cwdAbs) {
+        var error = new Error(er.code + ' invalid cwd ' + this.cwd)
+        error.path = this.cwd
+        error.code = er.code
+        this.emit('error', error)
+        this.abort()
+      }
+      break
+
+    case 'ENOENT': // not terribly unusual
+    case 'ELOOP':
+    case 'ENAMETOOLONG':
+    case 'UNKNOWN':
+      this.cache[this._makeAbs(f)] = false
+      break
+
+    default: // some unusual error.  Treat as failure.
+      this.cache[this._makeAbs(f)] = false
+      if (this.strict) {
+        this.emit('error', er)
+        // If the error is handled, then we abort
+        // if not, we threw out of here
+        this.abort()
+      }
+      if (!this.silent)
+        console.error('glob error', er)
+      break
+  }
+
+  return cb()
+}
+
+Glob.prototype._processGlobStar = function (prefix, read, abs, remain, index, inGlobStar, cb) {
+  var self = this
+  this._readdir(abs, inGlobStar, function (er, entries) {
+    self._processGlobStar2(prefix, read, abs, remain, index, inGlobStar, entries, cb)
+  })
+}
+
+
+Glob.prototype._processGlobStar2 = function (prefix, read, abs, remain, index, inGlobStar, entries, cb) {
+  //console.error('pgs2', prefix, remain[0], entries)
+
+  // no entries means not a dir, so it can never have matches
+  // foo.txt/** doesn't match foo.txt
+  if (!entries)
+    return cb()
+
+  // test without the globstar, and with every child both below
+  // and replacing the globstar.
+  var remainWithoutGlobStar = remain.slice(1)
+  var gspref = prefix ? [ prefix ] : []
+  var noGlobStar = gspref.concat(remainWithoutGlobStar)
+
+  // the noGlobStar pattern exits the inGlobStar state
+  this._process(noGlobStar, index, false, cb)
+
+  var isSym = this.symlinks[abs]
+  var len = entries.length
+
+  // If it's a symlink, and we're in a globstar, then stop
+  if (isSym && inGlobStar)
+    return cb()
+
+  for (var i = 0; i < len; i++) {
+    var e = entries[i]
+    if (e.charAt(0) === '.' && !this.dot)
+      continue
+
+    // these two cases enter the inGlobStar state
+    var instead = gspref.concat(entries[i], remainWithoutGlobStar)
+    this._process(instead, index, true, cb)
+
+    var below = gspref.concat(entries[i], remain)
+    this._process(below, index, true, cb)
+  }
+
+  cb()
+}
+
+Glob.prototype._processSimple = function (prefix, index, cb) {
+  // XXX review this.  Shouldn't it be doing the mounting etc
+  // before doing stat?  kinda weird?
+  var self = this
+  this._stat(prefix, function (er, exists) {
+    self._processSimple2(prefix, index, er, exists, cb)
+  })
+}
+Glob.prototype._processSimple2 = function (prefix, index, er, exists, cb) {
+
+  //console.error('ps2', prefix, exists)
+
+  if (!this.matches[index])
+    this.matches[index] = Object.create(null)
+
+  // If it doesn't exist, then just mark the lack of results
+  if (!exists)
+    return cb()
+
+  if (prefix && isAbsolute(prefix) && !this.nomount) {
+    var trail = /[\/\\]$/.test(prefix)
+    if (prefix.charAt(0) === '/') {
+      prefix = path.join(this.root, prefix)
+    } else {
+      prefix = path.resolve(this.root, prefix)
+      if (trail)
+        prefix += '/'
+    }
+  }
+
+  if (process.platform === 'win32')
+    prefix = prefix.replace(/\\/g, '/')
+
+  // Mark this as a match
+  this._emitMatch(index, prefix)
+  cb()
+}
+
+// Returns either 'DIR', 'FILE', or false
+Glob.prototype._stat = function (f, cb) {
+  var abs = this._makeAbs(f)
+  var needDir = f.slice(-1) === '/'
+
+  if (f.length > this.maxLength)
+    return cb()
+
+  if (!this.stat && ownProp(this.cache, abs)) {
+    var c = this.cache[abs]
+
+    if (Array.isArray(c))
+      c = 'DIR'
+
+    // It exists, but maybe not how we need it
+    if (!needDir || c === 'DIR')
+      return cb(null, c)
+
+    if (needDir && c === 'FILE')
+      return cb()
+
+    // otherwise we have to stat, because maybe c=true
+    // if we know it exists, but not what it is.
+  }
+
+  var exists
+  var stat = this.statCache[abs]
+  if (stat !== undefined) {
+    if (stat === false)
+      return cb(null, stat)
+    else {
+      var type = stat.isDirectory() ? 'DIR' : 'FILE'
+      if (needDir && type === 'FILE')
+        return cb()
+      else
+        return cb(null, type, stat)
+    }
+  }
+
+  var self = this
+  var statcb = inflight('stat\0' + abs, lstatcb_)
+  if (statcb)
+    fs.lstat(abs, statcb)
+
+  function lstatcb_ (er, lstat) {
+    if (lstat && lstat.isSymbolicLink()) {
+      // If it's a symlink, then treat it as the target, unless
+      // the target does not exist, then treat it as a file.
+      return fs.stat(abs, function (er, stat) {
+        if (er)
+          self._stat2(f, abs, null, lstat, cb)
+        else
+          self._stat2(f, abs, er, stat, cb)
+      })
+    } else {
+      self._stat2(f, abs, er, lstat, cb)
+    }
+  }
+}
+
+Glob.prototype._stat2 = function (f, abs, er, stat, cb) {
+  if (er && (er.code === 'ENOENT' || er.code === 'ENOTDIR')) {
+    this.statCache[abs] = false
+    return cb()
+  }
+
+  var needDir = f.slice(-1) === '/'
+  this.statCache[abs] = stat
+
+  if (abs.slice(-1) === '/' && stat && !stat.isDirectory())
+    return cb(null, false, stat)
+
+  var c = true
+  if (stat)
+    c = stat.isDirectory() ? 'DIR' : 'FILE'
+  this.cache[abs] = this.cache[abs] || c
+
+  if (needDir && c === 'FILE')
+    return cb()
+
+  return cb(null, c, stat)
 }
 
 
 /***/ }),
 /* 268 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "removeProperty", function() { return removeProperty; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "setProperty", function() { return setProperty; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "applyEdit", function() { return applyEdit; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "isWS", function() { return isWS; });
-/* harmony import */ var _format__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(266);
-/* harmony import */ var _parser__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(269);
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
+module.exports = realpath
+realpath.realpath = realpath
+realpath.sync = realpathSync
+realpath.realpathSync = realpathSync
+realpath.monkeypatch = monkeypatch
+realpath.unmonkeypatch = unmonkeypatch
 
+var fs = __webpack_require__(66)
+var origRealpath = fs.realpath
+var origRealpathSync = fs.realpathSync
 
+var version = process.version
+var ok = /^v[0-5]\./.test(version)
+var old = __webpack_require__(269)
 
-function removeProperty(text, path, formattingOptions) {
-    return setProperty(text, path, void 0, formattingOptions);
+function newError (er) {
+  return er && er.syscall === 'realpath' && (
+    er.code === 'ELOOP' ||
+    er.code === 'ENOMEM' ||
+    er.code === 'ENAMETOOLONG'
+  )
 }
-function setProperty(text, originalPath, value, formattingOptions, getInsertionIndex) {
-    var _a;
-    var path = originalPath.slice();
-    var errors = [];
-    var root = Object(_parser__WEBPACK_IMPORTED_MODULE_1__["parseTree"])(text, errors);
-    var parent = void 0;
-    var lastSegment = void 0;
-    while (path.length > 0) {
-        lastSegment = path.pop();
-        parent = Object(_parser__WEBPACK_IMPORTED_MODULE_1__["findNodeAtLocation"])(root, path);
-        if (parent === void 0 && value !== void 0) {
-            if (typeof lastSegment === 'string') {
-                value = (_a = {}, _a[lastSegment] = value, _a);
-            }
-            else {
-                value = [value];
-            }
-        }
-        else {
-            break;
-        }
+
+function realpath (p, cache, cb) {
+  if (ok) {
+    return origRealpath(p, cache, cb)
+  }
+
+  if (typeof cache === 'function') {
+    cb = cache
+    cache = null
+  }
+  origRealpath(p, cache, function (er, result) {
+    if (newError(er)) {
+      old.realpath(p, cache, cb)
+    } else {
+      cb(er, result)
     }
-    if (!parent) {
-        // empty document
-        if (value === void 0) { // delete
-            throw new Error('Can not delete in empty document');
-        }
-        return withFormatting(text, { offset: root ? root.offset : 0, length: root ? root.length : 0, content: JSON.stringify(value) }, formattingOptions);
-    }
-    else if (parent.type === 'object' && typeof lastSegment === 'string' && Array.isArray(parent.children)) {
-        var existing = Object(_parser__WEBPACK_IMPORTED_MODULE_1__["findNodeAtLocation"])(parent, [lastSegment]);
-        if (existing !== void 0) {
-            if (value === void 0) { // delete
-                if (!existing.parent) {
-                    throw new Error('Malformed AST');
-                }
-                var propertyIndex = parent.children.indexOf(existing.parent);
-                var removeBegin = void 0;
-                var removeEnd = existing.parent.offset + existing.parent.length;
-                if (propertyIndex > 0) {
-                    // remove the comma of the previous node
-                    var previous = parent.children[propertyIndex - 1];
-                    removeBegin = previous.offset + previous.length;
-                }
-                else {
-                    removeBegin = parent.offset + 1;
-                    if (parent.children.length > 1) {
-                        // remove the comma of the next node
-                        var next = parent.children[1];
-                        removeEnd = next.offset;
-                    }
-                }
-                return withFormatting(text, { offset: removeBegin, length: removeEnd - removeBegin, content: '' }, formattingOptions);
-            }
-            else {
-                // set value of existing property
-                return withFormatting(text, { offset: existing.offset, length: existing.length, content: JSON.stringify(value) }, formattingOptions);
-            }
-        }
-        else {
-            if (value === void 0) { // delete
-                return []; // property does not exist, nothing to do
-            }
-            var newProperty = JSON.stringify(lastSegment) + ": " + JSON.stringify(value);
-            var index = getInsertionIndex ? getInsertionIndex(parent.children.map(function (p) { return p.children[0].value; })) : parent.children.length;
-            var edit = void 0;
-            if (index > 0) {
-                var previous = parent.children[index - 1];
-                edit = { offset: previous.offset + previous.length, length: 0, content: ',' + newProperty };
-            }
-            else if (parent.children.length === 0) {
-                edit = { offset: parent.offset + 1, length: 0, content: newProperty };
-            }
-            else {
-                edit = { offset: parent.offset + 1, length: 0, content: newProperty + ',' };
-            }
-            return withFormatting(text, edit, formattingOptions);
-        }
-    }
-    else if (parent.type === 'array' && typeof lastSegment === 'number' && Array.isArray(parent.children)) {
-        var insertIndex = lastSegment;
-        if (insertIndex === -1) {
-            // Insert
-            var newProperty = "" + JSON.stringify(value);
-            var edit = void 0;
-            if (parent.children.length === 0) {
-                edit = { offset: parent.offset + 1, length: 0, content: newProperty };
-            }
-            else {
-                var previous = parent.children[parent.children.length - 1];
-                edit = { offset: previous.offset + previous.length, length: 0, content: ',' + newProperty };
-            }
-            return withFormatting(text, edit, formattingOptions);
-        }
-        else {
-            if (value === void 0 && parent.children.length >= 0) {
-                //Removal
-                var removalIndex = lastSegment;
-                var toRemove = parent.children[removalIndex];
-                var edit = void 0;
-                if (parent.children.length === 1) {
-                    // only item
-                    edit = { offset: parent.offset + 1, length: parent.length - 2, content: '' };
-                }
-                else if (parent.children.length - 1 === removalIndex) {
-                    // last item
-                    var previous = parent.children[removalIndex - 1];
-                    var offset = previous.offset + previous.length;
-                    var parentEndOffset = parent.offset + parent.length;
-                    edit = { offset: offset, length: parentEndOffset - 2 - offset, content: '' };
-                }
-                else {
-                    edit = { offset: toRemove.offset, length: parent.children[removalIndex + 1].offset - toRemove.offset, content: '' };
-                }
-                return withFormatting(text, edit, formattingOptions);
-            }
-            else {
-                throw new Error('Array modification not supported yet');
-            }
-        }
-    }
-    else {
-        throw new Error("Can not add " + (typeof lastSegment !== 'number' ? 'index' : 'property') + " to parent of type " + parent.type);
-    }
+  })
 }
-function withFormatting(text, edit, formattingOptions) {
-    // apply the edit
-    var newText = applyEdit(text, edit);
-    // format the new text
-    var begin = edit.offset;
-    var end = edit.offset + edit.content.length;
-    if (edit.length === 0 || edit.content.length === 0) { // insert or remove
-        while (begin > 0 && !Object(_format__WEBPACK_IMPORTED_MODULE_0__["isEOL"])(newText, begin - 1)) {
-            begin--;
-        }
-        while (end < newText.length && !Object(_format__WEBPACK_IMPORTED_MODULE_0__["isEOL"])(newText, end)) {
-            end++;
-        }
+
+function realpathSync (p, cache) {
+  if (ok) {
+    return origRealpathSync(p, cache)
+  }
+
+  try {
+    return origRealpathSync(p, cache)
+  } catch (er) {
+    if (newError(er)) {
+      return old.realpathSync(p, cache)
+    } else {
+      throw er
     }
-    var edits = Object(_format__WEBPACK_IMPORTED_MODULE_0__["format"])(newText, { offset: begin, length: end - begin }, formattingOptions);
-    // apply the formatting edits and track the begin and end offsets of the changes
-    for (var i = edits.length - 1; i >= 0; i--) {
-        var edit_1 = edits[i];
-        newText = applyEdit(newText, edit_1);
-        begin = Math.min(begin, edit_1.offset);
-        end = Math.max(end, edit_1.offset + edit_1.length);
-        end += edit_1.content.length - edit_1.length;
-    }
-    // create a single edit with all changes
-    var editLength = text.length - (newText.length - end) - begin;
-    return [{ offset: begin, length: editLength, content: newText.substring(begin, end) }];
+  }
 }
-function applyEdit(text, edit) {
-    return text.substring(0, edit.offset) + edit.content + text.substring(edit.offset + edit.length);
+
+function monkeypatch () {
+  fs.realpath = realpath
+  fs.realpathSync = realpathSync
 }
-function isWS(text, offset) {
-    return '\r\n \t'.indexOf(text.charAt(offset)) !== -1;
+
+function unmonkeypatch () {
+  fs.realpath = origRealpath
+  fs.realpathSync = origRealpathSync
 }
 
 
 /***/ }),
 /* 269 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getLocation", function() { return getLocation; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "parse", function() { return parse; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "parseTree", function() { return parseTree; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "findNodeAtLocation", function() { return findNodeAtLocation; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getNodePath", function() { return getNodePath; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getNodeValue", function() { return getNodeValue; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "contains", function() { return contains; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "findNodeAtOffset", function() { return findNodeAtOffset; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "visit", function() { return visit; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "stripComments", function() { return stripComments; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getNodeType", function() { return getNodeType; });
-/* harmony import */ var _scanner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(267);
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+var pathModule = __webpack_require__(82);
+var isWindows = process.platform === 'win32';
+var fs = __webpack_require__(66);
+
+// JavaScript implementation of realpath, ported from node pre-v6
+
+var DEBUG = process.env.NODE_DEBUG && /fs/.test(process.env.NODE_DEBUG);
+
+function rethrow() {
+  // Only enable in debug mode. A backtrace uses ~1000 bytes of heap space and
+  // is fairly slow to generate.
+  var callback;
+  if (DEBUG) {
+    var backtrace = new Error;
+    callback = debugCallback;
+  } else
+    callback = missingCallback;
+
+  return callback;
+
+  function debugCallback(err) {
+    if (err) {
+      backtrace.message = err.message;
+      err = backtrace;
+      missingCallback(err);
+    }
+  }
+
+  function missingCallback(err) {
+    if (err) {
+      if (process.throwDeprecation)
+        throw err;  // Forgot a callback but don't know where? Use NODE_DEBUG=fs
+      else if (!process.noDeprecation) {
+        var msg = 'fs: missing callback ' + (err.stack || err.message);
+        if (process.traceDeprecation)
+          console.trace(msg);
+        else
+          console.error(msg);
+      }
+    }
+  }
+}
+
+function maybeCallback(cb) {
+  return typeof cb === 'function' ? cb : rethrow();
+}
+
+var normalize = pathModule.normalize;
+
+// Regexp that finds the next partion of a (partial) path
+// result is [base_with_slash, base], e.g. ['somedir/', 'somedir']
+if (isWindows) {
+  var nextPartRe = /(.*?)(?:[\/\\]+|$)/g;
+} else {
+  var nextPartRe = /(.*?)(?:[\/]+|$)/g;
+}
+
+// Regex to find the device root, including trailing slash. E.g. 'c:\\'.
+if (isWindows) {
+  var splitRootRe = /^(?:[a-zA-Z]:|[\\\/]{2}[^\\\/]+[\\\/][^\\\/]+)?[\\\/]*/;
+} else {
+  var splitRootRe = /^[\/]*/;
+}
+
+exports.realpathSync = function realpathSync(p, cache) {
+  // make p is absolute
+  p = pathModule.resolve(p);
+
+  if (cache && Object.prototype.hasOwnProperty.call(cache, p)) {
+    return cache[p];
+  }
+
+  var original = p,
+      seenLinks = {},
+      knownHard = {};
+
+  // current character position in p
+  var pos;
+  // the partial path so far, including a trailing slash if any
+  var current;
+  // the partial path without a trailing slash (except when pointing at a root)
+  var base;
+  // the partial path scanned in the previous round, with slash
+  var previous;
+
+  start();
+
+  function start() {
+    // Skip over roots
+    var m = splitRootRe.exec(p);
+    pos = m[0].length;
+    current = m[0];
+    base = m[0];
+    previous = '';
+
+    // On windows, check that the root exists. On unix there is no need.
+    if (isWindows && !knownHard[base]) {
+      fs.lstatSync(base);
+      knownHard[base] = true;
+    }
+  }
+
+  // walk down the path, swapping out linked pathparts for their real
+  // values
+  // NB: p.length changes.
+  while (pos < p.length) {
+    // find the next part
+    nextPartRe.lastIndex = pos;
+    var result = nextPartRe.exec(p);
+    previous = current;
+    current += result[0];
+    base = previous + result[1];
+    pos = nextPartRe.lastIndex;
+
+    // continue if not a symlink
+    if (knownHard[base] || (cache && cache[base] === base)) {
+      continue;
+    }
+
+    var resolvedLink;
+    if (cache && Object.prototype.hasOwnProperty.call(cache, base)) {
+      // some known symbolic link.  no need to stat again.
+      resolvedLink = cache[base];
+    } else {
+      var stat = fs.lstatSync(base);
+      if (!stat.isSymbolicLink()) {
+        knownHard[base] = true;
+        if (cache) cache[base] = base;
+        continue;
+      }
+
+      // read the link if it wasn't read before
+      // dev/ino always return 0 on windows, so skip the check.
+      var linkTarget = null;
+      if (!isWindows) {
+        var id = stat.dev.toString(32) + ':' + stat.ino.toString(32);
+        if (seenLinks.hasOwnProperty(id)) {
+          linkTarget = seenLinks[id];
+        }
+      }
+      if (linkTarget === null) {
+        fs.statSync(base);
+        linkTarget = fs.readlinkSync(base);
+      }
+      resolvedLink = pathModule.resolve(previous, linkTarget);
+      // track this, if given a cache.
+      if (cache) cache[base] = resolvedLink;
+      if (!isWindows) seenLinks[id] = linkTarget;
+    }
+
+    // resolve the link, then start over
+    p = pathModule.resolve(resolvedLink, p.slice(pos));
+    start();
+  }
+
+  if (cache) cache[original] = p;
+
+  return p;
+};
 
 
-var ParseOptions;
-(function (ParseOptions) {
-    ParseOptions.DEFAULT = {
-        allowTrailingComma: false
-    };
-})(ParseOptions || (ParseOptions = {}));
-/**
- * For a given offset, evaluate the location in the JSON document. Each segment in the location path is either a property name or an array index.
- */
-function getLocation(text, position) {
-    var segments = []; // strings or numbers
-    var earlyReturnException = new Object();
-    var previousNode = undefined;
-    var previousNodeInst = {
-        value: {},
-        offset: 0,
-        length: 0,
-        type: 'object',
-        parent: undefined
-    };
-    var isAtPropertyKey = false;
-    function setPreviousNode(value, offset, length, type) {
-        previousNodeInst.value = value;
-        previousNodeInst.offset = offset;
-        previousNodeInst.length = length;
-        previousNodeInst.type = type;
-        previousNodeInst.colonOffset = undefined;
-        previousNode = previousNodeInst;
+exports.realpath = function realpath(p, cache, cb) {
+  if (typeof cb !== 'function') {
+    cb = maybeCallback(cache);
+    cache = null;
+  }
+
+  // make p is absolute
+  p = pathModule.resolve(p);
+
+  if (cache && Object.prototype.hasOwnProperty.call(cache, p)) {
+    return process.nextTick(cb.bind(null, null, cache[p]));
+  }
+
+  var original = p,
+      seenLinks = {},
+      knownHard = {};
+
+  // current character position in p
+  var pos;
+  // the partial path so far, including a trailing slash if any
+  var current;
+  // the partial path without a trailing slash (except when pointing at a root)
+  var base;
+  // the partial path scanned in the previous round, with slash
+  var previous;
+
+  start();
+
+  function start() {
+    // Skip over roots
+    var m = splitRootRe.exec(p);
+    pos = m[0].length;
+    current = m[0];
+    base = m[0];
+    previous = '';
+
+    // On windows, check that the root exists. On unix there is no need.
+    if (isWindows && !knownHard[base]) {
+      fs.lstat(base, function(err) {
+        if (err) return cb(err);
+        knownHard[base] = true;
+        LOOP();
+      });
+    } else {
+      process.nextTick(LOOP);
     }
-    try {
-        visit(text, {
-            onObjectBegin: function (offset, length) {
-                if (position <= offset) {
-                    throw earlyReturnException;
-                }
-                previousNode = undefined;
-                isAtPropertyKey = position > offset;
-                segments.push(''); // push a placeholder (will be replaced)
-            },
-            onObjectProperty: function (name, offset, length) {
-                if (position < offset) {
-                    throw earlyReturnException;
-                }
-                setPreviousNode(name, offset, length, 'property');
-                segments[segments.length - 1] = name;
-                if (position <= offset + length) {
-                    throw earlyReturnException;
-                }
-            },
-            onObjectEnd: function (offset, length) {
-                if (position <= offset) {
-                    throw earlyReturnException;
-                }
-                previousNode = undefined;
-                segments.pop();
-            },
-            onArrayBegin: function (offset, length) {
-                if (position <= offset) {
-                    throw earlyReturnException;
-                }
-                previousNode = undefined;
-                segments.push(0);
-            },
-            onArrayEnd: function (offset, length) {
-                if (position <= offset) {
-                    throw earlyReturnException;
-                }
-                previousNode = undefined;
-                segments.pop();
-            },
-            onLiteralValue: function (value, offset, length) {
-                if (position < offset) {
-                    throw earlyReturnException;
-                }
-                setPreviousNode(value, offset, length, getNodeType(value));
-                if (position <= offset + length) {
-                    throw earlyReturnException;
-                }
-            },
-            onSeparator: function (sep, offset, length) {
-                if (position <= offset) {
-                    throw earlyReturnException;
-                }
-                if (sep === ':' && previousNode && previousNode.type === 'property') {
-                    previousNode.colonOffset = offset;
-                    isAtPropertyKey = false;
-                    previousNode = undefined;
-                }
-                else if (sep === ',') {
-                    var last = segments[segments.length - 1];
-                    if (typeof last === 'number') {
-                        segments[segments.length - 1] = last + 1;
-                    }
-                    else {
-                        isAtPropertyKey = true;
-                        segments[segments.length - 1] = '';
-                    }
-                    previousNode = undefined;
-                }
-            }
-        });
+  }
+
+  // walk down the path, swapping out linked pathparts for their real
+  // values
+  function LOOP() {
+    // stop if scanned past end of path
+    if (pos >= p.length) {
+      if (cache) cache[original] = p;
+      return cb(null, p);
     }
-    catch (e) {
-        if (e !== earlyReturnException) {
-            throw e;
-        }
+
+    // find the next part
+    nextPartRe.lastIndex = pos;
+    var result = nextPartRe.exec(p);
+    previous = current;
+    current += result[0];
+    base = previous + result[1];
+    pos = nextPartRe.lastIndex;
+
+    // continue if not a symlink
+    if (knownHard[base] || (cache && cache[base] === base)) {
+      return process.nextTick(LOOP);
     }
-    return {
-        path: segments,
-        previousNode: previousNode,
-        isAtPropertyKey: isAtPropertyKey,
-        matches: function (pattern) {
-            var k = 0;
-            for (var i = 0; k < pattern.length && i < segments.length; i++) {
-                if (pattern[k] === segments[i] || pattern[k] === '*') {
-                    k++;
-                }
-                else if (pattern[k] !== '**') {
-                    return false;
-                }
-            }
-            return k === pattern.length;
-        }
-    };
-}
-/**
- * Parses the given text and returns the object the JSON content represents. On invalid input, the parser tries to be as fault tolerant as possible, but still return a result.
- * Therefore always check the errors list to find out if the input was valid.
- */
-function parse(text, errors, options) {
-    if (errors === void 0) { errors = []; }
-    if (options === void 0) { options = ParseOptions.DEFAULT; }
-    var currentProperty = null;
-    var currentParent = [];
-    var previousParents = [];
-    function onValue(value) {
-        if (Array.isArray(currentParent)) {
-            currentParent.push(value);
-        }
-        else if (currentProperty !== null) {
-            currentParent[currentProperty] = value;
-        }
+
+    if (cache && Object.prototype.hasOwnProperty.call(cache, base)) {
+      // known symbolic link.  no need to stat again.
+      return gotResolvedLink(cache[base]);
     }
-    var visitor = {
-        onObjectBegin: function () {
-            var object = {};
-            onValue(object);
-            previousParents.push(currentParent);
-            currentParent = object;
-            currentProperty = null;
-        },
-        onObjectProperty: function (name) {
-            currentProperty = name;
-        },
-        onObjectEnd: function () {
-            currentParent = previousParents.pop();
-        },
-        onArrayBegin: function () {
-            var array = [];
-            onValue(array);
-            previousParents.push(currentParent);
-            currentParent = array;
-            currentProperty = null;
-        },
-        onArrayEnd: function () {
-            currentParent = previousParents.pop();
-        },
-        onLiteralValue: onValue,
-        onError: function (error, offset, length) {
-            errors.push({ error: error, offset: offset, length: length });
-        }
-    };
-    visit(text, visitor, options);
-    return currentParent[0];
-}
-/**
- * Parses the given text and returns a tree representation the JSON content. On invalid input, the parser tries to be as fault tolerant as possible, but still return a result.
- */
-function parseTree(text, errors, options) {
-    if (errors === void 0) { errors = []; }
-    if (options === void 0) { options = ParseOptions.DEFAULT; }
-    var currentParent = { type: 'array', offset: -1, length: -1, children: [], parent: undefined }; // artificial root
-    function ensurePropertyComplete(endOffset) {
-        if (currentParent.type === 'property') {
-            currentParent.length = endOffset - currentParent.offset;
-            currentParent = currentParent.parent;
-        }
+
+    return fs.lstat(base, gotStat);
+  }
+
+  function gotStat(err, stat) {
+    if (err) return cb(err);
+
+    // if not a symlink, skip to the next path part
+    if (!stat.isSymbolicLink()) {
+      knownHard[base] = true;
+      if (cache) cache[base] = base;
+      return process.nextTick(LOOP);
     }
-    function onValue(valueNode) {
-        currentParent.children.push(valueNode);
-        return valueNode;
+
+    // stat & read the link if not read before
+    // call gotTarget as soon as the link target is known
+    // dev/ino always return 0 on windows, so skip the check.
+    if (!isWindows) {
+      var id = stat.dev.toString(32) + ':' + stat.ino.toString(32);
+      if (seenLinks.hasOwnProperty(id)) {
+        return gotTarget(null, seenLinks[id], base);
+      }
     }
-    var visitor = {
-        onObjectBegin: function (offset) {
-            currentParent = onValue({ type: 'object', offset: offset, length: -1, parent: currentParent, children: [] });
-        },
-        onObjectProperty: function (name, offset, length) {
-            currentParent = onValue({ type: 'property', offset: offset, length: -1, parent: currentParent, children: [] });
-            currentParent.children.push({ type: 'string', value: name, offset: offset, length: length, parent: currentParent });
-        },
-        onObjectEnd: function (offset, length) {
-            ensurePropertyComplete(offset + length); // in case of a missing value for a property: make sure property is complete
-            currentParent.length = offset + length - currentParent.offset;
-            currentParent = currentParent.parent;
-            ensurePropertyComplete(offset + length);
-        },
-        onArrayBegin: function (offset, length) {
-            currentParent = onValue({ type: 'array', offset: offset, length: -1, parent: currentParent, children: [] });
-        },
-        onArrayEnd: function (offset, length) {
-            currentParent.length = offset + length - currentParent.offset;
-            currentParent = currentParent.parent;
-            ensurePropertyComplete(offset + length);
-        },
-        onLiteralValue: function (value, offset, length) {
-            onValue({ type: getNodeType(value), offset: offset, length: length, parent: currentParent, value: value });
-            ensurePropertyComplete(offset + length);
-        },
-        onSeparator: function (sep, offset, length) {
-            if (currentParent.type === 'property') {
-                if (sep === ':') {
-                    currentParent.colonOffset = offset;
-                }
-                else if (sep === ',') {
-                    ensurePropertyComplete(offset);
-                }
-            }
-        },
-        onError: function (error, offset, length) {
-            errors.push({ error: error, offset: offset, length: length });
-        }
-    };
-    visit(text, visitor, options);
-    var result = currentParent.children[0];
-    if (result) {
-        delete result.parent;
-    }
-    return result;
-}
-/**
- * Finds the node at the given path in a JSON DOM.
- */
-function findNodeAtLocation(root, path) {
-    if (!root) {
-        return undefined;
-    }
-    var node = root;
-    for (var _i = 0, path_1 = path; _i < path_1.length; _i++) {
-        var segment = path_1[_i];
-        if (typeof segment === 'string') {
-            if (node.type !== 'object' || !Array.isArray(node.children)) {
-                return undefined;
-            }
-            var found = false;
-            for (var _a = 0, _b = node.children; _a < _b.length; _a++) {
-                var propertyNode = _b[_a];
-                if (Array.isArray(propertyNode.children) && propertyNode.children[0].value === segment) {
-                    node = propertyNode.children[1];
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                return undefined;
-            }
-        }
-        else {
-            var index = segment;
-            if (node.type !== 'array' || index < 0 || !Array.isArray(node.children) || index >= node.children.length) {
-                return undefined;
-            }
-            node = node.children[index];
-        }
-    }
-    return node;
-}
-/**
- * Gets the JSON path of the given JSON DOM node
- */
-function getNodePath(node) {
-    if (!node.parent || !node.parent.children) {
-        return [];
-    }
-    var path = getNodePath(node.parent);
-    if (node.parent.type === 'property') {
-        var key = node.parent.children[0].value;
-        path.push(key);
-    }
-    else if (node.parent.type === 'array') {
-        var index = node.parent.children.indexOf(node);
-        if (index !== -1) {
-            path.push(index);
-        }
-    }
-    return path;
-}
-/**
- * Evaluates the JavaScript object of the given JSON DOM node
- */
-function getNodeValue(node) {
-    switch (node.type) {
-        case 'array':
-            return node.children.map(getNodeValue);
-        case 'object':
-            var obj = Object.create(null);
-            for (var _i = 0, _a = node.children; _i < _a.length; _i++) {
-                var prop = _a[_i];
-                var valueNode = prop.children[1];
-                if (valueNode) {
-                    obj[prop.children[0].value] = getNodeValue(valueNode);
-                }
-            }
-            return obj;
-        case 'null':
-        case 'string':
-        case 'number':
-        case 'boolean':
-            return node.value;
-        default:
-            return undefined;
-    }
-}
-function contains(node, offset, includeRightBound) {
-    if (includeRightBound === void 0) { includeRightBound = false; }
-    return (offset >= node.offset && offset < (node.offset + node.length)) || includeRightBound && (offset === (node.offset + node.length));
-}
-/**
- * Finds the most inner node at the given offset. If includeRightBound is set, also finds nodes that end at the given offset.
- */
-function findNodeAtOffset(node, offset, includeRightBound) {
-    if (includeRightBound === void 0) { includeRightBound = false; }
-    if (contains(node, offset, includeRightBound)) {
-        var children = node.children;
-        if (Array.isArray(children)) {
-            for (var i = 0; i < children.length && children[i].offset <= offset; i++) {
-                var item = findNodeAtOffset(children[i], offset, includeRightBound);
-                if (item) {
-                    return item;
-                }
-            }
-        }
-        return node;
-    }
-    return undefined;
-}
-/**
- * Parses the given text and invokes the visitor functions for each object, array and literal reached.
- */
-function visit(text, visitor, options) {
-    if (options === void 0) { options = ParseOptions.DEFAULT; }
-    var _scanner = Object(_scanner__WEBPACK_IMPORTED_MODULE_0__["createScanner"])(text, false);
-    function toNoArgVisit(visitFunction) {
-        return visitFunction ? function () { return visitFunction(_scanner.getTokenOffset(), _scanner.getTokenLength(), _scanner.getTokenStartLine(), _scanner.getTokenStartCharacter()); } : function () { return true; };
-    }
-    function toOneArgVisit(visitFunction) {
-        return visitFunction ? function (arg) { return visitFunction(arg, _scanner.getTokenOffset(), _scanner.getTokenLength(), _scanner.getTokenStartLine(), _scanner.getTokenStartCharacter()); } : function () { return true; };
-    }
-    var onObjectBegin = toNoArgVisit(visitor.onObjectBegin), onObjectProperty = toOneArgVisit(visitor.onObjectProperty), onObjectEnd = toNoArgVisit(visitor.onObjectEnd), onArrayBegin = toNoArgVisit(visitor.onArrayBegin), onArrayEnd = toNoArgVisit(visitor.onArrayEnd), onLiteralValue = toOneArgVisit(visitor.onLiteralValue), onSeparator = toOneArgVisit(visitor.onSeparator), onComment = toNoArgVisit(visitor.onComment), onError = toOneArgVisit(visitor.onError);
-    var disallowComments = options && options.disallowComments;
-    var allowTrailingComma = options && options.allowTrailingComma;
-    function scanNext() {
-        while (true) {
-            var token = _scanner.scan();
-            switch (_scanner.getTokenError()) {
-                case 4 /* InvalidUnicode */:
-                    handleError(14 /* InvalidUnicode */);
-                    break;
-                case 5 /* InvalidEscapeCharacter */:
-                    handleError(15 /* InvalidEscapeCharacter */);
-                    break;
-                case 3 /* UnexpectedEndOfNumber */:
-                    handleError(13 /* UnexpectedEndOfNumber */);
-                    break;
-                case 1 /* UnexpectedEndOfComment */:
-                    if (!disallowComments) {
-                        handleError(11 /* UnexpectedEndOfComment */);
-                    }
-                    break;
-                case 2 /* UnexpectedEndOfString */:
-                    handleError(12 /* UnexpectedEndOfString */);
-                    break;
-                case 6 /* InvalidCharacter */:
-                    handleError(16 /* InvalidCharacter */);
-                    break;
-            }
-            switch (token) {
-                case 12 /* LineCommentTrivia */:
-                case 13 /* BlockCommentTrivia */:
-                    if (disallowComments) {
-                        handleError(10 /* InvalidCommentToken */);
-                    }
-                    else {
-                        onComment();
-                    }
-                    break;
-                case 16 /* Unknown */:
-                    handleError(1 /* InvalidSymbol */);
-                    break;
-                case 15 /* Trivia */:
-                case 14 /* LineBreakTrivia */:
-                    break;
-                default:
-                    return token;
-            }
-        }
-    }
-    function handleError(error, skipUntilAfter, skipUntil) {
-        if (skipUntilAfter === void 0) { skipUntilAfter = []; }
-        if (skipUntil === void 0) { skipUntil = []; }
-        onError(error);
-        if (skipUntilAfter.length + skipUntil.length > 0) {
-            var token = _scanner.getToken();
-            while (token !== 17 /* EOF */) {
-                if (skipUntilAfter.indexOf(token) !== -1) {
-                    scanNext();
-                    break;
-                }
-                else if (skipUntil.indexOf(token) !== -1) {
-                    break;
-                }
-                token = scanNext();
-            }
-        }
-    }
-    function parseString(isValue) {
-        var value = _scanner.getTokenValue();
-        if (isValue) {
-            onLiteralValue(value);
-        }
-        else {
-            onObjectProperty(value);
-        }
-        scanNext();
-        return true;
-    }
-    function parseLiteral() {
-        switch (_scanner.getToken()) {
-            case 11 /* NumericLiteral */:
-                var value = 0;
-                try {
-                    value = JSON.parse(_scanner.getTokenValue());
-                    if (typeof value !== 'number') {
-                        handleError(2 /* InvalidNumberFormat */);
-                        value = 0;
-                    }
-                }
-                catch (e) {
-                    handleError(2 /* InvalidNumberFormat */);
-                }
-                onLiteralValue(value);
-                break;
-            case 7 /* NullKeyword */:
-                onLiteralValue(null);
-                break;
-            case 8 /* TrueKeyword */:
-                onLiteralValue(true);
-                break;
-            case 9 /* FalseKeyword */:
-                onLiteralValue(false);
-                break;
-            default:
-                return false;
-        }
-        scanNext();
-        return true;
-    }
-    function parseProperty() {
-        if (_scanner.getToken() !== 10 /* StringLiteral */) {
-            handleError(3 /* PropertyNameExpected */, [], [2 /* CloseBraceToken */, 5 /* CommaToken */]);
-            return false;
-        }
-        parseString(false);
-        if (_scanner.getToken() === 6 /* ColonToken */) {
-            onSeparator(':');
-            scanNext(); // consume colon
-            if (!parseValue()) {
-                handleError(4 /* ValueExpected */, [], [2 /* CloseBraceToken */, 5 /* CommaToken */]);
-            }
-        }
-        else {
-            handleError(5 /* ColonExpected */, [], [2 /* CloseBraceToken */, 5 /* CommaToken */]);
-        }
-        return true;
-    }
-    function parseObject() {
-        onObjectBegin();
-        scanNext(); // consume open brace
-        var needsComma = false;
-        while (_scanner.getToken() !== 2 /* CloseBraceToken */ && _scanner.getToken() !== 17 /* EOF */) {
-            if (_scanner.getToken() === 5 /* CommaToken */) {
-                if (!needsComma) {
-                    handleError(4 /* ValueExpected */, [], []);
-                }
-                onSeparator(',');
-                scanNext(); // consume comma
-                if (_scanner.getToken() === 2 /* CloseBraceToken */ && allowTrailingComma) {
-                    break;
-                }
-            }
-            else if (needsComma) {
-                handleError(6 /* CommaExpected */, [], []);
-            }
-            if (!parseProperty()) {
-                handleError(4 /* ValueExpected */, [], [2 /* CloseBraceToken */, 5 /* CommaToken */]);
-            }
-            needsComma = true;
-        }
-        onObjectEnd();
-        if (_scanner.getToken() !== 2 /* CloseBraceToken */) {
-            handleError(7 /* CloseBraceExpected */, [2 /* CloseBraceToken */], []);
-        }
-        else {
-            scanNext(); // consume close brace
-        }
-        return true;
-    }
-    function parseArray() {
-        onArrayBegin();
-        scanNext(); // consume open bracket
-        var needsComma = false;
-        while (_scanner.getToken() !== 4 /* CloseBracketToken */ && _scanner.getToken() !== 17 /* EOF */) {
-            if (_scanner.getToken() === 5 /* CommaToken */) {
-                if (!needsComma) {
-                    handleError(4 /* ValueExpected */, [], []);
-                }
-                onSeparator(',');
-                scanNext(); // consume comma
-                if (_scanner.getToken() === 4 /* CloseBracketToken */ && allowTrailingComma) {
-                    break;
-                }
-            }
-            else if (needsComma) {
-                handleError(6 /* CommaExpected */, [], []);
-            }
-            if (!parseValue()) {
-                handleError(4 /* ValueExpected */, [], [4 /* CloseBracketToken */, 5 /* CommaToken */]);
-            }
-            needsComma = true;
-        }
-        onArrayEnd();
-        if (_scanner.getToken() !== 4 /* CloseBracketToken */) {
-            handleError(8 /* CloseBracketExpected */, [4 /* CloseBracketToken */], []);
-        }
-        else {
-            scanNext(); // consume close bracket
-        }
-        return true;
-    }
-    function parseValue() {
-        switch (_scanner.getToken()) {
-            case 3 /* OpenBracketToken */:
-                return parseArray();
-            case 1 /* OpenBraceToken */:
-                return parseObject();
-            case 10 /* StringLiteral */:
-                return parseString(true);
-            default:
-                return parseLiteral();
-        }
-    }
-    scanNext();
-    if (_scanner.getToken() === 17 /* EOF */) {
-        if (options.allowEmptyContent) {
-            return true;
-        }
-        handleError(4 /* ValueExpected */, [], []);
-        return false;
-    }
-    if (!parseValue()) {
-        handleError(4 /* ValueExpected */, [], []);
-        return false;
-    }
-    if (_scanner.getToken() !== 17 /* EOF */) {
-        handleError(9 /* EndOfFileExpected */, [], []);
-    }
-    return true;
-}
-/**
- * Takes JSON with JavaScript-style comments and remove
- * them. Optionally replaces every none-newline character
- * of comments with a replaceCharacter
- */
-function stripComments(text, replaceCh) {
-    var _scanner = Object(_scanner__WEBPACK_IMPORTED_MODULE_0__["createScanner"])(text), parts = [], kind, offset = 0, pos;
-    do {
-        pos = _scanner.getPosition();
-        kind = _scanner.scan();
-        switch (kind) {
-            case 12 /* LineCommentTrivia */:
-            case 13 /* BlockCommentTrivia */:
-            case 17 /* EOF */:
-                if (offset !== pos) {
-                    parts.push(text.substring(offset, pos));
-                }
-                if (replaceCh !== undefined) {
-                    parts.push(_scanner.getTokenValue().replace(/[^\r\n]/g, replaceCh));
-                }
-                offset = _scanner.getPosition();
-                break;
-        }
-    } while (kind !== 17 /* EOF */);
-    return parts.join('');
-}
-function getNodeType(value) {
-    switch (typeof value) {
-        case 'boolean': return 'boolean';
-        case 'number': return 'number';
-        case 'string': return 'string';
-        case 'object': {
-            if (!value) {
-                return 'null';
-            }
-            else if (Array.isArray(value)) {
-                return 'array';
-            }
-            return 'object';
-        }
-        default: return 'null';
-    }
-}
+    fs.stat(base, function(err) {
+      if (err) return cb(err);
+
+      fs.readlink(base, function(err, target) {
+        if (!isWindows) seenLinks[id] = target;
+        gotTarget(err, target);
+      });
+    });
+  }
+
+  function gotTarget(err, target, base) {
+    if (err) return cb(err);
+
+    var resolvedLink = pathModule.resolve(previous, target);
+    if (cache) cache[base] = resolvedLink;
+    gotResolvedLink(resolvedLink);
+  }
+
+  function gotResolvedLink(resolvedLink) {
+    // resolve the link, then start over
+    p = pathModule.resolve(resolvedLink, p.slice(pos));
+    start();
+  }
+};
 
 
 /***/ }),
 /* 270 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(65);
-const child_process_1 = __webpack_require__(238);
-const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const net_1 = tslib_1.__importDefault(__webpack_require__(156));
-const os_1 = tslib_1.__importDefault(__webpack_require__(76));
-const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const readline_1 = tslib_1.__importDefault(__webpack_require__(205));
-const util_1 = tslib_1.__importDefault(__webpack_require__(74));
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
-const logger = __webpack_require__(64)('util-fs');
-async function statAsync(filepath) {
-    let stat = null;
-    try {
-        stat = await util_1.default.promisify(fs_1.default.stat)(filepath);
-    }
-    catch (e) { }
-    return stat;
-}
-exports.statAsync = statAsync;
-async function isDirectory(filepath) {
-    let stat = await statAsync(filepath);
-    return stat && stat.isDirectory();
-}
-exports.isDirectory = isDirectory;
-async function unlinkAsync(filepath) {
-    try {
-        await util_1.default.promisify(fs_1.default.unlink)(filepath);
-    }
-    catch (e) { }
-}
-exports.unlinkAsync = unlinkAsync;
-function renameAsync(oldPath, newPath) {
-    return new Promise((resolve, reject) => {
-        fs_1.default.rename(oldPath, newPath, err => {
-            if (err)
-                return reject(err);
-            resolve();
-        });
-    });
-}
-exports.renameAsync = renameAsync;
-async function isGitIgnored(fullpath) {
-    if (!fullpath)
-        return false;
-    let stat = await statAsync(fullpath);
-    if (!stat || !stat.isFile())
-        return false;
-    let root = null;
-    try {
-        let { stdout } = await util_1.default.promisify(child_process_1.exec)('git rev-parse --show-toplevel', { cwd: path_1.default.dirname(fullpath) });
-        root = stdout.trim();
-    }
-    catch (e) { }
-    if (!root)
-        return false;
-    let file = path_1.default.relative(root, fullpath);
-    try {
-        let { stdout } = await util_1.default.promisify(child_process_1.exec)(`git check-ignore ${file}`, { cwd: root });
-        return stdout.trim() == file;
-    }
-    catch (e) { }
-    return false;
-}
-exports.isGitIgnored = isGitIgnored;
-function resolveRoot(dir, subs, cwd) {
-    let home = os_1.default.homedir();
-    if (isParentFolder(dir, home, true))
-        return null;
-    if (cwd && isParentFolder(cwd, dir, true) && inDirectory(cwd, subs))
-        return cwd;
-    let parts = dir.split(path_1.default.sep);
-    let curr = [parts.shift()];
-    for (let part of parts) {
-        curr.push(part);
-        let dir = curr.join(path_1.default.sep);
-        if (dir != home && inDirectory(dir, subs)) {
-            return dir;
-        }
-    }
-    return null;
-}
-exports.resolveRoot = resolveRoot;
-function inDirectory(dir, subs) {
-    try {
-        let files = fs_1.default.readdirSync(dir);
-        for (let pattern of subs) {
-            // note, only '*' expanded
-            let is_wildcard = (pattern.includes('*'));
-            let res = is_wildcard ?
-                (minimatch_1.default.match(files, pattern, { nobrace: true, noext: true, nocomment: true, nonegate: true, dot: true }).length !== 0) :
-                (files.includes(pattern));
-            if (res)
-                return true;
-        }
-    }
-    catch (e) {
-        // could be failed without permission
-    }
-    return false;
-}
-exports.inDirectory = inDirectory;
-function findUp(name, cwd) {
-    let root = path_1.default.parse(cwd).root;
-    let subs = Array.isArray(name) ? name : [name];
-    while (cwd && cwd !== root) {
-        let find = inDirectory(cwd, subs);
-        if (find) {
-            for (let sub of subs) {
-                let filepath = path_1.default.join(cwd, sub);
-                if (fs_1.default.existsSync(filepath)) {
-                    return filepath;
-                }
-            }
-        }
-        cwd = path_1.default.dirname(cwd);
-    }
-    return null;
-}
-exports.findUp = findUp;
-function readFile(fullpath, encoding) {
-    return new Promise((resolve, reject) => {
-        fs_1.default.readFile(fullpath, encoding, (err, content) => {
-            if (err)
-                reject(err);
-            resolve(content);
-        });
-    });
-}
-exports.readFile = readFile;
-function getFileLineCount(filepath) {
-    let i;
-    let count = 0;
-    return new Promise((resolve, reject) => {
-        fs_1.default.createReadStream(filepath)
-            .on('error', e => reject(e))
-            .on('data', chunk => {
-            for (i = 0; i < chunk.length; ++i)
-                if (chunk[i] == 10)
-                    count++;
-        })
-            .on('end', () => resolve(count));
-    });
-}
-exports.getFileLineCount = getFileLineCount;
-function readFileLines(fullpath, start, end) {
-    if (!fs_1.default.existsSync(fullpath)) {
-        return Promise.reject(new Error(`file does not exist: ${fullpath}`));
-    }
-    let res = [];
-    const rl = readline_1.default.createInterface({
-        input: fs_1.default.createReadStream(fullpath, { encoding: 'utf8' }),
-        crlfDelay: Infinity,
-        terminal: false
-    });
-    let n = 0;
-    return new Promise((resolve, reject) => {
-        rl.on('line', line => {
-            if (n == 0 && line.startsWith('\uFEFF')) {
-                // handle BOM
-                line = line.slice(1);
-            }
-            if (n >= start && n <= end) {
-                res.push(line);
-            }
-            if (n == end) {
-                rl.close();
-            }
-            n = n + 1;
-        });
-        rl.on('close', () => {
-            resolve(res);
-        });
-        rl.on('error', reject);
-    });
-}
-exports.readFileLines = readFileLines;
-function readFileLine(fullpath, count) {
-    if (!fs_1.default.existsSync(fullpath)) {
-        return Promise.reject(new Error(`file does not exist: ${fullpath}`));
-    }
-    const rl = readline_1.default.createInterface({
-        input: fs_1.default.createReadStream(fullpath, { encoding: 'utf8' }),
-        crlfDelay: Infinity,
-        terminal: false
-    });
-    let n = 0;
-    return new Promise((resolve, reject) => {
-        rl.on('line', line => {
-            if (n == count) {
-                if (n == 0 && line.startsWith('\uFEFF')) {
-                    // handle BOM
-                    line = line.slice(1);
-                }
-                rl.close();
-                resolve(line);
-                return;
-            }
-            n = n + 1;
-        });
-        rl.on('error', reject);
-    });
-}
-exports.readFileLine = readFileLine;
-async function writeFile(fullpath, content) {
-    await util_1.default.promisify(fs_1.default.writeFile)(fullpath, content, { encoding: 'utf8' });
-}
-exports.writeFile = writeFile;
-function validSocket(path) {
-    let clientSocket = new net_1.default.Socket();
-    return new Promise(resolve => {
-        clientSocket.on('error', () => {
-            resolve(false);
-        });
-        clientSocket.connect({ path }, () => {
-            clientSocket.unref();
-            resolve(true);
-        });
-    });
-}
-exports.validSocket = validSocket;
-function isFile(uri) {
-    return uri.startsWith('file:');
-}
-exports.isFile = isFile;
-exports.readdirAsync = util_1.default.promisify(fs_1.default.readdir);
-exports.realpathAsync = util_1.default.promisify(fs_1.default.realpath);
-function parentDirs(pth) {
-    let { root, dir } = path_1.default.parse(pth);
-    if (dir === root)
-        return [root];
-    const dirs = [root];
-    const parts = dir.slice(root.length).split(path_1.default.sep);
-    for (let i = 1; i <= parts.length; i++) {
-        dirs.push(path_1.default.join(root, parts.slice(0, i).join(path_1.default.sep)));
-    }
-    return dirs;
-}
-exports.parentDirs = parentDirs;
-function isParentFolder(folder, filepath, checkEqual = false) {
-    let pdir = fixDriver(path_1.default.resolve(path_1.default.normalize(folder)));
-    let dir = fixDriver(path_1.default.resolve(path_1.default.normalize(filepath)));
-    if (pdir == '//')
-        pdir = '/';
-    if (pdir == dir)
-        return checkEqual ? true : false;
-    if (pdir.endsWith(path_1.default.sep))
-        return dir.startsWith(pdir);
-    return dir.startsWith(pdir) && dir[pdir.length] == path_1.default.sep;
-}
-exports.isParentFolder = isParentFolder;
-// use uppercase for windows driver
-function fixDriver(filepath) {
-    if (os_1.default.platform() != 'win32' || filepath[1] != ':')
-        return filepath;
-    return filepath[0].toUpperCase() + filepath.slice(1);
-}
-exports.fixDriver = fixDriver;
-//# sourceMappingURL=fs.js.map
-
-/***/ }),
-/* 271 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = minimatch
@@ -30873,7 +29808,7 @@ try {
 } catch (er) {}
 
 var GLOBSTAR = minimatch.GLOBSTAR = Minimatch.GLOBSTAR = {}
-var expand = __webpack_require__(272)
+var expand = __webpack_require__(271)
 
 var plTypes = {
   '!': { open: '(?:(?!(?:', close: '))[^/]*?)'},
@@ -31790,11 +30725,11 @@ function regExpEscape (s) {
 
 
 /***/ }),
-/* 272 */
+/* 271 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var concatMap = __webpack_require__(273);
-var balanced = __webpack_require__(274);
+var concatMap = __webpack_require__(272);
+var balanced = __webpack_require__(273);
 
 module.exports = expandTop;
 
@@ -31997,7 +30932,7 @@ function expand(str, isTop) {
 
 
 /***/ }),
-/* 273 */
+/* 272 */
 /***/ (function(module, exports) {
 
 module.exports = function (xs, fn) {
@@ -32016,7 +30951,7 @@ var isArray = Array.isArray || function (xs) {
 
 
 /***/ }),
-/* 274 */
+/* 273 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -32082,7 +31017,4186 @@ function range(a, b, str) {
 
 
 /***/ }),
+/* 274 */
+/***/ (function(module, exports, __webpack_require__) {
+
+try {
+  var util = __webpack_require__(74);
+  /* istanbul ignore next */
+  if (typeof util.inherits !== 'function') throw '';
+  module.exports = util.inherits;
+} catch (e) {
+  /* istanbul ignore next */
+  module.exports = __webpack_require__(275);
+}
+
+
+/***/ }),
 /* 275 */
+/***/ (function(module, exports) {
+
+if (typeof Object.create === 'function') {
+  // implementation from standard node.js 'util' module
+  module.exports = function inherits(ctor, superCtor) {
+    if (superCtor) {
+      ctor.super_ = superCtor
+      ctor.prototype = Object.create(superCtor.prototype, {
+        constructor: {
+          value: ctor,
+          enumerable: false,
+          writable: true,
+          configurable: true
+        }
+      })
+    }
+  };
+} else {
+  // old school shim for old browsers
+  module.exports = function inherits(ctor, superCtor) {
+    if (superCtor) {
+      ctor.super_ = superCtor
+      var TempCtor = function () {}
+      TempCtor.prototype = superCtor.prototype
+      ctor.prototype = new TempCtor()
+      ctor.prototype.constructor = ctor
+    }
+  }
+}
+
+
+/***/ }),
+/* 276 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+function posix(path) {
+	return path.charAt(0) === '/';
+}
+
+function win32(path) {
+	// https://github.com/nodejs/node/blob/b3fcc245fb25539909ef1d5eaa01dbf92e168633/lib/path.js#L56
+	var splitDeviceRe = /^([a-zA-Z]:|[\\\/]{2}[^\\\/]+[\\\/]+[^\\\/]+)?([\\\/])?([\s\S]*?)$/;
+	var result = splitDeviceRe.exec(path);
+	var device = result[1] || '';
+	var isUnc = Boolean(device && device.charAt(1) !== ':');
+
+	// UNC paths are always absolute
+	return Boolean(result[2] || isUnc);
+}
+
+module.exports = process.platform === 'win32' ? win32 : posix;
+module.exports.posix = posix;
+module.exports.win32 = win32;
+
+
+/***/ }),
+/* 277 */
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = globSync
+globSync.GlobSync = GlobSync
+
+var fs = __webpack_require__(66)
+var rp = __webpack_require__(268)
+var minimatch = __webpack_require__(270)
+var Minimatch = minimatch.Minimatch
+var Glob = __webpack_require__(267).Glob
+var util = __webpack_require__(74)
+var path = __webpack_require__(82)
+var assert = __webpack_require__(108)
+var isAbsolute = __webpack_require__(276)
+var common = __webpack_require__(278)
+var alphasort = common.alphasort
+var alphasorti = common.alphasorti
+var setopts = common.setopts
+var ownProp = common.ownProp
+var childrenIgnored = common.childrenIgnored
+var isIgnored = common.isIgnored
+
+function globSync (pattern, options) {
+  if (typeof options === 'function' || arguments.length === 3)
+    throw new TypeError('callback provided to sync glob\n'+
+                        'See: https://github.com/isaacs/node-glob/issues/167')
+
+  return new GlobSync(pattern, options).found
+}
+
+function GlobSync (pattern, options) {
+  if (!pattern)
+    throw new Error('must provide pattern')
+
+  if (typeof options === 'function' || arguments.length === 3)
+    throw new TypeError('callback provided to sync glob\n'+
+                        'See: https://github.com/isaacs/node-glob/issues/167')
+
+  if (!(this instanceof GlobSync))
+    return new GlobSync(pattern, options)
+
+  setopts(this, pattern, options)
+
+  if (this.noprocess)
+    return this
+
+  var n = this.minimatch.set.length
+  this.matches = new Array(n)
+  for (var i = 0; i < n; i ++) {
+    this._process(this.minimatch.set[i], i, false)
+  }
+  this._finish()
+}
+
+GlobSync.prototype._finish = function () {
+  assert(this instanceof GlobSync)
+  if (this.realpath) {
+    var self = this
+    this.matches.forEach(function (matchset, index) {
+      var set = self.matches[index] = Object.create(null)
+      for (var p in matchset) {
+        try {
+          p = self._makeAbs(p)
+          var real = rp.realpathSync(p, self.realpathCache)
+          set[real] = true
+        } catch (er) {
+          if (er.syscall === 'stat')
+            set[self._makeAbs(p)] = true
+          else
+            throw er
+        }
+      }
+    })
+  }
+  common.finish(this)
+}
+
+
+GlobSync.prototype._process = function (pattern, index, inGlobStar) {
+  assert(this instanceof GlobSync)
+
+  // Get the first [n] parts of pattern that are all strings.
+  var n = 0
+  while (typeof pattern[n] === 'string') {
+    n ++
+  }
+  // now n is the index of the first one that is *not* a string.
+
+  // See if there's anything else
+  var prefix
+  switch (n) {
+    // if not, then this is rather simple
+    case pattern.length:
+      this._processSimple(pattern.join('/'), index)
+      return
+
+    case 0:
+      // pattern *starts* with some non-trivial item.
+      // going to readdir(cwd), but not include the prefix in matches.
+      prefix = null
+      break
+
+    default:
+      // pattern has some string bits in the front.
+      // whatever it starts with, whether that's 'absolute' like /foo/bar,
+      // or 'relative' like '../baz'
+      prefix = pattern.slice(0, n).join('/')
+      break
+  }
+
+  var remain = pattern.slice(n)
+
+  // get the list of entries.
+  var read
+  if (prefix === null)
+    read = '.'
+  else if (isAbsolute(prefix) || isAbsolute(pattern.join('/'))) {
+    if (!prefix || !isAbsolute(prefix))
+      prefix = '/' + prefix
+    read = prefix
+  } else
+    read = prefix
+
+  var abs = this._makeAbs(read)
+
+  //if ignored, skip processing
+  if (childrenIgnored(this, read))
+    return
+
+  var isGlobStar = remain[0] === minimatch.GLOBSTAR
+  if (isGlobStar)
+    this._processGlobStar(prefix, read, abs, remain, index, inGlobStar)
+  else
+    this._processReaddir(prefix, read, abs, remain, index, inGlobStar)
+}
+
+
+GlobSync.prototype._processReaddir = function (prefix, read, abs, remain, index, inGlobStar) {
+  var entries = this._readdir(abs, inGlobStar)
+
+  // if the abs isn't a dir, then nothing can match!
+  if (!entries)
+    return
+
+  // It will only match dot entries if it starts with a dot, or if
+  // dot is set.  Stuff like @(.foo|.bar) isn't allowed.
+  var pn = remain[0]
+  var negate = !!this.minimatch.negate
+  var rawGlob = pn._glob
+  var dotOk = this.dot || rawGlob.charAt(0) === '.'
+
+  var matchedEntries = []
+  for (var i = 0; i < entries.length; i++) {
+    var e = entries[i]
+    if (e.charAt(0) !== '.' || dotOk) {
+      var m
+      if (negate && !prefix) {
+        m = !e.match(pn)
+      } else {
+        m = e.match(pn)
+      }
+      if (m)
+        matchedEntries.push(e)
+    }
+  }
+
+  var len = matchedEntries.length
+  // If there are no matched entries, then nothing matches.
+  if (len === 0)
+    return
+
+  // if this is the last remaining pattern bit, then no need for
+  // an additional stat *unless* the user has specified mark or
+  // stat explicitly.  We know they exist, since readdir returned
+  // them.
+
+  if (remain.length === 1 && !this.mark && !this.stat) {
+    if (!this.matches[index])
+      this.matches[index] = Object.create(null)
+
+    for (var i = 0; i < len; i ++) {
+      var e = matchedEntries[i]
+      if (prefix) {
+        if (prefix.slice(-1) !== '/')
+          e = prefix + '/' + e
+        else
+          e = prefix + e
+      }
+
+      if (e.charAt(0) === '/' && !this.nomount) {
+        e = path.join(this.root, e)
+      }
+      this._emitMatch(index, e)
+    }
+    // This was the last one, and no stats were needed
+    return
+  }
+
+  // now test all matched entries as stand-ins for that part
+  // of the pattern.
+  remain.shift()
+  for (var i = 0; i < len; i ++) {
+    var e = matchedEntries[i]
+    var newPattern
+    if (prefix)
+      newPattern = [prefix, e]
+    else
+      newPattern = [e]
+    this._process(newPattern.concat(remain), index, inGlobStar)
+  }
+}
+
+
+GlobSync.prototype._emitMatch = function (index, e) {
+  if (isIgnored(this, e))
+    return
+
+  var abs = this._makeAbs(e)
+
+  if (this.mark)
+    e = this._mark(e)
+
+  if (this.absolute) {
+    e = abs
+  }
+
+  if (this.matches[index][e])
+    return
+
+  if (this.nodir) {
+    var c = this.cache[abs]
+    if (c === 'DIR' || Array.isArray(c))
+      return
+  }
+
+  this.matches[index][e] = true
+
+  if (this.stat)
+    this._stat(e)
+}
+
+
+GlobSync.prototype._readdirInGlobStar = function (abs) {
+  // follow all symlinked directories forever
+  // just proceed as if this is a non-globstar situation
+  if (this.follow)
+    return this._readdir(abs, false)
+
+  var entries
+  var lstat
+  var stat
+  try {
+    lstat = fs.lstatSync(abs)
+  } catch (er) {
+    if (er.code === 'ENOENT') {
+      // lstat failed, doesn't exist
+      return null
+    }
+  }
+
+  var isSym = lstat && lstat.isSymbolicLink()
+  this.symlinks[abs] = isSym
+
+  // If it's not a symlink or a dir, then it's definitely a regular file.
+  // don't bother doing a readdir in that case.
+  if (!isSym && lstat && !lstat.isDirectory())
+    this.cache[abs] = 'FILE'
+  else
+    entries = this._readdir(abs, false)
+
+  return entries
+}
+
+GlobSync.prototype._readdir = function (abs, inGlobStar) {
+  var entries
+
+  if (inGlobStar && !ownProp(this.symlinks, abs))
+    return this._readdirInGlobStar(abs)
+
+  if (ownProp(this.cache, abs)) {
+    var c = this.cache[abs]
+    if (!c || c === 'FILE')
+      return null
+
+    if (Array.isArray(c))
+      return c
+  }
+
+  try {
+    return this._readdirEntries(abs, fs.readdirSync(abs))
+  } catch (er) {
+    this._readdirError(abs, er)
+    return null
+  }
+}
+
+GlobSync.prototype._readdirEntries = function (abs, entries) {
+  // if we haven't asked to stat everything, then just
+  // assume that everything in there exists, so we can avoid
+  // having to stat it a second time.
+  if (!this.mark && !this.stat) {
+    for (var i = 0; i < entries.length; i ++) {
+      var e = entries[i]
+      if (abs === '/')
+        e = abs + e
+      else
+        e = abs + '/' + e
+      this.cache[e] = true
+    }
+  }
+
+  this.cache[abs] = entries
+
+  // mark and cache dir-ness
+  return entries
+}
+
+GlobSync.prototype._readdirError = function (f, er) {
+  // handle errors, and cache the information
+  switch (er.code) {
+    case 'ENOTSUP': // https://github.com/isaacs/node-glob/issues/205
+    case 'ENOTDIR': // totally normal. means it *does* exist.
+      var abs = this._makeAbs(f)
+      this.cache[abs] = 'FILE'
+      if (abs === this.cwdAbs) {
+        var error = new Error(er.code + ' invalid cwd ' + this.cwd)
+        error.path = this.cwd
+        error.code = er.code
+        throw error
+      }
+      break
+
+    case 'ENOENT': // not terribly unusual
+    case 'ELOOP':
+    case 'ENAMETOOLONG':
+    case 'UNKNOWN':
+      this.cache[this._makeAbs(f)] = false
+      break
+
+    default: // some unusual error.  Treat as failure.
+      this.cache[this._makeAbs(f)] = false
+      if (this.strict)
+        throw er
+      if (!this.silent)
+        console.error('glob error', er)
+      break
+  }
+}
+
+GlobSync.prototype._processGlobStar = function (prefix, read, abs, remain, index, inGlobStar) {
+
+  var entries = this._readdir(abs, inGlobStar)
+
+  // no entries means not a dir, so it can never have matches
+  // foo.txt/** doesn't match foo.txt
+  if (!entries)
+    return
+
+  // test without the globstar, and with every child both below
+  // and replacing the globstar.
+  var remainWithoutGlobStar = remain.slice(1)
+  var gspref = prefix ? [ prefix ] : []
+  var noGlobStar = gspref.concat(remainWithoutGlobStar)
+
+  // the noGlobStar pattern exits the inGlobStar state
+  this._process(noGlobStar, index, false)
+
+  var len = entries.length
+  var isSym = this.symlinks[abs]
+
+  // If it's a symlink, and we're in a globstar, then stop
+  if (isSym && inGlobStar)
+    return
+
+  for (var i = 0; i < len; i++) {
+    var e = entries[i]
+    if (e.charAt(0) === '.' && !this.dot)
+      continue
+
+    // these two cases enter the inGlobStar state
+    var instead = gspref.concat(entries[i], remainWithoutGlobStar)
+    this._process(instead, index, true)
+
+    var below = gspref.concat(entries[i], remain)
+    this._process(below, index, true)
+  }
+}
+
+GlobSync.prototype._processSimple = function (prefix, index) {
+  // XXX review this.  Shouldn't it be doing the mounting etc
+  // before doing stat?  kinda weird?
+  var exists = this._stat(prefix)
+
+  if (!this.matches[index])
+    this.matches[index] = Object.create(null)
+
+  // If it doesn't exist, then just mark the lack of results
+  if (!exists)
+    return
+
+  if (prefix && isAbsolute(prefix) && !this.nomount) {
+    var trail = /[\/\\]$/.test(prefix)
+    if (prefix.charAt(0) === '/') {
+      prefix = path.join(this.root, prefix)
+    } else {
+      prefix = path.resolve(this.root, prefix)
+      if (trail)
+        prefix += '/'
+    }
+  }
+
+  if (process.platform === 'win32')
+    prefix = prefix.replace(/\\/g, '/')
+
+  // Mark this as a match
+  this._emitMatch(index, prefix)
+}
+
+// Returns either 'DIR', 'FILE', or false
+GlobSync.prototype._stat = function (f) {
+  var abs = this._makeAbs(f)
+  var needDir = f.slice(-1) === '/'
+
+  if (f.length > this.maxLength)
+    return false
+
+  if (!this.stat && ownProp(this.cache, abs)) {
+    var c = this.cache[abs]
+
+    if (Array.isArray(c))
+      c = 'DIR'
+
+    // It exists, but maybe not how we need it
+    if (!needDir || c === 'DIR')
+      return c
+
+    if (needDir && c === 'FILE')
+      return false
+
+    // otherwise we have to stat, because maybe c=true
+    // if we know it exists, but not what it is.
+  }
+
+  var exists
+  var stat = this.statCache[abs]
+  if (!stat) {
+    var lstat
+    try {
+      lstat = fs.lstatSync(abs)
+    } catch (er) {
+      if (er && (er.code === 'ENOENT' || er.code === 'ENOTDIR')) {
+        this.statCache[abs] = false
+        return false
+      }
+    }
+
+    if (lstat && lstat.isSymbolicLink()) {
+      try {
+        stat = fs.statSync(abs)
+      } catch (er) {
+        stat = lstat
+      }
+    } else {
+      stat = lstat
+    }
+  }
+
+  this.statCache[abs] = stat
+
+  var c = true
+  if (stat)
+    c = stat.isDirectory() ? 'DIR' : 'FILE'
+
+  this.cache[abs] = this.cache[abs] || c
+
+  if (needDir && c === 'FILE')
+    return false
+
+  return c
+}
+
+GlobSync.prototype._mark = function (p) {
+  return common.mark(this, p)
+}
+
+GlobSync.prototype._makeAbs = function (f) {
+  return common.makeAbs(this, f)
+}
+
+
+/***/ }),
+/* 278 */
+/***/ (function(module, exports, __webpack_require__) {
+
+exports.alphasort = alphasort
+exports.alphasorti = alphasorti
+exports.setopts = setopts
+exports.ownProp = ownProp
+exports.makeAbs = makeAbs
+exports.finish = finish
+exports.mark = mark
+exports.isIgnored = isIgnored
+exports.childrenIgnored = childrenIgnored
+
+function ownProp (obj, field) {
+  return Object.prototype.hasOwnProperty.call(obj, field)
+}
+
+var path = __webpack_require__(82)
+var minimatch = __webpack_require__(270)
+var isAbsolute = __webpack_require__(276)
+var Minimatch = minimatch.Minimatch
+
+function alphasorti (a, b) {
+  return a.toLowerCase().localeCompare(b.toLowerCase())
+}
+
+function alphasort (a, b) {
+  return a.localeCompare(b)
+}
+
+function setupIgnores (self, options) {
+  self.ignore = options.ignore || []
+
+  if (!Array.isArray(self.ignore))
+    self.ignore = [self.ignore]
+
+  if (self.ignore.length) {
+    self.ignore = self.ignore.map(ignoreMap)
+  }
+}
+
+// ignore patterns are always in dot:true mode.
+function ignoreMap (pattern) {
+  var gmatcher = null
+  if (pattern.slice(-3) === '/**') {
+    var gpattern = pattern.replace(/(\/\*\*)+$/, '')
+    gmatcher = new Minimatch(gpattern, { dot: true })
+  }
+
+  return {
+    matcher: new Minimatch(pattern, { dot: true }),
+    gmatcher: gmatcher
+  }
+}
+
+function setopts (self, pattern, options) {
+  if (!options)
+    options = {}
+
+  // base-matching: just use globstar for that.
+  if (options.matchBase && -1 === pattern.indexOf("/")) {
+    if (options.noglobstar) {
+      throw new Error("base matching requires globstar")
+    }
+    pattern = "**/" + pattern
+  }
+
+  self.silent = !!options.silent
+  self.pattern = pattern
+  self.strict = options.strict !== false
+  self.realpath = !!options.realpath
+  self.realpathCache = options.realpathCache || Object.create(null)
+  self.follow = !!options.follow
+  self.dot = !!options.dot
+  self.mark = !!options.mark
+  self.nodir = !!options.nodir
+  if (self.nodir)
+    self.mark = true
+  self.sync = !!options.sync
+  self.nounique = !!options.nounique
+  self.nonull = !!options.nonull
+  self.nosort = !!options.nosort
+  self.nocase = !!options.nocase
+  self.stat = !!options.stat
+  self.noprocess = !!options.noprocess
+  self.absolute = !!options.absolute
+
+  self.maxLength = options.maxLength || Infinity
+  self.cache = options.cache || Object.create(null)
+  self.statCache = options.statCache || Object.create(null)
+  self.symlinks = options.symlinks || Object.create(null)
+
+  setupIgnores(self, options)
+
+  self.changedCwd = false
+  var cwd = process.cwd()
+  if (!ownProp(options, "cwd"))
+    self.cwd = cwd
+  else {
+    self.cwd = path.resolve(options.cwd)
+    self.changedCwd = self.cwd !== cwd
+  }
+
+  self.root = options.root || path.resolve(self.cwd, "/")
+  self.root = path.resolve(self.root)
+  if (process.platform === "win32")
+    self.root = self.root.replace(/\\/g, "/")
+
+  // TODO: is an absolute `cwd` supposed to be resolved against `root`?
+  // e.g. { cwd: '/test', root: __dirname } === path.join(__dirname, '/test')
+  self.cwdAbs = isAbsolute(self.cwd) ? self.cwd : makeAbs(self, self.cwd)
+  if (process.platform === "win32")
+    self.cwdAbs = self.cwdAbs.replace(/\\/g, "/")
+  self.nomount = !!options.nomount
+
+  // disable comments and negation in Minimatch.
+  // Note that they are not supported in Glob itself anyway.
+  options.nonegate = true
+  options.nocomment = true
+
+  self.minimatch = new Minimatch(pattern, options)
+  self.options = self.minimatch.options
+}
+
+function finish (self) {
+  var nou = self.nounique
+  var all = nou ? [] : Object.create(null)
+
+  for (var i = 0, l = self.matches.length; i < l; i ++) {
+    var matches = self.matches[i]
+    if (!matches || Object.keys(matches).length === 0) {
+      if (self.nonull) {
+        // do like the shell, and spit out the literal glob
+        var literal = self.minimatch.globSet[i]
+        if (nou)
+          all.push(literal)
+        else
+          all[literal] = true
+      }
+    } else {
+      // had matches
+      var m = Object.keys(matches)
+      if (nou)
+        all.push.apply(all, m)
+      else
+        m.forEach(function (m) {
+          all[m] = true
+        })
+    }
+  }
+
+  if (!nou)
+    all = Object.keys(all)
+
+  if (!self.nosort)
+    all = all.sort(self.nocase ? alphasorti : alphasort)
+
+  // at *some* point we statted all of these
+  if (self.mark) {
+    for (var i = 0; i < all.length; i++) {
+      all[i] = self._mark(all[i])
+    }
+    if (self.nodir) {
+      all = all.filter(function (e) {
+        var notDir = !(/\/$/.test(e))
+        var c = self.cache[e] || self.cache[makeAbs(self, e)]
+        if (notDir && c)
+          notDir = c !== 'DIR' && !Array.isArray(c)
+        return notDir
+      })
+    }
+  }
+
+  if (self.ignore.length)
+    all = all.filter(function(m) {
+      return !isIgnored(self, m)
+    })
+
+  self.found = all
+}
+
+function mark (self, p) {
+  var abs = makeAbs(self, p)
+  var c = self.cache[abs]
+  var m = p
+  if (c) {
+    var isDir = c === 'DIR' || Array.isArray(c)
+    var slash = p.slice(-1) === '/'
+
+    if (isDir && !slash)
+      m += '/'
+    else if (!isDir && slash)
+      m = m.slice(0, -1)
+
+    if (m !== p) {
+      var mabs = makeAbs(self, m)
+      self.statCache[mabs] = self.statCache[abs]
+      self.cache[mabs] = self.cache[abs]
+    }
+  }
+
+  return m
+}
+
+// lotta situps...
+function makeAbs (self, f) {
+  var abs = f
+  if (f.charAt(0) === '/') {
+    abs = path.join(self.root, f)
+  } else if (isAbsolute(f) || f === '') {
+    abs = f
+  } else if (self.changedCwd) {
+    abs = path.resolve(self.cwd, f)
+  } else {
+    abs = path.resolve(f)
+  }
+
+  if (process.platform === 'win32')
+    abs = abs.replace(/\\/g, '/')
+
+  return abs
+}
+
+
+// Return true, if pattern ends with globstar '**', for the accompanying parent directory.
+// Ex:- If node_modules/** is the pattern, add 'node_modules' to ignore list along with it's contents
+function isIgnored (self, path) {
+  if (!self.ignore.length)
+    return false
+
+  return self.ignore.some(function(item) {
+    return item.matcher.match(path) || !!(item.gmatcher && item.gmatcher.match(path))
+  })
+}
+
+function childrenIgnored (self, path) {
+  if (!self.ignore.length)
+    return false
+
+  return self.ignore.some(function(item) {
+    return !!(item.gmatcher && item.gmatcher.match(path))
+  })
+}
+
+
+/***/ }),
+/* 279 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var wrappy = __webpack_require__(280)
+var reqs = Object.create(null)
+var once = __webpack_require__(281)
+
+module.exports = wrappy(inflight)
+
+function inflight (key, cb) {
+  if (reqs[key]) {
+    reqs[key].push(cb)
+    return null
+  } else {
+    reqs[key] = [cb]
+    return makeres(key)
+  }
+}
+
+function makeres (key) {
+  return once(function RES () {
+    var cbs = reqs[key]
+    var len = cbs.length
+    var args = slice(arguments)
+
+    // XXX It's somewhat ambiguous whether a new callback added in this
+    // pass should be queued for later execution if something in the
+    // list of callbacks throws, or if it should just be discarded.
+    // However, it's such an edge case that it hardly matters, and either
+    // choice is likely as surprising as the other.
+    // As it happens, we do go ahead and schedule it for later execution.
+    try {
+      for (var i = 0; i < len; i++) {
+        cbs[i].apply(null, args)
+      }
+    } finally {
+      if (cbs.length > len) {
+        // added more in the interim.
+        // de-zalgo, just in case, but don't call again.
+        cbs.splice(0, len)
+        process.nextTick(function () {
+          RES.apply(null, args)
+        })
+      } else {
+        delete reqs[key]
+      }
+    }
+  })
+}
+
+function slice (args) {
+  var length = args.length
+  var array = []
+
+  for (var i = 0; i < length; i++) array[i] = args[i]
+  return array
+}
+
+
+/***/ }),
+/* 280 */
+/***/ (function(module, exports) {
+
+// Returns a wrapper function that returns a wrapped callback
+// The wrapper function should do some stuff, and return a
+// presumably different callback function.
+// This makes sure that own properties are retained, so that
+// decorations and such are not lost along the way.
+module.exports = wrappy
+function wrappy (fn, cb) {
+  if (fn && cb) return wrappy(fn)(cb)
+
+  if (typeof fn !== 'function')
+    throw new TypeError('need wrapper function')
+
+  Object.keys(fn).forEach(function (k) {
+    wrapper[k] = fn[k]
+  })
+
+  return wrapper
+
+  function wrapper() {
+    var args = new Array(arguments.length)
+    for (var i = 0; i < args.length; i++) {
+      args[i] = arguments[i]
+    }
+    var ret = fn.apply(this, args)
+    var cb = args[args.length-1]
+    if (typeof ret === 'function' && ret !== cb) {
+      Object.keys(cb).forEach(function (k) {
+        ret[k] = cb[k]
+      })
+    }
+    return ret
+  }
+}
+
+
+/***/ }),
+/* 281 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var wrappy = __webpack_require__(280)
+module.exports = wrappy(once)
+module.exports.strict = wrappy(onceStrict)
+
+once.proto = once(function () {
+  Object.defineProperty(Function.prototype, 'once', {
+    value: function () {
+      return once(this)
+    },
+    configurable: true
+  })
+
+  Object.defineProperty(Function.prototype, 'onceStrict', {
+    value: function () {
+      return onceStrict(this)
+    },
+    configurable: true
+  })
+})
+
+function once (fn) {
+  var f = function () {
+    if (f.called) return f.value
+    f.called = true
+    return f.value = fn.apply(this, arguments)
+  }
+  f.called = false
+  return f
+}
+
+function onceStrict (fn) {
+  var f = function () {
+    if (f.called)
+      throw new Error(f.onceError)
+    f.called = true
+    return f.value = fn.apply(this, arguments)
+  }
+  var name = fn.name || 'Function wrapped with `once`'
+  f.onceError = name + " shouldn't be called more than once"
+  f.called = false
+  return f
+}
+
+
+/***/ }),
+/* 282 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _v1_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(283);
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "v1", function() { return _v1_js__WEBPACK_IMPORTED_MODULE_0__["default"]; });
+
+/* harmony import */ var _v3_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(286);
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "v3", function() { return _v3_js__WEBPACK_IMPORTED_MODULE_1__["default"]; });
+
+/* harmony import */ var _v4_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(289);
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "v4", function() { return _v4_js__WEBPACK_IMPORTED_MODULE_2__["default"]; });
+
+/* harmony import */ var _v5_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(290);
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "v5", function() { return _v5_js__WEBPACK_IMPORTED_MODULE_3__["default"]; });
+
+
+
+
+
+
+/***/ }),
+/* 283 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _rng_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(284);
+/* harmony import */ var _bytesToUuid_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(285);
+
+ // **`v1()` - Generate time-based UUID**
+//
+// Inspired by https://github.com/LiosK/UUID.js
+// and http://docs.python.org/library/uuid.html
+
+var _nodeId;
+
+var _clockseq; // Previous uuid creation time
+
+
+var _lastMSecs = 0;
+var _lastNSecs = 0; // See https://github.com/uuidjs/uuid for API details
+
+function v1(options, buf, offset) {
+  var i = buf && offset || 0;
+  var b = buf || [];
+  options = options || {};
+  var node = options.node || _nodeId;
+  var clockseq = options.clockseq !== undefined ? options.clockseq : _clockseq; // node and clockseq need to be initialized to random values if they're not
+  // specified.  We do this lazily to minimize issues related to insufficient
+  // system entropy.  See #189
+
+  if (node == null || clockseq == null) {
+    var seedBytes = options.random || (options.rng || _rng_js__WEBPACK_IMPORTED_MODULE_0__["default"])();
+
+    if (node == null) {
+      // Per 4.5, create and 48-bit node id, (47 random bits + multicast bit = 1)
+      node = _nodeId = [seedBytes[0] | 0x01, seedBytes[1], seedBytes[2], seedBytes[3], seedBytes[4], seedBytes[5]];
+    }
+
+    if (clockseq == null) {
+      // Per 4.2.2, randomize (14 bit) clockseq
+      clockseq = _clockseq = (seedBytes[6] << 8 | seedBytes[7]) & 0x3fff;
+    }
+  } // UUID timestamps are 100 nano-second units since the Gregorian epoch,
+  // (1582-10-15 00:00).  JSNumbers aren't precise enough for this, so
+  // time is handled internally as 'msecs' (integer milliseconds) and 'nsecs'
+  // (100-nanoseconds offset from msecs) since unix epoch, 1970-01-01 00:00.
+
+
+  var msecs = options.msecs !== undefined ? options.msecs : new Date().getTime(); // Per 4.2.1.2, use count of uuid's generated during the current clock
+  // cycle to simulate higher resolution clock
+
+  var nsecs = options.nsecs !== undefined ? options.nsecs : _lastNSecs + 1; // Time since last uuid creation (in msecs)
+
+  var dt = msecs - _lastMSecs + (nsecs - _lastNSecs) / 10000; // Per 4.2.1.2, Bump clockseq on clock regression
+
+  if (dt < 0 && options.clockseq === undefined) {
+    clockseq = clockseq + 1 & 0x3fff;
+  } // Reset nsecs if clock regresses (new clockseq) or we've moved onto a new
+  // time interval
+
+
+  if ((dt < 0 || msecs > _lastMSecs) && options.nsecs === undefined) {
+    nsecs = 0;
+  } // Per 4.2.1.2 Throw error if too many uuids are requested
+
+
+  if (nsecs >= 10000) {
+    throw new Error("uuid.v1(): Can't create more than 10M uuids/sec");
+  }
+
+  _lastMSecs = msecs;
+  _lastNSecs = nsecs;
+  _clockseq = clockseq; // Per 4.1.4 - Convert from unix epoch to Gregorian epoch
+
+  msecs += 12219292800000; // `time_low`
+
+  var tl = ((msecs & 0xfffffff) * 10000 + nsecs) % 0x100000000;
+  b[i++] = tl >>> 24 & 0xff;
+  b[i++] = tl >>> 16 & 0xff;
+  b[i++] = tl >>> 8 & 0xff;
+  b[i++] = tl & 0xff; // `time_mid`
+
+  var tmh = msecs / 0x100000000 * 10000 & 0xfffffff;
+  b[i++] = tmh >>> 8 & 0xff;
+  b[i++] = tmh & 0xff; // `time_high_and_version`
+
+  b[i++] = tmh >>> 24 & 0xf | 0x10; // include version
+
+  b[i++] = tmh >>> 16 & 0xff; // `clock_seq_hi_and_reserved` (Per 4.2.2 - include variant)
+
+  b[i++] = clockseq >>> 8 | 0x80; // `clock_seq_low`
+
+  b[i++] = clockseq & 0xff; // `node`
+
+  for (var n = 0; n < 6; ++n) {
+    b[i + n] = node[n];
+  }
+
+  return buf ? buf : Object(_bytesToUuid_js__WEBPACK_IMPORTED_MODULE_1__["default"])(b);
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (v1);
+
+/***/ }),
+/* 284 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return rng; });
+/* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(220);
+/* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(crypto__WEBPACK_IMPORTED_MODULE_0__);
+
+function rng() {
+  return crypto__WEBPACK_IMPORTED_MODULE_0___default.a.randomBytes(16);
+}
+
+/***/ }),
+/* 285 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/**
+ * Convert array of 16 byte values to UUID string format of the form:
+ * XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+ */
+var byteToHex = [];
+
+for (var i = 0; i < 256; ++i) {
+  byteToHex[i] = (i + 0x100).toString(16).substr(1);
+}
+
+function bytesToUuid(buf, offset) {
+  var i = offset || 0;
+  var bth = byteToHex; // join used to fix memory issue caused by concatenation: https://bugs.chromium.org/p/v8/issues/detail?id=3175#c4
+
+  return [bth[buf[i++]], bth[buf[i++]], bth[buf[i++]], bth[buf[i++]], '-', bth[buf[i++]], bth[buf[i++]], '-', bth[buf[i++]], bth[buf[i++]], '-', bth[buf[i++]], bth[buf[i++]], '-', bth[buf[i++]], bth[buf[i++]], bth[buf[i++]], bth[buf[i++]], bth[buf[i++]], bth[buf[i++]]].join('');
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (bytesToUuid);
+
+/***/ }),
+/* 286 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _v35_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(287);
+/* harmony import */ var _md5_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(288);
+
+
+const v3 = Object(_v35_js__WEBPACK_IMPORTED_MODULE_0__["default"])('v3', 0x30, _md5_js__WEBPACK_IMPORTED_MODULE_1__["default"]);
+/* harmony default export */ __webpack_exports__["default"] = (v3);
+
+/***/ }),
+/* 287 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "DNS", function() { return DNS; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "URL", function() { return URL; });
+/* harmony import */ var _bytesToUuid_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(285);
+
+
+function uuidToBytes(uuid) {
+  // Note: We assume we're being passed a valid uuid string
+  var bytes = [];
+  uuid.replace(/[a-fA-F0-9]{2}/g, function (hex) {
+    bytes.push(parseInt(hex, 16));
+  });
+  return bytes;
+}
+
+function stringToBytes(str) {
+  str = unescape(encodeURIComponent(str)); // UTF8 escape
+
+  var bytes = new Array(str.length);
+
+  for (var i = 0; i < str.length; i++) {
+    bytes[i] = str.charCodeAt(i);
+  }
+
+  return bytes;
+}
+
+const DNS = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
+const URL = '6ba7b811-9dad-11d1-80b4-00c04fd430c8';
+/* harmony default export */ __webpack_exports__["default"] = (function (name, version, hashfunc) {
+  var generateUUID = function (value, namespace, buf, offset) {
+    var off = buf && offset || 0;
+    if (typeof value == 'string') value = stringToBytes(value);
+    if (typeof namespace == 'string') namespace = uuidToBytes(namespace);
+    if (!Array.isArray(value)) throw TypeError('value must be an array of bytes');
+    if (!Array.isArray(namespace) || namespace.length !== 16) throw TypeError('namespace must be uuid string or an Array of 16 byte values'); // Per 4.3
+
+    var bytes = hashfunc(namespace.concat(value));
+    bytes[6] = bytes[6] & 0x0f | version;
+    bytes[8] = bytes[8] & 0x3f | 0x80;
+
+    if (buf) {
+      for (var idx = 0; idx < 16; ++idx) {
+        buf[off + idx] = bytes[idx];
+      }
+    }
+
+    return buf || Object(_bytesToUuid_js__WEBPACK_IMPORTED_MODULE_0__["default"])(bytes);
+  }; // Function#name is not settable on some platforms (#270)
+
+
+  try {
+    generateUUID.name = name;
+  } catch (err) {} // For CommonJS default export support
+
+
+  generateUUID.DNS = DNS;
+  generateUUID.URL = URL;
+  return generateUUID;
+});
+
+/***/ }),
+/* 288 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(220);
+/* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(crypto__WEBPACK_IMPORTED_MODULE_0__);
+
+
+function md5(bytes) {
+  if (Array.isArray(bytes)) {
+    bytes = Buffer.from(bytes);
+  } else if (typeof bytes === 'string') {
+    bytes = Buffer.from(bytes, 'utf8');
+  }
+
+  return crypto__WEBPACK_IMPORTED_MODULE_0___default.a.createHash('md5').update(bytes).digest();
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (md5);
+
+/***/ }),
+/* 289 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _rng_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(284);
+/* harmony import */ var _bytesToUuid_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(285);
+
+
+
+function v4(options, buf, offset) {
+  var i = buf && offset || 0;
+
+  if (typeof options == 'string') {
+    buf = options === 'binary' ? new Array(16) : null;
+    options = null;
+  }
+
+  options = options || {};
+  var rnds = options.random || (options.rng || _rng_js__WEBPACK_IMPORTED_MODULE_0__["default"])(); // Per 4.4, set bits for version and `clock_seq_hi_and_reserved`
+
+  rnds[6] = rnds[6] & 0x0f | 0x40;
+  rnds[8] = rnds[8] & 0x3f | 0x80; // Copy bytes to buffer, if provided
+
+  if (buf) {
+    for (var ii = 0; ii < 16; ++ii) {
+      buf[i + ii] = rnds[ii];
+    }
+  }
+
+  return buf || Object(_bytesToUuid_js__WEBPACK_IMPORTED_MODULE_1__["default"])(rnds);
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (v4);
+
+/***/ }),
+/* 290 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _v35_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(287);
+/* harmony import */ var _sha1_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(291);
+
+
+const v5 = Object(_v35_js__WEBPACK_IMPORTED_MODULE_0__["default"])('v5', 0x50, _sha1_js__WEBPACK_IMPORTED_MODULE_1__["default"]);
+/* harmony default export */ __webpack_exports__["default"] = (v5);
+
+/***/ }),
+/* 291 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(220);
+/* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(crypto__WEBPACK_IMPORTED_MODULE_0__);
+
+
+function sha1(bytes) {
+  if (Array.isArray(bytes)) {
+    bytes = Buffer.from(bytes);
+  } else if (typeof bytes === 'string') {
+    bytes = Buffer.from(bytes, 'utf8');
+  }
+
+  return crypto__WEBPACK_IMPORTED_MODULE_0___default.a.createHash('sha1').update(bytes).digest();
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (sha1);
+
+/***/ }),
+/* 292 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "TextDocument", function() { return TextDocument; });
+/* --------------------------------------------------------------------------------------------
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License. See License.txt in the project root for license information.
+ * ------------------------------------------------------------------------------------------ */
+
+var FullTextDocument = /** @class */ (function () {
+    function FullTextDocument(uri, languageId, version, content) {
+        this._uri = uri;
+        this._languageId = languageId;
+        this._version = version;
+        this._content = content;
+        this._lineOffsets = undefined;
+    }
+    Object.defineProperty(FullTextDocument.prototype, "uri", {
+        get: function () {
+            return this._uri;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(FullTextDocument.prototype, "languageId", {
+        get: function () {
+            return this._languageId;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(FullTextDocument.prototype, "version", {
+        get: function () {
+            return this._version;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    FullTextDocument.prototype.getText = function (range) {
+        if (range) {
+            var start = this.offsetAt(range.start);
+            var end = this.offsetAt(range.end);
+            return this._content.substring(start, end);
+        }
+        return this._content;
+    };
+    FullTextDocument.prototype.update = function (changes, version) {
+        for (var _i = 0, changes_1 = changes; _i < changes_1.length; _i++) {
+            var change = changes_1[_i];
+            if (FullTextDocument.isIncremental(change)) {
+                // makes sure start is before end
+                var range = getWellformedRange(change.range);
+                // update content
+                var startOffset = this.offsetAt(range.start);
+                var endOffset = this.offsetAt(range.end);
+                this._content = this._content.substring(0, startOffset) + change.text + this._content.substring(endOffset, this._content.length);
+                // update the offsets
+                var startLine = Math.max(range.start.line, 0);
+                var endLine = Math.max(range.end.line, 0);
+                var lineOffsets = this._lineOffsets;
+                var addedLineOffsets = computeLineOffsets(change.text, false, startOffset);
+                if (endLine - startLine === addedLineOffsets.length) {
+                    for (var i = 0, len = addedLineOffsets.length; i < len; i++) {
+                        lineOffsets[i + startLine + 1] = addedLineOffsets[i];
+                    }
+                }
+                else {
+                    if (addedLineOffsets.length < 10000) {
+                        lineOffsets.splice.apply(lineOffsets, [startLine + 1, endLine - startLine].concat(addedLineOffsets));
+                    }
+                    else { // avoid too many arguments for splice
+                        this._lineOffsets = lineOffsets = lineOffsets.slice(0, startLine + 1).concat(addedLineOffsets, lineOffsets.slice(endLine + 1));
+                    }
+                }
+                var diff = change.text.length - (endOffset - startOffset);
+                if (diff !== 0) {
+                    for (var i = startLine + 1 + addedLineOffsets.length, len = lineOffsets.length; i < len; i++) {
+                        lineOffsets[i] = lineOffsets[i] + diff;
+                    }
+                }
+            }
+            else if (FullTextDocument.isFull(change)) {
+                this._content = change.text;
+                this._lineOffsets = undefined;
+            }
+            else {
+                throw new Error('Unknown change event received');
+            }
+        }
+        this._version = version;
+    };
+    FullTextDocument.prototype.getLineOffsets = function () {
+        if (this._lineOffsets === undefined) {
+            this._lineOffsets = computeLineOffsets(this._content, true);
+        }
+        return this._lineOffsets;
+    };
+    FullTextDocument.prototype.positionAt = function (offset) {
+        offset = Math.max(Math.min(offset, this._content.length), 0);
+        var lineOffsets = this.getLineOffsets();
+        var low = 0, high = lineOffsets.length;
+        if (high === 0) {
+            return { line: 0, character: offset };
+        }
+        while (low < high) {
+            var mid = Math.floor((low + high) / 2);
+            if (lineOffsets[mid] > offset) {
+                high = mid;
+            }
+            else {
+                low = mid + 1;
+            }
+        }
+        // low is the least x for which the line offset is larger than the current offset
+        // or array.length if no line offset is larger than the current offset
+        var line = low - 1;
+        return { line: line, character: offset - lineOffsets[line] };
+    };
+    FullTextDocument.prototype.offsetAt = function (position) {
+        var lineOffsets = this.getLineOffsets();
+        if (position.line >= lineOffsets.length) {
+            return this._content.length;
+        }
+        else if (position.line < 0) {
+            return 0;
+        }
+        var lineOffset = lineOffsets[position.line];
+        var nextLineOffset = (position.line + 1 < lineOffsets.length) ? lineOffsets[position.line + 1] : this._content.length;
+        return Math.max(Math.min(lineOffset + position.character, nextLineOffset), lineOffset);
+    };
+    Object.defineProperty(FullTextDocument.prototype, "lineCount", {
+        get: function () {
+            return this.getLineOffsets().length;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    FullTextDocument.isIncremental = function (event) {
+        var candidate = event;
+        return candidate !== undefined && candidate !== null &&
+            typeof candidate.text === 'string' && candidate.range !== undefined &&
+            (candidate.rangeLength === undefined || typeof candidate.rangeLength === 'number');
+    };
+    FullTextDocument.isFull = function (event) {
+        var candidate = event;
+        return candidate !== undefined && candidate !== null &&
+            typeof candidate.text === 'string' && candidate.range === undefined && candidate.rangeLength === undefined;
+    };
+    return FullTextDocument;
+}());
+var TextDocument;
+(function (TextDocument) {
+    /**
+     * Creates a new text document.
+     *
+     * @param uri The document's uri.
+     * @param languageId  The document's language Id.
+     * @param version The document's initial version number.
+     * @param content The document's content.
+     */
+    function create(uri, languageId, version, content) {
+        return new FullTextDocument(uri, languageId, version, content);
+    }
+    TextDocument.create = create;
+    /**
+     * Updates a TextDocument by modifing its content.
+     *
+     * @param document the document to update. Only documents created by TextDocument.create are valid inputs.
+     * @param changes the changes to apply to the document.
+     * @returns The updated TextDocument. Note: That's the same document instance passed in as first parameter.
+     *
+     */
+    function update(document, changes, version) {
+        if (document instanceof FullTextDocument) {
+            document.update(changes, version);
+            return document;
+        }
+        else {
+            throw new Error('TextDocument.update: document must be created by TextDocument.create');
+        }
+    }
+    TextDocument.update = update;
+    function applyEdits(document, edits) {
+        var text = document.getText();
+        var sortedEdits = mergeSort(edits.map(getWellformedEdit), function (a, b) {
+            var diff = a.range.start.line - b.range.start.line;
+            if (diff === 0) {
+                return a.range.start.character - b.range.start.character;
+            }
+            return diff;
+        });
+        var lastModifiedOffset = 0;
+        var spans = [];
+        for (var _i = 0, sortedEdits_1 = sortedEdits; _i < sortedEdits_1.length; _i++) {
+            var e = sortedEdits_1[_i];
+            var startOffset = document.offsetAt(e.range.start);
+            if (startOffset < lastModifiedOffset) {
+                throw new Error('Overlapping edit');
+            }
+            else if (startOffset > lastModifiedOffset) {
+                spans.push(text.substring(lastModifiedOffset, startOffset));
+            }
+            if (e.newText.length) {
+                spans.push(e.newText);
+            }
+            lastModifiedOffset = document.offsetAt(e.range.end);
+        }
+        spans.push(text.substr(lastModifiedOffset));
+        return spans.join('');
+    }
+    TextDocument.applyEdits = applyEdits;
+})(TextDocument || (TextDocument = {}));
+function mergeSort(data, compare) {
+    if (data.length <= 1) {
+        // sorted
+        return data;
+    }
+    var p = (data.length / 2) | 0;
+    var left = data.slice(0, p);
+    var right = data.slice(p);
+    mergeSort(left, compare);
+    mergeSort(right, compare);
+    var leftIdx = 0;
+    var rightIdx = 0;
+    var i = 0;
+    while (leftIdx < left.length && rightIdx < right.length) {
+        var ret = compare(left[leftIdx], right[rightIdx]);
+        if (ret <= 0) {
+            // smaller_equal -> take left to preserve order
+            data[i++] = left[leftIdx++];
+        }
+        else {
+            // greater -> take right
+            data[i++] = right[rightIdx++];
+        }
+    }
+    while (leftIdx < left.length) {
+        data[i++] = left[leftIdx++];
+    }
+    while (rightIdx < right.length) {
+        data[i++] = right[rightIdx++];
+    }
+    return data;
+}
+function computeLineOffsets(text, isAtLineStart, textOffset) {
+    if (textOffset === void 0) { textOffset = 0; }
+    var result = isAtLineStart ? [textOffset] : [];
+    for (var i = 0; i < text.length; i++) {
+        var ch = text.charCodeAt(i);
+        if (ch === 13 /* CarriageReturn */ || ch === 10 /* LineFeed */) {
+            if (ch === 13 /* CarriageReturn */ && i + 1 < text.length && text.charCodeAt(i + 1) === 10 /* LineFeed */) {
+                i++;
+            }
+            result.push(textOffset + i + 1);
+        }
+    }
+    return result;
+}
+function getWellformedRange(range) {
+    var start = range.start;
+    var end = range.end;
+    if (start.line > end.line || (start.line === end.line && start.character > end.character)) {
+        return { start: end, end: start };
+    }
+    return range;
+}
+function getWellformedEdit(textEdit) {
+    var range = getWellformedRange(textEdit.range);
+    if (range !== textEdit.range) {
+        return { newText: textEdit.newText, range: range };
+    }
+    return textEdit;
+}
+
+
+/***/ }),
+/* 293 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(65);
+const os_1 = tslib_1.__importDefault(__webpack_require__(76));
+const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
+const path_1 = tslib_1.__importDefault(__webpack_require__(82));
+const vscode_languageserver_protocol_1 = __webpack_require__(210);
+const vscode_uri_1 = __webpack_require__(242);
+const types_1 = __webpack_require__(294);
+const object_1 = __webpack_require__(248);
+const util_1 = __webpack_require__(237);
+const configuration_1 = __webpack_require__(295);
+const model_1 = __webpack_require__(296);
+const util_2 = __webpack_require__(297);
+const is_1 = __webpack_require__(249);
+const fs_2 = __webpack_require__(303);
+const logger = __webpack_require__(64)('configurations');
+function lookUp(tree, key) {
+    if (key) {
+        if (tree && tree.hasOwnProperty(key))
+            return tree[key];
+        const parts = key.split('.');
+        let node = tree;
+        for (let i = 0; node && i < parts.length; i++) {
+            node = node[parts[i]];
+        }
+        return node;
+    }
+    return tree;
+}
+class Configurations {
+    constructor(userConfigFile, _proxy) {
+        this.userConfigFile = userConfigFile;
+        this._proxy = _proxy;
+        this._errorItems = [];
+        this._folderConfigurations = new Map();
+        this._onError = new vscode_languageserver_protocol_1.Emitter();
+        this._onChange = new vscode_languageserver_protocol_1.Emitter();
+        this.disposables = [];
+        this.onError = this._onError.event;
+        this.onDidChange = this._onChange.event;
+        let user = this.parseContentFromFile(userConfigFile);
+        let data = {
+            defaults: util_2.loadDefaultConfigurations(),
+            user,
+            workspace: { contents: {} }
+        };
+        this._configuration = Configurations.parse(data);
+        this.watchFile(userConfigFile, types_1.ConfigurationTarget.User);
+        let folderConfigFile = path_1.default.join(process.cwd(), `.vim/${util_1.CONFIG_FILE_NAME}`);
+        if (folderConfigFile != userConfigFile && fs_1.default.existsSync(folderConfigFile)) {
+            this.addFolderFile(folderConfigFile);
+        }
+    }
+    parseContentFromFile(filepath) {
+        if (!filepath)
+            return { contents: {} };
+        let uri = vscode_uri_1.URI.file(filepath).toString();
+        this._errorItems = this._errorItems.filter(o => o.location.uri != uri);
+        let res = util_2.parseContentFromFile(filepath, errors => {
+            this._errorItems.push(...errors);
+        });
+        this._onError.fire(this._errorItems);
+        return res;
+    }
+    get errorItems() {
+        return this._errorItems;
+    }
+    get foldConfigurations() {
+        return this._folderConfigurations;
+    }
+    // used for extensions, no change event fired
+    extendsDefaults(props) {
+        let { defaults } = this._configuration;
+        let { contents } = defaults;
+        contents = object_1.deepClone(contents);
+        Object.keys(props).forEach(key => {
+            util_2.addToValueTree(contents, key, props[key], msg => {
+                logger.error(msg);
+            });
+        });
+        let data = {
+            defaults: { contents },
+            user: this._configuration.user,
+            workspace: this._configuration.workspace
+        };
+        this._configuration = Configurations.parse(data);
+    }
+    // change user configuration, without change file
+    updateUserConfig(props) {
+        if (!props || Object.keys(props).length == 0)
+            return;
+        let { user } = this._configuration;
+        let model = user.clone();
+        Object.keys(props).forEach(key => {
+            let val = props[key];
+            if (val === undefined) {
+                model.removeValue(key);
+            }
+            else if (is_1.objectLiteral(val)) {
+                for (let k of Object.keys(val)) {
+                    model.setValue(`${key}.${k}`, val[k]);
+                }
+            }
+            else {
+                model.setValue(key, val);
+            }
+        });
+        this.changeConfiguration(types_1.ConfigurationTarget.User, model);
+    }
+    get defaults() {
+        return this._configuration.defaults;
+    }
+    get user() {
+        return this._configuration.user;
+    }
+    get workspace() {
+        return this._configuration.workspace;
+    }
+    addFolderFile(filepath) {
+        let { _folderConfigurations } = this;
+        if (_folderConfigurations.has(filepath))
+            return;
+        if (path_1.default.resolve(filepath, '../..') == os_1.default.homedir())
+            return;
+        let model = this.parseContentFromFile(filepath);
+        this.watchFile(filepath, types_1.ConfigurationTarget.Workspace);
+        this.changeConfiguration(types_1.ConfigurationTarget.Workspace, model, filepath);
+    }
+    watchFile(filepath, target) {
+        if (!fs_1.default.existsSync(filepath) || global.hasOwnProperty('__TEST__'))
+            return;
+        let disposable = util_1.watchFile(filepath, () => {
+            let model = this.parseContentFromFile(filepath);
+            this.changeConfiguration(target, model, filepath);
+        });
+        this.disposables.push(disposable);
+    }
+    // create new configuration and fire change event
+    changeConfiguration(target, model, configFile) {
+        let { defaults, user, workspace } = this._configuration;
+        let { workspaceConfigFile } = this;
+        let data = {
+            defaults: target == types_1.ConfigurationTarget.Global ? model : defaults,
+            user: target == types_1.ConfigurationTarget.User ? model : user,
+            workspace: target == types_1.ConfigurationTarget.Workspace ? model : workspace,
+        };
+        let configuration = Configurations.parse(data);
+        let changed = util_2.getChangedKeys(this._configuration.getValue(), configuration.getValue());
+        if (target == types_1.ConfigurationTarget.Workspace && configFile) {
+            this._folderConfigurations.set(configFile, new model_1.ConfigurationModel(model.contents));
+            this.workspaceConfigFile = configFile;
+        }
+        if (changed.length == 0)
+            return;
+        this._configuration = configuration;
+        this._onChange.fire({
+            affectsConfiguration: (section, resource) => {
+                if (!resource || target != types_1.ConfigurationTarget.Workspace)
+                    return changed.includes(section);
+                let u = vscode_uri_1.URI.parse(resource);
+                if (u.scheme !== 'file')
+                    return changed.includes(section);
+                let filepath = u.fsPath;
+                let preRoot = workspaceConfigFile ? path_1.default.resolve(workspaceConfigFile, '../..') : '';
+                if (configFile && !fs_2.isParentFolder(preRoot, filepath, true) && !fs_2.isParentFolder(path_1.default.resolve(configFile, '../..'), filepath)) {
+                    return false;
+                }
+                return changed.includes(section);
+            }
+        });
+    }
+    setFolderConfiguration(uri) {
+        let u = vscode_uri_1.URI.parse(uri);
+        if (u.scheme != 'file')
+            return;
+        let filepath = u.fsPath;
+        for (let [configFile, model] of this.foldConfigurations) {
+            let root = path_1.default.resolve(configFile, '../..');
+            if (fs_2.isParentFolder(root, filepath, true) && this.workspaceConfigFile != configFile) {
+                this.changeConfiguration(types_1.ConfigurationTarget.Workspace, model, configFile);
+                break;
+            }
+        }
+    }
+    hasFolderConfiguration(filepath) {
+        let { folders } = this;
+        return folders.findIndex(f => fs_2.isParentFolder(f, filepath, true)) !== -1;
+    }
+    getConfigFile(target) {
+        if (target == types_1.ConfigurationTarget.Global)
+            return null;
+        if (target == types_1.ConfigurationTarget.User)
+            return this.userConfigFile;
+        return this.workspaceConfigFile;
+    }
+    get folders() {
+        let res = [];
+        let { _folderConfigurations } = this;
+        for (let folder of _folderConfigurations.keys()) {
+            res.push(path_1.default.resolve(folder, '../..'));
+        }
+        return res;
+    }
+    get configuration() {
+        return this._configuration;
+    }
+    /**
+     * getConfiguration
+     *
+     * @public
+     * @param {string} section
+     * @returns {WorkspaceConfiguration}
+     */
+    getConfiguration(section, resource) {
+        let configuration;
+        if (resource) {
+            let { defaults, user } = this._configuration;
+            configuration = new configuration_1.Configuration(defaults, user, this.getFolderConfiguration(resource));
+        }
+        else {
+            configuration = this._configuration;
+        }
+        const config = Object.freeze(lookUp(configuration.getValue(null), section));
+        const result = {
+            has(key) {
+                return typeof lookUp(config, key) !== 'undefined';
+            },
+            get: (key, defaultValue) => {
+                let result = lookUp(config, key);
+                if (result == null)
+                    return defaultValue;
+                return result;
+            },
+            update: (key, value, isUser = false) => {
+                let s = section ? `${section}.${key}` : key;
+                let target = isUser ? types_1.ConfigurationTarget.User : types_1.ConfigurationTarget.Workspace;
+                let model = target == types_1.ConfigurationTarget.User ? this.user.clone() : this.workspace.clone();
+                if (value == undefined) {
+                    model.removeValue(s);
+                }
+                else {
+                    model.setValue(s, value);
+                }
+                if (target == types_1.ConfigurationTarget.Workspace && !this.workspaceConfigFile && this._proxy) {
+                    let file = this.workspaceConfigFile = this._proxy.workspaceConfigFile;
+                    if (!fs_1.default.existsSync(file)) {
+                        let folder = path_1.default.dirname(file);
+                        if (!fs_1.default.existsSync(folder))
+                            fs_1.default.mkdirSync(folder);
+                        fs_1.default.writeFileSync(file, '{}', { encoding: 'utf8' });
+                    }
+                }
+                this.changeConfiguration(target, model, target == types_1.ConfigurationTarget.Workspace ? this.workspaceConfigFile : this.userConfigFile);
+                if (this._proxy && !global.hasOwnProperty('__TEST__')) {
+                    if (value == undefined) {
+                        this._proxy.$removeConfigurationOption(target, s);
+                    }
+                    else {
+                        this._proxy.$updateConfigurationOption(target, s, value);
+                    }
+                }
+            },
+            inspect: (key) => {
+                key = section ? `${section}.${key}` : key;
+                const config = this._configuration.inspect(key);
+                if (config) {
+                    return {
+                        key,
+                        defaultValue: config.default,
+                        globalValue: config.user,
+                        workspaceValue: config.workspace,
+                    };
+                }
+                return undefined;
+            }
+        };
+        Object.defineProperty(result, 'has', {
+            enumerable: false
+        });
+        Object.defineProperty(result, 'get', {
+            enumerable: false
+        });
+        Object.defineProperty(result, 'update', {
+            enumerable: false
+        });
+        Object.defineProperty(result, 'inspect', {
+            enumerable: false
+        });
+        if (typeof config === 'object') {
+            object_1.mixin(result, config, false);
+        }
+        return object_1.deepFreeze(result);
+    }
+    getFolderConfiguration(uri) {
+        let u = vscode_uri_1.URI.parse(uri);
+        if (u.scheme != 'file')
+            return new model_1.ConfigurationModel();
+        let filepath = u.fsPath;
+        for (let [configFile, model] of this.foldConfigurations) {
+            let root = path_1.default.resolve(configFile, '../..');
+            if (fs_2.isParentFolder(root, filepath, true))
+                return model;
+        }
+        return new model_1.ConfigurationModel();
+    }
+    checkFolderConfiguration(uri) {
+        let u = vscode_uri_1.URI.parse(uri);
+        if (u.scheme != 'file')
+            return;
+        let rootPath = path_1.default.dirname(u.fsPath);
+        if (!this.hasFolderConfiguration(rootPath)) {
+            let folder = fs_2.findUp('.vim', rootPath);
+            if (folder && folder != os_1.default.homedir()) {
+                let file = path_1.default.join(folder, util_1.CONFIG_FILE_NAME);
+                if (fs_1.default.existsSync(file)) {
+                    this.addFolderFile(file);
+                }
+            }
+        }
+        else {
+            this.setFolderConfiguration(uri);
+        }
+    }
+    static parse(data) {
+        const defaultConfiguration = new model_1.ConfigurationModel(data.defaults.contents);
+        const userConfiguration = new model_1.ConfigurationModel(data.user.contents);
+        const workspaceConfiguration = new model_1.ConfigurationModel(data.workspace.contents);
+        return new configuration_1.Configuration(defaultConfiguration, userConfiguration, workspaceConfiguration, new model_1.ConfigurationModel());
+    }
+    dispose() {
+        util_1.disposeAll(this.disposables);
+    }
+}
+exports.default = Configurations;
+//# sourceMappingURL=index.js.map
+
+/***/ }),
+/* 294 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var PatternType;
+(function (PatternType) {
+    PatternType[PatternType["Buffer"] = 0] = "Buffer";
+    PatternType[PatternType["LanguageServer"] = 1] = "LanguageServer";
+    PatternType[PatternType["Global"] = 2] = "Global";
+})(PatternType = exports.PatternType || (exports.PatternType = {}));
+var ExtensionType;
+(function (ExtensionType) {
+    ExtensionType[ExtensionType["Global"] = 0] = "Global";
+    ExtensionType[ExtensionType["Local"] = 1] = "Local";
+    ExtensionType[ExtensionType["SingleFile"] = 2] = "SingleFile";
+    ExtensionType[ExtensionType["Internal"] = 3] = "Internal";
+})(ExtensionType = exports.ExtensionType || (exports.ExtensionType = {}));
+var SourceType;
+(function (SourceType) {
+    SourceType[SourceType["Native"] = 0] = "Native";
+    SourceType[SourceType["Remote"] = 1] = "Remote";
+    SourceType[SourceType["Service"] = 2] = "Service";
+})(SourceType = exports.SourceType || (exports.SourceType = {}));
+var MessageLevel;
+(function (MessageLevel) {
+    MessageLevel[MessageLevel["More"] = 0] = "More";
+    MessageLevel[MessageLevel["Warning"] = 1] = "Warning";
+    MessageLevel[MessageLevel["Error"] = 2] = "Error";
+})(MessageLevel = exports.MessageLevel || (exports.MessageLevel = {}));
+var ConfigurationTarget;
+(function (ConfigurationTarget) {
+    ConfigurationTarget[ConfigurationTarget["Global"] = 0] = "Global";
+    ConfigurationTarget[ConfigurationTarget["User"] = 1] = "User";
+    ConfigurationTarget[ConfigurationTarget["Workspace"] = 2] = "Workspace";
+})(ConfigurationTarget = exports.ConfigurationTarget || (exports.ConfigurationTarget = {}));
+var DiagnosticKind;
+(function (DiagnosticKind) {
+    DiagnosticKind[DiagnosticKind["Syntax"] = 0] = "Syntax";
+    DiagnosticKind[DiagnosticKind["Semantic"] = 1] = "Semantic";
+    DiagnosticKind[DiagnosticKind["Suggestion"] = 2] = "Suggestion";
+})(DiagnosticKind = exports.DiagnosticKind || (exports.DiagnosticKind = {}));
+var ServiceStat;
+(function (ServiceStat) {
+    ServiceStat[ServiceStat["Initial"] = 0] = "Initial";
+    ServiceStat[ServiceStat["Starting"] = 1] = "Starting";
+    ServiceStat[ServiceStat["StartFailed"] = 2] = "StartFailed";
+    ServiceStat[ServiceStat["Running"] = 3] = "Running";
+    ServiceStat[ServiceStat["Stopping"] = 4] = "Stopping";
+    ServiceStat[ServiceStat["Stopped"] = 5] = "Stopped";
+})(ServiceStat = exports.ServiceStat || (exports.ServiceStat = {}));
+//# sourceMappingURL=types.js.map
+
+/***/ }),
+/* 295 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const model_1 = __webpack_require__(296);
+class Configuration {
+    constructor(_defaultConfiguration, _userConfiguration, _workspaceConfiguration, _memoryConfiguration = new model_1.ConfigurationModel()) {
+        this._defaultConfiguration = _defaultConfiguration;
+        this._userConfiguration = _userConfiguration;
+        this._workspaceConfiguration = _workspaceConfiguration;
+        this._memoryConfiguration = _memoryConfiguration;
+    }
+    getConsolidateConfiguration() {
+        if (!this._consolidateConfiguration) {
+            this._consolidateConfiguration = this._defaultConfiguration.merge(this._userConfiguration, this._workspaceConfiguration, this._memoryConfiguration);
+            this._consolidateConfiguration = this._consolidateConfiguration.freeze();
+        }
+        return this._consolidateConfiguration;
+    }
+    getValue(section) {
+        let configuration = this.getConsolidateConfiguration();
+        return configuration.getValue(section);
+    }
+    inspect(key) {
+        const consolidateConfigurationModel = this.getConsolidateConfiguration();
+        const { _workspaceConfiguration, _memoryConfiguration } = this;
+        return {
+            default: this._defaultConfiguration.freeze().getValue(key),
+            user: this._userConfiguration.freeze().getValue(key),
+            workspace: _workspaceConfiguration.freeze().getValue(key),
+            memory: _memoryConfiguration.freeze().getValue(key),
+            value: consolidateConfigurationModel.getValue(key)
+        };
+    }
+    get defaults() {
+        return this._defaultConfiguration;
+    }
+    get user() {
+        return this._userConfiguration;
+    }
+    get workspace() {
+        return this._workspaceConfiguration;
+    }
+    toData() {
+        return {
+            defaults: {
+                contents: this._defaultConfiguration.contents
+            },
+            user: {
+                contents: this._userConfiguration.contents
+            },
+            workspace: {
+                contents: this._workspaceConfiguration.contents
+            }
+        };
+    }
+}
+exports.Configuration = Configuration;
+//# sourceMappingURL=configuration.js.map
+
+/***/ }),
+/* 296 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const is_1 = __webpack_require__(249);
+const object_1 = __webpack_require__(248);
+const util_1 = __webpack_require__(297);
+class ConfigurationModel {
+    constructor(_contents = {}) {
+        this._contents = _contents;
+    }
+    get contents() {
+        return this._contents;
+    }
+    clone() {
+        return new ConfigurationModel(object_1.deepClone(this._contents));
+    }
+    getValue(section) {
+        let res = section
+            ? util_1.getConfigurationValue(this.contents, section)
+            : this.contents;
+        return res;
+    }
+    merge(...others) {
+        const contents = object_1.deepClone(this.contents);
+        for (const other of others) {
+            this.mergeContents(contents, other.contents);
+        }
+        return new ConfigurationModel(contents);
+    }
+    freeze() {
+        if (!Object.isFrozen(this._contents)) {
+            Object.freeze(this._contents);
+        }
+        return this;
+    }
+    mergeContents(source, target) {
+        for (const key of Object.keys(target)) {
+            if (key in source) {
+                if (is_1.objectLiteral(source[key]) && is_1.objectLiteral(target[key])) {
+                    this.mergeContents(source[key], target[key]);
+                    continue;
+                }
+            }
+            source[key] = object_1.deepClone(target[key]);
+        }
+    }
+    // Update methods
+    setValue(key, value) {
+        util_1.addToValueTree(this.contents, key, value, message => {
+            console.error(message);
+        });
+    }
+    removeValue(key) {
+        util_1.removeFromValueTree(this.contents, key);
+    }
+}
+exports.ConfigurationModel = ConfigurationModel;
+//# sourceMappingURL=model.js.map
+
+/***/ }),
+/* 297 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(65);
+const vscode_languageserver_protocol_1 = __webpack_require__(210);
+const vscode_languageserver_textdocument_1 = __webpack_require__(292);
+const jsonc_parser_1 = __webpack_require__(298);
+const is_1 = __webpack_require__(249);
+const object_1 = __webpack_require__(248);
+const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
+const vscode_uri_1 = __webpack_require__(242);
+const path_1 = tslib_1.__importDefault(__webpack_require__(82));
+const logger = __webpack_require__(64)('configuration-util');
+const isWebpack = typeof __webpack_require__ === "function";
+const pluginRoot = isWebpack ? path_1.default.dirname(__dirname) : path_1.default.resolve(__dirname, '../..');
+function parseContentFromFile(filepath, onError) {
+    if (!filepath || !fs_1.default.existsSync(filepath))
+        return { contents: {} };
+    let content;
+    let uri = vscode_uri_1.URI.file(filepath).toString();
+    try {
+        content = fs_1.default.readFileSync(filepath, 'utf8');
+    }
+    catch (_e) {
+        content = '';
+    }
+    let [errors, contents] = parseConfiguration(content);
+    if (errors && errors.length) {
+        onError(convertErrors(uri, content, errors));
+    }
+    return { contents };
+}
+exports.parseContentFromFile = parseContentFromFile;
+function parseConfiguration(content) {
+    if (content.length == 0)
+        return [[], {}];
+    let errors = [];
+    let data = jsonc_parser_1.parse(content, errors, { allowTrailingComma: true });
+    function addProperty(current, key, remains, value) {
+        if (remains.length == 0) {
+            current[key] = convert(value);
+        }
+        else {
+            if (!current[key])
+                current[key] = {};
+            let o = current[key];
+            let first = remains.shift();
+            addProperty(o, first, remains, value);
+        }
+    }
+    function convert(obj, split = false) {
+        if (!is_1.objectLiteral(obj))
+            return obj;
+        if (is_1.emptyObject(obj))
+            return {};
+        let dest = {};
+        for (let key of Object.keys(obj)) {
+            if (split && key.includes('.')) {
+                let parts = key.split('.');
+                let first = parts.shift();
+                addProperty(dest, first, parts, obj[key]);
+            }
+            else {
+                dest[key] = convert(obj[key]);
+            }
+        }
+        return dest;
+    }
+    return [errors, convert(data, true)];
+}
+exports.parseConfiguration = parseConfiguration;
+function convertErrors(uri, content, errors) {
+    let items = [];
+    let document = vscode_languageserver_textdocument_1.TextDocument.create(uri, 'json', 0, content);
+    for (let err of errors) {
+        let msg = 'parse error';
+        switch (err.error) {
+            case 2:
+                msg = 'invalid number';
+                break;
+            case 8:
+                msg = 'close brace expected';
+                break;
+            case 5:
+                msg = 'colon expected';
+                break;
+            case 6:
+                msg = 'comma expected';
+                break;
+            case 9:
+                msg = 'end of file expected';
+                break;
+            case 16:
+                msg = 'invaliad character';
+                break;
+            case 10:
+                msg = 'invalid commment token';
+                break;
+            case 15:
+                msg = 'invalid escape character';
+                break;
+            case 1:
+                msg = 'invalid symbol';
+                break;
+            case 14:
+                msg = 'invalid unicode';
+                break;
+            case 3:
+                msg = 'property name expected';
+                break;
+            case 13:
+                msg = 'unexpected end of number';
+                break;
+            case 12:
+                msg = 'unexpected end of string';
+                break;
+            case 11:
+                msg = 'unexpected end of comment';
+                break;
+            case 4:
+                msg = 'value expected';
+                break;
+            default:
+                msg = 'Unknwn error';
+                break;
+        }
+        let range = {
+            start: document.positionAt(err.offset),
+            end: document.positionAt(err.offset + err.length),
+        };
+        let loc = vscode_languageserver_protocol_1.Location.create(uri, range);
+        items.push({ location: loc, message: msg });
+    }
+    return items;
+}
+exports.convertErrors = convertErrors;
+function addToValueTree(settingsTreeRoot, key, value, conflictReporter) {
+    const segments = key.split('.');
+    const last = segments.pop();
+    let curr = settingsTreeRoot;
+    for (let i = 0; i < segments.length; i++) {
+        let s = segments[i];
+        let obj = curr[s];
+        switch (typeof obj) {
+            case 'function': {
+                obj = curr[s] = {};
+                break;
+            }
+            case 'undefined': {
+                obj = curr[s] = {};
+                break;
+            }
+            case 'object':
+                break;
+            default:
+                conflictReporter(`Ignoring ${key} as ${segments
+                    .slice(0, i + 1)
+                    .join('.')} is ${JSON.stringify(obj)}`);
+                return;
+        }
+        curr = obj;
+    }
+    if (typeof curr === 'object') {
+        curr[last] = value; // workaround https://github.com/Microsoft/vscode/issues/13606
+    }
+    else {
+        conflictReporter(`Ignoring ${key} as ${segments.join('.')} is ${JSON.stringify(curr)}`);
+    }
+}
+exports.addToValueTree = addToValueTree;
+function removeFromValueTree(valueTree, key) {
+    const segments = key.split('.');
+    doRemoveFromValueTree(valueTree, segments);
+}
+exports.removeFromValueTree = removeFromValueTree;
+function doRemoveFromValueTree(valueTree, segments) {
+    const first = segments.shift();
+    if (segments.length === 0) {
+        // Reached last segment
+        delete valueTree[first];
+        return;
+    }
+    if (Object.keys(valueTree).includes(first)) {
+        const value = valueTree[first];
+        if (typeof value === 'object' && !Array.isArray(value)) {
+            doRemoveFromValueTree(value, segments);
+            if (Object.keys(value).length === 0) {
+                delete valueTree[first];
+            }
+        }
+    }
+}
+function getConfigurationValue(config, settingPath, defaultValue) {
+    function accessSetting(config, path) {
+        let current = config;
+        for (let i = 0; i < path.length; i++) {
+            if (typeof current !== 'object' || current === null) {
+                return undefined;
+            }
+            current = current[path[i]];
+        }
+        return current;
+    }
+    const path = settingPath.split('.');
+    const result = accessSetting(config, path);
+    return typeof result === 'undefined' ? defaultValue : result;
+}
+exports.getConfigurationValue = getConfigurationValue;
+function loadDefaultConfigurations() {
+    let file = path_1.default.join(pluginRoot, 'data/schema.json');
+    if (!fs_1.default.existsSync(file)) {
+        console.error('schema.json not found, reinstall coc.nvim to fix this!');
+        return { contents: {} };
+    }
+    let content = fs_1.default.readFileSync(file, 'utf8');
+    let { properties } = JSON.parse(content);
+    let config = {};
+    Object.keys(properties).forEach(key => {
+        let value = properties[key].default;
+        if (value !== undefined) {
+            addToValueTree(config, key, value, message => {
+                logger.error(message);
+            });
+        }
+    });
+    return { contents: config };
+}
+exports.loadDefaultConfigurations = loadDefaultConfigurations;
+function getKeys(obj, curr) {
+    let keys = [];
+    for (let key of Object.keys(obj)) {
+        let val = obj[key];
+        let newKey = curr ? `${curr}.${key}` : key;
+        keys.push(newKey);
+        if (is_1.objectLiteral(val)) {
+            keys.push(...getKeys(val, newKey));
+        }
+    }
+    return keys;
+}
+exports.getKeys = getKeys;
+function getChangedKeys(from, to) {
+    let keys = [];
+    let fromKeys = getKeys(from);
+    let toKeys = getKeys(to);
+    const added = toKeys.filter(key => !fromKeys.includes(key));
+    const removed = fromKeys.filter(key => !toKeys.includes(key));
+    keys.push(...added);
+    keys.push(...removed);
+    for (const key of fromKeys) {
+        if (!toKeys.includes(key))
+            continue;
+        const value1 = getConfigurationValue(from, key);
+        const value2 = getConfigurationValue(to, key);
+        if (!object_1.equals(value1, value2)) {
+            keys.push(key);
+        }
+    }
+    return keys;
+}
+exports.getChangedKeys = getChangedKeys;
+//# sourceMappingURL=util.js.map
+
+/***/ }),
+/* 298 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "createScanner", function() { return createScanner; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getLocation", function() { return getLocation; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "parse", function() { return parse; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "parseTree", function() { return parseTree; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "findNodeAtLocation", function() { return findNodeAtLocation; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "findNodeAtOffset", function() { return findNodeAtOffset; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getNodePath", function() { return getNodePath; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getNodeValue", function() { return getNodeValue; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "visit", function() { return visit; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "stripComments", function() { return stripComments; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "printParseErrorCode", function() { return printParseErrorCode; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "format", function() { return format; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "modify", function() { return modify; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "applyEdits", function() { return applyEdits; });
+/* harmony import */ var _impl_format__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(299);
+/* harmony import */ var _impl_edit__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(301);
+/* harmony import */ var _impl_scanner__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(300);
+/* harmony import */ var _impl_parser__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(302);
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+
+
+
+
+/**
+ * Creates a JSON scanner on the given text.
+ * If ignoreTrivia is set, whitespaces or comments are ignored.
+ */
+var createScanner = _impl_scanner__WEBPACK_IMPORTED_MODULE_2__["createScanner"];
+/**
+ * For a given offset, evaluate the location in the JSON document. Each segment in the location path is either a property name or an array index.
+ */
+var getLocation = _impl_parser__WEBPACK_IMPORTED_MODULE_3__["getLocation"];
+/**
+ * Parses the given text and returns the object the JSON content represents. On invalid input, the parser tries to be as fault tolerant as possible, but still return a result.
+ * Therefore, always check the errors list to find out if the input was valid.
+ */
+var parse = _impl_parser__WEBPACK_IMPORTED_MODULE_3__["parse"];
+/**
+ * Parses the given text and returns a tree representation the JSON content. On invalid input, the parser tries to be as fault tolerant as possible, but still return a result.
+ */
+var parseTree = _impl_parser__WEBPACK_IMPORTED_MODULE_3__["parseTree"];
+/**
+ * Finds the node at the given path in a JSON DOM.
+ */
+var findNodeAtLocation = _impl_parser__WEBPACK_IMPORTED_MODULE_3__["findNodeAtLocation"];
+/**
+ * Finds the innermost node at the given offset. If includeRightBound is set, also finds nodes that end at the given offset.
+ */
+var findNodeAtOffset = _impl_parser__WEBPACK_IMPORTED_MODULE_3__["findNodeAtOffset"];
+/**
+ * Gets the JSON path of the given JSON DOM node
+ */
+var getNodePath = _impl_parser__WEBPACK_IMPORTED_MODULE_3__["getNodePath"];
+/**
+ * Evaluates the JavaScript object of the given JSON DOM node
+ */
+var getNodeValue = _impl_parser__WEBPACK_IMPORTED_MODULE_3__["getNodeValue"];
+/**
+ * Parses the given text and invokes the visitor functions for each object, array and literal reached.
+ */
+var visit = _impl_parser__WEBPACK_IMPORTED_MODULE_3__["visit"];
+/**
+ * Takes JSON with JavaScript-style comments and remove
+ * them. Optionally replaces every none-newline character
+ * of comments with a replaceCharacter
+ */
+var stripComments = _impl_parser__WEBPACK_IMPORTED_MODULE_3__["stripComments"];
+function printParseErrorCode(code) {
+    switch (code) {
+        case 1 /* InvalidSymbol */: return 'InvalidSymbol';
+        case 2 /* InvalidNumberFormat */: return 'InvalidNumberFormat';
+        case 3 /* PropertyNameExpected */: return 'PropertyNameExpected';
+        case 4 /* ValueExpected */: return 'ValueExpected';
+        case 5 /* ColonExpected */: return 'ColonExpected';
+        case 6 /* CommaExpected */: return 'CommaExpected';
+        case 7 /* CloseBraceExpected */: return 'CloseBraceExpected';
+        case 8 /* CloseBracketExpected */: return 'CloseBracketExpected';
+        case 9 /* EndOfFileExpected */: return 'EndOfFileExpected';
+        case 10 /* InvalidCommentToken */: return 'InvalidCommentToken';
+        case 11 /* UnexpectedEndOfComment */: return 'UnexpectedEndOfComment';
+        case 12 /* UnexpectedEndOfString */: return 'UnexpectedEndOfString';
+        case 13 /* UnexpectedEndOfNumber */: return 'UnexpectedEndOfNumber';
+        case 14 /* InvalidUnicode */: return 'InvalidUnicode';
+        case 15 /* InvalidEscapeCharacter */: return 'InvalidEscapeCharacter';
+        case 16 /* InvalidCharacter */: return 'InvalidCharacter';
+    }
+    return '<unknown ParseErrorCode>';
+}
+/**
+ * Computes the edits needed to format a JSON document.
+ *
+ * @param documentText The input text
+ * @param range The range to format or `undefined` to format the full content
+ * @param options The formatting options
+ * @returns A list of edit operations describing the formatting changes to the original document. Edits can be either inserts, replacements or
+ * removals of text segments. All offsets refer to the original state of the document. No two edits must change or remove the same range of
+ * text in the original document. However, multiple edits can have
+ * the same offset, for example multiple inserts, or an insert followed by a remove or replace. The order in the array defines which edit is applied first.
+ * To apply edits to an input, you can use `applyEdits`.
+ */
+function format(documentText, range, options) {
+    return _impl_format__WEBPACK_IMPORTED_MODULE_0__["format"](documentText, range, options);
+}
+/**
+ * Computes the edits needed to modify a value in the JSON document.
+ *
+ * @param documentText The input text
+ * @param path The path of the value to change. The path represents either to the document root, a property or an array item.
+ * If the path points to an non-existing property or item, it will be created.
+ * @param value The new value for the specified property or item. If the value is undefined,
+ * the property or item will be removed.
+ * @param options Options
+ * @returns A list of edit operations describing the formatting changes to the original document. Edits can be either inserts, replacements or
+ * removals of text segments. All offsets refer to the original state of the document. No two edits must change or remove the same range of
+ * text in the original document. However, multiple edits can have
+ * the same offset, for example multiple inserts, or an insert followed by a remove or replace. The order in the array defines which edit is applied first.
+ * To apply edits to an input, you can use `applyEdits`.
+ */
+function modify(text, path, value, options) {
+    return _impl_edit__WEBPACK_IMPORTED_MODULE_1__["setProperty"](text, path, value, options.formattingOptions, options.getInsertionIndex);
+}
+/**
+ * Applies edits to a input string.
+ */
+function applyEdits(text, edits) {
+    for (var i = edits.length - 1; i >= 0; i--) {
+        text = _impl_edit__WEBPACK_IMPORTED_MODULE_1__["applyEdit"](text, edits[i]);
+    }
+    return text;
+}
+
+
+/***/ }),
+/* 299 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "format", function() { return format; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "isEOL", function() { return isEOL; });
+/* harmony import */ var _scanner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(300);
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+
+function format(documentText, range, options) {
+    var initialIndentLevel;
+    var formatText;
+    var formatTextStart;
+    var rangeStart;
+    var rangeEnd;
+    if (range) {
+        rangeStart = range.offset;
+        rangeEnd = rangeStart + range.length;
+        formatTextStart = rangeStart;
+        while (formatTextStart > 0 && !isEOL(documentText, formatTextStart - 1)) {
+            formatTextStart--;
+        }
+        var endOffset = rangeEnd;
+        while (endOffset < documentText.length && !isEOL(documentText, endOffset)) {
+            endOffset++;
+        }
+        formatText = documentText.substring(formatTextStart, endOffset);
+        initialIndentLevel = computeIndentLevel(formatText, options);
+    }
+    else {
+        formatText = documentText;
+        initialIndentLevel = 0;
+        formatTextStart = 0;
+        rangeStart = 0;
+        rangeEnd = documentText.length;
+    }
+    var eol = getEOL(options, documentText);
+    var lineBreak = false;
+    var indentLevel = 0;
+    var indentValue;
+    if (options.insertSpaces) {
+        indentValue = repeat(' ', options.tabSize || 4);
+    }
+    else {
+        indentValue = '\t';
+    }
+    var scanner = Object(_scanner__WEBPACK_IMPORTED_MODULE_0__["createScanner"])(formatText, false);
+    var hasError = false;
+    function newLineAndIndent() {
+        return eol + repeat(indentValue, initialIndentLevel + indentLevel);
+    }
+    function scanNext() {
+        var token = scanner.scan();
+        lineBreak = false;
+        while (token === 15 /* Trivia */ || token === 14 /* LineBreakTrivia */) {
+            lineBreak = lineBreak || (token === 14 /* LineBreakTrivia */);
+            token = scanner.scan();
+        }
+        hasError = token === 16 /* Unknown */ || scanner.getTokenError() !== 0 /* None */;
+        return token;
+    }
+    var editOperations = [];
+    function addEdit(text, startOffset, endOffset) {
+        if (!hasError && startOffset < rangeEnd && endOffset > rangeStart && documentText.substring(startOffset, endOffset) !== text) {
+            editOperations.push({ offset: startOffset, length: endOffset - startOffset, content: text });
+        }
+    }
+    var firstToken = scanNext();
+    if (firstToken !== 17 /* EOF */) {
+        var firstTokenStart = scanner.getTokenOffset() + formatTextStart;
+        var initialIndent = repeat(indentValue, initialIndentLevel);
+        addEdit(initialIndent, formatTextStart, firstTokenStart);
+    }
+    while (firstToken !== 17 /* EOF */) {
+        var firstTokenEnd = scanner.getTokenOffset() + scanner.getTokenLength() + formatTextStart;
+        var secondToken = scanNext();
+        var replaceContent = '';
+        while (!lineBreak && (secondToken === 12 /* LineCommentTrivia */ || secondToken === 13 /* BlockCommentTrivia */)) {
+            // comments on the same line: keep them on the same line, but ignore them otherwise
+            var commentTokenStart = scanner.getTokenOffset() + formatTextStart;
+            addEdit(' ', firstTokenEnd, commentTokenStart);
+            firstTokenEnd = scanner.getTokenOffset() + scanner.getTokenLength() + formatTextStart;
+            replaceContent = secondToken === 12 /* LineCommentTrivia */ ? newLineAndIndent() : '';
+            secondToken = scanNext();
+        }
+        if (secondToken === 2 /* CloseBraceToken */) {
+            if (firstToken !== 1 /* OpenBraceToken */) {
+                indentLevel--;
+                replaceContent = newLineAndIndent();
+            }
+        }
+        else if (secondToken === 4 /* CloseBracketToken */) {
+            if (firstToken !== 3 /* OpenBracketToken */) {
+                indentLevel--;
+                replaceContent = newLineAndIndent();
+            }
+        }
+        else {
+            switch (firstToken) {
+                case 3 /* OpenBracketToken */:
+                case 1 /* OpenBraceToken */:
+                    indentLevel++;
+                    replaceContent = newLineAndIndent();
+                    break;
+                case 5 /* CommaToken */:
+                case 12 /* LineCommentTrivia */:
+                    replaceContent = newLineAndIndent();
+                    break;
+                case 13 /* BlockCommentTrivia */:
+                    if (lineBreak) {
+                        replaceContent = newLineAndIndent();
+                    }
+                    else {
+                        // symbol following comment on the same line: keep on same line, separate with ' '
+                        replaceContent = ' ';
+                    }
+                    break;
+                case 6 /* ColonToken */:
+                    replaceContent = ' ';
+                    break;
+                case 10 /* StringLiteral */:
+                    if (secondToken === 6 /* ColonToken */) {
+                        replaceContent = '';
+                        break;
+                    }
+                // fall through
+                case 7 /* NullKeyword */:
+                case 8 /* TrueKeyword */:
+                case 9 /* FalseKeyword */:
+                case 11 /* NumericLiteral */:
+                case 2 /* CloseBraceToken */:
+                case 4 /* CloseBracketToken */:
+                    if (secondToken === 12 /* LineCommentTrivia */ || secondToken === 13 /* BlockCommentTrivia */) {
+                        replaceContent = ' ';
+                    }
+                    else if (secondToken !== 5 /* CommaToken */ && secondToken !== 17 /* EOF */) {
+                        hasError = true;
+                    }
+                    break;
+                case 16 /* Unknown */:
+                    hasError = true;
+                    break;
+            }
+            if (lineBreak && (secondToken === 12 /* LineCommentTrivia */ || secondToken === 13 /* BlockCommentTrivia */)) {
+                replaceContent = newLineAndIndent();
+            }
+        }
+        var secondTokenStart = scanner.getTokenOffset() + formatTextStart;
+        addEdit(replaceContent, firstTokenEnd, secondTokenStart);
+        firstToken = secondToken;
+    }
+    return editOperations;
+}
+function repeat(s, count) {
+    var result = '';
+    for (var i = 0; i < count; i++) {
+        result += s;
+    }
+    return result;
+}
+function computeIndentLevel(content, options) {
+    var i = 0;
+    var nChars = 0;
+    var tabSize = options.tabSize || 4;
+    while (i < content.length) {
+        var ch = content.charAt(i);
+        if (ch === ' ') {
+            nChars++;
+        }
+        else if (ch === '\t') {
+            nChars += tabSize;
+        }
+        else {
+            break;
+        }
+        i++;
+    }
+    return Math.floor(nChars / tabSize);
+}
+function getEOL(options, text) {
+    for (var i = 0; i < text.length; i++) {
+        var ch = text.charAt(i);
+        if (ch === '\r') {
+            if (i + 1 < text.length && text.charAt(i + 1) === '\n') {
+                return '\r\n';
+            }
+            return '\r';
+        }
+        else if (ch === '\n') {
+            return '\n';
+        }
+    }
+    return (options && options.eol) || '\n';
+}
+function isEOL(text, offset) {
+    return '\r\n'.indexOf(text.charAt(offset)) !== -1;
+}
+
+
+/***/ }),
+/* 300 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "createScanner", function() { return createScanner; });
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+/**
+ * Creates a JSON scanner on the given text.
+ * If ignoreTrivia is set, whitespaces or comments are ignored.
+ */
+function createScanner(text, ignoreTrivia) {
+    if (ignoreTrivia === void 0) { ignoreTrivia = false; }
+    var len = text.length;
+    var pos = 0, value = '', tokenOffset = 0, token = 16 /* Unknown */, lineNumber = 0, lineStartOffset = 0, tokenLineStartOffset = 0, prevTokenLineStartOffset = 0, scanError = 0 /* None */;
+    function scanHexDigits(count, exact) {
+        var digits = 0;
+        var value = 0;
+        while (digits < count || !exact) {
+            var ch = text.charCodeAt(pos);
+            if (ch >= 48 /* _0 */ && ch <= 57 /* _9 */) {
+                value = value * 16 + ch - 48 /* _0 */;
+            }
+            else if (ch >= 65 /* A */ && ch <= 70 /* F */) {
+                value = value * 16 + ch - 65 /* A */ + 10;
+            }
+            else if (ch >= 97 /* a */ && ch <= 102 /* f */) {
+                value = value * 16 + ch - 97 /* a */ + 10;
+            }
+            else {
+                break;
+            }
+            pos++;
+            digits++;
+        }
+        if (digits < count) {
+            value = -1;
+        }
+        return value;
+    }
+    function setPosition(newPosition) {
+        pos = newPosition;
+        value = '';
+        tokenOffset = 0;
+        token = 16 /* Unknown */;
+        scanError = 0 /* None */;
+    }
+    function scanNumber() {
+        var start = pos;
+        if (text.charCodeAt(pos) === 48 /* _0 */) {
+            pos++;
+        }
+        else {
+            pos++;
+            while (pos < text.length && isDigit(text.charCodeAt(pos))) {
+                pos++;
+            }
+        }
+        if (pos < text.length && text.charCodeAt(pos) === 46 /* dot */) {
+            pos++;
+            if (pos < text.length && isDigit(text.charCodeAt(pos))) {
+                pos++;
+                while (pos < text.length && isDigit(text.charCodeAt(pos))) {
+                    pos++;
+                }
+            }
+            else {
+                scanError = 3 /* UnexpectedEndOfNumber */;
+                return text.substring(start, pos);
+            }
+        }
+        var end = pos;
+        if (pos < text.length && (text.charCodeAt(pos) === 69 /* E */ || text.charCodeAt(pos) === 101 /* e */)) {
+            pos++;
+            if (pos < text.length && text.charCodeAt(pos) === 43 /* plus */ || text.charCodeAt(pos) === 45 /* minus */) {
+                pos++;
+            }
+            if (pos < text.length && isDigit(text.charCodeAt(pos))) {
+                pos++;
+                while (pos < text.length && isDigit(text.charCodeAt(pos))) {
+                    pos++;
+                }
+                end = pos;
+            }
+            else {
+                scanError = 3 /* UnexpectedEndOfNumber */;
+            }
+        }
+        return text.substring(start, end);
+    }
+    function scanString() {
+        var result = '', start = pos;
+        while (true) {
+            if (pos >= len) {
+                result += text.substring(start, pos);
+                scanError = 2 /* UnexpectedEndOfString */;
+                break;
+            }
+            var ch = text.charCodeAt(pos);
+            if (ch === 34 /* doubleQuote */) {
+                result += text.substring(start, pos);
+                pos++;
+                break;
+            }
+            if (ch === 92 /* backslash */) {
+                result += text.substring(start, pos);
+                pos++;
+                if (pos >= len) {
+                    scanError = 2 /* UnexpectedEndOfString */;
+                    break;
+                }
+                var ch2 = text.charCodeAt(pos++);
+                switch (ch2) {
+                    case 34 /* doubleQuote */:
+                        result += '\"';
+                        break;
+                    case 92 /* backslash */:
+                        result += '\\';
+                        break;
+                    case 47 /* slash */:
+                        result += '/';
+                        break;
+                    case 98 /* b */:
+                        result += '\b';
+                        break;
+                    case 102 /* f */:
+                        result += '\f';
+                        break;
+                    case 110 /* n */:
+                        result += '\n';
+                        break;
+                    case 114 /* r */:
+                        result += '\r';
+                        break;
+                    case 116 /* t */:
+                        result += '\t';
+                        break;
+                    case 117 /* u */:
+                        var ch3 = scanHexDigits(4, true);
+                        if (ch3 >= 0) {
+                            result += String.fromCharCode(ch3);
+                        }
+                        else {
+                            scanError = 4 /* InvalidUnicode */;
+                        }
+                        break;
+                    default:
+                        scanError = 5 /* InvalidEscapeCharacter */;
+                }
+                start = pos;
+                continue;
+            }
+            if (ch >= 0 && ch <= 0x1f) {
+                if (isLineBreak(ch)) {
+                    result += text.substring(start, pos);
+                    scanError = 2 /* UnexpectedEndOfString */;
+                    break;
+                }
+                else {
+                    scanError = 6 /* InvalidCharacter */;
+                    // mark as error but continue with string
+                }
+            }
+            pos++;
+        }
+        return result;
+    }
+    function scanNext() {
+        value = '';
+        scanError = 0 /* None */;
+        tokenOffset = pos;
+        lineStartOffset = lineNumber;
+        prevTokenLineStartOffset = tokenLineStartOffset;
+        if (pos >= len) {
+            // at the end
+            tokenOffset = len;
+            return token = 17 /* EOF */;
+        }
+        var code = text.charCodeAt(pos);
+        // trivia: whitespace
+        if (isWhiteSpace(code)) {
+            do {
+                pos++;
+                value += String.fromCharCode(code);
+                code = text.charCodeAt(pos);
+            } while (isWhiteSpace(code));
+            return token = 15 /* Trivia */;
+        }
+        // trivia: newlines
+        if (isLineBreak(code)) {
+            pos++;
+            value += String.fromCharCode(code);
+            if (code === 13 /* carriageReturn */ && text.charCodeAt(pos) === 10 /* lineFeed */) {
+                pos++;
+                value += '\n';
+            }
+            lineNumber++;
+            tokenLineStartOffset = pos;
+            return token = 14 /* LineBreakTrivia */;
+        }
+        switch (code) {
+            // tokens: []{}:,
+            case 123 /* openBrace */:
+                pos++;
+                return token = 1 /* OpenBraceToken */;
+            case 125 /* closeBrace */:
+                pos++;
+                return token = 2 /* CloseBraceToken */;
+            case 91 /* openBracket */:
+                pos++;
+                return token = 3 /* OpenBracketToken */;
+            case 93 /* closeBracket */:
+                pos++;
+                return token = 4 /* CloseBracketToken */;
+            case 58 /* colon */:
+                pos++;
+                return token = 6 /* ColonToken */;
+            case 44 /* comma */:
+                pos++;
+                return token = 5 /* CommaToken */;
+            // strings
+            case 34 /* doubleQuote */:
+                pos++;
+                value = scanString();
+                return token = 10 /* StringLiteral */;
+            // comments
+            case 47 /* slash */:
+                var start = pos - 1;
+                // Single-line comment
+                if (text.charCodeAt(pos + 1) === 47 /* slash */) {
+                    pos += 2;
+                    while (pos < len) {
+                        if (isLineBreak(text.charCodeAt(pos))) {
+                            break;
+                        }
+                        pos++;
+                    }
+                    value = text.substring(start, pos);
+                    return token = 12 /* LineCommentTrivia */;
+                }
+                // Multi-line comment
+                if (text.charCodeAt(pos + 1) === 42 /* asterisk */) {
+                    pos += 2;
+                    var safeLength = len - 1; // For lookahead.
+                    var commentClosed = false;
+                    while (pos < safeLength) {
+                        var ch = text.charCodeAt(pos);
+                        if (ch === 42 /* asterisk */ && text.charCodeAt(pos + 1) === 47 /* slash */) {
+                            pos += 2;
+                            commentClosed = true;
+                            break;
+                        }
+                        pos++;
+                        if (isLineBreak(ch)) {
+                            if (ch === 13 /* carriageReturn */ && text.charCodeAt(pos) === 10 /* lineFeed */) {
+                                pos++;
+                            }
+                            lineNumber++;
+                            tokenLineStartOffset = pos;
+                        }
+                    }
+                    if (!commentClosed) {
+                        pos++;
+                        scanError = 1 /* UnexpectedEndOfComment */;
+                    }
+                    value = text.substring(start, pos);
+                    return token = 13 /* BlockCommentTrivia */;
+                }
+                // just a single slash
+                value += String.fromCharCode(code);
+                pos++;
+                return token = 16 /* Unknown */;
+            // numbers
+            case 45 /* minus */:
+                value += String.fromCharCode(code);
+                pos++;
+                if (pos === len || !isDigit(text.charCodeAt(pos))) {
+                    return token = 16 /* Unknown */;
+                }
+            // found a minus, followed by a number so
+            // we fall through to proceed with scanning
+            // numbers
+            case 48 /* _0 */:
+            case 49 /* _1 */:
+            case 50 /* _2 */:
+            case 51 /* _3 */:
+            case 52 /* _4 */:
+            case 53 /* _5 */:
+            case 54 /* _6 */:
+            case 55 /* _7 */:
+            case 56 /* _8 */:
+            case 57 /* _9 */:
+                value += scanNumber();
+                return token = 11 /* NumericLiteral */;
+            // literals and unknown symbols
+            default:
+                // is a literal? Read the full word.
+                while (pos < len && isUnknownContentCharacter(code)) {
+                    pos++;
+                    code = text.charCodeAt(pos);
+                }
+                if (tokenOffset !== pos) {
+                    value = text.substring(tokenOffset, pos);
+                    // keywords: true, false, null
+                    switch (value) {
+                        case 'true': return token = 8 /* TrueKeyword */;
+                        case 'false': return token = 9 /* FalseKeyword */;
+                        case 'null': return token = 7 /* NullKeyword */;
+                    }
+                    return token = 16 /* Unknown */;
+                }
+                // some
+                value += String.fromCharCode(code);
+                pos++;
+                return token = 16 /* Unknown */;
+        }
+    }
+    function isUnknownContentCharacter(code) {
+        if (isWhiteSpace(code) || isLineBreak(code)) {
+            return false;
+        }
+        switch (code) {
+            case 125 /* closeBrace */:
+            case 93 /* closeBracket */:
+            case 123 /* openBrace */:
+            case 91 /* openBracket */:
+            case 34 /* doubleQuote */:
+            case 58 /* colon */:
+            case 44 /* comma */:
+            case 47 /* slash */:
+                return false;
+        }
+        return true;
+    }
+    function scanNextNonTrivia() {
+        var result;
+        do {
+            result = scanNext();
+        } while (result >= 12 /* LineCommentTrivia */ && result <= 15 /* Trivia */);
+        return result;
+    }
+    return {
+        setPosition: setPosition,
+        getPosition: function () { return pos; },
+        scan: ignoreTrivia ? scanNextNonTrivia : scanNext,
+        getToken: function () { return token; },
+        getTokenValue: function () { return value; },
+        getTokenOffset: function () { return tokenOffset; },
+        getTokenLength: function () { return pos - tokenOffset; },
+        getTokenStartLine: function () { return lineStartOffset; },
+        getTokenStartCharacter: function () { return tokenOffset - prevTokenLineStartOffset; },
+        getTokenError: function () { return scanError; },
+    };
+}
+function isWhiteSpace(ch) {
+    return ch === 32 /* space */ || ch === 9 /* tab */ || ch === 11 /* verticalTab */ || ch === 12 /* formFeed */ ||
+        ch === 160 /* nonBreakingSpace */ || ch === 5760 /* ogham */ || ch >= 8192 /* enQuad */ && ch <= 8203 /* zeroWidthSpace */ ||
+        ch === 8239 /* narrowNoBreakSpace */ || ch === 8287 /* mathematicalSpace */ || ch === 12288 /* ideographicSpace */ || ch === 65279 /* byteOrderMark */;
+}
+function isLineBreak(ch) {
+    return ch === 10 /* lineFeed */ || ch === 13 /* carriageReturn */ || ch === 8232 /* lineSeparator */ || ch === 8233 /* paragraphSeparator */;
+}
+function isDigit(ch) {
+    return ch >= 48 /* _0 */ && ch <= 57 /* _9 */;
+}
+
+
+/***/ }),
+/* 301 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "removeProperty", function() { return removeProperty; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "setProperty", function() { return setProperty; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "applyEdit", function() { return applyEdit; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "isWS", function() { return isWS; });
+/* harmony import */ var _format__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(299);
+/* harmony import */ var _parser__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(302);
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+
+
+function removeProperty(text, path, formattingOptions) {
+    return setProperty(text, path, void 0, formattingOptions);
+}
+function setProperty(text, originalPath, value, formattingOptions, getInsertionIndex) {
+    var _a;
+    var path = originalPath.slice();
+    var errors = [];
+    var root = Object(_parser__WEBPACK_IMPORTED_MODULE_1__["parseTree"])(text, errors);
+    var parent = void 0;
+    var lastSegment = void 0;
+    while (path.length > 0) {
+        lastSegment = path.pop();
+        parent = Object(_parser__WEBPACK_IMPORTED_MODULE_1__["findNodeAtLocation"])(root, path);
+        if (parent === void 0 && value !== void 0) {
+            if (typeof lastSegment === 'string') {
+                value = (_a = {}, _a[lastSegment] = value, _a);
+            }
+            else {
+                value = [value];
+            }
+        }
+        else {
+            break;
+        }
+    }
+    if (!parent) {
+        // empty document
+        if (value === void 0) { // delete
+            throw new Error('Can not delete in empty document');
+        }
+        return withFormatting(text, { offset: root ? root.offset : 0, length: root ? root.length : 0, content: JSON.stringify(value) }, formattingOptions);
+    }
+    else if (parent.type === 'object' && typeof lastSegment === 'string' && Array.isArray(parent.children)) {
+        var existing = Object(_parser__WEBPACK_IMPORTED_MODULE_1__["findNodeAtLocation"])(parent, [lastSegment]);
+        if (existing !== void 0) {
+            if (value === void 0) { // delete
+                if (!existing.parent) {
+                    throw new Error('Malformed AST');
+                }
+                var propertyIndex = parent.children.indexOf(existing.parent);
+                var removeBegin = void 0;
+                var removeEnd = existing.parent.offset + existing.parent.length;
+                if (propertyIndex > 0) {
+                    // remove the comma of the previous node
+                    var previous = parent.children[propertyIndex - 1];
+                    removeBegin = previous.offset + previous.length;
+                }
+                else {
+                    removeBegin = parent.offset + 1;
+                    if (parent.children.length > 1) {
+                        // remove the comma of the next node
+                        var next = parent.children[1];
+                        removeEnd = next.offset;
+                    }
+                }
+                return withFormatting(text, { offset: removeBegin, length: removeEnd - removeBegin, content: '' }, formattingOptions);
+            }
+            else {
+                // set value of existing property
+                return withFormatting(text, { offset: existing.offset, length: existing.length, content: JSON.stringify(value) }, formattingOptions);
+            }
+        }
+        else {
+            if (value === void 0) { // delete
+                return []; // property does not exist, nothing to do
+            }
+            var newProperty = JSON.stringify(lastSegment) + ": " + JSON.stringify(value);
+            var index = getInsertionIndex ? getInsertionIndex(parent.children.map(function (p) { return p.children[0].value; })) : parent.children.length;
+            var edit = void 0;
+            if (index > 0) {
+                var previous = parent.children[index - 1];
+                edit = { offset: previous.offset + previous.length, length: 0, content: ',' + newProperty };
+            }
+            else if (parent.children.length === 0) {
+                edit = { offset: parent.offset + 1, length: 0, content: newProperty };
+            }
+            else {
+                edit = { offset: parent.offset + 1, length: 0, content: newProperty + ',' };
+            }
+            return withFormatting(text, edit, formattingOptions);
+        }
+    }
+    else if (parent.type === 'array' && typeof lastSegment === 'number' && Array.isArray(parent.children)) {
+        var insertIndex = lastSegment;
+        if (insertIndex === -1) {
+            // Insert
+            var newProperty = "" + JSON.stringify(value);
+            var edit = void 0;
+            if (parent.children.length === 0) {
+                edit = { offset: parent.offset + 1, length: 0, content: newProperty };
+            }
+            else {
+                var previous = parent.children[parent.children.length - 1];
+                edit = { offset: previous.offset + previous.length, length: 0, content: ',' + newProperty };
+            }
+            return withFormatting(text, edit, formattingOptions);
+        }
+        else {
+            if (value === void 0 && parent.children.length >= 0) {
+                //Removal
+                var removalIndex = lastSegment;
+                var toRemove = parent.children[removalIndex];
+                var edit = void 0;
+                if (parent.children.length === 1) {
+                    // only item
+                    edit = { offset: parent.offset + 1, length: parent.length - 2, content: '' };
+                }
+                else if (parent.children.length - 1 === removalIndex) {
+                    // last item
+                    var previous = parent.children[removalIndex - 1];
+                    var offset = previous.offset + previous.length;
+                    var parentEndOffset = parent.offset + parent.length;
+                    edit = { offset: offset, length: parentEndOffset - 2 - offset, content: '' };
+                }
+                else {
+                    edit = { offset: toRemove.offset, length: parent.children[removalIndex + 1].offset - toRemove.offset, content: '' };
+                }
+                return withFormatting(text, edit, formattingOptions);
+            }
+            else {
+                throw new Error('Array modification not supported yet');
+            }
+        }
+    }
+    else {
+        throw new Error("Can not add " + (typeof lastSegment !== 'number' ? 'index' : 'property') + " to parent of type " + parent.type);
+    }
+}
+function withFormatting(text, edit, formattingOptions) {
+    // apply the edit
+    var newText = applyEdit(text, edit);
+    // format the new text
+    var begin = edit.offset;
+    var end = edit.offset + edit.content.length;
+    if (edit.length === 0 || edit.content.length === 0) { // insert or remove
+        while (begin > 0 && !Object(_format__WEBPACK_IMPORTED_MODULE_0__["isEOL"])(newText, begin - 1)) {
+            begin--;
+        }
+        while (end < newText.length && !Object(_format__WEBPACK_IMPORTED_MODULE_0__["isEOL"])(newText, end)) {
+            end++;
+        }
+    }
+    var edits = Object(_format__WEBPACK_IMPORTED_MODULE_0__["format"])(newText, { offset: begin, length: end - begin }, formattingOptions);
+    // apply the formatting edits and track the begin and end offsets of the changes
+    for (var i = edits.length - 1; i >= 0; i--) {
+        var edit_1 = edits[i];
+        newText = applyEdit(newText, edit_1);
+        begin = Math.min(begin, edit_1.offset);
+        end = Math.max(end, edit_1.offset + edit_1.length);
+        end += edit_1.content.length - edit_1.length;
+    }
+    // create a single edit with all changes
+    var editLength = text.length - (newText.length - end) - begin;
+    return [{ offset: begin, length: editLength, content: newText.substring(begin, end) }];
+}
+function applyEdit(text, edit) {
+    return text.substring(0, edit.offset) + edit.content + text.substring(edit.offset + edit.length);
+}
+function isWS(text, offset) {
+    return '\r\n \t'.indexOf(text.charAt(offset)) !== -1;
+}
+
+
+/***/ }),
+/* 302 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getLocation", function() { return getLocation; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "parse", function() { return parse; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "parseTree", function() { return parseTree; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "findNodeAtLocation", function() { return findNodeAtLocation; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getNodePath", function() { return getNodePath; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getNodeValue", function() { return getNodeValue; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "contains", function() { return contains; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "findNodeAtOffset", function() { return findNodeAtOffset; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "visit", function() { return visit; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "stripComments", function() { return stripComments; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getNodeType", function() { return getNodeType; });
+/* harmony import */ var _scanner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(300);
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+
+var ParseOptions;
+(function (ParseOptions) {
+    ParseOptions.DEFAULT = {
+        allowTrailingComma: false
+    };
+})(ParseOptions || (ParseOptions = {}));
+/**
+ * For a given offset, evaluate the location in the JSON document. Each segment in the location path is either a property name or an array index.
+ */
+function getLocation(text, position) {
+    var segments = []; // strings or numbers
+    var earlyReturnException = new Object();
+    var previousNode = undefined;
+    var previousNodeInst = {
+        value: {},
+        offset: 0,
+        length: 0,
+        type: 'object',
+        parent: undefined
+    };
+    var isAtPropertyKey = false;
+    function setPreviousNode(value, offset, length, type) {
+        previousNodeInst.value = value;
+        previousNodeInst.offset = offset;
+        previousNodeInst.length = length;
+        previousNodeInst.type = type;
+        previousNodeInst.colonOffset = undefined;
+        previousNode = previousNodeInst;
+    }
+    try {
+        visit(text, {
+            onObjectBegin: function (offset, length) {
+                if (position <= offset) {
+                    throw earlyReturnException;
+                }
+                previousNode = undefined;
+                isAtPropertyKey = position > offset;
+                segments.push(''); // push a placeholder (will be replaced)
+            },
+            onObjectProperty: function (name, offset, length) {
+                if (position < offset) {
+                    throw earlyReturnException;
+                }
+                setPreviousNode(name, offset, length, 'property');
+                segments[segments.length - 1] = name;
+                if (position <= offset + length) {
+                    throw earlyReturnException;
+                }
+            },
+            onObjectEnd: function (offset, length) {
+                if (position <= offset) {
+                    throw earlyReturnException;
+                }
+                previousNode = undefined;
+                segments.pop();
+            },
+            onArrayBegin: function (offset, length) {
+                if (position <= offset) {
+                    throw earlyReturnException;
+                }
+                previousNode = undefined;
+                segments.push(0);
+            },
+            onArrayEnd: function (offset, length) {
+                if (position <= offset) {
+                    throw earlyReturnException;
+                }
+                previousNode = undefined;
+                segments.pop();
+            },
+            onLiteralValue: function (value, offset, length) {
+                if (position < offset) {
+                    throw earlyReturnException;
+                }
+                setPreviousNode(value, offset, length, getNodeType(value));
+                if (position <= offset + length) {
+                    throw earlyReturnException;
+                }
+            },
+            onSeparator: function (sep, offset, length) {
+                if (position <= offset) {
+                    throw earlyReturnException;
+                }
+                if (sep === ':' && previousNode && previousNode.type === 'property') {
+                    previousNode.colonOffset = offset;
+                    isAtPropertyKey = false;
+                    previousNode = undefined;
+                }
+                else if (sep === ',') {
+                    var last = segments[segments.length - 1];
+                    if (typeof last === 'number') {
+                        segments[segments.length - 1] = last + 1;
+                    }
+                    else {
+                        isAtPropertyKey = true;
+                        segments[segments.length - 1] = '';
+                    }
+                    previousNode = undefined;
+                }
+            }
+        });
+    }
+    catch (e) {
+        if (e !== earlyReturnException) {
+            throw e;
+        }
+    }
+    return {
+        path: segments,
+        previousNode: previousNode,
+        isAtPropertyKey: isAtPropertyKey,
+        matches: function (pattern) {
+            var k = 0;
+            for (var i = 0; k < pattern.length && i < segments.length; i++) {
+                if (pattern[k] === segments[i] || pattern[k] === '*') {
+                    k++;
+                }
+                else if (pattern[k] !== '**') {
+                    return false;
+                }
+            }
+            return k === pattern.length;
+        }
+    };
+}
+/**
+ * Parses the given text and returns the object the JSON content represents. On invalid input, the parser tries to be as fault tolerant as possible, but still return a result.
+ * Therefore always check the errors list to find out if the input was valid.
+ */
+function parse(text, errors, options) {
+    if (errors === void 0) { errors = []; }
+    if (options === void 0) { options = ParseOptions.DEFAULT; }
+    var currentProperty = null;
+    var currentParent = [];
+    var previousParents = [];
+    function onValue(value) {
+        if (Array.isArray(currentParent)) {
+            currentParent.push(value);
+        }
+        else if (currentProperty !== null) {
+            currentParent[currentProperty] = value;
+        }
+    }
+    var visitor = {
+        onObjectBegin: function () {
+            var object = {};
+            onValue(object);
+            previousParents.push(currentParent);
+            currentParent = object;
+            currentProperty = null;
+        },
+        onObjectProperty: function (name) {
+            currentProperty = name;
+        },
+        onObjectEnd: function () {
+            currentParent = previousParents.pop();
+        },
+        onArrayBegin: function () {
+            var array = [];
+            onValue(array);
+            previousParents.push(currentParent);
+            currentParent = array;
+            currentProperty = null;
+        },
+        onArrayEnd: function () {
+            currentParent = previousParents.pop();
+        },
+        onLiteralValue: onValue,
+        onError: function (error, offset, length) {
+            errors.push({ error: error, offset: offset, length: length });
+        }
+    };
+    visit(text, visitor, options);
+    return currentParent[0];
+}
+/**
+ * Parses the given text and returns a tree representation the JSON content. On invalid input, the parser tries to be as fault tolerant as possible, but still return a result.
+ */
+function parseTree(text, errors, options) {
+    if (errors === void 0) { errors = []; }
+    if (options === void 0) { options = ParseOptions.DEFAULT; }
+    var currentParent = { type: 'array', offset: -1, length: -1, children: [], parent: undefined }; // artificial root
+    function ensurePropertyComplete(endOffset) {
+        if (currentParent.type === 'property') {
+            currentParent.length = endOffset - currentParent.offset;
+            currentParent = currentParent.parent;
+        }
+    }
+    function onValue(valueNode) {
+        currentParent.children.push(valueNode);
+        return valueNode;
+    }
+    var visitor = {
+        onObjectBegin: function (offset) {
+            currentParent = onValue({ type: 'object', offset: offset, length: -1, parent: currentParent, children: [] });
+        },
+        onObjectProperty: function (name, offset, length) {
+            currentParent = onValue({ type: 'property', offset: offset, length: -1, parent: currentParent, children: [] });
+            currentParent.children.push({ type: 'string', value: name, offset: offset, length: length, parent: currentParent });
+        },
+        onObjectEnd: function (offset, length) {
+            ensurePropertyComplete(offset + length); // in case of a missing value for a property: make sure property is complete
+            currentParent.length = offset + length - currentParent.offset;
+            currentParent = currentParent.parent;
+            ensurePropertyComplete(offset + length);
+        },
+        onArrayBegin: function (offset, length) {
+            currentParent = onValue({ type: 'array', offset: offset, length: -1, parent: currentParent, children: [] });
+        },
+        onArrayEnd: function (offset, length) {
+            currentParent.length = offset + length - currentParent.offset;
+            currentParent = currentParent.parent;
+            ensurePropertyComplete(offset + length);
+        },
+        onLiteralValue: function (value, offset, length) {
+            onValue({ type: getNodeType(value), offset: offset, length: length, parent: currentParent, value: value });
+            ensurePropertyComplete(offset + length);
+        },
+        onSeparator: function (sep, offset, length) {
+            if (currentParent.type === 'property') {
+                if (sep === ':') {
+                    currentParent.colonOffset = offset;
+                }
+                else if (sep === ',') {
+                    ensurePropertyComplete(offset);
+                }
+            }
+        },
+        onError: function (error, offset, length) {
+            errors.push({ error: error, offset: offset, length: length });
+        }
+    };
+    visit(text, visitor, options);
+    var result = currentParent.children[0];
+    if (result) {
+        delete result.parent;
+    }
+    return result;
+}
+/**
+ * Finds the node at the given path in a JSON DOM.
+ */
+function findNodeAtLocation(root, path) {
+    if (!root) {
+        return undefined;
+    }
+    var node = root;
+    for (var _i = 0, path_1 = path; _i < path_1.length; _i++) {
+        var segment = path_1[_i];
+        if (typeof segment === 'string') {
+            if (node.type !== 'object' || !Array.isArray(node.children)) {
+                return undefined;
+            }
+            var found = false;
+            for (var _a = 0, _b = node.children; _a < _b.length; _a++) {
+                var propertyNode = _b[_a];
+                if (Array.isArray(propertyNode.children) && propertyNode.children[0].value === segment) {
+                    node = propertyNode.children[1];
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return undefined;
+            }
+        }
+        else {
+            var index = segment;
+            if (node.type !== 'array' || index < 0 || !Array.isArray(node.children) || index >= node.children.length) {
+                return undefined;
+            }
+            node = node.children[index];
+        }
+    }
+    return node;
+}
+/**
+ * Gets the JSON path of the given JSON DOM node
+ */
+function getNodePath(node) {
+    if (!node.parent || !node.parent.children) {
+        return [];
+    }
+    var path = getNodePath(node.parent);
+    if (node.parent.type === 'property') {
+        var key = node.parent.children[0].value;
+        path.push(key);
+    }
+    else if (node.parent.type === 'array') {
+        var index = node.parent.children.indexOf(node);
+        if (index !== -1) {
+            path.push(index);
+        }
+    }
+    return path;
+}
+/**
+ * Evaluates the JavaScript object of the given JSON DOM node
+ */
+function getNodeValue(node) {
+    switch (node.type) {
+        case 'array':
+            return node.children.map(getNodeValue);
+        case 'object':
+            var obj = Object.create(null);
+            for (var _i = 0, _a = node.children; _i < _a.length; _i++) {
+                var prop = _a[_i];
+                var valueNode = prop.children[1];
+                if (valueNode) {
+                    obj[prop.children[0].value] = getNodeValue(valueNode);
+                }
+            }
+            return obj;
+        case 'null':
+        case 'string':
+        case 'number':
+        case 'boolean':
+            return node.value;
+        default:
+            return undefined;
+    }
+}
+function contains(node, offset, includeRightBound) {
+    if (includeRightBound === void 0) { includeRightBound = false; }
+    return (offset >= node.offset && offset < (node.offset + node.length)) || includeRightBound && (offset === (node.offset + node.length));
+}
+/**
+ * Finds the most inner node at the given offset. If includeRightBound is set, also finds nodes that end at the given offset.
+ */
+function findNodeAtOffset(node, offset, includeRightBound) {
+    if (includeRightBound === void 0) { includeRightBound = false; }
+    if (contains(node, offset, includeRightBound)) {
+        var children = node.children;
+        if (Array.isArray(children)) {
+            for (var i = 0; i < children.length && children[i].offset <= offset; i++) {
+                var item = findNodeAtOffset(children[i], offset, includeRightBound);
+                if (item) {
+                    return item;
+                }
+            }
+        }
+        return node;
+    }
+    return undefined;
+}
+/**
+ * Parses the given text and invokes the visitor functions for each object, array and literal reached.
+ */
+function visit(text, visitor, options) {
+    if (options === void 0) { options = ParseOptions.DEFAULT; }
+    var _scanner = Object(_scanner__WEBPACK_IMPORTED_MODULE_0__["createScanner"])(text, false);
+    function toNoArgVisit(visitFunction) {
+        return visitFunction ? function () { return visitFunction(_scanner.getTokenOffset(), _scanner.getTokenLength(), _scanner.getTokenStartLine(), _scanner.getTokenStartCharacter()); } : function () { return true; };
+    }
+    function toOneArgVisit(visitFunction) {
+        return visitFunction ? function (arg) { return visitFunction(arg, _scanner.getTokenOffset(), _scanner.getTokenLength(), _scanner.getTokenStartLine(), _scanner.getTokenStartCharacter()); } : function () { return true; };
+    }
+    var onObjectBegin = toNoArgVisit(visitor.onObjectBegin), onObjectProperty = toOneArgVisit(visitor.onObjectProperty), onObjectEnd = toNoArgVisit(visitor.onObjectEnd), onArrayBegin = toNoArgVisit(visitor.onArrayBegin), onArrayEnd = toNoArgVisit(visitor.onArrayEnd), onLiteralValue = toOneArgVisit(visitor.onLiteralValue), onSeparator = toOneArgVisit(visitor.onSeparator), onComment = toNoArgVisit(visitor.onComment), onError = toOneArgVisit(visitor.onError);
+    var disallowComments = options && options.disallowComments;
+    var allowTrailingComma = options && options.allowTrailingComma;
+    function scanNext() {
+        while (true) {
+            var token = _scanner.scan();
+            switch (_scanner.getTokenError()) {
+                case 4 /* InvalidUnicode */:
+                    handleError(14 /* InvalidUnicode */);
+                    break;
+                case 5 /* InvalidEscapeCharacter */:
+                    handleError(15 /* InvalidEscapeCharacter */);
+                    break;
+                case 3 /* UnexpectedEndOfNumber */:
+                    handleError(13 /* UnexpectedEndOfNumber */);
+                    break;
+                case 1 /* UnexpectedEndOfComment */:
+                    if (!disallowComments) {
+                        handleError(11 /* UnexpectedEndOfComment */);
+                    }
+                    break;
+                case 2 /* UnexpectedEndOfString */:
+                    handleError(12 /* UnexpectedEndOfString */);
+                    break;
+                case 6 /* InvalidCharacter */:
+                    handleError(16 /* InvalidCharacter */);
+                    break;
+            }
+            switch (token) {
+                case 12 /* LineCommentTrivia */:
+                case 13 /* BlockCommentTrivia */:
+                    if (disallowComments) {
+                        handleError(10 /* InvalidCommentToken */);
+                    }
+                    else {
+                        onComment();
+                    }
+                    break;
+                case 16 /* Unknown */:
+                    handleError(1 /* InvalidSymbol */);
+                    break;
+                case 15 /* Trivia */:
+                case 14 /* LineBreakTrivia */:
+                    break;
+                default:
+                    return token;
+            }
+        }
+    }
+    function handleError(error, skipUntilAfter, skipUntil) {
+        if (skipUntilAfter === void 0) { skipUntilAfter = []; }
+        if (skipUntil === void 0) { skipUntil = []; }
+        onError(error);
+        if (skipUntilAfter.length + skipUntil.length > 0) {
+            var token = _scanner.getToken();
+            while (token !== 17 /* EOF */) {
+                if (skipUntilAfter.indexOf(token) !== -1) {
+                    scanNext();
+                    break;
+                }
+                else if (skipUntil.indexOf(token) !== -1) {
+                    break;
+                }
+                token = scanNext();
+            }
+        }
+    }
+    function parseString(isValue) {
+        var value = _scanner.getTokenValue();
+        if (isValue) {
+            onLiteralValue(value);
+        }
+        else {
+            onObjectProperty(value);
+        }
+        scanNext();
+        return true;
+    }
+    function parseLiteral() {
+        switch (_scanner.getToken()) {
+            case 11 /* NumericLiteral */:
+                var value = 0;
+                try {
+                    value = JSON.parse(_scanner.getTokenValue());
+                    if (typeof value !== 'number') {
+                        handleError(2 /* InvalidNumberFormat */);
+                        value = 0;
+                    }
+                }
+                catch (e) {
+                    handleError(2 /* InvalidNumberFormat */);
+                }
+                onLiteralValue(value);
+                break;
+            case 7 /* NullKeyword */:
+                onLiteralValue(null);
+                break;
+            case 8 /* TrueKeyword */:
+                onLiteralValue(true);
+                break;
+            case 9 /* FalseKeyword */:
+                onLiteralValue(false);
+                break;
+            default:
+                return false;
+        }
+        scanNext();
+        return true;
+    }
+    function parseProperty() {
+        if (_scanner.getToken() !== 10 /* StringLiteral */) {
+            handleError(3 /* PropertyNameExpected */, [], [2 /* CloseBraceToken */, 5 /* CommaToken */]);
+            return false;
+        }
+        parseString(false);
+        if (_scanner.getToken() === 6 /* ColonToken */) {
+            onSeparator(':');
+            scanNext(); // consume colon
+            if (!parseValue()) {
+                handleError(4 /* ValueExpected */, [], [2 /* CloseBraceToken */, 5 /* CommaToken */]);
+            }
+        }
+        else {
+            handleError(5 /* ColonExpected */, [], [2 /* CloseBraceToken */, 5 /* CommaToken */]);
+        }
+        return true;
+    }
+    function parseObject() {
+        onObjectBegin();
+        scanNext(); // consume open brace
+        var needsComma = false;
+        while (_scanner.getToken() !== 2 /* CloseBraceToken */ && _scanner.getToken() !== 17 /* EOF */) {
+            if (_scanner.getToken() === 5 /* CommaToken */) {
+                if (!needsComma) {
+                    handleError(4 /* ValueExpected */, [], []);
+                }
+                onSeparator(',');
+                scanNext(); // consume comma
+                if (_scanner.getToken() === 2 /* CloseBraceToken */ && allowTrailingComma) {
+                    break;
+                }
+            }
+            else if (needsComma) {
+                handleError(6 /* CommaExpected */, [], []);
+            }
+            if (!parseProperty()) {
+                handleError(4 /* ValueExpected */, [], [2 /* CloseBraceToken */, 5 /* CommaToken */]);
+            }
+            needsComma = true;
+        }
+        onObjectEnd();
+        if (_scanner.getToken() !== 2 /* CloseBraceToken */) {
+            handleError(7 /* CloseBraceExpected */, [2 /* CloseBraceToken */], []);
+        }
+        else {
+            scanNext(); // consume close brace
+        }
+        return true;
+    }
+    function parseArray() {
+        onArrayBegin();
+        scanNext(); // consume open bracket
+        var needsComma = false;
+        while (_scanner.getToken() !== 4 /* CloseBracketToken */ && _scanner.getToken() !== 17 /* EOF */) {
+            if (_scanner.getToken() === 5 /* CommaToken */) {
+                if (!needsComma) {
+                    handleError(4 /* ValueExpected */, [], []);
+                }
+                onSeparator(',');
+                scanNext(); // consume comma
+                if (_scanner.getToken() === 4 /* CloseBracketToken */ && allowTrailingComma) {
+                    break;
+                }
+            }
+            else if (needsComma) {
+                handleError(6 /* CommaExpected */, [], []);
+            }
+            if (!parseValue()) {
+                handleError(4 /* ValueExpected */, [], [4 /* CloseBracketToken */, 5 /* CommaToken */]);
+            }
+            needsComma = true;
+        }
+        onArrayEnd();
+        if (_scanner.getToken() !== 4 /* CloseBracketToken */) {
+            handleError(8 /* CloseBracketExpected */, [4 /* CloseBracketToken */], []);
+        }
+        else {
+            scanNext(); // consume close bracket
+        }
+        return true;
+    }
+    function parseValue() {
+        switch (_scanner.getToken()) {
+            case 3 /* OpenBracketToken */:
+                return parseArray();
+            case 1 /* OpenBraceToken */:
+                return parseObject();
+            case 10 /* StringLiteral */:
+                return parseString(true);
+            default:
+                return parseLiteral();
+        }
+    }
+    scanNext();
+    if (_scanner.getToken() === 17 /* EOF */) {
+        if (options.allowEmptyContent) {
+            return true;
+        }
+        handleError(4 /* ValueExpected */, [], []);
+        return false;
+    }
+    if (!parseValue()) {
+        handleError(4 /* ValueExpected */, [], []);
+        return false;
+    }
+    if (_scanner.getToken() !== 17 /* EOF */) {
+        handleError(9 /* EndOfFileExpected */, [], []);
+    }
+    return true;
+}
+/**
+ * Takes JSON with JavaScript-style comments and remove
+ * them. Optionally replaces every none-newline character
+ * of comments with a replaceCharacter
+ */
+function stripComments(text, replaceCh) {
+    var _scanner = Object(_scanner__WEBPACK_IMPORTED_MODULE_0__["createScanner"])(text), parts = [], kind, offset = 0, pos;
+    do {
+        pos = _scanner.getPosition();
+        kind = _scanner.scan();
+        switch (kind) {
+            case 12 /* LineCommentTrivia */:
+            case 13 /* BlockCommentTrivia */:
+            case 17 /* EOF */:
+                if (offset !== pos) {
+                    parts.push(text.substring(offset, pos));
+                }
+                if (replaceCh !== undefined) {
+                    parts.push(_scanner.getTokenValue().replace(/[^\r\n]/g, replaceCh));
+                }
+                offset = _scanner.getPosition();
+                break;
+        }
+    } while (kind !== 17 /* EOF */);
+    return parts.join('');
+}
+function getNodeType(value) {
+    switch (typeof value) {
+        case 'boolean': return 'boolean';
+        case 'number': return 'number';
+        case 'string': return 'string';
+        case 'object': {
+            if (!value) {
+                return 'null';
+            }
+            else if (Array.isArray(value)) {
+                return 'array';
+            }
+            return 'object';
+        }
+        default: return 'null';
+    }
+}
+
+
+/***/ }),
+/* 303 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(65);
+const child_process_1 = __webpack_require__(238);
+const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
+const net_1 = tslib_1.__importDefault(__webpack_require__(156));
+const os_1 = tslib_1.__importDefault(__webpack_require__(76));
+const path_1 = tslib_1.__importDefault(__webpack_require__(82));
+const readline_1 = tslib_1.__importDefault(__webpack_require__(205));
+const util_1 = tslib_1.__importDefault(__webpack_require__(74));
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(270));
+const logger = __webpack_require__(64)('util-fs');
+async function statAsync(filepath) {
+    let stat = null;
+    try {
+        stat = await util_1.default.promisify(fs_1.default.stat)(filepath);
+    }
+    catch (e) { }
+    return stat;
+}
+exports.statAsync = statAsync;
+async function isDirectory(filepath) {
+    let stat = await statAsync(filepath);
+    return stat && stat.isDirectory();
+}
+exports.isDirectory = isDirectory;
+async function unlinkAsync(filepath) {
+    try {
+        await util_1.default.promisify(fs_1.default.unlink)(filepath);
+    }
+    catch (e) { }
+}
+exports.unlinkAsync = unlinkAsync;
+function renameAsync(oldPath, newPath) {
+    return new Promise((resolve, reject) => {
+        fs_1.default.rename(oldPath, newPath, err => {
+            if (err)
+                return reject(err);
+            resolve();
+        });
+    });
+}
+exports.renameAsync = renameAsync;
+async function isGitIgnored(fullpath) {
+    if (!fullpath)
+        return false;
+    let stat = await statAsync(fullpath);
+    if (!stat || !stat.isFile())
+        return false;
+    let root = null;
+    try {
+        let { stdout } = await util_1.default.promisify(child_process_1.exec)('git rev-parse --show-toplevel', { cwd: path_1.default.dirname(fullpath) });
+        root = stdout.trim();
+    }
+    catch (e) { }
+    if (!root)
+        return false;
+    let file = path_1.default.relative(root, fullpath);
+    try {
+        let { stdout } = await util_1.default.promisify(child_process_1.exec)(`git check-ignore ${file}`, { cwd: root });
+        return stdout.trim() == file;
+    }
+    catch (e) { }
+    return false;
+}
+exports.isGitIgnored = isGitIgnored;
+function resolveRoot(dir, subs, cwd) {
+    let home = os_1.default.homedir();
+    if (isParentFolder(dir, home, true))
+        return null;
+    if (cwd && isParentFolder(cwd, dir, true) && inDirectory(cwd, subs))
+        return cwd;
+    let parts = dir.split(path_1.default.sep);
+    let curr = [parts.shift()];
+    for (let part of parts) {
+        curr.push(part);
+        let dir = curr.join(path_1.default.sep);
+        if (dir != home && inDirectory(dir, subs)) {
+            return dir;
+        }
+    }
+    return null;
+}
+exports.resolveRoot = resolveRoot;
+function inDirectory(dir, subs) {
+    try {
+        let files = fs_1.default.readdirSync(dir);
+        for (let pattern of subs) {
+            // note, only '*' expanded
+            let is_wildcard = (pattern.includes('*'));
+            let res = is_wildcard ?
+                (minimatch_1.default.match(files, pattern, { nobrace: true, noext: true, nocomment: true, nonegate: true, dot: true }).length !== 0) :
+                (files.includes(pattern));
+            if (res)
+                return true;
+        }
+    }
+    catch (e) {
+        // could be failed without permission
+    }
+    return false;
+}
+exports.inDirectory = inDirectory;
+function findUp(name, cwd) {
+    let root = path_1.default.parse(cwd).root;
+    let subs = Array.isArray(name) ? name : [name];
+    while (cwd && cwd !== root) {
+        let find = inDirectory(cwd, subs);
+        if (find) {
+            for (let sub of subs) {
+                let filepath = path_1.default.join(cwd, sub);
+                if (fs_1.default.existsSync(filepath)) {
+                    return filepath;
+                }
+            }
+        }
+        cwd = path_1.default.dirname(cwd);
+    }
+    return null;
+}
+exports.findUp = findUp;
+function readFile(fullpath, encoding) {
+    return new Promise((resolve, reject) => {
+        fs_1.default.readFile(fullpath, encoding, (err, content) => {
+            if (err)
+                reject(err);
+            resolve(content);
+        });
+    });
+}
+exports.readFile = readFile;
+function getFileLineCount(filepath) {
+    let i;
+    let count = 0;
+    return new Promise((resolve, reject) => {
+        fs_1.default.createReadStream(filepath)
+            .on('error', e => reject(e))
+            .on('data', chunk => {
+            for (i = 0; i < chunk.length; ++i)
+                if (chunk[i] == 10)
+                    count++;
+        })
+            .on('end', () => resolve(count));
+    });
+}
+exports.getFileLineCount = getFileLineCount;
+function readFileLines(fullpath, start, end) {
+    if (!fs_1.default.existsSync(fullpath)) {
+        return Promise.reject(new Error(`file does not exist: ${fullpath}`));
+    }
+    let res = [];
+    const rl = readline_1.default.createInterface({
+        input: fs_1.default.createReadStream(fullpath, { encoding: 'utf8' }),
+        crlfDelay: Infinity,
+        terminal: false
+    });
+    let n = 0;
+    return new Promise((resolve, reject) => {
+        rl.on('line', line => {
+            if (n == 0 && line.startsWith('\uFEFF')) {
+                // handle BOM
+                line = line.slice(1);
+            }
+            if (n >= start && n <= end) {
+                res.push(line);
+            }
+            if (n == end) {
+                rl.close();
+            }
+            n = n + 1;
+        });
+        rl.on('close', () => {
+            resolve(res);
+        });
+        rl.on('error', reject);
+    });
+}
+exports.readFileLines = readFileLines;
+function readFileLine(fullpath, count) {
+    if (!fs_1.default.existsSync(fullpath)) {
+        return Promise.reject(new Error(`file does not exist: ${fullpath}`));
+    }
+    const rl = readline_1.default.createInterface({
+        input: fs_1.default.createReadStream(fullpath, { encoding: 'utf8' }),
+        crlfDelay: Infinity,
+        terminal: false
+    });
+    let n = 0;
+    return new Promise((resolve, reject) => {
+        rl.on('line', line => {
+            if (n == count) {
+                if (n == 0 && line.startsWith('\uFEFF')) {
+                    // handle BOM
+                    line = line.slice(1);
+                }
+                rl.close();
+                resolve(line);
+                return;
+            }
+            n = n + 1;
+        });
+        rl.on('error', reject);
+    });
+}
+exports.readFileLine = readFileLine;
+async function writeFile(fullpath, content) {
+    await util_1.default.promisify(fs_1.default.writeFile)(fullpath, content, { encoding: 'utf8' });
+}
+exports.writeFile = writeFile;
+function validSocket(path) {
+    let clientSocket = new net_1.default.Socket();
+    return new Promise(resolve => {
+        clientSocket.on('error', () => {
+            resolve(false);
+        });
+        clientSocket.connect({ path }, () => {
+            clientSocket.unref();
+            resolve(true);
+        });
+    });
+}
+exports.validSocket = validSocket;
+function isFile(uri) {
+    return uri.startsWith('file:');
+}
+exports.isFile = isFile;
+exports.readdirAsync = util_1.default.promisify(fs_1.default.readdir);
+exports.realpathAsync = util_1.default.promisify(fs_1.default.realpath);
+function parentDirs(pth) {
+    let { root, dir } = path_1.default.parse(pth);
+    if (dir === root)
+        return [root];
+    const dirs = [root];
+    const parts = dir.slice(root.length).split(path_1.default.sep);
+    for (let i = 1; i <= parts.length; i++) {
+        dirs.push(path_1.default.join(root, parts.slice(0, i).join(path_1.default.sep)));
+    }
+    return dirs;
+}
+exports.parentDirs = parentDirs;
+function isParentFolder(folder, filepath, checkEqual = false) {
+    let pdir = fixDriver(path_1.default.resolve(path_1.default.normalize(folder)));
+    let dir = fixDriver(path_1.default.resolve(path_1.default.normalize(filepath)));
+    if (pdir == '//')
+        pdir = '/';
+    if (pdir == dir)
+        return checkEqual ? true : false;
+    if (pdir.endsWith(path_1.default.sep))
+        return dir.startsWith(pdir);
+    return dir.startsWith(pdir) && dir[pdir.length] == path_1.default.sep;
+}
+exports.isParentFolder = isParentFolder;
+// use uppercase for windows driver
+function fixDriver(filepath) {
+    if (os_1.default.platform() != 'win32' || filepath[1] != ':')
+        return filepath;
+    return filepath[0].toUpperCase() + filepath.slice(1);
+}
+exports.fixDriver = fixDriver;
+//# sourceMappingURL=fs.js.map
+
+/***/ }),
+/* 304 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -32090,7 +35204,7 @@ function range(a, b, str) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const jsonc_parser_1 = __webpack_require__(265);
+const jsonc_parser_1 = __webpack_require__(298);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const vscode_uri_1 = __webpack_require__(242);
 const util_1 = __webpack_require__(237);
@@ -32133,7 +35247,7 @@ exports.default = ConfigurationProxy;
 //# sourceMappingURL=shape.js.map
 
 /***/ }),
-/* 276 */
+/* 305 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -32141,7 +35255,7 @@ exports.default = ConfigurationProxy;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(277));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(259));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 class DB {
     constructor(filepath) {
@@ -32275,274 +35389,7 @@ exports.default = DB;
 //# sourceMappingURL=db.js.map
 
 /***/ }),
-/* 277 */
-/***/ (function(module, exports, __webpack_require__) {
-
-const optsArg = __webpack_require__(278)
-const pathArg = __webpack_require__(279)
-
-const {mkdirpNative, mkdirpNativeSync} = __webpack_require__(280)
-const {mkdirpManual, mkdirpManualSync} = __webpack_require__(282)
-const {useNative, useNativeSync} = __webpack_require__(283)
-
-
-const mkdirp = (path, opts) => {
-  path = pathArg(path)
-  opts = optsArg(opts)
-  return useNative(opts)
-    ? mkdirpNative(path, opts)
-    : mkdirpManual(path, opts)
-}
-
-const mkdirpSync = (path, opts) => {
-  path = pathArg(path)
-  opts = optsArg(opts)
-  return useNativeSync(opts)
-    ? mkdirpNativeSync(path, opts)
-    : mkdirpManualSync(path, opts)
-}
-
-mkdirp.sync = mkdirpSync
-mkdirp.native = (path, opts) => mkdirpNative(pathArg(path), optsArg(opts))
-mkdirp.manual = (path, opts) => mkdirpManual(pathArg(path), optsArg(opts))
-mkdirp.nativeSync = (path, opts) => mkdirpNativeSync(pathArg(path), optsArg(opts))
-mkdirp.manualSync = (path, opts) => mkdirpManualSync(pathArg(path), optsArg(opts))
-
-module.exports = mkdirp
-
-
-/***/ }),
-/* 278 */
-/***/ (function(module, exports, __webpack_require__) {
-
-const { promisify } = __webpack_require__(74)
-const fs = __webpack_require__(66)
-const optsArg = opts => {
-  if (!opts)
-    opts = { mode: 0o777, fs }
-  else if (typeof opts === 'object')
-    opts = { mode: 0o777, fs, ...opts }
-  else if (typeof opts === 'number')
-    opts = { mode: opts, fs }
-  else if (typeof opts === 'string')
-    opts = { mode: parseInt(opts, 8), fs }
-  else
-    throw new TypeError('invalid options argument')
-
-  opts.mkdir = opts.mkdir || opts.fs.mkdir || fs.mkdir
-  opts.mkdirAsync = promisify(opts.mkdir)
-  opts.stat = opts.stat || opts.fs.stat || fs.stat
-  opts.statAsync = promisify(opts.stat)
-  opts.statSync = opts.statSync || opts.fs.statSync || fs.statSync
-  opts.mkdirSync = opts.mkdirSync || opts.fs.mkdirSync || fs.mkdirSync
-  return opts
-}
-module.exports = optsArg
-
-
-/***/ }),
-/* 279 */
-/***/ (function(module, exports, __webpack_require__) {
-
-const platform = process.env.__TESTING_MKDIRP_PLATFORM__ || process.platform
-const { resolve, parse } = __webpack_require__(82)
-const pathArg = path => {
-  if (/\0/.test(path)) {
-    // simulate same failure that node raises
-    throw Object.assign(
-      new TypeError('path must be a string without null bytes'),
-      {
-        path,
-        code: 'ERR_INVALID_ARG_VALUE',
-      }
-    )
-  }
-
-  path = resolve(path)
-  if (platform === 'win32') {
-    const badWinChars = /[*|"<>?:]/
-    const {root} = parse(path)
-    if (badWinChars.test(path.substr(root.length))) {
-      throw Object.assign(new Error('Illegal characters in path.'), {
-        path,
-        code: 'EINVAL',
-      })
-    }
-  }
-
-  return path
-}
-module.exports = pathArg
-
-
-/***/ }),
-/* 280 */
-/***/ (function(module, exports, __webpack_require__) {
-
-const {dirname} = __webpack_require__(82)
-const {findMade, findMadeSync} = __webpack_require__(281)
-const {mkdirpManual, mkdirpManualSync} = __webpack_require__(282)
-
-const mkdirpNative = (path, opts) => {
-  opts.recursive = true
-  const parent = dirname(path)
-  if (parent === path)
-    return opts.mkdirAsync(path, opts)
-
-  return findMade(opts, path).then(made =>
-    opts.mkdirAsync(path, opts).then(() => made)
-    .catch(er => {
-      if (er.code === 'ENOENT')
-        return mkdirpManual(path, opts)
-      else
-        throw er
-    }))
-}
-
-const mkdirpNativeSync = (path, opts) => {
-  opts.recursive = true
-  const parent = dirname(path)
-  if (parent === path)
-    return opts.mkdirSync(path, opts)
-
-  const made = findMadeSync(opts, path)
-  try {
-    opts.mkdirSync(path, opts)
-    return made
-  } catch (er) {
-    if (er.code === 'ENOENT')
-      return mkdirpManualSync(path, opts)
-    else
-      throw er
-  }
-}
-
-module.exports = {mkdirpNative, mkdirpNativeSync}
-
-
-/***/ }),
-/* 281 */
-/***/ (function(module, exports, __webpack_require__) {
-
-const {dirname} = __webpack_require__(82)
-
-const findMade = (opts, parent, path = undefined) => {
-  // we never want the 'made' return value to be a root directory
-  if (path === parent)
-    return Promise.resolve()
-
-  return opts.statAsync(parent).then(
-    st => st.isDirectory() ? path : undefined, // will fail later
-    er => er.code === 'ENOENT'
-      ? findMade(opts, dirname(parent), parent)
-      : undefined
-  )
-}
-
-const findMadeSync = (opts, parent, path = undefined) => {
-  if (path === parent)
-    return undefined
-
-  try {
-    return opts.statSync(parent).isDirectory() ? path : undefined
-  } catch (er) {
-    return er.code === 'ENOENT'
-      ? findMadeSync(opts, dirname(parent), parent)
-      : undefined
-  }
-}
-
-module.exports = {findMade, findMadeSync}
-
-
-/***/ }),
-/* 282 */
-/***/ (function(module, exports, __webpack_require__) {
-
-const {dirname} = __webpack_require__(82)
-
-const mkdirpManual = (path, opts, made) => {
-  opts.recursive = false
-  const parent = dirname(path)
-  if (parent === path) {
-    return opts.mkdirAsync(path, opts).catch(er => {
-      // swallowed by recursive implementation on posix systems
-      // any other error is a failure
-      if (er.code !== 'EISDIR')
-        throw er
-    })
-  }
-
-  return opts.mkdirAsync(path, opts).then(() => made || path, er => {
-    if (er.code === 'ENOENT')
-      return mkdirpManual(parent, opts)
-        .then(made => mkdirpManual(path, opts, made))
-    if (er.code !== 'EEXIST' && er.code !== 'EROFS')
-      throw er
-    return opts.statAsync(path).then(st => {
-      if (st.isDirectory())
-        return made
-      else
-        throw er
-    }, () => { throw er })
-  })
-}
-
-const mkdirpManualSync = (path, opts, made) => {
-  const parent = dirname(path)
-  opts.recursive = false
-
-  if (parent === path) {
-    try {
-      return opts.mkdirSync(path, opts)
-    } catch (er) {
-      // swallowed by recursive implementation on posix systems
-      // any other error is a failure
-      if (er.code !== 'EISDIR')
-        throw er
-      else
-        return
-    }
-  }
-
-  try {
-    opts.mkdirSync(path, opts)
-    return made || path
-  } catch (er) {
-    if (er.code === 'ENOENT')
-      return mkdirpManualSync(path, opts, mkdirpManualSync(parent, opts, made))
-    if (er.code !== 'EEXIST' && er.code !== 'EROFS')
-      throw er
-    try {
-      if (!opts.statSync(path).isDirectory())
-        throw er
-    } catch (_) {
-      throw er
-    }
-  }
-}
-
-module.exports = {mkdirpManual, mkdirpManualSync}
-
-
-/***/ }),
-/* 283 */
-/***/ (function(module, exports, __webpack_require__) {
-
-const fs = __webpack_require__(66)
-
-const version = process.env.__TESTING_MKDIRP_NODE_VERSION__ || process.version
-const versArr = version.replace(/^v/, '').split('.')
-const hasNative = +versArr[0] > 10 || +versArr[0] === 10 && +versArr[1] >= 12
-
-const useNative = !hasNative ? () => false : opts => opts.mkdir === fs.mkdir
-const useNativeSync = !hasNative ? () => false : opts => opts.mkdirSync === fs.mkdirSync
-
-module.exports = {useNative, useNativeSync}
-
-
-/***/ }),
-/* 284 */
+/* 306 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -32551,16 +35398,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(239));
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_languageserver_textdocument_1 = __webpack_require__(259);
+const vscode_languageserver_textdocument_1 = __webpack_require__(292);
 const vscode_uri_1 = __webpack_require__(242);
 const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const array_1 = __webpack_require__(285);
-const diff_1 = __webpack_require__(286);
-const fs_1 = __webpack_require__(270);
+const array_1 = __webpack_require__(307);
+const diff_1 = __webpack_require__(308);
+const fs_1 = __webpack_require__(303);
 const index_1 = __webpack_require__(237);
-const position_1 = __webpack_require__(288);
-const string_1 = __webpack_require__(287);
-const chars_1 = __webpack_require__(289);
+const position_1 = __webpack_require__(310);
+const string_1 = __webpack_require__(309);
+const chars_1 = __webpack_require__(311);
 const logger = __webpack_require__(64)('model-document');
 // wrapper class of TextDocument
 class Document {
@@ -33325,7 +36172,7 @@ exports.default = Document;
 //# sourceMappingURL=document.js.map
 
 /***/ }),
-/* 285 */
+/* 307 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -33400,15 +36247,15 @@ exports.flatMap = (xs, f) => xs.reduce((x, y) => [...x, ...f(y)], []);
 //# sourceMappingURL=array.js.map
 
 /***/ }),
-/* 286 */
+/* 308 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(257));
-const string_1 = __webpack_require__(287);
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(258));
+const string_1 = __webpack_require__(309);
 const logger = __webpack_require__(64)('util-diff');
 function diffLines(from, to) {
     let newLines = to.split('\n');
@@ -33534,7 +36381,7 @@ exports.patchLine = patchLine;
 //# sourceMappingURL=diff.js.map
 
 /***/ }),
-/* 287 */
+/* 309 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -33651,7 +36498,7 @@ exports.equalsIgnoreCase = equalsIgnoreCase;
 //# sourceMappingURL=string.js.map
 
 /***/ }),
-/* 288 */
+/* 310 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -33800,7 +36647,7 @@ exports.getChangedFromEdits = getChangedFromEdits;
 //# sourceMappingURL=position.js.map
 
 /***/ }),
-/* 289 */
+/* 311 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -33934,7 +36781,7 @@ exports.Chars = Chars;
 //# sourceMappingURL=chars.js.map
 
 /***/ }),
-/* 290 */
+/* 312 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -33943,7 +36790,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const vscode_uri_1 = __webpack_require__(242);
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(270));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const util_1 = __webpack_require__(237);
 const logger = __webpack_require__(64)('filesystem-watcher');
@@ -34038,7 +36885,7 @@ exports.default = FileSystemWatcher;
 //# sourceMappingURL=fileSystemWatcher.js.map
 
 /***/ }),
-/* 291 */
+/* 313 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -34048,7 +36895,7 @@ const tslib_1 = __webpack_require__(65);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const util_1 = tslib_1.__importDefault(__webpack_require__(74));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(277));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(259));
 /**
  * Mru - manage string items as lines in mru file.
  */
@@ -34117,14 +36964,14 @@ exports.default = Mru;
 //# sourceMappingURL=mru.js.map
 
 /***/ }),
-/* 292 */
+/* 314 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const buffer_1 = __webpack_require__(293);
+const buffer_1 = __webpack_require__(315);
 const util_1 = __webpack_require__(237);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const logger = __webpack_require__(64)("outpubChannel");
@@ -34245,13 +37092,13 @@ exports.default = BufferChannel;
 //# sourceMappingURL=outputChannel.js.map
 
 /***/ }),
-/* 293 */
+/* 315 */
 /***/ (function(module, exports) {
 
 module.exports = require("buffer");
 
 /***/ }),
-/* 294 */
+/* 316 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -34260,8 +37107,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const util_1 = __webpack_require__(237);
-const fs_1 = __webpack_require__(270);
-const decorator_1 = __webpack_require__(295);
+const fs_1 = __webpack_require__(303);
+const decorator_1 = __webpack_require__(317);
 const logger = __webpack_require__(64)('model-resolver');
 class Resolver {
     get nodeFolder() {
@@ -34300,7 +37147,7 @@ exports.default = Resolver;
 //# sourceMappingURL=resolver.js.map
 
 /***/ }),
-/* 295 */
+/* 317 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -34329,13 +37176,13 @@ exports.memorize = memorize;
 //# sourceMappingURL=decorator.js.map
 
 /***/ }),
-/* 296 */
+/* 318 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 const logger = __webpack_require__(64)('model-status');
 exports.frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 class StatusLine {
@@ -34410,345 +37257,7 @@ exports.default = StatusLine;
 //# sourceMappingURL=status.js.map
 
 /***/ }),
-/* 297 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _v1_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(298);
-/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "v1", function() { return _v1_js__WEBPACK_IMPORTED_MODULE_0__["default"]; });
-
-/* harmony import */ var _v3_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(301);
-/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "v3", function() { return _v3_js__WEBPACK_IMPORTED_MODULE_1__["default"]; });
-
-/* harmony import */ var _v4_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(304);
-/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "v4", function() { return _v4_js__WEBPACK_IMPORTED_MODULE_2__["default"]; });
-
-/* harmony import */ var _v5_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(305);
-/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "v5", function() { return _v5_js__WEBPACK_IMPORTED_MODULE_3__["default"]; });
-
-
-
-
-
-
-/***/ }),
-/* 298 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _rng_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(299);
-/* harmony import */ var _bytesToUuid_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(300);
-
- // **`v1()` - Generate time-based UUID**
-//
-// Inspired by https://github.com/LiosK/UUID.js
-// and http://docs.python.org/library/uuid.html
-
-var _nodeId;
-
-var _clockseq; // Previous uuid creation time
-
-
-var _lastMSecs = 0;
-var _lastNSecs = 0; // See https://github.com/uuidjs/uuid for API details
-
-function v1(options, buf, offset) {
-  var i = buf && offset || 0;
-  var b = buf || [];
-  options = options || {};
-  var node = options.node || _nodeId;
-  var clockseq = options.clockseq !== undefined ? options.clockseq : _clockseq; // node and clockseq need to be initialized to random values if they're not
-  // specified.  We do this lazily to minimize issues related to insufficient
-  // system entropy.  See #189
-
-  if (node == null || clockseq == null) {
-    var seedBytes = options.random || (options.rng || _rng_js__WEBPACK_IMPORTED_MODULE_0__["default"])();
-
-    if (node == null) {
-      // Per 4.5, create and 48-bit node id, (47 random bits + multicast bit = 1)
-      node = _nodeId = [seedBytes[0] | 0x01, seedBytes[1], seedBytes[2], seedBytes[3], seedBytes[4], seedBytes[5]];
-    }
-
-    if (clockseq == null) {
-      // Per 4.2.2, randomize (14 bit) clockseq
-      clockseq = _clockseq = (seedBytes[6] << 8 | seedBytes[7]) & 0x3fff;
-    }
-  } // UUID timestamps are 100 nano-second units since the Gregorian epoch,
-  // (1582-10-15 00:00).  JSNumbers aren't precise enough for this, so
-  // time is handled internally as 'msecs' (integer milliseconds) and 'nsecs'
-  // (100-nanoseconds offset from msecs) since unix epoch, 1970-01-01 00:00.
-
-
-  var msecs = options.msecs !== undefined ? options.msecs : new Date().getTime(); // Per 4.2.1.2, use count of uuid's generated during the current clock
-  // cycle to simulate higher resolution clock
-
-  var nsecs = options.nsecs !== undefined ? options.nsecs : _lastNSecs + 1; // Time since last uuid creation (in msecs)
-
-  var dt = msecs - _lastMSecs + (nsecs - _lastNSecs) / 10000; // Per 4.2.1.2, Bump clockseq on clock regression
-
-  if (dt < 0 && options.clockseq === undefined) {
-    clockseq = clockseq + 1 & 0x3fff;
-  } // Reset nsecs if clock regresses (new clockseq) or we've moved onto a new
-  // time interval
-
-
-  if ((dt < 0 || msecs > _lastMSecs) && options.nsecs === undefined) {
-    nsecs = 0;
-  } // Per 4.2.1.2 Throw error if too many uuids are requested
-
-
-  if (nsecs >= 10000) {
-    throw new Error("uuid.v1(): Can't create more than 10M uuids/sec");
-  }
-
-  _lastMSecs = msecs;
-  _lastNSecs = nsecs;
-  _clockseq = clockseq; // Per 4.1.4 - Convert from unix epoch to Gregorian epoch
-
-  msecs += 12219292800000; // `time_low`
-
-  var tl = ((msecs & 0xfffffff) * 10000 + nsecs) % 0x100000000;
-  b[i++] = tl >>> 24 & 0xff;
-  b[i++] = tl >>> 16 & 0xff;
-  b[i++] = tl >>> 8 & 0xff;
-  b[i++] = tl & 0xff; // `time_mid`
-
-  var tmh = msecs / 0x100000000 * 10000 & 0xfffffff;
-  b[i++] = tmh >>> 8 & 0xff;
-  b[i++] = tmh & 0xff; // `time_high_and_version`
-
-  b[i++] = tmh >>> 24 & 0xf | 0x10; // include version
-
-  b[i++] = tmh >>> 16 & 0xff; // `clock_seq_hi_and_reserved` (Per 4.2.2 - include variant)
-
-  b[i++] = clockseq >>> 8 | 0x80; // `clock_seq_low`
-
-  b[i++] = clockseq & 0xff; // `node`
-
-  for (var n = 0; n < 6; ++n) {
-    b[i + n] = node[n];
-  }
-
-  return buf ? buf : Object(_bytesToUuid_js__WEBPACK_IMPORTED_MODULE_1__["default"])(b);
-}
-
-/* harmony default export */ __webpack_exports__["default"] = (v1);
-
-/***/ }),
-/* 299 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return rng; });
-/* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(220);
-/* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(crypto__WEBPACK_IMPORTED_MODULE_0__);
-
-function rng() {
-  return crypto__WEBPACK_IMPORTED_MODULE_0___default.a.randomBytes(16);
-}
-
-/***/ }),
-/* 300 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/**
- * Convert array of 16 byte values to UUID string format of the form:
- * XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
- */
-var byteToHex = [];
-
-for (var i = 0; i < 256; ++i) {
-  byteToHex[i] = (i + 0x100).toString(16).substr(1);
-}
-
-function bytesToUuid(buf, offset) {
-  var i = offset || 0;
-  var bth = byteToHex; // join used to fix memory issue caused by concatenation: https://bugs.chromium.org/p/v8/issues/detail?id=3175#c4
-
-  return [bth[buf[i++]], bth[buf[i++]], bth[buf[i++]], bth[buf[i++]], '-', bth[buf[i++]], bth[buf[i++]], '-', bth[buf[i++]], bth[buf[i++]], '-', bth[buf[i++]], bth[buf[i++]], '-', bth[buf[i++]], bth[buf[i++]], bth[buf[i++]], bth[buf[i++]], bth[buf[i++]], bth[buf[i++]]].join('');
-}
-
-/* harmony default export */ __webpack_exports__["default"] = (bytesToUuid);
-
-/***/ }),
-/* 301 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _v35_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(302);
-/* harmony import */ var _md5_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(303);
-
-
-const v3 = Object(_v35_js__WEBPACK_IMPORTED_MODULE_0__["default"])('v3', 0x30, _md5_js__WEBPACK_IMPORTED_MODULE_1__["default"]);
-/* harmony default export */ __webpack_exports__["default"] = (v3);
-
-/***/ }),
-/* 302 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "DNS", function() { return DNS; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "URL", function() { return URL; });
-/* harmony import */ var _bytesToUuid_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(300);
-
-
-function uuidToBytes(uuid) {
-  // Note: We assume we're being passed a valid uuid string
-  var bytes = [];
-  uuid.replace(/[a-fA-F0-9]{2}/g, function (hex) {
-    bytes.push(parseInt(hex, 16));
-  });
-  return bytes;
-}
-
-function stringToBytes(str) {
-  str = unescape(encodeURIComponent(str)); // UTF8 escape
-
-  var bytes = new Array(str.length);
-
-  for (var i = 0; i < str.length; i++) {
-    bytes[i] = str.charCodeAt(i);
-  }
-
-  return bytes;
-}
-
-const DNS = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
-const URL = '6ba7b811-9dad-11d1-80b4-00c04fd430c8';
-/* harmony default export */ __webpack_exports__["default"] = (function (name, version, hashfunc) {
-  var generateUUID = function (value, namespace, buf, offset) {
-    var off = buf && offset || 0;
-    if (typeof value == 'string') value = stringToBytes(value);
-    if (typeof namespace == 'string') namespace = uuidToBytes(namespace);
-    if (!Array.isArray(value)) throw TypeError('value must be an array of bytes');
-    if (!Array.isArray(namespace) || namespace.length !== 16) throw TypeError('namespace must be uuid string or an Array of 16 byte values'); // Per 4.3
-
-    var bytes = hashfunc(namespace.concat(value));
-    bytes[6] = bytes[6] & 0x0f | version;
-    bytes[8] = bytes[8] & 0x3f | 0x80;
-
-    if (buf) {
-      for (var idx = 0; idx < 16; ++idx) {
-        buf[off + idx] = bytes[idx];
-      }
-    }
-
-    return buf || Object(_bytesToUuid_js__WEBPACK_IMPORTED_MODULE_0__["default"])(bytes);
-  }; // Function#name is not settable on some platforms (#270)
-
-
-  try {
-    generateUUID.name = name;
-  } catch (err) {} // For CommonJS default export support
-
-
-  generateUUID.DNS = DNS;
-  generateUUID.URL = URL;
-  return generateUUID;
-});
-
-/***/ }),
-/* 303 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(220);
-/* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(crypto__WEBPACK_IMPORTED_MODULE_0__);
-
-
-function md5(bytes) {
-  if (Array.isArray(bytes)) {
-    bytes = Buffer.from(bytes);
-  } else if (typeof bytes === 'string') {
-    bytes = Buffer.from(bytes, 'utf8');
-  }
-
-  return crypto__WEBPACK_IMPORTED_MODULE_0___default.a.createHash('md5').update(bytes).digest();
-}
-
-/* harmony default export */ __webpack_exports__["default"] = (md5);
-
-/***/ }),
-/* 304 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _rng_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(299);
-/* harmony import */ var _bytesToUuid_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(300);
-
-
-
-function v4(options, buf, offset) {
-  var i = buf && offset || 0;
-
-  if (typeof options == 'string') {
-    buf = options === 'binary' ? new Array(16) : null;
-    options = null;
-  }
-
-  options = options || {};
-  var rnds = options.random || (options.rng || _rng_js__WEBPACK_IMPORTED_MODULE_0__["default"])(); // Per 4.4, set bits for version and `clock_seq_hi_and_reserved`
-
-  rnds[6] = rnds[6] & 0x0f | 0x40;
-  rnds[8] = rnds[8] & 0x3f | 0x80; // Copy bytes to buffer, if provided
-
-  if (buf) {
-    for (var ii = 0; ii < 16; ++ii) {
-      buf[i + ii] = rnds[ii];
-    }
-  }
-
-  return buf || Object(_bytesToUuid_js__WEBPACK_IMPORTED_MODULE_1__["default"])(rnds);
-}
-
-/* harmony default export */ __webpack_exports__["default"] = (v4);
-
-/***/ }),
-/* 305 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _v35_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(302);
-/* harmony import */ var _sha1_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(306);
-
-
-const v5 = Object(_v35_js__WEBPACK_IMPORTED_MODULE_0__["default"])('v5', 0x50, _sha1_js__WEBPACK_IMPORTED_MODULE_1__["default"]);
-/* harmony default export */ __webpack_exports__["default"] = (v5);
-
-/***/ }),
-/* 306 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(220);
-/* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(crypto__WEBPACK_IMPORTED_MODULE_0__);
-
-
-function sha1(bytes) {
-  if (Array.isArray(bytes)) {
-    bytes = Buffer.from(bytes);
-  } else if (typeof bytes === 'string') {
-    bytes = Buffer.from(bytes, 'utf8');
-  }
-
-  return crypto__WEBPACK_IMPORTED_MODULE_0___default.a.createHash('sha1').update(bytes).digest();
-}
-
-/* harmony default export */ __webpack_exports__["default"] = (sha1);
-
-/***/ }),
-/* 307 */
+/* 319 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -34843,7 +37352,7 @@ exports.default = Task;
 //# sourceMappingURL=task.js.map
 
 /***/ }),
-/* 308 */
+/* 320 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -34919,7 +37428,7 @@ exports.default = TerminalModel;
 //# sourceMappingURL=terminal.js.map
 
 /***/ }),
-/* 309 */
+/* 321 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -35013,14 +37522,14 @@ exports.default = WillSaveUntilHandler;
 //# sourceMappingURL=willSaveHandler.js.map
 
 /***/ }),
-/* 310 */
+/* 322 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(270));
 const vscode_uri_1 = __webpack_require__(242);
 function score(selector, uri, languageId) {
     if (Array.isArray(selector)) {
@@ -35096,19 +37605,19 @@ exports.score = score;
 //# sourceMappingURL=match.js.map
 
 /***/ }),
-/* 311 */
+/* 323 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const fb_watchman_1 = tslib_1.__importDefault(__webpack_require__(312));
+const fb_watchman_1 = tslib_1.__importDefault(__webpack_require__(324));
 const os_1 = tslib_1.__importDefault(__webpack_require__(76));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(270));
 const logger = __webpack_require__(64)('watchman');
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch'];
 const clientsMap = new Map();
@@ -35268,7 +37777,7 @@ exports.default = Watchman;
 //# sourceMappingURL=watchman.js.map
 
 /***/ }),
-/* 312 */
+/* 324 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -35281,7 +37790,7 @@ var net = __webpack_require__(156);
 var EE = __webpack_require__(197).EventEmitter;
 var util = __webpack_require__(74);
 var childProcess = __webpack_require__(238);
-var bser = __webpack_require__(313);
+var bser = __webpack_require__(325);
 
 // We'll emit the responses to these when they get sent down to us
 var unilateralTags = ['subscription', 'log'];
@@ -35597,7 +38106,7 @@ Client.prototype.end = function() {
 
 
 /***/ }),
-/* 313 */
+/* 325 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* Copyright 2015-present Facebook, Inc.
@@ -35607,7 +38116,7 @@ var EE = __webpack_require__(197).EventEmitter;
 var util = __webpack_require__(74);
 var os = __webpack_require__(76);
 var assert = __webpack_require__(108);
-var Int64 = __webpack_require__(314);
+var Int64 = __webpack_require__(326);
 
 // BSER uses the local endianness to reduce byte swapping overheads
 // (the protocol is expressly local IPC only).  We need to tell node
@@ -36189,7 +38698,7 @@ exports.dumpToBuffer = dumpToBuffer
 
 
 /***/ }),
-/* 314 */
+/* 326 */
 /***/ (function(module, exports) {
 
 //     Int64.js
@@ -36463,2509 +38972,6 @@ Int64.prototype = {
 
 
 /***/ }),
-/* 315 */
-/***/ (function(module, exports, __webpack_require__) {
-
-const assert = __webpack_require__(108)
-const path = __webpack_require__(82)
-const fs = __webpack_require__(66)
-let glob = undefined
-try {
-  glob = __webpack_require__(316)
-} catch (_err) {
-  // treat glob as optional.
-}
-
-const defaultGlobOpts = {
-  nosort: true,
-  silent: true
-}
-
-// for EMFILE handling
-let timeout = 0
-
-const isWindows = (process.platform === "win32")
-
-const defaults = options => {
-  const methods = [
-    'unlink',
-    'chmod',
-    'stat',
-    'lstat',
-    'rmdir',
-    'readdir'
-  ]
-  methods.forEach(m => {
-    options[m] = options[m] || fs[m]
-    m = m + 'Sync'
-    options[m] = options[m] || fs[m]
-  })
-
-  options.maxBusyTries = options.maxBusyTries || 3
-  options.emfileWait = options.emfileWait || 1000
-  if (options.glob === false) {
-    options.disableGlob = true
-  }
-  if (options.disableGlob !== true && glob === undefined) {
-    throw Error('glob dependency not found, set `options.disableGlob = true` if intentional')
-  }
-  options.disableGlob = options.disableGlob || false
-  options.glob = options.glob || defaultGlobOpts
-}
-
-const rimraf = (p, options, cb) => {
-  if (typeof options === 'function') {
-    cb = options
-    options = {}
-  }
-
-  assert(p, 'rimraf: missing path')
-  assert.equal(typeof p, 'string', 'rimraf: path should be a string')
-  assert.equal(typeof cb, 'function', 'rimraf: callback function required')
-  assert(options, 'rimraf: invalid options argument provided')
-  assert.equal(typeof options, 'object', 'rimraf: options should be object')
-
-  defaults(options)
-
-  let busyTries = 0
-  let errState = null
-  let n = 0
-
-  const next = (er) => {
-    errState = errState || er
-    if (--n === 0)
-      cb(errState)
-  }
-
-  const afterGlob = (er, results) => {
-    if (er)
-      return cb(er)
-
-    n = results.length
-    if (n === 0)
-      return cb()
-
-    results.forEach(p => {
-      const CB = (er) => {
-        if (er) {
-          if ((er.code === "EBUSY" || er.code === "ENOTEMPTY" || er.code === "EPERM") &&
-              busyTries < options.maxBusyTries) {
-            busyTries ++
-            // try again, with the same exact callback as this one.
-            return setTimeout(() => rimraf_(p, options, CB), busyTries * 100)
-          }
-
-          // this one won't happen if graceful-fs is used.
-          if (er.code === "EMFILE" && timeout < options.emfileWait) {
-            return setTimeout(() => rimraf_(p, options, CB), timeout ++)
-          }
-
-          // already gone
-          if (er.code === "ENOENT") er = null
-        }
-
-        timeout = 0
-        next(er)
-      }
-      rimraf_(p, options, CB)
-    })
-  }
-
-  if (options.disableGlob || !glob.hasMagic(p))
-    return afterGlob(null, [p])
-
-  options.lstat(p, (er, stat) => {
-    if (!er)
-      return afterGlob(null, [p])
-
-    glob(p, options.glob, afterGlob)
-  })
-
-}
-
-// Two possible strategies.
-// 1. Assume it's a file.  unlink it, then do the dir stuff on EPERM or EISDIR
-// 2. Assume it's a directory.  readdir, then do the file stuff on ENOTDIR
-//
-// Both result in an extra syscall when you guess wrong.  However, there
-// are likely far more normal files in the world than directories.  This
-// is based on the assumption that a the average number of files per
-// directory is >= 1.
-//
-// If anyone ever complains about this, then I guess the strategy could
-// be made configurable somehow.  But until then, YAGNI.
-const rimraf_ = (p, options, cb) => {
-  assert(p)
-  assert(options)
-  assert(typeof cb === 'function')
-
-  // sunos lets the root user unlink directories, which is... weird.
-  // so we have to lstat here and make sure it's not a dir.
-  options.lstat(p, (er, st) => {
-    if (er && er.code === "ENOENT")
-      return cb(null)
-
-    // Windows can EPERM on stat.  Life is suffering.
-    if (er && er.code === "EPERM" && isWindows)
-      fixWinEPERM(p, options, er, cb)
-
-    if (st && st.isDirectory())
-      return rmdir(p, options, er, cb)
-
-    options.unlink(p, er => {
-      if (er) {
-        if (er.code === "ENOENT")
-          return cb(null)
-        if (er.code === "EPERM")
-          return (isWindows)
-            ? fixWinEPERM(p, options, er, cb)
-            : rmdir(p, options, er, cb)
-        if (er.code === "EISDIR")
-          return rmdir(p, options, er, cb)
-      }
-      return cb(er)
-    })
-  })
-}
-
-const fixWinEPERM = (p, options, er, cb) => {
-  assert(p)
-  assert(options)
-  assert(typeof cb === 'function')
-
-  options.chmod(p, 0o666, er2 => {
-    if (er2)
-      cb(er2.code === "ENOENT" ? null : er)
-    else
-      options.stat(p, (er3, stats) => {
-        if (er3)
-          cb(er3.code === "ENOENT" ? null : er)
-        else if (stats.isDirectory())
-          rmdir(p, options, er, cb)
-        else
-          options.unlink(p, cb)
-      })
-  })
-}
-
-const fixWinEPERMSync = (p, options, er) => {
-  assert(p)
-  assert(options)
-
-  try {
-    options.chmodSync(p, 0o666)
-  } catch (er2) {
-    if (er2.code === "ENOENT")
-      return
-    else
-      throw er
-  }
-
-  let stats
-  try {
-    stats = options.statSync(p)
-  } catch (er3) {
-    if (er3.code === "ENOENT")
-      return
-    else
-      throw er
-  }
-
-  if (stats.isDirectory())
-    rmdirSync(p, options, er)
-  else
-    options.unlinkSync(p)
-}
-
-const rmdir = (p, options, originalEr, cb) => {
-  assert(p)
-  assert(options)
-  assert(typeof cb === 'function')
-
-  // try to rmdir first, and only readdir on ENOTEMPTY or EEXIST (SunOS)
-  // if we guessed wrong, and it's not a directory, then
-  // raise the original error.
-  options.rmdir(p, er => {
-    if (er && (er.code === "ENOTEMPTY" || er.code === "EEXIST" || er.code === "EPERM"))
-      rmkids(p, options, cb)
-    else if (er && er.code === "ENOTDIR")
-      cb(originalEr)
-    else
-      cb(er)
-  })
-}
-
-const rmkids = (p, options, cb) => {
-  assert(p)
-  assert(options)
-  assert(typeof cb === 'function')
-
-  options.readdir(p, (er, files) => {
-    if (er)
-      return cb(er)
-    let n = files.length
-    if (n === 0)
-      return options.rmdir(p, cb)
-    let errState
-    files.forEach(f => {
-      rimraf(path.join(p, f), options, er => {
-        if (errState)
-          return
-        if (er)
-          return cb(errState = er)
-        if (--n === 0)
-          options.rmdir(p, cb)
-      })
-    })
-  })
-}
-
-// this looks simpler, and is strictly *faster*, but will
-// tie up the JavaScript thread and fail on excessively
-// deep directory trees.
-const rimrafSync = (p, options) => {
-  options = options || {}
-  defaults(options)
-
-  assert(p, 'rimraf: missing path')
-  assert.equal(typeof p, 'string', 'rimraf: path should be a string')
-  assert(options, 'rimraf: missing options')
-  assert.equal(typeof options, 'object', 'rimraf: options should be object')
-
-  let results
-
-  if (options.disableGlob || !glob.hasMagic(p)) {
-    results = [p]
-  } else {
-    try {
-      options.lstatSync(p)
-      results = [p]
-    } catch (er) {
-      results = glob.sync(p, options.glob)
-    }
-  }
-
-  if (!results.length)
-    return
-
-  for (let i = 0; i < results.length; i++) {
-    const p = results[i]
-
-    let st
-    try {
-      st = options.lstatSync(p)
-    } catch (er) {
-      if (er.code === "ENOENT")
-        return
-
-      // Windows can EPERM on stat.  Life is suffering.
-      if (er.code === "EPERM" && isWindows)
-        fixWinEPERMSync(p, options, er)
-    }
-
-    try {
-      // sunos lets the root user unlink directories, which is... weird.
-      if (st && st.isDirectory())
-        rmdirSync(p, options, null)
-      else
-        options.unlinkSync(p)
-    } catch (er) {
-      if (er.code === "ENOENT")
-        return
-      if (er.code === "EPERM")
-        return isWindows ? fixWinEPERMSync(p, options, er) : rmdirSync(p, options, er)
-      if (er.code !== "EISDIR")
-        throw er
-
-      rmdirSync(p, options, er)
-    }
-  }
-}
-
-const rmdirSync = (p, options, originalEr) => {
-  assert(p)
-  assert(options)
-
-  try {
-    options.rmdirSync(p)
-  } catch (er) {
-    if (er.code === "ENOENT")
-      return
-    if (er.code === "ENOTDIR")
-      throw originalEr
-    if (er.code === "ENOTEMPTY" || er.code === "EEXIST" || er.code === "EPERM")
-      rmkidsSync(p, options)
-  }
-}
-
-const rmkidsSync = (p, options) => {
-  assert(p)
-  assert(options)
-  options.readdirSync(p).forEach(f => rimrafSync(path.join(p, f), options))
-
-  // We only end up here once we got ENOTEMPTY at least once, and
-  // at this point, we are guaranteed to have removed all the kids.
-  // So, we know that it won't be ENOENT or ENOTDIR or anything else.
-  // try really hard to delete stuff on windows, because it has a
-  // PROFOUNDLY annoying habit of not closing handles promptly when
-  // files are deleted, resulting in spurious ENOTEMPTY errors.
-  const retries = isWindows ? 100 : 1
-  let i = 0
-  do {
-    let threw = true
-    try {
-      const ret = options.rmdirSync(p, options)
-      threw = false
-      return ret
-    } finally {
-      if (++i < retries && threw)
-        continue
-    }
-  } while (true)
-}
-
-module.exports = rimraf
-rimraf.sync = rimrafSync
-
-
-/***/ }),
-/* 316 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// Approach:
-//
-// 1. Get the minimatch set
-// 2. For each pattern in the set, PROCESS(pattern, false)
-// 3. Store matches per-set, then uniq them
-//
-// PROCESS(pattern, inGlobStar)
-// Get the first [n] items from pattern that are all strings
-// Join these together.  This is PREFIX.
-//   If there is no more remaining, then stat(PREFIX) and
-//   add to matches if it succeeds.  END.
-//
-// If inGlobStar and PREFIX is symlink and points to dir
-//   set ENTRIES = []
-// else readdir(PREFIX) as ENTRIES
-//   If fail, END
-//
-// with ENTRIES
-//   If pattern[n] is GLOBSTAR
-//     // handle the case where the globstar match is empty
-//     // by pruning it out, and testing the resulting pattern
-//     PROCESS(pattern[0..n] + pattern[n+1 .. $], false)
-//     // handle other cases.
-//     for ENTRY in ENTRIES (not dotfiles)
-//       // attach globstar + tail onto the entry
-//       // Mark that this entry is a globstar match
-//       PROCESS(pattern[0..n] + ENTRY + pattern[n .. $], true)
-//
-//   else // not globstar
-//     for ENTRY in ENTRIES (not dotfiles, unless pattern[n] is dot)
-//       Test ENTRY against pattern[n]
-//       If fails, continue
-//       If passes, PROCESS(pattern[0..n] + item + pattern[n+1 .. $])
-//
-// Caveat:
-//   Cache all stats and readdirs results to minimize syscall.  Since all
-//   we ever care about is existence and directory-ness, we can just keep
-//   `true` for files, and [children,...] for directories, or `false` for
-//   things that don't exist.
-
-module.exports = glob
-
-var fs = __webpack_require__(66)
-var rp = __webpack_require__(317)
-var minimatch = __webpack_require__(271)
-var Minimatch = minimatch.Minimatch
-var inherits = __webpack_require__(319)
-var EE = __webpack_require__(197).EventEmitter
-var path = __webpack_require__(82)
-var assert = __webpack_require__(108)
-var isAbsolute = __webpack_require__(321)
-var globSync = __webpack_require__(322)
-var common = __webpack_require__(323)
-var alphasort = common.alphasort
-var alphasorti = common.alphasorti
-var setopts = common.setopts
-var ownProp = common.ownProp
-var inflight = __webpack_require__(324)
-var util = __webpack_require__(74)
-var childrenIgnored = common.childrenIgnored
-var isIgnored = common.isIgnored
-
-var once = __webpack_require__(326)
-
-function glob (pattern, options, cb) {
-  if (typeof options === 'function') cb = options, options = {}
-  if (!options) options = {}
-
-  if (options.sync) {
-    if (cb)
-      throw new TypeError('callback provided to sync glob')
-    return globSync(pattern, options)
-  }
-
-  return new Glob(pattern, options, cb)
-}
-
-glob.sync = globSync
-var GlobSync = glob.GlobSync = globSync.GlobSync
-
-// old api surface
-glob.glob = glob
-
-function extend (origin, add) {
-  if (add === null || typeof add !== 'object') {
-    return origin
-  }
-
-  var keys = Object.keys(add)
-  var i = keys.length
-  while (i--) {
-    origin[keys[i]] = add[keys[i]]
-  }
-  return origin
-}
-
-glob.hasMagic = function (pattern, options_) {
-  var options = extend({}, options_)
-  options.noprocess = true
-
-  var g = new Glob(pattern, options)
-  var set = g.minimatch.set
-
-  if (!pattern)
-    return false
-
-  if (set.length > 1)
-    return true
-
-  for (var j = 0; j < set[0].length; j++) {
-    if (typeof set[0][j] !== 'string')
-      return true
-  }
-
-  return false
-}
-
-glob.Glob = Glob
-inherits(Glob, EE)
-function Glob (pattern, options, cb) {
-  if (typeof options === 'function') {
-    cb = options
-    options = null
-  }
-
-  if (options && options.sync) {
-    if (cb)
-      throw new TypeError('callback provided to sync glob')
-    return new GlobSync(pattern, options)
-  }
-
-  if (!(this instanceof Glob))
-    return new Glob(pattern, options, cb)
-
-  setopts(this, pattern, options)
-  this._didRealPath = false
-
-  // process each pattern in the minimatch set
-  var n = this.minimatch.set.length
-
-  // The matches are stored as {<filename>: true,...} so that
-  // duplicates are automagically pruned.
-  // Later, we do an Object.keys() on these.
-  // Keep them as a list so we can fill in when nonull is set.
-  this.matches = new Array(n)
-
-  if (typeof cb === 'function') {
-    cb = once(cb)
-    this.on('error', cb)
-    this.on('end', function (matches) {
-      cb(null, matches)
-    })
-  }
-
-  var self = this
-  this._processing = 0
-
-  this._emitQueue = []
-  this._processQueue = []
-  this.paused = false
-
-  if (this.noprocess)
-    return this
-
-  if (n === 0)
-    return done()
-
-  var sync = true
-  for (var i = 0; i < n; i ++) {
-    this._process(this.minimatch.set[i], i, false, done)
-  }
-  sync = false
-
-  function done () {
-    --self._processing
-    if (self._processing <= 0) {
-      if (sync) {
-        process.nextTick(function () {
-          self._finish()
-        })
-      } else {
-        self._finish()
-      }
-    }
-  }
-}
-
-Glob.prototype._finish = function () {
-  assert(this instanceof Glob)
-  if (this.aborted)
-    return
-
-  if (this.realpath && !this._didRealpath)
-    return this._realpath()
-
-  common.finish(this)
-  this.emit('end', this.found)
-}
-
-Glob.prototype._realpath = function () {
-  if (this._didRealpath)
-    return
-
-  this._didRealpath = true
-
-  var n = this.matches.length
-  if (n === 0)
-    return this._finish()
-
-  var self = this
-  for (var i = 0; i < this.matches.length; i++)
-    this._realpathSet(i, next)
-
-  function next () {
-    if (--n === 0)
-      self._finish()
-  }
-}
-
-Glob.prototype._realpathSet = function (index, cb) {
-  var matchset = this.matches[index]
-  if (!matchset)
-    return cb()
-
-  var found = Object.keys(matchset)
-  var self = this
-  var n = found.length
-
-  if (n === 0)
-    return cb()
-
-  var set = this.matches[index] = Object.create(null)
-  found.forEach(function (p, i) {
-    // If there's a problem with the stat, then it means that
-    // one or more of the links in the realpath couldn't be
-    // resolved.  just return the abs value in that case.
-    p = self._makeAbs(p)
-    rp.realpath(p, self.realpathCache, function (er, real) {
-      if (!er)
-        set[real] = true
-      else if (er.syscall === 'stat')
-        set[p] = true
-      else
-        self.emit('error', er) // srsly wtf right here
-
-      if (--n === 0) {
-        self.matches[index] = set
-        cb()
-      }
-    })
-  })
-}
-
-Glob.prototype._mark = function (p) {
-  return common.mark(this, p)
-}
-
-Glob.prototype._makeAbs = function (f) {
-  return common.makeAbs(this, f)
-}
-
-Glob.prototype.abort = function () {
-  this.aborted = true
-  this.emit('abort')
-}
-
-Glob.prototype.pause = function () {
-  if (!this.paused) {
-    this.paused = true
-    this.emit('pause')
-  }
-}
-
-Glob.prototype.resume = function () {
-  if (this.paused) {
-    this.emit('resume')
-    this.paused = false
-    if (this._emitQueue.length) {
-      var eq = this._emitQueue.slice(0)
-      this._emitQueue.length = 0
-      for (var i = 0; i < eq.length; i ++) {
-        var e = eq[i]
-        this._emitMatch(e[0], e[1])
-      }
-    }
-    if (this._processQueue.length) {
-      var pq = this._processQueue.slice(0)
-      this._processQueue.length = 0
-      for (var i = 0; i < pq.length; i ++) {
-        var p = pq[i]
-        this._processing--
-        this._process(p[0], p[1], p[2], p[3])
-      }
-    }
-  }
-}
-
-Glob.prototype._process = function (pattern, index, inGlobStar, cb) {
-  assert(this instanceof Glob)
-  assert(typeof cb === 'function')
-
-  if (this.aborted)
-    return
-
-  this._processing++
-  if (this.paused) {
-    this._processQueue.push([pattern, index, inGlobStar, cb])
-    return
-  }
-
-  //console.error('PROCESS %d', this._processing, pattern)
-
-  // Get the first [n] parts of pattern that are all strings.
-  var n = 0
-  while (typeof pattern[n] === 'string') {
-    n ++
-  }
-  // now n is the index of the first one that is *not* a string.
-
-  // see if there's anything else
-  var prefix
-  switch (n) {
-    // if not, then this is rather simple
-    case pattern.length:
-      this._processSimple(pattern.join('/'), index, cb)
-      return
-
-    case 0:
-      // pattern *starts* with some non-trivial item.
-      // going to readdir(cwd), but not include the prefix in matches.
-      prefix = null
-      break
-
-    default:
-      // pattern has some string bits in the front.
-      // whatever it starts with, whether that's 'absolute' like /foo/bar,
-      // or 'relative' like '../baz'
-      prefix = pattern.slice(0, n).join('/')
-      break
-  }
-
-  var remain = pattern.slice(n)
-
-  // get the list of entries.
-  var read
-  if (prefix === null)
-    read = '.'
-  else if (isAbsolute(prefix) || isAbsolute(pattern.join('/'))) {
-    if (!prefix || !isAbsolute(prefix))
-      prefix = '/' + prefix
-    read = prefix
-  } else
-    read = prefix
-
-  var abs = this._makeAbs(read)
-
-  //if ignored, skip _processing
-  if (childrenIgnored(this, read))
-    return cb()
-
-  var isGlobStar = remain[0] === minimatch.GLOBSTAR
-  if (isGlobStar)
-    this._processGlobStar(prefix, read, abs, remain, index, inGlobStar, cb)
-  else
-    this._processReaddir(prefix, read, abs, remain, index, inGlobStar, cb)
-}
-
-Glob.prototype._processReaddir = function (prefix, read, abs, remain, index, inGlobStar, cb) {
-  var self = this
-  this._readdir(abs, inGlobStar, function (er, entries) {
-    return self._processReaddir2(prefix, read, abs, remain, index, inGlobStar, entries, cb)
-  })
-}
-
-Glob.prototype._processReaddir2 = function (prefix, read, abs, remain, index, inGlobStar, entries, cb) {
-
-  // if the abs isn't a dir, then nothing can match!
-  if (!entries)
-    return cb()
-
-  // It will only match dot entries if it starts with a dot, or if
-  // dot is set.  Stuff like @(.foo|.bar) isn't allowed.
-  var pn = remain[0]
-  var negate = !!this.minimatch.negate
-  var rawGlob = pn._glob
-  var dotOk = this.dot || rawGlob.charAt(0) === '.'
-
-  var matchedEntries = []
-  for (var i = 0; i < entries.length; i++) {
-    var e = entries[i]
-    if (e.charAt(0) !== '.' || dotOk) {
-      var m
-      if (negate && !prefix) {
-        m = !e.match(pn)
-      } else {
-        m = e.match(pn)
-      }
-      if (m)
-        matchedEntries.push(e)
-    }
-  }
-
-  //console.error('prd2', prefix, entries, remain[0]._glob, matchedEntries)
-
-  var len = matchedEntries.length
-  // If there are no matched entries, then nothing matches.
-  if (len === 0)
-    return cb()
-
-  // if this is the last remaining pattern bit, then no need for
-  // an additional stat *unless* the user has specified mark or
-  // stat explicitly.  We know they exist, since readdir returned
-  // them.
-
-  if (remain.length === 1 && !this.mark && !this.stat) {
-    if (!this.matches[index])
-      this.matches[index] = Object.create(null)
-
-    for (var i = 0; i < len; i ++) {
-      var e = matchedEntries[i]
-      if (prefix) {
-        if (prefix !== '/')
-          e = prefix + '/' + e
-        else
-          e = prefix + e
-      }
-
-      if (e.charAt(0) === '/' && !this.nomount) {
-        e = path.join(this.root, e)
-      }
-      this._emitMatch(index, e)
-    }
-    // This was the last one, and no stats were needed
-    return cb()
-  }
-
-  // now test all matched entries as stand-ins for that part
-  // of the pattern.
-  remain.shift()
-  for (var i = 0; i < len; i ++) {
-    var e = matchedEntries[i]
-    var newPattern
-    if (prefix) {
-      if (prefix !== '/')
-        e = prefix + '/' + e
-      else
-        e = prefix + e
-    }
-    this._process([e].concat(remain), index, inGlobStar, cb)
-  }
-  cb()
-}
-
-Glob.prototype._emitMatch = function (index, e) {
-  if (this.aborted)
-    return
-
-  if (isIgnored(this, e))
-    return
-
-  if (this.paused) {
-    this._emitQueue.push([index, e])
-    return
-  }
-
-  var abs = isAbsolute(e) ? e : this._makeAbs(e)
-
-  if (this.mark)
-    e = this._mark(e)
-
-  if (this.absolute)
-    e = abs
-
-  if (this.matches[index][e])
-    return
-
-  if (this.nodir) {
-    var c = this.cache[abs]
-    if (c === 'DIR' || Array.isArray(c))
-      return
-  }
-
-  this.matches[index][e] = true
-
-  var st = this.statCache[abs]
-  if (st)
-    this.emit('stat', e, st)
-
-  this.emit('match', e)
-}
-
-Glob.prototype._readdirInGlobStar = function (abs, cb) {
-  if (this.aborted)
-    return
-
-  // follow all symlinked directories forever
-  // just proceed as if this is a non-globstar situation
-  if (this.follow)
-    return this._readdir(abs, false, cb)
-
-  var lstatkey = 'lstat\0' + abs
-  var self = this
-  var lstatcb = inflight(lstatkey, lstatcb_)
-
-  if (lstatcb)
-    fs.lstat(abs, lstatcb)
-
-  function lstatcb_ (er, lstat) {
-    if (er && er.code === 'ENOENT')
-      return cb()
-
-    var isSym = lstat && lstat.isSymbolicLink()
-    self.symlinks[abs] = isSym
-
-    // If it's not a symlink or a dir, then it's definitely a regular file.
-    // don't bother doing a readdir in that case.
-    if (!isSym && lstat && !lstat.isDirectory()) {
-      self.cache[abs] = 'FILE'
-      cb()
-    } else
-      self._readdir(abs, false, cb)
-  }
-}
-
-Glob.prototype._readdir = function (abs, inGlobStar, cb) {
-  if (this.aborted)
-    return
-
-  cb = inflight('readdir\0'+abs+'\0'+inGlobStar, cb)
-  if (!cb)
-    return
-
-  //console.error('RD %j %j', +inGlobStar, abs)
-  if (inGlobStar && !ownProp(this.symlinks, abs))
-    return this._readdirInGlobStar(abs, cb)
-
-  if (ownProp(this.cache, abs)) {
-    var c = this.cache[abs]
-    if (!c || c === 'FILE')
-      return cb()
-
-    if (Array.isArray(c))
-      return cb(null, c)
-  }
-
-  var self = this
-  fs.readdir(abs, readdirCb(this, abs, cb))
-}
-
-function readdirCb (self, abs, cb) {
-  return function (er, entries) {
-    if (er)
-      self._readdirError(abs, er, cb)
-    else
-      self._readdirEntries(abs, entries, cb)
-  }
-}
-
-Glob.prototype._readdirEntries = function (abs, entries, cb) {
-  if (this.aborted)
-    return
-
-  // if we haven't asked to stat everything, then just
-  // assume that everything in there exists, so we can avoid
-  // having to stat it a second time.
-  if (!this.mark && !this.stat) {
-    for (var i = 0; i < entries.length; i ++) {
-      var e = entries[i]
-      if (abs === '/')
-        e = abs + e
-      else
-        e = abs + '/' + e
-      this.cache[e] = true
-    }
-  }
-
-  this.cache[abs] = entries
-  return cb(null, entries)
-}
-
-Glob.prototype._readdirError = function (f, er, cb) {
-  if (this.aborted)
-    return
-
-  // handle errors, and cache the information
-  switch (er.code) {
-    case 'ENOTSUP': // https://github.com/isaacs/node-glob/issues/205
-    case 'ENOTDIR': // totally normal. means it *does* exist.
-      var abs = this._makeAbs(f)
-      this.cache[abs] = 'FILE'
-      if (abs === this.cwdAbs) {
-        var error = new Error(er.code + ' invalid cwd ' + this.cwd)
-        error.path = this.cwd
-        error.code = er.code
-        this.emit('error', error)
-        this.abort()
-      }
-      break
-
-    case 'ENOENT': // not terribly unusual
-    case 'ELOOP':
-    case 'ENAMETOOLONG':
-    case 'UNKNOWN':
-      this.cache[this._makeAbs(f)] = false
-      break
-
-    default: // some unusual error.  Treat as failure.
-      this.cache[this._makeAbs(f)] = false
-      if (this.strict) {
-        this.emit('error', er)
-        // If the error is handled, then we abort
-        // if not, we threw out of here
-        this.abort()
-      }
-      if (!this.silent)
-        console.error('glob error', er)
-      break
-  }
-
-  return cb()
-}
-
-Glob.prototype._processGlobStar = function (prefix, read, abs, remain, index, inGlobStar, cb) {
-  var self = this
-  this._readdir(abs, inGlobStar, function (er, entries) {
-    self._processGlobStar2(prefix, read, abs, remain, index, inGlobStar, entries, cb)
-  })
-}
-
-
-Glob.prototype._processGlobStar2 = function (prefix, read, abs, remain, index, inGlobStar, entries, cb) {
-  //console.error('pgs2', prefix, remain[0], entries)
-
-  // no entries means not a dir, so it can never have matches
-  // foo.txt/** doesn't match foo.txt
-  if (!entries)
-    return cb()
-
-  // test without the globstar, and with every child both below
-  // and replacing the globstar.
-  var remainWithoutGlobStar = remain.slice(1)
-  var gspref = prefix ? [ prefix ] : []
-  var noGlobStar = gspref.concat(remainWithoutGlobStar)
-
-  // the noGlobStar pattern exits the inGlobStar state
-  this._process(noGlobStar, index, false, cb)
-
-  var isSym = this.symlinks[abs]
-  var len = entries.length
-
-  // If it's a symlink, and we're in a globstar, then stop
-  if (isSym && inGlobStar)
-    return cb()
-
-  for (var i = 0; i < len; i++) {
-    var e = entries[i]
-    if (e.charAt(0) === '.' && !this.dot)
-      continue
-
-    // these two cases enter the inGlobStar state
-    var instead = gspref.concat(entries[i], remainWithoutGlobStar)
-    this._process(instead, index, true, cb)
-
-    var below = gspref.concat(entries[i], remain)
-    this._process(below, index, true, cb)
-  }
-
-  cb()
-}
-
-Glob.prototype._processSimple = function (prefix, index, cb) {
-  // XXX review this.  Shouldn't it be doing the mounting etc
-  // before doing stat?  kinda weird?
-  var self = this
-  this._stat(prefix, function (er, exists) {
-    self._processSimple2(prefix, index, er, exists, cb)
-  })
-}
-Glob.prototype._processSimple2 = function (prefix, index, er, exists, cb) {
-
-  //console.error('ps2', prefix, exists)
-
-  if (!this.matches[index])
-    this.matches[index] = Object.create(null)
-
-  // If it doesn't exist, then just mark the lack of results
-  if (!exists)
-    return cb()
-
-  if (prefix && isAbsolute(prefix) && !this.nomount) {
-    var trail = /[\/\\]$/.test(prefix)
-    if (prefix.charAt(0) === '/') {
-      prefix = path.join(this.root, prefix)
-    } else {
-      prefix = path.resolve(this.root, prefix)
-      if (trail)
-        prefix += '/'
-    }
-  }
-
-  if (process.platform === 'win32')
-    prefix = prefix.replace(/\\/g, '/')
-
-  // Mark this as a match
-  this._emitMatch(index, prefix)
-  cb()
-}
-
-// Returns either 'DIR', 'FILE', or false
-Glob.prototype._stat = function (f, cb) {
-  var abs = this._makeAbs(f)
-  var needDir = f.slice(-1) === '/'
-
-  if (f.length > this.maxLength)
-    return cb()
-
-  if (!this.stat && ownProp(this.cache, abs)) {
-    var c = this.cache[abs]
-
-    if (Array.isArray(c))
-      c = 'DIR'
-
-    // It exists, but maybe not how we need it
-    if (!needDir || c === 'DIR')
-      return cb(null, c)
-
-    if (needDir && c === 'FILE')
-      return cb()
-
-    // otherwise we have to stat, because maybe c=true
-    // if we know it exists, but not what it is.
-  }
-
-  var exists
-  var stat = this.statCache[abs]
-  if (stat !== undefined) {
-    if (stat === false)
-      return cb(null, stat)
-    else {
-      var type = stat.isDirectory() ? 'DIR' : 'FILE'
-      if (needDir && type === 'FILE')
-        return cb()
-      else
-        return cb(null, type, stat)
-    }
-  }
-
-  var self = this
-  var statcb = inflight('stat\0' + abs, lstatcb_)
-  if (statcb)
-    fs.lstat(abs, statcb)
-
-  function lstatcb_ (er, lstat) {
-    if (lstat && lstat.isSymbolicLink()) {
-      // If it's a symlink, then treat it as the target, unless
-      // the target does not exist, then treat it as a file.
-      return fs.stat(abs, function (er, stat) {
-        if (er)
-          self._stat2(f, abs, null, lstat, cb)
-        else
-          self._stat2(f, abs, er, stat, cb)
-      })
-    } else {
-      self._stat2(f, abs, er, lstat, cb)
-    }
-  }
-}
-
-Glob.prototype._stat2 = function (f, abs, er, stat, cb) {
-  if (er && (er.code === 'ENOENT' || er.code === 'ENOTDIR')) {
-    this.statCache[abs] = false
-    return cb()
-  }
-
-  var needDir = f.slice(-1) === '/'
-  this.statCache[abs] = stat
-
-  if (abs.slice(-1) === '/' && stat && !stat.isDirectory())
-    return cb(null, false, stat)
-
-  var c = true
-  if (stat)
-    c = stat.isDirectory() ? 'DIR' : 'FILE'
-  this.cache[abs] = this.cache[abs] || c
-
-  if (needDir && c === 'FILE')
-    return cb()
-
-  return cb(null, c, stat)
-}
-
-
-/***/ }),
-/* 317 */
-/***/ (function(module, exports, __webpack_require__) {
-
-module.exports = realpath
-realpath.realpath = realpath
-realpath.sync = realpathSync
-realpath.realpathSync = realpathSync
-realpath.monkeypatch = monkeypatch
-realpath.unmonkeypatch = unmonkeypatch
-
-var fs = __webpack_require__(66)
-var origRealpath = fs.realpath
-var origRealpathSync = fs.realpathSync
-
-var version = process.version
-var ok = /^v[0-5]\./.test(version)
-var old = __webpack_require__(318)
-
-function newError (er) {
-  return er && er.syscall === 'realpath' && (
-    er.code === 'ELOOP' ||
-    er.code === 'ENOMEM' ||
-    er.code === 'ENAMETOOLONG'
-  )
-}
-
-function realpath (p, cache, cb) {
-  if (ok) {
-    return origRealpath(p, cache, cb)
-  }
-
-  if (typeof cache === 'function') {
-    cb = cache
-    cache = null
-  }
-  origRealpath(p, cache, function (er, result) {
-    if (newError(er)) {
-      old.realpath(p, cache, cb)
-    } else {
-      cb(er, result)
-    }
-  })
-}
-
-function realpathSync (p, cache) {
-  if (ok) {
-    return origRealpathSync(p, cache)
-  }
-
-  try {
-    return origRealpathSync(p, cache)
-  } catch (er) {
-    if (newError(er)) {
-      return old.realpathSync(p, cache)
-    } else {
-      throw er
-    }
-  }
-}
-
-function monkeypatch () {
-  fs.realpath = realpath
-  fs.realpathSync = realpathSync
-}
-
-function unmonkeypatch () {
-  fs.realpath = origRealpath
-  fs.realpathSync = origRealpathSync
-}
-
-
-/***/ }),
-/* 318 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
-// The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-var pathModule = __webpack_require__(82);
-var isWindows = process.platform === 'win32';
-var fs = __webpack_require__(66);
-
-// JavaScript implementation of realpath, ported from node pre-v6
-
-var DEBUG = process.env.NODE_DEBUG && /fs/.test(process.env.NODE_DEBUG);
-
-function rethrow() {
-  // Only enable in debug mode. A backtrace uses ~1000 bytes of heap space and
-  // is fairly slow to generate.
-  var callback;
-  if (DEBUG) {
-    var backtrace = new Error;
-    callback = debugCallback;
-  } else
-    callback = missingCallback;
-
-  return callback;
-
-  function debugCallback(err) {
-    if (err) {
-      backtrace.message = err.message;
-      err = backtrace;
-      missingCallback(err);
-    }
-  }
-
-  function missingCallback(err) {
-    if (err) {
-      if (process.throwDeprecation)
-        throw err;  // Forgot a callback but don't know where? Use NODE_DEBUG=fs
-      else if (!process.noDeprecation) {
-        var msg = 'fs: missing callback ' + (err.stack || err.message);
-        if (process.traceDeprecation)
-          console.trace(msg);
-        else
-          console.error(msg);
-      }
-    }
-  }
-}
-
-function maybeCallback(cb) {
-  return typeof cb === 'function' ? cb : rethrow();
-}
-
-var normalize = pathModule.normalize;
-
-// Regexp that finds the next partion of a (partial) path
-// result is [base_with_slash, base], e.g. ['somedir/', 'somedir']
-if (isWindows) {
-  var nextPartRe = /(.*?)(?:[\/\\]+|$)/g;
-} else {
-  var nextPartRe = /(.*?)(?:[\/]+|$)/g;
-}
-
-// Regex to find the device root, including trailing slash. E.g. 'c:\\'.
-if (isWindows) {
-  var splitRootRe = /^(?:[a-zA-Z]:|[\\\/]{2}[^\\\/]+[\\\/][^\\\/]+)?[\\\/]*/;
-} else {
-  var splitRootRe = /^[\/]*/;
-}
-
-exports.realpathSync = function realpathSync(p, cache) {
-  // make p is absolute
-  p = pathModule.resolve(p);
-
-  if (cache && Object.prototype.hasOwnProperty.call(cache, p)) {
-    return cache[p];
-  }
-
-  var original = p,
-      seenLinks = {},
-      knownHard = {};
-
-  // current character position in p
-  var pos;
-  // the partial path so far, including a trailing slash if any
-  var current;
-  // the partial path without a trailing slash (except when pointing at a root)
-  var base;
-  // the partial path scanned in the previous round, with slash
-  var previous;
-
-  start();
-
-  function start() {
-    // Skip over roots
-    var m = splitRootRe.exec(p);
-    pos = m[0].length;
-    current = m[0];
-    base = m[0];
-    previous = '';
-
-    // On windows, check that the root exists. On unix there is no need.
-    if (isWindows && !knownHard[base]) {
-      fs.lstatSync(base);
-      knownHard[base] = true;
-    }
-  }
-
-  // walk down the path, swapping out linked pathparts for their real
-  // values
-  // NB: p.length changes.
-  while (pos < p.length) {
-    // find the next part
-    nextPartRe.lastIndex = pos;
-    var result = nextPartRe.exec(p);
-    previous = current;
-    current += result[0];
-    base = previous + result[1];
-    pos = nextPartRe.lastIndex;
-
-    // continue if not a symlink
-    if (knownHard[base] || (cache && cache[base] === base)) {
-      continue;
-    }
-
-    var resolvedLink;
-    if (cache && Object.prototype.hasOwnProperty.call(cache, base)) {
-      // some known symbolic link.  no need to stat again.
-      resolvedLink = cache[base];
-    } else {
-      var stat = fs.lstatSync(base);
-      if (!stat.isSymbolicLink()) {
-        knownHard[base] = true;
-        if (cache) cache[base] = base;
-        continue;
-      }
-
-      // read the link if it wasn't read before
-      // dev/ino always return 0 on windows, so skip the check.
-      var linkTarget = null;
-      if (!isWindows) {
-        var id = stat.dev.toString(32) + ':' + stat.ino.toString(32);
-        if (seenLinks.hasOwnProperty(id)) {
-          linkTarget = seenLinks[id];
-        }
-      }
-      if (linkTarget === null) {
-        fs.statSync(base);
-        linkTarget = fs.readlinkSync(base);
-      }
-      resolvedLink = pathModule.resolve(previous, linkTarget);
-      // track this, if given a cache.
-      if (cache) cache[base] = resolvedLink;
-      if (!isWindows) seenLinks[id] = linkTarget;
-    }
-
-    // resolve the link, then start over
-    p = pathModule.resolve(resolvedLink, p.slice(pos));
-    start();
-  }
-
-  if (cache) cache[original] = p;
-
-  return p;
-};
-
-
-exports.realpath = function realpath(p, cache, cb) {
-  if (typeof cb !== 'function') {
-    cb = maybeCallback(cache);
-    cache = null;
-  }
-
-  // make p is absolute
-  p = pathModule.resolve(p);
-
-  if (cache && Object.prototype.hasOwnProperty.call(cache, p)) {
-    return process.nextTick(cb.bind(null, null, cache[p]));
-  }
-
-  var original = p,
-      seenLinks = {},
-      knownHard = {};
-
-  // current character position in p
-  var pos;
-  // the partial path so far, including a trailing slash if any
-  var current;
-  // the partial path without a trailing slash (except when pointing at a root)
-  var base;
-  // the partial path scanned in the previous round, with slash
-  var previous;
-
-  start();
-
-  function start() {
-    // Skip over roots
-    var m = splitRootRe.exec(p);
-    pos = m[0].length;
-    current = m[0];
-    base = m[0];
-    previous = '';
-
-    // On windows, check that the root exists. On unix there is no need.
-    if (isWindows && !knownHard[base]) {
-      fs.lstat(base, function(err) {
-        if (err) return cb(err);
-        knownHard[base] = true;
-        LOOP();
-      });
-    } else {
-      process.nextTick(LOOP);
-    }
-  }
-
-  // walk down the path, swapping out linked pathparts for their real
-  // values
-  function LOOP() {
-    // stop if scanned past end of path
-    if (pos >= p.length) {
-      if (cache) cache[original] = p;
-      return cb(null, p);
-    }
-
-    // find the next part
-    nextPartRe.lastIndex = pos;
-    var result = nextPartRe.exec(p);
-    previous = current;
-    current += result[0];
-    base = previous + result[1];
-    pos = nextPartRe.lastIndex;
-
-    // continue if not a symlink
-    if (knownHard[base] || (cache && cache[base] === base)) {
-      return process.nextTick(LOOP);
-    }
-
-    if (cache && Object.prototype.hasOwnProperty.call(cache, base)) {
-      // known symbolic link.  no need to stat again.
-      return gotResolvedLink(cache[base]);
-    }
-
-    return fs.lstat(base, gotStat);
-  }
-
-  function gotStat(err, stat) {
-    if (err) return cb(err);
-
-    // if not a symlink, skip to the next path part
-    if (!stat.isSymbolicLink()) {
-      knownHard[base] = true;
-      if (cache) cache[base] = base;
-      return process.nextTick(LOOP);
-    }
-
-    // stat & read the link if not read before
-    // call gotTarget as soon as the link target is known
-    // dev/ino always return 0 on windows, so skip the check.
-    if (!isWindows) {
-      var id = stat.dev.toString(32) + ':' + stat.ino.toString(32);
-      if (seenLinks.hasOwnProperty(id)) {
-        return gotTarget(null, seenLinks[id], base);
-      }
-    }
-    fs.stat(base, function(err) {
-      if (err) return cb(err);
-
-      fs.readlink(base, function(err, target) {
-        if (!isWindows) seenLinks[id] = target;
-        gotTarget(err, target);
-      });
-    });
-  }
-
-  function gotTarget(err, target, base) {
-    if (err) return cb(err);
-
-    var resolvedLink = pathModule.resolve(previous, target);
-    if (cache) cache[base] = resolvedLink;
-    gotResolvedLink(resolvedLink);
-  }
-
-  function gotResolvedLink(resolvedLink) {
-    // resolve the link, then start over
-    p = pathModule.resolve(resolvedLink, p.slice(pos));
-    start();
-  }
-};
-
-
-/***/ }),
-/* 319 */
-/***/ (function(module, exports, __webpack_require__) {
-
-try {
-  var util = __webpack_require__(74);
-  /* istanbul ignore next */
-  if (typeof util.inherits !== 'function') throw '';
-  module.exports = util.inherits;
-} catch (e) {
-  /* istanbul ignore next */
-  module.exports = __webpack_require__(320);
-}
-
-
-/***/ }),
-/* 320 */
-/***/ (function(module, exports) {
-
-if (typeof Object.create === 'function') {
-  // implementation from standard node.js 'util' module
-  module.exports = function inherits(ctor, superCtor) {
-    if (superCtor) {
-      ctor.super_ = superCtor
-      ctor.prototype = Object.create(superCtor.prototype, {
-        constructor: {
-          value: ctor,
-          enumerable: false,
-          writable: true,
-          configurable: true
-        }
-      })
-    }
-  };
-} else {
-  // old school shim for old browsers
-  module.exports = function inherits(ctor, superCtor) {
-    if (superCtor) {
-      ctor.super_ = superCtor
-      var TempCtor = function () {}
-      TempCtor.prototype = superCtor.prototype
-      ctor.prototype = new TempCtor()
-      ctor.prototype.constructor = ctor
-    }
-  }
-}
-
-
-/***/ }),
-/* 321 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-function posix(path) {
-	return path.charAt(0) === '/';
-}
-
-function win32(path) {
-	// https://github.com/nodejs/node/blob/b3fcc245fb25539909ef1d5eaa01dbf92e168633/lib/path.js#L56
-	var splitDeviceRe = /^([a-zA-Z]:|[\\\/]{2}[^\\\/]+[\\\/]+[^\\\/]+)?([\\\/])?([\s\S]*?)$/;
-	var result = splitDeviceRe.exec(path);
-	var device = result[1] || '';
-	var isUnc = Boolean(device && device.charAt(1) !== ':');
-
-	// UNC paths are always absolute
-	return Boolean(result[2] || isUnc);
-}
-
-module.exports = process.platform === 'win32' ? win32 : posix;
-module.exports.posix = posix;
-module.exports.win32 = win32;
-
-
-/***/ }),
-/* 322 */
-/***/ (function(module, exports, __webpack_require__) {
-
-module.exports = globSync
-globSync.GlobSync = GlobSync
-
-var fs = __webpack_require__(66)
-var rp = __webpack_require__(317)
-var minimatch = __webpack_require__(271)
-var Minimatch = minimatch.Minimatch
-var Glob = __webpack_require__(316).Glob
-var util = __webpack_require__(74)
-var path = __webpack_require__(82)
-var assert = __webpack_require__(108)
-var isAbsolute = __webpack_require__(321)
-var common = __webpack_require__(323)
-var alphasort = common.alphasort
-var alphasorti = common.alphasorti
-var setopts = common.setopts
-var ownProp = common.ownProp
-var childrenIgnored = common.childrenIgnored
-var isIgnored = common.isIgnored
-
-function globSync (pattern, options) {
-  if (typeof options === 'function' || arguments.length === 3)
-    throw new TypeError('callback provided to sync glob\n'+
-                        'See: https://github.com/isaacs/node-glob/issues/167')
-
-  return new GlobSync(pattern, options).found
-}
-
-function GlobSync (pattern, options) {
-  if (!pattern)
-    throw new Error('must provide pattern')
-
-  if (typeof options === 'function' || arguments.length === 3)
-    throw new TypeError('callback provided to sync glob\n'+
-                        'See: https://github.com/isaacs/node-glob/issues/167')
-
-  if (!(this instanceof GlobSync))
-    return new GlobSync(pattern, options)
-
-  setopts(this, pattern, options)
-
-  if (this.noprocess)
-    return this
-
-  var n = this.minimatch.set.length
-  this.matches = new Array(n)
-  for (var i = 0; i < n; i ++) {
-    this._process(this.minimatch.set[i], i, false)
-  }
-  this._finish()
-}
-
-GlobSync.prototype._finish = function () {
-  assert(this instanceof GlobSync)
-  if (this.realpath) {
-    var self = this
-    this.matches.forEach(function (matchset, index) {
-      var set = self.matches[index] = Object.create(null)
-      for (var p in matchset) {
-        try {
-          p = self._makeAbs(p)
-          var real = rp.realpathSync(p, self.realpathCache)
-          set[real] = true
-        } catch (er) {
-          if (er.syscall === 'stat')
-            set[self._makeAbs(p)] = true
-          else
-            throw er
-        }
-      }
-    })
-  }
-  common.finish(this)
-}
-
-
-GlobSync.prototype._process = function (pattern, index, inGlobStar) {
-  assert(this instanceof GlobSync)
-
-  // Get the first [n] parts of pattern that are all strings.
-  var n = 0
-  while (typeof pattern[n] === 'string') {
-    n ++
-  }
-  // now n is the index of the first one that is *not* a string.
-
-  // See if there's anything else
-  var prefix
-  switch (n) {
-    // if not, then this is rather simple
-    case pattern.length:
-      this._processSimple(pattern.join('/'), index)
-      return
-
-    case 0:
-      // pattern *starts* with some non-trivial item.
-      // going to readdir(cwd), but not include the prefix in matches.
-      prefix = null
-      break
-
-    default:
-      // pattern has some string bits in the front.
-      // whatever it starts with, whether that's 'absolute' like /foo/bar,
-      // or 'relative' like '../baz'
-      prefix = pattern.slice(0, n).join('/')
-      break
-  }
-
-  var remain = pattern.slice(n)
-
-  // get the list of entries.
-  var read
-  if (prefix === null)
-    read = '.'
-  else if (isAbsolute(prefix) || isAbsolute(pattern.join('/'))) {
-    if (!prefix || !isAbsolute(prefix))
-      prefix = '/' + prefix
-    read = prefix
-  } else
-    read = prefix
-
-  var abs = this._makeAbs(read)
-
-  //if ignored, skip processing
-  if (childrenIgnored(this, read))
-    return
-
-  var isGlobStar = remain[0] === minimatch.GLOBSTAR
-  if (isGlobStar)
-    this._processGlobStar(prefix, read, abs, remain, index, inGlobStar)
-  else
-    this._processReaddir(prefix, read, abs, remain, index, inGlobStar)
-}
-
-
-GlobSync.prototype._processReaddir = function (prefix, read, abs, remain, index, inGlobStar) {
-  var entries = this._readdir(abs, inGlobStar)
-
-  // if the abs isn't a dir, then nothing can match!
-  if (!entries)
-    return
-
-  // It will only match dot entries if it starts with a dot, or if
-  // dot is set.  Stuff like @(.foo|.bar) isn't allowed.
-  var pn = remain[0]
-  var negate = !!this.minimatch.negate
-  var rawGlob = pn._glob
-  var dotOk = this.dot || rawGlob.charAt(0) === '.'
-
-  var matchedEntries = []
-  for (var i = 0; i < entries.length; i++) {
-    var e = entries[i]
-    if (e.charAt(0) !== '.' || dotOk) {
-      var m
-      if (negate && !prefix) {
-        m = !e.match(pn)
-      } else {
-        m = e.match(pn)
-      }
-      if (m)
-        matchedEntries.push(e)
-    }
-  }
-
-  var len = matchedEntries.length
-  // If there are no matched entries, then nothing matches.
-  if (len === 0)
-    return
-
-  // if this is the last remaining pattern bit, then no need for
-  // an additional stat *unless* the user has specified mark or
-  // stat explicitly.  We know they exist, since readdir returned
-  // them.
-
-  if (remain.length === 1 && !this.mark && !this.stat) {
-    if (!this.matches[index])
-      this.matches[index] = Object.create(null)
-
-    for (var i = 0; i < len; i ++) {
-      var e = matchedEntries[i]
-      if (prefix) {
-        if (prefix.slice(-1) !== '/')
-          e = prefix + '/' + e
-        else
-          e = prefix + e
-      }
-
-      if (e.charAt(0) === '/' && !this.nomount) {
-        e = path.join(this.root, e)
-      }
-      this._emitMatch(index, e)
-    }
-    // This was the last one, and no stats were needed
-    return
-  }
-
-  // now test all matched entries as stand-ins for that part
-  // of the pattern.
-  remain.shift()
-  for (var i = 0; i < len; i ++) {
-    var e = matchedEntries[i]
-    var newPattern
-    if (prefix)
-      newPattern = [prefix, e]
-    else
-      newPattern = [e]
-    this._process(newPattern.concat(remain), index, inGlobStar)
-  }
-}
-
-
-GlobSync.prototype._emitMatch = function (index, e) {
-  if (isIgnored(this, e))
-    return
-
-  var abs = this._makeAbs(e)
-
-  if (this.mark)
-    e = this._mark(e)
-
-  if (this.absolute) {
-    e = abs
-  }
-
-  if (this.matches[index][e])
-    return
-
-  if (this.nodir) {
-    var c = this.cache[abs]
-    if (c === 'DIR' || Array.isArray(c))
-      return
-  }
-
-  this.matches[index][e] = true
-
-  if (this.stat)
-    this._stat(e)
-}
-
-
-GlobSync.prototype._readdirInGlobStar = function (abs) {
-  // follow all symlinked directories forever
-  // just proceed as if this is a non-globstar situation
-  if (this.follow)
-    return this._readdir(abs, false)
-
-  var entries
-  var lstat
-  var stat
-  try {
-    lstat = fs.lstatSync(abs)
-  } catch (er) {
-    if (er.code === 'ENOENT') {
-      // lstat failed, doesn't exist
-      return null
-    }
-  }
-
-  var isSym = lstat && lstat.isSymbolicLink()
-  this.symlinks[abs] = isSym
-
-  // If it's not a symlink or a dir, then it's definitely a regular file.
-  // don't bother doing a readdir in that case.
-  if (!isSym && lstat && !lstat.isDirectory())
-    this.cache[abs] = 'FILE'
-  else
-    entries = this._readdir(abs, false)
-
-  return entries
-}
-
-GlobSync.prototype._readdir = function (abs, inGlobStar) {
-  var entries
-
-  if (inGlobStar && !ownProp(this.symlinks, abs))
-    return this._readdirInGlobStar(abs)
-
-  if (ownProp(this.cache, abs)) {
-    var c = this.cache[abs]
-    if (!c || c === 'FILE')
-      return null
-
-    if (Array.isArray(c))
-      return c
-  }
-
-  try {
-    return this._readdirEntries(abs, fs.readdirSync(abs))
-  } catch (er) {
-    this._readdirError(abs, er)
-    return null
-  }
-}
-
-GlobSync.prototype._readdirEntries = function (abs, entries) {
-  // if we haven't asked to stat everything, then just
-  // assume that everything in there exists, so we can avoid
-  // having to stat it a second time.
-  if (!this.mark && !this.stat) {
-    for (var i = 0; i < entries.length; i ++) {
-      var e = entries[i]
-      if (abs === '/')
-        e = abs + e
-      else
-        e = abs + '/' + e
-      this.cache[e] = true
-    }
-  }
-
-  this.cache[abs] = entries
-
-  // mark and cache dir-ness
-  return entries
-}
-
-GlobSync.prototype._readdirError = function (f, er) {
-  // handle errors, and cache the information
-  switch (er.code) {
-    case 'ENOTSUP': // https://github.com/isaacs/node-glob/issues/205
-    case 'ENOTDIR': // totally normal. means it *does* exist.
-      var abs = this._makeAbs(f)
-      this.cache[abs] = 'FILE'
-      if (abs === this.cwdAbs) {
-        var error = new Error(er.code + ' invalid cwd ' + this.cwd)
-        error.path = this.cwd
-        error.code = er.code
-        throw error
-      }
-      break
-
-    case 'ENOENT': // not terribly unusual
-    case 'ELOOP':
-    case 'ENAMETOOLONG':
-    case 'UNKNOWN':
-      this.cache[this._makeAbs(f)] = false
-      break
-
-    default: // some unusual error.  Treat as failure.
-      this.cache[this._makeAbs(f)] = false
-      if (this.strict)
-        throw er
-      if (!this.silent)
-        console.error('glob error', er)
-      break
-  }
-}
-
-GlobSync.prototype._processGlobStar = function (prefix, read, abs, remain, index, inGlobStar) {
-
-  var entries = this._readdir(abs, inGlobStar)
-
-  // no entries means not a dir, so it can never have matches
-  // foo.txt/** doesn't match foo.txt
-  if (!entries)
-    return
-
-  // test without the globstar, and with every child both below
-  // and replacing the globstar.
-  var remainWithoutGlobStar = remain.slice(1)
-  var gspref = prefix ? [ prefix ] : []
-  var noGlobStar = gspref.concat(remainWithoutGlobStar)
-
-  // the noGlobStar pattern exits the inGlobStar state
-  this._process(noGlobStar, index, false)
-
-  var len = entries.length
-  var isSym = this.symlinks[abs]
-
-  // If it's a symlink, and we're in a globstar, then stop
-  if (isSym && inGlobStar)
-    return
-
-  for (var i = 0; i < len; i++) {
-    var e = entries[i]
-    if (e.charAt(0) === '.' && !this.dot)
-      continue
-
-    // these two cases enter the inGlobStar state
-    var instead = gspref.concat(entries[i], remainWithoutGlobStar)
-    this._process(instead, index, true)
-
-    var below = gspref.concat(entries[i], remain)
-    this._process(below, index, true)
-  }
-}
-
-GlobSync.prototype._processSimple = function (prefix, index) {
-  // XXX review this.  Shouldn't it be doing the mounting etc
-  // before doing stat?  kinda weird?
-  var exists = this._stat(prefix)
-
-  if (!this.matches[index])
-    this.matches[index] = Object.create(null)
-
-  // If it doesn't exist, then just mark the lack of results
-  if (!exists)
-    return
-
-  if (prefix && isAbsolute(prefix) && !this.nomount) {
-    var trail = /[\/\\]$/.test(prefix)
-    if (prefix.charAt(0) === '/') {
-      prefix = path.join(this.root, prefix)
-    } else {
-      prefix = path.resolve(this.root, prefix)
-      if (trail)
-        prefix += '/'
-    }
-  }
-
-  if (process.platform === 'win32')
-    prefix = prefix.replace(/\\/g, '/')
-
-  // Mark this as a match
-  this._emitMatch(index, prefix)
-}
-
-// Returns either 'DIR', 'FILE', or false
-GlobSync.prototype._stat = function (f) {
-  var abs = this._makeAbs(f)
-  var needDir = f.slice(-1) === '/'
-
-  if (f.length > this.maxLength)
-    return false
-
-  if (!this.stat && ownProp(this.cache, abs)) {
-    var c = this.cache[abs]
-
-    if (Array.isArray(c))
-      c = 'DIR'
-
-    // It exists, but maybe not how we need it
-    if (!needDir || c === 'DIR')
-      return c
-
-    if (needDir && c === 'FILE')
-      return false
-
-    // otherwise we have to stat, because maybe c=true
-    // if we know it exists, but not what it is.
-  }
-
-  var exists
-  var stat = this.statCache[abs]
-  if (!stat) {
-    var lstat
-    try {
-      lstat = fs.lstatSync(abs)
-    } catch (er) {
-      if (er && (er.code === 'ENOENT' || er.code === 'ENOTDIR')) {
-        this.statCache[abs] = false
-        return false
-      }
-    }
-
-    if (lstat && lstat.isSymbolicLink()) {
-      try {
-        stat = fs.statSync(abs)
-      } catch (er) {
-        stat = lstat
-      }
-    } else {
-      stat = lstat
-    }
-  }
-
-  this.statCache[abs] = stat
-
-  var c = true
-  if (stat)
-    c = stat.isDirectory() ? 'DIR' : 'FILE'
-
-  this.cache[abs] = this.cache[abs] || c
-
-  if (needDir && c === 'FILE')
-    return false
-
-  return c
-}
-
-GlobSync.prototype._mark = function (p) {
-  return common.mark(this, p)
-}
-
-GlobSync.prototype._makeAbs = function (f) {
-  return common.makeAbs(this, f)
-}
-
-
-/***/ }),
-/* 323 */
-/***/ (function(module, exports, __webpack_require__) {
-
-exports.alphasort = alphasort
-exports.alphasorti = alphasorti
-exports.setopts = setopts
-exports.ownProp = ownProp
-exports.makeAbs = makeAbs
-exports.finish = finish
-exports.mark = mark
-exports.isIgnored = isIgnored
-exports.childrenIgnored = childrenIgnored
-
-function ownProp (obj, field) {
-  return Object.prototype.hasOwnProperty.call(obj, field)
-}
-
-var path = __webpack_require__(82)
-var minimatch = __webpack_require__(271)
-var isAbsolute = __webpack_require__(321)
-var Minimatch = minimatch.Minimatch
-
-function alphasorti (a, b) {
-  return a.toLowerCase().localeCompare(b.toLowerCase())
-}
-
-function alphasort (a, b) {
-  return a.localeCompare(b)
-}
-
-function setupIgnores (self, options) {
-  self.ignore = options.ignore || []
-
-  if (!Array.isArray(self.ignore))
-    self.ignore = [self.ignore]
-
-  if (self.ignore.length) {
-    self.ignore = self.ignore.map(ignoreMap)
-  }
-}
-
-// ignore patterns are always in dot:true mode.
-function ignoreMap (pattern) {
-  var gmatcher = null
-  if (pattern.slice(-3) === '/**') {
-    var gpattern = pattern.replace(/(\/\*\*)+$/, '')
-    gmatcher = new Minimatch(gpattern, { dot: true })
-  }
-
-  return {
-    matcher: new Minimatch(pattern, { dot: true }),
-    gmatcher: gmatcher
-  }
-}
-
-function setopts (self, pattern, options) {
-  if (!options)
-    options = {}
-
-  // base-matching: just use globstar for that.
-  if (options.matchBase && -1 === pattern.indexOf("/")) {
-    if (options.noglobstar) {
-      throw new Error("base matching requires globstar")
-    }
-    pattern = "**/" + pattern
-  }
-
-  self.silent = !!options.silent
-  self.pattern = pattern
-  self.strict = options.strict !== false
-  self.realpath = !!options.realpath
-  self.realpathCache = options.realpathCache || Object.create(null)
-  self.follow = !!options.follow
-  self.dot = !!options.dot
-  self.mark = !!options.mark
-  self.nodir = !!options.nodir
-  if (self.nodir)
-    self.mark = true
-  self.sync = !!options.sync
-  self.nounique = !!options.nounique
-  self.nonull = !!options.nonull
-  self.nosort = !!options.nosort
-  self.nocase = !!options.nocase
-  self.stat = !!options.stat
-  self.noprocess = !!options.noprocess
-  self.absolute = !!options.absolute
-
-  self.maxLength = options.maxLength || Infinity
-  self.cache = options.cache || Object.create(null)
-  self.statCache = options.statCache || Object.create(null)
-  self.symlinks = options.symlinks || Object.create(null)
-
-  setupIgnores(self, options)
-
-  self.changedCwd = false
-  var cwd = process.cwd()
-  if (!ownProp(options, "cwd"))
-    self.cwd = cwd
-  else {
-    self.cwd = path.resolve(options.cwd)
-    self.changedCwd = self.cwd !== cwd
-  }
-
-  self.root = options.root || path.resolve(self.cwd, "/")
-  self.root = path.resolve(self.root)
-  if (process.platform === "win32")
-    self.root = self.root.replace(/\\/g, "/")
-
-  // TODO: is an absolute `cwd` supposed to be resolved against `root`?
-  // e.g. { cwd: '/test', root: __dirname } === path.join(__dirname, '/test')
-  self.cwdAbs = isAbsolute(self.cwd) ? self.cwd : makeAbs(self, self.cwd)
-  if (process.platform === "win32")
-    self.cwdAbs = self.cwdAbs.replace(/\\/g, "/")
-  self.nomount = !!options.nomount
-
-  // disable comments and negation in Minimatch.
-  // Note that they are not supported in Glob itself anyway.
-  options.nonegate = true
-  options.nocomment = true
-
-  self.minimatch = new Minimatch(pattern, options)
-  self.options = self.minimatch.options
-}
-
-function finish (self) {
-  var nou = self.nounique
-  var all = nou ? [] : Object.create(null)
-
-  for (var i = 0, l = self.matches.length; i < l; i ++) {
-    var matches = self.matches[i]
-    if (!matches || Object.keys(matches).length === 0) {
-      if (self.nonull) {
-        // do like the shell, and spit out the literal glob
-        var literal = self.minimatch.globSet[i]
-        if (nou)
-          all.push(literal)
-        else
-          all[literal] = true
-      }
-    } else {
-      // had matches
-      var m = Object.keys(matches)
-      if (nou)
-        all.push.apply(all, m)
-      else
-        m.forEach(function (m) {
-          all[m] = true
-        })
-    }
-  }
-
-  if (!nou)
-    all = Object.keys(all)
-
-  if (!self.nosort)
-    all = all.sort(self.nocase ? alphasorti : alphasort)
-
-  // at *some* point we statted all of these
-  if (self.mark) {
-    for (var i = 0; i < all.length; i++) {
-      all[i] = self._mark(all[i])
-    }
-    if (self.nodir) {
-      all = all.filter(function (e) {
-        var notDir = !(/\/$/.test(e))
-        var c = self.cache[e] || self.cache[makeAbs(self, e)]
-        if (notDir && c)
-          notDir = c !== 'DIR' && !Array.isArray(c)
-        return notDir
-      })
-    }
-  }
-
-  if (self.ignore.length)
-    all = all.filter(function(m) {
-      return !isIgnored(self, m)
-    })
-
-  self.found = all
-}
-
-function mark (self, p) {
-  var abs = makeAbs(self, p)
-  var c = self.cache[abs]
-  var m = p
-  if (c) {
-    var isDir = c === 'DIR' || Array.isArray(c)
-    var slash = p.slice(-1) === '/'
-
-    if (isDir && !slash)
-      m += '/'
-    else if (!isDir && slash)
-      m = m.slice(0, -1)
-
-    if (m !== p) {
-      var mabs = makeAbs(self, m)
-      self.statCache[mabs] = self.statCache[abs]
-      self.cache[mabs] = self.cache[abs]
-    }
-  }
-
-  return m
-}
-
-// lotta situps...
-function makeAbs (self, f) {
-  var abs = f
-  if (f.charAt(0) === '/') {
-    abs = path.join(self.root, f)
-  } else if (isAbsolute(f) || f === '') {
-    abs = f
-  } else if (self.changedCwd) {
-    abs = path.resolve(self.cwd, f)
-  } else {
-    abs = path.resolve(f)
-  }
-
-  if (process.platform === 'win32')
-    abs = abs.replace(/\\/g, '/')
-
-  return abs
-}
-
-
-// Return true, if pattern ends with globstar '**', for the accompanying parent directory.
-// Ex:- If node_modules/** is the pattern, add 'node_modules' to ignore list along with it's contents
-function isIgnored (self, path) {
-  if (!self.ignore.length)
-    return false
-
-  return self.ignore.some(function(item) {
-    return item.matcher.match(path) || !!(item.gmatcher && item.gmatcher.match(path))
-  })
-}
-
-function childrenIgnored (self, path) {
-  if (!self.ignore.length)
-    return false
-
-  return self.ignore.some(function(item) {
-    return !!(item.gmatcher && item.gmatcher.match(path))
-  })
-}
-
-
-/***/ }),
-/* 324 */
-/***/ (function(module, exports, __webpack_require__) {
-
-var wrappy = __webpack_require__(325)
-var reqs = Object.create(null)
-var once = __webpack_require__(326)
-
-module.exports = wrappy(inflight)
-
-function inflight (key, cb) {
-  if (reqs[key]) {
-    reqs[key].push(cb)
-    return null
-  } else {
-    reqs[key] = [cb]
-    return makeres(key)
-  }
-}
-
-function makeres (key) {
-  return once(function RES () {
-    var cbs = reqs[key]
-    var len = cbs.length
-    var args = slice(arguments)
-
-    // XXX It's somewhat ambiguous whether a new callback added in this
-    // pass should be queued for later execution if something in the
-    // list of callbacks throws, or if it should just be discarded.
-    // However, it's such an edge case that it hardly matters, and either
-    // choice is likely as surprising as the other.
-    // As it happens, we do go ahead and schedule it for later execution.
-    try {
-      for (var i = 0; i < len; i++) {
-        cbs[i].apply(null, args)
-      }
-    } finally {
-      if (cbs.length > len) {
-        // added more in the interim.
-        // de-zalgo, just in case, but don't call again.
-        cbs.splice(0, len)
-        process.nextTick(function () {
-          RES.apply(null, args)
-        })
-      } else {
-        delete reqs[key]
-      }
-    }
-  })
-}
-
-function slice (args) {
-  var length = args.length
-  var array = []
-
-  for (var i = 0; i < length; i++) array[i] = args[i]
-  return array
-}
-
-
-/***/ }),
-/* 325 */
-/***/ (function(module, exports) {
-
-// Returns a wrapper function that returns a wrapped callback
-// The wrapper function should do some stuff, and return a
-// presumably different callback function.
-// This makes sure that own properties are retained, so that
-// decorations and such are not lost along the way.
-module.exports = wrappy
-function wrappy (fn, cb) {
-  if (fn && cb) return wrappy(fn)(cb)
-
-  if (typeof fn !== 'function')
-    throw new TypeError('need wrapper function')
-
-  Object.keys(fn).forEach(function (k) {
-    wrapper[k] = fn[k]
-  })
-
-  return wrapper
-
-  function wrapper() {
-    var args = new Array(arguments.length)
-    for (var i = 0; i < args.length; i++) {
-      args[i] = arguments[i]
-    }
-    var ret = fn.apply(this, args)
-    var cb = args[args.length-1]
-    if (typeof ret === 'function' && ret !== cb) {
-      Object.keys(cb).forEach(function (k) {
-        ret[k] = cb[k]
-      })
-    }
-    return ret
-  }
-}
-
-
-/***/ }),
-/* 326 */
-/***/ (function(module, exports, __webpack_require__) {
-
-var wrappy = __webpack_require__(325)
-module.exports = wrappy(once)
-module.exports.strict = wrappy(onceStrict)
-
-once.proto = once(function () {
-  Object.defineProperty(Function.prototype, 'once', {
-    value: function () {
-      return once(this)
-    },
-    configurable: true
-  })
-
-  Object.defineProperty(Function.prototype, 'onceStrict', {
-    value: function () {
-      return onceStrict(this)
-    },
-    configurable: true
-  })
-})
-
-function once (fn) {
-  var f = function () {
-    if (f.called) return f.value
-    f.called = true
-    return f.value = fn.apply(this, arguments)
-  }
-  f.called = false
-  return f
-}
-
-function onceStrict (fn) {
-  var f = function () {
-    if (f.called)
-      throw new Error(f.onceError)
-    f.called = true
-    return f.value = fn.apply(this, arguments)
-  }
-  var name = fn.name || 'Function wrapped with `once`'
-  f.onceError = name + " shouldn't be called more than once"
-  f.called = false
-  return f
-}
-
-
-/***/ }),
 /* 327 */
 /***/ (function(module) {
 
@@ -38982,7 +38988,7 @@ module.exports = JSON.parse("{\"name\":\"coc.nvim\",\"version\":\"0.0.78\",\"des
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_textdocument_1 = __webpack_require__(259);
+const vscode_languageserver_textdocument_1 = __webpack_require__(292);
 const logger = __webpack_require__(64)('snippets-parser');
 class Scanner {
     constructor() {
@@ -40045,8 +40051,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const completion_1 = tslib_1.__importDefault(__webpack_require__(330));
-const position_1 = __webpack_require__(288);
-const string_1 = __webpack_require__(287);
+const position_1 = __webpack_require__(310);
+const string_1 = __webpack_require__(309);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const snippet_1 = __webpack_require__(516);
 const variableResolve_1 = __webpack_require__(517);
@@ -40367,7 +40373,7 @@ const complete_1 = tslib_1.__importDefault(__webpack_require__(512));
 const floating_1 = tslib_1.__importDefault(__webpack_require__(514));
 const throttle_1 = tslib_1.__importDefault(__webpack_require__(515));
 const object_1 = __webpack_require__(248);
-const string_1 = __webpack_require__(287);
+const string_1 = __webpack_require__(309);
 const logger = __webpack_require__(64)('completion');
 const completeItemKeys = ['abbr', 'menu', 'info', 'kind', 'icase', 'dup', 'empty', 'user_data'];
 class Completion {
@@ -40933,7 +40939,7 @@ exports.default = new Completion();
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(257));
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(258));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const util_1 = tslib_1.__importDefault(__webpack_require__(74));
@@ -40942,11 +40948,11 @@ const events_1 = tslib_1.__importDefault(__webpack_require__(209));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(332));
 const source_1 = tslib_1.__importDefault(__webpack_require__(507));
 const source_vim_1 = tslib_1.__importDefault(__webpack_require__(508));
-const types_1 = __webpack_require__(261);
+const types_1 = __webpack_require__(294);
 const util_2 = __webpack_require__(237);
-const fs_2 = __webpack_require__(270);
+const fs_2 = __webpack_require__(303);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const string_1 = __webpack_require__(287);
+const string_1 = __webpack_require__(309);
 const logger = __webpack_require__(64)('sources');
 class Sources {
     constructor() {
@@ -41291,7 +41297,7 @@ const debounce_1 = __webpack_require__(239);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const isuri_1 = tslib_1.__importDefault(__webpack_require__(240));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const rimraf_1 = tslib_1.__importDefault(__webpack_require__(315));
+const rimraf_1 = tslib_1.__importDefault(__webpack_require__(266));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
 const util_1 = __webpack_require__(74);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
@@ -41299,21 +41305,21 @@ const vscode_uri_1 = __webpack_require__(242);
 const which_1 = tslib_1.__importDefault(__webpack_require__(243));
 const commands_1 = tslib_1.__importDefault(__webpack_require__(251));
 const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const db_1 = tslib_1.__importDefault(__webpack_require__(276));
+const db_1 = tslib_1.__importDefault(__webpack_require__(305));
 const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(253));
 const installBuffer_1 = tslib_1.__importDefault(__webpack_require__(333));
 const installer_1 = __webpack_require__(334);
 const memos_1 = tslib_1.__importDefault(__webpack_require__(398));
-const types_1 = __webpack_require__(261);
+const types_1 = __webpack_require__(294);
 const util_2 = __webpack_require__(237);
-const array_1 = __webpack_require__(285);
+const array_1 = __webpack_require__(307);
 __webpack_require__(399);
 const factory_1 = __webpack_require__(400);
-const fs_2 = __webpack_require__(270);
+const fs_2 = __webpack_require__(303);
 const is_1 = __webpack_require__(249);
-const watchman_1 = tslib_1.__importDefault(__webpack_require__(311));
+const watchman_1 = tslib_1.__importDefault(__webpack_require__(323));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(277));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(259));
 const createLogger = __webpack_require__(64);
 const logger = createLogger('extensions');
 function loadJson(file) {
@@ -42231,7 +42237,7 @@ exports.default = new Extensions();
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const status_1 = __webpack_require__(296);
+const status_1 = __webpack_require__(318);
 const events_1 = tslib_1.__importDefault(__webpack_require__(197));
 const logger = __webpack_require__(64)('model-installBuffer');
 var State;
@@ -42375,7 +42381,7 @@ const tslib_1 = __webpack_require__(65);
 const child_process_1 = __webpack_require__(238);
 const readline_1 = tslib_1.__importDefault(__webpack_require__(205));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(277));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(259));
 const mv_1 = tslib_1.__importDefault(__webpack_require__(335));
 const os_1 = tslib_1.__importDefault(__webpack_require__(76));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
@@ -42385,8 +42391,8 @@ const util_1 = __webpack_require__(74);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const download_1 = tslib_1.__importDefault(__webpack_require__(348));
 const fetch_1 = tslib_1.__importDefault(__webpack_require__(387));
-const rimraf_1 = tslib_1.__importDefault(__webpack_require__(315));
-const fs_2 = __webpack_require__(270);
+const rimraf_1 = tslib_1.__importDefault(__webpack_require__(266));
+const fs_2 = __webpack_require__(303);
 const logger = __webpack_require__(64)('model-installer');
 function registryUrl(scope = 'coc.nvim') {
     const result = rc_1.default('npm', { registry: 'https://registry.npmjs.org/' });
@@ -43358,25 +43364,25 @@ function rmkidsSync (p, options) {
 module.exports = glob
 
 var fs = __webpack_require__(66)
-var minimatch = __webpack_require__(271)
+var minimatch = __webpack_require__(270)
 var Minimatch = minimatch.Minimatch
-var inherits = __webpack_require__(319)
+var inherits = __webpack_require__(274)
 var EE = __webpack_require__(197).EventEmitter
 var path = __webpack_require__(82)
 var assert = __webpack_require__(108)
-var isAbsolute = __webpack_require__(321)
+var isAbsolute = __webpack_require__(276)
 var globSync = __webpack_require__(339)
 var common = __webpack_require__(340)
 var alphasort = common.alphasort
 var alphasorti = common.alphasorti
 var setopts = common.setopts
 var ownProp = common.ownProp
-var inflight = __webpack_require__(324)
+var inflight = __webpack_require__(279)
 var util = __webpack_require__(74)
 var childrenIgnored = common.childrenIgnored
 var isIgnored = common.isIgnored
 
-var once = __webpack_require__(326)
+var once = __webpack_require__(281)
 
 function glob (pattern, options, cb) {
   if (typeof options === 'function') cb = options, options = {}
@@ -44090,13 +44096,13 @@ module.exports = globSync
 globSync.GlobSync = GlobSync
 
 var fs = __webpack_require__(66)
-var minimatch = __webpack_require__(271)
+var minimatch = __webpack_require__(270)
 var Minimatch = minimatch.Minimatch
 var Glob = __webpack_require__(338).Glob
 var util = __webpack_require__(74)
 var path = __webpack_require__(82)
 var assert = __webpack_require__(108)
-var isAbsolute = __webpack_require__(321)
+var isAbsolute = __webpack_require__(276)
 var common = __webpack_require__(340)
 var alphasort = common.alphasort
 var alphasorti = common.alphasorti
@@ -44567,8 +44573,8 @@ function ownProp (obj, field) {
 }
 
 var path = __webpack_require__(82)
-var minimatch = __webpack_require__(271)
-var isAbsolute = __webpack_require__(321)
+var minimatch = __webpack_require__(270)
+var isAbsolute = __webpack_require__(276)
 var Minimatch = minimatch.Minimatch
 
 function alphasorti (a, b) {
@@ -45749,9 +45755,9 @@ function isNumber (x) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const follow_redirects_1 = __webpack_require__(349);
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(277));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(259));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const tar_1 = tslib_1.__importDefault(__webpack_require__(357));
 const fetch_1 = __webpack_require__(387);
@@ -48584,7 +48590,7 @@ module.exports = require("string_decoder");
 
 
 const assert = __webpack_require__(108)
-const Buffer = __webpack_require__(293).Buffer
+const Buffer = __webpack_require__(315).Buffer
 const realZlib = __webpack_require__(145)
 
 const constants = exports.constants = __webpack_require__(366)
@@ -52421,7 +52427,7 @@ module.exports = Unpack
 // TODO: This should probably be a class, not functionally
 // passing around state in a gazillion args.
 
-const mkdirp = __webpack_require__(277)
+const mkdirp = __webpack_require__(259)
 const fs = __webpack_require__(66)
 const path = __webpack_require__(82)
 const chownr = __webpack_require__(384)
@@ -54226,9 +54232,9 @@ const events_1 = tslib_1.__importDefault(__webpack_require__(209));
 exports.events = events_1.default;
 const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
 exports.languages = languages_1.default;
-const document_1 = tslib_1.__importDefault(__webpack_require__(284));
+const document_1 = tslib_1.__importDefault(__webpack_require__(306));
 exports.Document = document_1.default;
-const mru_1 = tslib_1.__importDefault(__webpack_require__(291));
+const mru_1 = tslib_1.__importDefault(__webpack_require__(313));
 exports.Mru = mru_1.default;
 const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(428));
 exports.FloatBuffer = floatBuffer_1.default;
@@ -54240,7 +54246,7 @@ const download_1 = tslib_1.__importDefault(__webpack_require__(348));
 exports.download = download_1.default;
 const highligher_1 = tslib_1.__importDefault(__webpack_require__(431));
 exports.Highligher = highligher_1.default;
-const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(290));
+const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(312));
 exports.FileSystemWatcher = fileSystemWatcher_1.default;
 const services_1 = tslib_1.__importDefault(__webpack_require__(433));
 exports.services = services_1.default;
@@ -54260,7 +54266,7 @@ const manager_3 = tslib_1.__importDefault(__webpack_require__(252));
 exports.diagnosticManager = manager_3.default;
 const ansiparse_1 = __webpack_require__(432);
 exports.ansiparse = ansiparse_1.ansiparse;
-const watchman_1 = tslib_1.__importDefault(__webpack_require__(311));
+const watchman_1 = tslib_1.__importDefault(__webpack_require__(323));
 exports.Watchman = watchman_1.default;
 const vscode_uri_1 = __webpack_require__(242);
 exports.Uri = vscode_uri_1.URI;
@@ -54272,7 +54278,7 @@ const vscode_languageserver_protocol_1 = __webpack_require__(210);
 exports.Disposable = vscode_languageserver_protocol_1.Disposable;
 exports.Event = vscode_languageserver_protocol_1.Event;
 exports.Emitter = vscode_languageserver_protocol_1.Emitter;
-tslib_1.__exportStar(__webpack_require__(261), exports);
+tslib_1.__exportStar(__webpack_require__(294), exports);
 tslib_1.__exportStar(__webpack_require__(434), exports);
 var util_1 = __webpack_require__(237);
 exports.disposeAll = util_1.disposeAll;
@@ -54315,10 +54321,10 @@ const typeDefinitionManager_1 = tslib_1.__importDefault(__webpack_require__(425)
 const workspaceSymbolsManager_1 = tslib_1.__importDefault(__webpack_require__(426));
 const manager_2 = tslib_1.__importDefault(__webpack_require__(255));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(331));
-const types_1 = __webpack_require__(261);
+const types_1 = __webpack_require__(294);
 const complete = tslib_1.__importStar(__webpack_require__(427));
-const position_1 = __webpack_require__(288);
-const string_1 = __webpack_require__(287);
+const position_1 = __webpack_require__(310);
+const string_1 = __webpack_require__(309);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const logger = __webpack_require__(64)('languages');
 function fixDocumentation(str) {
@@ -55087,8 +55093,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(297);
-const array_1 = __webpack_require__(285);
+const uuid_1 = __webpack_require__(282);
+const array_1 = __webpack_require__(307);
 const logger = __webpack_require__(64)('codeActionManager');
 class CodeActionManager extends manager_1.default {
     register(selector, provider, clientId, codeActionKinds) {
@@ -55246,7 +55252,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 const lodash_1 = __webpack_require__(402);
 // const logger = require('../util/logger')('codeActionManager')
 class CodeLensManager extends manager_1.default {
@@ -55309,7 +55315,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 const logger = __webpack_require__(64)('definitionManager');
 class DeclarationManager extends manager_1.default {
     register(selector, provider) {
@@ -55347,7 +55353,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 const logger = __webpack_require__(64)('definitionManager');
 class DefinitionManager extends manager_1.default {
     register(selector, provider) {
@@ -55388,7 +55394,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 class DocumentColorManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -55435,7 +55441,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 class DocumentHighlightManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -55472,7 +55478,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 class DocumentLinkManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -55533,7 +55539,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 class DocumentSymbolManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -55570,7 +55576,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 class FoldingRangeManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -55607,7 +55613,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 class FormatManager extends manager_1.default {
     register(selector, provider, priority = 0) {
         let item = {
@@ -55645,7 +55651,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 class FormatRangeManager extends manager_1.default {
     register(selector, provider, priority = 0) {
         let item = {
@@ -55683,7 +55689,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 class HoverManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -55726,7 +55732,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 class ImplementationManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -55765,7 +55771,7 @@ exports.default = ImplementationManager;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const string_1 = __webpack_require__(287);
+const string_1 = __webpack_require__(309);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const logger = __webpack_require__(64)('onTypeFormatManager');
 class OnTypeFormatManager {
@@ -55827,7 +55833,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 class SelectionRangeManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -55864,7 +55870,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 class ReferenceManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -55904,7 +55910,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 class RenameManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -55954,7 +55960,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 class SignatureManager extends manager_1.default {
     register(selector, provider, triggerCharacters) {
         let characters = triggerCharacters.reduce((p, c) => p.concat(c.split(/\s*/g)), []);
@@ -56002,7 +56008,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 class TypeDefinitionManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -56039,7 +56045,7 @@ exports.default = TypeDefinitionManager;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 class WorkspaceSymbolManager {
     constructor() {
@@ -56096,7 +56102,7 @@ exports.default = WorkspaceSymbolManager;
 Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_languageserver_types_1 = __webpack_require__(222);
 const parser_1 = __webpack_require__(328);
-const string_1 = __webpack_require__(287);
+const string_1 = __webpack_require__(309);
 const logger = __webpack_require__(64)('util-complete');
 function getPosition(opt) {
     let { line, linenr, colnr } = opt;
@@ -56196,9 +56202,9 @@ exports.getValidWord = getValidWord;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const array_1 = __webpack_require__(285);
+const array_1 = __webpack_require__(307);
 const highlight_1 = __webpack_require__(429);
-const string_1 = __webpack_require__(287);
+const string_1 = __webpack_require__(309);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const logger = __webpack_require__(64)('model-floatBuffer');
 class FloatBuffer {
@@ -56416,11 +56422,11 @@ const crypto_1 = __webpack_require__(220);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const os_1 = tslib_1.__importDefault(__webpack_require__(76));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const lodash_1 = __webpack_require__(402);
 const processes_1 = __webpack_require__(430);
-const string_1 = __webpack_require__(287);
+const string_1 = __webpack_require__(309);
 const logger = __webpack_require__(64)('util-highlights');
 exports.diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint'];
 const cache = {};
@@ -56669,7 +56675,7 @@ exports.terminate = terminate;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const ansiparse_1 = __webpack_require__(432);
-const string_1 = __webpack_require__(287);
+const string_1 = __webpack_require__(309);
 /**
  * Build highlights, with lines and highlights
  */
@@ -56766,7 +56772,7 @@ exports.default = Highlighter;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const string_1 = __webpack_require__(287);
+const string_1 = __webpack_require__(309);
 const foregroundColors = {
     30: 'black',
     31: 'red',
@@ -56991,7 +56997,7 @@ const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const net_1 = tslib_1.__importDefault(__webpack_require__(156));
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const language_client_1 = __webpack_require__(434);
-const types_1 = __webpack_require__(261);
+const types_1 = __webpack_require__(294);
 const util_1 = __webpack_require__(237);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const logger = __webpack_require__(64)('services');
@@ -57482,7 +57488,7 @@ const child_process_1 = tslib_1.__importDefault(__webpack_require__(238));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const types_1 = __webpack_require__(261);
+const types_1 = __webpack_require__(294);
 const util_1 = __webpack_require__(237);
 const Is = tslib_1.__importStar(__webpack_require__(249));
 const processes_1 = __webpack_require__(430);
@@ -57955,7 +57961,7 @@ const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const vscode_uri_1 = __webpack_require__(242);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(251));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
-const fs_1 = __webpack_require__(270);
+const fs_1 = __webpack_require__(303);
 const Is = tslib_1.__importStar(__webpack_require__(249));
 const lodash_1 = __webpack_require__(402);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
@@ -58770,6 +58776,7 @@ class CompletionItemFeature extends TextDocumentFeature {
         completion.completionItemKind = { valueSet: SupportedCompletionItemKinds };
     }
     initialize(capabilities, documentSelector) {
+        this.index = 0;
         const options = this.getRegistrationOptions(documentSelector, capabilities.completionProvider);
         if (!options) {
             return;
@@ -58783,6 +58790,7 @@ class CompletionItemFeature extends TextDocumentFeature {
         let triggerCharacters = options.triggerCharacters || [];
         let allCommitCharacters = options.allCommitCharacters || [];
         let priority = options.priority;
+        this.index = this.index + 1;
         const provider = {
             provideCompletionItems: (document, position, token, context) => {
                 const client = this._client;
@@ -58814,7 +58822,7 @@ class CompletionItemFeature extends TextDocumentFeature {
                 : undefined
         };
         const languageIds = cv.asLanguageIds(options.documentSelector);
-        const disposable = languages_1.default.registerCompletionItemProvider(this._client.id, 'LS', languageIds, provider, triggerCharacters, priority, allCommitCharacters);
+        const disposable = languages_1.default.registerCompletionItemProvider(this._client.id + '-' + this.index, 'LS', languageIds, provider, triggerCharacters, priority, allCommitCharacters);
         return [disposable, provider];
     }
 }
@@ -60888,7 +60896,7 @@ exports.asCodeLensParams = asCodeLensParams;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const uuid_1 = __webpack_require__(297);
+const uuid_1 = __webpack_require__(282);
 function generateUuid() {
     return uuid_1.v4();
 }
@@ -61739,6 +61747,24 @@ class ListManager {
         }
         if (items.length)
             await this.doItemAction(items, action);
+    }
+    async first() {
+        let { ui } = this;
+        let item = this.ui.firstItem;
+        if (!item)
+            return;
+        ui.index = 0;
+        await this.doItemAction([item], this.defaultAction);
+        await ui.echoMessage(item);
+    }
+    async last() {
+        let { ui } = this;
+        let item = this.ui.lastItem;
+        if (!item)
+            return;
+        ui.index = this.ui.length - 1;
+        await this.doItemAction([item], this.defaultAction);
+        await ui.echoMessage(item);
     }
     async previous() {
         let { ui } = this;
@@ -65941,7 +65967,7 @@ module.exports.MaxBufferError = MaxBufferError;
 /* 476 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var once = __webpack_require__(326)
+var once = __webpack_require__(281)
 var eos = __webpack_require__(477)
 var fs = __webpack_require__(66) // we only need fs to get the ReadStream and WriteStream prototypes
 
@@ -66029,7 +66055,7 @@ module.exports = pump
 /* 477 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var once = __webpack_require__(326);
+var once = __webpack_require__(281);
 
 var noop = function() {};
 
@@ -66785,7 +66811,7 @@ const readline_1 = tslib_1.__importDefault(__webpack_require__(205));
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const vscode_uri_1 = __webpack_require__(242);
 const util_1 = __webpack_require__(237);
-const position_1 = __webpack_require__(288);
+const position_1 = __webpack_require__(310);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const configuration_1 = tslib_1.__importDefault(__webpack_require__(450));
 const logger = __webpack_require__(64)('list-basic');
@@ -67092,7 +67118,7 @@ const tslib_1 = __webpack_require__(65);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(252));
 const location_1 = tslib_1.__importDefault(__webpack_require__(491));
-const fs_1 = __webpack_require__(270);
+const fs_1 = __webpack_require__(303);
 const logger = __webpack_require__(64)('list-symbols');
 class DiagnosticsList extends location_1.default {
     constructor() {
@@ -67146,7 +67172,7 @@ const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const vscode_uri_1 = __webpack_require__(242);
-const fs_1 = __webpack_require__(270);
+const fs_1 = __webpack_require__(303);
 const logger = __webpack_require__(64)('list-location');
 class LocationList extends basic_1.default {
     constructor(nvim) {
@@ -67220,14 +67246,14 @@ exports.default = LocationList;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const rimraf_1 = tslib_1.__importDefault(__webpack_require__(315));
+const rimraf_1 = tslib_1.__importDefault(__webpack_require__(266));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const os_1 = tslib_1.__importDefault(__webpack_require__(76));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const vscode_uri_1 = __webpack_require__(242);
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(332));
 const util_1 = __webpack_require__(237);
-const fs_2 = __webpack_require__(270);
+const fs_2 = __webpack_require__(303);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
 const logger = __webpack_require__(64)('list-extensions');
@@ -67410,8 +67436,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const vscode_uri_1 = __webpack_require__(242);
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(277));
-const fs_1 = __webpack_require__(270);
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(259));
+const fs_1 = __webpack_require__(303);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
 class FoldList extends basic_1.default {
@@ -67468,7 +67494,7 @@ const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
 const vscode_languageserver_types_1 = __webpack_require__(222);
 const vscode_uri_1 = __webpack_require__(242);
-const fs_1 = __webpack_require__(270);
+const fs_1 = __webpack_require__(303);
 class LinksList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -67546,7 +67572,7 @@ function formatUri(uri) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
-const mru_1 = tslib_1.__importDefault(__webpack_require__(291));
+const mru_1 = tslib_1.__importDefault(__webpack_require__(313));
 class LinksList extends basic_1.default {
     constructor(nvim, listMap) {
         super(nvim);
@@ -67610,7 +67636,7 @@ const vscode_uri_1 = __webpack_require__(242);
 const which_1 = tslib_1.__importDefault(__webpack_require__(243));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
 const util_1 = __webpack_require__(237);
-const fs_1 = __webpack_require__(270);
+const fs_1 = __webpack_require__(303);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const location_1 = tslib_1.__importDefault(__webpack_require__(491));
 const convert_1 = __webpack_require__(497);
@@ -68012,13 +68038,13 @@ function fixWidth(str, width) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(270));
 const vscode_uri_1 = __webpack_require__(242);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const location_1 = tslib_1.__importDefault(__webpack_require__(491));
 const convert_1 = __webpack_require__(497);
-const fs_1 = __webpack_require__(270);
+const fs_1 = __webpack_require__(303);
 const fzy_1 = __webpack_require__(502);
 const logger = __webpack_require__(64)('list-symbols');
 class Symbols extends location_1.default {
@@ -68503,6 +68529,12 @@ class ListUI {
     get index() {
         return this.currIndex;
     }
+    get firstItem() {
+        return this.items[0];
+    }
+    get lastItem() {
+        return this.items[this.items.length - 1];
+    }
     getItem(delta) {
         let { currIndex } = this;
         return this.items[currIndex + delta];
@@ -68917,10 +68949,10 @@ const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const vscode_uri_1 = __webpack_require__(242);
 const ansiparse_1 = __webpack_require__(432);
-const diff_1 = __webpack_require__(286);
+const diff_1 = __webpack_require__(308);
 const fzy_1 = __webpack_require__(502);
 const score_1 = __webpack_require__(506);
-const string_1 = __webpack_require__(287);
+const string_1 = __webpack_require__(309);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 const logger = __webpack_require__(64)('list-worker');
@@ -69498,8 +69530,8 @@ function bestResult(results) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const types_1 = __webpack_require__(261);
-const string_1 = __webpack_require__(287);
+const types_1 = __webpack_require__(294);
+const string_1 = __webpack_require__(309);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const logger = __webpack_require__(64)('model-source');
 class Source {
@@ -69666,7 +69698,7 @@ exports.default = Source;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const fuzzy_1 = __webpack_require__(452);
-const string_1 = __webpack_require__(287);
+const string_1 = __webpack_require__(309);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const source_1 = tslib_1.__importDefault(__webpack_require__(507));
 const logger = __webpack_require__(64)('model-source-vim');
@@ -69888,13 +69920,13 @@ exports.regist = regist;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(270));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const util_1 = tslib_1.__importDefault(__webpack_require__(74));
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const source_1 = tslib_1.__importDefault(__webpack_require__(507));
-const fs_2 = __webpack_require__(270);
-const string_1 = __webpack_require__(287);
+const fs_2 = __webpack_require__(303);
+const string_1 = __webpack_require__(309);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const logger = __webpack_require__(64)('source-file');
 const pathRe = /(?:\.{0,2}|~|\$HOME|([\w]+)|)\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/;
@@ -70038,7 +70070,7 @@ exports.regist = regist;
 Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const fuzzy_1 = __webpack_require__(452);
-const string_1 = __webpack_require__(287);
+const string_1 = __webpack_require__(309);
 const match_1 = __webpack_require__(513);
 const logger = __webpack_require__(64)('completion-complete');
 // first time completion
@@ -70716,10 +70748,10 @@ exports.default = throttle;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_languageserver_textdocument_1 = __webpack_require__(259);
-const position_1 = __webpack_require__(288);
+const vscode_languageserver_textdocument_1 = __webpack_require__(292);
+const position_1 = __webpack_require__(310);
 const Snippets = tslib_1.__importStar(__webpack_require__(328));
-const string_1 = __webpack_require__(287);
+const string_1 = __webpack_require__(309);
 const logger = __webpack_require__(64)('snippets-snipet');
 class CocSnippet {
     constructor(_snippetString, position, _variableResolver) {
@@ -71329,7 +71361,7 @@ exports.getLocationListItem = getLocationListItem;
 Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const vscode_uri_1 = __webpack_require__(242);
-const position_1 = __webpack_require__(288);
+const position_1 = __webpack_require__(310);
 const logger = __webpack_require__(64)('diagnostic-collection');
 class Collection {
     constructor(owner) {
@@ -71420,14 +71452,14 @@ exports.default = Collection;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(257));
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(258));
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(239));
 const vscode_languageserver_types_1 = __webpack_require__(222);
-const vscode_languageserver_textdocument_1 = __webpack_require__(259);
+const vscode_languageserver_textdocument_1 = __webpack_require__(292);
 const events_1 = tslib_1.__importDefault(__webpack_require__(209));
 const util_1 = __webpack_require__(237);
-const array_1 = __webpack_require__(285);
-const position_1 = __webpack_require__(288);
+const array_1 = __webpack_require__(307);
+const position_1 = __webpack_require__(310);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const range_1 = tslib_1.__importDefault(__webpack_require__(522));
 const logger = __webpack_require__(64)('cursors');
@@ -72144,8 +72176,8 @@ const manager_3 = tslib_1.__importDefault(__webpack_require__(255));
 const util_1 = __webpack_require__(237);
 const convert_1 = __webpack_require__(497);
 const object_1 = __webpack_require__(248);
-const position_1 = __webpack_require__(288);
-const string_1 = __webpack_require__(287);
+const position_1 = __webpack_require__(310);
+const string_1 = __webpack_require__(309);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const codelens_1 = tslib_1.__importDefault(__webpack_require__(524));
 const colors_1 = tslib_1.__importDefault(__webpack_require__(525));
@@ -73960,9 +73992,9 @@ exports.default = Colors;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const array_1 = __webpack_require__(285);
+const array_1 = __webpack_require__(307);
 const object_1 = __webpack_require__(248);
-const position_1 = __webpack_require__(288);
+const position_1 = __webpack_require__(310);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const logger = __webpack_require__(64)('highlighter');
 const usedColors = new Set();
@@ -74207,17 +74239,17 @@ exports.default = DocumentHighlighter;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(257));
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(258));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const vscode_languageserver_types_1 = __webpack_require__(222);
-const vscode_languageserver_textdocument_1 = __webpack_require__(259);
+const vscode_languageserver_textdocument_1 = __webpack_require__(292);
 const vscode_uri_1 = __webpack_require__(242);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(251));
 const highligher_1 = tslib_1.__importDefault(__webpack_require__(431));
 const util_1 = __webpack_require__(237);
-const fs_1 = __webpack_require__(270);
+const fs_1 = __webpack_require__(303);
 const object_1 = __webpack_require__(248);
-const string_1 = __webpack_require__(287);
+const string_1 = __webpack_require__(309);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const logger = __webpack_require__(64)('refactor');
 // cases: buffer change event
