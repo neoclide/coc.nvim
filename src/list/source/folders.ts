@@ -16,14 +16,14 @@ export default class FoldList extends BasicList {
     super(nvim)
 
     this.addAction('edit', async item => {
-      let newPath = await nvim.call('input', ['Folder: ', item.label, 'file'])
+      let newPath = await nvim.call('input', ['Folder: ', item.label, 'dir'])
       let stat = await statAsync(newPath)
       if (!stat || !stat.isDirectory()) {
-        await nvim.command(`echoerr "invalid path: ${newPath}"`)
+        workspace.showMessage(`invalid path: ${newPath}`, 'error')
         return
       }
       workspace.renameWorkspaceFolder(item.label, newPath)
-    }, { reload: true, persist: true })
+    })
 
     this.addAction('delete', async item => {
       workspace.removeWorkspaceFolder(item.label)
