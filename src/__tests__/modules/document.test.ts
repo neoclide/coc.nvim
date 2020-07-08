@@ -51,6 +51,20 @@ describe('document model properties', () => {
     expect(content).toBe('a\nb\n\n')
   })
 
+  it('should applyEdits with changed lines', async () => {
+    let doc = await helper.createDocument()
+    await nvim.setLine('a')
+    await doc.patchChange()
+    let edits: TextEdit[] = []
+    edits.push({
+      range: Range.create(0, 1, 0, 1),
+      newText: `\n\nd`
+    })
+    await doc.applyEdits(edits)
+    let lines = await nvim.call('getline', [1, '$'])
+    expect(lines).toEqual(['a', '', 'd'])
+  })
+
   it('should parse iskeyword of character range', async () => {
     await nvim.setOption('iskeyword', 'a-z,A-Z,48-57,_')
     let doc = await helper.createDocument()
@@ -200,11 +214,12 @@ describe('document synchronize', () => {
     let doc = TextDocument.create('untitled:1', 'txt', 1, document.getDocumentContent())
     let disposables = []
     document.onDocumentChange(e => {
-      TextDocument.update(doc, e.contentChanges, 2)
+      TextDocument.update(doc, e.contentChanges, e.textDocument.version)
     }, null, disposables)
     await nvim.setLine('abc')
-    await document.applyEdits([TextEdit.insert({ line: 0, character: 0 }, '')])
-    expect(doc.getText()).toBe('abc\n')
+    await document.patchChange()
+    await document.applyEdits([TextEdit.insert({ line: 0, character: 0 }, 'd')])
+    expect(doc.getText()).toBe('dabc\n')
     disposeAll(disposables)
   })
 })

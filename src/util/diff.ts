@@ -10,9 +10,7 @@ interface Change {
   newText: string
 }
 
-export function diffLines(from: string, to: string): ChangedLines {
-  let newLines: string[] = to.split('\n')
-  let oldLines: string[] = from.split('\n')
+export function diffLines(oldLines: string[], newLines: string[]): ChangedLines {
   let start = 0
   let end = oldLines.length
   let oldLen = end

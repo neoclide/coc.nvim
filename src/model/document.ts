@@ -298,20 +298,21 @@ export default class Document {
     edits.forEach(edit => {
       edit.newText = edit.newText.replace(/\r/g, '')
     })
-    let current = this.lines.join('\n') + (this.eol ? '\n' : '')
+    let current = this.lines.join('\n')
     let textDocument = TextDocument.create(this.uri, this.filetype, 1, current)
     // apply edits to current textDocument
     let applied = TextDocument.applyEdits(textDocument, edits)
     // could be equal sometimes
     if (current !== applied) {
-      let d = diffLines(current, applied)
+      let newLines = applied.split('\n')
+      let d = diffLines(this.lines, newLines)
       await this.buffer.setLines(d.replacement, {
         start: d.start,
         end: d.end,
         strictIndexing: false
       })
       // can't wait vim sync buffer
-      this.lines = (this.eol && applied.endsWith('\n') ? applied.slice(0, -1) : applied).split('\n')
+      this.lines = newLines
       this.forceSync()
     }
   }
