@@ -2062,6 +2062,42 @@ COMMANDS						*coc-commands*
 
 	Open vim's |location-list| with diagnostics of current buffer.
 
+:CocSearch 						*:CocSearch*
+
+	Perform search by ripgrep https://github.com/BurntSushi/ripgrep,
+	refactor window would be opened.
+
+	Note: the search is performed on your files, so normally you should
+	save your buffers before invoke this command.
+
+	Common arguments for ripgrep:~
+
+	`-e` `--regexp`: treat search pattern as regexp.
+	`-F` `--fixed-strings`: treat search pattern as fixed string.
+	`-L` `--follow`: follow symbolic links while traversing directories.
+	`-g` `--glob` {GLOB}: Include or exclude files and directories for
+	searching that match the given glob.
+	`--hidden`: Search hidden files and directories.
+	`--no-ignore-vcs`:  Don't respect version control ignore files
+	(.gitignore, etc.).
+	`--no-ignore`: Don't respect ignore files (.gitignore, .ignore, etc.).
+	`-w` `--word-regexp`: Only show matches surrounded by word boundaries.
+	`-S` `--smart-case`: Searches case insensitively if the pattern is all
+	lowercase. Search case sensitively otherwise.
+	`--no-config`: Never read configuration files.
+	`-x` `--line-regexp`: Only show matches surrounded by line boundaries.
+
+	Use `:man 1 rg` in your terminal for more details.
+
+	Note: By default, hidden files and directories are skipped.
+
+	Change and save:~
+
+	Refactor session is started with searched patterns highlighted, just
+	change the text and save refactor buffer to make changes across all
+	related files. You can make any kind of changes, including add lines
+	and remove lines.
+
 ------------------------------------------------------------------------------
 AUTOCMD							*coc-autocmds*
 
