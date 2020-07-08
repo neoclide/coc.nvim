@@ -52,6 +52,7 @@ export default class DocumentHighlighter {
     this.clearHighlight()
     let groups: { [index: string]: Range[] } = {}
     for (let hl of highlights) {
+      if (!hl.range) continue
       let hlGroup = hl.kind == DocumentHighlightKind.Text
         ? 'CocHighlightText'
         : hl.kind == DocumentHighlightKind.Read ? 'CocHighlightRead' : 'CocHighlightWrite'
