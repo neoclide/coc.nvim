@@ -117,11 +117,12 @@ export default class Plugin extends EventEmitter {
       return workspace.detach()
     })
     this.addAction('doKeymap', async (key: string, defaultReturn = '') => {
-      let [fn, repeat] = workspace.keymaps.get(key)
-      if (!fn) {
+      let keymap = workspace.keymaps.get(key)
+      if (!keymap) {
         logger.error(`keymap for ${key} not found`)
         return defaultReturn
       }
+      let [fn, repeat] = keymap
       let res = await Promise.resolve(fn())
       if (repeat) await nvim.command(`silent! call repeat#set("\\<Plug>(coc-${key})", -1)`)
       return res || defaultReturn
