@@ -133,7 +133,7 @@ function! s:SearchOptions(...) abort
   let list = ['-e', '--regexp', '-F', '--fixed-strings', '-L', '--follow',
         \ '-g', '--glob', '--hidden', '--no-hidden', '--no-ignore-vcs',
         \ '--word-regexp', '-w', '--smart-case', '-S', '--no-config',
-        \ '--line-regexp', '-x']
+        \ '--line-regexp', '--no-ignore', '-x']
   return join(list, "\n")
 endfunction
 

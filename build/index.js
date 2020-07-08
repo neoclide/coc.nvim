@@ -23364,11 +23364,12 @@ class Plugin extends events_1.EventEmitter {
             return workspace_1.default.detach();
         });
         this.addAction('doKeymap', async (key, defaultReturn = '') => {
-            let [fn, repeat] = workspace_1.default.keymaps.get(key);
-            if (!fn) {
+            let keymap = workspace_1.default.keymaps.get(key);
+            if (!keymap) {
                 logger.error(`keymap for ${key} not found`);
                 return defaultReturn;
             }
+            let [fn, repeat] = keymap;
             let res = await Promise.resolve(fn());
             if (repeat)
                 await nvim.command(`silent! call repeat#set("\\<Plug>(coc-${key})", -1)`);
@@ -23679,7 +23680,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "5d0557f13f" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "6051c48732" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -35669,20 +35670,21 @@ class Document {
         edits.forEach(edit => {
             edit.newText = edit.newText.replace(/\r/g, '');
         });
-        let current = this.lines.join('\n') + (this.eol ? '\n' : '');
+        let current = this.lines.join('\n');
         let textDocument = vscode_languageserver_textdocument_1.TextDocument.create(this.uri, this.filetype, 1, current);
         // apply edits to current textDocument
         let applied = vscode_languageserver_textdocument_1.TextDocument.applyEdits(textDocument, edits);
         // could be equal sometimes
         if (current !== applied) {
-            let d = diff_1.diffLines(current, applied);
+            let newLines = applied.split('\n');
+            let d = diff_1.diffLines(this.lines, newLines);
             await this.buffer.setLines(d.replacement, {
                 start: d.start,
                 end: d.end,
                 strictIndexing: false
             });
             // can't wait vim sync buffer
-            this.lines = (this.eol && applied.endsWith('\n') ? applied.slice(0, -1) : applied).split('\n');
+            this.lines = newLines;
             this.forceSync();
         }
     }
@@ -36257,9 +36259,7 @@ const tslib_1 = __webpack_require__(65);
 const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(258));
 const string_1 = __webpack_require__(309);
 const logger = __webpack_require__(64)('util-diff');
-function diffLines(from, to) {
-    let newLines = to.split('\n');
-    let oldLines = from.split('\n');
+function diffLines(oldLines, newLines) {
     let start = 0;
     let end = oldLines.length;
     let oldLen = end;
@@ -67447,14 +67447,14 @@ class FoldList extends basic_1.default {
         this.description = 'list of current workspace folders';
         this.name = 'folders';
         this.addAction('edit', async (item) => {
-            let newPath = await nvim.call('input', ['Folder: ', item.label, 'file']);
+            let newPath = await nvim.call('input', ['Folder: ', item.label, 'dir']);
             let stat = await fs_1.statAsync(newPath);
             if (!stat || !stat.isDirectory()) {
-                await nvim.command(`echoerr "invalid path: ${newPath}"`);
+                workspace_1.default.showMessage(`invalid path: ${newPath}`, 'error');
                 return;
             }
             workspace_1.default.renameWorkspaceFolder(item.label, newPath);
-        }, { reload: true, persist: true });
+        });
         this.addAction('delete', async (item) => {
             workspace_1.default.removeWorkspaceFolder(item.label);
         }, { reload: true, persist: true });
@@ -74188,6 +74188,8 @@ class DocumentHighlighter {
         this.clearHighlight();
         let groups = {};
         for (let hl of highlights) {
+            if (!hl.range)
+                continue;
             let hlGroup = hl.kind == vscode_languageserver_protocol_1.DocumentHighlightKind.Text
                 ? 'CocHighlightText'
                 : hl.kind == vscode_languageserver_protocol_1.DocumentHighlightKind.Read ? 'CocHighlightRead' : 'CocHighlightWrite';
