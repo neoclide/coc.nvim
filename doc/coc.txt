@@ -2091,6 +2091,23 @@ COMMANDS						*coc-commands*
 
 	Note: By default, hidden files and directories are skipped.
 
+	Note: By default, vcs ignore files including `.gitignore` and
+	`.ignore` are respected
+
+	Excape arguments:~
+
+	|<f-args>| is used to convert command line arguments to arguments of
+	rg, which means you have to escape space for single argument. For
+	example, if you want to search `import { Neovim` , you have to use:
+>
+	:CocSearch import\ \{\ Neovim
+<
+	The escape for `{` is required because rg use regexp be default, or:
+>
+	:CocSearch -F import\ {\ Neovim
+<
+	for strict match.
+
 	Change and save:~
 
 	Refactor session is started with searched patterns highlighted, just
@@ -2114,7 +2131,6 @@ AUTOCMD							*coc-autocmds*
 	let g:coc_enable_locationlist = 0 autocmd User CocLocationsChange
 	CocList --normal location
 <
-
 						*CocNvimInit*
 :autocmd User CocNvimInit {command}
 
@@ -2417,6 +2433,7 @@ Options of CocList command~
 	Open list in new tabpage.
 
 --normal
+
 	Start list in normal mode, recommended for short list.
 
 --no-sort
@@ -2424,6 +2441,7 @@ Options of CocList command~
 	it's already sorted.
 
 --input={input}
+
 	Specify the input on session start.
 
 --strict
@@ -2435,6 +2453,7 @@ Options of CocList command~
 	Use regex matching instead of fuzzy matching.
 
 --ignore-case
+
 	Ignore case when using strict matching or regex matching.
 
 --number-select
@@ -2448,12 +2467,16 @@ Options of CocList command~
 	Use interactive mode, list items would be reloaded on input
 	change, filter and sort would be done by list implementation.
 
-	Note: it won't work if the list doesn't support interactive mode.
+	Note: filtering and sorting would be done by underlying task, which
+	means options including `--strict`, `--no-sort`, `--regex`,
+	`--ignore-case` would not work at all.
 
-	Note: filtering and sorting would be done by a remote service.
+	Note: it requires list implementation have support for interactive
+	mode.
 
 --auto-preview
 -A
+
 	Start a preview for the current item on the visible list.
 
 --no-resize
