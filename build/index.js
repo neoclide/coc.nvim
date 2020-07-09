@@ -23680,7 +23680,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "83c5172f15" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "449dcad0b2" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -40722,10 +40722,11 @@ class Completion {
             return;
         // check trigger
         if (checkTrigger) {
-            let shouldTrigger = await this.shouldTrigger(document, pre);
+            let shouldTrigger = this.shouldTrigger(document, pre);
             if (!shouldTrigger)
                 return;
         }
+        await document.patchChange();
         let option = await this.nvim.call('coc#util#get_complete_option');
         if (!option)
             return;
@@ -40799,7 +40800,7 @@ class Completion {
             return '';
         return latestInsert.character;
     }
-    async shouldTrigger(document, pre) {
+    shouldTrigger(document, pre) {
         if (pre.length == 0 || /\s/.test(pre[pre.length - 1]))
             return false;
         let autoTrigger = this.config.autoTrigger;
