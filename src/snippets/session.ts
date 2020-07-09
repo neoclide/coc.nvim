@@ -8,7 +8,6 @@ import { byteLength } from '../util/string'
 import workspace from '../workspace'
 import { CocSnippet, CocSnippetPlaceholder } from "./snippet"
 import { SnippetVariableResolver } from "./variableResolve"
-import { wait } from '../util'
 const logger = require('../util/logger')('snippets-session')
 
 export class SnippetSession {

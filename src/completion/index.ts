@@ -348,9 +348,10 @@ export class Completion implements Disposable {
     if (this.config.autoTrigger == 'none') return
     // check trigger
     if (checkTrigger) {
-      let shouldTrigger = await this.shouldTrigger(document, pre)
+      let shouldTrigger = this.shouldTrigger(document, pre)
       if (!shouldTrigger) return
     }
+    await document.patchChange()
     let option: CompleteOption = await this.nvim.call('coc#util#get_complete_option')
     if (!option) return
     if (pre.length) {
@@ -421,7 +422,7 @@ export class Completion implements Disposable {
     return latestInsert.character
   }
 
-  public async shouldTrigger(document: Document, pre: string): Promise<boolean> {
+  public shouldTrigger(document: Document, pre: string): boolean {
     if (pre.length == 0 || /\s/.test(pre[pre.length - 1])) return false
     let autoTrigger = this.config.autoTrigger
     if (autoTrigger == 'none') return false
