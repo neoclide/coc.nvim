@@ -429,7 +429,7 @@ Built-in configurations:~
 
 "diagnostic.hintSign":~
 
-	Sign of info diagnostics shown in the 'signcolumn', default: `">>"`
+	Sign of hint diagnostics shown in the 'signcolumn', default: `">>"`
 
 "diagnostic.maxWindowHeight":~
 
