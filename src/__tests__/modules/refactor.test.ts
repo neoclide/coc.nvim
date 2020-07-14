@@ -186,7 +186,7 @@ describe('Refactor#createRefactorBuffer', () => {
     let line = await nvim.eval('line(".")')
     let bufname = await nvim.eval('bufname("%")')
     expect(bufname).toMatch('refactor.test.ts')
-    expect(line).toBe(11)
+    expect(line).toBe(12)
   })
 })
 
