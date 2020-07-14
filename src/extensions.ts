@@ -865,6 +865,7 @@ export class Extensions {
 
   // extension must exists as folder and in package.json
   public filterGlobalExtensions(names: string[]): string[] {
+    names = names.map(s => s.replace(/@.*$/, ''))
     let filtered = names.filter(name => !this.disabled.has(name))
     filtered = filtered.filter(name => !this.extensions.has(name))
     let json = this.loadJson()
