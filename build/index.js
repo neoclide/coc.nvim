@@ -23680,7 +23680,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "8f6274592d" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "c250e18604" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -42149,6 +42149,7 @@ class Extensions {
     }
     // extension must exists as folder and in package.json
     filterGlobalExtensions(names) {
+        names = names.map(s => s.replace(/@.*$/, ''));
         let filtered = names.filter(name => !this.disabled.has(name));
         filtered = filtered.filter(name => !this.extensions.has(name));
         let json = this.loadJson();
