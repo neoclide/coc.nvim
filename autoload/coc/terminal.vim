@@ -91,7 +91,7 @@ function! coc#terminal#send(bufnr, text, add_new_line) abort
       exe 'noa '.wincmd p
     endif
   else
-    if !a:add_new_）
+    if !a:add_new_line
       call ch_sendraw(chan, a:text)
     else
       call ch_sendraw(chan, a:text.(s:is_win ? "\r\n" : "\n"))
