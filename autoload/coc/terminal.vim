@@ -81,7 +81,7 @@ function! coc#terminal#send(bufnr, text, add_new_line) abort
   if has('nvim')
     let lines = split(a:text, '\v\r?\n')
     if a:add_new_line && !empty(lines[len(lines) - 1])
-      call add(lines, '')
+      call add(lines, s:is_win ? "\r\n" : "\n")
     endif
     call chansend(chan, lines)
     let winnr = bufwinnr(a:bufnr)
@@ -91,7 +91,7 @@ function! coc#terminal#send(bufnr, text, add_new_line) abort
       exe 'noa '.wincmd p
     endif
   else
-    if !a:add_new_line
+    if !a:add_new_）
       call ch_sendraw(chan, a:text)
     else
       call ch_sendraw(chan, a:text.(s:is_win ? "\r\n" : "\n"))
