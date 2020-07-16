@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-jsonrpc'
-import { CompletionItem, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-types'
+import { CompletionItem, InsertTextFormat, Position, Range, TextEdit, CompletionList } from 'vscode-languageserver-types'
 import completion from '../../completion'
 import languages from '../../languages'
 import { CompletionItemProvider } from '../../provider'
@@ -214,12 +214,10 @@ describe('completion resumeCompletion', () => {
     await nvim.input('i.')
     await helper.waitPopup()
     expect(completion.isActivated).toBe(true)
-    let items = await helper.items()
     await nvim.input('a')
     await helper.wait(30)
     await nvim.input('b')
     await helper.wait(100)
-    items = await helper.items()
   })
 
   it('should not complete inComplete source when isIncomplete is false', async () => {
@@ -311,6 +309,59 @@ describe('completion TextChangedP', () => {
     let [, lnum, col] = await nvim.call('getcurpos')
     expect(lnum).toBe(2)
     expect(col).toBe(7)
+  })
+
+  it('should filter in complete request', async () => {
+    let provider: CompletionItemProvider = {
+      provideCompletionItems: async (doc, pos, token, context): Promise<CompletionList> => {
+        let option = (context as any).option
+        if (context.triggerCharacter == '.') {
+          return {
+            isIncomplete: true,
+            items: [
+              {
+                label: 'foo'
+              }, {
+                label: 'bar'
+              }
+            ]
+          }
+        }
+        if (option.input == 'f') {
+          await helper.wait(100)
+          if (token.isCancellationRequested) return
+          return {
+            isIncomplete: true,
+            items: [
+              {
+                label: 'foo'
+              }
+            ]
+          }
+        }
+        if (option.input == 'fo') {
+          await helper.wait(100)
+          if (token.isCancellationRequested) return
+          return {
+            isIncomplete: false,
+            items: [
+              {
+                label: 'foo'
+              }
+            ]
+          }
+        }
+      }
+    }
+    disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider, ['.']))
+    await nvim.input('i.')
+    await helper.waitPopup()
+    await nvim.input('f')
+    await helper.wait(60)
+    await nvim.input('o')
+    await helper.wait(300)
+    let res = await helper.getItems()
+    expect(res.length).toBe(1)
   })
 
   it('should provide word when textEdit after startcol', async () => {
