@@ -81,7 +81,11 @@ function! coc#terminal#send(bufnr, text, add_new_line) abort
   if has('nvim')
     let lines = split(a:text, '\v\r?\n')
     if a:add_new_line && !empty(lines[len(lines) - 1])
-      call add(lines, '')
+      if s:is_win
+        call add(lines, "\r\n")
+      else
+        call add(lines, '')
+      endif
     endif
     call chansend(chan, lines)
     let winnr = bufwinnr(a:bufnr)
