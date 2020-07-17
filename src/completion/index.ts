@@ -309,11 +309,14 @@ export class Completion implements Disposable {
     }
     // Ignore change with other buffer
     if (!option) return
-    // Completion is canceled by <C-e>
-    if (noChange
-      || bufnr != option.bufnr
+    if (bufnr != option.bufnr
       || option.linenr != info.lnum
       || option.col >= info.col - 1) {
+      this.stop()
+      return
+    }
+    // Completion is canceled by <C-e>
+    if (noChange && !latestInsertChar) {
       this.stop()
       return
     }
