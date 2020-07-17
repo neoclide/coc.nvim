@@ -23680,7 +23680,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "c250e18604" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "285a133071" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -40682,11 +40682,14 @@ class Completion {
         // Ignore change with other buffer
         if (!option)
             return;
-        // Completion is canceled by <C-e>
-        if (noChange
-            || bufnr != option.bufnr
+        if (bufnr != option.bufnr
             || option.linenr != info.lnum
             || option.col >= info.col - 1) {
+            this.stop();
+            return;
+        }
+        // Completion is canceled by <C-e>
+        if (noChange && !latestInsertChar) {
             this.stop();
             return;
         }
