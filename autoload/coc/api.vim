@@ -215,12 +215,10 @@ endfunction
 " buffer methods {{
 function! s:funcs.buf_set_option(bufnr, name, val)
   let val = a:val
-  if type(val) == type(v:true)
-    if val == v:true
-      let val = 1
-    else
-      let val = 0
-    endif
+  if val is v:true
+    let val = 1
+  elseif val is v:false
+    let val = 0
   endif
   return setbufvar(a:bufnr, '&'.a:name, val)
 endfunction
@@ -493,12 +491,10 @@ endfunction
 
 function! s:funcs.win_set_option(win_id, name, value) abort
   let val = a:value
-  if type(val) == type(v:true)
-    if val == v:true
-      let val = 1
-    else
-      let val = 0
-    endif
+  if val is v:true
+    let val = 1
+  elseif val is v:false
+    let val = 0
   endif
   call setwinvar(a:win_id, '&'.a:name, val)
 endfunction
