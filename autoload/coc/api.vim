@@ -443,14 +443,14 @@ endfunction
 
 if exists('*win_execute')
   function! s:win_execute(win_id, cmd, ...) abort
-    let out = get(a:000, 0, v:null)
-    let cmd = out is v:null ? a:cmd : 'let out["result"] = ' . a:cmd
+    let ref = get(a:000, 0, v:null)
+    let cmd = ref is v:null ? a:cmd : 'let ref["out"] = ' . a:cmd
     call win_execute(a:win_id, cmd)
   endfunction
 else
   function! s:win_execute(win_id, cmd, ...) abort
-    let out = get(a:000, 0, v:null)
-    let cmd = out is v:null ? a:cmd : 'let out["result"] = ' . a:cmd
+    let ref = get(a:000, 0, v:null)
+    let cmd = ref is v:null ? a:cmd : 'let ref["out"] = ' . a:cmd
     let winid = win_getid()
     if winid == a:win_id
       execute cmd
@@ -466,9 +466,9 @@ else
 endif
 
 function! s:funcs.win_get_cursor(win_id) abort
-  let out = {}
-  call s:win_execute(a:win_id, "[line('.'), col('.')-1]", out)
-  return out['result']
+  let ref = {}
+  call s:win_execute(a:win_id, "[line('.'), col('.')-1]", ref)
+  return ref['out']
 endfunction
 
 function! s:funcs.win_get_var(win_id, name) abort
