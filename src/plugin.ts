@@ -15,6 +15,7 @@ import snippetManager from './snippets/manager'
 import sources from './sources'
 import { Autocmd, OutputChannel, PatternType } from './types'
 import { CONFIG_FILE_NAME } from './util'
+import clipboardy from 'clipboardy'
 import workspace from './workspace'
 const logger = require('./util/logger')('plugin')
 
@@ -106,9 +107,15 @@ export default class Plugin extends EventEmitter {
     this.addAction('openLocalConfig', async () => {
       await workspace.openLocalConfig()
     })
-    this.addAction('openLog', () => {
+    this.addAction('openLog', async () => {
       let file = logger.getLogFile()
-      nvim.call(`coc#util#open_url`, [file], true)
+      try {
+        await clipboardy.write(file)
+      } catch (e) {
+        await nvim.command(`let @*='${file.replace(/'/g, "''")}'`)
+      }
+      let level = process.env.NVIM_COC_LOG_LEVEL || 'info'
+      workspace.showMessage(`Copied filepath to clipboard, current log level: ${level}`, 'more')
     })
     this.addAction('attach', () => {
       return workspace.attach()
