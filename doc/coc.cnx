@@ -390,10 +390,12 @@ g:coc_user_config 				*g:coc_user_config*
 g:coc_global_extensions 			*g:coc_global_extensions*
 
 			用户设置需要安装的插件，coc 会检测其中未安装的插件在
-			vim 启动后使用异步方式进行安装，推荐使用
-			|coc#add_extension()| 函数进行配置。
+			vim 启动后使用异步方式进行安装。
 
 			该设置仅在服务启动前有效。
+>
+	let g:coc_global_extensions = ['coc-json', 'coc-git']
+<
 
 g:coc_enable_locationlist 			*g:coc_enable_locationlist*
 
@@ -561,6 +563,8 @@ coc#config({section}, {value})
 						*coc#add_extension()*
 coc#add_extension({name}, ...)
 
+
+	已废弃: 使用 `g:coc_global_extensions` 代替
 
 	设置需要安装的插件，如果发现未安装插件，coc 将打开终端缓冲窗口
 	执行安装命令。例如：
