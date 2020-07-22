@@ -175,8 +175,6 @@ export default class Complete {
     let { snippetIndicator, removeDuplicateItems, fixInsertedWord, asciiCharactersOnly } = this.config
     let followPart = (!fixInsertedWord || cid == 0) ? '' : this.getFollowPart()
     if (results.length == 0) return []
-    // max score of high priority source
-    let maxScore = 0
     let arr: VimCompleteItem[] = []
     let codes = getCharCodes(input)
     let words: Set<string> = new Set()
@@ -197,8 +195,6 @@ export default class Complete {
         if (filterText.length < input.length) continue
         let score = item.kind && filterText == input ? 64 : matchScore(filterText, codes)
         if (input.length && score == 0) continue
-        if (priority > 90) maxScore = Math.max(maxScore, score)
-        if (maxScore > 5 && priority <= 10 && score < maxScore) continue
         if (followPart.length && !item.isSnippet) {
           if (item.word.endsWith(followPart)) {
             let { word } = item
