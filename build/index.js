@@ -23680,7 +23680,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "3afe7d5d7c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "63b52c1463" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -70248,8 +70248,6 @@ class Complete {
         let followPart = (!fixInsertedWord || cid == 0) ? '' : this.getFollowPart();
         if (results.length == 0)
             return [];
-        // max score of high priority source
-        let maxScore = 0;
         let arr = [];
         let codes = fuzzy_1.getCharCodes(input);
         let words = new Set();
@@ -70273,10 +70271,6 @@ class Complete {
                     continue;
                 let score = item.kind && filterText == input ? 64 : match_1.matchScore(filterText, codes);
                 if (input.length && score == 0)
-                    continue;
-                if (priority > 90)
-                    maxScore = Math.max(maxScore, score);
-                if (maxScore > 5 && priority <= 10 && score < maxScore)
                     continue;
                 if (followPart.length && !item.isSnippet) {
                     if (item.word.endsWith(followPart)) {
