@@ -2041,8 +2041,13 @@ COMMANDS						*coc-commands*
 
 :CocOpenLog						*:CocOpenLog*
 
-	Open the log file of coc.nvim. To change the log level (default
-	`info`), use the environment variable `NVIM_COC_LOG_LEVEL`. E.g.: >
+	Copy filepath of log to system clipboard. 
+
+	Use environmental variable `NVIM_COC_LOG_FILE` for fixed log file.
+	Note: the log would be cleared when coc.nvim started.
+
+	Use environment variable `NVIM_COC_LOG_LEVEL` to change log level
+	(default 'info').  Example shell command: >
 
 	export NVIM_COC_LOG_LEVEL=debug
 <
@@ -2050,8 +2055,7 @@ COMMANDS						*coc-commands*
 
 	let $NVIM_COC_LOG_LEVEL='debug'
 <
-	to the beggining of your `.vimrc` (before the plugin is
-	loaded).
+	to the beggining of your `.vimrc`
 
 :CocInfo						*:CocInfo*
 

@@ -23264,6 +23264,7 @@ const manager_3 = tslib_1.__importDefault(__webpack_require__(255));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(331));
 const types_1 = __webpack_require__(294);
 const util_1 = __webpack_require__(237);
+const clipboardy_1 = tslib_1.__importDefault(__webpack_require__(455));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
 const logger = __webpack_require__(64)('plugin');
 class Plugin extends events_1.EventEmitter {
@@ -23353,9 +23354,16 @@ class Plugin extends events_1.EventEmitter {
         this.addAction('openLocalConfig', async () => {
             await workspace_1.default.openLocalConfig();
         });
-        this.addAction('openLog', () => {
+        this.addAction('openLog', async () => {
             let file = logger.getLogFile();
-            nvim.call(`coc#util#open_url`, [file], true);
+            try {
+                await clipboardy_1.default.write(file);
+            }
+            catch (e) {
+                await nvim.command(`let @*='${file.replace(/'/g, "''")}'`);
+            }
+            let level = process.env.NVIM_COC_LOG_LEVEL || 'info';
+            workspace_1.default.showMessage(`Copied filepath to clipboard, current log level: ${level}`, 'more');
         });
         this.addAction('attach', () => {
             return workspace_1.default.attach();
@@ -23680,7 +23688,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "63b52c1463" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "527bf5e9f5" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
