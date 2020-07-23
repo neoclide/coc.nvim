@@ -23688,7 +23688,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "527bf5e9f5" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "56999634f4" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -25243,6 +25243,7 @@ const mutex_1 = __webpack_require__(254);
 const position_1 = __webpack_require__(310);
 const string_1 = __webpack_require__(309);
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(323));
+const object_1 = __webpack_require__(248);
 const logger = __webpack_require__(64)('workspace');
 let NAME_SPACE = 1080;
 class Workspace {
@@ -25681,16 +25682,25 @@ class Workspace {
                     }
                 }
                 let changedMap = new Map();
-                for (let change of documentChanges) {
+                // let changes: Map<string, TextEdit[]> = new Map()
+                let textEdits = [];
+                for (let i = 0; i < documentChanges.length; i++) {
+                    let change = documentChanges[i];
                     if (index_1.isDocumentEdit(change)) {
                         let { textDocument, edits } = change;
-                        if (vscode_uri_1.URI.parse(textDocument.uri).toString() == uri)
-                            currEdits = edits;
+                        let next = documentChanges[i + 1];
+                        textEdits.push(...edits);
+                        if (next && index_1.isDocumentEdit(next) && object_1.equals(next.textDocument, textDocument)) {
+                            continue;
+                        }
                         let doc = await this.loadFile(textDocument.uri);
-                        await doc.applyEdits(edits);
-                        for (let edit of edits) {
+                        if (textDocument.uri == uri)
+                            currEdits = textEdits;
+                        await doc.applyEdits(textEdits);
+                        for (let edit of textEdits) {
                             locations.push({ uri: doc.uri, range: edit.range });
                         }
+                        textEdits = [];
                     }
                     else if (vscode_languageserver_protocol_1.CreateFile.is(change)) {
                         let file = vscode_uri_1.URI.parse(change.uri).fsPath;
