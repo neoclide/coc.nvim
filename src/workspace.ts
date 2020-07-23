@@ -8,7 +8,7 @@ import path from 'path'
 import rimraf from 'rimraf'
 import util from 'util'
 import { v1 as uuid } from 'uuid'
-import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, LocationLink, Position, Range, RenameFile, RenameFileOptions, TextDocumentEdit, TextDocumentSaveReason, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, LocationLink, Position, Range, RenameFile, RenameFileOptions, TextDocumentEdit, TextDocumentSaveReason, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import which from 'which'
@@ -35,6 +35,7 @@ import { Mutex } from './util/mutex'
 import { comparePosition, getChangedFromEdits } from './util/position'
 import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
+import { equals } from './util/object'
 
 const logger = require('./util/logger')('workspace')
 let NAME_SPACE = 1080
@@ -517,15 +518,24 @@ export class Workspace implements IWorkspace {
           }
         }
         let changedMap: Map<string, string> = new Map()
-        for (let change of documentChanges) {
+        // let changes: Map<string, TextEdit[]> = new Map()
+        let textEdits: TextEdit[] = []
+        for (let i = 0; i < documentChanges.length; i++) {
+          let change = documentChanges[i]
           if (isDocumentEdit(change)) {
             let { textDocument, edits } = change as TextDocumentEdit
-            if (URI.parse(textDocument.uri).toString() == uri) currEdits = edits
+            let next = documentChanges[i + 1]
+            textEdits.push(...edits)
+            if (next && isDocumentEdit(next) && equals((next as TextDocumentEdit).textDocument, textDocument)) {
+              continue
+            }
             let doc = await this.loadFile(textDocument.uri)
-            await doc.applyEdits(edits)
-            for (let edit of edits) {
+            if (textDocument.uri == uri) currEdits = textEdits
+            await doc.applyEdits(textEdits)
+            for (let edit of textEdits) {
               locations.push({ uri: doc.uri, range: edit.range })
             }
+            textEdits = []
           } else if (CreateFile.is(change)) {
             let file = URI.parse(change.uri).fsPath
             await this.createFile(file, change.options)
