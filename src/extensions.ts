@@ -169,21 +169,29 @@ export class Extensions {
     this.db.push('lastUpdate', Date.now())
     let installBuffer = this.installBuffer = new InstallBuffer(true, sync, silent)
     installBuffer.setExtensions(stats.map(o => o.id))
-    await installBuffer.show(workspace.nvim)
+
+    const buffer = workspace.getConfiguration('coc.preferences').get<boolean>('extensionUpdateBuffer')
+    if (buffer) await installBuffer.show(workspace.nvim)
+
     let createInstaller = createInstallerFactory(this.npm, this.modulesFolder)
     let fn = (stat: ExtensionInfo): Promise<void> => {
       let { id } = stat
-      installBuffer.startProgress([id])
       let url = stat.exotic ? stat.uri : null
-      return createInstaller(id, msg => installBuffer.addMessage(id, msg)).update(url).then(directory => {
-        installBuffer.finishProgress(id, true)
-        if (directory) {
-          this.loadExtension(directory).logError()
-        }
-      }, err => {
-        installBuffer.addMessage(id, err.message)
-        installBuffer.finishProgress(id, false)
-      })
+
+      if (buffer) {
+        installBuffer.startProgress([id])
+        return createInstaller(id, msg => installBuffer.addMessage(id, msg)).update(url).then(directory => {
+          installBuffer.finishProgress(id, true)
+          if (directory) this.loadExtension(directory).logError()
+        }, err => {
+          installBuffer.addMessage(id, err.message)
+          installBuffer.finishProgress(id, false)
+        })
+      } else {
+        return createInstaller(id, msg => workspace.showMessage(`${id}: ${msg}`)).update(url).then(directory => {
+          if (directory) this.loadExtension(directory).logError()
+        }, err => workspace.showMessage(err.message, 'error'))
+      }
     }
     await concurrent(stats, fn)
   }

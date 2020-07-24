@@ -851,6 +851,11 @@
       "description": "Interval for check extension update, could be daily, weekly, never",
       "enum": ["daily", "weekly", "never"]
     },
+    "coc.preferences.extensionUpdateBuffer": {
+      "type": "boolean",
+      "default": true,
+      "description": "Split a buffer to show extensions update messages"
+    },
     "coc.preferences.snippetStatusText": {
       "type": "string",
       "default": "SNIP",
