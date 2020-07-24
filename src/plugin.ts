@@ -112,7 +112,7 @@ export default class Plugin extends EventEmitter {
       try {
         await clipboardy.write(file)
       } catch (e) {
-        await nvim.command(`let @*='${file.replace(/'/g, "''")}'`)
+        await nvim.call('setreg', ['"', file])
       }
       let level = process.env.NVIM_COC_LOG_LEVEL || 'info'
       workspace.showMessage(`Copied filepath to clipboard, current log level: ${level}`, 'more')
