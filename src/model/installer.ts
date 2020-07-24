@@ -82,7 +82,7 @@ export class Installer {
     this.log(`Using npm from: ${this.npm}`)
     let info = await this.getInfo()
     if (version && info.version && semver.gte(version, info.version)) {
-      this.log(`Current version ${version}  is up to date.`)
+      this.log(`Current version ${version} is up to date.`)
       return
     }
     let required = info['engines.coc'] ? info['engines.coc'].replace(/^\^/, '>=') : ''
