@@ -854,7 +854,7 @@
     "coc.preferences.extensionUpdateBuffer": {
       "type": "boolean",
       "default": true,
-      "description": "Split a buffer to show extensions update messages"
+      "description": "Split a buffer to show extensions update logs, otherwise using messages"
     },
     "coc.preferences.snippetStatusText": {
       "type": "string",
