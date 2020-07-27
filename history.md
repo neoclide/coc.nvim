@@ -419,7 +419,7 @@
   extention snippets.
 - Add command: `coc.action.insertSnippet`
 - Fix position of snippets.
-- Fix modifier of registed keymaps.
+- Fix modifier of registered keymaps.
 - Fix completion triggered on complete done.
 - Fix closure function possible conflict.
 - Fix unexpected snippet cancel.
@@ -434,11 +434,11 @@
 # 2018-12-27
 
 - **Break change:** no more message on service ready.
-- **Break change:** vim source now registed as extention.
+- **Break change:** vim source now registered as extention.
 - **Break change:** complete item sort have reworked.
 - **Break change:** request send to coc would throw when service not ready.
 - Add support for check current state on diagnostic update.
-- Add `env` opinion for registed command languageserver.
+- Add `env` opinion for registered command languageserver.
 - Add outputChannel for watchman.
 - Add `coc#_select_confirm()` for trigger select and confirm.
 - Add `coc.preferences.numberSelect`.
@@ -468,7 +468,7 @@
 - Fix clients not restarted on CocRestart.
 - Fix `execArgv` and `runtime` not work for node language server.
 - Fix detail of complete item not echoed sometimes.
-- Fix actions missing when registed with same clientId.
+- Fix actions missing when registered with same clientId.
 - Fix issues with signature echo.
 - Fix uri is wrong with whitespace.
 - Improve highlight performance with `nvim_call_atomic`.

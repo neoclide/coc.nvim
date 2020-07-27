@@ -346,7 +346,7 @@ export class Extensions {
   public async reloadExtension(id: string): Promise<void> {
     let item = this.extensions.get(id)
     if (!item) {
-      workspace.showMessage(`Extension ${id} not registed`, 'error')
+      workspace.showMessage(`Extension ${id} not registered`, 'error')
       return
     }
     if (item.type == ExtensionType.Internal) {
@@ -506,7 +506,7 @@ export class Extensions {
     }
     let item = this.extensions.get(id)
     if (!item) {
-      throw new Error(`Extension ${id} not registed!`)
+      throw new Error(`Extension ${id} not registered!`)
     }
     let { extension } = item
     if (extension.isActive) return true
@@ -527,7 +527,7 @@ export class Extensions {
 
   public async call(id: string, method: string, args: any[]): Promise<any> {
     let item = this.extensions.get(id)
-    if (!item) throw new Error(`extension ${id} not registed`)
+    if (!item) throw new Error(`extension ${id} not registered`)
     let { extension } = item
     if (!extension.isActive) {
       await this.activate(id)
