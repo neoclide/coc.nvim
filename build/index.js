@@ -23466,7 +23466,7 @@ class Plugin extends events_1.EventEmitter {
         this.addAction('refreshSource', async (name) => {
             await sources_1.default.refresh(name);
         });
-        this.addAction('tokenSource', name => {
+        this.addAction('toggleSource', name => {
             sources_1.default.toggleSource(name);
         });
         this.addAction('diagnosticInfo', async () => {
@@ -23688,7 +23688,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "56999634f4" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "0ff42027ff" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -41637,7 +41637,7 @@ class Extensions {
     async reloadExtension(id) {
         let item = this.extensions.get(id);
         if (!item) {
-            workspace_1.default.showMessage(`Extension ${id} not registed`, 'error');
+            workspace_1.default.showMessage(`Extension ${id} not registered`, 'error');
             return;
         }
         if (item.type == types_1.ExtensionType.Internal) {
@@ -41802,7 +41802,7 @@ class Extensions {
         }
         let item = this.extensions.get(id);
         if (!item) {
-            throw new Error(`Extension ${id} not registed!`);
+            throw new Error(`Extension ${id} not registered!`);
         }
         let { extension } = item;
         if (extension.isActive)
@@ -41824,7 +41824,7 @@ class Extensions {
     async call(id, method, args) {
         let item = this.extensions.get(id);
         if (!item)
-            throw new Error(`extension ${id} not registed`);
+            throw new Error(`extension ${id} not registered`);
         let { extension } = item;
         if (!extension.isActive) {
             await this.activate(id);
@@ -42477,7 +42477,7 @@ class Installer {
         this.log(`Using npm from: ${this.npm}`);
         let info = await this.getInfo();
         if (version && info.version && semver_1.default.gte(version, info.version)) {
-            this.log(`Current version ${version}  is up to date.`);
+            this.log(`Current version ${version} is up to date.`);
             return;
         }
         let required = info['engines.coc'] ? info['engines.coc'].replace(/^\^/, '>=') : '';
