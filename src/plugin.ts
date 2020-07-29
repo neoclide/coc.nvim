@@ -214,7 +214,7 @@ export default class Plugin extends EventEmitter {
     this.addAction('refreshSource', async name => {
       await sources.refresh(name)
     })
-    this.addAction('tokenSource', name => {
+    this.addAction('toggleSource', name => {
       sources.toggleSource(name)
     })
     this.addAction('diagnosticInfo', async () => {
