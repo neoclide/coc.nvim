@@ -367,6 +367,7 @@ export interface LanguageServerConfig {
   disableDynamicRegister?: boolean
   disableCompletion?: boolean
   disableDiagnostics?: boolean
+  formatterPriority?: number
   filetypes: string[]
   additionalSchemes: string[]
   enable?: boolean

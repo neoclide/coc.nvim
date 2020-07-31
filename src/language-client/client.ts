@@ -691,6 +691,7 @@ export interface LanguageClientOptions {
   disableSnippetCompletion?: boolean
   disableDiagnostics?: boolean
   disableCompletion?: boolean
+  formatterPriority?: number
   outputChannelName?: string
   outputChannel?: OutputChannel
   revealOutputChannelOn?: RevealOutputChannelOn
@@ -714,6 +715,7 @@ interface ResolvedClientOptions {
   disableDynamicRegister: boolean
   disableDiagnostics: boolean
   disableCompletion: boolean
+  formatterPriority: number
   documentSelector?: DocumentSelector
   synchronize: SynchronizeOptions
   diagnosticCollectionName?: string
@@ -2517,7 +2519,10 @@ class DocumentFormattingFeature extends TextDocumentFeature<
       }
     }
 
-    return [languages.registerDocumentFormatProvider(options.documentSelector!, provider), provider]
+    return [
+      languages.registerDocumentFormatProvider(options.documentSelector!, provider, this._client.clientOptions.formatterPriority),
+      provider
+    ]
   }
 }
 
@@ -3077,6 +3082,7 @@ export abstract class BaseLanguageClient {
       disableDynamicRegister: clientOptions.disableDynamicRegister,
       disableDiagnostics: clientOptions.disableDiagnostics,
       disableCompletion: clientOptions.disableCompletion,
+      formatterPriority: clientOptions.formatterPriority,
       ignoredRootPaths: clientOptions.ignoredRootPaths,
       documentSelector: clientOptions.documentSelector || [],
       synchronize: clientOptions.synchronize || {},
