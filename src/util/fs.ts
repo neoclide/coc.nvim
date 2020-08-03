@@ -56,8 +56,9 @@ export async function isGitIgnored(fullpath: string): Promise<boolean> {
   return false
 }
 
-export function resolveRoot(dir: string, subs: string[], cwd?: string): string | null {
+export function resolveRoot(folder: string, subs: string[], cwd?: string): string | null {
   let home = os.homedir()
+  let dir = fixDriver(folder)
   if (isParentFolder(dir, home, true)) return null
   if (cwd && isParentFolder(cwd, dir, true) && inDirectory(cwd, subs)) return cwd
   let parts = dir.split(path.sep)
