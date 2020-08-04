@@ -47,6 +47,7 @@ endfunction
 call s:checkVersion()
 
 let g:did_coc_loaded = 1
+let g:coc_workspace_initialized = 0
 let g:coc_service_initialized = 0
 let s:is_win = has('win32') || has('win64')
 let s:root = expand('<sfile>:h:h')
@@ -210,17 +211,17 @@ function! s:Disable() abort
 endfunction
 
 function! s:Autocmd(...) abort
-  if !get(g:,'coc_workspace_initialized', 0)
+  if !g:coc_workspace_initialized
     return
   endif
   call coc#rpc#notify('CocAutocmd', a:000)
 endfunction
 
 function! s:SyncAutocmd(...)
-  if !get(g:,'coc_workspace_initialized', 0)
+  if !g:coc_workspace_initialized
     return
   endif
-  if get(g:, 'coc_service_initialized', 0)
+  if g:coc_service_initialized
     call coc#rpc#request('CocAutocmd', a:000)
   else
     call coc#rpc#notify('CocAutocmd', a:000)
