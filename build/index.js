@@ -23688,7 +23688,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "0ff42027ff" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "e93ec6ded0" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -35019,8 +35019,9 @@ async function isGitIgnored(fullpath) {
     return false;
 }
 exports.isGitIgnored = isGitIgnored;
-function resolveRoot(dir, subs, cwd) {
+function resolveRoot(folder, subs, cwd) {
     let home = os_1.default.homedir();
+    let dir = fixDriver(folder);
     if (isParentFolder(dir, home, true))
         return null;
     if (cwd && isParentFolder(cwd, dir, true) && inDirectory(cwd, subs))
