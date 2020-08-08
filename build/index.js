@@ -3185,9 +3185,12 @@ function getLogFile() {
     let dir = process.env.XDG_RUNTIME_DIR;
     if (dir)
         return path_1.default.join(dir, `coc-nvim-${process.pid}.log`);
-    dir = path_1.default.join(os_1.default.tmpdir(), `coc.nvim-${process.pid}`);
+    dir = path_1.default.join(process.env.TMPDIR, `coc.nvim-${process.pid}`);
+    if (os_1.default.platform() == 'win32') {
+        dir = path_1.default.win32.normalize(dir);
+    }
     if (!fs_1.default.existsSync(dir))
-        fs_1.default.mkdirSync(dir);
+        fs_1.default.mkdirSync(dir, { recursive: true });
     return path_1.default.join(dir, `coc-nvim.log`);
 }
 const MAX_LOG_SIZE = 1024 * 1024;
@@ -23681,7 +23684,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "e1a4ce4d95" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "bdd9a9e140" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -25312,12 +25315,6 @@ class Workspace {
             }));
         }
         this.configurations.updateUserConfig(this._env.config);
-        events_1.default.on('VimLeave', () => {
-            let folder = path_1.default.join(os_1.default.tmpdir(), 'coc.nvim-' + process.pid);
-            if (fs_1.default.existsSync(folder)) {
-                rimraf_1.default.sync(folder);
-            }
-        }, null, this.disposables);
         events_1.default.on('InsertEnter', () => {
             this._insertMode = true;
         }, null, this.disposables);
@@ -26629,9 +26626,9 @@ augroup coc_dynamic_autocmd
   ${cmds.join('\n  ')}
 augroup end`;
         try {
-            let dir = path_1.default.join(os_1.default.tmpdir(), `coc.nvim-${process.pid}`);
+            let dir = path_1.default.join(process.env.TMPDIR, `coc.nvim-${process.pid}`);
             if (!fs_1.default.existsSync(dir))
-                fs_1.default.mkdirSync(dir);
+                fs_1.default.mkdirSync(dir, { recursive: true });
             let filepath = path_1.default.join(dir, `coc-${process.pid}.vim`);
             fs_1.default.writeFileSync(filepath, content, 'utf8');
             let cmd = `source ${filepath}`;

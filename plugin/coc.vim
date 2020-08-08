@@ -287,7 +287,6 @@ function! s:Enable(initialize)
     autocmd FocusGained         * if mode() !~# '^c' | call s:Autocmd('FocusGained') | endif
     autocmd VimResized          * call s:Autocmd('VimResized', &columns, &lines)
     autocmd VimLeavePre         * let g:coc_vim_leaving = 1
-    autocmd VimLeave            * call s:SyncAutocmd('VimLeave')
     autocmd BufReadCmd,FileReadCmd,SourceCmd list://* call coc#list#setup(expand('<amatch>'))
     autocmd BufWriteCmd __coc_refactor__* :call coc#rpc#notify('saveRefactor', [+expand('<abuf>')])
     autocmd ColorScheme * call s:Hi()
