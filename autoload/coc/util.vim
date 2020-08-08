@@ -398,11 +398,13 @@ function! coc#util#jumpTo(line, character) abort
 endfunction
 
 function! coc#util#echo_messages(hl, msgs)
-  if empty(a:msgs) | return | endif
   if a:hl !~# 'Error' && (mode() !~# '\v^(i|n)$')
     return
   endif
   let msgs = filter(copy(a:msgs), '!empty(v:val)')
+  if empty(msgs)
+    return
+  endif
   execute 'echohl '.a:hl
   echom a:msgs[0]
   redraw

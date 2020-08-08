@@ -103,6 +103,7 @@ endfunction
 
 function! s:on_stderr(name, msgs)
   if get(g:, 'coc_vim_leaving', 0) | return | endif
+  if get(g:, 'coc_disable_uncaught_error', 0) | return | endif
   let data = filter(copy(a:msgs), '!empty(v:val)')
   if empty(data) | return | endif
   let client = a:name ==# 'coc' ? '[coc.nvim]' : '['.a:name.']'

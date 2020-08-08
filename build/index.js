@@ -112,7 +112,7 @@ const attach = __webpack_require__(153).default
 attach({reader: process.stdin, writer: process.stdout})
 
 process.on('uncaughtException', function (err) {
-  let msg = 'Uncaught exception: ' + err.stack
+  let msg = 'Uncaught exception: ' + err.message
   console.error(msg)
   logger.error('uncaughtException', err.stack)
 })
@@ -23264,8 +23264,8 @@ const manager_3 = tslib_1.__importDefault(__webpack_require__(255));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(331));
 const types_1 = __webpack_require__(294);
 const util_1 = __webpack_require__(237);
-const clipboardy_1 = tslib_1.__importDefault(__webpack_require__(455));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const vscode_uri_1 = __webpack_require__(242);
 const logger = __webpack_require__(64)('plugin');
 class Plugin extends events_1.EventEmitter {
     constructor(nvim) {
@@ -23356,14 +23356,7 @@ class Plugin extends events_1.EventEmitter {
         });
         this.addAction('openLog', async () => {
             let file = logger.getLogFile();
-            try {
-                await clipboardy_1.default.write(file);
-            }
-            catch (e) {
-                await nvim.command(`let @*='${file.replace(/'/g, "''")}'`);
-            }
-            let level = process.env.NVIM_COC_LOG_LEVEL || 'info';
-            workspace_1.default.showMessage(`Copied filepath to clipboard, current log level: ${level}`, 'more');
+            await workspace_1.default.jumpTo(vscode_uri_1.URI.file(file).toString());
         });
         this.addAction('attach', () => {
             return workspace_1.default.attach();
@@ -23688,7 +23681,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "7612f0b2cd" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "e1a4ce4d95" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
