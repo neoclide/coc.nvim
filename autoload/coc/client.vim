@@ -38,6 +38,7 @@ function! s:start() dict
   if self.running | return | endif
   let timeout = string(get(g:, 'coc_channel_timeout', 30))
   let disable_warning = string(get(g:, 'coc_disable_startup_warning', 0))
+  let tmpdir = fnamemodify(tempname(), ':p:h')
   if s:is_vim
     let options = {
           \ 'in_mode': 'json',
@@ -49,17 +50,11 @@ function! s:start() dict
             \ 'NODE_NO_WARNINGS': '1',
             \ 'VIM_NODE_RPC': '1',
             \ 'COC_NVIM': '1',
-            \ 'COC_CHANNEL_TIMEOUT': get(g:, 'coc_channel_timeout', 30),
-            \ 'COC_NO_WARNINGS': get(g:, 'coc_disable_startup_warning', 0)
+            \ 'COC_CHANNEL_TIMEOUT': timeout,
+            \ 'COC_NO_WARNINGS': disable_warning,
+            \ 'TMPDIR': tmpdir,
           \ }
           \}
-    let options['env'] = {
-          \ 'VIM_NODE_RPC': '1',
-          \ 'COC_NVIM': '1',
-          \ 'NODE_NO_WARNINGS': '1',
-          \ 'COC_CHANNEL_TIMEOUT': timeout,
-          \ 'COC_NO_WARNINGS': disable_warning,
-          \ }
     if has("patch-8.1.350")
       let options['noblock'] = 1
     endif
@@ -73,21 +68,21 @@ function! s:start() dict
     let self['running'] = 1
     let self['channel'] = job_getchannel(job)
   else
-    let env = {}
     let original = {
       \ 'NODE_NO_WARNINGS': getenv('NODE_NO_WARNINGS'),
       \ 'COC_CHANNEL_TIMEOUT': getenv('COC_CHANNEL_TIMEOUT'),
       \ 'COC_NO_WARNINGS': getenv('COC_NO_WARNINGS'),
+      \ 'TMPDIR': getenv('TMPDIR'),
       \ }
     " env option not work on neovim
     call setenv('NODE_NO_WARNINGS', '1')
     call setenv('COC_CHANNEL_TIMEOUT', timeout)
     call setenv('COC_NO_WARNINGS', disable_warning)
+    call setenv('TMPDIR', tmpdir)
     let chan_id = jobstart(self.command, {
           \ 'rpc': 1,
           \ 'on_stderr': {channel, msgs -> s:on_stderr(self.name, msgs)},
           \ 'on_exit': {channel, code -> s:on_exit(self.name, code)},
-          \ 'env': env
           \})
     for key in keys(original)
       call setenv(key, original[key])

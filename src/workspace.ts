@@ -127,12 +127,6 @@ export class Workspace implements IWorkspace {
       }))
     }
     this.configurations.updateUserConfig(this._env.config)
-    events.on('VimLeave', () => {
-      let folder = path.join(os.tmpdir(), 'coc.nvim-' + process.pid)
-      if (fs.existsSync(folder)) {
-        rimraf.sync(folder)
-      }
-    }, null, this.disposables)
     events.on('InsertEnter', () => {
       this._insertMode = true
     }, null, this.disposables)
@@ -1449,8 +1443,8 @@ augroup coc_dynamic_autocmd
   ${cmds.join('\n  ')}
 augroup end`
     try {
-      let dir = path.join(os.tmpdir(), `coc.nvim-${process.pid}`)
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir)
+      let dir = path.join(process.env.TMPDIR, `coc.nvim-${process.pid}`)
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
       let filepath = path.join(dir, `coc-${process.pid}.vim`)
       fs.writeFileSync(filepath, content, 'utf8')
       let cmd = `source ${filepath}`
