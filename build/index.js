@@ -23688,7 +23688,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "e93ec6ded0" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "7612f0b2cd" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -72993,6 +72993,7 @@ class Handler {
         }
     }
     async triggerSignatureHelp(document, position) {
+        let { signatureHelpTarget } = this.preferences;
         if (this.signatureTokenSource) {
             this.signatureTokenSource.cancel();
             this.signatureTokenSource = null;
@@ -73022,79 +73023,7 @@ class Handler {
             if (active)
                 signatures.unshift(active);
         }
-        if (this.preferences.signatureHelpTarget == 'float') {
-            let offset = 0;
-            let paramDoc = null;
-            let docs = signatures.reduce((p, c, idx) => {
-                let activeIndexes = null;
-                let nameIndex = c.label.indexOf('(');
-                if (idx == 0 && activeParameter != null) {
-                    let active = c.parameters[activeParameter];
-                    if (active) {
-                        let after = c.label.slice(nameIndex == -1 ? 0 : nameIndex);
-                        paramDoc = active.documentation;
-                        if (typeof active.label === 'string') {
-                            let str = after.slice(0);
-                            let ms = str.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'));
-                            let index = ms ? ms.index : str.indexOf(active.label);
-                            if (index != -1) {
-                                activeIndexes = [
-                                    index + nameIndex,
-                                    index + active.label.length + nameIndex
-                                ];
-                            }
-                        }
-                        else {
-                            activeIndexes = active.label;
-                        }
-                    }
-                }
-                if (activeIndexes == null) {
-                    activeIndexes = [nameIndex + 1, nameIndex + 1];
-                }
-                if (offset == 0) {
-                    offset = activeIndexes[0] + 1;
-                }
-                p.push({
-                    content: c.label,
-                    filetype: document.filetype,
-                    active: activeIndexes
-                });
-                if (paramDoc) {
-                    let content = typeof paramDoc === 'string' ? paramDoc : paramDoc.value;
-                    if (content.trim().length) {
-                        p.push({
-                            content,
-                            filetype: vscode_languageserver_protocol_1.MarkupContent.is(c.documentation) ? 'markdown' : 'txt'
-                        });
-                    }
-                }
-                if (idx == 0 && c.documentation) {
-                    let { documentation } = c;
-                    let content = typeof documentation === 'string' ? documentation : documentation.value;
-                    if (content.trim().length) {
-                        p.push({
-                            content,
-                            filetype: vscode_languageserver_protocol_1.MarkupContent.is(c.documentation) ? 'markdown' : 'txt'
-                        });
-                    }
-                }
-                return p;
-            }, []);
-            let session = manager_3.default.getSession(document.bufnr);
-            if (session && session.isActive) {
-                let { value } = session.placeholder;
-                if (!value.includes('\n'))
-                    offset += value.length;
-                this.signaturePosition = vscode_languageserver_protocol_1.Position.create(position.line, position.character - value.length);
-            }
-            else {
-                this.signaturePosition = position;
-            }
-            await this.signatureFactory.create(docs, true, offset);
-            // show float
-        }
-        else {
+        if (signatureHelpTarget == 'echo') {
             let columns = workspace_1.default.env.columns;
             signatures = signatures.slice(0, workspace_1.default.env.cmdheight);
             let signatureList = [];
@@ -73154,6 +73083,89 @@ class Handler {
                 signatureList.push(parts);
             }
             this.nvim.callTimer('coc#util#echo_signatures', [signatureList], true);
+        }
+        else {
+            let offset = 0;
+            let paramDoc = null;
+            let docs = signatures.reduce((p, c, idx) => {
+                let activeIndexes = null;
+                let nameIndex = c.label.indexOf('(');
+                if (idx == 0 && activeParameter != null) {
+                    let active = c.parameters[activeParameter];
+                    if (active) {
+                        let after = c.label.slice(nameIndex == -1 ? 0 : nameIndex);
+                        paramDoc = active.documentation;
+                        if (typeof active.label === 'string') {
+                            let str = after.slice(0);
+                            let ms = str.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'));
+                            let index = ms ? ms.index : str.indexOf(active.label);
+                            if (index != -1) {
+                                activeIndexes = [
+                                    index + nameIndex,
+                                    index + active.label.length + nameIndex
+                                ];
+                            }
+                        }
+                        else {
+                            activeIndexes = active.label;
+                        }
+                    }
+                }
+                if (activeIndexes == null) {
+                    activeIndexes = [nameIndex + 1, nameIndex + 1];
+                }
+                if (offset == 0) {
+                    offset = activeIndexes[0] + 1;
+                }
+                p.push({
+                    content: c.label,
+                    filetype: document.filetype,
+                    active: activeIndexes
+                });
+                if (paramDoc) {
+                    let content = typeof paramDoc === 'string' ? paramDoc : paramDoc.value;
+                    if (content.trim().length) {
+                        p.push({
+                            content,
+                            filetype: vscode_languageserver_protocol_1.MarkupContent.is(c.documentation) ? 'markdown' : 'txt'
+                        });
+                    }
+                }
+                if (idx == 0 && c.documentation) {
+                    let { documentation } = c;
+                    let content = typeof documentation === 'string' ? documentation : documentation.value;
+                    if (content.trim().length) {
+                        p.push({
+                            content,
+                            filetype: vscode_languageserver_protocol_1.MarkupContent.is(c.documentation) ? 'markdown' : 'txt'
+                        });
+                    }
+                }
+                return p;
+            }, []);
+            if (signatureHelpTarget == 'float') {
+                let session = manager_3.default.getSession(document.bufnr);
+                if (session && session.isActive) {
+                    let { value } = session.placeholder;
+                    if (!value.includes('\n'))
+                        offset += value.length;
+                    this.signaturePosition = vscode_languageserver_protocol_1.Position.create(position.line, position.character - value.length);
+                }
+                else {
+                    this.signaturePosition = position;
+                }
+                await this.signatureFactory.create(docs, true, offset);
+                // show float
+            }
+            else {
+                this.documentLines = docs.reduce((p, c) => {
+                    p.push('``` ' + c.filetype);
+                    p.push(...c.content.split(/\r?\n/));
+                    p.push('```');
+                    return p;
+                }, []);
+                await this.nvim.command(`pedit coc://document`);
+            }
         }
         return true;
     }

@@ -639,7 +639,7 @@
     "signature.target": {
       "type": "string",
       "description": "Target of signature help, use float when possible by default.",
-      "enum": ["float", "echo"]
+      "enum": ["float", "echo", "preview"]
     },
     "signature.floatMaxWidth": {
       "type": "integer",
