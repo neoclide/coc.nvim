@@ -2041,7 +2041,7 @@ COMMANDS						*coc-commands*
 
 :CocOpenLog						*:CocOpenLog*
 
-	Copy filepath of log to system clipboard. 
+	Open log file of coc.nvim.
 
 	Use environmental variable `NVIM_COC_LOG_FILE` for fixed log file.
 	Note: the log would be cleared when coc.nvim started.
