@@ -1,15 +1,15 @@
-import {Neovim, Window, Buffer} from '@chemzqm/neovim'
+import { Neovim, Window, Buffer } from '@chemzqm/neovim'
 import log4js from 'log4js'
-import {CancellationToken, CompletionTriggerKind, CreateFileOptions, DeleteFileOptions, Diagnostic, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFileOptions, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder} from 'vscode-languageserver-protocol'
-import {TextDocument} from 'vscode-languageserver-textdocument'
-import {URI} from 'vscode-uri'
+import { CancellationToken, CompletionTriggerKind, CreateFileOptions, DeleteFileOptions, Diagnostic, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFileOptions, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
+import { URI } from 'vscode-uri'
 import Configurations from './configuration'
-import {LanguageClient} from './language-client'
+import { LanguageClient } from './language-client'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
-import {ProviderResult, TextDocumentContentProvider} from './provider'
+import { ProviderResult, TextDocumentContentProvider } from './provider'
 import * as protocol from 'vscode-languageserver-protocol'
-import {ParsedUrlQueryInput} from 'querystring'
+import { ParsedUrlQueryInput } from 'querystring'
 
 export type MsgTypes = 'error' | 'warning' | 'more'
 export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
@@ -152,7 +152,7 @@ export interface TerminalOptions {
   /**
    * Object with environment variables that will be added to the VS Code process.
    */
-  env?: {[key: string]: string | null}
+  env?: { [key: string]: string | null }
 
   /**
    * Whether the terminal process environment should be exactly as provided in
@@ -249,7 +249,7 @@ export interface Terminal {
 export interface Env {
   completeOpt: string
   runtimepath: string
-  disabledSources: {[filetype: string]: string[]}
+  disabledSources: { [filetype: string]: string[] }
   readonly guicursor: string
   readonly mode: string
   readonly floating: boolean
@@ -263,7 +263,7 @@ export interface Env {
   readonly lines: number
   readonly pumevent: boolean
   readonly cmdheight: number
-  readonly filetypeMap: {[index: string]: string}
+  readonly filetypeMap: { [index: string]: string }
   readonly isVim: boolean
   readonly isCygwin: boolean
   readonly isMacvim: boolean
@@ -429,7 +429,7 @@ export interface BufferOption {
   size: number
   winid: number
   previewwindow: boolean
-  variables: {[key: string]: any}
+  variables: { [key: string]: any }
   bufname: string
   fullpath: string
   buftype: string
@@ -926,20 +926,41 @@ export interface PreiewOptions {
 }
 
 export interface FetchOptions {
+  /**
+   * Default to 'GET'
+   */
   method?: string
+  /**
+   * Default no timeout
+   */
   timeout?: number
-  // use object literal for json formated data
-  data?: string | {[key: string]: any} | Buffer
+  /**
+   * - 'string' for text response content
+   * - 'object' for json response content
+   * - 'buffer' for response not text or json
+   */
+  data?: string | { [key: string]: any } | Buffer
+  /**
+   * Plain object added as query of url
+   */
   query?: ParsedUrlQueryInput
   headers?: any
+  /**
+   * User for http basic auth, should use with password
+   */
   user?: string
+  /**
+   * Password for http basic auth, should use with user
+   */
   password?: string
 }
 
 export interface DownloadOptions extends FetchOptions {
-  // absolute folder path
+  /**
+   * Folder contains downloaded file or extracted files by untar or unzip
+   */
   dest: string
-  extract?: boolean
+  extract?: boolean | 'untar' | 'unzip'
   onProgress?: (percent: string) => void
 }
 

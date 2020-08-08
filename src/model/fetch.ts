@@ -122,8 +122,8 @@ function request(url: string, data: any, opts: any): Promise<ResponseResult> {
       if ((res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 1223) {
         let headers = res.headers || {}
         let chunks: Buffer[] = []
-        let contentType = headers['content-type'] || ''
-        let contentEncoding = headers['content-encoding'] || ''
+        let contentType: string = headers['content-type'] || ''
+        let contentEncoding: string = headers['content-encoding'] || ''
         if (contentEncoding === 'gzip') {
           const unzip = zlib.createGunzip()
           readable = res.pipe(unzip)
@@ -137,10 +137,8 @@ function request(url: string, data: any, opts: any): Promise<ResponseResult> {
         })
         readable.on('end', () => {
           let buf = Buffer.concat(chunks)
-          if (contentType.includes('application/octet-stream')
-            || contentType.includes('application/zip')) {
-            resolve(buf)
-          } else {
+          if (contentType.startsWith('application/json')
+            || contentType.startsWith('text/')) {
             let ms = contentType.match(/charset=(\S+)/)
             let encoding = ms ? ms[1] : 'utf8'
             let rawData = buf.toString(encoding)
@@ -154,6 +152,8 @@ function request(url: string, data: any, opts: any): Promise<ResponseResult> {
                 reject(new Error(`Parse response error: ${e}`))
               }
             }
+          } else {
+            resolve(buf)
           }
         })
         readable.on('error', err => {

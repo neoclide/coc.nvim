@@ -10,7 +10,7 @@ import { ServerResponse } from 'http'
 const logger = require('../util/logger')('model-download')
 
 /**
- * Download file from url, with optional untar support.
+ * Download file from url, with optional untar/unzip support.
  *
  * @param {string} url
  * @param {DownloadOptions} options contains dest folder and optional onProgress callback
