@@ -1142,6 +1142,18 @@ b:coc_current_function					*b:coc_current_function*
 	Set `"coc.preferences.currentFunctionSymbolAutoUpdate": true`
 	in coc-settings.json to update it on CursorHold.
 
+g:coc_disable_startup_warning 				*g:coc_disable_startup_warning*
+
+	Disable possible warning on startup for old vim/node version.
+
+	Default: 0
+
+g:coc_disable_uncaught_error 				 *g:coc_disable_uncaught_error*
+
+	Disable uncaught error messages from node process of coc.nvim.
+
+	Default: 0
+	
 g:coc_channel_timeout					*g:coc_channel_timeout*
 
 	Channel timeout in seconds for request to node client.

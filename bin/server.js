@@ -22,7 +22,7 @@ const attach = require('../lib/attach').default
 attach({reader: process.stdin, writer: process.stdout})
 
 process.on('uncaughtException', function (err) {
-  let msg = 'Uncaught exception: ' + err.stack
+  let msg = 'Uncaught exception: ' + err.message
   console.error(msg)
   logger.error('uncaughtException', err.stack)
 })
