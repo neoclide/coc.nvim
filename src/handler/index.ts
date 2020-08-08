@@ -838,6 +838,7 @@ export default class Handler {
   }
 
   private async triggerSignatureHelp(document: Document, position: Position): Promise<boolean> {
+    let { signatureHelpTarget } = this.preferences
     if (this.signatureTokenSource) {
       this.signatureTokenSource.cancel()
       this.signatureTokenSource = null
@@ -866,7 +867,63 @@ export default class Handler {
       let [active] = signatures.splice(activeSignature, 1)
       if (active) signatures.unshift(active)
     }
-    if (this.preferences.signatureHelpTarget == 'float') {
+    if (signatureHelpTarget == 'echo') {
+      let columns = workspace.env.columns
+      signatures = signatures.slice(0, workspace.env.cmdheight)
+      let signatureList: SignaturePart[][] = []
+      for (let signature of signatures) {
+        let parts: SignaturePart[] = []
+        let { label } = signature
+        label = label.replace(/\n/g, ' ')
+        if (label.length >= columns - 16) {
+          label = label.slice(0, columns - 16) + '...'
+        }
+        let nameIndex = label.indexOf('(')
+        if (nameIndex == -1) {
+          parts = [{ text: label, type: 'Normal' }]
+        } else {
+          parts.push({
+            text: label.slice(0, nameIndex),
+            type: 'Label'
+          })
+          let after = label.slice(nameIndex)
+          if (signatureList.length == 0 && activeParameter != null) {
+            let active = signature.parameters[activeParameter]
+            if (active) {
+              let start: number
+              let end: number
+              if (typeof active.label === 'string') {
+                let str = after.slice(0)
+                let ms = str.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'))
+                let idx = ms ? ms.index : str.indexOf(active.label)
+                if (idx == -1) {
+                  parts.push({ text: after, type: 'Normal' })
+                } else {
+                  start = idx
+                  end = idx + active.label.length
+                }
+              } else {
+                [start, end] = active.label
+                start = start - nameIndex
+                end = end - nameIndex
+              }
+              if (start != null && end != null) {
+                parts.push({ text: after.slice(0, start), type: 'Normal' })
+                parts.push({ text: after.slice(start, end), type: 'MoreMsg' })
+                parts.push({ text: after.slice(end), type: 'Normal' })
+              }
+            }
+          } else {
+            parts.push({
+              text: after,
+              type: 'Normal'
+            })
+          }
+        }
+        signatureList.push(parts)
+      }
+      this.nvim.callTimer('coc#util#echo_signatures', [signatureList], true)
+    } else {
       let offset = 0
       let paramDoc: string | MarkupContent = null
       let docs: Documentation[] = signatures.reduce((p: Documentation[], c, idx) => {
@@ -924,72 +981,26 @@ export default class Handler {
         }
         return p
       }, [])
-      let session = snippetManager.getSession(document.bufnr)
-      if (session && session.isActive) {
-        let { value } = session.placeholder
-        if (!value.includes('\n')) offset += value.length
-        this.signaturePosition = Position.create(position.line, position.character - value.length)
-      } else {
-        this.signaturePosition = position
-      }
-      await this.signatureFactory.create(docs, true, offset)
-      // show float
-    } else {
-      let columns = workspace.env.columns
-      signatures = signatures.slice(0, workspace.env.cmdheight)
-      let signatureList: SignaturePart[][] = []
-      for (let signature of signatures) {
-        let parts: SignaturePart[] = []
-        let { label } = signature
-        label = label.replace(/\n/g, ' ')
-        if (label.length >= columns - 16) {
-          label = label.slice(0, columns - 16) + '...'
-        }
-        let nameIndex = label.indexOf('(')
-        if (nameIndex == -1) {
-          parts = [{ text: label, type: 'Normal' }]
+      if (signatureHelpTarget == 'float') {
+        let session = snippetManager.getSession(document.bufnr)
+        if (session && session.isActive) {
+          let { value } = session.placeholder
+          if (!value.includes('\n')) offset += value.length
+          this.signaturePosition = Position.create(position.line, position.character - value.length)
         } else {
-          parts.push({
-            text: label.slice(0, nameIndex),
-            type: 'Label'
-          })
-          let after = label.slice(nameIndex)
-          if (signatureList.length == 0 && activeParameter != null) {
-            let active = signature.parameters[activeParameter]
-            if (active) {
-              let start: number
-              let end: number
-              if (typeof active.label === 'string') {
-                let str = after.slice(0)
-                let ms = str.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'))
-                let idx = ms ? ms.index : str.indexOf(active.label)
-                if (idx == -1) {
-                  parts.push({ text: after, type: 'Normal' })
-                } else {
-                  start = idx
-                  end = idx + active.label.length
-                }
-              } else {
-                [start, end] = active.label
-                start = start - nameIndex
-                end = end - nameIndex
-              }
-              if (start != null && end != null) {
-                parts.push({ text: after.slice(0, start), type: 'Normal' })
-                parts.push({ text: after.slice(start, end), type: 'MoreMsg' })
-                parts.push({ text: after.slice(end), type: 'Normal' })
-              }
-            }
-          } else {
-            parts.push({
-              text: after,
-              type: 'Normal'
-            })
-          }
+          this.signaturePosition = position
         }
-        signatureList.push(parts)
+        await this.signatureFactory.create(docs, true, offset)
+        // show float
+      } else {
+        this.documentLines = docs.reduce((p, c) => {
+          p.push('``` ' + c.filetype)
+          p.push(...c.content.split(/\r?\n/))
+          p.push('```')
+          return p
+        }, [])
+        await this.nvim.command(`pedit coc://document`)
       }
-      this.nvim.callTimer('coc#util#echo_signatures', [signatureList], true)
     }
     return true
   }
