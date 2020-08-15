@@ -533,8 +533,10 @@ function! coc#util#get_data_home()
     else
       if s:is_win
         let dir = resolve(expand('~/AppData/Local/coc'))
+      elseif exists("$XDG_DATA_HOME")
+        let dir = resolve($XDG_DATA_HOME.'/coc'))
       else
-        let dir = resolve(expand('~/.config/coc'))
+        let dir = resolve($HOME.'/.local/share/coc')
       endif
     endif
   endif
