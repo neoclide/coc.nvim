@@ -13,4 +13,5 @@ module.exports = async () => {
   process.env.NODE_ENV = 'test'
   process.env.COC_DATA_HOME = dataHome
   process.env.COC_VIMCONFIG = path.join(__dirname, 'src/__tests__')
+  process.env.TMPDIR = '/tmp/coc-test'
 }
