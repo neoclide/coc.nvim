@@ -790,6 +790,8 @@ Built-in configurations:~
 	- "disableCompletion": Disable completion feature for this
 	  languageserver.
 
+	- "formatterPriority": Priority of this languageserver's fomatter.
+
 	- "revealOutputChannelOn": Configure message level to show the output
 	  channel buffer.
 

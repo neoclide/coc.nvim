@@ -40,6 +40,11 @@
           "default": false,
           "description": "Disable completion feature for this languageserver."
         },
+        "formatterPriority": {
+          "type": "number",
+          "default": 0,
+          "description": "Priority of this languageserver's fomatter."
+        },
         "env": {
           "type": "object",
           "default": null,
@@ -136,6 +141,7 @@
         "disableDynamicRegister": {},
         "disableDiagnostics": {},
         "disableCompletion": {},
+        "formatterPriority": {},
         "enable": {},
         "rootPatterns": {},
         "requireRootPattern": {},
@@ -200,6 +206,7 @@
         "disableSnippetCompletion": {},
         "disableDiagnostics": {},
         "disableCompletion": {},
+        "formatterPriority": {},
         "rootPatterns": {},
         "requireRootPattern": {},
         "ignoredRootPaths": {},
@@ -250,6 +257,7 @@
         "disableSnippetCompletion": {},
         "disableDiagnostics": {},
         "disableCompletion": {},
+        "formatterPriority": {},
         "rootPatterns": {},
         "requireRootPattern": {},
         "ignoredRootPaths": {},

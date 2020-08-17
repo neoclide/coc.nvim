@@ -401,6 +401,7 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
     disableDynamicRegister: !!config.disableDynamicRegister,
     disableCompletion: !!config.disableCompletion,
     disableDiagnostics: !!config.disableDiagnostics,
+    formatterPriority: config.formatterPriority || 0,
     documentSelector: getDocumentSelector(config.filetypes, config.additionalSchemes),
     revealOutputChannelOn: getRevealOutputChannelOn(config.revealOutputChannelOn),
     synchronize: {
