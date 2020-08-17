@@ -234,10 +234,10 @@ export class DiagnosticManager implements Disposable {
   public getSortedRanges(uri: string, severity?: string): Range[] {
     let collections = this.getCollections(uri)
     let res: Range[] = []
-    let level = severity ? severityLevel(severity) : 0
+    let level = severity ? severityLevel(severity) : this.config.level
     for (let collection of collections) {
       let diagnostics = collection.get(uri)
-      if (level) diagnostics = diagnostics.filter(o => o.severity == level)
+      if (level) diagnostics = diagnostics.filter(o => o.severity <= level)
       let ranges = diagnostics.map(o => o.range)
       res.push(...ranges)
     }
