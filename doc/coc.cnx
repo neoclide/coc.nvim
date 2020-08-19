@@ -116,6 +116,10 @@ NodeJS https://nodejs.org/ >= 10.12.0
 <
 补全开启时选中第一项： >
 
+	"suggest.jumpTimeout.TODO.TRANSLATION": 500,
+<
+补全开启时选中第一项： >
+
 	"suggest.noselect": false,
 
 保留使用当前的 `completeopt` ：

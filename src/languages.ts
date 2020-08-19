@@ -46,6 +46,7 @@ interface CompleteConfig {
   detailMaxLength: number
   detailField: string
   invalidInsertCharacters: string[]
+  jumpTimeout: number
 }
 
 function fixDocumentation(str: string): string {
@@ -66,8 +67,8 @@ export function check(_target: any, key: string, descriptor: any): void {
       let timer = setTimeout(() => {
         cancelTokenSource.cancel()
         logger.error(`${key} timeout after 5s`)
-        if (!resolved) reject(new Error(`${key} timeout after 5s`))
-      }, 5000)
+        if (!resolved) reject(new Error(`${key} timeout after ${this.completeConfig.jumpTimeout / 1000}s`))
+      }, this.completeConfig.jumpTimeout)
       Promise.resolve(fn.apply(this, args)).then(res => {
         clearTimeout(timer)
         resolve(res)
@@ -167,6 +168,7 @@ class Languages {
       detailField: getConfig<string>('detailField', 'menu'),
       detailMaxLength: getConfig<number>('detailMaxLength', 100),
       invalidInsertCharacters: getConfig<string[]>('invalidInsertCharacters', [' ', '(', '<', '{', '[', '\r', '\n']),
+      jumpTimeout: getConfig<number>('jumpTimeout', 5000),
     }
   }
 

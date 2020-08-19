@@ -220,6 +220,11 @@ Built-in configurations:~
 
 	Timeout for completion (unit: milliseconds), default: `5000`
 
+"suggest.jumpTimeout":~
+
+	Timeout for jumping to definitions or implementations
+	(unit: milliseconds), default: `5000`
+
 "suggest.minTriggerInputLength":~
 
 	Number of characters in the current word after which the completion

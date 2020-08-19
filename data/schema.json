@@ -392,6 +392,13 @@
       "maximum": 15000,
       "description": "Timeout for completion, in miliseconds."
     },
+    "suggest.jumpTimeout": {
+      "type": "integer",
+      "default": 5000,
+      "minimum": 500,
+      "maximum": 15000,
+      "description": "Timeout for jumps, in miliseconds."
+    },
     "suggest.minTriggerInputLength": {
       "type": "number",
       "default": 1,
