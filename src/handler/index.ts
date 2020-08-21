@@ -276,6 +276,7 @@ export default class Handler {
       'Class',
       'Method',
       'Function',
+      'Struct',
     ].includes(s.kind))
     let functionName = ''
     for (let sym of symbols.reverse()) {
