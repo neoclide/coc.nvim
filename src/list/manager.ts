@@ -696,7 +696,7 @@ export class ListManager implements Disposable {
     return Array.from(this.listMap.keys())
   }
 
-  public get descriptions(): { [name:string]: string } {
+  public get descriptions(): { [name: string]: string } {
     let d = {}
     for (let name of this.listMap.keys()) {
       let list = this.listMap.get(name)
