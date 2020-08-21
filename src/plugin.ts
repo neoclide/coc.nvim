@@ -36,6 +36,7 @@ export default class Plugin extends EventEmitter {
     this.addAction('getTagList', async () => await this.handler.getTagList())
     this.addAction('hasSelected', () => completion.hasSelected())
     this.addAction('listNames', () => listManager.names)
+    this.addAction('listDescriptions', () => listManager.descriptions)
     this.addAction('search', (...args: string[]) => this.handler.search(args))
     this.addAction('cursorsSelect', (bufnr: number, kind: string, mode: string) => this.cursors.select(bufnr, kind, mode))
     this.addAction('codeActionRange', (start, end, only) => this.handler.codeActionRange(start, end, only))
