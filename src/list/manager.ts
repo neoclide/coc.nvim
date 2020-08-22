@@ -696,6 +696,15 @@ export class ListManager implements Disposable {
     return Array.from(this.listMap.keys())
   }
 
+  public get descriptions(): { [name: string]: string } {
+    let d = {}
+    for (let name of this.listMap.keys()) {
+      let list = this.listMap.get(name)
+      d[name] = list.description
+    }
+    return d
+  }
+
   public toggleMode(): void {
     let { mode } = this.prompt
     this.prompt.mode = mode == 'normal' ? 'insert' : 'normal'
