@@ -17,7 +17,7 @@ export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsert
   let { label, data, insertTextFormat, insertText, textEdit } = item
   let word: string
   let newText: string
-  if (data && data.word) return data.word
+  if (data && typeof data.word === 'string') return data.word
   if (textEdit) {
     let { range } = textEdit
     newText = textEdit.newText
