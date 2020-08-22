@@ -129,9 +129,6 @@ class Languages {
   private loadCompleteConfig(): void {
     let config = workspace.getConfiguration('coc.preferences')
     let suggest = workspace.getConfiguration('suggest')
-    function getConfig<T>(key, defaultValue: T): T {
-      return config.get<T>(key, suggest.get<T>(key, defaultValue))
-    }
     let labels = suggest.get<{ [key: string]: string }>('completionItemKindLabels', {})
     this.completionItemKindMap = new Map([
       [CompletionItemKind.Text, labels['text'] || 'v'],
@@ -162,11 +159,11 @@ class Languages {
     ])
     this.completeConfig = {
       defaultKindText: labels['default'] || '',
-      priority: getConfig<number>('languageSourcePriority', 99),
-      echodocSupport: getConfig<boolean>('echodocSupport', false),
-      detailField: getConfig<string>('detailField', 'menu'),
-      detailMaxLength: getConfig<number>('detailMaxLength', 100),
-      invalidInsertCharacters: getConfig<string[]>('invalidInsertCharacters', [' ', '(', '<', '{', '[', '\r', '\n']),
+      priority: suggest.get<number>('languageSourcePriority', 99),
+      echodocSupport: suggest.get<boolean>('echodocSupport', false),
+      detailField: suggest.get<string>('detailField', 'menu'),
+      detailMaxLength: suggest.get<number>('detailMaxLength', 100),
+      invalidInsertCharacters: suggest.get<string[]>('invalidInsertCharacters', [' ', '(', '<', '{', '[', '\r', '\n']),
     }
   }
 
