@@ -23284,6 +23284,7 @@ class Plugin extends events_1.EventEmitter {
         this.addAction('getTagList', async () => await this.handler.getTagList());
         this.addAction('hasSelected', () => completion_1.default.hasSelected());
         this.addAction('listNames', () => manager_2.default.names);
+        this.addAction('listDescriptions', () => manager_2.default.descriptions);
         this.addAction('search', (...args) => this.handler.search(args));
         this.addAction('cursorsSelect', (bufnr, kind, mode) => this.cursors.select(bufnr, kind, mode));
         this.addAction('codeActionRange', (start, end, only) => this.handler.codeActionRange(start, end, only));
@@ -23684,7 +23685,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "bdd9a9e140" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "9f9d8a32c4" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -45780,7 +45781,7 @@ const tar_1 = tslib_1.__importDefault(__webpack_require__(357));
 const fetch_1 = __webpack_require__(387);
 const logger = __webpack_require__(64)('model-download');
 /**
- * Download file from url, with optional untar support.
+ * Download file from url, with optional untar/unzip support.
  *
  * @param {string} url
  * @param {DownloadOptions} options contains dest folder and optional onProgress callback
@@ -53118,11 +53119,8 @@ function request(url, data, opts) {
                 });
                 readable.on('end', () => {
                     let buf = Buffer.concat(chunks);
-                    if (contentType.includes('application/octet-stream')
-                        || contentType.includes('application/zip')) {
-                        resolve(buf);
-                    }
-                    else {
+                    if (contentType.startsWith('application/json')
+                        || contentType.startsWith('text/')) {
                         let ms = contentType.match(/charset=(\S+)/);
                         let encoding = ms ? ms[1] : 'utf8';
                         let rawData = buf.toString(encoding);
@@ -53138,6 +53136,9 @@ function request(url, data, opts) {
                                 reject(new Error(`Parse response error: ${e}`));
                             }
                         }
+                    }
+                    else {
+                        resolve(buf);
                     }
                 });
                 readable.on('error', err => {
@@ -54419,9 +54420,6 @@ class Languages {
     loadCompleteConfig() {
         let config = workspace_1.default.getConfiguration('coc.preferences');
         let suggest = workspace_1.default.getConfiguration('suggest');
-        function getConfig(key, defaultValue) {
-            return config.get(key, suggest.get(key, defaultValue));
-        }
         let labels = suggest.get('completionItemKindLabels', {});
         this.completionItemKindMap = new Map([
             [vscode_languageserver_protocol_1.CompletionItemKind.Text, labels['text'] || 'v'],
@@ -54452,11 +54450,11 @@ class Languages {
         ]);
         this.completeConfig = {
             defaultKindText: labels['default'] || '',
-            priority: getConfig('languageSourcePriority', 99),
-            echodocSupport: getConfig('echodocSupport', false),
-            detailField: getConfig('detailField', 'menu'),
-            detailMaxLength: getConfig('detailMaxLength', 100),
-            invalidInsertCharacters: getConfig('invalidInsertCharacters', [' ', '(', '<', '{', '[', '\r', '\n']),
+            priority: suggest.get('languageSourcePriority', 99),
+            echodocSupport: suggest.get('echodocSupport', false),
+            detailField: suggest.get('detailField', 'menu'),
+            detailMaxLength: suggest.get('detailMaxLength', 100),
+            invalidInsertCharacters: suggest.get('invalidInsertCharacters', [' ', '(', '<', '{', '[', '\r', '\n']),
         };
     }
     registerOnTypeFormattingEditProvider(selector, provider, triggerCharacters) {
@@ -56134,7 +56132,7 @@ function getWord(item, opt, invalidInsertCharacters) {
     let { label, data, insertTextFormat, insertText, textEdit } = item;
     let word;
     let newText;
-    if (data && data.word)
+    if (data && typeof data.word === 'string')
         return data.word;
     if (textEdit) {
         let { range } = textEdit;
@@ -57408,6 +57406,7 @@ function getLanguageServerOptions(id, name, config) {
         disableDynamicRegister: !!config.disableDynamicRegister,
         disableCompletion: !!config.disableCompletion,
         disableDiagnostics: !!config.disableDiagnostics,
+        formatterPriority: config.formatterPriority || 0,
         documentSelector: getDocumentSelector(config.filetypes, config.additionalSchemes),
         revealOutputChannelOn: getRevealOutputChannelOn(config.revealOutputChannelOn),
         synchronize: {
@@ -59293,7 +59292,10 @@ class DocumentFormattingFeature extends TextDocumentFeature {
                     : provideDocumentFormattingEdits(document, options, token);
             }
         };
-        return [languages_1.default.registerDocumentFormatProvider(options.documentSelector, provider), provider];
+        return [
+            languages_1.default.registerDocumentFormatProvider(options.documentSelector, provider, this._client.clientOptions.formatterPriority),
+            provider
+        ];
     }
 }
 class DocumentRangeFormattingFeature extends TextDocumentFeature {
@@ -59747,6 +59749,7 @@ class BaseLanguageClient {
             disableDynamicRegister: clientOptions.disableDynamicRegister,
             disableDiagnostics: clientOptions.disableDiagnostics,
             disableCompletion: clientOptions.disableCompletion,
+            formatterPriority: clientOptions.formatterPriority,
             ignoredRootPaths: clientOptions.ignoredRootPaths,
             documentSelector: clientOptions.documentSelector || [],
             synchronize: clientOptions.synchronize || {},
@@ -62264,6 +62267,14 @@ class ListManager {
     }
     get names() {
         return Array.from(this.listMap.keys());
+    }
+    get descriptions() {
+        let d = {};
+        for (let name of this.listMap.keys()) {
+            let list = this.listMap.get(name);
+            d[name] = list.description;
+        }
+        return d;
     }
     toggleMode() {
         let { mode } = this.prompt;
@@ -72405,6 +72416,7 @@ class Handler {
             'Class',
             'Method',
             'Function',
+            'Struct',
         ].includes(s.kind));
         let functionName = '';
         for (let sym of symbols.reverse()) {
