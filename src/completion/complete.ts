@@ -183,6 +183,9 @@ export default class Complete {
       let { items, source, priority } = res
       for (let idx = 0; idx < items.length; idx++) {
         let item = items[idx]
+        if (typeof item !== 'object') {
+          continue
+        }
         let { word } = item
         // eslint-disable-next-line no-control-regex
         if (asciiCharactersOnly && !/^[\x00-\x7F]*$/.test(word)) {
