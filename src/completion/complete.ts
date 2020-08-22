@@ -180,6 +180,9 @@ export default class Complete {
     let words: Set<string> = new Set()
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
+      if (typeof item === 'object') {
+        continue
+      }
       let { items, source, priority } = res
       for (let idx = 0; idx < items.length; idx++) {
         let item = items[idx]
