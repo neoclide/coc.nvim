@@ -1,6 +1,6 @@
 import { Neovim, Window, Buffer } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { Disposable, CancellationTokenSource } from 'vscode-languageserver-protocol'
 import events from '../events'
 import extensions from '../extensions'
 import { IList, ListAction, ListContext, ListItem, ListOptions, Matcher } from '../types'
@@ -703,6 +703,30 @@ export class ListManager implements Disposable {
       d[name] = list.description
     }
     return d
+  }
+
+  public async loadItems(name: string): Promise<any> {
+    let args = [name]
+    let res = this.parseArgs(args)
+    if (!res) return
+    this.args = args
+    this.activated = false
+    let { list, options, listArgs } = res
+    {
+      let source = new CancellationTokenSource()
+      let token = source.token
+      let res = await this.nvim.eval('[win_getid(),bufnr("%"),winheight("%")]')
+      this.reset()
+      this.listOptions = options
+      this.currList = list
+      this.listArgs = listArgs
+      this.cwd = workspace.cwd
+      this.window = this.nvim.createWindow(res[0])
+      this.buffer = this.nvim.createBuffer(res[1])
+      this.savedHeight = res[2]
+      let items = await list.loadItems(this.context, token)
+      return items
+    }
   }
 
   public toggleMode(): void {
