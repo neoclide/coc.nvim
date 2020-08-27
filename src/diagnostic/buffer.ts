@@ -63,17 +63,15 @@ export class DiagnosticBuffer {
   }
 
   private clearSigns(): void {
-    let { nvim, signIds, bufnr } = this
-    if (signIds.size > 0) {
-      nvim.call('coc#util#unplace_signs', [bufnr, Array.from(signIds)], true)
-      signIds.clear()
-    }
+    let { nvim, signIds, bufnr, srdId } = this
+    nvim.call('sign_unplace', [srdId, { buffer: bufnr }], true)
+    signIds.clear()
   }
 
   public async checkSigns(): Promise<void> {
     let { nvim, bufnr, signIds } = this
     try {
-      let content = await this.nvim.call('execute', [`sign place buffer=${bufnr}`])
+      let content = await this.nvim.call('execute', [`sign place group=* buffer=${bufnr}`])
       let lines: string[] = content.split('\n')
       let ids = []
       for (let line of lines) {
@@ -93,7 +91,7 @@ export class DiagnosticBuffer {
   public addSigns(diagnostics: ReadonlyArray<Diagnostic>): void {
     if (!this.config.enableSign) return
     this.clearSigns()
-    let { nvim, bufnr, signIds } = this
+    let { nvim, bufnr, signIds, srdId } = this
     let signId = this.config.signOffset
     let lines: Set<number> = new Set()
     for (let diagnostic of diagnostics) {
@@ -102,7 +100,9 @@ export class DiagnosticBuffer {
       if (lines.has(line)) continue
       lines.add(line)
       let name = getNameFromSeverity(severity)
-      nvim.command(`sign place ${signId} line=${line + 1} name=${name} buffer=${bufnr}`, true)
+      nvim.call('sign_place', [
+        signId, srdId, name, bufnr, { lnum: line + 1 }
+      ], true)
       signIds.add(signId)
       signId = signId + 1
     }
