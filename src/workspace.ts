@@ -719,7 +719,7 @@ export class Workspace implements IWorkspace {
       if (this.env.locationlist) {
         nvim.command('CocList --normal --auto-preview location', true)
       } else {
-        nvim.command('doautocmd User CocLocationsChange', true)
+        nvim.command('doautocmd <nomodeline> User CocLocationsChange', true)
       }
     }
   }
