@@ -129,6 +129,7 @@ export class CommandManager implements Disposable {
     this.register({
       id: 'workspace.clearWatchman',
       execute: async () => {
+        if (global.hasOwnProperty('__TEST__')) return
         await workspace.runCommand('watchman watch-del-all')
       }
     }, false, 'run watch-del-all for watchman to free up memory.')
