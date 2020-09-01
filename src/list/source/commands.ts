@@ -32,22 +32,13 @@ export default class CommandsList extends BasicList {
     let list = commandManager.commandList
     let { titles } = commandManager
     let mruList = await this.mru.load()
-    for (let key of titles.keys()) {
+    for (const o of list) {
+      const { id } = o
       items.push({
-        label: `${key}\t${titles.get(key)}`,
-        filterText: key,
-        data: { cmd: key, score: score(mruList, key) }
+        label: `${id}\t${titles.get(id) || ''}`,
+        filterText: id,
+        data: { cmd: id, score: score(mruList, id) }
       })
-    }
-    for (let o of list) {
-      let { id } = o
-      if (!titles.has(id)) {
-        items.push({
-          label: id,
-          filterText: id,
-          data: { cmd: id, score: score(mruList, id) }
-        })
-      }
     }
     items.sort((a, b) => b.data.score - a.data.score)
     return items
