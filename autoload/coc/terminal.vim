@@ -14,7 +14,7 @@ function! coc#terminal#start(cmd, cwd, env) abort
   setl nonumber
   setl bufhidden=hide
   if exists('#User#CocTerminalOpen')
-    exe 'doautocmd User CocTerminalOpen'
+    exe 'doautocmd <nomodeline> User CocTerminalOpen'
   endif
   let bufnr = bufnr('%')
   let env = {}
