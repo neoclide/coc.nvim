@@ -424,7 +424,7 @@ export class LanguageClient extends BaseLanguageClient {
         let command: Executable = json
         let args = command.args || []
         let options = Object.assign({}, command.options)
-        options.env = options.env ? Object.assign({}, options.env, process.env) : process.env
+        options.env = options.env ? Object.assign({}, process.env, options.env) : process.env
         options.cwd = serverWorkingDir
         let cmd = workspace.expand(json.command)
         let serverProcess = cp.spawn(cmd, args, options)
