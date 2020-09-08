@@ -1150,7 +1150,7 @@ export default class Handler {
       workspace.showMessage('Invalid position for rename', 'error')
       return
     }
-    let edit = await languages.provideRenameEdits(doc.textDocument, position, 'newname')
+    let edit = await languages.provideRenameEdits(doc.textDocument, position, 'NewName')
     if (!edit) {
       workspace.showMessage('Empty workspaceEdit from server', 'warning')
       return
