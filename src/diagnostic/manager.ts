@@ -110,6 +110,7 @@ export class DiagnosticManager implements Disposable {
     events.on('BufWritePost', async bufnr => {
       let buf = this.buffers.get(bufnr)
       if (!buf) return
+      await buf.checkSigns()
       if (!this.config.refreshAfterSave) return
       this.refreshBuffer(buf.uri)
     }, null, this.disposables)
