@@ -40,6 +40,7 @@ function createFileChange(file: string, exists = true): FileChangeItem {
     size: 1,
     name: file,
     exists,
+    new: false,
     type: 'f',
     mtime_ms: Date.now()
   }

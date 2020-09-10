@@ -6,7 +6,7 @@ import { v1 as uuidv1 } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import minimatch from 'minimatch'
 const logger = require('./util/logger')('watchman')
-const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch']
+const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch', 'field-new']
 
 export interface WatchResponse {
   warning?: string
@@ -19,6 +19,7 @@ export interface FileChangeItem {
   size: number
   name: string
   exists: boolean
+  new: boolean
   type: 'f' | 'd'
   mtime_ms: number
 }
@@ -102,7 +103,7 @@ export default class Watchman {
     let uid = uuidv1()
     let sub: any = {
       expression: ['allof', ['match', '**/*', 'wholename']],
-      fields: ['name', 'size', 'exists', 'type', 'mtime_ms', 'ctime_ms'],
+      fields: ['name', 'size', 'new', 'exists', 'type', 'mtime_ms', 'ctime_ms'],
       since: clock,
     }
     let root = watch
