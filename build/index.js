@@ -23686,7 +23686,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "3a10d7e1a7" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "399c8458cd" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -24177,6 +24177,7 @@ class DiagnosticManager {
             let buf = this.buffers.get(bufnr);
             if (!buf)
                 return;
+            await buf.checkSigns();
             if (!this.config.refreshAfterSave)
                 return;
             this.refreshBuffer(buf.uri);
@@ -36811,6 +36812,7 @@ const vscode_uri_1 = __webpack_require__(242);
 const minimatch_1 = tslib_1.__importDefault(__webpack_require__(270));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const util_1 = __webpack_require__(237);
+const array_1 = __webpack_require__(307);
 const logger = __webpack_require__(64)('filesystem-watcher');
 class FileSystemWatcher {
     constructor(clientPromise, globPattern, ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents) {
@@ -36849,13 +36851,13 @@ class FileSystemWatcher {
                         this._onDidDelete.fire(uri);
                 }
                 else {
-                    if (file.size != 0) {
-                        if (!ignoreChangeEvents)
-                            this._onDidChange.fire(uri);
-                    }
-                    else {
+                    if (file.new === true) {
                         if (!ignoreCreateEvents)
                             this._onDidCreate.fire(uri);
+                    }
+                    else {
+                        if (!ignoreChangeEvents)
+                            this._onDidChange.fire(uri);
                     }
                 }
             }
@@ -36870,22 +36872,16 @@ class FileSystemWatcher {
                     });
                 }
             }
-            // folder rename
-            let folders = change.files.filter(f => f.type == 'd').slice(-2);
-            if (folders.length == 2
-                && folders[0].exists != folders[1].exists
-                && folders[0].mtime_ms == folders[1].mtime_ms) {
-                let newFolder = folders[0].exists ? folders[0].name : folders[1].name;
-                let oldFolder = folders[0].exists ? folders[1].name : folders[0].name;
-                let newFiles = files.filter(f => f.type == 'f' && f.name.startsWith(newFolder + path_1.default.sep));
-                if (newFiles.length) {
-                    for (let file of newFiles) {
-                        let oldFileName = oldFolder + file.name.slice(newFolder.length);
-                        let oldFile = files.find(f => f.type == 'f' && f.name == oldFileName);
-                        if (oldFile) {
+            // detect folder rename
+            if (files.length >= 2) {
+                let [oldFiles, newFiles] = array_1.splitArray(files, o => o.exists === false);
+                if (oldFiles.length == newFiles.length) {
+                    for (let oldFile of oldFiles) {
+                        let newFile = newFiles.find(o => o.size == oldFile.size && o.mtime_ms == oldFile.mtime_ms);
+                        if (newFile) {
                             this._onDidRename.fire({
                                 oldUri: vscode_uri_1.URI.file(path_1.default.join(root, oldFile.name)),
-                                newUri: vscode_uri_1.URI.file(path_1.default.join(root, file.name))
+                                newUri: vscode_uri_1.URI.file(path_1.default.join(root, newFile.name))
                             });
                         }
                     }
@@ -37639,7 +37635,7 @@ const uuid_1 = __webpack_require__(282);
 const vscode_languageserver_protocol_1 = __webpack_require__(210);
 const minimatch_1 = tslib_1.__importDefault(__webpack_require__(270));
 const logger = __webpack_require__(64)('watchman');
-const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch'];
+const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch', 'field-new'];
 const clientsMap = new Map();
 /**
  * Watchman wrapper for fb-watchman client
@@ -37709,7 +37705,7 @@ class Watchman {
         let uid = uuid_1.v1();
         let sub = {
             expression: ['allof', ['match', '**/*', 'wholename']],
-            fields: ['name', 'size', 'exists', 'type', 'mtime_ms', 'ctime_ms'],
+            fields: ['name', 'size', 'new', 'exists', 'type', 'mtime_ms', 'ctime_ms'],
             since: clock,
         };
         let root = watch;
@@ -53045,6 +53041,9 @@ function getSystemProxyURI(endpoint) {
 function getAgent(endpoint, options) {
     let proxy = options.proxyUrl || getSystemProxyURI(endpoint);
     if (proxy) {
+        if (!proxy.startsWith('http:')) {
+            proxy = 'http://' + proxy;
+        }
         const proxyEndpoint = url_1.parse(proxy);
         if (!/^https?:$/.test(proxyEndpoint.protocol)) {
             return null;
