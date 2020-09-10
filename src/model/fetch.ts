@@ -58,6 +58,9 @@ function getSystemProxyURI(endpoint: UrlWithStringQuery): string {
 export function getAgent(endpoint: UrlWithStringQuery, options: ProxyOptions): HttpsProxyAgent | HttpProxyAgent {
   let proxy = options.proxyUrl || getSystemProxyURI(endpoint)
   if (proxy) {
+    if (!proxy.startsWith('http:')) {
+      proxy = 'http://' + proxy
+    }
     const proxyEndpoint = parse(proxy)
     if (!/^https?:$/.test(proxyEndpoint.protocol)) {
       return null
