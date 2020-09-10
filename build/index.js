@@ -23686,7 +23686,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "399c8458cd" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "1bf7e5334e" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -72400,7 +72400,7 @@ class Handler {
                 nvim.command('setlocal conceallevel=2 nospell nofoldenable wrap', true);
                 nvim.command('setlocal bufhidden=wipe nobuflisted', true);
                 nvim.command('setfiletype markdown', true);
-                nvim.command(`exe "normal! z${Math.min(this.documentLines.length, this.preferences.previewMaxHeight)}\\<cr>"`, true);
+                nvim.command(`if winnr('j') != winnr('k') | exe "normal! z${Math.min(this.documentLines.length, this.preferences.previewMaxHeight)}\\<cr> | endif"`, true);
                 await nvim.resumeNotification();
                 return this.documentLines.join('\n');
             }
