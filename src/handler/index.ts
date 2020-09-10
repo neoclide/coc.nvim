@@ -236,7 +236,7 @@ export default class Handler {
         nvim.command('setlocal conceallevel=2 nospell nofoldenable wrap', true)
         nvim.command('setlocal bufhidden=wipe nobuflisted', true)
         nvim.command('setfiletype markdown', true)
-        nvim.command(`exe "normal! z${Math.min(this.documentLines.length, this.preferences.previewMaxHeight)}\\<cr>"`, true)
+        nvim.command(`if winnr('j') != winnr('k') | exe "normal! z${Math.min(this.documentLines.length, this.preferences.previewMaxHeight)}\\<cr> | endif"`, true)
         await nvim.resumeNotification()
         return this.documentLines.join('\n')
       }
