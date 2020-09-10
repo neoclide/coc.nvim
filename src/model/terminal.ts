@@ -36,8 +36,9 @@ export default class TerminalModel implements Terminal {
   public async show(preserveFocus?: boolean): Promise<boolean> {
     let { bufnr, nvim } = this
     if (!bufnr) return
-    let [loaded, winid] = await nvim.eval(`[bufloaded(${bufnr}),bufwinid(${bufnr})]`) as [number, number]
+    let [loaded, winid, curr] = await nvim.eval(`[bufloaded(${bufnr}),bufwinid(${bufnr}),win_getid()]`) as [number, number, number]
     if (!loaded) return false
+    if (curr == winid) return true
     nvim.pauseNotification()
     if (winid == -1) {
       nvim.command(`below ${bufnr}sb`, true)
