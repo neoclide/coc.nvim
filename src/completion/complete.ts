@@ -183,7 +183,7 @@ export default class Complete {
       let { items, source, priority } = res
       for (let idx = 0; idx < items.length; idx++) {
         let item = items[idx]
-        if (typeof item !== 'object') {
+        if (!item || typeof item.word !== 'string') {
           continue
         }
         let { word } = item
