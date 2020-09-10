@@ -529,7 +529,7 @@ export default class Handler {
       return null
     }
     let definitions = await languages.getDefinition(document.textDocument, position)
-    if (!definitions.length) return null
+    if (!definitions || !definitions.length) return null
     return definitions.map(location => {
       let parsedURI = URI.parse(location.uri)
       const filename = parsedURI.scheme == 'file' ? parsedURI.fsPath : parsedURI.toString()

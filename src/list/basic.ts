@@ -184,6 +184,7 @@ export default abstract class BasicList implements IList, Disposable {
   }
 
   protected async previewLocation(location: Location, context: ListContext): Promise<void> {
+    if (!context.listWindow) return
     let { nvim } = this
     let { uri, range } = location
     let lineCount = Infinity
