@@ -244,9 +244,14 @@ function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEn
     return
   endif
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
-  let key = 'Coc'.a:hlGroup
-  if empty(prop_type_get(key))
-    call prop_type_add(key, {'highlight': a:hlGroup, 'combine': 1})
+  let key = 'Coc'.a:hlGroup.(a:srcId != -1 ? a:srcId : '')
+  if empty(prop_type_get(key, {'bufnr': a:bufnr}))
+    call prop_type_add(key, {'highlight': a:hlGroup, 'combine': 1, 'bufnr': a:bufnr})
+    if a:srcId != -1
+      let cached = getbufvar(bufnr, 'prop_namespace_'.a:srcId, [])
+      call add(cached, key)
+      call setbufvar(bufnr, 'prop_namespace_'.a:srcId, cached)
+    endif
   endif
   let total = strlen(getbufline(bufnr, a:line + 1)[0])
   let end = a:colEnd
@@ -258,14 +263,8 @@ function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEn
   if end <= a:colStart
     return
   endif
-  let id = 0
-  if a:srcId != -1
-    let cached = getbufvar(bufnr, 'prop_namespace_'.a:srcId, [])
-    let id = s:prop_id
-    let s:prop_id = id + 1
-    call add(cached, id)
-    call setbufvar(bufnr, 'prop_namespace_'.a:srcId, cached)
-  endif
+  let id = s:prop_id
+  let s:prop_id = id + 1
   try
     call prop_add(a:line + 1, a:colStart + 1, {'length': end - a:colStart, 'bufnr': bufnr, 'type': key, 'id': id})
   catch /^Vim\%((\a\+)\)\=:E967/
@@ -288,19 +287,8 @@ function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
     if empty(cached)
       return
     endif
-    call setbufvar(a:bufnr, 'prop_namespace_'.a:srcId, [])
-    for id in cached
-      if a:endLine == -1
-        if a:startLine == 0 && a:endLine == -1
-          call prop_remove({'id':id, 'bufnr': a:bufnr})
-        elseif a:endLine != -1
-          call prop_remove({'id':id, 'bufnr': a:bufnr}, a:startLine, a:endLine)
-        else
-          let len = s:buf_line_count(a:bufnr)
-          call prop_remove({'id':id, 'bufnr': a:bufnr}, a:startLine, len)
-        endif
-      else
-      endif
+    for key in cached
+      call prop_remove({'type': key, 'bufnr': a:bufnr, 'all': 1})
     endfor
   endif
 endfunction
