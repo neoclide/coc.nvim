@@ -23285,6 +23285,7 @@ class Plugin extends events_1.EventEmitter {
         this.addAction('hasSelected', () => completion_1.default.hasSelected());
         this.addAction('listNames', () => manager_2.default.names);
         this.addAction('listDescriptions', () => manager_2.default.descriptions);
+        this.addAction('listLoadItems', async (name) => await manager_2.default.loadItems(name));
         this.addAction('search', (...args) => this.handler.search(args));
         this.addAction('cursorsSelect', (bufnr, kind, mode) => this.cursors.select(bufnr, kind, mode));
         this.addAction('codeActionRange', (start, end, only) => this.handler.codeActionRange(start, end, only));
@@ -23685,7 +23686,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "9f9d8a32c4" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "3a10d7e1a7" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -23841,7 +23842,11 @@ class CommandManager {
         this.register({
             id: 'workspace.clearWatchman',
             execute: async () => {
-                await workspace_1.default.runCommand('watchman watch-del-all');
+                if (global.hasOwnProperty('__TEST__'))
+                    return;
+                let res = await workspace_1.default.runTerminalCommand('watchmann watch-del-all');
+                if (res.success)
+                    workspace_1.default.showMessage('Cleared watchman watching directories.');
             }
         }, false, 'run watch-del-all for watchman to free up memory.');
         this.register({
@@ -25900,7 +25905,7 @@ class Workspace {
                 nvim.command('CocList --normal --auto-preview location', true);
             }
             else {
-                nvim.command('doautocmd User CocLocationsChange', true);
+                nvim.call('coc#util#do_autocmd', ['CocLocationsChange'], true);
             }
         }
     }
@@ -37402,9 +37407,11 @@ class TerminalModel {
         let { bufnr, nvim } = this;
         if (!bufnr)
             return;
-        let [loaded, winid] = await nvim.eval(`[bufloaded(${bufnr}),bufwinid(${bufnr})]`);
+        let [loaded, winid, curr] = await nvim.eval(`[bufloaded(${bufnr}),bufwinid(${bufnr}),win_getid()]`);
         if (!loaded)
             return false;
+        if (curr == winid)
+            return true;
         nvim.pauseNotification();
         if (winid == -1) {
             nvim.command(`below ${bufnr}sb`, true);
@@ -56375,7 +56382,7 @@ class FloatBuffer {
                 lines,
                 filetype: doc.filetype
             });
-            let filtered = doc.filetype == 'markdown' ? lines.filter(s => !/^\s*```/.test(s)) : lines;
+            let filtered = workspace_1.default.isNvim && doc.filetype === 'markdown' ? lines.filter(s => !/^\s*```/.test(s)) : lines;
             newLines.push(...filtered);
             if (idx != docs.length - 1) {
                 newLines.push('—'.repeat(width - 2));
@@ -57835,7 +57842,7 @@ class LanguageClient extends client_1.BaseLanguageClient {
                 let command = json;
                 let args = command.args || [];
                 let options = Object.assign({}, command.options);
-                options.env = options.env ? Object.assign({}, options.env, process.env) : process.env;
+                options.env = options.env ? Object.assign({}, process.env, options.env) : process.env;
                 options.cwd = serverWorkingDir;
                 let cmd = workspace_1.default.expand(json.command);
                 let serverProcess = child_process_1.default.spawn(cmd, args, options);
@@ -62275,6 +62282,30 @@ class ListManager {
             d[name] = list.description;
         }
         return d;
+    }
+    async loadItems(name) {
+        let args = [name];
+        let res = this.parseArgs(args);
+        if (!res)
+            return;
+        this.args = args;
+        this.activated = false;
+        let { list, options, listArgs } = res;
+        {
+            let source = new vscode_languageserver_protocol_1.CancellationTokenSource();
+            let token = source.token;
+            let res = await this.nvim.eval('[win_getid(),bufnr("%"),winheight("%")]');
+            this.reset();
+            this.listOptions = options;
+            this.currList = list;
+            this.listArgs = listArgs;
+            this.cwd = workspace_1.default.cwd;
+            this.window = this.nvim.createWindow(res[0]);
+            this.buffer = this.nvim.createBuffer(res[1]);
+            this.savedHeight = res[2];
+            let items = await list.loadItems(this.context, token);
+            return items;
+        }
     }
     toggleMode() {
         let { mode } = this.prompt;
@@ -66789,22 +66820,13 @@ class CommandsList extends basic_1.default {
         let list = commands_1.default.commandList;
         let { titles } = commands_1.default;
         let mruList = await this.mru.load();
-        for (let key of titles.keys()) {
+        for (const o of list) {
+            const { id } = o;
             items.push({
-                label: `${key}\t${titles.get(key)}`,
-                filterText: key,
-                data: { cmd: key, score: score(mruList, key) }
+                label: `${id}\t${titles.get(id) || ''}`,
+                filterText: id,
+                data: { cmd: id, score: score(mruList, id) }
             });
-        }
-        for (let o of list) {
-            let { id } = o;
-            if (!titles.has(id)) {
-                items.push({
-                    label: id,
-                    filterText: id,
-                    data: { cmd: id, score: score(mruList, id) }
-                });
-            }
         }
         items.sort((a, b) => b.data.score - a.data.score);
         return items;
@@ -66996,6 +67018,8 @@ class BasicList {
         this.actions.push(action);
     }
     async previewLocation(location, context) {
+        if (!context.listWindow)
+            return;
         let { nvim } = this;
         let { uri, range } = location;
         let lineCount = Infinity;
@@ -70276,6 +70300,9 @@ class Complete {
             let { items, source, priority } = res;
             for (let idx = 0; idx < items.length; idx++) {
                 let item = items[idx];
+                if (!item || typeof item.word !== 'string') {
+                    continue;
+                }
                 let { word } = item;
                 // eslint-disable-next-line no-control-regex
                 if (asciiCharactersOnly && !/^[\x00-\x7F]*$/.test(word)) {
@@ -72679,6 +72706,8 @@ class Handler {
             return null;
         }
         let definitions = await languages_1.default.getDefinition(document.textDocument, position);
+        if (!definitions || !definitions.length)
+            return null;
         return definitions.map(location => {
             let parsedURI = vscode_uri_1.URI.parse(location.uri);
             const filename = parsedURI.scheme == 'file' ? parsedURI.fsPath : parsedURI.toString();
@@ -73322,7 +73351,7 @@ class Handler {
             workspace_1.default.showMessage('Invalid position for rename', 'error');
             return;
         }
-        let edit = await languages_1.default.provideRenameEdits(doc.textDocument, position, 'newname');
+        let edit = await languages_1.default.provideRenameEdits(doc.textDocument, position, 'NewName');
         if (!edit) {
             workspace_1.default.showMessage('Empty workspaceEdit from server', 'warning');
             return;
