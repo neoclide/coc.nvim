@@ -40,12 +40,10 @@ describe('fetch', () => {
 
   it('should report valid proxy', async () => {
     let agent = getAgent(parse('http://google.com'), { proxyUrl: 'domain.com:1234' })
-    let proxy = (agent as any).proxy
-    expect(proxy.host).toBe('domain.com')
-    expect(proxy.port).toBe(1234)
+    expect(agent).toBe(null)
 
     agent = getAgent(parse('http://google.com'), { proxyUrl: 'https://domain.com:1234' })
-    proxy = (agent as any).proxy
+    let proxy = (agent as any).proxy
     expect(proxy.host).toBe('domain.com')
     expect(proxy.port).toBe(1234)
 
