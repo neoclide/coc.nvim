@@ -23686,7 +23686,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "212af09838" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "807c65a561" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -40300,6 +40300,9 @@ class SnippetSession {
         nvim.call('cursor', [start.line + 1, col + (move_cmd == 'a' ? 0 : 1)], true);
         if (move_cmd) {
             nvim.call('eval', [`feedkeys("${move_cmd}", 'in')`], true);
+        }
+        if (mode == 'i') {
+            nvim.call('coc#_cancel', [], true);
         }
         nvim.setOption('virtualedit', ve, true);
         if (isFinalTabstop) {
