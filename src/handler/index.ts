@@ -571,10 +571,10 @@ export default class Handler {
       }
     }
     codeActions.sort((a, b) => {
-      if (a.isPrefered && !b.isPrefered) {
+      if (a.isPreferred && !b.isPreferred) {
         return -1
       }
-      if (b.isPrefered && !a.isPrefered) {
+      if (b.isPreferred && !a.isPreferred) {
         return 1
       }
       return 0

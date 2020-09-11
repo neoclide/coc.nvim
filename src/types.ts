@@ -15,7 +15,6 @@ export type MsgTypes = 'error' | 'warning' | 'more'
 export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
 
 export interface CodeAction extends protocol.CodeAction {
-  isPrefered?: boolean
   clientId?: string
 }
 

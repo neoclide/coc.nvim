@@ -87,19 +87,19 @@ export default class ActionsList extends BasicList {
       }
     }
     codeActions.sort((a, b) => {
-      if (a.isPrefered && !b.isPrefered) {
+      if (a.isPreferred && !b.isPreferred) {
         return -1
       }
-      if (b.isPrefered && !a.isPrefered) {
+      if (b.isPreferred && !a.isPreferred) {
         return 1
       }
       return 0
     })
 
     let items: ListItem[] = codeActions.map(action => ({
-        label: `${action.title} ${action.clientId ? `[${action.clientId}]` : ''} ${action.kind ? `(${action.kind})` : ''}`,
-        data: { action }
-      } as ListItem))
+      label: `${action.title} ${action.clientId ? `[${action.clientId}]` : ''} ${action.kind ? `(${action.kind})` : ''}`,
+      data: { action }
+    } as ListItem))
     return items
   }
 
