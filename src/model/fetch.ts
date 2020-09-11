@@ -15,6 +15,7 @@ export type ResponseResult = string | Buffer | { [name: string]: any }
 export interface ProxyOptions {
   proxyUrl: string
   strictSSL?: boolean
+  proxyAuthorization?: string | null
 }
 
 function getSystemProxyURI(endpoint: UrlWithStringQuery): string {
@@ -58,16 +59,13 @@ function getSystemProxyURI(endpoint: UrlWithStringQuery): string {
 export function getAgent(endpoint: UrlWithStringQuery, options: ProxyOptions): HttpsProxyAgent | HttpProxyAgent {
   let proxy = options.proxyUrl || getSystemProxyURI(endpoint)
   if (proxy) {
-    if (!proxy.startsWith('http')) {
-      proxy = 'http://' + proxy
-    }
     const proxyEndpoint = parse(proxy)
     if (!/^https?:$/.test(proxyEndpoint.protocol)) {
       return null
     }
     let opts = {
       host: proxyEndpoint.hostname,
-      port: Number(proxyEndpoint.port),
+      port: proxyEndpoint.port ? Number(proxyEndpoint.port) : (proxyEndpoint.protocol === 'https' ? '443' : '80'),
       auth: proxyEndpoint.auth,
       rejectUnauthorized: typeof options.strictSSL === 'boolean' ? options.strictSSL : true
     }
@@ -83,11 +81,13 @@ export function resolveRequestOptions(url: string, options: FetchOptions = {}): 
   let dataType = getDataType(data)
   let proxyOptions: ProxyOptions = {
     proxyUrl: config.get<string>('proxy', ''),
-    strictSSL: config.get<boolean>('proxyStrictSSL', true)
+    strictSSL: config.get<boolean>('proxyStrictSSL', true),
+    proxyAuthorization: config.get<string | null>('proxyAuthorization', null)
   }
   if (options.query && !url.includes('?')) {
     url = `${url}?${stringify(options.query)}`
   }
+  let headers = Object.assign(options.headers || {}, { 'Proxy-Authorization': proxyOptions.proxyAuthorization })
   let endpoint = parse(url)
   let agent = getAgent(endpoint, proxyOptions)
   let opts: any = {
@@ -101,7 +101,7 @@ export function resolveRequestOptions(url: string, options: FetchOptions = {}): 
     headers: Object.assign({
       'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64)',
       'Accept-Encoding': 'gzip, deflate'
-    }, options.headers || {})
+    }, headers)
   }
   if (dataType == 'object') {
     opts.headers['Content-Type'] = 'application/json'

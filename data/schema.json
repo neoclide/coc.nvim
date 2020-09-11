@@ -276,12 +276,18 @@
     "http.proxy": {
       "type": "string",
       "default": "",
-      "description": "http proxy uri, used for extensions that send request. Format: proxy-server:1234 or user:password@prox-server:1234 with auth support"
+      "pattern": "^https?://([^:]*(:[^@]*)?@)?([^:]+|\\[[:0-9a-fA-F]+\\])(:\\d+)?/?$|^$",
+      "description": "The proxy setting to use. If not set, will be inherited from the `http_proxy` and `https_proxy` environment variables."
     },
     "http.proxyStrictSSL": {
       "type": "boolean",
       "description": "Controls whether the proxy server certificate should be verified against the list of supplied CAs",
       "default": true
+    },
+    "http.proxyAuthorization": {
+      "type": ["null", "string"],
+      "description": "The value to send as the `Proxy-Authorization` header for every network request.",
+      "default": null
     },
     "npm.binPath": {
       "type": "string",
