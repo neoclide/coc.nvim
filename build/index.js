@@ -23686,7 +23686,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "e4ab88cd5d" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "212af09838" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -53041,16 +53041,13 @@ function getSystemProxyURI(endpoint) {
 function getAgent(endpoint, options) {
     let proxy = options.proxyUrl || getSystemProxyURI(endpoint);
     if (proxy) {
-        if (!proxy.startsWith('http:')) {
-            proxy = 'http://' + proxy;
-        }
         const proxyEndpoint = url_1.parse(proxy);
         if (!/^https?:$/.test(proxyEndpoint.protocol)) {
             return null;
         }
         let opts = {
             host: proxyEndpoint.hostname,
-            port: Number(proxyEndpoint.port),
+            port: proxyEndpoint.port ? Number(proxyEndpoint.port) : (proxyEndpoint.protocol === 'https' ? '443' : '80'),
             auth: proxyEndpoint.auth,
             rejectUnauthorized: typeof options.strictSSL === 'boolean' ? options.strictSSL : true
         };
@@ -53066,11 +53063,13 @@ function resolveRequestOptions(url, options = {}) {
     let dataType = getDataType(data);
     let proxyOptions = {
         proxyUrl: config.get('proxy', ''),
-        strictSSL: config.get('proxyStrictSSL', true)
+        strictSSL: config.get('proxyStrictSSL', true),
+        proxyAuthorization: config.get('proxyAuthorization', null)
     };
     if (options.query && !url.includes('?')) {
         url = `${url}?${querystring_1.stringify(options.query)}`;
     }
+    let headers = Object.assign(options.headers || {}, { 'Proxy-Authorization': proxyOptions.proxyAuthorization });
     let endpoint = url_1.parse(url);
     let agent = getAgent(endpoint, proxyOptions);
     let opts = {
@@ -53084,7 +53083,7 @@ function resolveRequestOptions(url, options = {}) {
         headers: Object.assign({
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64)',
             'Accept-Encoding': 'gzip, deflate'
-        }, options.headers || {})
+        }, headers)
     };
     if (dataType == 'object') {
         opts.headers['Content-Type'] = 'application/json';
@@ -56400,8 +56399,7 @@ class FloatBuffer {
         for (let doc of docs) {
             let lines = doc.content.split(/\r?\n/);
             for (let line of lines) {
-                if (doc.filetype == 'markdown'
-                    && /^\s*```/.test(line)) {
+                if (workspace_1.default.isNvim && doc.filetype == 'markdown' && /^\s*```/.test(line)) {
                     continue;
                 }
                 arr.push(string_1.byteLength(line.replace(/\t/g, '  ')) + 2);

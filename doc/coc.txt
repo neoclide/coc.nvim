@@ -1099,8 +1099,13 @@ VARIABLES						*coc-variables*
 b:coc_enabled						*b:coc_enabled*
 
 	Set to `0` on buffer create if you don't want coc.nvim receive content
-	from buffer, usually used for improve performance with large files.
-
+	from buffer. Normally used with |BufAdd| autocmd, ex:
+>
+	" Disable file with size > 1MB
+	autocmd BufAdd * if getfsize(expand('<afile>')) > 1024*1024 |
+				\ let b:coc_enabled=0 |
+				\ ndif
+<
 b:coc_root_patterns					*b:coc_root_patterns*
 
 	Root patterns used for resolving workspaceFolder for
