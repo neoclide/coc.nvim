@@ -184,8 +184,7 @@ export default class FloatBuffer {
     for (let doc of docs) {
       let lines = doc.content.split(/\r?\n/)
       for (let line of lines) {
-        if (doc.filetype == 'markdown'
-          && /^\s*```/.test(line)) {
+        if (workspace.isNvim && doc.filetype == 'markdown' && /^\s*```/.test(line)) {
           continue
         }
         arr.push(byteLength(line.replace(/\t/g, '  ')) + 2)
