@@ -7,6 +7,7 @@ import { Range, DiagnosticSeverity, Diagnostic } from 'vscode-languageserver-typ
 let nvim: Neovim
 const config: DiagnosticConfig = {
   checkCurrentLine: false,
+  locationlistUpdate: true,
   enableSign: true,
   enableHighlightLineNumber: true,
   maxWindowHeight: 8,

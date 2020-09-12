@@ -18,6 +18,7 @@ const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
   enableSign: boolean
+  locationlistUpdate: boolean
   enableHighlightLineNumber: boolean
   checkCurrentLine: boolean
   enableMessage: string
@@ -171,7 +172,7 @@ export class DiagnosticManager implements Disposable {
     let diagnostics = buf ? this.getDiagnostics(buf.uri) : []
     let items: LocationListItem[] = []
     for (let diagnostic of diagnostics) {
-      let item = getLocationListItem(diagnostic.source, bufnr, diagnostic)
+      let item = getLocationListItem(bufnr, diagnostic)
       items.push(item)
     }
     let curr = await this.nvim.call('getloclist', [0, { title: 1 }]) as any
@@ -564,6 +565,7 @@ export class DiagnosticManager implements Disposable {
       virtualTextSrcId: workspace.createNameSpace('diagnostic-virtualText'),
       checkCurrentLine: config.get<boolean>('checkCurrentLine', false),
       enableSign: config.get<boolean>('enableSign', true),
+      locationlistUpdate: config.get<boolean>('locationlistUpdate', true),
       enableHighlightLineNumber: config.get<boolean>('enableHighlightLineNumber', true),
       maxWindowHeight: config.get<number>('maxWindowHeight', 10),
       maxWindowWidth: config.get<number>('maxWindowWidth', 80),

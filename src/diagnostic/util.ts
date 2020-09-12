@@ -61,8 +61,9 @@ export function getNameFromSeverity(severity: DiagnosticSeverity): string {
   }
 }
 
-export function getLocationListItem(owner: string, bufnr: number, diagnostic: Diagnostic): LocationListItem {
+export function getLocationListItem(bufnr: number, diagnostic: Diagnostic): LocationListItem {
   let { start } = diagnostic.range
+  let owner = diagnostic.source || 'coc.nvim'
   let msg = diagnostic.message.split('\n')[0]
   let type = getSeverityName(diagnostic.severity).slice(0, 1).toUpperCase()
   return {

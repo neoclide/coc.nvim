@@ -511,6 +511,11 @@
       "default": "hint",
       "enum": ["hint", "information", "warning", "error"]
     },
+    "diagnostic.locationlistUpdate": {
+      "type": "boolean",
+      "description": "Update locationlist on diagnostics change, only works with locationlist opened by :CocDiagnostics command and first window of associated buffer.",
+      "default": true
+    },
     "diagnostic.checkCurrentLine": {
       "type": "boolean",
       "description": "When enabled, show all diagnostics of current line if there are none at the current position.",

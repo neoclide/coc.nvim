@@ -4,7 +4,8 @@ import { Diagnostic, DiagnosticSeverity, Emitter, Event, Range } from 'vscode-la
 import Document from '../model/document'
 import workspace from '../workspace'
 import { DiagnosticConfig } from './manager'
-import { getNameFromSeverity } from './util'
+import { getNameFromSeverity, getLocationListItem } from './util'
+import { LocationListItem } from '..'
 const logger = require('../util/logger')('diagnostic-buffer')
 const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint']
 
@@ -41,7 +42,7 @@ export class DiagnosticBuffer {
   private async _refresh(diagnostics: ReadonlyArray<Diagnostic>): Promise<void> {
     let { refreshOnInsertMode } = this.config
     let { nvim } = this
-    let arr = await nvim.eval(`[coc#util#check_refresh(${this.bufnr}),mode(),bufnr("%"), line(".")]`) as [number, string, number, number]
+    let arr = await nvim.eval(`[coc#util#check_refresh(${this.bufnr}),mode(),bufnr("%"),line("."),getloclist(bufwinid(${this.bufnr}),{'title':1})]`) as [number, string, number, number, { title: string }]
     if (arr[0] == 0) return
     let mode = arr[1]
     if (!refreshOnInsertMode && mode.startsWith('i') && diagnostics.length) return
@@ -51,6 +52,7 @@ export class DiagnosticBuffer {
     this.setDiagnosticInfo(diagnostics)
     this.addSigns(diagnostics)
     this.addHighlight(diagnostics, bufnr)
+    this.updateLocationList(arr[4], diagnostics)
     if (this.bufnr == bufnr) {
       this.showVirtualText(diagnostics, lnum)
     }
@@ -88,6 +90,17 @@ export class DiagnosticBuffer {
     } catch (e) {
       // noop
     }
+  }
+
+  public updateLocationList(curr: { title: string }, diagnostics: ReadonlyArray<Diagnostic>): void {
+    if (!this.config.locationlistUpdate) return
+    if (!curr || curr.title !== 'Diagnostics of coc') return
+    let items: LocationListItem[] = []
+    for (let diagnostic of diagnostics) {
+      let item = getLocationListItem(this.bufnr, diagnostic)
+      items.push(item)
+    }
+    this.nvim.call('setloclist', [0, [], 'r', { title: 'Diagnostics of coc', items }], true)
   }
 
   public addSigns(diagnostics: ReadonlyArray<Diagnostic>): void {
