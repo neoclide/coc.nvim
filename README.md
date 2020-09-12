@@ -250,8 +250,8 @@ nnoremap <silent><nowait> <space>p  :<C-u>CocListResume<CR>
 
 - [coc.nvim 插件体系介绍](https://zhuanlan.zhihu.com/p/65524706)
 - [CocList 入坑指南](https://zhuanlan.zhihu.com/p/71846145)
-- [Create coc.nvim extension to improve Vim
-  experience](https://medium.com/@chemzqm/create-coc-nvim-extension-to-improve-vim-experience-4461df269173)
+- [Create coc.nvim extension to improve Vim experience](https://medium.com/@chemzqm/create-coc-nvim-extension-to-improve-vim-experience-4461df269173)
+- [How to write a coc.nvim extension (and why)](https://samroeca.com/coc-plugin.html)
 
 ## Trouble shooting
 
