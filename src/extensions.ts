@@ -490,7 +490,7 @@ export class Extensions {
     if (this.isDisabled(name)) return
     let root = path.dirname(filepath)
     let packageJSON = {
-      name, main: filename, engines: { coc: '^0.0.78' }
+      name, main: filename, engines: { coc: '^0.0.79' }
     }
     await this.unloadExtension(name)
     this.createExtension(root, packageJSON, ExtensionType.SingleFile)
