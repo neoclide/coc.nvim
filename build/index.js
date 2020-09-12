@@ -107,7 +107,7 @@ Object.defineProperty(console, 'log', {
 })
 promiseFinally.shim()
 const logger = __webpack_require__(64)('server')
-const attach = __webpack_require__(153).default
+const attach = __webpack_require__(154).default
 
 attach({reader: process.stdin, writer: process.stdout})
 
@@ -3248,6 +3248,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__metadata", function() { return __metadata; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__awaiter", function() { return __awaiter; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__generator", function() { return __generator; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__createBinding", function() { return __createBinding; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__exportStar", function() { return __exportStar; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__values", function() { return __values; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__read", function() { return __read; });
@@ -3281,7 +3282,7 @@ PERFORMANCE OF THIS SOFTWARE.
 var extendStatics = function(d, b) {
     extendStatics = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
     return extendStatics(d, b);
 };
 
@@ -3367,8 +3368,16 @@ function __generator(thisArg, body) {
     }
 }
 
-function __exportStar(m, exports) {
-    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
+var __createBinding = Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+});
+
+function __exportStar(m, o) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(o, p)) __createBinding(o, m, p);
 }
 
 function __values(o) {
@@ -3449,11 +3458,17 @@ function __makeTemplateObject(cooked, raw) {
     return cooked;
 };
 
+var __setModuleDefault = Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+};
+
 function __importStar(mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result.default = mod;
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
     return result;
 }
 
@@ -3514,10 +3529,10 @@ const configuration = __webpack_require__(79);
 const layouts = __webpack_require__(80);
 const levels = __webpack_require__(83);
 const appenders = __webpack_require__(84);
-const categories = __webpack_require__(150);
-const Logger = __webpack_require__(151);
+const categories = __webpack_require__(151);
+const Logger = __webpack_require__(152);
 const clustering = __webpack_require__(85);
-const connectLogger = __webpack_require__(152);
+const connectLogger = __webpack_require__(153);
 
 let enabled = false;
 
@@ -5671,7 +5686,7 @@ class Level {
 
   /**
    * converts given String to corresponding Level
-   * @param {Level|String} sArg -- String value of Level OR Log4js.Level
+   * @param {(Level|string)} sArg -- String value of Level OR Log4js.Level
    * @param {Level} [defaultLevel] -- default Level, if no String representation
    * @return {Level}
    */
@@ -5822,13 +5837,14 @@ coreAppenders.set('categoryFilter', __webpack_require__(94));
 coreAppenders.set('noLogFilter', __webpack_require__(95));
 coreAppenders.set('file', __webpack_require__(96));
 coreAppenders.set('dateFile', __webpack_require__(148));
+coreAppenders.set('fileSync', __webpack_require__(149));
 
 const appenders = new Map();
 
 const tryLoading = (modulePath, config) => {
   debug('Loading module from ', modulePath);
   try {
-    return __webpack_require__(149)(modulePath); //eslint-disable-line
+    return __webpack_require__(150)(modulePath); //eslint-disable-line
   } catch (e) {
     // if the module was found, and we still got an error, then raise it
     configuration.throwExceptionIf(
@@ -5888,18 +5904,26 @@ const createAppender = (name, config) => {
       appender => getAppender(appender, config),
       levels
     );
-  }, () => {});
+  }, () => { });
 };
 
 const setup = (config) => {
   appenders.clear();
   appendersLoading.clear();
+  const usedAppenders = [];
+  Object.values(config.categories).forEach(category => {
+    usedAppenders.push(...category.appenders)
+  });
   Object.keys(config.appenders).forEach((name) => {
-    getAppender(name, config);
+    // dodgy hard-coding of special case for tcp-server which may not have
+    // any categories associated with it, but needs to be started up anyway
+    if (usedAppenders.includes(name) || config.appenders[name].type === 'tcp-server') {
+      getAppender(name, config);
+    }
   });
 };
 
-setup({ appenders: { out: { type: 'stdout' } } });
+setup({ appenders: { out: { type: 'stdout' } }, categories: { default: { appenders: ['out'], level: 'trace' } } });
 
 configuration.addListener((config) => {
   configuration.throwExceptionIf(
@@ -6052,7 +6076,7 @@ class LoggingEvent {
   /**
    * Models a logging event.
    * @constructor
-   * @param {String} categoryName name of category
+   * @param {string} categoryName name of category
    * @param {Log4js.Level} level level of message
    * @param {Array} data objects to log
    * @author Seth Chisamore
@@ -6433,8 +6457,8 @@ const debug = __webpack_require__(68)('log4js:noLogFilter');
 
 /**
  * The function removes empty or null regexp from the array
- * @param {Array<string>} regexp
- * @returns {Array<string>} a filtered string array with not empty or null regexp
+ * @param {string[]} regexp
+ * @returns {string[]} a filtered string array with not empty or null regexp
  */
 function removeNullOrEmptyRegexp(regexp) {
   const filtered = regexp.filter(el => ((el != null) && (el !== '')));
@@ -6444,7 +6468,7 @@ function removeNullOrEmptyRegexp(regexp) {
 /**
  * Returns a function that will exclude the events in case they match
  * with the regular expressions provided
- * @param {string | Array<string>} filters contains the regexp that will be used for the evaluation
+ * @param {(string|string[])} filters contains the regexp that will be used for the evaluation
  * @param {*} appender
  * @returns {function}
  */
@@ -6531,6 +6555,14 @@ function fileAppender(file, layout, logSize, numBackups, options, timezoneOffset
   let writer = openTheStream(file, logSize, numBackups, options);
 
   const app = function (loggingEvent) {
+    if (options.removeColor === true) {
+      // eslint-disable-next-line no-control-regex
+      const regex = /\x1b[[0-9;]*m/g;
+      loggingEvent.data = loggingEvent.data.map(d => {
+        if (typeof d === 'string') return d.replace(regex, '')
+        return d
+      })
+    }
     if (!writer.write(layout(loggingEvent, timezoneOffset) + eol, "utf8")) {
       process.emit('log4js:pause', true);
     }
@@ -10595,6 +10627,220 @@ module.exports.configure = configure;
 
 /***/ }),
 /* 149 */
+/***/ (function(module, exports, __webpack_require__) {
+
+const debug = __webpack_require__(68)('log4js:fileSync');
+const path = __webpack_require__(82);
+const fs = __webpack_require__(66);
+const os = __webpack_require__(76);
+
+const eol = os.EOL || '\n';
+
+function touchFile(file, options) {
+  // if the file exists, nothing to do
+  if (fs.existsSync(file)) {
+    return;
+  }
+
+  // touch the file to apply flags (like w to truncate the file)
+  const id = fs.openSync(file, options.flags, options.mode);
+  fs.closeSync(id);
+}
+
+class RollingFileSync {
+  constructor(filename, size, backups, options) {
+    debug('In RollingFileStream');
+
+    function throwErrorIfArgumentsAreNotValid() {
+      if (!filename || !size || size <= 0) {
+        throw new Error('You must specify a filename and file size');
+      }
+    }
+
+    throwErrorIfArgumentsAreNotValid();
+
+    this.filename = filename;
+    this.size = size;
+    this.backups = backups || 1;
+    this.options = options;
+    this.currentSize = 0;
+
+    function currentFileSize(file) {
+      let fileSize = 0;
+
+      try {
+        fileSize = fs.statSync(file).size;
+      } catch (e) {
+        // file does not exist
+        touchFile(file, options);
+      }
+      return fileSize;
+    }
+
+    this.currentSize = currentFileSize(this.filename);
+  }
+
+  shouldRoll() {
+    debug('should roll with current size %d, and max size %d', this.currentSize, this.size);
+    return this.currentSize >= this.size;
+  }
+
+  roll(filename) {
+    const that = this;
+    const nameMatcher = new RegExp(`^${path.basename(filename)}`);
+
+    function justTheseFiles(item) {
+      return nameMatcher.test(item);
+    }
+
+    function index(filename_) {
+      return parseInt(filename_.substring((`${path.basename(filename)}.`).length), 10) || 0;
+    }
+
+    function byIndex(a, b) {
+      if (index(a) > index(b)) {
+        return 1;
+      }
+      if (index(a) < index(b)) {
+        return -1;
+      }
+
+      return 0;
+    }
+
+    function increaseFileIndex(fileToRename) {
+      const idx = index(fileToRename);
+      debug(`Index of ${fileToRename} is ${idx}`);
+      if (idx < that.backups) {
+        // on windows, you can get a EEXIST error if you rename a file to an existing file
+        // so, we'll try to delete the file we're renaming to first
+        try {
+          fs.unlinkSync(`${filename}.${idx + 1}`);
+        } catch (e) {
+          // ignore err: if we could not delete, it's most likely that it doesn't exist
+        }
+
+        debug(`Renaming ${fileToRename} -> ${filename}.${idx + 1}`);
+        fs.renameSync(path.join(path.dirname(filename), fileToRename), `${filename}.${idx + 1}`);
+      }
+    }
+
+    function renameTheFiles() {
+      // roll the backups (rename file.n to file.n+1, where n <= numBackups)
+      debug('Renaming the old files');
+
+      const files = fs.readdirSync(path.dirname(filename));
+      files.filter(justTheseFiles).sort(byIndex).reverse().forEach(increaseFileIndex);
+    }
+
+    debug('Rolling, rolling, rolling');
+    renameTheFiles();
+  }
+
+  /* eslint no-unused-vars:0 */
+  write(chunk, encoding) {
+    const that = this;
+
+
+    function writeTheChunk() {
+      debug('writing the chunk to the file');
+      that.currentSize += chunk.length;
+      fs.appendFileSync(that.filename, chunk);
+    }
+
+    debug('in write');
+
+
+    if (this.shouldRoll()) {
+      this.currentSize = 0;
+      this.roll(this.filename);
+    }
+
+    writeTheChunk();
+  }
+}
+
+/**
+ * File Appender writing the logs to a text file. Supports rolling of logs by size.
+ *
+ * @param file file log messages will be written to
+ * @param layout a function that takes a logevent and returns a string
+ *   (defaults to basicLayout).
+ * @param logSize - the maximum size (in bytes) for a log file,
+ *   if not provided then logs won't be rotated.
+ * @param numBackups - the number of log files to keep after logSize
+ *   has been reached (default 5)
+ * @param timezoneOffset - optional timezone offset in minutes
+ *   (default system local)
+ * @param options - passed as is to fs options
+ */
+function fileAppender(file, layout, logSize, numBackups, timezoneOffset, options) {
+  debug('fileSync appender created');
+  file = path.normalize(file);
+  numBackups = numBackups === undefined ? 5 : numBackups;
+  // there has to be at least one backup if logSize has been specified
+  numBackups = numBackups === 0 ? 1 : numBackups;
+
+  function openTheStream(filePath, fileSize, numFiles) {
+    let stream;
+
+    if (fileSize) {
+      stream = new RollingFileSync(
+        filePath,
+        fileSize,
+        numFiles,
+        options
+      );
+    } else {
+      stream = (((f) => {
+        // touch the file to apply flags (like w to truncate the file)
+        touchFile(f, options);
+
+        return {
+          write(data) {
+            fs.appendFileSync(f, data);
+          }
+        };
+      }))(filePath);
+    }
+
+    return stream;
+  }
+
+  const logFile = openTheStream(file, logSize, numBackups);
+
+  return (loggingEvent) => {
+    logFile.write(layout(loggingEvent, timezoneOffset) + eol);
+  };
+}
+
+function configure(config, layouts) {
+  let layout = layouts.basicLayout;
+  if (config.layout) {
+    layout = layouts.layout(config.layout.type, config.layout);
+  }
+
+  const options = {
+    flags: config.flags || 'a',
+    encoding: config.encoding || 'utf8',
+    mode: config.mode || 0o644
+  };
+
+  return fileAppender(
+    config.filename,
+    layout,
+    config.maxLogSize,
+    config.backups,
+    config.timezoneOffset,
+    options
+  );
+}
+
+module.exports.configure = configure;
+
+
+/***/ }),
+/* 150 */
 /***/ (function(module, exports) {
 
 function webpackEmptyContext(req) {
@@ -10605,10 +10851,10 @@ function webpackEmptyContext(req) {
 webpackEmptyContext.keys = function() { return []; };
 webpackEmptyContext.resolve = webpackEmptyContext;
 module.exports = webpackEmptyContext;
-webpackEmptyContext.id = 149;
+webpackEmptyContext.id = 150;
 
 /***/ }),
-/* 150 */
+/* 151 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const debug = __webpack_require__(68)('log4js:categories');
@@ -10623,8 +10869,8 @@ const categories = new Map();
  * and level, if none is set on this category.
  * This is recursive, so each parent also gets loaded with inherited appenders.
  * Inheritance is blocked if a category has inherit=false
- * @param  {any} config
- * @param  {any} category the child category
+ * @param  {*} config
+ * @param  {*} category the child category
  * @param  {string} categoryName dotted path to category
  * @return {void}
  */
@@ -10670,7 +10916,7 @@ function inheritFromParent(config, category, categoryName) {
  * Walk all categories in the config, and pull down any configuration from parent to child.
  * This includes inherited appenders, and level, where level is not set.
  * Inheritance is skipped where a category has inherit=false.
- * @param  {any} config
+ * @param  {*} config
  */
 function addCategoryInheritance(config) {
   if (!config.categories) return;
@@ -10822,7 +11068,7 @@ module.exports = {
 
 
 /***/ }),
-/* 151 */
+/* 152 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* eslint no-underscore-dangle:0 */
@@ -10830,7 +11076,7 @@ const debug = __webpack_require__(68)("log4js:logger");
 const LoggingEvent = __webpack_require__(86);
 const levels = __webpack_require__(83);
 const clustering = __webpack_require__(85);
-const categories = __webpack_require__(150);
+const categories = __webpack_require__(151);
 const configuration = __webpack_require__(79);
 
 const stackReg = /at (?:(.+)\s+\()?(?:(.+?):(\d+)(?::(\d+))?|([^)]+))\)?/;
@@ -10962,7 +11208,7 @@ module.exports = Logger;
 
 
 /***/ }),
-/* 152 */
+/* 153 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* eslint-disable no-plusplus */
@@ -10981,7 +11227,7 @@ const DEFAULT_FORMAT =
  * for the assemble_tokens function at low, to pass the tests.
  *
  * @param  {IncomingMessage} req
- * @return {String}
+ * @return {string}
  * @api private
  */
 function getUrl(req) {
@@ -11078,9 +11324,9 @@ function assembleTokens(req, res, customTokens) {
 /**
  * Return formatted log line.
  *
- * @param  {String} str
+ * @param  {string} str
  * @param {Array} tokens
- * @return {String}
+ * @return {string}
  * @api private
  */
 function format(str, tokens) {
@@ -11093,7 +11339,7 @@ function format(str, tokens) {
 /**
  * Return RegExp Object about nolog
  *
- * @param  {String|Array} nolog
+ * @param  {(string|Array)} nolog
  * @return {RegExp}
  * @api private
  *
@@ -11270,21 +11516,21 @@ module.exports = function getLogger(logger4js, options) {
 
 
 /***/ }),
-/* 153 */
+/* 154 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const neovim_1 = __webpack_require__(154);
+const neovim_1 = __webpack_require__(155);
 const log4js_1 = tslib_1.__importDefault(__webpack_require__(67));
-const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const plugin_1 = tslib_1.__importDefault(__webpack_require__(250));
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const plugin_1 = tslib_1.__importDefault(__webpack_require__(251));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
-const is_1 = __webpack_require__(249);
-__webpack_require__(399);
-const vscode_uri_1 = __webpack_require__(242);
+const is_1 = __webpack_require__(250);
+__webpack_require__(491);
+const vscode_uri_1 = __webpack_require__(243);
 const logger = __webpack_require__(64)('attach');
 const isTest = global.hasOwnProperty('__TEST__');
 exports.default = (opts, requestApi = true) => {
@@ -11380,7 +11626,7 @@ exports.default = (opts, requestApi = true) => {
         // Used for test client on vim side
         if (isTest)
             nvim.command(`let g:coc_node_channel_id = ${channelId}`, true);
-        let json = __webpack_require__(327);
+        let json = __webpack_require__(328);
         let { major, minor, patch } = semver_1.default.parse(json.version);
         nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {});
         let entered = await nvim.getVvar('vim_did_enter');
@@ -11396,15 +11642,15 @@ exports.default = (opts, requestApi = true) => {
 //# sourceMappingURL=attach.js.map
 
 /***/ }),
-/* 154 */
+/* 155 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-var attach_1 = __webpack_require__(155);
+var attach_1 = __webpack_require__(156);
 exports.attach = attach_1.attach;
-var index_1 = __webpack_require__(208);
+var index_1 = __webpack_require__(209);
 exports.Neovim = index_1.Neovim;
 exports.NeovimClient = index_1.NeovimClient;
 exports.Buffer = index_1.Buffer;
@@ -11413,14 +11659,14 @@ exports.Window = index_1.Window;
 
 
 /***/ }),
-/* 155 */
+/* 156 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const net_1 = __webpack_require__(156);
-const client_1 = __webpack_require__(157);
+const net_1 = __webpack_require__(157);
+const client_1 = __webpack_require__(158);
 function attach({ reader: _reader, writer: _writer, proc, socket, }, _logger = null, requestApi = true) {
     let writer;
     let reader;
@@ -11463,13 +11709,13 @@ exports.attach = attach;
 
 
 /***/ }),
-/* 156 */
+/* 157 */
 /***/ (function(module, exports) {
 
 module.exports = require("net");
 
 /***/ }),
-/* 157 */
+/* 158 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -11486,13 +11732,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * Handles attaching transport
  */
-const nvim_1 = __webpack_require__(158);
-const vim_1 = __webpack_require__(203);
-const Neovim_1 = __webpack_require__(207);
-const Buffer_1 = __webpack_require__(195);
-const Window_1 = __webpack_require__(198);
-const Tabpage_1 = __webpack_require__(200);
-const logger_1 = __webpack_require__(202);
+const nvim_1 = __webpack_require__(159);
+const vim_1 = __webpack_require__(204);
+const Neovim_1 = __webpack_require__(208);
+const Buffer_1 = __webpack_require__(196);
+const Window_1 = __webpack_require__(199);
+const Tabpage_1 = __webpack_require__(201);
+const logger_1 = __webpack_require__(203);
 const logger = logger_1.createLogger('client');
 const isVim = process.env.VIM_NODE_RPC == '1';
 class AsyncResponse {
@@ -11759,7 +12005,7 @@ exports.NeovimClient = NeovimClient;
 
 
 /***/ }),
-/* 158 */
+/* 159 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -11775,10 +12021,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const msgpack = __importStar(__webpack_require__(159));
-const buffered_1 = __importDefault(__webpack_require__(193));
-const types_1 = __webpack_require__(194);
-const base_1 = __importDefault(__webpack_require__(201));
+const msgpack = __importStar(__webpack_require__(160));
+const buffered_1 = __importDefault(__webpack_require__(194));
+const types_1 = __webpack_require__(195);
+const base_1 = __importDefault(__webpack_require__(202));
 class NvimTransport extends base_1.default {
     constructor() {
         super();
@@ -11929,33 +12175,33 @@ exports.NvimTransport = NvimTransport;
 
 
 /***/ }),
-/* 159 */
+/* 160 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // msgpack.js
 
-exports.encode = __webpack_require__(160).encode;
-exports.decode = __webpack_require__(180).decode;
+exports.encode = __webpack_require__(161).encode;
+exports.decode = __webpack_require__(181).decode;
 
-exports.Encoder = __webpack_require__(186).Encoder;
-exports.Decoder = __webpack_require__(188).Decoder;
+exports.Encoder = __webpack_require__(187).Encoder;
+exports.Decoder = __webpack_require__(189).Decoder;
 
-exports.createEncodeStream = __webpack_require__(189).createEncodeStream;
-exports.createDecodeStream = __webpack_require__(190).createDecodeStream;
+exports.createEncodeStream = __webpack_require__(190).createEncodeStream;
+exports.createDecodeStream = __webpack_require__(191).createDecodeStream;
 
-exports.createCodec = __webpack_require__(191).createCodec;
-exports.codec = __webpack_require__(192).codec;
+exports.createCodec = __webpack_require__(192).createCodec;
+exports.codec = __webpack_require__(193).codec;
 
 
 /***/ }),
-/* 160 */
+/* 161 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // encode.js
 
 exports.encode = encode;
 
-var EncodeBuffer = __webpack_require__(161).EncodeBuffer;
+var EncodeBuffer = __webpack_require__(162).EncodeBuffer;
 
 function encode(input, options) {
   var encoder = new EncodeBuffer(options);
@@ -11965,16 +12211,16 @@ function encode(input, options) {
 
 
 /***/ }),
-/* 161 */
+/* 162 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // encode-buffer.js
 
 exports.EncodeBuffer = EncodeBuffer;
 
-var preset = __webpack_require__(162).preset;
+var preset = __webpack_require__(163).preset;
 
-var FlexEncoder = __webpack_require__(179).FlexEncoder;
+var FlexEncoder = __webpack_require__(180).FlexEncoder;
 
 FlexEncoder.mixin(EncodeBuffer.prototype);
 
@@ -11998,15 +12244,15 @@ EncodeBuffer.prototype.write = function(input) {
 
 
 /***/ }),
-/* 162 */
+/* 163 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // write-core.js
 
-var ExtBuffer = __webpack_require__(163).ExtBuffer;
-var ExtPacker = __webpack_require__(172);
-var WriteType = __webpack_require__(173);
-var CodecBase = __webpack_require__(178);
+var ExtBuffer = __webpack_require__(164).ExtBuffer;
+var ExtPacker = __webpack_require__(173);
+var WriteType = __webpack_require__(174);
+var CodecBase = __webpack_require__(179);
 
 CodecBase.install({
   addExtPacker: addExtPacker,
@@ -12073,14 +12319,14 @@ function getExtPacker(value) {
 
 
 /***/ }),
-/* 163 */
+/* 164 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // ext-buffer.js
 
 exports.ExtBuffer = ExtBuffer;
 
-var Bufferish = __webpack_require__(164);
+var Bufferish = __webpack_require__(165);
 
 function ExtBuffer(buffer, type) {
   if (!(this instanceof ExtBuffer)) return new ExtBuffer(buffer, type);
@@ -12090,16 +12336,16 @@ function ExtBuffer(buffer, type) {
 
 
 /***/ }),
-/* 164 */
+/* 165 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // bufferish.js
 
-var Buffer = exports.global = __webpack_require__(165);
+var Buffer = exports.global = __webpack_require__(166);
 var hasBuffer = exports.hasBuffer = Buffer && !!Buffer.isBuffer;
 var hasArrayBuffer = exports.hasArrayBuffer = ("undefined" !== typeof ArrayBuffer);
 
-var isArray = exports.isArray = __webpack_require__(166);
+var isArray = exports.isArray = __webpack_require__(167);
 exports.isArrayBuffer = hasArrayBuffer ? isArrayBuffer : _false;
 var isBuffer = exports.isBuffer = hasBuffer ? Buffer.isBuffer : _false;
 var isView = exports.isView = hasArrayBuffer ? (ArrayBuffer.isView || _is("ArrayBuffer", "buffer")) : _false;
@@ -12108,10 +12354,10 @@ exports.alloc = alloc;
 exports.concat = concat;
 exports.from = from;
 
-var BufferArray = exports.Array = __webpack_require__(167);
-var BufferBuffer = exports.Buffer = __webpack_require__(168);
-var BufferUint8Array = exports.Uint8Array = __webpack_require__(169);
-var BufferProto = exports.prototype = __webpack_require__(170);
+var BufferArray = exports.Array = __webpack_require__(168);
+var BufferBuffer = exports.Buffer = __webpack_require__(169);
+var BufferUint8Array = exports.Uint8Array = __webpack_require__(170);
+var BufferProto = exports.prototype = __webpack_require__(171);
 
 /**
  * @param value {Array|ArrayBuffer|Buffer|String}
@@ -12203,7 +12449,7 @@ function _is(name, key) {
 }
 
 /***/ }),
-/* 165 */
+/* 166 */
 /***/ (function(module, exports) {
 
 /* globals Buffer */
@@ -12219,7 +12465,7 @@ function c(B) {
 }
 
 /***/ }),
-/* 166 */
+/* 167 */
 /***/ (function(module, exports) {
 
 var toString = {}.toString;
@@ -12230,12 +12476,12 @@ module.exports = Array.isArray || function (arr) {
 
 
 /***/ }),
-/* 167 */
+/* 168 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // bufferish-array.js
 
-var Bufferish = __webpack_require__(164);
+var Bufferish = __webpack_require__(165);
 
 var exports = module.exports = alloc(0);
 
@@ -12277,12 +12523,12 @@ function from(value) {
 
 
 /***/ }),
-/* 168 */
+/* 169 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // bufferish-buffer.js
 
-var Bufferish = __webpack_require__(164);
+var Bufferish = __webpack_require__(165);
 var Buffer = Bufferish.global;
 
 var exports = module.exports = Bufferish.hasBuffer ? alloc(0) : [];
@@ -12329,12 +12575,12 @@ function from(value) {
 
 
 /***/ }),
-/* 169 */
+/* 170 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // bufferish-uint8array.js
 
-var Bufferish = __webpack_require__(164);
+var Bufferish = __webpack_require__(165);
 
 var exports = module.exports = Bufferish.hasArrayBuffer ? alloc(0) : [];
 
@@ -12386,21 +12632,21 @@ function from(value) {
 
 
 /***/ }),
-/* 170 */
+/* 171 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // bufferish-proto.js
 
 /* jshint eqnull:true */
 
-var BufferLite = __webpack_require__(171);
+var BufferLite = __webpack_require__(172);
 
 exports.copy = copy;
 exports.slice = slice;
 exports.toString = toString;
 exports.write = gen("write");
 
-var Bufferish = __webpack_require__(164);
+var Bufferish = __webpack_require__(165);
 var Buffer = Bufferish.global;
 
 var isBufferShim = Bufferish.hasBuffer && ("TYPED_ARRAY_SUPPORT" in Buffer);
@@ -12478,7 +12724,7 @@ function gen(method) {
 
 
 /***/ }),
-/* 171 */
+/* 172 */
 /***/ (function(module, exports) {
 
 // buffer-lite.js
@@ -12618,14 +12864,14 @@ function copy(target, targetStart, start, end) {
 
 
 /***/ }),
-/* 172 */
+/* 173 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // ext-packer.js
 
 exports.setExtPackers = setExtPackers;
 
-var Bufferish = __webpack_require__(164);
+var Bufferish = __webpack_require__(165);
 var Buffer = Bufferish.global;
 var packTypedArray = Bufferish.Uint8Array.from;
 var _encode;
@@ -12676,7 +12922,7 @@ function setExtPackers(codec) {
 }
 
 function encode(input) {
-  if (!_encode) _encode = __webpack_require__(160).encode; // lazy load
+  if (!_encode) _encode = __webpack_require__(161).encode; // lazy load
   return _encode(input);
 }
 
@@ -12702,21 +12948,21 @@ function packError(value) {
 
 
 /***/ }),
-/* 173 */
+/* 174 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // write-type.js
 
-var IS_ARRAY = __webpack_require__(166);
-var Int64Buffer = __webpack_require__(174);
+var IS_ARRAY = __webpack_require__(167);
+var Int64Buffer = __webpack_require__(175);
 var Uint64BE = Int64Buffer.Uint64BE;
 var Int64BE = Int64Buffer.Int64BE;
 
-var Bufferish = __webpack_require__(164);
-var BufferProto = __webpack_require__(170);
-var WriteToken = __webpack_require__(175);
-var uint8 = __webpack_require__(177).uint8;
-var ExtBuffer = __webpack_require__(163).ExtBuffer;
+var Bufferish = __webpack_require__(165);
+var BufferProto = __webpack_require__(171);
+var WriteToken = __webpack_require__(176);
+var uint8 = __webpack_require__(178).uint8;
+var ExtBuffer = __webpack_require__(164).ExtBuffer;
 
 var HAS_UINT8ARRAY = ("undefined" !== typeof Uint8Array);
 var HAS_MAP = ("undefined" !== typeof Map);
@@ -12977,7 +13223,7 @@ function getWriteType(options) {
 
 
 /***/ }),
-/* 174 */
+/* 175 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // int64-buffer.js
@@ -13276,18 +13522,18 @@ var Uint64BE, Int64BE, Uint64LE, Int64LE;
 
 
 /***/ }),
-/* 175 */
+/* 176 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // write-token.js
 
-var ieee754 = __webpack_require__(176);
-var Int64Buffer = __webpack_require__(174);
+var ieee754 = __webpack_require__(177);
+var Int64Buffer = __webpack_require__(175);
 var Uint64BE = Int64Buffer.Uint64BE;
 var Int64BE = Int64Buffer.Int64BE;
 
-var uint8 = __webpack_require__(177).uint8;
-var Bufferish = __webpack_require__(164);
+var uint8 = __webpack_require__(178).uint8;
+var Bufferish = __webpack_require__(165);
 var Buffer = Bufferish.global;
 var IS_BUFFER_SHIM = Bufferish.hasBuffer && ("TYPED_ARRAY_SUPPORT" in Buffer);
 var NO_TYPED_ARRAY = IS_BUFFER_SHIM && !Buffer.TYPED_ARRAY_SUPPORT;
@@ -13509,7 +13755,7 @@ function writeDoubleBE(value, offset) {
 
 
 /***/ }),
-/* 176 */
+/* 177 */
 /***/ (function(module, exports) {
 
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
@@ -13599,7 +13845,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
 
 
 /***/ }),
-/* 177 */
+/* 178 */
 /***/ (function(module, exports) {
 
 // write-unit8.js
@@ -13619,18 +13865,18 @@ function write0(type) {
 
 
 /***/ }),
-/* 178 */
+/* 179 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // codec-base.js
 
-var IS_ARRAY = __webpack_require__(166);
+var IS_ARRAY = __webpack_require__(167);
 
 exports.createCodec = createCodec;
 exports.install = install;
 exports.filter = filter;
 
-var Bufferish = __webpack_require__(164);
+var Bufferish = __webpack_require__(165);
 
 function Codec(options) {
   if (!(this instanceof Codec)) return new Codec(options);
@@ -13692,7 +13938,7 @@ exports.preset = createCodec({preset: true});
 
 
 /***/ }),
-/* 179 */
+/* 180 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // flex-buffer.js
@@ -13700,7 +13946,7 @@ exports.preset = createCodec({preset: true});
 exports.FlexDecoder = FlexDecoder;
 exports.FlexEncoder = FlexEncoder;
 
-var Bufferish = __webpack_require__(164);
+var Bufferish = __webpack_require__(165);
 
 var MIN_BUFFER_SIZE = 2048;
 var MAX_BUFFER_SIZE = 65536;
@@ -13892,14 +14138,14 @@ function mixinFactory(source) {
 
 
 /***/ }),
-/* 180 */
+/* 181 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // decode.js
 
 exports.decode = decode;
 
-var DecodeBuffer = __webpack_require__(181).DecodeBuffer;
+var DecodeBuffer = __webpack_require__(182).DecodeBuffer;
 
 function decode(input, options) {
   var decoder = new DecodeBuffer(options);
@@ -13908,16 +14154,16 @@ function decode(input, options) {
 }
 
 /***/ }),
-/* 181 */
+/* 182 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // decode-buffer.js
 
 exports.DecodeBuffer = DecodeBuffer;
 
-var preset = __webpack_require__(182).preset;
+var preset = __webpack_require__(183).preset;
 
-var FlexDecoder = __webpack_require__(179).FlexDecoder;
+var FlexDecoder = __webpack_require__(180).FlexDecoder;
 
 FlexDecoder.mixin(DecodeBuffer.prototype);
 
@@ -13941,16 +14187,16 @@ DecodeBuffer.prototype.fetch = function() {
 
 
 /***/ }),
-/* 182 */
+/* 183 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // read-core.js
 
-var ExtBuffer = __webpack_require__(163).ExtBuffer;
-var ExtUnpacker = __webpack_require__(183);
-var readUint8 = __webpack_require__(184).readUint8;
-var ReadToken = __webpack_require__(185);
-var CodecBase = __webpack_require__(178);
+var ExtBuffer = __webpack_require__(164).ExtBuffer;
+var ExtUnpacker = __webpack_require__(184);
+var readUint8 = __webpack_require__(185).readUint8;
+var ReadToken = __webpack_require__(186);
+var CodecBase = __webpack_require__(179);
 
 CodecBase.install({
   addExtUnpacker: addExtUnpacker,
@@ -13999,14 +14245,14 @@ function getExtUnpacker(type) {
 
 
 /***/ }),
-/* 183 */
+/* 184 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // ext-unpacker.js
 
 exports.setExtUnpackers = setExtUnpackers;
 
-var Bufferish = __webpack_require__(164);
+var Bufferish = __webpack_require__(165);
 var Buffer = Bufferish.global;
 var _decode;
 
@@ -14056,7 +14302,7 @@ function setExtUnpackers(codec) {
 }
 
 function decode(input) {
-  if (!_decode) _decode = __webpack_require__(180).decode; // lazy load
+  if (!_decode) _decode = __webpack_require__(181).decode; // lazy load
   return _decode(input);
 }
 
@@ -14086,21 +14332,21 @@ function unpackArrayBuffer(value) {
 
 
 /***/ }),
-/* 184 */
+/* 185 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // read-format.js
 
-var ieee754 = __webpack_require__(176);
-var Int64Buffer = __webpack_require__(174);
+var ieee754 = __webpack_require__(177);
+var Int64Buffer = __webpack_require__(175);
 var Uint64BE = Int64Buffer.Uint64BE;
 var Int64BE = Int64Buffer.Int64BE;
 
 exports.getReadFormat = getReadFormat;
 exports.readUint8 = uint8;
 
-var Bufferish = __webpack_require__(164);
-var BufferProto = __webpack_require__(170);
+var Bufferish = __webpack_require__(165);
+var BufferProto = __webpack_require__(171);
 
 var HAS_MAP = ("undefined" !== typeof Map);
 var NO_ASSERT = true;
@@ -14272,12 +14518,12 @@ function readDoubleBE(start) {
 }
 
 /***/ }),
-/* 185 */
+/* 186 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // read-token.js
 
-var ReadFormat = __webpack_require__(184);
+var ReadFormat = __webpack_require__(185);
 
 exports.getReadToken = getReadToken;
 
@@ -14439,15 +14685,15 @@ function fix(len, method) {
 
 
 /***/ }),
-/* 186 */
+/* 187 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // encoder.js
 
 exports.Encoder = Encoder;
 
-var EventLite = __webpack_require__(187);
-var EncodeBuffer = __webpack_require__(161).EncodeBuffer;
+var EventLite = __webpack_require__(188);
+var EncodeBuffer = __webpack_require__(162).EncodeBuffer;
 
 function Encoder(options) {
   if (!(this instanceof Encoder)) return new Encoder(options);
@@ -14471,7 +14717,7 @@ Encoder.prototype.end = function(chunk) {
 
 
 /***/ }),
-/* 187 */
+/* 188 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -14657,15 +14903,15 @@ function EventLite() {
 
 
 /***/ }),
-/* 188 */
+/* 189 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // decoder.js
 
 exports.Decoder = Decoder;
 
-var EventLite = __webpack_require__(187);
-var DecodeBuffer = __webpack_require__(181).DecodeBuffer;
+var EventLite = __webpack_require__(188);
+var DecodeBuffer = __webpack_require__(182).DecodeBuffer;
 
 function Decoder(options) {
   if (!(this instanceof Decoder)) return new Decoder(options);
@@ -14692,7 +14938,7 @@ Decoder.prototype.end = function(chunk) {
 
 
 /***/ }),
-/* 189 */
+/* 190 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // encode-stream.js
@@ -14701,7 +14947,7 @@ exports.createEncodeStream = EncodeStream;
 
 var util = __webpack_require__(74);
 var Transform = __webpack_require__(106).Transform;
-var EncodeBuffer = __webpack_require__(161).EncodeBuffer;
+var EncodeBuffer = __webpack_require__(162).EncodeBuffer;
 
 util.inherits(EncodeStream, Transform);
 
@@ -14735,7 +14981,7 @@ EncodeStream.prototype._flush = function(callback) {
 
 
 /***/ }),
-/* 190 */
+/* 191 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // decode-stream.js
@@ -14744,7 +14990,7 @@ exports.createDecodeStream = DecodeStream;
 
 var util = __webpack_require__(74);
 var Transform = __webpack_require__(106).Transform;
-var DecodeBuffer = __webpack_require__(181).DecodeBuffer;
+var DecodeBuffer = __webpack_require__(182).DecodeBuffer;
 
 util.inherits(DecodeStream, Transform);
 
@@ -14773,38 +15019,38 @@ DecodeStream.prototype._transform = function(chunk, encoding, callback) {
 
 
 /***/ }),
-/* 191 */
+/* 192 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // ext.js
 
 // load both interfaces
-__webpack_require__(182);
-__webpack_require__(162);
+__webpack_require__(183);
+__webpack_require__(163);
 
-exports.createCodec = __webpack_require__(178).createCodec;
+exports.createCodec = __webpack_require__(179).createCodec;
 
 
 /***/ }),
-/* 192 */
+/* 193 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // codec.js
 
 // load both interfaces
-__webpack_require__(182);
-__webpack_require__(162);
+__webpack_require__(183);
+__webpack_require__(163);
 
 // @public
 // msgpack.codec.preset
 
 exports.codec = {
-  preset: __webpack_require__(178).preset
+  preset: __webpack_require__(179).preset
 };
 
 
 /***/ }),
-/* 193 */
+/* 194 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -14868,15 +15114,15 @@ exports.default = Buffered;
 
 
 /***/ }),
-/* 194 */
+/* 195 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const Buffer_1 = __webpack_require__(195);
-const Window_1 = __webpack_require__(198);
-const Tabpage_1 = __webpack_require__(200);
+const Buffer_1 = __webpack_require__(196);
+const Window_1 = __webpack_require__(199);
+const Tabpage_1 = __webpack_require__(201);
 var ExtType;
 (function (ExtType) {
     ExtType[ExtType["Buffer"] = 0] = "Buffer";
@@ -14903,7 +15149,7 @@ exports.Metadata = [
 
 
 /***/ }),
-/* 195 */
+/* 196 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -14917,7 +15163,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Base_1 = __webpack_require__(196);
+const Base_1 = __webpack_require__(197);
 class Buffer extends Base_1.BaseApi {
     constructor() {
         super(...arguments);
@@ -15170,7 +15416,7 @@ exports.Buffer = Buffer;
 
 
 /***/ }),
-/* 196 */
+/* 197 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -15184,7 +15430,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const events_1 = __webpack_require__(197);
+const events_1 = __webpack_require__(198);
 const isVim = process.env.VIM_NODE_RPC == '1';
 // i.e. a plugin that detaches will affect all plugins registered on host
 // const EXCLUDED = ['nvim_buf_attach', 'nvim_buf_detach']
@@ -15267,20 +15513,20 @@ exports.BaseApi = BaseApi;
 
 
 /***/ }),
-/* 197 */
+/* 198 */
 /***/ (function(module, exports) {
 
 module.exports = require("events");
 
 /***/ }),
-/* 198 */
+/* 199 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const Base_1 = __webpack_require__(196);
-const timers_1 = __webpack_require__(199);
+const Base_1 = __webpack_require__(197);
+const timers_1 = __webpack_require__(200);
 class Window extends Base_1.BaseApi {
     constructor() {
         super(...arguments);
@@ -15379,19 +15625,19 @@ exports.Window = Window;
 
 
 /***/ }),
-/* 199 */
+/* 200 */
 /***/ (function(module, exports) {
 
 module.exports = require("timers");
 
 /***/ }),
-/* 200 */
+/* 201 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const Base_1 = __webpack_require__(196);
+const Base_1 = __webpack_require__(197);
 class Tabpage extends Base_1.BaseApi {
     constructor() {
         super(...arguments);
@@ -15426,14 +15672,14 @@ exports.Tabpage = Tabpage;
 
 
 /***/ }),
-/* 201 */
+/* 202 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const events_1 = __webpack_require__(197);
-const logger_1 = __webpack_require__(202);
+const events_1 = __webpack_require__(198);
+const logger_1 = __webpack_require__(203);
 const debug = process.env.NODE_CLIENT_LOG_LEVEL == 'debug';
 const logger = logger_1.createLogger('transport');
 class Transport extends events_1.EventEmitter {
@@ -15505,7 +15751,7 @@ exports.default = Transport;
 
 
 /***/ }),
-/* 202 */
+/* 203 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -15598,7 +15844,7 @@ exports.createLogger = createLogger;
 
 
 /***/ }),
-/* 203 */
+/* 204 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -15607,9 +15853,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const base_1 = __importDefault(__webpack_require__(201));
-const connection_1 = __importDefault(__webpack_require__(204));
-const request_1 = __importDefault(__webpack_require__(206));
+const base_1 = __importDefault(__webpack_require__(202));
+const connection_1 = __importDefault(__webpack_require__(205));
+const request_1 = __importDefault(__webpack_require__(207));
 class VimTransport extends base_1.default {
     constructor() {
         super();
@@ -15715,7 +15961,7 @@ exports.VimTransport = VimTransport;
 
 
 /***/ }),
-/* 204 */
+/* 205 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -15724,9 +15970,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const events_1 = __importDefault(__webpack_require__(197));
-const readline_1 = __importDefault(__webpack_require__(205));
-const logger_1 = __webpack_require__(202);
+const events_1 = __importDefault(__webpack_require__(198));
+const readline_1 = __importDefault(__webpack_require__(206));
+const logger_1 = __webpack_require__(203);
 const logger = logger_1.createLogger('connection');
 const debug = process.env.NODE_CLIENT_LOG_LEVEL == 'debug';
 class Connection extends events_1.default {
@@ -15810,19 +16056,19 @@ exports.default = Connection;
 
 
 /***/ }),
-/* 205 */
+/* 206 */
 /***/ (function(module, exports) {
 
 module.exports = require("readline");
 
 /***/ }),
-/* 206 */
+/* 207 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const logger_1 = __webpack_require__(202);
+const logger_1 = __webpack_require__(203);
 const logger = logger_1.createLogger('request');
 const debug = process.env.NODE_CLIENT_LOG_LEVEL == 'debug';
 const func = process.env.COC_NVIM == '1' ? 'coc#api#call' : 'nvim#api#call';
@@ -15871,7 +16117,7 @@ exports.default = Request;
 
 
 /***/ }),
-/* 207 */
+/* 208 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -15885,10 +16131,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Base_1 = __webpack_require__(196);
-const Buffer_1 = __webpack_require__(195);
-const Tabpage_1 = __webpack_require__(200);
-const Window_1 = __webpack_require__(198);
+const Base_1 = __webpack_require__(197);
+const Buffer_1 = __webpack_require__(196);
+const Tabpage_1 = __webpack_require__(201);
+const Window_1 = __webpack_require__(199);
 const isVim = process.env.VIM_NODE_RPC == '1';
 /**
  * Neovim API
@@ -16215,34 +16461,34 @@ exports.Neovim = Neovim;
 
 
 /***/ }),
-/* 208 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-var client_1 = __webpack_require__(157);
-exports.Neovim = client_1.NeovimClient;
-var client_2 = __webpack_require__(157);
-exports.NeovimClient = client_2.NeovimClient;
-var Buffer_1 = __webpack_require__(195);
-exports.Buffer = Buffer_1.Buffer;
-var Window_1 = __webpack_require__(198);
-exports.Window = Window_1.Window;
-var Tabpage_1 = __webpack_require__(200);
-exports.Tabpage = Tabpage_1.Tabpage;
-
-
-/***/ }),
 /* 209 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const util_1 = __webpack_require__(237);
-const object_1 = __webpack_require__(248);
+var client_1 = __webpack_require__(158);
+exports.Neovim = client_1.NeovimClient;
+var client_2 = __webpack_require__(158);
+exports.NeovimClient = client_2.NeovimClient;
+var Buffer_1 = __webpack_require__(196);
+exports.Buffer = Buffer_1.Buffer;
+var Window_1 = __webpack_require__(199);
+exports.Window = Window_1.Window;
+var Tabpage_1 = __webpack_require__(201);
+exports.Tabpage = Tabpage_1.Tabpage;
+
+
+/***/ }),
+/* 210 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const util_1 = __webpack_require__(238);
+const object_1 = __webpack_require__(249);
 const logger = __webpack_require__(64)('events');
 class Events {
     constructor() {
@@ -16344,7 +16590,7 @@ exports.default = new Events();
 //# sourceMappingURL=events.js.map
 
 /***/ }),
-/* 210 */
+/* 211 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -16357,7 +16603,7 @@ function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 }
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(211);
+const vscode_jsonrpc_1 = __webpack_require__(212);
 exports.ErrorCodes = vscode_jsonrpc_1.ErrorCodes;
 exports.ResponseError = vscode_jsonrpc_1.ResponseError;
 exports.CancellationToken = vscode_jsonrpc_1.CancellationToken;
@@ -16386,10 +16632,10 @@ exports.generateRandomPipeName = vscode_jsonrpc_1.generateRandomPipeName;
 exports.createClientSocketTransport = vscode_jsonrpc_1.createClientSocketTransport;
 exports.createServerSocketTransport = vscode_jsonrpc_1.createServerSocketTransport;
 exports.ProgressType = vscode_jsonrpc_1.ProgressType;
-__export(__webpack_require__(222));
 __export(__webpack_require__(223));
-const callHierarchy = __webpack_require__(235);
-const st = __webpack_require__(236);
+__export(__webpack_require__(224));
+const callHierarchy = __webpack_require__(236);
+const st = __webpack_require__(237);
 var Proposed;
 (function (Proposed) {
     let CallHierarchyPrepareRequest;
@@ -16433,7 +16679,7 @@ exports.createProtocolConnection = createProtocolConnection;
 
 
 /***/ }),
-/* 211 */
+/* 212 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -16447,8 +16693,8 @@ function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 }
 Object.defineProperty(exports, "__esModule", { value: true });
-const Is = __webpack_require__(212);
-const messages_1 = __webpack_require__(213);
+const Is = __webpack_require__(213);
+const messages_1 = __webpack_require__(214);
 exports.RequestType = messages_1.RequestType;
 exports.RequestType0 = messages_1.RequestType0;
 exports.RequestType1 = messages_1.RequestType1;
@@ -16473,26 +16719,26 @@ exports.NotificationType6 = messages_1.NotificationType6;
 exports.NotificationType7 = messages_1.NotificationType7;
 exports.NotificationType8 = messages_1.NotificationType8;
 exports.NotificationType9 = messages_1.NotificationType9;
-const messageReader_1 = __webpack_require__(214);
+const messageReader_1 = __webpack_require__(215);
 exports.MessageReader = messageReader_1.MessageReader;
 exports.StreamMessageReader = messageReader_1.StreamMessageReader;
 exports.IPCMessageReader = messageReader_1.IPCMessageReader;
 exports.SocketMessageReader = messageReader_1.SocketMessageReader;
-const messageWriter_1 = __webpack_require__(216);
+const messageWriter_1 = __webpack_require__(217);
 exports.MessageWriter = messageWriter_1.MessageWriter;
 exports.StreamMessageWriter = messageWriter_1.StreamMessageWriter;
 exports.IPCMessageWriter = messageWriter_1.IPCMessageWriter;
 exports.SocketMessageWriter = messageWriter_1.SocketMessageWriter;
-const events_1 = __webpack_require__(215);
+const events_1 = __webpack_require__(216);
 exports.Disposable = events_1.Disposable;
 exports.Event = events_1.Event;
 exports.Emitter = events_1.Emitter;
-const cancellation_1 = __webpack_require__(217);
+const cancellation_1 = __webpack_require__(218);
 exports.CancellationTokenSource = cancellation_1.CancellationTokenSource;
 exports.CancellationToken = cancellation_1.CancellationToken;
-const linkedMap_1 = __webpack_require__(218);
-__export(__webpack_require__(219));
-__export(__webpack_require__(221));
+const linkedMap_1 = __webpack_require__(219);
+__export(__webpack_require__(220));
+__export(__webpack_require__(222));
 var CancelNotification;
 (function (CancelNotification) {
     CancelNotification.type = new messages_1.NotificationType('$/cancelRequest');
@@ -17401,7 +17647,7 @@ exports.createMessageConnection = createMessageConnection;
 
 
 /***/ }),
-/* 212 */
+/* 213 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17442,7 +17688,7 @@ exports.stringArray = stringArray;
 
 
 /***/ }),
-/* 213 */
+/* 214 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17452,7 +17698,7 @@ exports.stringArray = stringArray;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const is = __webpack_require__(212);
+const is = __webpack_require__(213);
 /**
  * Predefined error codes.
  */
@@ -17683,7 +17929,7 @@ exports.isResponseMessage = isResponseMessage;
 
 
 /***/ }),
-/* 214 */
+/* 215 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -17693,8 +17939,8 @@ exports.isResponseMessage = isResponseMessage;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const events_1 = __webpack_require__(215);
-const Is = __webpack_require__(212);
+const events_1 = __webpack_require__(216);
+const Is = __webpack_require__(213);
 let DefaultSize = 8192;
 let CR = Buffer.from('\r', 'ascii')[0];
 let LF = Buffer.from('\n', 'ascii')[0];
@@ -17915,7 +18161,7 @@ exports.SocketMessageReader = SocketMessageReader;
 
 
 /***/ }),
-/* 215 */
+/* 216 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18054,7 +18300,7 @@ Emitter._noop = function () { };
 
 
 /***/ }),
-/* 216 */
+/* 217 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18064,8 +18310,8 @@ Emitter._noop = function () { };
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const events_1 = __webpack_require__(215);
-const Is = __webpack_require__(212);
+const events_1 = __webpack_require__(216);
+const Is = __webpack_require__(213);
 let ContentLength = 'Content-Length: ';
 let CRLF = '\r\n';
 var MessageWriter;
@@ -18255,7 +18501,7 @@ exports.SocketMessageWriter = SocketMessageWriter;
 
 
 /***/ }),
-/* 217 */
+/* 218 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18265,8 +18511,8 @@ exports.SocketMessageWriter = SocketMessageWriter;
  *--------------------------------------------------------------------------------------------*/
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const events_1 = __webpack_require__(215);
-const Is = __webpack_require__(212);
+const events_1 = __webpack_require__(216);
+const Is = __webpack_require__(213);
 var CancellationToken;
 (function (CancellationToken) {
     CancellationToken.None = Object.freeze({
@@ -18356,7 +18602,7 @@ exports.CancellationTokenSource = CancellationTokenSource;
 
 
 /***/ }),
-/* 218 */
+/* 219 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18642,7 +18888,7 @@ exports.LinkedMap = LinkedMap;
 
 
 /***/ }),
-/* 219 */
+/* 220 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18654,10 +18900,10 @@ exports.LinkedMap = LinkedMap;
 Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = __webpack_require__(82);
 const os_1 = __webpack_require__(76);
-const crypto_1 = __webpack_require__(220);
-const net_1 = __webpack_require__(156);
-const messageReader_1 = __webpack_require__(214);
-const messageWriter_1 = __webpack_require__(216);
+const crypto_1 = __webpack_require__(221);
+const net_1 = __webpack_require__(157);
+const messageReader_1 = __webpack_require__(215);
+const messageWriter_1 = __webpack_require__(217);
 function generateRandomPipeName() {
     const randomSuffix = crypto_1.randomBytes(21).toString('hex');
     if (process.platform === 'win32') {
@@ -18703,13 +18949,13 @@ exports.createServerPipeTransport = createServerPipeTransport;
 
 
 /***/ }),
-/* 220 */
+/* 221 */
 /***/ (function(module, exports) {
 
 module.exports = require("crypto");
 
 /***/ }),
-/* 221 */
+/* 222 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -18719,9 +18965,9 @@ module.exports = require("crypto");
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const net_1 = __webpack_require__(156);
-const messageReader_1 = __webpack_require__(214);
-const messageWriter_1 = __webpack_require__(216);
+const net_1 = __webpack_require__(157);
+const messageReader_1 = __webpack_require__(215);
+const messageWriter_1 = __webpack_require__(217);
 function createClientSocketTransport(port, encoding = 'utf-8') {
     let connectResolve;
     let connected = new Promise((resolve, _reject) => {
@@ -18756,7 +19002,7 @@ exports.createServerSocketTransport = createServerSocketTransport;
 
 
 /***/ }),
-/* 222 */
+/* 223 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -20341,7 +20587,7 @@ var Is;
 
 
 /***/ }),
-/* 223 */
+/* 224 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20351,28 +20597,28 @@ var Is;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const Is = __webpack_require__(224);
-const vscode_jsonrpc_1 = __webpack_require__(211);
-const messages_1 = __webpack_require__(225);
-const protocol_implementation_1 = __webpack_require__(226);
+const Is = __webpack_require__(225);
+const vscode_jsonrpc_1 = __webpack_require__(212);
+const messages_1 = __webpack_require__(226);
+const protocol_implementation_1 = __webpack_require__(227);
 exports.ImplementationRequest = protocol_implementation_1.ImplementationRequest;
-const protocol_typeDefinition_1 = __webpack_require__(227);
+const protocol_typeDefinition_1 = __webpack_require__(228);
 exports.TypeDefinitionRequest = protocol_typeDefinition_1.TypeDefinitionRequest;
-const protocol_workspaceFolders_1 = __webpack_require__(228);
+const protocol_workspaceFolders_1 = __webpack_require__(229);
 exports.WorkspaceFoldersRequest = protocol_workspaceFolders_1.WorkspaceFoldersRequest;
 exports.DidChangeWorkspaceFoldersNotification = protocol_workspaceFolders_1.DidChangeWorkspaceFoldersNotification;
-const protocol_configuration_1 = __webpack_require__(229);
+const protocol_configuration_1 = __webpack_require__(230);
 exports.ConfigurationRequest = protocol_configuration_1.ConfigurationRequest;
-const protocol_colorProvider_1 = __webpack_require__(230);
+const protocol_colorProvider_1 = __webpack_require__(231);
 exports.DocumentColorRequest = protocol_colorProvider_1.DocumentColorRequest;
 exports.ColorPresentationRequest = protocol_colorProvider_1.ColorPresentationRequest;
-const protocol_foldingRange_1 = __webpack_require__(231);
+const protocol_foldingRange_1 = __webpack_require__(232);
 exports.FoldingRangeRequest = protocol_foldingRange_1.FoldingRangeRequest;
-const protocol_declaration_1 = __webpack_require__(232);
+const protocol_declaration_1 = __webpack_require__(233);
 exports.DeclarationRequest = protocol_declaration_1.DeclarationRequest;
-const protocol_selectionRange_1 = __webpack_require__(233);
+const protocol_selectionRange_1 = __webpack_require__(234);
 exports.SelectionRangeRequest = protocol_selectionRange_1.SelectionRangeRequest;
-const protocol_progress_1 = __webpack_require__(234);
+const protocol_progress_1 = __webpack_require__(235);
 exports.WorkDoneProgress = protocol_progress_1.WorkDoneProgress;
 exports.WorkDoneProgressCreateRequest = protocol_progress_1.WorkDoneProgressCreateRequest;
 exports.WorkDoneProgressCancelNotification = protocol_progress_1.WorkDoneProgressCancelNotification;
@@ -21033,7 +21279,7 @@ var ApplyWorkspaceEditRequest;
 
 
 /***/ }),
-/* 224 */
+/* 225 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21085,7 +21331,7 @@ exports.objectLiteral = objectLiteral;
 
 
 /***/ }),
-/* 225 */
+/* 226 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21095,7 +21341,7 @@ exports.objectLiteral = objectLiteral;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(211);
+const vscode_jsonrpc_1 = __webpack_require__(212);
 class ProtocolRequestType0 extends vscode_jsonrpc_1.RequestType0 {
     constructor(method) {
         super(method);
@@ -21123,7 +21369,7 @@ exports.ProtocolNotificationType0 = ProtocolNotificationType0;
 
 
 /***/ }),
-/* 226 */
+/* 227 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21133,8 +21379,8 @@ exports.ProtocolNotificationType0 = ProtocolNotificationType0;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(211);
-const messages_1 = __webpack_require__(225);
+const vscode_jsonrpc_1 = __webpack_require__(212);
+const messages_1 = __webpack_require__(226);
 // @ts-ignore: to avoid inlining LocatioLink as dynamic import
 let __noDynamicImport;
 /**
@@ -21153,7 +21399,7 @@ var ImplementationRequest;
 
 
 /***/ }),
-/* 227 */
+/* 228 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21163,8 +21409,8 @@ var ImplementationRequest;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(211);
-const messages_1 = __webpack_require__(225);
+const vscode_jsonrpc_1 = __webpack_require__(212);
+const messages_1 = __webpack_require__(226);
 // @ts-ignore: to avoid inlining LocatioLink as dynamic import
 let __noDynamicImport;
 /**
@@ -21183,7 +21429,7 @@ var TypeDefinitionRequest;
 
 
 /***/ }),
-/* 228 */
+/* 229 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21193,7 +21439,7 @@ var TypeDefinitionRequest;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const messages_1 = __webpack_require__(225);
+const messages_1 = __webpack_require__(226);
 /**
  * The `workspace/workspaceFolders` is sent from the server to the client to fetch the open workspace folders.
  */
@@ -21212,7 +21458,7 @@ var DidChangeWorkspaceFoldersNotification;
 
 
 /***/ }),
-/* 229 */
+/* 230 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21222,7 +21468,7 @@ var DidChangeWorkspaceFoldersNotification;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const messages_1 = __webpack_require__(225);
+const messages_1 = __webpack_require__(226);
 /**
  * The 'workspace/configuration' request is sent from the server to the client to fetch a certain
  * configuration setting.
@@ -21239,7 +21485,7 @@ var ConfigurationRequest;
 
 
 /***/ }),
-/* 230 */
+/* 231 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21249,8 +21495,8 @@ var ConfigurationRequest;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(211);
-const messages_1 = __webpack_require__(225);
+const vscode_jsonrpc_1 = __webpack_require__(212);
+const messages_1 = __webpack_require__(226);
 /**
  * A request to list all color symbols found in a given text document. The request's
  * parameter is of type [DocumentColorParams](#DocumentColorParams) the
@@ -21277,7 +21523,7 @@ var ColorPresentationRequest;
 
 
 /***/ }),
-/* 231 */
+/* 232 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21287,8 +21533,8 @@ var ColorPresentationRequest;
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(211);
-const messages_1 = __webpack_require__(225);
+const vscode_jsonrpc_1 = __webpack_require__(212);
+const messages_1 = __webpack_require__(226);
 /**
  * Enum of known range kinds
  */
@@ -21323,7 +21569,7 @@ var FoldingRangeRequest;
 
 
 /***/ }),
-/* 232 */
+/* 233 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21333,8 +21579,8 @@ var FoldingRangeRequest;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(211);
-const messages_1 = __webpack_require__(225);
+const vscode_jsonrpc_1 = __webpack_require__(212);
+const messages_1 = __webpack_require__(226);
 // @ts-ignore: to avoid inlining LocatioLink as dynamic import
 let __noDynamicImport;
 /**
@@ -21354,7 +21600,7 @@ var DeclarationRequest;
 
 
 /***/ }),
-/* 233 */
+/* 234 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21364,8 +21610,8 @@ var DeclarationRequest;
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(211);
-const messages_1 = __webpack_require__(225);
+const vscode_jsonrpc_1 = __webpack_require__(212);
+const messages_1 = __webpack_require__(226);
 /**
  * A request to provide selection ranges in a document. The request's
  * parameter is of type [SelectionRangeParams](#SelectionRangeParams), the
@@ -21382,7 +21628,7 @@ var SelectionRangeRequest;
 
 
 /***/ }),
-/* 234 */
+/* 235 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21392,8 +21638,8 @@ var SelectionRangeRequest;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(211);
-const messages_1 = __webpack_require__(225);
+const vscode_jsonrpc_1 = __webpack_require__(212);
+const messages_1 = __webpack_require__(226);
 var WorkDoneProgress;
 (function (WorkDoneProgress) {
     WorkDoneProgress.type = new vscode_jsonrpc_1.ProgressType();
@@ -21417,7 +21663,7 @@ var WorkDoneProgressCancelNotification;
 
 
 /***/ }),
-/* 235 */
+/* 236 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21427,7 +21673,7 @@ var WorkDoneProgressCancelNotification;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const messages_1 = __webpack_require__(225);
+const messages_1 = __webpack_require__(226);
 /**
  * A request to result a `CallHierarchyItem` in a document at a given position.
  * Can be used as an input to a incoming or outgoing call hierarchy.
@@ -21462,7 +21708,7 @@ var CallHierarchyOutgoingCallsRequest;
 
 
 /***/ }),
-/* 236 */
+/* 237 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21472,7 +21718,7 @@ var CallHierarchyOutgoingCallsRequest;
  * ------------------------------------------------------------------------------------------ */
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const messages_1 = __webpack_require__(225);
+const messages_1 = __webpack_require__(226);
 /**
  * A set of predefined token types. This set is not fixed
  * an clients can specify additional token types via the
@@ -21562,22 +21808,22 @@ var SemanticTokensRangeRequest;
 
 
 /***/ }),
-/* 237 */
+/* 238 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const child_process_1 = __webpack_require__(238);
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(239));
+const child_process_1 = __webpack_require__(239);
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(240));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const isuri_1 = tslib_1.__importDefault(__webpack_require__(240));
+const isuri_1 = tslib_1.__importDefault(__webpack_require__(241));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_uri_1 = __webpack_require__(242);
-const which_1 = tslib_1.__importDefault(__webpack_require__(243));
-const platform = tslib_1.__importStar(__webpack_require__(247));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const vscode_uri_1 = __webpack_require__(243);
+const which_1 = tslib_1.__importDefault(__webpack_require__(244));
+const platform = tslib_1.__importStar(__webpack_require__(248));
 exports.platform = platform;
 const logger = __webpack_require__(64)('util-index');
 exports.CONFIG_FILE_NAME = 'coc-settings.json';
@@ -21733,13 +21979,13 @@ exports.concurrent = concurrent;
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 238 */
+/* 239 */
 /***/ (function(module, exports) {
 
 module.exports = require("child_process");
 
 /***/ }),
-/* 239 */
+/* 240 */
 /***/ (function(module, exports) {
 
 /**
@@ -21815,13 +22061,13 @@ module.exports = debounce;
 
 
 /***/ }),
-/* 240 */
+/* 241 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-var rfc3986 = __webpack_require__(241);
+var rfc3986 = __webpack_require__(242);
 
 // See: https://github.com/hapijs/hoek/blob/f62961d3d07aca68ab11480893e6e80a421914b4/lib/index.js#L783-L787
 function escapeRegex(string) {
@@ -21901,7 +22147,7 @@ module.exports = {
 };
 
 /***/ }),
-/* 241 */
+/* 242 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -22101,12 +22347,13 @@ internals.generate();
 module.exports = internals.rfc3986;
 
 /***/ }),
-/* 242 */
+/* 243 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "URI", function() { return URI; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "uriToFsPath", function() { return uriToFsPath; });
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -22223,6 +22470,7 @@ var _regexp = /^(([^:/?#]+?):)?(\/\/([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/;
  * (http://tools.ietf.org/html/rfc3986#section-3) with minimal validation
  * and encoding.
  *
+ * ```txt
  *       foo://example.com:8042/over/there?name=ferret#nose
  *       \_/   \______________/\_________/ \_________/ \__/
  *        |           |            |            |        |
@@ -22230,6 +22478,7 @@ var _regexp = /^(([^:/?#]+?):)?(\/\/([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/;
  *        |   _____________________|__
  *       / \ /                        \
  *       urn:example:animal:ferret:nose
+ * ```
  */
 var URI = /** @class */ (function () {
     /**
@@ -22302,7 +22551,7 @@ var URI = /** @class */ (function () {
             // if (this.scheme !== 'file') {
             // 	console.warn(`[UriError] calling fsPath with scheme ${this.scheme}`);
             // }
-            return _makeFsPath(this);
+            return uriToFsPath(this, false);
         },
         enumerable: true,
         configurable: true
@@ -22365,7 +22614,7 @@ var URI = /** @class */ (function () {
         if (!match) {
             return new _URI(_empty, _empty, _empty, _empty, _empty);
         }
-        return new _URI(match[2] || _empty, decodeURIComponent(match[4] || _empty), decodeURIComponent(match[5] || _empty), decodeURIComponent(match[7] || _empty), decodeURIComponent(match[9] || _empty), _strict);
+        return new _URI(match[2] || _empty, percentDecode(match[4] || _empty), percentDecode(match[5] || _empty), percentDecode(match[7] || _empty), percentDecode(match[9] || _empty), _strict);
     };
     /**
      * Creates a new URI from a file system path, e.g. `c:\my\files`,
@@ -22414,6 +22663,25 @@ var URI = /** @class */ (function () {
     URI.from = function (components) {
         return new _URI(components.scheme, components.authority, components.path, components.query, components.fragment);
     };
+    // /**
+    //  * Join a URI path with path fragments and normalizes the resulting path.
+    //  *
+    //  * @param uri The input URI.
+    //  * @param pathFragment The path fragment to add to the URI path.
+    //  * @returns The resulting URI.
+    //  */
+    // static joinPath(uri: URI, ...pathFragment: string[]): URI {
+    // 	if (!uri.path) {
+    // 		throw new Error(`[UriError]: cannot call joinPaths on URI without path`);
+    // 	}
+    // 	let newPath: string;
+    // 	if (isWindows && uri.scheme === 'file') {
+    // 		newPath = URI.file(paths.win32.join(uriToFsPath(uri, true), ...pathFragment)).path;
+    // 	} else {
+    // 		newPath = paths.posix.join(uri.path, ...pathFragment);
+    // 	}
+    // 	return uri.with({ path: newPath });
+    // }
     // ---- printing/externalize ---------------------------
     /**
      * Creates a string representation for this URI. It's guaranteed that calling
@@ -22451,7 +22719,7 @@ var URI = /** @class */ (function () {
 }());
 
 var _pathSepMarker = isWindows ? 1 : undefined;
-// tslint:disable-next-line:class-name
+// eslint-disable-next-line @typescript-eslint/class-name-casing
 var _URI = /** @class */ (function (_super) {
     __extends(_URI, _super);
     function _URI() {
@@ -22463,7 +22731,7 @@ var _URI = /** @class */ (function (_super) {
     Object.defineProperty(_URI.prototype, "fsPath", {
         get: function () {
             if (!this._fsPath) {
-                this._fsPath = _makeFsPath(this);
+                this._fsPath = uriToFsPath(this, false);
             }
             return this._fsPath;
         },
@@ -22609,7 +22877,7 @@ function encodeURIComponentMinimal(path) {
 /**
  * Compute `fsPath` for the given uri
  */
-function _makeFsPath(uri) {
+function uriToFsPath(uri, keepDriveLetterCasing) {
     var value;
     if (uri.authority && uri.path.length > 1 && uri.scheme === 'file') {
         // unc path: file://shares/c$/far/boo
@@ -22618,8 +22886,13 @@ function _makeFsPath(uri) {
     else if (uri.path.charCodeAt(0) === 47 /* Slash */
         && (uri.path.charCodeAt(1) >= 65 /* A */ && uri.path.charCodeAt(1) <= 90 /* Z */ || uri.path.charCodeAt(1) >= 97 /* a */ && uri.path.charCodeAt(1) <= 122 /* z */)
         && uri.path.charCodeAt(2) === 58 /* Colon */) {
-        // windows drive letter: file:///c:/far/boo
-        value = uri.path[1].toLowerCase() + uri.path.substr(2);
+        if (!keepDriveLetterCasing) {
+            // windows drive letter: file:///c:/far/boo
+            value = uri.path[1].toLowerCase() + uri.path.substr(2);
+        }
+        else {
+            value = uri.path.substr(1);
+        }
     }
     else {
         // other path
@@ -22703,10 +22976,31 @@ function _asFormatted(uri, skipEncoding) {
     }
     return res;
 }
+// --- decode
+function decodeURIComponentGraceful(str) {
+    try {
+        return decodeURIComponent(str);
+    }
+    catch (_a) {
+        if (str.length > 3) {
+            return str.substr(0, 3) + decodeURIComponentGraceful(str.substr(3));
+        }
+        else {
+            return str;
+        }
+    }
+}
+var _rEncodedAsHex = /(%[0-9A-Za-z][0-9A-Za-z])+/g;
+function percentDecode(str) {
+    if (!str.match(_rEncodedAsHex)) {
+        return str;
+    }
+    return str.replace(_rEncodedAsHex, function (match) { return decodeURIComponentGraceful(match); });
+}
 
 
 /***/ }),
-/* 243 */
+/* 244 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const isWindows = process.platform === 'win32' ||
@@ -22715,7 +23009,7 @@ const isWindows = process.platform === 'win32' ||
 
 const path = __webpack_require__(82)
 const COLON = isWindows ? ';' : ':'
-const isexe = __webpack_require__(244)
+const isexe = __webpack_require__(245)
 
 const getNotFoundError = (cmd) =>
   Object.assign(new Error(`not found: ${cmd}`), { code: 'ENOENT' })
@@ -22837,15 +23131,15 @@ which.sync = whichSync
 
 
 /***/ }),
-/* 244 */
+/* 245 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var fs = __webpack_require__(66)
 var core
 if (process.platform === 'win32' || global.TESTING_WINDOWS) {
-  core = __webpack_require__(245)
-} else {
   core = __webpack_require__(246)
+} else {
+  core = __webpack_require__(247)
 }
 
 module.exports = isexe
@@ -22900,7 +23194,7 @@ function sync (path, options) {
 
 
 /***/ }),
-/* 245 */
+/* 246 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = isexe
@@ -22948,7 +23242,7 @@ function sync (path, options) {
 
 
 /***/ }),
-/* 246 */
+/* 247 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = isexe
@@ -22995,7 +23289,7 @@ function checkMode (stat, options) {
 
 
 /***/ }),
-/* 247 */
+/* 248 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -23055,14 +23349,14 @@ exports.OS = _isMacintosh
 //# sourceMappingURL=platform.js.map
 
 /***/ }),
-/* 248 */
+/* 249 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const Is = tslib_1.__importStar(__webpack_require__(249));
+const Is = tslib_1.__importStar(__webpack_require__(250));
 function deepClone(obj) {
     if (!obj || typeof obj !== 'object') {
         return obj;
@@ -23189,7 +23483,7 @@ exports.equals = equals;
 //# sourceMappingURL=object.js.map
 
 /***/ }),
-/* 249 */
+/* 250 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -23244,31 +23538,31 @@ exports.typedArray = typedArray;
 //# sourceMappingURL=is.js.map
 
 /***/ }),
-/* 250 */
+/* 251 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const events_1 = __webpack_require__(197);
+const events_1 = __webpack_require__(198);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const vscode_languageserver_types_1 = __webpack_require__(222);
-const commands_1 = tslib_1.__importDefault(__webpack_require__(251));
-const completion_1 = tslib_1.__importDefault(__webpack_require__(330));
-const cursors_1 = tslib_1.__importDefault(__webpack_require__(521));
-const manager_1 = tslib_1.__importDefault(__webpack_require__(252));
-const extensions_1 = tslib_1.__importDefault(__webpack_require__(332));
-const handler_1 = tslib_1.__importDefault(__webpack_require__(523));
-const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
-const manager_2 = tslib_1.__importDefault(__webpack_require__(449));
-const services_1 = tslib_1.__importDefault(__webpack_require__(433));
-const manager_3 = tslib_1.__importDefault(__webpack_require__(255));
-const sources_1 = tslib_1.__importDefault(__webpack_require__(331));
-const types_1 = __webpack_require__(294);
-const util_1 = __webpack_require__(237);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const vscode_uri_1 = __webpack_require__(242);
+const vscode_languageserver_types_1 = __webpack_require__(223);
+const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
+const completion_1 = tslib_1.__importDefault(__webpack_require__(331));
+const cursors_1 = tslib_1.__importDefault(__webpack_require__(613));
+const manager_1 = tslib_1.__importDefault(__webpack_require__(253));
+const extensions_1 = tslib_1.__importDefault(__webpack_require__(333));
+const handler_1 = tslib_1.__importDefault(__webpack_require__(615));
+const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
+const manager_2 = tslib_1.__importDefault(__webpack_require__(541));
+const services_1 = tslib_1.__importDefault(__webpack_require__(525));
+const manager_3 = tslib_1.__importDefault(__webpack_require__(256));
+const sources_1 = tslib_1.__importDefault(__webpack_require__(332));
+const types_1 = __webpack_require__(295);
+const util_1 = __webpack_require__(238);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const vscode_uri_1 = __webpack_require__(243);
 const logger = __webpack_require__(64)('plugin');
 class Plugin extends events_1.EventEmitter {
     constructor(nvim) {
@@ -23686,7 +23980,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "272b46d160" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "e5cedd35c2" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -23716,19 +24010,19 @@ exports.default = Plugin;
 //# sourceMappingURL=plugin.js.map
 
 /***/ }),
-/* 251 */
+/* 252 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_uri_1 = __webpack_require__(242);
-const manager_1 = tslib_1.__importDefault(__webpack_require__(252));
-const manager_2 = tslib_1.__importDefault(__webpack_require__(255));
-const util_1 = __webpack_require__(237);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const vscode_uri_1 = __webpack_require__(243);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(253));
+const manager_2 = tslib_1.__importDefault(__webpack_require__(256));
+const util_1 = __webpack_require__(238);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('commands');
 class CommandItem {
     constructor(id, impl, thisArg, internal = false) {
@@ -24091,25 +24385,25 @@ exports.default = new CommandManager();
 //# sourceMappingURL=commands.js.map
 
 /***/ }),
-/* 252 */
+/* 253 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(239));
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(240));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_uri_1 = __webpack_require__(242);
-const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(253));
-const util_1 = __webpack_require__(237);
-const position_1 = __webpack_require__(310);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const buffer_1 = __webpack_require__(518);
-const collection_1 = tslib_1.__importDefault(__webpack_require__(520));
-const util_2 = __webpack_require__(519);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const vscode_uri_1 = __webpack_require__(243);
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(254));
+const util_1 = __webpack_require__(238);
+const position_1 = __webpack_require__(311);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const buffer_1 = __webpack_require__(610);
+const collection_1 = tslib_1.__importDefault(__webpack_require__(612));
+const util_2 = __webpack_require__(611);
 const logger = __webpack_require__(64)('diagnostic-manager');
 class DiagnosticManager {
     constructor() {
@@ -24766,27 +25060,27 @@ exports.default = new DiagnosticManager();
 //# sourceMappingURL=manager.js.map
 
 /***/ }),
-/* 253 */
+/* 254 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(239));
-const events_1 = tslib_1.__importDefault(__webpack_require__(197));
-const mutex_1 = __webpack_require__(254);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const events_2 = tslib_1.__importDefault(__webpack_require__(209));
-const manager_1 = tslib_1.__importDefault(__webpack_require__(255));
-const util_1 = __webpack_require__(237);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(428));
-const object_1 = __webpack_require__(248);
-const string_1 = __webpack_require__(309);
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(240));
+const events_1 = __webpack_require__(198);
+const mutex_1 = __webpack_require__(255);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const events_2 = tslib_1.__importDefault(__webpack_require__(210));
+const manager_1 = tslib_1.__importDefault(__webpack_require__(256));
+const util_1 = __webpack_require__(238);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(520));
+const object_1 = __webpack_require__(249);
+const string_1 = __webpack_require__(310);
 const logger = __webpack_require__(64)('model-float');
 // factory class for floating window
-class FloatFactory extends events_1.default {
+class FloatFactory extends events_1.EventEmitter {
     constructor(nvim, env, preferTop = false, maxHeight = 999, maxWidth, autoHide = true) {
         super();
         this.nvim = nvim;
@@ -24940,6 +25234,7 @@ class FloatFactory extends events_1.default {
         }
         this.emit('show', winid, bufnr);
         let [, err] = await nvim.resumeNotification();
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         if (err)
             throw new Error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`);
         if (mode == 's' && !token.isCancellationRequested) {
@@ -24985,7 +25280,7 @@ class FloatFactory extends events_1.default {
     async activated() {
         if (!this.winid)
             return false;
-        return await this.nvim.call('coc#util#valid_float_win', [this.winid]);
+        return await this.nvim.call('coc#util#valid_float_win', [this.winid]) != 0;
     }
     getMaxWindowHeight(docs) {
         let maxWidth = Math.min(this.maxWidth || 80, 80, this.env.columns);
@@ -25009,7 +25304,7 @@ exports.default = FloatFactory;
 //# sourceMappingURL=floatFactory.js.map
 
 /***/ }),
-/* 254 */
+/* 255 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -25063,18 +25358,18 @@ exports.Mutex = Mutex;
 //# sourceMappingURL=mutex.js.map
 
 /***/ }),
-/* 255 */
+/* 256 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const Snippets = tslib_1.__importStar(__webpack_require__(328));
-const session_1 = __webpack_require__(329);
-const variableResolve_1 = __webpack_require__(517);
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const Snippets = tslib_1.__importStar(__webpack_require__(329));
+const session_1 = __webpack_require__(330);
+const variableResolve_1 = __webpack_require__(609);
 const logger = __webpack_require__(64)('snippets-manager');
 class SnippetManager {
     constructor() {
@@ -25205,49 +25500,49 @@ exports.default = new SnippetManager();
 //# sourceMappingURL=manager.js.map
 
 /***/ }),
-/* 256 */
+/* 257 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const bytes_1 = tslib_1.__importDefault(__webpack_require__(257));
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(258));
+const bytes_1 = tslib_1.__importDefault(__webpack_require__(258));
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(259));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(259));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(260));
 const os_1 = tslib_1.__importDefault(__webpack_require__(76));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const rimraf_1 = tslib_1.__importDefault(__webpack_require__(266));
+const rimraf_1 = tslib_1.__importDefault(__webpack_require__(267));
 const util_1 = tslib_1.__importDefault(__webpack_require__(74));
-const uuid_1 = __webpack_require__(282);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_languageserver_textdocument_1 = __webpack_require__(292);
-const vscode_uri_1 = __webpack_require__(242);
-const which_1 = tslib_1.__importDefault(__webpack_require__(243));
-const configuration_1 = tslib_1.__importDefault(__webpack_require__(293));
-const shape_1 = tslib_1.__importDefault(__webpack_require__(304));
-const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const db_1 = tslib_1.__importDefault(__webpack_require__(305));
-const document_1 = tslib_1.__importDefault(__webpack_require__(306));
-const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(312));
-const mru_1 = tslib_1.__importDefault(__webpack_require__(313));
-const outputChannel_1 = tslib_1.__importDefault(__webpack_require__(314));
-const resolver_1 = tslib_1.__importDefault(__webpack_require__(316));
-const status_1 = tslib_1.__importDefault(__webpack_require__(318));
-const task_1 = tslib_1.__importDefault(__webpack_require__(319));
-const terminal_1 = tslib_1.__importDefault(__webpack_require__(320));
-const willSaveHandler_1 = tslib_1.__importDefault(__webpack_require__(321));
-const types_1 = __webpack_require__(294);
-const array_1 = __webpack_require__(307);
-const fs_2 = __webpack_require__(303);
-const index_1 = __webpack_require__(237);
-const match_1 = __webpack_require__(322);
-const mutex_1 = __webpack_require__(254);
-const position_1 = __webpack_require__(310);
-const string_1 = __webpack_require__(309);
-const watchman_1 = tslib_1.__importDefault(__webpack_require__(323));
-const object_1 = __webpack_require__(248);
+const uuid_1 = __webpack_require__(283);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const vscode_languageserver_textdocument_1 = __webpack_require__(293);
+const vscode_uri_1 = __webpack_require__(243);
+const which_1 = tslib_1.__importDefault(__webpack_require__(244));
+const configuration_1 = tslib_1.__importDefault(__webpack_require__(294));
+const shape_1 = tslib_1.__importDefault(__webpack_require__(305));
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const db_1 = tslib_1.__importDefault(__webpack_require__(306));
+const document_1 = tslib_1.__importDefault(__webpack_require__(307));
+const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(313));
+const mru_1 = tslib_1.__importDefault(__webpack_require__(314));
+const outputChannel_1 = tslib_1.__importDefault(__webpack_require__(315));
+const resolver_1 = tslib_1.__importDefault(__webpack_require__(317));
+const status_1 = tslib_1.__importDefault(__webpack_require__(319));
+const task_1 = tslib_1.__importDefault(__webpack_require__(320));
+const terminal_1 = tslib_1.__importDefault(__webpack_require__(321));
+const willSaveHandler_1 = tslib_1.__importDefault(__webpack_require__(322));
+const types_1 = __webpack_require__(295);
+const array_1 = __webpack_require__(308);
+const fs_2 = __webpack_require__(304);
+const index_1 = __webpack_require__(238);
+const match_1 = __webpack_require__(323);
+const mutex_1 = __webpack_require__(255);
+const position_1 = __webpack_require__(311);
+const string_1 = __webpack_require__(310);
+const watchman_1 = tslib_1.__importDefault(__webpack_require__(324));
+const object_1 = __webpack_require__(249);
 const logger = __webpack_require__(64)('workspace');
 let NAME_SPACE = 1080;
 class Workspace {
@@ -25295,7 +25590,7 @@ class Workspace {
         this.onDidChangeConfiguration = this._onDidChangeConfiguration.event;
         this.onDidWorkspaceInitialized = this._onDidWorkspaceInitialized.event;
         this.onDidRuntimePathChange = this._onDidRuntimePathChange.event;
-        let json = __webpack_require__(327);
+        let json = __webpack_require__(328);
         this.version = json.version;
         this.configurations = this.createConfigurations();
         this.willSaveUntilHandler = new willSaveHandler_1.default(this);
@@ -25975,6 +26270,7 @@ class Workspace {
         let rel = path_1.default.relative(cwd, filepath);
         return rel.startsWith('..') ? filepath : rel;
     }
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     onWillSaveUntil(callback, thisArg, clientId) {
         return this.willSaveUntilHandler.addCallback(callback, thisArg, clientId);
     }
@@ -27063,7 +27359,7 @@ exports.default = new Workspace();
 //# sourceMappingURL=workspace.js.map
 
 /***/ }),
-/* 257 */
+/* 258 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -27232,7 +27528,7 @@ function parse(val) {
 
 
 /***/ }),
-/* 258 */
+/* 259 */
 /***/ (function(module, exports) {
 
 /**
@@ -28012,15 +28308,15 @@ module.exports = diff;
 
 
 /***/ }),
-/* 259 */
+/* 260 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const optsArg = __webpack_require__(260)
-const pathArg = __webpack_require__(261)
+const optsArg = __webpack_require__(261)
+const pathArg = __webpack_require__(262)
 
-const {mkdirpNative, mkdirpNativeSync} = __webpack_require__(262)
-const {mkdirpManual, mkdirpManualSync} = __webpack_require__(264)
-const {useNative, useNativeSync} = __webpack_require__(265)
+const {mkdirpNative, mkdirpNativeSync} = __webpack_require__(263)
+const {mkdirpManual, mkdirpManualSync} = __webpack_require__(265)
+const {useNative, useNativeSync} = __webpack_require__(266)
 
 
 const mkdirp = (path, opts) => {
@@ -28049,7 +28345,7 @@ module.exports = mkdirp
 
 
 /***/ }),
-/* 260 */
+/* 261 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const { promisify } = __webpack_require__(74)
@@ -28078,7 +28374,7 @@ module.exports = optsArg
 
 
 /***/ }),
-/* 261 */
+/* 262 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const platform = process.env.__TESTING_MKDIRP_PLATFORM__ || process.platform
@@ -28113,12 +28409,12 @@ module.exports = pathArg
 
 
 /***/ }),
-/* 262 */
+/* 263 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const {dirname} = __webpack_require__(82)
-const {findMade, findMadeSync} = __webpack_require__(263)
-const {mkdirpManual, mkdirpManualSync} = __webpack_require__(264)
+const {findMade, findMadeSync} = __webpack_require__(264)
+const {mkdirpManual, mkdirpManualSync} = __webpack_require__(265)
 
 const mkdirpNative = (path, opts) => {
   opts.recursive = true
@@ -28158,7 +28454,7 @@ module.exports = {mkdirpNative, mkdirpNativeSync}
 
 
 /***/ }),
-/* 263 */
+/* 264 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const {dirname} = __webpack_require__(82)
@@ -28193,7 +28489,7 @@ module.exports = {findMade, findMadeSync}
 
 
 /***/ }),
-/* 264 */
+/* 265 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const {dirname} = __webpack_require__(82)
@@ -28263,7 +28559,7 @@ module.exports = {mkdirpManual, mkdirpManualSync}
 
 
 /***/ }),
-/* 265 */
+/* 266 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const fs = __webpack_require__(66)
@@ -28279,7 +28575,7 @@ module.exports = {useNative, useNativeSync}
 
 
 /***/ }),
-/* 266 */
+/* 267 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const assert = __webpack_require__(108)
@@ -28287,7 +28583,7 @@ const path = __webpack_require__(82)
 const fs = __webpack_require__(66)
 let glob = undefined
 try {
-  glob = __webpack_require__(267)
+  glob = __webpack_require__(268)
 } catch (_err) {
   // treat glob as optional.
 }
@@ -28645,7 +28941,7 @@ rimraf.sync = rimrafSync
 
 
 /***/ }),
-/* 267 */
+/* 268 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // Approach:
@@ -28691,26 +28987,26 @@ rimraf.sync = rimrafSync
 module.exports = glob
 
 var fs = __webpack_require__(66)
-var rp = __webpack_require__(268)
-var minimatch = __webpack_require__(270)
+var rp = __webpack_require__(269)
+var minimatch = __webpack_require__(271)
 var Minimatch = minimatch.Minimatch
-var inherits = __webpack_require__(274)
-var EE = __webpack_require__(197).EventEmitter
+var inherits = __webpack_require__(275)
+var EE = __webpack_require__(198).EventEmitter
 var path = __webpack_require__(82)
 var assert = __webpack_require__(108)
-var isAbsolute = __webpack_require__(276)
-var globSync = __webpack_require__(277)
-var common = __webpack_require__(278)
+var isAbsolute = __webpack_require__(277)
+var globSync = __webpack_require__(278)
+var common = __webpack_require__(279)
 var alphasort = common.alphasort
 var alphasorti = common.alphasorti
 var setopts = common.setopts
 var ownProp = common.ownProp
-var inflight = __webpack_require__(279)
+var inflight = __webpack_require__(280)
 var util = __webpack_require__(74)
 var childrenIgnored = common.childrenIgnored
 var isIgnored = common.isIgnored
 
-var once = __webpack_require__(281)
+var once = __webpack_require__(282)
 
 function glob (pattern, options, cb) {
   if (typeof options === 'function') cb = options, options = {}
@@ -29441,7 +29737,7 @@ Glob.prototype._stat2 = function (f, abs, er, stat, cb) {
 
 
 /***/ }),
-/* 268 */
+/* 269 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = realpath
@@ -29457,7 +29753,7 @@ var origRealpathSync = fs.realpathSync
 
 var version = process.version
 var ok = /^v[0-5]\./.test(version)
-var old = __webpack_require__(269)
+var old = __webpack_require__(270)
 
 function newError (er) {
   return er && er.syscall === 'realpath' && (
@@ -29513,7 +29809,7 @@ function unmonkeypatch () {
 
 
 /***/ }),
-/* 269 */
+/* 270 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // Copyright Joyent, Inc. and other Node contributors.
@@ -29822,7 +30118,7 @@ exports.realpath = function realpath(p, cache, cb) {
 
 
 /***/ }),
-/* 270 */
+/* 271 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = minimatch
@@ -29834,7 +30130,7 @@ try {
 } catch (er) {}
 
 var GLOBSTAR = minimatch.GLOBSTAR = Minimatch.GLOBSTAR = {}
-var expand = __webpack_require__(271)
+var expand = __webpack_require__(272)
 
 var plTypes = {
   '!': { open: '(?:(?!(?:', close: '))[^/]*?)'},
@@ -30751,11 +31047,11 @@ function regExpEscape (s) {
 
 
 /***/ }),
-/* 271 */
+/* 272 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var concatMap = __webpack_require__(272);
-var balanced = __webpack_require__(273);
+var concatMap = __webpack_require__(273);
+var balanced = __webpack_require__(274);
 
 module.exports = expandTop;
 
@@ -30958,7 +31254,7 @@ function expand(str, isTop) {
 
 
 /***/ }),
-/* 272 */
+/* 273 */
 /***/ (function(module, exports) {
 
 module.exports = function (xs, fn) {
@@ -30977,7 +31273,7 @@ var isArray = Array.isArray || function (xs) {
 
 
 /***/ }),
-/* 273 */
+/* 274 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -31043,7 +31339,7 @@ function range(a, b, str) {
 
 
 /***/ }),
-/* 274 */
+/* 275 */
 /***/ (function(module, exports, __webpack_require__) {
 
 try {
@@ -31053,12 +31349,12 @@ try {
   module.exports = util.inherits;
 } catch (e) {
   /* istanbul ignore next */
-  module.exports = __webpack_require__(275);
+  module.exports = __webpack_require__(276);
 }
 
 
 /***/ }),
-/* 275 */
+/* 276 */
 /***/ (function(module, exports) {
 
 if (typeof Object.create === 'function') {
@@ -31091,7 +31387,7 @@ if (typeof Object.create === 'function') {
 
 
 /***/ }),
-/* 276 */
+/* 277 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -31118,22 +31414,22 @@ module.exports.win32 = win32;
 
 
 /***/ }),
-/* 277 */
+/* 278 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = globSync
 globSync.GlobSync = GlobSync
 
 var fs = __webpack_require__(66)
-var rp = __webpack_require__(268)
-var minimatch = __webpack_require__(270)
+var rp = __webpack_require__(269)
+var minimatch = __webpack_require__(271)
 var Minimatch = minimatch.Minimatch
-var Glob = __webpack_require__(267).Glob
+var Glob = __webpack_require__(268).Glob
 var util = __webpack_require__(74)
 var path = __webpack_require__(82)
 var assert = __webpack_require__(108)
-var isAbsolute = __webpack_require__(276)
-var common = __webpack_require__(278)
+var isAbsolute = __webpack_require__(277)
+var common = __webpack_require__(279)
 var alphasort = common.alphasort
 var alphasorti = common.alphasorti
 var setopts = common.setopts
@@ -31610,7 +31906,7 @@ GlobSync.prototype._makeAbs = function (f) {
 
 
 /***/ }),
-/* 278 */
+/* 279 */
 /***/ (function(module, exports, __webpack_require__) {
 
 exports.alphasort = alphasort
@@ -31628,8 +31924,8 @@ function ownProp (obj, field) {
 }
 
 var path = __webpack_require__(82)
-var minimatch = __webpack_require__(270)
-var isAbsolute = __webpack_require__(276)
+var minimatch = __webpack_require__(271)
+var isAbsolute = __webpack_require__(277)
 var Minimatch = minimatch.Minimatch
 
 function alphasorti (a, b) {
@@ -31856,12 +32152,12 @@ function childrenIgnored (self, path) {
 
 
 /***/ }),
-/* 279 */
+/* 280 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var wrappy = __webpack_require__(280)
+var wrappy = __webpack_require__(281)
 var reqs = Object.create(null)
-var once = __webpack_require__(281)
+var once = __webpack_require__(282)
 
 module.exports = wrappy(inflight)
 
@@ -31916,7 +32212,7 @@ function slice (args) {
 
 
 /***/ }),
-/* 280 */
+/* 281 */
 /***/ (function(module, exports) {
 
 // Returns a wrapper function that returns a wrapped callback
@@ -31955,10 +32251,10 @@ function wrappy (fn, cb) {
 
 
 /***/ }),
-/* 281 */
+/* 282 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var wrappy = __webpack_require__(280)
+var wrappy = __webpack_require__(281)
 module.exports = wrappy(once)
 module.exports.strict = wrappy(onceStrict)
 
@@ -32003,21 +32299,21 @@ function onceStrict (fn) {
 
 
 /***/ }),
-/* 282 */
+/* 283 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _v1_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(283);
+/* harmony import */ var _v1_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(284);
 /* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "v1", function() { return _v1_js__WEBPACK_IMPORTED_MODULE_0__["default"]; });
 
-/* harmony import */ var _v3_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(286);
+/* harmony import */ var _v3_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(287);
 /* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "v3", function() { return _v3_js__WEBPACK_IMPORTED_MODULE_1__["default"]; });
 
-/* harmony import */ var _v4_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(289);
+/* harmony import */ var _v4_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(290);
 /* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "v4", function() { return _v4_js__WEBPACK_IMPORTED_MODULE_2__["default"]; });
 
-/* harmony import */ var _v5_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(290);
+/* harmony import */ var _v5_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(291);
 /* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "v5", function() { return _v5_js__WEBPACK_IMPORTED_MODULE_3__["default"]; });
 
 
@@ -32026,13 +32322,13 @@ __webpack_require__.r(__webpack_exports__);
 
 
 /***/ }),
-/* 283 */
+/* 284 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _rng_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(284);
-/* harmony import */ var _bytesToUuid_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(285);
+/* harmony import */ var _rng_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(285);
+/* harmony import */ var _bytesToUuid_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(286);
 
  // **`v1()` - Generate time-based UUID**
 //
@@ -32130,13 +32426,13 @@ function v1(options, buf, offset) {
 /* harmony default export */ __webpack_exports__["default"] = (v1);
 
 /***/ }),
-/* 284 */
+/* 285 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return rng; });
-/* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(220);
+/* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(221);
 /* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(crypto__WEBPACK_IMPORTED_MODULE_0__);
 
 function rng() {
@@ -32144,7 +32440,7 @@ function rng() {
 }
 
 /***/ }),
-/* 285 */
+/* 286 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -32169,27 +32465,27 @@ function bytesToUuid(buf, offset) {
 /* harmony default export */ __webpack_exports__["default"] = (bytesToUuid);
 
 /***/ }),
-/* 286 */
+/* 287 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _v35_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(287);
-/* harmony import */ var _md5_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(288);
+/* harmony import */ var _v35_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(288);
+/* harmony import */ var _md5_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(289);
 
 
 const v3 = Object(_v35_js__WEBPACK_IMPORTED_MODULE_0__["default"])('v3', 0x30, _md5_js__WEBPACK_IMPORTED_MODULE_1__["default"]);
 /* harmony default export */ __webpack_exports__["default"] = (v3);
 
 /***/ }),
-/* 287 */
+/* 288 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "DNS", function() { return DNS; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "URL", function() { return URL; });
-/* harmony import */ var _bytesToUuid_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(285);
+/* harmony import */ var _bytesToUuid_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(286);
 
 
 function uuidToBytes(uuid) {
@@ -32248,12 +32544,12 @@ const URL = '6ba7b811-9dad-11d1-80b4-00c04fd430c8';
 });
 
 /***/ }),
-/* 288 */
+/* 289 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(220);
+/* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(221);
 /* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(crypto__WEBPACK_IMPORTED_MODULE_0__);
 
 
@@ -32270,13 +32566,13 @@ function md5(bytes) {
 /* harmony default export */ __webpack_exports__["default"] = (md5);
 
 /***/ }),
-/* 289 */
+/* 290 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _rng_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(284);
-/* harmony import */ var _bytesToUuid_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(285);
+/* harmony import */ var _rng_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(285);
+/* harmony import */ var _bytesToUuid_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(286);
 
 
 
@@ -32306,25 +32602,25 @@ function v4(options, buf, offset) {
 /* harmony default export */ __webpack_exports__["default"] = (v4);
 
 /***/ }),
-/* 290 */
+/* 291 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _v35_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(287);
-/* harmony import */ var _sha1_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(291);
+/* harmony import */ var _v35_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(288);
+/* harmony import */ var _sha1_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(292);
 
 
 const v5 = Object(_v35_js__WEBPACK_IMPORTED_MODULE_0__["default"])('v5', 0x50, _sha1_js__WEBPACK_IMPORTED_MODULE_1__["default"]);
 /* harmony default export */ __webpack_exports__["default"] = (v5);
 
 /***/ }),
-/* 291 */
+/* 292 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(220);
+/* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(221);
 /* harmony import */ var crypto__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(crypto__WEBPACK_IMPORTED_MODULE_0__);
 
 
@@ -32341,7 +32637,7 @@ function sha1(bytes) {
 /* harmony default export */ __webpack_exports__["default"] = (sha1);
 
 /***/ }),
-/* 292 */
+/* 293 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -32619,7 +32915,7 @@ function getWellformedEdit(textEdit) {
 
 
 /***/ }),
-/* 293 */
+/* 294 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -32629,16 +32925,16 @@ const tslib_1 = __webpack_require__(65);
 const os_1 = tslib_1.__importDefault(__webpack_require__(76));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_uri_1 = __webpack_require__(242);
-const types_1 = __webpack_require__(294);
-const object_1 = __webpack_require__(248);
-const util_1 = __webpack_require__(237);
-const configuration_1 = __webpack_require__(295);
-const model_1 = __webpack_require__(296);
-const util_2 = __webpack_require__(297);
-const is_1 = __webpack_require__(249);
-const fs_2 = __webpack_require__(303);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const vscode_uri_1 = __webpack_require__(243);
+const types_1 = __webpack_require__(295);
+const object_1 = __webpack_require__(249);
+const util_1 = __webpack_require__(238);
+const configuration_1 = __webpack_require__(296);
+const model_1 = __webpack_require__(297);
+const util_2 = __webpack_require__(298);
+const is_1 = __webpack_require__(250);
+const fs_2 = __webpack_require__(304);
 const logger = __webpack_require__(64)('configurations');
 function lookUp(tree, key) {
     if (key) {
@@ -32961,7 +33257,7 @@ exports.default = Configurations;
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 294 */
+/* 295 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -33016,13 +33312,13 @@ var ServiceStat;
 //# sourceMappingURL=types.js.map
 
 /***/ }),
-/* 295 */
+/* 296 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const model_1 = __webpack_require__(296);
+const model_1 = __webpack_require__(297);
 class Configuration {
     constructor(_defaultConfiguration, _userConfiguration, _workspaceConfiguration, _memoryConfiguration = new model_1.ConfigurationModel()) {
         this._defaultConfiguration = _defaultConfiguration;
@@ -33079,15 +33375,15 @@ exports.Configuration = Configuration;
 //# sourceMappingURL=configuration.js.map
 
 /***/ }),
-/* 296 */
+/* 297 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const is_1 = __webpack_require__(249);
-const object_1 = __webpack_require__(248);
-const util_1 = __webpack_require__(297);
+const is_1 = __webpack_require__(250);
+const object_1 = __webpack_require__(249);
+const util_1 = __webpack_require__(298);
 class ConfigurationModel {
     constructor(_contents = {}) {
         this._contents = _contents;
@@ -33142,20 +33438,20 @@ exports.ConfigurationModel = ConfigurationModel;
 //# sourceMappingURL=model.js.map
 
 /***/ }),
-/* 297 */
+/* 298 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_languageserver_textdocument_1 = __webpack_require__(292);
-const jsonc_parser_1 = __webpack_require__(298);
-const is_1 = __webpack_require__(249);
-const object_1 = __webpack_require__(248);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const vscode_languageserver_textdocument_1 = __webpack_require__(293);
+const jsonc_parser_1 = __webpack_require__(299);
+const is_1 = __webpack_require__(250);
+const object_1 = __webpack_require__(249);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const vscode_uri_1 = __webpack_require__(242);
+const vscode_uri_1 = __webpack_require__(243);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const logger = __webpack_require__(64)('configuration-util');
 const isWebpack = typeof __webpack_require__ === "function";
@@ -33409,7 +33705,7 @@ exports.getChangedKeys = getChangedKeys;
 //# sourceMappingURL=util.js.map
 
 /***/ }),
-/* 298 */
+/* 299 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -33428,10 +33724,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "format", function() { return format; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "modify", function() { return modify; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "applyEdits", function() { return applyEdits; });
-/* harmony import */ var _impl_format__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(299);
-/* harmony import */ var _impl_edit__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(301);
-/* harmony import */ var _impl_scanner__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(300);
-/* harmony import */ var _impl_parser__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(302);
+/* harmony import */ var _impl_format__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(300);
+/* harmony import */ var _impl_edit__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(302);
+/* harmony import */ var _impl_scanner__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(301);
+/* harmony import */ var _impl_parser__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(303);
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -33537,7 +33833,7 @@ function format(documentText, range, options) {
  * To apply edits to an input, you can use `applyEdits`.
  */
 function modify(text, path, value, options) {
-    return _impl_edit__WEBPACK_IMPORTED_MODULE_1__["setProperty"](text, path, value, options.formattingOptions, options.getInsertionIndex);
+    return _impl_edit__WEBPACK_IMPORTED_MODULE_1__["setProperty"](text, path, value, options);
 }
 /**
  * Applies edits to a input string.
@@ -33551,14 +33847,14 @@ function applyEdits(text, edits) {
 
 
 /***/ }),
-/* 299 */
+/* 300 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "format", function() { return format; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "isEOL", function() { return isEOL; });
-/* harmony import */ var _scanner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(300);
+/* harmony import */ var _scanner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(301);
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -33756,7 +34052,7 @@ function isEOL(text, offset) {
 
 
 /***/ }),
-/* 300 */
+/* 301 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -34128,7 +34424,7 @@ function isDigit(ch) {
 
 
 /***/ }),
-/* 301 */
+/* 302 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -34137,8 +34433,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "setProperty", function() { return setProperty; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "applyEdit", function() { return applyEdit; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "isWS", function() { return isWS; });
-/* harmony import */ var _format__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(299);
-/* harmony import */ var _parser__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(302);
+/* harmony import */ var _format__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(300);
+/* harmony import */ var _parser__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(303);
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -34146,10 +34442,10 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-function removeProperty(text, path, formattingOptions) {
-    return setProperty(text, path, void 0, formattingOptions);
+function removeProperty(text, path, options) {
+    return setProperty(text, path, void 0, options);
 }
-function setProperty(text, originalPath, value, formattingOptions, getInsertionIndex) {
+function setProperty(text, originalPath, value, options) {
     var _a;
     var path = originalPath.slice();
     var errors = [];
@@ -34176,7 +34472,7 @@ function setProperty(text, originalPath, value, formattingOptions, getInsertionI
         if (value === void 0) { // delete
             throw new Error('Can not delete in empty document');
         }
-        return withFormatting(text, { offset: root ? root.offset : 0, length: root ? root.length : 0, content: JSON.stringify(value) }, formattingOptions);
+        return withFormatting(text, { offset: root ? root.offset : 0, length: root ? root.length : 0, content: JSON.stringify(value) }, options);
     }
     else if (parent.type === 'object' && typeof lastSegment === 'string' && Array.isArray(parent.children)) {
         var existing = Object(_parser__WEBPACK_IMPORTED_MODULE_1__["findNodeAtLocation"])(parent, [lastSegment]);
@@ -34201,11 +34497,11 @@ function setProperty(text, originalPath, value, formattingOptions, getInsertionI
                         removeEnd = next.offset;
                     }
                 }
-                return withFormatting(text, { offset: removeBegin, length: removeEnd - removeBegin, content: '' }, formattingOptions);
+                return withFormatting(text, { offset: removeBegin, length: removeEnd - removeBegin, content: '' }, options);
             }
             else {
                 // set value of existing property
-                return withFormatting(text, { offset: existing.offset, length: existing.length, content: JSON.stringify(value) }, formattingOptions);
+                return withFormatting(text, { offset: existing.offset, length: existing.length, content: JSON.stringify(value) }, options);
             }
         }
         else {
@@ -34213,7 +34509,7 @@ function setProperty(text, originalPath, value, formattingOptions, getInsertionI
                 return []; // property does not exist, nothing to do
             }
             var newProperty = JSON.stringify(lastSegment) + ": " + JSON.stringify(value);
-            var index = getInsertionIndex ? getInsertionIndex(parent.children.map(function (p) { return p.children[0].value; })) : parent.children.length;
+            var index = options.getInsertionIndex ? options.getInsertionIndex(parent.children.map(function (p) { return p.children[0].value; })) : parent.children.length;
             var edit = void 0;
             if (index > 0) {
                 var previous = parent.children[index - 1];
@@ -34225,7 +34521,7 @@ function setProperty(text, originalPath, value, formattingOptions, getInsertionI
             else {
                 edit = { offset: parent.offset + 1, length: 0, content: newProperty + ',' };
             }
-            return withFormatting(text, edit, formattingOptions);
+            return withFormatting(text, edit, options);
         }
     }
     else if (parent.type === 'array' && typeof lastSegment === 'number' && Array.isArray(parent.children)) {
@@ -34241,40 +34537,58 @@ function setProperty(text, originalPath, value, formattingOptions, getInsertionI
                 var previous = parent.children[parent.children.length - 1];
                 edit = { offset: previous.offset + previous.length, length: 0, content: ',' + newProperty };
             }
-            return withFormatting(text, edit, formattingOptions);
+            return withFormatting(text, edit, options);
         }
-        else {
-            if (value === void 0 && parent.children.length >= 0) {
-                //Removal
-                var removalIndex = lastSegment;
-                var toRemove = parent.children[removalIndex];
-                var edit = void 0;
-                if (parent.children.length === 1) {
-                    // only item
-                    edit = { offset: parent.offset + 1, length: parent.length - 2, content: '' };
-                }
-                else if (parent.children.length - 1 === removalIndex) {
-                    // last item
-                    var previous = parent.children[removalIndex - 1];
-                    var offset = previous.offset + previous.length;
-                    var parentEndOffset = parent.offset + parent.length;
-                    edit = { offset: offset, length: parentEndOffset - 2 - offset, content: '' };
-                }
-                else {
-                    edit = { offset: toRemove.offset, length: parent.children[removalIndex + 1].offset - toRemove.offset, content: '' };
-                }
-                return withFormatting(text, edit, formattingOptions);
+        else if (value === void 0 && parent.children.length >= 0) {
+            // Removal
+            var removalIndex = lastSegment;
+            var toRemove = parent.children[removalIndex];
+            var edit = void 0;
+            if (parent.children.length === 1) {
+                // only item
+                edit = { offset: parent.offset + 1, length: parent.length - 2, content: '' };
+            }
+            else if (parent.children.length - 1 === removalIndex) {
+                // last item
+                var previous = parent.children[removalIndex - 1];
+                var offset = previous.offset + previous.length;
+                var parentEndOffset = parent.offset + parent.length;
+                edit = { offset: offset, length: parentEndOffset - 2 - offset, content: '' };
             }
             else {
-                throw new Error('Array modification not supported yet');
+                edit = { offset: toRemove.offset, length: parent.children[removalIndex + 1].offset - toRemove.offset, content: '' };
             }
+            return withFormatting(text, edit, options);
+        }
+        else if (value !== void 0) {
+            var edit = void 0;
+            var newProperty = "" + JSON.stringify(value);
+            if (!options.isArrayInsertion && parent.children.length > lastSegment) {
+                var toModify = parent.children[lastSegment];
+                edit = { offset: toModify.offset, length: toModify.length, content: newProperty };
+            }
+            else if (parent.children.length === 0 || lastSegment === 0) {
+                edit = { offset: parent.offset + 1, length: 0, content: parent.children.length === 0 ? newProperty : newProperty + ',' };
+            }
+            else {
+                var index = lastSegment > parent.children.length ? parent.children.length : lastSegment;
+                var previous = parent.children[index - 1];
+                edit = { offset: previous.offset + previous.length, length: 0, content: ',' + newProperty };
+            }
+            return withFormatting(text, edit, options);
+        }
+        else {
+            throw new Error("Can not " + (value === void 0 ? 'remove' : (options.isArrayInsertion ? 'insert' : 'modify')) + " Array index " + insertIndex + " as length is not sufficient");
         }
     }
     else {
         throw new Error("Can not add " + (typeof lastSegment !== 'number' ? 'index' : 'property') + " to parent of type " + parent.type);
     }
 }
-function withFormatting(text, edit, formattingOptions) {
+function withFormatting(text, edit, options) {
+    if (!options.formattingOptions) {
+        return [edit];
+    }
     // apply the edit
     var newText = applyEdit(text, edit);
     // format the new text
@@ -34288,7 +34602,7 @@ function withFormatting(text, edit, formattingOptions) {
             end++;
         }
     }
-    var edits = Object(_format__WEBPACK_IMPORTED_MODULE_0__["format"])(newText, { offset: begin, length: end - begin }, formattingOptions);
+    var edits = Object(_format__WEBPACK_IMPORTED_MODULE_0__["format"])(newText, { offset: begin, length: end - begin }, options.formattingOptions);
     // apply the formatting edits and track the begin and end offsets of the changes
     for (var i = edits.length - 1; i >= 0; i--) {
         var edit_1 = edits[i];
@@ -34310,7 +34624,7 @@ function isWS(text, offset) {
 
 
 /***/ }),
-/* 302 */
+/* 303 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -34326,7 +34640,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "visit", function() { return visit; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "stripComments", function() { return stripComments; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getNodeType", function() { return getNodeType; });
-/* harmony import */ var _scanner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(300);
+/* harmony import */ var _scanner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(301);
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -34956,21 +35270,21 @@ function getNodeType(value) {
 
 
 /***/ }),
-/* 303 */
+/* 304 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const child_process_1 = __webpack_require__(238);
+const child_process_1 = __webpack_require__(239);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const net_1 = tslib_1.__importDefault(__webpack_require__(156));
+const net_1 = tslib_1.__importDefault(__webpack_require__(157));
 const os_1 = tslib_1.__importDefault(__webpack_require__(76));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const readline_1 = tslib_1.__importDefault(__webpack_require__(205));
+const readline_1 = tslib_1.__importDefault(__webpack_require__(206));
 const util_1 = tslib_1.__importDefault(__webpack_require__(74));
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(270));
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
 const logger = __webpack_require__(64)('util-fs');
 async function statAsync(filepath) {
     let stat = null;
@@ -35223,7 +35537,7 @@ exports.fixDriver = fixDriver;
 //# sourceMappingURL=fs.js.map
 
 /***/ }),
-/* 304 */
+/* 305 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -35231,10 +35545,10 @@ exports.fixDriver = fixDriver;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const jsonc_parser_1 = __webpack_require__(298);
+const jsonc_parser_1 = __webpack_require__(299);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const vscode_uri_1 = __webpack_require__(242);
-const util_1 = __webpack_require__(237);
+const vscode_uri_1 = __webpack_require__(243);
+const util_1 = __webpack_require__(238);
 const logger = __webpack_require__(64)('configuration-shape');
 class ConfigurationProxy {
     constructor(workspace) {
@@ -35274,7 +35588,7 @@ exports.default = ConfigurationProxy;
 //# sourceMappingURL=shape.js.map
 
 /***/ }),
-/* 305 */
+/* 306 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -35282,7 +35596,7 @@ exports.default = ConfigurationProxy;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(259));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(260));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 class DB {
     constructor(filepath) {
@@ -35416,25 +35730,25 @@ exports.default = DB;
 //# sourceMappingURL=db.js.map
 
 /***/ }),
-/* 306 */
+/* 307 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(239));
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_languageserver_textdocument_1 = __webpack_require__(292);
-const vscode_uri_1 = __webpack_require__(242);
-const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const array_1 = __webpack_require__(307);
-const diff_1 = __webpack_require__(308);
-const fs_1 = __webpack_require__(303);
-const index_1 = __webpack_require__(237);
-const position_1 = __webpack_require__(310);
-const string_1 = __webpack_require__(309);
-const chars_1 = __webpack_require__(311);
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(240));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const vscode_languageserver_textdocument_1 = __webpack_require__(293);
+const vscode_uri_1 = __webpack_require__(243);
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const array_1 = __webpack_require__(308);
+const diff_1 = __webpack_require__(309);
+const fs_1 = __webpack_require__(304);
+const index_1 = __webpack_require__(238);
+const position_1 = __webpack_require__(311);
+const string_1 = __webpack_require__(310);
+const chars_1 = __webpack_require__(312);
 const logger = __webpack_require__(64)('model-document');
 // wrapper class of TextDocument
 class Document {
@@ -36202,7 +36516,7 @@ exports.default = Document;
 //# sourceMappingURL=document.js.map
 
 /***/ }),
-/* 307 */
+/* 308 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -36277,15 +36591,15 @@ exports.flatMap = (xs, f) => xs.reduce((x, y) => [...x, ...f(y)], []);
 //# sourceMappingURL=array.js.map
 
 /***/ }),
-/* 308 */
+/* 309 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(258));
-const string_1 = __webpack_require__(309);
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(259));
+const string_1 = __webpack_require__(310);
 const logger = __webpack_require__(64)('util-diff');
 function diffLines(oldLines, newLines) {
     let start = 0;
@@ -36409,7 +36723,7 @@ exports.patchLine = patchLine;
 //# sourceMappingURL=diff.js.map
 
 /***/ }),
-/* 309 */
+/* 310 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -36526,7 +36840,7 @@ exports.equalsIgnoreCase = equalsIgnoreCase;
 //# sourceMappingURL=string.js.map
 
 /***/ }),
-/* 310 */
+/* 311 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -36675,7 +36989,7 @@ exports.getChangedFromEdits = getChangedFromEdits;
 //# sourceMappingURL=position.js.map
 
 /***/ }),
-/* 311 */
+/* 312 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -36809,19 +37123,19 @@ exports.Chars = Chars;
 //# sourceMappingURL=chars.js.map
 
 /***/ }),
-/* 312 */
+/* 313 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_uri_1 = __webpack_require__(242);
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(270));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const vscode_uri_1 = __webpack_require__(243);
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const util_1 = __webpack_require__(237);
-const array_1 = __webpack_require__(307);
+const util_1 = __webpack_require__(238);
+const array_1 = __webpack_require__(308);
 const logger = __webpack_require__(64)('filesystem-watcher');
 class FileSystemWatcher {
     constructor(clientPromise, globPattern, ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents) {
@@ -36908,7 +37222,7 @@ exports.default = FileSystemWatcher;
 //# sourceMappingURL=fileSystemWatcher.js.map
 
 /***/ }),
-/* 313 */
+/* 314 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -36918,7 +37232,7 @@ const tslib_1 = __webpack_require__(65);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const util_1 = tslib_1.__importDefault(__webpack_require__(74));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(259));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(260));
 /**
  * Mru - manage string items as lines in mru file.
  */
@@ -36987,16 +37301,16 @@ exports.default = Mru;
 //# sourceMappingURL=mru.js.map
 
 /***/ }),
-/* 314 */
+/* 315 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const buffer_1 = __webpack_require__(315);
-const util_1 = __webpack_require__(237);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const buffer_1 = __webpack_require__(316);
+const util_1 = __webpack_require__(238);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)("outpubChannel");
 class BufferChannel {
     constructor(name, nvim) {
@@ -37115,13 +37429,13 @@ exports.default = BufferChannel;
 //# sourceMappingURL=outputChannel.js.map
 
 /***/ }),
-/* 315 */
+/* 316 */
 /***/ (function(module, exports) {
 
 module.exports = require("buffer");
 
 /***/ }),
-/* 316 */
+/* 317 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -37129,9 +37443,9 @@ module.exports = require("buffer");
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const util_1 = __webpack_require__(237);
-const fs_1 = __webpack_require__(303);
-const decorator_1 = __webpack_require__(317);
+const util_1 = __webpack_require__(238);
+const fs_1 = __webpack_require__(304);
+const decorator_1 = __webpack_require__(318);
 const logger = __webpack_require__(64)('model-resolver');
 class Resolver {
     get nodeFolder() {
@@ -37170,7 +37484,7 @@ exports.default = Resolver;
 //# sourceMappingURL=resolver.js.map
 
 /***/ }),
-/* 317 */
+/* 318 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -37199,13 +37513,13 @@ exports.memorize = memorize;
 //# sourceMappingURL=decorator.js.map
 
 /***/ }),
-/* 318 */
+/* 319 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const uuid_1 = __webpack_require__(282);
+const uuid_1 = __webpack_require__(283);
 const logger = __webpack_require__(64)('model-status');
 exports.frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 class StatusLine {
@@ -37280,16 +37594,16 @@ exports.default = StatusLine;
 //# sourceMappingURL=status.js.map
 
 /***/ }),
-/* 319 */
+/* 320 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const util_1 = __webpack_require__(237);
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const util_1 = __webpack_require__(238);
 /**
  * Controls long running task started by vim.
  * Useful to keep the task running after CocRestart.
@@ -37375,7 +37689,7 @@ exports.default = Task;
 //# sourceMappingURL=task.js.map
 
 /***/ }),
-/* 320 */
+/* 321 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -37453,14 +37767,14 @@ exports.default = TerminalModel;
 //# sourceMappingURL=terminal.js.map
 
 /***/ }),
-/* 321 */
+/* 322 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const util_1 = __webpack_require__(237);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const util_1 = __webpack_require__(238);
 const logger = __webpack_require__(64)('willSaveHandler');
 class WillSaveUntilHandler {
     constructor(workspace) {
@@ -37547,15 +37861,15 @@ exports.default = WillSaveUntilHandler;
 //# sourceMappingURL=willSaveHandler.js.map
 
 /***/ }),
-/* 322 */
+/* 323 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(270));
-const vscode_uri_1 = __webpack_require__(242);
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
+const vscode_uri_1 = __webpack_require__(243);
 function score(selector, uri, languageId) {
     if (Array.isArray(selector)) {
         // array -> take max individual value
@@ -37630,19 +37944,19 @@ exports.score = score;
 //# sourceMappingURL=match.js.map
 
 /***/ }),
-/* 323 */
+/* 324 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const fb_watchman_1 = tslib_1.__importDefault(__webpack_require__(324));
+const fb_watchman_1 = tslib_1.__importDefault(__webpack_require__(325));
 const os_1 = tslib_1.__importDefault(__webpack_require__(76));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const uuid_1 = __webpack_require__(282);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(270));
+const uuid_1 = __webpack_require__(283);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
 const logger = __webpack_require__(64)('watchman');
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch', 'field-new'];
 const clientsMap = new Map();
@@ -37802,7 +38116,7 @@ exports.default = Watchman;
 //# sourceMappingURL=watchman.js.map
 
 /***/ }),
-/* 324 */
+/* 325 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -37811,11 +38125,11 @@ exports.default = Watchman;
 
 
 
-var net = __webpack_require__(156);
-var EE = __webpack_require__(197).EventEmitter;
+var net = __webpack_require__(157);
+var EE = __webpack_require__(198).EventEmitter;
 var util = __webpack_require__(74);
-var childProcess = __webpack_require__(238);
-var bser = __webpack_require__(325);
+var childProcess = __webpack_require__(239);
+var bser = __webpack_require__(326);
 
 // We'll emit the responses to these when they get sent down to us
 var unilateralTags = ['subscription', 'log'];
@@ -38131,17 +38445,17 @@ Client.prototype.end = function() {
 
 
 /***/ }),
-/* 325 */
+/* 326 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* Copyright 2015-present Facebook, Inc.
  * Licensed under the Apache License, Version 2.0 */
 
-var EE = __webpack_require__(197).EventEmitter;
+var EE = __webpack_require__(198).EventEmitter;
 var util = __webpack_require__(74);
 var os = __webpack_require__(76);
 var assert = __webpack_require__(108);
-var Int64 = __webpack_require__(326);
+var Int64 = __webpack_require__(327);
 
 // BSER uses the local endianness to reduce byte swapping overheads
 // (the protocol is expressly local IPC only).  We need to tell node
@@ -38723,7 +39037,7 @@ exports.dumpToBuffer = dumpToBuffer
 
 
 /***/ }),
-/* 326 */
+/* 327 */
 /***/ (function(module, exports) {
 
 //     Int64.js
@@ -38997,13 +39311,13 @@ Int64.prototype = {
 
 
 /***/ }),
-/* 327 */
+/* 328 */
 /***/ (function(module) {
 
-module.exports = JSON.parse("{\"name\":\"coc.nvim\",\"version\":\"0.0.78\",\"description\":\"LSP based intellisense engine for neovim & vim8.\",\"main\":\"./lib/index.js\",\"engines\":{\"node\":\">=8.10.0\"},\"scripts\":{\"clean\":\"rimraf lib build\",\"lint\":\"eslint . --ext .ts --quiet\",\"build\":\"tsc -p tsconfig.json\",\"watch\":\"tsc -p tsconfig.json --watch true --sourceMap\",\"test\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --detectOpenHandles --forceExit\",\"test-build\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --coverage --forceExit\",\"prepare\":\"npm-run-all clean build\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/neoclide/coc.nvim.git\"},\"keywords\":[\"complete\",\"neovim\"],\"author\":\"Qiming Zhao <chemzqm@gmail.com>\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/neoclide/coc.nvim/issues\"},\"homepage\":\"https://github.com/neoclide/coc.nvim#readme\",\"jest\":{\"globals\":{\"__TEST__\":true},\"watchman\":false,\"clearMocks\":true,\"globalSetup\":\"./jest.js\",\"testEnvironment\":\"node\",\"moduleFileExtensions\":[\"ts\",\"tsx\",\"json\",\"js\"],\"transform\":{\"^.+\\\\.tsx?$\":\"ts-jest\"},\"testRegex\":\"src/__tests__/.*\\\\.(test|spec)\\\\.ts$\",\"coverageDirectory\":\"./coverage/\"},\"devDependencies\":{\"@types/debounce\":\"^3.0.0\",\"@types/fb-watchman\":\"^2.0.0\",\"@types/glob\":\"^7.1.1\",\"@types/jest\":\"^25.2.1\",\"@types/minimatch\":\"^3.0.3\",\"@types/mkdirp\":\"^1.0.0\",\"@types/node\":\"^12.12.6\",\"@types/semver\":\"^7.1.0\",\"@types/tar\":\"^4.0.3\",\"@types/uuid\":\"^7.0.3\",\"@types/which\":\"^1.3.2\",\"@typescript-eslint/eslint-plugin\":\"^2.33.0\",\"@typescript-eslint/eslint-plugin-tslint\":\"^2.33.0\",\"@typescript-eslint/parser\":\"^2.33.0\",\"colors\":\"^1.4.0\",\"eslint\":\"^7.0.0\",\"eslint-config-prettier\":\"^6.11.0\",\"eslint-plugin-jest\":\"^23.10.0\",\"eslint-plugin-jsdoc\":\"^25.0.1\",\"jest\":\"25.5.4\",\"npm-run-all\":\"^4.1.5\",\"prettier\":\"^2.0.5\",\"ts-jest\":\"^25.5.0\",\"typescript\":\"^3.9.2\",\"vscode-languageserver\":\"^6.1.1\"},\"dependencies\":{\"@chemzqm/neovim\":\"^5.2.6\",\"await-semaphore\":\"^0.1.3\",\"bser\":\"^2.1.1\",\"bytes\":\"^3.1.0\",\"clipboardy\":\"^2.3.0\",\"debounce\":\"^1.2.0\",\"fast-diff\":\"^1.2.0\",\"fb-watchman\":\"^2.0.1\",\"follow-redirects\":\"^1.11.0\",\"glob\":\"^7.1.6\",\"http-proxy-agent\":\"^4.0.1\",\"https-proxy-agent\":\"^5.0.0\",\"isuri\":\"^2.0.3\",\"jsonc-parser\":\"^2.2.1\",\"log4js\":\"^6.2.1\",\"minimatch\":\"^3.0.4\",\"mkdirp\":\"^1.0.4\",\"mv\":\"^2.1.1\",\"promise.prototype.finally\":\"^3.1.2\",\"rc\":\"^1.2.8\",\"rimraf\":\"^3.0.2\",\"semver\":\"^7.3.2\",\"tar\":\"^6.0.2\",\"tslib\":\"^1.11.2\",\"uuid\":\"^7.0.3\",\"vscode-languageserver-protocol\":\"^3.15.3\",\"vscode-languageserver-textdocument\":\"^1.0.1\",\"vscode-languageserver-types\":\"^3.15.1\",\"vscode-uri\":\"^2.1.1\",\"which\":\"^2.0.2\"}}");
+module.exports = JSON.parse("{\"name\":\"coc.nvim\",\"version\":\"0.0.78\",\"description\":\"LSP based intellisense engine for neovim & vim8.\",\"main\":\"./lib/index.js\",\"engines\":{\"node\":\">=8.10.0\"},\"scripts\":{\"clean\":\"rimraf lib build\",\"lint\":\"eslint . --ext .ts --quiet\",\"build\":\"tsc -p tsconfig.json\",\"watch\":\"tsc -p tsconfig.json --watch true --sourceMap\",\"test\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --detectOpenHandles --forceExit\",\"test-build\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --coverage --forceExit\",\"prepare\":\"npm-run-all clean build\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/neoclide/coc.nvim.git\"},\"keywords\":[\"complete\",\"neovim\"],\"author\":\"Qiming Zhao <chemzqm@gmail.com>\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/neoclide/coc.nvim/issues\"},\"homepage\":\"https://github.com/neoclide/coc.nvim#readme\",\"jest\":{\"globals\":{\"__TEST__\":true},\"watchman\":false,\"clearMocks\":true,\"globalSetup\":\"./jest.js\",\"testEnvironment\":\"node\",\"moduleFileExtensions\":[\"ts\",\"tsx\",\"json\",\"js\"],\"transform\":{\"^.+\\\\.tsx?$\":\"ts-jest\"},\"testRegex\":\"src/__tests__/.*\\\\.(test|spec)\\\\.ts$\",\"coverageDirectory\":\"./coverage/\"},\"devDependencies\":{\"@types/debounce\":\"^3.0.0\",\"@types/fb-watchman\":\"^2.0.0\",\"@types/glob\":\"^7.1.3\",\"@types/jest\":\"^26.0.13\",\"@types/minimatch\":\"^3.0.3\",\"@types/mkdirp\":\"^1.0.1\",\"@types/node\":\"^14.10.1\",\"@types/semver\":\"^7.3.3\",\"@types/tar\":\"^4.0.3\",\"@types/uuid\":\"^8.3.0\",\"@types/which\":\"^1.3.2\",\"@typescript-eslint/eslint-plugin\":\"^4.1.0\",\"@typescript-eslint/eslint-plugin-tslint\":\"^4.1.0\",\"@typescript-eslint/parser\":\"^4.1.0\",\"colors\":\"^1.4.0\",\"eslint\":\"^7.8.1\",\"eslint-config-prettier\":\"^6.11.0\",\"eslint-plugin-jest\":\"^24.0.0\",\"eslint-plugin-jsdoc\":\"^30.4.1\",\"jest\":\"26.4.2\",\"npm-run-all\":\"^4.1.5\",\"prettier\":\"^2.1.1\",\"ts-jest\":\"^26.3.0\",\"typescript\":\"^4.0.2\",\"vscode-languageserver\":\"^6.1.1\"},\"dependencies\":{\"@chemzqm/neovim\":\"^5.2.6\",\"await-semaphore\":\"^0.1.3\",\"bser\":\"^2.1.1\",\"bytes\":\"^3.1.0\",\"clipboardy\":\"^2.3.0\",\"content-disposition\":\"^0.5.3\",\"debounce\":\"^1.2.0\",\"fast-diff\":\"^1.2.0\",\"fb-watchman\":\"^2.0.1\",\"follow-redirects\":\"^1.13.0\",\"glob\":\"^7.1.6\",\"http-proxy-agent\":\"^4.0.1\",\"https-proxy-agent\":\"^5.0.0\",\"isuri\":\"^2.0.3\",\"jsonc-parser\":\"^2.3.0\",\"log4js\":\"^6.3.0\",\"minimatch\":\"^3.0.4\",\"mkdirp\":\"^1.0.4\",\"mv\":\"^2.1.1\",\"promise.prototype.finally\":\"^3.1.2\",\"rc\":\"^1.2.8\",\"rimraf\":\"^3.0.2\",\"semver\":\"^7.3.2\",\"tar\":\"^6.0.5\",\"tslib\":\"^2.0.1\",\"unzipper\":\"^0.10.11\",\"uuid\":\"^7.0.3\",\"vscode-languageserver-protocol\":\"^3.15.3\",\"vscode-languageserver-textdocument\":\"^1.0.1\",\"vscode-languageserver-types\":\"^3.15.1\",\"vscode-uri\":\"^2.1.2\",\"which\":\"^2.0.2\"}}");
 
 /***/ }),
-/* 328 */
+/* 329 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -39013,7 +39327,7 @@ module.exports = JSON.parse("{\"name\":\"coc.nvim\",\"version\":\"0.0.78\",\"des
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_textdocument_1 = __webpack_require__(292);
+const vscode_languageserver_textdocument_1 = __webpack_require__(293);
 const logger = __webpack_require__(64)('snippets-parser');
 class Scanner {
     constructor() {
@@ -40067,20 +40381,20 @@ exports.SnippetParser = SnippetParser;
 //# sourceMappingURL=parser.js.map
 
 /***/ }),
-/* 329 */
+/* 330 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const completion_1 = tslib_1.__importDefault(__webpack_require__(330));
-const position_1 = __webpack_require__(310);
-const string_1 = __webpack_require__(309);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const snippet_1 = __webpack_require__(516);
-const variableResolve_1 = __webpack_require__(517);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const completion_1 = tslib_1.__importDefault(__webpack_require__(331));
+const position_1 = __webpack_require__(311);
+const string_1 = __webpack_require__(310);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const snippet_1 = __webpack_require__(608);
+const variableResolve_1 = __webpack_require__(609);
 const logger = __webpack_require__(64)('snippets-session');
 class SnippetSession {
     constructor(nvim, bufnr) {
@@ -40385,23 +40699,23 @@ exports.normalizeSnippetString = normalizeSnippetString;
 //# sourceMappingURL=session.js.map
 
 /***/ }),
-/* 330 */
+/* 331 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const sources_1 = tslib_1.__importDefault(__webpack_require__(331));
-const util_1 = __webpack_require__(237);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const complete_1 = tslib_1.__importDefault(__webpack_require__(512));
-const floating_1 = tslib_1.__importDefault(__webpack_require__(514));
-const throttle_1 = tslib_1.__importDefault(__webpack_require__(515));
-const object_1 = __webpack_require__(248);
-const string_1 = __webpack_require__(309);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const sources_1 = tslib_1.__importDefault(__webpack_require__(332));
+const util_1 = __webpack_require__(238);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const complete_1 = tslib_1.__importDefault(__webpack_require__(604));
+const floating_1 = tslib_1.__importDefault(__webpack_require__(606));
+const throttle_1 = tslib_1.__importDefault(__webpack_require__(607));
+const object_1 = __webpack_require__(249);
+const string_1 = __webpack_require__(310);
 const logger = __webpack_require__(64)('completion');
 const completeItemKeys = ['abbr', 'menu', 'info', 'kind', 'icase', 'dup', 'empty', 'user_data'];
 class Completion {
@@ -40964,27 +41278,27 @@ exports.default = new Completion();
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 331 */
+/* 332 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(258));
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(259));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const util_1 = tslib_1.__importDefault(__webpack_require__(74));
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const extensions_1 = tslib_1.__importDefault(__webpack_require__(332));
-const source_1 = tslib_1.__importDefault(__webpack_require__(507));
-const source_vim_1 = tslib_1.__importDefault(__webpack_require__(508));
-const types_1 = __webpack_require__(294);
-const util_2 = __webpack_require__(237);
-const fs_2 = __webpack_require__(303);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const string_1 = __webpack_require__(309);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const extensions_1 = tslib_1.__importDefault(__webpack_require__(333));
+const source_1 = tslib_1.__importDefault(__webpack_require__(599));
+const source_vim_1 = tslib_1.__importDefault(__webpack_require__(600));
+const types_1 = __webpack_require__(295);
+const util_2 = __webpack_require__(238);
+const fs_2 = __webpack_require__(304);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const string_1 = __webpack_require__(310);
 const logger = __webpack_require__(64)('sources');
 class Sources {
     constructor() {
@@ -40997,9 +41311,9 @@ class Sources {
     }
     createNativeSources() {
         try {
-            this.disposables.push((__webpack_require__(509)).regist(this.sourceMap));
-            this.disposables.push((__webpack_require__(510)).regist(this.sourceMap));
-            this.disposables.push((__webpack_require__(511)).regist(this.sourceMap));
+            this.disposables.push((__webpack_require__(601)).regist(this.sourceMap));
+            this.disposables.push((__webpack_require__(602)).regist(this.sourceMap));
+            this.disposables.push((__webpack_require__(603)).regist(this.sourceMap));
         }
         catch (e) {
             console.error('Create source error:' + e.message);
@@ -41318,40 +41632,40 @@ exports.default = new Sources();
 //# sourceMappingURL=sources.js.map
 
 /***/ }),
-/* 332 */
+/* 333 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const debounce_1 = __webpack_require__(239);
+const debounce_1 = __webpack_require__(240);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const isuri_1 = tslib_1.__importDefault(__webpack_require__(240));
+const isuri_1 = tslib_1.__importDefault(__webpack_require__(241));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const rimraf_1 = tslib_1.__importDefault(__webpack_require__(266));
+const rimraf_1 = tslib_1.__importDefault(__webpack_require__(267));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
 const util_1 = __webpack_require__(74);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_uri_1 = __webpack_require__(242);
-const which_1 = tslib_1.__importDefault(__webpack_require__(243));
-const commands_1 = tslib_1.__importDefault(__webpack_require__(251));
-const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const db_1 = tslib_1.__importDefault(__webpack_require__(305));
-const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(253));
-const installBuffer_1 = tslib_1.__importDefault(__webpack_require__(333));
-const installer_1 = __webpack_require__(334);
-const memos_1 = tslib_1.__importDefault(__webpack_require__(398));
-const types_1 = __webpack_require__(294);
-const util_2 = __webpack_require__(237);
-const array_1 = __webpack_require__(307);
-__webpack_require__(399);
-const factory_1 = __webpack_require__(400);
-const fs_2 = __webpack_require__(303);
-const is_1 = __webpack_require__(249);
-const watchman_1 = tslib_1.__importDefault(__webpack_require__(323));
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(259));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const vscode_uri_1 = __webpack_require__(243);
+const which_1 = tslib_1.__importDefault(__webpack_require__(244));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const db_1 = tslib_1.__importDefault(__webpack_require__(306));
+const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(254));
+const installBuffer_1 = tslib_1.__importDefault(__webpack_require__(334));
+const installer_1 = __webpack_require__(335);
+const memos_1 = tslib_1.__importDefault(__webpack_require__(490));
+const types_1 = __webpack_require__(295);
+const util_2 = __webpack_require__(238);
+const array_1 = __webpack_require__(308);
+__webpack_require__(491);
+const factory_1 = __webpack_require__(492);
+const fs_2 = __webpack_require__(304);
+const is_1 = __webpack_require__(250);
+const watchman_1 = tslib_1.__importDefault(__webpack_require__(324));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(260));
 const createLogger = __webpack_require__(64);
 const logger = createLogger('extensions');
 function loadJson(file) {
@@ -42263,15 +42577,14 @@ exports.default = new Extensions();
 //# sourceMappingURL=extensions.js.map
 
 /***/ }),
-/* 333 */
+/* 334 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(65);
-const status_1 = __webpack_require__(318);
-const events_1 = tslib_1.__importDefault(__webpack_require__(197));
+const status_1 = __webpack_require__(319);
+const events_1 = __webpack_require__(198);
 const logger = __webpack_require__(64)('model-installBuffer');
 var State;
 (function (State) {
@@ -42280,7 +42593,7 @@ var State;
     State[State["Progressing"] = 2] = "Progressing";
     State[State["Success"] = 3] = "Success";
 })(State = exports.State || (exports.State = {}));
-class InstallBuffer extends events_1.default {
+class InstallBuffer extends events_1.EventEmitter {
     constructor(isUpdate = false, isSync = false, silent = false) {
         super();
         this.isUpdate = isUpdate;
@@ -42404,28 +42717,28 @@ exports.default = InstallBuffer;
 //# sourceMappingURL=installBuffer.js.map
 
 /***/ }),
-/* 334 */
+/* 335 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const child_process_1 = __webpack_require__(238);
-const readline_1 = tslib_1.__importDefault(__webpack_require__(205));
+const child_process_1 = __webpack_require__(239);
+const readline_1 = tslib_1.__importDefault(__webpack_require__(206));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(259));
-const mv_1 = tslib_1.__importDefault(__webpack_require__(335));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(260));
+const mv_1 = tslib_1.__importDefault(__webpack_require__(336));
 const os_1 = tslib_1.__importDefault(__webpack_require__(76));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const rc_1 = tslib_1.__importDefault(__webpack_require__(342));
+const rc_1 = tslib_1.__importDefault(__webpack_require__(343));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
 const util_1 = __webpack_require__(74);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const download_1 = tslib_1.__importDefault(__webpack_require__(348));
-const fetch_1 = tslib_1.__importDefault(__webpack_require__(387));
-const rimraf_1 = tslib_1.__importDefault(__webpack_require__(266));
-const fs_2 = __webpack_require__(303);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const download_1 = tslib_1.__importDefault(__webpack_require__(349));
+const fetch_1 = tslib_1.__importDefault(__webpack_require__(478));
+const rimraf_1 = tslib_1.__importDefault(__webpack_require__(267));
+const fs_2 = __webpack_require__(304);
 const logger = __webpack_require__(64)('model-installer');
 function registryUrl(scope = 'coc.nvim') {
     const result = rc_1.default('npm', { registry: 'https://registry.npmjs.org/' });
@@ -42513,7 +42826,7 @@ class Installer {
         let tmpFolder = await util_1.promisify(fs_1.default.mkdtemp)(path_1.default.join(os_1.default.tmpdir(), `${info.name}-`));
         let url = info['dist.tarball'];
         this.log(`Downloading from ${url}`);
-        await download_1.default(url, { dest: tmpFolder, onProgress: p => this.log(`Download progress ${p}%`), extract: true });
+        await download_1.default(url, { dest: tmpFolder, onProgress: p => this.log(`Download progress ${p}%`), extract: 'untar' });
         this.log(`Extension download at ${tmpFolder}`);
         let content = await util_1.promisify(fs_1.default.readFile)(path_1.default.join(tmpFolder, 'package.json'), 'utf8');
         let { dependencies } = JSON.parse(content);
@@ -42634,14 +42947,14 @@ exports.createInstallerFactory = createInstallerFactory;
 //# sourceMappingURL=installer.js.map
 
 /***/ }),
-/* 335 */
+/* 336 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var fs = __webpack_require__(66);
-var ncp = __webpack_require__(336).ncp;
+var ncp = __webpack_require__(337).ncp;
 var path = __webpack_require__(82);
-var rimraf = __webpack_require__(337);
-var mkdirp = __webpack_require__(341);
+var rimraf = __webpack_require__(338);
+var mkdirp = __webpack_require__(342);
 
 module.exports = mv;
 
@@ -42745,7 +43058,7 @@ function moveDirAcrossDevice(source, dest, clobber, limit, cb) {
 
 
 /***/ }),
-/* 336 */
+/* 337 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var fs = __webpack_require__(66),
@@ -43012,7 +43325,7 @@ function ncp (source, dest, options, callback) {
 
 
 /***/ }),
-/* 337 */
+/* 338 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = rimraf
@@ -43021,7 +43334,7 @@ rimraf.sync = rimrafSync
 var assert = __webpack_require__(108)
 var path = __webpack_require__(82)
 var fs = __webpack_require__(66)
-var glob = __webpack_require__(338)
+var glob = __webpack_require__(339)
 
 var globOpts = {
   nosort: true,
@@ -43351,7 +43664,7 @@ function rmkidsSync (p, options) {
 
 
 /***/ }),
-/* 338 */
+/* 339 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // Approach:
@@ -43397,25 +43710,25 @@ function rmkidsSync (p, options) {
 module.exports = glob
 
 var fs = __webpack_require__(66)
-var minimatch = __webpack_require__(270)
+var minimatch = __webpack_require__(271)
 var Minimatch = minimatch.Minimatch
-var inherits = __webpack_require__(274)
-var EE = __webpack_require__(197).EventEmitter
+var inherits = __webpack_require__(275)
+var EE = __webpack_require__(198).EventEmitter
 var path = __webpack_require__(82)
 var assert = __webpack_require__(108)
-var isAbsolute = __webpack_require__(276)
-var globSync = __webpack_require__(339)
-var common = __webpack_require__(340)
+var isAbsolute = __webpack_require__(277)
+var globSync = __webpack_require__(340)
+var common = __webpack_require__(341)
 var alphasort = common.alphasort
 var alphasorti = common.alphasorti
 var setopts = common.setopts
 var ownProp = common.ownProp
-var inflight = __webpack_require__(279)
+var inflight = __webpack_require__(280)
 var util = __webpack_require__(74)
 var childrenIgnored = common.childrenIgnored
 var isIgnored = common.isIgnored
 
-var once = __webpack_require__(281)
+var once = __webpack_require__(282)
 
 function glob (pattern, options, cb) {
   if (typeof options === 'function') cb = options, options = {}
@@ -44122,21 +44435,21 @@ Glob.prototype._stat2 = function (f, abs, er, stat, cb) {
 
 
 /***/ }),
-/* 339 */
+/* 340 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = globSync
 globSync.GlobSync = GlobSync
 
 var fs = __webpack_require__(66)
-var minimatch = __webpack_require__(270)
+var minimatch = __webpack_require__(271)
 var Minimatch = minimatch.Minimatch
-var Glob = __webpack_require__(338).Glob
+var Glob = __webpack_require__(339).Glob
 var util = __webpack_require__(74)
 var path = __webpack_require__(82)
 var assert = __webpack_require__(108)
-var isAbsolute = __webpack_require__(276)
-var common = __webpack_require__(340)
+var isAbsolute = __webpack_require__(277)
+var common = __webpack_require__(341)
 var alphasort = common.alphasort
 var alphasorti = common.alphasorti
 var setopts = common.setopts
@@ -44588,7 +44901,7 @@ GlobSync.prototype._makeAbs = function (f) {
 
 
 /***/ }),
-/* 340 */
+/* 341 */
 /***/ (function(module, exports, __webpack_require__) {
 
 exports.alphasort = alphasort
@@ -44606,8 +44919,8 @@ function ownProp (obj, field) {
 }
 
 var path = __webpack_require__(82)
-var minimatch = __webpack_require__(270)
-var isAbsolute = __webpack_require__(276)
+var minimatch = __webpack_require__(271)
+var isAbsolute = __webpack_require__(277)
 var Minimatch = minimatch.Minimatch
 
 function alphasorti (a, b) {
@@ -44820,7 +45133,7 @@ function childrenIgnored (self, path) {
 
 
 /***/ }),
-/* 341 */
+/* 342 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var path = __webpack_require__(82);
@@ -44925,12 +45238,12 @@ mkdirP.sync = function sync (p, opts, made) {
 
 
 /***/ }),
-/* 342 */
+/* 343 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var cc   = __webpack_require__(343)
+var cc   = __webpack_require__(344)
 var join = __webpack_require__(82).join
-var deepExtend = __webpack_require__(346)
+var deepExtend = __webpack_require__(347)
 var etc = '/etc'
 var win = process.platform === "win32"
 var home = win
@@ -44941,7 +45254,7 @@ module.exports = function (name, defaults, argv, parse) {
   if('string' !== typeof name)
     throw new Error('rc(name): name *must* be string')
   if(!argv)
-    argv = __webpack_require__(347)(process.argv.slice(2))
+    argv = __webpack_require__(348)(process.argv.slice(2))
   defaults = (
       'string' === typeof defaults
     ? cc.json(defaults) : defaults
@@ -44984,15 +45297,15 @@ module.exports = function (name, defaults, argv, parse) {
 
 
 /***/ }),
-/* 343 */
+/* 344 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 var fs   = __webpack_require__(66)
-var ini  = __webpack_require__(344)
+var ini  = __webpack_require__(345)
 var path = __webpack_require__(82)
-var stripJsonComments = __webpack_require__(345)
+var stripJsonComments = __webpack_require__(346)
 
 var parse = exports.parse = function (content) {
 
@@ -45095,7 +45408,7 @@ var find = exports.find = function () {
 
 
 /***/ }),
-/* 344 */
+/* 345 */
 /***/ (function(module, exports) {
 
 exports.parse = exports.decode = decode
@@ -45295,7 +45608,7 @@ function unsafe (val, doUnesc) {
 
 
 /***/ }),
-/* 345 */
+/* 346 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -45372,7 +45685,7 @@ module.exports = function (str, opts) {
 
 
 /***/ }),
-/* 346 */
+/* 347 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -45529,7 +45842,7 @@ var deepExtend = module.exports = function (/*obj_1, [obj_2], [obj_N]*/) {
 
 
 /***/ }),
-/* 347 */
+/* 348 */
 /***/ (function(module, exports) {
 
 module.exports = function (args, opts) {
@@ -45780,20 +46093,22 @@ function isNumber (x) {
 
 
 /***/ }),
-/* 348 */
+/* 349 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const follow_redirects_1 = __webpack_require__(349);
-const uuid_1 = __webpack_require__(282);
+const follow_redirects_1 = __webpack_require__(350);
+const uuid_1 = __webpack_require__(283);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(259));
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(260));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const tar_1 = tslib_1.__importDefault(__webpack_require__(357));
-const fetch_1 = __webpack_require__(387);
+const tar_1 = tslib_1.__importDefault(__webpack_require__(355));
+const unzipper_1 = tslib_1.__importDefault(__webpack_require__(385));
+const fetch_1 = __webpack_require__(478);
+const content_disposition_1 = tslib_1.__importDefault(__webpack_require__(489));
 const logger = __webpack_require__(64)('model-download');
 /**
  * Download file from url, with optional untar/unzip support.
@@ -45806,17 +46121,43 @@ function download(url, options) {
     if (!dest || !path_1.default.isAbsolute(dest)) {
         throw new Error(`Expect absolute file path for dest option.`);
     }
-    if (!fs_1.default.existsSync(dest))
+    let stat;
+    try {
+        stat = fs_1.default.statSync(dest);
+    }
+    catch (_e) {
         mkdirp_1.default.sync(dest);
+    }
+    if (stat && !stat.isDirectory()) {
+        throw new Error(`${dest} exists, but not directory!`);
+    }
     let mod = url.startsWith('https') ? follow_redirects_1.https : follow_redirects_1.http;
     let opts = fetch_1.resolveRequestOptions(url, options);
     let extname = path_1.default.extname(url);
-    if (!extract)
-        dest = path_1.default.join(dest, `${uuid_1.v1()}${extname}`);
     return new Promise((resolve, reject) => {
         const req = mod.request(opts, (res) => {
+            var _a;
             if ((res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 1223) {
                 let headers = res.headers || {};
+                let dispositionHeader = headers['content-disposition'];
+                if (!extname && dispositionHeader) {
+                    let disposition = content_disposition_1.default.parse(dispositionHeader);
+                    if ((_a = disposition.parameters) === null || _a === void 0 ? void 0 : _a.filename) {
+                        extname = path_1.default.extname(disposition.parameters.filename);
+                    }
+                }
+                if (extract === true) {
+                    if (extname === '.zip' || headers['content-type'] == 'application/zip') {
+                        extract = 'unzip';
+                    }
+                    else if (extname == '.tgz') {
+                        extract = 'untar';
+                    }
+                    else {
+                        reject(new Error(`Unable to extract for ${url}`));
+                        return;
+                    }
+                }
                 let total = Number(headers['content-length']);
                 let cur = 0;
                 if (!isNaN(total)) {
@@ -45827,7 +46168,7 @@ function download(url, options) {
                             onProgress(percent);
                         }
                         else {
-                            logger.info(`Download progress ${percent}%`);
+                            logger.info(`Download ${url} progress ${percent}%`);
                         }
                     });
                 }
@@ -45838,10 +46179,14 @@ function download(url, options) {
                     logger.info('Download completed:', url);
                 });
                 let stream;
-                if (extract) {
+                if (extract === 'untar') {
                     stream = res.pipe(tar_1.default.x({ strip: 1, C: dest }));
                 }
+                else if (extract === 'unzip') {
+                    stream = res.pipe(unzipper_1.default.Extract({ path: dest }));
+                }
                 else {
+                    dest = path_1.default.join(dest, `${uuid_1.v1()}${extname}`);
                     stream = res.pipe(fs_1.default.createWriteStream(dest));
                 }
                 stream.on('finish', () => {
@@ -45870,16 +46215,16 @@ exports.default = download;
 //# sourceMappingURL=download.js.map
 
 /***/ }),
-/* 349 */
+/* 350 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var url = __webpack_require__(350);
+var url = __webpack_require__(351);
 var URL = url.URL;
-var http = __webpack_require__(351);
-var https = __webpack_require__(352);
-var assert = __webpack_require__(108);
+var http = __webpack_require__(352);
+var https = __webpack_require__(353);
 var Writable = __webpack_require__(106).Writable;
-var debug = __webpack_require__(353)("follow-redirects");
+var assert = __webpack_require__(108);
+var debug = __webpack_require__(354);
 
 // Create handlers that pass events from native requests
 var eventHandlers = Object.create(null);
@@ -46227,8 +46572,9 @@ RedirectableRequest.prototype._processResponse = function (response) {
 
     // Evaluate the beforeRedirect callback
     if (typeof this._options.beforeRedirect === "function") {
+      var responseDetails = { headers: response.headers };
       try {
-        this._options.beforeRedirect.call(null, this._options);
+        this._options.beforeRedirect.call(null, this._options, responseDetails);
       }
       catch (err) {
         this.emit("error", err);
@@ -46373,227 +46719,36 @@ module.exports.wrap = wrap;
 
 
 /***/ }),
-/* 350 */
+/* 351 */
 /***/ (function(module, exports) {
 
 module.exports = require("url");
 
 /***/ }),
-/* 351 */
+/* 352 */
 /***/ (function(module, exports) {
 
 module.exports = require("http");
 
 /***/ }),
-/* 352 */
+/* 353 */
 /***/ (function(module, exports) {
 
 module.exports = require("https");
 
 /***/ }),
-/* 353 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-/**
- * Detect Electron renderer / nwjs process, which is node, but we should
- * treat as a browser.
- */
-if (typeof process === 'undefined' || process.type === 'renderer' || process.browser === true || process.__nwjs) {
-  module.exports = __webpack_require__(354);
-} else {
-  module.exports = __webpack_require__(356);
-}
-
-
-
-/***/ }),
 /* 354 */
 /***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
-
-
-function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
-
-/* eslint-env browser */
-
-/**
- * This is the web browser implementation of `debug()`.
- */
-exports.log = log;
-exports.formatArgs = formatArgs;
-exports.save = save;
-exports.load = load;
-exports.useColors = useColors;
-exports.storage = localstorage();
-/**
- * Colors.
- */
-
-exports.colors = ['#0000CC', '#0000FF', '#0033CC', '#0033FF', '#0066CC', '#0066FF', '#0099CC', '#0099FF', '#00CC00', '#00CC33', '#00CC66', '#00CC99', '#00CCCC', '#00CCFF', '#3300CC', '#3300FF', '#3333CC', '#3333FF', '#3366CC', '#3366FF', '#3399CC', '#3399FF', '#33CC00', '#33CC33', '#33CC66', '#33CC99', '#33CCCC', '#33CCFF', '#6600CC', '#6600FF', '#6633CC', '#6633FF', '#66CC00', '#66CC33', '#9900CC', '#9900FF', '#9933CC', '#9933FF', '#99CC00', '#99CC33', '#CC0000', '#CC0033', '#CC0066', '#CC0099', '#CC00CC', '#CC00FF', '#CC3300', '#CC3333', '#CC3366', '#CC3399', '#CC33CC', '#CC33FF', '#CC6600', '#CC6633', '#CC9900', '#CC9933', '#CCCC00', '#CCCC33', '#FF0000', '#FF0033', '#FF0066', '#FF0099', '#FF00CC', '#FF00FF', '#FF3300', '#FF3333', '#FF3366', '#FF3399', '#FF33CC', '#FF33FF', '#FF6600', '#FF6633', '#FF9900', '#FF9933', '#FFCC00', '#FFCC33'];
-/**
- * Currently only WebKit-based Web Inspectors, Firefox >= v31,
- * and the Firebug extension (any Firefox version) are known
- * to support "%c" CSS customizations.
- *
- * TODO: add a `localStorage` variable to explicitly enable/disable colors
- */
-// eslint-disable-next-line complexity
-
-function useColors() {
-  // NB: In an Electron preload script, document will be defined but not fully
-  // initialized. Since we know we're in Chrome, we'll just detect this case
-  // explicitly
-  if (typeof window !== 'undefined' && window.process && (window.process.type === 'renderer' || window.process.__nwjs)) {
-    return true;
-  } // Internet Explorer and Edge do not support colors.
-
-
-  if (typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.toLowerCase().match(/(edge|trident)\/(\d+)/)) {
-    return false;
-  } // Is webkit? http://stackoverflow.com/a/16459606/376773
-  // document is undefined in react-native: https://github.com/facebook/react-native/pull/1632
-
-
-  return typeof document !== 'undefined' && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance || // Is firebug? http://stackoverflow.com/a/398120/376773
-  typeof window !== 'undefined' && window.console && (window.console.firebug || window.console.exception && window.console.table) || // Is firefox >= v31?
-  // https://developer.mozilla.org/en-US/docs/Tools/Web_Console#Styling_messages
-  typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/) && parseInt(RegExp.$1, 10) >= 31 || // Double check webkit in userAgent just in case we are in a worker
-  typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/);
+var debug;
+try {
+  /* eslint global-require: off */
+  debug = __webpack_require__(68)("follow-redirects");
 }
-/**
- * Colorize log arguments if enabled.
- *
- * @api public
- */
-
-
-function formatArgs(args) {
-  args[0] = (this.useColors ? '%c' : '') + this.namespace + (this.useColors ? ' %c' : ' ') + args[0] + (this.useColors ? '%c ' : ' ') + '+' + module.exports.humanize(this.diff);
-
-  if (!this.useColors) {
-    return;
-  }
-
-  var c = 'color: ' + this.color;
-  args.splice(1, 0, c, 'color: inherit'); // The final "%c" is somewhat tricky, because there could be other
-  // arguments passed either before or after the %c, so we need to
-  // figure out the correct index to insert the CSS into
-
-  var index = 0;
-  var lastC = 0;
-  args[0].replace(/%[a-zA-Z%]/g, function (match) {
-    if (match === '%%') {
-      return;
-    }
-
-    index++;
-
-    if (match === '%c') {
-      // We only are interested in the *last* %c
-      // (the user may have provided their own)
-      lastC = index;
-    }
-  });
-  args.splice(lastC, 0, c);
+catch (error) {
+  debug = function () { /* */ };
 }
-/**
- * Invokes `console.log()` when available.
- * No-op when `console.log` is not a "function".
- *
- * @api public
- */
-
-
-function log() {
-  var _console;
-
-  // This hackery is required for IE8/9, where
-  // the `console.log` function doesn't have 'apply'
-  return (typeof console === "undefined" ? "undefined" : _typeof(console)) === 'object' && console.log && (_console = console).log.apply(_console, arguments);
-}
-/**
- * Save `namespaces`.
- *
- * @param {String} namespaces
- * @api private
- */
-
-
-function save(namespaces) {
-  try {
-    if (namespaces) {
-      exports.storage.setItem('debug', namespaces);
-    } else {
-      exports.storage.removeItem('debug');
-    }
-  } catch (error) {// Swallow
-    // XXX (@Qix-) should we be logging these?
-  }
-}
-/**
- * Load `namespaces`.
- *
- * @return {String} returns the previously persisted debug modes
- * @api private
- */
-
-
-function load() {
-  var r;
-
-  try {
-    r = exports.storage.getItem('debug');
-  } catch (error) {} // Swallow
-  // XXX (@Qix-) should we be logging these?
-  // If debug isn't set in LS, and we're in Electron, try to load $DEBUG
-
-
-  if (!r && typeof process !== 'undefined' && 'env' in process) {
-    r = process.env.DEBUG;
-  }
-
-  return r;
-}
-/**
- * Localstorage attempts to return the localstorage.
- *
- * This is necessary because safari throws
- * when a user disables cookies/localstorage
- * and you attempt to access it.
- *
- * @return {LocalStorage}
- * @api private
- */
-
-
-function localstorage() {
-  try {
-    // TVMLKit (Apple TV JS Runtime) does not have a window object, just localStorage in the global context
-    // The Browser also has localStorage in the global context.
-    return localStorage;
-  } catch (error) {// Swallow
-    // XXX (@Qix-) should we be logging these?
-  }
-}
-
-module.exports = __webpack_require__(355)(exports);
-var formatters = module.exports.formatters;
-/**
- * Map %j to `JSON.stringify()`, since no Web Inspectors do that by default.
- */
-
-formatters.j = function (v) {
-  try {
-    return JSON.stringify(v);
-  } catch (error) {
-    return '[UnexpectedJSONParseError]: ' + error.message;
-  }
-};
-
+module.exports = debug;
 
 
 /***/ }),
@@ -46603,253 +46758,22 @@ formatters.j = function (v) {
 "use strict";
 
 
-/**
- * This is the common logic for both the Node.js and web browser
- * implementations of `debug()`.
- */
-function setup(env) {
-  createDebug.debug = createDebug;
-  createDebug.default = createDebug;
-  createDebug.coerce = coerce;
-  createDebug.disable = disable;
-  createDebug.enable = enable;
-  createDebug.enabled = enabled;
-  createDebug.humanize = __webpack_require__(71);
-  Object.keys(env).forEach(function (key) {
-    createDebug[key] = env[key];
-  });
-  /**
-  * Active `debug` instances.
-  */
+// high-level commands
+exports.c = exports.create = __webpack_require__(356)
+exports.r = exports.replace = __webpack_require__(377)
+exports.t = exports.list = __webpack_require__(375)
+exports.u = exports.update = __webpack_require__(378)
+exports.x = exports.extract = __webpack_require__(379)
 
-  createDebug.instances = [];
-  /**
-  * The currently active debug mode names, and names to skip.
-  */
-
-  createDebug.names = [];
-  createDebug.skips = [];
-  /**
-  * Map of special "%n" handling functions, for the debug "format" argument.
-  *
-  * Valid key names are a single, lower or upper-case letter, i.e. "n" and "N".
-  */
-
-  createDebug.formatters = {};
-  /**
-  * Selects a color for a debug namespace
-  * @param {String} namespace The namespace string for the for the debug instance to be colored
-  * @return {Number|String} An ANSI color code for the given namespace
-  * @api private
-  */
-
-  function selectColor(namespace) {
-    var hash = 0;
-
-    for (var i = 0; i < namespace.length; i++) {
-      hash = (hash << 5) - hash + namespace.charCodeAt(i);
-      hash |= 0; // Convert to 32bit integer
-    }
-
-    return createDebug.colors[Math.abs(hash) % createDebug.colors.length];
-  }
-
-  createDebug.selectColor = selectColor;
-  /**
-  * Create a debugger with the given `namespace`.
-  *
-  * @param {String} namespace
-  * @return {Function}
-  * @api public
-  */
-
-  function createDebug(namespace) {
-    var prevTime;
-
-    function debug() {
-      // Disabled?
-      if (!debug.enabled) {
-        return;
-      }
-
-      for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
-        args[_key] = arguments[_key];
-      }
-
-      var self = debug; // Set `diff` timestamp
-
-      var curr = Number(new Date());
-      var ms = curr - (prevTime || curr);
-      self.diff = ms;
-      self.prev = prevTime;
-      self.curr = curr;
-      prevTime = curr;
-      args[0] = createDebug.coerce(args[0]);
-
-      if (typeof args[0] !== 'string') {
-        // Anything else let's inspect with %O
-        args.unshift('%O');
-      } // Apply any `formatters` transformations
-
-
-      var index = 0;
-      args[0] = args[0].replace(/%([a-zA-Z%])/g, function (match, format) {
-        // If we encounter an escaped % then don't increase the array index
-        if (match === '%%') {
-          return match;
-        }
-
-        index++;
-        var formatter = createDebug.formatters[format];
-
-        if (typeof formatter === 'function') {
-          var val = args[index];
-          match = formatter.call(self, val); // Now we need to remove `args[index]` since it's inlined in the `format`
-
-          args.splice(index, 1);
-          index--;
-        }
-
-        return match;
-      }); // Apply env-specific formatting (colors, etc.)
-
-      createDebug.formatArgs.call(self, args);
-      var logFn = self.log || createDebug.log;
-      logFn.apply(self, args);
-    }
-
-    debug.namespace = namespace;
-    debug.enabled = createDebug.enabled(namespace);
-    debug.useColors = createDebug.useColors();
-    debug.color = selectColor(namespace);
-    debug.destroy = destroy;
-    debug.extend = extend; // Debug.formatArgs = formatArgs;
-    // debug.rawLog = rawLog;
-    // env-specific initialization logic for debug instances
-
-    if (typeof createDebug.init === 'function') {
-      createDebug.init(debug);
-    }
-
-    createDebug.instances.push(debug);
-    return debug;
-  }
-
-  function destroy() {
-    var index = createDebug.instances.indexOf(this);
-
-    if (index !== -1) {
-      createDebug.instances.splice(index, 1);
-      return true;
-    }
-
-    return false;
-  }
-
-  function extend(namespace, delimiter) {
-    return createDebug(this.namespace + (typeof delimiter === 'undefined' ? ':' : delimiter) + namespace);
-  }
-  /**
-  * Enables a debug mode by namespaces. This can include modes
-  * separated by a colon and wildcards.
-  *
-  * @param {String} namespaces
-  * @api public
-  */
-
-
-  function enable(namespaces) {
-    createDebug.save(namespaces);
-    createDebug.names = [];
-    createDebug.skips = [];
-    var i;
-    var split = (typeof namespaces === 'string' ? namespaces : '').split(/[\s,]+/);
-    var len = split.length;
-
-    for (i = 0; i < len; i++) {
-      if (!split[i]) {
-        // ignore empty strings
-        continue;
-      }
-
-      namespaces = split[i].replace(/\*/g, '.*?');
-
-      if (namespaces[0] === '-') {
-        createDebug.skips.push(new RegExp('^' + namespaces.substr(1) + '$'));
-      } else {
-        createDebug.names.push(new RegExp('^' + namespaces + '$'));
-      }
-    }
-
-    for (i = 0; i < createDebug.instances.length; i++) {
-      var instance = createDebug.instances[i];
-      instance.enabled = createDebug.enabled(instance.namespace);
-    }
-  }
-  /**
-  * Disable debug output.
-  *
-  * @api public
-  */
-
-
-  function disable() {
-    createDebug.enable('');
-  }
-  /**
-  * Returns true if the given mode name is enabled, false otherwise.
-  *
-  * @param {String} name
-  * @return {Boolean}
-  * @api public
-  */
-
-
-  function enabled(name) {
-    if (name[name.length - 1] === '*') {
-      return true;
-    }
-
-    var i;
-    var len;
-
-    for (i = 0, len = createDebug.skips.length; i < len; i++) {
-      if (createDebug.skips[i].test(name)) {
-        return false;
-      }
-    }
-
-    for (i = 0, len = createDebug.names.length; i < len; i++) {
-      if (createDebug.names[i].test(name)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-  /**
-  * Coerce `val`.
-  *
-  * @param {Mixed} val
-  * @return {Mixed}
-  * @api private
-  */
-
-
-  function coerce(val) {
-    if (val instanceof Error) {
-      return val.stack || val.message;
-    }
-
-    return val;
-  }
-
-  createDebug.enable(createDebug.load());
-  return createDebug;
-}
-
-module.exports = setup;
-
+// classes
+exports.Pack = __webpack_require__(358)
+exports.Unpack = __webpack_require__(380)
+exports.Parse = __webpack_require__(376)
+exports.ReadEntry = __webpack_require__(365)
+exports.WriteEntry = __webpack_require__(367)
+exports.Header = __webpack_require__(369)
+exports.Pax = __webpack_require__(368)
+exports.types = __webpack_require__(366)
 
 
 /***/ }),
@@ -46859,219 +46783,13 @@ module.exports = setup;
 "use strict";
 
 
-/**
- * Module dependencies.
- */
-var tty = __webpack_require__(73);
-
-var util = __webpack_require__(74);
-/**
- * This is the Node.js implementation of `debug()`.
- */
-
-
-exports.init = init;
-exports.log = log;
-exports.formatArgs = formatArgs;
-exports.save = save;
-exports.load = load;
-exports.useColors = useColors;
-/**
- * Colors.
- */
-
-exports.colors = [6, 2, 3, 4, 5, 1];
-
-try {
-  // Optional dependency (as in, doesn't need to be installed, NOT like optionalDependencies in package.json)
-  // eslint-disable-next-line import/no-extraneous-dependencies
-  var supportsColor = __webpack_require__(75);
-
-  if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
-    exports.colors = [20, 21, 26, 27, 32, 33, 38, 39, 40, 41, 42, 43, 44, 45, 56, 57, 62, 63, 68, 69, 74, 75, 76, 77, 78, 79, 80, 81, 92, 93, 98, 99, 112, 113, 128, 129, 134, 135, 148, 149, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 178, 179, 184, 185, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 214, 215, 220, 221];
-  }
-} catch (error) {} // Swallow - we only care if `supports-color` is available; it doesn't have to be.
-
-/**
- * Build up the default `inspectOpts` object from the environment variables.
- *
- *   $ DEBUG_COLORS=no DEBUG_DEPTH=10 DEBUG_SHOW_HIDDEN=enabled node script.js
- */
-
-
-exports.inspectOpts = Object.keys(process.env).filter(function (key) {
-  return /^debug_/i.test(key);
-}).reduce(function (obj, key) {
-  // Camel-case
-  var prop = key.substring(6).toLowerCase().replace(/_([a-z])/g, function (_, k) {
-    return k.toUpperCase();
-  }); // Coerce string value into JS value
-
-  var val = process.env[key];
-
-  if (/^(yes|on|true|enabled)$/i.test(val)) {
-    val = true;
-  } else if (/^(no|off|false|disabled)$/i.test(val)) {
-    val = false;
-  } else if (val === 'null') {
-    val = null;
-  } else {
-    val = Number(val);
-  }
-
-  obj[prop] = val;
-  return obj;
-}, {});
-/**
- * Is stdout a TTY? Colored output is enabled when `true`.
- */
-
-function useColors() {
-  return 'colors' in exports.inspectOpts ? Boolean(exports.inspectOpts.colors) : tty.isatty(process.stderr.fd);
-}
-/**
- * Adds ANSI color escape codes if enabled.
- *
- * @api public
- */
-
-
-function formatArgs(args) {
-  var name = this.namespace,
-      useColors = this.useColors;
-
-  if (useColors) {
-    var c = this.color;
-    var colorCode = "\x1B[3" + (c < 8 ? c : '8;5;' + c);
-    var prefix = "  ".concat(colorCode, ";1m").concat(name, " \x1B[0m");
-    args[0] = prefix + args[0].split('\n').join('\n' + prefix);
-    args.push(colorCode + 'm+' + module.exports.humanize(this.diff) + "\x1B[0m");
-  } else {
-    args[0] = getDate() + name + ' ' + args[0];
-  }
-}
-
-function getDate() {
-  if (exports.inspectOpts.hideDate) {
-    return '';
-  }
-
-  return new Date().toISOString() + ' ';
-}
-/**
- * Invokes `util.format()` with the specified arguments and writes to stderr.
- */
-
-
-function log() {
-  return process.stderr.write(util.format.apply(util, arguments) + '\n');
-}
-/**
- * Save `namespaces`.
- *
- * @param {String} namespaces
- * @api private
- */
-
-
-function save(namespaces) {
-  if (namespaces) {
-    process.env.DEBUG = namespaces;
-  } else {
-    // If you set a process.env field to null or undefined, it gets cast to the
-    // string 'null' or 'undefined'. Just delete instead.
-    delete process.env.DEBUG;
-  }
-}
-/**
- * Load `namespaces`.
- *
- * @return {String} returns the previously persisted debug modes
- * @api private
- */
-
-
-function load() {
-  return process.env.DEBUG;
-}
-/**
- * Init logic for `debug` instances.
- *
- * Create a new `inspectOpts` object in case `useColors` is set
- * differently for a particular `debug` instance.
- */
-
-
-function init(debug) {
-  debug.inspectOpts = {};
-  var keys = Object.keys(exports.inspectOpts);
-
-  for (var i = 0; i < keys.length; i++) {
-    debug.inspectOpts[keys[i]] = exports.inspectOpts[keys[i]];
-  }
-}
-
-module.exports = __webpack_require__(355)(exports);
-var formatters = module.exports.formatters;
-/**
- * Map %o to `util.inspect()`, all on a single line.
- */
-
-formatters.o = function (v) {
-  this.inspectOpts.colors = this.useColors;
-  return util.inspect(v, this.inspectOpts).replace(/\s*\n\s*/g, ' ');
-};
-/**
- * Map %O to `util.inspect()`, allowing multiple lines if needed.
- */
-
-
-formatters.O = function (v) {
-  this.inspectOpts.colors = this.useColors;
-  return util.inspect(v, this.inspectOpts);
-};
-
-
-
-/***/ }),
-/* 357 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-// high-level commands
-exports.c = exports.create = __webpack_require__(358)
-exports.r = exports.replace = __webpack_require__(379)
-exports.t = exports.list = __webpack_require__(377)
-exports.u = exports.update = __webpack_require__(380)
-exports.x = exports.extract = __webpack_require__(381)
-
-// classes
-exports.Pack = __webpack_require__(360)
-exports.Unpack = __webpack_require__(382)
-exports.Parse = __webpack_require__(378)
-exports.ReadEntry = __webpack_require__(367)
-exports.WriteEntry = __webpack_require__(369)
-exports.Header = __webpack_require__(371)
-exports.Pax = __webpack_require__(370)
-exports.types = __webpack_require__(368)
-
-
-/***/ }),
-/* 358 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
 // tar -c
-const hlo = __webpack_require__(359)
+const hlo = __webpack_require__(357)
 
-const Pack = __webpack_require__(360)
+const Pack = __webpack_require__(358)
 const fs = __webpack_require__(66)
-const fsm = __webpack_require__(376)
-const t = __webpack_require__(377)
+const fsm = __webpack_require__(374)
+const t = __webpack_require__(375)
 const path = __webpack_require__(82)
 
 const c = module.exports = (opt_, files, cb) => {
@@ -47171,7 +46889,7 @@ const create = (opt, files) => {
 
 
 /***/ }),
-/* 359 */
+/* 357 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -47207,7 +46925,7 @@ const parse = module.exports = opt => opt ? Object.keys(opt).map(k => [
 
 
 /***/ }),
-/* 360 */
+/* 358 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -47235,13 +46953,13 @@ class PackJob {
   }
 }
 
-const MiniPass = __webpack_require__(361)
-const zlib = __webpack_require__(365)
-const ReadEntry = __webpack_require__(367)
-const WriteEntry = __webpack_require__(369)
+const MiniPass = __webpack_require__(359)
+const zlib = __webpack_require__(363)
+const ReadEntry = __webpack_require__(365)
+const WriteEntry = __webpack_require__(367)
 const WriteEntrySync = WriteEntry.Sync
 const WriteEntryTar = WriteEntry.Tar
-const Yallist = __webpack_require__(362)
+const Yallist = __webpack_require__(360)
 const EOF = Buffer.alloc(1024)
 const ONSTAT = Symbol('onStat')
 const ENDED = Symbol('ended')
@@ -47266,7 +46984,7 @@ const ONDRAIN = Symbol('ondrain')
 
 const fs = __webpack_require__(66)
 const path = __webpack_require__(82)
-const warner = __webpack_require__(373)
+const warner = __webpack_require__(371)
 
 const Pack = warner(class Pack extends MiniPass {
   constructor (opt) {
@@ -47617,15 +47335,15 @@ module.exports = Pack
 
 
 /***/ }),
-/* 361 */
+/* 359 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const EE = __webpack_require__(197)
+const EE = __webpack_require__(198)
 const Stream = __webpack_require__(106)
-const Yallist = __webpack_require__(362)
-const SD = __webpack_require__(364).StringDecoder
+const Yallist = __webpack_require__(360)
+const SD = __webpack_require__(362).StringDecoder
 
 const EOF = Symbol('EOF')
 const MAYBE_EMIT_END = Symbol('maybeEmitEnd')
@@ -48162,7 +47880,7 @@ module.exports = class Minipass extends Stream {
 
 
 /***/ }),
-/* 362 */
+/* 360 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -48590,12 +48308,12 @@ function Node (value, prev, next, list) {
 
 try {
   // add if support for Symbol.iterator is present
-  __webpack_require__(363)(Yallist)
+  __webpack_require__(361)(Yallist)
 } catch (er) {}
 
 
 /***/ }),
-/* 363 */
+/* 361 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -48610,24 +48328,24 @@ module.exports = function (Yallist) {
 
 
 /***/ }),
-/* 364 */
+/* 362 */
 /***/ (function(module, exports) {
 
 module.exports = require("string_decoder");
 
 /***/ }),
-/* 365 */
+/* 363 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 const assert = __webpack_require__(108)
-const Buffer = __webpack_require__(315).Buffer
+const Buffer = __webpack_require__(316).Buffer
 const realZlib = __webpack_require__(145)
 
-const constants = exports.constants = __webpack_require__(366)
-const Minipass = __webpack_require__(361)
+const constants = exports.constants = __webpack_require__(364)
+const Minipass = __webpack_require__(359)
 
 const OriginalBufferConcat = Buffer.concat
 
@@ -48672,6 +48390,7 @@ class ZlibBase extends Minipass {
       throw new TypeError('invalid options for ZlibBase constructor')
 
     super(opts)
+    this[_sawError] = false
     this[_ended] = false
     this[_opts] = opts
 
@@ -48686,7 +48405,12 @@ class ZlibBase extends Minipass {
     }
 
     this[_onError] = (err) => {
+      // no sense raising multiple errors, since we abort on the first one.
+      if (this[_sawError])
+        return
+
       this[_sawError] = true
+
       // there is no way to cleanly recover.
       // continuing only obscures problems.
       this.close()
@@ -48779,8 +48503,12 @@ class ZlibBase extends Minipass {
         // `_processChunk()` adds an 'error' listener. If we don't remove it
         // after each call, these handlers start piling up.
         this[_handle].removeAllListeners('error')
+        // make sure OUR error listener is still attached tho
       }
     }
+
+    if (this[_handle])
+      this[_handle].on('error', er => this[_onError](new ZlibError(er)))
 
     let writeReturn
     if (result) {
@@ -48961,7 +48689,7 @@ if (typeof realZlib.BrotliCompress === 'function') {
 
 
 /***/ }),
-/* 366 */
+/* 364 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // Update with any zlib constants that are added or changed in the future.
@@ -49082,13 +48810,13 @@ module.exports = Object.freeze(Object.assign(Object.create(null), {
 
 
 /***/ }),
-/* 367 */
+/* 365 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const types = __webpack_require__(368)
-const MiniPass = __webpack_require__(361)
+const types = __webpack_require__(366)
+const MiniPass = __webpack_require__(359)
 
 const SLURP = Symbol('slurp')
 module.exports = class ReadEntry extends MiniPass {
@@ -49187,7 +48915,7 @@ module.exports = class ReadEntry extends MiniPass {
 
 
 /***/ }),
-/* 368 */
+/* 366 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -49238,19 +48966,19 @@ exports.code = new Map(Array.from(exports.name).map(kv => [kv[1], kv[0]]))
 
 
 /***/ }),
-/* 369 */
+/* 367 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const MiniPass = __webpack_require__(361)
-const Pax = __webpack_require__(370)
-const Header = __webpack_require__(371)
-const ReadEntry = __webpack_require__(367)
+const MiniPass = __webpack_require__(359)
+const Pax = __webpack_require__(368)
+const Header = __webpack_require__(369)
+const ReadEntry = __webpack_require__(365)
 const fs = __webpack_require__(66)
 const path = __webpack_require__(82)
 
-const types = __webpack_require__(368)
+const types = __webpack_require__(366)
 const maxReadSize = 16 * 1024 * 1024
 const PROCESS = Symbol('process')
 const FILE = Symbol('file')
@@ -49267,10 +48995,10 @@ const OPENFILE = Symbol('openfile')
 const ONOPENFILE = Symbol('onopenfile')
 const CLOSE = Symbol('close')
 const MODE = Symbol('mode')
-const warner = __webpack_require__(373)
-const winchars = __webpack_require__(374)
+const warner = __webpack_require__(371)
+const winchars = __webpack_require__(372)
 
-const modeFix = __webpack_require__(375)
+const modeFix = __webpack_require__(373)
 
 const WriteEntry = warner(class WriteEntry extends MiniPass {
   constructor (p, opt) {
@@ -49681,12 +49409,12 @@ module.exports = WriteEntry
 
 
 /***/ }),
-/* 370 */
+/* 368 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const Header = __webpack_require__(371)
+const Header = __webpack_require__(369)
 const path = __webpack_require__(82)
 
 class Pax {
@@ -49833,7 +49561,7 @@ module.exports = Pax
 
 
 /***/ }),
-/* 371 */
+/* 369 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -49843,9 +49571,9 @@ module.exports = Pax
 // the data could not be faithfully encoded in a simple header.
 // (Also, check header.needPax to see if it needs a pax header.)
 
-const types = __webpack_require__(368)
+const types = __webpack_require__(366)
 const pathModule = __webpack_require__(82).posix
-const large = __webpack_require__(372)
+const large = __webpack_require__(370)
 
 const SLURP = Symbol('slurp')
 const TYPE = Symbol('type')
@@ -50128,7 +49856,7 @@ module.exports = Header
 
 
 /***/ }),
-/* 372 */
+/* 370 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -50232,7 +49960,7 @@ const twosComp = byte => ((0xff ^ byte) + 1) & 0xff
 
 
 /***/ }),
-/* 373 */
+/* 371 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -50260,7 +49988,7 @@ module.exports = Base => class extends Base {
 
 
 /***/ }),
-/* 374 */
+/* 372 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -50290,7 +50018,7 @@ module.exports = {
 
 
 /***/ }),
-/* 375 */
+/* 373 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -50321,13 +50049,13 @@ module.exports = (mode, isDir, portable) => {
 
 
 /***/ }),
-/* 376 */
+/* 374 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const MiniPass = __webpack_require__(361)
-const EE = __webpack_require__(197).EventEmitter
+const MiniPass = __webpack_require__(359)
+const EE = __webpack_require__(198).EventEmitter
 const fs = __webpack_require__(66)
 
 let writev = fs.writev
@@ -50750,7 +50478,7 @@ exports.WriteStreamSync = WriteStreamSync
 
 
 /***/ }),
-/* 377 */
+/* 375 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -50760,10 +50488,10 @@ exports.WriteStreamSync = WriteStreamSync
 // maybe some DRY opportunity here?
 
 // tar -t
-const hlo = __webpack_require__(359)
-const Parser = __webpack_require__(378)
+const hlo = __webpack_require__(357)
+const Parser = __webpack_require__(376)
 const fs = __webpack_require__(66)
-const fsm = __webpack_require__(376)
+const fsm = __webpack_require__(374)
 const path = __webpack_require__(82)
 
 const t = module.exports = (opt_, files, cb) => {
@@ -50885,7 +50613,7 @@ const list = opt => new Parser(opt)
 
 
 /***/ }),
-/* 378 */
+/* 376 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -50911,15 +50639,15 @@ const list = opt => new Parser(opt)
 //
 // ignored entries get .resume() called on them straight away
 
-const warner = __webpack_require__(373)
+const warner = __webpack_require__(371)
 const path = __webpack_require__(82)
-const Header = __webpack_require__(371)
-const EE = __webpack_require__(197)
-const Yallist = __webpack_require__(362)
+const Header = __webpack_require__(369)
+const EE = __webpack_require__(198)
+const Yallist = __webpack_require__(360)
 const maxMetaEntrySize = 1024 * 1024
-const Entry = __webpack_require__(367)
-const Pax = __webpack_require__(370)
-const zlib = __webpack_require__(365)
+const Entry = __webpack_require__(365)
+const Pax = __webpack_require__(368)
+const zlib = __webpack_require__(363)
 
 const gzipHeader = Buffer.from([0x1f, 0x8b])
 const STATE = Symbol('state')
@@ -51375,19 +51103,19 @@ module.exports = warner(class Parser extends EE {
 
 
 /***/ }),
-/* 379 */
+/* 377 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 // tar -r
-const hlo = __webpack_require__(359)
-const Pack = __webpack_require__(360)
-const Parse = __webpack_require__(378)
+const hlo = __webpack_require__(357)
+const Pack = __webpack_require__(358)
+const Parse = __webpack_require__(376)
 const fs = __webpack_require__(66)
-const fsm = __webpack_require__(376)
-const t = __webpack_require__(377)
+const fsm = __webpack_require__(374)
+const t = __webpack_require__(375)
 const path = __webpack_require__(82)
 
 // starting at the head of the file, read a Header
@@ -51396,7 +51124,7 @@ const path = __webpack_require__(82)
 // and try again.
 // Write the new Pack stream starting there.
 
-const Header = __webpack_require__(371)
+const Header = __webpack_require__(369)
 
 const r = module.exports = (opt_, files, cb) => {
   const opt = hlo(opt_)
@@ -51601,7 +51329,7 @@ const addFilesAsync = (p, files) => {
 
 
 /***/ }),
-/* 380 */
+/* 378 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -51609,8 +51337,8 @@ const addFilesAsync = (p, files) => {
 
 // tar -u
 
-const hlo = __webpack_require__(359)
-const r = __webpack_require__(379)
+const hlo = __webpack_require__(357)
+const r = __webpack_require__(377)
 // just call tar.r with the filter and mtimeCache
 
 const u = module.exports = (opt_, files, cb) => {
@@ -51644,17 +51372,17 @@ const mtimeFilter = opt => {
 
 
 /***/ }),
-/* 381 */
+/* 379 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 // tar -x
-const hlo = __webpack_require__(359)
-const Unpack = __webpack_require__(382)
+const hlo = __webpack_require__(357)
+const Unpack = __webpack_require__(380)
 const fs = __webpack_require__(66)
-const fsm = __webpack_require__(376)
+const fsm = __webpack_require__(374)
 const path = __webpack_require__(82)
 
 const x = module.exports = (opt_, files, cb) => {
@@ -51763,7 +51491,7 @@ const extract = opt => {
 
 
 /***/ }),
-/* 382 */
+/* 380 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -51776,15 +51504,15 @@ const extract = opt => {
 // clobbering an fs object to create one of a different type.)
 
 const assert = __webpack_require__(108)
-const EE = __webpack_require__(197).EventEmitter
-const Parser = __webpack_require__(378)
+const EE = __webpack_require__(198).EventEmitter
+const Parser = __webpack_require__(376)
 const fs = __webpack_require__(66)
-const fsm = __webpack_require__(376)
+const fsm = __webpack_require__(374)
 const path = __webpack_require__(82)
-const mkdir = __webpack_require__(383)
+const mkdir = __webpack_require__(381)
 const mkdirSync = mkdir.sync
-const wc = __webpack_require__(374)
-const pathReservations = __webpack_require__(385)
+const wc = __webpack_require__(372)
+const pathReservations = __webpack_require__(383)
 
 const ONENTRY = Symbol('onEntry')
 const CHECKFS = Symbol('checkFs')
@@ -51810,8 +51538,8 @@ const SKIP = Symbol('skip')
 const DOCHOWN = Symbol('doChown')
 const UID = Symbol('uid')
 const GID = Symbol('gid')
-const crypto = __webpack_require__(220)
-const getFlag = __webpack_require__(386)
+const crypto = __webpack_require__(221)
+const getFlag = __webpack_require__(384)
 
 /* istanbul ignore next */
 const neverCalled = () => {
@@ -52450,7 +52178,7 @@ module.exports = Unpack
 
 
 /***/ }),
-/* 383 */
+/* 381 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -52460,10 +52188,10 @@ module.exports = Unpack
 // TODO: This should probably be a class, not functionally
 // passing around state in a gazillion args.
 
-const mkdirp = __webpack_require__(259)
+const mkdirp = __webpack_require__(260)
 const fs = __webpack_require__(66)
 const path = __webpack_require__(82)
-const chownr = __webpack_require__(384)
+const chownr = __webpack_require__(382)
 
 class SymlinkError extends Error {
   constructor (symlink, path) {
@@ -52663,7 +52391,7 @@ const mkdirSync = module.exports.sync = (dir, opt) => {
 
 
 /***/ }),
-/* 384 */
+/* 382 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -52837,7 +52565,7 @@ chownr.sync = chownrSync
 
 
 /***/ }),
-/* 385 */
+/* 383 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // A path exclusive reservation system
@@ -52968,7 +52696,7 @@ module.exports = () => {
 
 
 /***/ }),
-/* 386 */
+/* 384 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // Get the appropriate flag to use for creating files
@@ -52994,21 +52722,15463 @@ module.exports = !fMapEnabled ? () => 'w'
 
 
 /***/ }),
+/* 385 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+// Polyfills for node 0.8
+__webpack_require__(386);
+__webpack_require__(387);
+__webpack_require__(389);
+
+
+exports.Parse = __webpack_require__(390);
+exports.ParseOne = __webpack_require__(452);
+exports.Extract = __webpack_require__(454);
+exports.Open = __webpack_require__(472);
+
+/***/ }),
+/* 386 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var listenerCount = __webpack_require__(198).listenerCount
+// listenerCount isn't in node 0.10, so here's a basic polyfill
+listenerCount = listenerCount || function (ee, event) {
+  var listeners = ee && ee._events && ee._events[event]
+  if (Array.isArray(listeners)) {
+    return listeners.length
+  } else if (typeof listeners === 'function') {
+    return 1
+  } else {
+    return 0
+  }
+}
+
+module.exports = listenerCount
+
+
+/***/ }),
 /* 387 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var initBuffer = __webpack_require__(388);
+
+if (!Buffer.prototype.indexOf) {
+    Buffer.prototype.indexOf = function (value, offset) {
+        offset = offset || 0;
+
+        // Always wrap the input as a Buffer so that this method will support any
+        // data type such as array octet, string or buffer.
+        if (typeof value === "string" || value instanceof String) {
+            value = initBuffer(value);
+        } else if (typeof value === "number" || value instanceof Number) {
+            value = initBuffer([ value ]);
+        }
+
+        var len = value.length;
+
+        for (var i = offset; i <= this.length - len; i++) {
+            var mismatch = false;
+            for (var j = 0; j < len; j++) {
+                if (this[i + j] != value[j]) {
+                    mismatch = true;
+                    break;
+                }
+            }
+
+            if (!mismatch) {
+                return i;
+            }
+        }
+
+        return -1;
+    };
+}
+
+function bufferLastIndexOf (value, offset) {
+
+    // Always wrap the input as a Buffer so that this method will support any
+    // data type such as array octet, string or buffer.
+    if (typeof value === "string" || value instanceof String) {
+        value = initBuffer(value);
+    } else if (typeof value === "number" || value instanceof Number) {
+        value = initBuffer([ value ]);
+    }
+
+    var len = value.length;
+    offset = offset || this.length - len;
+
+    for (var i = offset; i >= 0; i--) {
+        var mismatch = false;
+        for (var j = 0; j < len; j++) {
+            if (this[i + j] != value[j]) {
+                mismatch = true;
+                break;
+            }
+        }
+
+        if (!mismatch) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+
+if (Buffer.prototype.lastIndexOf) {
+    // check Buffer#lastIndexOf is usable: https://github.com/nodejs/node/issues/4604
+    if (initBuffer("ABC").lastIndexOf ("ABC") === -1)
+        Buffer.prototype.lastIndexOf = bufferLastIndexOf;
+} else {
+    Buffer.prototype.lastIndexOf = bufferLastIndexOf;
+}
+
+
+/***/ }),
+/* 388 */
+/***/ (function(module, exports) {
+
+module.exports = function initBuffer(val) {
+  // assume old version
+    var nodeVersion = process && process.version ? process.version : "v5.0.0";
+    var major = nodeVersion.split(".")[0].replace("v", "");
+    return major < 6
+      ? new Buffer(val)
+      : Buffer.from(val);
+};
+
+/***/ }),
+/* 389 */
+/***/ (function(module, exports) {
+
+(function (global, undefined) {
+    "use strict";
+
+    if (global.setImmediate) {
+        return;
+    }
+
+    var nextHandle = 1; // Spec says greater than zero
+    var tasksByHandle = {};
+    var currentlyRunningATask = false;
+    var doc = global.document;
+    var registerImmediate;
+
+    function setImmediate(callback) {
+      // Callback can either be a function or a string
+      if (typeof callback !== "function") {
+        callback = new Function("" + callback);
+      }
+      // Copy function arguments
+      var args = new Array(arguments.length - 1);
+      for (var i = 0; i < args.length; i++) {
+          args[i] = arguments[i + 1];
+      }
+      // Store and register the task
+      var task = { callback: callback, args: args };
+      tasksByHandle[nextHandle] = task;
+      registerImmediate(nextHandle);
+      return nextHandle++;
+    }
+
+    function clearImmediate(handle) {
+        delete tasksByHandle[handle];
+    }
+
+    function run(task) {
+        var callback = task.callback;
+        var args = task.args;
+        switch (args.length) {
+        case 0:
+            callback();
+            break;
+        case 1:
+            callback(args[0]);
+            break;
+        case 2:
+            callback(args[0], args[1]);
+            break;
+        case 3:
+            callback(args[0], args[1], args[2]);
+            break;
+        default:
+            callback.apply(undefined, args);
+            break;
+        }
+    }
+
+    function runIfPresent(handle) {
+        // From the spec: "Wait until any invocations of this algorithm started before this one have completed."
+        // So if we're currently running a task, we'll need to delay this invocation.
+        if (currentlyRunningATask) {
+            // Delay by doing a setTimeout. setImmediate was tried instead, but in Firefox 7 it generated a
+            // "too much recursion" error.
+            setTimeout(runIfPresent, 0, handle);
+        } else {
+            var task = tasksByHandle[handle];
+            if (task) {
+                currentlyRunningATask = true;
+                try {
+                    run(task);
+                } finally {
+                    clearImmediate(handle);
+                    currentlyRunningATask = false;
+                }
+            }
+        }
+    }
+
+    function installNextTickImplementation() {
+        registerImmediate = function(handle) {
+            process.nextTick(function () { runIfPresent(handle); });
+        };
+    }
+
+    function canUsePostMessage() {
+        // The test against `importScripts` prevents this implementation from being installed inside a web worker,
+        // where `global.postMessage` means something completely different and can't be used for this purpose.
+        if (global.postMessage && !global.importScripts) {
+            var postMessageIsAsynchronous = true;
+            var oldOnMessage = global.onmessage;
+            global.onmessage = function() {
+                postMessageIsAsynchronous = false;
+            };
+            global.postMessage("", "*");
+            global.onmessage = oldOnMessage;
+            return postMessageIsAsynchronous;
+        }
+    }
+
+    function installPostMessageImplementation() {
+        // Installs an event handler on `global` for the `message` event: see
+        // * https://developer.mozilla.org/en/DOM/window.postMessage
+        // * http://www.whatwg.org/specs/web-apps/current-work/multipage/comms.html#crossDocumentMessages
+
+        var messagePrefix = "setImmediate$" + Math.random() + "$";
+        var onGlobalMessage = function(event) {
+            if (event.source === global &&
+                typeof event.data === "string" &&
+                event.data.indexOf(messagePrefix) === 0) {
+                runIfPresent(+event.data.slice(messagePrefix.length));
+            }
+        };
+
+        if (global.addEventListener) {
+            global.addEventListener("message", onGlobalMessage, false);
+        } else {
+            global.attachEvent("onmessage", onGlobalMessage);
+        }
+
+        registerImmediate = function(handle) {
+            global.postMessage(messagePrefix + handle, "*");
+        };
+    }
+
+    function installMessageChannelImplementation() {
+        var channel = new MessageChannel();
+        channel.port1.onmessage = function(event) {
+            var handle = event.data;
+            runIfPresent(handle);
+        };
+
+        registerImmediate = function(handle) {
+            channel.port2.postMessage(handle);
+        };
+    }
+
+    function installReadyStateChangeImplementation() {
+        var html = doc.documentElement;
+        registerImmediate = function(handle) {
+            // Create a <script> element; its readystatechange event will be fired asynchronously once it is inserted
+            // into the document. Do so, thus queuing up the task. Remember to clean up once it's been called.
+            var script = doc.createElement("script");
+            script.onreadystatechange = function () {
+                runIfPresent(handle);
+                script.onreadystatechange = null;
+                html.removeChild(script);
+                script = null;
+            };
+            html.appendChild(script);
+        };
+    }
+
+    function installSetTimeoutImplementation() {
+        registerImmediate = function(handle) {
+            setTimeout(runIfPresent, 0, handle);
+        };
+    }
+
+    // If supported, we should attach to the prototype of global, since that is where setTimeout et al. live.
+    var attachTo = Object.getPrototypeOf && Object.getPrototypeOf(global);
+    attachTo = attachTo && attachTo.setTimeout ? attachTo : global;
+
+    // Don't get fooled by e.g. browserify environments.
+    if ({}.toString.call(global.process) === "[object process]") {
+        // For Node.js before 0.9
+        installNextTickImplementation();
+
+    } else if (canUsePostMessage()) {
+        // For non-IE10 modern browsers
+        installPostMessageImplementation();
+
+    } else if (global.MessageChannel) {
+        // For web workers, where supported
+        installMessageChannelImplementation();
+
+    } else if (doc && "onreadystatechange" in doc.createElement("script")) {
+        // For IE 6–8
+        installReadyStateChangeImplementation();
+
+    } else {
+        // For older browsers
+        installSetTimeoutImplementation();
+    }
+
+    attachTo.setImmediate = setImmediate;
+    attachTo.clearImmediate = clearImmediate;
+}(typeof self === "undefined" ? typeof global === "undefined" ? this : global : self));
+
+
+/***/ }),
+/* 390 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var util = __webpack_require__(74);
+var zlib = __webpack_require__(145);
+var Stream = __webpack_require__(106);
+var binary = __webpack_require__(391);
+var Promise = __webpack_require__(396);
+var PullStream = __webpack_require__(432);
+var NoopStream = __webpack_require__(448);
+var BufferStream = __webpack_require__(449);
+var parseExtraField = __webpack_require__(450);
+var Buffer = __webpack_require__(433);
+var parseDateTime = __webpack_require__(451);
+
+// Backwards compatibility for node versions < 8
+if (!Stream.Writable || !Stream.Writable.prototype.destroy)
+  Stream = __webpack_require__(434);
+
+var endDirectorySignature = Buffer.alloc(4);
+endDirectorySignature.writeUInt32LE(0x06054b50, 0);
+
+function Parse(opts) {
+  if (!(this instanceof Parse)) {
+    return new Parse(opts);
+  }
+  var self = this;
+  self._opts = opts || { verbose: false };
+
+  PullStream.call(self, self._opts);
+  self.on('finish',function() {
+    self.emit('close');
+  });
+  self._readRecord().catch(function(e) {
+    if (!self.__emittedError || self.__emittedError !== e)
+      self.emit('error',e);
+  });
+}
+
+util.inherits(Parse, PullStream);
+
+Parse.prototype._readRecord = function () {
+  var self = this;
+  return self.pull(4).then(function(data) {
+    if (data.length === 0)
+      return;
+
+    var signature = data.readUInt32LE(0);
+
+    if (signature === 0x34327243) {
+      return self._readCrxHeader();
+    }
+    if (signature === 0x04034b50) {
+      return self._readFile();
+    }
+    else if (signature === 0x02014b50) {
+      self.__ended = true;
+      return self._readCentralDirectoryFileHeader();
+    }
+    else if (signature === 0x06054b50) {
+      return self._readEndOfCentralDirectoryRecord();
+    }
+    else if (self.__ended) {
+      return self.pull(endDirectorySignature).then(function() {
+          return self._readEndOfCentralDirectoryRecord();
+        });
+    }
+    else
+      self.emit('error', new Error('invalid signature: 0x' + signature.toString(16)));
+  });
+};
+
+Parse.prototype._readCrxHeader = function() {
+  var self = this;
+  return self.pull(12).then(function(data) {
+    self.crxHeader = binary.parse(data)
+      .word32lu('version')
+      .word32lu('pubKeyLength')
+      .word32lu('signatureLength')
+      .vars;
+    return self.pull(self.crxHeader.pubKeyLength + self.crxHeader.signatureLength);
+  }).then(function(data) {
+    self.crxHeader.publicKey = data.slice(0,self.crxHeader.pubKeyLength);
+    self.crxHeader.signature = data.slice(self.crxHeader.pubKeyLength);
+    self.emit('crx-header',self.crxHeader);
+    return self._readRecord();
+  });
+};
+
+Parse.prototype._readFile = function () {
+  var self = this;
+  return self.pull(26).then(function(data) {
+    var vars = binary.parse(data)
+      .word16lu('versionsNeededToExtract')
+      .word16lu('flags')
+      .word16lu('compressionMethod')
+      .word16lu('lastModifiedTime')
+      .word16lu('lastModifiedDate')
+      .word32lu('crc32')
+      .word32lu('compressedSize')
+      .word32lu('uncompressedSize')
+      .word16lu('fileNameLength')
+      .word16lu('extraFieldLength')
+      .vars;
+
+    vars.lastModifiedDateTime = parseDateTime(vars.lastModifiedDate, vars.lastModifiedTime);
+
+    if (self.crxHeader) vars.crxHeader = self.crxHeader;
+
+    return self.pull(vars.fileNameLength).then(function(fileNameBuffer) {
+      var fileName = fileNameBuffer.toString('utf8');
+      var entry = Stream.PassThrough();
+      var __autodraining = false;
+
+      entry.autodrain = function() {
+        __autodraining = true;
+        var draining = entry.pipe(NoopStream());
+        draining.promise = function() {
+          return new Promise(function(resolve, reject) {
+            draining.on('finish',resolve);
+            draining.on('error',reject);
+          });
+        };
+        return draining;
+      };
+
+      entry.buffer = function() {
+        return BufferStream(entry);
+      };
+
+      entry.path = fileName;
+      entry.props = {};
+      entry.props.path = fileName;
+      entry.props.pathBuffer = fileNameBuffer;
+      entry.props.flags = {
+        "isUnicode": vars.flags & 0x11
+      };
+      entry.type = (vars.uncompressedSize === 0 && /[\/\\]$/.test(fileName)) ? 'Directory' : 'File';
+
+      if (self._opts.verbose) {
+        if (entry.type === 'Directory') {
+          console.log('   creating:', fileName);
+        } else if (entry.type === 'File') {
+          if (vars.compressionMethod === 0) {
+            console.log(' extracting:', fileName);
+          } else {
+            console.log('  inflating:', fileName);
+          }
+        }
+      }
+
+      return self.pull(vars.extraFieldLength).then(function(extraField) {
+        var extra = parseExtraField(extraField, vars);
+
+        entry.vars = vars;
+        entry.extra = extra;
+
+        if (self._opts.forceStream) {
+          self.push(entry);
+        } else {
+          self.emit('entry', entry);
+
+          if (self._readableState.pipesCount || (self._readableState.pipes && self._readableState.pipes.length))
+            self.push(entry);
+        }
+
+        if (self._opts.verbose)
+          console.log({
+            filename:fileName,
+            vars: vars,
+            extra: extra
+          });
+
+        var fileSizeKnown = !(vars.flags & 0x08) || vars.compressedSize > 0,
+            eof;
+
+        entry.__autodraining = __autodraining;  // expose __autodraining for test purposes
+        var inflater = (vars.compressionMethod && !__autodraining) ? zlib.createInflateRaw() : Stream.PassThrough();
+
+        if (fileSizeKnown) {
+          entry.size = vars.uncompressedSize;
+          eof = vars.compressedSize;
+        } else {
+          eof = Buffer.alloc(4);
+          eof.writeUInt32LE(0x08074b50, 0);
+        }
+
+        return new Promise(function(resolve, reject) {
+          self.stream(eof)
+            .pipe(inflater)
+            .on('error',function(err) { self.emit('error',err);})
+            .pipe(entry)
+            .on('finish', function() {
+              return fileSizeKnown ?
+                self._readRecord().then(resolve).catch(reject) :
+                self._processDataDescriptor(entry).then(resolve).catch(reject);
+            });
+        });
+      });
+    });
+  });
+};
+
+Parse.prototype._processDataDescriptor = function (entry) {
+  var self = this;
+  return self.pull(16).then(function(data) {
+    var vars = binary.parse(data)
+      .word32lu('dataDescriptorSignature')
+      .word32lu('crc32')
+      .word32lu('compressedSize')
+      .word32lu('uncompressedSize')
+      .vars;
+
+    entry.size = vars.uncompressedSize;
+    return self._readRecord();
+  });
+};
+
+Parse.prototype._readCentralDirectoryFileHeader = function () {
+  var self = this;
+  return self.pull(42).then(function(data) {
+
+    var vars = binary.parse(data)
+      .word16lu('versionMadeBy')
+      .word16lu('versionsNeededToExtract')
+      .word16lu('flags')
+      .word16lu('compressionMethod')
+      .word16lu('lastModifiedTime')
+      .word16lu('lastModifiedDate')
+      .word32lu('crc32')
+      .word32lu('compressedSize')
+      .word32lu('uncompressedSize')
+      .word16lu('fileNameLength')
+      .word16lu('extraFieldLength')
+      .word16lu('fileCommentLength')
+      .word16lu('diskNumber')
+      .word16lu('internalFileAttributes')
+      .word32lu('externalFileAttributes')
+      .word32lu('offsetToLocalFileHeader')
+      .vars;
+
+    return self.pull(vars.fileNameLength).then(function(fileName) {
+      vars.fileName = fileName.toString('utf8');
+      return self.pull(vars.extraFieldLength);
+    })
+    .then(function(extraField) {
+      return self.pull(vars.fileCommentLength);
+    })
+    .then(function(fileComment) {
+      return self._readRecord();
+    });
+  });
+};
+
+Parse.prototype._readEndOfCentralDirectoryRecord = function() {
+  var self = this;
+  return self.pull(18).then(function(data) {
+
+    var vars = binary.parse(data)
+      .word16lu('diskNumber')
+      .word16lu('diskStart')
+      .word16lu('numberOfRecordsOnDisk')
+      .word16lu('numberOfRecords')
+      .word32lu('sizeOfCentralDirectory')
+      .word32lu('offsetToStartOfCentralDirectory')
+      .word16lu('commentLength')
+      .vars;
+
+    return self.pull(vars.commentLength).then(function(comment) {
+      comment = comment.toString('utf8');
+      self.end();
+      self.push(null);
+    });
+
+  });
+};
+
+Parse.prototype.promise = function() {
+  var self = this;
+  return new Promise(function(resolve,reject) {
+    self.on('finish',resolve);
+    self.on('error',reject);
+  });
+};
+
+module.exports = Parse;
+
+
+/***/ }),
+/* 391 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var Chainsaw = __webpack_require__(392);
+var EventEmitter = __webpack_require__(198).EventEmitter;
+var Buffers = __webpack_require__(394);
+var Vars = __webpack_require__(395);
+var Stream = __webpack_require__(106).Stream;
+
+exports = module.exports = function (bufOrEm, eventName) {
+    if (Buffer.isBuffer(bufOrEm)) {
+        return exports.parse(bufOrEm);
+    }
+    
+    var s = exports.stream();
+    if (bufOrEm && bufOrEm.pipe) {
+        bufOrEm.pipe(s);
+    }
+    else if (bufOrEm) {
+        bufOrEm.on(eventName || 'data', function (buf) {
+            s.write(buf);
+        });
+        
+        bufOrEm.on('end', function () {
+            s.end();
+        });
+    }
+    return s;
+};
+
+exports.stream = function (input) {
+    if (input) return exports.apply(null, arguments);
+    
+    var pending = null;
+    function getBytes (bytes, cb, skip) {
+        pending = {
+            bytes : bytes,
+            skip : skip,
+            cb : function (buf) {
+                pending = null;
+                cb(buf);
+            },
+        };
+        dispatch();
+    }
+    
+    var offset = null;
+    function dispatch () {
+        if (!pending) {
+            if (caughtEnd) done = true;
+            return;
+        }
+        if (typeof pending === 'function') {
+            pending();
+        }
+        else {
+            var bytes = offset + pending.bytes;
+            
+            if (buffers.length >= bytes) {
+                var buf;
+                if (offset == null) {
+                    buf = buffers.splice(0, bytes);
+                    if (!pending.skip) {
+                        buf = buf.slice();
+                    }
+                }
+                else {
+                    if (!pending.skip) {
+                        buf = buffers.slice(offset, bytes);
+                    }
+                    offset = bytes;
+                }
+                
+                if (pending.skip) {
+                    pending.cb();
+                }
+                else {
+                    pending.cb(buf);
+                }
+            }
+        }
+    }
+    
+    function builder (saw) {
+        function next () { if (!done) saw.next() }
+        
+        var self = words(function (bytes, cb) {
+            return function (name) {
+                getBytes(bytes, function (buf) {
+                    vars.set(name, cb(buf));
+                    next();
+                });
+            };
+        });
+        
+        self.tap = function (cb) {
+            saw.nest(cb, vars.store);
+        };
+        
+        self.into = function (key, cb) {
+            if (!vars.get(key)) vars.set(key, {});
+            var parent = vars;
+            vars = Vars(parent.get(key));
+            
+            saw.nest(function () {
+                cb.apply(this, arguments);
+                this.tap(function () {
+                    vars = parent;
+                });
+            }, vars.store);
+        };
+        
+        self.flush = function () {
+            vars.store = {};
+            next();
+        };
+        
+        self.loop = function (cb) {
+            var end = false;
+            
+            saw.nest(false, function loop () {
+                this.vars = vars.store;
+                cb.call(this, function () {
+                    end = true;
+                    next();
+                }, vars.store);
+                this.tap(function () {
+                    if (end) saw.next()
+                    else loop.call(this)
+                }.bind(this));
+            }, vars.store);
+        };
+        
+        self.buffer = function (name, bytes) {
+            if (typeof bytes === 'string') {
+                bytes = vars.get(bytes);
+            }
+            
+            getBytes(bytes, function (buf) {
+                vars.set(name, buf);
+                next();
+            });
+        };
+        
+        self.skip = function (bytes) {
+            if (typeof bytes === 'string') {
+                bytes = vars.get(bytes);
+            }
+            
+            getBytes(bytes, function () {
+                next();
+            });
+        };
+        
+        self.scan = function find (name, search) {
+            if (typeof search === 'string') {
+                search = new Buffer(search);
+            }
+            else if (!Buffer.isBuffer(search)) {
+                throw new Error('search must be a Buffer or a string');
+            }
+            
+            var taken = 0;
+            pending = function () {
+                var pos = buffers.indexOf(search, offset + taken);
+                var i = pos-offset-taken;
+                if (pos !== -1) {
+                    pending = null;
+                    if (offset != null) {
+                        vars.set(
+                            name,
+                            buffers.slice(offset, offset + taken + i)
+                        );
+                        offset += taken + i + search.length;
+                    }
+                    else {
+                        vars.set(
+                            name,
+                            buffers.slice(0, taken + i)
+                        );
+                        buffers.splice(0, taken + i + search.length);
+                    }
+                    next();
+                    dispatch();
+                } else {
+                    i = Math.max(buffers.length - search.length - offset - taken, 0);
+				}
+                taken += i;
+            };
+            dispatch();
+        };
+        
+        self.peek = function (cb) {
+            offset = 0;
+            saw.nest(function () {
+                cb.call(this, vars.store);
+                this.tap(function () {
+                    offset = null;
+                });
+            });
+        };
+        
+        return self;
+    };
+    
+    var stream = Chainsaw.light(builder);
+    stream.writable = true;
+    
+    var buffers = Buffers();
+    
+    stream.write = function (buf) {
+        buffers.push(buf);
+        dispatch();
+    };
+    
+    var vars = Vars();
+    
+    var done = false, caughtEnd = false;
+    stream.end = function () {
+        caughtEnd = true;
+    };
+    
+    stream.pipe = Stream.prototype.pipe;
+    Object.getOwnPropertyNames(EventEmitter.prototype).forEach(function (name) {
+        stream[name] = EventEmitter.prototype[name];
+    });
+    
+    return stream;
+};
+
+exports.parse = function parse (buffer) {
+    var self = words(function (bytes, cb) {
+        return function (name) {
+            if (offset + bytes <= buffer.length) {
+                var buf = buffer.slice(offset, offset + bytes);
+                offset += bytes;
+                vars.set(name, cb(buf));
+            }
+            else {
+                vars.set(name, null);
+            }
+            return self;
+        };
+    });
+    
+    var offset = 0;
+    var vars = Vars();
+    self.vars = vars.store;
+    
+    self.tap = function (cb) {
+        cb.call(self, vars.store);
+        return self;
+    };
+    
+    self.into = function (key, cb) {
+        if (!vars.get(key)) {
+            vars.set(key, {});
+        }
+        var parent = vars;
+        vars = Vars(parent.get(key));
+        cb.call(self, vars.store);
+        vars = parent;
+        return self;
+    };
+    
+    self.loop = function (cb) {
+        var end = false;
+        var ender = function () { end = true };
+        while (end === false) {
+            cb.call(self, ender, vars.store);
+        }
+        return self;
+    };
+    
+    self.buffer = function (name, size) {
+        if (typeof size === 'string') {
+            size = vars.get(size);
+        }
+        var buf = buffer.slice(offset, Math.min(buffer.length, offset + size));
+        offset += size;
+        vars.set(name, buf);
+        
+        return self;
+    };
+    
+    self.skip = function (bytes) {
+        if (typeof bytes === 'string') {
+            bytes = vars.get(bytes);
+        }
+        offset += bytes;
+        
+        return self;
+    };
+    
+    self.scan = function (name, search) {
+        if (typeof search === 'string') {
+            search = new Buffer(search);
+        }
+        else if (!Buffer.isBuffer(search)) {
+            throw new Error('search must be a Buffer or a string');
+        }
+        vars.set(name, null);
+        
+        // simple but slow string search
+        for (var i = 0; i + offset <= buffer.length - search.length + 1; i++) {
+            for (
+                var j = 0;
+                j < search.length && buffer[offset+i+j] === search[j];
+                j++
+            );
+            if (j === search.length) break;
+        }
+        
+        vars.set(name, buffer.slice(offset, offset + i));
+        offset += i + search.length;
+        return self;
+    };
+    
+    self.peek = function (cb) {
+        var was = offset;
+        cb.call(self, vars.store);
+        offset = was;
+        return self;
+    };
+    
+    self.flush = function () {
+        vars.store = {};
+        return self;
+    };
+    
+    self.eof = function () {
+        return offset >= buffer.length;
+    };
+    
+    return self;
+};
+
+// convert byte strings to unsigned little endian numbers
+function decodeLEu (bytes) {
+    var acc = 0;
+    for (var i = 0; i < bytes.length; i++) {
+        acc += Math.pow(256,i) * bytes[i];
+    }
+    return acc;
+}
+
+// convert byte strings to unsigned big endian numbers
+function decodeBEu (bytes) {
+    var acc = 0;
+    for (var i = 0; i < bytes.length; i++) {
+        acc += Math.pow(256, bytes.length - i - 1) * bytes[i];
+    }
+    return acc;
+}
+
+// convert byte strings to signed big endian numbers
+function decodeBEs (bytes) {
+    var val = decodeBEu(bytes);
+    if ((bytes[0] & 0x80) == 0x80) {
+        val -= Math.pow(256, bytes.length);
+    }
+    return val;
+}
+
+// convert byte strings to signed little endian numbers
+function decodeLEs (bytes) {
+    var val = decodeLEu(bytes);
+    if ((bytes[bytes.length - 1] & 0x80) == 0x80) {
+        val -= Math.pow(256, bytes.length);
+    }
+    return val;
+}
+
+function words (decode) {
+    var self = {};
+    
+    [ 1, 2, 4, 8 ].forEach(function (bytes) {
+        var bits = bytes * 8;
+        
+        self['word' + bits + 'le']
+        = self['word' + bits + 'lu']
+        = decode(bytes, decodeLEu);
+        
+        self['word' + bits + 'ls']
+        = decode(bytes, decodeLEs);
+        
+        self['word' + bits + 'be']
+        = self['word' + bits + 'bu']
+        = decode(bytes, decodeBEu);
+        
+        self['word' + bits + 'bs']
+        = decode(bytes, decodeBEs);
+    });
+    
+    // word8be(n) == word8le(n) for all n
+    self.word8 = self.word8u = self.word8be;
+    self.word8s = self.word8bs;
+    
+    return self;
+}
+
+
+/***/ }),
+/* 392 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var Traverse = __webpack_require__(393);
+var EventEmitter = __webpack_require__(198).EventEmitter;
+
+module.exports = Chainsaw;
+function Chainsaw (builder) {
+    var saw = Chainsaw.saw(builder, {});
+    var r = builder.call(saw.handlers, saw);
+    if (r !== undefined) saw.handlers = r;
+    saw.record();
+    return saw.chain();
+};
+
+Chainsaw.light = function ChainsawLight (builder) {
+    var saw = Chainsaw.saw(builder, {});
+    var r = builder.call(saw.handlers, saw);
+    if (r !== undefined) saw.handlers = r;
+    return saw.chain();
+};
+
+Chainsaw.saw = function (builder, handlers) {
+    var saw = new EventEmitter;
+    saw.handlers = handlers;
+    saw.actions = [];
+
+    saw.chain = function () {
+        var ch = Traverse(saw.handlers).map(function (node) {
+            if (this.isRoot) return node;
+            var ps = this.path;
+
+            if (typeof node === 'function') {
+                this.update(function () {
+                    saw.actions.push({
+                        path : ps,
+                        args : [].slice.call(arguments)
+                    });
+                    return ch;
+                });
+            }
+        });
+
+        process.nextTick(function () {
+            saw.emit('begin');
+            saw.next();
+        });
+
+        return ch;
+    };
+
+    saw.pop = function () {
+        return saw.actions.shift();
+    };
+
+    saw.next = function () {
+        var action = saw.pop();
+
+        if (!action) {
+            saw.emit('end');
+        }
+        else if (!action.trap) {
+            var node = saw.handlers;
+            action.path.forEach(function (key) { node = node[key] });
+            node.apply(saw.handlers, action.args);
+        }
+    };
+
+    saw.nest = function (cb) {
+        var args = [].slice.call(arguments, 1);
+        var autonext = true;
+
+        if (typeof cb === 'boolean') {
+            var autonext = cb;
+            cb = args.shift();
+        }
+
+        var s = Chainsaw.saw(builder, {});
+        var r = builder.call(s.handlers, s);
+
+        if (r !== undefined) s.handlers = r;
+
+        // If we are recording...
+        if ("undefined" !== typeof saw.step) {
+            // ... our children should, too
+            s.record();
+        }
+
+        cb.apply(s.chain(), args);
+        if (autonext !== false) s.on('end', saw.next);
+    };
+
+    saw.record = function () {
+        upgradeChainsaw(saw);
+    };
+
+    ['trap', 'down', 'jump'].forEach(function (method) {
+        saw[method] = function () {
+            throw new Error("To use the trap, down and jump features, please "+
+                            "call record() first to start recording actions.");
+        };
+    });
+
+    return saw;
+};
+
+function upgradeChainsaw(saw) {
+    saw.step = 0;
+
+    // override pop
+    saw.pop = function () {
+        return saw.actions[saw.step++];
+    };
+
+    saw.trap = function (name, cb) {
+        var ps = Array.isArray(name) ? name : [name];
+        saw.actions.push({
+            path : ps,
+            step : saw.step,
+            cb : cb,
+            trap : true
+        });
+    };
+
+    saw.down = function (name) {
+        var ps = (Array.isArray(name) ? name : [name]).join('/');
+        var i = saw.actions.slice(saw.step).map(function (x) {
+            if (x.trap && x.step <= saw.step) return false;
+            return x.path.join('/') == ps;
+        }).indexOf(true);
+
+        if (i >= 0) saw.step += i;
+        else saw.step = saw.actions.length;
+
+        var act = saw.actions[saw.step - 1];
+        if (act && act.trap) {
+            // It's a trap!
+            saw.step = act.step;
+            act.cb();
+        }
+        else saw.next();
+    };
+
+    saw.jump = function (step) {
+        saw.step = step;
+        saw.next();
+    };
+};
+
+
+/***/ }),
+/* 393 */
+/***/ (function(module, exports) {
+
+module.exports = Traverse;
+function Traverse (obj) {
+    if (!(this instanceof Traverse)) return new Traverse(obj);
+    this.value = obj;
+}
+
+Traverse.prototype.get = function (ps) {
+    var node = this.value;
+    for (var i = 0; i < ps.length; i ++) {
+        var key = ps[i];
+        if (!Object.hasOwnProperty.call(node, key)) {
+            node = undefined;
+            break;
+        }
+        node = node[key];
+    }
+    return node;
+};
+
+Traverse.prototype.set = function (ps, value) {
+    var node = this.value;
+    for (var i = 0; i < ps.length - 1; i ++) {
+        var key = ps[i];
+        if (!Object.hasOwnProperty.call(node, key)) node[key] = {};
+        node = node[key];
+    }
+    node[ps[i]] = value;
+    return value;
+};
+
+Traverse.prototype.map = function (cb) {
+    return walk(this.value, cb, true);
+};
+
+Traverse.prototype.forEach = function (cb) {
+    this.value = walk(this.value, cb, false);
+    return this.value;
+};
+
+Traverse.prototype.reduce = function (cb, init) {
+    var skip = arguments.length === 1;
+    var acc = skip ? this.value : init;
+    this.forEach(function (x) {
+        if (!this.isRoot || !skip) {
+            acc = cb.call(this, acc, x);
+        }
+    });
+    return acc;
+};
+
+Traverse.prototype.deepEqual = function (obj) {
+    if (arguments.length !== 1) {
+        throw new Error(
+            'deepEqual requires exactly one object to compare against'
+        );
+    }
+    
+    var equal = true;
+    var node = obj;
+    
+    this.forEach(function (y) {
+        var notEqual = (function () {
+            equal = false;
+            //this.stop();
+            return undefined;
+        }).bind(this);
+        
+        //if (node === undefined || node === null) return notEqual();
+        
+        if (!this.isRoot) {
+        /*
+            if (!Object.hasOwnProperty.call(node, this.key)) {
+                return notEqual();
+            }
+        */
+            if (typeof node !== 'object') return notEqual();
+            node = node[this.key];
+        }
+        
+        var x = node;
+        
+        this.post(function () {
+            node = x;
+        });
+        
+        var toS = function (o) {
+            return Object.prototype.toString.call(o);
+        };
+        
+        if (this.circular) {
+            if (Traverse(obj).get(this.circular.path) !== x) notEqual();
+        }
+        else if (typeof x !== typeof y) {
+            notEqual();
+        }
+        else if (x === null || y === null || x === undefined || y === undefined) {
+            if (x !== y) notEqual();
+        }
+        else if (x.__proto__ !== y.__proto__) {
+            notEqual();
+        }
+        else if (x === y) {
+            // nop
+        }
+        else if (typeof x === 'function') {
+            if (x instanceof RegExp) {
+                // both regexps on account of the __proto__ check
+                if (x.toString() != y.toString()) notEqual();
+            }
+            else if (x !== y) notEqual();
+        }
+        else if (typeof x === 'object') {
+            if (toS(y) === '[object Arguments]'
+            || toS(x) === '[object Arguments]') {
+                if (toS(x) !== toS(y)) {
+                    notEqual();
+                }
+            }
+            else if (x instanceof Date || y instanceof Date) {
+                if (!(x instanceof Date) || !(y instanceof Date)
+                || x.getTime() !== y.getTime()) {
+                    notEqual();
+                }
+            }
+            else {
+                var kx = Object.keys(x);
+                var ky = Object.keys(y);
+                if (kx.length !== ky.length) return notEqual();
+                for (var i = 0; i < kx.length; i++) {
+                    var k = kx[i];
+                    if (!Object.hasOwnProperty.call(y, k)) {
+                        notEqual();
+                    }
+                }
+            }
+        }
+    });
+    
+    return equal;
+};
+
+Traverse.prototype.paths = function () {
+    var acc = [];
+    this.forEach(function (x) {
+        acc.push(this.path); 
+    });
+    return acc;
+};
+
+Traverse.prototype.nodes = function () {
+    var acc = [];
+    this.forEach(function (x) {
+        acc.push(this.node);
+    });
+    return acc;
+};
+
+Traverse.prototype.clone = function () {
+    var parents = [], nodes = [];
+    
+    return (function clone (src) {
+        for (var i = 0; i < parents.length; i++) {
+            if (parents[i] === src) {
+                return nodes[i];
+            }
+        }
+        
+        if (typeof src === 'object' && src !== null) {
+            var dst = copy(src);
+            
+            parents.push(src);
+            nodes.push(dst);
+            
+            Object.keys(src).forEach(function (key) {
+                dst[key] = clone(src[key]);
+            });
+            
+            parents.pop();
+            nodes.pop();
+            return dst;
+        }
+        else {
+            return src;
+        }
+    })(this.value);
+};
+
+function walk (root, cb, immutable) {
+    var path = [];
+    var parents = [];
+    var alive = true;
+    
+    return (function walker (node_) {
+        var node = immutable ? copy(node_) : node_;
+        var modifiers = {};
+        
+        var state = {
+            node : node,
+            node_ : node_,
+            path : [].concat(path),
+            parent : parents.slice(-1)[0],
+            key : path.slice(-1)[0],
+            isRoot : path.length === 0,
+            level : path.length,
+            circular : null,
+            update : function (x) {
+                if (!state.isRoot) {
+                    state.parent.node[state.key] = x;
+                }
+                state.node = x;
+            },
+            'delete' : function () {
+                delete state.parent.node[state.key];
+            },
+            remove : function () {
+                if (Array.isArray(state.parent.node)) {
+                    state.parent.node.splice(state.key, 1);
+                }
+                else {
+                    delete state.parent.node[state.key];
+                }
+            },
+            before : function (f) { modifiers.before = f },
+            after : function (f) { modifiers.after = f },
+            pre : function (f) { modifiers.pre = f },
+            post : function (f) { modifiers.post = f },
+            stop : function () { alive = false }
+        };
+        
+        if (!alive) return state;
+        
+        if (typeof node === 'object' && node !== null) {
+            state.isLeaf = Object.keys(node).length == 0;
+            
+            for (var i = 0; i < parents.length; i++) {
+                if (parents[i].node_ === node_) {
+                    state.circular = parents[i];
+                    break;
+                }
+            }
+        }
+        else {
+            state.isLeaf = true;
+        }
+        
+        state.notLeaf = !state.isLeaf;
+        state.notRoot = !state.isRoot;
+        
+        // use return values to update if defined
+        var ret = cb.call(state, state.node);
+        if (ret !== undefined && state.update) state.update(ret);
+        if (modifiers.before) modifiers.before.call(state, state.node);
+        
+        if (typeof state.node == 'object'
+        && state.node !== null && !state.circular) {
+            parents.push(state);
+            
+            var keys = Object.keys(state.node);
+            keys.forEach(function (key, i) {
+                path.push(key);
+                
+                if (modifiers.pre) modifiers.pre.call(state, state.node[key], key);
+                
+                var child = walker(state.node[key]);
+                if (immutable && Object.hasOwnProperty.call(state.node, key)) {
+                    state.node[key] = child.node;
+                }
+                
+                child.isLast = i == keys.length - 1;
+                child.isFirst = i == 0;
+                
+                if (modifiers.post) modifiers.post.call(state, child);
+                
+                path.pop();
+            });
+            parents.pop();
+        }
+        
+        if (modifiers.after) modifiers.after.call(state, state.node);
+        
+        return state;
+    })(root).node;
+}
+
+Object.keys(Traverse.prototype).forEach(function (key) {
+    Traverse[key] = function (obj) {
+        var args = [].slice.call(arguments, 1);
+        var t = Traverse(obj);
+        return t[key].apply(t, args);
+    };
+});
+
+function copy (src) {
+    if (typeof src === 'object' && src !== null) {
+        var dst;
+        
+        if (Array.isArray(src)) {
+            dst = [];
+        }
+        else if (src instanceof Date) {
+            dst = new Date(src);
+        }
+        else if (src instanceof Boolean) {
+            dst = new Boolean(src);
+        }
+        else if (src instanceof Number) {
+            dst = new Number(src);
+        }
+        else if (src instanceof String) {
+            dst = new String(src);
+        }
+        else {
+            dst = Object.create(Object.getPrototypeOf(src));
+        }
+        
+        Object.keys(src).forEach(function (key) {
+            dst[key] = src[key];
+        });
+        return dst;
+    }
+    else return src;
+}
+
+
+/***/ }),
+/* 394 */
+/***/ (function(module, exports) {
+
+module.exports = Buffers;
+
+function Buffers (bufs) {
+    if (!(this instanceof Buffers)) return new Buffers(bufs);
+    this.buffers = bufs || [];
+    this.length = this.buffers.reduce(function (size, buf) {
+        return size + buf.length
+    }, 0);
+}
+
+Buffers.prototype.push = function () {
+    for (var i = 0; i < arguments.length; i++) {
+        if (!Buffer.isBuffer(arguments[i])) {
+            throw new TypeError('Tried to push a non-buffer');
+        }
+    }
+    
+    for (var i = 0; i < arguments.length; i++) {
+        var buf = arguments[i];
+        this.buffers.push(buf);
+        this.length += buf.length;
+    }
+    return this.length;
+};
+
+Buffers.prototype.unshift = function () {
+    for (var i = 0; i < arguments.length; i++) {
+        if (!Buffer.isBuffer(arguments[i])) {
+            throw new TypeError('Tried to unshift a non-buffer');
+        }
+    }
+    
+    for (var i = 0; i < arguments.length; i++) {
+        var buf = arguments[i];
+        this.buffers.unshift(buf);
+        this.length += buf.length;
+    }
+    return this.length;
+};
+
+Buffers.prototype.copy = function (dst, dStart, start, end) {
+    return this.slice(start, end).copy(dst, dStart, 0, end - start);
+};
+
+Buffers.prototype.splice = function (i, howMany) {
+    var buffers = this.buffers;
+    var index = i >= 0 ? i : this.length - i;
+    var reps = [].slice.call(arguments, 2);
+    
+    if (howMany === undefined) {
+        howMany = this.length - index;
+    }
+    else if (howMany > this.length - index) {
+        howMany = this.length - index;
+    }
+    
+    for (var i = 0; i < reps.length; i++) {
+        this.length += reps[i].length;
+    }
+    
+    var removed = new Buffers();
+    var bytes = 0;
+    
+    var startBytes = 0;
+    for (
+        var ii = 0;
+        ii < buffers.length && startBytes + buffers[ii].length < index;
+        ii ++
+    ) { startBytes += buffers[ii].length }
+    
+    if (index - startBytes > 0) {
+        var start = index - startBytes;
+        
+        if (start + howMany < buffers[ii].length) {
+            removed.push(buffers[ii].slice(start, start + howMany));
+            
+            var orig = buffers[ii];
+            //var buf = new Buffer(orig.length - howMany);
+            var buf0 = new Buffer(start);
+            for (var i = 0; i < start; i++) {
+                buf0[i] = orig[i];
+            }
+            
+            var buf1 = new Buffer(orig.length - start - howMany);
+            for (var i = start + howMany; i < orig.length; i++) {
+                buf1[ i - howMany - start ] = orig[i]
+            }
+            
+            if (reps.length > 0) {
+                var reps_ = reps.slice();
+                reps_.unshift(buf0);
+                reps_.push(buf1);
+                buffers.splice.apply(buffers, [ ii, 1 ].concat(reps_));
+                ii += reps_.length;
+                reps = [];
+            }
+            else {
+                buffers.splice(ii, 1, buf0, buf1);
+                //buffers[ii] = buf;
+                ii += 2;
+            }
+        }
+        else {
+            removed.push(buffers[ii].slice(start));
+            buffers[ii] = buffers[ii].slice(0, start);
+            ii ++;
+        }
+    }
+    
+    if (reps.length > 0) {
+        buffers.splice.apply(buffers, [ ii, 0 ].concat(reps));
+        ii += reps.length;
+    }
+    
+    while (removed.length < howMany) {
+        var buf = buffers[ii];
+        var len = buf.length;
+        var take = Math.min(len, howMany - removed.length);
+        
+        if (take === len) {
+            removed.push(buf);
+            buffers.splice(ii, 1);
+        }
+        else {
+            removed.push(buf.slice(0, take));
+            buffers[ii] = buffers[ii].slice(take);
+        }
+    }
+    
+    this.length -= removed.length;
+    
+    return removed;
+};
+ 
+Buffers.prototype.slice = function (i, j) {
+    var buffers = this.buffers;
+    if (j === undefined) j = this.length;
+    if (i === undefined) i = 0;
+    
+    if (j > this.length) j = this.length;
+    
+    var startBytes = 0;
+    for (
+        var si = 0;
+        si < buffers.length && startBytes + buffers[si].length <= i;
+        si ++
+    ) { startBytes += buffers[si].length }
+    
+    var target = new Buffer(j - i);
+    
+    var ti = 0;
+    for (var ii = si; ti < j - i && ii < buffers.length; ii++) {
+        var len = buffers[ii].length;
+        
+        var start = ti === 0 ? i - startBytes : 0;
+        var end = ti + len >= j - i
+            ? Math.min(start + (j - i) - ti, len)
+            : len
+        ;
+        
+        buffers[ii].copy(target, ti, start, end);
+        ti += end - start;
+    }
+    
+    return target;
+};
+
+Buffers.prototype.pos = function (i) {
+    if (i < 0 || i >= this.length) throw new Error('oob');
+    var l = i, bi = 0, bu = null;
+    for (;;) {
+        bu = this.buffers[bi];
+        if (l < bu.length) {
+            return {buf: bi, offset: l};
+        } else {
+            l -= bu.length;
+        }
+        bi++;
+    }
+};
+
+Buffers.prototype.get = function get (i) {
+    var pos = this.pos(i);
+
+    return this.buffers[pos.buf].get(pos.offset);
+};
+
+Buffers.prototype.set = function set (i, b) {
+    var pos = this.pos(i);
+
+    return this.buffers[pos.buf].set(pos.offset, b);
+};
+
+Buffers.prototype.indexOf = function (needle, offset) {
+    if ("string" === typeof needle) {
+        needle = new Buffer(needle);
+    } else if (needle instanceof Buffer) {
+        // already a buffer
+    } else {
+        throw new Error('Invalid type for a search string');
+    }
+
+    if (!needle.length) {
+        return 0;
+    }
+
+    if (!this.length) {
+        return -1;
+    }
+
+    var i = 0, j = 0, match = 0, mstart, pos = 0;
+
+    // start search from a particular point in the virtual buffer
+    if (offset) {
+        var p = this.pos(offset);
+        i = p.buf;
+        j = p.offset;
+        pos = offset;
+    }
+
+    // for each character in virtual buffer
+    for (;;) {
+        while (j >= this.buffers[i].length) {
+            j = 0;
+            i++;
+
+            if (i >= this.buffers.length) {
+                // search string not found
+                return -1;
+            }
+        }
+
+        var char = this.buffers[i][j];
+
+        if (char == needle[match]) {
+            // keep track where match started
+            if (match == 0) {
+                mstart = {
+                    i: i,
+                    j: j,
+                    pos: pos
+                };
+            }
+            match++;
+            if (match == needle.length) {
+                // full match
+                return mstart.pos;
+            }
+        } else if (match != 0) {
+            // a partial match ended, go back to match starting position
+            // this will continue the search at the next character
+            i = mstart.i;
+            j = mstart.j;
+            pos = mstart.pos;
+            match = 0;
+        }
+
+        j++;
+        pos++;
+    }
+};
+
+Buffers.prototype.toBuffer = function() {
+    return this.slice();
+}
+
+Buffers.prototype.toString = function(encoding, start, end) {
+    return this.slice(start, end).toString(encoding);
+}
+
+
+/***/ }),
+/* 395 */
+/***/ (function(module, exports) {
+
+module.exports = function (store) {
+    function getset (name, value) {
+        var node = vars.store;
+        var keys = name.split('.');
+        keys.slice(0,-1).forEach(function (k) {
+            if (node[k] === undefined) node[k] = {};
+            node = node[k]
+        });
+        var key = keys[keys.length - 1];
+        if (arguments.length == 1) {
+            return node[key];
+        }
+        else {
+            return node[key] = value;
+        }
+    }
+    
+    var vars = {
+        get : function (name) {
+            return getset(name);
+        },
+        set : function (name, value) {
+            return getset(name, value);
+        },
+        store : store || {},
+    };
+    return vars;
+};
+
+
+/***/ }),
+/* 396 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var old;
+if (typeof Promise !== "undefined") old = Promise;
+function noConflict() {
+    try { if (Promise === bluebird) Promise = old; }
+    catch (e) {}
+    return bluebird;
+}
+var bluebird = __webpack_require__(397)();
+bluebird.noConflict = noConflict;
+module.exports = bluebird;
+
+
+/***/ }),
+/* 397 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function() {
+var makeSelfResolutionError = function () {
+    return new TypeError("circular promise resolution chain\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+};
+var reflectHandler = function() {
+    return new Promise.PromiseInspection(this._target());
+};
+var apiRejection = function(msg) {
+    return Promise.reject(new TypeError(msg));
+};
+function Proxyable() {}
+var UNDEFINED_BINDING = {};
+var util = __webpack_require__(398);
+
+var getDomain;
+if (util.isNode) {
+    getDomain = function() {
+        var ret = process.domain;
+        if (ret === undefined) ret = null;
+        return ret;
+    };
+} else {
+    getDomain = function() {
+        return null;
+    };
+}
+util.notEnumerableProp(Promise, "_getDomain", getDomain);
+
+var es5 = __webpack_require__(399);
+var Async = __webpack_require__(400);
+var async = new Async();
+es5.defineProperty(Promise, "_async", {value: async});
+var errors = __webpack_require__(403);
+var TypeError = Promise.TypeError = errors.TypeError;
+Promise.RangeError = errors.RangeError;
+var CancellationError = Promise.CancellationError = errors.CancellationError;
+Promise.TimeoutError = errors.TimeoutError;
+Promise.OperationalError = errors.OperationalError;
+Promise.RejectionError = errors.OperationalError;
+Promise.AggregateError = errors.AggregateError;
+var INTERNAL = function(){};
+var APPLY = {};
+var NEXT_FILTER = {};
+var tryConvertToPromise = __webpack_require__(404)(Promise, INTERNAL);
+var PromiseArray =
+    __webpack_require__(405)(Promise, INTERNAL,
+                               tryConvertToPromise, apiRejection, Proxyable);
+var Context = __webpack_require__(406)(Promise);
+ /*jshint unused:false*/
+var createContext = Context.create;
+var debug = __webpack_require__(407)(Promise, Context);
+var CapturedTrace = debug.CapturedTrace;
+var PassThroughHandlerContext =
+    __webpack_require__(408)(Promise, tryConvertToPromise);
+var catchFilter = __webpack_require__(409)(NEXT_FILTER);
+var nodebackForPromise = __webpack_require__(410);
+var errorObj = util.errorObj;
+var tryCatch = util.tryCatch;
+function check(self, executor) {
+    if (typeof executor !== "function") {
+        throw new TypeError("expecting a function but got " + util.classString(executor));
+    }
+    if (self.constructor !== Promise) {
+        throw new TypeError("the promise constructor cannot be invoked directly\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+    }
+}
+
+function Promise(executor) {
+    this._bitField = 0;
+    this._fulfillmentHandler0 = undefined;
+    this._rejectionHandler0 = undefined;
+    this._promise0 = undefined;
+    this._receiver0 = undefined;
+    if (executor !== INTERNAL) {
+        check(this, executor);
+        this._resolveFromExecutor(executor);
+    }
+    this._promiseCreated();
+    this._fireEvent("promiseCreated", this);
+}
+
+Promise.prototype.toString = function () {
+    return "[object Promise]";
+};
+
+Promise.prototype.caught = Promise.prototype["catch"] = function (fn) {
+    var len = arguments.length;
+    if (len > 1) {
+        var catchInstances = new Array(len - 1),
+            j = 0, i;
+        for (i = 0; i < len - 1; ++i) {
+            var item = arguments[i];
+            if (util.isObject(item)) {
+                catchInstances[j++] = item;
+            } else {
+                return apiRejection("expecting an object but got " +
+                    "A catch statement predicate " + util.classString(item));
+            }
+        }
+        catchInstances.length = j;
+        fn = arguments[i];
+        return this.then(undefined, catchFilter(catchInstances, fn, this));
+    }
+    return this.then(undefined, fn);
+};
+
+Promise.prototype.reflect = function () {
+    return this._then(reflectHandler,
+        reflectHandler, undefined, this, undefined);
+};
+
+Promise.prototype.then = function (didFulfill, didReject) {
+    if (debug.warnings() && arguments.length > 0 &&
+        typeof didFulfill !== "function" &&
+        typeof didReject !== "function") {
+        var msg = ".then() only accepts functions but was passed: " +
+                util.classString(didFulfill);
+        if (arguments.length > 1) {
+            msg += ", " + util.classString(didReject);
+        }
+        this._warn(msg);
+    }
+    return this._then(didFulfill, didReject, undefined, undefined, undefined);
+};
+
+Promise.prototype.done = function (didFulfill, didReject) {
+    var promise =
+        this._then(didFulfill, didReject, undefined, undefined, undefined);
+    promise._setIsFinal();
+};
+
+Promise.prototype.spread = function (fn) {
+    if (typeof fn !== "function") {
+        return apiRejection("expecting a function but got " + util.classString(fn));
+    }
+    return this.all()._then(fn, undefined, undefined, APPLY, undefined);
+};
+
+Promise.prototype.toJSON = function () {
+    var ret = {
+        isFulfilled: false,
+        isRejected: false,
+        fulfillmentValue: undefined,
+        rejectionReason: undefined
+    };
+    if (this.isFulfilled()) {
+        ret.fulfillmentValue = this.value();
+        ret.isFulfilled = true;
+    } else if (this.isRejected()) {
+        ret.rejectionReason = this.reason();
+        ret.isRejected = true;
+    }
+    return ret;
+};
+
+Promise.prototype.all = function () {
+    if (arguments.length > 0) {
+        this._warn(".all() was passed arguments but it does not take any");
+    }
+    return new PromiseArray(this).promise();
+};
+
+Promise.prototype.error = function (fn) {
+    return this.caught(util.originatesFromRejection, fn);
+};
+
+Promise.getNewLibraryCopy = module.exports;
+
+Promise.is = function (val) {
+    return val instanceof Promise;
+};
+
+Promise.fromNode = Promise.fromCallback = function(fn) {
+    var ret = new Promise(INTERNAL);
+    ret._captureStackTrace();
+    var multiArgs = arguments.length > 1 ? !!Object(arguments[1]).multiArgs
+                                         : false;
+    var result = tryCatch(fn)(nodebackForPromise(ret, multiArgs));
+    if (result === errorObj) {
+        ret._rejectCallback(result.e, true);
+    }
+    if (!ret._isFateSealed()) ret._setAsyncGuaranteed();
+    return ret;
+};
+
+Promise.all = function (promises) {
+    return new PromiseArray(promises).promise();
+};
+
+Promise.cast = function (obj) {
+    var ret = tryConvertToPromise(obj);
+    if (!(ret instanceof Promise)) {
+        ret = new Promise(INTERNAL);
+        ret._captureStackTrace();
+        ret._setFulfilled();
+        ret._rejectionHandler0 = obj;
+    }
+    return ret;
+};
+
+Promise.resolve = Promise.fulfilled = Promise.cast;
+
+Promise.reject = Promise.rejected = function (reason) {
+    var ret = new Promise(INTERNAL);
+    ret._captureStackTrace();
+    ret._rejectCallback(reason, true);
+    return ret;
+};
+
+Promise.setScheduler = function(fn) {
+    if (typeof fn !== "function") {
+        throw new TypeError("expecting a function but got " + util.classString(fn));
+    }
+    return async.setScheduler(fn);
+};
+
+Promise.prototype._then = function (
+    didFulfill,
+    didReject,
+    _,    receiver,
+    internalData
+) {
+    var haveInternalData = internalData !== undefined;
+    var promise = haveInternalData ? internalData : new Promise(INTERNAL);
+    var target = this._target();
+    var bitField = target._bitField;
+
+    if (!haveInternalData) {
+        promise._propagateFrom(this, 3);
+        promise._captureStackTrace();
+        if (receiver === undefined &&
+            ((this._bitField & 2097152) !== 0)) {
+            if (!((bitField & 50397184) === 0)) {
+                receiver = this._boundValue();
+            } else {
+                receiver = target === this ? undefined : this._boundTo;
+            }
+        }
+        this._fireEvent("promiseChained", this, promise);
+    }
+
+    var domain = getDomain();
+    if (!((bitField & 50397184) === 0)) {
+        var handler, value, settler = target._settlePromiseCtx;
+        if (((bitField & 33554432) !== 0)) {
+            value = target._rejectionHandler0;
+            handler = didFulfill;
+        } else if (((bitField & 16777216) !== 0)) {
+            value = target._fulfillmentHandler0;
+            handler = didReject;
+            target._unsetRejectionIsUnhandled();
+        } else {
+            settler = target._settlePromiseLateCancellationObserver;
+            value = new CancellationError("late cancellation observer");
+            target._attachExtraTrace(value);
+            handler = didReject;
+        }
+
+        async.invoke(settler, target, {
+            handler: domain === null ? handler
+                : (typeof handler === "function" &&
+                    util.domainBind(domain, handler)),
+            promise: promise,
+            receiver: receiver,
+            value: value
+        });
+    } else {
+        target._addCallbacks(didFulfill, didReject, promise, receiver, domain);
+    }
+
+    return promise;
+};
+
+Promise.prototype._length = function () {
+    return this._bitField & 65535;
+};
+
+Promise.prototype._isFateSealed = function () {
+    return (this._bitField & 117506048) !== 0;
+};
+
+Promise.prototype._isFollowing = function () {
+    return (this._bitField & 67108864) === 67108864;
+};
+
+Promise.prototype._setLength = function (len) {
+    this._bitField = (this._bitField & -65536) |
+        (len & 65535);
+};
+
+Promise.prototype._setFulfilled = function () {
+    this._bitField = this._bitField | 33554432;
+    this._fireEvent("promiseFulfilled", this);
+};
+
+Promise.prototype._setRejected = function () {
+    this._bitField = this._bitField | 16777216;
+    this._fireEvent("promiseRejected", this);
+};
+
+Promise.prototype._setFollowing = function () {
+    this._bitField = this._bitField | 67108864;
+    this._fireEvent("promiseResolved", this);
+};
+
+Promise.prototype._setIsFinal = function () {
+    this._bitField = this._bitField | 4194304;
+};
+
+Promise.prototype._isFinal = function () {
+    return (this._bitField & 4194304) > 0;
+};
+
+Promise.prototype._unsetCancelled = function() {
+    this._bitField = this._bitField & (~65536);
+};
+
+Promise.prototype._setCancelled = function() {
+    this._bitField = this._bitField | 65536;
+    this._fireEvent("promiseCancelled", this);
+};
+
+Promise.prototype._setWillBeCancelled = function() {
+    this._bitField = this._bitField | 8388608;
+};
+
+Promise.prototype._setAsyncGuaranteed = function() {
+    if (async.hasCustomScheduler()) return;
+    this._bitField = this._bitField | 134217728;
+};
+
+Promise.prototype._receiverAt = function (index) {
+    var ret = index === 0 ? this._receiver0 : this[
+            index * 4 - 4 + 3];
+    if (ret === UNDEFINED_BINDING) {
+        return undefined;
+    } else if (ret === undefined && this._isBound()) {
+        return this._boundValue();
+    }
+    return ret;
+};
+
+Promise.prototype._promiseAt = function (index) {
+    return this[
+            index * 4 - 4 + 2];
+};
+
+Promise.prototype._fulfillmentHandlerAt = function (index) {
+    return this[
+            index * 4 - 4 + 0];
+};
+
+Promise.prototype._rejectionHandlerAt = function (index) {
+    return this[
+            index * 4 - 4 + 1];
+};
+
+Promise.prototype._boundValue = function() {};
+
+Promise.prototype._migrateCallback0 = function (follower) {
+    var bitField = follower._bitField;
+    var fulfill = follower._fulfillmentHandler0;
+    var reject = follower._rejectionHandler0;
+    var promise = follower._promise0;
+    var receiver = follower._receiverAt(0);
+    if (receiver === undefined) receiver = UNDEFINED_BINDING;
+    this._addCallbacks(fulfill, reject, promise, receiver, null);
+};
+
+Promise.prototype._migrateCallbackAt = function (follower, index) {
+    var fulfill = follower._fulfillmentHandlerAt(index);
+    var reject = follower._rejectionHandlerAt(index);
+    var promise = follower._promiseAt(index);
+    var receiver = follower._receiverAt(index);
+    if (receiver === undefined) receiver = UNDEFINED_BINDING;
+    this._addCallbacks(fulfill, reject, promise, receiver, null);
+};
+
+Promise.prototype._addCallbacks = function (
+    fulfill,
+    reject,
+    promise,
+    receiver,
+    domain
+) {
+    var index = this._length();
+
+    if (index >= 65535 - 4) {
+        index = 0;
+        this._setLength(0);
+    }
+
+    if (index === 0) {
+        this._promise0 = promise;
+        this._receiver0 = receiver;
+        if (typeof fulfill === "function") {
+            this._fulfillmentHandler0 =
+                domain === null ? fulfill : util.domainBind(domain, fulfill);
+        }
+        if (typeof reject === "function") {
+            this._rejectionHandler0 =
+                domain === null ? reject : util.domainBind(domain, reject);
+        }
+    } else {
+        var base = index * 4 - 4;
+        this[base + 2] = promise;
+        this[base + 3] = receiver;
+        if (typeof fulfill === "function") {
+            this[base + 0] =
+                domain === null ? fulfill : util.domainBind(domain, fulfill);
+        }
+        if (typeof reject === "function") {
+            this[base + 1] =
+                domain === null ? reject : util.domainBind(domain, reject);
+        }
+    }
+    this._setLength(index + 1);
+    return index;
+};
+
+Promise.prototype._proxy = function (proxyable, arg) {
+    this._addCallbacks(undefined, undefined, arg, proxyable, null);
+};
+
+Promise.prototype._resolveCallback = function(value, shouldBind) {
+    if (((this._bitField & 117506048) !== 0)) return;
+    if (value === this)
+        return this._rejectCallback(makeSelfResolutionError(), false);
+    var maybePromise = tryConvertToPromise(value, this);
+    if (!(maybePromise instanceof Promise)) return this._fulfill(value);
+
+    if (shouldBind) this._propagateFrom(maybePromise, 2);
+
+    var promise = maybePromise._target();
+
+    if (promise === this) {
+        this._reject(makeSelfResolutionError());
+        return;
+    }
+
+    var bitField = promise._bitField;
+    if (((bitField & 50397184) === 0)) {
+        var len = this._length();
+        if (len > 0) promise._migrateCallback0(this);
+        for (var i = 1; i < len; ++i) {
+            promise._migrateCallbackAt(this, i);
+        }
+        this._setFollowing();
+        this._setLength(0);
+        this._setFollowee(promise);
+    } else if (((bitField & 33554432) !== 0)) {
+        this._fulfill(promise._value());
+    } else if (((bitField & 16777216) !== 0)) {
+        this._reject(promise._reason());
+    } else {
+        var reason = new CancellationError("late cancellation observer");
+        promise._attachExtraTrace(reason);
+        this._reject(reason);
+    }
+};
+
+Promise.prototype._rejectCallback =
+function(reason, synchronous, ignoreNonErrorWarnings) {
+    var trace = util.ensureErrorObject(reason);
+    var hasStack = trace === reason;
+    if (!hasStack && !ignoreNonErrorWarnings && debug.warnings()) {
+        var message = "a promise was rejected with a non-error: " +
+            util.classString(reason);
+        this._warn(message, true);
+    }
+    this._attachExtraTrace(trace, synchronous ? hasStack : false);
+    this._reject(reason);
+};
+
+Promise.prototype._resolveFromExecutor = function (executor) {
+    var promise = this;
+    this._captureStackTrace();
+    this._pushContext();
+    var synchronous = true;
+    var r = this._execute(executor, function(value) {
+        promise._resolveCallback(value);
+    }, function (reason) {
+        promise._rejectCallback(reason, synchronous);
+    });
+    synchronous = false;
+    this._popContext();
+
+    if (r !== undefined) {
+        promise._rejectCallback(r, true);
+    }
+};
+
+Promise.prototype._settlePromiseFromHandler = function (
+    handler, receiver, value, promise
+) {
+    var bitField = promise._bitField;
+    if (((bitField & 65536) !== 0)) return;
+    promise._pushContext();
+    var x;
+    if (receiver === APPLY) {
+        if (!value || typeof value.length !== "number") {
+            x = errorObj;
+            x.e = new TypeError("cannot .spread() a non-array: " +
+                                    util.classString(value));
+        } else {
+            x = tryCatch(handler).apply(this._boundValue(), value);
+        }
+    } else {
+        x = tryCatch(handler).call(receiver, value);
+    }
+    var promiseCreated = promise._popContext();
+    bitField = promise._bitField;
+    if (((bitField & 65536) !== 0)) return;
+
+    if (x === NEXT_FILTER) {
+        promise._reject(value);
+    } else if (x === errorObj) {
+        promise._rejectCallback(x.e, false);
+    } else {
+        debug.checkForgottenReturns(x, promiseCreated, "",  promise, this);
+        promise._resolveCallback(x);
+    }
+};
+
+Promise.prototype._target = function() {
+    var ret = this;
+    while (ret._isFollowing()) ret = ret._followee();
+    return ret;
+};
+
+Promise.prototype._followee = function() {
+    return this._rejectionHandler0;
+};
+
+Promise.prototype._setFollowee = function(promise) {
+    this._rejectionHandler0 = promise;
+};
+
+Promise.prototype._settlePromise = function(promise, handler, receiver, value) {
+    var isPromise = promise instanceof Promise;
+    var bitField = this._bitField;
+    var asyncGuaranteed = ((bitField & 134217728) !== 0);
+    if (((bitField & 65536) !== 0)) {
+        if (isPromise) promise._invokeInternalOnCancel();
+
+        if (receiver instanceof PassThroughHandlerContext &&
+            receiver.isFinallyHandler()) {
+            receiver.cancelPromise = promise;
+            if (tryCatch(handler).call(receiver, value) === errorObj) {
+                promise._reject(errorObj.e);
+            }
+        } else if (handler === reflectHandler) {
+            promise._fulfill(reflectHandler.call(receiver));
+        } else if (receiver instanceof Proxyable) {
+            receiver._promiseCancelled(promise);
+        } else if (isPromise || promise instanceof PromiseArray) {
+            promise._cancel();
+        } else {
+            receiver.cancel();
+        }
+    } else if (typeof handler === "function") {
+        if (!isPromise) {
+            handler.call(receiver, value, promise);
+        } else {
+            if (asyncGuaranteed) promise._setAsyncGuaranteed();
+            this._settlePromiseFromHandler(handler, receiver, value, promise);
+        }
+    } else if (receiver instanceof Proxyable) {
+        if (!receiver._isResolved()) {
+            if (((bitField & 33554432) !== 0)) {
+                receiver._promiseFulfilled(value, promise);
+            } else {
+                receiver._promiseRejected(value, promise);
+            }
+        }
+    } else if (isPromise) {
+        if (asyncGuaranteed) promise._setAsyncGuaranteed();
+        if (((bitField & 33554432) !== 0)) {
+            promise._fulfill(value);
+        } else {
+            promise._reject(value);
+        }
+    }
+};
+
+Promise.prototype._settlePromiseLateCancellationObserver = function(ctx) {
+    var handler = ctx.handler;
+    var promise = ctx.promise;
+    var receiver = ctx.receiver;
+    var value = ctx.value;
+    if (typeof handler === "function") {
+        if (!(promise instanceof Promise)) {
+            handler.call(receiver, value, promise);
+        } else {
+            this._settlePromiseFromHandler(handler, receiver, value, promise);
+        }
+    } else if (promise instanceof Promise) {
+        promise._reject(value);
+    }
+};
+
+Promise.prototype._settlePromiseCtx = function(ctx) {
+    this._settlePromise(ctx.promise, ctx.handler, ctx.receiver, ctx.value);
+};
+
+Promise.prototype._settlePromise0 = function(handler, value, bitField) {
+    var promise = this._promise0;
+    var receiver = this._receiverAt(0);
+    this._promise0 = undefined;
+    this._receiver0 = undefined;
+    this._settlePromise(promise, handler, receiver, value);
+};
+
+Promise.prototype._clearCallbackDataAtIndex = function(index) {
+    var base = index * 4 - 4;
+    this[base + 2] =
+    this[base + 3] =
+    this[base + 0] =
+    this[base + 1] = undefined;
+};
+
+Promise.prototype._fulfill = function (value) {
+    var bitField = this._bitField;
+    if (((bitField & 117506048) >>> 16)) return;
+    if (value === this) {
+        var err = makeSelfResolutionError();
+        this._attachExtraTrace(err);
+        return this._reject(err);
+    }
+    this._setFulfilled();
+    this._rejectionHandler0 = value;
+
+    if ((bitField & 65535) > 0) {
+        if (((bitField & 134217728) !== 0)) {
+            this._settlePromises();
+        } else {
+            async.settlePromises(this);
+        }
+    }
+};
+
+Promise.prototype._reject = function (reason) {
+    var bitField = this._bitField;
+    if (((bitField & 117506048) >>> 16)) return;
+    this._setRejected();
+    this._fulfillmentHandler0 = reason;
+
+    if (this._isFinal()) {
+        return async.fatalError(reason, util.isNode);
+    }
+
+    if ((bitField & 65535) > 0) {
+        async.settlePromises(this);
+    } else {
+        this._ensurePossibleRejectionHandled();
+    }
+};
+
+Promise.prototype._fulfillPromises = function (len, value) {
+    for (var i = 1; i < len; i++) {
+        var handler = this._fulfillmentHandlerAt(i);
+        var promise = this._promiseAt(i);
+        var receiver = this._receiverAt(i);
+        this._clearCallbackDataAtIndex(i);
+        this._settlePromise(promise, handler, receiver, value);
+    }
+};
+
+Promise.prototype._rejectPromises = function (len, reason) {
+    for (var i = 1; i < len; i++) {
+        var handler = this._rejectionHandlerAt(i);
+        var promise = this._promiseAt(i);
+        var receiver = this._receiverAt(i);
+        this._clearCallbackDataAtIndex(i);
+        this._settlePromise(promise, handler, receiver, reason);
+    }
+};
+
+Promise.prototype._settlePromises = function () {
+    var bitField = this._bitField;
+    var len = (bitField & 65535);
+
+    if (len > 0) {
+        if (((bitField & 16842752) !== 0)) {
+            var reason = this._fulfillmentHandler0;
+            this._settlePromise0(this._rejectionHandler0, reason, bitField);
+            this._rejectPromises(len, reason);
+        } else {
+            var value = this._rejectionHandler0;
+            this._settlePromise0(this._fulfillmentHandler0, value, bitField);
+            this._fulfillPromises(len, value);
+        }
+        this._setLength(0);
+    }
+    this._clearCancellationData();
+};
+
+Promise.prototype._settledValue = function() {
+    var bitField = this._bitField;
+    if (((bitField & 33554432) !== 0)) {
+        return this._rejectionHandler0;
+    } else if (((bitField & 16777216) !== 0)) {
+        return this._fulfillmentHandler0;
+    }
+};
+
+function deferResolve(v) {this.promise._resolveCallback(v);}
+function deferReject(v) {this.promise._rejectCallback(v, false);}
+
+Promise.defer = Promise.pending = function() {
+    debug.deprecated("Promise.defer", "new Promise");
+    var promise = new Promise(INTERNAL);
+    return {
+        promise: promise,
+        resolve: deferResolve,
+        reject: deferReject
+    };
+};
+
+util.notEnumerableProp(Promise,
+                       "_makeSelfResolutionError",
+                       makeSelfResolutionError);
+
+__webpack_require__(411)(Promise, INTERNAL, tryConvertToPromise, apiRejection,
+    debug);
+__webpack_require__(412)(Promise, INTERNAL, tryConvertToPromise, debug);
+__webpack_require__(413)(Promise, PromiseArray, apiRejection, debug);
+__webpack_require__(414)(Promise);
+__webpack_require__(415)(Promise);
+__webpack_require__(416)(
+    Promise, PromiseArray, tryConvertToPromise, INTERNAL, async, getDomain);
+Promise.Promise = Promise;
+Promise.version = "3.4.7";
+__webpack_require__(417)(Promise, PromiseArray, apiRejection, tryConvertToPromise, INTERNAL, debug);
+__webpack_require__(418)(Promise);
+__webpack_require__(419)(Promise, apiRejection, tryConvertToPromise, createContext, INTERNAL, debug);
+__webpack_require__(420)(Promise, INTERNAL, debug);
+__webpack_require__(421)(Promise, apiRejection, INTERNAL, tryConvertToPromise, Proxyable, debug);
+__webpack_require__(422)(Promise);
+__webpack_require__(423)(Promise, INTERNAL);
+__webpack_require__(424)(Promise, PromiseArray, tryConvertToPromise, apiRejection);
+__webpack_require__(425)(Promise, INTERNAL, tryConvertToPromise, apiRejection);
+__webpack_require__(426)(Promise, PromiseArray, apiRejection, tryConvertToPromise, INTERNAL, debug);
+__webpack_require__(427)(Promise, PromiseArray, debug);
+__webpack_require__(428)(Promise, PromiseArray, apiRejection);
+__webpack_require__(429)(Promise, INTERNAL);
+__webpack_require__(430)(Promise, INTERNAL);
+__webpack_require__(431)(Promise);
+                                                         
+    util.toFastProperties(Promise);                                          
+    util.toFastProperties(Promise.prototype);                                
+    function fillTypes(value) {                                              
+        var p = new Promise(INTERNAL);                                       
+        p._fulfillmentHandler0 = value;                                      
+        p._rejectionHandler0 = value;                                        
+        p._promise0 = value;                                                 
+        p._receiver0 = value;                                                
+    }                                                                        
+    // Complete slack tracking, opt out of field-type tracking and           
+    // stabilize map                                                         
+    fillTypes({a: 1});                                                       
+    fillTypes({b: 2});                                                       
+    fillTypes({c: 3});                                                       
+    fillTypes(1);                                                            
+    fillTypes(function(){});                                                 
+    fillTypes(undefined);                                                    
+    fillTypes(false);                                                        
+    fillTypes(new Promise(INTERNAL));                                        
+    debug.setBounds(Async.firstLineError, util.lastLineError);               
+    return Promise;                                                          
+
+};
+
+
+/***/ }),
+/* 398 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var es5 = __webpack_require__(399);
+var canEvaluate = typeof navigator == "undefined";
+
+var errorObj = {e: {}};
+var tryCatchTarget;
+var globalObject = typeof self !== "undefined" ? self :
+    typeof window !== "undefined" ? window :
+    typeof global !== "undefined" ? global :
+    this !== undefined ? this : null;
+
+function tryCatcher() {
+    try {
+        var target = tryCatchTarget;
+        tryCatchTarget = null;
+        return target.apply(this, arguments);
+    } catch (e) {
+        errorObj.e = e;
+        return errorObj;
+    }
+}
+function tryCatch(fn) {
+    tryCatchTarget = fn;
+    return tryCatcher;
+}
+
+var inherits = function(Child, Parent) {
+    var hasProp = {}.hasOwnProperty;
+
+    function T() {
+        this.constructor = Child;
+        this.constructor$ = Parent;
+        for (var propertyName in Parent.prototype) {
+            if (hasProp.call(Parent.prototype, propertyName) &&
+                propertyName.charAt(propertyName.length-1) !== "$"
+           ) {
+                this[propertyName + "$"] = Parent.prototype[propertyName];
+            }
+        }
+    }
+    T.prototype = Parent.prototype;
+    Child.prototype = new T();
+    return Child.prototype;
+};
+
+
+function isPrimitive(val) {
+    return val == null || val === true || val === false ||
+        typeof val === "string" || typeof val === "number";
+
+}
+
+function isObject(value) {
+    return typeof value === "function" ||
+           typeof value === "object" && value !== null;
+}
+
+function maybeWrapAsError(maybeError) {
+    if (!isPrimitive(maybeError)) return maybeError;
+
+    return new Error(safeToString(maybeError));
+}
+
+function withAppended(target, appendee) {
+    var len = target.length;
+    var ret = new Array(len + 1);
+    var i;
+    for (i = 0; i < len; ++i) {
+        ret[i] = target[i];
+    }
+    ret[i] = appendee;
+    return ret;
+}
+
+function getDataPropertyOrDefault(obj, key, defaultValue) {
+    if (es5.isES5) {
+        var desc = Object.getOwnPropertyDescriptor(obj, key);
+
+        if (desc != null) {
+            return desc.get == null && desc.set == null
+                    ? desc.value
+                    : defaultValue;
+        }
+    } else {
+        return {}.hasOwnProperty.call(obj, key) ? obj[key] : undefined;
+    }
+}
+
+function notEnumerableProp(obj, name, value) {
+    if (isPrimitive(obj)) return obj;
+    var descriptor = {
+        value: value,
+        configurable: true,
+        enumerable: false,
+        writable: true
+    };
+    es5.defineProperty(obj, name, descriptor);
+    return obj;
+}
+
+function thrower(r) {
+    throw r;
+}
+
+var inheritedDataKeys = (function() {
+    var excludedPrototypes = [
+        Array.prototype,
+        Object.prototype,
+        Function.prototype
+    ];
+
+    var isExcludedProto = function(val) {
+        for (var i = 0; i < excludedPrototypes.length; ++i) {
+            if (excludedPrototypes[i] === val) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    if (es5.isES5) {
+        var getKeys = Object.getOwnPropertyNames;
+        return function(obj) {
+            var ret = [];
+            var visitedKeys = Object.create(null);
+            while (obj != null && !isExcludedProto(obj)) {
+                var keys;
+                try {
+                    keys = getKeys(obj);
+                } catch (e) {
+                    return ret;
+                }
+                for (var i = 0; i < keys.length; ++i) {
+                    var key = keys[i];
+                    if (visitedKeys[key]) continue;
+                    visitedKeys[key] = true;
+                    var desc = Object.getOwnPropertyDescriptor(obj, key);
+                    if (desc != null && desc.get == null && desc.set == null) {
+                        ret.push(key);
+                    }
+                }
+                obj = es5.getPrototypeOf(obj);
+            }
+            return ret;
+        };
+    } else {
+        var hasProp = {}.hasOwnProperty;
+        return function(obj) {
+            if (isExcludedProto(obj)) return [];
+            var ret = [];
+
+            /*jshint forin:false */
+            enumeration: for (var key in obj) {
+                if (hasProp.call(obj, key)) {
+                    ret.push(key);
+                } else {
+                    for (var i = 0; i < excludedPrototypes.length; ++i) {
+                        if (hasProp.call(excludedPrototypes[i], key)) {
+                            continue enumeration;
+                        }
+                    }
+                    ret.push(key);
+                }
+            }
+            return ret;
+        };
+    }
+
+})();
+
+var thisAssignmentPattern = /this\s*\.\s*\S+\s*=/;
+function isClass(fn) {
+    try {
+        if (typeof fn === "function") {
+            var keys = es5.names(fn.prototype);
+
+            var hasMethods = es5.isES5 && keys.length > 1;
+            var hasMethodsOtherThanConstructor = keys.length > 0 &&
+                !(keys.length === 1 && keys[0] === "constructor");
+            var hasThisAssignmentAndStaticMethods =
+                thisAssignmentPattern.test(fn + "") && es5.names(fn).length > 0;
+
+            if (hasMethods || hasMethodsOtherThanConstructor ||
+                hasThisAssignmentAndStaticMethods) {
+                return true;
+            }
+        }
+        return false;
+    } catch (e) {
+        return false;
+    }
+}
+
+function toFastProperties(obj) {
+    /*jshint -W027,-W055,-W031*/
+    function FakeConstructor() {}
+    FakeConstructor.prototype = obj;
+    var l = 8;
+    while (l--) new FakeConstructor();
+    return obj;
+    eval(obj);
+}
+
+var rident = /^[a-z$_][a-z$_0-9]*$/i;
+function isIdentifier(str) {
+    return rident.test(str);
+}
+
+function filledRange(count, prefix, suffix) {
+    var ret = new Array(count);
+    for(var i = 0; i < count; ++i) {
+        ret[i] = prefix + i + suffix;
+    }
+    return ret;
+}
+
+function safeToString(obj) {
+    try {
+        return obj + "";
+    } catch (e) {
+        return "[no string representation]";
+    }
+}
+
+function isError(obj) {
+    return obj !== null &&
+           typeof obj === "object" &&
+           typeof obj.message === "string" &&
+           typeof obj.name === "string";
+}
+
+function markAsOriginatingFromRejection(e) {
+    try {
+        notEnumerableProp(e, "isOperational", true);
+    }
+    catch(ignore) {}
+}
+
+function originatesFromRejection(e) {
+    if (e == null) return false;
+    return ((e instanceof Error["__BluebirdErrorTypes__"].OperationalError) ||
+        e["isOperational"] === true);
+}
+
+function canAttachTrace(obj) {
+    return isError(obj) && es5.propertyIsWritable(obj, "stack");
+}
+
+var ensureErrorObject = (function() {
+    if (!("stack" in new Error())) {
+        return function(value) {
+            if (canAttachTrace(value)) return value;
+            try {throw new Error(safeToString(value));}
+            catch(err) {return err;}
+        };
+    } else {
+        return function(value) {
+            if (canAttachTrace(value)) return value;
+            return new Error(safeToString(value));
+        };
+    }
+})();
+
+function classString(obj) {
+    return {}.toString.call(obj);
+}
+
+function copyDescriptors(from, to, filter) {
+    var keys = es5.names(from);
+    for (var i = 0; i < keys.length; ++i) {
+        var key = keys[i];
+        if (filter(key)) {
+            try {
+                es5.defineProperty(to, key, es5.getDescriptor(from, key));
+            } catch (ignore) {}
+        }
+    }
+}
+
+var asArray = function(v) {
+    if (es5.isArray(v)) {
+        return v;
+    }
+    return null;
+};
+
+if (typeof Symbol !== "undefined" && Symbol.iterator) {
+    var ArrayFrom = typeof Array.from === "function" ? function(v) {
+        return Array.from(v);
+    } : function(v) {
+        var ret = [];
+        var it = v[Symbol.iterator]();
+        var itResult;
+        while (!((itResult = it.next()).done)) {
+            ret.push(itResult.value);
+        }
+        return ret;
+    };
+
+    asArray = function(v) {
+        if (es5.isArray(v)) {
+            return v;
+        } else if (v != null && typeof v[Symbol.iterator] === "function") {
+            return ArrayFrom(v);
+        }
+        return null;
+    };
+}
+
+var isNode = typeof process !== "undefined" &&
+        classString(process).toLowerCase() === "[object process]";
+
+var hasEnvVariables = typeof process !== "undefined" &&
+    typeof process.env !== "undefined";
+
+function env(key) {
+    return hasEnvVariables ? process.env[key] : undefined;
+}
+
+function getNativePromise() {
+    if (typeof Promise === "function") {
+        try {
+            var promise = new Promise(function(){});
+            if ({}.toString.call(promise) === "[object Promise]") {
+                return Promise;
+            }
+        } catch (e) {}
+    }
+}
+
+function domainBind(self, cb) {
+    return self.bind(cb);
+}
+
+var ret = {
+    isClass: isClass,
+    isIdentifier: isIdentifier,
+    inheritedDataKeys: inheritedDataKeys,
+    getDataPropertyOrDefault: getDataPropertyOrDefault,
+    thrower: thrower,
+    isArray: es5.isArray,
+    asArray: asArray,
+    notEnumerableProp: notEnumerableProp,
+    isPrimitive: isPrimitive,
+    isObject: isObject,
+    isError: isError,
+    canEvaluate: canEvaluate,
+    errorObj: errorObj,
+    tryCatch: tryCatch,
+    inherits: inherits,
+    withAppended: withAppended,
+    maybeWrapAsError: maybeWrapAsError,
+    toFastProperties: toFastProperties,
+    filledRange: filledRange,
+    toString: safeToString,
+    canAttachTrace: canAttachTrace,
+    ensureErrorObject: ensureErrorObject,
+    originatesFromRejection: originatesFromRejection,
+    markAsOriginatingFromRejection: markAsOriginatingFromRejection,
+    classString: classString,
+    copyDescriptors: copyDescriptors,
+    hasDevTools: typeof chrome !== "undefined" && chrome &&
+                 typeof chrome.loadTimes === "function",
+    isNode: isNode,
+    hasEnvVariables: hasEnvVariables,
+    env: env,
+    global: globalObject,
+    getNativePromise: getNativePromise,
+    domainBind: domainBind
+};
+ret.isRecentNode = ret.isNode && (function() {
+    var version = process.versions.node.split(".").map(Number);
+    return (version[0] === 0 && version[1] > 10) || (version[0] > 0);
+})();
+
+if (ret.isNode) ret.toFastProperties(process);
+
+try {throw new Error(); } catch (e) {ret.lastLineError = e;}
+module.exports = ret;
+
+
+/***/ }),
+/* 399 */
+/***/ (function(module, exports) {
+
+var isES5 = (function(){
+    "use strict";
+    return this === undefined;
+})();
+
+if (isES5) {
+    module.exports = {
+        freeze: Object.freeze,
+        defineProperty: Object.defineProperty,
+        getDescriptor: Object.getOwnPropertyDescriptor,
+        keys: Object.keys,
+        names: Object.getOwnPropertyNames,
+        getPrototypeOf: Object.getPrototypeOf,
+        isArray: Array.isArray,
+        isES5: isES5,
+        propertyIsWritable: function(obj, prop) {
+            var descriptor = Object.getOwnPropertyDescriptor(obj, prop);
+            return !!(!descriptor || descriptor.writable || descriptor.set);
+        }
+    };
+} else {
+    var has = {}.hasOwnProperty;
+    var str = {}.toString;
+    var proto = {}.constructor.prototype;
+
+    var ObjectKeys = function (o) {
+        var ret = [];
+        for (var key in o) {
+            if (has.call(o, key)) {
+                ret.push(key);
+            }
+        }
+        return ret;
+    };
+
+    var ObjectGetDescriptor = function(o, key) {
+        return {value: o[key]};
+    };
+
+    var ObjectDefineProperty = function (o, key, desc) {
+        o[key] = desc.value;
+        return o;
+    };
+
+    var ObjectFreeze = function (obj) {
+        return obj;
+    };
+
+    var ObjectGetPrototypeOf = function (obj) {
+        try {
+            return Object(obj).constructor.prototype;
+        }
+        catch (e) {
+            return proto;
+        }
+    };
+
+    var ArrayIsArray = function (obj) {
+        try {
+            return str.call(obj) === "[object Array]";
+        }
+        catch(e) {
+            return false;
+        }
+    };
+
+    module.exports = {
+        isArray: ArrayIsArray,
+        keys: ObjectKeys,
+        names: ObjectKeys,
+        defineProperty: ObjectDefineProperty,
+        getDescriptor: ObjectGetDescriptor,
+        freeze: ObjectFreeze,
+        getPrototypeOf: ObjectGetPrototypeOf,
+        isES5: isES5,
+        propertyIsWritable: function() {
+            return true;
+        }
+    };
+}
+
+
+/***/ }),
+/* 400 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var firstLineError;
+try {throw new Error(); } catch (e) {firstLineError = e;}
+var schedule = __webpack_require__(401);
+var Queue = __webpack_require__(402);
+var util = __webpack_require__(398);
+
+function Async() {
+    this._customScheduler = false;
+    this._isTickUsed = false;
+    this._lateQueue = new Queue(16);
+    this._normalQueue = new Queue(16);
+    this._haveDrainedQueues = false;
+    this._trampolineEnabled = true;
+    var self = this;
+    this.drainQueues = function () {
+        self._drainQueues();
+    };
+    this._schedule = schedule;
+}
+
+Async.prototype.setScheduler = function(fn) {
+    var prev = this._schedule;
+    this._schedule = fn;
+    this._customScheduler = true;
+    return prev;
+};
+
+Async.prototype.hasCustomScheduler = function() {
+    return this._customScheduler;
+};
+
+Async.prototype.enableTrampoline = function() {
+    this._trampolineEnabled = true;
+};
+
+Async.prototype.disableTrampolineIfNecessary = function() {
+    if (util.hasDevTools) {
+        this._trampolineEnabled = false;
+    }
+};
+
+Async.prototype.haveItemsQueued = function () {
+    return this._isTickUsed || this._haveDrainedQueues;
+};
+
+
+Async.prototype.fatalError = function(e, isNode) {
+    if (isNode) {
+        process.stderr.write("Fatal " + (e instanceof Error ? e.stack : e) +
+            "\n");
+        process.exit(2);
+    } else {
+        this.throwLater(e);
+    }
+};
+
+Async.prototype.throwLater = function(fn, arg) {
+    if (arguments.length === 1) {
+        arg = fn;
+        fn = function () { throw arg; };
+    }
+    if (typeof setTimeout !== "undefined") {
+        setTimeout(function() {
+            fn(arg);
+        }, 0);
+    } else try {
+        this._schedule(function() {
+            fn(arg);
+        });
+    } catch (e) {
+        throw new Error("No async scheduler available\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+    }
+};
+
+function AsyncInvokeLater(fn, receiver, arg) {
+    this._lateQueue.push(fn, receiver, arg);
+    this._queueTick();
+}
+
+function AsyncInvoke(fn, receiver, arg) {
+    this._normalQueue.push(fn, receiver, arg);
+    this._queueTick();
+}
+
+function AsyncSettlePromises(promise) {
+    this._normalQueue._pushOne(promise);
+    this._queueTick();
+}
+
+if (!util.hasDevTools) {
+    Async.prototype.invokeLater = AsyncInvokeLater;
+    Async.prototype.invoke = AsyncInvoke;
+    Async.prototype.settlePromises = AsyncSettlePromises;
+} else {
+    Async.prototype.invokeLater = function (fn, receiver, arg) {
+        if (this._trampolineEnabled) {
+            AsyncInvokeLater.call(this, fn, receiver, arg);
+        } else {
+            this._schedule(function() {
+                setTimeout(function() {
+                    fn.call(receiver, arg);
+                }, 100);
+            });
+        }
+    };
+
+    Async.prototype.invoke = function (fn, receiver, arg) {
+        if (this._trampolineEnabled) {
+            AsyncInvoke.call(this, fn, receiver, arg);
+        } else {
+            this._schedule(function() {
+                fn.call(receiver, arg);
+            });
+        }
+    };
+
+    Async.prototype.settlePromises = function(promise) {
+        if (this._trampolineEnabled) {
+            AsyncSettlePromises.call(this, promise);
+        } else {
+            this._schedule(function() {
+                promise._settlePromises();
+            });
+        }
+    };
+}
+
+Async.prototype._drainQueue = function(queue) {
+    while (queue.length() > 0) {
+        var fn = queue.shift();
+        if (typeof fn !== "function") {
+            fn._settlePromises();
+            continue;
+        }
+        var receiver = queue.shift();
+        var arg = queue.shift();
+        fn.call(receiver, arg);
+    }
+};
+
+Async.prototype._drainQueues = function () {
+    this._drainQueue(this._normalQueue);
+    this._reset();
+    this._haveDrainedQueues = true;
+    this._drainQueue(this._lateQueue);
+};
+
+Async.prototype._queueTick = function () {
+    if (!this._isTickUsed) {
+        this._isTickUsed = true;
+        this._schedule(this.drainQueues);
+    }
+};
+
+Async.prototype._reset = function () {
+    this._isTickUsed = false;
+};
+
+module.exports = Async;
+module.exports.firstLineError = firstLineError;
+
+
+/***/ }),
+/* 401 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var util = __webpack_require__(398);
+var schedule;
+var noAsyncScheduler = function() {
+    throw new Error("No async scheduler available\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+};
+var NativePromise = util.getNativePromise();
+if (util.isNode && typeof MutationObserver === "undefined") {
+    var GlobalSetImmediate = global.setImmediate;
+    var ProcessNextTick = process.nextTick;
+    schedule = util.isRecentNode
+                ? function(fn) { GlobalSetImmediate.call(global, fn); }
+                : function(fn) { ProcessNextTick.call(process, fn); };
+} else if (typeof NativePromise === "function" &&
+           typeof NativePromise.resolve === "function") {
+    var nativePromise = NativePromise.resolve();
+    schedule = function(fn) {
+        nativePromise.then(fn);
+    };
+} else if ((typeof MutationObserver !== "undefined") &&
+          !(typeof window !== "undefined" &&
+            window.navigator &&
+            (window.navigator.standalone || window.cordova))) {
+    schedule = (function() {
+        var div = document.createElement("div");
+        var opts = {attributes: true};
+        var toggleScheduled = false;
+        var div2 = document.createElement("div");
+        var o2 = new MutationObserver(function() {
+            div.classList.toggle("foo");
+            toggleScheduled = false;
+        });
+        o2.observe(div2, opts);
+
+        var scheduleToggle = function() {
+            if (toggleScheduled) return;
+                toggleScheduled = true;
+                div2.classList.toggle("foo");
+            };
+
+            return function schedule(fn) {
+            var o = new MutationObserver(function() {
+                o.disconnect();
+                fn();
+            });
+            o.observe(div, opts);
+            scheduleToggle();
+        };
+    })();
+} else if (typeof setImmediate !== "undefined") {
+    schedule = function (fn) {
+        setImmediate(fn);
+    };
+} else if (typeof setTimeout !== "undefined") {
+    schedule = function (fn) {
+        setTimeout(fn, 0);
+    };
+} else {
+    schedule = noAsyncScheduler;
+}
+module.exports = schedule;
+
+
+/***/ }),
+/* 402 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+function arrayMove(src, srcIndex, dst, dstIndex, len) {
+    for (var j = 0; j < len; ++j) {
+        dst[j + dstIndex] = src[j + srcIndex];
+        src[j + srcIndex] = void 0;
+    }
+}
+
+function Queue(capacity) {
+    this._capacity = capacity;
+    this._length = 0;
+    this._front = 0;
+}
+
+Queue.prototype._willBeOverCapacity = function (size) {
+    return this._capacity < size;
+};
+
+Queue.prototype._pushOne = function (arg) {
+    var length = this.length();
+    this._checkCapacity(length + 1);
+    var i = (this._front + length) & (this._capacity - 1);
+    this[i] = arg;
+    this._length = length + 1;
+};
+
+Queue.prototype.push = function (fn, receiver, arg) {
+    var length = this.length() + 3;
+    if (this._willBeOverCapacity(length)) {
+        this._pushOne(fn);
+        this._pushOne(receiver);
+        this._pushOne(arg);
+        return;
+    }
+    var j = this._front + length - 3;
+    this._checkCapacity(length);
+    var wrapMask = this._capacity - 1;
+    this[(j + 0) & wrapMask] = fn;
+    this[(j + 1) & wrapMask] = receiver;
+    this[(j + 2) & wrapMask] = arg;
+    this._length = length;
+};
+
+Queue.prototype.shift = function () {
+    var front = this._front,
+        ret = this[front];
+
+    this[front] = undefined;
+    this._front = (front + 1) & (this._capacity - 1);
+    this._length--;
+    return ret;
+};
+
+Queue.prototype.length = function () {
+    return this._length;
+};
+
+Queue.prototype._checkCapacity = function (size) {
+    if (this._capacity < size) {
+        this._resizeTo(this._capacity << 1);
+    }
+};
+
+Queue.prototype._resizeTo = function (capacity) {
+    var oldCapacity = this._capacity;
+    this._capacity = capacity;
+    var front = this._front;
+    var length = this._length;
+    var moveItemsCount = (front + length) & (oldCapacity - 1);
+    arrayMove(this, 0, this, oldCapacity, moveItemsCount);
+};
+
+module.exports = Queue;
+
+
+/***/ }),
+/* 403 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var es5 = __webpack_require__(399);
+var Objectfreeze = es5.freeze;
+var util = __webpack_require__(398);
+var inherits = util.inherits;
+var notEnumerableProp = util.notEnumerableProp;
+
+function subError(nameProperty, defaultMessage) {
+    function SubError(message) {
+        if (!(this instanceof SubError)) return new SubError(message);
+        notEnumerableProp(this, "message",
+            typeof message === "string" ? message : defaultMessage);
+        notEnumerableProp(this, "name", nameProperty);
+        if (Error.captureStackTrace) {
+            Error.captureStackTrace(this, this.constructor);
+        } else {
+            Error.call(this);
+        }
+    }
+    inherits(SubError, Error);
+    return SubError;
+}
+
+var _TypeError, _RangeError;
+var Warning = subError("Warning", "warning");
+var CancellationError = subError("CancellationError", "cancellation error");
+var TimeoutError = subError("TimeoutError", "timeout error");
+var AggregateError = subError("AggregateError", "aggregate error");
+try {
+    _TypeError = TypeError;
+    _RangeError = RangeError;
+} catch(e) {
+    _TypeError = subError("TypeError", "type error");
+    _RangeError = subError("RangeError", "range error");
+}
+
+var methods = ("join pop push shift unshift slice filter forEach some " +
+    "every map indexOf lastIndexOf reduce reduceRight sort reverse").split(" ");
+
+for (var i = 0; i < methods.length; ++i) {
+    if (typeof Array.prototype[methods[i]] === "function") {
+        AggregateError.prototype[methods[i]] = Array.prototype[methods[i]];
+    }
+}
+
+es5.defineProperty(AggregateError.prototype, "length", {
+    value: 0,
+    configurable: false,
+    writable: true,
+    enumerable: true
+});
+AggregateError.prototype["isOperational"] = true;
+var level = 0;
+AggregateError.prototype.toString = function() {
+    var indent = Array(level * 4 + 1).join(" ");
+    var ret = "\n" + indent + "AggregateError of:" + "\n";
+    level++;
+    indent = Array(level * 4 + 1).join(" ");
+    for (var i = 0; i < this.length; ++i) {
+        var str = this[i] === this ? "[Circular AggregateError]" : this[i] + "";
+        var lines = str.split("\n");
+        for (var j = 0; j < lines.length; ++j) {
+            lines[j] = indent + lines[j];
+        }
+        str = lines.join("\n");
+        ret += str + "\n";
+    }
+    level--;
+    return ret;
+};
+
+function OperationalError(message) {
+    if (!(this instanceof OperationalError))
+        return new OperationalError(message);
+    notEnumerableProp(this, "name", "OperationalError");
+    notEnumerableProp(this, "message", message);
+    this.cause = message;
+    this["isOperational"] = true;
+
+    if (message instanceof Error) {
+        notEnumerableProp(this, "message", message.message);
+        notEnumerableProp(this, "stack", message.stack);
+    } else if (Error.captureStackTrace) {
+        Error.captureStackTrace(this, this.constructor);
+    }
+
+}
+inherits(OperationalError, Error);
+
+var errorTypes = Error["__BluebirdErrorTypes__"];
+if (!errorTypes) {
+    errorTypes = Objectfreeze({
+        CancellationError: CancellationError,
+        TimeoutError: TimeoutError,
+        OperationalError: OperationalError,
+        RejectionError: OperationalError,
+        AggregateError: AggregateError
+    });
+    es5.defineProperty(Error, "__BluebirdErrorTypes__", {
+        value: errorTypes,
+        writable: false,
+        enumerable: false,
+        configurable: false
+    });
+}
+
+module.exports = {
+    Error: Error,
+    TypeError: _TypeError,
+    RangeError: _RangeError,
+    CancellationError: errorTypes.CancellationError,
+    OperationalError: errorTypes.OperationalError,
+    TimeoutError: errorTypes.TimeoutError,
+    AggregateError: errorTypes.AggregateError,
+    Warning: Warning
+};
+
+
+/***/ }),
+/* 404 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(Promise, INTERNAL) {
+var util = __webpack_require__(398);
+var errorObj = util.errorObj;
+var isObject = util.isObject;
+
+function tryConvertToPromise(obj, context) {
+    if (isObject(obj)) {
+        if (obj instanceof Promise) return obj;
+        var then = getThen(obj);
+        if (then === errorObj) {
+            if (context) context._pushContext();
+            var ret = Promise.reject(then.e);
+            if (context) context._popContext();
+            return ret;
+        } else if (typeof then === "function") {
+            if (isAnyBluebirdPromise(obj)) {
+                var ret = new Promise(INTERNAL);
+                obj._then(
+                    ret._fulfill,
+                    ret._reject,
+                    undefined,
+                    ret,
+                    null
+                );
+                return ret;
+            }
+            return doThenable(obj, then, context);
+        }
+    }
+    return obj;
+}
+
+function doGetThen(obj) {
+    return obj.then;
+}
+
+function getThen(obj) {
+    try {
+        return doGetThen(obj);
+    } catch (e) {
+        errorObj.e = e;
+        return errorObj;
+    }
+}
+
+var hasProp = {}.hasOwnProperty;
+function isAnyBluebirdPromise(obj) {
+    try {
+        return hasProp.call(obj, "_promise0");
+    } catch (e) {
+        return false;
+    }
+}
+
+function doThenable(x, then, context) {
+    var promise = new Promise(INTERNAL);
+    var ret = promise;
+    if (context) context._pushContext();
+    promise._captureStackTrace();
+    if (context) context._popContext();
+    var synchronous = true;
+    var result = util.tryCatch(then).call(x, resolve, reject);
+    synchronous = false;
+
+    if (promise && result === errorObj) {
+        promise._rejectCallback(result.e, true, true);
+        promise = null;
+    }
+
+    function resolve(value) {
+        if (!promise) return;
+        promise._resolveCallback(value);
+        promise = null;
+    }
+
+    function reject(reason) {
+        if (!promise) return;
+        promise._rejectCallback(reason, synchronous, true);
+        promise = null;
+    }
+    return ret;
+}
+
+return tryConvertToPromise;
+};
+
+
+/***/ }),
+/* 405 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(Promise, INTERNAL, tryConvertToPromise,
+    apiRejection, Proxyable) {
+var util = __webpack_require__(398);
+var isArray = util.isArray;
+
+function toResolutionValue(val) {
+    switch(val) {
+    case -2: return [];
+    case -3: return {};
+    }
+}
+
+function PromiseArray(values) {
+    var promise = this._promise = new Promise(INTERNAL);
+    if (values instanceof Promise) {
+        promise._propagateFrom(values, 3);
+    }
+    promise._setOnCancel(this);
+    this._values = values;
+    this._length = 0;
+    this._totalResolved = 0;
+    this._init(undefined, -2);
+}
+util.inherits(PromiseArray, Proxyable);
+
+PromiseArray.prototype.length = function () {
+    return this._length;
+};
+
+PromiseArray.prototype.promise = function () {
+    return this._promise;
+};
+
+PromiseArray.prototype._init = function init(_, resolveValueIfEmpty) {
+    var values = tryConvertToPromise(this._values, this._promise);
+    if (values instanceof Promise) {
+        values = values._target();
+        var bitField = values._bitField;
+        ;
+        this._values = values;
+
+        if (((bitField & 50397184) === 0)) {
+            this._promise._setAsyncGuaranteed();
+            return values._then(
+                init,
+                this._reject,
+                undefined,
+                this,
+                resolveValueIfEmpty
+           );
+        } else if (((bitField & 33554432) !== 0)) {
+            values = values._value();
+        } else if (((bitField & 16777216) !== 0)) {
+            return this._reject(values._reason());
+        } else {
+            return this._cancel();
+        }
+    }
+    values = util.asArray(values);
+    if (values === null) {
+        var err = apiRejection(
+            "expecting an array or an iterable object but got " + util.classString(values)).reason();
+        this._promise._rejectCallback(err, false);
+        return;
+    }
+
+    if (values.length === 0) {
+        if (resolveValueIfEmpty === -5) {
+            this._resolveEmptyArray();
+        }
+        else {
+            this._resolve(toResolutionValue(resolveValueIfEmpty));
+        }
+        return;
+    }
+    this._iterate(values);
+};
+
+PromiseArray.prototype._iterate = function(values) {
+    var len = this.getActualLength(values.length);
+    this._length = len;
+    this._values = this.shouldCopyValues() ? new Array(len) : this._values;
+    var result = this._promise;
+    var isResolved = false;
+    var bitField = null;
+    for (var i = 0; i < len; ++i) {
+        var maybePromise = tryConvertToPromise(values[i], result);
+
+        if (maybePromise instanceof Promise) {
+            maybePromise = maybePromise._target();
+            bitField = maybePromise._bitField;
+        } else {
+            bitField = null;
+        }
+
+        if (isResolved) {
+            if (bitField !== null) {
+                maybePromise.suppressUnhandledRejections();
+            }
+        } else if (bitField !== null) {
+            if (((bitField & 50397184) === 0)) {
+                maybePromise._proxy(this, i);
+                this._values[i] = maybePromise;
+            } else if (((bitField & 33554432) !== 0)) {
+                isResolved = this._promiseFulfilled(maybePromise._value(), i);
+            } else if (((bitField & 16777216) !== 0)) {
+                isResolved = this._promiseRejected(maybePromise._reason(), i);
+            } else {
+                isResolved = this._promiseCancelled(i);
+            }
+        } else {
+            isResolved = this._promiseFulfilled(maybePromise, i);
+        }
+    }
+    if (!isResolved) result._setAsyncGuaranteed();
+};
+
+PromiseArray.prototype._isResolved = function () {
+    return this._values === null;
+};
+
+PromiseArray.prototype._resolve = function (value) {
+    this._values = null;
+    this._promise._fulfill(value);
+};
+
+PromiseArray.prototype._cancel = function() {
+    if (this._isResolved() || !this._promise._isCancellable()) return;
+    this._values = null;
+    this._promise._cancel();
+};
+
+PromiseArray.prototype._reject = function (reason) {
+    this._values = null;
+    this._promise._rejectCallback(reason, false);
+};
+
+PromiseArray.prototype._promiseFulfilled = function (value, index) {
+    this._values[index] = value;
+    var totalResolved = ++this._totalResolved;
+    if (totalResolved >= this._length) {
+        this._resolve(this._values);
+        return true;
+    }
+    return false;
+};
+
+PromiseArray.prototype._promiseCancelled = function() {
+    this._cancel();
+    return true;
+};
+
+PromiseArray.prototype._promiseRejected = function (reason) {
+    this._totalResolved++;
+    this._reject(reason);
+    return true;
+};
+
+PromiseArray.prototype._resultCancelled = function() {
+    if (this._isResolved()) return;
+    var values = this._values;
+    this._cancel();
+    if (values instanceof Promise) {
+        values.cancel();
+    } else {
+        for (var i = 0; i < values.length; ++i) {
+            if (values[i] instanceof Promise) {
+                values[i].cancel();
+            }
+        }
+    }
+};
+
+PromiseArray.prototype.shouldCopyValues = function () {
+    return true;
+};
+
+PromiseArray.prototype.getActualLength = function (len) {
+    return len;
+};
+
+return PromiseArray;
+};
+
+
+/***/ }),
+/* 406 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(Promise) {
+var longStackTraces = false;
+var contextStack = [];
+
+Promise.prototype._promiseCreated = function() {};
+Promise.prototype._pushContext = function() {};
+Promise.prototype._popContext = function() {return null;};
+Promise._peekContext = Promise.prototype._peekContext = function() {};
+
+function Context() {
+    this._trace = new Context.CapturedTrace(peekContext());
+}
+Context.prototype._pushContext = function () {
+    if (this._trace !== undefined) {
+        this._trace._promiseCreated = null;
+        contextStack.push(this._trace);
+    }
+};
+
+Context.prototype._popContext = function () {
+    if (this._trace !== undefined) {
+        var trace = contextStack.pop();
+        var ret = trace._promiseCreated;
+        trace._promiseCreated = null;
+        return ret;
+    }
+    return null;
+};
+
+function createContext() {
+    if (longStackTraces) return new Context();
+}
+
+function peekContext() {
+    var lastIndex = contextStack.length - 1;
+    if (lastIndex >= 0) {
+        return contextStack[lastIndex];
+    }
+    return undefined;
+}
+Context.CapturedTrace = null;
+Context.create = createContext;
+Context.deactivateLongStackTraces = function() {};
+Context.activateLongStackTraces = function() {
+    var Promise_pushContext = Promise.prototype._pushContext;
+    var Promise_popContext = Promise.prototype._popContext;
+    var Promise_PeekContext = Promise._peekContext;
+    var Promise_peekContext = Promise.prototype._peekContext;
+    var Promise_promiseCreated = Promise.prototype._promiseCreated;
+    Context.deactivateLongStackTraces = function() {
+        Promise.prototype._pushContext = Promise_pushContext;
+        Promise.prototype._popContext = Promise_popContext;
+        Promise._peekContext = Promise_PeekContext;
+        Promise.prototype._peekContext = Promise_peekContext;
+        Promise.prototype._promiseCreated = Promise_promiseCreated;
+        longStackTraces = false;
+    };
+    longStackTraces = true;
+    Promise.prototype._pushContext = Context.prototype._pushContext;
+    Promise.prototype._popContext = Context.prototype._popContext;
+    Promise._peekContext = Promise.prototype._peekContext = peekContext;
+    Promise.prototype._promiseCreated = function() {
+        var ctx = this._peekContext();
+        if (ctx && ctx._promiseCreated == null) ctx._promiseCreated = this;
+    };
+};
+return Context;
+};
+
+
+/***/ }),
+/* 407 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(Promise, Context) {
+var getDomain = Promise._getDomain;
+var async = Promise._async;
+var Warning = __webpack_require__(403).Warning;
+var util = __webpack_require__(398);
+var canAttachTrace = util.canAttachTrace;
+var unhandledRejectionHandled;
+var possiblyUnhandledRejection;
+var bluebirdFramePattern =
+    /[\\\/]bluebird[\\\/]js[\\\/](release|debug|instrumented)/;
+var nodeFramePattern = /\((?:timers\.js):\d+:\d+\)/;
+var parseLinePattern = /[\/<\(](.+?):(\d+):(\d+)\)?\s*$/;
+var stackFramePattern = null;
+var formatStack = null;
+var indentStackFrames = false;
+var printWarning;
+var debugging = !!(util.env("BLUEBIRD_DEBUG") != 0 &&
+                        ( false ||
+                         util.env("BLUEBIRD_DEBUG") ||
+                         util.env("NODE_ENV") === "development"));
+
+var warnings = !!(util.env("BLUEBIRD_WARNINGS") != 0 &&
+    (debugging || util.env("BLUEBIRD_WARNINGS")));
+
+var longStackTraces = !!(util.env("BLUEBIRD_LONG_STACK_TRACES") != 0 &&
+    (debugging || util.env("BLUEBIRD_LONG_STACK_TRACES")));
+
+var wForgottenReturn = util.env("BLUEBIRD_W_FORGOTTEN_RETURN") != 0 &&
+    (warnings || !!util.env("BLUEBIRD_W_FORGOTTEN_RETURN"));
+
+Promise.prototype.suppressUnhandledRejections = function() {
+    var target = this._target();
+    target._bitField = ((target._bitField & (~1048576)) |
+                      524288);
+};
+
+Promise.prototype._ensurePossibleRejectionHandled = function () {
+    if ((this._bitField & 524288) !== 0) return;
+    this._setRejectionIsUnhandled();
+    async.invokeLater(this._notifyUnhandledRejection, this, undefined);
+};
+
+Promise.prototype._notifyUnhandledRejectionIsHandled = function () {
+    fireRejectionEvent("rejectionHandled",
+                                  unhandledRejectionHandled, undefined, this);
+};
+
+Promise.prototype._setReturnedNonUndefined = function() {
+    this._bitField = this._bitField | 268435456;
+};
+
+Promise.prototype._returnedNonUndefined = function() {
+    return (this._bitField & 268435456) !== 0;
+};
+
+Promise.prototype._notifyUnhandledRejection = function () {
+    if (this._isRejectionUnhandled()) {
+        var reason = this._settledValue();
+        this._setUnhandledRejectionIsNotified();
+        fireRejectionEvent("unhandledRejection",
+                                      possiblyUnhandledRejection, reason, this);
+    }
+};
+
+Promise.prototype._setUnhandledRejectionIsNotified = function () {
+    this._bitField = this._bitField | 262144;
+};
+
+Promise.prototype._unsetUnhandledRejectionIsNotified = function () {
+    this._bitField = this._bitField & (~262144);
+};
+
+Promise.prototype._isUnhandledRejectionNotified = function () {
+    return (this._bitField & 262144) > 0;
+};
+
+Promise.prototype._setRejectionIsUnhandled = function () {
+    this._bitField = this._bitField | 1048576;
+};
+
+Promise.prototype._unsetRejectionIsUnhandled = function () {
+    this._bitField = this._bitField & (~1048576);
+    if (this._isUnhandledRejectionNotified()) {
+        this._unsetUnhandledRejectionIsNotified();
+        this._notifyUnhandledRejectionIsHandled();
+    }
+};
+
+Promise.prototype._isRejectionUnhandled = function () {
+    return (this._bitField & 1048576) > 0;
+};
+
+Promise.prototype._warn = function(message, shouldUseOwnTrace, promise) {
+    return warn(message, shouldUseOwnTrace, promise || this);
+};
+
+Promise.onPossiblyUnhandledRejection = function (fn) {
+    var domain = getDomain();
+    possiblyUnhandledRejection =
+        typeof fn === "function" ? (domain === null ?
+                                            fn : util.domainBind(domain, fn))
+                                 : undefined;
+};
+
+Promise.onUnhandledRejectionHandled = function (fn) {
+    var domain = getDomain();
+    unhandledRejectionHandled =
+        typeof fn === "function" ? (domain === null ?
+                                            fn : util.domainBind(domain, fn))
+                                 : undefined;
+};
+
+var disableLongStackTraces = function() {};
+Promise.longStackTraces = function () {
+    if (async.haveItemsQueued() && !config.longStackTraces) {
+        throw new Error("cannot enable long stack traces after promises have been created\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+    }
+    if (!config.longStackTraces && longStackTracesIsSupported()) {
+        var Promise_captureStackTrace = Promise.prototype._captureStackTrace;
+        var Promise_attachExtraTrace = Promise.prototype._attachExtraTrace;
+        config.longStackTraces = true;
+        disableLongStackTraces = function() {
+            if (async.haveItemsQueued() && !config.longStackTraces) {
+                throw new Error("cannot enable long stack traces after promises have been created\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+            }
+            Promise.prototype._captureStackTrace = Promise_captureStackTrace;
+            Promise.prototype._attachExtraTrace = Promise_attachExtraTrace;
+            Context.deactivateLongStackTraces();
+            async.enableTrampoline();
+            config.longStackTraces = false;
+        };
+        Promise.prototype._captureStackTrace = longStackTracesCaptureStackTrace;
+        Promise.prototype._attachExtraTrace = longStackTracesAttachExtraTrace;
+        Context.activateLongStackTraces();
+        async.disableTrampolineIfNecessary();
+    }
+};
+
+Promise.hasLongStackTraces = function () {
+    return config.longStackTraces && longStackTracesIsSupported();
+};
+
+var fireDomEvent = (function() {
+    try {
+        if (typeof CustomEvent === "function") {
+            var event = new CustomEvent("CustomEvent");
+            util.global.dispatchEvent(event);
+            return function(name, event) {
+                var domEvent = new CustomEvent(name.toLowerCase(), {
+                    detail: event,
+                    cancelable: true
+                });
+                return !util.global.dispatchEvent(domEvent);
+            };
+        } else if (typeof Event === "function") {
+            var event = new Event("CustomEvent");
+            util.global.dispatchEvent(event);
+            return function(name, event) {
+                var domEvent = new Event(name.toLowerCase(), {
+                    cancelable: true
+                });
+                domEvent.detail = event;
+                return !util.global.dispatchEvent(domEvent);
+            };
+        } else {
+            var event = document.createEvent("CustomEvent");
+            event.initCustomEvent("testingtheevent", false, true, {});
+            util.global.dispatchEvent(event);
+            return function(name, event) {
+                var domEvent = document.createEvent("CustomEvent");
+                domEvent.initCustomEvent(name.toLowerCase(), false, true,
+                    event);
+                return !util.global.dispatchEvent(domEvent);
+            };
+        }
+    } catch (e) {}
+    return function() {
+        return false;
+    };
+})();
+
+var fireGlobalEvent = (function() {
+    if (util.isNode) {
+        return function() {
+            return process.emit.apply(process, arguments);
+        };
+    } else {
+        if (!util.global) {
+            return function() {
+                return false;
+            };
+        }
+        return function(name) {
+            var methodName = "on" + name.toLowerCase();
+            var method = util.global[methodName];
+            if (!method) return false;
+            method.apply(util.global, [].slice.call(arguments, 1));
+            return true;
+        };
+    }
+})();
+
+function generatePromiseLifecycleEventObject(name, promise) {
+    return {promise: promise};
+}
+
+var eventToObjectGenerator = {
+    promiseCreated: generatePromiseLifecycleEventObject,
+    promiseFulfilled: generatePromiseLifecycleEventObject,
+    promiseRejected: generatePromiseLifecycleEventObject,
+    promiseResolved: generatePromiseLifecycleEventObject,
+    promiseCancelled: generatePromiseLifecycleEventObject,
+    promiseChained: function(name, promise, child) {
+        return {promise: promise, child: child};
+    },
+    warning: function(name, warning) {
+        return {warning: warning};
+    },
+    unhandledRejection: function (name, reason, promise) {
+        return {reason: reason, promise: promise};
+    },
+    rejectionHandled: generatePromiseLifecycleEventObject
+};
+
+var activeFireEvent = function (name) {
+    var globalEventFired = false;
+    try {
+        globalEventFired = fireGlobalEvent.apply(null, arguments);
+    } catch (e) {
+        async.throwLater(e);
+        globalEventFired = true;
+    }
+
+    var domEventFired = false;
+    try {
+        domEventFired = fireDomEvent(name,
+                    eventToObjectGenerator[name].apply(null, arguments));
+    } catch (e) {
+        async.throwLater(e);
+        domEventFired = true;
+    }
+
+    return domEventFired || globalEventFired;
+};
+
+Promise.config = function(opts) {
+    opts = Object(opts);
+    if ("longStackTraces" in opts) {
+        if (opts.longStackTraces) {
+            Promise.longStackTraces();
+        } else if (!opts.longStackTraces && Promise.hasLongStackTraces()) {
+            disableLongStackTraces();
+        }
+    }
+    if ("warnings" in opts) {
+        var warningsOption = opts.warnings;
+        config.warnings = !!warningsOption;
+        wForgottenReturn = config.warnings;
+
+        if (util.isObject(warningsOption)) {
+            if ("wForgottenReturn" in warningsOption) {
+                wForgottenReturn = !!warningsOption.wForgottenReturn;
+            }
+        }
+    }
+    if ("cancellation" in opts && opts.cancellation && !config.cancellation) {
+        if (async.haveItemsQueued()) {
+            throw new Error(
+                "cannot enable cancellation after promises are in use");
+        }
+        Promise.prototype._clearCancellationData =
+            cancellationClearCancellationData;
+        Promise.prototype._propagateFrom = cancellationPropagateFrom;
+        Promise.prototype._onCancel = cancellationOnCancel;
+        Promise.prototype._setOnCancel = cancellationSetOnCancel;
+        Promise.prototype._attachCancellationCallback =
+            cancellationAttachCancellationCallback;
+        Promise.prototype._execute = cancellationExecute;
+        propagateFromFunction = cancellationPropagateFrom;
+        config.cancellation = true;
+    }
+    if ("monitoring" in opts) {
+        if (opts.monitoring && !config.monitoring) {
+            config.monitoring = true;
+            Promise.prototype._fireEvent = activeFireEvent;
+        } else if (!opts.monitoring && config.monitoring) {
+            config.monitoring = false;
+            Promise.prototype._fireEvent = defaultFireEvent;
+        }
+    }
+    return Promise;
+};
+
+function defaultFireEvent() { return false; }
+
+Promise.prototype._fireEvent = defaultFireEvent;
+Promise.prototype._execute = function(executor, resolve, reject) {
+    try {
+        executor(resolve, reject);
+    } catch (e) {
+        return e;
+    }
+};
+Promise.prototype._onCancel = function () {};
+Promise.prototype._setOnCancel = function (handler) { ; };
+Promise.prototype._attachCancellationCallback = function(onCancel) {
+    ;
+};
+Promise.prototype._captureStackTrace = function () {};
+Promise.prototype._attachExtraTrace = function () {};
+Promise.prototype._clearCancellationData = function() {};
+Promise.prototype._propagateFrom = function (parent, flags) {
+    ;
+    ;
+};
+
+function cancellationExecute(executor, resolve, reject) {
+    var promise = this;
+    try {
+        executor(resolve, reject, function(onCancel) {
+            if (typeof onCancel !== "function") {
+                throw new TypeError("onCancel must be a function, got: " +
+                                    util.toString(onCancel));
+            }
+            promise._attachCancellationCallback(onCancel);
+        });
+    } catch (e) {
+        return e;
+    }
+}
+
+function cancellationAttachCancellationCallback(onCancel) {
+    if (!this._isCancellable()) return this;
+
+    var previousOnCancel = this._onCancel();
+    if (previousOnCancel !== undefined) {
+        if (util.isArray(previousOnCancel)) {
+            previousOnCancel.push(onCancel);
+        } else {
+            this._setOnCancel([previousOnCancel, onCancel]);
+        }
+    } else {
+        this._setOnCancel(onCancel);
+    }
+}
+
+function cancellationOnCancel() {
+    return this._onCancelField;
+}
+
+function cancellationSetOnCancel(onCancel) {
+    this._onCancelField = onCancel;
+}
+
+function cancellationClearCancellationData() {
+    this._cancellationParent = undefined;
+    this._onCancelField = undefined;
+}
+
+function cancellationPropagateFrom(parent, flags) {
+    if ((flags & 1) !== 0) {
+        this._cancellationParent = parent;
+        var branchesRemainingToCancel = parent._branchesRemainingToCancel;
+        if (branchesRemainingToCancel === undefined) {
+            branchesRemainingToCancel = 0;
+        }
+        parent._branchesRemainingToCancel = branchesRemainingToCancel + 1;
+    }
+    if ((flags & 2) !== 0 && parent._isBound()) {
+        this._setBoundTo(parent._boundTo);
+    }
+}
+
+function bindingPropagateFrom(parent, flags) {
+    if ((flags & 2) !== 0 && parent._isBound()) {
+        this._setBoundTo(parent._boundTo);
+    }
+}
+var propagateFromFunction = bindingPropagateFrom;
+
+function boundValueFunction() {
+    var ret = this._boundTo;
+    if (ret !== undefined) {
+        if (ret instanceof Promise) {
+            if (ret.isFulfilled()) {
+                return ret.value();
+            } else {
+                return undefined;
+            }
+        }
+    }
+    return ret;
+}
+
+function longStackTracesCaptureStackTrace() {
+    this._trace = new CapturedTrace(this._peekContext());
+}
+
+function longStackTracesAttachExtraTrace(error, ignoreSelf) {
+    if (canAttachTrace(error)) {
+        var trace = this._trace;
+        if (trace !== undefined) {
+            if (ignoreSelf) trace = trace._parent;
+        }
+        if (trace !== undefined) {
+            trace.attachExtraTrace(error);
+        } else if (!error.__stackCleaned__) {
+            var parsed = parseStackAndMessage(error);
+            util.notEnumerableProp(error, "stack",
+                parsed.message + "\n" + parsed.stack.join("\n"));
+            util.notEnumerableProp(error, "__stackCleaned__", true);
+        }
+    }
+}
+
+function checkForgottenReturns(returnValue, promiseCreated, name, promise,
+                               parent) {
+    if (returnValue === undefined && promiseCreated !== null &&
+        wForgottenReturn) {
+        if (parent !== undefined && parent._returnedNonUndefined()) return;
+        if ((promise._bitField & 65535) === 0) return;
+
+        if (name) name = name + " ";
+        var handlerLine = "";
+        var creatorLine = "";
+        if (promiseCreated._trace) {
+            var traceLines = promiseCreated._trace.stack.split("\n");
+            var stack = cleanStack(traceLines);
+            for (var i = stack.length - 1; i >= 0; --i) {
+                var line = stack[i];
+                if (!nodeFramePattern.test(line)) {
+                    var lineMatches = line.match(parseLinePattern);
+                    if (lineMatches) {
+                        handlerLine  = "at " + lineMatches[1] +
+                            ":" + lineMatches[2] + ":" + lineMatches[3] + " ";
+                    }
+                    break;
+                }
+            }
+
+            if (stack.length > 0) {
+                var firstUserLine = stack[0];
+                for (var i = 0; i < traceLines.length; ++i) {
+
+                    if (traceLines[i] === firstUserLine) {
+                        if (i > 0) {
+                            creatorLine = "\n" + traceLines[i - 1];
+                        }
+                        break;
+                    }
+                }
+
+            }
+        }
+        var msg = "a promise was created in a " + name +
+            "handler " + handlerLine + "but was not returned from it, " +
+            "see http://goo.gl/rRqMUw" +
+            creatorLine;
+        promise._warn(msg, true, promiseCreated);
+    }
+}
+
+function deprecated(name, replacement) {
+    var message = name +
+        " is deprecated and will be removed in a future version.";
+    if (replacement) message += " Use " + replacement + " instead.";
+    return warn(message);
+}
+
+function warn(message, shouldUseOwnTrace, promise) {
+    if (!config.warnings) return;
+    var warning = new Warning(message);
+    var ctx;
+    if (shouldUseOwnTrace) {
+        promise._attachExtraTrace(warning);
+    } else if (config.longStackTraces && (ctx = Promise._peekContext())) {
+        ctx.attachExtraTrace(warning);
+    } else {
+        var parsed = parseStackAndMessage(warning);
+        warning.stack = parsed.message + "\n" + parsed.stack.join("\n");
+    }
+
+    if (!activeFireEvent("warning", warning)) {
+        formatAndLogError(warning, "", true);
+    }
+}
+
+function reconstructStack(message, stacks) {
+    for (var i = 0; i < stacks.length - 1; ++i) {
+        stacks[i].push("From previous event:");
+        stacks[i] = stacks[i].join("\n");
+    }
+    if (i < stacks.length) {
+        stacks[i] = stacks[i].join("\n");
+    }
+    return message + "\n" + stacks.join("\n");
+}
+
+function removeDuplicateOrEmptyJumps(stacks) {
+    for (var i = 0; i < stacks.length; ++i) {
+        if (stacks[i].length === 0 ||
+            ((i + 1 < stacks.length) && stacks[i][0] === stacks[i+1][0])) {
+            stacks.splice(i, 1);
+            i--;
+        }
+    }
+}
+
+function removeCommonRoots(stacks) {
+    var current = stacks[0];
+    for (var i = 1; i < stacks.length; ++i) {
+        var prev = stacks[i];
+        var currentLastIndex = current.length - 1;
+        var currentLastLine = current[currentLastIndex];
+        var commonRootMeetPoint = -1;
+
+        for (var j = prev.length - 1; j >= 0; --j) {
+            if (prev[j] === currentLastLine) {
+                commonRootMeetPoint = j;
+                break;
+            }
+        }
+
+        for (var j = commonRootMeetPoint; j >= 0; --j) {
+            var line = prev[j];
+            if (current[currentLastIndex] === line) {
+                current.pop();
+                currentLastIndex--;
+            } else {
+                break;
+            }
+        }
+        current = prev;
+    }
+}
+
+function cleanStack(stack) {
+    var ret = [];
+    for (var i = 0; i < stack.length; ++i) {
+        var line = stack[i];
+        var isTraceLine = "    (No stack trace)" === line ||
+            stackFramePattern.test(line);
+        var isInternalFrame = isTraceLine && shouldIgnore(line);
+        if (isTraceLine && !isInternalFrame) {
+            if (indentStackFrames && line.charAt(0) !== " ") {
+                line = "    " + line;
+            }
+            ret.push(line);
+        }
+    }
+    return ret;
+}
+
+function stackFramesAsArray(error) {
+    var stack = error.stack.replace(/\s+$/g, "").split("\n");
+    for (var i = 0; i < stack.length; ++i) {
+        var line = stack[i];
+        if ("    (No stack trace)" === line || stackFramePattern.test(line)) {
+            break;
+        }
+    }
+    if (i > 0 && error.name != "SyntaxError") {
+        stack = stack.slice(i);
+    }
+    return stack;
+}
+
+function parseStackAndMessage(error) {
+    var stack = error.stack;
+    var message = error.toString();
+    stack = typeof stack === "string" && stack.length > 0
+                ? stackFramesAsArray(error) : ["    (No stack trace)"];
+    return {
+        message: message,
+        stack: error.name == "SyntaxError" ? stack : cleanStack(stack)
+    };
+}
+
+function formatAndLogError(error, title, isSoft) {
+    if (typeof console !== "undefined") {
+        var message;
+        if (util.isObject(error)) {
+            var stack = error.stack;
+            message = title + formatStack(stack, error);
+        } else {
+            message = title + String(error);
+        }
+        if (typeof printWarning === "function") {
+            printWarning(message, isSoft);
+        } else if (typeof console.log === "function" ||
+            typeof console.log === "object") {
+            console.log(message);
+        }
+    }
+}
+
+function fireRejectionEvent(name, localHandler, reason, promise) {
+    var localEventFired = false;
+    try {
+        if (typeof localHandler === "function") {
+            localEventFired = true;
+            if (name === "rejectionHandled") {
+                localHandler(promise);
+            } else {
+                localHandler(reason, promise);
+            }
+        }
+    } catch (e) {
+        async.throwLater(e);
+    }
+
+    if (name === "unhandledRejection") {
+        if (!activeFireEvent(name, reason, promise) && !localEventFired) {
+            formatAndLogError(reason, "Unhandled rejection ");
+        }
+    } else {
+        activeFireEvent(name, promise);
+    }
+}
+
+function formatNonError(obj) {
+    var str;
+    if (typeof obj === "function") {
+        str = "[function " +
+            (obj.name || "anonymous") +
+            "]";
+    } else {
+        str = obj && typeof obj.toString === "function"
+            ? obj.toString() : util.toString(obj);
+        var ruselessToString = /\[object [a-zA-Z0-9$_]+\]/;
+        if (ruselessToString.test(str)) {
+            try {
+                var newStr = JSON.stringify(obj);
+                str = newStr;
+            }
+            catch(e) {
+
+            }
+        }
+        if (str.length === 0) {
+            str = "(empty array)";
+        }
+    }
+    return ("(<" + snip(str) + ">, no stack trace)");
+}
+
+function snip(str) {
+    var maxChars = 41;
+    if (str.length < maxChars) {
+        return str;
+    }
+    return str.substr(0, maxChars - 3) + "...";
+}
+
+function longStackTracesIsSupported() {
+    return typeof captureStackTrace === "function";
+}
+
+var shouldIgnore = function() { return false; };
+var parseLineInfoRegex = /[\/<\(]([^:\/]+):(\d+):(?:\d+)\)?\s*$/;
+function parseLineInfo(line) {
+    var matches = line.match(parseLineInfoRegex);
+    if (matches) {
+        return {
+            fileName: matches[1],
+            line: parseInt(matches[2], 10)
+        };
+    }
+}
+
+function setBounds(firstLineError, lastLineError) {
+    if (!longStackTracesIsSupported()) return;
+    var firstStackLines = firstLineError.stack.split("\n");
+    var lastStackLines = lastLineError.stack.split("\n");
+    var firstIndex = -1;
+    var lastIndex = -1;
+    var firstFileName;
+    var lastFileName;
+    for (var i = 0; i < firstStackLines.length; ++i) {
+        var result = parseLineInfo(firstStackLines[i]);
+        if (result) {
+            firstFileName = result.fileName;
+            firstIndex = result.line;
+            break;
+        }
+    }
+    for (var i = 0; i < lastStackLines.length; ++i) {
+        var result = parseLineInfo(lastStackLines[i]);
+        if (result) {
+            lastFileName = result.fileName;
+            lastIndex = result.line;
+            break;
+        }
+    }
+    if (firstIndex < 0 || lastIndex < 0 || !firstFileName || !lastFileName ||
+        firstFileName !== lastFileName || firstIndex >= lastIndex) {
+        return;
+    }
+
+    shouldIgnore = function(line) {
+        if (bluebirdFramePattern.test(line)) return true;
+        var info = parseLineInfo(line);
+        if (info) {
+            if (info.fileName === firstFileName &&
+                (firstIndex <= info.line && info.line <= lastIndex)) {
+                return true;
+            }
+        }
+        return false;
+    };
+}
+
+function CapturedTrace(parent) {
+    this._parent = parent;
+    this._promisesCreated = 0;
+    var length = this._length = 1 + (parent === undefined ? 0 : parent._length);
+    captureStackTrace(this, CapturedTrace);
+    if (length > 32) this.uncycle();
+}
+util.inherits(CapturedTrace, Error);
+Context.CapturedTrace = CapturedTrace;
+
+CapturedTrace.prototype.uncycle = function() {
+    var length = this._length;
+    if (length < 2) return;
+    var nodes = [];
+    var stackToIndex = {};
+
+    for (var i = 0, node = this; node !== undefined; ++i) {
+        nodes.push(node);
+        node = node._parent;
+    }
+    length = this._length = i;
+    for (var i = length - 1; i >= 0; --i) {
+        var stack = nodes[i].stack;
+        if (stackToIndex[stack] === undefined) {
+            stackToIndex[stack] = i;
+        }
+    }
+    for (var i = 0; i < length; ++i) {
+        var currentStack = nodes[i].stack;
+        var index = stackToIndex[currentStack];
+        if (index !== undefined && index !== i) {
+            if (index > 0) {
+                nodes[index - 1]._parent = undefined;
+                nodes[index - 1]._length = 1;
+            }
+            nodes[i]._parent = undefined;
+            nodes[i]._length = 1;
+            var cycleEdgeNode = i > 0 ? nodes[i - 1] : this;
+
+            if (index < length - 1) {
+                cycleEdgeNode._parent = nodes[index + 1];
+                cycleEdgeNode._parent.uncycle();
+                cycleEdgeNode._length =
+                    cycleEdgeNode._parent._length + 1;
+            } else {
+                cycleEdgeNode._parent = undefined;
+                cycleEdgeNode._length = 1;
+            }
+            var currentChildLength = cycleEdgeNode._length + 1;
+            for (var j = i - 2; j >= 0; --j) {
+                nodes[j]._length = currentChildLength;
+                currentChildLength++;
+            }
+            return;
+        }
+    }
+};
+
+CapturedTrace.prototype.attachExtraTrace = function(error) {
+    if (error.__stackCleaned__) return;
+    this.uncycle();
+    var parsed = parseStackAndMessage(error);
+    var message = parsed.message;
+    var stacks = [parsed.stack];
+
+    var trace = this;
+    while (trace !== undefined) {
+        stacks.push(cleanStack(trace.stack.split("\n")));
+        trace = trace._parent;
+    }
+    removeCommonRoots(stacks);
+    removeDuplicateOrEmptyJumps(stacks);
+    util.notEnumerableProp(error, "stack", reconstructStack(message, stacks));
+    util.notEnumerableProp(error, "__stackCleaned__", true);
+};
+
+var captureStackTrace = (function stackDetection() {
+    var v8stackFramePattern = /^\s*at\s*/;
+    var v8stackFormatter = function(stack, error) {
+        if (typeof stack === "string") return stack;
+
+        if (error.name !== undefined &&
+            error.message !== undefined) {
+            return error.toString();
+        }
+        return formatNonError(error);
+    };
+
+    if (typeof Error.stackTraceLimit === "number" &&
+        typeof Error.captureStackTrace === "function") {
+        Error.stackTraceLimit += 6;
+        stackFramePattern = v8stackFramePattern;
+        formatStack = v8stackFormatter;
+        var captureStackTrace = Error.captureStackTrace;
+
+        shouldIgnore = function(line) {
+            return bluebirdFramePattern.test(line);
+        };
+        return function(receiver, ignoreUntil) {
+            Error.stackTraceLimit += 6;
+            captureStackTrace(receiver, ignoreUntil);
+            Error.stackTraceLimit -= 6;
+        };
+    }
+    var err = new Error();
+
+    if (typeof err.stack === "string" &&
+        err.stack.split("\n")[0].indexOf("stackDetection@") >= 0) {
+        stackFramePattern = /@/;
+        formatStack = v8stackFormatter;
+        indentStackFrames = true;
+        return function captureStackTrace(o) {
+            o.stack = new Error().stack;
+        };
+    }
+
+    var hasStackAfterThrow;
+    try { throw new Error(); }
+    catch(e) {
+        hasStackAfterThrow = ("stack" in e);
+    }
+    if (!("stack" in err) && hasStackAfterThrow &&
+        typeof Error.stackTraceLimit === "number") {
+        stackFramePattern = v8stackFramePattern;
+        formatStack = v8stackFormatter;
+        return function captureStackTrace(o) {
+            Error.stackTraceLimit += 6;
+            try { throw new Error(); }
+            catch(e) { o.stack = e.stack; }
+            Error.stackTraceLimit -= 6;
+        };
+    }
+
+    formatStack = function(stack, error) {
+        if (typeof stack === "string") return stack;
+
+        if ((typeof error === "object" ||
+            typeof error === "function") &&
+            error.name !== undefined &&
+            error.message !== undefined) {
+            return error.toString();
+        }
+        return formatNonError(error);
+    };
+
+    return null;
+
+})([]);
+
+if (typeof console !== "undefined" && typeof console.warn !== "undefined") {
+    printWarning = function (message) {
+        console.warn(message);
+    };
+    if (util.isNode && process.stderr.isTTY) {
+        printWarning = function(message, isSoft) {
+            var color = isSoft ? "\u001b[33m" : "\u001b[31m";
+            console.warn(color + message + "\u001b[0m\n");
+        };
+    } else if (!util.isNode && typeof (new Error().stack) === "string") {
+        printWarning = function(message, isSoft) {
+            console.warn("%c" + message,
+                        isSoft ? "color: darkorange" : "color: red");
+        };
+    }
+}
+
+var config = {
+    warnings: warnings,
+    longStackTraces: false,
+    cancellation: false,
+    monitoring: false
+};
+
+if (longStackTraces) Promise.longStackTraces();
+
+return {
+    longStackTraces: function() {
+        return config.longStackTraces;
+    },
+    warnings: function() {
+        return config.warnings;
+    },
+    cancellation: function() {
+        return config.cancellation;
+    },
+    monitoring: function() {
+        return config.monitoring;
+    },
+    propagateFromFunction: function() {
+        return propagateFromFunction;
+    },
+    boundValueFunction: function() {
+        return boundValueFunction;
+    },
+    checkForgottenReturns: checkForgottenReturns,
+    setBounds: setBounds,
+    warn: warn,
+    deprecated: deprecated,
+    CapturedTrace: CapturedTrace,
+    fireDomEvent: fireDomEvent,
+    fireGlobalEvent: fireGlobalEvent
+};
+};
+
+
+/***/ }),
+/* 408 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(Promise, tryConvertToPromise) {
+var util = __webpack_require__(398);
+var CancellationError = Promise.CancellationError;
+var errorObj = util.errorObj;
+
+function PassThroughHandlerContext(promise, type, handler) {
+    this.promise = promise;
+    this.type = type;
+    this.handler = handler;
+    this.called = false;
+    this.cancelPromise = null;
+}
+
+PassThroughHandlerContext.prototype.isFinallyHandler = function() {
+    return this.type === 0;
+};
+
+function FinallyHandlerCancelReaction(finallyHandler) {
+    this.finallyHandler = finallyHandler;
+}
+
+FinallyHandlerCancelReaction.prototype._resultCancelled = function() {
+    checkCancel(this.finallyHandler);
+};
+
+function checkCancel(ctx, reason) {
+    if (ctx.cancelPromise != null) {
+        if (arguments.length > 1) {
+            ctx.cancelPromise._reject(reason);
+        } else {
+            ctx.cancelPromise._cancel();
+        }
+        ctx.cancelPromise = null;
+        return true;
+    }
+    return false;
+}
+
+function succeed() {
+    return finallyHandler.call(this, this.promise._target()._settledValue());
+}
+function fail(reason) {
+    if (checkCancel(this, reason)) return;
+    errorObj.e = reason;
+    return errorObj;
+}
+function finallyHandler(reasonOrValue) {
+    var promise = this.promise;
+    var handler = this.handler;
+
+    if (!this.called) {
+        this.called = true;
+        var ret = this.isFinallyHandler()
+            ? handler.call(promise._boundValue())
+            : handler.call(promise._boundValue(), reasonOrValue);
+        if (ret !== undefined) {
+            promise._setReturnedNonUndefined();
+            var maybePromise = tryConvertToPromise(ret, promise);
+            if (maybePromise instanceof Promise) {
+                if (this.cancelPromise != null) {
+                    if (maybePromise._isCancelled()) {
+                        var reason =
+                            new CancellationError("late cancellation observer");
+                        promise._attachExtraTrace(reason);
+                        errorObj.e = reason;
+                        return errorObj;
+                    } else if (maybePromise.isPending()) {
+                        maybePromise._attachCancellationCallback(
+                            new FinallyHandlerCancelReaction(this));
+                    }
+                }
+                return maybePromise._then(
+                    succeed, fail, undefined, this, undefined);
+            }
+        }
+    }
+
+    if (promise.isRejected()) {
+        checkCancel(this);
+        errorObj.e = reasonOrValue;
+        return errorObj;
+    } else {
+        checkCancel(this);
+        return reasonOrValue;
+    }
+}
+
+Promise.prototype._passThrough = function(handler, type, success, fail) {
+    if (typeof handler !== "function") return this.then();
+    return this._then(success,
+                      fail,
+                      undefined,
+                      new PassThroughHandlerContext(this, type, handler),
+                      undefined);
+};
+
+Promise.prototype.lastly =
+Promise.prototype["finally"] = function (handler) {
+    return this._passThrough(handler,
+                             0,
+                             finallyHandler,
+                             finallyHandler);
+};
+
+Promise.prototype.tap = function (handler) {
+    return this._passThrough(handler, 1, finallyHandler);
+};
+
+return PassThroughHandlerContext;
+};
+
+
+/***/ }),
+/* 409 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(NEXT_FILTER) {
+var util = __webpack_require__(398);
+var getKeys = __webpack_require__(399).keys;
+var tryCatch = util.tryCatch;
+var errorObj = util.errorObj;
+
+function catchFilter(instances, cb, promise) {
+    return function(e) {
+        var boundTo = promise._boundValue();
+        predicateLoop: for (var i = 0; i < instances.length; ++i) {
+            var item = instances[i];
+
+            if (item === Error ||
+                (item != null && item.prototype instanceof Error)) {
+                if (e instanceof item) {
+                    return tryCatch(cb).call(boundTo, e);
+                }
+            } else if (typeof item === "function") {
+                var matchesPredicate = tryCatch(item).call(boundTo, e);
+                if (matchesPredicate === errorObj) {
+                    return matchesPredicate;
+                } else if (matchesPredicate) {
+                    return tryCatch(cb).call(boundTo, e);
+                }
+            } else if (util.isObject(e)) {
+                var keys = getKeys(item);
+                for (var j = 0; j < keys.length; ++j) {
+                    var key = keys[j];
+                    if (item[key] != e[key]) {
+                        continue predicateLoop;
+                    }
+                }
+                return tryCatch(cb).call(boundTo, e);
+            }
+        }
+        return NEXT_FILTER;
+    };
+}
+
+return catchFilter;
+};
+
+
+/***/ }),
+/* 410 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var util = __webpack_require__(398);
+var maybeWrapAsError = util.maybeWrapAsError;
+var errors = __webpack_require__(403);
+var OperationalError = errors.OperationalError;
+var es5 = __webpack_require__(399);
+
+function isUntypedError(obj) {
+    return obj instanceof Error &&
+        es5.getPrototypeOf(obj) === Error.prototype;
+}
+
+var rErrorKey = /^(?:name|message|stack|cause)$/;
+function wrapAsOperationalError(obj) {
+    var ret;
+    if (isUntypedError(obj)) {
+        ret = new OperationalError(obj);
+        ret.name = obj.name;
+        ret.message = obj.message;
+        ret.stack = obj.stack;
+        var keys = es5.keys(obj);
+        for (var i = 0; i < keys.length; ++i) {
+            var key = keys[i];
+            if (!rErrorKey.test(key)) {
+                ret[key] = obj[key];
+            }
+        }
+        return ret;
+    }
+    util.markAsOriginatingFromRejection(obj);
+    return obj;
+}
+
+function nodebackForPromise(promise, multiArgs) {
+    return function(err, value) {
+        if (promise === null) return;
+        if (err) {
+            var wrapped = wrapAsOperationalError(maybeWrapAsError(err));
+            promise._attachExtraTrace(wrapped);
+            promise._reject(wrapped);
+        } else if (!multiArgs) {
+            promise._fulfill(value);
+        } else {
+            var $_len = arguments.length;var args = new Array(Math.max($_len - 1, 0)); for(var $_i = 1; $_i < $_len; ++$_i) {args[$_i - 1] = arguments[$_i];};
+            promise._fulfill(args);
+        }
+        promise = null;
+    };
+}
+
+module.exports = nodebackForPromise;
+
+
+/***/ }),
+/* 411 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports =
+function(Promise, INTERNAL, tryConvertToPromise, apiRejection, debug) {
+var util = __webpack_require__(398);
+var tryCatch = util.tryCatch;
+
+Promise.method = function (fn) {
+    if (typeof fn !== "function") {
+        throw new Promise.TypeError("expecting a function but got " + util.classString(fn));
+    }
+    return function () {
+        var ret = new Promise(INTERNAL);
+        ret._captureStackTrace();
+        ret._pushContext();
+        var value = tryCatch(fn).apply(this, arguments);
+        var promiseCreated = ret._popContext();
+        debug.checkForgottenReturns(
+            value, promiseCreated, "Promise.method", ret);
+        ret._resolveFromSyncValue(value);
+        return ret;
+    };
+};
+
+Promise.attempt = Promise["try"] = function (fn) {
+    if (typeof fn !== "function") {
+        return apiRejection("expecting a function but got " + util.classString(fn));
+    }
+    var ret = new Promise(INTERNAL);
+    ret._captureStackTrace();
+    ret._pushContext();
+    var value;
+    if (arguments.length > 1) {
+        debug.deprecated("calling Promise.try with more than 1 argument");
+        var arg = arguments[1];
+        var ctx = arguments[2];
+        value = util.isArray(arg) ? tryCatch(fn).apply(ctx, arg)
+                                  : tryCatch(fn).call(ctx, arg);
+    } else {
+        value = tryCatch(fn)();
+    }
+    var promiseCreated = ret._popContext();
+    debug.checkForgottenReturns(
+        value, promiseCreated, "Promise.try", ret);
+    ret._resolveFromSyncValue(value);
+    return ret;
+};
+
+Promise.prototype._resolveFromSyncValue = function (value) {
+    if (value === util.errorObj) {
+        this._rejectCallback(value.e, false);
+    } else {
+        this._resolveCallback(value, true);
+    }
+};
+};
+
+
+/***/ }),
+/* 412 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(Promise, INTERNAL, tryConvertToPromise, debug) {
+var calledBind = false;
+var rejectThis = function(_, e) {
+    this._reject(e);
+};
+
+var targetRejected = function(e, context) {
+    context.promiseRejectionQueued = true;
+    context.bindingPromise._then(rejectThis, rejectThis, null, this, e);
+};
+
+var bindingResolved = function(thisArg, context) {
+    if (((this._bitField & 50397184) === 0)) {
+        this._resolveCallback(context.target);
+    }
+};
+
+var bindingRejected = function(e, context) {
+    if (!context.promiseRejectionQueued) this._reject(e);
+};
+
+Promise.prototype.bind = function (thisArg) {
+    if (!calledBind) {
+        calledBind = true;
+        Promise.prototype._propagateFrom = debug.propagateFromFunction();
+        Promise.prototype._boundValue = debug.boundValueFunction();
+    }
+    var maybePromise = tryConvertToPromise(thisArg);
+    var ret = new Promise(INTERNAL);
+    ret._propagateFrom(this, 1);
+    var target = this._target();
+    ret._setBoundTo(maybePromise);
+    if (maybePromise instanceof Promise) {
+        var context = {
+            promiseRejectionQueued: false,
+            promise: ret,
+            target: target,
+            bindingPromise: maybePromise
+        };
+        target._then(INTERNAL, targetRejected, undefined, ret, context);
+        maybePromise._then(
+            bindingResolved, bindingRejected, undefined, ret, context);
+        ret._setOnCancel(maybePromise);
+    } else {
+        ret._resolveCallback(target);
+    }
+    return ret;
+};
+
+Promise.prototype._setBoundTo = function (obj) {
+    if (obj !== undefined) {
+        this._bitField = this._bitField | 2097152;
+        this._boundTo = obj;
+    } else {
+        this._bitField = this._bitField & (~2097152);
+    }
+};
+
+Promise.prototype._isBound = function () {
+    return (this._bitField & 2097152) === 2097152;
+};
+
+Promise.bind = function (thisArg, value) {
+    return Promise.resolve(value).bind(thisArg);
+};
+};
+
+
+/***/ }),
+/* 413 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(Promise, PromiseArray, apiRejection, debug) {
+var util = __webpack_require__(398);
+var tryCatch = util.tryCatch;
+var errorObj = util.errorObj;
+var async = Promise._async;
+
+Promise.prototype["break"] = Promise.prototype.cancel = function() {
+    if (!debug.cancellation()) return this._warn("cancellation is disabled");
+
+    var promise = this;
+    var child = promise;
+    while (promise._isCancellable()) {
+        if (!promise._cancelBy(child)) {
+            if (child._isFollowing()) {
+                child._followee().cancel();
+            } else {
+                child._cancelBranched();
+            }
+            break;
+        }
+
+        var parent = promise._cancellationParent;
+        if (parent == null || !parent._isCancellable()) {
+            if (promise._isFollowing()) {
+                promise._followee().cancel();
+            } else {
+                promise._cancelBranched();
+            }
+            break;
+        } else {
+            if (promise._isFollowing()) promise._followee().cancel();
+            promise._setWillBeCancelled();
+            child = promise;
+            promise = parent;
+        }
+    }
+};
+
+Promise.prototype._branchHasCancelled = function() {
+    this._branchesRemainingToCancel--;
+};
+
+Promise.prototype._enoughBranchesHaveCancelled = function() {
+    return this._branchesRemainingToCancel === undefined ||
+           this._branchesRemainingToCancel <= 0;
+};
+
+Promise.prototype._cancelBy = function(canceller) {
+    if (canceller === this) {
+        this._branchesRemainingToCancel = 0;
+        this._invokeOnCancel();
+        return true;
+    } else {
+        this._branchHasCancelled();
+        if (this._enoughBranchesHaveCancelled()) {
+            this._invokeOnCancel();
+            return true;
+        }
+    }
+    return false;
+};
+
+Promise.prototype._cancelBranched = function() {
+    if (this._enoughBranchesHaveCancelled()) {
+        this._cancel();
+    }
+};
+
+Promise.prototype._cancel = function() {
+    if (!this._isCancellable()) return;
+    this._setCancelled();
+    async.invoke(this._cancelPromises, this, undefined);
+};
+
+Promise.prototype._cancelPromises = function() {
+    if (this._length() > 0) this._settlePromises();
+};
+
+Promise.prototype._unsetOnCancel = function() {
+    this._onCancelField = undefined;
+};
+
+Promise.prototype._isCancellable = function() {
+    return this.isPending() && !this._isCancelled();
+};
+
+Promise.prototype.isCancellable = function() {
+    return this.isPending() && !this.isCancelled();
+};
+
+Promise.prototype._doInvokeOnCancel = function(onCancelCallback, internalOnly) {
+    if (util.isArray(onCancelCallback)) {
+        for (var i = 0; i < onCancelCallback.length; ++i) {
+            this._doInvokeOnCancel(onCancelCallback[i], internalOnly);
+        }
+    } else if (onCancelCallback !== undefined) {
+        if (typeof onCancelCallback === "function") {
+            if (!internalOnly) {
+                var e = tryCatch(onCancelCallback).call(this._boundValue());
+                if (e === errorObj) {
+                    this._attachExtraTrace(e.e);
+                    async.throwLater(e.e);
+                }
+            }
+        } else {
+            onCancelCallback._resultCancelled(this);
+        }
+    }
+};
+
+Promise.prototype._invokeOnCancel = function() {
+    var onCancelCallback = this._onCancel();
+    this._unsetOnCancel();
+    async.invoke(this._doInvokeOnCancel, this, onCancelCallback);
+};
+
+Promise.prototype._invokeInternalOnCancel = function() {
+    if (this._isCancellable()) {
+        this._doInvokeOnCancel(this._onCancel(), true);
+        this._unsetOnCancel();
+    }
+};
+
+Promise.prototype._resultCancelled = function() {
+    this.cancel();
+};
+
+};
+
+
+/***/ }),
+/* 414 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(Promise) {
+function returner() {
+    return this.value;
+}
+function thrower() {
+    throw this.reason;
+}
+
+Promise.prototype["return"] =
+Promise.prototype.thenReturn = function (value) {
+    if (value instanceof Promise) value.suppressUnhandledRejections();
+    return this._then(
+        returner, undefined, undefined, {value: value}, undefined);
+};
+
+Promise.prototype["throw"] =
+Promise.prototype.thenThrow = function (reason) {
+    return this._then(
+        thrower, undefined, undefined, {reason: reason}, undefined);
+};
+
+Promise.prototype.catchThrow = function (reason) {
+    if (arguments.length <= 1) {
+        return this._then(
+            undefined, thrower, undefined, {reason: reason}, undefined);
+    } else {
+        var _reason = arguments[1];
+        var handler = function() {throw _reason;};
+        return this.caught(reason, handler);
+    }
+};
+
+Promise.prototype.catchReturn = function (value) {
+    if (arguments.length <= 1) {
+        if (value instanceof Promise) value.suppressUnhandledRejections();
+        return this._then(
+            undefined, returner, undefined, {value: value}, undefined);
+    } else {
+        var _value = arguments[1];
+        if (_value instanceof Promise) _value.suppressUnhandledRejections();
+        var handler = function() {return _value;};
+        return this.caught(value, handler);
+    }
+};
+};
+
+
+/***/ }),
+/* 415 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(Promise) {
+function PromiseInspection(promise) {
+    if (promise !== undefined) {
+        promise = promise._target();
+        this._bitField = promise._bitField;
+        this._settledValueField = promise._isFateSealed()
+            ? promise._settledValue() : undefined;
+    }
+    else {
+        this._bitField = 0;
+        this._settledValueField = undefined;
+    }
+}
+
+PromiseInspection.prototype._settledValue = function() {
+    return this._settledValueField;
+};
+
+var value = PromiseInspection.prototype.value = function () {
+    if (!this.isFulfilled()) {
+        throw new TypeError("cannot get fulfillment value of a non-fulfilled promise\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+    }
+    return this._settledValue();
+};
+
+var reason = PromiseInspection.prototype.error =
+PromiseInspection.prototype.reason = function () {
+    if (!this.isRejected()) {
+        throw new TypeError("cannot get rejection reason of a non-rejected promise\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+    }
+    return this._settledValue();
+};
+
+var isFulfilled = PromiseInspection.prototype.isFulfilled = function() {
+    return (this._bitField & 33554432) !== 0;
+};
+
+var isRejected = PromiseInspection.prototype.isRejected = function () {
+    return (this._bitField & 16777216) !== 0;
+};
+
+var isPending = PromiseInspection.prototype.isPending = function () {
+    return (this._bitField & 50397184) === 0;
+};
+
+var isResolved = PromiseInspection.prototype.isResolved = function () {
+    return (this._bitField & 50331648) !== 0;
+};
+
+PromiseInspection.prototype.isCancelled = function() {
+    return (this._bitField & 8454144) !== 0;
+};
+
+Promise.prototype.__isCancelled = function() {
+    return (this._bitField & 65536) === 65536;
+};
+
+Promise.prototype._isCancelled = function() {
+    return this._target().__isCancelled();
+};
+
+Promise.prototype.isCancelled = function() {
+    return (this._target()._bitField & 8454144) !== 0;
+};
+
+Promise.prototype.isPending = function() {
+    return isPending.call(this._target());
+};
+
+Promise.prototype.isRejected = function() {
+    return isRejected.call(this._target());
+};
+
+Promise.prototype.isFulfilled = function() {
+    return isFulfilled.call(this._target());
+};
+
+Promise.prototype.isResolved = function() {
+    return isResolved.call(this._target());
+};
+
+Promise.prototype.value = function() {
+    return value.call(this._target());
+};
+
+Promise.prototype.reason = function() {
+    var target = this._target();
+    target._unsetRejectionIsUnhandled();
+    return reason.call(target);
+};
+
+Promise.prototype._value = function() {
+    return this._settledValue();
+};
+
+Promise.prototype._reason = function() {
+    this._unsetRejectionIsUnhandled();
+    return this._settledValue();
+};
+
+Promise.PromiseInspection = PromiseInspection;
+};
+
+
+/***/ }),
+/* 416 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports =
+function(Promise, PromiseArray, tryConvertToPromise, INTERNAL, async,
+         getDomain) {
+var util = __webpack_require__(398);
+var canEvaluate = util.canEvaluate;
+var tryCatch = util.tryCatch;
+var errorObj = util.errorObj;
+var reject;
+
+if (true) {
+if (canEvaluate) {
+    var thenCallback = function(i) {
+        return new Function("value", "holder", "                             \n\
+            'use strict';                                                    \n\
+            holder.pIndex = value;                                           \n\
+            holder.checkFulfillment(this);                                   \n\
+            ".replace(/Index/g, i));
+    };
+
+    var promiseSetter = function(i) {
+        return new Function("promise", "holder", "                           \n\
+            'use strict';                                                    \n\
+            holder.pIndex = promise;                                         \n\
+            ".replace(/Index/g, i));
+    };
+
+    var generateHolderClass = function(total) {
+        var props = new Array(total);
+        for (var i = 0; i < props.length; ++i) {
+            props[i] = "this.p" + (i+1);
+        }
+        var assignment = props.join(" = ") + " = null;";
+        var cancellationCode= "var promise;\n" + props.map(function(prop) {
+            return "                                                         \n\
+                promise = " + prop + ";                                      \n\
+                if (promise instanceof Promise) {                            \n\
+                    promise.cancel();                                        \n\
+                }                                                            \n\
+            ";
+        }).join("\n");
+        var passedArguments = props.join(", ");
+        var name = "Holder$" + total;
+
+
+        var code = "return function(tryCatch, errorObj, Promise, async) {    \n\
+            'use strict';                                                    \n\
+            function [TheName](fn) {                                         \n\
+                [TheProperties]                                              \n\
+                this.fn = fn;                                                \n\
+                this.asyncNeeded = true;                                     \n\
+                this.now = 0;                                                \n\
+            }                                                                \n\
+                                                                             \n\
+            [TheName].prototype._callFunction = function(promise) {          \n\
+                promise._pushContext();                                      \n\
+                var ret = tryCatch(this.fn)([ThePassedArguments]);           \n\
+                promise._popContext();                                       \n\
+                if (ret === errorObj) {                                      \n\
+                    promise._rejectCallback(ret.e, false);                   \n\
+                } else {                                                     \n\
+                    promise._resolveCallback(ret);                           \n\
+                }                                                            \n\
+            };                                                               \n\
+                                                                             \n\
+            [TheName].prototype.checkFulfillment = function(promise) {       \n\
+                var now = ++this.now;                                        \n\
+                if (now === [TheTotal]) {                                    \n\
+                    if (this.asyncNeeded) {                                  \n\
+                        async.invoke(this._callFunction, this, promise);     \n\
+                    } else {                                                 \n\
+                        this._callFunction(promise);                         \n\
+                    }                                                        \n\
+                                                                             \n\
+                }                                                            \n\
+            };                                                               \n\
+                                                                             \n\
+            [TheName].prototype._resultCancelled = function() {              \n\
+                [CancellationCode]                                           \n\
+            };                                                               \n\
+                                                                             \n\
+            return [TheName];                                                \n\
+        }(tryCatch, errorObj, Promise, async);                               \n\
+        ";
+
+        code = code.replace(/\[TheName\]/g, name)
+            .replace(/\[TheTotal\]/g, total)
+            .replace(/\[ThePassedArguments\]/g, passedArguments)
+            .replace(/\[TheProperties\]/g, assignment)
+            .replace(/\[CancellationCode\]/g, cancellationCode);
+
+        return new Function("tryCatch", "errorObj", "Promise", "async", code)
+                           (tryCatch, errorObj, Promise, async);
+    };
+
+    var holderClasses = [];
+    var thenCallbacks = [];
+    var promiseSetters = [];
+
+    for (var i = 0; i < 8; ++i) {
+        holderClasses.push(generateHolderClass(i + 1));
+        thenCallbacks.push(thenCallback(i + 1));
+        promiseSetters.push(promiseSetter(i + 1));
+    }
+
+    reject = function (reason) {
+        this._reject(reason);
+    };
+}}
+
+Promise.join = function () {
+    var last = arguments.length - 1;
+    var fn;
+    if (last > 0 && typeof arguments[last] === "function") {
+        fn = arguments[last];
+        if (true) {
+            if (last <= 8 && canEvaluate) {
+                var ret = new Promise(INTERNAL);
+                ret._captureStackTrace();
+                var HolderClass = holderClasses[last - 1];
+                var holder = new HolderClass(fn);
+                var callbacks = thenCallbacks;
+
+                for (var i = 0; i < last; ++i) {
+                    var maybePromise = tryConvertToPromise(arguments[i], ret);
+                    if (maybePromise instanceof Promise) {
+                        maybePromise = maybePromise._target();
+                        var bitField = maybePromise._bitField;
+                        ;
+                        if (((bitField & 50397184) === 0)) {
+                            maybePromise._then(callbacks[i], reject,
+                                               undefined, ret, holder);
+                            promiseSetters[i](maybePromise, holder);
+                            holder.asyncNeeded = false;
+                        } else if (((bitField & 33554432) !== 0)) {
+                            callbacks[i].call(ret,
+                                              maybePromise._value(), holder);
+                        } else if (((bitField & 16777216) !== 0)) {
+                            ret._reject(maybePromise._reason());
+                        } else {
+                            ret._cancel();
+                        }
+                    } else {
+                        callbacks[i].call(ret, maybePromise, holder);
+                    }
+                }
+
+                if (!ret._isFateSealed()) {
+                    if (holder.asyncNeeded) {
+                        var domain = getDomain();
+                        if (domain !== null) {
+                            holder.fn = util.domainBind(domain, holder.fn);
+                        }
+                    }
+                    ret._setAsyncGuaranteed();
+                    ret._setOnCancel(holder);
+                }
+                return ret;
+            }
+        }
+    }
+    var $_len = arguments.length;var args = new Array($_len); for(var $_i = 0; $_i < $_len; ++$_i) {args[$_i] = arguments[$_i];};
+    if (fn) args.pop();
+    var ret = new PromiseArray(args).promise();
+    return fn !== undefined ? ret.spread(fn) : ret;
+};
+
+};
+
+
+/***/ }),
+/* 417 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(Promise,
+                          PromiseArray,
+                          apiRejection,
+                          tryConvertToPromise,
+                          INTERNAL,
+                          debug) {
+var getDomain = Promise._getDomain;
+var util = __webpack_require__(398);
+var tryCatch = util.tryCatch;
+var errorObj = util.errorObj;
+var async = Promise._async;
+
+function MappingPromiseArray(promises, fn, limit, _filter) {
+    this.constructor$(promises);
+    this._promise._captureStackTrace();
+    var domain = getDomain();
+    this._callback = domain === null ? fn : util.domainBind(domain, fn);
+    this._preservedValues = _filter === INTERNAL
+        ? new Array(this.length())
+        : null;
+    this._limit = limit;
+    this._inFlight = 0;
+    this._queue = [];
+    async.invoke(this._asyncInit, this, undefined);
+}
+util.inherits(MappingPromiseArray, PromiseArray);
+
+MappingPromiseArray.prototype._asyncInit = function() {
+    this._init$(undefined, -2);
+};
+
+MappingPromiseArray.prototype._init = function () {};
+
+MappingPromiseArray.prototype._promiseFulfilled = function (value, index) {
+    var values = this._values;
+    var length = this.length();
+    var preservedValues = this._preservedValues;
+    var limit = this._limit;
+
+    if (index < 0) {
+        index = (index * -1) - 1;
+        values[index] = value;
+        if (limit >= 1) {
+            this._inFlight--;
+            this._drainQueue();
+            if (this._isResolved()) return true;
+        }
+    } else {
+        if (limit >= 1 && this._inFlight >= limit) {
+            values[index] = value;
+            this._queue.push(index);
+            return false;
+        }
+        if (preservedValues !== null) preservedValues[index] = value;
+
+        var promise = this._promise;
+        var callback = this._callback;
+        var receiver = promise._boundValue();
+        promise._pushContext();
+        var ret = tryCatch(callback).call(receiver, value, index, length);
+        var promiseCreated = promise._popContext();
+        debug.checkForgottenReturns(
+            ret,
+            promiseCreated,
+            preservedValues !== null ? "Promise.filter" : "Promise.map",
+            promise
+        );
+        if (ret === errorObj) {
+            this._reject(ret.e);
+            return true;
+        }
+
+        var maybePromise = tryConvertToPromise(ret, this._promise);
+        if (maybePromise instanceof Promise) {
+            maybePromise = maybePromise._target();
+            var bitField = maybePromise._bitField;
+            ;
+            if (((bitField & 50397184) === 0)) {
+                if (limit >= 1) this._inFlight++;
+                values[index] = maybePromise;
+                maybePromise._proxy(this, (index + 1) * -1);
+                return false;
+            } else if (((bitField & 33554432) !== 0)) {
+                ret = maybePromise._value();
+            } else if (((bitField & 16777216) !== 0)) {
+                this._reject(maybePromise._reason());
+                return true;
+            } else {
+                this._cancel();
+                return true;
+            }
+        }
+        values[index] = ret;
+    }
+    var totalResolved = ++this._totalResolved;
+    if (totalResolved >= length) {
+        if (preservedValues !== null) {
+            this._filter(values, preservedValues);
+        } else {
+            this._resolve(values);
+        }
+        return true;
+    }
+    return false;
+};
+
+MappingPromiseArray.prototype._drainQueue = function () {
+    var queue = this._queue;
+    var limit = this._limit;
+    var values = this._values;
+    while (queue.length > 0 && this._inFlight < limit) {
+        if (this._isResolved()) return;
+        var index = queue.pop();
+        this._promiseFulfilled(values[index], index);
+    }
+};
+
+MappingPromiseArray.prototype._filter = function (booleans, values) {
+    var len = values.length;
+    var ret = new Array(len);
+    var j = 0;
+    for (var i = 0; i < len; ++i) {
+        if (booleans[i]) ret[j++] = values[i];
+    }
+    ret.length = j;
+    this._resolve(ret);
+};
+
+MappingPromiseArray.prototype.preservedValues = function () {
+    return this._preservedValues;
+};
+
+function map(promises, fn, options, _filter) {
+    if (typeof fn !== "function") {
+        return apiRejection("expecting a function but got " + util.classString(fn));
+    }
+
+    var limit = 0;
+    if (options !== undefined) {
+        if (typeof options === "object" && options !== null) {
+            if (typeof options.concurrency !== "number") {
+                return Promise.reject(
+                    new TypeError("'concurrency' must be a number but it is " +
+                                    util.classString(options.concurrency)));
+            }
+            limit = options.concurrency;
+        } else {
+            return Promise.reject(new TypeError(
+                            "options argument must be an object but it is " +
+                             util.classString(options)));
+        }
+    }
+    limit = typeof limit === "number" &&
+        isFinite(limit) && limit >= 1 ? limit : 0;
+    return new MappingPromiseArray(promises, fn, limit, _filter).promise();
+}
+
+Promise.prototype.map = function (fn, options) {
+    return map(this, fn, options, null);
+};
+
+Promise.map = function (promises, fn, options, _filter) {
+    return map(promises, fn, options, _filter);
+};
+
+
+};
+
+
+/***/ }),
+/* 418 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var cr = Object.create;
+if (cr) {
+    var callerCache = cr(null);
+    var getterCache = cr(null);
+    callerCache[" size"] = getterCache[" size"] = 0;
+}
+
+module.exports = function(Promise) {
+var util = __webpack_require__(398);
+var canEvaluate = util.canEvaluate;
+var isIdentifier = util.isIdentifier;
+
+var getMethodCaller;
+var getGetter;
+if (true) {
+var makeMethodCaller = function (methodName) {
+    return new Function("ensureMethod", "                                    \n\
+        return function(obj) {                                               \n\
+            'use strict'                                                     \n\
+            var len = this.length;                                           \n\
+            ensureMethod(obj, 'methodName');                                 \n\
+            switch(len) {                                                    \n\
+                case 1: return obj.methodName(this[0]);                      \n\
+                case 2: return obj.methodName(this[0], this[1]);             \n\
+                case 3: return obj.methodName(this[0], this[1], this[2]);    \n\
+                case 0: return obj.methodName();                             \n\
+                default:                                                     \n\
+                    return obj.methodName.apply(obj, this);                  \n\
+            }                                                                \n\
+        };                                                                   \n\
+        ".replace(/methodName/g, methodName))(ensureMethod);
+};
+
+var makeGetter = function (propertyName) {
+    return new Function("obj", "                                             \n\
+        'use strict';                                                        \n\
+        return obj.propertyName;                                             \n\
+        ".replace("propertyName", propertyName));
+};
+
+var getCompiled = function(name, compiler, cache) {
+    var ret = cache[name];
+    if (typeof ret !== "function") {
+        if (!isIdentifier(name)) {
+            return null;
+        }
+        ret = compiler(name);
+        cache[name] = ret;
+        cache[" size"]++;
+        if (cache[" size"] > 512) {
+            var keys = Object.keys(cache);
+            for (var i = 0; i < 256; ++i) delete cache[keys[i]];
+            cache[" size"] = keys.length - 256;
+        }
+    }
+    return ret;
+};
+
+getMethodCaller = function(name) {
+    return getCompiled(name, makeMethodCaller, callerCache);
+};
+
+getGetter = function(name) {
+    return getCompiled(name, makeGetter, getterCache);
+};
+}
+
+function ensureMethod(obj, methodName) {
+    var fn;
+    if (obj != null) fn = obj[methodName];
+    if (typeof fn !== "function") {
+        var message = "Object " + util.classString(obj) + " has no method '" +
+            util.toString(methodName) + "'";
+        throw new Promise.TypeError(message);
+    }
+    return fn;
+}
+
+function caller(obj) {
+    var methodName = this.pop();
+    var fn = ensureMethod(obj, methodName);
+    return fn.apply(obj, this);
+}
+Promise.prototype.call = function (methodName) {
+    var $_len = arguments.length;var args = new Array(Math.max($_len - 1, 0)); for(var $_i = 1; $_i < $_len; ++$_i) {args[$_i - 1] = arguments[$_i];};
+    if (true) {
+        if (canEvaluate) {
+            var maybeCaller = getMethodCaller(methodName);
+            if (maybeCaller !== null) {
+                return this._then(
+                    maybeCaller, undefined, undefined, args, undefined);
+            }
+        }
+    }
+    args.push(methodName);
+    return this._then(caller, undefined, undefined, args, undefined);
+};
+
+function namedGetter(obj) {
+    return obj[this];
+}
+function indexedGetter(obj) {
+    var index = +this;
+    if (index < 0) index = Math.max(0, index + obj.length);
+    return obj[index];
+}
+Promise.prototype.get = function (propertyName) {
+    var isIndex = (typeof propertyName === "number");
+    var getter;
+    if (!isIndex) {
+        if (canEvaluate) {
+            var maybeGetter = getGetter(propertyName);
+            getter = maybeGetter !== null ? maybeGetter : namedGetter;
+        } else {
+            getter = namedGetter;
+        }
+    } else {
+        getter = indexedGetter;
+    }
+    return this._then(getter, undefined, undefined, propertyName, undefined);
+};
+};
+
+
+/***/ }),
+/* 419 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function (Promise, apiRejection, tryConvertToPromise,
+    createContext, INTERNAL, debug) {
+    var util = __webpack_require__(398);
+    var TypeError = __webpack_require__(403).TypeError;
+    var inherits = __webpack_require__(398).inherits;
+    var errorObj = util.errorObj;
+    var tryCatch = util.tryCatch;
+    var NULL = {};
+
+    function thrower(e) {
+        setTimeout(function(){throw e;}, 0);
+    }
+
+    function castPreservingDisposable(thenable) {
+        var maybePromise = tryConvertToPromise(thenable);
+        if (maybePromise !== thenable &&
+            typeof thenable._isDisposable === "function" &&
+            typeof thenable._getDisposer === "function" &&
+            thenable._isDisposable()) {
+            maybePromise._setDisposable(thenable._getDisposer());
+        }
+        return maybePromise;
+    }
+    function dispose(resources, inspection) {
+        var i = 0;
+        var len = resources.length;
+        var ret = new Promise(INTERNAL);
+        function iterator() {
+            if (i >= len) return ret._fulfill();
+            var maybePromise = castPreservingDisposable(resources[i++]);
+            if (maybePromise instanceof Promise &&
+                maybePromise._isDisposable()) {
+                try {
+                    maybePromise = tryConvertToPromise(
+                        maybePromise._getDisposer().tryDispose(inspection),
+                        resources.promise);
+                } catch (e) {
+                    return thrower(e);
+                }
+                if (maybePromise instanceof Promise) {
+                    return maybePromise._then(iterator, thrower,
+                                              null, null, null);
+                }
+            }
+            iterator();
+        }
+        iterator();
+        return ret;
+    }
+
+    function Disposer(data, promise, context) {
+        this._data = data;
+        this._promise = promise;
+        this._context = context;
+    }
+
+    Disposer.prototype.data = function () {
+        return this._data;
+    };
+
+    Disposer.prototype.promise = function () {
+        return this._promise;
+    };
+
+    Disposer.prototype.resource = function () {
+        if (this.promise().isFulfilled()) {
+            return this.promise().value();
+        }
+        return NULL;
+    };
+
+    Disposer.prototype.tryDispose = function(inspection) {
+        var resource = this.resource();
+        var context = this._context;
+        if (context !== undefined) context._pushContext();
+        var ret = resource !== NULL
+            ? this.doDispose(resource, inspection) : null;
+        if (context !== undefined) context._popContext();
+        this._promise._unsetDisposable();
+        this._data = null;
+        return ret;
+    };
+
+    Disposer.isDisposer = function (d) {
+        return (d != null &&
+                typeof d.resource === "function" &&
+                typeof d.tryDispose === "function");
+    };
+
+    function FunctionDisposer(fn, promise, context) {
+        this.constructor$(fn, promise, context);
+    }
+    inherits(FunctionDisposer, Disposer);
+
+    FunctionDisposer.prototype.doDispose = function (resource, inspection) {
+        var fn = this.data();
+        return fn.call(resource, resource, inspection);
+    };
+
+    function maybeUnwrapDisposer(value) {
+        if (Disposer.isDisposer(value)) {
+            this.resources[this.index]._setDisposable(value);
+            return value.promise();
+        }
+        return value;
+    }
+
+    function ResourceList(length) {
+        this.length = length;
+        this.promise = null;
+        this[length-1] = null;
+    }
+
+    ResourceList.prototype._resultCancelled = function() {
+        var len = this.length;
+        for (var i = 0; i < len; ++i) {
+            var item = this[i];
+            if (item instanceof Promise) {
+                item.cancel();
+            }
+        }
+    };
+
+    Promise.using = function () {
+        var len = arguments.length;
+        if (len < 2) return apiRejection(
+                        "you must pass at least 2 arguments to Promise.using");
+        var fn = arguments[len - 1];
+        if (typeof fn !== "function") {
+            return apiRejection("expecting a function but got " + util.classString(fn));
+        }
+        var input;
+        var spreadArgs = true;
+        if (len === 2 && Array.isArray(arguments[0])) {
+            input = arguments[0];
+            len = input.length;
+            spreadArgs = false;
+        } else {
+            input = arguments;
+            len--;
+        }
+        var resources = new ResourceList(len);
+        for (var i = 0; i < len; ++i) {
+            var resource = input[i];
+            if (Disposer.isDisposer(resource)) {
+                var disposer = resource;
+                resource = resource.promise();
+                resource._setDisposable(disposer);
+            } else {
+                var maybePromise = tryConvertToPromise(resource);
+                if (maybePromise instanceof Promise) {
+                    resource =
+                        maybePromise._then(maybeUnwrapDisposer, null, null, {
+                            resources: resources,
+                            index: i
+                    }, undefined);
+                }
+            }
+            resources[i] = resource;
+        }
+
+        var reflectedResources = new Array(resources.length);
+        for (var i = 0; i < reflectedResources.length; ++i) {
+            reflectedResources[i] = Promise.resolve(resources[i]).reflect();
+        }
+
+        var resultPromise = Promise.all(reflectedResources)
+            .then(function(inspections) {
+                for (var i = 0; i < inspections.length; ++i) {
+                    var inspection = inspections[i];
+                    if (inspection.isRejected()) {
+                        errorObj.e = inspection.error();
+                        return errorObj;
+                    } else if (!inspection.isFulfilled()) {
+                        resultPromise.cancel();
+                        return;
+                    }
+                    inspections[i] = inspection.value();
+                }
+                promise._pushContext();
+
+                fn = tryCatch(fn);
+                var ret = spreadArgs
+                    ? fn.apply(undefined, inspections) : fn(inspections);
+                var promiseCreated = promise._popContext();
+                debug.checkForgottenReturns(
+                    ret, promiseCreated, "Promise.using", promise);
+                return ret;
+            });
+
+        var promise = resultPromise.lastly(function() {
+            var inspection = new Promise.PromiseInspection(resultPromise);
+            return dispose(resources, inspection);
+        });
+        resources.promise = promise;
+        promise._setOnCancel(resources);
+        return promise;
+    };
+
+    Promise.prototype._setDisposable = function (disposer) {
+        this._bitField = this._bitField | 131072;
+        this._disposer = disposer;
+    };
+
+    Promise.prototype._isDisposable = function () {
+        return (this._bitField & 131072) > 0;
+    };
+
+    Promise.prototype._getDisposer = function () {
+        return this._disposer;
+    };
+
+    Promise.prototype._unsetDisposable = function () {
+        this._bitField = this._bitField & (~131072);
+        this._disposer = undefined;
+    };
+
+    Promise.prototype.disposer = function (fn) {
+        if (typeof fn === "function") {
+            return new FunctionDisposer(fn, this, createContext());
+        }
+        throw new TypeError();
+    };
+
+};
+
+
+/***/ }),
+/* 420 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(Promise, INTERNAL, debug) {
+var util = __webpack_require__(398);
+var TimeoutError = Promise.TimeoutError;
+
+function HandleWrapper(handle)  {
+    this.handle = handle;
+}
+
+HandleWrapper.prototype._resultCancelled = function() {
+    clearTimeout(this.handle);
+};
+
+var afterValue = function(value) { return delay(+this).thenReturn(value); };
+var delay = Promise.delay = function (ms, value) {
+    var ret;
+    var handle;
+    if (value !== undefined) {
+        ret = Promise.resolve(value)
+                ._then(afterValue, null, null, ms, undefined);
+        if (debug.cancellation() && value instanceof Promise) {
+            ret._setOnCancel(value);
+        }
+    } else {
+        ret = new Promise(INTERNAL);
+        handle = setTimeout(function() { ret._fulfill(); }, +ms);
+        if (debug.cancellation()) {
+            ret._setOnCancel(new HandleWrapper(handle));
+        }
+        ret._captureStackTrace();
+    }
+    ret._setAsyncGuaranteed();
+    return ret;
+};
+
+Promise.prototype.delay = function (ms) {
+    return delay(ms, this);
+};
+
+var afterTimeout = function (promise, message, parent) {
+    var err;
+    if (typeof message !== "string") {
+        if (message instanceof Error) {
+            err = message;
+        } else {
+            err = new TimeoutError("operation timed out");
+        }
+    } else {
+        err = new TimeoutError(message);
+    }
+    util.markAsOriginatingFromRejection(err);
+    promise._attachExtraTrace(err);
+    promise._reject(err);
+
+    if (parent != null) {
+        parent.cancel();
+    }
+};
+
+function successClear(value) {
+    clearTimeout(this.handle);
+    return value;
+}
+
+function failureClear(reason) {
+    clearTimeout(this.handle);
+    throw reason;
+}
+
+Promise.prototype.timeout = function (ms, message) {
+    ms = +ms;
+    var ret, parent;
+
+    var handleWrapper = new HandleWrapper(setTimeout(function timeoutTimeout() {
+        if (ret.isPending()) {
+            afterTimeout(ret, message, parent);
+        }
+    }, ms));
+
+    if (debug.cancellation()) {
+        parent = this.then();
+        ret = parent._then(successClear, failureClear,
+                            undefined, handleWrapper, undefined);
+        ret._setOnCancel(handleWrapper);
+    } else {
+        ret = this._then(successClear, failureClear,
+                            undefined, handleWrapper, undefined);
+    }
+
+    return ret;
+};
+
+};
+
+
+/***/ }),
+/* 421 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(Promise,
+                          apiRejection,
+                          INTERNAL,
+                          tryConvertToPromise,
+                          Proxyable,
+                          debug) {
+var errors = __webpack_require__(403);
+var TypeError = errors.TypeError;
+var util = __webpack_require__(398);
+var errorObj = util.errorObj;
+var tryCatch = util.tryCatch;
+var yieldHandlers = [];
+
+function promiseFromYieldHandler(value, yieldHandlers, traceParent) {
+    for (var i = 0; i < yieldHandlers.length; ++i) {
+        traceParent._pushContext();
+        var result = tryCatch(yieldHandlers[i])(value);
+        traceParent._popContext();
+        if (result === errorObj) {
+            traceParent._pushContext();
+            var ret = Promise.reject(errorObj.e);
+            traceParent._popContext();
+            return ret;
+        }
+        var maybePromise = tryConvertToPromise(result, traceParent);
+        if (maybePromise instanceof Promise) return maybePromise;
+    }
+    return null;
+}
+
+function PromiseSpawn(generatorFunction, receiver, yieldHandler, stack) {
+    if (debug.cancellation()) {
+        var internal = new Promise(INTERNAL);
+        var _finallyPromise = this._finallyPromise = new Promise(INTERNAL);
+        this._promise = internal.lastly(function() {
+            return _finallyPromise;
+        });
+        internal._captureStackTrace();
+        internal._setOnCancel(this);
+    } else {
+        var promise = this._promise = new Promise(INTERNAL);
+        promise._captureStackTrace();
+    }
+    this._stack = stack;
+    this._generatorFunction = generatorFunction;
+    this._receiver = receiver;
+    this._generator = undefined;
+    this._yieldHandlers = typeof yieldHandler === "function"
+        ? [yieldHandler].concat(yieldHandlers)
+        : yieldHandlers;
+    this._yieldedPromise = null;
+    this._cancellationPhase = false;
+}
+util.inherits(PromiseSpawn, Proxyable);
+
+PromiseSpawn.prototype._isResolved = function() {
+    return this._promise === null;
+};
+
+PromiseSpawn.prototype._cleanup = function() {
+    this._promise = this._generator = null;
+    if (debug.cancellation() && this._finallyPromise !== null) {
+        this._finallyPromise._fulfill();
+        this._finallyPromise = null;
+    }
+};
+
+PromiseSpawn.prototype._promiseCancelled = function() {
+    if (this._isResolved()) return;
+    var implementsReturn = typeof this._generator["return"] !== "undefined";
+
+    var result;
+    if (!implementsReturn) {
+        var reason = new Promise.CancellationError(
+            "generator .return() sentinel");
+        Promise.coroutine.returnSentinel = reason;
+        this._promise._attachExtraTrace(reason);
+        this._promise._pushContext();
+        result = tryCatch(this._generator["throw"]).call(this._generator,
+                                                         reason);
+        this._promise._popContext();
+    } else {
+        this._promise._pushContext();
+        result = tryCatch(this._generator["return"]).call(this._generator,
+                                                          undefined);
+        this._promise._popContext();
+    }
+    this._cancellationPhase = true;
+    this._yieldedPromise = null;
+    this._continue(result);
+};
+
+PromiseSpawn.prototype._promiseFulfilled = function(value) {
+    this._yieldedPromise = null;
+    this._promise._pushContext();
+    var result = tryCatch(this._generator.next).call(this._generator, value);
+    this._promise._popContext();
+    this._continue(result);
+};
+
+PromiseSpawn.prototype._promiseRejected = function(reason) {
+    this._yieldedPromise = null;
+    this._promise._attachExtraTrace(reason);
+    this._promise._pushContext();
+    var result = tryCatch(this._generator["throw"])
+        .call(this._generator, reason);
+    this._promise._popContext();
+    this._continue(result);
+};
+
+PromiseSpawn.prototype._resultCancelled = function() {
+    if (this._yieldedPromise instanceof Promise) {
+        var promise = this._yieldedPromise;
+        this._yieldedPromise = null;
+        promise.cancel();
+    }
+};
+
+PromiseSpawn.prototype.promise = function () {
+    return this._promise;
+};
+
+PromiseSpawn.prototype._run = function () {
+    this._generator = this._generatorFunction.call(this._receiver);
+    this._receiver =
+        this._generatorFunction = undefined;
+    this._promiseFulfilled(undefined);
+};
+
+PromiseSpawn.prototype._continue = function (result) {
+    var promise = this._promise;
+    if (result === errorObj) {
+        this._cleanup();
+        if (this._cancellationPhase) {
+            return promise.cancel();
+        } else {
+            return promise._rejectCallback(result.e, false);
+        }
+    }
+
+    var value = result.value;
+    if (result.done === true) {
+        this._cleanup();
+        if (this._cancellationPhase) {
+            return promise.cancel();
+        } else {
+            return promise._resolveCallback(value);
+        }
+    } else {
+        var maybePromise = tryConvertToPromise(value, this._promise);
+        if (!(maybePromise instanceof Promise)) {
+            maybePromise =
+                promiseFromYieldHandler(maybePromise,
+                                        this._yieldHandlers,
+                                        this._promise);
+            if (maybePromise === null) {
+                this._promiseRejected(
+                    new TypeError(
+                        "A value %s was yielded that could not be treated as a promise\u000a\u000a    See http://goo.gl/MqrFmX\u000a\u000a".replace("%s", value) +
+                        "From coroutine:\u000a" +
+                        this._stack.split("\n").slice(1, -7).join("\n")
+                    )
+                );
+                return;
+            }
+        }
+        maybePromise = maybePromise._target();
+        var bitField = maybePromise._bitField;
+        ;
+        if (((bitField & 50397184) === 0)) {
+            this._yieldedPromise = maybePromise;
+            maybePromise._proxy(this, null);
+        } else if (((bitField & 33554432) !== 0)) {
+            Promise._async.invoke(
+                this._promiseFulfilled, this, maybePromise._value()
+            );
+        } else if (((bitField & 16777216) !== 0)) {
+            Promise._async.invoke(
+                this._promiseRejected, this, maybePromise._reason()
+            );
+        } else {
+            this._promiseCancelled();
+        }
+    }
+};
+
+Promise.coroutine = function (generatorFunction, options) {
+    if (typeof generatorFunction !== "function") {
+        throw new TypeError("generatorFunction must be a function\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+    }
+    var yieldHandler = Object(options).yieldHandler;
+    var PromiseSpawn$ = PromiseSpawn;
+    var stack = new Error().stack;
+    return function () {
+        var generator = generatorFunction.apply(this, arguments);
+        var spawn = new PromiseSpawn$(undefined, undefined, yieldHandler,
+                                      stack);
+        var ret = spawn.promise();
+        spawn._generator = generator;
+        spawn._promiseFulfilled(undefined);
+        return ret;
+    };
+};
+
+Promise.coroutine.addYieldHandler = function(fn) {
+    if (typeof fn !== "function") {
+        throw new TypeError("expecting a function but got " + util.classString(fn));
+    }
+    yieldHandlers.push(fn);
+};
+
+Promise.spawn = function (generatorFunction) {
+    debug.deprecated("Promise.spawn()", "Promise.coroutine()");
+    if (typeof generatorFunction !== "function") {
+        return apiRejection("generatorFunction must be a function\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+    }
+    var spawn = new PromiseSpawn(generatorFunction, this);
+    var ret = spawn.promise();
+    spawn._run(Promise.spawn);
+    return ret;
+};
+};
+
+
+/***/ }),
+/* 422 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(Promise) {
+var util = __webpack_require__(398);
+var async = Promise._async;
+var tryCatch = util.tryCatch;
+var errorObj = util.errorObj;
+
+function spreadAdapter(val, nodeback) {
+    var promise = this;
+    if (!util.isArray(val)) return successAdapter.call(promise, val, nodeback);
+    var ret =
+        tryCatch(nodeback).apply(promise._boundValue(), [null].concat(val));
+    if (ret === errorObj) {
+        async.throwLater(ret.e);
+    }
+}
+
+function successAdapter(val, nodeback) {
+    var promise = this;
+    var receiver = promise._boundValue();
+    var ret = val === undefined
+        ? tryCatch(nodeback).call(receiver, null)
+        : tryCatch(nodeback).call(receiver, null, val);
+    if (ret === errorObj) {
+        async.throwLater(ret.e);
+    }
+}
+function errorAdapter(reason, nodeback) {
+    var promise = this;
+    if (!reason) {
+        var newReason = new Error(reason + "");
+        newReason.cause = reason;
+        reason = newReason;
+    }
+    var ret = tryCatch(nodeback).call(promise._boundValue(), reason);
+    if (ret === errorObj) {
+        async.throwLater(ret.e);
+    }
+}
+
+Promise.prototype.asCallback = Promise.prototype.nodeify = function (nodeback,
+                                                                     options) {
+    if (typeof nodeback == "function") {
+        var adapter = successAdapter;
+        if (options !== undefined && Object(options).spread) {
+            adapter = spreadAdapter;
+        }
+        this._then(
+            adapter,
+            errorAdapter,
+            undefined,
+            this,
+            nodeback
+        );
+    }
+    return this;
+};
+};
+
+
+/***/ }),
+/* 423 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(Promise, INTERNAL) {
+var THIS = {};
+var util = __webpack_require__(398);
+var nodebackForPromise = __webpack_require__(410);
+var withAppended = util.withAppended;
+var maybeWrapAsError = util.maybeWrapAsError;
+var canEvaluate = util.canEvaluate;
+var TypeError = __webpack_require__(403).TypeError;
+var defaultSuffix = "Async";
+var defaultPromisified = {__isPromisified__: true};
+var noCopyProps = [
+    "arity",    "length",
+    "name",
+    "arguments",
+    "caller",
+    "callee",
+    "prototype",
+    "__isPromisified__"
+];
+var noCopyPropsPattern = new RegExp("^(?:" + noCopyProps.join("|") + ")$");
+
+var defaultFilter = function(name) {
+    return util.isIdentifier(name) &&
+        name.charAt(0) !== "_" &&
+        name !== "constructor";
+};
+
+function propsFilter(key) {
+    return !noCopyPropsPattern.test(key);
+}
+
+function isPromisified(fn) {
+    try {
+        return fn.__isPromisified__ === true;
+    }
+    catch (e) {
+        return false;
+    }
+}
+
+function hasPromisified(obj, key, suffix) {
+    var val = util.getDataPropertyOrDefault(obj, key + suffix,
+                                            defaultPromisified);
+    return val ? isPromisified(val) : false;
+}
+function checkValid(ret, suffix, suffixRegexp) {
+    for (var i = 0; i < ret.length; i += 2) {
+        var key = ret[i];
+        if (suffixRegexp.test(key)) {
+            var keyWithoutAsyncSuffix = key.replace(suffixRegexp, "");
+            for (var j = 0; j < ret.length; j += 2) {
+                if (ret[j] === keyWithoutAsyncSuffix) {
+                    throw new TypeError("Cannot promisify an API that has normal methods with '%s'-suffix\u000a\u000a    See http://goo.gl/MqrFmX\u000a"
+                        .replace("%s", suffix));
+                }
+            }
+        }
+    }
+}
+
+function promisifiableMethods(obj, suffix, suffixRegexp, filter) {
+    var keys = util.inheritedDataKeys(obj);
+    var ret = [];
+    for (var i = 0; i < keys.length; ++i) {
+        var key = keys[i];
+        var value = obj[key];
+        var passesDefaultFilter = filter === defaultFilter
+            ? true : defaultFilter(key, value, obj);
+        if (typeof value === "function" &&
+            !isPromisified(value) &&
+            !hasPromisified(obj, key, suffix) &&
+            filter(key, value, obj, passesDefaultFilter)) {
+            ret.push(key, value);
+        }
+    }
+    checkValid(ret, suffix, suffixRegexp);
+    return ret;
+}
+
+var escapeIdentRegex = function(str) {
+    return str.replace(/([$])/, "\\$");
+};
+
+var makeNodePromisifiedEval;
+if (true) {
+var switchCaseArgumentOrder = function(likelyArgumentCount) {
+    var ret = [likelyArgumentCount];
+    var min = Math.max(0, likelyArgumentCount - 1 - 3);
+    for(var i = likelyArgumentCount - 1; i >= min; --i) {
+        ret.push(i);
+    }
+    for(var i = likelyArgumentCount + 1; i <= 3; ++i) {
+        ret.push(i);
+    }
+    return ret;
+};
+
+var argumentSequence = function(argumentCount) {
+    return util.filledRange(argumentCount, "_arg", "");
+};
+
+var parameterDeclaration = function(parameterCount) {
+    return util.filledRange(
+        Math.max(parameterCount, 3), "_arg", "");
+};
+
+var parameterCount = function(fn) {
+    if (typeof fn.length === "number") {
+        return Math.max(Math.min(fn.length, 1023 + 1), 0);
+    }
+    return 0;
+};
+
+makeNodePromisifiedEval =
+function(callback, receiver, originalName, fn, _, multiArgs) {
+    var newParameterCount = Math.max(0, parameterCount(fn) - 1);
+    var argumentOrder = switchCaseArgumentOrder(newParameterCount);
+    var shouldProxyThis = typeof callback === "string" || receiver === THIS;
+
+    function generateCallForArgumentCount(count) {
+        var args = argumentSequence(count).join(", ");
+        var comma = count > 0 ? ", " : "";
+        var ret;
+        if (shouldProxyThis) {
+            ret = "ret = callback.call(this, {{args}}, nodeback); break;\n";
+        } else {
+            ret = receiver === undefined
+                ? "ret = callback({{args}}, nodeback); break;\n"
+                : "ret = callback.call(receiver, {{args}}, nodeback); break;\n";
+        }
+        return ret.replace("{{args}}", args).replace(", ", comma);
+    }
+
+    function generateArgumentSwitchCase() {
+        var ret = "";
+        for (var i = 0; i < argumentOrder.length; ++i) {
+            ret += "case " + argumentOrder[i] +":" +
+                generateCallForArgumentCount(argumentOrder[i]);
+        }
+
+        ret += "                                                             \n\
+        default:                                                             \n\
+            var args = new Array(len + 1);                                   \n\
+            var i = 0;                                                       \n\
+            for (var i = 0; i < len; ++i) {                                  \n\
+               args[i] = arguments[i];                                       \n\
+            }                                                                \n\
+            args[i] = nodeback;                                              \n\
+            [CodeForCall]                                                    \n\
+            break;                                                           \n\
+        ".replace("[CodeForCall]", (shouldProxyThis
+                                ? "ret = callback.apply(this, args);\n"
+                                : "ret = callback.apply(receiver, args);\n"));
+        return ret;
+    }
+
+    var getFunctionCode = typeof callback === "string"
+                                ? ("this != null ? this['"+callback+"'] : fn")
+                                : "fn";
+    var body = "'use strict';                                                \n\
+        var ret = function (Parameters) {                                    \n\
+            'use strict';                                                    \n\
+            var len = arguments.length;                                      \n\
+            var promise = new Promise(INTERNAL);                             \n\
+            promise._captureStackTrace();                                    \n\
+            var nodeback = nodebackForPromise(promise, " + multiArgs + ");   \n\
+            var ret;                                                         \n\
+            var callback = tryCatch([GetFunctionCode]);                      \n\
+            switch(len) {                                                    \n\
+                [CodeForSwitchCase]                                          \n\
+            }                                                                \n\
+            if (ret === errorObj) {                                          \n\
+                promise._rejectCallback(maybeWrapAsError(ret.e), true, true);\n\
+            }                                                                \n\
+            if (!promise._isFateSealed()) promise._setAsyncGuaranteed();     \n\
+            return promise;                                                  \n\
+        };                                                                   \n\
+        notEnumerableProp(ret, '__isPromisified__', true);                   \n\
+        return ret;                                                          \n\
+    ".replace("[CodeForSwitchCase]", generateArgumentSwitchCase())
+        .replace("[GetFunctionCode]", getFunctionCode);
+    body = body.replace("Parameters", parameterDeclaration(newParameterCount));
+    return new Function("Promise",
+                        "fn",
+                        "receiver",
+                        "withAppended",
+                        "maybeWrapAsError",
+                        "nodebackForPromise",
+                        "tryCatch",
+                        "errorObj",
+                        "notEnumerableProp",
+                        "INTERNAL",
+                        body)(
+                    Promise,
+                    fn,
+                    receiver,
+                    withAppended,
+                    maybeWrapAsError,
+                    nodebackForPromise,
+                    util.tryCatch,
+                    util.errorObj,
+                    util.notEnumerableProp,
+                    INTERNAL);
+};
+}
+
+function makeNodePromisifiedClosure(callback, receiver, _, fn, __, multiArgs) {
+    var defaultThis = (function() {return this;})();
+    var method = callback;
+    if (typeof method === "string") {
+        callback = fn;
+    }
+    function promisified() {
+        var _receiver = receiver;
+        if (receiver === THIS) _receiver = this;
+        var promise = new Promise(INTERNAL);
+        promise._captureStackTrace();
+        var cb = typeof method === "string" && this !== defaultThis
+            ? this[method] : callback;
+        var fn = nodebackForPromise(promise, multiArgs);
+        try {
+            cb.apply(_receiver, withAppended(arguments, fn));
+        } catch(e) {
+            promise._rejectCallback(maybeWrapAsError(e), true, true);
+        }
+        if (!promise._isFateSealed()) promise._setAsyncGuaranteed();
+        return promise;
+    }
+    util.notEnumerableProp(promisified, "__isPromisified__", true);
+    return promisified;
+}
+
+var makeNodePromisified = canEvaluate
+    ? makeNodePromisifiedEval
+    : makeNodePromisifiedClosure;
+
+function promisifyAll(obj, suffix, filter, promisifier, multiArgs) {
+    var suffixRegexp = new RegExp(escapeIdentRegex(suffix) + "$");
+    var methods =
+        promisifiableMethods(obj, suffix, suffixRegexp, filter);
+
+    for (var i = 0, len = methods.length; i < len; i+= 2) {
+        var key = methods[i];
+        var fn = methods[i+1];
+        var promisifiedKey = key + suffix;
+        if (promisifier === makeNodePromisified) {
+            obj[promisifiedKey] =
+                makeNodePromisified(key, THIS, key, fn, suffix, multiArgs);
+        } else {
+            var promisified = promisifier(fn, function() {
+                return makeNodePromisified(key, THIS, key,
+                                           fn, suffix, multiArgs);
+            });
+            util.notEnumerableProp(promisified, "__isPromisified__", true);
+            obj[promisifiedKey] = promisified;
+        }
+    }
+    util.toFastProperties(obj);
+    return obj;
+}
+
+function promisify(callback, receiver, multiArgs) {
+    return makeNodePromisified(callback, receiver, undefined,
+                                callback, null, multiArgs);
+}
+
+Promise.promisify = function (fn, options) {
+    if (typeof fn !== "function") {
+        throw new TypeError("expecting a function but got " + util.classString(fn));
+    }
+    if (isPromisified(fn)) {
+        return fn;
+    }
+    options = Object(options);
+    var receiver = options.context === undefined ? THIS : options.context;
+    var multiArgs = !!options.multiArgs;
+    var ret = promisify(fn, receiver, multiArgs);
+    util.copyDescriptors(fn, ret, propsFilter);
+    return ret;
+};
+
+Promise.promisifyAll = function (target, options) {
+    if (typeof target !== "function" && typeof target !== "object") {
+        throw new TypeError("the target of promisifyAll must be an object or a function\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+    }
+    options = Object(options);
+    var multiArgs = !!options.multiArgs;
+    var suffix = options.suffix;
+    if (typeof suffix !== "string") suffix = defaultSuffix;
+    var filter = options.filter;
+    if (typeof filter !== "function") filter = defaultFilter;
+    var promisifier = options.promisifier;
+    if (typeof promisifier !== "function") promisifier = makeNodePromisified;
+
+    if (!util.isIdentifier(suffix)) {
+        throw new RangeError("suffix must be a valid identifier\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+    }
+
+    var keys = util.inheritedDataKeys(target);
+    for (var i = 0; i < keys.length; ++i) {
+        var value = target[keys[i]];
+        if (keys[i] !== "constructor" &&
+            util.isClass(value)) {
+            promisifyAll(value.prototype, suffix, filter, promisifier,
+                multiArgs);
+            promisifyAll(value, suffix, filter, promisifier, multiArgs);
+        }
+    }
+
+    return promisifyAll(target, suffix, filter, promisifier, multiArgs);
+};
+};
+
+
+
+/***/ }),
+/* 424 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(
+    Promise, PromiseArray, tryConvertToPromise, apiRejection) {
+var util = __webpack_require__(398);
+var isObject = util.isObject;
+var es5 = __webpack_require__(399);
+var Es6Map;
+if (typeof Map === "function") Es6Map = Map;
+
+var mapToEntries = (function() {
+    var index = 0;
+    var size = 0;
+
+    function extractEntry(value, key) {
+        this[index] = value;
+        this[index + size] = key;
+        index++;
+    }
+
+    return function mapToEntries(map) {
+        size = map.size;
+        index = 0;
+        var ret = new Array(map.size * 2);
+        map.forEach(extractEntry, ret);
+        return ret;
+    };
+})();
+
+var entriesToMap = function(entries) {
+    var ret = new Es6Map();
+    var length = entries.length / 2 | 0;
+    for (var i = 0; i < length; ++i) {
+        var key = entries[length + i];
+        var value = entries[i];
+        ret.set(key, value);
+    }
+    return ret;
+};
+
+function PropertiesPromiseArray(obj) {
+    var isMap = false;
+    var entries;
+    if (Es6Map !== undefined && obj instanceof Es6Map) {
+        entries = mapToEntries(obj);
+        isMap = true;
+    } else {
+        var keys = es5.keys(obj);
+        var len = keys.length;
+        entries = new Array(len * 2);
+        for (var i = 0; i < len; ++i) {
+            var key = keys[i];
+            entries[i] = obj[key];
+            entries[i + len] = key;
+        }
+    }
+    this.constructor$(entries);
+    this._isMap = isMap;
+    this._init$(undefined, -3);
+}
+util.inherits(PropertiesPromiseArray, PromiseArray);
+
+PropertiesPromiseArray.prototype._init = function () {};
+
+PropertiesPromiseArray.prototype._promiseFulfilled = function (value, index) {
+    this._values[index] = value;
+    var totalResolved = ++this._totalResolved;
+    if (totalResolved >= this._length) {
+        var val;
+        if (this._isMap) {
+            val = entriesToMap(this._values);
+        } else {
+            val = {};
+            var keyOffset = this.length();
+            for (var i = 0, len = this.length(); i < len; ++i) {
+                val[this._values[i + keyOffset]] = this._values[i];
+            }
+        }
+        this._resolve(val);
+        return true;
+    }
+    return false;
+};
+
+PropertiesPromiseArray.prototype.shouldCopyValues = function () {
+    return false;
+};
+
+PropertiesPromiseArray.prototype.getActualLength = function (len) {
+    return len >> 1;
+};
+
+function props(promises) {
+    var ret;
+    var castValue = tryConvertToPromise(promises);
+
+    if (!isObject(castValue)) {
+        return apiRejection("cannot await properties of a non-object\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+    } else if (castValue instanceof Promise) {
+        ret = castValue._then(
+            Promise.props, undefined, undefined, undefined, undefined);
+    } else {
+        ret = new PropertiesPromiseArray(castValue).promise();
+    }
+
+    if (castValue instanceof Promise) {
+        ret._propagateFrom(castValue, 2);
+    }
+    return ret;
+}
+
+Promise.prototype.props = function () {
+    return props(this);
+};
+
+Promise.props = function (promises) {
+    return props(promises);
+};
+};
+
+
+/***/ }),
+/* 425 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(
+    Promise, INTERNAL, tryConvertToPromise, apiRejection) {
+var util = __webpack_require__(398);
+
+var raceLater = function (promise) {
+    return promise.then(function(array) {
+        return race(array, promise);
+    });
+};
+
+function race(promises, parent) {
+    var maybePromise = tryConvertToPromise(promises);
+
+    if (maybePromise instanceof Promise) {
+        return raceLater(maybePromise);
+    } else {
+        promises = util.asArray(promises);
+        if (promises === null)
+            return apiRejection("expecting an array or an iterable object but got " + util.classString(promises));
+    }
+
+    var ret = new Promise(INTERNAL);
+    if (parent !== undefined) {
+        ret._propagateFrom(parent, 3);
+    }
+    var fulfill = ret._fulfill;
+    var reject = ret._reject;
+    for (var i = 0, len = promises.length; i < len; ++i) {
+        var val = promises[i];
+
+        if (val === undefined && !(i in promises)) {
+            continue;
+        }
+
+        Promise.cast(val)._then(fulfill, reject, undefined, ret, null);
+    }
+    return ret;
+}
+
+Promise.race = function (promises) {
+    return race(promises, undefined);
+};
+
+Promise.prototype.race = function () {
+    return race(this, undefined);
+};
+
+};
+
+
+/***/ }),
+/* 426 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(Promise,
+                          PromiseArray,
+                          apiRejection,
+                          tryConvertToPromise,
+                          INTERNAL,
+                          debug) {
+var getDomain = Promise._getDomain;
+var util = __webpack_require__(398);
+var tryCatch = util.tryCatch;
+
+function ReductionPromiseArray(promises, fn, initialValue, _each) {
+    this.constructor$(promises);
+    var domain = getDomain();
+    this._fn = domain === null ? fn : util.domainBind(domain, fn);
+    if (initialValue !== undefined) {
+        initialValue = Promise.resolve(initialValue);
+        initialValue._attachCancellationCallback(this);
+    }
+    this._initialValue = initialValue;
+    this._currentCancellable = null;
+    if(_each === INTERNAL) {
+        this._eachValues = Array(this._length);
+    } else if (_each === 0) {
+        this._eachValues = null;
+    } else {
+        this._eachValues = undefined;
+    }
+    this._promise._captureStackTrace();
+    this._init$(undefined, -5);
+}
+util.inherits(ReductionPromiseArray, PromiseArray);
+
+ReductionPromiseArray.prototype._gotAccum = function(accum) {
+    if (this._eachValues !== undefined && 
+        this._eachValues !== null && 
+        accum !== INTERNAL) {
+        this._eachValues.push(accum);
+    }
+};
+
+ReductionPromiseArray.prototype._eachComplete = function(value) {
+    if (this._eachValues !== null) {
+        this._eachValues.push(value);
+    }
+    return this._eachValues;
+};
+
+ReductionPromiseArray.prototype._init = function() {};
+
+ReductionPromiseArray.prototype._resolveEmptyArray = function() {
+    this._resolve(this._eachValues !== undefined ? this._eachValues
+                                                 : this._initialValue);
+};
+
+ReductionPromiseArray.prototype.shouldCopyValues = function () {
+    return false;
+};
+
+ReductionPromiseArray.prototype._resolve = function(value) {
+    this._promise._resolveCallback(value);
+    this._values = null;
+};
+
+ReductionPromiseArray.prototype._resultCancelled = function(sender) {
+    if (sender === this._initialValue) return this._cancel();
+    if (this._isResolved()) return;
+    this._resultCancelled$();
+    if (this._currentCancellable instanceof Promise) {
+        this._currentCancellable.cancel();
+    }
+    if (this._initialValue instanceof Promise) {
+        this._initialValue.cancel();
+    }
+};
+
+ReductionPromiseArray.prototype._iterate = function (values) {
+    this._values = values;
+    var value;
+    var i;
+    var length = values.length;
+    if (this._initialValue !== undefined) {
+        value = this._initialValue;
+        i = 0;
+    } else {
+        value = Promise.resolve(values[0]);
+        i = 1;
+    }
+
+    this._currentCancellable = value;
+
+    if (!value.isRejected()) {
+        for (; i < length; ++i) {
+            var ctx = {
+                accum: null,
+                value: values[i],
+                index: i,
+                length: length,
+                array: this
+            };
+            value = value._then(gotAccum, undefined, undefined, ctx, undefined);
+        }
+    }
+
+    if (this._eachValues !== undefined) {
+        value = value
+            ._then(this._eachComplete, undefined, undefined, this, undefined);
+    }
+    value._then(completed, completed, undefined, value, this);
+};
+
+Promise.prototype.reduce = function (fn, initialValue) {
+    return reduce(this, fn, initialValue, null);
+};
+
+Promise.reduce = function (promises, fn, initialValue, _each) {
+    return reduce(promises, fn, initialValue, _each);
+};
+
+function completed(valueOrReason, array) {
+    if (this.isFulfilled()) {
+        array._resolve(valueOrReason);
+    } else {
+        array._reject(valueOrReason);
+    }
+}
+
+function reduce(promises, fn, initialValue, _each) {
+    if (typeof fn !== "function") {
+        return apiRejection("expecting a function but got " + util.classString(fn));
+    }
+    var array = new ReductionPromiseArray(promises, fn, initialValue, _each);
+    return array.promise();
+}
+
+function gotAccum(accum) {
+    this.accum = accum;
+    this.array._gotAccum(accum);
+    var value = tryConvertToPromise(this.value, this.array._promise);
+    if (value instanceof Promise) {
+        this.array._currentCancellable = value;
+        return value._then(gotValue, undefined, undefined, this, undefined);
+    } else {
+        return gotValue.call(this, value);
+    }
+}
+
+function gotValue(value) {
+    var array = this.array;
+    var promise = array._promise;
+    var fn = tryCatch(array._fn);
+    promise._pushContext();
+    var ret;
+    if (array._eachValues !== undefined) {
+        ret = fn.call(promise._boundValue(), value, this.index, this.length);
+    } else {
+        ret = fn.call(promise._boundValue(),
+                              this.accum, value, this.index, this.length);
+    }
+    if (ret instanceof Promise) {
+        array._currentCancellable = ret;
+    }
+    var promiseCreated = promise._popContext();
+    debug.checkForgottenReturns(
+        ret,
+        promiseCreated,
+        array._eachValues !== undefined ? "Promise.each" : "Promise.reduce",
+        promise
+    );
+    return ret;
+}
+};
+
+
+/***/ }),
+/* 427 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports =
+    function(Promise, PromiseArray, debug) {
+var PromiseInspection = Promise.PromiseInspection;
+var util = __webpack_require__(398);
+
+function SettledPromiseArray(values) {
+    this.constructor$(values);
+}
+util.inherits(SettledPromiseArray, PromiseArray);
+
+SettledPromiseArray.prototype._promiseResolved = function (index, inspection) {
+    this._values[index] = inspection;
+    var totalResolved = ++this._totalResolved;
+    if (totalResolved >= this._length) {
+        this._resolve(this._values);
+        return true;
+    }
+    return false;
+};
+
+SettledPromiseArray.prototype._promiseFulfilled = function (value, index) {
+    var ret = new PromiseInspection();
+    ret._bitField = 33554432;
+    ret._settledValueField = value;
+    return this._promiseResolved(index, ret);
+};
+SettledPromiseArray.prototype._promiseRejected = function (reason, index) {
+    var ret = new PromiseInspection();
+    ret._bitField = 16777216;
+    ret._settledValueField = reason;
+    return this._promiseResolved(index, ret);
+};
+
+Promise.settle = function (promises) {
+    debug.deprecated(".settle()", ".reflect()");
+    return new SettledPromiseArray(promises).promise();
+};
+
+Promise.prototype.settle = function () {
+    return Promise.settle(this);
+};
+};
+
+
+/***/ }),
+/* 428 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports =
+function(Promise, PromiseArray, apiRejection) {
+var util = __webpack_require__(398);
+var RangeError = __webpack_require__(403).RangeError;
+var AggregateError = __webpack_require__(403).AggregateError;
+var isArray = util.isArray;
+var CANCELLATION = {};
+
+
+function SomePromiseArray(values) {
+    this.constructor$(values);
+    this._howMany = 0;
+    this._unwrap = false;
+    this._initialized = false;
+}
+util.inherits(SomePromiseArray, PromiseArray);
+
+SomePromiseArray.prototype._init = function () {
+    if (!this._initialized) {
+        return;
+    }
+    if (this._howMany === 0) {
+        this._resolve([]);
+        return;
+    }
+    this._init$(undefined, -5);
+    var isArrayResolved = isArray(this._values);
+    if (!this._isResolved() &&
+        isArrayResolved &&
+        this._howMany > this._canPossiblyFulfill()) {
+        this._reject(this._getRangeError(this.length()));
+    }
+};
+
+SomePromiseArray.prototype.init = function () {
+    this._initialized = true;
+    this._init();
+};
+
+SomePromiseArray.prototype.setUnwrap = function () {
+    this._unwrap = true;
+};
+
+SomePromiseArray.prototype.howMany = function () {
+    return this._howMany;
+};
+
+SomePromiseArray.prototype.setHowMany = function (count) {
+    this._howMany = count;
+};
+
+SomePromiseArray.prototype._promiseFulfilled = function (value) {
+    this._addFulfilled(value);
+    if (this._fulfilled() === this.howMany()) {
+        this._values.length = this.howMany();
+        if (this.howMany() === 1 && this._unwrap) {
+            this._resolve(this._values[0]);
+        } else {
+            this._resolve(this._values);
+        }
+        return true;
+    }
+    return false;
+
+};
+SomePromiseArray.prototype._promiseRejected = function (reason) {
+    this._addRejected(reason);
+    return this._checkOutcome();
+};
+
+SomePromiseArray.prototype._promiseCancelled = function () {
+    if (this._values instanceof Promise || this._values == null) {
+        return this._cancel();
+    }
+    this._addRejected(CANCELLATION);
+    return this._checkOutcome();
+};
+
+SomePromiseArray.prototype._checkOutcome = function() {
+    if (this.howMany() > this._canPossiblyFulfill()) {
+        var e = new AggregateError();
+        for (var i = this.length(); i < this._values.length; ++i) {
+            if (this._values[i] !== CANCELLATION) {
+                e.push(this._values[i]);
+            }
+        }
+        if (e.length > 0) {
+            this._reject(e);
+        } else {
+            this._cancel();
+        }
+        return true;
+    }
+    return false;
+};
+
+SomePromiseArray.prototype._fulfilled = function () {
+    return this._totalResolved;
+};
+
+SomePromiseArray.prototype._rejected = function () {
+    return this._values.length - this.length();
+};
+
+SomePromiseArray.prototype._addRejected = function (reason) {
+    this._values.push(reason);
+};
+
+SomePromiseArray.prototype._addFulfilled = function (value) {
+    this._values[this._totalResolved++] = value;
+};
+
+SomePromiseArray.prototype._canPossiblyFulfill = function () {
+    return this.length() - this._rejected();
+};
+
+SomePromiseArray.prototype._getRangeError = function (count) {
+    var message = "Input array must contain at least " +
+            this._howMany + " items but contains only " + count + " items";
+    return new RangeError(message);
+};
+
+SomePromiseArray.prototype._resolveEmptyArray = function () {
+    this._reject(this._getRangeError(0));
+};
+
+function some(promises, howMany) {
+    if ((howMany | 0) !== howMany || howMany < 0) {
+        return apiRejection("expecting a positive integer\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+    }
+    var ret = new SomePromiseArray(promises);
+    var promise = ret.promise();
+    ret.setHowMany(howMany);
+    ret.init();
+    return promise;
+}
+
+Promise.some = function (promises, howMany) {
+    return some(promises, howMany);
+};
+
+Promise.prototype.some = function (howMany) {
+    return some(this, howMany);
+};
+
+Promise._SomePromiseArray = SomePromiseArray;
+};
+
+
+/***/ }),
+/* 429 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(Promise, INTERNAL) {
+var PromiseMap = Promise.map;
+
+Promise.prototype.filter = function (fn, options) {
+    return PromiseMap(this, fn, options, INTERNAL);
+};
+
+Promise.filter = function (promises, fn, options) {
+    return PromiseMap(promises, fn, options, INTERNAL);
+};
+};
+
+
+/***/ }),
+/* 430 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(Promise, INTERNAL) {
+var PromiseReduce = Promise.reduce;
+var PromiseAll = Promise.all;
+
+function promiseAllThis() {
+    return PromiseAll(this);
+}
+
+function PromiseMapSeries(promises, fn) {
+    return PromiseReduce(promises, fn, INTERNAL, INTERNAL);
+}
+
+Promise.prototype.each = function (fn) {
+    return PromiseReduce(this, fn, INTERNAL, 0)
+              ._then(promiseAllThis, undefined, undefined, this, undefined);
+};
+
+Promise.prototype.mapSeries = function (fn) {
+    return PromiseReduce(this, fn, INTERNAL, INTERNAL);
+};
+
+Promise.each = function (promises, fn) {
+    return PromiseReduce(promises, fn, INTERNAL, 0)
+              ._then(promiseAllThis, undefined, undefined, promises, undefined);
+};
+
+Promise.mapSeries = PromiseMapSeries;
+};
+
+
+
+/***/ }),
+/* 431 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = function(Promise) {
+var SomePromiseArray = Promise._SomePromiseArray;
+function any(promises) {
+    var ret = new SomePromiseArray(promises);
+    var promise = ret.promise();
+    ret.setHowMany(1);
+    ret.setUnwrap();
+    ret.init();
+    return promise;
+}
+
+Promise.any = function (promises) {
+    return any(promises);
+};
+
+Promise.prototype.any = function () {
+    return any(this);
+};
+
+};
+
+
+/***/ }),
+/* 432 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var Stream = __webpack_require__(106);
+var Promise = __webpack_require__(396);
+var util = __webpack_require__(74);
+var Buffer = __webpack_require__(433);
+var strFunction = 'function';
+
+// Backwards compatibility for node versions < 8
+if (!Stream.Writable || !Stream.Writable.prototype.destroy)
+  Stream = __webpack_require__(434);
+
+function PullStream() {
+  if (!(this instanceof PullStream))
+    return new PullStream();
+
+  Stream.Duplex.call(this,{decodeStrings:false, objectMode:true});
+  this.buffer = Buffer.from('');
+  var self = this;
+  self.on('finish',function() {
+    self.finished = true;
+    self.emit('chunk',false);
+  });
+}
+
+util.inherits(PullStream,Stream.Duplex);
+
+PullStream.prototype._write = function(chunk,e,cb) {
+  this.buffer = Buffer.concat([this.buffer,chunk]);
+  this.cb = cb;
+  this.emit('chunk');
+};
+
+
+// The `eof` parameter is interpreted as `file_length` if the type is number
+// otherwise (i.e. buffer) it is interpreted as a pattern signaling end of stream
+PullStream.prototype.stream = function(eof,includeEof) {
+  var p = Stream.PassThrough();
+  var done,self= this;
+
+  function cb() {
+    if (typeof self.cb === strFunction) {
+      var callback = self.cb;
+      self.cb = undefined;
+      return callback();
+    }
+  }
+
+  function pull() {
+    var packet;
+    if (self.buffer && self.buffer.length) {
+      if (typeof eof === 'number') {
+        packet = self.buffer.slice(0,eof);
+        self.buffer = self.buffer.slice(eof);
+        eof -= packet.length;
+        done = !eof;
+      } else {
+        var match = self.buffer.indexOf(eof);
+        if (match !== -1) {
+          // store signature match byte offset to allow us to reference
+          // this for zip64 offset
+          self.match = match
+          if (includeEof) match = match + eof.length;
+          packet = self.buffer.slice(0,match);
+          self.buffer = self.buffer.slice(match);
+          done = true;
+        } else {
+          var len = self.buffer.length - eof.length;
+          if (len <= 0) {
+            cb();
+          } else {
+            packet = self.buffer.slice(0,len);
+            self.buffer = self.buffer.slice(len);
+          }
+        }
+      }
+      if (packet) p.write(packet,function() {
+        if (self.buffer.length === 0 || (eof.length && self.buffer.length <= eof.length)) cb();
+      });
+    }
+    
+    if (!done) {
+      if (self.finished && !this.__ended) {
+        self.removeListener('chunk',pull);
+        self.emit('error', new Error('FILE_ENDED'));
+        this.__ended = true;
+        return;
+      }
+      
+    } else {
+      self.removeListener('chunk',pull);
+      p.end();
+    }
+  }
+
+  self.on('chunk',pull);
+  pull();
+  return p;
+};
+
+PullStream.prototype.pull = function(eof,includeEof) {
+  if (eof === 0) return Promise.resolve('');
+
+  // If we already have the required data in buffer
+  // we can resolve the request immediately
+  if (!isNaN(eof) && this.buffer.length > eof) {
+    var data = this.buffer.slice(0,eof);
+    this.buffer = this.buffer.slice(eof);
+    return Promise.resolve(data);
+  }
+
+  // Otherwise we stream until we have it
+  var buffer = Buffer.from(''),
+      self = this;
+
+  var concatStream = Stream.Transform();
+  concatStream._transform = function(d,e,cb) {
+    buffer = Buffer.concat([buffer,d]);
+    cb();
+  };
+  
+  var rejectHandler;
+  var pullStreamRejectHandler;
+  return new Promise(function(resolve,reject) {
+    rejectHandler = reject;
+    pullStreamRejectHandler = function(e) {
+      self.__emittedError = e;
+      reject(e);
+    }
+    if (self.finished)
+      return reject(new Error('FILE_ENDED'));
+    self.once('error',pullStreamRejectHandler);  // reject any errors from pullstream itself
+    self.stream(eof,includeEof)
+      .on('error',reject)
+      .pipe(concatStream)
+      .on('finish',function() {resolve(buffer);})
+      .on('error',reject);
+  })
+  .finally(function() {
+    self.removeListener('error',rejectHandler);
+    self.removeListener('error',pullStreamRejectHandler);
+  });
+};
+
+PullStream.prototype._read = function(){};
+
+module.exports = PullStream;
+
+
+/***/ }),
+/* 433 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var Buffer = __webpack_require__(316).Buffer;
+
+// Backwards compatibility for node versions < 8
+if (Buffer.from === undefined) {
+  Buffer.from = function (a, b, c) {
+    return new Buffer(a, b, c)
+  };
+
+  Buffer.alloc = Buffer.from;
+}
+
+module.exports = Buffer;
+
+/***/ }),
+/* 434 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var Stream = __webpack_require__(106);
+if (process.env.READABLE_STREAM === 'disable' && Stream) {
+  module.exports = Stream;
+  exports = module.exports = Stream.Readable;
+  exports.Readable = Stream.Readable;
+  exports.Writable = Stream.Writable;
+  exports.Duplex = Stream.Duplex;
+  exports.Transform = Stream.Transform;
+  exports.PassThrough = Stream.PassThrough;
+  exports.Stream = Stream;
+} else {
+  exports = module.exports = __webpack_require__(435);
+  exports.Stream = Stream || exports;
+  exports.Readable = exports;
+  exports.Writable = __webpack_require__(443);
+  exports.Duplex = __webpack_require__(442);
+  exports.Transform = __webpack_require__(446);
+  exports.PassThrough = __webpack_require__(447);
+}
+
+
+/***/ }),
+/* 435 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+
+/*<replacement>*/
+
+var pna = __webpack_require__(436);
+/*</replacement>*/
+
+module.exports = Readable;
+
+/*<replacement>*/
+var isArray = __webpack_require__(167);
+/*</replacement>*/
+
+/*<replacement>*/
+var Duplex;
+/*</replacement>*/
+
+Readable.ReadableState = ReadableState;
+
+/*<replacement>*/
+var EE = __webpack_require__(198).EventEmitter;
+
+var EElistenerCount = function (emitter, type) {
+  return emitter.listeners(type).length;
+};
+/*</replacement>*/
+
+/*<replacement>*/
+var Stream = __webpack_require__(437);
+/*</replacement>*/
+
+/*<replacement>*/
+
+var Buffer = __webpack_require__(438).Buffer;
+var OurUint8Array = global.Uint8Array || function () {};
+function _uint8ArrayToBuffer(chunk) {
+  return Buffer.from(chunk);
+}
+function _isUint8Array(obj) {
+  return Buffer.isBuffer(obj) || obj instanceof OurUint8Array;
+}
+
+/*</replacement>*/
+
+/*<replacement>*/
+var util = Object.create(__webpack_require__(439));
+util.inherits = __webpack_require__(275);
+/*</replacement>*/
+
+/*<replacement>*/
+var debugUtil = __webpack_require__(74);
+var debug = void 0;
+if (debugUtil && debugUtil.debuglog) {
+  debug = debugUtil.debuglog('stream');
+} else {
+  debug = function () {};
+}
+/*</replacement>*/
+
+var BufferList = __webpack_require__(440);
+var destroyImpl = __webpack_require__(441);
+var StringDecoder;
+
+util.inherits(Readable, Stream);
+
+var kProxyEvents = ['error', 'close', 'destroy', 'pause', 'resume'];
+
+function prependListener(emitter, event, fn) {
+  // Sadly this is not cacheable as some libraries bundle their own
+  // event emitter implementation with them.
+  if (typeof emitter.prependListener === 'function') return emitter.prependListener(event, fn);
+
+  // This is a hack to make sure that our error handler is attached before any
+  // userland ones.  NEVER DO THIS. This is here only because this code needs
+  // to continue to work with older versions of Node.js that do not include
+  // the prependListener() method. The goal is to eventually remove this hack.
+  if (!emitter._events || !emitter._events[event]) emitter.on(event, fn);else if (isArray(emitter._events[event])) emitter._events[event].unshift(fn);else emitter._events[event] = [fn, emitter._events[event]];
+}
+
+function ReadableState(options, stream) {
+  Duplex = Duplex || __webpack_require__(442);
+
+  options = options || {};
+
+  // Duplex streams are both readable and writable, but share
+  // the same options object.
+  // However, some cases require setting options to different
+  // values for the readable and the writable sides of the duplex stream.
+  // These options can be provided separately as readableXXX and writableXXX.
+  var isDuplex = stream instanceof Duplex;
+
+  // object stream flag. Used to make read(n) ignore n and to
+  // make all the buffer merging and length checks go away
+  this.objectMode = !!options.objectMode;
+
+  if (isDuplex) this.objectMode = this.objectMode || !!options.readableObjectMode;
+
+  // the point at which it stops calling _read() to fill the buffer
+  // Note: 0 is a valid value, means "don't call _read preemptively ever"
+  var hwm = options.highWaterMark;
+  var readableHwm = options.readableHighWaterMark;
+  var defaultHwm = this.objectMode ? 16 : 16 * 1024;
+
+  if (hwm || hwm === 0) this.highWaterMark = hwm;else if (isDuplex && (readableHwm || readableHwm === 0)) this.highWaterMark = readableHwm;else this.highWaterMark = defaultHwm;
+
+  // cast to ints.
+  this.highWaterMark = Math.floor(this.highWaterMark);
+
+  // A linked list is used to store data chunks instead of an array because the
+  // linked list can remove elements from the beginning faster than
+  // array.shift()
+  this.buffer = new BufferList();
+  this.length = 0;
+  this.pipes = null;
+  this.pipesCount = 0;
+  this.flowing = null;
+  this.ended = false;
+  this.endEmitted = false;
+  this.reading = false;
+
+  // a flag to be able to tell if the event 'readable'/'data' is emitted
+  // immediately, or on a later tick.  We set this to true at first, because
+  // any actions that shouldn't happen until "later" should generally also
+  // not happen before the first read call.
+  this.sync = true;
+
+  // whenever we return null, then we set a flag to say
+  // that we're awaiting a 'readable' event emission.
+  this.needReadable = false;
+  this.emittedReadable = false;
+  this.readableListening = false;
+  this.resumeScheduled = false;
+
+  // has it been destroyed
+  this.destroyed = false;
+
+  // Crypto is kind of old and crusty.  Historically, its default string
+  // encoding is 'binary' so we have to make this configurable.
+  // Everything else in the universe uses 'utf8', though.
+  this.defaultEncoding = options.defaultEncoding || 'utf8';
+
+  // the number of writers that are awaiting a drain event in .pipe()s
+  this.awaitDrain = 0;
+
+  // if true, a maybeReadMore has been scheduled
+  this.readingMore = false;
+
+  this.decoder = null;
+  this.encoding = null;
+  if (options.encoding) {
+    if (!StringDecoder) StringDecoder = __webpack_require__(445).StringDecoder;
+    this.decoder = new StringDecoder(options.encoding);
+    this.encoding = options.encoding;
+  }
+}
+
+function Readable(options) {
+  Duplex = Duplex || __webpack_require__(442);
+
+  if (!(this instanceof Readable)) return new Readable(options);
+
+  this._readableState = new ReadableState(options, this);
+
+  // legacy
+  this.readable = true;
+
+  if (options) {
+    if (typeof options.read === 'function') this._read = options.read;
+
+    if (typeof options.destroy === 'function') this._destroy = options.destroy;
+  }
+
+  Stream.call(this);
+}
+
+Object.defineProperty(Readable.prototype, 'destroyed', {
+  get: function () {
+    if (this._readableState === undefined) {
+      return false;
+    }
+    return this._readableState.destroyed;
+  },
+  set: function (value) {
+    // we ignore the value if the stream
+    // has not been initialized yet
+    if (!this._readableState) {
+      return;
+    }
+
+    // backward compatibility, the user is explicitly
+    // managing destroyed
+    this._readableState.destroyed = value;
+  }
+});
+
+Readable.prototype.destroy = destroyImpl.destroy;
+Readable.prototype._undestroy = destroyImpl.undestroy;
+Readable.prototype._destroy = function (err, cb) {
+  this.push(null);
+  cb(err);
+};
+
+// Manually shove something into the read() buffer.
+// This returns true if the highWaterMark has not been hit yet,
+// similar to how Writable.write() returns true if you should
+// write() some more.
+Readable.prototype.push = function (chunk, encoding) {
+  var state = this._readableState;
+  var skipChunkCheck;
+
+  if (!state.objectMode) {
+    if (typeof chunk === 'string') {
+      encoding = encoding || state.defaultEncoding;
+      if (encoding !== state.encoding) {
+        chunk = Buffer.from(chunk, encoding);
+        encoding = '';
+      }
+      skipChunkCheck = true;
+    }
+  } else {
+    skipChunkCheck = true;
+  }
+
+  return readableAddChunk(this, chunk, encoding, false, skipChunkCheck);
+};
+
+// Unshift should *always* be something directly out of read()
+Readable.prototype.unshift = function (chunk) {
+  return readableAddChunk(this, chunk, null, true, false);
+};
+
+function readableAddChunk(stream, chunk, encoding, addToFront, skipChunkCheck) {
+  var state = stream._readableState;
+  if (chunk === null) {
+    state.reading = false;
+    onEofChunk(stream, state);
+  } else {
+    var er;
+    if (!skipChunkCheck) er = chunkInvalid(state, chunk);
+    if (er) {
+      stream.emit('error', er);
+    } else if (state.objectMode || chunk && chunk.length > 0) {
+      if (typeof chunk !== 'string' && !state.objectMode && Object.getPrototypeOf(chunk) !== Buffer.prototype) {
+        chunk = _uint8ArrayToBuffer(chunk);
+      }
+
+      if (addToFront) {
+        if (state.endEmitted) stream.emit('error', new Error('stream.unshift() after end event'));else addChunk(stream, state, chunk, true);
+      } else if (state.ended) {
+        stream.emit('error', new Error('stream.push() after EOF'));
+      } else {
+        state.reading = false;
+        if (state.decoder && !encoding) {
+          chunk = state.decoder.write(chunk);
+          if (state.objectMode || chunk.length !== 0) addChunk(stream, state, chunk, false);else maybeReadMore(stream, state);
+        } else {
+          addChunk(stream, state, chunk, false);
+        }
+      }
+    } else if (!addToFront) {
+      state.reading = false;
+    }
+  }
+
+  return needMoreData(state);
+}
+
+function addChunk(stream, state, chunk, addToFront) {
+  if (state.flowing && state.length === 0 && !state.sync) {
+    stream.emit('data', chunk);
+    stream.read(0);
+  } else {
+    // update the buffer info.
+    state.length += state.objectMode ? 1 : chunk.length;
+    if (addToFront) state.buffer.unshift(chunk);else state.buffer.push(chunk);
+
+    if (state.needReadable) emitReadable(stream);
+  }
+  maybeReadMore(stream, state);
+}
+
+function chunkInvalid(state, chunk) {
+  var er;
+  if (!_isUint8Array(chunk) && typeof chunk !== 'string' && chunk !== undefined && !state.objectMode) {
+    er = new TypeError('Invalid non-string/buffer chunk');
+  }
+  return er;
+}
+
+// if it's past the high water mark, we can push in some more.
+// Also, if we have no data yet, we can stand some
+// more bytes.  This is to work around cases where hwm=0,
+// such as the repl.  Also, if the push() triggered a
+// readable event, and the user called read(largeNumber) such that
+// needReadable was set, then we ought to push more, so that another
+// 'readable' event will be triggered.
+function needMoreData(state) {
+  return !state.ended && (state.needReadable || state.length < state.highWaterMark || state.length === 0);
+}
+
+Readable.prototype.isPaused = function () {
+  return this._readableState.flowing === false;
+};
+
+// backwards compatibility.
+Readable.prototype.setEncoding = function (enc) {
+  if (!StringDecoder) StringDecoder = __webpack_require__(445).StringDecoder;
+  this._readableState.decoder = new StringDecoder(enc);
+  this._readableState.encoding = enc;
+  return this;
+};
+
+// Don't raise the hwm > 8MB
+var MAX_HWM = 0x800000;
+function computeNewHighWaterMark(n) {
+  if (n >= MAX_HWM) {
+    n = MAX_HWM;
+  } else {
+    // Get the next highest power of 2 to prevent increasing hwm excessively in
+    // tiny amounts
+    n--;
+    n |= n >>> 1;
+    n |= n >>> 2;
+    n |= n >>> 4;
+    n |= n >>> 8;
+    n |= n >>> 16;
+    n++;
+  }
+  return n;
+}
+
+// This function is designed to be inlinable, so please take care when making
+// changes to the function body.
+function howMuchToRead(n, state) {
+  if (n <= 0 || state.length === 0 && state.ended) return 0;
+  if (state.objectMode) return 1;
+  if (n !== n) {
+    // Only flow one buffer at a time
+    if (state.flowing && state.length) return state.buffer.head.data.length;else return state.length;
+  }
+  // If we're asking for more than the current hwm, then raise the hwm.
+  if (n > state.highWaterMark) state.highWaterMark = computeNewHighWaterMark(n);
+  if (n <= state.length) return n;
+  // Don't have enough
+  if (!state.ended) {
+    state.needReadable = true;
+    return 0;
+  }
+  return state.length;
+}
+
+// you can override either this method, or the async _read(n) below.
+Readable.prototype.read = function (n) {
+  debug('read', n);
+  n = parseInt(n, 10);
+  var state = this._readableState;
+  var nOrig = n;
+
+  if (n !== 0) state.emittedReadable = false;
+
+  // if we're doing read(0) to trigger a readable event, but we
+  // already have a bunch of data in the buffer, then just trigger
+  // the 'readable' event and move on.
+  if (n === 0 && state.needReadable && (state.length >= state.highWaterMark || state.ended)) {
+    debug('read: emitReadable', state.length, state.ended);
+    if (state.length === 0 && state.ended) endReadable(this);else emitReadable(this);
+    return null;
+  }
+
+  n = howMuchToRead(n, state);
+
+  // if we've ended, and we're now clear, then finish it up.
+  if (n === 0 && state.ended) {
+    if (state.length === 0) endReadable(this);
+    return null;
+  }
+
+  // All the actual chunk generation logic needs to be
+  // *below* the call to _read.  The reason is that in certain
+  // synthetic stream cases, such as passthrough streams, _read
+  // may be a completely synchronous operation which may change
+  // the state of the read buffer, providing enough data when
+  // before there was *not* enough.
+  //
+  // So, the steps are:
+  // 1. Figure out what the state of things will be after we do
+  // a read from the buffer.
+  //
+  // 2. If that resulting state will trigger a _read, then call _read.
+  // Note that this may be asynchronous, or synchronous.  Yes, it is
+  // deeply ugly to write APIs this way, but that still doesn't mean
+  // that the Readable class should behave improperly, as streams are
+  // designed to be sync/async agnostic.
+  // Take note if the _read call is sync or async (ie, if the read call
+  // has returned yet), so that we know whether or not it's safe to emit
+  // 'readable' etc.
+  //
+  // 3. Actually pull the requested chunks out of the buffer and return.
+
+  // if we need a readable event, then we need to do some reading.
+  var doRead = state.needReadable;
+  debug('need readable', doRead);
+
+  // if we currently have less than the highWaterMark, then also read some
+  if (state.length === 0 || state.length - n < state.highWaterMark) {
+    doRead = true;
+    debug('length less than watermark', doRead);
+  }
+
+  // however, if we've ended, then there's no point, and if we're already
+  // reading, then it's unnecessary.
+  if (state.ended || state.reading) {
+    doRead = false;
+    debug('reading or ended', doRead);
+  } else if (doRead) {
+    debug('do read');
+    state.reading = true;
+    state.sync = true;
+    // if the length is currently zero, then we *need* a readable event.
+    if (state.length === 0) state.needReadable = true;
+    // call internal read method
+    this._read(state.highWaterMark);
+    state.sync = false;
+    // If _read pushed data synchronously, then `reading` will be false,
+    // and we need to re-evaluate how much data we can return to the user.
+    if (!state.reading) n = howMuchToRead(nOrig, state);
+  }
+
+  var ret;
+  if (n > 0) ret = fromList(n, state);else ret = null;
+
+  if (ret === null) {
+    state.needReadable = true;
+    n = 0;
+  } else {
+    state.length -= n;
+  }
+
+  if (state.length === 0) {
+    // If we have nothing in the buffer, then we want to know
+    // as soon as we *do* get something into the buffer.
+    if (!state.ended) state.needReadable = true;
+
+    // If we tried to read() past the EOF, then emit end on the next tick.
+    if (nOrig !== n && state.ended) endReadable(this);
+  }
+
+  if (ret !== null) this.emit('data', ret);
+
+  return ret;
+};
+
+function onEofChunk(stream, state) {
+  if (state.ended) return;
+  if (state.decoder) {
+    var chunk = state.decoder.end();
+    if (chunk && chunk.length) {
+      state.buffer.push(chunk);
+      state.length += state.objectMode ? 1 : chunk.length;
+    }
+  }
+  state.ended = true;
+
+  // emit 'readable' now to make sure it gets picked up.
+  emitReadable(stream);
+}
+
+// Don't emit readable right away in sync mode, because this can trigger
+// another read() call => stack overflow.  This way, it might trigger
+// a nextTick recursion warning, but that's not so bad.
+function emitReadable(stream) {
+  var state = stream._readableState;
+  state.needReadable = false;
+  if (!state.emittedReadable) {
+    debug('emitReadable', state.flowing);
+    state.emittedReadable = true;
+    if (state.sync) pna.nextTick(emitReadable_, stream);else emitReadable_(stream);
+  }
+}
+
+function emitReadable_(stream) {
+  debug('emit readable');
+  stream.emit('readable');
+  flow(stream);
+}
+
+// at this point, the user has presumably seen the 'readable' event,
+// and called read() to consume some data.  that may have triggered
+// in turn another _read(n) call, in which case reading = true if
+// it's in progress.
+// However, if we're not ended, or reading, and the length < hwm,
+// then go ahead and try to read some more preemptively.
+function maybeReadMore(stream, state) {
+  if (!state.readingMore) {
+    state.readingMore = true;
+    pna.nextTick(maybeReadMore_, stream, state);
+  }
+}
+
+function maybeReadMore_(stream, state) {
+  var len = state.length;
+  while (!state.reading && !state.flowing && !state.ended && state.length < state.highWaterMark) {
+    debug('maybeReadMore read 0');
+    stream.read(0);
+    if (len === state.length)
+      // didn't get any data, stop spinning.
+      break;else len = state.length;
+  }
+  state.readingMore = false;
+}
+
+// abstract method.  to be overridden in specific implementation classes.
+// call cb(er, data) where data is <= n in length.
+// for virtual (non-string, non-buffer) streams, "length" is somewhat
+// arbitrary, and perhaps not very meaningful.
+Readable.prototype._read = function (n) {
+  this.emit('error', new Error('_read() is not implemented'));
+};
+
+Readable.prototype.pipe = function (dest, pipeOpts) {
+  var src = this;
+  var state = this._readableState;
+
+  switch (state.pipesCount) {
+    case 0:
+      state.pipes = dest;
+      break;
+    case 1:
+      state.pipes = [state.pipes, dest];
+      break;
+    default:
+      state.pipes.push(dest);
+      break;
+  }
+  state.pipesCount += 1;
+  debug('pipe count=%d opts=%j', state.pipesCount, pipeOpts);
+
+  var doEnd = (!pipeOpts || pipeOpts.end !== false) && dest !== process.stdout && dest !== process.stderr;
+
+  var endFn = doEnd ? onend : unpipe;
+  if (state.endEmitted) pna.nextTick(endFn);else src.once('end', endFn);
+
+  dest.on('unpipe', onunpipe);
+  function onunpipe(readable, unpipeInfo) {
+    debug('onunpipe');
+    if (readable === src) {
+      if (unpipeInfo && unpipeInfo.hasUnpiped === false) {
+        unpipeInfo.hasUnpiped = true;
+        cleanup();
+      }
+    }
+  }
+
+  function onend() {
+    debug('onend');
+    dest.end();
+  }
+
+  // when the dest drains, it reduces the awaitDrain counter
+  // on the source.  This would be more elegant with a .once()
+  // handler in flow(), but adding and removing repeatedly is
+  // too slow.
+  var ondrain = pipeOnDrain(src);
+  dest.on('drain', ondrain);
+
+  var cleanedUp = false;
+  function cleanup() {
+    debug('cleanup');
+    // cleanup event handlers once the pipe is broken
+    dest.removeListener('close', onclose);
+    dest.removeListener('finish', onfinish);
+    dest.removeListener('drain', ondrain);
+    dest.removeListener('error', onerror);
+    dest.removeListener('unpipe', onunpipe);
+    src.removeListener('end', onend);
+    src.removeListener('end', unpipe);
+    src.removeListener('data', ondata);
+
+    cleanedUp = true;
+
+    // if the reader is waiting for a drain event from this
+    // specific writer, then it would cause it to never start
+    // flowing again.
+    // So, if this is awaiting a drain, then we just call it now.
+    // If we don't know, then assume that we are waiting for one.
+    if (state.awaitDrain && (!dest._writableState || dest._writableState.needDrain)) ondrain();
+  }
+
+  // If the user pushes more data while we're writing to dest then we'll end up
+  // in ondata again. However, we only want to increase awaitDrain once because
+  // dest will only emit one 'drain' event for the multiple writes.
+  // => Introduce a guard on increasing awaitDrain.
+  var increasedAwaitDrain = false;
+  src.on('data', ondata);
+  function ondata(chunk) {
+    debug('ondata');
+    increasedAwaitDrain = false;
+    var ret = dest.write(chunk);
+    if (false === ret && !increasedAwaitDrain) {
+      // If the user unpiped during `dest.write()`, it is possible
+      // to get stuck in a permanently paused state if that write
+      // also returned false.
+      // => Check whether `dest` is still a piping destination.
+      if ((state.pipesCount === 1 && state.pipes === dest || state.pipesCount > 1 && indexOf(state.pipes, dest) !== -1) && !cleanedUp) {
+        debug('false write response, pause', src._readableState.awaitDrain);
+        src._readableState.awaitDrain++;
+        increasedAwaitDrain = true;
+      }
+      src.pause();
+    }
+  }
+
+  // if the dest has an error, then stop piping into it.
+  // however, don't suppress the throwing behavior for this.
+  function onerror(er) {
+    debug('onerror', er);
+    unpipe();
+    dest.removeListener('error', onerror);
+    if (EElistenerCount(dest, 'error') === 0) dest.emit('error', er);
+  }
+
+  // Make sure our error handler is attached before userland ones.
+  prependListener(dest, 'error', onerror);
+
+  // Both close and finish should trigger unpipe, but only once.
+  function onclose() {
+    dest.removeListener('finish', onfinish);
+    unpipe();
+  }
+  dest.once('close', onclose);
+  function onfinish() {
+    debug('onfinish');
+    dest.removeListener('close', onclose);
+    unpipe();
+  }
+  dest.once('finish', onfinish);
+
+  function unpipe() {
+    debug('unpipe');
+    src.unpipe(dest);
+  }
+
+  // tell the dest that it's being piped to
+  dest.emit('pipe', src);
+
+  // start the flow if it hasn't been started already.
+  if (!state.flowing) {
+    debug('pipe resume');
+    src.resume();
+  }
+
+  return dest;
+};
+
+function pipeOnDrain(src) {
+  return function () {
+    var state = src._readableState;
+    debug('pipeOnDrain', state.awaitDrain);
+    if (state.awaitDrain) state.awaitDrain--;
+    if (state.awaitDrain === 0 && EElistenerCount(src, 'data')) {
+      state.flowing = true;
+      flow(src);
+    }
+  };
+}
+
+Readable.prototype.unpipe = function (dest) {
+  var state = this._readableState;
+  var unpipeInfo = { hasUnpiped: false };
+
+  // if we're not piping anywhere, then do nothing.
+  if (state.pipesCount === 0) return this;
+
+  // just one destination.  most common case.
+  if (state.pipesCount === 1) {
+    // passed in one, but it's not the right one.
+    if (dest && dest !== state.pipes) return this;
+
+    if (!dest) dest = state.pipes;
+
+    // got a match.
+    state.pipes = null;
+    state.pipesCount = 0;
+    state.flowing = false;
+    if (dest) dest.emit('unpipe', this, unpipeInfo);
+    return this;
+  }
+
+  // slow case. multiple pipe destinations.
+
+  if (!dest) {
+    // remove all.
+    var dests = state.pipes;
+    var len = state.pipesCount;
+    state.pipes = null;
+    state.pipesCount = 0;
+    state.flowing = false;
+
+    for (var i = 0; i < len; i++) {
+      dests[i].emit('unpipe', this, unpipeInfo);
+    }return this;
+  }
+
+  // try to find the right one.
+  var index = indexOf(state.pipes, dest);
+  if (index === -1) return this;
+
+  state.pipes.splice(index, 1);
+  state.pipesCount -= 1;
+  if (state.pipesCount === 1) state.pipes = state.pipes[0];
+
+  dest.emit('unpipe', this, unpipeInfo);
+
+  return this;
+};
+
+// set up data events if they are asked for
+// Ensure readable listeners eventually get something
+Readable.prototype.on = function (ev, fn) {
+  var res = Stream.prototype.on.call(this, ev, fn);
+
+  if (ev === 'data') {
+    // Start flowing on next tick if stream isn't explicitly paused
+    if (this._readableState.flowing !== false) this.resume();
+  } else if (ev === 'readable') {
+    var state = this._readableState;
+    if (!state.endEmitted && !state.readableListening) {
+      state.readableListening = state.needReadable = true;
+      state.emittedReadable = false;
+      if (!state.reading) {
+        pna.nextTick(nReadingNextTick, this);
+      } else if (state.length) {
+        emitReadable(this);
+      }
+    }
+  }
+
+  return res;
+};
+Readable.prototype.addListener = Readable.prototype.on;
+
+function nReadingNextTick(self) {
+  debug('readable nexttick read 0');
+  self.read(0);
+}
+
+// pause() and resume() are remnants of the legacy readable stream API
+// If the user uses them, then switch into old mode.
+Readable.prototype.resume = function () {
+  var state = this._readableState;
+  if (!state.flowing) {
+    debug('resume');
+    state.flowing = true;
+    resume(this, state);
+  }
+  return this;
+};
+
+function resume(stream, state) {
+  if (!state.resumeScheduled) {
+    state.resumeScheduled = true;
+    pna.nextTick(resume_, stream, state);
+  }
+}
+
+function resume_(stream, state) {
+  if (!state.reading) {
+    debug('resume read 0');
+    stream.read(0);
+  }
+
+  state.resumeScheduled = false;
+  state.awaitDrain = 0;
+  stream.emit('resume');
+  flow(stream);
+  if (state.flowing && !state.reading) stream.read(0);
+}
+
+Readable.prototype.pause = function () {
+  debug('call pause flowing=%j', this._readableState.flowing);
+  if (false !== this._readableState.flowing) {
+    debug('pause');
+    this._readableState.flowing = false;
+    this.emit('pause');
+  }
+  return this;
+};
+
+function flow(stream) {
+  var state = stream._readableState;
+  debug('flow', state.flowing);
+  while (state.flowing && stream.read() !== null) {}
+}
+
+// wrap an old-style stream as the async data source.
+// This is *not* part of the readable stream interface.
+// It is an ugly unfortunate mess of history.
+Readable.prototype.wrap = function (stream) {
+  var _this = this;
+
+  var state = this._readableState;
+  var paused = false;
+
+  stream.on('end', function () {
+    debug('wrapped end');
+    if (state.decoder && !state.ended) {
+      var chunk = state.decoder.end();
+      if (chunk && chunk.length) _this.push(chunk);
+    }
+
+    _this.push(null);
+  });
+
+  stream.on('data', function (chunk) {
+    debug('wrapped data');
+    if (state.decoder) chunk = state.decoder.write(chunk);
+
+    // don't skip over falsy values in objectMode
+    if (state.objectMode && (chunk === null || chunk === undefined)) return;else if (!state.objectMode && (!chunk || !chunk.length)) return;
+
+    var ret = _this.push(chunk);
+    if (!ret) {
+      paused = true;
+      stream.pause();
+    }
+  });
+
+  // proxy all the other methods.
+  // important when wrapping filters and duplexes.
+  for (var i in stream) {
+    if (this[i] === undefined && typeof stream[i] === 'function') {
+      this[i] = function (method) {
+        return function () {
+          return stream[method].apply(stream, arguments);
+        };
+      }(i);
+    }
+  }
+
+  // proxy certain important events.
+  for (var n = 0; n < kProxyEvents.length; n++) {
+    stream.on(kProxyEvents[n], this.emit.bind(this, kProxyEvents[n]));
+  }
+
+  // when we try to consume some more bytes, simply unpause the
+  // underlying stream.
+  this._read = function (n) {
+    debug('wrapped _read', n);
+    if (paused) {
+      paused = false;
+      stream.resume();
+    }
+  };
+
+  return this;
+};
+
+Object.defineProperty(Readable.prototype, 'readableHighWaterMark', {
+  // making it explicit this property is not enumerable
+  // because otherwise some prototype manipulation in
+  // userland will fail
+  enumerable: false,
+  get: function () {
+    return this._readableState.highWaterMark;
+  }
+});
+
+// exposed for testing purposes only.
+Readable._fromList = fromList;
+
+// Pluck off n bytes from an array of buffers.
+// Length is the combined lengths of all the buffers in the list.
+// This function is designed to be inlinable, so please take care when making
+// changes to the function body.
+function fromList(n, state) {
+  // nothing buffered
+  if (state.length === 0) return null;
+
+  var ret;
+  if (state.objectMode) ret = state.buffer.shift();else if (!n || n >= state.length) {
+    // read it all, truncate the list
+    if (state.decoder) ret = state.buffer.join('');else if (state.buffer.length === 1) ret = state.buffer.head.data;else ret = state.buffer.concat(state.length);
+    state.buffer.clear();
+  } else {
+    // read part of list
+    ret = fromListPartial(n, state.buffer, state.decoder);
+  }
+
+  return ret;
+}
+
+// Extracts only enough buffered data to satisfy the amount requested.
+// This function is designed to be inlinable, so please take care when making
+// changes to the function body.
+function fromListPartial(n, list, hasStrings) {
+  var ret;
+  if (n < list.head.data.length) {
+    // slice is the same for buffers and strings
+    ret = list.head.data.slice(0, n);
+    list.head.data = list.head.data.slice(n);
+  } else if (n === list.head.data.length) {
+    // first chunk is a perfect match
+    ret = list.shift();
+  } else {
+    // result spans more than one buffer
+    ret = hasStrings ? copyFromBufferString(n, list) : copyFromBuffer(n, list);
+  }
+  return ret;
+}
+
+// Copies a specified amount of characters from the list of buffered data
+// chunks.
+// This function is designed to be inlinable, so please take care when making
+// changes to the function body.
+function copyFromBufferString(n, list) {
+  var p = list.head;
+  var c = 1;
+  var ret = p.data;
+  n -= ret.length;
+  while (p = p.next) {
+    var str = p.data;
+    var nb = n > str.length ? str.length : n;
+    if (nb === str.length) ret += str;else ret += str.slice(0, n);
+    n -= nb;
+    if (n === 0) {
+      if (nb === str.length) {
+        ++c;
+        if (p.next) list.head = p.next;else list.head = list.tail = null;
+      } else {
+        list.head = p;
+        p.data = str.slice(nb);
+      }
+      break;
+    }
+    ++c;
+  }
+  list.length -= c;
+  return ret;
+}
+
+// Copies a specified amount of bytes from the list of buffered data chunks.
+// This function is designed to be inlinable, so please take care when making
+// changes to the function body.
+function copyFromBuffer(n, list) {
+  var ret = Buffer.allocUnsafe(n);
+  var p = list.head;
+  var c = 1;
+  p.data.copy(ret);
+  n -= p.data.length;
+  while (p = p.next) {
+    var buf = p.data;
+    var nb = n > buf.length ? buf.length : n;
+    buf.copy(ret, ret.length - n, 0, nb);
+    n -= nb;
+    if (n === 0) {
+      if (nb === buf.length) {
+        ++c;
+        if (p.next) list.head = p.next;else list.head = list.tail = null;
+      } else {
+        list.head = p;
+        p.data = buf.slice(nb);
+      }
+      break;
+    }
+    ++c;
+  }
+  list.length -= c;
+  return ret;
+}
+
+function endReadable(stream) {
+  var state = stream._readableState;
+
+  // If we get here before consuming all the bytes, then that is a
+  // bug in node.  Should never happen.
+  if (state.length > 0) throw new Error('"endReadable()" called on non-empty stream');
+
+  if (!state.endEmitted) {
+    state.ended = true;
+    pna.nextTick(endReadableNT, state, stream);
+  }
+}
+
+function endReadableNT(state, stream) {
+  // Check that we didn't get one last unshift.
+  if (!state.endEmitted && state.length === 0) {
+    state.endEmitted = true;
+    stream.readable = false;
+    stream.emit('end');
+  }
+}
+
+function indexOf(xs, x) {
+  for (var i = 0, l = xs.length; i < l; i++) {
+    if (xs[i] === x) return i;
+  }
+  return -1;
+}
+
+/***/ }),
+/* 436 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+if (typeof process === 'undefined' ||
+    !process.version ||
+    process.version.indexOf('v0.') === 0 ||
+    process.version.indexOf('v1.') === 0 && process.version.indexOf('v1.8.') !== 0) {
+  module.exports = { nextTick: nextTick };
+} else {
+  module.exports = process
+}
+
+function nextTick(fn, arg1, arg2, arg3) {
+  if (typeof fn !== 'function') {
+    throw new TypeError('"callback" argument must be a function');
+  }
+  var len = arguments.length;
+  var args, i;
+  switch (len) {
+  case 0:
+  case 1:
+    return process.nextTick(fn);
+  case 2:
+    return process.nextTick(function afterTickOne() {
+      fn.call(null, arg1);
+    });
+  case 3:
+    return process.nextTick(function afterTickTwo() {
+      fn.call(null, arg1, arg2);
+    });
+  case 4:
+    return process.nextTick(function afterTickThree() {
+      fn.call(null, arg1, arg2, arg3);
+    });
+  default:
+    args = new Array(len - 1);
+    i = 0;
+    while (i < args.length) {
+      args[i++] = arguments[i];
+    }
+    return process.nextTick(function afterTick() {
+      fn.apply(null, args);
+    });
+  }
+}
+
+
+
+/***/ }),
+/* 437 */
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = __webpack_require__(106);
+
+
+/***/ }),
+/* 438 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* eslint-disable node/no-deprecated-api */
+var buffer = __webpack_require__(316)
+var Buffer = buffer.Buffer
+
+// alternative to using Object.keys for old browsers
+function copyProps (src, dst) {
+  for (var key in src) {
+    dst[key] = src[key]
+  }
+}
+if (Buffer.from && Buffer.alloc && Buffer.allocUnsafe && Buffer.allocUnsafeSlow) {
+  module.exports = buffer
+} else {
+  // Copy properties from require('buffer')
+  copyProps(buffer, exports)
+  exports.Buffer = SafeBuffer
+}
+
+function SafeBuffer (arg, encodingOrOffset, length) {
+  return Buffer(arg, encodingOrOffset, length)
+}
+
+// Copy static methods from Buffer
+copyProps(Buffer, SafeBuffer)
+
+SafeBuffer.from = function (arg, encodingOrOffset, length) {
+  if (typeof arg === 'number') {
+    throw new TypeError('Argument must not be a number')
+  }
+  return Buffer(arg, encodingOrOffset, length)
+}
+
+SafeBuffer.alloc = function (size, fill, encoding) {
+  if (typeof size !== 'number') {
+    throw new TypeError('Argument must be a number')
+  }
+  var buf = Buffer(size)
+  if (fill !== undefined) {
+    if (typeof encoding === 'string') {
+      buf.fill(fill, encoding)
+    } else {
+      buf.fill(fill)
+    }
+  } else {
+    buf.fill(0)
+  }
+  return buf
+}
+
+SafeBuffer.allocUnsafe = function (size) {
+  if (typeof size !== 'number') {
+    throw new TypeError('Argument must be a number')
+  }
+  return Buffer(size)
+}
+
+SafeBuffer.allocUnsafeSlow = function (size) {
+  if (typeof size !== 'number') {
+    throw new TypeError('Argument must be a number')
+  }
+  return buffer.SlowBuffer(size)
+}
+
+
+/***/ }),
+/* 439 */
+/***/ (function(module, exports) {
+
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+// NOTE: These type checking functions intentionally don't use `instanceof`
+// because it is fragile and can be easily faked with `Object.create()`.
+
+function isArray(arg) {
+  if (Array.isArray) {
+    return Array.isArray(arg);
+  }
+  return objectToString(arg) === '[object Array]';
+}
+exports.isArray = isArray;
+
+function isBoolean(arg) {
+  return typeof arg === 'boolean';
+}
+exports.isBoolean = isBoolean;
+
+function isNull(arg) {
+  return arg === null;
+}
+exports.isNull = isNull;
+
+function isNullOrUndefined(arg) {
+  return arg == null;
+}
+exports.isNullOrUndefined = isNullOrUndefined;
+
+function isNumber(arg) {
+  return typeof arg === 'number';
+}
+exports.isNumber = isNumber;
+
+function isString(arg) {
+  return typeof arg === 'string';
+}
+exports.isString = isString;
+
+function isSymbol(arg) {
+  return typeof arg === 'symbol';
+}
+exports.isSymbol = isSymbol;
+
+function isUndefined(arg) {
+  return arg === void 0;
+}
+exports.isUndefined = isUndefined;
+
+function isRegExp(re) {
+  return objectToString(re) === '[object RegExp]';
+}
+exports.isRegExp = isRegExp;
+
+function isObject(arg) {
+  return typeof arg === 'object' && arg !== null;
+}
+exports.isObject = isObject;
+
+function isDate(d) {
+  return objectToString(d) === '[object Date]';
+}
+exports.isDate = isDate;
+
+function isError(e) {
+  return (objectToString(e) === '[object Error]' || e instanceof Error);
+}
+exports.isError = isError;
+
+function isFunction(arg) {
+  return typeof arg === 'function';
+}
+exports.isFunction = isFunction;
+
+function isPrimitive(arg) {
+  return arg === null ||
+         typeof arg === 'boolean' ||
+         typeof arg === 'number' ||
+         typeof arg === 'string' ||
+         typeof arg === 'symbol' ||  // ES6 symbol
+         typeof arg === 'undefined';
+}
+exports.isPrimitive = isPrimitive;
+
+exports.isBuffer = Buffer.isBuffer;
+
+function objectToString(o) {
+  return Object.prototype.toString.call(o);
+}
+
+
+/***/ }),
+/* 440 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Buffer = __webpack_require__(438).Buffer;
+var util = __webpack_require__(74);
+
+function copyBuffer(src, target, offset) {
+  src.copy(target, offset);
+}
+
+module.exports = function () {
+  function BufferList() {
+    _classCallCheck(this, BufferList);
+
+    this.head = null;
+    this.tail = null;
+    this.length = 0;
+  }
+
+  BufferList.prototype.push = function push(v) {
+    var entry = { data: v, next: null };
+    if (this.length > 0) this.tail.next = entry;else this.head = entry;
+    this.tail = entry;
+    ++this.length;
+  };
+
+  BufferList.prototype.unshift = function unshift(v) {
+    var entry = { data: v, next: this.head };
+    if (this.length === 0) this.tail = entry;
+    this.head = entry;
+    ++this.length;
+  };
+
+  BufferList.prototype.shift = function shift() {
+    if (this.length === 0) return;
+    var ret = this.head.data;
+    if (this.length === 1) this.head = this.tail = null;else this.head = this.head.next;
+    --this.length;
+    return ret;
+  };
+
+  BufferList.prototype.clear = function clear() {
+    this.head = this.tail = null;
+    this.length = 0;
+  };
+
+  BufferList.prototype.join = function join(s) {
+    if (this.length === 0) return '';
+    var p = this.head;
+    var ret = '' + p.data;
+    while (p = p.next) {
+      ret += s + p.data;
+    }return ret;
+  };
+
+  BufferList.prototype.concat = function concat(n) {
+    if (this.length === 0) return Buffer.alloc(0);
+    if (this.length === 1) return this.head.data;
+    var ret = Buffer.allocUnsafe(n >>> 0);
+    var p = this.head;
+    var i = 0;
+    while (p) {
+      copyBuffer(p.data, ret, i);
+      i += p.data.length;
+      p = p.next;
+    }
+    return ret;
+  };
+
+  return BufferList;
+}();
+
+if (util && util.inspect && util.inspect.custom) {
+  module.exports.prototype[util.inspect.custom] = function () {
+    var obj = util.inspect({ length: this.length });
+    return this.constructor.name + ' ' + obj;
+  };
+}
+
+/***/ }),
+/* 441 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+/*<replacement>*/
+
+var pna = __webpack_require__(436);
+/*</replacement>*/
+
+// undocumented cb() API, needed for core, not for public API
+function destroy(err, cb) {
+  var _this = this;
+
+  var readableDestroyed = this._readableState && this._readableState.destroyed;
+  var writableDestroyed = this._writableState && this._writableState.destroyed;
+
+  if (readableDestroyed || writableDestroyed) {
+    if (cb) {
+      cb(err);
+    } else if (err && (!this._writableState || !this._writableState.errorEmitted)) {
+      pna.nextTick(emitErrorNT, this, err);
+    }
+    return this;
+  }
+
+  // we set destroyed to true before firing error callbacks in order
+  // to make it re-entrance safe in case destroy() is called within callbacks
+
+  if (this._readableState) {
+    this._readableState.destroyed = true;
+  }
+
+  // if this is a duplex stream mark the writable part as destroyed as well
+  if (this._writableState) {
+    this._writableState.destroyed = true;
+  }
+
+  this._destroy(err || null, function (err) {
+    if (!cb && err) {
+      pna.nextTick(emitErrorNT, _this, err);
+      if (_this._writableState) {
+        _this._writableState.errorEmitted = true;
+      }
+    } else if (cb) {
+      cb(err);
+    }
+  });
+
+  return this;
+}
+
+function undestroy() {
+  if (this._readableState) {
+    this._readableState.destroyed = false;
+    this._readableState.reading = false;
+    this._readableState.ended = false;
+    this._readableState.endEmitted = false;
+  }
+
+  if (this._writableState) {
+    this._writableState.destroyed = false;
+    this._writableState.ended = false;
+    this._writableState.ending = false;
+    this._writableState.finished = false;
+    this._writableState.errorEmitted = false;
+  }
+}
+
+function emitErrorNT(self, err) {
+  self.emit('error', err);
+}
+
+module.exports = {
+  destroy: destroy,
+  undestroy: undestroy
+};
+
+/***/ }),
+/* 442 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+// a duplex stream is just a stream that is both readable and writable.
+// Since JS doesn't have multiple prototypal inheritance, this class
+// prototypally inherits from Readable, and then parasitically from
+// Writable.
+
+
+
+/*<replacement>*/
+
+var pna = __webpack_require__(436);
+/*</replacement>*/
+
+/*<replacement>*/
+var objectKeys = Object.keys || function (obj) {
+  var keys = [];
+  for (var key in obj) {
+    keys.push(key);
+  }return keys;
+};
+/*</replacement>*/
+
+module.exports = Duplex;
+
+/*<replacement>*/
+var util = Object.create(__webpack_require__(439));
+util.inherits = __webpack_require__(275);
+/*</replacement>*/
+
+var Readable = __webpack_require__(435);
+var Writable = __webpack_require__(443);
+
+util.inherits(Duplex, Readable);
+
+{
+  // avoid scope creep, the keys array can then be collected
+  var keys = objectKeys(Writable.prototype);
+  for (var v = 0; v < keys.length; v++) {
+    var method = keys[v];
+    if (!Duplex.prototype[method]) Duplex.prototype[method] = Writable.prototype[method];
+  }
+}
+
+function Duplex(options) {
+  if (!(this instanceof Duplex)) return new Duplex(options);
+
+  Readable.call(this, options);
+  Writable.call(this, options);
+
+  if (options && options.readable === false) this.readable = false;
+
+  if (options && options.writable === false) this.writable = false;
+
+  this.allowHalfOpen = true;
+  if (options && options.allowHalfOpen === false) this.allowHalfOpen = false;
+
+  this.once('end', onend);
+}
+
+Object.defineProperty(Duplex.prototype, 'writableHighWaterMark', {
+  // making it explicit this property is not enumerable
+  // because otherwise some prototype manipulation in
+  // userland will fail
+  enumerable: false,
+  get: function () {
+    return this._writableState.highWaterMark;
+  }
+});
+
+// the no-half-open enforcer
+function onend() {
+  // if we allow half-open state, or if the writable side ended,
+  // then we're ok.
+  if (this.allowHalfOpen || this._writableState.ended) return;
+
+  // no more data can be written.
+  // But allow more writes to happen in this tick.
+  pna.nextTick(onEndNT, this);
+}
+
+function onEndNT(self) {
+  self.end();
+}
+
+Object.defineProperty(Duplex.prototype, 'destroyed', {
+  get: function () {
+    if (this._readableState === undefined || this._writableState === undefined) {
+      return false;
+    }
+    return this._readableState.destroyed && this._writableState.destroyed;
+  },
+  set: function (value) {
+    // we ignore the value if the stream
+    // has not been initialized yet
+    if (this._readableState === undefined || this._writableState === undefined) {
+      return;
+    }
+
+    // backward compatibility, the user is explicitly
+    // managing destroyed
+    this._readableState.destroyed = value;
+    this._writableState.destroyed = value;
+  }
+});
+
+Duplex.prototype._destroy = function (err, cb) {
+  this.push(null);
+  this.end();
+
+  pna.nextTick(cb, err);
+};
+
+/***/ }),
+/* 443 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+// A bit simpler than readable streams.
+// Implement an async ._write(chunk, encoding, cb), and it'll handle all
+// the drain event emission and buffering.
+
+
+
+/*<replacement>*/
+
+var pna = __webpack_require__(436);
+/*</replacement>*/
+
+module.exports = Writable;
+
+/* <replacement> */
+function WriteReq(chunk, encoding, cb) {
+  this.chunk = chunk;
+  this.encoding = encoding;
+  this.callback = cb;
+  this.next = null;
+}
+
+// It seems a linked list but it is not
+// there will be only 2 of these for each stream
+function CorkedRequest(state) {
+  var _this = this;
+
+  this.next = null;
+  this.entry = null;
+  this.finish = function () {
+    onCorkedFinish(_this, state);
+  };
+}
+/* </replacement> */
+
+/*<replacement>*/
+var asyncWrite = !process.browser && ['v0.10', 'v0.9.'].indexOf(process.version.slice(0, 5)) > -1 ? setImmediate : pna.nextTick;
+/*</replacement>*/
+
+/*<replacement>*/
+var Duplex;
+/*</replacement>*/
+
+Writable.WritableState = WritableState;
+
+/*<replacement>*/
+var util = Object.create(__webpack_require__(439));
+util.inherits = __webpack_require__(275);
+/*</replacement>*/
+
+/*<replacement>*/
+var internalUtil = {
+  deprecate: __webpack_require__(444)
+};
+/*</replacement>*/
+
+/*<replacement>*/
+var Stream = __webpack_require__(437);
+/*</replacement>*/
+
+/*<replacement>*/
+
+var Buffer = __webpack_require__(438).Buffer;
+var OurUint8Array = global.Uint8Array || function () {};
+function _uint8ArrayToBuffer(chunk) {
+  return Buffer.from(chunk);
+}
+function _isUint8Array(obj) {
+  return Buffer.isBuffer(obj) || obj instanceof OurUint8Array;
+}
+
+/*</replacement>*/
+
+var destroyImpl = __webpack_require__(441);
+
+util.inherits(Writable, Stream);
+
+function nop() {}
+
+function WritableState(options, stream) {
+  Duplex = Duplex || __webpack_require__(442);
+
+  options = options || {};
+
+  // Duplex streams are both readable and writable, but share
+  // the same options object.
+  // However, some cases require setting options to different
+  // values for the readable and the writable sides of the duplex stream.
+  // These options can be provided separately as readableXXX and writableXXX.
+  var isDuplex = stream instanceof Duplex;
+
+  // object stream flag to indicate whether or not this stream
+  // contains buffers or objects.
+  this.objectMode = !!options.objectMode;
+
+  if (isDuplex) this.objectMode = this.objectMode || !!options.writableObjectMode;
+
+  // the point at which write() starts returning false
+  // Note: 0 is a valid value, means that we always return false if
+  // the entire buffer is not flushed immediately on write()
+  var hwm = options.highWaterMark;
+  var writableHwm = options.writableHighWaterMark;
+  var defaultHwm = this.objectMode ? 16 : 16 * 1024;
+
+  if (hwm || hwm === 0) this.highWaterMark = hwm;else if (isDuplex && (writableHwm || writableHwm === 0)) this.highWaterMark = writableHwm;else this.highWaterMark = defaultHwm;
+
+  // cast to ints.
+  this.highWaterMark = Math.floor(this.highWaterMark);
+
+  // if _final has been called
+  this.finalCalled = false;
+
+  // drain event flag.
+  this.needDrain = false;
+  // at the start of calling end()
+  this.ending = false;
+  // when end() has been called, and returned
+  this.ended = false;
+  // when 'finish' is emitted
+  this.finished = false;
+
+  // has it been destroyed
+  this.destroyed = false;
+
+  // should we decode strings into buffers before passing to _write?
+  // this is here so that some node-core streams can optimize string
+  // handling at a lower level.
+  var noDecode = options.decodeStrings === false;
+  this.decodeStrings = !noDecode;
+
+  // Crypto is kind of old and crusty.  Historically, its default string
+  // encoding is 'binary' so we have to make this configurable.
+  // Everything else in the universe uses 'utf8', though.
+  this.defaultEncoding = options.defaultEncoding || 'utf8';
+
+  // not an actual buffer we keep track of, but a measurement
+  // of how much we're waiting to get pushed to some underlying
+  // socket or file.
+  this.length = 0;
+
+  // a flag to see when we're in the middle of a write.
+  this.writing = false;
+
+  // when true all writes will be buffered until .uncork() call
+  this.corked = 0;
+
+  // a flag to be able to tell if the onwrite cb is called immediately,
+  // or on a later tick.  We set this to true at first, because any
+  // actions that shouldn't happen until "later" should generally also
+  // not happen before the first write call.
+  this.sync = true;
+
+  // a flag to know if we're processing previously buffered items, which
+  // may call the _write() callback in the same tick, so that we don't
+  // end up in an overlapped onwrite situation.
+  this.bufferProcessing = false;
+
+  // the callback that's passed to _write(chunk,cb)
+  this.onwrite = function (er) {
+    onwrite(stream, er);
+  };
+
+  // the callback that the user supplies to write(chunk,encoding,cb)
+  this.writecb = null;
+
+  // the amount that is being written when _write is called.
+  this.writelen = 0;
+
+  this.bufferedRequest = null;
+  this.lastBufferedRequest = null;
+
+  // number of pending user-supplied write callbacks
+  // this must be 0 before 'finish' can be emitted
+  this.pendingcb = 0;
+
+  // emit prefinish if the only thing we're waiting for is _write cbs
+  // This is relevant for synchronous Transform streams
+  this.prefinished = false;
+
+  // True if the error was already emitted and should not be thrown again
+  this.errorEmitted = false;
+
+  // count buffered requests
+  this.bufferedRequestCount = 0;
+
+  // allocate the first CorkedRequest, there is always
+  // one allocated and free to use, and we maintain at most two
+  this.corkedRequestsFree = new CorkedRequest(this);
+}
+
+WritableState.prototype.getBuffer = function getBuffer() {
+  var current = this.bufferedRequest;
+  var out = [];
+  while (current) {
+    out.push(current);
+    current = current.next;
+  }
+  return out;
+};
+
+(function () {
+  try {
+    Object.defineProperty(WritableState.prototype, 'buffer', {
+      get: internalUtil.deprecate(function () {
+        return this.getBuffer();
+      }, '_writableState.buffer is deprecated. Use _writableState.getBuffer ' + 'instead.', 'DEP0003')
+    });
+  } catch (_) {}
+})();
+
+// Test _writableState for inheritance to account for Duplex streams,
+// whose prototype chain only points to Readable.
+var realHasInstance;
+if (typeof Symbol === 'function' && Symbol.hasInstance && typeof Function.prototype[Symbol.hasInstance] === 'function') {
+  realHasInstance = Function.prototype[Symbol.hasInstance];
+  Object.defineProperty(Writable, Symbol.hasInstance, {
+    value: function (object) {
+      if (realHasInstance.call(this, object)) return true;
+      if (this !== Writable) return false;
+
+      return object && object._writableState instanceof WritableState;
+    }
+  });
+} else {
+  realHasInstance = function (object) {
+    return object instanceof this;
+  };
+}
+
+function Writable(options) {
+  Duplex = Duplex || __webpack_require__(442);
+
+  // Writable ctor is applied to Duplexes, too.
+  // `realHasInstance` is necessary because using plain `instanceof`
+  // would return false, as no `_writableState` property is attached.
+
+  // Trying to use the custom `instanceof` for Writable here will also break the
+  // Node.js LazyTransform implementation, which has a non-trivial getter for
+  // `_writableState` that would lead to infinite recursion.
+  if (!realHasInstance.call(Writable, this) && !(this instanceof Duplex)) {
+    return new Writable(options);
+  }
+
+  this._writableState = new WritableState(options, this);
+
+  // legacy.
+  this.writable = true;
+
+  if (options) {
+    if (typeof options.write === 'function') this._write = options.write;
+
+    if (typeof options.writev === 'function') this._writev = options.writev;
+
+    if (typeof options.destroy === 'function') this._destroy = options.destroy;
+
+    if (typeof options.final === 'function') this._final = options.final;
+  }
+
+  Stream.call(this);
+}
+
+// Otherwise people can pipe Writable streams, which is just wrong.
+Writable.prototype.pipe = function () {
+  this.emit('error', new Error('Cannot pipe, not readable'));
+};
+
+function writeAfterEnd(stream, cb) {
+  var er = new Error('write after end');
+  // TODO: defer error events consistently everywhere, not just the cb
+  stream.emit('error', er);
+  pna.nextTick(cb, er);
+}
+
+// Checks that a user-supplied chunk is valid, especially for the particular
+// mode the stream is in. Currently this means that `null` is never accepted
+// and undefined/non-string values are only allowed in object mode.
+function validChunk(stream, state, chunk, cb) {
+  var valid = true;
+  var er = false;
+
+  if (chunk === null) {
+    er = new TypeError('May not write null values to stream');
+  } else if (typeof chunk !== 'string' && chunk !== undefined && !state.objectMode) {
+    er = new TypeError('Invalid non-string/buffer chunk');
+  }
+  if (er) {
+    stream.emit('error', er);
+    pna.nextTick(cb, er);
+    valid = false;
+  }
+  return valid;
+}
+
+Writable.prototype.write = function (chunk, encoding, cb) {
+  var state = this._writableState;
+  var ret = false;
+  var isBuf = !state.objectMode && _isUint8Array(chunk);
+
+  if (isBuf && !Buffer.isBuffer(chunk)) {
+    chunk = _uint8ArrayToBuffer(chunk);
+  }
+
+  if (typeof encoding === 'function') {
+    cb = encoding;
+    encoding = null;
+  }
+
+  if (isBuf) encoding = 'buffer';else if (!encoding) encoding = state.defaultEncoding;
+
+  if (typeof cb !== 'function') cb = nop;
+
+  if (state.ended) writeAfterEnd(this, cb);else if (isBuf || validChunk(this, state, chunk, cb)) {
+    state.pendingcb++;
+    ret = writeOrBuffer(this, state, isBuf, chunk, encoding, cb);
+  }
+
+  return ret;
+};
+
+Writable.prototype.cork = function () {
+  var state = this._writableState;
+
+  state.corked++;
+};
+
+Writable.prototype.uncork = function () {
+  var state = this._writableState;
+
+  if (state.corked) {
+    state.corked--;
+
+    if (!state.writing && !state.corked && !state.finished && !state.bufferProcessing && state.bufferedRequest) clearBuffer(this, state);
+  }
+};
+
+Writable.prototype.setDefaultEncoding = function setDefaultEncoding(encoding) {
+  // node::ParseEncoding() requires lower case.
+  if (typeof encoding === 'string') encoding = encoding.toLowerCase();
+  if (!(['hex', 'utf8', 'utf-8', 'ascii', 'binary', 'base64', 'ucs2', 'ucs-2', 'utf16le', 'utf-16le', 'raw'].indexOf((encoding + '').toLowerCase()) > -1)) throw new TypeError('Unknown encoding: ' + encoding);
+  this._writableState.defaultEncoding = encoding;
+  return this;
+};
+
+function decodeChunk(state, chunk, encoding) {
+  if (!state.objectMode && state.decodeStrings !== false && typeof chunk === 'string') {
+    chunk = Buffer.from(chunk, encoding);
+  }
+  return chunk;
+}
+
+Object.defineProperty(Writable.prototype, 'writableHighWaterMark', {
+  // making it explicit this property is not enumerable
+  // because otherwise some prototype manipulation in
+  // userland will fail
+  enumerable: false,
+  get: function () {
+    return this._writableState.highWaterMark;
+  }
+});
+
+// if we're already writing something, then just put this
+// in the queue, and wait our turn.  Otherwise, call _write
+// If we return false, then we need a drain event, so set that flag.
+function writeOrBuffer(stream, state, isBuf, chunk, encoding, cb) {
+  if (!isBuf) {
+    var newChunk = decodeChunk(state, chunk, encoding);
+    if (chunk !== newChunk) {
+      isBuf = true;
+      encoding = 'buffer';
+      chunk = newChunk;
+    }
+  }
+  var len = state.objectMode ? 1 : chunk.length;
+
+  state.length += len;
+
+  var ret = state.length < state.highWaterMark;
+  // we must ensure that previous needDrain will not be reset to false.
+  if (!ret) state.needDrain = true;
+
+  if (state.writing || state.corked) {
+    var last = state.lastBufferedRequest;
+    state.lastBufferedRequest = {
+      chunk: chunk,
+      encoding: encoding,
+      isBuf: isBuf,
+      callback: cb,
+      next: null
+    };
+    if (last) {
+      last.next = state.lastBufferedRequest;
+    } else {
+      state.bufferedRequest = state.lastBufferedRequest;
+    }
+    state.bufferedRequestCount += 1;
+  } else {
+    doWrite(stream, state, false, len, chunk, encoding, cb);
+  }
+
+  return ret;
+}
+
+function doWrite(stream, state, writev, len, chunk, encoding, cb) {
+  state.writelen = len;
+  state.writecb = cb;
+  state.writing = true;
+  state.sync = true;
+  if (writev) stream._writev(chunk, state.onwrite);else stream._write(chunk, encoding, state.onwrite);
+  state.sync = false;
+}
+
+function onwriteError(stream, state, sync, er, cb) {
+  --state.pendingcb;
+
+  if (sync) {
+    // defer the callback if we are being called synchronously
+    // to avoid piling up things on the stack
+    pna.nextTick(cb, er);
+    // this can emit finish, and it will always happen
+    // after error
+    pna.nextTick(finishMaybe, stream, state);
+    stream._writableState.errorEmitted = true;
+    stream.emit('error', er);
+  } else {
+    // the caller expect this to happen before if
+    // it is async
+    cb(er);
+    stream._writableState.errorEmitted = true;
+    stream.emit('error', er);
+    // this can emit finish, but finish must
+    // always follow error
+    finishMaybe(stream, state);
+  }
+}
+
+function onwriteStateUpdate(state) {
+  state.writing = false;
+  state.writecb = null;
+  state.length -= state.writelen;
+  state.writelen = 0;
+}
+
+function onwrite(stream, er) {
+  var state = stream._writableState;
+  var sync = state.sync;
+  var cb = state.writecb;
+
+  onwriteStateUpdate(state);
+
+  if (er) onwriteError(stream, state, sync, er, cb);else {
+    // Check if we're actually ready to finish, but don't emit yet
+    var finished = needFinish(state);
+
+    if (!finished && !state.corked && !state.bufferProcessing && state.bufferedRequest) {
+      clearBuffer(stream, state);
+    }
+
+    if (sync) {
+      /*<replacement>*/
+      asyncWrite(afterWrite, stream, state, finished, cb);
+      /*</replacement>*/
+    } else {
+      afterWrite(stream, state, finished, cb);
+    }
+  }
+}
+
+function afterWrite(stream, state, finished, cb) {
+  if (!finished) onwriteDrain(stream, state);
+  state.pendingcb--;
+  cb();
+  finishMaybe(stream, state);
+}
+
+// Must force callback to be called on nextTick, so that we don't
+// emit 'drain' before the write() consumer gets the 'false' return
+// value, and has a chance to attach a 'drain' listener.
+function onwriteDrain(stream, state) {
+  if (state.length === 0 && state.needDrain) {
+    state.needDrain = false;
+    stream.emit('drain');
+  }
+}
+
+// if there's something in the buffer waiting, then process it
+function clearBuffer(stream, state) {
+  state.bufferProcessing = true;
+  var entry = state.bufferedRequest;
+
+  if (stream._writev && entry && entry.next) {
+    // Fast case, write everything using _writev()
+    var l = state.bufferedRequestCount;
+    var buffer = new Array(l);
+    var holder = state.corkedRequestsFree;
+    holder.entry = entry;
+
+    var count = 0;
+    var allBuffers = true;
+    while (entry) {
+      buffer[count] = entry;
+      if (!entry.isBuf) allBuffers = false;
+      entry = entry.next;
+      count += 1;
+    }
+    buffer.allBuffers = allBuffers;
+
+    doWrite(stream, state, true, state.length, buffer, '', holder.finish);
+
+    // doWrite is almost always async, defer these to save a bit of time
+    // as the hot path ends with doWrite
+    state.pendingcb++;
+    state.lastBufferedRequest = null;
+    if (holder.next) {
+      state.corkedRequestsFree = holder.next;
+      holder.next = null;
+    } else {
+      state.corkedRequestsFree = new CorkedRequest(state);
+    }
+    state.bufferedRequestCount = 0;
+  } else {
+    // Slow case, write chunks one-by-one
+    while (entry) {
+      var chunk = entry.chunk;
+      var encoding = entry.encoding;
+      var cb = entry.callback;
+      var len = state.objectMode ? 1 : chunk.length;
+
+      doWrite(stream, state, false, len, chunk, encoding, cb);
+      entry = entry.next;
+      state.bufferedRequestCount--;
+      // if we didn't call the onwrite immediately, then
+      // it means that we need to wait until it does.
+      // also, that means that the chunk and cb are currently
+      // being processed, so move the buffer counter past them.
+      if (state.writing) {
+        break;
+      }
+    }
+
+    if (entry === null) state.lastBufferedRequest = null;
+  }
+
+  state.bufferedRequest = entry;
+  state.bufferProcessing = false;
+}
+
+Writable.prototype._write = function (chunk, encoding, cb) {
+  cb(new Error('_write() is not implemented'));
+};
+
+Writable.prototype._writev = null;
+
+Writable.prototype.end = function (chunk, encoding, cb) {
+  var state = this._writableState;
+
+  if (typeof chunk === 'function') {
+    cb = chunk;
+    chunk = null;
+    encoding = null;
+  } else if (typeof encoding === 'function') {
+    cb = encoding;
+    encoding = null;
+  }
+
+  if (chunk !== null && chunk !== undefined) this.write(chunk, encoding);
+
+  // .end() fully uncorks
+  if (state.corked) {
+    state.corked = 1;
+    this.uncork();
+  }
+
+  // ignore unnecessary end() calls.
+  if (!state.ending && !state.finished) endWritable(this, state, cb);
+};
+
+function needFinish(state) {
+  return state.ending && state.length === 0 && state.bufferedRequest === null && !state.finished && !state.writing;
+}
+function callFinal(stream, state) {
+  stream._final(function (err) {
+    state.pendingcb--;
+    if (err) {
+      stream.emit('error', err);
+    }
+    state.prefinished = true;
+    stream.emit('prefinish');
+    finishMaybe(stream, state);
+  });
+}
+function prefinish(stream, state) {
+  if (!state.prefinished && !state.finalCalled) {
+    if (typeof stream._final === 'function') {
+      state.pendingcb++;
+      state.finalCalled = true;
+      pna.nextTick(callFinal, stream, state);
+    } else {
+      state.prefinished = true;
+      stream.emit('prefinish');
+    }
+  }
+}
+
+function finishMaybe(stream, state) {
+  var need = needFinish(state);
+  if (need) {
+    prefinish(stream, state);
+    if (state.pendingcb === 0) {
+      state.finished = true;
+      stream.emit('finish');
+    }
+  }
+  return need;
+}
+
+function endWritable(stream, state, cb) {
+  state.ending = true;
+  finishMaybe(stream, state);
+  if (cb) {
+    if (state.finished) pna.nextTick(cb);else stream.once('finish', cb);
+  }
+  state.ended = true;
+  stream.writable = false;
+}
+
+function onCorkedFinish(corkReq, state, err) {
+  var entry = corkReq.entry;
+  corkReq.entry = null;
+  while (entry) {
+    var cb = entry.callback;
+    state.pendingcb--;
+    cb(err);
+    entry = entry.next;
+  }
+  if (state.corkedRequestsFree) {
+    state.corkedRequestsFree.next = corkReq;
+  } else {
+    state.corkedRequestsFree = corkReq;
+  }
+}
+
+Object.defineProperty(Writable.prototype, 'destroyed', {
+  get: function () {
+    if (this._writableState === undefined) {
+      return false;
+    }
+    return this._writableState.destroyed;
+  },
+  set: function (value) {
+    // we ignore the value if the stream
+    // has not been initialized yet
+    if (!this._writableState) {
+      return;
+    }
+
+    // backward compatibility, the user is explicitly
+    // managing destroyed
+    this._writableState.destroyed = value;
+  }
+});
+
+Writable.prototype.destroy = destroyImpl.destroy;
+Writable.prototype._undestroy = destroyImpl.undestroy;
+Writable.prototype._destroy = function (err, cb) {
+  this.end();
+  cb(err);
+};
+
+/***/ }),
+/* 444 */
+/***/ (function(module, exports, __webpack_require__) {
+
+
+/**
+ * For Node.js, simply re-export the core `util.deprecate` function.
+ */
+
+module.exports = __webpack_require__(74).deprecate;
+
+
+/***/ }),
+/* 445 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+
+/*<replacement>*/
+
+var Buffer = __webpack_require__(438).Buffer;
+/*</replacement>*/
+
+var isEncoding = Buffer.isEncoding || function (encoding) {
+  encoding = '' + encoding;
+  switch (encoding && encoding.toLowerCase()) {
+    case 'hex':case 'utf8':case 'utf-8':case 'ascii':case 'binary':case 'base64':case 'ucs2':case 'ucs-2':case 'utf16le':case 'utf-16le':case 'raw':
+      return true;
+    default:
+      return false;
+  }
+};
+
+function _normalizeEncoding(enc) {
+  if (!enc) return 'utf8';
+  var retried;
+  while (true) {
+    switch (enc) {
+      case 'utf8':
+      case 'utf-8':
+        return 'utf8';
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return 'utf16le';
+      case 'latin1':
+      case 'binary':
+        return 'latin1';
+      case 'base64':
+      case 'ascii':
+      case 'hex':
+        return enc;
+      default:
+        if (retried) return; // undefined
+        enc = ('' + enc).toLowerCase();
+        retried = true;
+    }
+  }
+};
+
+// Do not cache `Buffer.isEncoding` when checking encoding names as some
+// modules monkey-patch it to support additional encodings
+function normalizeEncoding(enc) {
+  var nenc = _normalizeEncoding(enc);
+  if (typeof nenc !== 'string' && (Buffer.isEncoding === isEncoding || !isEncoding(enc))) throw new Error('Unknown encoding: ' + enc);
+  return nenc || enc;
+}
+
+// StringDecoder provides an interface for efficiently splitting a series of
+// buffers into a series of JS strings without breaking apart multi-byte
+// characters.
+exports.StringDecoder = StringDecoder;
+function StringDecoder(encoding) {
+  this.encoding = normalizeEncoding(encoding);
+  var nb;
+  switch (this.encoding) {
+    case 'utf16le':
+      this.text = utf16Text;
+      this.end = utf16End;
+      nb = 4;
+      break;
+    case 'utf8':
+      this.fillLast = utf8FillLast;
+      nb = 4;
+      break;
+    case 'base64':
+      this.text = base64Text;
+      this.end = base64End;
+      nb = 3;
+      break;
+    default:
+      this.write = simpleWrite;
+      this.end = simpleEnd;
+      return;
+  }
+  this.lastNeed = 0;
+  this.lastTotal = 0;
+  this.lastChar = Buffer.allocUnsafe(nb);
+}
+
+StringDecoder.prototype.write = function (buf) {
+  if (buf.length === 0) return '';
+  var r;
+  var i;
+  if (this.lastNeed) {
+    r = this.fillLast(buf);
+    if (r === undefined) return '';
+    i = this.lastNeed;
+    this.lastNeed = 0;
+  } else {
+    i = 0;
+  }
+  if (i < buf.length) return r ? r + this.text(buf, i) : this.text(buf, i);
+  return r || '';
+};
+
+StringDecoder.prototype.end = utf8End;
+
+// Returns only complete characters in a Buffer
+StringDecoder.prototype.text = utf8Text;
+
+// Attempts to complete a partial non-UTF-8 character using bytes from a Buffer
+StringDecoder.prototype.fillLast = function (buf) {
+  if (this.lastNeed <= buf.length) {
+    buf.copy(this.lastChar, this.lastTotal - this.lastNeed, 0, this.lastNeed);
+    return this.lastChar.toString(this.encoding, 0, this.lastTotal);
+  }
+  buf.copy(this.lastChar, this.lastTotal - this.lastNeed, 0, buf.length);
+  this.lastNeed -= buf.length;
+};
+
+// Checks the type of a UTF-8 byte, whether it's ASCII, a leading byte, or a
+// continuation byte. If an invalid byte is detected, -2 is returned.
+function utf8CheckByte(byte) {
+  if (byte <= 0x7F) return 0;else if (byte >> 5 === 0x06) return 2;else if (byte >> 4 === 0x0E) return 3;else if (byte >> 3 === 0x1E) return 4;
+  return byte >> 6 === 0x02 ? -1 : -2;
+}
+
+// Checks at most 3 bytes at the end of a Buffer in order to detect an
+// incomplete multi-byte UTF-8 character. The total number of bytes (2, 3, or 4)
+// needed to complete the UTF-8 character (if applicable) are returned.
+function utf8CheckIncomplete(self, buf, i) {
+  var j = buf.length - 1;
+  if (j < i) return 0;
+  var nb = utf8CheckByte(buf[j]);
+  if (nb >= 0) {
+    if (nb > 0) self.lastNeed = nb - 1;
+    return nb;
+  }
+  if (--j < i || nb === -2) return 0;
+  nb = utf8CheckByte(buf[j]);
+  if (nb >= 0) {
+    if (nb > 0) self.lastNeed = nb - 2;
+    return nb;
+  }
+  if (--j < i || nb === -2) return 0;
+  nb = utf8CheckByte(buf[j]);
+  if (nb >= 0) {
+    if (nb > 0) {
+      if (nb === 2) nb = 0;else self.lastNeed = nb - 3;
+    }
+    return nb;
+  }
+  return 0;
+}
+
+// Validates as many continuation bytes for a multi-byte UTF-8 character as
+// needed or are available. If we see a non-continuation byte where we expect
+// one, we "replace" the validated continuation bytes we've seen so far with
+// a single UTF-8 replacement character ('\ufffd'), to match v8's UTF-8 decoding
+// behavior. The continuation byte check is included three times in the case
+// where all of the continuation bytes for a character exist in the same buffer.
+// It is also done this way as a slight performance increase instead of using a
+// loop.
+function utf8CheckExtraBytes(self, buf, p) {
+  if ((buf[0] & 0xC0) !== 0x80) {
+    self.lastNeed = 0;
+    return '\ufffd';
+  }
+  if (self.lastNeed > 1 && buf.length > 1) {
+    if ((buf[1] & 0xC0) !== 0x80) {
+      self.lastNeed = 1;
+      return '\ufffd';
+    }
+    if (self.lastNeed > 2 && buf.length > 2) {
+      if ((buf[2] & 0xC0) !== 0x80) {
+        self.lastNeed = 2;
+        return '\ufffd';
+      }
+    }
+  }
+}
+
+// Attempts to complete a multi-byte UTF-8 character using bytes from a Buffer.
+function utf8FillLast(buf) {
+  var p = this.lastTotal - this.lastNeed;
+  var r = utf8CheckExtraBytes(this, buf, p);
+  if (r !== undefined) return r;
+  if (this.lastNeed <= buf.length) {
+    buf.copy(this.lastChar, p, 0, this.lastNeed);
+    return this.lastChar.toString(this.encoding, 0, this.lastTotal);
+  }
+  buf.copy(this.lastChar, p, 0, buf.length);
+  this.lastNeed -= buf.length;
+}
+
+// Returns all complete UTF-8 characters in a Buffer. If the Buffer ended on a
+// partial character, the character's bytes are buffered until the required
+// number of bytes are available.
+function utf8Text(buf, i) {
+  var total = utf8CheckIncomplete(this, buf, i);
+  if (!this.lastNeed) return buf.toString('utf8', i);
+  this.lastTotal = total;
+  var end = buf.length - (total - this.lastNeed);
+  buf.copy(this.lastChar, 0, end);
+  return buf.toString('utf8', i, end);
+}
+
+// For UTF-8, a replacement character is added when ending on a partial
+// character.
+function utf8End(buf) {
+  var r = buf && buf.length ? this.write(buf) : '';
+  if (this.lastNeed) return r + '\ufffd';
+  return r;
+}
+
+// UTF-16LE typically needs two bytes per character, but even if we have an even
+// number of bytes available, we need to check if we end on a leading/high
+// surrogate. In that case, we need to wait for the next two bytes in order to
+// decode the last character properly.
+function utf16Text(buf, i) {
+  if ((buf.length - i) % 2 === 0) {
+    var r = buf.toString('utf16le', i);
+    if (r) {
+      var c = r.charCodeAt(r.length - 1);
+      if (c >= 0xD800 && c <= 0xDBFF) {
+        this.lastNeed = 2;
+        this.lastTotal = 4;
+        this.lastChar[0] = buf[buf.length - 2];
+        this.lastChar[1] = buf[buf.length - 1];
+        return r.slice(0, -1);
+      }
+    }
+    return r;
+  }
+  this.lastNeed = 1;
+  this.lastTotal = 2;
+  this.lastChar[0] = buf[buf.length - 1];
+  return buf.toString('utf16le', i, buf.length - 1);
+}
+
+// For UTF-16LE we do not explicitly append special replacement characters if we
+// end on a partial character, we simply let v8 handle that.
+function utf16End(buf) {
+  var r = buf && buf.length ? this.write(buf) : '';
+  if (this.lastNeed) {
+    var end = this.lastTotal - this.lastNeed;
+    return r + this.lastChar.toString('utf16le', 0, end);
+  }
+  return r;
+}
+
+function base64Text(buf, i) {
+  var n = (buf.length - i) % 3;
+  if (n === 0) return buf.toString('base64', i);
+  this.lastNeed = 3 - n;
+  this.lastTotal = 3;
+  if (n === 1) {
+    this.lastChar[0] = buf[buf.length - 1];
+  } else {
+    this.lastChar[0] = buf[buf.length - 2];
+    this.lastChar[1] = buf[buf.length - 1];
+  }
+  return buf.toString('base64', i, buf.length - n);
+}
+
+function base64End(buf) {
+  var r = buf && buf.length ? this.write(buf) : '';
+  if (this.lastNeed) return r + this.lastChar.toString('base64', 0, 3 - this.lastNeed);
+  return r;
+}
+
+// Pass bytes on through for single-byte encodings (e.g. ascii, latin1, hex)
+function simpleWrite(buf) {
+  return buf.toString(this.encoding);
+}
+
+function simpleEnd(buf) {
+  return buf && buf.length ? this.write(buf) : '';
+}
+
+/***/ }),
+/* 446 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+// a transform stream is a readable/writable stream where you do
+// something with the data.  Sometimes it's called a "filter",
+// but that's not a great name for it, since that implies a thing where
+// some bits pass through, and others are simply ignored.  (That would
+// be a valid example of a transform, of course.)
+//
+// While the output is causally related to the input, it's not a
+// necessarily symmetric or synchronous transformation.  For example,
+// a zlib stream might take multiple plain-text writes(), and then
+// emit a single compressed chunk some time in the future.
+//
+// Here's how this works:
+//
+// The Transform stream has all the aspects of the readable and writable
+// stream classes.  When you write(chunk), that calls _write(chunk,cb)
+// internally, and returns false if there's a lot of pending writes
+// buffered up.  When you call read(), that calls _read(n) until
+// there's enough pending readable data buffered up.
+//
+// In a transform stream, the written data is placed in a buffer.  When
+// _read(n) is called, it transforms the queued up data, calling the
+// buffered _write cb's as it consumes chunks.  If consuming a single
+// written chunk would result in multiple output chunks, then the first
+// outputted bit calls the readcb, and subsequent chunks just go into
+// the read buffer, and will cause it to emit 'readable' if necessary.
+//
+// This way, back-pressure is actually determined by the reading side,
+// since _read has to be called to start processing a new chunk.  However,
+// a pathological inflate type of transform can cause excessive buffering
+// here.  For example, imagine a stream where every byte of input is
+// interpreted as an integer from 0-255, and then results in that many
+// bytes of output.  Writing the 4 bytes {ff,ff,ff,ff} would result in
+// 1kb of data being output.  In this case, you could write a very small
+// amount of input, and end up with a very large amount of output.  In
+// such a pathological inflating mechanism, there'd be no way to tell
+// the system to stop doing the transform.  A single 4MB write could
+// cause the system to run out of memory.
+//
+// However, even in such a pathological case, only a single written chunk
+// would be consumed, and then the rest would wait (un-transformed) until
+// the results of the previous transformed chunk were consumed.
+
+
+
+module.exports = Transform;
+
+var Duplex = __webpack_require__(442);
+
+/*<replacement>*/
+var util = Object.create(__webpack_require__(439));
+util.inherits = __webpack_require__(275);
+/*</replacement>*/
+
+util.inherits(Transform, Duplex);
+
+function afterTransform(er, data) {
+  var ts = this._transformState;
+  ts.transforming = false;
+
+  var cb = ts.writecb;
+
+  if (!cb) {
+    return this.emit('error', new Error('write callback called multiple times'));
+  }
+
+  ts.writechunk = null;
+  ts.writecb = null;
+
+  if (data != null) // single equals check for both `null` and `undefined`
+    this.push(data);
+
+  cb(er);
+
+  var rs = this._readableState;
+  rs.reading = false;
+  if (rs.needReadable || rs.length < rs.highWaterMark) {
+    this._read(rs.highWaterMark);
+  }
+}
+
+function Transform(options) {
+  if (!(this instanceof Transform)) return new Transform(options);
+
+  Duplex.call(this, options);
+
+  this._transformState = {
+    afterTransform: afterTransform.bind(this),
+    needTransform: false,
+    transforming: false,
+    writecb: null,
+    writechunk: null,
+    writeencoding: null
+  };
+
+  // start out asking for a readable event once data is transformed.
+  this._readableState.needReadable = true;
+
+  // we have implemented the _read method, and done the other things
+  // that Readable wants before the first _read call, so unset the
+  // sync guard flag.
+  this._readableState.sync = false;
+
+  if (options) {
+    if (typeof options.transform === 'function') this._transform = options.transform;
+
+    if (typeof options.flush === 'function') this._flush = options.flush;
+  }
+
+  // When the writable side finishes, then flush out anything remaining.
+  this.on('prefinish', prefinish);
+}
+
+function prefinish() {
+  var _this = this;
+
+  if (typeof this._flush === 'function') {
+    this._flush(function (er, data) {
+      done(_this, er, data);
+    });
+  } else {
+    done(this, null, null);
+  }
+}
+
+Transform.prototype.push = function (chunk, encoding) {
+  this._transformState.needTransform = false;
+  return Duplex.prototype.push.call(this, chunk, encoding);
+};
+
+// This is the part where you do stuff!
+// override this function in implementation classes.
+// 'chunk' is an input chunk.
+//
+// Call `push(newChunk)` to pass along transformed output
+// to the readable side.  You may call 'push' zero or more times.
+//
+// Call `cb(err)` when you are done with this chunk.  If you pass
+// an error, then that'll put the hurt on the whole operation.  If you
+// never call cb(), then you'll never get another chunk.
+Transform.prototype._transform = function (chunk, encoding, cb) {
+  throw new Error('_transform() is not implemented');
+};
+
+Transform.prototype._write = function (chunk, encoding, cb) {
+  var ts = this._transformState;
+  ts.writecb = cb;
+  ts.writechunk = chunk;
+  ts.writeencoding = encoding;
+  if (!ts.transforming) {
+    var rs = this._readableState;
+    if (ts.needTransform || rs.needReadable || rs.length < rs.highWaterMark) this._read(rs.highWaterMark);
+  }
+};
+
+// Doesn't matter what the args are here.
+// _transform does all the work.
+// That we got here means that the readable side wants more data.
+Transform.prototype._read = function (n) {
+  var ts = this._transformState;
+
+  if (ts.writechunk !== null && ts.writecb && !ts.transforming) {
+    ts.transforming = true;
+    this._transform(ts.writechunk, ts.writeencoding, ts.afterTransform);
+  } else {
+    // mark that we need a transform, so that any data that comes in
+    // will get processed, now that we've asked for it.
+    ts.needTransform = true;
+  }
+};
+
+Transform.prototype._destroy = function (err, cb) {
+  var _this2 = this;
+
+  Duplex.prototype._destroy.call(this, err, function (err2) {
+    cb(err2);
+    _this2.emit('close');
+  });
+};
+
+function done(stream, er, data) {
+  if (er) return stream.emit('error', er);
+
+  if (data != null) // single equals check for both `null` and `undefined`
+    stream.push(data);
+
+  // if there's nothing in the write buffer, then that means
+  // that nothing more will ever be provided
+  if (stream._writableState.length) throw new Error('Calling transform done when ws.length != 0');
+
+  if (stream._transformState.transforming) throw new Error('Calling transform done when still transforming');
+
+  return stream.push(null);
+}
+
+/***/ }),
+/* 447 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+// a passthrough stream.
+// basically just the most minimal sort of Transform stream.
+// Every written chunk gets output as-is.
+
+
+
+module.exports = PassThrough;
+
+var Transform = __webpack_require__(446);
+
+/*<replacement>*/
+var util = Object.create(__webpack_require__(439));
+util.inherits = __webpack_require__(275);
+/*</replacement>*/
+
+util.inherits(PassThrough, Transform);
+
+function PassThrough(options) {
+  if (!(this instanceof PassThrough)) return new PassThrough(options);
+
+  Transform.call(this, options);
+}
+
+PassThrough.prototype._transform = function (chunk, encoding, cb) {
+  cb(null, chunk);
+};
+
+/***/ }),
+/* 448 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var Stream = __webpack_require__(106);
+var util = __webpack_require__(74);
+
+// Backwards compatibility for node versions < 8
+if (!Stream.Writable || !Stream.Writable.prototype.destroy)
+  Stream = __webpack_require__(434);
+
+function NoopStream() {
+  if (!(this instanceof NoopStream)) {
+    return new NoopStream();
+  }
+  Stream.Transform.call(this);
+}
+
+util.inherits(NoopStream,Stream.Transform);
+
+NoopStream.prototype._transform = function(d,e,cb) { cb() ;};
+  
+module.exports = NoopStream;
+
+/***/ }),
+/* 449 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var Promise = __webpack_require__(396);
+var Stream = __webpack_require__(106);
+var Buffer = __webpack_require__(433);
+
+// Backwards compatibility for node versions < 8
+if (!Stream.Writable || !Stream.Writable.prototype.destroy)
+  Stream = __webpack_require__(434);
+
+module.exports = function(entry) {
+  return new Promise(function(resolve,reject) {
+    var chunks = [];
+    var bufferStream = Stream.Transform()
+      .on('finish',function() {
+        resolve(Buffer.concat(chunks));
+      })
+      .on('error',reject);
+        
+    bufferStream._transform = function(d,e,cb) {
+      chunks.push(d);
+      cb();
+    };
+    entry.on('error',reject)
+      .pipe(bufferStream);
+  });
+};
+
+
+/***/ }),
+/* 450 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var binary = __webpack_require__(391);
+
+module.exports = function(extraField, vars) {
+  var extra;
+  // Find the ZIP64 header, if present.
+  while(!extra && extraField && extraField.length) {
+    var candidateExtra = binary.parse(extraField)
+      .word16lu('signature')
+      .word16lu('partsize')
+      .word64lu('uncompressedSize')
+      .word64lu('compressedSize')
+      .word64lu('offset')
+      .word64lu('disknum')
+      .vars;
+
+    if(candidateExtra.signature === 0x0001) {
+      extra = candidateExtra;
+    } else {
+      // Advance the buffer to the next part.
+      // The total size of this part is the 4 byte header + partsize.
+      extraField = extraField.slice(candidateExtra.partsize + 4);
+    }
+  }
+
+  extra = extra || {};
+
+  if (vars.compressedSize === 0xffffffff)
+    vars.compressedSize = extra.compressedSize;
+
+  if (vars.uncompressedSize  === 0xffffffff)
+    vars.uncompressedSize= extra.uncompressedSize;
+
+  if (vars.offsetToLocalFileHeader === 0xffffffff)
+    vars.offsetToLocalFileHeader= extra.offset;
+
+  return extra;
+};
+
+
+/***/ }),
+/* 451 */
+/***/ (function(module, exports) {
+
+// Dates in zip file entries are stored as DosDateTime
+// Spec is here: https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-dosdatetimetofiletime
+
+module.exports = function parseDateTime(date, time) {
+  const day = date & 0x1F;
+  const month = date >> 5 & 0x0F;
+  const year = (date >> 9 & 0x7F) + 1980;
+  const seconds = time ? (time & 0x1F) * 2 : 0;
+  const minutes = time ? (time >> 5) & 0x3F : 0;
+  const hours = time ? (time >> 11): 0;
+
+  return new Date(Date.UTC(year, month-1, day, hours, minutes, seconds));
+};
+
+/***/ }),
+/* 452 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var Stream = __webpack_require__(106);
+var Parse = __webpack_require__(390);
+var duplexer2 = __webpack_require__(453);
+var BufferStream = __webpack_require__(449);
+
+// Backwards compatibility for node versions < 8
+if (!Stream.Writable || !Stream.Writable.prototype.destroy)
+  Stream = __webpack_require__(434);
+
+function parseOne(match,opts) {
+  var inStream = Stream.PassThrough({objectMode:true});
+  var outStream = Stream.PassThrough();
+  var transform = Stream.Transform({objectMode:true});
+  var re = match instanceof RegExp ? match : (match && new RegExp(match));
+  var found;
+
+  transform._transform = function(entry,e,cb) {
+    if (found || (re && !re.exec(entry.path))) {
+      entry.autodrain();
+      return cb();
+    } else {
+      found = true;
+      out.emit('entry',entry);
+      entry.on('error',function(e) {
+        outStream.emit('error',e);
+      });
+      entry.pipe(outStream)
+        .on('error',function(err) {
+          cb(err);
+        })
+        .on('finish',function(d) {
+          cb(null,d);
+        });
+    }
+  };
+
+  inStream.pipe(Parse(opts))
+    .on('error',function(err) {
+      outStream.emit('error',err);
+    })
+    .pipe(transform)
+    .on('error',Object)  // Silence error as its already addressed in transform
+    .on('finish',function() {
+      if (!found)
+        outStream.emit('error',new Error('PATTERN_NOT_FOUND'));
+      else
+        outStream.end();
+    });
+
+  var out = duplexer2(inStream,outStream);
+  out.buffer = function() {
+    return BufferStream(outStream);
+  };
+
+  return out;
+}
+
+module.exports = parseOne;
+
+
+/***/ }),
+/* 453 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var stream = __webpack_require__(434);
+
+function DuplexWrapper(options, writable, readable) {
+  if (typeof readable === "undefined") {
+    readable = writable;
+    writable = options;
+    options = null;
+  }
+
+  stream.Duplex.call(this, options);
+
+  if (typeof readable.read !== "function") {
+    readable = (new stream.Readable(options)).wrap(readable);
+  }
+
+  this._writable = writable;
+  this._readable = readable;
+  this._waiting = false;
+
+  var self = this;
+
+  writable.once("finish", function() {
+    self.end();
+  });
+
+  this.once("finish", function() {
+    writable.end();
+  });
+
+  readable.on("readable", function() {
+    if (self._waiting) {
+      self._waiting = false;
+      self._read();
+    }
+  });
+
+  readable.once("end", function() {
+    self.push(null);
+  });
+
+  if (!options || typeof options.bubbleErrors === "undefined" || options.bubbleErrors) {
+    writable.on("error", function(err) {
+      self.emit("error", err);
+    });
+
+    readable.on("error", function(err) {
+      self.emit("error", err);
+    });
+  }
+}
+
+DuplexWrapper.prototype = Object.create(stream.Duplex.prototype, {constructor: {value: DuplexWrapper}});
+
+DuplexWrapper.prototype._write = function _write(input, encoding, done) {
+  this._writable.write(input, encoding, done);
+};
+
+DuplexWrapper.prototype._read = function _read() {
+  var buf;
+  var reads = 0;
+  while ((buf = this._readable.read()) !== null) {
+    this.push(buf);
+    reads++;
+  }
+  if (reads === 0) {
+    this._waiting = true;
+  }
+};
+
+module.exports = function duplex2(options, writable, readable) {
+  return new DuplexWrapper(options, writable, readable);
+};
+
+module.exports.DuplexWrapper = DuplexWrapper;
+
+
+/***/ }),
+/* 454 */
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = Extract;
+
+var Parse = __webpack_require__(390);
+var Writer = __webpack_require__(455).Writer;
+var path = __webpack_require__(82);
+var stream = __webpack_require__(106);
+var duplexer2 = __webpack_require__(453);
+var Promise = __webpack_require__(396);
+
+function Extract (opts) {
+  // make sure path is normalized before using it
+  opts.path = path.resolve(path.normalize(opts.path));
+
+  var parser = new Parse(opts);
+
+  var outStream = new stream.Writable({objectMode: true});
+  outStream._write = function(entry, encoding, cb) {
+
+    if (entry.type == 'Directory') return cb();
+
+    // to avoid zip slip (writing outside of the destination), we resolve
+    // the target path, and make sure it's nested in the intended
+    // destination, or not extract it otherwise.
+    var extractPath = path.join(opts.path, entry.path);
+    if (extractPath.indexOf(opts.path) != 0) {
+      return cb();
+    }
+
+    const writer = opts.getWriter ? opts.getWriter({path: extractPath}) :  Writer({ path: extractPath });
+
+    entry.pipe(writer)
+      .on('error', cb)
+      .on('close', cb);
+  };
+
+  var extract = duplexer2(parser,outStream);
+  parser.once('crx-header', function(crxHeader) {
+    extract.crxHeader = crxHeader;
+  });
+
+  parser
+    .pipe(outStream)
+    .on('finish',function() {
+      extract.emit('close');
+    });
+  
+  extract.promise = function() {
+    return new Promise(function(resolve, reject) {
+      extract.on('close', resolve);
+      extract.on('error',reject);
+    });
+  };
+
+  return extract;
+}
+
+
+/***/ }),
+/* 455 */
+/***/ (function(module, exports, __webpack_require__) {
+
+exports.Abstract = __webpack_require__(456)
+exports.Reader = __webpack_require__(457)
+exports.Writer = __webpack_require__(464)
+
+exports.File = {
+  Reader: __webpack_require__(461),
+  Writer: __webpack_require__(470)
+}
+
+exports.Dir = {
+  Reader: __webpack_require__(460),
+  Writer: __webpack_require__(467)
+}
+
+exports.Link = {
+  Reader: __webpack_require__(459),
+  Writer: __webpack_require__(469)
+}
+
+exports.Proxy = {
+  Reader: __webpack_require__(463),
+  Writer: __webpack_require__(471)
+}
+
+exports.Reader.Dir = exports.DirReader = exports.Dir.Reader
+exports.Reader.File = exports.FileReader = exports.File.Reader
+exports.Reader.Link = exports.LinkReader = exports.Link.Reader
+exports.Reader.Proxy = exports.ProxyReader = exports.Proxy.Reader
+
+exports.Writer.Dir = exports.DirWriter = exports.Dir.Writer
+exports.Writer.File = exports.FileWriter = exports.File.Writer
+exports.Writer.Link = exports.LinkWriter = exports.Link.Writer
+exports.Writer.Proxy = exports.ProxyWriter = exports.Proxy.Writer
+
+exports.collect = __webpack_require__(468)
+
+
+/***/ }),
+/* 456 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// the parent class for all fstreams.
+
+module.exports = Abstract
+
+var Stream = __webpack_require__(106).Stream
+var inherits = __webpack_require__(275)
+
+function Abstract () {
+  Stream.call(this)
+}
+
+inherits(Abstract, Stream)
+
+Abstract.prototype.on = function (ev, fn) {
+  if (ev === 'ready' && this.ready) {
+    process.nextTick(fn.bind(this))
+  } else {
+    Stream.prototype.on.call(this, ev, fn)
+  }
+  return this
+}
+
+Abstract.prototype.abort = function () {
+  this._aborted = true
+  this.emit('abort')
+}
+
+Abstract.prototype.destroy = function () {}
+
+Abstract.prototype.warn = function (msg, code) {
+  var self = this
+  var er = decorate(msg, code, self)
+  if (!self.listeners('warn')) {
+    console.error('%s %s\n' +
+    'path = %s\n' +
+    'syscall = %s\n' +
+    'fstream_type = %s\n' +
+    'fstream_path = %s\n' +
+    'fstream_unc_path = %s\n' +
+    'fstream_class = %s\n' +
+    'fstream_stack =\n%s\n',
+      code || 'UNKNOWN',
+      er.stack,
+      er.path,
+      er.syscall,
+      er.fstream_type,
+      er.fstream_path,
+      er.fstream_unc_path,
+      er.fstream_class,
+      er.fstream_stack.join('\n'))
+  } else {
+    self.emit('warn', er)
+  }
+}
+
+Abstract.prototype.info = function (msg, code) {
+  this.emit('info', msg, code)
+}
+
+Abstract.prototype.error = function (msg, code, th) {
+  var er = decorate(msg, code, this)
+  if (th) throw er
+  else this.emit('error', er)
+}
+
+function decorate (er, code, self) {
+  if (!(er instanceof Error)) er = new Error(er)
+  er.code = er.code || code
+  er.path = er.path || self.path
+  er.fstream_type = er.fstream_type || self.type
+  er.fstream_path = er.fstream_path || self.path
+  if (self._path !== self.path) {
+    er.fstream_unc_path = er.fstream_unc_path || self._path
+  }
+  if (self.linkpath) {
+    er.fstream_linkpath = er.fstream_linkpath || self.linkpath
+  }
+  er.fstream_class = er.fstream_class || self.constructor.name
+  er.fstream_stack = er.fstream_stack ||
+    new Error().stack.split(/\n/).slice(3).map(function (s) {
+      return s.replace(/^ {4}at /, '')
+    })
+
+  return er
+}
+
+
+/***/ }),
+/* 457 */
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = Reader
+
+var fs = __webpack_require__(102)
+var Stream = __webpack_require__(106).Stream
+var inherits = __webpack_require__(275)
+var path = __webpack_require__(82)
+var getType = __webpack_require__(458)
+var hardLinks = Reader.hardLinks = {}
+var Abstract = __webpack_require__(456)
+
+// Must do this *before* loading the child classes
+inherits(Reader, Abstract)
+
+var LinkReader = __webpack_require__(459)
+
+function Reader (props, currentStat) {
+  var self = this
+  if (!(self instanceof Reader)) return new Reader(props, currentStat)
+
+  if (typeof props === 'string') {
+    props = { path: props }
+  }
+
+  // polymorphism.
+  // call fstream.Reader(dir) to get a DirReader object, etc.
+  // Note that, unlike in the Writer case, ProxyReader is going
+  // to be the *normal* state of affairs, since we rarely know
+  // the type of a file prior to reading it.
+
+  var type
+  var ClassType
+
+  if (props.type && typeof props.type === 'function') {
+    type = props.type
+    ClassType = type
+  } else {
+    type = getType(props)
+    ClassType = Reader
+  }
+
+  if (currentStat && !type) {
+    type = getType(currentStat)
+    props[type] = true
+    props.type = type
+  }
+
+  switch (type) {
+    case 'Directory':
+      ClassType = __webpack_require__(460)
+      break
+
+    case 'Link':
+    // XXX hard links are just files.
+    // However, it would be good to keep track of files' dev+inode
+    // and nlink values, and create a HardLinkReader that emits
+    // a linkpath value of the original copy, so that the tar
+    // writer can preserve them.
+    // ClassType = HardLinkReader
+    // break
+
+    case 'File':
+      ClassType = __webpack_require__(461)
+      break
+
+    case 'SymbolicLink':
+      ClassType = LinkReader
+      break
+
+    case 'Socket':
+      ClassType = __webpack_require__(462)
+      break
+
+    case null:
+      ClassType = __webpack_require__(463)
+      break
+  }
+
+  if (!(self instanceof ClassType)) {
+    return new ClassType(props)
+  }
+
+  Abstract.call(self)
+
+  if (!props.path) {
+    self.error('Must provide a path', null, true)
+  }
+
+  self.readable = true
+  self.writable = false
+
+  self.type = type
+  self.props = props
+  self.depth = props.depth = props.depth || 0
+  self.parent = props.parent || null
+  self.root = props.root || (props.parent && props.parent.root) || self
+
+  self._path = self.path = path.resolve(props.path)
+  if (process.platform === 'win32') {
+    self.path = self._path = self.path.replace(/\?/g, '_')
+    if (self._path.length >= 260) {
+      // how DOES one create files on the moon?
+      // if the path has spaces in it, then UNC will fail.
+      self._swallowErrors = true
+      // if (self._path.indexOf(" ") === -1) {
+      self._path = '\\\\?\\' + self.path.replace(/\//g, '\\')
+    // }
+    }
+  }
+  self.basename = props.basename = path.basename(self.path)
+  self.dirname = props.dirname = path.dirname(self.path)
+
+  // these have served their purpose, and are now just noisy clutter
+  props.parent = props.root = null
+
+  // console.error("\n\n\n%s setting size to", props.path, props.size)
+  self.size = props.size
+  self.filter = typeof props.filter === 'function' ? props.filter : null
+  if (props.sort === 'alpha') props.sort = alphasort
+
+  // start the ball rolling.
+  // this will stat the thing, and then call self._read()
+  // to start reading whatever it is.
+  // console.error("calling stat", props.path, currentStat)
+  self._stat(currentStat)
+}
+
+function alphasort (a, b) {
+  return a === b ? 0
+    : a.toLowerCase() > b.toLowerCase() ? 1
+      : a.toLowerCase() < b.toLowerCase() ? -1
+        : a > b ? 1
+          : -1
+}
+
+Reader.prototype._stat = function (currentStat) {
+  var self = this
+  var props = self.props
+  var stat = props.follow ? 'stat' : 'lstat'
+  // console.error("Reader._stat", self._path, currentStat)
+  if (currentStat) process.nextTick(statCb.bind(null, null, currentStat))
+  else fs[stat](self._path, statCb)
+
+  function statCb (er, props_) {
+    // console.error("Reader._stat, statCb", self._path, props_, props_.nlink)
+    if (er) return self.error(er)
+
+    Object.keys(props_).forEach(function (k) {
+      props[k] = props_[k]
+    })
+
+    // if it's not the expected size, then abort here.
+    if (undefined !== self.size && props.size !== self.size) {
+      return self.error('incorrect size')
+    }
+    self.size = props.size
+
+    var type = getType(props)
+    var handleHardlinks = props.hardlinks !== false
+
+    // special little thing for handling hardlinks.
+    if (handleHardlinks && type !== 'Directory' && props.nlink && props.nlink > 1) {
+      var k = props.dev + ':' + props.ino
+      // console.error("Reader has nlink", self._path, k)
+      if (hardLinks[k] === self._path || !hardLinks[k]) {
+        hardLinks[k] = self._path
+      } else {
+        // switch into hardlink mode.
+        type = self.type = self.props.type = 'Link'
+        self.Link = self.props.Link = true
+        self.linkpath = self.props.linkpath = hardLinks[k]
+        // console.error("Hardlink detected, switching mode", self._path, self.linkpath)
+        // Setting __proto__ would arguably be the "correct"
+        // approach here, but that just seems too wrong.
+        self._stat = self._read = LinkReader.prototype._read
+      }
+    }
+
+    if (self.type && self.type !== type) {
+      self.error('Unexpected type: ' + type)
+    }
+
+    // if the filter doesn't pass, then just skip over this one.
+    // still have to emit end so that dir-walking can move on.
+    if (self.filter) {
+      var who = self._proxy || self
+      // special handling for ProxyReaders
+      if (!self.filter.call(who, who, props)) {
+        if (!self._disowned) {
+          self.abort()
+          self.emit('end')
+          self.emit('close')
+        }
+        return
+      }
+    }
+
+    // last chance to abort or disown before the flow starts!
+    var events = ['_stat', 'stat', 'ready']
+    var e = 0
+    ;(function go () {
+      if (self._aborted) {
+        self.emit('end')
+        self.emit('close')
+        return
+      }
+
+      if (self._paused && self.type !== 'Directory') {
+        self.once('resume', go)
+        return
+      }
+
+      var ev = events[e++]
+      if (!ev) {
+        return self._read()
+      }
+      self.emit(ev, props)
+      go()
+    })()
+  }
+}
+
+Reader.prototype.pipe = function (dest) {
+  var self = this
+  if (typeof dest.add === 'function') {
+    // piping to a multi-compatible, and we've got directory entries.
+    self.on('entry', function (entry) {
+      var ret = dest.add(entry)
+      if (ret === false) {
+        self.pause()
+      }
+    })
+  }
+
+  // console.error("R Pipe apply Stream Pipe")
+  return Stream.prototype.pipe.apply(this, arguments)
+}
+
+Reader.prototype.pause = function (who) {
+  this._paused = true
+  who = who || this
+  this.emit('pause', who)
+  if (this._stream) this._stream.pause(who)
+}
+
+Reader.prototype.resume = function (who) {
+  this._paused = false
+  who = who || this
+  this.emit('resume', who)
+  if (this._stream) this._stream.resume(who)
+  this._read()
+}
+
+Reader.prototype._read = function () {
+  this.error('Cannot read unknown type: ' + this.type)
+}
+
+
+/***/ }),
+/* 458 */
+/***/ (function(module, exports) {
+
+module.exports = getType
+
+function getType (st) {
+  var types = [
+    'Directory',
+    'File',
+    'SymbolicLink',
+    'Link', // special for hardlinks from tarballs
+    'BlockDevice',
+    'CharacterDevice',
+    'FIFO',
+    'Socket'
+  ]
+  var type
+
+  if (st.type && types.indexOf(st.type) !== -1) {
+    st[st.type] = true
+    return st.type
+  }
+
+  for (var i = 0, l = types.length; i < l; i++) {
+    type = types[i]
+    var is = st[type] || st['is' + type]
+    if (typeof is === 'function') is = is.call(st)
+    if (is) {
+      st[type] = true
+      st.type = type
+      return type
+    }
+  }
+
+  return null
+}
+
+
+/***/ }),
+/* 459 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// Basically just a wrapper around an fs.readlink
+//
+// XXX: Enhance this to support the Link type, by keeping
+// a lookup table of {<dev+inode>:<path>}, so that hardlinks
+// can be preserved in tarballs.
+
+module.exports = LinkReader
+
+var fs = __webpack_require__(102)
+var inherits = __webpack_require__(275)
+var Reader = __webpack_require__(457)
+
+inherits(LinkReader, Reader)
+
+function LinkReader (props) {
+  var self = this
+  if (!(self instanceof LinkReader)) {
+    throw new Error('LinkReader must be called as constructor.')
+  }
+
+  if (!((props.type === 'Link' && props.Link) ||
+    (props.type === 'SymbolicLink' && props.SymbolicLink))) {
+    throw new Error('Non-link type ' + props.type)
+  }
+
+  Reader.call(self, props)
+}
+
+// When piping a LinkReader into a LinkWriter, we have to
+// already have the linkpath property set, so that has to
+// happen *before* the "ready" event, which means we need to
+// override the _stat method.
+LinkReader.prototype._stat = function (currentStat) {
+  var self = this
+  fs.readlink(self._path, function (er, linkpath) {
+    if (er) return self.error(er)
+    self.linkpath = self.props.linkpath = linkpath
+    self.emit('linkpath', linkpath)
+    Reader.prototype._stat.call(self, currentStat)
+  })
+}
+
+LinkReader.prototype._read = function () {
+  var self = this
+  if (self._paused) return
+  // basically just a no-op, since we got all the info we need
+  // from the _stat method
+  if (!self._ended) {
+    self.emit('end')
+    self.emit('close')
+    self._ended = true
+  }
+}
+
+
+/***/ }),
+/* 460 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// A thing that emits "entry" events with Reader objects
+// Pausing it causes it to stop emitting entry events, and also
+// pauses the current entry if there is one.
+
+module.exports = DirReader
+
+var fs = __webpack_require__(102)
+var inherits = __webpack_require__(275)
+var path = __webpack_require__(82)
+var Reader = __webpack_require__(457)
+var assert = __webpack_require__(108).ok
+
+inherits(DirReader, Reader)
+
+function DirReader (props) {
+  var self = this
+  if (!(self instanceof DirReader)) {
+    throw new Error('DirReader must be called as constructor.')
+  }
+
+  // should already be established as a Directory type
+  if (props.type !== 'Directory' || !props.Directory) {
+    throw new Error('Non-directory type ' + props.type)
+  }
+
+  self.entries = null
+  self._index = -1
+  self._paused = false
+  self._length = -1
+
+  if (props.sort) {
+    this.sort = props.sort
+  }
+
+  Reader.call(this, props)
+}
+
+DirReader.prototype._getEntries = function () {
+  var self = this
+
+  // race condition.  might pause() before calling _getEntries,
+  // and then resume, and try to get them a second time.
+  if (self._gotEntries) return
+  self._gotEntries = true
+
+  fs.readdir(self._path, function (er, entries) {
+    if (er) return self.error(er)
+
+    self.entries = entries
+
+    self.emit('entries', entries)
+    if (self._paused) self.once('resume', processEntries)
+    else processEntries()
+
+    function processEntries () {
+      self._length = self.entries.length
+      if (typeof self.sort === 'function') {
+        self.entries = self.entries.sort(self.sort.bind(self))
+      }
+      self._read()
+    }
+  })
+}
+
+// start walking the dir, and emit an "entry" event for each one.
+DirReader.prototype._read = function () {
+  var self = this
+
+  if (!self.entries) return self._getEntries()
+
+  if (self._paused || self._currentEntry || self._aborted) {
+    // console.error('DR paused=%j, current=%j, aborted=%j', self._paused, !!self._currentEntry, self._aborted)
+    return
+  }
+
+  self._index++
+  if (self._index >= self.entries.length) {
+    if (!self._ended) {
+      self._ended = true
+      self.emit('end')
+      self.emit('close')
+    }
+    return
+  }
+
+  // ok, handle this one, then.
+
+  // save creating a proxy, by stat'ing the thing now.
+  var p = path.resolve(self._path, self.entries[self._index])
+  assert(p !== self._path)
+  assert(self.entries[self._index])
+
+  // set this to prevent trying to _read() again in the stat time.
+  self._currentEntry = p
+  fs[ self.props.follow ? 'stat' : 'lstat' ](p, function (er, stat) {
+    if (er) return self.error(er)
+
+    var who = self._proxy || self
+
+    stat.path = p
+    stat.basename = path.basename(p)
+    stat.dirname = path.dirname(p)
+    var childProps = self.getChildProps.call(who, stat)
+    childProps.path = p
+    childProps.basename = path.basename(p)
+    childProps.dirname = path.dirname(p)
+
+    var entry = Reader(childProps, stat)
+
+    // console.error("DR Entry", p, stat.size)
+
+    self._currentEntry = entry
+
+    // "entry" events are for direct entries in a specific dir.
+    // "child" events are for any and all children at all levels.
+    // This nomenclature is not completely final.
+
+    entry.on('pause', function (who) {
+      if (!self._paused && !entry._disowned) {
+        self.pause(who)
+      }
+    })
+
+    entry.on('resume', function (who) {
+      if (self._paused && !entry._disowned) {
+        self.resume(who)
+      }
+    })
+
+    entry.on('stat', function (props) {
+      self.emit('_entryStat', entry, props)
+      if (entry._aborted) return
+      if (entry._paused) {
+        entry.once('resume', function () {
+          self.emit('entryStat', entry, props)
+        })
+      } else self.emit('entryStat', entry, props)
+    })
+
+    entry.on('ready', function EMITCHILD () {
+      // console.error("DR emit child", entry._path)
+      if (self._paused) {
+        // console.error("  DR emit child - try again later")
+        // pause the child, and emit the "entry" event once we drain.
+        // console.error("DR pausing child entry")
+        entry.pause(self)
+        return self.once('resume', EMITCHILD)
+      }
+
+      // skip over sockets.  they can't be piped around properly,
+      // so there's really no sense even acknowledging them.
+      // if someone really wants to see them, they can listen to
+      // the "socket" events.
+      if (entry.type === 'Socket') {
+        self.emit('socket', entry)
+      } else {
+        self.emitEntry(entry)
+      }
+    })
+
+    var ended = false
+    entry.on('close', onend)
+    entry.on('disown', onend)
+    function onend () {
+      if (ended) return
+      ended = true
+      self.emit('childEnd', entry)
+      self.emit('entryEnd', entry)
+      self._currentEntry = null
+      if (!self._paused) {
+        self._read()
+      }
+    }
+
+    // XXX Remove this.  Works in node as of 0.6.2 or so.
+    // Long filenames should not break stuff.
+    entry.on('error', function (er) {
+      if (entry._swallowErrors) {
+        self.warn(er)
+        entry.emit('end')
+        entry.emit('close')
+      } else {
+        self.emit('error', er)
+      }
+    })
+
+    // proxy up some events.
+    ;[
+      'child',
+      'childEnd',
+      'warn'
+    ].forEach(function (ev) {
+      entry.on(ev, self.emit.bind(self, ev))
+    })
+  })
+}
+
+DirReader.prototype.disown = function (entry) {
+  entry.emit('beforeDisown')
+  entry._disowned = true
+  entry.parent = entry.root = null
+  if (entry === this._currentEntry) {
+    this._currentEntry = null
+  }
+  entry.emit('disown')
+}
+
+DirReader.prototype.getChildProps = function () {
+  return {
+    depth: this.depth + 1,
+    root: this.root || this,
+    parent: this,
+    follow: this.follow,
+    filter: this.filter,
+    sort: this.props.sort,
+    hardlinks: this.props.hardlinks
+  }
+}
+
+DirReader.prototype.pause = function (who) {
+  var self = this
+  if (self._paused) return
+  who = who || self
+  self._paused = true
+  if (self._currentEntry && self._currentEntry.pause) {
+    self._currentEntry.pause(who)
+  }
+  self.emit('pause', who)
+}
+
+DirReader.prototype.resume = function (who) {
+  var self = this
+  if (!self._paused) return
+  who = who || self
+
+  self._paused = false
+  // console.error('DR Emit Resume', self._path)
+  self.emit('resume', who)
+  if (self._paused) {
+    // console.error('DR Re-paused', self._path)
+    return
+  }
+
+  if (self._currentEntry) {
+    if (self._currentEntry.resume) self._currentEntry.resume(who)
+  } else self._read()
+}
+
+DirReader.prototype.emitEntry = function (entry) {
+  this.emit('entry', entry)
+  this.emit('child', entry)
+}
+
+
+/***/ }),
+/* 461 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// Basically just a wrapper around an fs.ReadStream
+
+module.exports = FileReader
+
+var fs = __webpack_require__(102)
+var inherits = __webpack_require__(275)
+var Reader = __webpack_require__(457)
+var EOF = {EOF: true}
+var CLOSE = {CLOSE: true}
+
+inherits(FileReader, Reader)
+
+function FileReader (props) {
+  // console.error("    FR create", props.path, props.size, new Error().stack)
+  var self = this
+  if (!(self instanceof FileReader)) {
+    throw new Error('FileReader must be called as constructor.')
+  }
+
+  // should already be established as a File type
+  // XXX Todo: preserve hardlinks by tracking dev+inode+nlink,
+  // with a HardLinkReader class.
+  if (!((props.type === 'Link' && props.Link) ||
+    (props.type === 'File' && props.File))) {
+    throw new Error('Non-file type ' + props.type)
+  }
+
+  self._buffer = []
+  self._bytesEmitted = 0
+  Reader.call(self, props)
+}
+
+FileReader.prototype._getStream = function () {
+  var self = this
+  var stream = self._stream = fs.createReadStream(self._path, self.props)
+
+  if (self.props.blksize) {
+    stream.bufferSize = self.props.blksize
+  }
+
+  stream.on('open', self.emit.bind(self, 'open'))
+
+  stream.on('data', function (c) {
+    // console.error('\t\t%d %s', c.length, self.basename)
+    self._bytesEmitted += c.length
+    // no point saving empty chunks
+    if (!c.length) {
+      return
+    } else if (self._paused || self._buffer.length) {
+      self._buffer.push(c)
+      self._read()
+    } else self.emit('data', c)
+  })
+
+  stream.on('end', function () {
+    if (self._paused || self._buffer.length) {
+      // console.error('FR Buffering End', self._path)
+      self._buffer.push(EOF)
+      self._read()
+    } else {
+      self.emit('end')
+    }
+
+    if (self._bytesEmitted !== self.props.size) {
+      self.error("Didn't get expected byte count\n" +
+        'expect: ' + self.props.size + '\n' +
+        'actual: ' + self._bytesEmitted)
+    }
+  })
+
+  stream.on('close', function () {
+    if (self._paused || self._buffer.length) {
+      // console.error('FR Buffering Close', self._path)
+      self._buffer.push(CLOSE)
+      self._read()
+    } else {
+      // console.error('FR close 1', self._path)
+      self.emit('close')
+    }
+  })
+
+  stream.on('error', function (e) {
+    self.emit('error', e)
+  })
+
+  self._read()
+}
+
+FileReader.prototype._read = function () {
+  var self = this
+  // console.error('FR _read', self._path)
+  if (self._paused) {
+    // console.error('FR _read paused', self._path)
+    return
+  }
+
+  if (!self._stream) {
+    // console.error('FR _getStream calling', self._path)
+    return self._getStream()
+  }
+
+  // clear out the buffer, if there is one.
+  if (self._buffer.length) {
+    // console.error('FR _read has buffer', self._buffer.length, self._path)
+    var buf = self._buffer
+    for (var i = 0, l = buf.length; i < l; i++) {
+      var c = buf[i]
+      if (c === EOF) {
+        // console.error('FR Read emitting buffered end', self._path)
+        self.emit('end')
+      } else if (c === CLOSE) {
+        // console.error('FR Read emitting buffered close', self._path)
+        self.emit('close')
+      } else {
+        // console.error('FR Read emitting buffered data', self._path)
+        self.emit('data', c)
+      }
+
+      if (self._paused) {
+        // console.error('FR Read Re-pausing at '+i, self._path)
+        self._buffer = buf.slice(i)
+        return
+      }
+    }
+    self._buffer.length = 0
+  }
+// console.error("FR _read done")
+// that's about all there is to it.
+}
+
+FileReader.prototype.pause = function (who) {
+  var self = this
+  // console.error('FR Pause', self._path)
+  if (self._paused) return
+  who = who || self
+  self._paused = true
+  if (self._stream) self._stream.pause()
+  self.emit('pause', who)
+}
+
+FileReader.prototype.resume = function (who) {
+  var self = this
+  // console.error('FR Resume', self._path)
+  if (!self._paused) return
+  who = who || self
+  self.emit('resume', who)
+  self._paused = false
+  if (self._stream) self._stream.resume()
+  self._read()
+}
+
+
+/***/ }),
+/* 462 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// Just get the stats, and then don't do anything.
+// You can't really "read" from a socket.  You "connect" to it.
+// Mostly, this is here so that reading a dir with a socket in it
+// doesn't blow up.
+
+module.exports = SocketReader
+
+var inherits = __webpack_require__(275)
+var Reader = __webpack_require__(457)
+
+inherits(SocketReader, Reader)
+
+function SocketReader (props) {
+  var self = this
+  if (!(self instanceof SocketReader)) {
+    throw new Error('SocketReader must be called as constructor.')
+  }
+
+  if (!(props.type === 'Socket' && props.Socket)) {
+    throw new Error('Non-socket type ' + props.type)
+  }
+
+  Reader.call(self, props)
+}
+
+SocketReader.prototype._read = function () {
+  var self = this
+  if (self._paused) return
+  // basically just a no-op, since we got all the info we have
+  // from the _stat method
+  if (!self._ended) {
+    self.emit('end')
+    self.emit('close')
+    self._ended = true
+  }
+}
+
+
+/***/ }),
+/* 463 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// A reader for when we don't yet know what kind of thing
+// the thing is.
+
+module.exports = ProxyReader
+
+var Reader = __webpack_require__(457)
+var getType = __webpack_require__(458)
+var inherits = __webpack_require__(275)
+var fs = __webpack_require__(102)
+
+inherits(ProxyReader, Reader)
+
+function ProxyReader (props) {
+  var self = this
+  if (!(self instanceof ProxyReader)) {
+    throw new Error('ProxyReader must be called as constructor.')
+  }
+
+  self.props = props
+  self._buffer = []
+  self.ready = false
+
+  Reader.call(self, props)
+}
+
+ProxyReader.prototype._stat = function () {
+  var self = this
+  var props = self.props
+  // stat the thing to see what the proxy should be.
+  var stat = props.follow ? 'stat' : 'lstat'
+
+  fs[stat](props.path, function (er, current) {
+    var type
+    if (er || !current) {
+      type = 'File'
+    } else {
+      type = getType(current)
+    }
+
+    props[type] = true
+    props.type = self.type = type
+
+    self._old = current
+    self._addProxy(Reader(props, current))
+  })
+}
+
+ProxyReader.prototype._addProxy = function (proxy) {
+  var self = this
+  if (self._proxyTarget) {
+    return self.error('proxy already set')
+  }
+
+  self._proxyTarget = proxy
+  proxy._proxy = self
+
+  ;[
+    'error',
+    'data',
+    'end',
+    'close',
+    'linkpath',
+    'entry',
+    'entryEnd',
+    'child',
+    'childEnd',
+    'warn',
+    'stat'
+  ].forEach(function (ev) {
+    // console.error('~~ proxy event', ev, self.path)
+    proxy.on(ev, self.emit.bind(self, ev))
+  })
+
+  self.emit('proxy', proxy)
+
+  proxy.on('ready', function () {
+    // console.error("~~ proxy is ready!", self.path)
+    self.ready = true
+    self.emit('ready')
+  })
+
+  var calls = self._buffer
+  self._buffer.length = 0
+  calls.forEach(function (c) {
+    proxy[c[0]].apply(proxy, c[1])
+  })
+}
+
+ProxyReader.prototype.pause = function () {
+  return this._proxyTarget ? this._proxyTarget.pause() : false
+}
+
+ProxyReader.prototype.resume = function () {
+  return this._proxyTarget ? this._proxyTarget.resume() : false
+}
+
+
+/***/ }),
+/* 464 */
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = Writer
+
+var fs = __webpack_require__(102)
+var inherits = __webpack_require__(275)
+var rimraf = __webpack_require__(465)
+var mkdir = __webpack_require__(466)
+var path = __webpack_require__(82)
+var umask = process.platform === 'win32' ? 0 : process.umask()
+var getType = __webpack_require__(458)
+var Abstract = __webpack_require__(456)
+
+// Must do this *before* loading the child classes
+inherits(Writer, Abstract)
+
+Writer.dirmode = parseInt('0777', 8) & (~umask)
+Writer.filemode = parseInt('0666', 8) & (~umask)
+
+var DirWriter = __webpack_require__(467)
+var LinkWriter = __webpack_require__(469)
+var FileWriter = __webpack_require__(470)
+var ProxyWriter = __webpack_require__(471)
+
+// props is the desired state.  current is optionally the current stat,
+// provided here so that subclasses can avoid statting the target
+// more than necessary.
+function Writer (props, current) {
+  var self = this
+
+  if (typeof props === 'string') {
+    props = { path: props }
+  }
+
+  // polymorphism.
+  // call fstream.Writer(dir) to get a DirWriter object, etc.
+  var type = getType(props)
+  var ClassType = Writer
+
+  switch (type) {
+    case 'Directory':
+      ClassType = DirWriter
+      break
+    case 'File':
+      ClassType = FileWriter
+      break
+    case 'Link':
+    case 'SymbolicLink':
+      ClassType = LinkWriter
+      break
+    case null:
+    default:
+      // Don't know yet what type to create, so we wrap in a proxy.
+      ClassType = ProxyWriter
+      break
+  }
+
+  if (!(self instanceof ClassType)) return new ClassType(props)
+
+  // now get down to business.
+
+  Abstract.call(self)
+
+  if (!props.path) self.error('Must provide a path', null, true)
+
+  // props is what we want to set.
+  // set some convenience properties as well.
+  self.type = props.type
+  self.props = props
+  self.depth = props.depth || 0
+  self.clobber = props.clobber === false ? props.clobber : true
+  self.parent = props.parent || null
+  self.root = props.root || (props.parent && props.parent.root) || self
+
+  self._path = self.path = path.resolve(props.path)
+  if (process.platform === 'win32') {
+    self.path = self._path = self.path.replace(/\?/g, '_')
+    if (self._path.length >= 260) {
+      self._swallowErrors = true
+      self._path = '\\\\?\\' + self.path.replace(/\//g, '\\')
+    }
+  }
+  self.basename = path.basename(props.path)
+  self.dirname = path.dirname(props.path)
+  self.linkpath = props.linkpath || null
+
+  props.parent = props.root = null
+
+  // console.error("\n\n\n%s setting size to", props.path, props.size)
+  self.size = props.size
+
+  if (typeof props.mode === 'string') {
+    props.mode = parseInt(props.mode, 8)
+  }
+
+  self.readable = false
+  self.writable = true
+
+  // buffer until ready, or while handling another entry
+  self._buffer = []
+  self.ready = false
+
+  self.filter = typeof props.filter === 'function' ? props.filter : null
+
+  // start the ball rolling.
+  // this checks what's there already, and then calls
+  // self._create() to call the impl-specific creation stuff.
+  self._stat(current)
+}
+
+// Calling this means that it's something we can't create.
+// Just assert that it's already there, otherwise raise a warning.
+Writer.prototype._create = function () {
+  var self = this
+  fs[self.props.follow ? 'stat' : 'lstat'](self._path, function (er) {
+    if (er) {
+      return self.warn('Cannot create ' + self._path + '\n' +
+        'Unsupported type: ' + self.type, 'ENOTSUP')
+    }
+    self._finish()
+  })
+}
+
+Writer.prototype._stat = function (current) {
+  var self = this
+  var props = self.props
+  var stat = props.follow ? 'stat' : 'lstat'
+  var who = self._proxy || self
+
+  if (current) statCb(null, current)
+  else fs[stat](self._path, statCb)
+
+  function statCb (er, current) {
+    if (self.filter && !self.filter.call(who, who, current)) {
+      self._aborted = true
+      self.emit('end')
+      self.emit('close')
+      return
+    }
+
+    // if it's not there, great.  We'll just create it.
+    // if it is there, then we'll need to change whatever differs
+    if (er || !current) {
+      return create(self)
+    }
+
+    self._old = current
+    var currentType = getType(current)
+
+    // if it's a type change, then we need to clobber or error.
+    // if it's not a type change, then let the impl take care of it.
+    if (currentType !== self.type || self.type === 'File' && current.nlink > 1) {
+      return rimraf(self._path, function (er) {
+        if (er) return self.error(er)
+        self._old = null
+        create(self)
+      })
+    }
+
+    // otherwise, just handle in the app-specific way
+    // this creates a fs.WriteStream, or mkdir's, or whatever
+    create(self)
+  }
+}
+
+function create (self) {
+  // console.error("W create", self._path, Writer.dirmode)
+
+  // XXX Need to clobber non-dirs that are in the way,
+  // unless { clobber: false } in the props.
+  mkdir(path.dirname(self._path), Writer.dirmode, function (er, made) {
+    // console.error("W created", path.dirname(self._path), er)
+    if (er) return self.error(er)
+
+    // later on, we have to set the mode and owner for these
+    self._madeDir = made
+    return self._create()
+  })
+}
+
+function endChmod (self, want, current, path, cb) {
+  var wantMode = want.mode
+  var chmod = want.follow || self.type !== 'SymbolicLink'
+    ? 'chmod' : 'lchmod'
+
+  if (!fs[chmod]) return cb()
+  if (typeof wantMode !== 'number') return cb()
+
+  var curMode = current.mode & parseInt('0777', 8)
+  wantMode = wantMode & parseInt('0777', 8)
+  if (wantMode === curMode) return cb()
+
+  fs[chmod](path, wantMode, cb)
+}
+
+function endChown (self, want, current, path, cb) {
+  // Don't even try it unless root.  Too easy to EPERM.
+  if (process.platform === 'win32') return cb()
+  if (!process.getuid || process.getuid() !== 0) return cb()
+  if (typeof want.uid !== 'number' &&
+    typeof want.gid !== 'number') return cb()
+
+  if (current.uid === want.uid &&
+    current.gid === want.gid) return cb()
+
+  var chown = (self.props.follow || self.type !== 'SymbolicLink')
+    ? 'chown' : 'lchown'
+  if (!fs[chown]) return cb()
+
+  if (typeof want.uid !== 'number') want.uid = current.uid
+  if (typeof want.gid !== 'number') want.gid = current.gid
+
+  fs[chown](path, want.uid, want.gid, cb)
+}
+
+function endUtimes (self, want, current, path, cb) {
+  if (!fs.utimes || process.platform === 'win32') return cb()
+
+  var utimes = (want.follow || self.type !== 'SymbolicLink')
+    ? 'utimes' : 'lutimes'
+
+  if (utimes === 'lutimes' && !fs[utimes]) {
+    utimes = 'utimes'
+  }
+
+  if (!fs[utimes]) return cb()
+
+  var curA = current.atime
+  var curM = current.mtime
+  var meA = want.atime
+  var meM = want.mtime
+
+  if (meA === undefined) meA = curA
+  if (meM === undefined) meM = curM
+
+  if (!isDate(meA)) meA = new Date(meA)
+  if (!isDate(meM)) meA = new Date(meM)
+
+  if (meA.getTime() === curA.getTime() &&
+    meM.getTime() === curM.getTime()) return cb()
+
+  fs[utimes](path, meA, meM, cb)
+}
+
+// XXX This function is beastly.  Break it up!
+Writer.prototype._finish = function () {
+  var self = this
+
+  if (self._finishing) return
+  self._finishing = true
+
+  // console.error(" W Finish", self._path, self.size)
+
+  // set up all the things.
+  // At this point, we're already done writing whatever we've gotta write,
+  // adding files to the dir, etc.
+  var todo = 0
+  var errState = null
+  var done = false
+
+  if (self._old) {
+    // the times will almost *certainly* have changed.
+    // adds the utimes syscall, but remove another stat.
+    self._old.atime = new Date(0)
+    self._old.mtime = new Date(0)
+    // console.error(" W Finish Stale Stat", self._path, self.size)
+    setProps(self._old)
+  } else {
+    var stat = self.props.follow ? 'stat' : 'lstat'
+    // console.error(" W Finish Stating", self._path, self.size)
+    fs[stat](self._path, function (er, current) {
+      // console.error(" W Finish Stated", self._path, self.size, current)
+      if (er) {
+        // if we're in the process of writing out a
+        // directory, it's very possible that the thing we're linking to
+        // doesn't exist yet (especially if it was intended as a symlink),
+        // so swallow ENOENT errors here and just soldier on.
+        if (er.code === 'ENOENT' &&
+          (self.type === 'Link' || self.type === 'SymbolicLink') &&
+          process.platform === 'win32') {
+          self.ready = true
+          self.emit('ready')
+          self.emit('end')
+          self.emit('close')
+          self.end = self._finish = function () {}
+          return
+        } else return self.error(er)
+      }
+      setProps(self._old = current)
+    })
+  }
+
+  return
+
+  function setProps (current) {
+    todo += 3
+    endChmod(self, self.props, current, self._path, next('chmod'))
+    endChown(self, self.props, current, self._path, next('chown'))
+    endUtimes(self, self.props, current, self._path, next('utimes'))
+  }
+
+  function next (what) {
+    return function (er) {
+      // console.error("   W Finish", what, todo)
+      if (errState) return
+      if (er) {
+        er.fstream_finish_call = what
+        return self.error(errState = er)
+      }
+      if (--todo > 0) return
+      if (done) return
+      done = true
+
+      // we may still need to set the mode/etc. on some parent dirs
+      // that were created previously.  delay end/close until then.
+      if (!self._madeDir) return end()
+      else endMadeDir(self, self._path, end)
+
+      function end (er) {
+        if (er) {
+          er.fstream_finish_call = 'setupMadeDir'
+          return self.error(er)
+        }
+        // all the props have been set, so we're completely done.
+        self.emit('end')
+        self.emit('close')
+      }
+    }
+  }
+}
+
+function endMadeDir (self, p, cb) {
+  var made = self._madeDir
+  // everything *between* made and path.dirname(self._path)
+  // needs to be set up.  Note that this may just be one dir.
+  var d = path.dirname(p)
+
+  endMadeDir_(self, d, function (er) {
+    if (er) return cb(er)
+    if (d === made) {
+      return cb()
+    }
+    endMadeDir(self, d, cb)
+  })
+}
+
+function endMadeDir_ (self, p, cb) {
+  var dirProps = {}
+  Object.keys(self.props).forEach(function (k) {
+    dirProps[k] = self.props[k]
+
+    // only make non-readable dirs if explicitly requested.
+    if (k === 'mode' && self.type !== 'Directory') {
+      dirProps[k] = dirProps[k] | parseInt('0111', 8)
+    }
+  })
+
+  var todo = 3
+  var errState = null
+  fs.stat(p, function (er, current) {
+    if (er) return cb(errState = er)
+    endChmod(self, dirProps, current, p, next)
+    endChown(self, dirProps, current, p, next)
+    endUtimes(self, dirProps, current, p, next)
+  })
+
+  function next (er) {
+    if (errState) return
+    if (er) return cb(errState = er)
+    if (--todo === 0) return cb()
+  }
+}
+
+Writer.prototype.pipe = function () {
+  this.error("Can't pipe from writable stream")
+}
+
+Writer.prototype.add = function () {
+  this.error("Can't add to non-Directory type")
+}
+
+Writer.prototype.write = function () {
+  return true
+}
+
+function objectToString (d) {
+  return Object.prototype.toString.call(d)
+}
+
+function isDate (d) {
+  return typeof d === 'object' && objectToString(d) === '[object Date]'
+}
+
+
+/***/ }),
+/* 465 */
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = rimraf
+rimraf.sync = rimrafSync
+
+var assert = __webpack_require__(108)
+var path = __webpack_require__(82)
+var fs = __webpack_require__(66)
+var glob = undefined
+try {
+  glob = __webpack_require__(268)
+} catch (_err) {
+  // treat glob as optional.
+}
+var _0666 = parseInt('666', 8)
+
+var defaultGlobOpts = {
+  nosort: true,
+  silent: true
+}
+
+// for EMFILE handling
+var timeout = 0
+
+var isWindows = (process.platform === "win32")
+
+function defaults (options) {
+  var methods = [
+    'unlink',
+    'chmod',
+    'stat',
+    'lstat',
+    'rmdir',
+    'readdir'
+  ]
+  methods.forEach(function(m) {
+    options[m] = options[m] || fs[m]
+    m = m + 'Sync'
+    options[m] = options[m] || fs[m]
+  })
+
+  options.maxBusyTries = options.maxBusyTries || 3
+  options.emfileWait = options.emfileWait || 1000
+  if (options.glob === false) {
+    options.disableGlob = true
+  }
+  if (options.disableGlob !== true && glob === undefined) {
+    throw Error('glob dependency not found, set `options.disableGlob = true` if intentional')
+  }
+  options.disableGlob = options.disableGlob || false
+  options.glob = options.glob || defaultGlobOpts
+}
+
+function rimraf (p, options, cb) {
+  if (typeof options === 'function') {
+    cb = options
+    options = {}
+  }
+
+  assert(p, 'rimraf: missing path')
+  assert.equal(typeof p, 'string', 'rimraf: path should be a string')
+  assert.equal(typeof cb, 'function', 'rimraf: callback function required')
+  assert(options, 'rimraf: invalid options argument provided')
+  assert.equal(typeof options, 'object', 'rimraf: options should be object')
+
+  defaults(options)
+
+  var busyTries = 0
+  var errState = null
+  var n = 0
+
+  if (options.disableGlob || !glob.hasMagic(p))
+    return afterGlob(null, [p])
+
+  options.lstat(p, function (er, stat) {
+    if (!er)
+      return afterGlob(null, [p])
+
+    glob(p, options.glob, afterGlob)
+  })
+
+  function next (er) {
+    errState = errState || er
+    if (--n === 0)
+      cb(errState)
+  }
+
+  function afterGlob (er, results) {
+    if (er)
+      return cb(er)
+
+    n = results.length
+    if (n === 0)
+      return cb()
+
+    results.forEach(function (p) {
+      rimraf_(p, options, function CB (er) {
+        if (er) {
+          if ((er.code === "EBUSY" || er.code === "ENOTEMPTY" || er.code === "EPERM") &&
+              busyTries < options.maxBusyTries) {
+            busyTries ++
+            var time = busyTries * 100
+            // try again, with the same exact callback as this one.
+            return setTimeout(function () {
+              rimraf_(p, options, CB)
+            }, time)
+          }
+
+          // this one won't happen if graceful-fs is used.
+          if (er.code === "EMFILE" && timeout < options.emfileWait) {
+            return setTimeout(function () {
+              rimraf_(p, options, CB)
+            }, timeout ++)
+          }
+
+          // already gone
+          if (er.code === "ENOENT") er = null
+        }
+
+        timeout = 0
+        next(er)
+      })
+    })
+  }
+}
+
+// Two possible strategies.
+// 1. Assume it's a file.  unlink it, then do the dir stuff on EPERM or EISDIR
+// 2. Assume it's a directory.  readdir, then do the file stuff on ENOTDIR
+//
+// Both result in an extra syscall when you guess wrong.  However, there
+// are likely far more normal files in the world than directories.  This
+// is based on the assumption that a the average number of files per
+// directory is >= 1.
+//
+// If anyone ever complains about this, then I guess the strategy could
+// be made configurable somehow.  But until then, YAGNI.
+function rimraf_ (p, options, cb) {
+  assert(p)
+  assert(options)
+  assert(typeof cb === 'function')
+
+  // sunos lets the root user unlink directories, which is... weird.
+  // so we have to lstat here and make sure it's not a dir.
+  options.lstat(p, function (er, st) {
+    if (er && er.code === "ENOENT")
+      return cb(null)
+
+    // Windows can EPERM on stat.  Life is suffering.
+    if (er && er.code === "EPERM" && isWindows)
+      fixWinEPERM(p, options, er, cb)
+
+    if (st && st.isDirectory())
+      return rmdir(p, options, er, cb)
+
+    options.unlink(p, function (er) {
+      if (er) {
+        if (er.code === "ENOENT")
+          return cb(null)
+        if (er.code === "EPERM")
+          return (isWindows)
+            ? fixWinEPERM(p, options, er, cb)
+            : rmdir(p, options, er, cb)
+        if (er.code === "EISDIR")
+          return rmdir(p, options, er, cb)
+      }
+      return cb(er)
+    })
+  })
+}
+
+function fixWinEPERM (p, options, er, cb) {
+  assert(p)
+  assert(options)
+  assert(typeof cb === 'function')
+  if (er)
+    assert(er instanceof Error)
+
+  options.chmod(p, _0666, function (er2) {
+    if (er2)
+      cb(er2.code === "ENOENT" ? null : er)
+    else
+      options.stat(p, function(er3, stats) {
+        if (er3)
+          cb(er3.code === "ENOENT" ? null : er)
+        else if (stats.isDirectory())
+          rmdir(p, options, er, cb)
+        else
+          options.unlink(p, cb)
+      })
+  })
+}
+
+function fixWinEPERMSync (p, options, er) {
+  assert(p)
+  assert(options)
+  if (er)
+    assert(er instanceof Error)
+
+  try {
+    options.chmodSync(p, _0666)
+  } catch (er2) {
+    if (er2.code === "ENOENT")
+      return
+    else
+      throw er
+  }
+
+  try {
+    var stats = options.statSync(p)
+  } catch (er3) {
+    if (er3.code === "ENOENT")
+      return
+    else
+      throw er
+  }
+
+  if (stats.isDirectory())
+    rmdirSync(p, options, er)
+  else
+    options.unlinkSync(p)
+}
+
+function rmdir (p, options, originalEr, cb) {
+  assert(p)
+  assert(options)
+  if (originalEr)
+    assert(originalEr instanceof Error)
+  assert(typeof cb === 'function')
+
+  // try to rmdir first, and only readdir on ENOTEMPTY or EEXIST (SunOS)
+  // if we guessed wrong, and it's not a directory, then
+  // raise the original error.
+  options.rmdir(p, function (er) {
+    if (er && (er.code === "ENOTEMPTY" || er.code === "EEXIST" || er.code === "EPERM"))
+      rmkids(p, options, cb)
+    else if (er && er.code === "ENOTDIR")
+      cb(originalEr)
+    else
+      cb(er)
+  })
+}
+
+function rmkids(p, options, cb) {
+  assert(p)
+  assert(options)
+  assert(typeof cb === 'function')
+
+  options.readdir(p, function (er, files) {
+    if (er)
+      return cb(er)
+    var n = files.length
+    if (n === 0)
+      return options.rmdir(p, cb)
+    var errState
+    files.forEach(function (f) {
+      rimraf(path.join(p, f), options, function (er) {
+        if (errState)
+          return
+        if (er)
+          return cb(errState = er)
+        if (--n === 0)
+          options.rmdir(p, cb)
+      })
+    })
+  })
+}
+
+// this looks simpler, and is strictly *faster*, but will
+// tie up the JavaScript thread and fail on excessively
+// deep directory trees.
+function rimrafSync (p, options) {
+  options = options || {}
+  defaults(options)
+
+  assert(p, 'rimraf: missing path')
+  assert.equal(typeof p, 'string', 'rimraf: path should be a string')
+  assert(options, 'rimraf: missing options')
+  assert.equal(typeof options, 'object', 'rimraf: options should be object')
+
+  var results
+
+  if (options.disableGlob || !glob.hasMagic(p)) {
+    results = [p]
+  } else {
+    try {
+      options.lstatSync(p)
+      results = [p]
+    } catch (er) {
+      results = glob.sync(p, options.glob)
+    }
+  }
+
+  if (!results.length)
+    return
+
+  for (var i = 0; i < results.length; i++) {
+    var p = results[i]
+
+    try {
+      var st = options.lstatSync(p)
+    } catch (er) {
+      if (er.code === "ENOENT")
+        return
+
+      // Windows can EPERM on stat.  Life is suffering.
+      if (er.code === "EPERM" && isWindows)
+        fixWinEPERMSync(p, options, er)
+    }
+
+    try {
+      // sunos lets the root user unlink directories, which is... weird.
+      if (st && st.isDirectory())
+        rmdirSync(p, options, null)
+      else
+        options.unlinkSync(p)
+    } catch (er) {
+      if (er.code === "ENOENT")
+        return
+      if (er.code === "EPERM")
+        return isWindows ? fixWinEPERMSync(p, options, er) : rmdirSync(p, options, er)
+      if (er.code !== "EISDIR")
+        throw er
+
+      rmdirSync(p, options, er)
+    }
+  }
+}
+
+function rmdirSync (p, options, originalEr) {
+  assert(p)
+  assert(options)
+  if (originalEr)
+    assert(originalEr instanceof Error)
+
+  try {
+    options.rmdirSync(p)
+  } catch (er) {
+    if (er.code === "ENOENT")
+      return
+    if (er.code === "ENOTDIR")
+      throw originalEr
+    if (er.code === "ENOTEMPTY" || er.code === "EEXIST" || er.code === "EPERM")
+      rmkidsSync(p, options)
+  }
+}
+
+function rmkidsSync (p, options) {
+  assert(p)
+  assert(options)
+  options.readdirSync(p).forEach(function (f) {
+    rimrafSync(path.join(p, f), options)
+  })
+
+  // We only end up here once we got ENOTEMPTY at least once, and
+  // at this point, we are guaranteed to have removed all the kids.
+  // So, we know that it won't be ENOENT or ENOTDIR or anything else.
+  // try really hard to delete stuff on windows, because it has a
+  // PROFOUNDLY annoying habit of not closing handles promptly when
+  // files are deleted, resulting in spurious ENOTEMPTY errors.
+  var retries = isWindows ? 100 : 1
+  var i = 0
+  do {
+    var threw = true
+    try {
+      var ret = options.rmdirSync(p, options)
+      threw = false
+      return ret
+    } finally {
+      if (++i < retries && threw)
+        continue
+    }
+  } while (true)
+}
+
+
+/***/ }),
+/* 466 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var path = __webpack_require__(82);
+var fs = __webpack_require__(66);
+var _0777 = parseInt('0777', 8);
+
+module.exports = mkdirP.mkdirp = mkdirP.mkdirP = mkdirP;
+
+function mkdirP (p, opts, f, made) {
+    if (typeof opts === 'function') {
+        f = opts;
+        opts = {};
+    }
+    else if (!opts || typeof opts !== 'object') {
+        opts = { mode: opts };
+    }
+    
+    var mode = opts.mode;
+    var xfs = opts.fs || fs;
+    
+    if (mode === undefined) {
+        mode = _0777
+    }
+    if (!made) made = null;
+    
+    var cb = f || function () {};
+    p = path.resolve(p);
+    
+    xfs.mkdir(p, mode, function (er) {
+        if (!er) {
+            made = made || p;
+            return cb(null, made);
+        }
+        switch (er.code) {
+            case 'ENOENT':
+                if (path.dirname(p) === p) return cb(er);
+                mkdirP(path.dirname(p), opts, function (er, made) {
+                    if (er) cb(er, made);
+                    else mkdirP(p, opts, cb, made);
+                });
+                break;
+
+            // In the case of any other error, just see if there's a dir
+            // there already.  If so, then hooray!  If not, then something
+            // is borked.
+            default:
+                xfs.stat(p, function (er2, stat) {
+                    // if the stat fails, then that's super weird.
+                    // let the original error be the failure reason.
+                    if (er2 || !stat.isDirectory()) cb(er, made)
+                    else cb(null, made);
+                });
+                break;
+        }
+    });
+}
+
+mkdirP.sync = function sync (p, opts, made) {
+    if (!opts || typeof opts !== 'object') {
+        opts = { mode: opts };
+    }
+    
+    var mode = opts.mode;
+    var xfs = opts.fs || fs;
+    
+    if (mode === undefined) {
+        mode = _0777
+    }
+    if (!made) made = null;
+
+    p = path.resolve(p);
+
+    try {
+        xfs.mkdirSync(p, mode);
+        made = made || p;
+    }
+    catch (err0) {
+        switch (err0.code) {
+            case 'ENOENT' :
+                made = sync(path.dirname(p), opts, made);
+                sync(p, opts, made);
+                break;
+
+            // In the case of any other error, just see if there's a dir
+            // there already.  If so, then hooray!  If not, then something
+            // is borked.
+            default:
+                var stat;
+                try {
+                    stat = xfs.statSync(p);
+                }
+                catch (err1) {
+                    throw err0;
+                }
+                if (!stat.isDirectory()) throw err0;
+                break;
+        }
+    }
+
+    return made;
+};
+
+
+/***/ }),
+/* 467 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// It is expected that, when .add() returns false, the consumer
+// of the DirWriter will pause until a "drain" event occurs. Note
+// that this is *almost always going to be the case*, unless the
+// thing being written is some sort of unsupported type, and thus
+// skipped over.
+
+module.exports = DirWriter
+
+var Writer = __webpack_require__(464)
+var inherits = __webpack_require__(275)
+var mkdir = __webpack_require__(466)
+var path = __webpack_require__(82)
+var collect = __webpack_require__(468)
+
+inherits(DirWriter, Writer)
+
+function DirWriter (props) {
+  var self = this
+  if (!(self instanceof DirWriter)) {
+    self.error('DirWriter must be called as constructor.', null, true)
+  }
+
+  // should already be established as a Directory type
+  if (props.type !== 'Directory' || !props.Directory) {
+    self.error('Non-directory type ' + props.type + ' ' +
+      JSON.stringify(props), null, true)
+  }
+
+  Writer.call(this, props)
+}
+
+DirWriter.prototype._create = function () {
+  var self = this
+  mkdir(self._path, Writer.dirmode, function (er) {
+    if (er) return self.error(er)
+    // ready to start getting entries!
+    self.ready = true
+    self.emit('ready')
+    self._process()
+  })
+}
+
+// a DirWriter has an add(entry) method, but its .write() doesn't
+// do anything.  Why a no-op rather than a throw?  Because this
+// leaves open the door for writing directory metadata for
+// gnu/solaris style dumpdirs.
+DirWriter.prototype.write = function () {
+  return true
+}
+
+DirWriter.prototype.end = function () {
+  this._ended = true
+  this._process()
+}
+
+DirWriter.prototype.add = function (entry) {
+  var self = this
+
+  // console.error('\tadd', entry._path, '->', self._path)
+  collect(entry)
+  if (!self.ready || self._currentEntry) {
+    self._buffer.push(entry)
+    return false
+  }
+
+  // create a new writer, and pipe the incoming entry into it.
+  if (self._ended) {
+    return self.error('add after end')
+  }
+
+  self._buffer.push(entry)
+  self._process()
+
+  return this._buffer.length === 0
+}
+
+DirWriter.prototype._process = function () {
+  var self = this
+
+  // console.error('DW Process p=%j', self._processing, self.basename)
+
+  if (self._processing) return
+
+  var entry = self._buffer.shift()
+  if (!entry) {
+    // console.error("DW Drain")
+    self.emit('drain')
+    if (self._ended) self._finish()
+    return
+  }
+
+  self._processing = true
+  // console.error("DW Entry", entry._path)
+
+  self.emit('entry', entry)
+
+  // ok, add this entry
+  //
+  // don't allow recursive copying
+  var p = entry
+  var pp
+  do {
+    pp = p._path || p.path
+    if (pp === self.root._path || pp === self._path ||
+      (pp && pp.indexOf(self._path) === 0)) {
+      // console.error('DW Exit (recursive)', entry.basename, self._path)
+      self._processing = false
+      if (entry._collected) entry.pipe()
+      return self._process()
+    }
+    p = p.parent
+  } while (p)
+
+  // console.error("DW not recursive")
+
+  // chop off the entry's root dir, replace with ours
+  var props = {
+    parent: self,
+    root: self.root || self,
+    type: entry.type,
+    depth: self.depth + 1
+  }
+
+  pp = entry._path || entry.path || entry.props.path
+  if (entry.parent) {
+    pp = pp.substr(entry.parent._path.length + 1)
+  }
+  // get rid of any ../../ shenanigans
+  props.path = path.join(self.path, path.join('/', pp))
+
+  // if i have a filter, the child should inherit it.
+  props.filter = self.filter
+
+  // all the rest of the stuff, copy over from the source.
+  Object.keys(entry.props).forEach(function (k) {
+    if (!props.hasOwnProperty(k)) {
+      props[k] = entry.props[k]
+    }
+  })
+
+  // not sure at this point what kind of writer this is.
+  var child = self._currentChild = new Writer(props)
+  child.on('ready', function () {
+    // console.error("DW Child Ready", child.type, child._path)
+    // console.error("  resuming", entry._path)
+    entry.pipe(child)
+    entry.resume()
+  })
+
+  // XXX Make this work in node.
+  // Long filenames should not break stuff.
+  child.on('error', function (er) {
+    if (child._swallowErrors) {
+      self.warn(er)
+      child.emit('end')
+      child.emit('close')
+    } else {
+      self.emit('error', er)
+    }
+  })
+
+  // we fire _end internally *after* end, so that we don't move on
+  // until any "end" listeners have had their chance to do stuff.
+  child.on('close', onend)
+  var ended = false
+  function onend () {
+    if (ended) return
+    ended = true
+    // console.error("* DW Child end", child.basename)
+    self._currentChild = null
+    self._processing = false
+    self._process()
+  }
+}
+
+
+/***/ }),
+/* 468 */
+/***/ (function(module, exports) {
+
+module.exports = collect
+
+function collect (stream) {
+  if (stream._collected) return
+
+  if (stream._paused) return stream.on('resume', collect.bind(null, stream))
+
+  stream._collected = true
+  stream.pause()
+
+  stream.on('data', save)
+  stream.on('end', save)
+  var buf = []
+  function save (b) {
+    if (typeof b === 'string') b = new Buffer(b)
+    if (Buffer.isBuffer(b) && !b.length) return
+    buf.push(b)
+  }
+
+  stream.on('entry', saveEntry)
+  var entryBuffer = []
+  function saveEntry (e) {
+    collect(e)
+    entryBuffer.push(e)
+  }
+
+  stream.on('proxy', proxyPause)
+  function proxyPause (p) {
+    p.pause()
+  }
+
+  // replace the pipe method with a new version that will
+  // unlock the buffered stuff.  if you just call .pipe()
+  // without a destination, then it'll re-play the events.
+  stream.pipe = (function (orig) {
+    return function (dest) {
+      // console.error(' === open the pipes', dest && dest.path)
+
+      // let the entries flow through one at a time.
+      // Once they're all done, then we can resume completely.
+      var e = 0
+      ;(function unblockEntry () {
+        var entry = entryBuffer[e++]
+        // console.error(" ==== unblock entry", entry && entry.path)
+        if (!entry) return resume()
+        entry.on('end', unblockEntry)
+        if (dest) dest.add(entry)
+        else stream.emit('entry', entry)
+      })()
+
+      function resume () {
+        stream.removeListener('entry', saveEntry)
+        stream.removeListener('data', save)
+        stream.removeListener('end', save)
+
+        stream.pipe = orig
+        if (dest) stream.pipe(dest)
+
+        buf.forEach(function (b) {
+          if (b) stream.emit('data', b)
+          else stream.emit('end')
+        })
+
+        stream.resume()
+      }
+
+      return dest
+    }
+  })(stream.pipe)
+}
+
+
+/***/ }),
+/* 469 */
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = LinkWriter
+
+var fs = __webpack_require__(102)
+var Writer = __webpack_require__(464)
+var inherits = __webpack_require__(275)
+var path = __webpack_require__(82)
+var rimraf = __webpack_require__(465)
+
+inherits(LinkWriter, Writer)
+
+function LinkWriter (props) {
+  var self = this
+  if (!(self instanceof LinkWriter)) {
+    throw new Error('LinkWriter must be called as constructor.')
+  }
+
+  // should already be established as a Link type
+  if (!((props.type === 'Link' && props.Link) ||
+    (props.type === 'SymbolicLink' && props.SymbolicLink))) {
+    throw new Error('Non-link type ' + props.type)
+  }
+
+  if (props.linkpath === '') props.linkpath = '.'
+  if (!props.linkpath) {
+    self.error('Need linkpath property to create ' + props.type)
+  }
+
+  Writer.call(this, props)
+}
+
+LinkWriter.prototype._create = function () {
+  // console.error(" LW _create")
+  var self = this
+  var hard = self.type === 'Link' || process.platform === 'win32'
+  var link = hard ? 'link' : 'symlink'
+  var lp = hard ? path.resolve(self.dirname, self.linkpath) : self.linkpath
+
+  // can only change the link path by clobbering
+  // For hard links, let's just assume that's always the case, since
+  // there's no good way to read them if we don't already know.
+  if (hard) return clobber(self, lp, link)
+
+  fs.readlink(self._path, function (er, p) {
+    // only skip creation if it's exactly the same link
+    if (p && p === lp) return finish(self)
+    clobber(self, lp, link)
+  })
+}
+
+function clobber (self, lp, link) {
+  rimraf(self._path, function (er) {
+    if (er) return self.error(er)
+    create(self, lp, link)
+  })
+}
+
+function create (self, lp, link) {
+  fs[link](lp, self._path, function (er) {
+    // if this is a hard link, and we're in the process of writing out a
+    // directory, it's very possible that the thing we're linking to
+    // doesn't exist yet (especially if it was intended as a symlink),
+    // so swallow ENOENT errors here and just soldier in.
+    // Additionally, an EPERM or EACCES can happen on win32 if it's trying
+    // to make a link to a directory.  Again, just skip it.
+    // A better solution would be to have fs.symlink be supported on
+    // windows in some nice fashion.
+    if (er) {
+      if ((er.code === 'ENOENT' ||
+        er.code === 'EACCES' ||
+        er.code === 'EPERM') && process.platform === 'win32') {
+        self.ready = true
+        self.emit('ready')
+        self.emit('end')
+        self.emit('close')
+        self.end = self._finish = function () {}
+      } else return self.error(er)
+    }
+    finish(self)
+  })
+}
+
+function finish (self) {
+  self.ready = true
+  self.emit('ready')
+  if (self._ended && !self._finished) self._finish()
+}
+
+LinkWriter.prototype.end = function () {
+  // console.error("LW finish in end")
+  this._ended = true
+  if (this.ready) {
+    this._finished = true
+    this._finish()
+  }
+}
+
+
+/***/ }),
+/* 470 */
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = FileWriter
+
+var fs = __webpack_require__(102)
+var Writer = __webpack_require__(464)
+var inherits = __webpack_require__(275)
+var EOF = {}
+
+inherits(FileWriter, Writer)
+
+function FileWriter (props) {
+  var self = this
+  if (!(self instanceof FileWriter)) {
+    throw new Error('FileWriter must be called as constructor.')
+  }
+
+  // should already be established as a File type
+  if (props.type !== 'File' || !props.File) {
+    throw new Error('Non-file type ' + props.type)
+  }
+
+  self._buffer = []
+  self._bytesWritten = 0
+
+  Writer.call(this, props)
+}
+
+FileWriter.prototype._create = function () {
+  var self = this
+  if (self._stream) return
+
+  var so = {}
+  if (self.props.flags) so.flags = self.props.flags
+  so.mode = Writer.filemode
+  if (self._old && self._old.blksize) so.bufferSize = self._old.blksize
+
+  self._stream = fs.createWriteStream(self._path, so)
+
+  self._stream.on('open', function () {
+    // console.error("FW open", self._buffer, self._path)
+    self.ready = true
+    self._buffer.forEach(function (c) {
+      if (c === EOF) self._stream.end()
+      else self._stream.write(c)
+    })
+    self.emit('ready')
+    // give this a kick just in case it needs it.
+    self.emit('drain')
+  })
+
+  self._stream.on('error', function (er) { self.emit('error', er) })
+
+  self._stream.on('drain', function () { self.emit('drain') })
+
+  self._stream.on('close', function () {
+    // console.error('\n\nFW Stream Close', self._path, self.size)
+    self._finish()
+  })
+}
+
+FileWriter.prototype.write = function (c) {
+  var self = this
+
+  self._bytesWritten += c.length
+
+  if (!self.ready) {
+    if (!Buffer.isBuffer(c) && typeof c !== 'string') {
+      throw new Error('invalid write data')
+    }
+    self._buffer.push(c)
+    return false
+  }
+
+  var ret = self._stream.write(c)
+  // console.error('\t-- fw wrote, _stream says', ret, self._stream._queue.length)
+
+  // allow 2 buffered writes, because otherwise there's just too
+  // much stop and go bs.
+  if (ret === false && self._stream._queue) {
+    return self._stream._queue.length <= 2
+  } else {
+    return ret
+  }
+}
+
+FileWriter.prototype.end = function (c) {
+  var self = this
+
+  if (c) self.write(c)
+
+  if (!self.ready) {
+    self._buffer.push(EOF)
+    return false
+  }
+
+  return self._stream.end()
+}
+
+FileWriter.prototype._finish = function () {
+  var self = this
+  if (typeof self.size === 'number' && self._bytesWritten !== self.size) {
+    self.error(
+      'Did not get expected byte count.\n' +
+      'expect: ' + self.size + '\n' +
+      'actual: ' + self._bytesWritten)
+  }
+  Writer.prototype._finish.call(self)
+}
+
+
+/***/ }),
+/* 471 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// A writer for when we don't know what kind of thing
+// the thing is.  That is, it's not explicitly set,
+// so we're going to make it whatever the thing already
+// is, or "File"
+//
+// Until then, collect all events.
+
+module.exports = ProxyWriter
+
+var Writer = __webpack_require__(464)
+var getType = __webpack_require__(458)
+var inherits = __webpack_require__(275)
+var collect = __webpack_require__(468)
+var fs = __webpack_require__(66)
+
+inherits(ProxyWriter, Writer)
+
+function ProxyWriter (props) {
+  var self = this
+  if (!(self instanceof ProxyWriter)) {
+    throw new Error('ProxyWriter must be called as constructor.')
+  }
+
+  self.props = props
+  self._needDrain = false
+
+  Writer.call(self, props)
+}
+
+ProxyWriter.prototype._stat = function () {
+  var self = this
+  var props = self.props
+  // stat the thing to see what the proxy should be.
+  var stat = props.follow ? 'stat' : 'lstat'
+
+  fs[stat](props.path, function (er, current) {
+    var type
+    if (er || !current) {
+      type = 'File'
+    } else {
+      type = getType(current)
+    }
+
+    props[type] = true
+    props.type = self.type = type
+
+    self._old = current
+    self._addProxy(Writer(props, current))
+  })
+}
+
+ProxyWriter.prototype._addProxy = function (proxy) {
+  // console.error("~~ set proxy", this.path)
+  var self = this
+  if (self._proxy) {
+    return self.error('proxy already set')
+  }
+
+  self._proxy = proxy
+  ;[
+    'ready',
+    'error',
+    'close',
+    'pipe',
+    'drain',
+    'warn'
+  ].forEach(function (ev) {
+    proxy.on(ev, self.emit.bind(self, ev))
+  })
+
+  self.emit('proxy', proxy)
+
+  var calls = self._buffer
+  calls.forEach(function (c) {
+    // console.error("~~ ~~ proxy buffered call", c[0], c[1])
+    proxy[c[0]].apply(proxy, c[1])
+  })
+  self._buffer.length = 0
+  if (self._needsDrain) self.emit('drain')
+}
+
+ProxyWriter.prototype.add = function (entry) {
+  // console.error("~~ proxy add")
+  collect(entry)
+
+  if (!this._proxy) {
+    this._buffer.push(['add', [entry]])
+    this._needDrain = true
+    return false
+  }
+  return this._proxy.add(entry)
+}
+
+ProxyWriter.prototype.write = function (c) {
+  // console.error('~~ proxy write')
+  if (!this._proxy) {
+    this._buffer.push(['write', [c]])
+    this._needDrain = true
+    return false
+  }
+  return this._proxy.write(c)
+}
+
+ProxyWriter.prototype.end = function (c) {
+  // console.error('~~ proxy end')
+  if (!this._proxy) {
+    this._buffer.push(['end', [c]])
+    return false
+  }
+  return this._proxy.end(c)
+}
+
+
+/***/ }),
+/* 472 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var fs = __webpack_require__(102);
+var Promise = __webpack_require__(396);
+var directory = __webpack_require__(473);
+var Stream = __webpack_require__(106);
+
+// Backwards compatibility for node versions < 8
+if (!Stream.Writable || !Stream.Writable.prototype.destroy)
+  Stream = __webpack_require__(434);
+
+module.exports = {
+  buffer: function(buffer, options) {
+    var source = {
+      stream: function(offset, length) {
+        var stream = Stream.PassThrough();
+        stream.end(buffer.slice(offset, length));
+        return stream;
+      },
+      size: function() {
+        return Promise.resolve(buffer.length);
+      }
+    };
+    return directory(source, options);
+  },
+  file: function(filename, options) {
+    var source = {
+      stream: function(offset,length) {
+        return fs.createReadStream(filename,{start: offset, end: length && offset+length});
+      },
+      size: function() {
+        return new Promise(function(resolve,reject) {
+          fs.stat(filename,function(err,d) {
+            if (err)
+              reject(err);
+            else
+              resolve(d.size);
+          });
+        });
+      }
+    };
+    return directory(source, options);
+  },
+
+  url: function(request, params, options) {
+    if (typeof params === 'string')
+      params = {url: params};
+    if (!params.url)
+      throw 'URL missing';
+    params.headers = params.headers || {};
+
+    var source = {
+      stream : function(offset,length) {
+        var options = Object.create(params);
+        options.headers = Object.create(params.headers);
+        options.headers.range = 'bytes='+offset+'-' + (length ? length : '');
+        return request(options);
+      },
+      size: function() {
+        return new Promise(function(resolve,reject) {
+          var req = request(params);
+          req.on('response',function(d) {
+            req.abort();
+            if (!d.headers['content-length'])
+              reject(new Error('Missing content length header'));
+            else
+              resolve(d.headers['content-length']);
+          }).on('error',reject);
+        });
+      }
+    };
+
+    return directory(source, options);
+  },
+
+  s3 : function(client,params, options) {
+    var source = {
+      size: function() {
+        return new Promise(function(resolve,reject) {
+          client.headObject(params, function(err,d) {
+            if (err)
+              reject(err);
+            else
+              resolve(d.ContentLength);
+          });
+        });
+      },
+      stream: function(offset,length) {
+        var d = {};
+        for (var key in params)
+          d[key] = params[key];
+        d.Range = 'bytes='+offset+'-' + (length ? length : '');
+        return client.getObject(d).createReadStream();
+      }
+    };
+
+    return directory(source, options);
+  }
+};
+
+
+/***/ }),
+/* 473 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var binary = __webpack_require__(391);
+var PullStream = __webpack_require__(432);
+var unzip = __webpack_require__(474);
+var Promise = __webpack_require__(396);
+var BufferStream = __webpack_require__(449);
+var parseExtraField = __webpack_require__(450);
+var Buffer = __webpack_require__(433);
+var path = __webpack_require__(82);
+var Writer = __webpack_require__(455).Writer;
+var parseDateTime = __webpack_require__(451);
+
+var signature = Buffer.alloc(4);
+signature.writeUInt32LE(0x06054b50,0);
+
+function getCrxHeader(source) {
+  var sourceStream = source.stream(0).pipe(PullStream());
+
+  return sourceStream.pull(4).then(function(data) {
+    var signature = data.readUInt32LE(0);
+    if (signature === 0x34327243) {
+      var crxHeader;
+      return sourceStream.pull(12).then(function(data) {
+        crxHeader = binary.parse(data)
+          .word32lu('version')
+          .word32lu('pubKeyLength')
+          .word32lu('signatureLength')
+          .vars;
+      }).then(function() {
+        return sourceStream.pull(crxHeader.pubKeyLength +crxHeader.signatureLength);
+      }).then(function(data) {
+        crxHeader.publicKey = data.slice(0,crxHeader.pubKeyLength);
+        crxHeader.signature = data.slice(crxHeader.pubKeyLength);
+        crxHeader.size = 16 + crxHeader.pubKeyLength +crxHeader.signatureLength;
+        return crxHeader;
+      });
+    }
+  });
+}
+
+// Zip64 File Format Notes: https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
+function getZip64CentralDirectory(source, zip64CDL) {
+  var d64loc = binary.parse(zip64CDL)
+    .word32lu('signature')
+    .word32lu('diskNumber')
+    .word64lu('offsetToStartOfCentralDirectory')
+    .word32lu('numberOfDisks')
+    .vars;
+
+  if (d64loc.signature != 0x07064b50) {
+    throw new Error('invalid zip64 end of central dir locator signature (0x07064b50): 0x' + d64loc.signature.toString(16));
+  }
+
+  var dir64 = PullStream();
+  source.stream(d64loc.offsetToStartOfCentralDirectory).pipe(dir64);
+
+  return dir64.pull(56)
+}
+
+// Zip64 File Format Notes: https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
+function parseZip64DirRecord (dir64record) {
+  var vars = binary.parse(dir64record)
+    .word32lu('signature')
+    .word64lu('sizeOfCentralDirectory')
+    .word16lu('version')
+    .word16lu('versionsNeededToExtract')
+    .word32lu('diskNumber')
+    .word32lu('diskStart')
+    .word64lu('numberOfRecordsOnDisk')
+    .word64lu('numberOfRecords')
+    .word64lu('sizeOfCentralDirectory')
+    .word64lu('offsetToStartOfCentralDirectory')
+    .vars;
+
+  if (vars.signature != 0x06064b50) {
+    throw new Error('invalid zip64 end of central dir locator signature (0x06064b50): 0x0' + vars.signature.toString(16));
+  }
+
+  return vars
+}
+
+module.exports = function centralDirectory(source, options) {
+  var endDir = PullStream(),
+      records = PullStream(),
+      tailSize = (options && options.tailSize) || 80,
+      sourceSize,
+      crxHeader,
+      startOffset,
+      vars;
+
+  if (options && options.crx)
+    crxHeader = getCrxHeader(source);
+
+  return source.size()
+    .then(function(size) {
+      sourceSize = size;
+
+      source.stream(Math.max(0,size-tailSize))
+        .on('error', function (error) { endDir.emit('error', error) })
+        .pipe(endDir);
+
+      return endDir.pull(signature);
+    })
+    .then(function() {
+      return Promise.props({directory: endDir.pull(22), crxHeader: crxHeader});
+    })
+    .then(function(d) {
+      var data = d.directory;
+      startOffset = d.crxHeader && d.crxHeader.size || 0;
+
+      vars = binary.parse(data)
+        .word32lu('signature')
+        .word16lu('diskNumber')
+        .word16lu('diskStart')
+        .word16lu('numberOfRecordsOnDisk')
+        .word16lu('numberOfRecords')
+        .word32lu('sizeOfCentralDirectory')
+        .word32lu('offsetToStartOfCentralDirectory')
+        .word16lu('commentLength')
+        .vars;
+
+      // Is this zip file using zip64 format? Use same check as Go:
+      // https://github.com/golang/go/blob/master/src/archive/zip/reader.go#L503
+      // For zip64 files, need to find zip64 central directory locator header to extract
+      // relative offset for zip64 central directory record.
+      if (vars.numberOfRecords == 0xffff|| vars.numberOfRecords == 0xffff ||
+        vars.offsetToStartOfCentralDirectory == 0xffffffff) {
+
+        // Offset to zip64 CDL is 20 bytes before normal CDR
+        const zip64CDLSize = 20
+        const zip64CDLOffset = sourceSize - (tailSize - endDir.match + zip64CDLSize)
+        const zip64CDLStream = PullStream();
+
+        source.stream(zip64CDLOffset).pipe(zip64CDLStream);
+
+        return zip64CDLStream.pull(zip64CDLSize)
+          .then(function (d) { return getZip64CentralDirectory(source, d) })
+          .then(function (dir64record) {
+            vars = parseZip64DirRecord(dir64record)
+          })
+      } else {
+        vars.offsetToStartOfCentralDirectory += startOffset;
+      }
+    })
+    .then(function() {
+      source.stream(vars.offsetToStartOfCentralDirectory).pipe(records);
+
+      vars.extract = function(opts) {
+        if (!opts || !opts.path) throw new Error('PATH_MISSING');
+        return vars.files.then(function(files) {
+          return Promise.map(files, function(entry) {
+            if (entry.type == 'Directory') return;
+
+            // to avoid zip slip (writing outside of the destination), we resolve
+            // the target path, and make sure it's nested in the intended
+            // destination, or not extract it otherwise.
+            var extractPath = path.join(opts.path, entry.path);
+            if (extractPath.indexOf(opts.path) != 0) {
+              return;
+            }
+            var writer = opts.getWriter ? opts.getWriter({path: extractPath}) :  Writer({ path: extractPath });
+
+            return new Promise(function(resolve, reject) {
+              entry.stream(opts.password)
+                .on('error',reject)
+                .pipe(writer)
+                .on('close',resolve)
+                .on('error',reject);
+            });
+          }, opts.concurrency > 1 ? {concurrency: opts.concurrency || undefined} : undefined);
+        });
+      };
+
+      vars.files = Promise.mapSeries(Array(vars.numberOfRecords),function() {
+        return records.pull(46).then(function(data) {    
+          var vars = binary.parse(data)
+            .word32lu('signature')
+            .word16lu('versionMadeBy')
+            .word16lu('versionsNeededToExtract')
+            .word16lu('flags')
+            .word16lu('compressionMethod')
+            .word16lu('lastModifiedTime')
+            .word16lu('lastModifiedDate')
+            .word32lu('crc32')
+            .word32lu('compressedSize')
+            .word32lu('uncompressedSize')
+            .word16lu('fileNameLength')
+            .word16lu('extraFieldLength')
+            .word16lu('fileCommentLength')
+            .word16lu('diskNumber')
+            .word16lu('internalFileAttributes')
+            .word32lu('externalFileAttributes')
+            .word32lu('offsetToLocalFileHeader')
+            .vars;
+
+        vars.offsetToLocalFileHeader += startOffset;
+        vars.lastModifiedDateTime = parseDateTime(vars.lastModifiedDate, vars.lastModifiedTime);
+
+        return records.pull(vars.fileNameLength).then(function(fileNameBuffer) {
+          vars.pathBuffer = fileNameBuffer;
+          vars.path = fileNameBuffer.toString('utf8');
+          vars.isUnicode = vars.flags & 0x11;
+          return records.pull(vars.extraFieldLength);
+        })
+        .then(function(extraField) {
+          vars.extra = parseExtraField(extraField, vars);
+          return records.pull(vars.fileCommentLength);
+        })
+        .then(function(comment) {
+          vars.comment = comment;
+          vars.type = (vars.uncompressedSize === 0 && /[\/\\]$/.test(vars.path)) ? 'Directory' : 'File';
+          vars.stream = function(_password) {
+            return unzip(source, vars.offsetToLocalFileHeader,_password, vars);
+          };
+          vars.buffer = function(_password) {
+            return BufferStream(vars.stream(_password));
+          };
+          return vars;
+        });
+      });
+    });
+
+    return Promise.props(vars);
+  });
+};
+
+
+/***/ }),
+/* 474 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var Promise = __webpack_require__(396);
+var Decrypt = __webpack_require__(475);
+var PullStream = __webpack_require__(432);
+var Stream = __webpack_require__(106);
+var binary = __webpack_require__(391);
+var zlib = __webpack_require__(145);
+var parseExtraField = __webpack_require__(450);
+var Buffer = __webpack_require__(433);
+var parseDateTime = __webpack_require__(451);
+
+// Backwards compatibility for node versions < 8
+if (!Stream.Writable || !Stream.Writable.prototype.destroy)
+  Stream = __webpack_require__(434);
+
+module.exports = function unzip(source,offset,_password, directoryVars) {
+  var file = PullStream(),
+      entry = Stream.PassThrough();
+
+  var req = source.stream(offset);
+  req.pipe(file).on('error', function(e) {
+    entry.emit('error', e);
+  });
+
+  entry.vars = file.pull(30)
+    .then(function(data) {
+      var vars = binary.parse(data)
+        .word32lu('signature')
+        .word16lu('versionsNeededToExtract')
+        .word16lu('flags')
+        .word16lu('compressionMethod')
+        .word16lu('lastModifiedTime')
+        .word16lu('lastModifiedDate')
+        .word32lu('crc32')
+        .word32lu('compressedSize')
+        .word32lu('uncompressedSize')
+        .word16lu('fileNameLength')
+        .word16lu('extraFieldLength')
+        .vars;
+
+      vars.lastModifiedDateTime = parseDateTime(vars.lastModifiedDate, vars.lastModifiedTime);
+
+      return file.pull(vars.fileNameLength)
+        .then(function(fileName) {
+          vars.fileName = fileName.toString('utf8');
+          return file.pull(vars.extraFieldLength);
+        })
+        .then(function(extraField) {
+          var checkEncryption;
+          vars.extra = parseExtraField(extraField, vars);
+          // Ignore logal file header vars if the directory vars are available
+          if (directoryVars && directoryVars.compressedSize) vars = directoryVars;
+
+          if (vars.flags & 0x01) checkEncryption = file.pull(12)
+            .then(function(header) {
+              if (!_password)
+                throw new Error('MISSING_PASSWORD');
+
+              var decrypt = Decrypt();
+
+              String(_password).split('').forEach(function(d) {
+                decrypt.update(d);
+              });
+
+              for (var i=0; i < header.length; i++)
+                header[i] = decrypt.decryptByte(header[i]);
+
+              vars.decrypt = decrypt;
+              vars.compressedSize -= 12;
+
+              var check = (vars.flags & 0x8) ? (vars.lastModifiedTime >> 8) & 0xff : (vars.crc32 >> 24) & 0xff;
+              if (header[11] !== check)
+                throw new Error('BAD_PASSWORD');
+
+              return vars;
+            });
+
+          return Promise.resolve(checkEncryption)
+            .then(function() {
+              entry.emit('vars',vars);
+              return vars;
+            });
+        });
+    });
+
+    entry.vars.then(function(vars) {
+      var fileSizeKnown = !(vars.flags & 0x08) || vars.compressedSize > 0,
+          eof;
+
+      var inflater = vars.compressionMethod ? zlib.createInflateRaw() : Stream.PassThrough();
+
+      if (fileSizeKnown) {
+        entry.size = vars.uncompressedSize;
+        eof = vars.compressedSize;
+      } else {
+        eof = Buffer.alloc(4);
+        eof.writeUInt32LE(0x08074b50, 0);
+      }
+
+      var stream = file.stream(eof);
+
+      if (vars.decrypt)
+        stream = stream.pipe(vars.decrypt.stream());
+
+      stream
+        .pipe(inflater)
+        .on('error',function(err) { entry.emit('error',err);})
+        .pipe(entry)
+        .on('finish', function() {
+          if (req.abort)
+            req.abort();
+          else if (req.close)
+            req.close();
+          else if (req.push)
+            req.push();
+          else
+            console.log('warning - unable to close stream');
+        });
+    })
+    .catch(function(e) {
+      entry.emit('error',e);
+    });
+
+  return entry;
+};
+
+
+/***/ }),
+/* 475 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var bigInt = __webpack_require__(476);
+var Stream = __webpack_require__(106);
+
+// Backwards compatibility for node versions < 8
+if (!Stream.Writable || !Stream.Writable.prototype.destroy)
+  Stream = __webpack_require__(434);
+
+var table;
+
+function generateTable() {
+  var poly = 0xEDB88320,c,n,k;
+  table = [];
+  for (n = 0; n < 256; n++) {
+    c = n;
+    for (k = 0; k < 8; k++)
+      c = (c & 1) ? poly ^ (c >>> 1) :  c = c >>> 1;
+    table[n] = c >>> 0;
+  }
+}
+
+function crc(ch,crc) {
+  if (!table)
+    generateTable();
+
+  if (ch.charCodeAt)
+    ch = ch.charCodeAt(0);        
+
+  return (bigInt(crc).shiftRight(8).and(0xffffff)).xor(table[bigInt(crc).xor(ch).and(0xff)]).value;
+}
+
+function Decrypt() {
+  if (!(this instanceof Decrypt))
+    return new Decrypt();
+
+  this.key0 = 305419896;
+  this.key1 = 591751049;
+  this.key2 = 878082192;
+}
+
+Decrypt.prototype.update = function(h) {            
+  this.key0 = crc(h,this.key0);
+  this.key1 = bigInt(this.key0).and(255).and(4294967295).add(this.key1)
+  this.key1 = bigInt(this.key1).multiply(134775813).add(1).and(4294967295).value;
+  this.key2 = crc(bigInt(this.key1).shiftRight(24).and(255), this.key2);
+}
+
+
+Decrypt.prototype.decryptByte = function(c) {
+  var k = bigInt(this.key2).or(2);
+  c = c ^ bigInt(k).multiply(bigInt(k^1)).shiftRight(8).and(255);
+  this.update(c);
+  return c;
+};
+
+ Decrypt.prototype.stream = function() {
+  var stream = Stream.Transform(),
+      self = this;
+
+  stream._transform = function(d,e,cb) {
+    for (var i = 0; i<d.length;i++) {
+      d[i] = self.decryptByte(d[i]);
+    }
+    this.push(d);
+    cb();
+  };
+  return stream;
+};
+
+
+
+
+module.exports = Decrypt;
+
+/***/ }),
+/* 476 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* WEBPACK VAR INJECTION */(function(module) {var __WEBPACK_AMD_DEFINE_RESULT__;var bigInt = (function (undefined) {
+    "use strict";
+
+    var BASE = 1e7,
+        LOG_BASE = 7,
+        MAX_INT = 9007199254740992,
+        MAX_INT_ARR = smallToArray(MAX_INT),
+        DEFAULT_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+    var supportsNativeBigInt = typeof BigInt === "function";
+
+    function Integer(v, radix, alphabet, caseSensitive) {
+        if (typeof v === "undefined") return Integer[0];
+        if (typeof radix !== "undefined") return +radix === 10 && !alphabet ? parseValue(v) : parseBase(v, radix, alphabet, caseSensitive);
+        return parseValue(v);
+    }
+
+    function BigInteger(value, sign) {
+        this.value = value;
+        this.sign = sign;
+        this.isSmall = false;
+    }
+    BigInteger.prototype = Object.create(Integer.prototype);
+
+    function SmallInteger(value) {
+        this.value = value;
+        this.sign = value < 0;
+        this.isSmall = true;
+    }
+    SmallInteger.prototype = Object.create(Integer.prototype);
+
+    function NativeBigInt(value) {
+        this.value = value;
+    }
+    NativeBigInt.prototype = Object.create(Integer.prototype);
+
+    function isPrecise(n) {
+        return -MAX_INT < n && n < MAX_INT;
+    }
+
+    function smallToArray(n) { // For performance reasons doesn't reference BASE, need to change this function if BASE changes
+        if (n < 1e7)
+            return [n];
+        if (n < 1e14)
+            return [n % 1e7, Math.floor(n / 1e7)];
+        return [n % 1e7, Math.floor(n / 1e7) % 1e7, Math.floor(n / 1e14)];
+    }
+
+    function arrayToSmall(arr) { // If BASE changes this function may need to change
+        trim(arr);
+        var length = arr.length;
+        if (length < 4 && compareAbs(arr, MAX_INT_ARR) < 0) {
+            switch (length) {
+                case 0: return 0;
+                case 1: return arr[0];
+                case 2: return arr[0] + arr[1] * BASE;
+                default: return arr[0] + (arr[1] + arr[2] * BASE) * BASE;
+            }
+        }
+        return arr;
+    }
+
+    function trim(v) {
+        var i = v.length;
+        while (v[--i] === 0);
+        v.length = i + 1;
+    }
+
+    function createArray(length) { // function shamelessly stolen from Yaffle's library https://github.com/Yaffle/BigInteger
+        var x = new Array(length);
+        var i = -1;
+        while (++i < length) {
+            x[i] = 0;
+        }
+        return x;
+    }
+
+    function truncate(n) {
+        if (n > 0) return Math.floor(n);
+        return Math.ceil(n);
+    }
+
+    function add(a, b) { // assumes a and b are arrays with a.length >= b.length
+        var l_a = a.length,
+            l_b = b.length,
+            r = new Array(l_a),
+            carry = 0,
+            base = BASE,
+            sum, i;
+        for (i = 0; i < l_b; i++) {
+            sum = a[i] + b[i] + carry;
+            carry = sum >= base ? 1 : 0;
+            r[i] = sum - carry * base;
+        }
+        while (i < l_a) {
+            sum = a[i] + carry;
+            carry = sum === base ? 1 : 0;
+            r[i++] = sum - carry * base;
+        }
+        if (carry > 0) r.push(carry);
+        return r;
+    }
+
+    function addAny(a, b) {
+        if (a.length >= b.length) return add(a, b);
+        return add(b, a);
+    }
+
+    function addSmall(a, carry) { // assumes a is array, carry is number with 0 <= carry < MAX_INT
+        var l = a.length,
+            r = new Array(l),
+            base = BASE,
+            sum, i;
+        for (i = 0; i < l; i++) {
+            sum = a[i] - base + carry;
+            carry = Math.floor(sum / base);
+            r[i] = sum - carry * base;
+            carry += 1;
+        }
+        while (carry > 0) {
+            r[i++] = carry % base;
+            carry = Math.floor(carry / base);
+        }
+        return r;
+    }
+
+    BigInteger.prototype.add = function (v) {
+        var n = parseValue(v);
+        if (this.sign !== n.sign) {
+            return this.subtract(n.negate());
+        }
+        var a = this.value, b = n.value;
+        if (n.isSmall) {
+            return new BigInteger(addSmall(a, Math.abs(b)), this.sign);
+        }
+        return new BigInteger(addAny(a, b), this.sign);
+    };
+    BigInteger.prototype.plus = BigInteger.prototype.add;
+
+    SmallInteger.prototype.add = function (v) {
+        var n = parseValue(v);
+        var a = this.value;
+        if (a < 0 !== n.sign) {
+            return this.subtract(n.negate());
+        }
+        var b = n.value;
+        if (n.isSmall) {
+            if (isPrecise(a + b)) return new SmallInteger(a + b);
+            b = smallToArray(Math.abs(b));
+        }
+        return new BigInteger(addSmall(b, Math.abs(a)), a < 0);
+    };
+    SmallInteger.prototype.plus = SmallInteger.prototype.add;
+
+    NativeBigInt.prototype.add = function (v) {
+        return new NativeBigInt(this.value + parseValue(v).value);
+    }
+    NativeBigInt.prototype.plus = NativeBigInt.prototype.add;
+
+    function subtract(a, b) { // assumes a and b are arrays with a >= b
+        var a_l = a.length,
+            b_l = b.length,
+            r = new Array(a_l),
+            borrow = 0,
+            base = BASE,
+            i, difference;
+        for (i = 0; i < b_l; i++) {
+            difference = a[i] - borrow - b[i];
+            if (difference < 0) {
+                difference += base;
+                borrow = 1;
+            } else borrow = 0;
+            r[i] = difference;
+        }
+        for (i = b_l; i < a_l; i++) {
+            difference = a[i] - borrow;
+            if (difference < 0) difference += base;
+            else {
+                r[i++] = difference;
+                break;
+            }
+            r[i] = difference;
+        }
+        for (; i < a_l; i++) {
+            r[i] = a[i];
+        }
+        trim(r);
+        return r;
+    }
+
+    function subtractAny(a, b, sign) {
+        var value;
+        if (compareAbs(a, b) >= 0) {
+            value = subtract(a, b);
+        } else {
+            value = subtract(b, a);
+            sign = !sign;
+        }
+        value = arrayToSmall(value);
+        if (typeof value === "number") {
+            if (sign) value = -value;
+            return new SmallInteger(value);
+        }
+        return new BigInteger(value, sign);
+    }
+
+    function subtractSmall(a, b, sign) { // assumes a is array, b is number with 0 <= b < MAX_INT
+        var l = a.length,
+            r = new Array(l),
+            carry = -b,
+            base = BASE,
+            i, difference;
+        for (i = 0; i < l; i++) {
+            difference = a[i] + carry;
+            carry = Math.floor(difference / base);
+            difference %= base;
+            r[i] = difference < 0 ? difference + base : difference;
+        }
+        r = arrayToSmall(r);
+        if (typeof r === "number") {
+            if (sign) r = -r;
+            return new SmallInteger(r);
+        } return new BigInteger(r, sign);
+    }
+
+    BigInteger.prototype.subtract = function (v) {
+        var n = parseValue(v);
+        if (this.sign !== n.sign) {
+            return this.add(n.negate());
+        }
+        var a = this.value, b = n.value;
+        if (n.isSmall)
+            return subtractSmall(a, Math.abs(b), this.sign);
+        return subtractAny(a, b, this.sign);
+    };
+    BigInteger.prototype.minus = BigInteger.prototype.subtract;
+
+    SmallInteger.prototype.subtract = function (v) {
+        var n = parseValue(v);
+        var a = this.value;
+        if (a < 0 !== n.sign) {
+            return this.add(n.negate());
+        }
+        var b = n.value;
+        if (n.isSmall) {
+            return new SmallInteger(a - b);
+        }
+        return subtractSmall(b, Math.abs(a), a >= 0);
+    };
+    SmallInteger.prototype.minus = SmallInteger.prototype.subtract;
+
+    NativeBigInt.prototype.subtract = function (v) {
+        return new NativeBigInt(this.value - parseValue(v).value);
+    }
+    NativeBigInt.prototype.minus = NativeBigInt.prototype.subtract;
+
+    BigInteger.prototype.negate = function () {
+        return new BigInteger(this.value, !this.sign);
+    };
+    SmallInteger.prototype.negate = function () {
+        var sign = this.sign;
+        var small = new SmallInteger(-this.value);
+        small.sign = !sign;
+        return small;
+    };
+    NativeBigInt.prototype.negate = function () {
+        return new NativeBigInt(-this.value);
+    }
+
+    BigInteger.prototype.abs = function () {
+        return new BigInteger(this.value, false);
+    };
+    SmallInteger.prototype.abs = function () {
+        return new SmallInteger(Math.abs(this.value));
+    };
+    NativeBigInt.prototype.abs = function () {
+        return new NativeBigInt(this.value >= 0 ? this.value : -this.value);
+    }
+
+
+    function multiplyLong(a, b) {
+        var a_l = a.length,
+            b_l = b.length,
+            l = a_l + b_l,
+            r = createArray(l),
+            base = BASE,
+            product, carry, i, a_i, b_j;
+        for (i = 0; i < a_l; ++i) {
+            a_i = a[i];
+            for (var j = 0; j < b_l; ++j) {
+                b_j = b[j];
+                product = a_i * b_j + r[i + j];
+                carry = Math.floor(product / base);
+                r[i + j] = product - carry * base;
+                r[i + j + 1] += carry;
+            }
+        }
+        trim(r);
+        return r;
+    }
+
+    function multiplySmall(a, b) { // assumes a is array, b is number with |b| < BASE
+        var l = a.length,
+            r = new Array(l),
+            base = BASE,
+            carry = 0,
+            product, i;
+        for (i = 0; i < l; i++) {
+            product = a[i] * b + carry;
+            carry = Math.floor(product / base);
+            r[i] = product - carry * base;
+        }
+        while (carry > 0) {
+            r[i++] = carry % base;
+            carry = Math.floor(carry / base);
+        }
+        return r;
+    }
+
+    function shiftLeft(x, n) {
+        var r = [];
+        while (n-- > 0) r.push(0);
+        return r.concat(x);
+    }
+
+    function multiplyKaratsuba(x, y) {
+        var n = Math.max(x.length, y.length);
+
+        if (n <= 30) return multiplyLong(x, y);
+        n = Math.ceil(n / 2);
+
+        var b = x.slice(n),
+            a = x.slice(0, n),
+            d = y.slice(n),
+            c = y.slice(0, n);
+
+        var ac = multiplyKaratsuba(a, c),
+            bd = multiplyKaratsuba(b, d),
+            abcd = multiplyKaratsuba(addAny(a, b), addAny(c, d));
+
+        var product = addAny(addAny(ac, shiftLeft(subtract(subtract(abcd, ac), bd), n)), shiftLeft(bd, 2 * n));
+        trim(product);
+        return product;
+    }
+
+    // The following function is derived from a surface fit of a graph plotting the performance difference
+    // between long multiplication and karatsuba multiplication versus the lengths of the two arrays.
+    function useKaratsuba(l1, l2) {
+        return -0.012 * l1 - 0.012 * l2 + 0.000015 * l1 * l2 > 0;
+    }
+
+    BigInteger.prototype.multiply = function (v) {
+        var n = parseValue(v),
+            a = this.value, b = n.value,
+            sign = this.sign !== n.sign,
+            abs;
+        if (n.isSmall) {
+            if (b === 0) return Integer[0];
+            if (b === 1) return this;
+            if (b === -1) return this.negate();
+            abs = Math.abs(b);
+            if (abs < BASE) {
+                return new BigInteger(multiplySmall(a, abs), sign);
+            }
+            b = smallToArray(abs);
+        }
+        if (useKaratsuba(a.length, b.length)) // Karatsuba is only faster for certain array sizes
+            return new BigInteger(multiplyKaratsuba(a, b), sign);
+        return new BigInteger(multiplyLong(a, b), sign);
+    };
+
+    BigInteger.prototype.times = BigInteger.prototype.multiply;
+
+    function multiplySmallAndArray(a, b, sign) { // a >= 0
+        if (a < BASE) {
+            return new BigInteger(multiplySmall(b, a), sign);
+        }
+        return new BigInteger(multiplyLong(b, smallToArray(a)), sign);
+    }
+    SmallInteger.prototype._multiplyBySmall = function (a) {
+        if (isPrecise(a.value * this.value)) {
+            return new SmallInteger(a.value * this.value);
+        }
+        return multiplySmallAndArray(Math.abs(a.value), smallToArray(Math.abs(this.value)), this.sign !== a.sign);
+    };
+    BigInteger.prototype._multiplyBySmall = function (a) {
+        if (a.value === 0) return Integer[0];
+        if (a.value === 1) return this;
+        if (a.value === -1) return this.negate();
+        return multiplySmallAndArray(Math.abs(a.value), this.value, this.sign !== a.sign);
+    };
+    SmallInteger.prototype.multiply = function (v) {
+        return parseValue(v)._multiplyBySmall(this);
+    };
+    SmallInteger.prototype.times = SmallInteger.prototype.multiply;
+
+    NativeBigInt.prototype.multiply = function (v) {
+        return new NativeBigInt(this.value * parseValue(v).value);
+    }
+    NativeBigInt.prototype.times = NativeBigInt.prototype.multiply;
+
+    function square(a) {
+        //console.assert(2 * BASE * BASE < MAX_INT);
+        var l = a.length,
+            r = createArray(l + l),
+            base = BASE,
+            product, carry, i, a_i, a_j;
+        for (i = 0; i < l; i++) {
+            a_i = a[i];
+            carry = 0 - a_i * a_i;
+            for (var j = i; j < l; j++) {
+                a_j = a[j];
+                product = 2 * (a_i * a_j) + r[i + j] + carry;
+                carry = Math.floor(product / base);
+                r[i + j] = product - carry * base;
+            }
+            r[i + l] = carry;
+        }
+        trim(r);
+        return r;
+    }
+
+    BigInteger.prototype.square = function () {
+        return new BigInteger(square(this.value), false);
+    };
+
+    SmallInteger.prototype.square = function () {
+        var value = this.value * this.value;
+        if (isPrecise(value)) return new SmallInteger(value);
+        return new BigInteger(square(smallToArray(Math.abs(this.value))), false);
+    };
+
+    NativeBigInt.prototype.square = function (v) {
+        return new NativeBigInt(this.value * this.value);
+    }
+
+    function divMod1(a, b) { // Left over from previous version. Performs faster than divMod2 on smaller input sizes.
+        var a_l = a.length,
+            b_l = b.length,
+            base = BASE,
+            result = createArray(b.length),
+            divisorMostSignificantDigit = b[b_l - 1],
+            // normalization
+            lambda = Math.ceil(base / (2 * divisorMostSignificantDigit)),
+            remainder = multiplySmall(a, lambda),
+            divisor = multiplySmall(b, lambda),
+            quotientDigit, shift, carry, borrow, i, l, q;
+        if (remainder.length <= a_l) remainder.push(0);
+        divisor.push(0);
+        divisorMostSignificantDigit = divisor[b_l - 1];
+        for (shift = a_l - b_l; shift >= 0; shift--) {
+            quotientDigit = base - 1;
+            if (remainder[shift + b_l] !== divisorMostSignificantDigit) {
+                quotientDigit = Math.floor((remainder[shift + b_l] * base + remainder[shift + b_l - 1]) / divisorMostSignificantDigit);
+            }
+            // quotientDigit <= base - 1
+            carry = 0;
+            borrow = 0;
+            l = divisor.length;
+            for (i = 0; i < l; i++) {
+                carry += quotientDigit * divisor[i];
+                q = Math.floor(carry / base);
+                borrow += remainder[shift + i] - (carry - q * base);
+                carry = q;
+                if (borrow < 0) {
+                    remainder[shift + i] = borrow + base;
+                    borrow = -1;
+                } else {
+                    remainder[shift + i] = borrow;
+                    borrow = 0;
+                }
+            }
+            while (borrow !== 0) {
+                quotientDigit -= 1;
+                carry = 0;
+                for (i = 0; i < l; i++) {
+                    carry += remainder[shift + i] - base + divisor[i];
+                    if (carry < 0) {
+                        remainder[shift + i] = carry + base;
+                        carry = 0;
+                    } else {
+                        remainder[shift + i] = carry;
+                        carry = 1;
+                    }
+                }
+                borrow += carry;
+            }
+            result[shift] = quotientDigit;
+        }
+        // denormalization
+        remainder = divModSmall(remainder, lambda)[0];
+        return [arrayToSmall(result), arrayToSmall(remainder)];
+    }
+
+    function divMod2(a, b) { // Implementation idea shamelessly stolen from Silent Matt's library http://silentmatt.com/biginteger/
+        // Performs faster than divMod1 on larger input sizes.
+        var a_l = a.length,
+            b_l = b.length,
+            result = [],
+            part = [],
+            base = BASE,
+            guess, xlen, highx, highy, check;
+        while (a_l) {
+            part.unshift(a[--a_l]);
+            trim(part);
+            if (compareAbs(part, b) < 0) {
+                result.push(0);
+                continue;
+            }
+            xlen = part.length;
+            highx = part[xlen - 1] * base + part[xlen - 2];
+            highy = b[b_l - 1] * base + b[b_l - 2];
+            if (xlen > b_l) {
+                highx = (highx + 1) * base;
+            }
+            guess = Math.ceil(highx / highy);
+            do {
+                check = multiplySmall(b, guess);
+                if (compareAbs(check, part) <= 0) break;
+                guess--;
+            } while (guess);
+            result.push(guess);
+            part = subtract(part, check);
+        }
+        result.reverse();
+        return [arrayToSmall(result), arrayToSmall(part)];
+    }
+
+    function divModSmall(value, lambda) {
+        var length = value.length,
+            quotient = createArray(length),
+            base = BASE,
+            i, q, remainder, divisor;
+        remainder = 0;
+        for (i = length - 1; i >= 0; --i) {
+            divisor = remainder * base + value[i];
+            q = truncate(divisor / lambda);
+            remainder = divisor - q * lambda;
+            quotient[i] = q | 0;
+        }
+        return [quotient, remainder | 0];
+    }
+
+    function divModAny(self, v) {
+        var value, n = parseValue(v);
+        if (supportsNativeBigInt) {
+            return [new NativeBigInt(self.value / n.value), new NativeBigInt(self.value % n.value)];
+        }
+        var a = self.value, b = n.value;
+        var quotient;
+        if (b === 0) throw new Error("Cannot divide by zero");
+        if (self.isSmall) {
+            if (n.isSmall) {
+                return [new SmallInteger(truncate(a / b)), new SmallInteger(a % b)];
+            }
+            return [Integer[0], self];
+        }
+        if (n.isSmall) {
+            if (b === 1) return [self, Integer[0]];
+            if (b == -1) return [self.negate(), Integer[0]];
+            var abs = Math.abs(b);
+            if (abs < BASE) {
+                value = divModSmall(a, abs);
+                quotient = arrayToSmall(value[0]);
+                var remainder = value[1];
+                if (self.sign) remainder = -remainder;
+                if (typeof quotient === "number") {
+                    if (self.sign !== n.sign) quotient = -quotient;
+                    return [new SmallInteger(quotient), new SmallInteger(remainder)];
+                }
+                return [new BigInteger(quotient, self.sign !== n.sign), new SmallInteger(remainder)];
+            }
+            b = smallToArray(abs);
+        }
+        var comparison = compareAbs(a, b);
+        if (comparison === -1) return [Integer[0], self];
+        if (comparison === 0) return [Integer[self.sign === n.sign ? 1 : -1], Integer[0]];
+
+        // divMod1 is faster on smaller input sizes
+        if (a.length + b.length <= 200)
+            value = divMod1(a, b);
+        else value = divMod2(a, b);
+
+        quotient = value[0];
+        var qSign = self.sign !== n.sign,
+            mod = value[1],
+            mSign = self.sign;
+        if (typeof quotient === "number") {
+            if (qSign) quotient = -quotient;
+            quotient = new SmallInteger(quotient);
+        } else quotient = new BigInteger(quotient, qSign);
+        if (typeof mod === "number") {
+            if (mSign) mod = -mod;
+            mod = new SmallInteger(mod);
+        } else mod = new BigInteger(mod, mSign);
+        return [quotient, mod];
+    }
+
+    BigInteger.prototype.divmod = function (v) {
+        var result = divModAny(this, v);
+        return {
+            quotient: result[0],
+            remainder: result[1]
+        };
+    };
+    NativeBigInt.prototype.divmod = SmallInteger.prototype.divmod = BigInteger.prototype.divmod;
+
+
+    BigInteger.prototype.divide = function (v) {
+        return divModAny(this, v)[0];
+    };
+    NativeBigInt.prototype.over = NativeBigInt.prototype.divide = function (v) {
+        return new NativeBigInt(this.value / parseValue(v).value);
+    };
+    SmallInteger.prototype.over = SmallInteger.prototype.divide = BigInteger.prototype.over = BigInteger.prototype.divide;
+
+    BigInteger.prototype.mod = function (v) {
+        return divModAny(this, v)[1];
+    };
+    NativeBigInt.prototype.mod = NativeBigInt.prototype.remainder = function (v) {
+        return new NativeBigInt(this.value % parseValue(v).value);
+    };
+    SmallInteger.prototype.remainder = SmallInteger.prototype.mod = BigInteger.prototype.remainder = BigInteger.prototype.mod;
+
+    BigInteger.prototype.pow = function (v) {
+        var n = parseValue(v),
+            a = this.value,
+            b = n.value,
+            value, x, y;
+        if (b === 0) return Integer[1];
+        if (a === 0) return Integer[0];
+        if (a === 1) return Integer[1];
+        if (a === -1) return n.isEven() ? Integer[1] : Integer[-1];
+        if (n.sign) {
+            return Integer[0];
+        }
+        if (!n.isSmall) throw new Error("The exponent " + n.toString() + " is too large.");
+        if (this.isSmall) {
+            if (isPrecise(value = Math.pow(a, b)))
+                return new SmallInteger(truncate(value));
+        }
+        x = this;
+        y = Integer[1];
+        while (true) {
+            if (b & 1 === 1) {
+                y = y.times(x);
+                --b;
+            }
+            if (b === 0) break;
+            b /= 2;
+            x = x.square();
+        }
+        return y;
+    };
+    SmallInteger.prototype.pow = BigInteger.prototype.pow;
+
+    NativeBigInt.prototype.pow = function (v) {
+        var n = parseValue(v);
+        var a = this.value, b = n.value;
+        var _0 = BigInt(0), _1 = BigInt(1), _2 = BigInt(2);
+        if (b === _0) return Integer[1];
+        if (a === _0) return Integer[0];
+        if (a === _1) return Integer[1];
+        if (a === BigInt(-1)) return n.isEven() ? Integer[1] : Integer[-1];
+        if (n.isNegative()) return new NativeBigInt(_0);
+        var x = this;
+        var y = Integer[1];
+        while (true) {
+            if ((b & _1) === _1) {
+                y = y.times(x);
+                --b;
+            }
+            if (b === _0) break;
+            b /= _2;
+            x = x.square();
+        }
+        return y;
+    }
+
+    BigInteger.prototype.modPow = function (exp, mod) {
+        exp = parseValue(exp);
+        mod = parseValue(mod);
+        if (mod.isZero()) throw new Error("Cannot take modPow with modulus 0");
+        var r = Integer[1],
+            base = this.mod(mod);
+        if (exp.isNegative()) {
+            exp = exp.multiply(Integer[-1]);
+            base = base.modInv(mod);
+        }
+        while (exp.isPositive()) {
+            if (base.isZero()) return Integer[0];
+            if (exp.isOdd()) r = r.multiply(base).mod(mod);
+            exp = exp.divide(2);
+            base = base.square().mod(mod);
+        }
+        return r;
+    };
+    NativeBigInt.prototype.modPow = SmallInteger.prototype.modPow = BigInteger.prototype.modPow;
+
+    function compareAbs(a, b) {
+        if (a.length !== b.length) {
+            return a.length > b.length ? 1 : -1;
+        }
+        for (var i = a.length - 1; i >= 0; i--) {
+            if (a[i] !== b[i]) return a[i] > b[i] ? 1 : -1;
+        }
+        return 0;
+    }
+
+    BigInteger.prototype.compareAbs = function (v) {
+        var n = parseValue(v),
+            a = this.value,
+            b = n.value;
+        if (n.isSmall) return 1;
+        return compareAbs(a, b);
+    };
+    SmallInteger.prototype.compareAbs = function (v) {
+        var n = parseValue(v),
+            a = Math.abs(this.value),
+            b = n.value;
+        if (n.isSmall) {
+            b = Math.abs(b);
+            return a === b ? 0 : a > b ? 1 : -1;
+        }
+        return -1;
+    };
+    NativeBigInt.prototype.compareAbs = function (v) {
+        var a = this.value;
+        var b = parseValue(v).value;
+        a = a >= 0 ? a : -a;
+        b = b >= 0 ? b : -b;
+        return a === b ? 0 : a > b ? 1 : -1;
+    }
+
+    BigInteger.prototype.compare = function (v) {
+        // See discussion about comparison with Infinity:
+        // https://github.com/peterolson/BigInteger.js/issues/61
+        if (v === Infinity) {
+            return -1;
+        }
+        if (v === -Infinity) {
+            return 1;
+        }
+
+        var n = parseValue(v),
+            a = this.value,
+            b = n.value;
+        if (this.sign !== n.sign) {
+            return n.sign ? 1 : -1;
+        }
+        if (n.isSmall) {
+            return this.sign ? -1 : 1;
+        }
+        return compareAbs(a, b) * (this.sign ? -1 : 1);
+    };
+    BigInteger.prototype.compareTo = BigInteger.prototype.compare;
+
+    SmallInteger.prototype.compare = function (v) {
+        if (v === Infinity) {
+            return -1;
+        }
+        if (v === -Infinity) {
+            return 1;
+        }
+
+        var n = parseValue(v),
+            a = this.value,
+            b = n.value;
+        if (n.isSmall) {
+            return a == b ? 0 : a > b ? 1 : -1;
+        }
+        if (a < 0 !== n.sign) {
+            return a < 0 ? -1 : 1;
+        }
+        return a < 0 ? 1 : -1;
+    };
+    SmallInteger.prototype.compareTo = SmallInteger.prototype.compare;
+
+    NativeBigInt.prototype.compare = function (v) {
+        if (v === Infinity) {
+            return -1;
+        }
+        if (v === -Infinity) {
+            return 1;
+        }
+        var a = this.value;
+        var b = parseValue(v).value;
+        return a === b ? 0 : a > b ? 1 : -1;
+    }
+    NativeBigInt.prototype.compareTo = NativeBigInt.prototype.compare;
+
+    BigInteger.prototype.equals = function (v) {
+        return this.compare(v) === 0;
+    };
+    NativeBigInt.prototype.eq = NativeBigInt.prototype.equals = SmallInteger.prototype.eq = SmallInteger.prototype.equals = BigInteger.prototype.eq = BigInteger.prototype.equals;
+
+    BigInteger.prototype.notEquals = function (v) {
+        return this.compare(v) !== 0;
+    };
+    NativeBigInt.prototype.neq = NativeBigInt.prototype.notEquals = SmallInteger.prototype.neq = SmallInteger.prototype.notEquals = BigInteger.prototype.neq = BigInteger.prototype.notEquals;
+
+    BigInteger.prototype.greater = function (v) {
+        return this.compare(v) > 0;
+    };
+    NativeBigInt.prototype.gt = NativeBigInt.prototype.greater = SmallInteger.prototype.gt = SmallInteger.prototype.greater = BigInteger.prototype.gt = BigInteger.prototype.greater;
+
+    BigInteger.prototype.lesser = function (v) {
+        return this.compare(v) < 0;
+    };
+    NativeBigInt.prototype.lt = NativeBigInt.prototype.lesser = SmallInteger.prototype.lt = SmallInteger.prototype.lesser = BigInteger.prototype.lt = BigInteger.prototype.lesser;
+
+    BigInteger.prototype.greaterOrEquals = function (v) {
+        return this.compare(v) >= 0;
+    };
+    NativeBigInt.prototype.geq = NativeBigInt.prototype.greaterOrEquals = SmallInteger.prototype.geq = SmallInteger.prototype.greaterOrEquals = BigInteger.prototype.geq = BigInteger.prototype.greaterOrEquals;
+
+    BigInteger.prototype.lesserOrEquals = function (v) {
+        return this.compare(v) <= 0;
+    };
+    NativeBigInt.prototype.leq = NativeBigInt.prototype.lesserOrEquals = SmallInteger.prototype.leq = SmallInteger.prototype.lesserOrEquals = BigInteger.prototype.leq = BigInteger.prototype.lesserOrEquals;
+
+    BigInteger.prototype.isEven = function () {
+        return (this.value[0] & 1) === 0;
+    };
+    SmallInteger.prototype.isEven = function () {
+        return (this.value & 1) === 0;
+    };
+    NativeBigInt.prototype.isEven = function () {
+        return (this.value & BigInt(1)) === BigInt(0);
+    }
+
+    BigInteger.prototype.isOdd = function () {
+        return (this.value[0] & 1) === 1;
+    };
+    SmallInteger.prototype.isOdd = function () {
+        return (this.value & 1) === 1;
+    };
+    NativeBigInt.prototype.isOdd = function () {
+        return (this.value & BigInt(1)) === BigInt(1);
+    }
+
+    BigInteger.prototype.isPositive = function () {
+        return !this.sign;
+    };
+    SmallInteger.prototype.isPositive = function () {
+        return this.value > 0;
+    };
+    NativeBigInt.prototype.isPositive = SmallInteger.prototype.isPositive;
+
+    BigInteger.prototype.isNegative = function () {
+        return this.sign;
+    };
+    SmallInteger.prototype.isNegative = function () {
+        return this.value < 0;
+    };
+    NativeBigInt.prototype.isNegative = SmallInteger.prototype.isNegative;
+
+    BigInteger.prototype.isUnit = function () {
+        return false;
+    };
+    SmallInteger.prototype.isUnit = function () {
+        return Math.abs(this.value) === 1;
+    };
+    NativeBigInt.prototype.isUnit = function () {
+        return this.abs().value === BigInt(1);
+    }
+
+    BigInteger.prototype.isZero = function () {
+        return false;
+    };
+    SmallInteger.prototype.isZero = function () {
+        return this.value === 0;
+    };
+    NativeBigInt.prototype.isZero = function () {
+        return this.value === BigInt(0);
+    }
+
+    BigInteger.prototype.isDivisibleBy = function (v) {
+        var n = parseValue(v);
+        if (n.isZero()) return false;
+        if (n.isUnit()) return true;
+        if (n.compareAbs(2) === 0) return this.isEven();
+        return this.mod(n).isZero();
+    };
+    NativeBigInt.prototype.isDivisibleBy = SmallInteger.prototype.isDivisibleBy = BigInteger.prototype.isDivisibleBy;
+
+    function isBasicPrime(v) {
+        var n = v.abs();
+        if (n.isUnit()) return false;
+        if (n.equals(2) || n.equals(3) || n.equals(5)) return true;
+        if (n.isEven() || n.isDivisibleBy(3) || n.isDivisibleBy(5)) return false;
+        if (n.lesser(49)) return true;
+        // we don't know if it's prime: let the other functions figure it out
+    }
+
+    function millerRabinTest(n, a) {
+        var nPrev = n.prev(),
+            b = nPrev,
+            r = 0,
+            d, t, i, x;
+        while (b.isEven()) b = b.divide(2), r++;
+        next: for (i = 0; i < a.length; i++) {
+            if (n.lesser(a[i])) continue;
+            x = bigInt(a[i]).modPow(b, n);
+            if (x.isUnit() || x.equals(nPrev)) continue;
+            for (d = r - 1; d != 0; d--) {
+                x = x.square().mod(n);
+                if (x.isUnit()) return false;
+                if (x.equals(nPrev)) continue next;
+            }
+            return false;
+        }
+        return true;
+    }
+
+    // Set "strict" to true to force GRH-supported lower bound of 2*log(N)^2
+    BigInteger.prototype.isPrime = function (strict) {
+        var isPrime = isBasicPrime(this);
+        if (isPrime !== undefined) return isPrime;
+        var n = this.abs();
+        var bits = n.bitLength();
+        if (bits <= 64)
+            return millerRabinTest(n, [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37]);
+        var logN = Math.log(2) * bits.toJSNumber();
+        var t = Math.ceil((strict === true) ? (2 * Math.pow(logN, 2)) : logN);
+        for (var a = [], i = 0; i < t; i++) {
+            a.push(bigInt(i + 2));
+        }
+        return millerRabinTest(n, a);
+    };
+    NativeBigInt.prototype.isPrime = SmallInteger.prototype.isPrime = BigInteger.prototype.isPrime;
+
+    BigInteger.prototype.isProbablePrime = function (iterations, rng) {
+        var isPrime = isBasicPrime(this);
+        if (isPrime !== undefined) return isPrime;
+        var n = this.abs();
+        var t = iterations === undefined ? 5 : iterations;
+        for (var a = [], i = 0; i < t; i++) {
+            a.push(bigInt.randBetween(2, n.minus(2), rng));
+        }
+        return millerRabinTest(n, a);
+    };
+    NativeBigInt.prototype.isProbablePrime = SmallInteger.prototype.isProbablePrime = BigInteger.prototype.isProbablePrime;
+
+    BigInteger.prototype.modInv = function (n) {
+        var t = bigInt.zero, newT = bigInt.one, r = parseValue(n), newR = this.abs(), q, lastT, lastR;
+        while (!newR.isZero()) {
+            q = r.divide(newR);
+            lastT = t;
+            lastR = r;
+            t = newT;
+            r = newR;
+            newT = lastT.subtract(q.multiply(newT));
+            newR = lastR.subtract(q.multiply(newR));
+        }
+        if (!r.isUnit()) throw new Error(this.toString() + " and " + n.toString() + " are not co-prime");
+        if (t.compare(0) === -1) {
+            t = t.add(n);
+        }
+        if (this.isNegative()) {
+            return t.negate();
+        }
+        return t;
+    };
+
+    NativeBigInt.prototype.modInv = SmallInteger.prototype.modInv = BigInteger.prototype.modInv;
+
+    BigInteger.prototype.next = function () {
+        var value = this.value;
+        if (this.sign) {
+            return subtractSmall(value, 1, this.sign);
+        }
+        return new BigInteger(addSmall(value, 1), this.sign);
+    };
+    SmallInteger.prototype.next = function () {
+        var value = this.value;
+        if (value + 1 < MAX_INT) return new SmallInteger(value + 1);
+        return new BigInteger(MAX_INT_ARR, false);
+    };
+    NativeBigInt.prototype.next = function () {
+        return new NativeBigInt(this.value + BigInt(1));
+    }
+
+    BigInteger.prototype.prev = function () {
+        var value = this.value;
+        if (this.sign) {
+            return new BigInteger(addSmall(value, 1), true);
+        }
+        return subtractSmall(value, 1, this.sign);
+    };
+    SmallInteger.prototype.prev = function () {
+        var value = this.value;
+        if (value - 1 > -MAX_INT) return new SmallInteger(value - 1);
+        return new BigInteger(MAX_INT_ARR, true);
+    };
+    NativeBigInt.prototype.prev = function () {
+        return new NativeBigInt(this.value - BigInt(1));
+    }
+
+    var powersOfTwo = [1];
+    while (2 * powersOfTwo[powersOfTwo.length - 1] <= BASE) powersOfTwo.push(2 * powersOfTwo[powersOfTwo.length - 1]);
+    var powers2Length = powersOfTwo.length, highestPower2 = powersOfTwo[powers2Length - 1];
+
+    function shift_isSmall(n) {
+        return Math.abs(n) <= BASE;
+    }
+
+    BigInteger.prototype.shiftLeft = function (v) {
+        var n = parseValue(v).toJSNumber();
+        if (!shift_isSmall(n)) {
+            throw new Error(String(n) + " is too large for shifting.");
+        }
+        if (n < 0) return this.shiftRight(-n);
+        var result = this;
+        if (result.isZero()) return result;
+        while (n >= powers2Length) {
+            result = result.multiply(highestPower2);
+            n -= powers2Length - 1;
+        }
+        return result.multiply(powersOfTwo[n]);
+    };
+    NativeBigInt.prototype.shiftLeft = SmallInteger.prototype.shiftLeft = BigInteger.prototype.shiftLeft;
+
+    BigInteger.prototype.shiftRight = function (v) {
+        var remQuo;
+        var n = parseValue(v).toJSNumber();
+        if (!shift_isSmall(n)) {
+            throw new Error(String(n) + " is too large for shifting.");
+        }
+        if (n < 0) return this.shiftLeft(-n);
+        var result = this;
+        while (n >= powers2Length) {
+            if (result.isZero() || (result.isNegative() && result.isUnit())) return result;
+            remQuo = divModAny(result, highestPower2);
+            result = remQuo[1].isNegative() ? remQuo[0].prev() : remQuo[0];
+            n -= powers2Length - 1;
+        }
+        remQuo = divModAny(result, powersOfTwo[n]);
+        return remQuo[1].isNegative() ? remQuo[0].prev() : remQuo[0];
+    };
+    NativeBigInt.prototype.shiftRight = SmallInteger.prototype.shiftRight = BigInteger.prototype.shiftRight;
+
+    function bitwise(x, y, fn) {
+        y = parseValue(y);
+        var xSign = x.isNegative(), ySign = y.isNegative();
+        var xRem = xSign ? x.not() : x,
+            yRem = ySign ? y.not() : y;
+        var xDigit = 0, yDigit = 0;
+        var xDivMod = null, yDivMod = null;
+        var result = [];
+        while (!xRem.isZero() || !yRem.isZero()) {
+            xDivMod = divModAny(xRem, highestPower2);
+            xDigit = xDivMod[1].toJSNumber();
+            if (xSign) {
+                xDigit = highestPower2 - 1 - xDigit; // two's complement for negative numbers
+            }
+
+            yDivMod = divModAny(yRem, highestPower2);
+            yDigit = yDivMod[1].toJSNumber();
+            if (ySign) {
+                yDigit = highestPower2 - 1 - yDigit; // two's complement for negative numbers
+            }
+
+            xRem = xDivMod[0];
+            yRem = yDivMod[0];
+            result.push(fn(xDigit, yDigit));
+        }
+        var sum = fn(xSign ? 1 : 0, ySign ? 1 : 0) !== 0 ? bigInt(-1) : bigInt(0);
+        for (var i = result.length - 1; i >= 0; i -= 1) {
+            sum = sum.multiply(highestPower2).add(bigInt(result[i]));
+        }
+        return sum;
+    }
+
+    BigInteger.prototype.not = function () {
+        return this.negate().prev();
+    };
+    NativeBigInt.prototype.not = SmallInteger.prototype.not = BigInteger.prototype.not;
+
+    BigInteger.prototype.and = function (n) {
+        return bitwise(this, n, function (a, b) { return a & b; });
+    };
+    NativeBigInt.prototype.and = SmallInteger.prototype.and = BigInteger.prototype.and;
+
+    BigInteger.prototype.or = function (n) {
+        return bitwise(this, n, function (a, b) { return a | b; });
+    };
+    NativeBigInt.prototype.or = SmallInteger.prototype.or = BigInteger.prototype.or;
+
+    BigInteger.prototype.xor = function (n) {
+        return bitwise(this, n, function (a, b) { return a ^ b; });
+    };
+    NativeBigInt.prototype.xor = SmallInteger.prototype.xor = BigInteger.prototype.xor;
+
+    var LOBMASK_I = 1 << 30, LOBMASK_BI = (BASE & -BASE) * (BASE & -BASE) | LOBMASK_I;
+    function roughLOB(n) { // get lowestOneBit (rough)
+        // SmallInteger: return Min(lowestOneBit(n), 1 << 30)
+        // BigInteger: return Min(lowestOneBit(n), 1 << 14) [BASE=1e7]
+        var v = n.value,
+            x = typeof v === "number" ? v | LOBMASK_I :
+                typeof v === "bigint" ? v | BigInt(LOBMASK_I) :
+                    v[0] + v[1] * BASE | LOBMASK_BI;
+        return x & -x;
+    }
+
+    function integerLogarithm(value, base) {
+        if (base.compareTo(value) <= 0) {
+            var tmp = integerLogarithm(value, base.square(base));
+            var p = tmp.p;
+            var e = tmp.e;
+            var t = p.multiply(base);
+            return t.compareTo(value) <= 0 ? { p: t, e: e * 2 + 1 } : { p: p, e: e * 2 };
+        }
+        return { p: bigInt(1), e: 0 };
+    }
+
+    BigInteger.prototype.bitLength = function () {
+        var n = this;
+        if (n.compareTo(bigInt(0)) < 0) {
+            n = n.negate().subtract(bigInt(1));
+        }
+        if (n.compareTo(bigInt(0)) === 0) {
+            return bigInt(0);
+        }
+        return bigInt(integerLogarithm(n, bigInt(2)).e).add(bigInt(1));
+    }
+    NativeBigInt.prototype.bitLength = SmallInteger.prototype.bitLength = BigInteger.prototype.bitLength;
+
+    function max(a, b) {
+        a = parseValue(a);
+        b = parseValue(b);
+        return a.greater(b) ? a : b;
+    }
+    function min(a, b) {
+        a = parseValue(a);
+        b = parseValue(b);
+        return a.lesser(b) ? a : b;
+    }
+    function gcd(a, b) {
+        a = parseValue(a).abs();
+        b = parseValue(b).abs();
+        if (a.equals(b)) return a;
+        if (a.isZero()) return b;
+        if (b.isZero()) return a;
+        var c = Integer[1], d, t;
+        while (a.isEven() && b.isEven()) {
+            d = min(roughLOB(a), roughLOB(b));
+            a = a.divide(d);
+            b = b.divide(d);
+            c = c.multiply(d);
+        }
+        while (a.isEven()) {
+            a = a.divide(roughLOB(a));
+        }
+        do {
+            while (b.isEven()) {
+                b = b.divide(roughLOB(b));
+            }
+            if (a.greater(b)) {
+                t = b; b = a; a = t;
+            }
+            b = b.subtract(a);
+        } while (!b.isZero());
+        return c.isUnit() ? a : a.multiply(c);
+    }
+    function lcm(a, b) {
+        a = parseValue(a).abs();
+        b = parseValue(b).abs();
+        return a.divide(gcd(a, b)).multiply(b);
+    }
+    function randBetween(a, b, rng) {
+        a = parseValue(a);
+        b = parseValue(b);
+        var usedRNG = rng || Math.random;
+        var low = min(a, b), high = max(a, b);
+        var range = high.subtract(low).add(1);
+        if (range.isSmall) return low.add(Math.floor(usedRNG() * range));
+        var digits = toBase(range, BASE).value;
+        var result = [], restricted = true;
+        for (var i = 0; i < digits.length; i++) {
+            var top = restricted ? digits[i] : BASE;
+            var digit = truncate(usedRNG() * top);
+            result.push(digit);
+            if (digit < top) restricted = false;
+        }
+        return low.add(Integer.fromArray(result, BASE, false));
+    }
+
+    var parseBase = function (text, base, alphabet, caseSensitive) {
+        alphabet = alphabet || DEFAULT_ALPHABET;
+        text = String(text);
+        if (!caseSensitive) {
+            text = text.toLowerCase();
+            alphabet = alphabet.toLowerCase();
+        }
+        var length = text.length;
+        var i;
+        var absBase = Math.abs(base);
+        var alphabetValues = {};
+        for (i = 0; i < alphabet.length; i++) {
+            alphabetValues[alphabet[i]] = i;
+        }
+        for (i = 0; i < length; i++) {
+            var c = text[i];
+            if (c === "-") continue;
+            if (c in alphabetValues) {
+                if (alphabetValues[c] >= absBase) {
+                    if (c === "1" && absBase === 1) continue;
+                    throw new Error(c + " is not a valid digit in base " + base + ".");
+                }
+            }
+        }
+        base = parseValue(base);
+        var digits = [];
+        var isNegative = text[0] === "-";
+        for (i = isNegative ? 1 : 0; i < text.length; i++) {
+            var c = text[i];
+            if (c in alphabetValues) digits.push(parseValue(alphabetValues[c]));
+            else if (c === "<") {
+                var start = i;
+                do { i++; } while (text[i] !== ">" && i < text.length);
+                digits.push(parseValue(text.slice(start + 1, i)));
+            }
+            else throw new Error(c + " is not a valid character");
+        }
+        return parseBaseFromArray(digits, base, isNegative);
+    };
+
+    function parseBaseFromArray(digits, base, isNegative) {
+        var val = Integer[0], pow = Integer[1], i;
+        for (i = digits.length - 1; i >= 0; i--) {
+            val = val.add(digits[i].times(pow));
+            pow = pow.times(base);
+        }
+        return isNegative ? val.negate() : val;
+    }
+
+    function stringify(digit, alphabet) {
+        alphabet = alphabet || DEFAULT_ALPHABET;
+        if (digit < alphabet.length) {
+            return alphabet[digit];
+        }
+        return "<" + digit + ">";
+    }
+
+    function toBase(n, base) {
+        base = bigInt(base);
+        if (base.isZero()) {
+            if (n.isZero()) return { value: [0], isNegative: false };
+            throw new Error("Cannot convert nonzero numbers to base 0.");
+        }
+        if (base.equals(-1)) {
+            if (n.isZero()) return { value: [0], isNegative: false };
+            if (n.isNegative())
+                return {
+                    value: [].concat.apply([], Array.apply(null, Array(-n.toJSNumber()))
+                        .map(Array.prototype.valueOf, [1, 0])
+                    ),
+                    isNegative: false
+                };
+
+            var arr = Array.apply(null, Array(n.toJSNumber() - 1))
+                .map(Array.prototype.valueOf, [0, 1]);
+            arr.unshift([1]);
+            return {
+                value: [].concat.apply([], arr),
+                isNegative: false
+            };
+        }
+
+        var neg = false;
+        if (n.isNegative() && base.isPositive()) {
+            neg = true;
+            n = n.abs();
+        }
+        if (base.isUnit()) {
+            if (n.isZero()) return { value: [0], isNegative: false };
+
+            return {
+                value: Array.apply(null, Array(n.toJSNumber()))
+                    .map(Number.prototype.valueOf, 1),
+                isNegative: neg
+            };
+        }
+        var out = [];
+        var left = n, divmod;
+        while (left.isNegative() || left.compareAbs(base) >= 0) {
+            divmod = left.divmod(base);
+            left = divmod.quotient;
+            var digit = divmod.remainder;
+            if (digit.isNegative()) {
+                digit = base.minus(digit).abs();
+                left = left.next();
+            }
+            out.push(digit.toJSNumber());
+        }
+        out.push(left.toJSNumber());
+        return { value: out.reverse(), isNegative: neg };
+    }
+
+    function toBaseString(n, base, alphabet) {
+        var arr = toBase(n, base);
+        return (arr.isNegative ? "-" : "") + arr.value.map(function (x) {
+            return stringify(x, alphabet);
+        }).join('');
+    }
+
+    BigInteger.prototype.toArray = function (radix) {
+        return toBase(this, radix);
+    };
+
+    SmallInteger.prototype.toArray = function (radix) {
+        return toBase(this, radix);
+    };
+
+    NativeBigInt.prototype.toArray = function (radix) {
+        return toBase(this, radix);
+    };
+
+    BigInteger.prototype.toString = function (radix, alphabet) {
+        if (radix === undefined) radix = 10;
+        if (radix !== 10) return toBaseString(this, radix, alphabet);
+        var v = this.value, l = v.length, str = String(v[--l]), zeros = "0000000", digit;
+        while (--l >= 0) {
+            digit = String(v[l]);
+            str += zeros.slice(digit.length) + digit;
+        }
+        var sign = this.sign ? "-" : "";
+        return sign + str;
+    };
+
+    SmallInteger.prototype.toString = function (radix, alphabet) {
+        if (radix === undefined) radix = 10;
+        if (radix != 10) return toBaseString(this, radix, alphabet);
+        return String(this.value);
+    };
+
+    NativeBigInt.prototype.toString = SmallInteger.prototype.toString;
+
+    NativeBigInt.prototype.toJSON = BigInteger.prototype.toJSON = SmallInteger.prototype.toJSON = function () { return this.toString(); }
+
+    BigInteger.prototype.valueOf = function () {
+        return parseInt(this.toString(), 10);
+    };
+    BigInteger.prototype.toJSNumber = BigInteger.prototype.valueOf;
+
+    SmallInteger.prototype.valueOf = function () {
+        return this.value;
+    };
+    SmallInteger.prototype.toJSNumber = SmallInteger.prototype.valueOf;
+    NativeBigInt.prototype.valueOf = NativeBigInt.prototype.toJSNumber = function () {
+        return parseInt(this.toString(), 10);
+    }
+
+    function parseStringValue(v) {
+        if (isPrecise(+v)) {
+            var x = +v;
+            if (x === truncate(x))
+                return supportsNativeBigInt ? new NativeBigInt(BigInt(x)) : new SmallInteger(x);
+            throw new Error("Invalid integer: " + v);
+        }
+        var sign = v[0] === "-";
+        if (sign) v = v.slice(1);
+        var split = v.split(/e/i);
+        if (split.length > 2) throw new Error("Invalid integer: " + split.join("e"));
+        if (split.length === 2) {
+            var exp = split[1];
+            if (exp[0] === "+") exp = exp.slice(1);
+            exp = +exp;
+            if (exp !== truncate(exp) || !isPrecise(exp)) throw new Error("Invalid integer: " + exp + " is not a valid exponent.");
+            var text = split[0];
+            var decimalPlace = text.indexOf(".");
+            if (decimalPlace >= 0) {
+                exp -= text.length - decimalPlace - 1;
+                text = text.slice(0, decimalPlace) + text.slice(decimalPlace + 1);
+            }
+            if (exp < 0) throw new Error("Cannot include negative exponent part for integers");
+            text += (new Array(exp + 1)).join("0");
+            v = text;
+        }
+        var isValid = /^([0-9][0-9]*)$/.test(v);
+        if (!isValid) throw new Error("Invalid integer: " + v);
+        if (supportsNativeBigInt) {
+            return new NativeBigInt(BigInt(sign ? "-" + v : v));
+        }
+        var r = [], max = v.length, l = LOG_BASE, min = max - l;
+        while (max > 0) {
+            r.push(+v.slice(min, max));
+            min -= l;
+            if (min < 0) min = 0;
+            max -= l;
+        }
+        trim(r);
+        return new BigInteger(r, sign);
+    }
+
+    function parseNumberValue(v) {
+        if (supportsNativeBigInt) {
+            return new NativeBigInt(BigInt(v));
+        }
+        if (isPrecise(v)) {
+            if (v !== truncate(v)) throw new Error(v + " is not an integer.");
+            return new SmallInteger(v);
+        }
+        return parseStringValue(v.toString());
+    }
+
+    function parseValue(v) {
+        if (typeof v === "number") {
+            return parseNumberValue(v);
+        }
+        if (typeof v === "string") {
+            return parseStringValue(v);
+        }
+        if (typeof v === "bigint") {
+            return new NativeBigInt(v);
+        }
+        return v;
+    }
+    // Pre-define numbers in range [-999,999]
+    for (var i = 0; i < 1000; i++) {
+        Integer[i] = parseValue(i);
+        if (i > 0) Integer[-i] = parseValue(-i);
+    }
+    // Backwards compatibility
+    Integer.one = Integer[1];
+    Integer.zero = Integer[0];
+    Integer.minusOne = Integer[-1];
+    Integer.max = max;
+    Integer.min = min;
+    Integer.gcd = gcd;
+    Integer.lcm = lcm;
+    Integer.isInstance = function (x) { return x instanceof BigInteger || x instanceof SmallInteger || x instanceof NativeBigInt; };
+    Integer.randBetween = randBetween;
+
+    Integer.fromArray = function (digits, base, isNegative) {
+        return parseBaseFromArray(digits.map(parseValue), parseValue(base || 10), isNegative);
+    };
+
+    return Integer;
+})();
+
+// Node.js check
+if ( true && module.hasOwnProperty("exports")) {
+    module.exports = bigInt;
+}
+
+//amd check
+if (true) {
+    !(__WEBPACK_AMD_DEFINE_RESULT__ = (function () {
+        return bigInt;
+    }).call(exports, __webpack_require__, exports, module),
+				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+}
+
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(477)(module)))
+
+/***/ }),
+/* 477 */
+/***/ (function(module, exports) {
+
+module.exports = function(module) {
+	if (!module.webpackPolyfill) {
+		module.deprecate = function() {};
+		module.paths = [];
+		// module.parent = undefined by default
+		if (!module.children) module.children = [];
+		Object.defineProperty(module, "loaded", {
+			enumerable: true,
+			get: function() {
+				return module.l;
+			}
+		});
+		Object.defineProperty(module, "id", {
+			enumerable: true,
+			get: function() {
+				return module.i;
+			}
+		});
+		module.webpackPolyfill = 1;
+	}
+	return module;
+};
+
+
+/***/ }),
+/* 478 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const follow_redirects_1 = __webpack_require__(349);
-const url_1 = __webpack_require__(350);
+const follow_redirects_1 = __webpack_require__(350);
+const url_1 = __webpack_require__(351);
 const zlib_1 = tslib_1.__importDefault(__webpack_require__(145));
-const is_1 = __webpack_require__(249);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const querystring_1 = __webpack_require__(388);
-const http_proxy_agent_1 = tslib_1.__importDefault(__webpack_require__(389));
-const https_proxy_agent_1 = tslib_1.__importDefault(__webpack_require__(395));
+const is_1 = __webpack_require__(250);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const querystring_1 = __webpack_require__(479);
+const http_proxy_agent_1 = tslib_1.__importDefault(__webpack_require__(480));
+const https_proxy_agent_1 = tslib_1.__importDefault(__webpack_require__(486));
 const logger = __webpack_require__(64)('model-fetch');
 function getSystemProxyURI(endpoint) {
     let env;
@@ -53109,6 +68279,7 @@ function resolveRequestOptions(url, options = {}) {
     if (options.timeout) {
         opts.timeout = options.timeout;
     }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return opts;
 }
 exports.resolveRequestOptions = resolveRequestOptions;
@@ -53206,7 +68377,7 @@ function getDataType(data) {
  * - Send buffer (as data) and receive data (as response).
  * - Proxy support from user configuration & environment.
  * - Redirect support, limited to 3.
- * - Response encoding support for gzip & deflate.
+ * - Support of gzip & deflate response content.
  */
 function fetch(url, options = {}) {
     if (arguments.length > 2) {
@@ -53229,13 +68400,13 @@ exports.default = fetch;
 //# sourceMappingURL=fetch.js.map
 
 /***/ }),
-/* 388 */
+/* 479 */
 /***/ (function(module, exports) {
 
 module.exports = require("querystring");
 
 /***/ }),
-/* 389 */
+/* 480 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -53243,7 +68414,7 @@ module.exports = require("querystring");
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-const agent_1 = __importDefault(__webpack_require__(390));
+const agent_1 = __importDefault(__webpack_require__(481));
 function createHttpProxyAgent(opts) {
     return new agent_1.default(opts);
 }
@@ -53255,7 +68426,7 @@ module.exports = createHttpProxyAgent;
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 390 */
+/* 481 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -53273,12 +68444,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const net_1 = __importDefault(__webpack_require__(156));
-const tls_1 = __importDefault(__webpack_require__(391));
-const url_1 = __importDefault(__webpack_require__(350));
+const net_1 = __importDefault(__webpack_require__(157));
+const tls_1 = __importDefault(__webpack_require__(482));
+const url_1 = __importDefault(__webpack_require__(351));
 const debug_1 = __importDefault(__webpack_require__(68));
-const once_1 = __importDefault(__webpack_require__(392));
-const agent_base_1 = __webpack_require__(393);
+const once_1 = __importDefault(__webpack_require__(483));
+const agent_base_1 = __webpack_require__(484);
 const debug = debug_1.default('http-proxy-agent');
 function isHTTPS(protocol) {
     return typeof protocol === 'string' ? /^https:?$/i.test(protocol) : false;
@@ -53406,13 +68577,13 @@ exports.default = HttpProxyAgent;
 //# sourceMappingURL=agent.js.map
 
 /***/ }),
-/* 391 */
+/* 482 */
 /***/ (function(module, exports) {
 
 module.exports = require("tls");
 
 /***/ }),
-/* 392 */
+/* 483 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -53457,7 +68628,7 @@ module.exports = once;
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 393 */
+/* 484 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -53465,9 +68636,9 @@ module.exports = once;
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-const events_1 = __webpack_require__(197);
+const events_1 = __webpack_require__(198);
 const debug_1 = __importDefault(__webpack_require__(68));
-const promisify_1 = __importDefault(__webpack_require__(394));
+const promisify_1 = __importDefault(__webpack_require__(485));
 const debug = debug_1.default('agent-base');
 function isAgent(v) {
     return Boolean(v) && typeof v.addRequest === 'function';
@@ -53663,7 +68834,7 @@ module.exports = createAgent;
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 394 */
+/* 485 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -53687,7 +68858,7 @@ exports.default = promisify;
 //# sourceMappingURL=promisify.js.map
 
 /***/ }),
-/* 395 */
+/* 486 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -53695,7 +68866,7 @@ exports.default = promisify;
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-const agent_1 = __importDefault(__webpack_require__(396));
+const agent_1 = __importDefault(__webpack_require__(487));
 function createHttpsProxyAgent(opts) {
     return new agent_1.default(opts);
 }
@@ -53707,7 +68878,7 @@ module.exports = createHttpsProxyAgent;
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 396 */
+/* 487 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -53725,13 +68896,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const net_1 = __importDefault(__webpack_require__(156));
-const tls_1 = __importDefault(__webpack_require__(391));
-const url_1 = __importDefault(__webpack_require__(350));
+const net_1 = __importDefault(__webpack_require__(157));
+const tls_1 = __importDefault(__webpack_require__(482));
+const url_1 = __importDefault(__webpack_require__(351));
 const assert_1 = __importDefault(__webpack_require__(108));
 const debug_1 = __importDefault(__webpack_require__(68));
-const agent_base_1 = __webpack_require__(393);
-const parse_proxy_response_1 = __importDefault(__webpack_require__(397));
+const agent_base_1 = __webpack_require__(484);
+const parse_proxy_response_1 = __importDefault(__webpack_require__(488));
 const debug = debug_1.default('https-proxy-agent:agent');
 /**
  * The `HttpsProxyAgent` implements an HTTP Agent subclass that connects to
@@ -53893,7 +69064,7 @@ function omit(obj, ...keys) {
 //# sourceMappingURL=agent.js.map
 
 /***/ }),
-/* 397 */
+/* 488 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -53965,7 +69136,472 @@ exports.default = parseProxyResponse;
 //# sourceMappingURL=parse-proxy-response.js.map
 
 /***/ }),
-/* 398 */
+/* 489 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/*!
+ * content-disposition
+ * Copyright(c) 2014-2017 Douglas Christopher Wilson
+ * MIT Licensed
+ */
+
+
+
+/**
+ * Module exports.
+ * @public
+ */
+
+module.exports = contentDisposition
+module.exports.parse = parse
+
+/**
+ * Module dependencies.
+ * @private
+ */
+
+var basename = __webpack_require__(82).basename
+var Buffer = __webpack_require__(438).Buffer
+
+/**
+ * RegExp to match non attr-char, *after* encodeURIComponent (i.e. not including "%")
+ * @private
+ */
+
+var ENCODE_URL_ATTR_CHAR_REGEXP = /[\x00-\x20"'()*,/:;<=>?@[\\\]{}\x7f]/g // eslint-disable-line no-control-regex
+
+/**
+ * RegExp to match percent encoding escape.
+ * @private
+ */
+
+var HEX_ESCAPE_REGEXP = /%[0-9A-Fa-f]{2}/
+var HEX_ESCAPE_REPLACE_REGEXP = /%([0-9A-Fa-f]{2})/g
+
+/**
+ * RegExp to match non-latin1 characters.
+ * @private
+ */
+
+var NON_LATIN1_REGEXP = /[^\x20-\x7e\xa0-\xff]/g
+
+/**
+ * RegExp to match quoted-pair in RFC 2616
+ *
+ * quoted-pair = "\" CHAR
+ * CHAR        = <any US-ASCII character (octets 0 - 127)>
+ * @private
+ */
+
+var QESC_REGEXP = /\\([\u0000-\u007f])/g // eslint-disable-line no-control-regex
+
+/**
+ * RegExp to match chars that must be quoted-pair in RFC 2616
+ * @private
+ */
+
+var QUOTE_REGEXP = /([\\"])/g
+
+/**
+ * RegExp for various RFC 2616 grammar
+ *
+ * parameter     = token "=" ( token | quoted-string )
+ * token         = 1*<any CHAR except CTLs or separators>
+ * separators    = "(" | ")" | "<" | ">" | "@"
+ *               | "," | ";" | ":" | "\" | <">
+ *               | "/" | "[" | "]" | "?" | "="
+ *               | "{" | "}" | SP | HT
+ * quoted-string = ( <"> *(qdtext | quoted-pair ) <"> )
+ * qdtext        = <any TEXT except <">>
+ * quoted-pair   = "\" CHAR
+ * CHAR          = <any US-ASCII character (octets 0 - 127)>
+ * TEXT          = <any OCTET except CTLs, but including LWS>
+ * LWS           = [CRLF] 1*( SP | HT )
+ * CRLF          = CR LF
+ * CR            = <US-ASCII CR, carriage return (13)>
+ * LF            = <US-ASCII LF, linefeed (10)>
+ * SP            = <US-ASCII SP, space (32)>
+ * HT            = <US-ASCII HT, horizontal-tab (9)>
+ * CTL           = <any US-ASCII control character (octets 0 - 31) and DEL (127)>
+ * OCTET         = <any 8-bit sequence of data>
+ * @private
+ */
+
+var PARAM_REGEXP = /;[\x09\x20]*([!#$%&'*+.0-9A-Z^_`a-z|~-]+)[\x09\x20]*=[\x09\x20]*("(?:[\x20!\x23-\x5b\x5d-\x7e\x80-\xff]|\\[\x20-\x7e])*"|[!#$%&'*+.0-9A-Z^_`a-z|~-]+)[\x09\x20]*/g // eslint-disable-line no-control-regex
+var TEXT_REGEXP = /^[\x20-\x7e\x80-\xff]+$/
+var TOKEN_REGEXP = /^[!#$%&'*+.0-9A-Z^_`a-z|~-]+$/
+
+/**
+ * RegExp for various RFC 5987 grammar
+ *
+ * ext-value     = charset  "'" [ language ] "'" value-chars
+ * charset       = "UTF-8" / "ISO-8859-1" / mime-charset
+ * mime-charset  = 1*mime-charsetc
+ * mime-charsetc = ALPHA / DIGIT
+ *               / "!" / "#" / "$" / "%" / "&"
+ *               / "+" / "-" / "^" / "_" / "`"
+ *               / "{" / "}" / "~"
+ * language      = ( 2*3ALPHA [ extlang ] )
+ *               / 4ALPHA
+ *               / 5*8ALPHA
+ * extlang       = *3( "-" 3ALPHA )
+ * value-chars   = *( pct-encoded / attr-char )
+ * pct-encoded   = "%" HEXDIG HEXDIG
+ * attr-char     = ALPHA / DIGIT
+ *               / "!" / "#" / "$" / "&" / "+" / "-" / "."
+ *               / "^" / "_" / "`" / "|" / "~"
+ * @private
+ */
+
+var EXT_VALUE_REGEXP = /^([A-Za-z0-9!#$%&+\-^_`{}~]+)'(?:[A-Za-z]{2,3}(?:-[A-Za-z]{3}){0,3}|[A-Za-z]{4,8}|)'((?:%[0-9A-Fa-f]{2}|[A-Za-z0-9!#$&+.^_`|~-])+)$/
+
+/**
+ * RegExp for various RFC 6266 grammar
+ *
+ * disposition-type = "inline" | "attachment" | disp-ext-type
+ * disp-ext-type    = token
+ * disposition-parm = filename-parm | disp-ext-parm
+ * filename-parm    = "filename" "=" value
+ *                  | "filename*" "=" ext-value
+ * disp-ext-parm    = token "=" value
+ *                  | ext-token "=" ext-value
+ * ext-token        = <the characters in token, followed by "*">
+ * @private
+ */
+
+var DISPOSITION_TYPE_REGEXP = /^([!#$%&'*+.0-9A-Z^_`a-z|~-]+)[\x09\x20]*(?:$|;)/ // eslint-disable-line no-control-regex
+
+/**
+ * Create an attachment Content-Disposition header.
+ *
+ * @param {string} [filename]
+ * @param {object} [options]
+ * @param {string} [options.type=attachment]
+ * @param {string|boolean} [options.fallback=true]
+ * @return {string}
+ * @public
+ */
+
+function contentDisposition (filename, options) {
+  var opts = options || {}
+
+  // get type
+  var type = opts.type || 'attachment'
+
+  // get parameters
+  var params = createparams(filename, opts.fallback)
+
+  // format into string
+  return format(new ContentDisposition(type, params))
+}
+
+/**
+ * Create parameters object from filename and fallback.
+ *
+ * @param {string} [filename]
+ * @param {string|boolean} [fallback=true]
+ * @return {object}
+ * @private
+ */
+
+function createparams (filename, fallback) {
+  if (filename === undefined) {
+    return
+  }
+
+  var params = {}
+
+  if (typeof filename !== 'string') {
+    throw new TypeError('filename must be a string')
+  }
+
+  // fallback defaults to true
+  if (fallback === undefined) {
+    fallback = true
+  }
+
+  if (typeof fallback !== 'string' && typeof fallback !== 'boolean') {
+    throw new TypeError('fallback must be a string or boolean')
+  }
+
+  if (typeof fallback === 'string' && NON_LATIN1_REGEXP.test(fallback)) {
+    throw new TypeError('fallback must be ISO-8859-1 string')
+  }
+
+  // restrict to file base name
+  var name = basename(filename)
+
+  // determine if name is suitable for quoted string
+  var isQuotedString = TEXT_REGEXP.test(name)
+
+  // generate fallback name
+  var fallbackName = typeof fallback !== 'string'
+    ? fallback && getlatin1(name)
+    : basename(fallback)
+  var hasFallback = typeof fallbackName === 'string' && fallbackName !== name
+
+  // set extended filename parameter
+  if (hasFallback || !isQuotedString || HEX_ESCAPE_REGEXP.test(name)) {
+    params['filename*'] = name
+  }
+
+  // set filename parameter
+  if (isQuotedString || hasFallback) {
+    params.filename = hasFallback
+      ? fallbackName
+      : name
+  }
+
+  return params
+}
+
+/**
+ * Format object to Content-Disposition header.
+ *
+ * @param {object} obj
+ * @param {string} obj.type
+ * @param {object} [obj.parameters]
+ * @return {string}
+ * @private
+ */
+
+function format (obj) {
+  var parameters = obj.parameters
+  var type = obj.type
+
+  if (!type || typeof type !== 'string' || !TOKEN_REGEXP.test(type)) {
+    throw new TypeError('invalid type')
+  }
+
+  // start with normalized type
+  var string = String(type).toLowerCase()
+
+  // append parameters
+  if (parameters && typeof parameters === 'object') {
+    var param
+    var params = Object.keys(parameters).sort()
+
+    for (var i = 0; i < params.length; i++) {
+      param = params[i]
+
+      var val = param.substr(-1) === '*'
+        ? ustring(parameters[param])
+        : qstring(parameters[param])
+
+      string += '; ' + param + '=' + val
+    }
+  }
+
+  return string
+}
+
+/**
+ * Decode a RFC 6987 field value (gracefully).
+ *
+ * @param {string} str
+ * @return {string}
+ * @private
+ */
+
+function decodefield (str) {
+  var match = EXT_VALUE_REGEXP.exec(str)
+
+  if (!match) {
+    throw new TypeError('invalid extended field value')
+  }
+
+  var charset = match[1].toLowerCase()
+  var encoded = match[2]
+  var value
+
+  // to binary string
+  var binary = encoded.replace(HEX_ESCAPE_REPLACE_REGEXP, pdecode)
+
+  switch (charset) {
+    case 'iso-8859-1':
+      value = getlatin1(binary)
+      break
+    case 'utf-8':
+      value = Buffer.from(binary, 'binary').toString('utf8')
+      break
+    default:
+      throw new TypeError('unsupported charset in extended field')
+  }
+
+  return value
+}
+
+/**
+ * Get ISO-8859-1 version of string.
+ *
+ * @param {string} val
+ * @return {string}
+ * @private
+ */
+
+function getlatin1 (val) {
+  // simple Unicode -> ISO-8859-1 transformation
+  return String(val).replace(NON_LATIN1_REGEXP, '?')
+}
+
+/**
+ * Parse Content-Disposition header string.
+ *
+ * @param {string} string
+ * @return {object}
+ * @public
+ */
+
+function parse (string) {
+  if (!string || typeof string !== 'string') {
+    throw new TypeError('argument string is required')
+  }
+
+  var match = DISPOSITION_TYPE_REGEXP.exec(string)
+
+  if (!match) {
+    throw new TypeError('invalid type format')
+  }
+
+  // normalize type
+  var index = match[0].length
+  var type = match[1].toLowerCase()
+
+  var key
+  var names = []
+  var params = {}
+  var value
+
+  // calculate index to start at
+  index = PARAM_REGEXP.lastIndex = match[0].substr(-1) === ';'
+    ? index - 1
+    : index
+
+  // match parameters
+  while ((match = PARAM_REGEXP.exec(string))) {
+    if (match.index !== index) {
+      throw new TypeError('invalid parameter format')
+    }
+
+    index += match[0].length
+    key = match[1].toLowerCase()
+    value = match[2]
+
+    if (names.indexOf(key) !== -1) {
+      throw new TypeError('invalid duplicate parameter')
+    }
+
+    names.push(key)
+
+    if (key.indexOf('*') + 1 === key.length) {
+      // decode extended value
+      key = key.slice(0, -1)
+      value = decodefield(value)
+
+      // overwrite existing value
+      params[key] = value
+      continue
+    }
+
+    if (typeof params[key] === 'string') {
+      continue
+    }
+
+    if (value[0] === '"') {
+      // remove quotes and escapes
+      value = value
+        .substr(1, value.length - 2)
+        .replace(QESC_REGEXP, '$1')
+    }
+
+    params[key] = value
+  }
+
+  if (index !== -1 && index !== string.length) {
+    throw new TypeError('invalid parameter format')
+  }
+
+  return new ContentDisposition(type, params)
+}
+
+/**
+ * Percent decode a single character.
+ *
+ * @param {string} str
+ * @param {string} hex
+ * @return {string}
+ * @private
+ */
+
+function pdecode (str, hex) {
+  return String.fromCharCode(parseInt(hex, 16))
+}
+
+/**
+ * Percent encode a single character.
+ *
+ * @param {string} char
+ * @return {string}
+ * @private
+ */
+
+function pencode (char) {
+  return '%' + String(char)
+    .charCodeAt(0)
+    .toString(16)
+    .toUpperCase()
+}
+
+/**
+ * Quote a string for HTTP.
+ *
+ * @param {string} val
+ * @return {string}
+ * @private
+ */
+
+function qstring (val) {
+  var str = String(val)
+
+  return '"' + str.replace(QUOTE_REGEXP, '\\$1') + '"'
+}
+
+/**
+ * Encode a Unicode string for HTTP (RFC 5987).
+ *
+ * @param {string} val
+ * @return {string}
+ * @private
+ */
+
+function ustring (val) {
+  var str = String(val)
+
+  // percent encode as UTF-8
+  var encoded = encodeURIComponent(str)
+    .replace(ENCODE_URL_ATTR_CHAR_REGEXP, pencode)
+
+  return 'UTF-8\'\'' + encoded
+}
+
+/**
+ * Class for parsed Content-Disposition header for v8 optimization
+ *
+ * @public
+ * @param {string} type
+ * @param {object} parameters
+ * @constructor
+ */
+
+function ContentDisposition (type, parameters) {
+  this.type = type
+  this.parameters = parameters
+}
+
+
+/***/ }),
+/* 490 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -53973,7 +69609,7 @@ exports.default = parseProxyResponse;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const object_1 = __webpack_require__(248);
+const object_1 = __webpack_require__(249);
 const logger = __webpack_require__(64)('model-memos');
 class Memos {
     constructor(filepath) {
@@ -54030,7 +69666,7 @@ exports.default = Memos;
 //# sourceMappingURL=memos.js.map
 
 /***/ }),
-/* 399 */
+/* 491 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const logger = __webpack_require__(64)('extensions');
@@ -54045,21 +69681,22 @@ Promise.prototype.logError = function () {
 //# sourceMappingURL=extensions.js.map
 
 /***/ }),
-/* 400 */
+/* 492 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const path = tslib_1.__importStar(__webpack_require__(82));
-const vm = tslib_1.__importStar(__webpack_require__(401));
-const lodash_1 = __webpack_require__(402);
+const vm = tslib_1.__importStar(__webpack_require__(493));
+const lodash_1 = __webpack_require__(494);
 const createLogger = __webpack_require__(64);
 const logger = createLogger('util-factoroy');
 const requireFunc =  true ? require : undefined;
-const Module = __webpack_require__(403);
+const Module = __webpack_require__(495);
 const REMOVED_GLOBALS = [
     'reallyExit',
     'abort',
@@ -54080,7 +69717,7 @@ function removedGlobalStub(name) {
 function makeRequireFunction() {
     const req = (p) => {
         if (p === 'coc.nvim') {
-            return __webpack_require__(404);
+            return __webpack_require__(496);
         }
         return this.require(p);
     };
@@ -54183,13 +69820,13 @@ exports.createExtension = createExtension;
 //# sourceMappingURL=factory.js.map
 
 /***/ }),
-/* 401 */
+/* 493 */
 /***/ (function(module, exports) {
 
 module.exports = require("vm");
 
 /***/ }),
-/* 402 */
+/* 494 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -54248,119 +69885,120 @@ exports.omit = omit;
 //# sourceMappingURL=lodash.js.map
 
 /***/ }),
-/* 403 */
+/* 495 */
 /***/ (function(module, exports) {
 
 module.exports = require("module");
 
 /***/ }),
-/* 404 */
+/* 496 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const commands_1 = tslib_1.__importDefault(__webpack_require__(251));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
 exports.commands = commands_1.default;
-const events_1 = tslib_1.__importDefault(__webpack_require__(209));
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
 exports.events = events_1.default;
-const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
+const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
 exports.languages = languages_1.default;
-const document_1 = tslib_1.__importDefault(__webpack_require__(306));
+const document_1 = tslib_1.__importDefault(__webpack_require__(307));
 exports.Document = document_1.default;
-const mru_1 = tslib_1.__importDefault(__webpack_require__(313));
+const mru_1 = tslib_1.__importDefault(__webpack_require__(314));
 exports.Mru = mru_1.default;
-const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(428));
+const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(520));
 exports.FloatBuffer = floatBuffer_1.default;
-const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(253));
+const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(254));
 exports.FloatFactory = floatFactory_1.default;
-const fetch_1 = tslib_1.__importDefault(__webpack_require__(387));
+const fetch_1 = tslib_1.__importDefault(__webpack_require__(478));
 exports.fetch = fetch_1.default;
-const download_1 = tslib_1.__importDefault(__webpack_require__(348));
+const download_1 = tslib_1.__importDefault(__webpack_require__(349));
 exports.download = download_1.default;
-const highligher_1 = tslib_1.__importDefault(__webpack_require__(431));
+const highligher_1 = tslib_1.__importDefault(__webpack_require__(523));
 exports.Highligher = highligher_1.default;
-const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(312));
+const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(313));
 exports.FileSystemWatcher = fileSystemWatcher_1.default;
-const services_1 = tslib_1.__importDefault(__webpack_require__(433));
+const services_1 = tslib_1.__importDefault(__webpack_require__(525));
 exports.services = services_1.default;
-const sources_1 = tslib_1.__importDefault(__webpack_require__(331));
+const sources_1 = tslib_1.__importDefault(__webpack_require__(332));
 exports.sources = sources_1.default;
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 exports.workspace = workspace_1.default;
-const extensions_1 = tslib_1.__importDefault(__webpack_require__(332));
+const extensions_1 = tslib_1.__importDefault(__webpack_require__(333));
 exports.extensions = extensions_1.default;
-const manager_1 = tslib_1.__importDefault(__webpack_require__(449));
+const manager_1 = tslib_1.__importDefault(__webpack_require__(541));
 exports.listManager = manager_1.default;
-const manager_2 = tslib_1.__importDefault(__webpack_require__(255));
+const manager_2 = tslib_1.__importDefault(__webpack_require__(256));
 exports.snippetManager = manager_2.default;
-const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
 exports.BasicList = basic_1.default;
-const manager_3 = tslib_1.__importDefault(__webpack_require__(252));
+const manager_3 = tslib_1.__importDefault(__webpack_require__(253));
 exports.diagnosticManager = manager_3.default;
-const ansiparse_1 = __webpack_require__(432);
+const ansiparse_1 = __webpack_require__(524);
 exports.ansiparse = ansiparse_1.ansiparse;
-const watchman_1 = tslib_1.__importDefault(__webpack_require__(323));
+const watchman_1 = tslib_1.__importDefault(__webpack_require__(324));
 exports.Watchman = watchman_1.default;
-const vscode_uri_1 = __webpack_require__(242);
+const vscode_uri_1 = __webpack_require__(243);
 exports.Uri = vscode_uri_1.URI;
-const neovim_1 = __webpack_require__(154);
+const neovim_1 = __webpack_require__(155);
 exports.Neovim = neovim_1.Neovim;
 exports.Buffer = neovim_1.Buffer;
 exports.Window = neovim_1.Window;
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
 exports.Disposable = vscode_languageserver_protocol_1.Disposable;
 exports.Event = vscode_languageserver_protocol_1.Event;
 exports.Emitter = vscode_languageserver_protocol_1.Emitter;
-tslib_1.__exportStar(__webpack_require__(294), exports);
-tslib_1.__exportStar(__webpack_require__(434), exports);
-var util_1 = __webpack_require__(237);
+tslib_1.__exportStar(__webpack_require__(295), exports);
+tslib_1.__exportStar(__webpack_require__(526), exports);
+var util_1 = __webpack_require__(238);
 exports.disposeAll = util_1.disposeAll;
 exports.concurrent = util_1.concurrent;
+exports.wait = util_1.wait;
 exports.runCommand = util_1.runCommand;
 exports.isRunning = util_1.isRunning;
 exports.executable = util_1.executable;
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 405 */
+/* 497 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const commands_1 = tslib_1.__importDefault(__webpack_require__(251));
-const manager_1 = tslib_1.__importDefault(__webpack_require__(252));
-const codeActionmanager_1 = tslib_1.__importDefault(__webpack_require__(406));
-const codeLensManager_1 = tslib_1.__importDefault(__webpack_require__(408));
-const declarationManager_1 = tslib_1.__importDefault(__webpack_require__(409));
-const definitionManager_1 = tslib_1.__importDefault(__webpack_require__(410));
-const documentColorManager_1 = tslib_1.__importDefault(__webpack_require__(411));
-const documentHighlightManager_1 = tslib_1.__importDefault(__webpack_require__(412));
-const documentLinkManager_1 = tslib_1.__importDefault(__webpack_require__(413));
-const documentSymbolManager_1 = tslib_1.__importDefault(__webpack_require__(414));
-const foldingRangeManager_1 = tslib_1.__importDefault(__webpack_require__(415));
-const formatManager_1 = tslib_1.__importDefault(__webpack_require__(416));
-const formatRangeManager_1 = tslib_1.__importDefault(__webpack_require__(417));
-const hoverManager_1 = tslib_1.__importDefault(__webpack_require__(418));
-const implementationManager_1 = tslib_1.__importDefault(__webpack_require__(419));
-const onTypeFormatManager_1 = tslib_1.__importDefault(__webpack_require__(420));
-const rangeManager_1 = tslib_1.__importDefault(__webpack_require__(421));
-const referenceManager_1 = tslib_1.__importDefault(__webpack_require__(422));
-const renameManager_1 = tslib_1.__importDefault(__webpack_require__(423));
-const signatureManager_1 = tslib_1.__importDefault(__webpack_require__(424));
-const typeDefinitionManager_1 = tslib_1.__importDefault(__webpack_require__(425));
-const workspaceSymbolsManager_1 = tslib_1.__importDefault(__webpack_require__(426));
-const manager_2 = tslib_1.__importDefault(__webpack_require__(255));
-const sources_1 = tslib_1.__importDefault(__webpack_require__(331));
-const types_1 = __webpack_require__(294);
-const complete = tslib_1.__importStar(__webpack_require__(427));
-const position_1 = __webpack_require__(310);
-const string_1 = __webpack_require__(309);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
+const manager_1 = tslib_1.__importDefault(__webpack_require__(253));
+const codeActionmanager_1 = tslib_1.__importDefault(__webpack_require__(498));
+const codeLensManager_1 = tslib_1.__importDefault(__webpack_require__(500));
+const declarationManager_1 = tslib_1.__importDefault(__webpack_require__(501));
+const definitionManager_1 = tslib_1.__importDefault(__webpack_require__(502));
+const documentColorManager_1 = tslib_1.__importDefault(__webpack_require__(503));
+const documentHighlightManager_1 = tslib_1.__importDefault(__webpack_require__(504));
+const documentLinkManager_1 = tslib_1.__importDefault(__webpack_require__(505));
+const documentSymbolManager_1 = tslib_1.__importDefault(__webpack_require__(506));
+const foldingRangeManager_1 = tslib_1.__importDefault(__webpack_require__(507));
+const formatManager_1 = tslib_1.__importDefault(__webpack_require__(508));
+const formatRangeManager_1 = tslib_1.__importDefault(__webpack_require__(509));
+const hoverManager_1 = tslib_1.__importDefault(__webpack_require__(510));
+const implementationManager_1 = tslib_1.__importDefault(__webpack_require__(511));
+const onTypeFormatManager_1 = tslib_1.__importDefault(__webpack_require__(512));
+const rangeManager_1 = tslib_1.__importDefault(__webpack_require__(513));
+const referenceManager_1 = tslib_1.__importDefault(__webpack_require__(514));
+const renameManager_1 = tslib_1.__importDefault(__webpack_require__(515));
+const signatureManager_1 = tslib_1.__importDefault(__webpack_require__(516));
+const typeDefinitionManager_1 = tslib_1.__importDefault(__webpack_require__(517));
+const workspaceSymbolsManager_1 = tslib_1.__importDefault(__webpack_require__(518));
+const manager_2 = tslib_1.__importDefault(__webpack_require__(256));
+const sources_1 = tslib_1.__importDefault(__webpack_require__(332));
+const types_1 = __webpack_require__(295);
+const complete = tslib_1.__importStar(__webpack_require__(519));
+const position_1 = __webpack_require__(311);
+const string_1 = __webpack_require__(310);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('languages');
 function fixDocumentation(str) {
     return str.replace(/&nbsp;/g, ' ');
@@ -55116,17 +70754,17 @@ exports.default = new Languages();
 //# sourceMappingURL=languages.js.map
 
 /***/ }),
-/* 406 */
+/* 498 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(282);
-const array_1 = __webpack_require__(307);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(499));
+const uuid_1 = __webpack_require__(283);
+const array_1 = __webpack_require__(308);
 const logger = __webpack_require__(64)('codeActionManager');
 class CodeActionManager extends manager_1.default {
     register(selector, provider, clientId, codeActionKinds) {
@@ -55199,15 +70837,15 @@ exports.default = CodeActionManager;
 //# sourceMappingURL=codeActionmanager.js.map
 
 /***/ }),
-/* 407 */
+/* 499 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('provider-manager');
 class Manager {
     constructor() {
@@ -55275,17 +70913,17 @@ exports.default = Manager;
 //# sourceMappingURL=manager.js.map
 
 /***/ }),
-/* 408 */
+/* 500 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(282);
-const lodash_1 = __webpack_require__(402);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(499));
+const uuid_1 = __webpack_require__(283);
+const lodash_1 = __webpack_require__(494);
 // const logger = require('../util/logger')('codeActionManager')
 class CodeLensManager extends manager_1.default {
     register(selector, provider) {
@@ -55338,16 +70976,16 @@ exports.default = CodeLensManager;
 //# sourceMappingURL=codeLensManager.js.map
 
 /***/ }),
-/* 409 */
+/* 501 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(282);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(499));
+const uuid_1 = __webpack_require__(283);
 const logger = __webpack_require__(64)('definitionManager');
 class DeclarationManager extends manager_1.default {
     register(selector, provider) {
@@ -55376,16 +71014,16 @@ exports.default = DeclarationManager;
 //# sourceMappingURL=declarationManager.js.map
 
 /***/ }),
-/* 410 */
+/* 502 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(282);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(499));
+const uuid_1 = __webpack_require__(283);
 const logger = __webpack_require__(64)('definitionManager');
 class DefinitionManager extends manager_1.default {
     register(selector, provider) {
@@ -55417,16 +71055,16 @@ exports.default = DefinitionManager;
 //# sourceMappingURL=definitionManager.js.map
 
 /***/ }),
-/* 411 */
+/* 503 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(282);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(499));
+const uuid_1 = __webpack_require__(283);
 class DocumentColorManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -55464,16 +71102,16 @@ exports.default = DocumentColorManager;
 //# sourceMappingURL=documentColorManager.js.map
 
 /***/ }),
-/* 412 */
+/* 504 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(282);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(499));
+const uuid_1 = __webpack_require__(283);
 class DocumentHighlightManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -55501,16 +71139,16 @@ exports.default = DocumentHighlightManager;
 //# sourceMappingURL=documentHighlightManager.js.map
 
 /***/ }),
-/* 413 */
+/* 505 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(282);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(499));
+const uuid_1 = __webpack_require__(283);
 class DocumentLinkManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -55562,16 +71200,16 @@ exports.default = DocumentLinkManager;
 //# sourceMappingURL=documentLinkManager.js.map
 
 /***/ }),
-/* 414 */
+/* 506 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(282);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(499));
+const uuid_1 = __webpack_require__(283);
 class DocumentSymbolManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -55599,16 +71237,16 @@ exports.default = DocumentSymbolManager;
 //# sourceMappingURL=documentSymbolManager.js.map
 
 /***/ }),
-/* 415 */
+/* 507 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(282);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(499));
+const uuid_1 = __webpack_require__(283);
 class FoldingRangeManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -55636,16 +71274,16 @@ exports.default = FoldingRangeManager;
 //# sourceMappingURL=foldingRangeManager.js.map
 
 /***/ }),
-/* 416 */
+/* 508 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(282);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(499));
+const uuid_1 = __webpack_require__(283);
 class FormatManager extends manager_1.default {
     register(selector, provider, priority = 0) {
         let item = {
@@ -55674,16 +71312,16 @@ exports.default = FormatManager;
 //# sourceMappingURL=formatManager.js.map
 
 /***/ }),
-/* 417 */
+/* 509 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(282);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(499));
+const uuid_1 = __webpack_require__(283);
 class FormatRangeManager extends manager_1.default {
     register(selector, provider, priority = 0) {
         let item = {
@@ -55712,16 +71350,16 @@ exports.default = FormatRangeManager;
 //# sourceMappingURL=formatRangeManager.js.map
 
 /***/ }),
-/* 418 */
+/* 510 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(282);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(499));
+const uuid_1 = __webpack_require__(283);
 class HoverManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -55755,16 +71393,16 @@ exports.default = HoverManager;
 //# sourceMappingURL=hoverManager.js.map
 
 /***/ }),
-/* 419 */
+/* 511 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(282);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(499));
+const uuid_1 = __webpack_require__(283);
 class ImplementationManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -55795,16 +71433,16 @@ exports.default = ImplementationManager;
 //# sourceMappingURL=implementationManager.js.map
 
 /***/ }),
-/* 420 */
+/* 512 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const string_1 = __webpack_require__(309);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const string_1 = __webpack_require__(310);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('onTypeFormatManager');
 class OnTypeFormatManager {
     constructor() {
@@ -55856,16 +71494,16 @@ exports.default = OnTypeFormatManager;
 //# sourceMappingURL=onTypeFormatManager.js.map
 
 /***/ }),
-/* 421 */
+/* 513 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(282);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(499));
+const uuid_1 = __webpack_require__(283);
 class SelectionRangeManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -55893,16 +71531,16 @@ exports.default = SelectionRangeManager;
 //# sourceMappingURL=rangeManager.js.map
 
 /***/ }),
-/* 422 */
+/* 514 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(282);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(499));
+const uuid_1 = __webpack_require__(283);
 class ReferenceManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -55933,16 +71571,16 @@ exports.default = ReferenceManager;
 //# sourceMappingURL=referenceManager.js.map
 
 /***/ }),
-/* 423 */
+/* 515 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(282);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(499));
+const uuid_1 = __webpack_require__(283);
 class RenameManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -55983,16 +71621,16 @@ exports.default = RenameManager;
 //# sourceMappingURL=renameManager.js.map
 
 /***/ }),
-/* 424 */
+/* 516 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(282);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(499));
+const uuid_1 = __webpack_require__(283);
 class SignatureManager extends manager_1.default {
     register(selector, provider, triggerCharacters) {
         let characters = triggerCharacters.reduce((p, c) => p.concat(c.split(/\s*/g)), []);
@@ -56031,16 +71669,16 @@ exports.default = SignatureManager;
 //# sourceMappingURL=signatureManager.js.map
 
 /***/ }),
-/* 425 */
+/* 517 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const manager_1 = tslib_1.__importDefault(__webpack_require__(407));
-const uuid_1 = __webpack_require__(282);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(499));
+const uuid_1 = __webpack_require__(283);
 class TypeDefinitionManager extends manager_1.default {
     register(selector, provider) {
         let item = {
@@ -56071,14 +71709,14 @@ exports.default = TypeDefinitionManager;
 //# sourceMappingURL=typeDefinitionManager.js.map
 
 /***/ }),
-/* 426 */
+/* 518 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const uuid_1 = __webpack_require__(282);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
+const uuid_1 = __webpack_require__(283);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
 class WorkspaceSymbolManager {
     constructor() {
         this.providers = new Map();
@@ -56126,15 +71764,15 @@ exports.default = WorkspaceSymbolManager;
 //# sourceMappingURL=workspaceSymbolsManager.js.map
 
 /***/ }),
-/* 427 */
+/* 519 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_types_1 = __webpack_require__(222);
-const parser_1 = __webpack_require__(328);
-const string_1 = __webpack_require__(309);
+const vscode_languageserver_types_1 = __webpack_require__(223);
+const parser_1 = __webpack_require__(329);
+const string_1 = __webpack_require__(310);
 const logger = __webpack_require__(64)('util-complete');
 function getPosition(opt) {
     let { line, linenr, colnr } = opt;
@@ -56227,17 +71865,17 @@ exports.getValidWord = getValidWord;
 //# sourceMappingURL=complete.js.map
 
 /***/ }),
-/* 428 */
+/* 520 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const array_1 = __webpack_require__(307);
-const highlight_1 = __webpack_require__(429);
-const string_1 = __webpack_require__(309);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const array_1 = __webpack_require__(308);
+const highlight_1 = __webpack_require__(521);
+const string_1 = __webpack_require__(310);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('model-floatBuffer');
 class FloatBuffer {
     constructor(nvim) {
@@ -56440,24 +72078,24 @@ function fixFiletype(filetype) {
 //# sourceMappingURL=floatBuffer.js.map
 
 /***/ }),
-/* 429 */
+/* 521 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const neovim_1 = __webpack_require__(154);
-const cp = tslib_1.__importStar(__webpack_require__(238));
-const crypto_1 = __webpack_require__(220);
+const neovim_1 = __webpack_require__(155);
+const cp = tslib_1.__importStar(__webpack_require__(239));
+const crypto_1 = __webpack_require__(221);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const os_1 = tslib_1.__importDefault(__webpack_require__(76));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const uuid_1 = __webpack_require__(282);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const lodash_1 = __webpack_require__(402);
-const processes_1 = __webpack_require__(430);
-const string_1 = __webpack_require__(309);
+const uuid_1 = __webpack_require__(283);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const lodash_1 = __webpack_require__(494);
+const processes_1 = __webpack_require__(522);
+const string_1 = __webpack_require__(310);
 const logger = __webpack_require__(64)('util-highlights');
 exports.diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint'];
 const cache = {};
@@ -56643,7 +72281,7 @@ exports.getHiglights = getHiglights;
 //# sourceMappingURL=highlight.js.map
 
 /***/ }),
-/* 430 */
+/* 522 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -56654,7 +72292,7 @@ const tslib_1 = __webpack_require__(65);
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-const cp = tslib_1.__importStar(__webpack_require__(238));
+const cp = tslib_1.__importStar(__webpack_require__(239));
 const path_1 = __webpack_require__(82);
 const isWebpack = typeof __webpack_require__ === "function";
 const isWindows = process.platform === 'win32';
@@ -56699,14 +72337,14 @@ exports.terminate = terminate;
 //# sourceMappingURL=processes.js.map
 
 /***/ }),
-/* 431 */
+/* 523 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const ansiparse_1 = __webpack_require__(432);
-const string_1 = __webpack_require__(309);
+const ansiparse_1 = __webpack_require__(524);
+const string_1 = __webpack_require__(310);
 /**
  * Build highlights, with lines and highlights
  */
@@ -56797,13 +72435,13 @@ exports.default = Highlighter;
 //# sourceMappingURL=highligher.js.map
 
 /***/ }),
-/* 432 */
+/* 524 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const string_1 = __webpack_require__(309);
+const string_1 = __webpack_require__(310);
 const foregroundColors = {
     30: 'black',
     31: 'red',
@@ -57016,21 +72654,21 @@ exports.ansiparse = ansiparse;
 //# sourceMappingURL=ansiparse.js.map
 
 /***/ }),
-/* 433 */
+/* 525 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const events_1 = __webpack_require__(197);
+const events_1 = __webpack_require__(198);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const net_1 = tslib_1.__importDefault(__webpack_require__(156));
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const language_client_1 = __webpack_require__(434);
-const types_1 = __webpack_require__(294);
-const util_1 = __webpack_require__(237);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const net_1 = tslib_1.__importDefault(__webpack_require__(157));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const language_client_1 = __webpack_require__(526);
+const types_1 = __webpack_require__(295);
+const util_1 = __webpack_require__(238);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('services');
 function getStateName(state) {
     switch (state) {
@@ -57505,38 +73143,35 @@ exports.default = new ServiceManager();
 //# sourceMappingURL=services.js.map
 
 /***/ }),
-/* 434 */
+/* 526 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-/* ---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
-const child_process_1 = tslib_1.__importDefault(__webpack_require__(238));
+/* eslint-disable no-redeclare */
+const child_process_1 = tslib_1.__importDefault(__webpack_require__(239));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const types_1 = __webpack_require__(294);
-const util_1 = __webpack_require__(237);
-const Is = tslib_1.__importStar(__webpack_require__(249));
-const processes_1 = __webpack_require__(430);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const client_1 = __webpack_require__(435);
-const colorProvider_1 = __webpack_require__(440);
-const configuration_1 = __webpack_require__(441);
-const declaration_1 = __webpack_require__(442);
-const foldingRange_1 = __webpack_require__(443);
-const implementation_1 = __webpack_require__(444);
-const progress_1 = __webpack_require__(445);
-const typeDefinition_1 = __webpack_require__(446);
-const workspaceFolders_1 = __webpack_require__(447);
-const selectionRange_1 = __webpack_require__(448);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const types_1 = __webpack_require__(295);
+const util_1 = __webpack_require__(238);
+const Is = tslib_1.__importStar(__webpack_require__(250));
+const processes_1 = __webpack_require__(522);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const client_1 = __webpack_require__(527);
+const colorProvider_1 = __webpack_require__(532);
+const configuration_1 = __webpack_require__(533);
+const declaration_1 = __webpack_require__(534);
+const foldingRange_1 = __webpack_require__(535);
+const implementation_1 = __webpack_require__(536);
+const progress_1 = __webpack_require__(537);
+const typeDefinition_1 = __webpack_require__(538);
+const workspaceFolders_1 = __webpack_require__(539);
+const selectionRange_1 = __webpack_require__(540);
 const logger = __webpack_require__(64)('language-client-index');
-tslib_1.__exportStar(__webpack_require__(435), exports);
+tslib_1.__exportStar(__webpack_require__(527), exports);
 var Executable;
 (function (Executable) {
     function is(value) {
@@ -57976,7 +73611,7 @@ var ProposedFeatures;
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 435 */
+/* 527 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -57989,18 +73624,18 @@ const tslib_1 = __webpack_require__(65);
  *--------------------------------------------------------------------------------------------*/
 /* eslint-disable */
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_uri_1 = __webpack_require__(242);
-const commands_1 = tslib_1.__importDefault(__webpack_require__(251));
-const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
-const fs_1 = __webpack_require__(303);
-const Is = tslib_1.__importStar(__webpack_require__(249));
-const lodash_1 = __webpack_require__(402);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const progressPart_1 = tslib_1.__importDefault(__webpack_require__(436));
-const async_1 = __webpack_require__(437);
-const cv = tslib_1.__importStar(__webpack_require__(438));
-const UUID = tslib_1.__importStar(__webpack_require__(439));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const vscode_uri_1 = __webpack_require__(243);
+const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
+const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
+const fs_1 = __webpack_require__(304);
+const Is = tslib_1.__importStar(__webpack_require__(250));
+const lodash_1 = __webpack_require__(494);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const progressPart_1 = tslib_1.__importDefault(__webpack_require__(528));
+const async_1 = __webpack_require__(529);
+const cv = tslib_1.__importStar(__webpack_require__(530));
+const UUID = tslib_1.__importStar(__webpack_require__(531));
 const logger = __webpack_require__(64)('language-client-client');
 class ConsoleLogger {
     error(message) {
@@ -60618,7 +76253,7 @@ exports.BaseLanguageClient = BaseLanguageClient;
 //# sourceMappingURL=client.js.map
 
 /***/ }),
-/* 436 */
+/* 528 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -60629,9 +76264,9 @@ exports.BaseLanguageClient = BaseLanguageClient;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const util_1 = __webpack_require__(237);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const util_1 = __webpack_require__(238);
 const progressParts = new Map();
 class ProgressPart {
     constructor(_client, _token) {
@@ -60716,7 +76351,7 @@ exports.default = new ProgressManager();
 //# sourceMappingURL=progressPart.js.map
 
 /***/ }),
-/* 437 */
+/* 529 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -60798,13 +76433,13 @@ exports.Delayer = Delayer;
 //# sourceMappingURL=async.js.map
 
 /***/ }),
-/* 438 */
+/* 530 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const lodash_1 = __webpack_require__(402);
+const lodash_1 = __webpack_require__(494);
 function asLanguageIds(documentSelector) {
     let res = documentSelector.map(filter => {
         if (typeof filter == 'string') {
@@ -60926,13 +76561,13 @@ exports.asCodeLensParams = asCodeLensParams;
 //# sourceMappingURL=converter.js.map
 
 /***/ }),
-/* 439 */
+/* 531 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const uuid_1 = __webpack_require__(282);
+const uuid_1 = __webpack_require__(283);
 function generateUuid() {
     return uuid_1.v4();
 }
@@ -60940,7 +76575,7 @@ exports.generateUuid = generateUuid;
 //# sourceMappingURL=uuid.js.map
 
 /***/ }),
-/* 440 */
+/* 532 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -60951,9 +76586,9 @@ exports.generateUuid = generateUuid;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
-const client_1 = __webpack_require__(435);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
+const client_1 = __webpack_require__(527);
 function ensure(target, key) {
     if (target[key] === void 0) {
         target[key] = {};
@@ -61018,7 +76653,7 @@ exports.ColorProviderFeature = ColorProviderFeature;
 //# sourceMappingURL=colorProvider.js.map
 
 /***/ }),
-/* 441 */
+/* 533 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61029,8 +76664,8 @@ const tslib_1 = __webpack_require__(65);
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('languageclient-configuration');
 class ConfigurationFeature {
     constructor(_client) {
@@ -61092,7 +76727,7 @@ exports.ConfigurationFeature = ConfigurationFeature;
 //# sourceMappingURL=configuration.js.map
 
 /***/ }),
-/* 442 */
+/* 534 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61103,10 +76738,10 @@ exports.ConfigurationFeature = ConfigurationFeature;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
-const client_1 = __webpack_require__(435);
-const converter_1 = __webpack_require__(438);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
+const client_1 = __webpack_require__(527);
+const converter_1 = __webpack_require__(530);
 function ensure(target, key) {
     if (target[key] === void 0) {
         target[key] = {};
@@ -61150,7 +76785,7 @@ exports.DeclarationFeature = DeclarationFeature;
 //# sourceMappingURL=declaration.js.map
 
 /***/ }),
-/* 443 */
+/* 535 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61161,9 +76796,9 @@ exports.DeclarationFeature = DeclarationFeature;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
-const client_1 = __webpack_require__(435);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
+const client_1 = __webpack_require__(527);
 function ensure(target, key) {
     if (target[key] === void 0) {
         target[key] = {};
@@ -61213,7 +76848,7 @@ exports.FoldingRangeFeature = FoldingRangeFeature;
 //# sourceMappingURL=foldingRange.js.map
 
 /***/ }),
-/* 444 */
+/* 536 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61224,10 +76859,10 @@ const tslib_1 = __webpack_require__(65);
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
-const client_1 = __webpack_require__(435);
-const cv = tslib_1.__importStar(__webpack_require__(438));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
+const client_1 = __webpack_require__(527);
+const cv = tslib_1.__importStar(__webpack_require__(530));
 function ensure(target, key) {
     if (target[key] === void 0) {
         target[key] = {};
@@ -61271,7 +76906,7 @@ exports.ImplementationFeature = ImplementationFeature;
 //# sourceMappingURL=implementation.js.map
 
 /***/ }),
-/* 445 */
+/* 537 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61282,8 +76917,8 @@ exports.ImplementationFeature = ImplementationFeature;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const progressPart_1 = tslib_1.__importDefault(__webpack_require__(436));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const progressPart_1 = tslib_1.__importDefault(__webpack_require__(528));
 // const logger = require('../util/logger')('language-client-progress')
 function ensure(target, key) {
     if (target[key] === void 0) {
@@ -61309,7 +76944,7 @@ exports.ProgressFeature = ProgressFeature;
 //# sourceMappingURL=progress.js.map
 
 /***/ }),
-/* 446 */
+/* 538 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61320,10 +76955,10 @@ const tslib_1 = __webpack_require__(65);
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
-const client_1 = __webpack_require__(435);
-const cv = tslib_1.__importStar(__webpack_require__(438));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
+const client_1 = __webpack_require__(527);
+const cv = tslib_1.__importStar(__webpack_require__(530));
 function ensure(target, key) {
     if (target[key] === void 0) {
         target[key] = {};
@@ -61367,7 +77002,7 @@ exports.TypeDefinitionFeature = TypeDefinitionFeature;
 //# sourceMappingURL=typeDefinition.js.map
 
 /***/ }),
-/* 447 */
+/* 539 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61378,9 +77013,9 @@ exports.TypeDefinitionFeature = TypeDefinitionFeature;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const UUID = tslib_1.__importStar(__webpack_require__(439));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const UUID = tslib_1.__importStar(__webpack_require__(531));
 const logger = __webpack_require__(64)('language-client-workspaceFolder');
 function access(target, key) {
     if (target === void 0) {
@@ -61509,7 +77144,7 @@ exports.WorkspaceFoldersFeature = WorkspaceFoldersFeature;
 //# sourceMappingURL=workspaceFolders.js.map
 
 /***/ }),
-/* 448 */
+/* 540 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61520,9 +77155,9 @@ exports.WorkspaceFoldersFeature = WorkspaceFoldersFeature;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
-const client_1 = __webpack_require__(435);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
+const client_1 = __webpack_require__(527);
 function ensure(target, key) {
     if (target[key] === void 0) {
         target[key] = {};
@@ -61571,39 +77206,39 @@ exports.SelectionRangeFeature = SelectionRangeFeature;
 //# sourceMappingURL=selectionRange.js.map
 
 /***/ }),
-/* 449 */
+/* 541 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(239));
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const extensions_1 = tslib_1.__importDefault(__webpack_require__(332));
-const util_1 = __webpack_require__(237);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const highligher_1 = tslib_1.__importDefault(__webpack_require__(431));
-const configuration_1 = tslib_1.__importDefault(__webpack_require__(450));
-const history_1 = tslib_1.__importDefault(__webpack_require__(451));
-const mappings_1 = tslib_1.__importDefault(__webpack_require__(453));
-const prompt_1 = tslib_1.__importDefault(__webpack_require__(454));
-const commands_1 = tslib_1.__importDefault(__webpack_require__(488));
-const diagnostics_1 = tslib_1.__importDefault(__webpack_require__(490));
-const extensions_2 = tslib_1.__importDefault(__webpack_require__(492));
-const folders_1 = tslib_1.__importDefault(__webpack_require__(493));
-const links_1 = tslib_1.__importDefault(__webpack_require__(494));
-const lists_1 = tslib_1.__importDefault(__webpack_require__(495));
-const location_1 = tslib_1.__importDefault(__webpack_require__(491));
-const outline_1 = tslib_1.__importDefault(__webpack_require__(496));
-const output_1 = tslib_1.__importDefault(__webpack_require__(498));
-const services_1 = tslib_1.__importDefault(__webpack_require__(499));
-const sources_1 = tslib_1.__importDefault(__webpack_require__(500));
-const symbols_1 = tslib_1.__importDefault(__webpack_require__(501));
-const actions_1 = tslib_1.__importDefault(__webpack_require__(503));
-const ui_1 = tslib_1.__importDefault(__webpack_require__(504));
-const worker_1 = tslib_1.__importDefault(__webpack_require__(505));
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(240));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const extensions_1 = tslib_1.__importDefault(__webpack_require__(333));
+const util_1 = __webpack_require__(238);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const highligher_1 = tslib_1.__importDefault(__webpack_require__(523));
+const configuration_1 = tslib_1.__importDefault(__webpack_require__(542));
+const history_1 = tslib_1.__importDefault(__webpack_require__(543));
+const mappings_1 = tslib_1.__importDefault(__webpack_require__(545));
+const prompt_1 = tslib_1.__importDefault(__webpack_require__(546));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(580));
+const diagnostics_1 = tslib_1.__importDefault(__webpack_require__(582));
+const extensions_2 = tslib_1.__importDefault(__webpack_require__(584));
+const folders_1 = tslib_1.__importDefault(__webpack_require__(585));
+const links_1 = tslib_1.__importDefault(__webpack_require__(586));
+const lists_1 = tslib_1.__importDefault(__webpack_require__(587));
+const location_1 = tslib_1.__importDefault(__webpack_require__(583));
+const outline_1 = tslib_1.__importDefault(__webpack_require__(588));
+const output_1 = tslib_1.__importDefault(__webpack_require__(590));
+const services_1 = tslib_1.__importDefault(__webpack_require__(591));
+const sources_1 = tslib_1.__importDefault(__webpack_require__(592));
+const symbols_1 = tslib_1.__importDefault(__webpack_require__(593));
+const actions_1 = tslib_1.__importDefault(__webpack_require__(595));
+const ui_1 = tslib_1.__importDefault(__webpack_require__(596));
+const worker_1 = tslib_1.__importDefault(__webpack_require__(597));
 const logger = __webpack_require__(64)('list-manager');
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>'];
 class ListManager {
@@ -62431,15 +78066,15 @@ exports.default = new ListManager();
 //# sourceMappingURL=manager.js.map
 
 /***/ }),
-/* 450 */
+/* 542 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const events_1 = tslib_1.__importDefault(__webpack_require__(197));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const events_1 = __webpack_require__(198);
 exports.validKeys = [
     '<esc>',
     '<space>',
@@ -62513,7 +78148,7 @@ exports.validKeys = [
     '<A-y>',
     '<A-z>',
 ];
-class ListConfiguration extends events_1.default {
+class ListConfiguration extends events_1.EventEmitter {
     constructor() {
         super();
         this.configuration = workspace_1.default.getConfiguration('list');
@@ -62551,15 +78186,15 @@ exports.default = ListConfiguration;
 //# sourceMappingURL=configuration.js.map
 
 /***/ }),
-/* 451 */
+/* 543 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const fuzzy_1 = __webpack_require__(452);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const fuzzy_1 = __webpack_require__(544);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('list-history');
 class History {
     constructor(manager) {
@@ -62639,7 +78274,7 @@ exports.default = History;
 //# sourceMappingURL=history.js.map
 
 /***/ }),
-/* 452 */
+/* 544 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -62702,16 +78337,16 @@ exports.fuzzyMatch = fuzzyMatch;
 //# sourceMappingURL=fuzzy.js.map
 
 /***/ }),
-/* 453 */
+/* 545 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-__webpack_require__(399);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const configuration_1 = __webpack_require__(450);
+__webpack_require__(491);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const configuration_1 = __webpack_require__(542);
 const logger = __webpack_require__(64)('list-mappings');
 class Mappings {
     constructor(manager, nvim, config) {
@@ -63025,16 +78660,16 @@ exports.default = Mappings;
 //# sourceMappingURL=mappings.js.map
 
 /***/ }),
-/* 454 */
+/* 546 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const clipboardy_1 = tslib_1.__importDefault(__webpack_require__(455));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const clipboardy_1 = tslib_1.__importDefault(__webpack_require__(547));
 const logger = __webpack_require__(64)('list-prompt');
 class Prompt {
     constructor(nvim, config) {
@@ -63242,16 +78877,16 @@ exports.default = Prompt;
 //# sourceMappingURL=prompt.js.map
 
 /***/ }),
-/* 455 */
+/* 547 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const isWSL = __webpack_require__(456);
-const termux = __webpack_require__(458);
-const linux = __webpack_require__(484);
-const macos = __webpack_require__(485);
-const windows = __webpack_require__(486);
+const isWSL = __webpack_require__(548);
+const termux = __webpack_require__(550);
+const linux = __webpack_require__(576);
+const macos = __webpack_require__(577);
+const windows = __webpack_require__(578);
 
 const platformLib = (() => {
 	switch (process.platform) {
@@ -63297,14 +78932,14 @@ exports.readSync = () => platformLib.pasteSync({stripEof: false}).stdout;
 
 
 /***/ }),
-/* 456 */
+/* 548 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 const os = __webpack_require__(76);
 const fs = __webpack_require__(66);
-const isDocker = __webpack_require__(457);
+const isDocker = __webpack_require__(549);
 
 const isWsl = () => {
 	if (process.platform !== 'linux') {
@@ -63335,7 +78970,7 @@ if (process.env.__IS_WSL_TEST__) {
 
 
 /***/ }),
-/* 457 */
+/* 549 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -63371,12 +79006,12 @@ module.exports = () => {
 
 
 /***/ }),
-/* 458 */
+/* 550 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const execa = __webpack_require__(459);
+const execa = __webpack_require__(551);
 
 const handler = error => {
 	if (error.code === 'ENOENT') {
@@ -63419,22 +79054,22 @@ module.exports = {
 
 
 /***/ }),
-/* 459 */
+/* 551 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 const path = __webpack_require__(82);
-const childProcess = __webpack_require__(238);
-const crossSpawn = __webpack_require__(460);
-const stripEof = __webpack_require__(472);
-const npmRunPath = __webpack_require__(473);
-const isStream = __webpack_require__(474);
-const _getStream = __webpack_require__(475);
-const pFinally = __webpack_require__(479);
-const onExit = __webpack_require__(480);
-const errname = __webpack_require__(482);
-const stdio = __webpack_require__(483);
+const childProcess = __webpack_require__(239);
+const crossSpawn = __webpack_require__(552);
+const stripEof = __webpack_require__(564);
+const npmRunPath = __webpack_require__(565);
+const isStream = __webpack_require__(566);
+const _getStream = __webpack_require__(567);
+const pFinally = __webpack_require__(571);
+const onExit = __webpack_require__(572);
+const errname = __webpack_require__(574);
+const stdio = __webpack_require__(575);
 
 const TEN_MEGABYTES = 1000 * 1000 * 10;
 
@@ -63787,15 +79422,15 @@ module.exports.shellSync = (cmd, opts) => handleShell(module.exports.sync, cmd, 
 
 
 /***/ }),
-/* 460 */
+/* 552 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-const cp = __webpack_require__(238);
-const parse = __webpack_require__(461);
-const enoent = __webpack_require__(471);
+const cp = __webpack_require__(239);
+const parse = __webpack_require__(553);
+const enoent = __webpack_require__(563);
 
 function spawn(command, args, options) {
     // Parse the arguments
@@ -63833,18 +79468,18 @@ module.exports._enoent = enoent;
 
 
 /***/ }),
-/* 461 */
+/* 553 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 const path = __webpack_require__(82);
-const niceTry = __webpack_require__(462);
-const resolveCommand = __webpack_require__(463);
-const escape = __webpack_require__(466);
-const readShebang = __webpack_require__(467);
-const semver = __webpack_require__(470);
+const niceTry = __webpack_require__(554);
+const resolveCommand = __webpack_require__(555);
+const escape = __webpack_require__(558);
+const readShebang = __webpack_require__(559);
+const semver = __webpack_require__(562);
 
 const isWin = process.platform === 'win32';
 const isExecutableRegExp = /\.(?:com|exe)$/i;
@@ -63965,7 +79600,7 @@ module.exports = parse;
 
 
 /***/ }),
-/* 462 */
+/* 554 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -63983,15 +79618,15 @@ module.exports = function(fn) {
 }
 
 /***/ }),
-/* 463 */
+/* 555 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 const path = __webpack_require__(82);
-const which = __webpack_require__(464);
-const pathKey = __webpack_require__(465)();
+const which = __webpack_require__(556);
+const pathKey = __webpack_require__(557)();
 
 function resolveCommandAttempt(parsed, withoutPathExt) {
     const cwd = process.cwd();
@@ -64037,7 +79672,7 @@ module.exports = resolveCommand;
 
 
 /***/ }),
-/* 464 */
+/* 556 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = which
@@ -64049,7 +79684,7 @@ var isWindows = process.platform === 'win32' ||
 
 var path = __webpack_require__(82)
 var COLON = isWindows ? ';' : ':'
-var isexe = __webpack_require__(244)
+var isexe = __webpack_require__(245)
 
 function getNotFoundError (cmd) {
   var er = new Error('not found: ' + cmd)
@@ -64178,7 +79813,7 @@ function whichSync (cmd, opt) {
 
 
 /***/ }),
-/* 465 */
+/* 557 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -64198,7 +79833,7 @@ module.exports = opts => {
 
 
 /***/ }),
-/* 466 */
+/* 558 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -64250,14 +79885,14 @@ module.exports.argument = escapeArgument;
 
 
 /***/ }),
-/* 467 */
+/* 559 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 const fs = __webpack_require__(66);
-const shebangCommand = __webpack_require__(468);
+const shebangCommand = __webpack_require__(560);
 
 function readShebang(command) {
     // Read the first 150 bytes from the file
@@ -64289,12 +79924,12 @@ module.exports = readShebang;
 
 
 /***/ }),
-/* 468 */
+/* 560 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-var shebangRegex = __webpack_require__(469);
+var shebangRegex = __webpack_require__(561);
 
 module.exports = function (str) {
 	var match = str.match(shebangRegex);
@@ -64315,7 +79950,7 @@ module.exports = function (str) {
 
 
 /***/ }),
-/* 469 */
+/* 561 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -64324,7 +79959,7 @@ module.exports = /^#!.*/;
 
 
 /***/ }),
-/* 470 */
+/* 562 */
 /***/ (function(module, exports) {
 
 exports = module.exports = SemVer
@@ -65813,7 +81448,7 @@ function coerce (version) {
 
 
 /***/ }),
-/* 471 */
+/* 563 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -65879,7 +81514,7 @@ module.exports = {
 
 
 /***/ }),
-/* 472 */
+/* 564 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -65901,13 +81536,13 @@ module.exports = function (x) {
 
 
 /***/ }),
-/* 473 */
+/* 565 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 const path = __webpack_require__(82);
-const pathKey = __webpack_require__(465);
+const pathKey = __webpack_require__(557);
 
 module.exports = opts => {
 	opts = Object.assign({
@@ -65947,7 +81582,7 @@ module.exports.env = opts => {
 
 
 /***/ }),
-/* 474 */
+/* 566 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -65975,13 +81610,13 @@ isStream.transform = function (stream) {
 
 
 /***/ }),
-/* 475 */
+/* 567 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const pump = __webpack_require__(476);
-const bufferStream = __webpack_require__(478);
+const pump = __webpack_require__(568);
+const bufferStream = __webpack_require__(570);
 
 class MaxBufferError extends Error {
 	constructor() {
@@ -66032,11 +81667,11 @@ module.exports.MaxBufferError = MaxBufferError;
 
 
 /***/ }),
-/* 476 */
+/* 568 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var once = __webpack_require__(281)
-var eos = __webpack_require__(477)
+var once = __webpack_require__(282)
+var eos = __webpack_require__(569)
 var fs = __webpack_require__(66) // we only need fs to get the ReadStream and WriteStream prototypes
 
 var noop = function () {}
@@ -66120,10 +81755,10 @@ module.exports = pump
 
 
 /***/ }),
-/* 477 */
+/* 569 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var once = __webpack_require__(281);
+var once = __webpack_require__(282);
 
 var noop = function() {};
 
@@ -66220,7 +81855,7 @@ module.exports = eos;
 
 
 /***/ }),
-/* 478 */
+/* 570 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -66278,7 +81913,7 @@ module.exports = options => {
 
 
 /***/ }),
-/* 479 */
+/* 571 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -66300,17 +81935,17 @@ module.exports = (promise, onFinally) => {
 
 
 /***/ }),
-/* 480 */
+/* 572 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // Note: since nyc uses this module to output coverage, any lines
 // that are in the direct sync flow of nyc's outputCoverage are
 // ignored, since we can never get coverage for them.
 var assert = __webpack_require__(108)
-var signals = __webpack_require__(481)
+var signals = __webpack_require__(573)
 var isWin = /^win/i.test(process.platform)
 
-var EE = __webpack_require__(197)
+var EE = __webpack_require__(198)
 /* istanbul ignore if */
 if (typeof EE !== 'function') {
   EE = EE.EventEmitter
@@ -66469,7 +82104,7 @@ function processEmit (ev, arg) {
 
 
 /***/ }),
-/* 481 */
+/* 573 */
 /***/ (function(module, exports) {
 
 // This is not the set of all possible signals.
@@ -66528,7 +82163,7 @@ if (process.platform === 'linux') {
 
 
 /***/ }),
-/* 482 */
+/* 574 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -66574,7 +82209,7 @@ function errname(uv, code) {
 
 
 /***/ }),
-/* 483 */
+/* 575 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -66622,13 +82257,13 @@ module.exports = opts => {
 
 
 /***/ }),
-/* 484 */
+/* 576 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 const path = __webpack_require__(82);
-const execa = __webpack_require__(459);
+const execa = __webpack_require__(551);
 
 const xsel = 'xsel';
 const xselFallback = path.join(__dirname, '../fallbacks/linux/xsel');
@@ -66686,12 +82321,12 @@ module.exports = {
 
 
 /***/ }),
-/* 485 */
+/* 577 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const execa = __webpack_require__(459);
+const execa = __webpack_require__(551);
 
 const env = {
 	...process.env,
@@ -66707,14 +82342,14 @@ module.exports = {
 
 
 /***/ }),
-/* 486 */
+/* 578 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 const path = __webpack_require__(82);
-const execa = __webpack_require__(459);
-const arch = __webpack_require__(487);
+const execa = __webpack_require__(551);
+const arch = __webpack_require__(579);
 
 // Binaries from: https://github.com/sindresorhus/win-clipboard
 const windowBinaryPath = arch() === 'x64' ?
@@ -66730,10 +82365,10 @@ module.exports = {
 
 
 /***/ }),
-/* 487 */
+/* 579 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var cp = __webpack_require__(238)
+var cp = __webpack_require__(239)
 var fs = __webpack_require__(66)
 var path = __webpack_require__(82)
 
@@ -66795,17 +82430,17 @@ module.exports = function arch () {
 
 
 /***/ }),
-/* 488 */
+/* 580 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const commands_1 = tslib_1.__importDefault(__webpack_require__(251));
-const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
 class CommandsList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -66858,7 +82493,7 @@ function score(list, key) {
 //# sourceMappingURL=commands.js.map
 
 /***/ }),
-/* 489 */
+/* 581 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -66866,13 +82501,13 @@ function score(list, key) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const readline_1 = tslib_1.__importDefault(__webpack_require__(205));
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_uri_1 = __webpack_require__(242);
-const util_1 = __webpack_require__(237);
-const position_1 = __webpack_require__(310);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const configuration_1 = tslib_1.__importDefault(__webpack_require__(450));
+const readline_1 = tslib_1.__importDefault(__webpack_require__(206));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const vscode_uri_1 = __webpack_require__(243);
+const util_1 = __webpack_require__(238);
+const position_1 = __webpack_require__(311);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const configuration_1 = tslib_1.__importDefault(__webpack_require__(542));
 const logger = __webpack_require__(64)('list-basic');
 class BasicList {
     constructor(nvim) {
@@ -67169,7 +82804,7 @@ exports.default = BasicList;
 //# sourceMappingURL=basic.js.map
 
 /***/ }),
-/* 490 */
+/* 582 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -67177,9 +82812,9 @@ exports.default = BasicList;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const manager_1 = tslib_1.__importDefault(__webpack_require__(252));
-const location_1 = tslib_1.__importDefault(__webpack_require__(491));
-const fs_1 = __webpack_require__(303);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(253));
+const location_1 = tslib_1.__importDefault(__webpack_require__(583));
+const fs_1 = __webpack_require__(304);
 const logger = __webpack_require__(64)('list-symbols');
 class DiagnosticsList extends location_1.default {
     constructor() {
@@ -67221,19 +82856,19 @@ exports.default = DiagnosticsList;
 //# sourceMappingURL=diagnostics.js.map
 
 /***/ }),
-/* 491 */
+/* 583 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_types_1 = __webpack_require__(222);
+const vscode_languageserver_types_1 = __webpack_require__(223);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const vscode_uri_1 = __webpack_require__(242);
-const fs_1 = __webpack_require__(303);
+const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const vscode_uri_1 = __webpack_require__(243);
+const fs_1 = __webpack_require__(304);
 const logger = __webpack_require__(64)('list-location');
 class LocationList extends basic_1.default {
     constructor(nvim) {
@@ -67300,23 +82935,23 @@ exports.default = LocationList;
 //# sourceMappingURL=location.js.map
 
 /***/ }),
-/* 492 */
+/* 584 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const rimraf_1 = tslib_1.__importDefault(__webpack_require__(266));
+const rimraf_1 = tslib_1.__importDefault(__webpack_require__(267));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const os_1 = tslib_1.__importDefault(__webpack_require__(76));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const vscode_uri_1 = __webpack_require__(242);
-const extensions_1 = tslib_1.__importDefault(__webpack_require__(332));
-const util_1 = __webpack_require__(237);
-const fs_2 = __webpack_require__(303);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
+const vscode_uri_1 = __webpack_require__(243);
+const extensions_1 = tslib_1.__importDefault(__webpack_require__(333));
+const util_1 = __webpack_require__(238);
+const fs_2 = __webpack_require__(304);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
 const logger = __webpack_require__(64)('list-extensions');
 class ExtensionList extends basic_1.default {
     constructor(nvim) {
@@ -67488,7 +83123,7 @@ function getPriority(stat) {
 //# sourceMappingURL=extensions.js.map
 
 /***/ }),
-/* 493 */
+/* 585 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -67496,11 +83131,11 @@ function getPriority(stat) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const vscode_uri_1 = __webpack_require__(242);
-const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(259));
-const fs_1 = __webpack_require__(303);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
+const vscode_uri_1 = __webpack_require__(243);
+const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(260));
+const fs_1 = __webpack_require__(304);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
 class FoldList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -67542,20 +83177,20 @@ exports.default = FoldList;
 //# sourceMappingURL=folders.js.map
 
 /***/ }),
-/* 494 */
+/* 586 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
-const vscode_languageserver_types_1 = __webpack_require__(222);
-const vscode_uri_1 = __webpack_require__(242);
-const fs_1 = __webpack_require__(303);
+const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
+const vscode_languageserver_types_1 = __webpack_require__(223);
+const vscode_uri_1 = __webpack_require__(243);
+const fs_1 = __webpack_require__(304);
 class LinksList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -67625,15 +83260,15 @@ function formatUri(uri) {
 //# sourceMappingURL=links.js.map
 
 /***/ }),
-/* 495 */
+/* 587 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
-const mru_1 = tslib_1.__importDefault(__webpack_require__(313));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
+const mru_1 = tslib_1.__importDefault(__webpack_require__(314));
 class LinksList extends basic_1.default {
     constructor(nvim, listMap) {
         super(nvim);
@@ -67684,7 +83319,7 @@ function score(list, key) {
 //# sourceMappingURL=lists.js.map
 
 /***/ }),
-/* 496 */
+/* 588 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -67692,15 +83327,15 @@ function score(list, key) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const vscode_languageserver_types_1 = __webpack_require__(222);
-const vscode_uri_1 = __webpack_require__(242);
-const which_1 = tslib_1.__importDefault(__webpack_require__(243));
-const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
-const util_1 = __webpack_require__(237);
-const fs_1 = __webpack_require__(303);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const location_1 = tslib_1.__importDefault(__webpack_require__(491));
-const convert_1 = __webpack_require__(497);
+const vscode_languageserver_types_1 = __webpack_require__(223);
+const vscode_uri_1 = __webpack_require__(243);
+const which_1 = tslib_1.__importDefault(__webpack_require__(244));
+const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
+const util_1 = __webpack_require__(238);
+const fs_1 = __webpack_require__(304);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const location_1 = tslib_1.__importDefault(__webpack_require__(583));
+const convert_1 = __webpack_require__(589);
 const logger = __webpack_require__(64)('list-symbols');
 function getFilterText(s, kind) {
     return `${s.name}${kind ? ` ${kind}` : ''}`;
@@ -67854,13 +83489,13 @@ function sortSymbols(a, b) {
 //# sourceMappingURL=outline.js.map
 
 /***/ }),
-/* 497 */
+/* 589 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
 function getSymbolKind(kind) {
     switch (kind) {
         case vscode_languageserver_protocol_1.SymbolKind.File:
@@ -67923,15 +83558,15 @@ exports.getSymbolKind = getSymbolKind;
 //# sourceMappingURL=convert.js.map
 
 /***/ }),
-/* 498 */
+/* 590 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
 class OutputList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -67951,16 +83586,16 @@ exports.default = OutputList;
 //# sourceMappingURL=output.js.map
 
 /***/ }),
-/* 499 */
+/* 591 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const services_1 = tslib_1.__importDefault(__webpack_require__(433));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
-const util_1 = __webpack_require__(237);
+const services_1 = tslib_1.__importDefault(__webpack_require__(525));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
+const util_1 = __webpack_require__(238);
 class ServicesList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -68004,18 +83639,18 @@ exports.default = ServicesList;
 //# sourceMappingURL=services.js.map
 
 /***/ }),
-/* 500 */
+/* 592 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_types_1 = __webpack_require__(222);
-const vscode_uri_1 = __webpack_require__(242);
-const sources_1 = tslib_1.__importDefault(__webpack_require__(331));
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
+const vscode_languageserver_types_1 = __webpack_require__(223);
+const vscode_uri_1 = __webpack_require__(243);
+const sources_1 = tslib_1.__importDefault(__webpack_require__(332));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
 const logger = __webpack_require__(64)('list-sources');
 class SourcesList extends basic_1.default {
     constructor(nvim) {
@@ -68091,7 +83726,7 @@ function fixWidth(str, width) {
 //# sourceMappingURL=sources.js.map
 
 /***/ }),
-/* 501 */
+/* 593 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -68099,14 +83734,14 @@ function fixWidth(str, width) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(270));
-const vscode_uri_1 = __webpack_require__(242);
-const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const location_1 = tslib_1.__importDefault(__webpack_require__(491));
-const convert_1 = __webpack_require__(497);
-const fs_1 = __webpack_require__(303);
-const fzy_1 = __webpack_require__(502);
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
+const vscode_uri_1 = __webpack_require__(243);
+const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const location_1 = tslib_1.__importDefault(__webpack_require__(583));
+const convert_1 = __webpack_require__(589);
+const fs_1 = __webpack_require__(304);
+const fzy_1 = __webpack_require__(594);
 const logger = __webpack_require__(64)('list-symbols');
 class Symbols extends location_1.default {
     constructor() {
@@ -68205,7 +83840,7 @@ exports.default = Symbols;
 //# sourceMappingURL=symbols.js.map
 
 /***/ }),
-/* 502 */
+/* 594 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -68376,20 +84011,20 @@ exports.hasMatch = hasMatch;
 //# sourceMappingURL=fzy.js.map
 
 /***/ }),
-/* 503 */
+/* 595 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const commands_1 = tslib_1.__importDefault(__webpack_require__(251));
-const manager_1 = tslib_1.__importDefault(__webpack_require__(252));
-const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
-const services_1 = tslib_1.__importDefault(__webpack_require__(433));
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(489));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
+const manager_1 = tslib_1.__importDefault(__webpack_require__(253));
+const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
+const services_1 = tslib_1.__importDefault(__webpack_require__(525));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
 const logger = __webpack_require__(64)('list-actions');
 class ActionsList extends basic_1.default {
     constructor(nvim) {
@@ -68504,18 +84139,18 @@ exports.default = ActionsList;
 //# sourceMappingURL=actions.js.map
 
 /***/ }),
-/* 504 */
+/* 596 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const util_1 = __webpack_require__(237);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const debounce = __webpack_require__(239);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const util_1 = __webpack_require__(238);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const debounce = __webpack_require__(240);
 const logger = __webpack_require__(64)('list-ui');
 class ListUI {
     constructor(nvim, config) {
@@ -69000,21 +84635,21 @@ exports.default = ListUI;
 //# sourceMappingURL=ui.js.map
 
 /***/ }),
-/* 505 */
+/* 597 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_uri_1 = __webpack_require__(242);
-const ansiparse_1 = __webpack_require__(432);
-const diff_1 = __webpack_require__(308);
-const fzy_1 = __webpack_require__(502);
-const score_1 = __webpack_require__(506);
-const string_1 = __webpack_require__(309);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const vscode_uri_1 = __webpack_require__(243);
+const ansiparse_1 = __webpack_require__(524);
+const diff_1 = __webpack_require__(309);
+const fzy_1 = __webpack_require__(594);
+const score_1 = __webpack_require__(598);
+const string_1 = __webpack_require__(310);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 const logger = __webpack_require__(64)('list-worker');
 const controlCode = '\x1b';
@@ -69433,14 +85068,14 @@ function getItemUri(item) {
 //# sourceMappingURL=worker.js.map
 
 /***/ }),
-/* 506 */
+/* 598 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = __webpack_require__(82);
-const fuzzy_1 = __webpack_require__(452);
+const fuzzy_1 = __webpack_require__(544);
 // first is start or path start +1, fuzzy +0.5
 // next is followed of path start +1, fuzzy +0.5
 // filename startsWith +1, fuzzy +0.5
@@ -69584,16 +85219,16 @@ function bestResult(results) {
 //# sourceMappingURL=score.js.map
 
 /***/ }),
-/* 507 */
+/* 599 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const types_1 = __webpack_require__(294);
-const string_1 = __webpack_require__(309);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const types_1 = __webpack_require__(295);
+const string_1 = __webpack_require__(310);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('model-source');
 class Source {
     constructor(option) {
@@ -69751,17 +85386,17 @@ exports.default = Source;
 //# sourceMappingURL=source.js.map
 
 /***/ }),
-/* 508 */
+/* 600 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const fuzzy_1 = __webpack_require__(452);
-const string_1 = __webpack_require__(309);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const source_1 = tslib_1.__importDefault(__webpack_require__(507));
+const fuzzy_1 = __webpack_require__(544);
+const string_1 = __webpack_require__(310);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const source_1 = tslib_1.__importDefault(__webpack_require__(599));
 const logger = __webpack_require__(64)('model-source-vim');
 class VimSource extends source_1.default {
     async callOptinalFunc(fname, args) {
@@ -69863,16 +85498,16 @@ exports.default = VimSource;
 //# sourceMappingURL=source-vim.js.map
 
 /***/ }),
-/* 509 */
+/* 601 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const source_1 = tslib_1.__importDefault(__webpack_require__(507));
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const source_1 = tslib_1.__importDefault(__webpack_require__(599));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('source-around');
 class Around extends source_1.default {
     constructor() {
@@ -69911,16 +85546,16 @@ exports.regist = regist;
 //# sourceMappingURL=around.js.map
 
 /***/ }),
-/* 510 */
+/* 602 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const source_1 = tslib_1.__importDefault(__webpack_require__(507));
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const source_1 = tslib_1.__importDefault(__webpack_require__(599));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('source-buffer');
 class Buffer extends source_1.default {
     constructor() {
@@ -69973,7 +85608,7 @@ exports.regist = regist;
 //# sourceMappingURL=buffer.js.map
 
 /***/ }),
-/* 511 */
+/* 603 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -69981,14 +85616,14 @@ exports.regist = regist;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(270));
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const util_1 = tslib_1.__importDefault(__webpack_require__(74));
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const source_1 = tslib_1.__importDefault(__webpack_require__(507));
-const fs_2 = __webpack_require__(303);
-const string_1 = __webpack_require__(309);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const source_1 = tslib_1.__importDefault(__webpack_require__(599));
+const fs_2 = __webpack_require__(304);
+const string_1 = __webpack_require__(310);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('source-file');
 const pathRe = /(?:\.{0,2}|~|\$HOME|([\w]+)|)\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/;
 class File extends source_1.default {
@@ -70123,16 +85758,16 @@ exports.regist = regist;
 //# sourceMappingURL=file.js.map
 
 /***/ }),
-/* 512 */
+/* 604 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const fuzzy_1 = __webpack_require__(452);
-const string_1 = __webpack_require__(309);
-const match_1 = __webpack_require__(513);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const fuzzy_1 = __webpack_require__(544);
+const string_1 = __webpack_require__(310);
+const match_1 = __webpack_require__(605);
 const logger = __webpack_require__(64)('completion-complete');
 // first time completion
 const FIRST_TIMEOUT = 500;
@@ -70500,13 +86135,13 @@ exports.default = Complete;
 //# sourceMappingURL=complete.js.map
 
 /***/ }),
-/* 513 */
+/* 605 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const fuzzy_1 = __webpack_require__(452);
+const fuzzy_1 = __webpack_require__(544);
 function nextWordIndex(start = 0, codes) {
     for (let i = start; i < codes.length; i++) {
         if (isWordIndex(i, codes)) {
@@ -70648,15 +86283,15 @@ function nextScore(codes, index, inputCodes, allowFuzzy = true) {
 //# sourceMappingURL=match.js.map
 
 /***/ }),
-/* 514 */
+/* 606 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(428));
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(520));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('floating');
 class Floating {
     constructor() {
@@ -70750,7 +86385,7 @@ exports.default = Floating;
 //# sourceMappingURL=floating.js.map
 
 /***/ }),
-/* 515 */
+/* 607 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -70798,18 +86433,18 @@ exports.default = throttle;
 //# sourceMappingURL=throttle.js.map
 
 /***/ }),
-/* 516 */
+/* 608 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_languageserver_textdocument_1 = __webpack_require__(292);
-const position_1 = __webpack_require__(310);
-const Snippets = tslib_1.__importStar(__webpack_require__(328));
-const string_1 = __webpack_require__(309);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const vscode_languageserver_textdocument_1 = __webpack_require__(293);
+const position_1 = __webpack_require__(311);
+const Snippets = tslib_1.__importStar(__webpack_require__(329));
+const string_1 = __webpack_require__(310);
 const logger = __webpack_require__(64)('snippets-snipet');
 class CocSnippet {
     constructor(_snippetString, position, _variableResolver) {
@@ -71026,7 +86661,7 @@ exports.CocSnippet = CocSnippet;
 //# sourceMappingURL=snippet.js.map
 
 /***/ }),
-/* 517 */
+/* 609 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -71034,9 +86669,9 @@ exports.CocSnippet = CocSnippet;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const path = tslib_1.__importStar(__webpack_require__(82));
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const vscode_uri_1 = __webpack_require__(242);
-const clipboardy_1 = tslib_1.__importDefault(__webpack_require__(455));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const vscode_uri_1 = __webpack_require__(243);
+const clipboardy_1 = tslib_1.__importDefault(__webpack_require__(547));
 const logger = __webpack_require__(64)('snippets-variable');
 class SnippetVariableResolver {
     constructor() {
@@ -71101,17 +86736,17 @@ exports.SnippetVariableResolver = SnippetVariableResolver;
 //# sourceMappingURL=variableResolve.js.map
 
 /***/ }),
-/* 518 */
+/* 610 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(239));
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const util_1 = __webpack_require__(519);
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(240));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const util_1 = __webpack_require__(611);
 const logger = __webpack_require__(64)('diagnostic-buffer');
 const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint'];
 // maintains sign and highlightId
@@ -71341,13 +86976,13 @@ exports.DiagnosticBuffer = DiagnosticBuffer;
 //# sourceMappingURL=buffer.js.map
 
 /***/ }),
-/* 519 */
+/* 611 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
 function getSeverityName(severity) {
     switch (severity) {
         case vscode_languageserver_protocol_1.DiagnosticSeverity.Error:
@@ -71425,15 +87060,15 @@ exports.getLocationListItem = getLocationListItem;
 //# sourceMappingURL=util.js.map
 
 /***/ }),
-/* 520 */
+/* 612 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const vscode_uri_1 = __webpack_require__(242);
-const position_1 = __webpack_require__(310);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const vscode_uri_1 = __webpack_require__(243);
+const position_1 = __webpack_require__(311);
 const logger = __webpack_require__(64)('diagnostic-collection');
 class Collection {
     constructor(owner) {
@@ -71517,23 +87152,23 @@ exports.default = Collection;
 //# sourceMappingURL=collection.js.map
 
 /***/ }),
-/* 521 */
+/* 613 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(258));
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(239));
-const vscode_languageserver_types_1 = __webpack_require__(222);
-const vscode_languageserver_textdocument_1 = __webpack_require__(292);
-const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const util_1 = __webpack_require__(237);
-const array_1 = __webpack_require__(307);
-const position_1 = __webpack_require__(310);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const range_1 = tslib_1.__importDefault(__webpack_require__(522));
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(259));
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(240));
+const vscode_languageserver_types_1 = __webpack_require__(223);
+const vscode_languageserver_textdocument_1 = __webpack_require__(293);
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const util_1 = __webpack_require__(238);
+const array_1 = __webpack_require__(308);
+const position_1 = __webpack_require__(311);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const range_1 = tslib_1.__importDefault(__webpack_require__(614));
 const logger = __webpack_require__(64)('cursors');
 class Cursors {
     constructor(nvim) {
@@ -72162,13 +87797,13 @@ function equalEdit(one, two) {
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 522 */
+/* 614 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_types_1 = __webpack_require__(222);
+const vscode_languageserver_types_1 = __webpack_require__(223);
 const logger = __webpack_require__(64)('cursors-range');
 // edit range
 class TextRange {
@@ -72229,35 +87864,35 @@ exports.default = TextRange;
 //# sourceMappingURL=range.js.map
 
 /***/ }),
-/* 523 */
+/* 615 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const commands_1 = tslib_1.__importDefault(__webpack_require__(251));
-const manager_1 = tslib_1.__importDefault(__webpack_require__(252));
-const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
-const manager_2 = tslib_1.__importDefault(__webpack_require__(449));
-const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(253));
-const services_1 = tslib_1.__importDefault(__webpack_require__(433));
-const manager_3 = tslib_1.__importDefault(__webpack_require__(255));
-const util_1 = __webpack_require__(237);
-const convert_1 = __webpack_require__(497);
-const object_1 = __webpack_require__(248);
-const position_1 = __webpack_require__(310);
-const string_1 = __webpack_require__(309);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const codelens_1 = tslib_1.__importDefault(__webpack_require__(524));
-const colors_1 = tslib_1.__importDefault(__webpack_require__(525));
-const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(527));
-const refactor_1 = tslib_1.__importDefault(__webpack_require__(528));
-const search_1 = tslib_1.__importDefault(__webpack_require__(529));
-const debounce = __webpack_require__(239);
-const vscode_uri_1 = __webpack_require__(242);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
+const manager_1 = tslib_1.__importDefault(__webpack_require__(253));
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
+const manager_2 = tslib_1.__importDefault(__webpack_require__(541));
+const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(254));
+const services_1 = tslib_1.__importDefault(__webpack_require__(525));
+const manager_3 = tslib_1.__importDefault(__webpack_require__(256));
+const util_1 = __webpack_require__(238);
+const convert_1 = __webpack_require__(589);
+const object_1 = __webpack_require__(249);
+const position_1 = __webpack_require__(311);
+const string_1 = __webpack_require__(310);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const codelens_1 = tslib_1.__importDefault(__webpack_require__(616));
+const colors_1 = tslib_1.__importDefault(__webpack_require__(617));
+const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(619));
+const refactor_1 = tslib_1.__importDefault(__webpack_require__(620));
+const search_1 = tslib_1.__importDefault(__webpack_require__(621));
+const debounce = __webpack_require__(240);
+const vscode_uri_1 = __webpack_require__(243);
 const logger = __webpack_require__(64)('Handler');
 const pairs = new Map([
     ['<', '>'],
@@ -73587,20 +89222,20 @@ async function synchronizeDocument(doc) {
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 524 */
+/* 616 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(239));
-const commands_1 = tslib_1.__importDefault(__webpack_require__(251));
-const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
-const services_1 = tslib_1.__importDefault(__webpack_require__(433));
-const util_1 = __webpack_require__(237);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(240));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
+const services_1 = tslib_1.__importDefault(__webpack_require__(525));
+const util_1 = __webpack_require__(238);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('codelens');
 class CodeLensManager {
     constructor(nvim) {
@@ -73869,21 +89504,21 @@ exports.default = CodeLensManager;
 //# sourceMappingURL=codelens.js.map
 
 /***/ }),
-/* 525 */
+/* 617 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(239));
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
-const util_1 = __webpack_require__(237);
-const object_1 = __webpack_require__(248);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const highlighter_1 = tslib_1.__importStar(__webpack_require__(526));
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(240));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
+const util_1 = __webpack_require__(238);
+const object_1 = __webpack_require__(249);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const highlighter_1 = tslib_1.__importStar(__webpack_require__(618));
 const logger = __webpack_require__(64)('colors');
 class Colors {
     constructor(nvim) {
@@ -74077,17 +89712,17 @@ exports.default = Colors;
 //# sourceMappingURL=colors.js.map
 
 /***/ }),
-/* 526 */
+/* 618 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const array_1 = __webpack_require__(307);
-const object_1 = __webpack_require__(248);
-const position_1 = __webpack_require__(310);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const array_1 = __webpack_require__(308);
+const object_1 = __webpack_require__(249);
+const position_1 = __webpack_require__(311);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('highlighter');
 const usedColors = new Set();
 class Highlighter {
@@ -74223,18 +89858,18 @@ function isDark(color) {
 //# sourceMappingURL=highlighter.js.map
 
 /***/ }),
-/* 527 */
+/* 619 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const events_1 = tslib_1.__importDefault(__webpack_require__(209));
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
-const languages_1 = tslib_1.__importDefault(__webpack_require__(405));
-const vscode_languageserver_protocol_1 = __webpack_require__(210);
-const util_1 = __webpack_require__(237);
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const util_1 = __webpack_require__(238);
 const logger = __webpack_require__(64)('documentHighlight');
 class DocumentHighlighter {
     constructor(nvim, colors) {
@@ -74326,25 +89961,25 @@ exports.default = DocumentHighlighter;
 //# sourceMappingURL=documentHighlight.js.map
 
 /***/ }),
-/* 528 */
+/* 620 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(258));
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(259));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const vscode_languageserver_types_1 = __webpack_require__(222);
-const vscode_languageserver_textdocument_1 = __webpack_require__(292);
-const vscode_uri_1 = __webpack_require__(242);
-const commands_1 = tslib_1.__importDefault(__webpack_require__(251));
-const highligher_1 = tslib_1.__importDefault(__webpack_require__(431));
-const util_1 = __webpack_require__(237);
-const fs_1 = __webpack_require__(303);
-const object_1 = __webpack_require__(248);
-const string_1 = __webpack_require__(309);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const vscode_languageserver_types_1 = __webpack_require__(223);
+const vscode_languageserver_textdocument_1 = __webpack_require__(293);
+const vscode_uri_1 = __webpack_require__(243);
+const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
+const highligher_1 = tslib_1.__importDefault(__webpack_require__(523));
+const util_1 = __webpack_require__(238);
+const fs_1 = __webpack_require__(304);
+const object_1 = __webpack_require__(249);
+const string_1 = __webpack_require__(310);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('refactor');
 // cases: buffer change event
 const name = '__coc_refactor__';
@@ -75004,23 +90639,23 @@ function emptyWorkspaceEdit(edit) {
 //# sourceMappingURL=refactor.js.map
 
 /***/ }),
-/* 529 */
+/* 621 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const await_semaphore_1 = __webpack_require__(530);
-const child_process_1 = __webpack_require__(238);
-const events_1 = __webpack_require__(197);
+const await_semaphore_1 = __webpack_require__(622);
+const child_process_1 = __webpack_require__(239);
+const events_1 = __webpack_require__(198);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const readline_1 = tslib_1.__importDefault(__webpack_require__(205));
-const vscode_languageserver_types_1 = __webpack_require__(222);
-const which_1 = tslib_1.__importDefault(__webpack_require__(243));
-const highligher_1 = tslib_1.__importDefault(__webpack_require__(431));
-const ansiparse_1 = __webpack_require__(432);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(256));
+const readline_1 = tslib_1.__importDefault(__webpack_require__(206));
+const vscode_languageserver_types_1 = __webpack_require__(223);
+const which_1 = tslib_1.__importDefault(__webpack_require__(244));
+const highligher_1 = tslib_1.__importDefault(__webpack_require__(523));
+const ansiparse_1 = __webpack_require__(524);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('handler-search');
 const defaultArgs = ['--color', 'ansi', '--colors', 'path:fg:black', '--colors', 'line:fg:green', '--colors', 'match:fg:red', '--no-messages', '--heading', '-n'];
 const controlCode = '\x1b';
@@ -75208,7 +90843,7 @@ exports.default = Search;
 //# sourceMappingURL=search.js.map
 
 /***/ }),
-/* 530 */
+/* 622 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
