@@ -1,5 +1,5 @@
 import { frames } from './status'
-import EventEmitter from 'events'
+import { EventEmitter } from 'events'
 import { Neovim, Buffer } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 const logger = require('../util/logger')('model-installBuffer')
@@ -15,6 +15,7 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
   private statMap: Map<string, State> = new Map()
   private messagesMap: Map<string, string[]> = new Map()
   private names: string[] = []
+  // eslint-disable-next-line no-undef
   private interval: NodeJS.Timer
   public bufnr: number
 
@@ -33,7 +34,7 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
     }
   }
 
-  public addMessage(name, msg: string): void {
+  public addMessage(name: string, msg: string): void {
     let lines = this.messagesMap.get(name) || []
     this.messagesMap.set(name, lines.concat(msg.trim().split(/\r?\n/)))
   }
@@ -44,7 +45,7 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
     }
   }
 
-  public finishProgress(name, succeed = true): void {
+  public finishProgress(name: string, succeed = true): void {
     this.statMap.set(name, succeed ? State.Success : State.Faild)
   }
 

@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import * as cp from 'child_process'
-import Emitter from 'events'
+import { EventEmitter } from 'events'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -22,7 +24,7 @@ process.on('uncaughtException', err => {
   let msg = 'Uncaught exception: ' + err.stack
   console.error(msg)
 })
-export class Helper extends Emitter {
+export class Helper extends EventEmitter {
   public nvim: Neovim
   public proc: cp.ChildProcess
   public plugin: Plugin
@@ -147,7 +149,7 @@ export class Helper extends Emitter {
     if (!file || !path.isAbsolute(file)) {
       file = path.join(__dirname, file ? file : `${uuid()}`)
     }
-    let escaped = await this.nvim.call('fnameescape', file)
+    let escaped = await this.nvim.call('fnameescape', file) as string
     await this.nvim.command(`edit ${escaped}`)
     await this.wait(60)
     let bufnr = await this.nvim.call('bufnr', ['%']) as number

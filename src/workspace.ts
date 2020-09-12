@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
 import bytes from 'bytes'
 import fastDiff from 'fast-diff'
@@ -324,7 +325,7 @@ export class Workspace implements IWorkspace {
   }
 
   public get textDocuments(): TextDocument[] {
-    let docs = []
+    let docs: TextDocument[] = []
     for (let b of this.buffers.values()) {
       docs.push(b.textDocument)
     }
@@ -787,6 +788,7 @@ export class Workspace implements IWorkspace {
     return rel.startsWith('..') ? filepath : rel
   }
 
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   public onWillSaveUntil(callback: (event: TextDocumentWillSaveEvent) => void, thisArg: any, clientId: string): Disposable {
     return this.willSaveUntilHandler.addCallback(callback, thisArg, clientId)
   }
@@ -1031,7 +1033,7 @@ export class Workspace implements IWorkspace {
         if (newDoc) await this.nvim.command(`silent ${newDoc.bufnr}bwipeout!`)
         if (doc != null) {
           let content = doc.getDocumentContent()
-          let encoding = await doc.buffer.getOption('fileencoding') as string
+          let encoding = await doc.buffer.getOption('fileencoding') as any
           await util.promisify(fs.writeFile)(newPath, content, { encoding })
           // open renamed file
           if (!isCurrent) {

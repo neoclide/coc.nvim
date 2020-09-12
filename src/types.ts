@@ -968,9 +968,12 @@ export interface FetchOptions {
 
 export interface DownloadOptions extends FetchOptions {
   /**
-   * Folder contains downloaded file or extracted files by untar or unzip
+   * Folder that contains downloaded file or extracted files by untar or unzip
    */
   dest: string
+  /**
+   * If true, use untar for `.tar.gz` filename
+   */
   extract?: boolean | 'untar' | 'unzip'
   onProgress?: (percent: string) => void
 }

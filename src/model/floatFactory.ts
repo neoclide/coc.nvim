@@ -1,6 +1,6 @@
 import { Neovim, Buffer, Window } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import EventEmitter from 'events'
+import { EventEmitter } from 'events'
 import { Mutex } from '../util/mutex'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
@@ -155,7 +155,7 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     let res = await this.nvim.call('coc#util#create_float_win', [this.winid, this._bufnr, config])
     if (!res) return
     this.onCursorMoved.clear()
-    let winid = this.winid = res[0]
+    let winid = this.winid = res[0] as number
     let bufnr = this._bufnr = res[1]
     if (token.isCancellationRequested) return
     nvim.pauseNotification()
@@ -172,6 +172,7 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     }
     this.emit('show', winid, bufnr)
     let [, err] = await nvim.resumeNotification()
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     if (err) throw new Error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
     if (mode == 's' && !token.isCancellationRequested) {
       await snippetsManager.selectCurrentPlaceholder(false)
@@ -221,7 +222,7 @@ export default class FloatFactory extends EventEmitter implements Disposable {
 
   public async activated(): Promise<boolean> {
     if (!this.winid) return false
-    return await this.nvim.call('coc#util#valid_float_win', [this.winid])
+    return await this.nvim.call('coc#util#valid_float_win', [this.winid]) != 0
   }
 
   private getMaxWindowHeight(docs: Documentation[]): number {

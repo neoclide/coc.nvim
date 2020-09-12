@@ -1,6 +1,6 @@
 import { http, https } from 'follow-redirects'
 import { v1 as uuidv1 } from 'uuid'
-import fs from 'fs'
+import fs, { Stats } from 'fs'
 import mkdirp from 'mkdirp'
 import path from 'path'
 import tar from 'tar'
@@ -20,7 +20,15 @@ export default function download(url: string, options: DownloadOptions): Promise
   if (!dest || !path.isAbsolute(dest)) {
     throw new Error(`Expect absolute file path for dest option.`)
   }
-  if (!fs.existsSync(dest)) mkdirp.sync(dest)
+  let stat: Stats
+  try {
+    stat = fs.statSync(dest)
+  } catch (_e) {
+    mkdirp.sync(dest)
+  }
+  if (stat && !stat.isDirectory()) {
+    throw new Error(`${dest} exists, but not directory!`)
+  }
   let mod = url.startsWith('https') ? https : http
   let opts = resolveRequestOptions(url, options)
   let extname = path.extname(url)

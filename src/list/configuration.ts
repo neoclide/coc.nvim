@@ -1,6 +1,6 @@
 import workspace from '../workspace'
 import { WorkspaceConfiguration } from '../types'
-import EventEmitter from 'events'
+import { EventEmitter } from 'events'
 import { Disposable } from 'vscode-languageserver-protocol'
 
 export const validKeys = [

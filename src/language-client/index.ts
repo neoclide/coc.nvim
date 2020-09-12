@@ -1,7 +1,4 @@
-/* ---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
+/* eslint-disable no-redeclare */
 import cp, { SpawnOptions } from 'child_process'
 import fs from 'fs'
 import path from 'path'

@@ -114,6 +114,7 @@ export function resolveRequestOptions(url: string, options: FetchOptions = {}): 
   if (options.timeout) {
     opts.timeout = options.timeout
   }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return opts
 }
 
@@ -144,7 +145,7 @@ function request(url: string, data: any, opts: any): Promise<ResponseResult> {
             || contentType.startsWith('text/')) {
             let ms = contentType.match(/charset=(\S+)/)
             let encoding = ms ? ms[1] : 'utf8'
-            let rawData = buf.toString(encoding)
+            let rawData = buf.toString(encoding as BufferEncoding)
             if (!contentType.includes('application/json')) {
               resolve(rawData)
             } else {
@@ -202,7 +203,7 @@ function getDataType(data: any): string {
  * - Send buffer (as data) and receive data (as response).
  * - Proxy support from user configuration & environment.
  * - Redirect support, limited to 3.
- * - Response encoding support for gzip & deflate.
+ * - Support of gzip & deflate response content.
  */
 export default function fetch(url: string, options: FetchOptions = {}): Promise<ResponseResult> {
   if (arguments.length > 2) {

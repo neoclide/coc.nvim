@@ -154,7 +154,7 @@ module.exports = {
       "error"
     ],
     "no-undef": [
-      "error"
+      "off"
     ],
     "no-unexpected-multiline": [
       "error"
@@ -190,7 +190,14 @@ module.exports = {
     "@typescript-eslint/require-await": "off",
     "@typescript-eslint/await-thenable": "error",
     "@typescript-eslint/ban-types": "off",
-    "@typescript-eslint/class-name-casing": "error",
+    "@typescript-eslint/no-unsafe-assignment": "off",
+    "@typescript-eslint/no-unsafe-member-access": "off",
+    "@typescript-eslint/no-unsafe-call": "off",
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+    "@typescript-eslint/no-unsafe-return": "off",
+    "@typescript-eslint/no-non-null-assertion": "off",
+    "@typescript-eslint/restrict-plus-operands": "off",
+    "@typescript-eslint/restrict-template-expressions": "off",
     "@typescript-eslint/consistent-type-assertions": "error",
     "@typescript-eslint/consistent-type-definitions": "error",
     "@typescript-eslint/explicit-member-accessibility": [

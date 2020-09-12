@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import fs from 'fs'
 import { Logger } from 'log4js'
 import * as path from 'path'
@@ -140,7 +141,7 @@ function createSandbox(filename: string, logger: Logger): ISandbox {
   sandbox.process['chdir'] = () => { }
 
   // read-only umask
-  sandbox.process.umask = (mask: number) => {
+  sandbox.process.umask = (mask?: number) => {
     if (typeof mask !== 'undefined') {
       throw new Error('Cannot use process.umask() to change mask (read-only)')
     }
