@@ -39,9 +39,21 @@ export interface Documentation {
 }
 
 export interface KeymapOption {
+  /**
+   * Use request instead of notify, default true
+   */
   sync: boolean
+  /**
+   * Cancel completion before invoke callback, default true
+   */
   cancel: boolean
+  /**
+   * Use <silent> for keymap, default false
+   */
   silent: boolean
+  /**
+   * Enable repeat support for repeat.vim, default false
+   */
   repeat: boolean
 }
 

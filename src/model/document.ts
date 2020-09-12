@@ -229,7 +229,6 @@ export default class Document {
 
   private _fireContentChanges(): void {
     let { textDocument } = this
-    // if (paused && !force) return
     let { cursor } = events
     try {
       let content = this.getDocumentContent()
@@ -335,7 +334,7 @@ export default class Document {
   }
 
   /**
-   * Force emit change event when necessary.
+   * Force document synchronize and emit change event when necessary.
    */
   public forceSync(): void {
     this.fireContentChanges.clear()

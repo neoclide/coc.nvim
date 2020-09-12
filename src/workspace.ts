@@ -1306,10 +1306,18 @@ export class Workspace implements IWorkspace {
   }
 
   /**
-   * Register keymap
+   * Register unique keymap uses `<Plug>(coc-{key})` as lhs
+   * Throw error when {key} already exists.
+   *
+   * @param {MapMode[]} modes - array of 'n' | 'i' | 'v' | 'x' | 's' | 'o'
+   * @param {string} key - unique name
+   * @param {Function} fn - callback function
+   * @param {Partial} opts
+   * @returns {Disposable}
    */
   public registerKeymap(modes: MapMode[], key: string, fn: Function, opts: Partial<KeymapOption> = {}): Disposable {
-    if (!key || this.keymaps.has(key)) return
+    if (!key) throw new Error(`Invalid key ${key} of registerKeymap`)
+    if (this.keymaps.has(key)) throw new Error(`${key} already exists.`)
     opts = Object.assign({ sync: true, cancel: true, silent: true, repeat: false }, opts)
     let { nvim } = this
     this.keymaps.set(key, [fn, !!opts.repeat])
