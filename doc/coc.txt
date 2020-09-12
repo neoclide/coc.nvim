@@ -343,6 +343,14 @@ Built-in configurations:~
 
 	default: `true`
 
+"diagnostic.locationlistUpdate"~
+
+	Update locationlist on diagnostics change, only works with
+	locationlist opened by :CocDiagnostics command and first window of
+	associated buffer.
+
+	default: `true`
+
 "diagnostic.level":~
 
 	Filter diagnostics by severity, default: `"hint"`
@@ -1019,7 +1027,7 @@ normal mode, `v_` works for visual mode.
 
 <Plug>(coc-fix-current)					*n_coc-fix-current*
 
-	Try to run quickfix action for diagnostics on the current line.
+	Try first quickfix action for diagnostics on the current line.
 
 <Plug>(coc-float-hide)					*n_coc-float-hide*
 

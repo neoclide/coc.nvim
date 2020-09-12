@@ -23686,7 +23686,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "807c65a561" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "272b46d160" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -24241,7 +24241,7 @@ class DiagnosticManager {
         let diagnostics = buf ? this.getDiagnostics(buf.uri) : [];
         let items = [];
         for (let diagnostic of diagnostics) {
-            let item = util_2.getLocationListItem(diagnostic.source, bufnr, diagnostic);
+            let item = util_2.getLocationListItem(bufnr, diagnostic);
             items.push(item);
         }
         let curr = await this.nvim.call('getloclist', [0, { title: 1 }]);
@@ -24648,6 +24648,7 @@ class DiagnosticManager {
             virtualTextSrcId: workspace_1.default.createNameSpace('diagnostic-virtualText'),
             checkCurrentLine: config.get('checkCurrentLine', false),
             enableSign: config.get('enableSign', true),
+            locationlistUpdate: config.get('locationlistUpdate', true),
             enableHighlightLineNumber: config.get('enableHighlightLineNumber', true),
             maxWindowHeight: config.get('maxWindowHeight', 10),
             maxWindowWidth: config.get('maxWindowWidth', 80),
@@ -26496,11 +26497,20 @@ class Workspace {
         });
     }
     /**
-     * Register keymap
+     * Register unique keymap uses `<Plug>(coc-{key})` as lhs
+     * Throw error when {key} already exists.
+     *
+     * @param {MapMode[]} modes - array of 'n' | 'i' | 'v' | 'x' | 's' | 'o'
+     * @param {string} key - unique name
+     * @param {Function} fn - callback function
+     * @param {Partial} opts
+     * @returns {Disposable}
      */
     registerKeymap(modes, key, fn, opts = {}) {
-        if (!key || this.keymaps.has(key))
-            return;
+        if (!key)
+            throw new Error(`Invalid key ${key} of registerKeymap`);
+        if (this.keymaps.has(key))
+            throw new Error(`${key} already exists.`);
         opts = Object.assign({ sync: true, cancel: true, silent: true, repeat: false }, opts);
         let { nvim } = this;
         this.keymaps.set(key, [fn, !!opts.repeat]);
@@ -35620,7 +35630,6 @@ class Document {
     }
     _fireContentChanges() {
         let { textDocument } = this;
-        // if (paused && !force) return
         let { cursor } = events_1.default;
         try {
             let content = this.getDocumentContent();
@@ -35723,7 +35732,7 @@ class Document {
             this.forceSync();
     }
     /**
-     * Force emit change event when necessary.
+     * Force document synchronize and emit change event when necessary.
      */
     forceSync() {
         this.fireContentChanges.clear();
@@ -68463,10 +68472,10 @@ class ActionsList extends basic_1.default {
             }
         }
         codeActions.sort((a, b) => {
-            if (a.isPrefered && !b.isPrefered) {
+            if (a.isPreferred && !b.isPreferred) {
                 return -1;
             }
-            if (b.isPrefered && !a.isPrefered) {
+            if (b.isPreferred && !a.isPreferred) {
                 return 1;
             }
             return 0;
@@ -71130,7 +71139,7 @@ class DiagnosticBuffer {
     async _refresh(diagnostics) {
         let { refreshOnInsertMode } = this.config;
         let { nvim } = this;
-        let arr = await nvim.eval(`[coc#util#check_refresh(${this.bufnr}),mode(),bufnr("%"), line(".")]`);
+        let arr = await nvim.eval(`[coc#util#check_refresh(${this.bufnr}),mode(),bufnr("%"),line("."),getloclist(bufwinid(${this.bufnr}),{'title':1})]`);
         if (arr[0] == 0)
             return;
         let mode = arr[1];
@@ -71142,6 +71151,7 @@ class DiagnosticBuffer {
         this.setDiagnosticInfo(diagnostics);
         this.addSigns(diagnostics);
         this.addHighlight(diagnostics, bufnr);
+        this.updateLocationList(arr[4], diagnostics);
         if (this.bufnr == bufnr) {
             this.showVirtualText(diagnostics, lnum);
         }
@@ -71180,6 +71190,18 @@ class DiagnosticBuffer {
         catch (e) {
             // noop
         }
+    }
+    updateLocationList(curr, diagnostics) {
+        if (!this.config.locationlistUpdate)
+            return;
+        if (!curr || curr.title !== 'Diagnostics of coc')
+            return;
+        let items = [];
+        for (let diagnostic of diagnostics) {
+            let item = util_1.getLocationListItem(this.bufnr, diagnostic);
+            items.push(item);
+        }
+        this.nvim.call('setloclist', [0, [], 'r', { title: 'Diagnostics of coc', items }], true);
     }
     addSigns(diagnostics) {
         if (!this.config.enableSign)
@@ -71386,8 +71408,9 @@ function getNameFromSeverity(severity) {
     }
 }
 exports.getNameFromSeverity = getNameFromSeverity;
-function getLocationListItem(owner, bufnr, diagnostic) {
+function getLocationListItem(bufnr, diagnostic) {
     let { start } = diagnostic.range;
+    let owner = diagnostic.source || 'coc.nvim';
     let msg = diagnostic.message.split('\n')[0];
     let type = getSeverityName(diagnostic.severity).slice(0, 1).toUpperCase();
     return {
@@ -72751,10 +72774,10 @@ class Handler {
             }
         }
         codeActions.sort((a, b) => {
-            if (a.isPrefered && !b.isPrefered) {
+            if (a.isPreferred && !b.isPreferred) {
                 return -1;
             }
-            if (b.isPrefered && !a.isPrefered) {
+            if (b.isPreferred && !a.isPreferred) {
                 return 1;
             }
             return 0;
@@ -72775,7 +72798,7 @@ class Handler {
             codeActions = codeActions.filter(o => o.title == only || (o.command && o.command.title == only));
         }
         if (!codeActions || codeActions.length == 0) {
-            workspace_1.default.showMessage(`CodeAction${only ? ' ' + only : ''} not found`, 'warning');
+            workspace_1.default.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning');
             return;
         }
         if (!only || codeActions.length > 1) {
@@ -72806,6 +72829,11 @@ class Handler {
             range = await workspace_1.default.getSelectedRange(mode, workspace_1.default.getDocument(bufnr));
         return await this.getCodeActions(bufnr, range, only);
     }
+    /**
+     * Invoke preferred quickfix at current position, return false when failed
+     *
+     * @returns {Promise<boolean>}
+     */
     async doQuickfix() {
         let actions = await this.getCurrentCodeActions('n', [vscode_languageserver_protocol_1.CodeActionKind.QuickFix]);
         if (!actions || actions.length == 0) {
