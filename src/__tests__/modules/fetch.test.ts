@@ -67,9 +67,18 @@ describe('download', () => {
   it('should download tgz', async () => {
     let url = 'https://registry.npmjs.org/coc-pairs/-/coc-pairs-1.2.13.tgz'
     let tmpFolder = await promisify(fs.mkdtemp)(path.join(os.tmpdir(), 'coc-test'))
-    await download(url, { dest: tmpFolder, extract: true })
+    await download(url, { dest: tmpFolder, extract: 'untar' })
     let file = path.join(tmpFolder, 'package.json')
     expect(fs.existsSync(file)).toBe(true)
     await promisify(rimraf)(tmpFolder, { glob: false })
   }, 10000)
+
+  it('should extract zip file', async () => {
+    let url = 'https://codeload.github.com/chemzqm/vimrc/zip/master'
+    let tmpFolder = await promisify(fs.mkdtemp)(path.join(os.tmpdir(), 'coc-test'))
+    await download(url, { dest: tmpFolder, extract: 'unzip' })
+    let folder = path.join(tmpFolder, 'vimrc-master')
+    expect(fs.existsSync(folder)).toBe(true)
+    await promisify(rimraf)(tmpFolder, { glob: false })
+  }, 30000)
 })

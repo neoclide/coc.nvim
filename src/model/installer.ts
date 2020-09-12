@@ -111,7 +111,7 @@ export class Installer {
     let tmpFolder = await promisify(fs.mkdtemp)(path.join(os.tmpdir(), `${info.name}-`))
     let url = info['dist.tarball']
     this.log(`Downloading from ${url}`)
-    await download(url, { dest: tmpFolder, onProgress: p => this.log(`Download progress ${p}%`), extract: true })
+    await download(url, { dest: tmpFolder, onProgress: p => this.log(`Download progress ${p}%`), extract: 'untar' })
     this.log(`Extension download at ${tmpFolder}`)
     let content = await promisify(fs.readFile)(path.join(tmpFolder, 'package.json'), 'utf8')
     let { dependencies } = JSON.parse(content)

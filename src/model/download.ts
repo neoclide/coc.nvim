@@ -4,9 +4,11 @@ import fs, { Stats } from 'fs'
 import mkdirp from 'mkdirp'
 import path from 'path'
 import tar from 'tar'
+import unzip from 'unzipper'
 import { DownloadOptions } from '../types'
 import { resolveRequestOptions } from './fetch'
 import { ServerResponse } from 'http'
+import contentDisposition from 'content-disposition'
 const logger = require('../util/logger')('model-download')
 
 /**
@@ -32,11 +34,27 @@ export default function download(url: string, options: DownloadOptions): Promise
   let mod = url.startsWith('https') ? https : http
   let opts = resolveRequestOptions(url, options)
   let extname = path.extname(url)
-  if (!extract) dest = path.join(dest, `${uuidv1()}${extname}`)
   return new Promise<string>((resolve, reject) => {
     const req = mod.request(opts, (res: ServerResponse) => {
       if ((res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 1223) {
         let headers = (res as any).headers || {}
+        let dispositionHeader = headers['content-disposition']
+        if (!extname && dispositionHeader) {
+          let disposition = contentDisposition.parse(dispositionHeader)
+          if (disposition.parameters?.filename) {
+            extname = path.extname(disposition.parameters.filename)
+          }
+        }
+        if (extract === true) {
+          if (extname === '.zip' || headers['content-type'] == 'application/zip') {
+            extract = 'unzip'
+          } else if (extname == '.tgz') {
+            extract = 'untar'
+          } else {
+            reject(new Error(`Unable to extract for ${url}`))
+            return
+          }
+        }
         let total = Number(headers['content-length'])
         let cur = 0
         if (!isNaN(total)) {
@@ -46,7 +64,7 @@ export default function download(url: string, options: DownloadOptions): Promise
             if (onProgress) {
               onProgress(percent)
             } else {
-              logger.info(`Download progress ${percent}%`)
+              logger.info(`Download ${url} progress ${percent}%`)
             }
           })
         }
@@ -57,9 +75,12 @@ export default function download(url: string, options: DownloadOptions): Promise
           logger.info('Download completed:', url)
         })
         let stream: any
-        if (extract) {
+        if (extract === 'untar') {
           stream = res.pipe(tar.x({ strip: 1, C: dest }))
+        } else if (extract === 'unzip') {
+          stream = res.pipe(unzip.Extract({ path: dest }))
         } else {
+          dest = path.join(dest, `${uuidv1()}${extname}`)
           stream = res.pipe(fs.createWriteStream(dest))
         }
         stream.on('finish', () => {

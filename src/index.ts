@@ -29,4 +29,4 @@ export * from './provider'
 
 export { Neovim, Buffer, Window, Highligher, Mru, Watchman, URI as Uri, Disposable, Event, Emitter, FloatFactory, fetch, download, FloatBuffer, ansiparse }
 export { workspace, snippetManager, events, services, commands, sources, languages, diagnosticManager, Document, FileSystemWatcher, extensions, listManager, BasicList }
-export { disposeAll, concurrent, runCommand, isRunning, executable } from './util'
+export { disposeAll, concurrent, wait, runCommand, isRunning, executable } from './util'
