@@ -594,7 +594,7 @@ export default class Handler {
       codeActions = codeActions.filter(o => o.title == only || (o.command && o.command.title == only))
     }
     if (!codeActions || codeActions.length == 0) {
-      workspace.showMessage(`CodeAction${only ? ' ' + only : ''} not found`, 'warning')
+      workspace.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning')
       return
     }
     if (!only || codeActions.length > 1) {
@@ -622,6 +622,11 @@ export default class Handler {
     return await this.getCodeActions(bufnr, range, only)
   }
 
+  /**
+   * Invoke preferred quickfix at current position, return false when failed
+   *
+   * @returns {Promise<boolean>}
+   */
   public async doQuickfix(): Promise<boolean> {
     let actions = await this.getCurrentCodeActions('n', [CodeActionKind.QuickFix])
     if (!actions || actions.length == 0) {
