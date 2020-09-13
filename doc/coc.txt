@@ -1,6 +1,6 @@
 *coc-nvim.txt*				LSP support for Vim & Neovim.
 
-Version: 0.0.78
+Version: 0.0.79
 Author: Qiming Zhao <chemzqm at gmail.com>
 License: MIT license
 

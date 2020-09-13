@@ -23980,7 +23980,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "4f40c16a15" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "b71489207a" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -25926,9 +25926,14 @@ class Workspace {
         if (typeof uri === 'number') {
             return this.buffers.get(uri);
         }
+        const caseInsensitive = index_1.platform.isWindows || index_1.platform.isMacintosh;
         uri = vscode_uri_1.URI.parse(uri).toString();
         for (let doc of this.buffers.values()) {
-            if (doc && doc.uri === uri)
+            if (!doc)
+                continue;
+            if (doc.uri === uri)
+                return doc;
+            if (caseInsensitive && doc.uri.toLowerCase() === uri.toLowerCase())
                 return doc;
         }
         return null;
@@ -42108,7 +42113,7 @@ class Extensions {
             return;
         let root = path_1.default.dirname(filepath);
         let packageJSON = {
-            name, main: filename, engines: { coc: '^0.0.78' }
+            name, main: filename, engines: { coc: '^0.0.79' }
         };
         await this.unloadExtension(name);
         this.createExtension(root, packageJSON, types_1.ExtensionType.SingleFile);
