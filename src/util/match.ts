@@ -1,6 +1,7 @@
 import minimatch from 'minimatch'
 import { DocumentFilter, DocumentSelector } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
+import * as platform from './platform'
 
 export function score(selector: DocumentSelector | DocumentFilter | string, uri: string, languageId: string): number {
   if (Array.isArray(selector)) {
@@ -53,7 +54,10 @@ export function score(selector: DocumentSelector | DocumentFilter | string, uri:
     }
 
     if (pattern) {
-      if (pattern === u.fsPath || minimatch(u.fsPath, pattern, { dot: true })) {
+      let caseInsensitive = platform.isWindows || platform.isMacintosh
+      let p = caseInsensitive ? pattern.toLowerCase() : pattern
+      let f = caseInsensitive ? u.fsPath.toLowerCase() : u.fsPath
+      if (p === f || minimatch(f, p, { dot: true })) {
         ret = 5
       } else {
         return 0
