@@ -464,9 +464,12 @@ export class Workspace implements IWorkspace {
     if (typeof uri === 'number') {
       return this.buffers.get(uri)
     }
+    const caseInsensitive = platform.isWindows || platform.isMacintosh
     uri = URI.parse(uri).toString()
     for (let doc of this.buffers.values()) {
-      if (doc && doc.uri === uri) return doc
+      if (!doc) continue
+      if (doc.uri === uri) return doc
+      if (caseInsensitive && doc.uri.toLowerCase() === uri.toLowerCase()) return doc
     }
     return null
   }
