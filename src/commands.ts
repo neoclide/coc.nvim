@@ -186,6 +186,15 @@ export class CommandManager implements Disposable {
       }
     }, false, 'open output buffer to show output from languageservers or extensions.')
     this.register({
+      id: 'document.echoFiletype',
+      execute: async () => {
+         let bufnr = await nvim.call('bufnr', '%')
+         let doc = workspace.getDocument(bufnr)
+         if (!doc) return
+         await workspace.echoLines([doc.filetype])
+      }
+    }, false, 'echo the mapped filetype of the current buffer')
+    this.register({
       id: 'document.renameCurrentWord',
       execute: async () => {
         let bufnr = await nvim.call('bufnr', '%')
