@@ -231,12 +231,10 @@ describe('list insert mappings', () => {
   it('should change input by <C-n> and <C-p>', async () => {
     async function session(input: string): Promise<void> {
       await manager.start(['location'])
-      await helper.wait(10)
+      await manager.session.ui.ready
       await nvim.eval(`feedkeys("${input}", "in")`)
-      await helper.wait(10)
-      await manager.cancel()
       await helper.wait(100)
-      expect(manager.isActivated).toBe(false)
+      await manager.cancel()
     }
     await session('foo')
     await session('bar')
@@ -256,15 +254,15 @@ describe('list insert mappings', () => {
     await helper.wait(10)
     await nvim.eval('feedkeys("\\<C-s>", "in")')
     await helper.wait(10)
-    let matcher = manager.listOptions.matcher
+    let matcher = manager.session?.listOptions.matcher
     expect(matcher).toBe('strict')
     await nvim.eval('feedkeys("\\<C-s>", "in")')
     await helper.wait(10)
-    matcher = manager.listOptions.matcher
+    matcher = manager.session?.listOptions.matcher
     expect(matcher).toBe('regex')
     await nvim.eval('feedkeys("f", "in")')
     await helper.wait(30)
-    let len = manager.ui.length
+    let len = manager.session?.ui.length
     expect(len).toBeGreaterThan(0)
   })
 
@@ -310,7 +308,7 @@ describe('list normal mappings', () => {
     await nvim.input('<C-c>')
     await helper.wait(100)
     await p
-    let len = manager.ui.length
+    let len = manager.session?.ui.length
     expect(len).toBe(0)
     disposable.dispose()
   })
@@ -334,7 +332,7 @@ describe('list normal mappings', () => {
     await helper.wait(30)
     await nvim.input('<C-a>')
     await helper.wait(30)
-    let selected = manager.ui.selectedItems
+    let selected = manager.session?.ui.selectedItems
     expect(selected.length).toBe(locations.length)
   })
 
@@ -354,13 +352,13 @@ describe('list normal mappings', () => {
     await helper.wait(100)
     await nvim.eval('feedkeys("\\<space>", "in")')
     await helper.wait(100)
-    let selected = manager.ui.selectedItems
+    let selected = manager.session?.ui.selectedItems
     expect(selected.length).toBe(1)
     await nvim.eval('feedkeys("k", "in")')
     await helper.wait(100)
     await nvim.eval('feedkeys("\\<space>", "in")')
     await helper.wait(100)
-    selected = manager.ui.selectedItems
+    selected = manager.session?.ui.selectedItems
     expect(selected.length).toBe(0)
   })
 
@@ -442,47 +440,50 @@ describe('User mappings', () => {
       '<C-b>': 'do:toggleMode',
     })
     await manager.start(['location'])
-    await helper.wait(200)
+    await helper.wait(100)
     await nvim.eval('feedkeys("\\<C-r>", "in")')
     await helper.wait(30)
     expect(manager.isActivated).toBe(true)
     await nvim.eval('feedkeys("\\<C-a>", "in")')
     await helper.wait(30)
-    expect(manager.ui.selectedItems.length).toBe(locations.length)
+    expect(manager.session?.ui.selectedItems.length).toBe(locations.length)
     await nvim.eval('feedkeys("\\<C-s>", "in")')
     await helper.wait(30)
-    expect(manager.listOptions.matcher).toBe('strict')
+    expect(manager.session?.listOptions.matcher).toBe('strict')
     await nvim.eval('feedkeys("\\<C-n>", "in")')
     await helper.wait(30)
-    let item = await manager.ui.item
+    let item = await manager.session?.ui.item
     expect(item.label).toMatch(locations[1].text)
     await nvim.eval('feedkeys("\\<C-p>", "in")')
     await helper.wait(30)
-    item = await manager.ui.item
+    item = await manager.session?.ui.item
     expect(item.label).toMatch(locations[0].text)
     await nvim.eval('feedkeys("\\<C-x>", "in")')
     await helper.wait(30)
     expect(manager.isActivated).toBe(false)
     await manager.start(['location'])
+    await helper.wait(100)
     await nvim.eval('feedkeys("\\<C-q>", "in")')
     await helper.wait(30)
-    expect(manager.isActivated).toBe(false)
+    expect(manager.isActivated).toBe(true)
     await manager.start(['location'])
+    await helper.wait(100)
     await nvim.eval('feedkeys("?", "in")')
     await helper.wait(30)
     await nvim.input('<CR>')
     await manager.cancel()
     await manager.start(['location'])
+    await helper.wait(100)
     await nvim.eval('feedkeys("\\<C-d>", "in")')
-    await helper.wait(30)
+    await helper.wait(100)
     expect(manager.isActivated).toBe(false)
     await manager.start(['location'])
+    await helper.wait(100)
     await nvim.eval('feedkeys("\\<C-b>", "in")')
     await helper.wait(100)
     expect(manager.isActivated).toBe(true)
-    let line = await helper.getCmdline()
-    expect(line).toBe('')
-  })
+    await nvim.call('coc#list#stop_prompt', [])
+  }, 20000)
 
   it('should execute prompt mappings', async () => {
     helper.updateConfiguration('list.insertMappings', {
@@ -573,7 +574,7 @@ describe('User mappings', () => {
       '<C-t>': 'expr:TabOpen',
     })
     await manager.start(['location'])
-    await helper.wait(30)
+    await helper.wait(100)
     await nvim.eval(`feedkeys("\\<C-t>", "in")`)
     await helper.wait(100)
     let nr = await nvim.call('tabpagenr')

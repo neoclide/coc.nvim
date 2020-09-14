@@ -1415,7 +1415,8 @@ export class Workspace implements IWorkspace {
   public createDatabase(name: string): DB {
     let root: string
     if (global.hasOwnProperty('__TEST__')) {
-      root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-'))
+      root = path.join(os.tmpdir(), `coc-${process.pid}`)
+      fs.mkdirSync(root, { recursive: true })
     } else {
       root = path.dirname(this.env.extensionRoot)
     }

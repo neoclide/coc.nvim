@@ -1,37 +1,42 @@
 import DB from '../model/db'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import workspace from '../workspace'
-import { ListManager } from './manager'
+import Prompt from './prompt'
 const logger = require('../util/logger')('list-history')
 
-export default class History {
+export default class InputHistory {
   private db: DB
   private index = -1
   private loaded: string[] = []
   private current: string[] = []
   private historyInput: string
+  private key: string
 
-  constructor(private manager: ListManager) {
-    this.db = workspace.createDatabase('history')
-    let { prompt } = manager
-    prompt.onDidChangeInput(input => {
-      if (input == this.curr) return
-      this.historyInput = ''
-      let codes = getCharCodes(input)
-      this.current = this.loaded.filter(s => fuzzyMatch(codes, s))
-      this.index = -1
-    })
+  constructor(
+    private prompt: Prompt,
+    private name: string
+  ) {
+    this.db = workspace.createDatabase(`list-${name}-history`)
+    this.key = Buffer.from(workspace.cwd).toString('base64')
+  }
+
+  public filter(): void {
+    let { input } = this.prompt
+    if (input == this.curr) return
+    this.historyInput = ''
+    let codes = getCharCodes(input)
+    this.current = this.loaded.filter(s => fuzzyMatch(codes, s))
+    this.index = -1
   }
 
   public get curr(): string | null {
     return this.index == -1 ? null : this.current[this.index]
   }
 
-  public load(): void {
+  public load(input: string): void {
     let { db } = this
-    let { input } = this.manager.prompt
-    let { name } = this.manager
-    let arr = db.fetch(`${name}.${encodeURIComponent(workspace.cwd)}`)
+    input = input || ''
+    let arr = db.fetch(this.key)
     if (!arr || !Array.isArray(arr)) {
       this.loaded = []
     } else {
@@ -42,17 +47,16 @@ export default class History {
   }
 
   public add(): void {
-    let { loaded, db } = this
-    let { name, prompt } = this.manager
+    let { loaded, db, prompt } = this
     let { input } = prompt
-    if (!input || input.length < 1 || this.historyInput == input) return
+    if (!input || input.length < 2 || input == this.historyInput) return
     let idx = loaded.indexOf(input)
     if (idx != -1) loaded.splice(idx, 1)
     loaded.push(input)
     if (loaded.length > 200) {
       loaded = loaded.slice(-200)
     }
-    db.push(`${name}.${encodeURIComponent(workspace.cwd)}`, loaded)
+    db.push(this.key, loaded)
   }
 
   public previous(): void {
@@ -63,7 +67,7 @@ export default class History {
     } else {
       this.index = index - 1
     }
-    this.historyInput = this.manager.prompt.input = current[this.index] || ''
+    this.historyInput = this.prompt.input = current[this.index] || ''
   }
 
   public next(): void {
@@ -74,6 +78,6 @@ export default class History {
     } else {
       this.index = index + 1
     }
-    this.historyInput = this.manager.prompt.input = current[this.index] || ''
+    this.historyInput = this.prompt.input = current[this.index] || ''
   }
 }

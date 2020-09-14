@@ -97,6 +97,7 @@ describe('list sources', () => {
   describe('commands', () => {
     it('should load commands source', async () => {
       await manager.start(['commands'])
+      await helper.wait(100)
       expect(manager.isActivated).toBe(true)
     })
 
@@ -110,7 +111,7 @@ describe('list sources', () => {
   describe('diagnostics', () => {
     it('should load diagnostics source', async () => {
       await manager.start(['diagnostics'])
-      await manager.ui.ready
+      await manager.session?.ui.ready
       await helper.wait(100)
       expect(manager.isActivated).toBe(true)
     })
@@ -119,7 +120,7 @@ describe('list sources', () => {
   describe('extensions', () => {
     it('should load extensions source', async () => {
       await manager.start(['extensions'])
-      await manager.ui.ready
+      await manager.session?.ui.ready
       await helper.wait(100)
       expect(manager.isActivated).toBe(true)
     })
@@ -128,14 +129,14 @@ describe('list sources', () => {
   describe('folders', () => {
     it('should load folders source', async () => {
       await manager.start(['folders'])
-      await manager.ui.ready
+      await manager.session?.ui.ready
       await helper.wait(100)
       expect(manager.isActivated).toBe(true)
     })
 
     it('should run delete action', async () => {
       await manager.start(['folders'])
-      await manager.ui.ready
+      await manager.session?.ui.ready
       await helper.wait(100)
       await manager.doAction('delete')
     })
@@ -144,7 +145,7 @@ describe('list sources', () => {
   describe('lists', () => {
     it('should load lists source', async () => {
       await manager.start(['lists'])
-      await manager.ui.ready
+      await manager.session?.ui.ready
       await helper.wait(100)
       expect(manager.isActivated).toBe(true)
     })
@@ -153,7 +154,7 @@ describe('list sources', () => {
   describe('outline', () => {
     it('should load outline source', async () => {
       await manager.start(['outline'])
-      await manager.ui.ready
+      await manager.session?.ui.ready
       await helper.wait(100)
       expect(manager.isActivated).toBe(true)
     })
@@ -162,7 +163,7 @@ describe('list sources', () => {
   describe('output', () => {
     it('should load output source', async () => {
       await manager.start(['output'])
-      await manager.ui.ready
+      await manager.session?.ui.ready
       await helper.wait(100)
       expect(manager.isActivated).toBe(true)
     })
@@ -171,7 +172,7 @@ describe('list sources', () => {
   describe('services', () => {
     it('should load services source', async () => {
       await manager.start(['services'])
-      await manager.ui.ready
+      await manager.session?.ui.ready
       await helper.wait(100)
       expect(manager.isActivated).toBe(true)
     })
@@ -180,7 +181,7 @@ describe('list sources', () => {
   describe('sources', () => {
     it('should load sources source', async () => {
       await manager.start(['sources'])
-      await manager.ui.ready
+      await manager.session?.ui.ready
       await helper.wait(100)
       expect(manager.isActivated).toBe(true)
     })
@@ -192,7 +193,7 @@ describe('list sources', () => {
         provideWorkspaceSymbols: () => []
       })
       await manager.start(['symbols'])
-      await manager.ui.ready
+      await manager.session?.ui.ready
       await helper.wait(100)
       expect(manager.isActivated).toBe(true)
       disposable.dispose()
@@ -205,7 +206,7 @@ describe('list sources', () => {
         provideDocumentLinks: () => []
       })
       await manager.start(['links'])
-      await manager.ui.ready
+      await manager.session?.ui.ready
       await helper.wait(100)
       expect(manager.isActivated).toBe(true)
       disposable.dispose()

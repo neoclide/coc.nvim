@@ -82,7 +82,7 @@ describe('list worker', () => {
     let disposable = manager.registerList(new TaskList(nvim))
     await manager.start(['task'])
     await helper.wait(1500)
-    let len = manager.ui.length
+    let len = manager.session?.length
     expect(len > 2).toBe(true)
     await manager.cancel()
     disposable.dispose()
@@ -91,25 +91,25 @@ describe('list worker', () => {
   it('should cancel task by use CancellationToken', async () => {
     let disposable = manager.registerList(new TaskList(nvim))
     await manager.start(['task'])
-    expect(manager.worker.isLoading).toBe(true)
+    expect(manager.session?.worker.isLoading).toBe(true)
     await helper.wait(500)
-    manager.worker.stop()
-    expect(manager.worker.isLoading).toBe(false)
+    manager.session?.stop()
+    expect(manager.session?.worker.isLoading).toBe(false)
     disposable.dispose()
   })
 
   it('should work with interactive list', async () => {
     let disposable = manager.registerList(new InteractiveList(nvim))
     await manager.start(['-I', 'test'])
-    await manager.ui.ready
-    expect(manager.ui.shown).toBe(true)
+    await manager.session?.ui.ready
+    expect(manager.isActivated).toBe(true)
     await nvim.eval('feedkeys("f", "in")')
     await helper.wait(100)
     await nvim.eval('feedkeys("a", "in")')
     await helper.wait(100)
     await nvim.eval('feedkeys("x", "in")')
     await helper.wait(300)
-    let item = await manager.ui.item
+    let item = await manager.session?.ui.item
     expect(item.label).toBe('fax')
     disposable.dispose()
   })
@@ -124,7 +124,6 @@ describe('list worker', () => {
   it('should deactivate on task error', async () => {
     let disposable = manager.registerList(new ErrorTaskList(nvim))
     await manager.start(['task'])
-    expect(manager.isActivated).toBe(true)
     await helper.wait(500)
     expect(manager.isActivated).toBe(false)
     disposable.dispose()

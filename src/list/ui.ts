@@ -44,30 +44,26 @@ export default class ListUI {
   public readonly onDidChange: Event<void> = this._onDidChange.event
   public readonly onDidDoubleClick: Event<void> = this._onDoubleClick.event
 
-  constructor(private nvim: Neovim, private config: ListConfiguration) {
-    let signText = config.get<string>('selectedSignText', '*')
-    nvim.command(`sign define CocSelected text=${signText} texthl=CocSelectedText linehl=CocSelectedLine`, true)
+  constructor(
+    private nvim: Neovim,
+    private name: string,
+    private listOptions: ListOptions,
+    private config: ListConfiguration
+  ) {
     this.signOffset = config.get<number>('signOffset')
-
     events.on('BufUnload', async bufnr => {
-      if (bufnr == this.bufnr) {
-        this._bufnr = 0
-        this.window = null
-        this._onDidClose.fire(bufnr)
-      }
+      if (bufnr != this.bufnr) return
+      this.window = null
+      this._onDidClose.fire(bufnr)
     }, null, this.disposables)
-
-    let timer: NodeJS.Timeout
     events.on('CursorMoved', async (bufnr, cursor) => {
-      if (timer) clearTimeout(timer)
       if (bufnr != this.bufnr) return
       this.onLineChange(cursor[0] - 1)
     }, null, this.disposables)
-
     events.on('CursorMoved', debounce(async bufnr => {
       if (bufnr != this.bufnr) return
       let [start, end] = await nvim.eval('[line("w0"),line("w$")]') as number[]
-      if (end < 500) return
+      if (end < 200) return
       nvim.pauseNotification()
       this.doHighlight(start - 1, end)
       nvim.command('redraw', true)
@@ -192,26 +188,9 @@ export default class ListUI {
     }
   }
 
-  public reset(): void {
-    this.items = []
-    this.mouseDown = null
-    this.selected = new Set()
-    this._bufnr = 0
-    this.window = null
-  }
-
-  public hide(): void {
-    let { window, nvim } = this
-    if (window) {
-      this._bufnr = 0
-      this.window = null
-      nvim.call('coc#util#close', [window.id], true)
-    }
-  }
-
-  public async resume(name: string, listOptions: ListOptions): Promise<void> {
+  public async resume(): Promise<void> {
     let { items, selected, nvim, signOffset } = this
-    await this.drawItems(items, name, listOptions, true)
+    await this.drawItems(items, true)
     if (selected.size > 0 && this.bufnr) {
       nvim.pauseNotification()
       for (let lnum of selected) {
@@ -296,7 +275,7 @@ export default class ListUI {
   }
 
   public get shown(): boolean {
-    return this._bufnr != 0
+    return this.window != null
   }
 
   public get bufnr(): number {
@@ -316,15 +295,15 @@ export default class ListUI {
     return Promise.reject(new Error('Not creating list'))
   }
 
-  public async drawItems(items: ListItem[], name: string, listOptions: ListOptions, reload = false): Promise<void> {
-    let { bufnr, config, nvim } = this
+  public async drawItems(items: ListItem[], reload = false): Promise<void> {
+    let { window, config, nvim, name, listOptions } = this
     this.newTab = listOptions.position == 'tab'
     this.noResize = listOptions.noResize
     let prevLabel = this.items[this.currIndex]?.label
     let height = this.calculateListHeight(items)
     let limitLines = config.get<number>('limitLines', 30000)
     this.items = items.slice(0, limitLines)
-    if (bufnr == 0 && !this.creating) {
+    if (!window && !this.creating) {
       this.creating = true
       let [bufnr, winid] = await nvim.call('coc#list#create', [listOptions.position, height, name, listOptions.numberSelect])
       this._bufnr = bufnr
@@ -346,6 +325,7 @@ export default class ListUI {
   }
 
   public async appendItems(items: ListItem[]): Promise<void> {
+    if (!this.window) return
     let { config } = this
     let limitLines = config.get<number>('limitLines', 1000)
     let curr = this.items.length
@@ -424,8 +404,22 @@ export default class ListUI {
     }
   }
 
+  public close(): void {
+    if (this.window) {
+      this.window.close(true, true)
+      this.window = null
+    }
+  }
+
   public dispose(): void {
+    this.close()
     disposeAll(this.disposables)
+    this._onDidChangeLine.dispose()
+    this._onDidOpen.dispose()
+    this._onDidClose.dispose()
+    this._onDidChange.dispose()
+    this._onDidLineChange.dispose()
+    this._onDoubleClick.dispose()
   }
 
   public get length(): number {

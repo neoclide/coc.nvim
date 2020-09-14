@@ -21,10 +21,10 @@ export default class Mappings {
       prompt.removeTail()
     })
     this.add('insert', '<C-n>', () => {
-      manager.history.next()
+      manager.session?.history.next()
     })
     this.add('insert', '<C-p>', () => {
-      manager.history.previous()
+      manager.session?.history.previous()
     })
     this.add('insert', '<C-v>', async () => {
       await prompt.paste()
@@ -44,7 +44,7 @@ export default class Mappings {
     })
     this.add('insert', '<esc>', () => manager.cancel())
     this.add('insert', '<C-l>', async () => {
-      await manager.worker.loadItems(true)
+      await manager.session?.reloadItems()
     })
     this.add('insert', '<left>', () => {
       prompt.moveLeft()
@@ -85,17 +85,17 @@ export default class Mappings {
     this.add('normal', 's', () => manager.doAction('split'))
     this.add('normal', 'd', () => manager.doAction('drop'))
     this.add('normal', ['<cr>', '<C-m>', '\r'], () => manager.doAction())
-    this.add('normal', '<C-a>', () => manager.ui.selectAll())
-    this.add('normal', ' ', () => manager.ui.toggleSelection())
+    this.add('normal', '<C-a>', () => manager.session?.ui.selectAll())
+    this.add('normal', ' ', () => manager.session?.ui.toggleSelection())
     this.add('normal', 'p', () => manager.togglePreview())
     this.add('normal', ['<tab>', '\t', '<C-i>'], () => manager.chooseAction())
     this.add('normal', '<C-c>', () => {
       manager.stop()
     })
     this.add('normal', '<esc>', () => manager.cancel())
-    this.add('normal', '<C-l>', () => manager.worker.loadItems(true))
+    this.add('normal', '<C-l>', () => manager.session?.reloadItems())
     this.add('normal', ['i', 'I', 'o', 'O', 'a', 'A'], () => manager.toggleMode())
-    this.add('normal', '?', () => manager.showHelp())
+    this.add('normal', '?', () => manager.session?.showHelp())
     this.add('normal', ':', async () => {
       await manager.cancel(false)
       await nvim.eval('feedkeys(":")')
@@ -146,13 +146,14 @@ export default class Mappings {
   public async doInsertKeymap(key: string): Promise<boolean> {
     let nextKey = this.config.nextKey
     let previousKey = this.config.previousKey
-    let { ui } = this.manager
+    let { session } = this.manager
+    if (!session) return
     if (key == nextKey) {
-      ui.index = ui.index + 1
+      session.ui.index = session.ui.index + 1
       return true
     }
     if (key == previousKey) {
-      ui.index = ui.index - 1
+      session.ui.index = session.ui.index - 1
       return true
     }
     let expr = this.userInsertMappings.get(key)
@@ -214,16 +215,16 @@ export default class Mappings {
           manager.switchMatcher()
           return
         case 'selectall':
-          await manager.ui.selectAll()
+          await manager.session?.ui.selectAll()
           return
         case 'help':
-          await manager.showHelp()
+          await manager.session?.showHelp()
           return
         case 'refresh':
-          await manager.worker.loadItems()
+          await manager.session?.reloadItems()
           return
         case 'exit':
-          await manager.cancel(true)
+          await manager.cancel()
           return
         case 'stop':
           manager.stop()
@@ -232,7 +233,7 @@ export default class Mappings {
           await manager.cancel(false)
           return
         case 'toggle':
-          await manager.ui.toggleSelection()
+          await manager.session?.ui.toggleSelection()
           return
         case 'previous':
           await manager.normal('k')
@@ -251,10 +252,10 @@ export default class Mappings {
     } else if (key == 'prompt') {
       switch (action) {
         case 'previous':
-          manager.history.previous()
+          manager.session?.history.previous()
           return
         case 'next':
-          manager.history.next()
+          manager.session?.history.next()
           return
         case 'start':
           return prompt.moveToStart()

@@ -76,6 +76,9 @@ export default abstract class BasicList implements IList, Disposable {
     return res
   }
 
+  /**
+   * Get configuration of current list
+   */
   protected getConfig(): WorkspaceConfiguration {
     return workspace.getConfiguration(`list.source.${this.name}`)
   }

@@ -1,14 +1,14 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Emitter, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-import { ListHighlights, ListItem, ListItemsEvent, ListTask } from '../types'
+import { IList, ListContext, ListHighlights, ListItem, ListItemsEvent, ListOptions, ListTask } from '../types'
 import { parseAnsiHighlights } from '../util/ansiparse'
 import { patchLine } from '../util/diff'
 import { hasMatch, positions, score } from '../util/fzy'
 import { getMatchResult } from '../util/score'
 import { byteIndex, byteLength } from '../util/string'
 import workspace from '../workspace'
-import { ListManager } from './manager'
+import Prompt from './prompt'
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 const logger = require('../util/logger')('list-worker')
 const controlCode = '\x1b'
@@ -19,9 +19,15 @@ export interface ExtendedItem extends ListItem {
   filterLabel: string
 }
 
+export interface WorkerConfiguration {
+  interactiveDebounceTime: number
+  extendedSearchMode: boolean
+}
+
 // perform loading task
 export default class Worker {
   private recentFiles: string[] = []
+  private prevContext: ListContext
   private _loading = false
   private timer: NodeJS.Timer
   private interval: NodeJS.Timer
@@ -30,18 +36,22 @@ export default class Worker {
   private _onDidChangeItems = new Emitter<ListItemsEvent>()
   public readonly onDidChangeItems: Event<ListItemsEvent> = this._onDidChangeItems.event
 
-  constructor(private nvim: Neovim, private manager: ListManager) {
-    let { prompt } = manager
+  constructor(
+    private nvim: Neovim,
+    private list: IList,
+    private prompt: Prompt,
+    private listOptions: ListOptions,
+    private config: WorkerConfiguration
+  ) {
     prompt.onDidChangeInput(() => {
-      let { listOptions } = manager
-      let { interactive } = listOptions
-      let time = manager.getConfig<number>('interactiveDebounceTime', 100)
+      let time = config.interactiveDebounceTime
       if (this.timer) clearTimeout(this.timer)
       // reload or filter items
-      if (interactive) {
+      if (listOptions.interactive) {
         this.stop()
         this.timer = setTimeout(async () => {
-          await this.loadItems()
+          if (!this.prevContext) return
+          await this.loadItems(Object.assign(this.prevContext, { input: this.input }))
         }, time)
       } else if (this.length) {
         let wait = Math.max(Math.min(Math.floor(this.length / 200), 300), 50)
@@ -50,9 +60,6 @@ export default class Worker {
         }, wait)
       }
     })
-  }
-
-  private loadMru(): void {
     let mru = workspace.createMru('mru')
     mru.load().then(files => {
       this.recentFiles = files
@@ -86,10 +93,9 @@ export default class Worker {
     return this._loading
   }
 
-  public async loadItems(reload = false): Promise<void> {
-    let { context, list, listOptions } = this.manager
-    if (!list) return
-    this.loadMru()
+  public async loadItems(context: ListContext, reload = false): Promise<void> {
+    let { list, listOptions } = this
+    this.prevContext = context
     if (this.timer) clearTimeout(this.timer)
     this.loading = true
     let { interactive } = listOptions
@@ -127,7 +133,7 @@ export default class Worker {
       let lastTs: number
       let _onData = () => {
         lastTs = Date.now()
-        if (token.isCancellationRequested || !this.manager.isActivated) return
+        if (token.isCancellationRequested) return
         if (count >= totalItems.length) return
         let inputChanged = this.input != currInput
         if (interactive && inputChanged) return
@@ -187,11 +193,9 @@ export default class Worker {
       })
       task.on('error', async (error: Error | string) => {
         task = null
-        this.loading = false
-        disposable.dispose()
-        if (timer) clearTimeout(timer)
-        await this.manager.cancel()
+        this.stop()
         workspace.showMessage(`Task error: ${error.toString()}`, 'error')
+        this.nvim.call('coc#list#stop_prompt', [], true)
         logger.error(error)
       })
       task.on('end', () => {
@@ -211,13 +215,10 @@ export default class Worker {
 
   // draw all items with filter if necessary
   public drawItems(): void {
-    let { totalItems } = this
-    let { listOptions, isActivated } = this.manager
-    if (!isActivated) return
-    let { interactive } = listOptions
+    let { totalItems, listOptions } = this
     let items = totalItems
     let highlights: ListHighlights[] = []
-    if (!interactive) {
+    if (!listOptions.interactive) {
       let res = this.filterItems(totalItems)
       items = res.items
       highlights = res.highlights
@@ -236,6 +237,9 @@ export default class Worker {
     if (this.timer) {
       clearTimeout(this.timer)
     }
+    if (this.interval) {
+      clearInterval(this.interval)
+    }
   }
 
   public get length(): number {
@@ -243,7 +247,7 @@ export default class Worker {
   }
 
   private get input(): string {
-    return this.manager.prompt.input
+    return this.prompt.input
   }
 
   private getItemsHighlight(items: ListItem[]): ListHighlights[] {
@@ -259,9 +263,9 @@ export default class Worker {
   }
 
   private filterItems(items: ListItem[]): { items: ListItem[]; highlights: ListHighlights[] } {
-    let { input } = this.manager.prompt
+    let { input } = this
     let highlights: ListHighlights[] = []
-    let { sort, matcher, ignorecase } = this.manager.listOptions
+    let { sort, matcher, ignorecase } = this.listOptions
     if (input.length == 0) {
       let filtered = items.slice()
       let sort = filtered.length && typeof filtered[0].recentScore == 'number'
@@ -270,10 +274,9 @@ export default class Worker {
         highlights
       }
     }
-    let extended = this.manager.getConfig<boolean>('extendedSearchMode', true)
     let filtered: ListItem[] | ExtendedItem[]
     if (input.length > 0) {
-      let inputs = extended ? input.split(/\s+/) : [input]
+      let inputs = this.config.extendedSearchMode ? input.split(/\s+/) : [input]
       if (matcher == 'strict') {
         filtered = items.filter(item => {
           let spans: [number, number][] = []
@@ -396,6 +399,11 @@ export default class Worker {
     let { columns } = workspace.env
     label = label.split('\n').join(' ')
     return label.slice(0, columns * 2)
+  }
+
+  public dispose(): void {
+    this.stop()
+    this._onDidChangeItems.dispose()
   }
 }
 
