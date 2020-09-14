@@ -109,7 +109,7 @@ class Events {
     } else {
       let arr = this.handlers.get(event) || []
       let stack = Error().stack
-      arr.push(args => new Promise((resolve, reject) => {
+      let wrappedhandler = args => new Promise((resolve, reject) => {
         let timer
         try {
           Promise.resolve(handler.apply(thisArg || null, args)).then(() => {
@@ -125,10 +125,11 @@ class Events {
         } catch (e) {
           reject(e)
         }
-      }))
+      })
+      arr.push(wrappedhandler)
       this.handlers.set(event, arr)
       let disposable = Disposable.create(() => {
-        let idx = arr.indexOf(handler)
+        let idx = arr.indexOf(wrappedhandler)
         if (idx !== -1) {
           arr.splice(idx, 1)
         }
