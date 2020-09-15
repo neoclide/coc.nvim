@@ -39,7 +39,6 @@ export default class Mappings {
     })
     this.add('insert', '<C-c>', () => {
       manager.stop()
-      manager.prompt.start()
       return
     })
     this.add('insert', '<esc>', () => manager.cancel())
@@ -94,6 +93,7 @@ export default class Mappings {
     })
     this.add('normal', '<esc>', () => manager.cancel())
     this.add('normal', '<C-l>', () => manager.session?.reloadItems())
+    this.add('normal', '<C-o>', () => manager.session?.jumpBack())
     this.add('normal', ['i', 'I', 'o', 'O', 'a', 'A'], () => manager.toggleMode())
     this.add('normal', '?', () => manager.session?.showHelp())
     this.add('normal', ':', async () => {

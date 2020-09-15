@@ -533,13 +533,9 @@ Built-in configurations:~
 
 	The character used as first character in prompt line, default: `">"`
 
-"list.maxHeight":~
+"list.height":~
 
-	Maximum height of list window, default: `10`
-
-"list.minHeight":~
-
-	Minimum height of list windows, default: `1`
+	Height of split list window, default: `10`
 
 "list.signOffset":~
 
@@ -548,10 +544,6 @@ Built-in configurations:~
 "list.selectedSignText":~
 
 	Sign text for selected lines, default: `"*"`
-
-"list.autoResize":~
-
-	Enable auto-resize feature, default: `true`
 
 "list.limitLines":~
 
@@ -2436,29 +2428,29 @@ LIST COMMAND						*coc-list-command*
 
 	When {source} is empty, lists source is used.
 
-:CocListResume						*:CocListResume*
+:CocListResume [{name}]					*:CocListResume*
 
 	Reopen last opened list, input and cursor position will be preserved.
 
-:CocPrev						*:CocPrev*
+:CocPrev [{name}]					*:CocPrev*
 
-	Invoke default action for the previous item in the last list.
-
-	Doesn't open the list window if it's closed.
-
-:CocNext						*:CocNext*
-
-	Invoke the default action for the next item in the last list.
+	Invoke default action for the previous item in the last {name} list.
 
 	Doesn't open the list window if it's closed.
 
-:CocFirst						*:CocFirst*
+:CocNext [{name}]					*:CocNext*
 
-	Invoke default action for first item in the last list.
+	Invoke the default action for the next item in the last {name} list.
 
-:CocLast						*:CocLast*
+	Doesn't open the list window if it's closed.
 
-	Invoke default action for last item in the last list.
+:CocFirst [{name}]					*:CocFirst*
+
+	Invoke default action for first item in the last {name} list.
+
+:CocLast [{name}]					*:CocLast*
+
+	Invoke default action for last item in the last {name} list.
 
 							*coc-list-options*
 Options of CocList command~
@@ -2515,11 +2507,6 @@ Options of CocList command~
 -A
 
 	Start a preview for the current item on the visible list.
-
---no-resize
-
-	Disable resize of list window, override `list.autoResize`
-	configuration.
 
 --no-quit
 
@@ -2608,6 +2595,7 @@ Default mappings in normal mode:
 <C-c>       - stop source from fetching more items.
 <C-l>       - reload list.
 <C-a>       - mark all visible items selected.
+<C-o>       - jump to original window on list create.
 <Tab>       - select action.
 <Space>     - toggle select of current item.
 i,I,o,O,a,A - change to insert mode.

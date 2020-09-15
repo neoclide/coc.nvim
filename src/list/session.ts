@@ -11,6 +11,7 @@ import InputHistory from './history'
 import Prompt from './prompt'
 import UI from './ui'
 import Worker from './worker'
+const logger = require('../util/logger')('list-session')
 
 /**
  * Activated list session with UI and worker
@@ -19,9 +20,9 @@ export default class ListSession {
   public readonly history: InputHistory
   public readonly ui: UI
   public readonly worker: Worker
-  private cwd: string
+  private timer: NodeJS.Timer
   private executing = false
-  private hidding = false
+  private hidden = false
   private disposables: Disposable[] = []
   private savedHeight: number
   private window: Window
@@ -38,7 +39,6 @@ export default class ListSession {
     private listArgs: string[] = [],
     private config: ListConfiguration
   ) {
-    this.cwd = workspace.cwd
     this.ui = new UI(nvim, list.name, listOptions, config)
     this.history = new InputHistory(prompt, list.name)
     this.worker = new Worker(nvim, list, prompt, listOptions, {
@@ -91,47 +91,53 @@ export default class ListSession {
     this.ui.onDidDoubleClick(async () => {
       await this.doAction()
     }, null, this.disposables)
-    this.worker.onDidChangeItems(async ({ items, highlights, reload, append }) => {
+    this.worker.onDidChangeItems(async ({ items, highlights, reload, append, finished }) => {
+      if (this.hidden) return
       if (append) {
         this.ui.addHighlights(highlights, true)
         await this.ui.appendItems(items)
       } else {
         this.ui.addHighlights(highlights)
-        await this.ui.drawItems(items, reload)
+        let height = this.config.get<number>('height', 10)
+        if (finished && !listOptions.interactive) {
+          height = Math.min(items.length, height)
+        }
+        await this.ui.drawItems(items, Math.max(1, height), reload)
       }
     }, null, this.disposables)
   }
 
   public async start(args: string[]): Promise<void> {
     this.args = args
+    this.hidden = false
     let { listOptions, listArgs } = this
     let res = await this.nvim.eval('[win_getid(),bufnr("%"),winheight("%")]')
     this.listArgs = listArgs
-    this.cwd = workspace.cwd
     this.history.load(listOptions.input || '')
     this.window = this.nvim.createWindow(res[0])
     this.buffer = this.nvim.createBuffer(res[1])
     this.savedHeight = res[2]
-    this.prompt.start(listOptions)
     await this.worker.loadItems(this.context)
   }
 
   public async reloadItems(): Promise<void> {
-    let buf = this.window ? await this.window.buffer : null
-    this.buffer = buf
+    if (!this.window) return
+    let bufnr = await this.nvim.call('winbufnr', [this.window.id])
+    // can't reload since window not exists
+    if (bufnr == -1) return
+    this.buffer = this.nvim.createBuffer(bufnr)
     await this.worker.loadItems(this.context, true)
   }
 
   public async call(fname: string): Promise<any> {
     await this.nvim.call('coc#list#stop_prompt', [])
     let targets = await this.ui.getItems()
-    let buf = this.window ? await this.window.buffer : null
     let context = {
       name: this.name,
       args: this.listArgs,
       input: this.prompt.input,
       winid: this.window?.id,
-      bufnr: buf?.id,
+      bufnr: this.buffer?.id,
       targets
     }
     let res = await this.nvim.call(fname, [context])
@@ -177,7 +183,6 @@ export default class ListSession {
   }
 
   public async doAction(name?: string): Promise<void> {
-    if (!this.winid) return
     let { list } = this
     name = name || list.defaultAction
     let action = list.actions.find(o => o.name == name)
@@ -260,8 +265,7 @@ export default class ListSession {
 
   public async hide(): Promise<void> {
     let { nvim, listOptions, savedHeight, window } = this
-    if (this.hidding) return
-    this.hidding = true
+    this.hidden = true
     this.worker.stop()
     this.history.add()
     nvim.pauseNotification()
@@ -272,7 +276,6 @@ export default class ListSession {
     }
     nvim.command('redraw', true)
     await nvim.resumeNotification()
-    this.hidding = false
   }
 
   public toggleMode(): void {
@@ -300,7 +303,9 @@ export default class ListSession {
 
   public async showHelp(): Promise<void> {
     await this.hide()
-    let { list, nvim } = this
+    let {
+      list, nvim
+    } = this
     if (!list) return
     let previewHeight = await nvim.eval('&previewheight')
     nvim.pauseNotification()
@@ -391,7 +396,7 @@ export default class ListSession {
       args: this.args.join(' '),
       name: list.name,
       total: this.worker.length,
-      cwd: this.cwd,
+      cwd: workspace.cwd
     }
     nvim.pauseNotification()
     buf.setVar('list_status', status, true)
@@ -404,7 +409,7 @@ export default class ListSession {
       options: this.listOptions,
       args: this.listArgs,
       input: this.prompt.input,
-      cwd: this.cwd,
+      cwd: workspace.cwd,
       window: this.window,
       buffer: this.buffer,
       listWindow: this.ui.window
@@ -445,9 +450,15 @@ export default class ListSession {
     return false
   }
 
+  public jumpBack(): void {
+    let { window } = this
+    if (window) this.nvim.call('win_gotoid', [window.id], true)
+  }
+
   public async resume(): Promise<void> {
-    if (this.winid) return
+    if (this.winid) await this.hide()
     let res = await this.nvim.eval('[win_getid(),bufnr("%"),winheight("%")]')
+    this.hidden = false
     this.window = this.nvim.createWindow(res[0])
     this.buffer = this.nvim.createBuffer(res[1])
     this.savedHeight = res[2]
@@ -500,7 +511,28 @@ export default class ListSession {
     this.executing = false
   }
 
+  public onInputChange(): void {
+    if (this.timer) clearTimeout(this.timer)
+    let len = this.worker.length
+    // reload or filter items
+    if (this.listOptions.interactive) {
+      this.worker.stop()
+      let ms = this.config.get<number>('interactiveDebounceTime', 100)
+      this.timer = setTimeout(async () => {
+        await this.worker.loadItems(this.context)
+      }, ms)
+    } else if (len) {
+      let wait = Math.max(Math.min(Math.floor(len / 200), 300), 50)
+      this.timer = setTimeout(() => {
+        this.worker.drawItems()
+      }, wait)
+    }
+  }
+
   public dispose(): void {
+    if (this.timer) {
+      clearTimeout(this.timer)
+    }
     disposeAll(this.disposables)
     this.worker.dispose()
     this.ui.dispose()

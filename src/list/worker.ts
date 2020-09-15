@@ -27,9 +27,7 @@ export interface WorkerConfiguration {
 // perform loading task
 export default class Worker {
   private recentFiles: string[] = []
-  private prevContext: ListContext
   private _loading = false
-  private timer: NodeJS.Timer
   private interval: NodeJS.Timer
   private totalItems: ListItem[] = []
   private tokenSource: CancellationTokenSource
@@ -43,23 +41,6 @@ export default class Worker {
     private listOptions: ListOptions,
     private config: WorkerConfiguration
   ) {
-    prompt.onDidChangeInput(() => {
-      let time = config.interactiveDebounceTime
-      if (this.timer) clearTimeout(this.timer)
-      // reload or filter items
-      if (listOptions.interactive) {
-        this.stop()
-        this.timer = setTimeout(async () => {
-          if (!this.prevContext) return
-          await this.loadItems(Object.assign(this.prevContext, { input: this.input }))
-        }, time)
-      } else if (this.length) {
-        let wait = Math.max(Math.min(Math.floor(this.length / 200), 300), 50)
-        this.timer = setTimeout(() => {
-          this.drawItems()
-        }, wait)
-      }
-    })
     let mru = workspace.createMru('mru')
     mru.load().then(files => {
       this.recentFiles = files
@@ -95,8 +76,6 @@ export default class Worker {
 
   public async loadItems(context: ListContext, reload = false): Promise<void> {
     let { list, listOptions } = this
-    this.prevContext = context
-    if (this.timer) clearTimeout(this.timer)
     this.loading = true
     let { interactive } = listOptions
     let source = this.tokenSource = new CancellationTokenSource()
@@ -122,7 +101,8 @@ export default class Worker {
       this._onDidChangeItems.fire({
         items,
         highlights,
-        reload
+        reload,
+        finished: true
       })
     } else {
       let task = items as ListTask
@@ -131,7 +111,7 @@ export default class Worker {
       let currInput = context.input
       let timer: NodeJS.Timer
       let lastTs: number
-      let _onData = () => {
+      let _onData = (finished?: boolean) => {
         lastTs = Date.now()
         if (token.isCancellationRequested) return
         if (count >= totalItems.length) return
@@ -150,7 +130,7 @@ export default class Worker {
             items = res.items
             highlights = res.highlights
           }
-          this._onDidChangeItems.fire({ items, highlights, reload, append: false })
+          this._onDidChangeItems.fire({ items, highlights, reload, append: false, finished })
         } else {
           let remain = totalItems.slice(count)
           count = totalItems.length
@@ -164,7 +144,7 @@ export default class Worker {
             items = remain
             highlights = this.getItemsHighlight(remain)
           }
-          this._onDidChangeItems.fire({ items, highlights, append: true })
+          this._onDidChangeItems.fire({ items, highlights, append: true, finished })
         }
       }
       task.on('data', item => {
@@ -174,46 +154,43 @@ export default class Worker {
         item.label = this.fixLabel(item.label)
         this.parseListItemAnsi(item)
         totalItems.push(item)
-        if (this.input != currInput) return
         if ((!lastTs && totalItems.length == 500)
           || Date.now() - lastTs > 200) {
           _onData()
         } else {
-          timer = setTimeout(_onData, 50)
+          timer = setTimeout(() => _onData(), 50)
         }
       })
-      let disposable = token.onCancellationRequested(() => {
+      let onEnd = () => {
+        if (task == null) return
+        task = null
         this.loading = false
         disposable.dispose()
         if (timer) clearTimeout(timer)
-        if (task) {
-          task.dispose()
-          task = null
+        if (totalItems.length == 0) {
+          this._onDidChangeItems.fire({ items: [], highlights: [], finished: true })
+        } else {
+          _onData(true)
         }
-      })
+      }
+      let disposable = token.onCancellationRequested(onEnd)
       task.on('error', async (error: Error | string) => {
+        if (task == null) return
         task = null
-        this.stop()
-        workspace.showMessage(`Task error: ${error.toString()}`, 'error')
+        this.loading = false
+        disposable.dispose()
+        if (timer) clearTimeout(timer)
         this.nvim.call('coc#list#stop_prompt', [], true)
+        workspace.showMessage(`Task error: ${error.toString()}`, 'error')
         logger.error(error)
       })
-      task.on('end', () => {
-        task = null
-        this.loading = false
-        disposable.dispose()
-        if (timer) clearTimeout(timer)
-        if (token.isCancellationRequested) return
-        if (totalItems.length == 0) {
-          this._onDidChangeItems.fire({ items: [], highlights: [] })
-        } else {
-          _onData()
-        }
-      })
+      task.on('end', onEnd)
     }
   }
 
-  // draw all items with filter if necessary
+  /*
+   * Draw all items with filter if necessary
+   */
   public drawItems(): void {
     let { totalItems, listOptions } = this
     let items = totalItems
@@ -225,7 +202,7 @@ export default class Worker {
     } else {
       highlights = this.getItemsHighlight(items)
     }
-    this._onDidChangeItems.fire({ items, highlights })
+    this._onDidChangeItems.fire({ items, highlights, finished: true })
   }
 
   public stop(): void {
@@ -234,12 +211,6 @@ export default class Worker {
       this.tokenSource = null
     }
     this.loading = false
-    if (this.timer) {
-      clearTimeout(this.timer)
-    }
-    if (this.interval) {
-      clearInterval(this.interval)
-    }
   }
 
   public get length(): number {
@@ -402,8 +373,8 @@ export default class Worker {
   }
 
   public dispose(): void {
-    this.stop()
     this._onDidChangeItems.dispose()
+    this.stop()
   }
 }
 

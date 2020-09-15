@@ -21,7 +21,6 @@ export default class ListUI {
   public window: Window
   private height: number
   private newTab = false
-  private noResize = false
   private _bufnr = 0
   private currIndex = 0
   private highlights: ListHighlights[] = []
@@ -52,7 +51,7 @@ export default class ListUI {
   ) {
     this.signOffset = config.get<number>('signOffset')
     events.on('BufUnload', async bufnr => {
-      if (bufnr != this.bufnr) return
+      if (bufnr != this.bufnr || this.window == null) return
       this.window = null
       this._onDidClose.fire(bufnr)
     }, null, this.disposables)
@@ -60,15 +59,22 @@ export default class ListUI {
       if (bufnr != this.bufnr) return
       this.onLineChange(cursor[0] - 1)
     }, null, this.disposables)
-    events.on('CursorMoved', debounce(async bufnr => {
+    let debounced = debounce(async bufnr => {
       if (bufnr != this.bufnr) return
-      let [start, end] = await nvim.eval('[line("w0"),line("w$")]') as number[]
-      if (end < 200) return
+      let [winid, start, end] = await nvim.eval('[win_getid(),line("w0"),line("w$")]') as number[]
+      if (!this.window || winid != this.window.id) return
+      if (end < 300) return
       nvim.pauseNotification()
       this.doHighlight(start - 1, end)
       nvim.command('redraw', true)
       await nvim.resumeNotification(false, true)
-    }, 100))
+    }, 100)
+    this.disposables.push({
+      dispose: () => {
+        debounced.clear()
+      }
+    })
+    events.on('CursorMoved', debounced, null, this.disposables)
   }
 
   private onLineChange(index: number): void {
@@ -136,13 +142,14 @@ export default class ListUI {
   }
 
   public async getItems(): Promise<ListItem[]> {
-    if (this.length == 0) return []
+    if (this.length == 0 || !this.window) return []
     let mode = await this.nvim.call('mode')
     if (mode == 'v' || mode == 'V') {
       let [start, end] = await this.getSelectedRange()
       let res: ListItem[] = []
       for (let i = start; i <= end; i++) {
-        res.push(this.items[i - 1])
+        let item = this.items[i - 1]
+        if (item) res.push(item)
       }
       return res
     }
@@ -190,7 +197,7 @@ export default class ListUI {
 
   public async resume(): Promise<void> {
     let { items, selected, nvim, signOffset } = this
-    await this.drawItems(items, true)
+    await this.drawItems(items, this.height, true)
     if (selected.size > 0 && this.bufnr) {
       nvim.pauseNotification()
       for (let lnum of selected) {
@@ -295,20 +302,18 @@ export default class ListUI {
     return Promise.reject(new Error('Not creating list'))
   }
 
-  public async drawItems(items: ListItem[], reload = false): Promise<void> {
+  public async drawItems(items: ListItem[], height: number, reload = false): Promise<void> {
     let { window, config, nvim, name, listOptions } = this
     this.newTab = listOptions.position == 'tab'
-    this.noResize = listOptions.noResize
     let prevLabel = this.items[this.currIndex]?.label
-    let height = this.calculateListHeight(items)
     let limitLines = config.get<number>('limitLines', 30000)
     this.items = items.slice(0, limitLines)
     if (!window && !this.creating) {
       this.creating = true
+      this.height = height
       let [bufnr, winid] = await nvim.call('coc#list#create', [listOptions.position, height, name, listOptions.numberSelect])
       this._bufnr = bufnr
       this.window = nvim.createWindow(winid)
-      this.height = height
       this._onDidOpen.fire(this.bufnr)
       this.creating = false
     } else {
@@ -340,34 +345,16 @@ export default class ListUI {
     await this.setLines(append.map(item => item.label), curr > 0, this.currIndex)
   }
 
-  private calculateListHeight(items: ListItem[]): number {
-    let { config } = this
-    let maxHeight = config.get<number>('maxHeight', 10)
-    let minHeight = config.get<number>('minHeight', 1)
-    let height = Math.min(Math.max(minHeight, items.length), maxHeight)
-    this.height = Math.max(1, height)
-
-    return this.height
-  }
-
   private async setLines(lines: string[], append = false, index: number): Promise<void> {
-    let { nvim, bufnr, window, config } = this
+    let { nvim, bufnr, window } = this
     if (!bufnr || !window) return
-    let resize = !this.newTab && config.get<boolean>('autoResize', true)
-    if (this.noResize === true) resize = false
     let buf = nvim.createBuffer(bufnr)
     nvim.pauseNotification()
     nvim.call('win_gotoid', window.id, true)
     if (!append) {
       nvim.call('clearmatches', [], true)
-    }
-    if (resize) {
-      let height = this.calculateListHeight(this.items)
-      nvim.call('coc#list#set_height', [height], true)
-    }
-    if (!append) {
       if (!lines.length) {
-        lines = ['Press ? on normal mode to get help.']
+        lines = ['No results, press ? on normal mode to get help.']
         nvim.call('matchaddpos', ['Comment', [[1]], 99], true)
       }
     }
@@ -393,7 +380,7 @@ export default class ListUI {
       this._onDidChange.fire()
     if (workspace.isVim) nvim.command('redraw', true)
     let res = await nvim.resumeNotification()
-    if (res[1]) logger.error(res[1])
+    if (res && res[1]) logger.error(res[1])
   }
 
   public restoreWindow(): void {

@@ -828,6 +828,7 @@ export interface AnsiHighlight {
 export interface ListItemsEvent {
   items: ListItem[]
   highlights: ListHighlights[]
+  finished: boolean
   append?: boolean
   reload?: boolean
 }
@@ -847,7 +848,6 @@ export interface ListOptions {
   autoPreview: boolean
   numberSelect: boolean
   noQuit: boolean
-  noResize: boolean
   first: boolean
 }
 

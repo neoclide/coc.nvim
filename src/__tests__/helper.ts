@@ -98,7 +98,7 @@ export class Helper extends EventEmitter {
       await this.nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
     }
     await this.nvim.command('silent! %bwipeout!')
-    await this.wait(60)
+    await this.wait(80)
   }
 
   public async pumvisible(): Promise<boolean> {

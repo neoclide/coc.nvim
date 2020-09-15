@@ -61,7 +61,10 @@ export class ListManager implements Disposable {
     }, 100), null, this.disposables)
     // filter history on input
     this.prompt.onDidChangeInput(() => {
-      this.session?.history.filter()
+      let { session } = this
+      if (!session) return
+      session.onInputChange()
+      session.history.filter()
     })
     this.registerList(new LinksList(nvim))
     this.registerList(new LocationList(nvim))
@@ -79,7 +82,7 @@ export class ListManager implements Disposable {
   }
 
   public async start(args: string[]): Promise<void> {
-    await this.getCharMap()
+    this.getCharMap().logError()
     let res = this.parseArgs(args)
     if (!res) return
     let { name } = res.list
@@ -88,7 +91,7 @@ export class ListManager implements Disposable {
       this.nvim.command('pclose', true)
       curr.dispose()
     }
-    this.prompt.reset()
+    this.prompt.start(res.options)
     let session = new ListSession(this.nvim, this.prompt, res.list, res.options, res.listArgs, this.config)
     this.sessionsMap.set(name, session)
     this.lastSession = session
@@ -158,11 +161,21 @@ export class ListManager implements Disposable {
   }
 
   public async cancel(close = true): Promise<void> {
-    let lastSession = this.lastSession
-    if (!lastSession) return
-    this.nvim.call('coc#list#stop_prompt', [], true)
+    this.prompt.cancel()
     if (!close) return
-    await lastSession.hide()
+    if (this.session) await this.session.hide()
+  }
+
+  /**
+   * Clear all list sessions
+   */
+  public async reset(): Promise<void> {
+    await this.cancel(false)
+    for (let session of this.sessionsMap.values()) {
+      session.dispose()
+    }
+    this.sessionsMap.clear()
+    this.lastSession = null
   }
 
   public switchMatcher(): void {
@@ -198,7 +211,6 @@ export class ListManager implements Disposable {
     let position = 'bottom'
     let listArgs: string[] = []
     let listOptions: string[] = []
-    let noResize = false
     for (let arg of args) {
       if (!name && arg.startsWith('-')) {
         listOptions.push(arg)
@@ -214,7 +226,7 @@ export class ListManager implements Disposable {
     }
     name = name || 'lists'
     let config = workspace.getConfiguration(`list.source.${name}`)
-    if (!listOptions.length) listOptions = config.get<string[]>('defaultOptions', [])
+    if (!listOptions.length && !listArgs.length) listOptions = config.get<string[]>('defaultOptions', [])
     if (!listArgs.length) listArgs = config.get<string[]>('defaultArgs', [])
     for (let opt of listOptions) {
       if (opt.startsWith('--input')) {
@@ -239,8 +251,6 @@ export class ListManager implements Disposable {
         first = true
       } else if (opt == '--no-quit') {
         noQuit = true
-      } else if (opt == '--no-resize') {
-        noResize = true
       } else {
         workspace.showMessage(`Invalid option "${opt}" of list`, 'error')
         return null
@@ -261,7 +271,6 @@ export class ListManager implements Disposable {
       options: {
         numberSelect,
         autoPreview,
-        noResize,
         noQuit,
         first,
         input,
@@ -288,6 +297,9 @@ export class ListManager implements Disposable {
       await this.cancel()
       return
     }
+    // console.log(123)
+    // console.log(mode)
+    // console.log(ch)
     try {
       if (mode == 'insert') {
         await this.onInsertInput(ch, charmod)
@@ -387,7 +399,7 @@ export class ListManager implements Disposable {
         type: 'string',
         enum: ['--top', '--normal', '--no-sort', '--input', '--tab',
           '--strict', '--regex', '--ignore-case', '--number-select',
-          '--interactive', '--auto-preview', '--first', '--no-quit', '--no-resize']
+          '--interactive', '--auto-preview', '--first', '--no-quit']
       }
     })
     extensions.addSchemeProperty(`list.source.${name}.defaultArgs`, {
@@ -472,9 +484,11 @@ export class ListManager implements Disposable {
     for (let session of this.sessionsMap.values()) {
       session.dispose()
     }
+    this.sessionsMap.clear()
     if (this.config) {
       this.config.dispose()
     }
+    this.lastSession = null
     disposeAll(this.disposables)
   }
 }

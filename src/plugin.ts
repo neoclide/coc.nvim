@@ -71,9 +71,11 @@ export default class Plugin extends EventEmitter {
       await listManager.start(args)
     })
     this.addAction('selectSymbolRange', (inner: boolean, visualmode: string, supportedSymbols: string[]) => this.handler.selectSymbolRange(inner, visualmode, supportedSymbols))
-    this.addAction('listResume', () => listManager.resume())
-    this.addAction('listPrev', () => listManager.previous())
-    this.addAction('listNext', () => listManager.next())
+    this.addAction('listResume', (name?: string) => listManager.resume(name))
+    this.addAction('listPrev', (name?: string) => listManager.previous(name))
+    this.addAction('listNext', (name?: string) => listManager.next(name))
+    this.addAction('listFirst', (name?: string) => listManager.first(name))
+    this.addAction('listLast', (name?: string) => listManager.last(name))
     this.addAction('sendRequest', (id: string, method: string, params?: any) => services.sendRequest(id, method, params))
     this.addAction('sendNotification', (id: string, method: string, params?: any) => {
       return services.sendNotification(id, method, params)
@@ -248,12 +250,6 @@ export default class Plugin extends EventEmitter {
     })
     this.addAction('doHover', () => {
       return this.handler.onHover()
-    })
-    this.addAction('listFirst', () => {
-      return listManager.first()
-    })
-    this.addAction('listLast', () => {
-      return listManager.last()
     })
     this.addAction('showSignatureHelp', () => {
       return this.handler.showSignatureHelp()

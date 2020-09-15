@@ -120,7 +120,6 @@ describe('list commands', () => {
       position: 'top',
       mode: 'normal',
       noQuit: false,
-      noResize: false,
       sort: false
     })
   })
@@ -219,16 +218,6 @@ describe('list configuration', () => {
     expect(line).toMatch('>>')
   })
 
-  it('should change max height limit', async () => {
-    helper.updateConfiguration('list.maxHeight', 2)
-    await manager.start(['location'])
-    await helper.wait(100)
-    let win = await nvim.window
-    let height = await win.height
-    expect(height).toBe(2)
-    helper.updateConfiguration('list.maxHeight', 12)
-  })
-
   it('should split right for preview window', async () => {
     helper.updateConfiguration('list.previewSplitRight', true)
     let win = await nvim.window
@@ -244,17 +233,6 @@ describe('list configuration', () => {
     let isPreview = await curr.getOption('previewwindow')
     expect(isPreview).toBe(true)
     helper.updateConfiguration('list.previewSplitRight', false)
-  })
-
-  it('should change autoResize', async () => {
-    helper.updateConfiguration('list.autoResize', false)
-    await manager.start(['location'])
-    await helper.wait(100)
-    await nvim.eval('feedkeys("b", "in")')
-    await helper.wait(100)
-    let win = await nvim.window
-    let height = await win.height
-    expect(height).toBe(3)
   })
 
   it('should toggle selection mode', async () => {
@@ -275,7 +253,7 @@ describe('list configuration', () => {
     helper.updateConfiguration('list.nextKeymap', '<tab>')
     helper.updateConfiguration('list.previousKeymap', '<s-tab>')
     await manager.start(['location'])
-    await helper.wait(100)
+    await manager.session.ui.ready
     await nvim.eval('feedkeys("\\<tab>", "in")')
     await helper.wait(100)
     let line = await nvim.line
