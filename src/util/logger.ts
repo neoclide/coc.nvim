@@ -7,7 +7,14 @@ function getLogFile(): string {
   let file = process.env.NVIM_COC_LOG_FILE
   if (file) return file
   let dir = process.env.XDG_RUNTIME_DIR
-  if (dir) return path.join(dir, `coc-nvim-${process.pid}.log`)
+  if (dir) {
+    try {
+      fs.accessSync(dir, fs.constants.R_OK | fs.constants.W_OK)
+      return path.join(dir, `coc-nvim-${process.pid}.log`)
+    } catch (err) {
+      // noop
+    }
+  }
   dir = path.join(process.env.TMPDIR, `coc.nvim-${process.pid}`)
   if (os.platform() == 'win32') {
     dir = path.win32.normalize(dir)
