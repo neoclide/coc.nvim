@@ -526,6 +526,8 @@ Built-in configurations:~
 	Filetypes to ignore for workspace folder resolution,
 	default: `["markdown","log","txt","help"]`
 
+	Note: This is the filetype after mapping by `g:coc_filetype_map`.
+
 							*coc-config-list*
 "list.indicator":~
 
@@ -663,6 +665,8 @@ Built-in configurations:~
 
 	Filetypes for which formatting triggers after saving, default: `[]`
 
+	Note: This is the filetype after mapping by `g:coc_filetype_map`.
+
 "coc.preferences.enableFloatHighlight":~
 
 	Enable highlight for floating window, default: `true`
@@ -707,6 +711,7 @@ Built-in configurations:~
 	Filetypes that should run format on typing, default: `[]`
 
 	Note: takes effect when `coc.preferences.formatOnType` set `true`.
+	Note: This is the filetype after mapping by `g:coc_filetype_map`.
 
 "coc.preferences.snippets.enable":~
 
@@ -751,11 +756,11 @@ Built-in configurations:~
 	- "enable": Change to `false` to disable that languageserver.
 
 	- "filetypes": Supported filetypes, add * in array for all filetypes.
-	  Note: it's required for start the languageserver, please make cure
-	  your filetype is expected by `:echo &filetype` command
+	  Note: it's required for start the languageserver, please make sure
+	  your filetype is expected by `:CocCommand document.echoFiletype` command
 
 	- "additionalSchemes": Additional uri schemes, default schemes
-	  including file & untitled. 
+	  including file & untitled.
 	  Note: you have to setup vim provide content for custom uri as well.
 
 	- "cwd": Working directory used to start languageserver, vim's cwd is
@@ -825,7 +830,7 @@ Language server start with module:~
 	module:
 
 	- "module": Absolute filepath of javascript file.
-	
+
 	- "args": Extra arguments used on fork javascript module.
 
 	- "runtime": Absolute path of node runtime, node runtime of coc.nvim
@@ -1056,7 +1061,7 @@ normal mode, `v_` works for visual mode.
 	Note: requires selection ranges feature of language server, like:
 	coc-tsserver, coc-python
 
-<Plug>(coc-funcobj-i)					*n_coc-funcobj-i* 
+<Plug>(coc-funcobj-i)					*n_coc-funcobj-i*
 							*v_coc-funcobj-i*
 
       Select inside function. Recommend mapping:
@@ -1090,7 +1095,7 @@ normal mode, `v_` works for visual mode.
 	server.
 
 
-<Plug>(coc-classobj-a)					*n_coc-classobj-a* 
+<Plug>(coc-classobj-a)					*n_coc-classobj-a*
 							*v_coc-classobj-a*
 
 	Select around class/struct/interface. Recommended mapping:
@@ -1168,7 +1173,7 @@ g:coc_disable_uncaught_error 				 *g:coc_disable_uncaught_error*
 	Disable uncaught error messages from node process of coc.nvim.
 
 	Default: 0
-	
+
 g:coc_channel_timeout					*g:coc_channel_timeout*
 
 	Channel timeout in seconds for request to node client.
@@ -1263,7 +1268,8 @@ g:coc_filetype_map					*g:coc_filetype_map*
 
 	Note: coc will always map filetype `javascript.jsx` to
 	`javascriptreact` and `typescript.tsx` to
-	`typescriptreact`.
+	`typescriptreact`. You can find the mapped filetype
+	of the current buffer by running `:CocCommand document.echoFiletype`.
 
 g:coc_selectmode_mapping				*g:coc_selectmode_mapping*
 
@@ -1431,7 +1437,7 @@ coc#start([{option}]) 					*coc#start()*
 	inoremap <silent> <C-w> <C-R>=coc#start({'source': 'word'})<CR>
 <
 	Use `CocList sources` to get available sources.
-				
+
 coc#config({section}, {value})				*coc#config()*
 
 	Change user configuration by Vim script, no changes would be made to
@@ -1528,7 +1534,7 @@ coc#_select_confirm()					*coc#_select_confirm()*
 	autocmd should exists or only <C-n> and <C-p> should be used to select
 	a completion item.
 
-			
+
 health#coc#check()					*health#coc#check()*
 
 	Neovim only, run health check, triggered by ':checkhealth'
@@ -1554,7 +1560,7 @@ coc#util#rebuild()					*coc#util#rebuild()*
 
 	Rebuild coc extensions.
 
-		
+
 coc#util#has_float()					*coc#util#has_float()*
 
 	Check if coc float window exists.
@@ -1655,7 +1661,7 @@ CocLocationsAsync({id}, {method}, [{params}, {openCommand}])
 	Same as |CocLocations()|, but send notification to server instead
 	of request.
 
-				
+
 CocAction({action}, [...{args}])			*CocAction()*
 
 	Run {action} of coc with optional extra {args}.
@@ -1687,7 +1693,7 @@ CocTagFunc({pattern}, {flags}, {info})			*CocTagFunc()*
 ------------------------------------------------------------------------------
 							*coc-action*
 Available Actions ~
-								
+
 Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 "sourceStat"						*coc-action-sourceStat*
@@ -1952,7 +1958,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Run fixAll codeAction ofr current buffer.
 	Show warning when codeAction not found.
-	
+
 
 "quickfixes" [{visualmode}]				*coc-action-quickfixes*
 
