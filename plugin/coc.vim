@@ -396,7 +396,7 @@ endfunction
 
 command! -nargs=? CocDiagnostics  :call s:OpenDiagnostics(<f-args>)
 command! -nargs=0 CocInfo         :call s:ShowInfo()
-command! -nargs=0 CocOpenLog      :call coc#rpc#notify('openLog',  <f-args>)
+command! -nargs=0 CocOpenLog      :call coc#rpc#notify('openLog',  [])
 command! -nargs=0 CocDisable      :call s:Disable()
 command! -nargs=0 CocEnable       :call s:Enable(0)
 command! -nargs=0 CocConfig       :call s:OpenConfig()
