@@ -80,7 +80,7 @@ describe('list commands', () => {
 
   it('should do default action for first item', async () => {
     await manager.start(['--normal', '--first', 'location'])
-    await helper.wait(100)
+    await helper.wait(300)
     let name = await nvim.eval('bufname("%")') as string
     let filename = path.basename(__filename)
     expect(name.includes(filename)).toBe(true)
@@ -266,8 +266,8 @@ describe('list configuration', () => {
 
   it('should respect mouse events', async () => {
     async function setMouseEvent(line: number): Promise<void> {
-      let window = manager.session?.ui.window
-      await nvim.command(`let v:mouse_winid = ${window.id}`)
+      let winid = manager.session?.ui.winid
+      await nvim.command(`let v:mouse_winid = ${winid}`)
       await nvim.command(`let v:mouse_lnum = ${line}`)
       await nvim.command(`let v:mouse_col = 1`)
     }

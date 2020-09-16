@@ -26,6 +26,7 @@ class OptionList extends BasicList {
     return Promise.resolve(listItems)
   }
 }
+jest.setTimeout(3000)
 
 let nvim: Neovim
 beforeAll(async () => {
@@ -34,6 +35,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
+  await manager.reset()
   await helper.shutdown()
 })
 
@@ -132,13 +134,6 @@ describe('list sources', () => {
       await manager.session?.ui.ready
       await helper.wait(100)
       expect(manager.isActivated).toBe(true)
-    })
-
-    it('should run delete action', async () => {
-      await manager.start(['folders'])
-      await manager.session?.ui.ready
-      await helper.wait(100)
-      await manager.doAction('delete')
     })
   })
 

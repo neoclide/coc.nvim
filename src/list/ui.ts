@@ -1,11 +1,12 @@
-import { Neovim, Window } from '@chemzqm/neovim'
+import { Buffer, Neovim, Window } from '@chemzqm/neovim'
+import debounce from 'debounce'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { ListHighlights, ListItem, ListOptions } from '../types'
 import { disposeAll } from '../util'
+import { Mutex } from '../util/mutex'
 import workspace from '../workspace'
 import ListConfiguration from './configuration'
-import debounce = require('debounce')
 const logger = require('../util/logger')('list-ui')
 
 export type MouseEvent = 'mouseDown' | 'mouseDrag' | 'mouseUp' | 'doubleClick'
@@ -18,18 +19,19 @@ export interface MousePosition {
 }
 
 export default class ListUI {
-  public window: Window
+  private window: Window
   private height: number
   private newTab = false
-  private _bufnr = 0
+  private buffer: Buffer
   private currIndex = 0
+  private drawCount = 0
   private highlights: ListHighlights[] = []
   private items: ListItem[] = []
   private disposables: Disposable[] = []
   private signOffset: number
   private selected: Set<number> = new Set()
   private mouseDown: MousePosition
-  private creating = false
+  private mutex: Mutex = new Mutex()
   private _onDidChangeLine = new Emitter<number>()
   private _onDidOpen = new Emitter<number>()
   private _onDidClose = new Emitter<number>()
@@ -50,6 +52,7 @@ export default class ListUI {
     private config: ListConfiguration
   ) {
     this.signOffset = config.get<number>('signOffset')
+    this.newTab = listOptions.position == 'tab'
     events.on('BufUnload', async bufnr => {
       if (bufnr != this.bufnr || this.window == null) return
       this.window = null
@@ -62,8 +65,9 @@ export default class ListUI {
     let debounced = debounce(async bufnr => {
       if (bufnr != this.bufnr) return
       let [winid, start, end] = await nvim.eval('[win_getid(),line("w0"),line("w$")]') as number[]
-      if (!this.window || winid != this.window.id) return
       if (end < 300) return
+      if (!this.window || winid != this.window.id) return
+      // increment highlights
       nvim.pauseNotification()
       this.doHighlight(start - 1, end)
       nvim.command('redraw', true)
@@ -285,40 +289,51 @@ export default class ListUI {
     return this.window != null
   }
 
-  public get bufnr(): number {
-    return this._bufnr
+  public get bufnr(): number | undefined {
+    return this.buffer?.id
+  }
+
+  public get winid(): number | undefined {
+    return this.window?.id
   }
 
   public get ready(): Promise<void> {
-    if (this._bufnr) return Promise.resolve()
-    if (this.creating) {
-      return new Promise<void>(resolve => {
-        let disposable = this.onDidOpen(() => {
-          disposable.dispose()
-          resolve()
-        })
+    if (this.window) return Promise.resolve()
+    return new Promise<void>((resolve, reject) => {
+      let timeout = setTimeout(() => {
+        reject(new Error('window create timeout'))
+      }, 3000)
+      let disposable = this.onDidOpen(() => {
+        disposable.dispose()
+        clearTimeout(timeout)
+        resolve()
       })
-    }
-    return Promise.reject(new Error('Not creating list'))
+    })
   }
 
   public async drawItems(items: ListItem[], height: number, reload = false): Promise<void> {
-    let { window, config, nvim, name, listOptions } = this
-    this.newTab = listOptions.position == 'tab'
-    let prevLabel = this.items[this.currIndex]?.label
+    let count = this.drawCount = this.drawCount + 1
+    const { config, nvim, name, listOptions } = this
+    const release = await this.mutex.acquire()
+    const prevLabel = this.items[this.currIndex]?.label
     let limitLines = config.get<number>('limitLines', 30000)
     this.items = items.slice(0, limitLines)
-    if (!window && !this.creating) {
-      this.creating = true
-      this.height = height
-      let [bufnr, winid] = await nvim.call('coc#list#create', [listOptions.position, height, name, listOptions.numberSelect])
-      this._bufnr = bufnr
-      this.window = nvim.createWindow(winid)
-      this._onDidOpen.fire(this.bufnr)
-      this.creating = false
-    } else {
-      await this.ready
+    if (!this.window) {
+      try {
+        let { position, numberSelect } = listOptions
+        let [bufnr, winid] = await nvim.call('coc#list#create', [position, height, name, numberSelect])
+        this.height = height
+        this.buffer = nvim.createBuffer(bufnr)
+        this.window = nvim.createWindow(winid)
+        this._onDidOpen.fire(this.bufnr)
+      } catch (e) {
+        release()
+        workspace.showMessage(`Error on list create: ${e.message}`, 'error')
+        return
+      }
     }
+    release()
+    if (count !== this.drawCount) return
     let lines = this.items.map(item => item.label)
     this.clearSelection()
     let newIndex = reload ? this.currIndex : 0
@@ -341,7 +356,6 @@ export default class ListUI {
     let max = limitLines - curr
     let append = items.slice(0, max)
     this.items = this.items.concat(append)
-    if (this.creating) return
     await this.setLines(append.map(item => item.label), curr > 0, this.currIndex)
   }
 
@@ -375,9 +389,8 @@ export default class ListUI {
     if (!append) {
       this.currIndex = index
       window.notify('nvim_win_set_cursor', [[index + 1, 0]])
-    }
-    if (!append)
       this._onDidChange.fire()
+    }
     if (workspace.isVim) nvim.command('redraw', true)
     let res = await nvim.resumeNotification()
     if (res && res[1]) logger.error(res[1])

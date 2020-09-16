@@ -73,13 +73,11 @@ export default class ListSession {
     })
     this.ui.onDidLineChange(debounced, null, this.disposables)
     this.ui.onDidOpen(async () => {
-      if (this.list) {
-        if (typeof this.list.doHighlight == 'function') {
-          this.list.doHighlight()
-        }
-        if (this.listOptions.first) {
-          await this.doAction()
-        }
+      if (typeof this.list.doHighlight == 'function') {
+        this.list.doHighlight()
+      }
+      if (this.listOptions.first) {
+        await this.doAction()
       }
     }, null, this.disposables)
     this.ui.onDidClose(async () => {
@@ -99,7 +97,7 @@ export default class ListSession {
       } else {
         this.ui.addHighlights(highlights)
         let height = this.config.get<number>('height', 10)
-        if (finished && !listOptions.interactive) {
+        if (finished && !listOptions.interactive && listOptions.input.length == 0) {
           height = Math.min(items.length, height)
         }
         await this.ui.drawItems(items, Math.max(1, height), reload)
@@ -246,10 +244,10 @@ export default class ListSession {
   /**
    * Window id used by list.
    *
-   * @returns {number | null}
+   * @returns {number | undefined}
    */
-  public get winid(): number | null {
-    return this.ui.window ? this.ui.window.id : null
+  public get winid(): number | undefined {
+    return this.ui.winid
   }
 
   public get length(): number {
@@ -264,6 +262,7 @@ export default class ListSession {
   }
 
   public async hide(): Promise<void> {
+    if (this.hidden) return
     let { nvim, listOptions, savedHeight, window } = this
     this.hidden = true
     this.worker.stop()
@@ -389,7 +388,7 @@ export default class ListSession {
 
   public updateStatus(): void {
     let { ui, list, nvim } = this
-    if (!ui.bufnr) return
+    if (!ui.winid) return
     let buf = nvim.createBuffer(ui.bufnr)
     let status = {
       mode: this.prompt.mode.toUpperCase(),
@@ -400,11 +399,12 @@ export default class ListSession {
     }
     nvim.pauseNotification()
     buf.setVar('list_status', status, true)
-    if (ui.window) nvim.command('redraws', true)
+    nvim.command('redraws', true)
     nvim.resumeNotification(false, true).logError()
   }
 
   public get context(): ListContext {
+    let { winid } = this.ui
     return {
       options: this.listOptions,
       args: this.listArgs,
@@ -412,7 +412,7 @@ export default class ListSession {
       cwd: workspace.cwd,
       window: this.window,
       buffer: this.buffer,
-      listWindow: this.ui.window
+      listWindow: winid ? this.nvim.createWindow(winid) : undefined
     }
   }
 

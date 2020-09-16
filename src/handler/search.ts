@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Mutex } from 'await-semaphore'
+import { Mutex } from '../util/mutex'
 import { ChildProcess, spawn } from 'child_process'
 import { EventEmitter } from 'events'
 import path from 'path'
