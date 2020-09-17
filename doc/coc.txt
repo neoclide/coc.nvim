@@ -1297,7 +1297,7 @@ g:coc_node_args						*g:coc_node_args*
 	Arguments passed to node when starting coc service from source code.
 
 	Useful for starting coc in debug mode, ex: >
-
+>
 	let g:coc_node_args = ['--nolazy', '--inspect-brk=6045']
 <
 	Default: []
@@ -1316,7 +1316,13 @@ g:coc_jump_locations					*g:coc_jump_locations*
 
 g:coc_process_pid					*g:coc_process_pid*
 
-	Process pid of coc.nvim service.
+	Process pid of coc.nvim service. If your vim doesn't kill coc.nvim
+	process on exit, use:
+>
+	autocmd VimLeavePre * if get(g:, 'coc_process_pid', 0)
+		\	| call system('kill -9 '.g:coc_process_pid) | endif
+<
+	in your vimrc.
 
 g:coc_status_error_sign					*g:coc_status_error_sign*
 
