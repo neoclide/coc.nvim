@@ -8,6 +8,7 @@ import { FetchOptions } from '../types'
 import { stringify } from 'querystring'
 import createHttpProxyAgent, { HttpProxyAgent } from 'http-proxy-agent'
 import createHttpsProxyAgent, { HttpsProxyAgent } from 'https-proxy-agent'
+import { CancellationToken } from 'vscode-languageserver-protocol'
 const logger = require('../util/logger')('model-fetch')
 
 export type ResponseResult = string | Buffer | { [name: string]: any }
@@ -118,9 +119,15 @@ export function resolveRequestOptions(url: string, options: FetchOptions = {}): 
   return opts
 }
 
-function request(url: string, data: any, opts: any): Promise<ResponseResult> {
+function request(url: string, data: any, opts: any, token?: CancellationToken): Promise<ResponseResult> {
   let mod = url.startsWith('https:') ? https : http
   return new Promise<ResponseResult>((resolve, reject) => {
+    if (token) {
+      let disposable = token.onCancellationRequested(() => {
+        disposable.dispose()
+        req.destroy(new Error('request aborted'))
+      })
+    }
     const req = mod.request(opts, res => {
       let readable: Readable = res
       if ((res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 1223) {
@@ -205,13 +212,9 @@ function getDataType(data: any): string {
  * - Redirect support, limited to 3.
  * - Support of gzip & deflate response content.
  */
-export default function fetch(url: string, options: FetchOptions = {}): Promise<ResponseResult> {
-  if (arguments.length > 2) {
-    logger.error(`Bad fetch arguments:`, ...arguments)
-    return Promise.reject(new Error(`Fetch API have changed to fetch(url, options)`))
-  }
+export default function fetch(url: string, options: FetchOptions = {}, token?: CancellationToken): Promise<ResponseResult> {
   let opts = resolveRequestOptions(url, options)
-  return request(url, options.data, opts).catch(err => {
+  return request(url, options.data, opts, token).catch(err => {
     logger.error(`Fetch error for ${url}:`, opts, err)
     if (opts.agent && opts.agent.proxy) {
       let { proxy } = opts.agent

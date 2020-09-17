@@ -9,6 +9,7 @@ import { DownloadOptions } from '../types'
 import { resolveRequestOptions } from './fetch'
 import { ServerResponse } from 'http'
 import contentDisposition from 'content-disposition'
+import { CancellationToken } from 'vscode-languageserver-protocol'
 const logger = require('../util/logger')('model-download')
 
 /**
@@ -17,7 +18,7 @@ const logger = require('../util/logger')('model-download')
  * @param {string} url
  * @param {DownloadOptions} options contains dest folder and optional onProgress callback
  */
-export default function download(url: string, options: DownloadOptions): Promise<string> {
+export default function download(url: string, options: DownloadOptions, token?: CancellationToken): Promise<string> {
   let { dest, onProgress, extract } = options
   if (!dest || !path.isAbsolute(dest)) {
     throw new Error(`Expect absolute file path for dest option.`)
@@ -35,6 +36,12 @@ export default function download(url: string, options: DownloadOptions): Promise
   let opts = resolveRequestOptions(url, options)
   let extname = path.extname(url)
   return new Promise<string>((resolve, reject) => {
+    if (token) {
+      let disposable = token.onCancellationRequested(() => {
+        disposable.dispose()
+        req.destroy(new Error('request aborted'))
+      })
+    }
     const req = mod.request(opts, (res: ServerResponse) => {
       if ((res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 1223) {
         let headers = (res as any).headers || {}
