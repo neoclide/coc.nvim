@@ -1,6 +1,7 @@
 let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
+let s:clear_match_by_id = has('nvim-0.5.0') || has('patch-8.1.1084')
 
 let s:activate = ""
 let s:quit = ""
@@ -669,10 +670,6 @@ function! coc#util#prompt(title, cb) abort
   endif
 endfunction
 
-function! coc#util#add_matchids(ids)
-  let w:coc_matchids = get(w:, 'coc_matchids', []) + a:ids
-endfunction
-
 function! coc#util#prompt_confirm(title)
   if exists('*confirm') && !s:is_vim
     let choice = confirm(a:title, "&Yes\n&No")
@@ -896,24 +893,6 @@ function! coc#util#clear_signs()
     endfor
     call coc#util#unplace_signs(b, signIds)
   endfor
-endfunction
-
-function! coc#util#clearmatches(ids, ...)
-  let winid = get(a:, 1, 0)
-  if winid != 0 && win_getid() != winid
-    return
-  endif
-  for id in a:ids
-    try
-      call matchdelete(id)
-    catch /.*/
-      " matches have been cleared in other ways,
-    endtry
-  endfor
-  let exists = get(w:, 'coc_matchids', [])
-  if !empty(exists)
-    call filter(w:coc_matchids, 'index(a:ids, v:val) == -1')
-  endif
 endfunction
 
 function! coc#util#open_url(url)
@@ -1238,4 +1217,67 @@ function! coc#util#get_format_opts(bufnr) abort
   endif
   let tabsize = &shiftwidth == 0 ? &tabstop : &shiftwidth
   return [tabsize, &expandtab]
+endfunction
+
+function! coc#util#clear_pos_matches(match, ...) abort
+  let winid = get(a:, 1, win_getid())
+  if empty(getwininfo(winid))
+    " not valid
+    return
+  endif
+  if win_getid() == winid
+    let arr = filter(getmatches(), 'v:val["group"] =~# "'.a:match.'"')
+    for item in arr
+      call matchdelete(item['id'])
+    endfor
+  elseif s:clear_match_by_id
+    let arr = filter(getmatches(winid), 'v:val["group"] =~# "'.a:match.'"')
+    for item in arr
+      call matchdelete(item['id'], winid)
+    endfor
+  endif
+endfunction
+
+function! coc#util#clearmatches(ids, ...)
+  let winid = get(a:, 1, win_getid())
+  if empty(getwininfo(winid))
+    return
+  endif
+  if win_getid() == winid
+    for id in a:ids
+      try
+        call matchdelete(id)
+      catch /.*/
+        " matches have been cleared in other ways,
+      endtry
+    endfor
+   elseif s:clear_match_by_id
+    for id in a:ids
+      try
+        call matchdelete(id, winid)
+      catch /.*/
+        " matches have been cleared in other ways,
+      endtry
+    endfor
+  endif
+endfunction
+
+" clear document highlights of current window
+function! coc#util#clear_highlights(...) abort
+    let winid = get(a:, 1, win_getid())
+    if empty(getwininfo(winid))
+      " not valid
+      return
+    endif
+    if winid == win_getid()
+      let arr = filter(getmatches(), 'v:val["group"] =~# "^CocHighlight"')
+      for item in arr
+        call matchdelete(item['id'])
+      endfor
+    elseif s:clear_match_by_id
+      let arr = filter(getmatches(winid), 'v:val["group"] =~# "^CocHighlight"')
+      for item in arr
+        call matchdelete(item['id'], winid)
+      endfor
+    endif
 endfunction

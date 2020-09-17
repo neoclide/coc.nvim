@@ -552,7 +552,6 @@ export default class Document {
       this.nvim.call('matchaddpos', [hlGroup, grouped, priority, id], true)
       res.push(id)
     }
-    this.nvim.call('coc#util#add_matchids', [res], true)
     return res
   }
 
@@ -606,7 +605,7 @@ export default class Document {
    */
   public clearMatchIds(ids: Set<number> | number[]): void {
     if (this.env.isVim && !this.env.textprop) {
-      this.nvim.call('coc#util#clearmatches', [Array.from(ids)], true)
+      this.nvim.call('coc#util#clear_buf_matches', [Array.from(ids), this.bufnr], true)
     } else {
       ids = distinct(Array.from(ids))
       let hasNamesapce = this.nvim.hasFunction('nvim_create_namespace')

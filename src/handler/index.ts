@@ -303,15 +303,16 @@ export default class Handler {
 
   public async onHover(): Promise<boolean> {
     let { document, position } = await workspace.getCurrentState()
+    let winid = await this.nvim.call('win_getid') as number
     let hovers = await languages.getHover(document, position)
     if (hovers && hovers.length) {
       let hover = hovers.find(o => Range.is(o.range))
       if (hover) {
         let doc = workspace.getDocument(document.uri)
         if (doc) {
-          let ids = doc.matchAddRanges([hover.range], 'CocHoverRange', 999)
+          doc.matchAddRanges([hover.range], 'CocHoverRange', 999)
           setTimeout(() => {
-            this.nvim.call('coc#util#clearmatches', [ids], true)
+            this.nvim.call('coc#util#clear_pos_matches', ['^CocHoverRange', winid], true)
           }, 1000)
         }
       }
@@ -713,13 +714,13 @@ export default class Handler {
   }
 
   public async highlight(): Promise<void> {
-    let bufnr = await this.nvim.call('bufnr', '%')
-    await this.documentHighlighter.highlight(bufnr)
+    let [bufnr, arr] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number]]
+    await this.documentHighlighter.highlight(bufnr, Position.create(arr[0], arr[1]))
   }
 
   public async getSymbolsRanges(): Promise<Range[]> {
-    let document = await workspace.document
-    let highlights = await this.documentHighlighter.getHighlights(document)
+    let [bufnr, arr] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number]]
+    let highlights = await this.documentHighlighter.getHighlights(workspace.getDocument(bufnr), Position.create(arr[0], arr[1]))
     if (!highlights) return null
     return highlights.map(o => o.range)
   }

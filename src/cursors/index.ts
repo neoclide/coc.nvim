@@ -26,7 +26,6 @@ export default class Cursors {
   private disposables: Disposable[] = []
   private bufnr: number
   private winid: number
-  private matchIds: number[] = []
   private textDocument: TextDocument
   private changing = false
   private config: Config
@@ -223,21 +222,18 @@ export default class Cursors {
   }
 
   private doHighlights(): void {
-    let { matchIds } = this
     let doc = workspace.getDocument(this.bufnr)
     if (!doc || !this.ranges.length) return
-    if (matchIds.length) this.nvim.call('coc#util#clearmatches', [matchIds, this.winid], true)
+    this.nvim.call('coc#util#clear_pos_matches', ['^CocCursorRange', this.winid], true)
     let searchRanges = this.ranges.map(o => o.currRange)
-    this.matchIds = doc.matchAddRanges(searchRanges, 'CocCursorRange', 99)
+    doc.matchAddRanges(searchRanges, 'CocCursorRange', 99)
     if (workspace.isVim) this.nvim.command('redraw', true)
   }
 
   public cancel(): void {
     if (!this._activated) return
-    let { matchIds } = this
     this.nvim.setVar('coc_cursors_activated', 0, true)
-    this.nvim.call('coc#util#clearmatches', [Array.from(matchIds), this.winid], true)
-    this.matchIds = []
+    this.nvim.call('coc#util#clear_pos_matches', ['^CocCursorRange', this.winid], true)
     disposeAll(this.disposables)
     this._changed = false
     this.ranges = []

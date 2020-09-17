@@ -16,10 +16,13 @@ export type InsertChangeEvents = 'TextChangedP' | 'TextChangedI'
 
 export type TaskEvents = 'TaskExit' | 'TaskStderr' | 'TaskStdout'
 
-export type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents
+export type WindowEvents = 'WinLeave' | 'WinEnter'
+
+export type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents | WindowEvents
   | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged'
   | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized'
   | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar'
+  | 'WinLeave'
 
 export type MoveEvents = 'CursorMoved' | 'CursorMovedI'
 
@@ -83,6 +86,7 @@ class Events {
   public on(event: BufEvents, handler: (bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: MoveEvents, handler: (bufnr: number, cursor: [number, number]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: InsertChangeEvents, handler: (bufnr: number, info: InsertChange) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: WindowEvents, handler: (winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TextChanged', handler: (bufnr: number, changedtick: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TaskExit', handler: (id: string, code: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TaskStderr' | 'TaskStdout', handler: (id: string, lines: string[]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

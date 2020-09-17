@@ -4,18 +4,22 @@ import workspace from '../workspace'
 import languages from '../languages'
 import Colors from './colors'
 import Document from '../model/document'
-import { Range, Disposable, DocumentHighlight, DocumentHighlightKind } from 'vscode-languageserver-protocol'
+import { Range, Disposable, DocumentHighlight, DocumentHighlightKind, CancellationTokenSource, Position } from 'vscode-languageserver-protocol'
 import { byteIndex, byteLength } from '../util/string'
 import { disposeAll } from '../util'
 const logger = require('../util/logger')('documentHighlight')
 
 export default class DocumentHighlighter {
   private disposables: Disposable[] = []
-  private matchIds: Set<number> = new Set()
   private cursorMoveTs: number
+  private tokenSource: CancellationTokenSource
   constructor(private nvim: Neovim, private colors: Colors) {
+    events.on('WinLeave', winid => {
+      if (this.tokenSource) this.tokenSource.cancel()
+      this.clearHighlight(winid)
+    }, null, this.disposables)
     events.on('BufWinEnter', () => {
-      this.clearHighlight()
+      if (this.tokenSource) this.tokenSource.cancel()
     }, null, this.disposables)
     events.on(['CursorMoved', 'CursorMovedI'], () => {
       this.cursorMoveTs = Date.now()
@@ -25,24 +29,23 @@ export default class DocumentHighlighter {
     }, null, this.disposables)
   }
 
-  // clear matchIds of current window
-  public clearHighlight(): void {
-    let { matchIds } = this
+  public clearHighlight(winid?: number): void {
     let { nvim } = workspace
-    if (matchIds.size == 0) return
     nvim.pauseNotification()
-    nvim.call('coc#util#clearmatches', [Array.from(matchIds)], true)
-    nvim.command('redraw', true)
+    nvim.call('coc#util#clear_highlights', winid ? [winid] : [], true)
+    if (workspace.isVim) {
+      nvim.command('redraw', true)
+    }
     nvim.resumeNotification(false, true).catch(_e => {
       // noop
     })
-    this.matchIds.clear()
   }
 
-  public async highlight(bufnr: number): Promise<void> {
+  public async highlight(bufnr: number, position: Position): Promise<void> {
     let { nvim } = this
-    let document = workspace.getDocument(bufnr)
-    let highlights = await this.getHighlights(document)
+    let doc = workspace.getDocument(bufnr)
+    if (this.tokenSource) this.tokenSource.cancel()
+    let highlights = await this.getHighlights(doc, position)
     if (!highlights || highlights.length == 0) {
       this.clearHighlight()
       return
@@ -60,25 +63,22 @@ export default class DocumentHighlighter {
       groups[hlGroup].push(hl.range)
     }
     for (let hlGroup of Object.keys(groups)) {
-      let ids = document.matchAddRanges(groups[hlGroup], hlGroup, -1)
-      for (let id of ids) {
-        this.matchIds.add(id)
-      }
+      doc.matchAddRanges(groups[hlGroup], hlGroup, -1)
     }
     this.nvim.command('redraw', true)
     await this.nvim.resumeNotification(false, true)
   }
 
-  public async getHighlights(document: Document | null): Promise<DocumentHighlight[]> {
+  public async getHighlights(document: Document | null, position: Position): Promise<DocumentHighlight[]> {
     if (!document) return null
     let ts = Date.now()
     let { bufnr } = document
-    let position = await workspace.getCursorPosition()
     let line = document.getline(position.line)
     let ch = line[position.character]
     if (!ch || !document.isWord(ch) || this.colors.hasColorAtPostion(bufnr, position)) return null
     try {
-      let highlights = await languages.getDocumentHighLight(document.textDocument, position)
+      this.tokenSource = new CancellationTokenSource()
+      let highlights = await languages.getDocumentHighLight(document.textDocument, position, this.tokenSource.token)
       if (workspace.bufnr != document.bufnr || (this.cursorMoveTs && this.cursorMoveTs > ts)) {
         return null
       }
@@ -89,6 +89,7 @@ export default class DocumentHighlighter {
   }
 
   public dispose(): void {
+    if (this.tokenSource) this.tokenSource.dispose()
     disposeAll(this.disposables)
   }
 }

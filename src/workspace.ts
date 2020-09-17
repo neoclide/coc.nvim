@@ -134,6 +134,9 @@ export class Workspace implements IWorkspace {
     events.on('InsertLeave', () => {
       this._insertMode = false
     }, null, this.disposables)
+    events.on('BufWinLeave', (_, winid) => {
+      this.nvim.call('coc#util#clear_pos_matches', ['^Coc', winid], true)
+    }, null, this.disposables)
     events.on('BufEnter', this.onBufEnter, this, this.disposables)
     events.on('CursorMoved', this.checkCurrentBuffer, this, this.disposables)
     events.on('CursorMovedI', this.checkCurrentBuffer, this, this.disposables)
