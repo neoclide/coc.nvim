@@ -331,7 +331,7 @@ function! coc#util#job_command()
     echohl Error | echom '[coc.nvim] "'.node.'" is not executable, checkout https://nodejs.org/en/download/' | echohl None
     return
   endif
-  if filereadable(s:root.'/bin/server.js') && !get(g:, 'coc_force_bundle', 0)
+  if filereadable(s:root.'/bin/server.js') && file_readable(s:root.'/src/index.ts') && !get(g:, 'coc_force_bundle', 0)
     if !filereadable(s:root.'/lib/attach.js')
       echohl Error | echom '[coc.nvim] javascript bundle not found, running :call coc#util#install()' | echohl None
       call coc#util#install()
