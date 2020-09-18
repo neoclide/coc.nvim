@@ -28,7 +28,7 @@ beforeAll(async () => {
 })
 
 afterEach(async () => {
-  await manager.cancel()
+  await manager.reset()
   await helper.reset()
   await helper.wait(100)
 })

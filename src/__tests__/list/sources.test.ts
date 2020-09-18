@@ -40,7 +40,7 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
-  await manager.cancel()
+  await manager.reset()
   await helper.reset()
 })
 

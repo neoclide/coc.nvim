@@ -189,6 +189,7 @@ export class ListManager implements Disposable {
   public async reset(): Promise<void> {
     await this.cancel(false)
     for (let session of this.sessionsMap.values()) {
+      await session.hide()
       session.dispose()
     }
     this.sessionsMap.clear()
@@ -479,7 +480,7 @@ export class ListManager implements Disposable {
   }
 
   public get isActivated(): boolean {
-    return this.lastSession && this.lastSession.winid != null
+    return this.session?.winid != null
   }
 
   public stop(): void {

@@ -181,8 +181,9 @@ describe('list normal mappings', () => {
     for (let key of keys) {
       await manager.start(['--normal', 'location'])
       await manager.session.ui.ready
+      await helper.wait(50)
       await nvim.eval(`feedkeys("${key}", "in")`)
-      await helper.wait(30)
+      await helper.wait(100)
       let mode = manager.prompt.mode
       expect(mode).toBe('insert')
     }
