@@ -82,10 +82,9 @@ export default class ListUI {
   }
 
   private onLineChange(index: number): void {
-    if (this.currIndex != index) {
-      this.currIndex = index
-      this._onDidChangeLine.fire(index)
-    }
+    if (this.currIndex == index) return
+    this.currIndex = index
+    this._onDidChangeLine.fire(index)
   }
 
   public set index(n: number) {
@@ -318,7 +317,8 @@ export default class ListUI {
     const prevLabel = this.items[this.currIndex]?.label
     let limitLines = config.get<number>('limitLines', 30000)
     this.items = items.slice(0, limitLines)
-    if (!this.window) {
+    const create = this.window == null
+    if (create) {
       try {
         let { position, numberSelect } = listOptions
         let [bufnr, winid] = await nvim.call('coc#list#create', [position, height, name, numberSelect])
@@ -389,8 +389,8 @@ export default class ListUI {
     if (!append) {
       this.currIndex = index
       window.notify('nvim_win_set_cursor', [[index + 1, 0]])
-      this._onDidChange.fire()
     }
+    this._onDidChange.fire()
     if (workspace.isVim) nvim.command('redraw', true)
     let res = await nvim.resumeNotification()
     if (res && res[1]) logger.error(res[1])
@@ -460,10 +460,8 @@ export default class ListUI {
     let { window, items } = this
     let max = items.length == 0 ? 1 : items.length
     if (lnum > max) return
-    if (this.currIndex + 1 != lnum) {
-      this.currIndex = lnum - 1
-      this._onDidChangeLine.fire(lnum)
-    }
+    // change index since CursorMoved event not fired (seems bug of neovim)!
+    this.onLineChange(lnum - 1)
     if (window) window.notify('nvim_win_set_cursor', [[lnum, col]])
   }
 

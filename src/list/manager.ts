@@ -51,14 +51,21 @@ export class ListManager implements Disposable {
       let session = await this.getCurrentSession()
       if (session) this.prompt.drawPrompt()
     }, 100), null, this.disposables)
-    events.on('BufEnter', debounce(async () => {
-      let session = await this.getCurrentSession()
-      if (session) {
-        this.prompt.start()
-      } else {
-        this.prompt.cancel()
-      }
-    }, 100), null, this.disposables)
+    let timer: NodeJS.Timer
+    events.on('WinEnter', winid => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => {
+        let session = this.getSessionByWinid(winid)
+        if (session) {
+          this.prompt.start(session.listOptions)
+        } else {
+          this.prompt.cancel()
+        }
+      }, 100)
+    }, null, this.disposables)
+    this.disposables.push(Disposable.create(() => {
+      if (timer) clearTimeout(timer)
+    }))
     // filter history on input
     this.prompt.onDidChangeInput(() => {
       let { session } = this
@@ -105,7 +112,17 @@ export class ListManager implements Disposable {
     }
   }
 
-  public async getCurrentSession(): Promise<ListSession | null> {
+  private getSessionByWinid(winid: number): ListSession | null {
+    for (let session of this.sessionsMap.values()) {
+      if (session && session.winid == winid) {
+        this.lastSession = session
+        return session
+      }
+    }
+    return null
+  }
+
+  private async getCurrentSession(): Promise<ListSession | null> {
     let { id } = await this.nvim.window
     for (let session of this.sessionsMap.values()) {
       if (session && session.winid == id) {

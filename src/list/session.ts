@@ -1,10 +1,10 @@
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import Highlighter from '../model/highligher'
-import extensions from '../extensions'
 import { Disposable } from 'vscode-languageserver-protocol'
+import extensions from '../extensions'
+import Highlighter from '../model/highligher'
+import { IList, ListAction, ListContext, ListItem, ListMode, ListOptions, Matcher } from '../types'
 import { disposeAll, wait } from '../util'
-import { IList, ListAction, ListContext, ListItem, ListOptions, Matcher } from '../types'
 import workspace from '../workspace'
 import ListConfiguration from './configuration'
 import InputHistory from './history'
@@ -84,6 +84,7 @@ export default class ListSession {
       await this.hide()
     }, null, this.disposables)
     this.ui.onDidChange(() => {
+      if (this.hidden) return
       this.updateStatus()
     }, null, this.disposables)
     this.ui.onDidDoubleClick(async () => {
@@ -268,6 +269,7 @@ export default class ListSession {
     this.worker.stop()
     this.history.add()
     nvim.pauseNotification()
+    nvim.call('coc#list#stop_prompt', [], true)
     nvim.command('pclose', true)
     this.ui.close()
     if (window && savedHeight && listOptions.position != 'tab') {
@@ -278,8 +280,9 @@ export default class ListSession {
   }
 
   public toggleMode(): void {
-    let { mode } = this.prompt
-    this.prompt.mode = mode == 'normal' ? 'insert' : 'normal'
+    let mode: ListMode = this.prompt.mode == 'normal' ? 'insert' : 'normal'
+    this.prompt.mode = mode
+    this.listOptions.mode = mode
     this.updateStatus()
   }
 
@@ -514,6 +517,7 @@ export default class ListSession {
   public onInputChange(): void {
     if (this.timer) clearTimeout(this.timer)
     let len = this.worker.length
+    this.listOptions.input = this.prompt.input
     // reload or filter items
     if (this.listOptions.interactive) {
       this.worker.stop()

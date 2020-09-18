@@ -181,19 +181,19 @@ function! coc#list#names(...) abort
 endfunction
 
 function! coc#list#stop_prompt(...)
-  if get(a:, 1, 0) == 0 && !get(g:, 'coc_disable_transparent_cursor',0)
-    " neovim has bug with revert empty &guicursor
-    if s:gui && !empty(s:saved_cursor)
-      if has('nvim-0.5.0')
-        set guicursor+=a:ver1-Cursor/lCursor
-        let &guicursor = s:saved_cursor
-      endif
-    elseif s:is_vim
-      let &t_ve = s:saved_ve
-    endif
-  endif
   if s:activated
     let s:activated = 0
+    if get(a:, 1, 0) == 0 && !get(g:, 'coc_disable_transparent_cursor',0)
+      " neovim has bug with revert empty &guicursor
+      if s:gui && !empty(s:saved_cursor)
+        if has('nvim-0.5.0')
+          set guicursor+=a:ver1-Cursor/lCursor
+          let &guicursor = s:saved_cursor
+        endif
+      elseif s:is_vim
+        let &t_ve = s:saved_ve
+      endif
+    endif
     echo ""
     call feedkeys("\u26d4", 'int')
   endif

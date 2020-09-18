@@ -30,18 +30,20 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
-  await manager.cancel()
+  await manager.reset()
   await helper.reset()
+  await helper.wait(100)
 })
 
 describe('list commands', () => {
   it('should highlight ranges', async () => {
     await manager.start(['--normal', '--auto-preview', 'location'])
-    await helper.wait(300)
+    await manager.session.ui.ready
+    await helper.wait(200)
     manager.prompt.cancel()
     await nvim.command('wincmd k')
     let name = await nvim.eval('bufname("%")')
-    expect(name).toMatch(__filename)
+    expect(name).toMatch('location.test.ts')
     let matches = await nvim.call('getmatches')
     let find = matches.find(o => o.group == 'Search')
     expect(find).toBeDefined()
@@ -49,7 +51,8 @@ describe('list commands', () => {
 
   it('should change highlight on cursor move', async () => {
     await manager.start(['--normal', '--auto-preview', 'location'])
-    await helper.wait(300)
+    await manager.session.ui.ready
+    await helper.wait(200)
     await nvim.command('exe 2')
     let bufnr = await nvim.eval('bufnr("%")')
     await events.fire('CursorMoved', [bufnr, [2, 1]])
@@ -62,7 +65,8 @@ describe('list commands', () => {
 
   it('should highlight multiple line range', async () => {
     await manager.start(['--normal', '--auto-preview', 'location'])
-    await helper.wait(300)
+    await manager.session.ui.ready
+    await helper.wait(200)
     await nvim.command('exe 3')
     let bufnr = await nvim.eval('bufnr("%")')
     await events.fire('CursorMoved', [bufnr, [2, 1]])
