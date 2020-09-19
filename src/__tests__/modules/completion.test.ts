@@ -427,7 +427,7 @@ describe('completion TextChangedP', () => {
     let res = await helper.getItems()
     let idx = res.findIndex(o => o.menu == '[edit]')
     await helper.selectCompleteItem(idx)
-    await helper.wait(500)
+    await helper.wait(800)
     let line = await nvim.line
     expect(line).toBe('bar if()')
     let [, lnum, col] = await nvim.call('getcurpos')
