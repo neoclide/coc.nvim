@@ -74,6 +74,7 @@ afterAll(async () => {
 afterEach(async () => {
   await manager.reset()
   await helper.reset()
+  await helper.wait(100)
 })
 
 describe('list worker', () => {

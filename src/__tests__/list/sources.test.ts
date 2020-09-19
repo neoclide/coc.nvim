@@ -35,13 +35,14 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  await manager.reset()
+  manager.dispose()
   await helper.shutdown()
 })
 
 afterEach(async () => {
   await manager.reset()
   await helper.reset()
+  await helper.wait(100)
 })
 
 describe('BasicList', () => {

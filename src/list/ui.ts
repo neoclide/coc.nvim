@@ -302,7 +302,7 @@ export default class ListUI {
       let timeout = setTimeout(() => {
         reject(new Error('window create timeout'))
       }, 3000)
-      let disposable = this.onDidOpen(() => {
+      let disposable = this.onDidLineChange(() => {
         disposable.dispose()
         clearTimeout(timeout)
         resolve()
@@ -314,7 +314,6 @@ export default class ListUI {
     let count = this.drawCount = this.drawCount + 1
     const { config, nvim, name, listOptions } = this
     const release = await this.mutex.acquire()
-    const prevLabel = this.items[this.currIndex]?.label
     let limitLines = config.get<number>('limitLines', 30000)
     this.items = items.slice(0, limitLines)
     const create = this.window == null
@@ -338,10 +337,7 @@ export default class ListUI {
     this.clearSelection()
     let newIndex = reload ? this.currIndex : 0
     await this.setLines(lines, false, newIndex)
-    let currLabel = this.items[newIndex]?.label
-    if (currLabel != prevLabel) {
-      this._onDidLineChange.fire(this.currIndex + 1)
-    }
+    this._onDidLineChange.fire(this.currIndex + 1)
   }
 
   public async appendItems(items: ListItem[]): Promise<void> {

@@ -187,13 +187,13 @@ export class ListManager implements Disposable {
    * Clear all list sessions
    */
   public async reset(): Promise<void> {
-    await this.cancel(false)
+    this.prompt.cancel()
+    this.lastSession = undefined
     for (let session of this.sessionsMap.values()) {
       await session.hide()
       session.dispose()
     }
     this.sessionsMap.clear()
-    this.lastSession = null
   }
 
   public switchMatcher(): void {
@@ -506,7 +506,7 @@ export class ListManager implements Disposable {
     if (this.config) {
       this.config.dispose()
     }
-    this.lastSession = null
+    this.lastSession = undefined
     disposeAll(this.disposables)
   }
 }

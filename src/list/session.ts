@@ -21,7 +21,6 @@ export default class ListSession {
   public readonly ui: UI
   public readonly worker: Worker
   private timer: NodeJS.Timer
-  private executing = false
   private hidden = false
   private disposables: Disposable[] = []
   private savedHeight: number
@@ -473,10 +472,8 @@ export default class ListSession {
   }
 
   private async doItemAction(items: ListItem[], action: ListAction): Promise<void> {
-    if (this.executing) return
     let { noQuit } = this.listOptions
     let { nvim } = this
-    this.executing = true
     let persist = this.winid && (action.persist === true || action.name == 'preview')
     noQuit = noQuit && this.winid != null
     try {
@@ -500,10 +497,8 @@ export default class ListSession {
         }
       }
       if (persist) {
-        nvim.pauseNotification()
         this.prompt.start()
         this.ui.restoreWindow()
-        await nvim.resumeNotification()
         if (action.reload) await this.worker.loadItems(this.context, true)
       } else if (noQuit) {
         if (action.reload) await this.worker.loadItems(this.context, true)
@@ -511,7 +506,6 @@ export default class ListSession {
     } catch (e) {
       console.error(e)
     }
-    this.executing = false
   }
 
   public onInputChange(): void {

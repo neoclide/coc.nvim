@@ -70,8 +70,6 @@ const lineList: IList = {
   }
 }
 
-jest.setTimeout(5000)
-
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
@@ -112,8 +110,9 @@ describe('list normal mappings', () => {
   it('should preview by p', async () => {
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
+    await helper.wait(50)
     await nvim.eval('feedkeys("p", "in")')
-    await helper.wait(30)
+    await helper.wait(200)
     let winnr = await nvim.call('coc#util#has_preview')
     expect(winnr).toBe(2)
   })
@@ -369,20 +368,20 @@ describe('list insert mappings', () => {
     await manager.start(['location'])
     await manager.session.ui.ready
     await nvim.eval('feedkeys("f", "in")')
-    await helper.wait(10)
+    await helper.wait(30)
     await nvim.eval('feedkeys("a", "in")')
-    await helper.wait(10)
+    await helper.wait(30)
     await nvim.eval('feedkeys("\\<C-w>", "in")')
-    await helper.wait(10)
+    await helper.wait(30)
     let input = manager.prompt.input
     expect(input).toBe('')
   })
 
   it('should change input by <C-u>', async () => {
-    await manager.start(['--input=abc', 'location'])
+    await manager.start(['--input=a', 'location'])
     await manager.session.ui.ready
     await nvim.eval('feedkeys("\\<C-u>", "in")')
-    await helper.wait(10)
+    await helper.wait(30)
     let input = manager.prompt.input
     expect(input).toBe('')
   })
