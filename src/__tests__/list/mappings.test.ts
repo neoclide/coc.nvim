@@ -335,7 +335,8 @@ describe('list insert mappings', () => {
 
   it('should scroll window by <C-f> and <C-b>', async () => {
     await manager.start(['location'])
-    await helper.wait(100)
+    await manager.session.ui.ready
+    await helper.wait(30)
     await nvim.eval('feedkeys("\\<C-f>", "in")')
     await helper.wait(100)
     await nvim.eval('feedkeys("\\<C-b>", "in")')
@@ -469,7 +470,7 @@ describe('User mappings', () => {
       '<C-b>': 'do:toggleMode',
     })
     await manager.start(['location'])
-    await helper.wait(100)
+    await manager.session.ui.ready
     await nvim.eval('feedkeys("\\<C-r>", "in")')
     await helper.wait(30)
     expect(manager.isActivated).toBe(true)
@@ -528,7 +529,7 @@ describe('User mappings', () => {
       '<C-u>': 'prompt.removeAhead',
     })
     await manager.start(['location'])
-    await helper.wait(30)
+    await manager.session.ui.ready
     for (let key of ['<C-p>', '<C-n>', '<C-a>', '<C-e>', '<Left>', '<Right>', '<Backspace>', '<C-x>', '<C-k>', '<C-u>']) {
       await nvim.input(key)
       await helper.wait(30)
@@ -541,7 +542,7 @@ describe('User mappings', () => {
       '<C-f>': 'feedkeys:\\<C-f>',
     })
     await manager.start(['location'])
-    await helper.wait(30)
+    await manager.session.ui.ready
     await nvim.eval(`feedkeys("\\<C-f>", "in")`)
     await helper.wait(30)
     let line = await nvim.call('line', '.')
@@ -553,7 +554,7 @@ describe('User mappings', () => {
       '<C-g>': 'normal:G',
     })
     await manager.start(['location'])
-    await helper.wait(30)
+    await manager.session.ui.ready
     await nvim.eval(`feedkeys("\\<C-g>", "in")`)
     await helper.wait(30)
     let line = await nvim.call('line', '.')
@@ -565,7 +566,7 @@ describe('User mappings', () => {
       '<C-w>': 'command:wincmd p',
     })
     await manager.start(['location'])
-    await helper.wait(30)
+    await manager.session.ui.ready
     await nvim.eval(`feedkeys("\\<C-w>", "in")`)
     await helper.wait(30)
     expect(manager.isActivated).toBe(true)
@@ -579,7 +580,7 @@ describe('User mappings', () => {
       '<C-t>': 'call:Test',
     })
     await manager.start(['location'])
-    await helper.wait(30)
+    await manager.session.ui.ready
     await nvim.eval(`feedkeys("\\<C-t>", "in")`)
     await helper.wait(30)
     expect(manager.isActivated).toBe(true)
@@ -596,7 +597,7 @@ describe('User mappings', () => {
     clipboardy.read = async () => text
     await clipboardy.write('foo')
     await manager.start(['location'])
-    await helper.wait(100)
+    await manager.session.ui.ready
     await nvim.eval(`feedkeys("\\<C-r>", "in")`)
     await helper.wait(200)
     let { input } = manager.prompt
@@ -609,7 +610,7 @@ describe('User mappings', () => {
     })
     await nvim.command('let @@ = "bar"')
     await manager.start(['location'])
-    await helper.wait(100)
+    await manager.session.ui.ready
     await nvim.eval(`feedkeys("\\<C-v>", "in")`)
     await helper.wait(200)
     let { input } = manager.prompt
