@@ -9,10 +9,13 @@ import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import { ProviderResult, TextDocumentContentProvider } from './provider'
 import * as protocol from 'vscode-languageserver-protocol'
-import { ParsedUrlQueryInput } from 'querystring'
 
 export type MsgTypes = 'error' | 'warning' | 'more'
 export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
+
+export interface ParsedUrlQueryInput {
+  [key: string]: unknown
+}
 
 export interface CodeAction extends protocol.CodeAction {
   clientId?: string

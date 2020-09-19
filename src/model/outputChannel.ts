@@ -1,10 +1,10 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import { constants } from 'buffer'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { OutputChannel } from '../types'
 import { disposeAll } from '../util'
 import workspace from '../workspace'
 const logger = require('../util/logger')("outpubChannel")
+const MAX_STRING_LENGTH: number = require('buffer').constants.MAX_STRING_LENGTH
 
 export default class BufferChannel implements OutputChannel {
   private _content = ''
@@ -41,7 +41,7 @@ export default class BufferChannel implements OutputChannel {
   }
 
   public append(value: string): void {
-    if (this._content.length + value.length >= constants.MAX_STRING_LENGTH) {
+    if (this._content.length + value.length >= MAX_STRING_LENGTH) {
       this.clear(10)
     }
     this._content += value
@@ -49,7 +49,7 @@ export default class BufferChannel implements OutputChannel {
   }
 
   public appendLine(value: string): void {
-    if (this._content.length + value.length >= constants.MAX_STRING_LENGTH) {
+    if (this._content.length + value.length >= MAX_STRING_LENGTH) {
       this.clear(10)
     }
     this._content += value + '\n'
