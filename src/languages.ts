@@ -434,9 +434,13 @@ class Languages {
     return await this.codeLensManager.resolveCodeLens(codeLens, this.token)
   }
 
-  @check
-  public async provideDocumentOnTypeEdits(character: string, document: TextDocument, position: Position): Promise<TextEdit[] | null> {
-    return this.onTypeFormatManager.onCharacterType(character, document, position, this.token)
+  public async provideDocumentOnTypeEdits(
+    character: string,
+    document: TextDocument,
+    position: Position,
+    token: CancellationToken
+  ): Promise<TextEdit[] | null> {
+    return this.onTypeFormatManager.onCharacterType(character, document, position, token)
   }
 
   public hasOnTypeProvider(character: string, document: TextDocument): boolean {

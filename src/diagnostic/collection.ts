@@ -2,6 +2,7 @@ import { Diagnostic, Emitter, Event, Range } from 'vscode-languageserver-protoco
 import { DiagnosticCollection } from '../types'
 import { URI } from 'vscode-uri'
 import { emptyRange } from '../util/position'
+import workspace from '../workspace'
 const logger = require('../util/logger')('diagnostic-collection')
 
 export default class Collection implements DiagnosticCollection {
@@ -53,6 +54,18 @@ export default class Collection implements DiagnosticCollection {
           o.range.end = {
             line: o.range.end.line,
             character: o.range.end.character + 1
+          }
+        }
+        let { start, end } = o.range
+        // fix empty diagnostic at the and of line
+        if (end.character == 0 && end.line - start.line == 1 && start.character > 0) {
+          // add last character when start character is end
+          let doc = workspace.getDocument(uri)
+          if (doc) {
+            let line = doc.getline(start.line)
+            if (start.character == line.length) {
+              o.range.start.character = start.character - 1
+            }
           }
         }
         o.source = o.source || this.name

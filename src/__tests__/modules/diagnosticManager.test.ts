@@ -230,4 +230,18 @@ describe('diagnostic manager', () => {
       expect(diagnostic.severity != DiagnosticSeverity.Information).toBe(true)
     }
   })
+
+  it('should get empty diagnostic at end of line', async () => {
+    let doc = await helper.createDocument()
+    await nvim.setLine('foo')
+    doc.forceSync()
+    await nvim.command('normal! $')
+    let diagnostic = Diagnostic.create(Range.create(0, 3, 1, 0), 'error', DiagnosticSeverity.Error)
+    let collection = manager.create('empty')
+    collection.set(doc.uri, [diagnostic])
+    let diagnostics = await manager.getCurrentDiagnostics()
+    expect(diagnostics.length).toBeGreaterThanOrEqual(1)
+    expect(diagnostics[0].message).toBe('error')
+    collection.dispose()
+  })
 })
