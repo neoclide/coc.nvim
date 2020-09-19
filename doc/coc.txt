@@ -526,18 +526,16 @@ Built-in configurations:~
 	Filetypes to ignore for workspace folder resolution,
 	default: `["markdown","log","txt","help"]`
 
+	Note: This is the filetype after mapping by `g:coc_filetype_map`.
+
 							*coc-config-list*
 "list.indicator":~
 
 	The character used as first character in prompt line, default: `">"`
 
-"list.maxHeight":~
+"list.height":~
 
-	Maximum height of list window, default: `10`
-
-"list.minHeight":~
-
-	Minimum height of list windows, default: `1`
+	Height of split list window, default: `10`
 
 "list.signOffset":~
 
@@ -546,10 +544,6 @@ Built-in configurations:~
 "list.selectedSignText":~
 
 	Sign text for selected lines, default: `"*"`
-
-"list.autoResize":~
-
-	Enable auto-resize feature, default: `true`
 
 "list.limitLines":~
 
@@ -663,6 +657,8 @@ Built-in configurations:~
 
 	Filetypes for which formatting triggers after saving, default: `[]`
 
+	Note: This is the filetype after mapping by `g:coc_filetype_map`.
+
 "coc.preferences.enableFloatHighlight":~
 
 	Enable highlight for floating window, default: `true`
@@ -707,6 +703,7 @@ Built-in configurations:~
 	Filetypes that should run format on typing, default: `[]`
 
 	Note: takes effect when `coc.preferences.formatOnType` set `true`.
+	Note: This is the filetype after mapping by `g:coc_filetype_map`.
 
 "coc.preferences.snippets.enable":~
 
@@ -751,11 +748,11 @@ Built-in configurations:~
 	- "enable": Change to `false` to disable that languageserver.
 
 	- "filetypes": Supported filetypes, add * in array for all filetypes.
-	  Note: it's required for start the languageserver, please make cure
-	  your filetype is expected by `:echo &filetype` command
+	  Note: it's required for start the languageserver, please make sure
+	  your filetype is expected by `:CocCommand document.echoFiletype` command
 
 	- "additionalSchemes": Additional uri schemes, default schemes
-	  including file & untitled. 
+	  including file & untitled.
 	  Note: you have to setup vim provide content for custom uri as well.
 
 	- "cwd": Working directory used to start languageserver, vim's cwd is
@@ -825,7 +822,7 @@ Language server start with module:~
 	module:
 
 	- "module": Absolute filepath of javascript file.
-	
+
 	- "args": Extra arguments used on fork javascript module.
 
 	- "runtime": Absolute path of node runtime, node runtime of coc.nvim
@@ -1056,7 +1053,7 @@ normal mode, `v_` works for visual mode.
 	Note: requires selection ranges feature of language server, like:
 	coc-tsserver, coc-python
 
-<Plug>(coc-funcobj-i)					*n_coc-funcobj-i* 
+<Plug>(coc-funcobj-i)					*n_coc-funcobj-i*
 							*v_coc-funcobj-i*
 
       Select inside function. Recommend mapping:
@@ -1090,7 +1087,7 @@ normal mode, `v_` works for visual mode.
 	server.
 
 
-<Plug>(coc-classobj-a)					*n_coc-classobj-a* 
+<Plug>(coc-classobj-a)					*n_coc-classobj-a*
 							*v_coc-classobj-a*
 
 	Select around class/struct/interface. Recommended mapping:
@@ -1168,7 +1165,7 @@ g:coc_disable_uncaught_error 				 *g:coc_disable_uncaught_error*
 	Disable uncaught error messages from node process of coc.nvim.
 
 	Default: 0
-	
+
 g:coc_channel_timeout					*g:coc_channel_timeout*
 
 	Channel timeout in seconds for request to node client.
@@ -1263,7 +1260,8 @@ g:coc_filetype_map					*g:coc_filetype_map*
 
 	Note: coc will always map filetype `javascript.jsx` to
 	`javascriptreact` and `typescript.tsx` to
-	`typescriptreact`.
+	`typescriptreact`. You can find the mapped filetype
+	of the current buffer by running `:CocCommand document.echoFiletype`.
 
 g:coc_selectmode_mapping				*g:coc_selectmode_mapping*
 
@@ -1299,7 +1297,7 @@ g:coc_node_args						*g:coc_node_args*
 	Arguments passed to node when starting coc service from source code.
 
 	Useful for starting coc in debug mode, ex: >
-
+>
 	let g:coc_node_args = ['--nolazy', '--inspect-brk=6045']
 <
 	Default: []
@@ -1318,7 +1316,13 @@ g:coc_jump_locations					*g:coc_jump_locations*
 
 g:coc_process_pid					*g:coc_process_pid*
 
-	Process pid of coc.nvim service.
+	Process pid of coc.nvim service. If your vim doesn't kill coc.nvim
+	process on exit, use:
+>
+	autocmd VimLeavePre * if get(g:, 'coc_process_pid', 0)
+		\	| call system('kill -9 '.g:coc_process_pid) | endif
+<
+	in your vimrc.
 
 g:coc_status_error_sign					*g:coc_status_error_sign*
 
@@ -1431,7 +1435,7 @@ coc#start([{option}]) 					*coc#start()*
 	inoremap <silent> <C-w> <C-R>=coc#start({'source': 'word'})<CR>
 <
 	Use `CocList sources` to get available sources.
-				
+
 coc#config({section}, {value})				*coc#config()*
 
 	Change user configuration by Vim script, no changes would be made to
@@ -1528,7 +1532,7 @@ coc#_select_confirm()					*coc#_select_confirm()*
 	autocmd should exists or only <C-n> and <C-p> should be used to select
 	a completion item.
 
-			
+
 health#coc#check()					*health#coc#check()*
 
 	Neovim only, run health check, triggered by ':checkhealth'
@@ -1554,7 +1558,7 @@ coc#util#rebuild()					*coc#util#rebuild()*
 
 	Rebuild coc extensions.
 
-		
+
 coc#util#has_float()					*coc#util#has_float()*
 
 	Check if coc float window exists.
@@ -1655,7 +1659,7 @@ CocLocationsAsync({id}, {method}, [{params}, {openCommand}])
 	Same as |CocLocations()|, but send notification to server instead
 	of request.
 
-				
+
 CocAction({action}, [...{args}])			*CocAction()*
 
 	Run {action} of coc with optional extra {args}.
@@ -1687,7 +1691,7 @@ CocTagFunc({pattern}, {flags}, {info})			*CocTagFunc()*
 ------------------------------------------------------------------------------
 							*coc-action*
 Available Actions ~
-								
+
 Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 "sourceStat"						*coc-action-sourceStat*
@@ -1952,7 +1956,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Run fixAll codeAction ofr current buffer.
 	Show warning when codeAction not found.
-	
+
 
 "quickfixes" [{visualmode}]				*coc-action-quickfixes*
 
@@ -2074,7 +2078,7 @@ COMMANDS						*coc-commands*
 	Note: the log would be cleared when coc.nvim started.
 
 	Use environment variable `NVIM_COC_LOG_LEVEL` to change log level
-	(default 'info').  Example shell command: >
+	(default 'info').  Use shell command: >
 
 	export NVIM_COC_LOG_LEVEL=debug
 <
@@ -2430,29 +2434,29 @@ LIST COMMAND						*coc-list-command*
 
 	When {source} is empty, lists source is used.
 
-:CocListResume						*:CocListResume*
+:CocListResume [{name}]					*:CocListResume*
 
 	Reopen last opened list, input and cursor position will be preserved.
 
-:CocPrev						*:CocPrev*
+:CocPrev [{name}]					*:CocPrev*
 
-	Invoke default action for the previous item in the last list.
-
-	Doesn't open the list window if it's closed.
-
-:CocNext						*:CocNext*
-
-	Invoke the default action for the next item in the last list.
+	Invoke default action for the previous item in the last {name} list.
 
 	Doesn't open the list window if it's closed.
 
-:CocFirst						*:CocFirst*
+:CocNext [{name}]					*:CocNext*
 
-	Invoke default action for first item in the last list.
+	Invoke the default action for the next item in the last {name} list.
 
-:CocLast						*:CocLast*
+	Doesn't open the list window if it's closed.
 
-	Invoke default action for last item in the last list.
+:CocFirst [{name}]					*:CocFirst*
+
+	Invoke default action for first item in the last {name} list.
+
+:CocLast [{name}]					*:CocLast*
+
+	Invoke default action for last item in the last {name} list.
 
 							*coc-list-options*
 Options of CocList command~
@@ -2509,11 +2513,6 @@ Options of CocList command~
 -A
 
 	Start a preview for the current item on the visible list.
-
---no-resize
-
-	Disable resize of list window, override `list.autoResize`
-	configuration.
 
 --no-quit
 
@@ -2602,6 +2601,7 @@ Default mappings in normal mode:
 <C-c>       - stop source from fetching more items.
 <C-l>       - reload list.
 <C-a>       - mark all visible items selected.
+<C-o>       - jump to original window on list create.
 <Tab>       - select action.
 <Space>     - toggle select of current item.
 i,I,o,O,a,A - change to insert mode.

@@ -3183,8 +3183,15 @@ function getLogFile() {
     if (file)
         return file;
     let dir = process.env.XDG_RUNTIME_DIR;
-    if (dir)
-        return path_1.default.join(dir, `coc-nvim-${process.pid}.log`);
+    if (dir) {
+        try {
+            fs_1.default.accessSync(dir, fs_1.default.constants.R_OK | fs_1.default.constants.W_OK);
+            return path_1.default.join(dir, `coc-nvim-${process.pid}.log`);
+        }
+        catch (err) {
+            // noop
+        }
+    }
     dir = path_1.default.join(process.env.TMPDIR, `coc.nvim-${process.pid}`);
     if (os_1.default.platform() == 'win32') {
         dir = path_1.default.win32.normalize(dir);
@@ -16552,7 +16559,7 @@ class Events {
         else {
             let arr = this.handlers.get(event) || [];
             let stack = Error().stack;
-            arr.push(args => new Promise((resolve, reject) => {
+            let wrappedhandler = args => new Promise((resolve, reject) => {
                 let timer;
                 try {
                     Promise.resolve(handler.apply(thisArg || null, args)).then(() => {
@@ -16571,10 +16578,11 @@ class Events {
                 catch (e) {
                     reject(e);
                 }
-            }));
+            });
+            arr.push(wrappedhandler);
             this.handlers.set(event, arr);
             let disposable = vscode_languageserver_protocol_1.Disposable.create(() => {
-                let idx = arr.indexOf(handler);
+                let idx = arr.indexOf(wrappedhandler);
                 if (idx !== -1) {
                     arr.splice(idx, 1);
                 }
@@ -23550,10 +23558,10 @@ const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const vscode_languageserver_types_1 = __webpack_require__(223);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
 const completion_1 = tslib_1.__importDefault(__webpack_require__(331));
-const cursors_1 = tslib_1.__importDefault(__webpack_require__(613));
+const cursors_1 = tslib_1.__importDefault(__webpack_require__(614));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(253));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(333));
-const handler_1 = tslib_1.__importDefault(__webpack_require__(615));
+const handler_1 = tslib_1.__importDefault(__webpack_require__(616));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
 const manager_2 = tslib_1.__importDefault(__webpack_require__(541));
 const services_1 = tslib_1.__importDefault(__webpack_require__(525));
@@ -23614,9 +23622,11 @@ class Plugin extends events_1.EventEmitter {
             await manager_2.default.start(args);
         });
         this.addAction('selectSymbolRange', (inner, visualmode, supportedSymbols) => this.handler.selectSymbolRange(inner, visualmode, supportedSymbols));
-        this.addAction('listResume', () => manager_2.default.resume());
-        this.addAction('listPrev', () => manager_2.default.previous());
-        this.addAction('listNext', () => manager_2.default.next());
+        this.addAction('listResume', (name) => manager_2.default.resume(name));
+        this.addAction('listPrev', (name) => manager_2.default.previous(name));
+        this.addAction('listNext', (name) => manager_2.default.next(name));
+        this.addAction('listFirst', (name) => manager_2.default.first(name));
+        this.addAction('listLast', (name) => manager_2.default.last(name));
         this.addAction('sendRequest', (id, method, params) => services_1.default.sendRequest(id, method, params));
         this.addAction('sendNotification', (id, method, params) => {
             return services_1.default.sendNotification(id, method, params);
@@ -23797,12 +23807,6 @@ class Plugin extends events_1.EventEmitter {
         this.addAction('doHover', () => {
             return this.handler.onHover();
         });
-        this.addAction('listFirst', () => {
-            return manager_2.default.first();
-        });
-        this.addAction('listLast', () => {
-            return manager_2.default.last();
-        });
         this.addAction('showSignatureHelp', () => {
             return this.handler.showSignatureHelp();
         });
@@ -23980,7 +23984,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "b71489207a" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "5fd6b7b9b1" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -24200,6 +24204,16 @@ class CommandManager {
             }
         }, false, 'open output buffer to show output from languageservers or extensions.');
         this.register({
+            id: 'document.echoFiletype',
+            execute: async () => {
+                let bufnr = await nvim.call('bufnr', '%');
+                let doc = workspace_1.default.getDocument(bufnr);
+                if (!doc)
+                    return;
+                await workspace_1.default.echoLines([doc.filetype]);
+            }
+        }, false, 'echo the mapped filetype of the current buffer');
+        this.register({
             id: 'document.renameCurrentWord',
             execute: async () => {
                 let bufnr = await nvim.call('bufnr', '%');
@@ -24401,9 +24415,9 @@ const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(254));
 const util_1 = __webpack_require__(238);
 const position_1 = __webpack_require__(311);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const buffer_1 = __webpack_require__(610);
-const collection_1 = tslib_1.__importDefault(__webpack_require__(612));
-const util_2 = __webpack_require__(611);
+const buffer_1 = __webpack_require__(611);
+const collection_1 = tslib_1.__importDefault(__webpack_require__(613));
+const util_2 = __webpack_require__(612);
 const logger = __webpack_require__(64)('diagnostic-manager');
 class DiagnosticManager {
     constructor() {
@@ -25369,7 +25383,7 @@ const events_1 = tslib_1.__importDefault(__webpack_require__(210));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const Snippets = tslib_1.__importStar(__webpack_require__(329));
 const session_1 = __webpack_require__(330);
-const variableResolve_1 = __webpack_require__(609);
+const variableResolve_1 = __webpack_require__(610);
 const logger = __webpack_require__(64)('snippets-manager');
 class SnippetManager {
     constructor() {
@@ -25623,6 +25637,9 @@ class Workspace {
         }, null, this.disposables);
         events_1.default.on('InsertLeave', () => {
             this._insertMode = false;
+        }, null, this.disposables);
+        events_1.default.on('BufWinLeave', (_, winid) => {
+            this.nvim.call('coc#util#clear_pos_matches', ['^Coc', winid], true);
         }, null, this.disposables);
         events_1.default.on('BufEnter', this.onBufEnter, this, this.disposables);
         events_1.default.on('CursorMoved', this.checkCurrentBuffer, this, this.disposables);
@@ -26903,7 +26920,8 @@ class Workspace {
     createDatabase(name) {
         let root;
         if (global.hasOwnProperty('__TEST__')) {
-            root = fs_1.default.mkdtempSync(path_1.default.join(os_1.default.tmpdir(), 'coc-'));
+            root = path_1.default.join(os_1.default.tmpdir(), `coc-${process.pid}`);
+            fs_1.default.mkdirSync(root, { recursive: true });
         }
         else {
             root = path_1.default.dirname(this.env.extensionRoot);
@@ -36268,7 +36286,6 @@ class Document {
             this.nvim.call('matchaddpos', [hlGroup, grouped, priority, id], true);
             res.push(id);
         }
-        this.nvim.call('coc#util#add_matchids', [res], true);
         return res;
     }
     /**
@@ -36325,7 +36342,7 @@ class Document {
      */
     clearMatchIds(ids) {
         if (this.env.isVim && !this.env.textprop) {
-            this.nvim.call('coc#util#clearmatches', [Array.from(ids)], true);
+            this.nvim.call('coc#util#clear_buf_matches', [Array.from(ids), this.bufnr], true);
         }
         else {
             ids = array_1.distinct(Array.from(ids));
@@ -37313,10 +37330,10 @@ exports.default = Mru;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const buffer_1 = __webpack_require__(316);
 const util_1 = __webpack_require__(238);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)("outpubChannel");
+const MAX_STRING_LENGTH = __webpack_require__(316).constants.MAX_STRING_LENGTH;
 class BufferChannel {
     constructor(name, nvim) {
         this.name = name;
@@ -37354,14 +37371,14 @@ class BufferChannel {
         }
     }
     append(value) {
-        if (this._content.length + value.length >= buffer_1.constants.MAX_STRING_LENGTH) {
+        if (this._content.length + value.length >= MAX_STRING_LENGTH) {
             this.clear(10);
         }
         this._content += value;
         this.promise = this.promise.then(() => this._append(value, false));
     }
     appendLine(value) {
-        if (this._content.length + value.length >= buffer_1.constants.MAX_STRING_LENGTH) {
+        if (this._content.length + value.length >= MAX_STRING_LENGTH) {
             this.clear(10);
         }
         this._content += value + '\n';
@@ -37875,6 +37892,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
 const vscode_uri_1 = __webpack_require__(243);
+const platform = tslib_1.__importStar(__webpack_require__(248));
 function score(selector, uri, languageId) {
     if (Array.isArray(selector)) {
         // array -> take max individual value
@@ -37932,7 +37950,10 @@ function score(selector, uri, languageId) {
             }
         }
         if (pattern) {
-            if (pattern === u.fsPath || minimatch_1.default(u.fsPath, pattern, { dot: true })) {
+            let caseInsensitive = platform.isWindows || platform.isMacintosh;
+            let p = caseInsensitive ? pattern.toLowerCase() : pattern;
+            let f = caseInsensitive ? u.fsPath.toLowerCase() : u.fsPath;
+            if (p === f || minimatch_1.default(f, p, { dot: true })) {
                 ret = 5;
             }
             else {
@@ -37962,6 +37983,7 @@ const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const uuid_1 = __webpack_require__(283);
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
+const fs_1 = __webpack_require__(304);
 const logger = __webpack_require__(64)('watchman');
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch', 'field-new'];
 const clientsMap = new Map();
@@ -38093,7 +38115,7 @@ class Watchman {
         }
     }
     static createClient(binaryPath, root, channel) {
-        if (root == os_1.default.homedir() || root == '/' || path_1.default.parse(root).base == root)
+        if (!isValidWatchRoot(root))
             return null;
         let client = clientsMap.get(root);
         if (client)
@@ -38118,6 +38140,23 @@ class Watchman {
     }
 }
 exports.default = Watchman;
+/**
+ * Exclude user's home, driver, tmpdir
+ */
+function isValidWatchRoot(root) {
+    if (root == '/' || root == '/tmp' || root == '/private/tmp')
+        return false;
+    if (root.toLowerCase() === os_1.default.homedir().toLowerCase())
+        return false;
+    if (path_1.default.parse(root).base == root)
+        return false;
+    if (root.startsWith('/tmp/') || root.startsWith('/private/tmp/'))
+        return false;
+    if (fs_1.isParentFolder(os_1.default.tmpdir(), root, true))
+        return false;
+    return true;
+}
+exports.isValidWatchRoot = isValidWatchRoot;
 //# sourceMappingURL=watchman.js.map
 
 /***/ }),
@@ -39319,7 +39358,7 @@ Int64.prototype = {
 /* 328 */
 /***/ (function(module) {
 
-module.exports = JSON.parse("{\"name\":\"coc.nvim\",\"version\":\"0.0.79\",\"description\":\"LSP based intellisense engine for neovim & vim8.\",\"main\":\"./lib/index.js\",\"engines\":{\"node\":\">=8.10.0\"},\"scripts\":{\"clean\":\"rimraf lib build\",\"lint\":\"eslint . --ext .ts --quiet\",\"build\":\"tsc -p tsconfig.json\",\"watch\":\"tsc -p tsconfig.json --watch true --sourceMap\",\"test\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --detectOpenHandles --forceExit\",\"test-build\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --coverage --forceExit\",\"prepare\":\"npm-run-all clean build\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/neoclide/coc.nvim.git\"},\"keywords\":[\"complete\",\"neovim\"],\"author\":\"Qiming Zhao <chemzqm@gmail.com>\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/neoclide/coc.nvim/issues\"},\"homepage\":\"https://github.com/neoclide/coc.nvim#readme\",\"jest\":{\"globals\":{\"__TEST__\":true},\"watchman\":false,\"clearMocks\":true,\"globalSetup\":\"./jest.js\",\"testEnvironment\":\"node\",\"moduleFileExtensions\":[\"ts\",\"tsx\",\"json\",\"js\"],\"transform\":{\"^.+\\\\.tsx?$\":\"ts-jest\"},\"testRegex\":\"src/__tests__/.*\\\\.(test|spec)\\\\.ts$\",\"coverageDirectory\":\"./coverage/\"},\"devDependencies\":{\"@types/debounce\":\"^3.0.0\",\"@types/fb-watchman\":\"^2.0.0\",\"@types/glob\":\"^7.1.3\",\"@types/jest\":\"^26.0.13\",\"@types/minimatch\":\"^3.0.3\",\"@types/mkdirp\":\"^1.0.1\",\"@types/node\":\"^14.10.1\",\"@types/semver\":\"^7.3.3\",\"@types/tar\":\"^4.0.3\",\"@types/uuid\":\"^8.3.0\",\"@types/which\":\"^1.3.2\",\"@typescript-eslint/eslint-plugin\":\"^4.1.0\",\"@typescript-eslint/eslint-plugin-tslint\":\"^4.1.0\",\"@typescript-eslint/parser\":\"^4.1.0\",\"colors\":\"^1.4.0\",\"eslint\":\"^7.8.1\",\"eslint-config-prettier\":\"^6.11.0\",\"eslint-plugin-jest\":\"^24.0.0\",\"eslint-plugin-jsdoc\":\"^30.4.1\",\"jest\":\"26.4.2\",\"npm-run-all\":\"^4.1.5\",\"prettier\":\"^2.1.1\",\"ts-jest\":\"^26.3.0\",\"typescript\":\"^4.0.2\",\"vscode-languageserver\":\"^6.1.1\"},\"dependencies\":{\"@chemzqm/neovim\":\"^5.2.6\",\"await-semaphore\":\"^0.1.3\",\"bser\":\"^2.1.1\",\"bytes\":\"^3.1.0\",\"clipboardy\":\"^2.3.0\",\"content-disposition\":\"^0.5.3\",\"debounce\":\"^1.2.0\",\"fast-diff\":\"^1.2.0\",\"fb-watchman\":\"^2.0.1\",\"follow-redirects\":\"^1.13.0\",\"glob\":\"^7.1.6\",\"http-proxy-agent\":\"^4.0.1\",\"https-proxy-agent\":\"^5.0.0\",\"isuri\":\"^2.0.3\",\"jsonc-parser\":\"^2.3.0\",\"log4js\":\"^6.3.0\",\"minimatch\":\"^3.0.4\",\"mkdirp\":\"^1.0.4\",\"mv\":\"^2.1.1\",\"promise.prototype.finally\":\"^3.1.2\",\"rc\":\"^1.2.8\",\"rimraf\":\"^3.0.2\",\"semver\":\"^7.3.2\",\"tar\":\"^6.0.5\",\"tslib\":\"^2.0.1\",\"unzipper\":\"^0.10.11\",\"uuid\":\"^7.0.3\",\"vscode-languageserver-protocol\":\"^3.15.3\",\"vscode-languageserver-textdocument\":\"^1.0.1\",\"vscode-languageserver-types\":\"^3.15.1\",\"vscode-uri\":\"^2.1.2\",\"which\":\"^2.0.2\"}}");
+module.exports = JSON.parse("{\"name\":\"coc.nvim\",\"version\":\"0.0.79\",\"description\":\"LSP based intellisense engine for neovim & vim8.\",\"main\":\"./lib/index.js\",\"engines\":{\"node\":\">=8.10.0\"},\"scripts\":{\"clean\":\"rimraf lib build\",\"lint\":\"eslint . --ext .ts --quiet\",\"build\":\"tsc -p tsconfig.json\",\"watch\":\"tsc -p tsconfig.json --watch true --sourceMap\",\"test\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --detectOpenHandles --forceExit\",\"test-build\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --coverage --forceExit\",\"prepare\":\"npm-run-all clean build\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/neoclide/coc.nvim.git\"},\"keywords\":[\"complete\",\"neovim\"],\"author\":\"Qiming Zhao <chemzqm@gmail.com>\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/neoclide/coc.nvim/issues\"},\"homepage\":\"https://github.com/neoclide/coc.nvim#readme\",\"jest\":{\"globals\":{\"__TEST__\":true},\"watchman\":false,\"clearMocks\":true,\"globalSetup\":\"./jest.js\",\"testEnvironment\":\"node\",\"moduleFileExtensions\":[\"ts\",\"tsx\",\"json\",\"js\"],\"transform\":{\"^.+\\\\.tsx?$\":\"ts-jest\"},\"testRegex\":\"src/__tests__/.*\\\\.(test|spec)\\\\.ts$\",\"coverageDirectory\":\"./coverage/\"},\"devDependencies\":{\"@types/debounce\":\"^3.0.0\",\"@types/fb-watchman\":\"^2.0.0\",\"@types/glob\":\"^7.1.3\",\"@types/jest\":\"^26.0.13\",\"@types/minimatch\":\"^3.0.3\",\"@types/mkdirp\":\"^1.0.1\",\"@types/node\":\"^10.12.0\",\"@types/semver\":\"^7.3.3\",\"@types/tar\":\"^4.0.3\",\"@types/uuid\":\"^8.3.0\",\"@types/which\":\"^1.3.2\",\"@typescript-eslint/eslint-plugin\":\"^4.1.0\",\"@typescript-eslint/eslint-plugin-tslint\":\"^4.1.0\",\"@typescript-eslint/parser\":\"^4.1.0\",\"colors\":\"^1.4.0\",\"eslint\":\"^7.8.1\",\"eslint-config-prettier\":\"^6.11.0\",\"eslint-plugin-jest\":\"^24.0.0\",\"eslint-plugin-jsdoc\":\"^30.4.1\",\"jest\":\"26.4.2\",\"npm-run-all\":\"^4.1.5\",\"prettier\":\"^2.1.1\",\"ts-jest\":\"^26.3.0\",\"typescript\":\"^4.0.3\",\"vscode-languageserver\":\"^6.1.1\"},\"dependencies\":{\"@chemzqm/neovim\":\"^5.2.6\",\"bser\":\"^2.1.1\",\"bytes\":\"^3.1.0\",\"clipboardy\":\"^2.3.0\",\"content-disposition\":\"^0.5.3\",\"debounce\":\"^1.2.0\",\"fast-diff\":\"^1.2.0\",\"fb-watchman\":\"^2.0.1\",\"follow-redirects\":\"^1.13.0\",\"glob\":\"^7.1.6\",\"http-proxy-agent\":\"^4.0.1\",\"https-proxy-agent\":\"^5.0.0\",\"isuri\":\"^2.0.3\",\"jsonc-parser\":\"^2.3.0\",\"log4js\":\"^6.3.0\",\"minimatch\":\"^3.0.4\",\"mkdirp\":\"^1.0.4\",\"mv\":\"^2.1.1\",\"promise.prototype.finally\":\"^3.1.2\",\"rc\":\"^1.2.8\",\"rimraf\":\"^3.0.2\",\"semver\":\"^7.3.2\",\"tar\":\"^6.0.5\",\"tslib\":\"^2.0.1\",\"unzipper\":\"^0.10.11\",\"uuid\":\"^7.0.3\",\"vscode-languageserver-protocol\":\"^3.15.3\",\"vscode-languageserver-textdocument\":\"^1.0.1\",\"vscode-languageserver-types\":\"^3.15.1\",\"vscode-uri\":\"^2.1.2\",\"which\":\"^2.0.2\"}}");
 
 /***/ }),
 /* 329 */
@@ -40398,8 +40437,8 @@ const completion_1 = tslib_1.__importDefault(__webpack_require__(331));
 const position_1 = __webpack_require__(311);
 const string_1 = __webpack_require__(310);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const snippet_1 = __webpack_require__(608);
-const variableResolve_1 = __webpack_require__(609);
+const snippet_1 = __webpack_require__(609);
+const variableResolve_1 = __webpack_require__(610);
 const logger = __webpack_require__(64)('snippets-session');
 class SnippetSession {
     constructor(nvim, bufnr) {
@@ -40716,9 +40755,9 @@ const events_1 = tslib_1.__importDefault(__webpack_require__(210));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(332));
 const util_1 = __webpack_require__(238);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const complete_1 = tslib_1.__importDefault(__webpack_require__(604));
-const floating_1 = tslib_1.__importDefault(__webpack_require__(606));
-const throttle_1 = tslib_1.__importDefault(__webpack_require__(607));
+const complete_1 = tslib_1.__importDefault(__webpack_require__(605));
+const floating_1 = tslib_1.__importDefault(__webpack_require__(607));
+const throttle_1 = tslib_1.__importDefault(__webpack_require__(608));
 const object_1 = __webpack_require__(249);
 const string_1 = __webpack_require__(310);
 const logger = __webpack_require__(64)('completion');
@@ -41297,8 +41336,8 @@ const util_1 = tslib_1.__importDefault(__webpack_require__(74));
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const events_1 = tslib_1.__importDefault(__webpack_require__(210));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(333));
-const source_1 = tslib_1.__importDefault(__webpack_require__(599));
-const source_vim_1 = tslib_1.__importDefault(__webpack_require__(600));
+const source_1 = tslib_1.__importDefault(__webpack_require__(600));
+const source_vim_1 = tslib_1.__importDefault(__webpack_require__(601));
 const types_1 = __webpack_require__(295);
 const util_2 = __webpack_require__(238);
 const fs_2 = __webpack_require__(304);
@@ -41316,9 +41355,9 @@ class Sources {
     }
     createNativeSources() {
         try {
-            this.disposables.push((__webpack_require__(601)).regist(this.sourceMap));
             this.disposables.push((__webpack_require__(602)).regist(this.sourceMap));
             this.disposables.push((__webpack_require__(603)).regist(this.sourceMap));
+            this.disposables.push((__webpack_require__(604)).regist(this.sourceMap));
         }
         catch (e) {
             console.error('Create source error:' + e.message);
@@ -46121,7 +46160,7 @@ const logger = __webpack_require__(64)('model-download');
  * @param {string} url
  * @param {DownloadOptions} options contains dest folder and optional onProgress callback
  */
-function download(url, options) {
+function download(url, options, token) {
     let { dest, onProgress, extract } = options;
     if (!dest || !path_1.default.isAbsolute(dest)) {
         throw new Error(`Expect absolute file path for dest option.`);
@@ -46140,6 +46179,12 @@ function download(url, options) {
     let opts = fetch_1.resolveRequestOptions(url, options);
     let extname = path_1.default.extname(url);
     return new Promise((resolve, reject) => {
+        if (token) {
+            let disposable = token.onCancellationRequested(() => {
+                disposable.dispose();
+                req.destroy(new Error('request aborted'));
+            });
+        }
         const req = mod.request(opts, (res) => {
             var _a;
             if ((res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 1223) {
@@ -68288,9 +68333,15 @@ function resolveRequestOptions(url, options = {}) {
     return opts;
 }
 exports.resolveRequestOptions = resolveRequestOptions;
-function request(url, data, opts) {
+function request(url, data, opts, token) {
     let mod = url.startsWith('https:') ? follow_redirects_1.https : follow_redirects_1.http;
     return new Promise((resolve, reject) => {
+        if (token) {
+            let disposable = token.onCancellationRequested(() => {
+                disposable.dispose();
+                req.destroy(new Error('request aborted'));
+            });
+        }
         const req = mod.request(opts, res => {
             let readable = res;
             if ((res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 1223) {
@@ -68384,13 +68435,9 @@ function getDataType(data) {
  * - Redirect support, limited to 3.
  * - Support of gzip & deflate response content.
  */
-function fetch(url, options = {}) {
-    if (arguments.length > 2) {
-        logger.error(`Bad fetch arguments:`, ...arguments);
-        return Promise.reject(new Error(`Fetch API have changed to fetch(url, options)`));
-    }
+function fetch(url, options = {}, token) {
     let opts = resolveRequestOptions(url, options);
-    return request(url, options.data, opts).catch(err => {
+    return request(url, options.data, opts, token).catch(err => {
         logger.error(`Fetch error for ${url}:`, opts, err);
         if (opts.agent && opts.agent.proxy) {
             let { proxy } = opts.agent;
@@ -69937,7 +69984,7 @@ const manager_1 = tslib_1.__importDefault(__webpack_require__(541));
 exports.listManager = manager_1.default;
 const manager_2 = tslib_1.__importDefault(__webpack_require__(256));
 exports.snippetManager = manager_2.default;
-const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(586));
 exports.BasicList = basic_1.default;
 const manager_3 = tslib_1.__importDefault(__webpack_require__(253));
 exports.diagnosticManager = manager_3.default;
@@ -70277,8 +70324,8 @@ class Languages {
         }
         return await this.codeActionManager.provideCodeActions(document, range, context, this.token);
     }
-    async getDocumentHighLight(document, position) {
-        return await this.documentHighlightManager.provideDocumentHighlights(document, position, this.token);
+    async getDocumentHighLight(document, position, token) {
+        return await this.documentHighlightManager.provideDocumentHighlights(document, position, token);
     }
     async getDocumentLinks(document) {
         if (!this.documentLinkManager.hasProvider(document)) {
@@ -70307,8 +70354,8 @@ class Languages {
     async resolveCodeLens(codeLens) {
         return await this.codeLensManager.resolveCodeLens(codeLens, this.token);
     }
-    async provideDocumentOnTypeEdits(character, document, position) {
-        return this.onTypeFormatManager.onCharacterType(character, document, position, this.token);
+    async provideDocumentOnTypeEdits(character, document, position, token) {
+        return this.onTypeFormatManager.onCharacterType(character, document, position, token);
     }
     hasOnTypeProvider(character, document) {
         return this.onTypeFormatManager.getProvider(document, character) != null;
@@ -70730,9 +70777,6 @@ tslib_1.__decorate([
 ], Languages.prototype, "getCodeActions", null);
 tslib_1.__decorate([
     check
-], Languages.prototype, "getDocumentHighLight", null);
-tslib_1.__decorate([
-    check
 ], Languages.prototype, "getDocumentLinks", null);
 tslib_1.__decorate([
     check
@@ -70752,9 +70796,6 @@ tslib_1.__decorate([
 tslib_1.__decorate([
     check
 ], Languages.prototype, "resolveCodeLens", null);
-tslib_1.__decorate([
-    check
-], Languages.prototype, "provideDocumentOnTypeEdits", null);
 exports.default = new Languages();
 //# sourceMappingURL=languages.js.map
 
@@ -77224,129 +77265,71 @@ const events_1 = tslib_1.__importDefault(__webpack_require__(210));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(333));
 const util_1 = __webpack_require__(238);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const highligher_1 = tslib_1.__importDefault(__webpack_require__(523));
 const configuration_1 = tslib_1.__importDefault(__webpack_require__(542));
-const history_1 = tslib_1.__importDefault(__webpack_require__(543));
-const mappings_1 = tslib_1.__importDefault(__webpack_require__(545));
-const prompt_1 = tslib_1.__importDefault(__webpack_require__(546));
-const commands_1 = tslib_1.__importDefault(__webpack_require__(580));
-const diagnostics_1 = tslib_1.__importDefault(__webpack_require__(582));
-const extensions_2 = tslib_1.__importDefault(__webpack_require__(584));
-const folders_1 = tslib_1.__importDefault(__webpack_require__(585));
-const links_1 = tslib_1.__importDefault(__webpack_require__(586));
-const lists_1 = tslib_1.__importDefault(__webpack_require__(587));
-const location_1 = tslib_1.__importDefault(__webpack_require__(583));
-const outline_1 = tslib_1.__importDefault(__webpack_require__(588));
-const output_1 = tslib_1.__importDefault(__webpack_require__(590));
-const services_1 = tslib_1.__importDefault(__webpack_require__(591));
-const sources_1 = tslib_1.__importDefault(__webpack_require__(592));
-const symbols_1 = tslib_1.__importDefault(__webpack_require__(593));
-const actions_1 = tslib_1.__importDefault(__webpack_require__(595));
-const ui_1 = tslib_1.__importDefault(__webpack_require__(596));
-const worker_1 = tslib_1.__importDefault(__webpack_require__(597));
+const mappings_1 = tslib_1.__importDefault(__webpack_require__(543));
+const prompt_1 = tslib_1.__importDefault(__webpack_require__(544));
+const session_1 = tslib_1.__importDefault(__webpack_require__(578));
+const actions_1 = tslib_1.__importDefault(__webpack_require__(585));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(587));
+const diagnostics_1 = tslib_1.__importDefault(__webpack_require__(588));
+const extensions_2 = tslib_1.__importDefault(__webpack_require__(590));
+const folders_1 = tslib_1.__importDefault(__webpack_require__(591));
+const links_1 = tslib_1.__importDefault(__webpack_require__(592));
+const lists_1 = tslib_1.__importDefault(__webpack_require__(593));
+const location_1 = tslib_1.__importDefault(__webpack_require__(589));
+const outline_1 = tslib_1.__importDefault(__webpack_require__(594));
+const output_1 = tslib_1.__importDefault(__webpack_require__(596));
+const services_1 = tslib_1.__importDefault(__webpack_require__(597));
+const sources_1 = tslib_1.__importDefault(__webpack_require__(598));
+const symbols_1 = tslib_1.__importDefault(__webpack_require__(599));
 const logger = __webpack_require__(64)('list-manager');
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>'];
 class ListManager {
     constructor() {
         this.plugTs = 0;
+        this.sessionsMap = new Map();
         this.disposables = [];
-        this.args = [];
-        this.listArgs = [];
         this.listMap = new Map();
-        this.activated = false;
-        this.executing = false;
     }
     init(nvim) {
         this.nvim = nvim;
         this.config = new configuration_1.default();
         this.prompt = new prompt_1.default(nvim, this.config);
-        this.history = new history_1.default(this);
         this.mappings = new mappings_1.default(this, nvim, this.config);
-        this.worker = new worker_1.default(nvim, this);
-        this.ui = new ui_1.default(nvim, this.config);
-        events_1.default.on('VimResized', () => {
-            if (this.isActivated)
-                nvim.command('redraw!', true);
-        }, null, this.disposables);
+        let signText = this.config.get('selectedSignText', '*');
+        nvim.command(`sign define CocSelected text=${signText} texthl=CocSelectedText linehl=CocSelectedLine`, true);
         events_1.default.on('InputChar', this.onInputChar, this, this.disposables);
-        events_1.default.on('FocusGained', debounce_1.default(() => {
-            if (this.activated)
+        events_1.default.on('FocusGained', debounce_1.default(async () => {
+            let session = await this.getCurrentSession();
+            if (session)
                 this.prompt.drawPrompt();
         }, 100), null, this.disposables);
-        events_1.default.on('BufEnter', debounce_1.default(async () => {
-            let { bufnr } = this.ui;
-            if (!bufnr)
-                return;
-            if (!this.activated) {
-                this.ui.hide();
-                return;
-            }
-            let curr = await nvim.call('bufnr', '%');
-            if (curr == bufnr) {
-                this.prompt.start();
-            }
-            else {
-                nvim.pauseNotification();
-                this.prompt.cancel();
-                await nvim.resumeNotification();
-            }
-        }, 100), null, this.disposables);
-        this.ui.onDidChangeLine(debounce_1.default(async () => {
-            if (!this.activated)
-                return;
-            let [previewing, mode] = await nvim.eval('[coc#util#has_preview(),mode()]');
-            if (!previewing || mode != 'n')
-                return;
-            if (previewing)
-                await this.doAction('preview');
-        }, 50), null, this.disposables);
-        this.ui.onDidLineChange(debounce_1.default(async () => {
-            if (!this.activated)
-                return;
-            let { autoPreview } = this.listOptions;
-            if (!autoPreview) {
-                let [previewing, mode] = await nvim.eval('[coc#util#has_preview(),mode()]');
-                if (!previewing || mode != 'n')
-                    return;
-            }
-            await this.doAction('preview');
-        }, 50), null, this.disposables);
-        this.ui.onDidChangeLine(this.resolveItem, this, this.disposables);
-        this.ui.onDidLineChange(this.resolveItem, this, this.disposables);
-        this.ui.onDidOpen(async () => {
-            if (this.currList) {
-                if (typeof this.currList.doHighlight == 'function') {
-                    this.currList.doHighlight();
+        let timer;
+        events_1.default.on('WinEnter', winid => {
+            if (timer)
+                clearTimeout(timer);
+            timer = setTimeout(() => {
+                let session = this.getSessionByWinid(winid);
+                if (session) {
+                    this.prompt.start(session.listOptions);
                 }
-                if (this.listOptions.first) {
-                    await this.doAction();
+                else {
+                    this.prompt.cancel();
                 }
-            }
+            }, 100);
         }, null, this.disposables);
-        this.ui.onDidClose(async () => {
-            await this.cancel();
-        }, null, this.disposables);
-        this.ui.onDidChange(() => {
-            if (this.activated) {
-                this.updateStatus();
-            }
-            this.prompt.drawPrompt();
-        }, null, this.disposables);
-        this.ui.onDidDoubleClick(async () => {
-            await this.doAction();
-        }, null, this.disposables);
-        this.worker.onDidChangeItems(async ({ items, highlights, reload, append }) => {
-            if (!this.activated)
+        this.disposables.push(vscode_languageserver_protocol_1.Disposable.create(() => {
+            if (timer)
+                clearTimeout(timer);
+        }));
+        // filter history on input
+        this.prompt.onDidChangeInput(() => {
+            let { session } = this;
+            if (!session)
                 return;
-            if (append) {
-                this.ui.addHighlights(highlights, true);
-                await this.ui.appendItems(items);
-            }
-            else {
-                this.ui.addHighlights(highlights);
-                await this.ui.drawItems(items, this.name, this.listOptions, reload);
-            }
-        }, null, this.disposables);
+            session.onInputChange();
+            session.history.filter();
+        });
         this.registerList(new links_1.default(nvim));
         this.registerList(new location_1.default(nvim));
         this.registerList(new symbols_1.default(nvim));
@@ -77362,136 +77345,116 @@ class ListManager {
         this.registerList(new actions_1.default(nvim));
     }
     async start(args) {
-        if (this.activated) {
-            await this.cancel(true);
-        }
+        this.getCharMap().logError();
         let res = this.parseArgs(args);
         if (!res)
             return;
-        this.args = args;
-        this.activated = true;
-        let { list, options, listArgs } = res;
+        let { name } = res.list;
+        let curr = this.sessionsMap.get(name);
+        if (curr) {
+            this.nvim.command('pclose', true);
+            curr.dispose();
+        }
+        this.prompt.start(res.options);
+        let session = new session_1.default(this.nvim, this.prompt, res.list, res.options, res.listArgs, this.config);
+        this.sessionsMap.set(name, session);
+        this.lastSession = session;
         try {
-            await this.getCharMap();
-            let res = await this.nvim.eval('[win_getid(),bufnr("%"),winheight("%")]');
-            this.reset();
-            this.listOptions = options;
-            this.currList = list;
-            this.listArgs = listArgs;
-            this.cwd = workspace_1.default.cwd;
-            this.history.load();
-            this.window = this.nvim.createWindow(res[0]);
-            this.buffer = this.nvim.createBuffer(res[1]);
-            this.savedHeight = res[2];
-            this.prompt.start(options);
-            await this.worker.loadItems();
+            await session.start(args);
         }
         catch (e) {
-            await this.cancel();
+            this.nvim.call('coc#list#stop_prompt', [], true);
             let msg = e instanceof Error ? e.message : e.toString();
-            workspace_1.default.showMessage(`Error on "CocList ${list.name}": ${msg}`, 'error');
+            workspace_1.default.showMessage(`Error on "CocList ${name}": ${msg}`, 'error');
             logger.error(e);
         }
     }
-    async resume() {
-        let { name, ui, currList, nvim } = this;
-        if (!currList)
-            return;
-        this.activated = true;
-        this.window = await nvim.window;
-        this.prompt.start();
-        await ui.resume(name, this.listOptions);
-        if (this.listOptions.autoPreview) {
-            await this.doAction('preview');
+    getSessionByWinid(winid) {
+        for (let session of this.sessionsMap.values()) {
+            if (session && session.winid == winid) {
+                this.lastSession = session;
+                return session;
+            }
+        }
+        return null;
+    }
+    async getCurrentSession() {
+        let { id } = await this.nvim.window;
+        for (let session of this.sessionsMap.values()) {
+            if (session && session.winid == id) {
+                this.lastSession = session;
+                return session;
+            }
+        }
+        return null;
+    }
+    async resume(name) {
+        var _a;
+        if (!name) {
+            await ((_a = this.session) === null || _a === void 0 ? void 0 : _a.resume());
+        }
+        else {
+            let session = this.sessionsMap.get(name);
+            if (!session) {
+                workspace_1.default.showMessage(`Can't find exists ${name} list`);
+                return;
+            }
+            await session.resume();
         }
     }
     async doAction(name) {
-        let { currList } = this;
-        name = name || currList.defaultAction;
-        let action = currList.actions.find(o => o.name == name);
-        if (!action) {
-            workspace_1.default.showMessage(`Action ${name} not found`, 'error');
+        let lastSession = this.lastSession;
+        if (!lastSession)
             return;
-        }
-        let items;
-        if (name == 'preview') {
-            let item = await this.ui.item;
-            items = item ? [item] : [];
-        }
-        else {
-            items = await this.ui.getItems();
-        }
-        if (items.length)
-            await this.doItemAction(items, action);
+        await lastSession.doAction(name);
     }
-    async first() {
-        let { ui } = this;
-        let item = this.ui.firstItem;
-        if (!item)
-            return;
-        ui.index = 0;
-        await this.doItemAction([item], this.defaultAction);
-        await ui.echoMessage(item);
+    async first(name) {
+        let s = this.getSession(name);
+        if (s)
+            await s.first();
     }
-    async last() {
-        let { ui } = this;
-        let item = this.ui.lastItem;
-        if (!item)
-            return;
-        ui.index = this.ui.length - 1;
-        await this.doItemAction([item], this.defaultAction);
-        await ui.echoMessage(item);
+    async last(name) {
+        let s = this.getSession(name);
+        if (s)
+            await s.last();
     }
-    async previous() {
-        let { ui } = this;
-        let item = ui.getItem(-1);
-        if (!item)
-            return;
-        ui.index = ui.index - 1;
-        await this.doItemAction([item], this.defaultAction);
-        await ui.echoMessage(item);
+    async previous(name) {
+        let s = this.getSession(name);
+        if (s)
+            await s.previous();
     }
-    async next() {
-        let { ui } = this;
-        let item = ui.getItem(1);
-        if (!item)
-            return;
-        ui.index = ui.index + 1;
-        await this.doItemAction([item], this.defaultAction);
-        await ui.echoMessage(item);
+    async next(name) {
+        let s = this.getSession(name);
+        if (s)
+            await s.next();
+    }
+    getSession(name) {
+        if (!name)
+            return this.session;
+        return this.sessionsMap.get(name);
     }
     async cancel(close = true) {
-        let { nvim, ui, savedHeight, window } = this;
-        if (!this.activated) {
-            await nvim.call('coc#list#stop_prompt', []);
-            return;
-        }
-        this.activated = false;
-        this.worker.stop();
-        this.history.add();
-        nvim.pauseNotification();
-        nvim.command('pclose', true);
         this.prompt.cancel();
-        if (close) {
-            ui.hide();
-            if (window) {
-                nvim.call('coc#list#restore', [window.id, savedHeight], true);
-            }
+        if (!close)
+            return;
+        if (this.session)
+            await this.session.hide();
+    }
+    /**
+     * Clear all list sessions
+     */
+    async reset() {
+        this.prompt.cancel();
+        this.lastSession = undefined;
+        for (let session of this.sessionsMap.values()) {
+            await session.hide();
+            session.dispose();
         }
-        nvim.command('redraw', true);
-        await nvim.resumeNotification();
+        this.sessionsMap.clear();
     }
     switchMatcher() {
-        let { matcher, interactive } = this.listOptions;
-        if (interactive)
-            return;
-        const list = ['fuzzy', 'strict', 'regex'];
-        let idx = list.indexOf(matcher) + 1;
-        if (idx >= list.length)
-            idx = 0;
-        this.listOptions.matcher = list[idx];
-        this.prompt.matcher = list[idx];
-        this.worker.drawItems();
+        var _a;
+        (_a = this.session) === null || _a === void 0 ? void 0 : _a.switchMatcher();
     }
     async togglePreview() {
         let { nvim } = this;
@@ -77505,50 +77468,9 @@ class ListManager {
         }
     }
     async chooseAction() {
-        let { nvim, currList } = this;
-        if (!this.activated)
-            return;
-        let { actions, defaultAction } = currList;
-        let names = actions.map(o => o.name);
-        let idx = names.indexOf(defaultAction);
-        if (idx != -1) {
-            names.splice(idx, 1);
-            names.unshift(defaultAction);
-        }
-        let shortcuts = new Set();
-        let choices = [];
-        let invalids = [];
-        for (let name of names) {
-            let i = 0;
-            for (let ch of name) {
-                if (!shortcuts.has(ch)) {
-                    shortcuts.add(ch);
-                    choices.push(`${name.slice(0, i)}&${name.slice(i)}`);
-                    break;
-                }
-                i++;
-            }
-            if (i == name.length) {
-                invalids.push(name);
-            }
-        }
-        if (invalids.length) {
-            logger.error(`Can't create shortcut for actions: ${invalids.join(',')} of "${currList.name}" list`);
-            names = names.filter(s => !invalids.includes(s));
-        }
-        await nvim.call('coc#list#stop_prompt');
-        let n = await nvim.call('confirm', ['Choose action:', choices.join('\n')]);
-        await util_1.wait(10);
-        this.prompt.start();
-        if (n)
-            await this.doAction(names[n - 1]);
-    }
-    get name() {
-        let { currList } = this;
-        return currList ? currList.name : 'anonymous';
-    }
-    get list() {
-        return this.currList;
+        let { lastSession } = this;
+        if (lastSession)
+            await lastSession.chooseAction();
     }
     parseArgs(args) {
         let options = [];
@@ -77563,7 +77485,6 @@ class ListManager {
         let position = 'bottom';
         let listArgs = [];
         let listOptions = [];
-        let noResize = false;
         for (let arg of args) {
             if (!name && arg.startsWith('-')) {
                 listOptions.push(arg);
@@ -77619,9 +77540,6 @@ class ListManager {
             else if (opt == '--no-quit') {
                 noQuit = true;
             }
-            else if (opt == '--no-resize') {
-                noResize = true;
-            }
             else {
                 workspace_1.default.showMessage(`Invalid option "${opt}" of list`, 'error');
                 return null;
@@ -77642,7 +77560,6 @@ class ListManager {
             options: {
                 numberSelect,
                 autoPreview,
-                noResize,
                 noQuit,
                 first,
                 input,
@@ -77654,22 +77571,6 @@ class ListManager {
                 sort: !options.includes('no-sort') ? true : false
             },
         };
-    }
-    updateStatus() {
-        let { ui, currList, activated, nvim } = this;
-        if (!activated)
-            return;
-        let buf = nvim.createBuffer(ui.bufnr);
-        let status = {
-            mode: this.prompt.mode.toUpperCase(),
-            args: this.args.join(' '),
-            name: currList.name,
-            total: this.worker.length,
-            cwd: this.cwd,
-        };
-        buf.setVar('list_status', status, true);
-        if (ui.window)
-            nvim.command('redraws', true);
     }
     async onInputChar(ch, charmod) {
         let { mode } = this.prompt;
@@ -77685,10 +77586,9 @@ class ListManager {
             await this.cancel();
             return;
         }
-        if (!this.activated) {
-            this.nvim.call('coc#list#stop_prompt', [], true);
-            return;
-        }
+        // console.log(123)
+        // console.log(mode)
+        // console.log(ch)
         try {
             if (mode == 'insert') {
                 await this.onInsertInput(ch, charmod);
@@ -77703,27 +77603,17 @@ class ListManager {
         }
     }
     async onInsertInput(ch, charmod) {
-        let { nvim } = this;
+        let { session } = this;
+        if (!session)
+            return;
         let inserted = this.charMap.get(ch) || ch;
         if (mouseKeys.includes(inserted)) {
             await this.onMouseEvent(inserted);
             return;
         }
-        if (this.listOptions.numberSelect) {
-            let code = ch.charCodeAt(0);
-            if (code >= 48 && code <= 57) {
-                let n = Number(ch);
-                if (n == 0)
-                    n = 10;
-                if (this.ui.length >= n) {
-                    nvim.pauseNotification();
-                    this.ui.setCursor(Number(ch), 0);
-                    await nvim.resumeNotification();
-                    await this.doAction();
-                }
-                return;
-            }
-        }
+        let n = await session.doNumberSelect(ch);
+        if (n)
+            return;
         let done = await this.mappings.doInsertKeymap(inserted);
         if (done || charmod || this.charMap.has(ch))
             return;
@@ -77748,16 +77638,8 @@ class ListManager {
             await this.feedkeys(inserted);
     }
     onMouseEvent(key) {
-        switch (key) {
-            case '<LeftMouse>':
-                return this.ui.onMouse('mouseDown');
-            case '<LeftDrag>':
-                return this.ui.onMouse('mouseDrag');
-            case '<LeftRelease>':
-                return this.ui.onMouse('mouseUp');
-            case '<2-LeftMouse>':
-                return this.ui.onMouse('doubleClick');
-        }
+        if (this.session)
+            return this.session.onMouseEvent(key);
     }
     async feedkeys(key, remap = true) {
         let { nvim } = this;
@@ -77779,108 +77661,11 @@ class ListManager {
         this.prompt.start();
     }
     async call(fname) {
-        if (!this.currList || !this.window)
-            return;
-        await this.nvim.call('coc#list#stop_prompt', []);
-        let buf = await this.window.buffer;
-        let targets = await this.ui.getItems();
-        let context = {
-            name: this.currList.name,
-            args: this.listArgs,
-            input: this.prompt.input,
-            winid: this.window.id,
-            bufnr: buf.id,
-            targets
-        };
-        let res = await this.nvim.call(fname, [context]);
-        this.prompt.start();
-        return res;
+        if (this.session)
+            return await this.session.call(fname);
     }
-    async showHelp() {
-        // echo help
-        await this.cancel();
-        let { list, nvim } = this;
-        if (!list)
-            return;
-        let previewHeight = await nvim.eval('&previewheight');
-        nvim.pauseNotification();
-        nvim.command(`belowright ${previewHeight}sp +setl\\ previewwindow [LIST HELP]`, true);
-        nvim.command('setl nobuflisted noswapfile buftype=nofile bufhidden=wipe', true);
-        await nvim.resumeNotification();
-        let hasOptions = list.options && list.options.length;
-        let buf = await nvim.buffer;
-        let highligher = new highligher_1.default();
-        highligher.addLine('NAME', 'Label');
-        highligher.addLine(`  ${list.name} - ${list.description || ''}\n`);
-        highligher.addLine('SYNOPSIS', 'Label');
-        highligher.addLine(`  :CocList [LIST OPTIONS] ${list.name}${hasOptions ? ' [ARGUMENTS]' : ''}\n`);
-        if (list.detail) {
-            highligher.addLine('DESCRIPTION', 'Label');
-            let lines = list.detail.split('\n').map(s => '  ' + s);
-            highligher.addLine(lines.join('\n') + '\n');
-        }
-        if (hasOptions) {
-            highligher.addLine('ARGUMENTS', 'Label');
-            highligher.addLine('');
-            for (let opt of list.options) {
-                highligher.addLine(opt.name, 'Special');
-                highligher.addLine(`  ${opt.description}`);
-                highligher.addLine('');
-            }
-            highligher.addLine('');
-        }
-        let config = workspace_1.default.getConfiguration(`list.source.${list.name}`);
-        if (Object.keys(config).length) {
-            highligher.addLine('CONFIGURATIONS', 'Label');
-            highligher.addLine('');
-            let props = {};
-            extensions_1.default.all.forEach(extension => {
-                let { packageJSON } = extension;
-                let { contributes } = packageJSON;
-                if (!contributes)
-                    return;
-                let { configuration } = contributes;
-                if (configuration) {
-                    let { properties } = configuration;
-                    if (properties) {
-                        for (let key of Object.keys(properties)) {
-                            props[key] = properties[key];
-                        }
-                    }
-                }
-            });
-            for (let key of Object.keys(config)) {
-                let val = config[key];
-                let name = `list.source.${list.name}.${key}`;
-                let description = props[name] && props[name].description ? props[name].description : key;
-                highligher.addLine(`  "${name}"`, 'MoreMsg');
-                highligher.addText(` - ${description}, current value: `);
-                highligher.addText(JSON.stringify(val), 'Special');
-            }
-            highligher.addLine('');
-        }
-        highligher.addLine('ACTIONS', 'Label');
-        highligher.addLine(`  ${list.actions.map(o => o.name).join(', ')}`);
-        highligher.addLine('');
-        highligher.addLine(`see ':h coc-list-options' for available list options.`, 'Comment');
-        nvim.pauseNotification();
-        highligher.render(buf, 0, -1);
-        nvim.command('setl nomod', true);
-        nvim.command('setl nomodifiable', true);
-        nvim.command('normal! gg', true);
-        nvim.command('nnoremap <buffer> q :bd!<CR>', true);
-        await nvim.resumeNotification();
-    }
-    get context() {
-        return {
-            options: this.listOptions,
-            args: this.listArgs,
-            input: this.prompt.input,
-            window: this.window,
-            buffer: this.buffer,
-            listWindow: this.ui.window,
-            cwd: this.cwd
-        };
+    get session() {
+        return this.lastSession;
     }
     registerList(list) {
         const { name } = list;
@@ -77904,7 +77689,7 @@ class ListManager {
                 type: 'string',
                 enum: ['--top', '--normal', '--no-sort', '--input', '--tab',
                     '--strict', '--regex', '--ignore-case', '--number-select',
-                    '--interactive', '--auto-preview', '--first', '--no-quit', '--no-resize']
+                    '--interactive', '--auto-preview', '--first', '--no-quit']
             }
         });
         extensions_1.default.addSchemeProperty(`list.source.${name}.defaultArgs`, {
@@ -77932,56 +77717,45 @@ class ListManager {
         }
         return d;
     }
+    /**
+     * Get items of {name} list, not work with interactive list and list return task.
+     *
+     * @param {string} name
+     * @returns {Promise<any>}
+     */
     async loadItems(name) {
         let args = [name];
         let res = this.parseArgs(args);
         if (!res)
             return;
-        this.args = args;
-        this.activated = false;
         let { list, options, listArgs } = res;
-        {
-            let source = new vscode_languageserver_protocol_1.CancellationTokenSource();
-            let token = source.token;
-            let res = await this.nvim.eval('[win_getid(),bufnr("%"),winheight("%")]');
-            this.reset();
-            this.listOptions = options;
-            this.currList = list;
-            this.listArgs = listArgs;
-            this.cwd = workspace_1.default.cwd;
-            this.window = this.nvim.createWindow(res[0]);
-            this.buffer = this.nvim.createBuffer(res[1]);
-            this.savedHeight = res[2];
-            let items = await list.loadItems(this.context, token);
-            return items;
-        }
+        let source = new vscode_languageserver_protocol_1.CancellationTokenSource();
+        let token = source.token;
+        let arr = await this.nvim.eval('[win_getid(),bufnr("%")]');
+        let items = await list.loadItems({
+            options,
+            args: listArgs,
+            input: '',
+            cwd: workspace_1.default.cwd,
+            window: this.nvim.createWindow(arr[0]),
+            buffer: this.nvim.createBuffer(arr[1]),
+            listWindow: null
+        }, token);
+        return items;
     }
     toggleMode() {
-        let { mode } = this.prompt;
-        this.prompt.mode = mode == 'normal' ? 'insert' : 'normal';
-        this.updateStatus();
-    }
-    getConfig(key, defaultValue) {
-        return this.config.get(key, defaultValue);
+        let lastSession = this.lastSession;
+        if (lastSession)
+            lastSession.toggleMode();
     }
     get isActivated() {
-        return this.activated;
+        var _a;
+        return ((_a = this.session) === null || _a === void 0 ? void 0 : _a.winid) != null;
     }
     stop() {
-        this.worker.stop();
-    }
-    reset() {
-        this.window = null;
-        this.listOptions = null;
-        this.prompt.reset();
-        this.worker.stop();
-        this.ui.reset();
-    }
-    dispose() {
-        if (this.config) {
-            this.config.dispose();
-        }
-        util_1.disposeAll(this.disposables);
+        let lastSession = this.lastSession;
+        if (lastSession)
+            lastSession.stop();
     }
     async getCharMap() {
         if (this.charMap)
@@ -77993,77 +77767,16 @@ class ListManager {
         });
         return;
     }
-    async doItemAction(items, action) {
-        if (this.executing)
-            return;
-        let { noQuit } = this.listOptions;
-        let { nvim } = this;
-        this.executing = true;
-        let persist = this.isActivated && (action.persist === true || action.name == 'preview');
-        noQuit = noQuit && this.isActivated;
-        try {
-            if (!persist) {
-                if (noQuit) {
-                    nvim.pauseNotification();
-                    nvim.call('coc#list#stop_prompt', [], true);
-                    nvim.call('win_gotoid', [this.context.window.id], true);
-                    await nvim.resumeNotification();
-                }
-                else {
-                    await this.cancel();
-                }
-            }
-            if (action.multiple) {
-                await Promise.resolve(action.execute(items, this.context));
-            }
-            else if (action.parallel) {
-                await Promise.all(items.map(item => Promise.resolve(action.execute(item, this.context))));
-            }
-            else {
-                for (let item of items) {
-                    await Promise.resolve(action.execute(item, this.context));
-                }
-            }
-            if (persist) {
-                nvim.pauseNotification();
-                this.prompt.start();
-                this.ui.restoreWindow();
-                await nvim.resumeNotification();
-                if (action.reload)
-                    await this.worker.loadItems(true);
-            }
-            else if (noQuit) {
-                if (action.reload)
-                    await this.worker.loadItems(true);
-            }
+    dispose() {
+        for (let session of this.sessionsMap.values()) {
+            session.dispose();
         }
-        catch (e) {
-            console.error(e);
+        this.sessionsMap.clear();
+        if (this.config) {
+            this.config.dispose();
         }
-        this.executing = false;
-    }
-    async resolveItem() {
-        if (!this.activated)
-            return;
-        let index = this.ui.index;
-        let item = this.ui.getItem(0);
-        if (!item || item.resolved)
-            return;
-        let { list } = this;
-        if (typeof list.resolveItem == 'function') {
-            let resolved = await list.resolveItem(item);
-            if (resolved && index == this.ui.index) {
-                await this.ui.updateItem(resolved, index);
-            }
-        }
-    }
-    get defaultAction() {
-        let { currList } = this;
-        let { defaultAction, actions } = currList;
-        let action = actions.find(o => o.name == defaultAction);
-        if (!action)
-            throw new Error(`default action "${defaultAction}" not found`);
-        return action;
+        this.lastSession = undefined;
+        util_1.disposeAll(this.disposables);
     }
 }
 exports.ListManager = ListManager;
@@ -78198,157 +77911,6 @@ exports.default = ListConfiguration;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const fuzzy_1 = __webpack_require__(544);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const logger = __webpack_require__(64)('list-history');
-class History {
-    constructor(manager) {
-        this.manager = manager;
-        this.index = -1;
-        this.loaded = [];
-        this.current = [];
-        this.db = workspace_1.default.createDatabase('history');
-        let { prompt } = manager;
-        prompt.onDidChangeInput(input => {
-            if (input == this.curr)
-                return;
-            this.historyInput = '';
-            let codes = fuzzy_1.getCharCodes(input);
-            this.current = this.loaded.filter(s => fuzzy_1.fuzzyMatch(codes, s));
-            this.index = -1;
-        });
-    }
-    get curr() {
-        return this.index == -1 ? null : this.current[this.index];
-    }
-    load() {
-        let { db } = this;
-        let { input } = this.manager.prompt;
-        let { name } = this.manager;
-        let arr = db.fetch(`${name}.${encodeURIComponent(workspace_1.default.cwd)}`);
-        if (!arr || !Array.isArray(arr)) {
-            this.loaded = [];
-        }
-        else {
-            this.loaded = arr;
-        }
-        this.index = -1;
-        this.current = this.loaded.filter(s => s.startsWith(input));
-    }
-    add() {
-        let { loaded, db } = this;
-        let { name, prompt } = this.manager;
-        let { input } = prompt;
-        if (!input || input.length < 1 || this.historyInput == input)
-            return;
-        let idx = loaded.indexOf(input);
-        if (idx != -1)
-            loaded.splice(idx, 1);
-        loaded.push(input);
-        if (loaded.length > 200) {
-            loaded = loaded.slice(-200);
-        }
-        db.push(`${name}.${encodeURIComponent(workspace_1.default.cwd)}`, loaded);
-    }
-    previous() {
-        let { current, index } = this;
-        if (!current || !current.length)
-            return;
-        if (index <= 0) {
-            this.index = current.length - 1;
-        }
-        else {
-            this.index = index - 1;
-        }
-        this.historyInput = this.manager.prompt.input = current[this.index] || '';
-    }
-    next() {
-        let { current, index } = this;
-        if (!current || !current.length)
-            return;
-        if (index == current.length - 1) {
-            this.index = 0;
-        }
-        else {
-            this.index = index + 1;
-        }
-        this.historyInput = this.manager.prompt.input = current[this.index] || '';
-    }
-}
-exports.default = History;
-//# sourceMappingURL=history.js.map
-
-/***/ }),
-/* 544 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-function getCharCodes(str) {
-    let res = [];
-    for (let i = 0, l = str.length; i < l; i++) {
-        res.push(str.charCodeAt(i));
-    }
-    return res;
-}
-exports.getCharCodes = getCharCodes;
-function wordChar(ch) {
-    return (ch >= 97 && ch <= 122) || (ch >= 65 && ch <= 90);
-}
-exports.wordChar = wordChar;
-function caseMatch(input, code) {
-    if (input == code)
-        return true;
-    if (input >= 97 && input <= 122 && code + 32 === input)
-        return true;
-    return false;
-}
-exports.caseMatch = caseMatch;
-function fuzzyChar(a, b) {
-    let ca = a.charCodeAt(0);
-    let cb = b.charCodeAt(0);
-    if (ca === cb)
-        return true;
-    if (ca >= 97 && ca <= 122 && cb + 32 === ca)
-        return true;
-    return false;
-}
-exports.fuzzyChar = fuzzyChar;
-// upper case must match, lower case ignore case
-function fuzzyMatch(needle, text) {
-    let totalCount = needle.length;
-    if (needle.length > text.length)
-        return false;
-    let i = 0;
-    for (let j = 0; j < text.length; j++) {
-        if (i === totalCount)
-            break;
-        let code = text.charCodeAt(j);
-        let m = needle[i];
-        if (code === m) {
-            i = i + 1;
-            continue;
-        }
-        // upper case match lower case
-        if ((m >= 97 && m <= 122) && code + 32 === m) {
-            i = i + 1;
-            continue;
-        }
-    }
-    return i === totalCount;
-}
-exports.fuzzyMatch = fuzzyMatch;
-//# sourceMappingURL=fuzzy.js.map
-
-/***/ }),
-/* 545 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(65);
 __webpack_require__(491);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const configuration_1 = __webpack_require__(542);
@@ -78367,10 +77929,12 @@ class Mappings {
             prompt.removeTail();
         });
         this.add('insert', '<C-n>', () => {
-            manager.history.next();
+            var _a;
+            (_a = manager.session) === null || _a === void 0 ? void 0 : _a.history.next();
         });
         this.add('insert', '<C-p>', () => {
-            manager.history.previous();
+            var _a;
+            (_a = manager.session) === null || _a === void 0 ? void 0 : _a.history.previous();
         });
         this.add('insert', '<C-v>', async () => {
             await prompt.paste();
@@ -78385,12 +77949,12 @@ class Mappings {
         });
         this.add('insert', '<C-c>', () => {
             manager.stop();
-            manager.prompt.start();
             return;
         });
         this.add('insert', '<esc>', () => manager.cancel());
         this.add('insert', '<C-l>', async () => {
-            await manager.worker.loadItems(true);
+            var _a;
+            await ((_a = manager.session) === null || _a === void 0 ? void 0 : _a.reloadItems());
         });
         this.add('insert', '<left>', () => {
             prompt.moveLeft();
@@ -78430,17 +77994,18 @@ class Mappings {
         this.add('normal', 's', () => manager.doAction('split'));
         this.add('normal', 'd', () => manager.doAction('drop'));
         this.add('normal', ['<cr>', '<C-m>', '\r'], () => manager.doAction());
-        this.add('normal', '<C-a>', () => manager.ui.selectAll());
-        this.add('normal', ' ', () => manager.ui.toggleSelection());
+        this.add('normal', '<C-a>', () => { var _a; return (_a = manager.session) === null || _a === void 0 ? void 0 : _a.ui.selectAll(); });
+        this.add('normal', ' ', () => { var _a; return (_a = manager.session) === null || _a === void 0 ? void 0 : _a.ui.toggleSelection(); });
         this.add('normal', 'p', () => manager.togglePreview());
         this.add('normal', ['<tab>', '\t', '<C-i>'], () => manager.chooseAction());
         this.add('normal', '<C-c>', () => {
             manager.stop();
         });
         this.add('normal', '<esc>', () => manager.cancel());
-        this.add('normal', '<C-l>', () => manager.worker.loadItems(true));
+        this.add('normal', '<C-l>', () => { var _a; return (_a = manager.session) === null || _a === void 0 ? void 0 : _a.reloadItems(); });
+        this.add('normal', '<C-o>', () => { var _a; return (_a = manager.session) === null || _a === void 0 ? void 0 : _a.jumpBack(); });
         this.add('normal', ['i', 'I', 'o', 'O', 'a', 'A'], () => manager.toggleMode());
-        this.add('normal', '?', () => manager.showHelp());
+        this.add('normal', '?', () => { var _a; return (_a = manager.session) === null || _a === void 0 ? void 0 : _a.showHelp(); });
         this.add('normal', ':', async () => {
             await manager.cancel(false);
             await nvim.eval('feedkeys(":")');
@@ -78493,13 +78058,15 @@ class Mappings {
     async doInsertKeymap(key) {
         let nextKey = this.config.nextKey;
         let previousKey = this.config.previousKey;
-        let { ui } = this.manager;
+        let { session } = this.manager;
+        if (!session)
+            return;
         if (key == nextKey) {
-            ui.index = ui.index + 1;
+            session.ui.index = session.ui.index + 1;
             return true;
         }
         if (key == previousKey) {
-            ui.index = ui.index - 1;
+            session.ui.index = session.ui.index - 1;
             return true;
         }
         let expr = this.userInsertMappings.get(key);
@@ -78545,6 +78112,7 @@ class Mappings {
         this.manager.prompt.start();
     }
     async evalExpression(expr, _mode) {
+        var _a, _b, _c, _d, _e, _f;
         if (typeof expr != 'string' || !expr.includes(':')) {
             await this.onError(`Invalid expression ${expr}`);
             return;
@@ -78558,16 +78126,16 @@ class Mappings {
                     manager.switchMatcher();
                     return;
                 case 'selectall':
-                    await manager.ui.selectAll();
+                    await ((_a = manager.session) === null || _a === void 0 ? void 0 : _a.ui.selectAll());
                     return;
                 case 'help':
-                    await manager.showHelp();
+                    await ((_b = manager.session) === null || _b === void 0 ? void 0 : _b.showHelp());
                     return;
                 case 'refresh':
-                    await manager.worker.loadItems();
+                    await ((_c = manager.session) === null || _c === void 0 ? void 0 : _c.reloadItems());
                     return;
                 case 'exit':
-                    await manager.cancel(true);
+                    await manager.cancel();
                     return;
                 case 'stop':
                     manager.stop();
@@ -78576,7 +78144,7 @@ class Mappings {
                     await manager.cancel(false);
                     return;
                 case 'toggle':
-                    await manager.ui.toggleSelection();
+                    await ((_d = manager.session) === null || _d === void 0 ? void 0 : _d.ui.toggleSelection());
                     return;
                 case 'previous':
                     await manager.normal('k');
@@ -78596,10 +78164,10 @@ class Mappings {
         else if (key == 'prompt') {
             switch (action) {
                 case 'previous':
-                    manager.history.previous();
+                    (_e = manager.session) === null || _e === void 0 ? void 0 : _e.history.previous();
                     return;
                 case 'next':
-                    manager.history.next();
+                    (_f = manager.session) === null || _f === void 0 ? void 0 : _f.history.next();
                     return;
                 case 'start':
                     return prompt.moveToStart();
@@ -78665,16 +78233,16 @@ exports.default = Mappings;
 //# sourceMappingURL=mappings.js.map
 
 /***/ }),
-/* 546 */
+/* 544 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
+const clipboardy_1 = tslib_1.__importDefault(__webpack_require__(545));
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const clipboardy_1 = tslib_1.__importDefault(__webpack_require__(547));
 const logger = __webpack_require__(64)('list-prompt');
 class Prompt {
     constructor(nvim, config) {
@@ -78882,16 +78450,16 @@ exports.default = Prompt;
 //# sourceMappingURL=prompt.js.map
 
 /***/ }),
-/* 547 */
+/* 545 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const isWSL = __webpack_require__(548);
-const termux = __webpack_require__(550);
-const linux = __webpack_require__(576);
-const macos = __webpack_require__(577);
-const windows = __webpack_require__(578);
+const isWSL = __webpack_require__(546);
+const termux = __webpack_require__(548);
+const linux = __webpack_require__(574);
+const macos = __webpack_require__(575);
+const windows = __webpack_require__(576);
 
 const platformLib = (() => {
 	switch (process.platform) {
@@ -78937,14 +78505,14 @@ exports.readSync = () => platformLib.pasteSync({stripEof: false}).stdout;
 
 
 /***/ }),
-/* 548 */
+/* 546 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 const os = __webpack_require__(76);
 const fs = __webpack_require__(66);
-const isDocker = __webpack_require__(549);
+const isDocker = __webpack_require__(547);
 
 const isWsl = () => {
 	if (process.platform !== 'linux') {
@@ -78975,7 +78543,7 @@ if (process.env.__IS_WSL_TEST__) {
 
 
 /***/ }),
-/* 549 */
+/* 547 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -79011,12 +78579,12 @@ module.exports = () => {
 
 
 /***/ }),
-/* 550 */
+/* 548 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const execa = __webpack_require__(551);
+const execa = __webpack_require__(549);
 
 const handler = error => {
 	if (error.code === 'ENOENT') {
@@ -79059,22 +78627,22 @@ module.exports = {
 
 
 /***/ }),
-/* 551 */
+/* 549 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 const path = __webpack_require__(82);
 const childProcess = __webpack_require__(239);
-const crossSpawn = __webpack_require__(552);
-const stripEof = __webpack_require__(564);
-const npmRunPath = __webpack_require__(565);
-const isStream = __webpack_require__(566);
-const _getStream = __webpack_require__(567);
-const pFinally = __webpack_require__(571);
-const onExit = __webpack_require__(572);
-const errname = __webpack_require__(574);
-const stdio = __webpack_require__(575);
+const crossSpawn = __webpack_require__(550);
+const stripEof = __webpack_require__(562);
+const npmRunPath = __webpack_require__(563);
+const isStream = __webpack_require__(564);
+const _getStream = __webpack_require__(565);
+const pFinally = __webpack_require__(569);
+const onExit = __webpack_require__(570);
+const errname = __webpack_require__(572);
+const stdio = __webpack_require__(573);
 
 const TEN_MEGABYTES = 1000 * 1000 * 10;
 
@@ -79427,15 +78995,15 @@ module.exports.shellSync = (cmd, opts) => handleShell(module.exports.sync, cmd, 
 
 
 /***/ }),
-/* 552 */
+/* 550 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 const cp = __webpack_require__(239);
-const parse = __webpack_require__(553);
-const enoent = __webpack_require__(563);
+const parse = __webpack_require__(551);
+const enoent = __webpack_require__(561);
 
 function spawn(command, args, options) {
     // Parse the arguments
@@ -79473,18 +79041,18 @@ module.exports._enoent = enoent;
 
 
 /***/ }),
-/* 553 */
+/* 551 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 const path = __webpack_require__(82);
-const niceTry = __webpack_require__(554);
-const resolveCommand = __webpack_require__(555);
-const escape = __webpack_require__(558);
-const readShebang = __webpack_require__(559);
-const semver = __webpack_require__(562);
+const niceTry = __webpack_require__(552);
+const resolveCommand = __webpack_require__(553);
+const escape = __webpack_require__(556);
+const readShebang = __webpack_require__(557);
+const semver = __webpack_require__(560);
 
 const isWin = process.platform === 'win32';
 const isExecutableRegExp = /\.(?:com|exe)$/i;
@@ -79605,7 +79173,7 @@ module.exports = parse;
 
 
 /***/ }),
-/* 554 */
+/* 552 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -79623,15 +79191,15 @@ module.exports = function(fn) {
 }
 
 /***/ }),
-/* 555 */
+/* 553 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 const path = __webpack_require__(82);
-const which = __webpack_require__(556);
-const pathKey = __webpack_require__(557)();
+const which = __webpack_require__(554);
+const pathKey = __webpack_require__(555)();
 
 function resolveCommandAttempt(parsed, withoutPathExt) {
     const cwd = process.cwd();
@@ -79677,7 +79245,7 @@ module.exports = resolveCommand;
 
 
 /***/ }),
-/* 556 */
+/* 554 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = which
@@ -79818,7 +79386,7 @@ function whichSync (cmd, opt) {
 
 
 /***/ }),
-/* 557 */
+/* 555 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -79838,7 +79406,7 @@ module.exports = opts => {
 
 
 /***/ }),
-/* 558 */
+/* 556 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -79890,14 +79458,14 @@ module.exports.argument = escapeArgument;
 
 
 /***/ }),
-/* 559 */
+/* 557 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 const fs = __webpack_require__(66);
-const shebangCommand = __webpack_require__(560);
+const shebangCommand = __webpack_require__(558);
 
 function readShebang(command) {
     // Read the first 150 bytes from the file
@@ -79929,12 +79497,12 @@ module.exports = readShebang;
 
 
 /***/ }),
-/* 560 */
+/* 558 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-var shebangRegex = __webpack_require__(561);
+var shebangRegex = __webpack_require__(559);
 
 module.exports = function (str) {
 	var match = str.match(shebangRegex);
@@ -79955,7 +79523,7 @@ module.exports = function (str) {
 
 
 /***/ }),
-/* 561 */
+/* 559 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -79964,7 +79532,7 @@ module.exports = /^#!.*/;
 
 
 /***/ }),
-/* 562 */
+/* 560 */
 /***/ (function(module, exports) {
 
 exports = module.exports = SemVer
@@ -81453,7 +81021,7 @@ function coerce (version) {
 
 
 /***/ }),
-/* 563 */
+/* 561 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -81519,7 +81087,7 @@ module.exports = {
 
 
 /***/ }),
-/* 564 */
+/* 562 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -81541,13 +81109,13 @@ module.exports = function (x) {
 
 
 /***/ }),
-/* 565 */
+/* 563 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 const path = __webpack_require__(82);
-const pathKey = __webpack_require__(557);
+const pathKey = __webpack_require__(555);
 
 module.exports = opts => {
 	opts = Object.assign({
@@ -81587,7 +81155,7 @@ module.exports.env = opts => {
 
 
 /***/ }),
-/* 566 */
+/* 564 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -81615,13 +81183,13 @@ isStream.transform = function (stream) {
 
 
 /***/ }),
-/* 567 */
+/* 565 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const pump = __webpack_require__(568);
-const bufferStream = __webpack_require__(570);
+const pump = __webpack_require__(566);
+const bufferStream = __webpack_require__(568);
 
 class MaxBufferError extends Error {
 	constructor() {
@@ -81672,11 +81240,11 @@ module.exports.MaxBufferError = MaxBufferError;
 
 
 /***/ }),
-/* 568 */
+/* 566 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var once = __webpack_require__(282)
-var eos = __webpack_require__(569)
+var eos = __webpack_require__(567)
 var fs = __webpack_require__(66) // we only need fs to get the ReadStream and WriteStream prototypes
 
 var noop = function () {}
@@ -81760,7 +81328,7 @@ module.exports = pump
 
 
 /***/ }),
-/* 569 */
+/* 567 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var once = __webpack_require__(282);
@@ -81860,7 +81428,7 @@ module.exports = eos;
 
 
 /***/ }),
-/* 570 */
+/* 568 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -81918,7 +81486,7 @@ module.exports = options => {
 
 
 /***/ }),
-/* 571 */
+/* 569 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -81940,14 +81508,14 @@ module.exports = (promise, onFinally) => {
 
 
 /***/ }),
-/* 572 */
+/* 570 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // Note: since nyc uses this module to output coverage, any lines
 // that are in the direct sync flow of nyc's outputCoverage are
 // ignored, since we can never get coverage for them.
 var assert = __webpack_require__(108)
-var signals = __webpack_require__(573)
+var signals = __webpack_require__(571)
 var isWin = /^win/i.test(process.platform)
 
 var EE = __webpack_require__(198)
@@ -82109,7 +81677,7 @@ function processEmit (ev, arg) {
 
 
 /***/ }),
-/* 573 */
+/* 571 */
 /***/ (function(module, exports) {
 
 // This is not the set of all possible signals.
@@ -82168,7 +81736,7 @@ if (process.platform === 'linux') {
 
 
 /***/ }),
-/* 574 */
+/* 572 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -82214,7 +81782,7 @@ function errname(uv, code) {
 
 
 /***/ }),
-/* 575 */
+/* 573 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -82262,13 +81830,13 @@ module.exports = opts => {
 
 
 /***/ }),
-/* 576 */
+/* 574 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 const path = __webpack_require__(82);
-const execa = __webpack_require__(551);
+const execa = __webpack_require__(549);
 
 const xsel = 'xsel';
 const xselFallback = path.join(__dirname, '../fallbacks/linux/xsel');
@@ -82326,12 +81894,12 @@ module.exports = {
 
 
 /***/ }),
-/* 577 */
+/* 575 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-const execa = __webpack_require__(551);
+const execa = __webpack_require__(549);
 
 const env = {
 	...process.env,
@@ -82347,14 +81915,14 @@ module.exports = {
 
 
 /***/ }),
-/* 578 */
+/* 576 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 const path = __webpack_require__(82);
-const execa = __webpack_require__(551);
-const arch = __webpack_require__(579);
+const execa = __webpack_require__(549);
+const arch = __webpack_require__(577);
 
 // Binaries from: https://github.com/sindresorhus/win-clipboard
 const windowBinaryPath = arch() === 'x64' ?
@@ -82370,7 +81938,7 @@ module.exports = {
 
 
 /***/ }),
-/* 579 */
+/* 577 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var cp = __webpack_require__(239)
@@ -82435,70 +82003,2037 @@ module.exports = function arch () {
 
 
 /***/ }),
-/* 580 */
+/* 578 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
-const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(240));
+const extensions_1 = tslib_1.__importDefault(__webpack_require__(333));
+const highligher_1 = tslib_1.__importDefault(__webpack_require__(523));
+const util_1 = __webpack_require__(238);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
-class CommandsList extends basic_1.default {
-    constructor(nvim) {
-        super(nvim);
-        this.defaultAction = 'run';
-        this.description = 'registered commands of coc.nvim';
-        this.name = 'commands';
-        this.mru = workspace_1.default.createMru('commands');
-        this.addAction('run', async (item) => {
-            let { cmd } = item.data;
-            await events_1.default.fire('Command', [cmd]);
-            await commands_1.default.executeCommand(cmd);
-            await commands_1.default.addRecent(cmd);
+const history_1 = tslib_1.__importDefault(__webpack_require__(579));
+const ui_1 = tslib_1.__importDefault(__webpack_require__(581));
+const worker_1 = tslib_1.__importDefault(__webpack_require__(582));
+const logger = __webpack_require__(64)('list-session');
+/**
+ * Activated list session with UI and worker
+ */
+class ListSession {
+    constructor(nvim, prompt, list, listOptions, listArgs = [], config) {
+        this.nvim = nvim;
+        this.prompt = prompt;
+        this.list = list;
+        this.listOptions = listOptions;
+        this.listArgs = listArgs;
+        this.config = config;
+        this.hidden = false;
+        this.disposables = [];
+        /**
+         * Original list arguments.
+         */
+        this.args = [];
+        this.ui = new ui_1.default(nvim, list.name, listOptions, config);
+        this.history = new history_1.default(prompt, list.name);
+        this.worker = new worker_1.default(nvim, list, prompt, listOptions, {
+            interactiveDebounceTime: config.get('interactiveDebounceTime', 100),
+            extendedSearchMode: config.get('extendedSearchMode', true)
         });
-        this.addAction('append', async (item) => {
-            let { cmd } = item.data;
-            await nvim.feedKeys(`:CocCommand ${cmd} `, 'n', false);
+        let debouncedChangeLine = debounce_1.default(async () => {
+            let [previewing, mode] = await nvim.eval('[coc#util#has_preview(),mode()]');
+            if (!previewing || mode != 'n')
+                return;
+            if (previewing)
+                await this.doAction('preview');
+        }, 50);
+        this.disposables.push({
+            dispose: () => {
+                debouncedChangeLine.clear();
+            }
+        });
+        this.ui.onDidChangeLine(debouncedChangeLine, null, this.disposables);
+        this.ui.onDidChangeLine(this.resolveItem, this, this.disposables);
+        this.ui.onDidLineChange(this.resolveItem, this, this.disposables);
+        let debounced = debounce_1.default(async () => {
+            let { autoPreview } = this.listOptions;
+            if (!autoPreview) {
+                let [previewing, mode] = await nvim.eval('[coc#util#has_preview(),mode()]');
+                if (!previewing || mode != 'n')
+                    return;
+            }
+            await this.doAction('preview');
+        }, 50);
+        this.disposables.push({
+            dispose: () => {
+                debounced.clear();
+            }
+        });
+        this.ui.onDidLineChange(debounced, null, this.disposables);
+        this.ui.onDidOpen(async () => {
+            if (typeof this.list.doHighlight == 'function') {
+                this.list.doHighlight();
+            }
+            if (this.listOptions.first) {
+                await this.doAction();
+            }
+        }, null, this.disposables);
+        this.ui.onDidClose(async () => {
+            await this.hide();
+        }, null, this.disposables);
+        this.ui.onDidChange(() => {
+            if (this.hidden)
+                return;
+            this.updateStatus();
+        }, null, this.disposables);
+        this.ui.onDidDoubleClick(async () => {
+            await this.doAction();
+        }, null, this.disposables);
+        this.worker.onDidChangeItems(async ({ items, highlights, reload, append, finished }) => {
+            if (this.hidden)
+                return;
+            if (append) {
+                this.ui.addHighlights(highlights, true);
+                await this.ui.appendItems(items);
+            }
+            else {
+                this.ui.addHighlights(highlights);
+                let height = this.config.get('height', 10);
+                if (finished && !listOptions.interactive && listOptions.input.length == 0) {
+                    height = Math.min(items.length, height);
+                }
+                await this.ui.drawItems(items, Math.max(1, height), reload);
+            }
+        }, null, this.disposables);
+    }
+    async start(args) {
+        this.args = args;
+        this.hidden = false;
+        let { listOptions, listArgs } = this;
+        let res = await this.nvim.eval('[win_getid(),bufnr("%"),winheight("%")]');
+        this.listArgs = listArgs;
+        this.history.load(listOptions.input || '');
+        this.window = this.nvim.createWindow(res[0]);
+        this.buffer = this.nvim.createBuffer(res[1]);
+        this.savedHeight = res[2];
+        await this.worker.loadItems(this.context);
+    }
+    async reloadItems() {
+        if (!this.window)
+            return;
+        let bufnr = await this.nvim.call('winbufnr', [this.window.id]);
+        // can't reload since window not exists
+        if (bufnr == -1)
+            return;
+        this.buffer = this.nvim.createBuffer(bufnr);
+        await this.worker.loadItems(this.context, true);
+    }
+    async call(fname) {
+        var _a, _b;
+        await this.nvim.call('coc#list#stop_prompt', []);
+        let targets = await this.ui.getItems();
+        let context = {
+            name: this.name,
+            args: this.listArgs,
+            input: this.prompt.input,
+            winid: (_a = this.window) === null || _a === void 0 ? void 0 : _a.id,
+            bufnr: (_b = this.buffer) === null || _b === void 0 ? void 0 : _b.id,
+            targets
+        };
+        let res = await this.nvim.call(fname, [context]);
+        this.prompt.start();
+        return res;
+    }
+    async chooseAction() {
+        let { nvim } = this;
+        let { actions, defaultAction } = this.list;
+        let names = actions.map(o => o.name);
+        let idx = names.indexOf(defaultAction);
+        if (idx != -1) {
+            names.splice(idx, 1);
+            names.unshift(defaultAction);
+        }
+        let shortcuts = new Set();
+        let choices = [];
+        let invalids = [];
+        for (let name of names) {
+            let i = 0;
+            for (let ch of name) {
+                if (!shortcuts.has(ch)) {
+                    shortcuts.add(ch);
+                    choices.push(`${name.slice(0, i)}&${name.slice(i)}`);
+                    break;
+                }
+                i++;
+            }
+            if (i == name.length) {
+                invalids.push(name);
+            }
+        }
+        if (invalids.length) {
+            logger.error(`Can't create shortcut for actions: ${invalids.join(',')} of "${this.name}" list`);
+            names = names.filter(s => !invalids.includes(s));
+        }
+        await nvim.call('coc#list#stop_prompt');
+        let n = await nvim.call('confirm', ['Choose action:', choices.join('\n')]);
+        await util_1.wait(10);
+        this.prompt.start();
+        if (n)
+            await this.doAction(names[n - 1]);
+    }
+    async doAction(name) {
+        let { list } = this;
+        name = name || list.defaultAction;
+        let action = list.actions.find(o => o.name == name);
+        if (!action) {
+            workspace_1.default.showMessage(`Action ${name} not found`, 'error');
+            return;
+        }
+        let items;
+        if (name == 'preview') {
+            let item = await this.ui.item;
+            items = item ? [item] : [];
+        }
+        else {
+            items = await this.ui.getItems();
+        }
+        if (items.length)
+            await this.doItemAction(items, action);
+    }
+    async first() {
+        let { ui } = this;
+        let item = this.ui.firstItem;
+        if (!item)
+            return;
+        ui.index = 0;
+        await this.doItemAction([item], this.defaultAction);
+        await ui.echoMessage(item);
+    }
+    async last() {
+        let { ui } = this;
+        let item = this.ui.lastItem;
+        if (!item)
+            return;
+        ui.index = this.ui.length - 1;
+        await this.doItemAction([item], this.defaultAction);
+        await ui.echoMessage(item);
+    }
+    async previous() {
+        let { ui } = this;
+        let item = ui.getItem(-1);
+        if (!item)
+            return;
+        ui.index = ui.index - 1;
+        await this.doItemAction([item], this.defaultAction);
+        await ui.echoMessage(item);
+    }
+    async next() {
+        let { ui } = this;
+        let item = ui.getItem(1);
+        if (!item)
+            return;
+        ui.index = ui.index + 1;
+        await this.doItemAction([item], this.defaultAction);
+        await ui.echoMessage(item);
+    }
+    /**
+     * list name
+     */
+    get name() {
+        return this.list.name;
+    }
+    /**
+     * Window id used by list.
+     *
+     * @returns {number | undefined}
+     */
+    get winid() {
+        return this.ui.winid;
+    }
+    get length() {
+        return this.ui.length;
+    }
+    get defaultAction() {
+        let { defaultAction, actions } = this.list;
+        let action = actions.find(o => o.name == defaultAction);
+        if (!action)
+            throw new Error(`default action "${defaultAction}" not found`);
+        return action;
+    }
+    async hide() {
+        if (this.hidden)
+            return;
+        let { nvim, listOptions, savedHeight, window } = this;
+        this.hidden = true;
+        this.worker.stop();
+        this.history.add();
+        nvim.pauseNotification();
+        nvim.call('coc#list#stop_prompt', [], true);
+        nvim.command('pclose', true);
+        this.ui.close();
+        if (window && savedHeight && listOptions.position != 'tab') {
+            nvim.call('coc#list#restore', [window.id, savedHeight], true);
+        }
+        nvim.command('redraw', true);
+        await nvim.resumeNotification();
+    }
+    toggleMode() {
+        let mode = this.prompt.mode == 'normal' ? 'insert' : 'normal';
+        this.prompt.mode = mode;
+        this.listOptions.mode = mode;
+        this.updateStatus();
+    }
+    stop() {
+        this.worker.stop();
+    }
+    async resolveItem() {
+        let index = this.ui.index;
+        let item = this.ui.getItem(0);
+        if (!item || item.resolved)
+            return;
+        let { list } = this;
+        if (typeof list.resolveItem == 'function') {
+            let resolved = await Promise.resolve(list.resolveItem(item));
+            if (resolved && index == this.ui.index) {
+                await this.ui.updateItem(resolved, index);
+            }
+        }
+    }
+    async showHelp() {
+        await this.hide();
+        let { list, nvim } = this;
+        if (!list)
+            return;
+        let previewHeight = await nvim.eval('&previewheight');
+        nvim.pauseNotification();
+        nvim.command(`belowright ${previewHeight}sp +setl\\ previewwindow [LIST HELP]`, true);
+        nvim.command('setl nobuflisted noswapfile buftype=nofile bufhidden=wipe', true);
+        await nvim.resumeNotification();
+        let hasOptions = list.options && list.options.length;
+        let buf = await nvim.buffer;
+        let highligher = new highligher_1.default();
+        highligher.addLine('NAME', 'Label');
+        highligher.addLine(`  ${list.name} - ${list.description || ''}\n`);
+        highligher.addLine('SYNOPSIS', 'Label');
+        highligher.addLine(`  :CocList [LIST OPTIONS] ${list.name}${hasOptions ? ' [ARGUMENTS]' : ''}\n`);
+        if (list.detail) {
+            highligher.addLine('DESCRIPTION', 'Label');
+            let lines = list.detail.split('\n').map(s => '  ' + s);
+            highligher.addLine(lines.join('\n') + '\n');
+        }
+        if (hasOptions) {
+            highligher.addLine('ARGUMENTS', 'Label');
+            highligher.addLine('');
+            for (let opt of list.options) {
+                highligher.addLine(opt.name, 'Special');
+                highligher.addLine(`  ${opt.description}`);
+                highligher.addLine('');
+            }
+            highligher.addLine('');
+        }
+        let config = workspace_1.default.getConfiguration(`list.source.${list.name}`);
+        if (Object.keys(config).length) {
+            highligher.addLine('CONFIGURATIONS', 'Label');
+            highligher.addLine('');
+            let props = {};
+            extensions_1.default.all.forEach(extension => {
+                let { packageJSON } = extension;
+                let { contributes } = packageJSON;
+                if (!contributes)
+                    return;
+                let { configuration } = contributes;
+                if (configuration) {
+                    let { properties } = configuration;
+                    if (properties) {
+                        for (let key of Object.keys(properties)) {
+                            props[key] = properties[key];
+                        }
+                    }
+                }
+            });
+            for (let key of Object.keys(config)) {
+                let val = config[key];
+                let name = `list.source.${list.name}.${key}`;
+                let description = props[name] && props[name].description ? props[name].description : key;
+                highligher.addLine(`  "${name}"`, 'MoreMsg');
+                highligher.addText(` - ${description}, current value: `);
+                highligher.addText(JSON.stringify(val), 'Special');
+            }
+            highligher.addLine('');
+        }
+        highligher.addLine('ACTIONS', 'Label');
+        highligher.addLine(`  ${list.actions.map(o => o.name).join(', ')}`);
+        highligher.addLine('');
+        highligher.addLine(`see ':h coc-list-options' for available list options.`, 'Comment');
+        nvim.pauseNotification();
+        highligher.render(buf, 0, -1);
+        nvim.command('setl nomod', true);
+        nvim.command('setl nomodifiable', true);
+        nvim.command('normal! gg', true);
+        nvim.command('nnoremap <buffer> q :bd!<CR>', true);
+        await nvim.resumeNotification();
+    }
+    switchMatcher() {
+        let { matcher, interactive } = this.listOptions;
+        if (interactive)
+            return;
+        const list = ['fuzzy', 'strict', 'regex'];
+        let idx = list.indexOf(matcher) + 1;
+        if (idx >= list.length)
+            idx = 0;
+        this.listOptions.matcher = list[idx];
+        this.prompt.matcher = list[idx];
+        this.worker.drawItems();
+    }
+    updateStatus() {
+        let { ui, list, nvim } = this;
+        if (!ui.winid)
+            return;
+        let buf = nvim.createBuffer(ui.bufnr);
+        let status = {
+            mode: this.prompt.mode.toUpperCase(),
+            args: this.args.join(' '),
+            name: list.name,
+            total: this.worker.length,
+            cwd: workspace_1.default.cwd
+        };
+        nvim.pauseNotification();
+        buf.setVar('list_status', status, true);
+        nvim.command('redraws', true);
+        nvim.resumeNotification(false, true).logError();
+    }
+    get context() {
+        let { winid } = this.ui;
+        return {
+            options: this.listOptions,
+            args: this.listArgs,
+            input: this.prompt.input,
+            cwd: workspace_1.default.cwd,
+            window: this.window,
+            buffer: this.buffer,
+            listWindow: winid ? this.nvim.createWindow(winid) : undefined
+        };
+    }
+    redrawItems() {
+        this.worker.drawItems();
+    }
+    onMouseEvent(key) {
+        switch (key) {
+            case '<LeftMouse>':
+                return this.ui.onMouse('mouseDown');
+            case '<LeftDrag>':
+                return this.ui.onMouse('mouseDrag');
+            case '<LeftRelease>':
+                return this.ui.onMouse('mouseUp');
+            case '<2-LeftMouse>':
+                return this.ui.onMouse('doubleClick');
+        }
+    }
+    async doNumberSelect(ch) {
+        if (!this.listOptions.numberSelect)
+            return false;
+        let code = ch.charCodeAt(0);
+        if (code >= 48 && code <= 57) {
+            let n = Number(ch);
+            if (n == 0)
+                n = 10;
+            if (this.ui.length >= n) {
+                this.nvim.pauseNotification();
+                this.ui.setCursor(Number(ch), 0);
+                await this.nvim.resumeNotification();
+                await this.doAction();
+            }
+            return true;
+        }
+        return false;
+    }
+    jumpBack() {
+        let { window } = this;
+        if (window)
+            this.nvim.call('win_gotoid', [window.id], true);
+    }
+    async resume() {
+        if (this.winid)
+            await this.hide();
+        let res = await this.nvim.eval('[win_getid(),bufnr("%"),winheight("%")]');
+        this.hidden = false;
+        this.window = this.nvim.createWindow(res[0]);
+        this.buffer = this.nvim.createBuffer(res[1]);
+        this.savedHeight = res[2];
+        this.prompt.start();
+        await this.ui.resume();
+        if (this.listOptions.autoPreview) {
+            await this.doAction('preview');
+        }
+    }
+    async doItemAction(items, action) {
+        let { noQuit } = this.listOptions;
+        let { nvim } = this;
+        let persist = this.winid && (action.persist === true || action.name == 'preview');
+        noQuit = noQuit && this.winid != null;
+        try {
+            if (!persist) {
+                if (noQuit) {
+                    nvim.pauseNotification();
+                    nvim.call('coc#list#stop_prompt', [], true);
+                    nvim.call('win_gotoid', [this.context.window.id], true);
+                    await nvim.resumeNotification();
+                }
+                else {
+                    await this.hide();
+                }
+            }
+            if (action.multiple) {
+                await Promise.resolve(action.execute(items, this.context));
+            }
+            else if (action.parallel) {
+                await Promise.all(items.map(item => Promise.resolve(action.execute(item, this.context))));
+            }
+            else {
+                for (let item of items) {
+                    await Promise.resolve(action.execute(item, this.context));
+                }
+            }
+            if (persist) {
+                this.prompt.start();
+                this.ui.restoreWindow();
+                if (action.reload)
+                    await this.worker.loadItems(this.context, true);
+            }
+            else if (noQuit) {
+                if (action.reload)
+                    await this.worker.loadItems(this.context, true);
+            }
+        }
+        catch (e) {
+            console.error(e);
+        }
+    }
+    onInputChange() {
+        if (this.timer)
+            clearTimeout(this.timer);
+        let len = this.worker.length;
+        this.listOptions.input = this.prompt.input;
+        // reload or filter items
+        if (this.listOptions.interactive) {
+            this.worker.stop();
+            let ms = this.config.get('interactiveDebounceTime', 100);
+            this.timer = setTimeout(async () => {
+                await this.worker.loadItems(this.context);
+            }, ms);
+        }
+        else if (len) {
+            let wait = Math.max(Math.min(Math.floor(len / 200), 300), 50);
+            this.timer = setTimeout(() => {
+                this.worker.drawItems();
+            }, wait);
+        }
+    }
+    dispose() {
+        if (this.timer) {
+            clearTimeout(this.timer);
+        }
+        util_1.disposeAll(this.disposables);
+        this.worker.dispose();
+        this.ui.dispose();
+    }
+}
+exports.default = ListSession;
+//# sourceMappingURL=session.js.map
+
+/***/ }),
+/* 579 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(65);
+const fuzzy_1 = __webpack_require__(580);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const logger = __webpack_require__(64)('list-history');
+class InputHistory {
+    constructor(prompt, name) {
+        this.prompt = prompt;
+        this.name = name;
+        this.index = -1;
+        this.loaded = [];
+        this.current = [];
+        this.db = workspace_1.default.createDatabase(`list-${name}-history`);
+        this.key = Buffer.from(workspace_1.default.cwd).toString('base64');
+    }
+    filter() {
+        let { input } = this.prompt;
+        if (input == this.curr)
+            return;
+        this.historyInput = '';
+        let codes = fuzzy_1.getCharCodes(input);
+        this.current = this.loaded.filter(s => fuzzy_1.fuzzyMatch(codes, s));
+        this.index = -1;
+    }
+    get curr() {
+        return this.index == -1 ? null : this.current[this.index];
+    }
+    load(input) {
+        let { db } = this;
+        input = input || '';
+        let arr = db.fetch(this.key);
+        if (!arr || !Array.isArray(arr)) {
+            this.loaded = [];
+        }
+        else {
+            this.loaded = arr;
+        }
+        this.index = -1;
+        this.current = this.loaded.filter(s => s.startsWith(input));
+    }
+    add() {
+        let { loaded, db, prompt } = this;
+        let { input } = prompt;
+        if (!input || input.length < 2 || input == this.historyInput)
+            return;
+        let idx = loaded.indexOf(input);
+        if (idx != -1)
+            loaded.splice(idx, 1);
+        loaded.push(input);
+        if (loaded.length > 200) {
+            loaded = loaded.slice(-200);
+        }
+        db.push(this.key, loaded);
+    }
+    previous() {
+        let { current, index } = this;
+        if (!current || !current.length)
+            return;
+        if (index <= 0) {
+            this.index = current.length - 1;
+        }
+        else {
+            this.index = index - 1;
+        }
+        this.historyInput = this.prompt.input = current[this.index] || '';
+    }
+    next() {
+        let { current, index } = this;
+        if (!current || !current.length)
+            return;
+        if (index == current.length - 1) {
+            this.index = 0;
+        }
+        else {
+            this.index = index + 1;
+        }
+        this.historyInput = this.prompt.input = current[this.index] || '';
+    }
+}
+exports.default = InputHistory;
+//# sourceMappingURL=history.js.map
+
+/***/ }),
+/* 580 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+function getCharCodes(str) {
+    let res = [];
+    for (let i = 0, l = str.length; i < l; i++) {
+        res.push(str.charCodeAt(i));
+    }
+    return res;
+}
+exports.getCharCodes = getCharCodes;
+function wordChar(ch) {
+    return (ch >= 97 && ch <= 122) || (ch >= 65 && ch <= 90);
+}
+exports.wordChar = wordChar;
+function caseMatch(input, code) {
+    if (input == code)
+        return true;
+    if (input >= 97 && input <= 122 && code + 32 === input)
+        return true;
+    return false;
+}
+exports.caseMatch = caseMatch;
+function fuzzyChar(a, b) {
+    let ca = a.charCodeAt(0);
+    let cb = b.charCodeAt(0);
+    if (ca === cb)
+        return true;
+    if (ca >= 97 && ca <= 122 && cb + 32 === ca)
+        return true;
+    return false;
+}
+exports.fuzzyChar = fuzzyChar;
+// upper case must match, lower case ignore case
+function fuzzyMatch(needle, text) {
+    let totalCount = needle.length;
+    if (needle.length > text.length)
+        return false;
+    let i = 0;
+    for (let j = 0; j < text.length; j++) {
+        if (i === totalCount)
+            break;
+        let code = text.charCodeAt(j);
+        let m = needle[i];
+        if (code === m) {
+            i = i + 1;
+            continue;
+        }
+        // upper case match lower case
+        if ((m >= 97 && m <= 122) && code + 32 === m) {
+            i = i + 1;
+            continue;
+        }
+    }
+    return i === totalCount;
+}
+exports.fuzzyMatch = fuzzyMatch;
+//# sourceMappingURL=fuzzy.js.map
+
+/***/ }),
+/* 581 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(65);
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(240));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const util_1 = __webpack_require__(238);
+const mutex_1 = __webpack_require__(255);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const logger = __webpack_require__(64)('list-ui');
+class ListUI {
+    constructor(nvim, name, listOptions, config) {
+        this.nvim = nvim;
+        this.name = name;
+        this.listOptions = listOptions;
+        this.config = config;
+        this.newTab = false;
+        this.currIndex = 0;
+        this.drawCount = 0;
+        this.highlights = [];
+        this.items = [];
+        this.disposables = [];
+        this.selected = new Set();
+        this.mutex = new mutex_1.Mutex();
+        this._onDidChangeLine = new vscode_languageserver_protocol_1.Emitter();
+        this._onDidOpen = new vscode_languageserver_protocol_1.Emitter();
+        this._onDidClose = new vscode_languageserver_protocol_1.Emitter();
+        this._onDidChange = new vscode_languageserver_protocol_1.Emitter();
+        this._onDidLineChange = new vscode_languageserver_protocol_1.Emitter();
+        this._onDoubleClick = new vscode_languageserver_protocol_1.Emitter();
+        this.onDidChangeLine = this._onDidChangeLine.event;
+        this.onDidLineChange = this._onDidLineChange.event;
+        this.onDidOpen = this._onDidOpen.event;
+        this.onDidClose = this._onDidClose.event;
+        this.onDidChange = this._onDidChange.event;
+        this.onDidDoubleClick = this._onDoubleClick.event;
+        this.signOffset = config.get('signOffset');
+        this.newTab = listOptions.position == 'tab';
+        events_1.default.on('BufUnload', async (bufnr) => {
+            if (bufnr != this.bufnr || this.window == null)
+                return;
+            this.window = null;
+            this._onDidClose.fire(bufnr);
+        }, null, this.disposables);
+        events_1.default.on('CursorMoved', async (bufnr, cursor) => {
+            if (bufnr != this.bufnr)
+                return;
+            this.onLineChange(cursor[0] - 1);
+        }, null, this.disposables);
+        let debounced = debounce_1.default(async (bufnr) => {
+            if (bufnr != this.bufnr)
+                return;
+            let [winid, start, end] = await nvim.eval('[win_getid(),line("w0"),line("w$")]');
+            if (end < 300)
+                return;
+            if (!this.window || winid != this.window.id)
+                return;
+            // increment highlights
+            nvim.pauseNotification();
+            this.doHighlight(start - 1, end);
+            nvim.command('redraw', true);
+            await nvim.resumeNotification(false, true);
+        }, 100);
+        this.disposables.push({
+            dispose: () => {
+                debounced.clear();
+            }
+        });
+        events_1.default.on('CursorMoved', debounced, null, this.disposables);
+    }
+    onLineChange(index) {
+        if (this.currIndex == index)
+            return;
+        this.currIndex = index;
+        this._onDidChangeLine.fire(index);
+    }
+    set index(n) {
+        if (n < 0 || n >= this.items.length)
+            return;
+        let { nvim } = this;
+        nvim.pauseNotification();
+        this.setCursor(n + 1, 0);
+        nvim.command('redraw', true);
+        nvim.resumeNotification(false, true).logError();
+    }
+    get index() {
+        return this.currIndex;
+    }
+    get firstItem() {
+        return this.items[0];
+    }
+    get lastItem() {
+        return this.items[this.items.length - 1];
+    }
+    getItem(delta) {
+        let { currIndex } = this;
+        return this.items[currIndex + delta];
+    }
+    get item() {
+        let { window } = this;
+        if (!window)
+            return Promise.resolve(null);
+        return window.cursor.then(cursor => {
+            this.currIndex = cursor[0] - 1;
+            return this.items[this.currIndex];
+        }, _e => null);
+    }
+    async echoMessage(item) {
+        if (this.bufnr)
+            return;
+        let { items } = this;
+        let idx = items.indexOf(item);
+        let msg = `[${idx + 1}/${items.length}] ${item.label || ''}`;
+        this.nvim.callTimer('coc#util#echo_lines', [[msg]], true);
+    }
+    async updateItem(item, index) {
+        if (!this.bufnr || workspace_1.default.bufnr != this.bufnr)
+            return;
+        let obj = Object.assign({ resolved: true }, item);
+        if (index < this.length) {
+            this.items[index] = obj;
+            let { nvim } = this;
+            nvim.pauseNotification();
+            nvim.command('setl modifiable', true);
+            nvim.call('setline', [index + 1, obj.label], true);
+            nvim.command('setl nomodifiable', true);
+            await nvim.resumeNotification();
+        }
+    }
+    async getItems() {
+        if (this.length == 0 || !this.window)
+            return [];
+        let mode = await this.nvim.call('mode');
+        if (mode == 'v' || mode == 'V') {
+            let [start, end] = await this.getSelectedRange();
+            let res = [];
+            for (let i = start; i <= end; i++) {
+                let item = this.items[i - 1];
+                if (item)
+                    res.push(item);
+            }
+            return res;
+        }
+        let { selectedItems } = this;
+        if (selectedItems.length)
+            return selectedItems;
+        let item = await this.item;
+        return item == null ? [] : [item];
+    }
+    async onMouse(event) {
+        let { nvim, window } = this;
+        let winid = await nvim.getVvar('mouse_winid');
+        if (!window)
+            return;
+        let lnum = await nvim.getVvar('mouse_lnum');
+        let col = await nvim.getVvar('mouse_col');
+        if (event == 'mouseDown') {
+            this.mouseDown = { winid, lnum, col, current: winid == window.id };
+            return;
+        }
+        let current = winid == window.id;
+        if (current && event == 'doubleClick') {
+            this.setCursor(lnum, 0);
+            this._onDoubleClick.fire();
+        }
+        if (!this.mouseDown || this.mouseDown.winid != this.mouseDown.winid)
+            return;
+        if (current && event == 'mouseDrag') {
+            await this.selectLines(this.mouseDown.lnum, lnum);
+        }
+        else if (current && event == 'mouseUp') {
+            if (this.mouseDown.lnum == lnum) {
+                nvim.pauseNotification();
+                this.clearSelection();
+                this.setCursor(lnum, 0);
+                nvim.command('redraw', true);
+                await nvim.resumeNotification();
+            }
+            else {
+                await this.selectLines(this.mouseDown.lnum, lnum);
+            }
+        }
+        else if (!current && event == 'mouseUp') {
+            nvim.pauseNotification();
+            nvim.call('win_gotoid', winid, true);
+            nvim.call('cursor', [lnum, col], true);
+            await nvim.resumeNotification();
+        }
+    }
+    async resume() {
+        let { items, selected, nvim, signOffset } = this;
+        await this.drawItems(items, this.height, true);
+        if (selected.size > 0 && this.bufnr) {
+            nvim.pauseNotification();
+            for (let lnum of selected) {
+                nvim.command(`sign place ${signOffset + lnum} line=${lnum} name=CocSelected buffer=${this.bufnr}`, true);
+            }
+            await nvim.resumeNotification();
+        }
+    }
+    async toggleSelection() {
+        let { nvim, selected, signOffset, bufnr } = this;
+        if (workspace_1.default.bufnr != bufnr)
+            return;
+        let lnum = await nvim.call('line', '.');
+        let mode = await nvim.call('mode');
+        if (mode == 'v' || mode == 'V') {
+            let [start, end] = await this.getSelectedRange();
+            let exists = selected.has(start);
+            let reverse = start > end;
+            if (reverse)
+                [start, end] = [end, start];
+            for (let i = start; i <= end; i++) {
+                if (!exists) {
+                    selected.add(i);
+                    nvim.command(`sign place ${signOffset + i} line=${i} name=CocSelected buffer=${bufnr}`, true);
+                }
+                else {
+                    selected.delete(i);
+                    nvim.command(`sign unplace ${signOffset + i} buffer=${bufnr}`, true);
+                }
+            }
+            this.setCursor(end, 0);
+            nvim.command('redraw', true);
+            await nvim.resumeNotification();
+            return;
+        }
+        let exists = selected.has(lnum);
+        nvim.pauseNotification();
+        if (exists) {
+            selected.delete(lnum);
+            nvim.command(`sign unplace ${signOffset + lnum} buffer=${bufnr}`, true);
+        }
+        else {
+            selected.add(lnum);
+            nvim.command(`sign place ${signOffset + lnum} line=${lnum} name=CocSelected buffer=${bufnr}`, true);
+        }
+        this.setCursor(lnum + 1, 0);
+        nvim.command('redraw', true);
+        await nvim.resumeNotification();
+    }
+    async selectLines(start, end) {
+        let { nvim, signOffset, bufnr, length } = this;
+        this.clearSelection();
+        let { selected } = this;
+        nvim.pauseNotification();
+        let reverse = start > end;
+        if (reverse)
+            [start, end] = [end, start];
+        for (let i = start; i <= end; i++) {
+            if (i > length)
+                break;
+            selected.add(i);
+            nvim.command(`sign place ${signOffset + i} line=${i} name=CocSelected buffer=${bufnr}`, true);
+        }
+        this.setCursor(end, 0);
+        nvim.command('redraw', true);
+        await nvim.resumeNotification();
+    }
+    async selectAll() {
+        let { length } = this;
+        if (length == 0)
+            return;
+        await this.selectLines(1, length);
+    }
+    clearSelection() {
+        let { selected, nvim, signOffset, bufnr } = this;
+        if (!bufnr)
+            return;
+        if (selected.size > 0) {
+            let signIds = [];
+            for (let lnum of selected) {
+                signIds.push(signOffset + lnum);
+            }
+            nvim.call('coc#util#unplace_signs', [bufnr, signIds], true);
+            this.selected = new Set();
+        }
+    }
+    get shown() {
+        return this.window != null;
+    }
+    get bufnr() {
+        var _a;
+        return (_a = this.buffer) === null || _a === void 0 ? void 0 : _a.id;
+    }
+    get winid() {
+        var _a;
+        return (_a = this.window) === null || _a === void 0 ? void 0 : _a.id;
+    }
+    get ready() {
+        if (this.window)
+            return Promise.resolve();
+        return new Promise((resolve, reject) => {
+            let timeout = setTimeout(() => {
+                reject(new Error('window create timeout'));
+            }, 3000);
+            let disposable = this.onDidLineChange(() => {
+                disposable.dispose();
+                clearTimeout(timeout);
+                resolve();
+            });
         });
     }
-    async loadItems(_context) {
-        let items = [];
-        let list = commands_1.default.commandList;
-        let { titles } = commands_1.default;
-        let mruList = await this.mru.load();
-        for (const o of list) {
-            const { id } = o;
-            items.push({
-                label: `${id}\t${titles.get(id) || ''}`,
-                filterText: id,
-                data: { cmd: id, score: score(mruList, id) }
+    async drawItems(items, height, reload = false) {
+        let count = this.drawCount = this.drawCount + 1;
+        const { config, nvim, name, listOptions } = this;
+        const release = await this.mutex.acquire();
+        let limitLines = config.get('limitLines', 30000);
+        this.items = items.slice(0, limitLines);
+        const create = this.window == null;
+        if (create) {
+            try {
+                let { position, numberSelect } = listOptions;
+                let [bufnr, winid] = await nvim.call('coc#list#create', [position, height, name, numberSelect]);
+                this.height = height;
+                this.buffer = nvim.createBuffer(bufnr);
+                this.window = nvim.createWindow(winid);
+                this._onDidOpen.fire(this.bufnr);
+            }
+            catch (e) {
+                release();
+                workspace_1.default.showMessage(`Error on list create: ${e.message}`, 'error');
+                return;
+            }
+        }
+        release();
+        if (count !== this.drawCount)
+            return;
+        let lines = this.items.map(item => item.label);
+        this.clearSelection();
+        let newIndex = reload ? this.currIndex : 0;
+        await this.setLines(lines, false, newIndex);
+        this._onDidLineChange.fire(this.currIndex + 1);
+    }
+    async appendItems(items) {
+        if (!this.window)
+            return;
+        let { config } = this;
+        let limitLines = config.get('limitLines', 1000);
+        let curr = this.items.length;
+        if (curr >= limitLines) {
+            this._onDidChange.fire();
+            return;
+        }
+        let max = limitLines - curr;
+        let append = items.slice(0, max);
+        this.items = this.items.concat(append);
+        await this.setLines(append.map(item => item.label), curr > 0, this.currIndex);
+    }
+    async setLines(lines, append = false, index) {
+        let { nvim, bufnr, window } = this;
+        if (!bufnr || !window)
+            return;
+        let buf = nvim.createBuffer(bufnr);
+        nvim.pauseNotification();
+        nvim.call('win_gotoid', window.id, true);
+        if (!append) {
+            nvim.call('clearmatches', [], true);
+            if (!lines.length) {
+                lines = ['No results, press ? on normal mode to get help.'];
+                nvim.call('matchaddpos', ['Comment', [[1]], 99], true);
+            }
+        }
+        nvim.command('setl modifiable', true);
+        if (workspace_1.default.isVim) {
+            nvim.call('coc#list#setlines', [lines, append], true);
+        }
+        else {
+            // eslint-disable-next-line @typescript-eslint/no-floating-promises
+            buf.setLines(lines, { start: append ? -1 : 0, end: -1, strictIndexing: false }, true);
+        }
+        nvim.command('setl nomodifiable', true);
+        if (!append && index == 0) {
+            this.doHighlight(0, 300);
+        }
+        else {
+            let height = this.newTab ? workspace_1.default.env.lines : this.height;
+            this.doHighlight(Math.max(0, index - height), Math.min(index + height + 1, this.length - 1));
+        }
+        if (!append) {
+            this.currIndex = index;
+            window.notify('nvim_win_set_cursor', [[index + 1, 0]]);
+        }
+        this._onDidChange.fire();
+        if (workspace_1.default.isVim)
+            nvim.command('redraw', true);
+        let res = await nvim.resumeNotification();
+        if (res && res[1])
+            logger.error(res[1]);
+    }
+    restoreWindow() {
+        if (this.newTab)
+            return;
+        let { window, height } = this;
+        if (window && height) {
+            this.nvim.call('coc#list#restore', [window.id, height], true);
+        }
+    }
+    close() {
+        if (this.window) {
+            this.window.close(true, true);
+            this.window = null;
+        }
+    }
+    dispose() {
+        this.close();
+        util_1.disposeAll(this.disposables);
+        this._onDidChangeLine.dispose();
+        this._onDidOpen.dispose();
+        this._onDidClose.dispose();
+        this._onDidChange.dispose();
+        this._onDidLineChange.dispose();
+        this._onDoubleClick.dispose();
+    }
+    get length() {
+        return this.items.length;
+    }
+    get selectedItems() {
+        let { selected, items } = this;
+        let res = [];
+        for (let i of selected) {
+            if (items[i - 1])
+                res.push(items[i - 1]);
+        }
+        return res;
+    }
+    doHighlight(start, end) {
+        let { nvim } = workspace_1.default;
+        let { highlights, items } = this;
+        for (let i = start; i <= Math.min(end, items.length - 1); i++) {
+            let { ansiHighlights } = items[i];
+            let highlight = highlights[i];
+            if (ansiHighlights) {
+                for (let hi of ansiHighlights) {
+                    let { span, hlGroup } = hi;
+                    nvim.call('matchaddpos', [hlGroup, [[i + 1, span[0] + 1, span[1] - span[0]]], 9], true);
+                }
+            }
+            if (highlight) {
+                let { spans, hlGroup } = highlight;
+                for (let span of spans) {
+                    nvim.call('matchaddpos', [hlGroup || 'Search', [[i + 1, span[0] + 1, span[1] - span[0]]], 11], true);
+                }
+            }
+        }
+    }
+    setCursor(lnum, col) {
+        let { window, items } = this;
+        let max = items.length == 0 ? 1 : items.length;
+        if (lnum > max)
+            return;
+        // change index since CursorMoved event not fired (seems bug of neovim)!
+        this.onLineChange(lnum - 1);
+        if (window)
+            window.notify('nvim_win_set_cursor', [[lnum, col]]);
+    }
+    addHighlights(highlights, append = false) {
+        let limitLines = this.config.get('limitLines', 1000);
+        if (!append) {
+            this.highlights = highlights.slice(0, limitLines);
+        }
+        else {
+            if (this.highlights.length < limitLines) {
+                this.highlights = this.highlights.concat(highlights.slice(0, limitLines - this.highlights.length));
+            }
+        }
+    }
+    async getSelectedRange() {
+        let { nvim } = this;
+        await nvim.call('coc#list#stop_prompt');
+        await nvim.eval('feedkeys("\\<esc>", "in")');
+        let [, start] = await nvim.call('getpos', "'<");
+        let [, end] = await nvim.call('getpos', "'>");
+        if (start > end) {
+            [start, end] = [end, start];
+        }
+        let method = workspace_1.default.isVim ? 'coc#list#prompt_start' : 'coc#list#start_prompt';
+        this.nvim.call(method, [], true);
+        return [start, end];
+    }
+}
+exports.default = ListUI;
+//# sourceMappingURL=ui.js.map
+
+/***/ }),
+/* 582 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(65);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const vscode_uri_1 = __webpack_require__(243);
+const ansiparse_1 = __webpack_require__(524);
+const diff_1 = __webpack_require__(309);
+const fzy_1 = __webpack_require__(583);
+const score_1 = __webpack_require__(584);
+const string_1 = __webpack_require__(310);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+const logger = __webpack_require__(64)('list-worker');
+const controlCode = '\x1b';
+// perform loading task
+class Worker {
+    constructor(nvim, list, prompt, listOptions, config) {
+        this.nvim = nvim;
+        this.list = list;
+        this.prompt = prompt;
+        this.listOptions = listOptions;
+        this.config = config;
+        this.recentFiles = [];
+        this._loading = false;
+        this.totalItems = [];
+        this._onDidChangeItems = new vscode_languageserver_protocol_1.Emitter();
+        this.onDidChangeItems = this._onDidChangeItems.event;
+        let mru = workspace_1.default.createMru('mru');
+        mru.load().then(files => {
+            this.recentFiles = files;
+        }).logError();
+    }
+    set loading(loading) {
+        if (this._loading == loading)
+            return;
+        this._loading = loading;
+        let { nvim } = this;
+        if (loading) {
+            this.interval = setInterval(() => {
+                let idx = Math.floor((new Date()).getMilliseconds() / 100);
+                nvim.pauseNotification();
+                nvim.setVar('coc_list_loading_status', frames[idx], true);
+                nvim.command('redraws', true);
+                nvim.resumeNotification(false, true).logError();
+            }, 100);
+        }
+        else {
+            if (this.interval) {
+                clearInterval(this.interval);
+                nvim.pauseNotification();
+                nvim.setVar('coc_list_loading_status', '', true);
+                nvim.command('redraws', true);
+                nvim.resumeNotification(false, true).logError();
+            }
+        }
+    }
+    get isLoading() {
+        return this._loading;
+    }
+    async loadItems(context, reload = false) {
+        let { list, listOptions } = this;
+        this.loading = true;
+        let { interactive } = listOptions;
+        let source = this.tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
+        let token = source.token;
+        let items = await list.loadItems(context, token);
+        if (token.isCancellationRequested)
+            return;
+        if (!items || Array.isArray(items)) {
+            items = (items || []);
+            this.totalItems = items.map(item => {
+                item.label = this.fixLabel(item.label);
+                this.parseListItemAnsi(item);
+                return item;
+            });
+            this.loading = false;
+            let highlights = [];
+            if (!interactive) {
+                let res = this.filterItems(items);
+                items = res.items;
+                highlights = res.highlights;
+            }
+            else {
+                highlights = this.getItemsHighlight(items);
+            }
+            this._onDidChangeItems.fire({
+                items,
+                highlights,
+                reload,
+                finished: true
             });
         }
-        items.sort((a, b) => b.data.score - a.data.score);
+        else {
+            let task = items;
+            let totalItems = this.totalItems = [];
+            let count = 0;
+            let currInput = context.input;
+            let timer;
+            let lastTs;
+            let _onData = (finished) => {
+                lastTs = Date.now();
+                if (token.isCancellationRequested)
+                    return;
+                if (count >= totalItems.length)
+                    return;
+                let inputChanged = this.input != currInput;
+                if (interactive && inputChanged)
+                    return;
+                if (count == 0 || inputChanged) {
+                    currInput = this.input;
+                    count = totalItems.length;
+                    let items;
+                    let highlights = [];
+                    if (interactive) {
+                        items = totalItems.slice();
+                        highlights = this.getItemsHighlight(items);
+                    }
+                    else {
+                        let res = this.filterItems(totalItems);
+                        items = res.items;
+                        highlights = res.highlights;
+                    }
+                    this._onDidChangeItems.fire({ items, highlights, reload, append: false, finished });
+                }
+                else {
+                    let remain = totalItems.slice(count);
+                    count = totalItems.length;
+                    let items;
+                    let highlights = [];
+                    if (!interactive) {
+                        let res = this.filterItems(remain);
+                        items = res.items;
+                        highlights = res.highlights;
+                    }
+                    else {
+                        items = remain;
+                        highlights = this.getItemsHighlight(remain);
+                    }
+                    this._onDidChangeItems.fire({ items, highlights, append: true, finished });
+                }
+            };
+            task.on('data', item => {
+                if (timer)
+                    clearTimeout(timer);
+                if (token.isCancellationRequested)
+                    return;
+                if (interactive && this.input != currInput)
+                    return;
+                item.label = this.fixLabel(item.label);
+                this.parseListItemAnsi(item);
+                totalItems.push(item);
+                if ((!lastTs && totalItems.length == 500)
+                    || Date.now() - lastTs > 200) {
+                    _onData();
+                }
+                else {
+                    timer = setTimeout(() => _onData(), 50);
+                }
+            });
+            let onEnd = () => {
+                if (task == null)
+                    return;
+                task = null;
+                this.loading = false;
+                disposable.dispose();
+                if (timer)
+                    clearTimeout(timer);
+                if (totalItems.length == 0) {
+                    this._onDidChangeItems.fire({ items: [], highlights: [], finished: true });
+                }
+                else {
+                    _onData(true);
+                }
+            };
+            let disposable = token.onCancellationRequested(onEnd);
+            task.on('error', async (error) => {
+                if (task == null)
+                    return;
+                task = null;
+                this.loading = false;
+                disposable.dispose();
+                if (timer)
+                    clearTimeout(timer);
+                this.nvim.call('coc#list#stop_prompt', [], true);
+                workspace_1.default.showMessage(`Task error: ${error.toString()}`, 'error');
+                logger.error(error);
+            });
+            task.on('end', onEnd);
+        }
+    }
+    /*
+     * Draw all items with filter if necessary
+     */
+    drawItems() {
+        let { totalItems, listOptions } = this;
+        let items = totalItems;
+        let highlights = [];
+        if (!listOptions.interactive) {
+            let res = this.filterItems(totalItems);
+            items = res.items;
+            highlights = res.highlights;
+        }
+        else {
+            highlights = this.getItemsHighlight(items);
+        }
+        this._onDidChangeItems.fire({ items, highlights, finished: true });
+    }
+    stop() {
+        if (this.tokenSource) {
+            this.tokenSource.cancel();
+            this.tokenSource = null;
+        }
+        this.loading = false;
+    }
+    get length() {
+        return this.totalItems.length;
+    }
+    get input() {
+        return this.prompt.input;
+    }
+    getItemsHighlight(items) {
+        let { input } = this;
+        if (!input)
+            return [];
+        return items.map(item => {
+            let filterLabel = getFilterLabel(item);
+            if (filterLabel == '')
+                return null;
+            let res = score_1.getMatchResult(filterLabel, input);
+            if (!res || !res.score)
+                return null;
+            return this.getHighlights(filterLabel, res.matches);
+        });
+    }
+    filterItems(items) {
+        let { input } = this;
+        let highlights = [];
+        let { sort, matcher, ignorecase } = this.listOptions;
+        if (input.length == 0) {
+            let filtered = items.slice();
+            let sort = filtered.length && typeof filtered[0].recentScore == 'number';
+            return {
+                items: sort ? filtered.sort((a, b) => b.recentScore - a.recentScore) : filtered,
+                highlights
+            };
+        }
+        let filtered;
+        if (input.length > 0) {
+            let inputs = this.config.extendedSearchMode ? input.split(/\s+/) : [input];
+            if (matcher == 'strict') {
+                filtered = items.filter(item => {
+                    let spans = [];
+                    let filterLabel = getFilterLabel(item);
+                    for (let input of inputs) {
+                        let idx = ignorecase ? filterLabel.toLowerCase().indexOf(input.toLowerCase()) : filterLabel.indexOf(input);
+                        if (idx == -1)
+                            return false;
+                        spans.push([string_1.byteIndex(filterLabel, idx), string_1.byteIndex(filterLabel, idx + string_1.byteLength(input))]);
+                    }
+                    highlights.push({ spans });
+                    return true;
+                });
+            }
+            else if (matcher == 'regex') {
+                let flags = ignorecase ? 'iu' : 'u';
+                let regexes = inputs.reduce((p, c) => {
+                    try {
+                        let regex = new RegExp(c, flags);
+                        p.push(regex);
+                    }
+                    catch (e) { }
+                    return p;
+                }, []);
+                filtered = items.filter(item => {
+                    let spans = [];
+                    let filterLabel = getFilterLabel(item);
+                    for (let regex of regexes) {
+                        let ms = filterLabel.match(regex);
+                        if (ms == null)
+                            return false;
+                        spans.push([string_1.byteIndex(filterLabel, ms.index), string_1.byteIndex(filterLabel, ms.index + string_1.byteLength(ms[0]))]);
+                    }
+                    highlights.push({ spans });
+                    return true;
+                });
+            }
+            else {
+                filtered = items.filter(item => {
+                    let filterText = item.filterText || item.label;
+                    return inputs.every(s => fzy_1.hasMatch(s, filterText));
+                });
+                filtered = filtered.map(item => {
+                    let filterLabel = getFilterLabel(item);
+                    let matchScore = 0;
+                    let matches = [];
+                    for (let input of inputs) {
+                        matches.push(...fzy_1.positions(input, filterLabel));
+                        matchScore += fzy_1.score(input, filterLabel);
+                    }
+                    let { recentScore } = item;
+                    if (!recentScore && item.location) {
+                        let uri = getItemUri(item);
+                        if (uri.startsWith('file')) {
+                            let fsPath = vscode_uri_1.URI.parse(uri).fsPath;
+                            recentScore = -this.recentFiles.indexOf(fsPath);
+                        }
+                    }
+                    return Object.assign({}, item, {
+                        filterLabel,
+                        score: matchScore,
+                        recentScore,
+                        matches
+                    });
+                });
+                if (sort && items.length) {
+                    filtered.sort((a, b) => {
+                        if (a.score != b.score)
+                            return b.score - a.score;
+                        if (input.length && a.recentScore != b.recentScore) {
+                            return (a.recentScore || -Infinity) - (b.recentScore || -Infinity);
+                        }
+                        if (a.location && b.location) {
+                            let au = getItemUri(a);
+                            let bu = getItemUri(b);
+                            return au > bu ? 1 : -1;
+                        }
+                        return a.label > b.label ? 1 : -1;
+                    });
+                }
+                for (let item of filtered) {
+                    if (!item.matches)
+                        continue;
+                    let hi = this.getHighlights(item.filterLabel, item.matches);
+                    highlights.push(hi);
+                }
+            }
+        }
+        return {
+            items: filtered,
+            highlights
+        };
+    }
+    getHighlights(text, matches) {
+        let spans = [];
+        if (matches.length) {
+            let start = matches.shift();
+            let next = matches.shift();
+            let curr = start;
+            while (next) {
+                if (next == curr + 1) {
+                    curr = next;
+                    next = matches.shift();
+                    continue;
+                }
+                spans.push([string_1.byteIndex(text, start), string_1.byteIndex(text, curr) + 1]);
+                start = next;
+                curr = start;
+                next = matches.shift();
+            }
+            spans.push([string_1.byteIndex(text, start), string_1.byteIndex(text, curr) + 1]);
+        }
+        return { spans };
+    }
+    // set correct label, add ansi highlights
+    parseListItemAnsi(item) {
+        let { label } = item;
+        if (item.ansiHighlights || !label.includes(controlCode))
+            return;
+        let { line, highlights } = ansiparse_1.parseAnsiHighlights(label);
+        item.label = line;
+        item.ansiHighlights = highlights;
+    }
+    fixLabel(label) {
+        let { columns } = workspace_1.default.env;
+        label = label.split('\n').join(' ');
+        return label.slice(0, columns * 2);
+    }
+    dispose() {
+        this._onDidChangeItems.dispose();
+        this.stop();
+    }
+}
+exports.default = Worker;
+function getFilterLabel(item) {
+    return item.filterText != null ? diff_1.patchLine(item.filterText, item.label) : item.label;
+}
+function getItemUri(item) {
+    let { location } = item;
+    if (typeof location == 'string')
+        return location;
+    return location.uri;
+}
+//# sourceMappingURL=worker.js.map
+
+/***/ }),
+/* 583 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+let SCORE_MIN = -Infinity;
+let SCORE_MAX = Infinity;
+let SCORE_GAP_LEADING = -0.005;
+let SCORE_GAP_TRAILING = -0.005;
+let SCORE_GAP_INNER = -0.01;
+let SCORE_MATCH_CONSECUTIVE = 1;
+let SCORE_MATCH_SLASH = 0.9;
+let SCORE_MATCH_WORD = 0.8;
+let SCORE_MATCH_CAPITAL = 0.7;
+let SCORE_MATCH_DOT = 0.6;
+function islower(s) {
+    return s.toLowerCase() === s;
+}
+function isupper(s) {
+    return s.toUpperCase() === s;
+}
+function precompute_bonus(haystack) {
+    /* Which positions are beginning of words */
+    let m = haystack.length;
+    let match_bonus = new Array(m);
+    let last_ch = '/';
+    for (let i = 0; i < m; i++) {
+        let ch = haystack[i];
+        if (last_ch === '/') {
+            match_bonus[i] = SCORE_MATCH_SLASH;
+        }
+        else if (last_ch === '-' || last_ch === '_' || last_ch === ' ') {
+            match_bonus[i] = SCORE_MATCH_WORD;
+        }
+        else if (last_ch === '.') {
+            match_bonus[i] = SCORE_MATCH_DOT;
+        }
+        else if (islower(last_ch) && isupper(ch)) {
+            match_bonus[i] = SCORE_MATCH_CAPITAL;
+        }
+        else {
+            match_bonus[i] = 0;
+        }
+        last_ch = ch;
+    }
+    return match_bonus;
+}
+function compute(needle, haystack, D, M) {
+    let n = needle.length;
+    let m = haystack.length;
+    let lower_needle = needle.toLowerCase();
+    let lower_haystack = haystack.toLowerCase();
+    let match_bonus = precompute_bonus(haystack);
+    /*
+     * D[][] Stores the best score for this position ending with a match.
+     * M[][] Stores the best possible score at this position.
+     */
+    for (let i = 0; i < n; i++) {
+        D[i] = new Array(m);
+        M[i] = new Array(m);
+        let prev_score = SCORE_MIN;
+        let gap_score = i === n - 1 ? SCORE_GAP_TRAILING : SCORE_GAP_INNER;
+        for (let j = 0; j < m; j++) {
+            if (lower_needle[i] === lower_haystack[j]) {
+                let score = SCORE_MIN;
+                if (!i) {
+                    score = (j * SCORE_GAP_LEADING) + match_bonus[j];
+                }
+                else if (j) { /* i > 0 && j > 0*/
+                    score = Math.max(M[i - 1][j - 1] + match_bonus[j], 
+                    /* consecutive match, doesn't stack with match_bonus */
+                    D[i - 1][j - 1] + SCORE_MATCH_CONSECUTIVE);
+                }
+                D[i][j] = score;
+                M[i][j] = prev_score = Math.max(score, prev_score + gap_score);
+            }
+            else {
+                D[i][j] = SCORE_MIN;
+                M[i][j] = prev_score = prev_score + gap_score;
+            }
+        }
+    }
+}
+function score(needle, haystack) {
+    let n = needle.length;
+    let m = haystack.length;
+    if (!n || !m)
+        return SCORE_MIN;
+    if (n === m) {
+        /* Since this method can only be called with a haystack which
+         * matches needle. If the lengths of the strings are equal the
+         * strings themselves must also be equal (ignoring case).
+         */
+        return SCORE_MAX;
+    }
+    if (m > 1024) {
+        /*
+         * Unreasonably large candidate: return no score
+         * If it is a valid match it will still be returned, it will
+         * just be ranked below any reasonably sized candidates
+         */
+        return SCORE_MIN;
+    }
+    let D = new Array(n);
+    let M = new Array(n);
+    compute(needle, haystack, D, M);
+    return M[n - 1][m - 1];
+}
+exports.score = score;
+function positions(needle, haystack) {
+    let n = needle.length;
+    let m = haystack.length;
+    let positions = new Array(n);
+    if (!n || !m)
+        return positions;
+    if (n === m) {
+        for (let i = 0; i < n; i++)
+            positions[i] = i;
+        return positions;
+    }
+    if (m > 1024) {
+        return positions;
+    }
+    let D = new Array(n);
+    let M = new Array(n);
+    compute(needle, haystack, D, M);
+    /* backtrack to find the positions of optimal matching */
+    let match_required = false;
+    for (let i = n - 1, j = m - 1; i >= 0; i--) {
+        for (; j >= 0; j--) {
+            /*
+             * There may be multiple paths which result in
+             * the optimal weight.
+             *
+             * For simplicity, we will pick the first one
+             * we encounter, the latest in the candidate
+             * string.
+             */
+            if (D[i][j] !== SCORE_MIN &&
+                (match_required || D[i][j] === M[i][j])) {
+                /* If this score was determined using
+                 * SCORE_MATCH_CONSECUTIVE, the
+                 * previous character MUST be a match
+                 */
+                match_required =
+                    i && j &&
+                        M[i][j] === D[i - 1][j - 1] + SCORE_MATCH_CONSECUTIVE;
+                positions[i] = j--;
+                break;
+            }
+        }
+    }
+    return positions;
+}
+exports.positions = positions;
+function hasMatch(needle, haystack) {
+    needle = needle.toLowerCase();
+    haystack = haystack.toLowerCase();
+    let l = needle.length;
+    for (let i = 0, j = 0; i < l; i += 1) {
+        j = haystack.indexOf(needle[i], j) + 1;
+        if (j === 0)
+            return false;
+    }
+    return true;
+}
+exports.hasMatch = hasMatch;
+//# sourceMappingURL=fzy.js.map
+
+/***/ }),
+/* 584 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const path_1 = __webpack_require__(82);
+const fuzzy_1 = __webpack_require__(580);
+// first is start or path start +1, fuzzy +0.5
+// next is followed of path start +1, fuzzy +0.5
+// filename startsWith +1, fuzzy +0.5
+function getMatchResult(text, query, filename = '') {
+    if (!query)
+        return { score: 1 };
+    let matches = [];
+    let codes = fuzzy_1.getCharCodes(query);
+    let filenameIdx = filename ? text.indexOf(filename) : -1;
+    let matchBase = filenameIdx != -1 && fuzzy_1.fuzzyMatch(codes, filename);
+    let score = 0;
+    let c = query[0];
+    let idx = 0;
+    // base => start => pathSeparator => fuzzy
+    if (matchBase) {
+        if (filename.startsWith(c)) {
+            score = score + 2;
+            idx = filenameIdx + 1;
+            matches.push(filenameIdx);
+        }
+        else if (filename[0].toLowerCase() == c) {
+            score = score + 1.5;
+            idx = filenameIdx + 1;
+            matches.push(filenameIdx);
+        }
+        else {
+            for (let i = 1; i < filename.length; i++) {
+                if (fuzzy_1.fuzzyChar(c, filename[i])) {
+                    score = score + 1;
+                    idx = filenameIdx + i + 1;
+                    matches.push(filenameIdx + i);
+                    break;
+                }
+            }
+        }
+    }
+    else if (text.startsWith(c)) {
+        score = score + 1;
+        matches.push(0);
+        idx = 1;
+    }
+    else {
+        for (let i = 1; i < text.length; i++) {
+            let pre = text[i - 1];
+            if (pre == path_1.sep && text[i] == c) {
+                score = score + 1;
+                matches.push(i);
+                idx = i + 1;
+                break;
+            }
+        }
+        if (idx == 0) {
+            for (let i = 0; i < text.length; i++) {
+                if (fuzzy_1.fuzzyChar(c, text[i])) {
+                    score = score + 0.5;
+                    matches.push(i);
+                    idx = i + 1;
+                    break;
+                }
+            }
+        }
+    }
+    if (idx == 0)
+        return { score: 0 };
+    if (codes.length == 1)
+        return { score, matches };
+    return nextResult(codes.slice(1), text, idx, { score, matches });
+}
+exports.getMatchResult = getMatchResult;
+/**
+ *
+ * @public
+ * @param {number[]} codes - remain codes
+ * @param {string} text - total text
+ * @param {number} idx - start index of text
+ * @param {MatchResult} curr - current result
+ * @returns {MatchResult | null}
+ */
+function nextResult(codes, text, idx, curr) {
+    let { score, matches } = curr;
+    let results = [];
+    let c = codes[0];
+    let remain = codes.slice(1);
+    let result;
+    function getRemianResult(index) {
+        if (!result)
+            return;
+        if (remain.length == 0) {
+            results.push(result);
+        }
+        else if (result) {
+            let res = nextResult(remain, text, index, result);
+            if (res)
+                results.push(res);
+        }
+    }
+    let followed = idx < text.length ? text[idx].charCodeAt(0) : null;
+    if (!followed)
+        return null;
+    if (followed == c) {
+        result = { score: score + 1, matches: matches.concat([idx]) };
+        getRemianResult(idx + 1);
+    }
+    else if (fuzzy_1.caseMatch(c, followed)) {
+        result = { score: score + 0.5, matches: matches.concat([idx]) };
+        getRemianResult(idx + 1);
+    }
+    if (idx + 1 < text.length) {
+        // follow path
+        for (let i = idx + 1; i < text.length; i++) {
+            let ch = text[i].charCodeAt(0);
+            if (text[i - 1] == path_1.sep && fuzzy_1.caseMatch(c, ch)) {
+                let add = c == ch ? 1 : 0.5;
+                result = { score: score + add, matches: matches.concat([i]) };
+                getRemianResult(i + 1);
+                break;
+            }
+        }
+        // next fuzzy
+        for (let i = idx + 1; i < text.length; i++) {
+            let ch = text[i].charCodeAt(0);
+            if (fuzzy_1.caseMatch(c, ch)) {
+                let add = c == ch ? 0.5 : 0.2;
+                result = { score: score + add, matches: matches.concat([i]) };
+                getRemianResult(i + 1);
+                break;
+            }
+        }
+    }
+    return results.length ? bestResult(results) : null;
+}
+function bestResult(results) {
+    let res = results[0];
+    for (let i = 1; i < results.length; i++) {
+        if (results[i].score > res.score) {
+            res = results[i];
+        }
+    }
+    return res;
+}
+//# sourceMappingURL=score.js.map
+
+/***/ }),
+/* 585 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(65);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
+const manager_1 = tslib_1.__importDefault(__webpack_require__(253));
+const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
+const services_1 = tslib_1.__importDefault(__webpack_require__(525));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(586));
+const logger = __webpack_require__(64)('list-actions');
+class ActionsList extends basic_1.default {
+    constructor(nvim) {
+        super(nvim);
+        this.defaultAction = 'do';
+        this.description = 'code actions of selected range.';
+        this.name = 'actions';
+        this.options = [{
+                name: '-start',
+                description: 'start of line',
+                hasValue: true
+            }, {
+                name: '-end',
+                description: 'end of line',
+                hasValue: true
+            }, {
+                name: '-quickfix',
+                description: 'quickfix only',
+            }, {
+                name: '-source',
+                description: 'source action only'
+            }];
+        this.addAction('do', async (item) => {
+            let action = item.data.action;
+            let { command, edit } = action;
+            if (edit)
+                await workspace_1.default.applyEdit(edit);
+            if (command) {
+                if (commands_1.default.has(command.command)) {
+                    commands_1.default.execute(command);
+                }
+                else {
+                    let clientId = action.clientId;
+                    let service = services_1.default.getService(clientId);
+                    let params = {
+                        command: command.command,
+                        arguments: command.arguments
+                    };
+                    if (service.client) {
+                        let { client } = service;
+                        client
+                            .sendRequest(vscode_languageserver_protocol_1.ExecuteCommandRequest.type, params)
+                            .then(undefined, error => {
+                            workspace_1.default.showMessage(`Execute '${command.command} error: ${error}'`, 'error');
+                        });
+                    }
+                }
+            }
+        });
+    }
+    async loadItems(context) {
+        let buf = await context.window.buffer;
+        let doc = workspace_1.default.getDocument(buf.id);
+        if (!doc)
+            return null;
+        let args = this.parseArguments(context.args);
+        let range;
+        if (args.start && args.end) {
+            range = vscode_languageserver_protocol_1.Range.create(parseInt(args.start, 10) - 1, 0, parseInt(args.end, 10), 0);
+        }
+        else {
+            range = vscode_languageserver_protocol_1.Range.create(0, 0, doc.lineCount, 0);
+        }
+        let diagnostics = manager_1.default.getDiagnosticsInRange(doc.textDocument, range);
+        let actionContext = { diagnostics };
+        if (args.quickfix) {
+            actionContext.only = [vscode_languageserver_protocol_1.CodeActionKind.QuickFix];
+        }
+        else if (args.source) {
+            actionContext.only = [vscode_languageserver_protocol_1.CodeActionKind.Source];
+        }
+        let codeActionsMap = await languages_1.default.getCodeActions(doc.textDocument, range, actionContext);
+        if (!codeActionsMap)
+            return [];
+        let codeActions = [];
+        for (let clientId of codeActionsMap.keys()) {
+            let actions = codeActionsMap.get(clientId);
+            for (let action of actions) {
+                codeActions.push(Object.assign({ clientId }, action));
+            }
+        }
+        codeActions.sort((a, b) => {
+            if (a.isPreferred && !b.isPreferred) {
+                return -1;
+            }
+            if (b.isPreferred && !a.isPreferred) {
+                return 1;
+            }
+            return 0;
+        });
+        let items = codeActions.map(action => ({
+            label: `${action.title} ${action.clientId ? `[${action.clientId}]` : ''} ${action.kind ? `(${action.kind})` : ''}`,
+            data: { action }
+        }));
         return items;
     }
     doHighlight() {
         let { nvim } = this;
         nvim.pauseNotification();
-        nvim.command('syntax match CocCommandsTitle /\\t.*$/ contained containedin=CocCommandsLine', true);
-        nvim.command('highlight default link CocCommandsTitle Comment', true);
+        nvim.command('syntax match CocActionsTitle /\\v^[^[]+/ contained containedin=CocActionsLine', true);
+        nvim.command('syntax match CocActionsClient /\\[\\w\\+\\]/ contained containedin=CocActionsLine', true);
+        nvim.command('syntax match CocActionsKind /\\v\\(.*\\)$/ contained containedin=CocActionsLine', true);
+        nvim.command('highlight default link CocActionsTitle Normal', true);
+        nvim.command('highlight default link CocActionsClient Typedef', true);
+        nvim.command('highlight default link CocActionsKind Comment', true);
         nvim.resumeNotification().catch(_e => {
             // noop
         });
     }
 }
-exports.default = CommandsList;
-function score(list, key) {
-    let idx = list.indexOf(key);
-    return idx == -1 ? -1 : list.length - idx;
-}
-//# sourceMappingURL=commands.js.map
+exports.default = ActionsList;
+//# sourceMappingURL=actions.js.map
 
 /***/ }),
-/* 581 */
+/* 586 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -82560,6 +84095,9 @@ class BasicList {
         }
         return res;
     }
+    /**
+     * Get configuration of current list
+     */
     getConfig() {
         return workspace_1.default.getConfiguration(`list.source.${this.name}`);
     }
@@ -82809,7 +84347,70 @@ exports.default = BasicList;
 //# sourceMappingURL=basic.js.map
 
 /***/ }),
-/* 582 */
+/* 587 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(65);
+const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(586));
+class CommandsList extends basic_1.default {
+    constructor(nvim) {
+        super(nvim);
+        this.defaultAction = 'run';
+        this.description = 'registered commands of coc.nvim';
+        this.name = 'commands';
+        this.mru = workspace_1.default.createMru('commands');
+        this.addAction('run', async (item) => {
+            let { cmd } = item.data;
+            await events_1.default.fire('Command', [cmd]);
+            await commands_1.default.executeCommand(cmd);
+            await commands_1.default.addRecent(cmd);
+        });
+        this.addAction('append', async (item) => {
+            let { cmd } = item.data;
+            await nvim.feedKeys(`:CocCommand ${cmd} `, 'n', false);
+        });
+    }
+    async loadItems(_context) {
+        let items = [];
+        let list = commands_1.default.commandList;
+        let { titles } = commands_1.default;
+        let mruList = await this.mru.load();
+        for (const o of list) {
+            const { id } = o;
+            items.push({
+                label: `${id}\t${titles.get(id) || ''}`,
+                filterText: id,
+                data: { cmd: id, score: score(mruList, id) }
+            });
+        }
+        items.sort((a, b) => b.data.score - a.data.score);
+        return items;
+    }
+    doHighlight() {
+        let { nvim } = this;
+        nvim.pauseNotification();
+        nvim.command('syntax match CocCommandsTitle /\\t.*$/ contained containedin=CocCommandsLine', true);
+        nvim.command('highlight default link CocCommandsTitle Comment', true);
+        nvim.resumeNotification().catch(_e => {
+            // noop
+        });
+    }
+}
+exports.default = CommandsList;
+function score(list, key) {
+    let idx = list.indexOf(key);
+    return idx == -1 ? -1 : list.length - idx;
+}
+//# sourceMappingURL=commands.js.map
+
+/***/ }),
+/* 588 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -82818,7 +84419,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(253));
-const location_1 = tslib_1.__importDefault(__webpack_require__(583));
+const location_1 = tslib_1.__importDefault(__webpack_require__(589));
 const fs_1 = __webpack_require__(304);
 const logger = __webpack_require__(64)('list-symbols');
 class DiagnosticsList extends location_1.default {
@@ -82861,7 +84462,7 @@ exports.default = DiagnosticsList;
 //# sourceMappingURL=diagnostics.js.map
 
 /***/ }),
-/* 583 */
+/* 589 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -82870,7 +84471,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_types_1 = __webpack_require__(223);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(586));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const vscode_uri_1 = __webpack_require__(243);
 const fs_1 = __webpack_require__(304);
@@ -82940,7 +84541,7 @@ exports.default = LocationList;
 //# sourceMappingURL=location.js.map
 
 /***/ }),
-/* 584 */
+/* 590 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -82956,7 +84557,7 @@ const extensions_1 = tslib_1.__importDefault(__webpack_require__(333));
 const util_1 = __webpack_require__(238);
 const fs_2 = __webpack_require__(304);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(586));
 const logger = __webpack_require__(64)('list-extensions');
 class ExtensionList extends basic_1.default {
     constructor(nvim) {
@@ -83008,7 +84609,7 @@ class ExtensionList extends basic_1.default {
             let { id } = item.data;
             await extensions_1.default.toggleLock(id);
         }, { persist: true, reload: true });
-        this.addAction('readme', async (item) => {
+        this.addAction('help', async (item) => {
             let { root } = item.data;
             let files = await fs_2.readdirAsync(root);
             let file = files.find(f => /^readme/i.test(f));
@@ -83128,7 +84729,7 @@ function getPriority(stat) {
 //# sourceMappingURL=extensions.js.map
 
 /***/ }),
-/* 585 */
+/* 591 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -83140,7 +84741,7 @@ const vscode_uri_1 = __webpack_require__(243);
 const mkdirp_1 = tslib_1.__importDefault(__webpack_require__(260));
 const fs_1 = __webpack_require__(304);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(586));
 class FoldList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -83182,7 +84783,7 @@ exports.default = FoldList;
 //# sourceMappingURL=folders.js.map
 
 /***/ }),
-/* 586 */
+/* 592 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -83192,7 +84793,7 @@ const tslib_1 = __webpack_require__(65);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(586));
 const vscode_languageserver_types_1 = __webpack_require__(223);
 const vscode_uri_1 = __webpack_require__(243);
 const fs_1 = __webpack_require__(304);
@@ -83265,14 +84866,14 @@ function formatUri(uri) {
 //# sourceMappingURL=links.js.map
 
 /***/ }),
-/* 587 */
+/* 593 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(586));
 const mru_1 = tslib_1.__importDefault(__webpack_require__(314));
 class LinksList extends basic_1.default {
     constructor(nvim, listMap) {
@@ -83324,7 +84925,7 @@ function score(list, key) {
 //# sourceMappingURL=lists.js.map
 
 /***/ }),
-/* 588 */
+/* 594 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -83339,8 +84940,8 @@ const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
 const util_1 = __webpack_require__(238);
 const fs_1 = __webpack_require__(304);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const location_1 = tslib_1.__importDefault(__webpack_require__(583));
-const convert_1 = __webpack_require__(589);
+const location_1 = tslib_1.__importDefault(__webpack_require__(589));
+const convert_1 = __webpack_require__(595);
 const logger = __webpack_require__(64)('list-symbols');
 function getFilterText(s, kind) {
     return `${s.name}${kind ? ` ${kind}` : ''}`;
@@ -83494,7 +85095,7 @@ function sortSymbols(a, b) {
 //# sourceMappingURL=outline.js.map
 
 /***/ }),
-/* 589 */
+/* 595 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -83563,7 +85164,7 @@ exports.getSymbolKind = getSymbolKind;
 //# sourceMappingURL=convert.js.map
 
 /***/ }),
-/* 590 */
+/* 596 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -83571,7 +85172,7 @@ exports.getSymbolKind = getSymbolKind;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(586));
 class OutputList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -83591,7 +85192,7 @@ exports.default = OutputList;
 //# sourceMappingURL=output.js.map
 
 /***/ }),
-/* 591 */
+/* 597 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -83599,7 +85200,7 @@ exports.default = OutputList;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const services_1 = tslib_1.__importDefault(__webpack_require__(525));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(586));
 const util_1 = __webpack_require__(238);
 class ServicesList extends basic_1.default {
     constructor(nvim) {
@@ -83644,7 +85245,7 @@ exports.default = ServicesList;
 //# sourceMappingURL=services.js.map
 
 /***/ }),
-/* 592 */
+/* 598 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -83655,7 +85256,7 @@ const vscode_languageserver_types_1 = __webpack_require__(223);
 const vscode_uri_1 = __webpack_require__(243);
 const sources_1 = tslib_1.__importDefault(__webpack_require__(332));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(586));
 const logger = __webpack_require__(64)('list-sources');
 class SourcesList extends basic_1.default {
     constructor(nvim) {
@@ -83731,7 +85332,7 @@ function fixWidth(str, width) {
 //# sourceMappingURL=sources.js.map
 
 /***/ }),
-/* 593 */
+/* 599 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -83743,10 +85344,10 @@ const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
 const vscode_uri_1 = __webpack_require__(243);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const location_1 = tslib_1.__importDefault(__webpack_require__(583));
-const convert_1 = __webpack_require__(589);
+const location_1 = tslib_1.__importDefault(__webpack_require__(589));
+const convert_1 = __webpack_require__(595);
 const fs_1 = __webpack_require__(304);
-const fzy_1 = __webpack_require__(594);
+const fzy_1 = __webpack_require__(583);
 const logger = __webpack_require__(64)('list-symbols');
 class Symbols extends location_1.default {
     constructor() {
@@ -83845,1386 +85446,7 @@ exports.default = Symbols;
 //# sourceMappingURL=symbols.js.map
 
 /***/ }),
-/* 594 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-let SCORE_MIN = -Infinity;
-let SCORE_MAX = Infinity;
-let SCORE_GAP_LEADING = -0.005;
-let SCORE_GAP_TRAILING = -0.005;
-let SCORE_GAP_INNER = -0.01;
-let SCORE_MATCH_CONSECUTIVE = 1;
-let SCORE_MATCH_SLASH = 0.9;
-let SCORE_MATCH_WORD = 0.8;
-let SCORE_MATCH_CAPITAL = 0.7;
-let SCORE_MATCH_DOT = 0.6;
-function islower(s) {
-    return s.toLowerCase() === s;
-}
-function isupper(s) {
-    return s.toUpperCase() === s;
-}
-function precompute_bonus(haystack) {
-    /* Which positions are beginning of words */
-    let m = haystack.length;
-    let match_bonus = new Array(m);
-    let last_ch = '/';
-    for (let i = 0; i < m; i++) {
-        let ch = haystack[i];
-        if (last_ch === '/') {
-            match_bonus[i] = SCORE_MATCH_SLASH;
-        }
-        else if (last_ch === '-' || last_ch === '_' || last_ch === ' ') {
-            match_bonus[i] = SCORE_MATCH_WORD;
-        }
-        else if (last_ch === '.') {
-            match_bonus[i] = SCORE_MATCH_DOT;
-        }
-        else if (islower(last_ch) && isupper(ch)) {
-            match_bonus[i] = SCORE_MATCH_CAPITAL;
-        }
-        else {
-            match_bonus[i] = 0;
-        }
-        last_ch = ch;
-    }
-    return match_bonus;
-}
-function compute(needle, haystack, D, M) {
-    let n = needle.length;
-    let m = haystack.length;
-    let lower_needle = needle.toLowerCase();
-    let lower_haystack = haystack.toLowerCase();
-    let match_bonus = precompute_bonus(haystack);
-    /*
-     * D[][] Stores the best score for this position ending with a match.
-     * M[][] Stores the best possible score at this position.
-     */
-    for (let i = 0; i < n; i++) {
-        D[i] = new Array(m);
-        M[i] = new Array(m);
-        let prev_score = SCORE_MIN;
-        let gap_score = i === n - 1 ? SCORE_GAP_TRAILING : SCORE_GAP_INNER;
-        for (let j = 0; j < m; j++) {
-            if (lower_needle[i] === lower_haystack[j]) {
-                let score = SCORE_MIN;
-                if (!i) {
-                    score = (j * SCORE_GAP_LEADING) + match_bonus[j];
-                }
-                else if (j) { /* i > 0 && j > 0*/
-                    score = Math.max(M[i - 1][j - 1] + match_bonus[j], 
-                    /* consecutive match, doesn't stack with match_bonus */
-                    D[i - 1][j - 1] + SCORE_MATCH_CONSECUTIVE);
-                }
-                D[i][j] = score;
-                M[i][j] = prev_score = Math.max(score, prev_score + gap_score);
-            }
-            else {
-                D[i][j] = SCORE_MIN;
-                M[i][j] = prev_score = prev_score + gap_score;
-            }
-        }
-    }
-}
-function score(needle, haystack) {
-    let n = needle.length;
-    let m = haystack.length;
-    if (!n || !m)
-        return SCORE_MIN;
-    if (n === m) {
-        /* Since this method can only be called with a haystack which
-         * matches needle. If the lengths of the strings are equal the
-         * strings themselves must also be equal (ignoring case).
-         */
-        return SCORE_MAX;
-    }
-    if (m > 1024) {
-        /*
-         * Unreasonably large candidate: return no score
-         * If it is a valid match it will still be returned, it will
-         * just be ranked below any reasonably sized candidates
-         */
-        return SCORE_MIN;
-    }
-    let D = new Array(n);
-    let M = new Array(n);
-    compute(needle, haystack, D, M);
-    return M[n - 1][m - 1];
-}
-exports.score = score;
-function positions(needle, haystack) {
-    let n = needle.length;
-    let m = haystack.length;
-    let positions = new Array(n);
-    if (!n || !m)
-        return positions;
-    if (n === m) {
-        for (let i = 0; i < n; i++)
-            positions[i] = i;
-        return positions;
-    }
-    if (m > 1024) {
-        return positions;
-    }
-    let D = new Array(n);
-    let M = new Array(n);
-    compute(needle, haystack, D, M);
-    /* backtrack to find the positions of optimal matching */
-    let match_required = false;
-    for (let i = n - 1, j = m - 1; i >= 0; i--) {
-        for (; j >= 0; j--) {
-            /*
-             * There may be multiple paths which result in
-             * the optimal weight.
-             *
-             * For simplicity, we will pick the first one
-             * we encounter, the latest in the candidate
-             * string.
-             */
-            if (D[i][j] !== SCORE_MIN &&
-                (match_required || D[i][j] === M[i][j])) {
-                /* If this score was determined using
-                 * SCORE_MATCH_CONSECUTIVE, the
-                 * previous character MUST be a match
-                 */
-                match_required =
-                    i && j &&
-                        M[i][j] === D[i - 1][j - 1] + SCORE_MATCH_CONSECUTIVE;
-                positions[i] = j--;
-                break;
-            }
-        }
-    }
-    return positions;
-}
-exports.positions = positions;
-function hasMatch(needle, haystack) {
-    needle = needle.toLowerCase();
-    haystack = haystack.toLowerCase();
-    let l = needle.length;
-    for (let i = 0, j = 0; i < l; i += 1) {
-        j = haystack.indexOf(needle[i], j) + 1;
-        if (j === 0)
-            return false;
-    }
-    return true;
-}
-exports.hasMatch = hasMatch;
-//# sourceMappingURL=fzy.js.map
-
-/***/ }),
-/* 595 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(211);
-const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
-const manager_1 = tslib_1.__importDefault(__webpack_require__(253));
-const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
-const services_1 = tslib_1.__importDefault(__webpack_require__(525));
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(581));
-const logger = __webpack_require__(64)('list-actions');
-class ActionsList extends basic_1.default {
-    constructor(nvim) {
-        super(nvim);
-        this.defaultAction = 'do';
-        this.description = 'code actions of selected range.';
-        this.name = 'actions';
-        this.options = [{
-                name: '-start',
-                description: 'start of line',
-                hasValue: true
-            }, {
-                name: '-end',
-                description: 'end of line',
-                hasValue: true
-            }, {
-                name: '-quickfix',
-                description: 'quickfix only',
-            }, {
-                name: '-source',
-                description: 'source action only'
-            }];
-        this.addAction('do', async (item) => {
-            let action = item.data.action;
-            let { command, edit } = action;
-            if (edit)
-                await workspace_1.default.applyEdit(edit);
-            if (command) {
-                if (commands_1.default.has(command.command)) {
-                    commands_1.default.execute(command);
-                }
-                else {
-                    let clientId = action.clientId;
-                    let service = services_1.default.getService(clientId);
-                    let params = {
-                        command: command.command,
-                        arguments: command.arguments
-                    };
-                    if (service.client) {
-                        let { client } = service;
-                        client
-                            .sendRequest(vscode_languageserver_protocol_1.ExecuteCommandRequest.type, params)
-                            .then(undefined, error => {
-                            workspace_1.default.showMessage(`Execute '${command.command} error: ${error}'`, 'error');
-                        });
-                    }
-                }
-            }
-        });
-    }
-    async loadItems(context) {
-        let buf = await context.window.buffer;
-        let doc = workspace_1.default.getDocument(buf.id);
-        if (!doc)
-            return null;
-        let args = this.parseArguments(context.args);
-        let range;
-        if (args.start && args.end) {
-            range = vscode_languageserver_protocol_1.Range.create(parseInt(args.start, 10) - 1, 0, parseInt(args.end, 10), 0);
-        }
-        else {
-            range = vscode_languageserver_protocol_1.Range.create(0, 0, doc.lineCount, 0);
-        }
-        let diagnostics = manager_1.default.getDiagnosticsInRange(doc.textDocument, range);
-        let actionContext = { diagnostics };
-        if (args.quickfix) {
-            actionContext.only = [vscode_languageserver_protocol_1.CodeActionKind.QuickFix];
-        }
-        else if (args.source) {
-            actionContext.only = [vscode_languageserver_protocol_1.CodeActionKind.Source];
-        }
-        let codeActionsMap = await languages_1.default.getCodeActions(doc.textDocument, range, actionContext);
-        if (!codeActionsMap)
-            return [];
-        let codeActions = [];
-        for (let clientId of codeActionsMap.keys()) {
-            let actions = codeActionsMap.get(clientId);
-            for (let action of actions) {
-                codeActions.push(Object.assign({ clientId }, action));
-            }
-        }
-        codeActions.sort((a, b) => {
-            if (a.isPreferred && !b.isPreferred) {
-                return -1;
-            }
-            if (b.isPreferred && !a.isPreferred) {
-                return 1;
-            }
-            return 0;
-        });
-        let items = codeActions.map(action => ({
-            label: `${action.title} ${action.clientId ? `[${action.clientId}]` : ''} ${action.kind ? `(${action.kind})` : ''}`,
-            data: { action }
-        }));
-        return items;
-    }
-    doHighlight() {
-        let { nvim } = this;
-        nvim.pauseNotification();
-        nvim.command('syntax match CocActionsTitle /\\v^[^[]+/ contained containedin=CocActionsLine', true);
-        nvim.command('syntax match CocActionsClient /\\[\\w\\+\\]/ contained containedin=CocActionsLine', true);
-        nvim.command('syntax match CocActionsKind /\\v\\(.*\\)$/ contained containedin=CocActionsLine', true);
-        nvim.command('highlight default link CocActionsTitle Normal', true);
-        nvim.command('highlight default link CocActionsClient Typedef', true);
-        nvim.command('highlight default link CocActionsKind Comment', true);
-        nvim.resumeNotification().catch(_e => {
-            // noop
-        });
-    }
-}
-exports.default = ActionsList;
-//# sourceMappingURL=actions.js.map
-
-/***/ }),
-/* 596 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(211);
-const events_1 = tslib_1.__importDefault(__webpack_require__(210));
-const util_1 = __webpack_require__(238);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const debounce = __webpack_require__(240);
-const logger = __webpack_require__(64)('list-ui');
-class ListUI {
-    constructor(nvim, config) {
-        this.nvim = nvim;
-        this.config = config;
-        this.newTab = false;
-        this.noResize = false;
-        this._bufnr = 0;
-        this.currIndex = 0;
-        this.highlights = [];
-        this.items = [];
-        this.disposables = [];
-        this.selected = new Set();
-        this.creating = false;
-        this._onDidChangeLine = new vscode_languageserver_protocol_1.Emitter();
-        this._onDidOpen = new vscode_languageserver_protocol_1.Emitter();
-        this._onDidClose = new vscode_languageserver_protocol_1.Emitter();
-        this._onDidChange = new vscode_languageserver_protocol_1.Emitter();
-        this._onDidLineChange = new vscode_languageserver_protocol_1.Emitter();
-        this._onDoubleClick = new vscode_languageserver_protocol_1.Emitter();
-        this.onDidChangeLine = this._onDidChangeLine.event;
-        this.onDidLineChange = this._onDidLineChange.event;
-        this.onDidOpen = this._onDidOpen.event;
-        this.onDidClose = this._onDidClose.event;
-        this.onDidChange = this._onDidChange.event;
-        this.onDidDoubleClick = this._onDoubleClick.event;
-        let signText = config.get('selectedSignText', '*');
-        nvim.command(`sign define CocSelected text=${signText} texthl=CocSelectedText linehl=CocSelectedLine`, true);
-        this.signOffset = config.get('signOffset');
-        events_1.default.on('BufUnload', async (bufnr) => {
-            if (bufnr == this.bufnr) {
-                this._bufnr = 0;
-                this.window = null;
-                this._onDidClose.fire(bufnr);
-            }
-        }, null, this.disposables);
-        let timer;
-        events_1.default.on('CursorMoved', async (bufnr, cursor) => {
-            if (timer)
-                clearTimeout(timer);
-            if (bufnr != this.bufnr)
-                return;
-            this.onLineChange(cursor[0] - 1);
-        }, null, this.disposables);
-        events_1.default.on('CursorMoved', debounce(async (bufnr) => {
-            if (bufnr != this.bufnr)
-                return;
-            let [start, end] = await nvim.eval('[line("w0"),line("w$")]');
-            if (end < 500)
-                return;
-            nvim.pauseNotification();
-            this.doHighlight(start - 1, end);
-            nvim.command('redraw', true);
-            await nvim.resumeNotification(false, true);
-        }, 100));
-    }
-    onLineChange(index) {
-        if (this.currIndex != index) {
-            this.currIndex = index;
-            this._onDidChangeLine.fire(index);
-        }
-    }
-    set index(n) {
-        if (n < 0 || n >= this.items.length)
-            return;
-        let { nvim } = this;
-        nvim.pauseNotification();
-        this.setCursor(n + 1, 0);
-        nvim.command('redraw', true);
-        nvim.resumeNotification(false, true).logError();
-    }
-    get index() {
-        return this.currIndex;
-    }
-    get firstItem() {
-        return this.items[0];
-    }
-    get lastItem() {
-        return this.items[this.items.length - 1];
-    }
-    getItem(delta) {
-        let { currIndex } = this;
-        return this.items[currIndex + delta];
-    }
-    get item() {
-        let { window } = this;
-        if (!window)
-            return Promise.resolve(null);
-        return window.cursor.then(cursor => {
-            this.currIndex = cursor[0] - 1;
-            return this.items[this.currIndex];
-        }, _e => null);
-    }
-    async echoMessage(item) {
-        if (this.bufnr)
-            return;
-        let { items } = this;
-        let idx = items.indexOf(item);
-        let msg = `[${idx + 1}/${items.length}] ${item.label || ''}`;
-        this.nvim.callTimer('coc#util#echo_lines', [[msg]], true);
-    }
-    async updateItem(item, index) {
-        if (!this.bufnr || workspace_1.default.bufnr != this.bufnr)
-            return;
-        let obj = Object.assign({ resolved: true }, item);
-        if (index < this.length) {
-            this.items[index] = obj;
-            let { nvim } = this;
-            nvim.pauseNotification();
-            nvim.command('setl modifiable', true);
-            nvim.call('setline', [index + 1, obj.label], true);
-            nvim.command('setl nomodifiable', true);
-            await nvim.resumeNotification();
-        }
-    }
-    async getItems() {
-        if (this.length == 0)
-            return [];
-        let mode = await this.nvim.call('mode');
-        if (mode == 'v' || mode == 'V') {
-            let [start, end] = await this.getSelectedRange();
-            let res = [];
-            for (let i = start; i <= end; i++) {
-                res.push(this.items[i - 1]);
-            }
-            return res;
-        }
-        let { selectedItems } = this;
-        if (selectedItems.length)
-            return selectedItems;
-        let item = await this.item;
-        return item == null ? [] : [item];
-    }
-    async onMouse(event) {
-        let { nvim, window } = this;
-        let winid = await nvim.getVvar('mouse_winid');
-        if (!window)
-            return;
-        let lnum = await nvim.getVvar('mouse_lnum');
-        let col = await nvim.getVvar('mouse_col');
-        if (event == 'mouseDown') {
-            this.mouseDown = { winid, lnum, col, current: winid == window.id };
-            return;
-        }
-        let current = winid == window.id;
-        if (current && event == 'doubleClick') {
-            this.setCursor(lnum, 0);
-            this._onDoubleClick.fire();
-        }
-        if (!this.mouseDown || this.mouseDown.winid != this.mouseDown.winid)
-            return;
-        if (current && event == 'mouseDrag') {
-            await this.selectLines(this.mouseDown.lnum, lnum);
-        }
-        else if (current && event == 'mouseUp') {
-            if (this.mouseDown.lnum == lnum) {
-                nvim.pauseNotification();
-                this.clearSelection();
-                this.setCursor(lnum, 0);
-                nvim.command('redraw', true);
-                await nvim.resumeNotification();
-            }
-            else {
-                await this.selectLines(this.mouseDown.lnum, lnum);
-            }
-        }
-        else if (!current && event == 'mouseUp') {
-            nvim.pauseNotification();
-            nvim.call('win_gotoid', winid, true);
-            nvim.call('cursor', [lnum, col], true);
-            await nvim.resumeNotification();
-        }
-    }
-    reset() {
-        this.items = [];
-        this.mouseDown = null;
-        this.selected = new Set();
-        this._bufnr = 0;
-        this.window = null;
-    }
-    hide() {
-        let { window, nvim } = this;
-        if (window) {
-            this._bufnr = 0;
-            this.window = null;
-            nvim.call('coc#util#close', [window.id], true);
-        }
-    }
-    async resume(name, listOptions) {
-        let { items, selected, nvim, signOffset } = this;
-        await this.drawItems(items, name, listOptions, true);
-        if (selected.size > 0 && this.bufnr) {
-            nvim.pauseNotification();
-            for (let lnum of selected) {
-                nvim.command(`sign place ${signOffset + lnum} line=${lnum} name=CocSelected buffer=${this.bufnr}`, true);
-            }
-            await nvim.resumeNotification();
-        }
-    }
-    async toggleSelection() {
-        let { nvim, selected, signOffset, bufnr } = this;
-        if (workspace_1.default.bufnr != bufnr)
-            return;
-        let lnum = await nvim.call('line', '.');
-        let mode = await nvim.call('mode');
-        if (mode == 'v' || mode == 'V') {
-            let [start, end] = await this.getSelectedRange();
-            let exists = selected.has(start);
-            let reverse = start > end;
-            if (reverse)
-                [start, end] = [end, start];
-            for (let i = start; i <= end; i++) {
-                if (!exists) {
-                    selected.add(i);
-                    nvim.command(`sign place ${signOffset + i} line=${i} name=CocSelected buffer=${bufnr}`, true);
-                }
-                else {
-                    selected.delete(i);
-                    nvim.command(`sign unplace ${signOffset + i} buffer=${bufnr}`, true);
-                }
-            }
-            this.setCursor(end, 0);
-            nvim.command('redraw', true);
-            await nvim.resumeNotification();
-            return;
-        }
-        let exists = selected.has(lnum);
-        nvim.pauseNotification();
-        if (exists) {
-            selected.delete(lnum);
-            nvim.command(`sign unplace ${signOffset + lnum} buffer=${bufnr}`, true);
-        }
-        else {
-            selected.add(lnum);
-            nvim.command(`sign place ${signOffset + lnum} line=${lnum} name=CocSelected buffer=${bufnr}`, true);
-        }
-        this.setCursor(lnum + 1, 0);
-        nvim.command('redraw', true);
-        await nvim.resumeNotification();
-    }
-    async selectLines(start, end) {
-        let { nvim, signOffset, bufnr, length } = this;
-        this.clearSelection();
-        let { selected } = this;
-        nvim.pauseNotification();
-        let reverse = start > end;
-        if (reverse)
-            [start, end] = [end, start];
-        for (let i = start; i <= end; i++) {
-            if (i > length)
-                break;
-            selected.add(i);
-            nvim.command(`sign place ${signOffset + i} line=${i} name=CocSelected buffer=${bufnr}`, true);
-        }
-        this.setCursor(end, 0);
-        nvim.command('redraw', true);
-        await nvim.resumeNotification();
-    }
-    async selectAll() {
-        let { length } = this;
-        if (length == 0)
-            return;
-        await this.selectLines(1, length);
-    }
-    clearSelection() {
-        let { selected, nvim, signOffset, bufnr } = this;
-        if (!bufnr)
-            return;
-        if (selected.size > 0) {
-            let signIds = [];
-            for (let lnum of selected) {
-                signIds.push(signOffset + lnum);
-            }
-            nvim.call('coc#util#unplace_signs', [bufnr, signIds], true);
-            this.selected = new Set();
-        }
-    }
-    get shown() {
-        return this._bufnr != 0;
-    }
-    get bufnr() {
-        return this._bufnr;
-    }
-    get ready() {
-        if (this._bufnr)
-            return Promise.resolve();
-        if (this.creating) {
-            return new Promise(resolve => {
-                let disposable = this.onDidOpen(() => {
-                    disposable.dispose();
-                    resolve();
-                });
-            });
-        }
-        return Promise.reject(new Error('Not creating list'));
-    }
-    async drawItems(items, name, listOptions, reload = false) {
-        var _a, _b;
-        let { bufnr, config, nvim } = this;
-        this.newTab = listOptions.position == 'tab';
-        this.noResize = listOptions.noResize;
-        let prevLabel = (_a = this.items[this.currIndex]) === null || _a === void 0 ? void 0 : _a.label;
-        let height = this.calculateListHeight(items);
-        let limitLines = config.get('limitLines', 30000);
-        this.items = items.slice(0, limitLines);
-        if (bufnr == 0 && !this.creating) {
-            this.creating = true;
-            let [bufnr, winid] = await nvim.call('coc#list#create', [listOptions.position, height, name, listOptions.numberSelect]);
-            this._bufnr = bufnr;
-            this.window = nvim.createWindow(winid);
-            this.height = height;
-            this._onDidOpen.fire(this.bufnr);
-            this.creating = false;
-        }
-        else {
-            await this.ready;
-        }
-        let lines = this.items.map(item => item.label);
-        this.clearSelection();
-        let newIndex = reload ? this.currIndex : 0;
-        await this.setLines(lines, false, newIndex);
-        let currLabel = (_b = this.items[newIndex]) === null || _b === void 0 ? void 0 : _b.label;
-        if (currLabel != prevLabel) {
-            this._onDidLineChange.fire(this.currIndex + 1);
-        }
-    }
-    async appendItems(items) {
-        let { config } = this;
-        let limitLines = config.get('limitLines', 1000);
-        let curr = this.items.length;
-        if (curr >= limitLines) {
-            this._onDidChange.fire();
-            return;
-        }
-        let max = limitLines - curr;
-        let append = items.slice(0, max);
-        this.items = this.items.concat(append);
-        if (this.creating)
-            return;
-        await this.setLines(append.map(item => item.label), curr > 0, this.currIndex);
-    }
-    calculateListHeight(items) {
-        let { config } = this;
-        let maxHeight = config.get('maxHeight', 10);
-        let minHeight = config.get('minHeight', 1);
-        let height = Math.min(Math.max(minHeight, items.length), maxHeight);
-        this.height = Math.max(1, height);
-        return this.height;
-    }
-    async setLines(lines, append = false, index) {
-        let { nvim, bufnr, window, config } = this;
-        if (!bufnr || !window)
-            return;
-        let resize = !this.newTab && config.get('autoResize', true);
-        if (this.noResize === true)
-            resize = false;
-        let buf = nvim.createBuffer(bufnr);
-        nvim.pauseNotification();
-        nvim.call('win_gotoid', window.id, true);
-        if (!append) {
-            nvim.call('clearmatches', [], true);
-        }
-        if (resize) {
-            let height = this.calculateListHeight(this.items);
-            nvim.call('coc#list#set_height', [height], true);
-        }
-        if (!append) {
-            if (!lines.length) {
-                lines = ['Press ? on normal mode to get help.'];
-                nvim.call('matchaddpos', ['Comment', [[1]], 99], true);
-            }
-        }
-        nvim.command('setl modifiable', true);
-        if (workspace_1.default.isVim) {
-            nvim.call('coc#list#setlines', [lines, append], true);
-        }
-        else {
-            // eslint-disable-next-line @typescript-eslint/no-floating-promises
-            buf.setLines(lines, { start: append ? -1 : 0, end: -1, strictIndexing: false }, true);
-        }
-        nvim.command('setl nomodifiable', true);
-        if (!append && index == 0) {
-            this.doHighlight(0, 300);
-        }
-        else {
-            let height = this.newTab ? workspace_1.default.env.lines : this.height;
-            this.doHighlight(Math.max(0, index - height), Math.min(index + height + 1, this.length - 1));
-        }
-        if (!append) {
-            this.currIndex = index;
-            window.notify('nvim_win_set_cursor', [[index + 1, 0]]);
-        }
-        if (!append)
-            this._onDidChange.fire();
-        if (workspace_1.default.isVim)
-            nvim.command('redraw', true);
-        let res = await nvim.resumeNotification();
-        if (res[1])
-            logger.error(res[1]);
-    }
-    restoreWindow() {
-        if (this.newTab)
-            return;
-        let { window, height } = this;
-        if (window && height) {
-            this.nvim.call('coc#list#restore', [window.id, height], true);
-        }
-    }
-    dispose() {
-        util_1.disposeAll(this.disposables);
-    }
-    get length() {
-        return this.items.length;
-    }
-    get selectedItems() {
-        let { selected, items } = this;
-        let res = [];
-        for (let i of selected) {
-            if (items[i - 1])
-                res.push(items[i - 1]);
-        }
-        return res;
-    }
-    doHighlight(start, end) {
-        let { nvim } = workspace_1.default;
-        let { highlights, items } = this;
-        for (let i = start; i <= Math.min(end, items.length - 1); i++) {
-            let { ansiHighlights } = items[i];
-            let highlight = highlights[i];
-            if (ansiHighlights) {
-                for (let hi of ansiHighlights) {
-                    let { span, hlGroup } = hi;
-                    nvim.call('matchaddpos', [hlGroup, [[i + 1, span[0] + 1, span[1] - span[0]]], 9], true);
-                }
-            }
-            if (highlight) {
-                let { spans, hlGroup } = highlight;
-                for (let span of spans) {
-                    nvim.call('matchaddpos', [hlGroup || 'Search', [[i + 1, span[0] + 1, span[1] - span[0]]], 11], true);
-                }
-            }
-        }
-    }
-    setCursor(lnum, col) {
-        let { window, items } = this;
-        let max = items.length == 0 ? 1 : items.length;
-        if (lnum > max)
-            return;
-        if (this.currIndex + 1 != lnum) {
-            this.currIndex = lnum - 1;
-            this._onDidChangeLine.fire(lnum);
-        }
-        if (window)
-            window.notify('nvim_win_set_cursor', [[lnum, col]]);
-    }
-    addHighlights(highlights, append = false) {
-        let limitLines = this.config.get('limitLines', 1000);
-        if (!append) {
-            this.highlights = highlights.slice(0, limitLines);
-        }
-        else {
-            if (this.highlights.length < limitLines) {
-                this.highlights = this.highlights.concat(highlights.slice(0, limitLines - this.highlights.length));
-            }
-        }
-    }
-    async getSelectedRange() {
-        let { nvim } = this;
-        await nvim.call('coc#list#stop_prompt');
-        await nvim.eval('feedkeys("\\<esc>", "in")');
-        let [, start] = await nvim.call('getpos', "'<");
-        let [, end] = await nvim.call('getpos', "'>");
-        if (start > end) {
-            [start, end] = [end, start];
-        }
-        let method = workspace_1.default.isVim ? 'coc#list#prompt_start' : 'coc#list#start_prompt';
-        this.nvim.call(method, [], true);
-        return [start, end];
-    }
-}
-exports.default = ListUI;
-//# sourceMappingURL=ui.js.map
-
-/***/ }),
-/* 597 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(211);
-const vscode_uri_1 = __webpack_require__(243);
-const ansiparse_1 = __webpack_require__(524);
-const diff_1 = __webpack_require__(309);
-const fzy_1 = __webpack_require__(594);
-const score_1 = __webpack_require__(598);
-const string_1 = __webpack_require__(310);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-const logger = __webpack_require__(64)('list-worker');
-const controlCode = '\x1b';
-// perform loading task
-class Worker {
-    constructor(nvim, manager) {
-        this.nvim = nvim;
-        this.manager = manager;
-        this.recentFiles = [];
-        this._loading = false;
-        this.totalItems = [];
-        this._onDidChangeItems = new vscode_languageserver_protocol_1.Emitter();
-        this.onDidChangeItems = this._onDidChangeItems.event;
-        let { prompt } = manager;
-        prompt.onDidChangeInput(() => {
-            let { listOptions } = manager;
-            let { interactive } = listOptions;
-            let time = manager.getConfig('interactiveDebounceTime', 100);
-            if (this.timer)
-                clearTimeout(this.timer);
-            // reload or filter items
-            if (interactive) {
-                this.stop();
-                this.timer = setTimeout(async () => {
-                    await this.loadItems();
-                }, time);
-            }
-            else if (this.length) {
-                let wait = Math.max(Math.min(Math.floor(this.length / 200), 300), 50);
-                this.timer = setTimeout(() => {
-                    this.drawItems();
-                }, wait);
-            }
-        });
-    }
-    loadMru() {
-        let mru = workspace_1.default.createMru('mru');
-        mru.load().then(files => {
-            this.recentFiles = files;
-        }).logError();
-    }
-    set loading(loading) {
-        if (this._loading == loading)
-            return;
-        this._loading = loading;
-        let { nvim } = this;
-        if (loading) {
-            this.interval = setInterval(() => {
-                let idx = Math.floor((new Date()).getMilliseconds() / 100);
-                nvim.pauseNotification();
-                nvim.setVar('coc_list_loading_status', frames[idx], true);
-                nvim.command('redraws', true);
-                nvim.resumeNotification(false, true).logError();
-            }, 100);
-        }
-        else {
-            if (this.interval) {
-                clearInterval(this.interval);
-                nvim.pauseNotification();
-                nvim.setVar('coc_list_loading_status', '', true);
-                nvim.command('redraws', true);
-                nvim.resumeNotification(false, true).logError();
-            }
-        }
-    }
-    get isLoading() {
-        return this._loading;
-    }
-    async loadItems(reload = false) {
-        let { context, list, listOptions } = this.manager;
-        if (!list)
-            return;
-        this.loadMru();
-        if (this.timer)
-            clearTimeout(this.timer);
-        this.loading = true;
-        let { interactive } = listOptions;
-        let source = this.tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
-        let token = source.token;
-        let items = await list.loadItems(context, token);
-        if (token.isCancellationRequested)
-            return;
-        if (!items || Array.isArray(items)) {
-            items = (items || []);
-            this.totalItems = items.map(item => {
-                item.label = this.fixLabel(item.label);
-                this.parseListItemAnsi(item);
-                return item;
-            });
-            this.loading = false;
-            let highlights = [];
-            if (!interactive) {
-                let res = this.filterItems(items);
-                items = res.items;
-                highlights = res.highlights;
-            }
-            else {
-                highlights = this.getItemsHighlight(items);
-            }
-            this._onDidChangeItems.fire({
-                items,
-                highlights,
-                reload
-            });
-        }
-        else {
-            let task = items;
-            let totalItems = this.totalItems = [];
-            let count = 0;
-            let currInput = context.input;
-            let timer;
-            let lastTs;
-            let _onData = () => {
-                lastTs = Date.now();
-                if (token.isCancellationRequested || !this.manager.isActivated)
-                    return;
-                if (count >= totalItems.length)
-                    return;
-                let inputChanged = this.input != currInput;
-                if (interactive && inputChanged)
-                    return;
-                if (count == 0 || inputChanged) {
-                    currInput = this.input;
-                    count = totalItems.length;
-                    let items;
-                    let highlights = [];
-                    if (interactive) {
-                        items = totalItems.slice();
-                        highlights = this.getItemsHighlight(items);
-                    }
-                    else {
-                        let res = this.filterItems(totalItems);
-                        items = res.items;
-                        highlights = res.highlights;
-                    }
-                    this._onDidChangeItems.fire({ items, highlights, reload, append: false });
-                }
-                else {
-                    let remain = totalItems.slice(count);
-                    count = totalItems.length;
-                    let items;
-                    let highlights = [];
-                    if (!interactive) {
-                        let res = this.filterItems(remain);
-                        items = res.items;
-                        highlights = res.highlights;
-                    }
-                    else {
-                        items = remain;
-                        highlights = this.getItemsHighlight(remain);
-                    }
-                    this._onDidChangeItems.fire({ items, highlights, append: true });
-                }
-            };
-            task.on('data', item => {
-                if (timer)
-                    clearTimeout(timer);
-                if (token.isCancellationRequested)
-                    return;
-                if (interactive && this.input != currInput)
-                    return;
-                item.label = this.fixLabel(item.label);
-                this.parseListItemAnsi(item);
-                totalItems.push(item);
-                if (this.input != currInput)
-                    return;
-                if ((!lastTs && totalItems.length == 500)
-                    || Date.now() - lastTs > 200) {
-                    _onData();
-                }
-                else {
-                    timer = setTimeout(_onData, 50);
-                }
-            });
-            let disposable = token.onCancellationRequested(() => {
-                this.loading = false;
-                disposable.dispose();
-                if (timer)
-                    clearTimeout(timer);
-                if (task) {
-                    task.dispose();
-                    task = null;
-                }
-            });
-            task.on('error', async (error) => {
-                task = null;
-                this.loading = false;
-                disposable.dispose();
-                if (timer)
-                    clearTimeout(timer);
-                await this.manager.cancel();
-                workspace_1.default.showMessage(`Task error: ${error.toString()}`, 'error');
-                logger.error(error);
-            });
-            task.on('end', () => {
-                task = null;
-                this.loading = false;
-                disposable.dispose();
-                if (timer)
-                    clearTimeout(timer);
-                if (token.isCancellationRequested)
-                    return;
-                if (totalItems.length == 0) {
-                    this._onDidChangeItems.fire({ items: [], highlights: [] });
-                }
-                else {
-                    _onData();
-                }
-            });
-        }
-    }
-    // draw all items with filter if necessary
-    drawItems() {
-        let { totalItems } = this;
-        let { listOptions, isActivated } = this.manager;
-        if (!isActivated)
-            return;
-        let { interactive } = listOptions;
-        let items = totalItems;
-        let highlights = [];
-        if (!interactive) {
-            let res = this.filterItems(totalItems);
-            items = res.items;
-            highlights = res.highlights;
-        }
-        else {
-            highlights = this.getItemsHighlight(items);
-        }
-        this._onDidChangeItems.fire({ items, highlights });
-    }
-    stop() {
-        if (this.tokenSource) {
-            this.tokenSource.cancel();
-            this.tokenSource = null;
-        }
-        this.loading = false;
-        if (this.timer) {
-            clearTimeout(this.timer);
-        }
-    }
-    get length() {
-        return this.totalItems.length;
-    }
-    get input() {
-        return this.manager.prompt.input;
-    }
-    getItemsHighlight(items) {
-        let { input } = this;
-        if (!input)
-            return [];
-        return items.map(item => {
-            let filterLabel = getFilterLabel(item);
-            if (filterLabel == '')
-                return null;
-            let res = score_1.getMatchResult(filterLabel, input);
-            if (!res || !res.score)
-                return null;
-            return this.getHighlights(filterLabel, res.matches);
-        });
-    }
-    filterItems(items) {
-        let { input } = this.manager.prompt;
-        let highlights = [];
-        let { sort, matcher, ignorecase } = this.manager.listOptions;
-        if (input.length == 0) {
-            let filtered = items.slice();
-            let sort = filtered.length && typeof filtered[0].recentScore == 'number';
-            return {
-                items: sort ? filtered.sort((a, b) => b.recentScore - a.recentScore) : filtered,
-                highlights
-            };
-        }
-        let extended = this.manager.getConfig('extendedSearchMode', true);
-        let filtered;
-        if (input.length > 0) {
-            let inputs = extended ? input.split(/\s+/) : [input];
-            if (matcher == 'strict') {
-                filtered = items.filter(item => {
-                    let spans = [];
-                    let filterLabel = getFilterLabel(item);
-                    for (let input of inputs) {
-                        let idx = ignorecase ? filterLabel.toLowerCase().indexOf(input.toLowerCase()) : filterLabel.indexOf(input);
-                        if (idx == -1)
-                            return false;
-                        spans.push([string_1.byteIndex(filterLabel, idx), string_1.byteIndex(filterLabel, idx + string_1.byteLength(input))]);
-                    }
-                    highlights.push({ spans });
-                    return true;
-                });
-            }
-            else if (matcher == 'regex') {
-                let flags = ignorecase ? 'iu' : 'u';
-                let regexes = inputs.reduce((p, c) => {
-                    try {
-                        let regex = new RegExp(c, flags);
-                        p.push(regex);
-                    }
-                    catch (e) { }
-                    return p;
-                }, []);
-                filtered = items.filter(item => {
-                    let spans = [];
-                    let filterLabel = getFilterLabel(item);
-                    for (let regex of regexes) {
-                        let ms = filterLabel.match(regex);
-                        if (ms == null)
-                            return false;
-                        spans.push([string_1.byteIndex(filterLabel, ms.index), string_1.byteIndex(filterLabel, ms.index + string_1.byteLength(ms[0]))]);
-                    }
-                    highlights.push({ spans });
-                    return true;
-                });
-            }
-            else {
-                filtered = items.filter(item => {
-                    let filterText = item.filterText || item.label;
-                    return inputs.every(s => fzy_1.hasMatch(s, filterText));
-                });
-                filtered = filtered.map(item => {
-                    let filterLabel = getFilterLabel(item);
-                    let matchScore = 0;
-                    let matches = [];
-                    for (let input of inputs) {
-                        matches.push(...fzy_1.positions(input, filterLabel));
-                        matchScore += fzy_1.score(input, filterLabel);
-                    }
-                    let { recentScore } = item;
-                    if (!recentScore && item.location) {
-                        let uri = getItemUri(item);
-                        if (uri.startsWith('file')) {
-                            let fsPath = vscode_uri_1.URI.parse(uri).fsPath;
-                            recentScore = -this.recentFiles.indexOf(fsPath);
-                        }
-                    }
-                    return Object.assign({}, item, {
-                        filterLabel,
-                        score: matchScore,
-                        recentScore,
-                        matches
-                    });
-                });
-                if (sort && items.length) {
-                    filtered.sort((a, b) => {
-                        if (a.score != b.score)
-                            return b.score - a.score;
-                        if (input.length && a.recentScore != b.recentScore) {
-                            return (a.recentScore || -Infinity) - (b.recentScore || -Infinity);
-                        }
-                        if (a.location && b.location) {
-                            let au = getItemUri(a);
-                            let bu = getItemUri(b);
-                            return au > bu ? 1 : -1;
-                        }
-                        return a.label > b.label ? 1 : -1;
-                    });
-                }
-                for (let item of filtered) {
-                    if (!item.matches)
-                        continue;
-                    let hi = this.getHighlights(item.filterLabel, item.matches);
-                    highlights.push(hi);
-                }
-            }
-        }
-        return {
-            items: filtered,
-            highlights
-        };
-    }
-    getHighlights(text, matches) {
-        let spans = [];
-        if (matches.length) {
-            let start = matches.shift();
-            let next = matches.shift();
-            let curr = start;
-            while (next) {
-                if (next == curr + 1) {
-                    curr = next;
-                    next = matches.shift();
-                    continue;
-                }
-                spans.push([string_1.byteIndex(text, start), string_1.byteIndex(text, curr) + 1]);
-                start = next;
-                curr = start;
-                next = matches.shift();
-            }
-            spans.push([string_1.byteIndex(text, start), string_1.byteIndex(text, curr) + 1]);
-        }
-        return { spans };
-    }
-    // set correct label, add ansi highlights
-    parseListItemAnsi(item) {
-        let { label } = item;
-        if (item.ansiHighlights || !label.includes(controlCode))
-            return;
-        let { line, highlights } = ansiparse_1.parseAnsiHighlights(label);
-        item.label = line;
-        item.ansiHighlights = highlights;
-    }
-    fixLabel(label) {
-        let { columns } = workspace_1.default.env;
-        label = label.split('\n').join(' ');
-        return label.slice(0, columns * 2);
-    }
-}
-exports.default = Worker;
-function getFilterLabel(item) {
-    return item.filterText != null ? diff_1.patchLine(item.filterText, item.label) : item.label;
-}
-function getItemUri(item) {
-    let { location } = item;
-    if (typeof location == 'string')
-        return location;
-    return location.uri;
-}
-//# sourceMappingURL=worker.js.map
-
-/***/ }),
-/* 598 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const path_1 = __webpack_require__(82);
-const fuzzy_1 = __webpack_require__(544);
-// first is start or path start +1, fuzzy +0.5
-// next is followed of path start +1, fuzzy +0.5
-// filename startsWith +1, fuzzy +0.5
-function getMatchResult(text, query, filename = '') {
-    if (!query)
-        return { score: 1 };
-    let matches = [];
-    let codes = fuzzy_1.getCharCodes(query);
-    let filenameIdx = filename ? text.indexOf(filename) : -1;
-    let matchBase = filenameIdx != -1 && fuzzy_1.fuzzyMatch(codes, filename);
-    let score = 0;
-    let c = query[0];
-    let idx = 0;
-    // base => start => pathSeparator => fuzzy
-    if (matchBase) {
-        if (filename.startsWith(c)) {
-            score = score + 2;
-            idx = filenameIdx + 1;
-            matches.push(filenameIdx);
-        }
-        else if (filename[0].toLowerCase() == c) {
-            score = score + 1.5;
-            idx = filenameIdx + 1;
-            matches.push(filenameIdx);
-        }
-        else {
-            for (let i = 1; i < filename.length; i++) {
-                if (fuzzy_1.fuzzyChar(c, filename[i])) {
-                    score = score + 1;
-                    idx = filenameIdx + i + 1;
-                    matches.push(filenameIdx + i);
-                    break;
-                }
-            }
-        }
-    }
-    else if (text.startsWith(c)) {
-        score = score + 1;
-        matches.push(0);
-        idx = 1;
-    }
-    else {
-        for (let i = 1; i < text.length; i++) {
-            let pre = text[i - 1];
-            if (pre == path_1.sep && text[i] == c) {
-                score = score + 1;
-                matches.push(i);
-                idx = i + 1;
-                break;
-            }
-        }
-        if (idx == 0) {
-            for (let i = 0; i < text.length; i++) {
-                if (fuzzy_1.fuzzyChar(c, text[i])) {
-                    score = score + 0.5;
-                    matches.push(i);
-                    idx = i + 1;
-                    break;
-                }
-            }
-        }
-    }
-    if (idx == 0)
-        return { score: 0 };
-    if (codes.length == 1)
-        return { score, matches };
-    return nextResult(codes.slice(1), text, idx, { score, matches });
-}
-exports.getMatchResult = getMatchResult;
-/**
- *
- * @public
- * @param {number[]} codes - remain codes
- * @param {string} text - total text
- * @param {number} idx - start index of text
- * @param {MatchResult} curr - current result
- * @returns {MatchResult | null}
- */
-function nextResult(codes, text, idx, curr) {
-    let { score, matches } = curr;
-    let results = [];
-    let c = codes[0];
-    let remain = codes.slice(1);
-    let result;
-    function getRemianResult(index) {
-        if (!result)
-            return;
-        if (remain.length == 0) {
-            results.push(result);
-        }
-        else if (result) {
-            let res = nextResult(remain, text, index, result);
-            if (res)
-                results.push(res);
-        }
-    }
-    let followed = idx < text.length ? text[idx].charCodeAt(0) : null;
-    if (!followed)
-        return null;
-    if (followed == c) {
-        result = { score: score + 1, matches: matches.concat([idx]) };
-        getRemianResult(idx + 1);
-    }
-    else if (fuzzy_1.caseMatch(c, followed)) {
-        result = { score: score + 0.5, matches: matches.concat([idx]) };
-        getRemianResult(idx + 1);
-    }
-    if (idx + 1 < text.length) {
-        // follow path
-        for (let i = idx + 1; i < text.length; i++) {
-            let ch = text[i].charCodeAt(0);
-            if (text[i - 1] == path_1.sep && fuzzy_1.caseMatch(c, ch)) {
-                let add = c == ch ? 1 : 0.5;
-                result = { score: score + add, matches: matches.concat([i]) };
-                getRemianResult(i + 1);
-                break;
-            }
-        }
-        // next fuzzy
-        for (let i = idx + 1; i < text.length; i++) {
-            let ch = text[i].charCodeAt(0);
-            if (fuzzy_1.caseMatch(c, ch)) {
-                let add = c == ch ? 0.5 : 0.2;
-                result = { score: score + add, matches: matches.concat([i]) };
-                getRemianResult(i + 1);
-                break;
-            }
-        }
-    }
-    return results.length ? bestResult(results) : null;
-}
-function bestResult(results) {
-    let res = results[0];
-    for (let i = 1; i < results.length; i++) {
-        if (results[i].score > res.score) {
-            res = results[i];
-        }
-    }
-    return res;
-}
-//# sourceMappingURL=score.js.map
-
-/***/ }),
-/* 599 */
+/* 600 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -85391,17 +85613,17 @@ exports.default = Source;
 //# sourceMappingURL=source.js.map
 
 /***/ }),
-/* 600 */
+/* 601 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const fuzzy_1 = __webpack_require__(544);
+const fuzzy_1 = __webpack_require__(580);
 const string_1 = __webpack_require__(310);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const source_1 = tslib_1.__importDefault(__webpack_require__(599));
+const source_1 = tslib_1.__importDefault(__webpack_require__(600));
 const logger = __webpack_require__(64)('model-source-vim');
 class VimSource extends source_1.default {
     async callOptinalFunc(fname, args) {
@@ -85503,7 +85725,7 @@ exports.default = VimSource;
 //# sourceMappingURL=source-vim.js.map
 
 /***/ }),
-/* 601 */
+/* 602 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -85511,7 +85733,7 @@ exports.default = VimSource;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
-const source_1 = tslib_1.__importDefault(__webpack_require__(599));
+const source_1 = tslib_1.__importDefault(__webpack_require__(600));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('source-around');
 class Around extends source_1.default {
@@ -85551,7 +85773,7 @@ exports.regist = regist;
 //# sourceMappingURL=around.js.map
 
 /***/ }),
-/* 602 */
+/* 603 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -85559,7 +85781,7 @@ exports.regist = regist;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
-const source_1 = tslib_1.__importDefault(__webpack_require__(599));
+const source_1 = tslib_1.__importDefault(__webpack_require__(600));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('source-buffer');
 class Buffer extends source_1.default {
@@ -85613,7 +85835,7 @@ exports.regist = regist;
 //# sourceMappingURL=buffer.js.map
 
 /***/ }),
-/* 603 */
+/* 604 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -85625,7 +85847,7 @@ const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const util_1 = tslib_1.__importDefault(__webpack_require__(74));
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
-const source_1 = tslib_1.__importDefault(__webpack_require__(599));
+const source_1 = tslib_1.__importDefault(__webpack_require__(600));
 const fs_2 = __webpack_require__(304);
 const string_1 = __webpack_require__(310);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
@@ -85763,16 +85985,16 @@ exports.regist = regist;
 //# sourceMappingURL=file.js.map
 
 /***/ }),
-/* 604 */
+/* 605 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
-const fuzzy_1 = __webpack_require__(544);
+const fuzzy_1 = __webpack_require__(580);
 const string_1 = __webpack_require__(310);
-const match_1 = __webpack_require__(605);
+const match_1 = __webpack_require__(606);
 const logger = __webpack_require__(64)('completion-complete');
 // first time completion
 const FIRST_TIMEOUT = 500;
@@ -86140,13 +86362,13 @@ exports.default = Complete;
 //# sourceMappingURL=complete.js.map
 
 /***/ }),
-/* 605 */
+/* 606 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const fuzzy_1 = __webpack_require__(544);
+const fuzzy_1 = __webpack_require__(580);
 function nextWordIndex(start = 0, codes) {
     for (let i = start; i < codes.length; i++) {
         if (isWordIndex(i, codes)) {
@@ -86288,7 +86510,7 @@ function nextScore(codes, index, inputCodes, allowFuzzy = true) {
 //# sourceMappingURL=match.js.map
 
 /***/ }),
-/* 606 */
+/* 607 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -86390,7 +86612,7 @@ exports.default = Floating;
 //# sourceMappingURL=floating.js.map
 
 /***/ }),
-/* 607 */
+/* 608 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -86438,7 +86660,7 @@ exports.default = throttle;
 //# sourceMappingURL=throttle.js.map
 
 /***/ }),
-/* 608 */
+/* 609 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -86666,7 +86888,7 @@ exports.CocSnippet = CocSnippet;
 //# sourceMappingURL=snippet.js.map
 
 /***/ }),
-/* 609 */
+/* 610 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -86676,7 +86898,7 @@ const tslib_1 = __webpack_require__(65);
 const path = tslib_1.__importStar(__webpack_require__(82));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const vscode_uri_1 = __webpack_require__(243);
-const clipboardy_1 = tslib_1.__importDefault(__webpack_require__(547));
+const clipboardy_1 = tslib_1.__importDefault(__webpack_require__(545));
 const logger = __webpack_require__(64)('snippets-variable');
 class SnippetVariableResolver {
     constructor() {
@@ -86741,7 +86963,7 @@ exports.SnippetVariableResolver = SnippetVariableResolver;
 //# sourceMappingURL=variableResolve.js.map
 
 /***/ }),
-/* 610 */
+/* 611 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -86751,7 +86973,7 @@ const tslib_1 = __webpack_require__(65);
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(240));
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const util_1 = __webpack_require__(611);
+const util_1 = __webpack_require__(612);
 const logger = __webpack_require__(64)('diagnostic-buffer');
 const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint'];
 // maintains sign and highlightId
@@ -86981,7 +87203,7 @@ exports.DiagnosticBuffer = DiagnosticBuffer;
 //# sourceMappingURL=buffer.js.map
 
 /***/ }),
-/* 611 */
+/* 612 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -87065,15 +87287,17 @@ exports.getLocationListItem = getLocationListItem;
 //# sourceMappingURL=util.js.map
 
 /***/ }),
-/* 612 */
+/* 613 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const vscode_uri_1 = __webpack_require__(243);
 const position_1 = __webpack_require__(311);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('diagnostic-collection');
 class Collection {
     constructor(owner) {
@@ -87117,6 +87341,18 @@ class Collection {
                         character: o.range.end.character + 1
                     };
                 }
+                let { start, end } = o.range;
+                // fix empty diagnostic at the and of line
+                if (end.character == 0 && end.line - start.line == 1 && start.character > 0) {
+                    // add last character when start character is end
+                    let doc = workspace_1.default.getDocument(uri);
+                    if (doc) {
+                        let line = doc.getline(start.line);
+                        if (start.character == line.length) {
+                            o.range.start.character = start.character - 1;
+                        }
+                    }
+                }
                 o.source = o.source || this.name;
             });
             this.diagnosticsMap.set(uri, diagnostics);
@@ -87157,7 +87393,7 @@ exports.default = Collection;
 //# sourceMappingURL=collection.js.map
 
 /***/ }),
-/* 613 */
+/* 614 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -87173,7 +87409,7 @@ const util_1 = __webpack_require__(238);
 const array_1 = __webpack_require__(308);
 const position_1 = __webpack_require__(311);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const range_1 = tslib_1.__importDefault(__webpack_require__(614));
+const range_1 = tslib_1.__importDefault(__webpack_require__(615));
 const logger = __webpack_require__(64)('cursors');
 class Cursors {
     constructor(nvim) {
@@ -87182,7 +87418,6 @@ class Cursors {
         this._changed = false;
         this.ranges = [];
         this.disposables = [];
-        this.matchIds = [];
         this.changing = false;
         this.loadConfig();
         workspace_1.default.onDidChangeConfiguration(e => {
@@ -87399,24 +87634,20 @@ class Cursors {
         }, 100), null, this.disposables);
     }
     doHighlights() {
-        let { matchIds } = this;
         let doc = workspace_1.default.getDocument(this.bufnr);
         if (!doc || !this.ranges.length)
             return;
-        if (matchIds.length)
-            this.nvim.call('coc#util#clearmatches', [matchIds, this.winid], true);
+        this.nvim.call('coc#util#clear_pos_matches', ['^CocCursorRange', this.winid], true);
         let searchRanges = this.ranges.map(o => o.currRange);
-        this.matchIds = doc.matchAddRanges(searchRanges, 'CocCursorRange', 99);
+        doc.matchAddRanges(searchRanges, 'CocCursorRange', 99);
         if (workspace_1.default.isVim)
             this.nvim.command('redraw', true);
     }
     cancel() {
         if (!this._activated)
             return;
-        let { matchIds } = this;
         this.nvim.setVar('coc_cursors_activated', 0, true);
-        this.nvim.call('coc#util#clearmatches', [Array.from(matchIds), this.winid], true);
-        this.matchIds = [];
+        this.nvim.call('coc#util#clear_pos_matches', ['^CocCursorRange', this.winid], true);
         util_1.disposeAll(this.disposables);
         this._changed = false;
         this.ranges = [];
@@ -87802,7 +88033,7 @@ function equalEdit(one, two) {
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 614 */
+/* 615 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -87869,7 +88100,7 @@ exports.default = TextRange;
 //# sourceMappingURL=range.js.map
 
 /***/ }),
-/* 615 */
+/* 616 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -87886,16 +88117,16 @@ const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(254));
 const services_1 = tslib_1.__importDefault(__webpack_require__(525));
 const manager_3 = tslib_1.__importDefault(__webpack_require__(256));
 const util_1 = __webpack_require__(238);
-const convert_1 = __webpack_require__(589);
+const convert_1 = __webpack_require__(595);
 const object_1 = __webpack_require__(249);
 const position_1 = __webpack_require__(311);
 const string_1 = __webpack_require__(310);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const codelens_1 = tslib_1.__importDefault(__webpack_require__(616));
-const colors_1 = tslib_1.__importDefault(__webpack_require__(617));
-const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(619));
-const refactor_1 = tslib_1.__importDefault(__webpack_require__(620));
-const search_1 = tslib_1.__importDefault(__webpack_require__(621));
+const codelens_1 = tslib_1.__importDefault(__webpack_require__(617));
+const colors_1 = tslib_1.__importDefault(__webpack_require__(618));
+const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(620));
+const refactor_1 = tslib_1.__importDefault(__webpack_require__(621));
+const search_1 = tslib_1.__importDefault(__webpack_require__(622));
 const debounce = __webpack_require__(240);
 const vscode_uri_1 = __webpack_require__(243);
 const logger = __webpack_require__(64)('Handler');
@@ -88133,15 +88364,16 @@ class Handler {
     }
     async onHover() {
         let { document, position } = await workspace_1.default.getCurrentState();
+        let winid = await this.nvim.call('win_getid');
         let hovers = await languages_1.default.getHover(document, position);
         if (hovers && hovers.length) {
             let hover = hovers.find(o => vscode_languageserver_protocol_1.Range.is(o.range));
             if (hover) {
                 let doc = workspace_1.default.getDocument(document.uri);
                 if (doc) {
-                    let ids = doc.matchAddRanges([hover.range], 'CocHoverRange', 999);
+                    doc.matchAddRanges([hover.range], 'CocHoverRange', 999);
                     setTimeout(() => {
-                        this.nvim.call('coc#util#clearmatches', [ids], true);
+                        this.nvim.call('coc#util#clear_pos_matches', ['^CocHoverRange', winid], true);
                     }, 1000);
                 }
             }
@@ -88556,12 +88788,12 @@ class Handler {
         await this.colors.pickPresentation();
     }
     async highlight() {
-        let bufnr = await this.nvim.call('bufnr', '%');
-        await this.documentHighlighter.highlight(bufnr);
+        let [bufnr, arr] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]');
+        await this.documentHighlighter.highlight(bufnr, vscode_languageserver_protocol_1.Position.create(arr[0], arr[1]));
     }
     async getSymbolsRanges() {
-        let document = await workspace_1.default.document;
-        let highlights = await this.documentHighlighter.getHighlights(document);
+        let [bufnr, arr] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]');
+        let highlights = await this.documentHighlighter.getHighlights(workspace_1.default.getDocument(bufnr), vscode_languageserver_protocol_1.Position.create(arr[0], arr[1]));
         if (!highlights)
             return null;
         return highlights.map(o => o.range);
@@ -88682,14 +88914,36 @@ class Handler {
         let pos = insertLeave ? { line: position.line, character: origLine.length } : position;
         let { changedtick } = doc;
         await synchronizeDocument(doc);
-        let edits = await languages_1.default.provideDocumentOnTypeEdits(ch, doc.textDocument, pos);
-        if (edits && edits.length && doc.changedtick == changedtick) {
-            let changed = position_1.getChangedFromEdits(position, edits);
-            await doc.applyEdits(edits);
-            let to = changed ? vscode_languageserver_protocol_1.Position.create(position.line + changed.line, position.character + changed.character) : null;
-            if (to)
-                await workspace_1.default.moveTo(to);
+        if (doc.changedtick != changedtick)
+            return;
+        let tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
+        let disposable = doc.onDocumentChange(() => {
+            clearTimeout(timer);
+            disposable.dispose();
+            tokenSource.cancel();
+        });
+        let timer = setTimeout(() => {
+            disposable.dispose();
+            tokenSource.cancel();
+        }, 2000);
+        let edits;
+        try {
+            edits = await languages_1.default.provideDocumentOnTypeEdits(ch, doc.textDocument, pos, tokenSource.token);
         }
+        catch (e) {
+            logger.error(`Error on format: ${e.message}`, e.stack);
+        }
+        if (!edits || !edits.length)
+            return;
+        if (tokenSource.token.isCancellationRequested)
+            return;
+        clearTimeout(timer);
+        disposable.dispose();
+        let changed = position_1.getChangedFromEdits(position, edits);
+        await doc.applyEdits(edits);
+        let to = changed ? vscode_languageserver_protocol_1.Position.create(position.line + changed.line, position.character + changed.character) : null;
+        if (to)
+            await workspace_1.default.moveTo(to);
     }
     async triggerSignatureHelp(document, position) {
         let { signatureHelpTarget } = this.preferences;
@@ -89227,7 +89481,7 @@ async function synchronizeDocument(doc) {
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 616 */
+/* 617 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -89509,7 +89763,7 @@ exports.default = CodeLensManager;
 //# sourceMappingURL=codelens.js.map
 
 /***/ }),
-/* 617 */
+/* 618 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -89523,7 +89777,7 @@ const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
 const util_1 = __webpack_require__(238);
 const object_1 = __webpack_require__(249);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const highlighter_1 = tslib_1.__importStar(__webpack_require__(618));
+const highlighter_1 = tslib_1.__importStar(__webpack_require__(619));
 const logger = __webpack_require__(64)('colors');
 class Colors {
     constructor(nvim) {
@@ -89717,7 +89971,7 @@ exports.default = Colors;
 //# sourceMappingURL=colors.js.map
 
 /***/ }),
-/* 618 */
+/* 619 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -89863,7 +90117,7 @@ function isDark(color) {
 //# sourceMappingURL=highlighter.js.map
 
 /***/ }),
-/* 619 */
+/* 620 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -89881,9 +90135,14 @@ class DocumentHighlighter {
         this.nvim = nvim;
         this.colors = colors;
         this.disposables = [];
-        this.matchIds = new Set();
+        events_1.default.on('WinLeave', winid => {
+            if (this.tokenSource)
+                this.tokenSource.cancel();
+            this.clearHighlight(winid);
+        }, null, this.disposables);
         events_1.default.on('BufWinEnter', () => {
-            this.clearHighlight();
+            if (this.tokenSource)
+                this.tokenSource.cancel();
         }, null, this.disposables);
         events_1.default.on(['CursorMoved', 'CursorMovedI'], () => {
             this.cursorMoveTs = Date.now();
@@ -89892,24 +90151,23 @@ class DocumentHighlighter {
             this.clearHighlight();
         }, null, this.disposables);
     }
-    // clear matchIds of current window
-    clearHighlight() {
-        let { matchIds } = this;
+    clearHighlight(winid) {
         let { nvim } = workspace_1.default;
-        if (matchIds.size == 0)
-            return;
         nvim.pauseNotification();
-        nvim.call('coc#util#clearmatches', [Array.from(matchIds)], true);
-        nvim.command('redraw', true);
+        nvim.call('coc#util#clear_highlights', winid ? [winid] : [], true);
+        if (workspace_1.default.isVim) {
+            nvim.command('redraw', true);
+        }
         nvim.resumeNotification(false, true).catch(_e => {
             // noop
         });
-        this.matchIds.clear();
     }
-    async highlight(bufnr) {
+    async highlight(bufnr, position) {
         let { nvim } = this;
-        let document = workspace_1.default.getDocument(bufnr);
-        let highlights = await this.getHighlights(document);
+        let doc = workspace_1.default.getDocument(bufnr);
+        if (this.tokenSource)
+            this.tokenSource.cancel();
+        let highlights = await this.getHighlights(doc, position);
         if (!highlights || highlights.length == 0) {
             this.clearHighlight();
             return;
@@ -89929,26 +90187,23 @@ class DocumentHighlighter {
             groups[hlGroup].push(hl.range);
         }
         for (let hlGroup of Object.keys(groups)) {
-            let ids = document.matchAddRanges(groups[hlGroup], hlGroup, -1);
-            for (let id of ids) {
-                this.matchIds.add(id);
-            }
+            doc.matchAddRanges(groups[hlGroup], hlGroup, -1);
         }
         this.nvim.command('redraw', true);
         await this.nvim.resumeNotification(false, true);
     }
-    async getHighlights(document) {
+    async getHighlights(document, position) {
         if (!document)
             return null;
         let ts = Date.now();
         let { bufnr } = document;
-        let position = await workspace_1.default.getCursorPosition();
         let line = document.getline(position.line);
         let ch = line[position.character];
         if (!ch || !document.isWord(ch) || this.colors.hasColorAtPostion(bufnr, position))
             return null;
         try {
-            let highlights = await languages_1.default.getDocumentHighLight(document.textDocument, position);
+            this.tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
+            let highlights = await languages_1.default.getDocumentHighLight(document.textDocument, position, this.tokenSource.token);
             if (workspace_1.default.bufnr != document.bufnr || (this.cursorMoveTs && this.cursorMoveTs > ts)) {
                 return null;
             }
@@ -89959,6 +90214,8 @@ class DocumentHighlighter {
         }
     }
     dispose() {
+        if (this.tokenSource)
+            this.tokenSource.dispose();
         util_1.disposeAll(this.disposables);
     }
 }
@@ -89966,7 +90223,7 @@ exports.default = DocumentHighlighter;
 //# sourceMappingURL=documentHighlight.js.map
 
 /***/ }),
-/* 620 */
+/* 621 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -90644,14 +90901,14 @@ function emptyWorkspaceEdit(edit) {
 //# sourceMappingURL=refactor.js.map
 
 /***/ }),
-/* 621 */
+/* 622 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const await_semaphore_1 = __webpack_require__(622);
+const mutex_1 = __webpack_require__(255);
 const child_process_1 = __webpack_require__(239);
 const events_1 = __webpack_require__(198);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
@@ -90767,7 +91024,7 @@ class Search {
         }
         this.task = new Task();
         this.task.start(cmd, argList, cwd);
-        let mutex = new await_semaphore_1.Mutex();
+        let mutex = new mutex_1.Mutex();
         let files = 0;
         let matches = 0;
         let start = Date.now();
@@ -90846,72 +91103,6 @@ class Search {
 }
 exports.default = Search;
 //# sourceMappingURL=search.js.map
-
-/***/ }),
-/* 622 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-class Semaphore {
-    constructor(count) {
-        this.tasks = [];
-        this.count = count;
-    }
-    sched() {
-        if (this.count > 0 && this.tasks.length > 0) {
-            this.count--;
-            let next = this.tasks.shift();
-            if (next === undefined) {
-                throw "Unexpected undefined value in tasks list";
-            }
-            next();
-        }
-    }
-    acquire() {
-        return new Promise((res, rej) => {
-            var task = () => {
-                var released = false;
-                res(() => {
-                    if (!released) {
-                        released = true;
-                        this.count++;
-                        this.sched();
-                    }
-                });
-            };
-            this.tasks.push(task);
-            if (process && process.nextTick) {
-                process.nextTick(this.sched.bind(this));
-            }
-            else {
-                setImmediate(this.sched.bind(this));
-            }
-        });
-    }
-    use(f) {
-        return this.acquire()
-            .then(release => {
-            return f()
-                .then((res) => {
-                release();
-                return res;
-            })
-                .catch((err) => {
-                release();
-                throw err;
-            });
-        });
-    }
-}
-exports.Semaphore = Semaphore;
-class Mutex extends Semaphore {
-    constructor() {
-        super(1);
-    }
-}
-exports.Mutex = Mutex;
-//# sourceMappingURL=index.js.map
 
 /***/ })
 /******/ ]);
