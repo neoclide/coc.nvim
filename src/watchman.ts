@@ -5,6 +5,7 @@ import { OutputChannel } from './types'
 import { v1 as uuidv1 } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import minimatch from 'minimatch'
+import { isParentFolder } from './util/fs'
 const logger = require('./util/logger')('watchman')
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch', 'field-new']
 
@@ -161,7 +162,7 @@ export default class Watchman {
   }
 
   public static createClient(binaryPath: string, root: string, channel?: OutputChannel): Promise<Watchman | null> {
-    if (root == os.homedir() || root == '/' || path.parse(root).base == root) return null
+    if (!isValidWatchRoot(root)) return null
     let client = clientsMap.get(root)
     if (client) return client
     let promise = new Promise<Watchman | null>(async (resolve, reject) => {
@@ -179,4 +180,16 @@ export default class Watchman {
     clientsMap.set(root, promise)
     return promise
   }
+}
+
+/**
+ * Exclude user's home, driver, tmpdir
+ */
+export function isValidWatchRoot(root: string): boolean {
+  if (root == '/' || root == '/tmp' || root == '/private/tmp') return false
+  if (root.toLowerCase() === os.homedir().toLowerCase()) return false
+  if (path.parse(root).base == root) return false
+  if (root.startsWith('/tmp/') || root.startsWith('/private/tmp/')) return false
+  if (isParentFolder(os.tmpdir(), root, true)) return false
+  return true
 }
