@@ -251,7 +251,7 @@ function! s:Enable(initialize)
     endif
     if s:is_vim
       if exists('##DirChanged')
-        autocmd DirChanged        * call s:Autocmd('DirChanged', expand('<afile>'))
+        autocmd DirChanged        * call s:Autocmd('DirChanged', getcwd())
       endif
       if exists('##TerminalOpen')
         autocmd TerminalOpen      * call s:Autocmd('TermOpen', +expand('<abuf>'))
