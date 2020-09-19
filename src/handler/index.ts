@@ -836,13 +836,31 @@ export default class Handler {
     let pos: Position = insertLeave ? { line: position.line, character: origLine.length } : position
     let { changedtick } = doc
     await synchronizeDocument(doc)
-    let edits = await languages.provideDocumentOnTypeEdits(ch, doc.textDocument, pos)
-    if (edits && edits.length && doc.changedtick == changedtick) {
-      let changed = getChangedFromEdits(position, edits)
-      await doc.applyEdits(edits)
-      let to = changed ? Position.create(position.line + changed.line, position.character + changed.character) : null
-      if (to) await workspace.moveTo(to)
+    if (doc.changedtick != changedtick) return
+    let tokenSource = new CancellationTokenSource()
+    let disposable = doc.onDocumentChange(() => {
+      clearTimeout(timer)
+      disposable.dispose()
+      tokenSource.cancel()
+    })
+    let timer = setTimeout(() => {
+      disposable.dispose()
+      tokenSource.cancel()
+    }, 2000)
+    let edits: TextEdit[]
+    try {
+      edits = await languages.provideDocumentOnTypeEdits(ch, doc.textDocument, pos, tokenSource.token)
+    } catch (e) {
+      logger.error(`Error on format: ${e.message}`, e.stack)
     }
+    if (!edits || !edits.length) return
+    if (tokenSource.token.isCancellationRequested) return
+    clearTimeout(timer)
+    disposable.dispose()
+    let changed = getChangedFromEdits(position, edits)
+    await doc.applyEdits(edits)
+    let to = changed ? Position.create(position.line + changed.line, position.character + changed.character) : null
+    if (to) await workspace.moveTo(to)
   }
 
   private async triggerSignatureHelp(document: Document, position: Position): Promise<boolean> {
