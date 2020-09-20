@@ -18,6 +18,15 @@ export interface MousePosition {
   current: boolean
 }
 
+const StatusLineOption = [
+  '%#CocListMode#-- %{get(b:list_status, "mode", "")} --%*',
+  '%{get(g:, "coc_list_loading_status", "")}',
+  '%{get(b:list_status, "args", "")}',
+  '(%L/%{get(b:list_status, "total", "")})',
+  '%=',
+  '%#CocListPath# %{get(b:list_status, "cwd", "")} %l/%L%*'
+].join(' ')
+
 export default class ListUI {
   private window: Window
   private height: number
@@ -360,6 +369,7 @@ export default class ListUI {
     if (!bufnr || !window) return
     let buf = nvim.createBuffer(bufnr)
     nvim.pauseNotification()
+    window.notify('nvim_win_set_option', ['statusline', StatusLineOption])
     nvim.call('win_gotoid', window.id, true)
     if (!append) {
       nvim.call('clearmatches', [], true)
