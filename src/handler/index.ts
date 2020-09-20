@@ -475,9 +475,10 @@ export default class Handler {
     let curname = doc.textDocument.getText(range)
     if (languages.hasProvider('rename', doc.textDocument)) {
       await synchronizeDocument(doc)
-      let res = await languages.prepareRename(doc.textDocument, position)
+      let requestTokenSource = new CancellationTokenSource()
+      let res = await languages.prepareRename(doc.textDocument, position, requestTokenSource.token)
       if (res === false) return null
-      let edit = await languages.provideRenameEdits(doc.textDocument, position, curname)
+      let edit = await languages.provideRenameEdits(doc.textDocument, position, curname, requestTokenSource.token)
       if (edit) return edit
     }
     workspace.showMessage('Rename provider not found, extract word ranges from current buffer', 'more')
@@ -494,35 +495,53 @@ export default class Handler {
     let doc = workspace.getDocument(bufnr)
     if (!doc) return false
     let { nvim } = this
+    let statusItem = this.requestStatusItem
     let position = await workspace.getCursorPosition()
-    let range = doc.getWordRangeAtPosition(position)
-    if (!range || emptyRange(range)) return false
     if (!languages.hasProvider('rename', doc.textDocument)) {
       workspace.showMessage(`Rename provider not found for current document`, 'error')
       return false
     }
+    let token = this.getRequestToken('rename')
     await synchronizeDocument(doc)
-    let res = await languages.prepareRename(doc.textDocument, position)
-    if (res === false) {
-      workspace.showMessage('Invalid position for renmame', 'error')
-      return false
-    }
-    if (!newName) {
-      let curname = await nvim.eval('expand("<cword>")')
-      newName = await workspace.callAsync<string>('input', ['New name: ', curname])
-      nvim.command('normal! :<C-u>', true)
-      if (!newName) {
-        workspace.showMessage('Empty name, canceled', 'warning')
+    try {
+      let res = await languages.prepareRename(doc.textDocument, position, token)
+      if (res === false) {
+        statusItem.hide()
+        workspace.showMessage('Invalid position for renmame', 'error')
         return false
       }
-    }
-    let edit = await languages.provideRenameEdits(doc.textDocument, position, newName)
-    if (!edit) {
-      workspace.showMessage('Invalid position for rename', 'warning')
+      if (token.isCancellationRequested) return false
+      let curname: string
+      if (!newName) {
+        if (Range.is(res)) {
+          curname = doc.textDocument.getText(res)
+        } else if (typeof res.placeholder === 'string') {
+          curname = res.placeholder
+        } else {
+          curname = await nvim.eval('expand("<cword>")') as string
+        }
+        newName = await workspace.callAsync<string>('input', ['New name: ', curname])
+        nvim.command('normal! :<C-u>', true)
+      }
+      if (!newName) {
+        statusItem.hide()
+        return false
+      }
+      let edit = await languages.provideRenameEdits(doc.textDocument, position, newName, token)
+      if (token.isCancellationRequested) return false
+      statusItem.hide()
+      if (!edit) {
+        workspace.showMessage('Invalid position for rename', 'warning')
+        return false
+      }
+      await workspace.applyEdit(edit)
+      return true
+    } catch (e) {
+      statusItem.hide()
+      workspace.showMessage(`Error on rename: ${e.message}`, 'error')
+      logger.error(e)
       return false
     }
-    await workspace.applyEdit(edit)
-    return true
   }
 
   public async documentFormatting(): Promise<boolean> {
@@ -1207,19 +1226,30 @@ export default class Handler {
     let doc = workspace.getDocument(bufnr)
     if (!doc) return
     let position = { line: cursor[0], character: cursor[1] }
-    let res = await languages.prepareRename(doc.textDocument, position)
-    if (res === false) {
-      workspace.showMessage('Invalid position for rename', 'error')
-      return
+    let token = this.getRequestToken('refactor')
+    try {
+      let res = await languages.prepareRename(doc.textDocument, position, token)
+      if (token.isCancellationRequested) return
+      if (res === false) {
+        this.requestStatusItem.hide()
+        workspace.showMessage('Invalid position for rename', 'error')
+        return
+      }
+      let edit = await languages.provideRenameEdits(doc.textDocument, position, 'NewName', token)
+      if (token.isCancellationRequested) return
+      this.requestStatusItem.hide()
+      if (!edit) {
+        workspace.showMessage('Empty workspaceEdit from server', 'warning')
+        return
+      }
+      let refactor = await Refactor.createFromWorkspaceEdit(edit, filetype)
+      if (!refactor.buffer) return
+      this.refactorMap.set(refactor.buffer.id, refactor)
+    } catch (e) {
+      this.requestStatusItem.hide()
+      workspace.showMessage(`Error on refactor ${e.message}`, 'error')
+      logger.error(e)
     }
-    let edit = await languages.provideRenameEdits(doc.textDocument, position, 'NewName')
-    if (!edit) {
-      workspace.showMessage('Empty workspaceEdit from server', 'warning')
-      return
-    }
-    let refactor = await Refactor.createFromWorkspaceEdit(edit, filetype)
-    if (!refactor.buffer) return
-    this.refactorMap.set(refactor.buffer.id, refactor)
   }
 
   public async saveRefactor(bufnr: number): Promise<void> {

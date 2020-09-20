@@ -9,6 +9,7 @@ import LocationList from './location'
 import { getSymbolKind } from '../../util/convert'
 import { isParentFolder } from '../../util/fs'
 import { score } from '../../util/fzy'
+import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol'
 const logger = require('../../util/logger')('list-symbols')
 
 export default class Symbols extends LocationList {
@@ -22,19 +23,16 @@ export default class Symbols extends LocationList {
     hasValue: true
   }]
 
-  public async loadItems(context: ListContext): Promise<ListItem[]> {
-    let buf = await context.window.buffer
-    let document = workspace.getDocument(buf.id)
-    if (!document) return null
+  public async loadItems(context: ListContext, token: CancellationToken): Promise<ListItem[]> {
     let { input } = context
     let args = this.parseArguments(context.args)
     let filterKind = args.kind ? (args.kind as string).toLowerCase() : ''
     if (!context.options.interactive) {
       throw new Error('Symbols only works on interactive mode')
     }
-    let symbols = await languages.getWorkspaceSymbols(document.textDocument, input)
+    let symbols = await languages.getWorkspaceSymbols(input, token)
     if (!symbols) {
-      throw new Error('Workspace symbols provider not found for current document')
+      throw new Error('No workspace symbols provider registed')
     }
     let config = this.getConfig()
     let excludes = config.get<string[]>('excludes', [])
@@ -73,7 +71,8 @@ export default class Symbols extends LocationList {
   public async resolveItem(item: ListItem): Promise<ListItem> {
     let s = item.data.original
     if (!s) return null
-    let resolved = await languages.resolveWorkspaceSymbol(s)
+    let tokenSource = new CancellationTokenSource()
+    let resolved = await languages.resolveWorkspaceSymbol(s, tokenSource.token)
     if (!resolved) return null
     let kind = getSymbolKind(resolved.kind)
     let file = URI.parse(resolved.location.uri).fsPath

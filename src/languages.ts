@@ -321,35 +321,28 @@ class Languages {
     return await this.selectionRangeManager.provideSelectionRanges(document, positions, token)
   }
 
-  @check
-  public async getWorkspaceSymbols(document: TextDocument, query: string): Promise<SymbolInformation[]> {
+  public async getWorkspaceSymbols(query: string, token: CancellationToken): Promise<SymbolInformation[]> {
     query = query || ''
-    return await this.workspaceSymbolsManager.provideWorkspaceSymbols(document, query, this.token)
+    return await this.workspaceSymbolsManager.provideWorkspaceSymbols(query, token)
   }
 
-  @check
-  public async resolveWorkspaceSymbol(symbol: SymbolInformation): Promise<SymbolInformation> {
-    return await this.workspaceSymbolsManager.resolveWorkspaceSymbol(symbol, this.token)
+  public async resolveWorkspaceSymbol(symbol: SymbolInformation, token: CancellationToken): Promise<SymbolInformation> {
+    return await this.workspaceSymbolsManager.resolveWorkspaceSymbol(symbol, token)
   }
 
-  @check
-  public async provideRenameEdits(document: TextDocument, position: Position, newName: string): Promise<WorkspaceEdit> {
-    return await this.renameManager.provideRenameEdits(document, position, newName, this.token)
+  public async prepareRename(document: TextDocument, position: Position, token: CancellationToken): Promise<Range | { range: Range; placeholder: string } | false> {
+    return await this.renameManager.prepareRename(document, position, token)
   }
 
-  @check
-  public async prepareRename(document: TextDocument, position: Position): Promise<Range | { range: Range; placeholder: string } | false> {
-    return await this.renameManager.prepareRename(document, position, this.token)
+  public async provideRenameEdits(document: TextDocument, position: Position, newName: string, token: CancellationToken): Promise<WorkspaceEdit> {
+    return await this.renameManager.provideRenameEdits(document, position, newName, token)
   }
 
   @check
   public async provideDocumentFormattingEdits(document: TextDocument, options: FormattingOptions): Promise<TextEdit[]> {
     if (!this.formatManager.hasProvider(document)) {
       let hasRangeFormater = this.formatRangeManager.hasProvider(document)
-      if (!hasRangeFormater) {
-        logger.error('Format provider not found for current document', 'error')
-        return null
-      }
+      if (!hasRangeFormater) return null
       let end = document.positionAt(document.getText().length)
       let range = Range.create(Position.create(0, 0), end)
       return await this.provideDocumentRangeFormattingEdits(document, range, options)
@@ -392,7 +385,6 @@ class Languages {
     return (await this.documentLinkManager.provideDocumentLinks(document, this.token)) || []
   }
 
-  @check
   public async resolveDocumentLink(link: DocumentLink): Promise<DocumentLink> {
     return await this.documentLinkManager.resolveDocumentLink(link, this.token)
   }
@@ -409,7 +401,6 @@ class Languages {
     return await this.foldingRangeManager.provideFoldingRanges(document, context, this.token)
   }
 
-  @check
   public async provideColorPresentations(color: ColorInformation, document: TextDocument,): Promise<ColorPresentation[]> {
     return await this.documentColorManager.provideColorPresentations(color, document, this.token)
   }
@@ -419,7 +410,6 @@ class Languages {
     return await this.codeLensManager.provideCodeLenses(document, this.token)
   }
 
-  @check
   public async resolveCodeLens(codeLens: CodeLens): Promise<CodeLens> {
     return await this.codeLensManager.resolveCodeLens(codeLens, this.token)
   }

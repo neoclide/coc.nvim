@@ -1,6 +1,5 @@
 import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, SymbolInformation } from 'vscode-languageserver-protocol'
-import { TextDocument } from 'vscode-languageserver-textdocument'
 import { WorkspaceSymbolProvider } from './index'
 
 export default class WorkspaceSymbolManager implements Disposable {
@@ -15,7 +14,6 @@ export default class WorkspaceSymbolManager implements Disposable {
   }
 
   public async provideWorkspaceSymbols(
-    _document: TextDocument,
     query: string,
     token: CancellationToken
   ): Promise<SymbolInformation[]> {
