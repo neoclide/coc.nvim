@@ -6,6 +6,7 @@ import BasicList from '../basic'
 import workspace from '../../workspace'
 import { URI } from 'vscode-uri'
 import { isParentFolder } from '../../util/fs'
+import { CancellationToken } from 'vscode-languageserver-protocol'
 const logger = require('../../util/logger')('list-location')
 
 export default class LocationList extends BasicList {
@@ -18,9 +19,10 @@ export default class LocationList extends BasicList {
     this.addLocationActions()
   }
 
-  public async loadItems(context: ListContext): Promise<ListItem[]> {
+  public async loadItems(context: ListContext, token: CancellationToken): Promise<ListItem[]> {
     // filename, lnum, col, text, type
     let locs = await this.nvim.getVar('coc_jump_locations') as QuickfixItem[]
+    if (token.isCancellationRequested) return []
     locs = locs || []
     locs.forEach(loc => {
       if (!loc.uri) {

@@ -10,6 +10,7 @@ import { writeFile } from '../../util/fs'
 import workspace from '../../workspace'
 import LocationList from './location'
 import { getSymbolKind } from '../../util/convert'
+import { CancellationToken } from 'vscode-languageserver-protocol'
 const logger = require('../../util/logger')('list-symbols')
 
 function getFilterText(s: DocumentSymbol | SymbolInformation, kind: string | null): string {
@@ -25,7 +26,7 @@ export default class Outline extends LocationList {
     description: 'filters also by kind',
   }]
 
-  public async loadItems(context: ListContext): Promise<ListItem[]> {
+  public async loadItems(context: ListContext, token: CancellationToken): Promise<ListItem[]> {
     let buf = await context.window.buffer
     let document = workspace.getDocument(buf.id)
     if (!document) return null
@@ -34,8 +35,9 @@ export default class Outline extends LocationList {
     let symbols: DocumentSymbol[] | SymbolInformation[] | null
     let args = this.parseArguments(context.args)
     if (!ctagsFilestypes.includes(document.filetype)) {
-      symbols = await languages.getDocumentSymbol(document.textDocument)
+      symbols = await languages.getDocumentSymbol(document.textDocument, token)
     }
+    if (token.isCancellationRequested) return []
     if (!symbols) return await this.loadCtagsSymbols(document)
     if (symbols.length == 0) return []
     let filterKind = args.kind ? (args.kind as string).toLowerCase() : null

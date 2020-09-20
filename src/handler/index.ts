@@ -1,5 +1,6 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
 import { Document, StatusBarItem } from '..'
 import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
@@ -14,7 +15,7 @@ import { CodeAction, Documentation, TagDefinition } from '../types'
 import { disposeAll, wait } from '../util'
 import { getSymbolKind } from '../util/convert'
 import { equals } from '../util/object'
-import { emptyRange, positionInRange, rangeInRange, getChangedFromEdits } from '../util/position'
+import { emptyRange, getChangedFromEdits, positionInRange, rangeInRange } from '../util/position'
 import { byteLength, isWord } from '../util/string'
 import workspace from '../workspace'
 import CodeLensManager from './codelens'
@@ -23,7 +24,6 @@ import DocumentHighlighter from './documentHighlight'
 import Refactor from './refactor'
 import Search from './search'
 import debounce = require('debounce')
-import { URI } from 'vscode-uri'
 const logger = require('../util/logger')('Handler')
 const pairs: Map<string, string> = new Map([
   ['<', '>'],
@@ -92,6 +92,8 @@ export default class Handler {
   private requestStatusItem: StatusBarItem
   private requestTokenSource: CancellationTokenSource | undefined
   private requestTimer: NodeJS.Timer
+  private symbolsTokenSources: Map<number, CancellationTokenSource> = new Map()
+  private cachedSymbols: Map<number, [number, SymbolInfo[]]> = new Map()
 
   constructor(private nvim: Neovim) {
     this.getPreferences()
@@ -120,7 +122,7 @@ export default class Handler {
         this.refactorMap.delete(bufnr)
       }
     }, null, this.disposables)
-    events.on(['CursorMoved', 'CursorMovedI'], () => {
+    events.on(['CursorMoved', 'InsertEnter'], () => {
       if (this.requestTokenSource) {
         this.requestTokenSource.cancel()
       }
@@ -411,12 +413,20 @@ export default class Handler {
     return true
   }
 
-  public async getDocumentSymbols(document?: Document): Promise<SymbolInfo[]> {
-    document = document || workspace.getDocument(workspace.bufnr)
-    if (!document) return []
-    let symbols = await languages.getDocumentSymbol(document.textDocument)
-    if (!symbols) return null
-    if (symbols.length == 0) return []
+  public async getDocumentSymbols(doc: Document): Promise<SymbolInfo[]> {
+    if (!doc) return []
+    await synchronizeDocument(doc)
+    let cached = this.cachedSymbols.get(doc.bufnr)
+    if (cached && cached[0] == doc.version) {
+      return cached[1]
+    }
+    this.symbolsTokenSources.get(doc.bufnr)?.cancel()
+    let tokenSource = new CancellationTokenSource()
+    this.symbolsTokenSources.set(doc.bufnr, tokenSource)
+    let { version } = doc
+    let symbols = await languages.getDocumentSymbol(doc.textDocument, tokenSource.token)
+    this.symbolsTokenSources.delete(doc.bufnr)
+    if (!symbols || symbols.length == 0) return null
     let level = 0
     let res: SymbolInfo[] = []
     let pre = null
@@ -451,6 +461,7 @@ export default class Handler {
         pre = o
       }
     }
+    this.cachedSymbols.set(doc.bufnr, [version, res])
     return res
   }
 

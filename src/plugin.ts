@@ -254,8 +254,9 @@ export default class Plugin extends EventEmitter {
     this.addAction('showSignatureHelp', () => {
       return this.handler.showSignatureHelp()
     })
-    this.addAction('documentSymbols', () => {
-      return this.handler.getDocumentSymbols()
+    this.addAction('documentSymbols', async () => {
+      let doc = await workspace.document
+      return await this.handler.getDocumentSymbols(doc)
     })
     this.addAction('symbolRanges', () => {
       return this.handler.getSymbolsRanges()

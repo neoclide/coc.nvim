@@ -127,7 +127,6 @@ class Languages {
   }
 
   private loadCompleteConfig(): void {
-    let config = workspace.getConfiguration('coc.preferences')
     let suggest = workspace.getConfiguration('suggest')
     let labels = suggest.get<{ [key: string]: string }>('completionItemKindLabels', {})
     this.completionItemKindMap = new Map([
@@ -314,9 +313,8 @@ class Languages {
     return await this.referenceManager.provideReferences(document, position, context, token)
   }
 
-  @check
-  public async getDocumentSymbol(document: TextDocument): Promise<SymbolInformation[] | DocumentSymbol[]> {
-    return await this.documentSymbolManager.provideDocumentSymbols(document, this.token)
+  public async getDocumentSymbol(document: TextDocument, token: CancellationToken): Promise<SymbolInformation[] | DocumentSymbol[]> {
+    return await this.documentSymbolManager.provideDocumentSymbols(document, token)
   }
 
   @check
