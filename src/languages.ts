@@ -400,9 +400,8 @@ class Languages {
     return await this.documentLinkManager.resolveDocumentLink(link, this.token)
   }
 
-  @check
-  public async provideDocumentColors(document: TextDocument): Promise<ColorInformation[] | null> {
-    return await this.documentColorManager.provideDocumentColors(document, this.token)
+  public async provideDocumentColors(document: TextDocument, token: CancellationToken): Promise<ColorInformation[] | null> {
+    return await this.documentColorManager.provideDocumentColors(document, token)
   }
 
   @check

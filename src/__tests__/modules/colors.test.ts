@@ -70,7 +70,7 @@ describe('Colors', () => {
     let doc = await helper.createDocument()
     await nvim.setLine('#ffffff')
     state = 'empty'
-    await colors.highlightColors(doc, true)
+    await colors.doHighlight(doc.bufnr)
     let res = colors.hasColor(doc.bufnr)
     expect(res).toBe(false)
     state = 'normal'
@@ -80,7 +80,7 @@ describe('Colors', () => {
     let doc = await helper.createDocument()
     await nvim.setLine('#ffffff')
     state = 'error'
-    await colors.highlightColors(doc, true)
+    await colors.doHighlight(doc.bufnr)
     let res = colors.hasColor(doc.bufnr)
     expect(res).toBe(false)
     state = 'normal'
@@ -89,7 +89,7 @@ describe('Colors', () => {
   it('should clearHighlight on clearHighlight', async () => {
     let doc = await helper.createDocument()
     await nvim.setLine('#ffffff')
-    await colors.highlightColors(doc)
+    await colors.doHighlight(doc.bufnr)
     expect(colors.hasColor(doc.bufnr)).toBe(true)
     colors.clearHighlight(doc.bufnr)
     expect(colors.hasColor(doc.bufnr)).toBe(false)
@@ -98,7 +98,7 @@ describe('Colors', () => {
   it('should highlight colors', async () => {
     let doc = await helper.createDocument()
     await nvim.setLine('#ffffff')
-    await colors.highlightColors(doc, true)
+    await colors.doHighlight(doc.bufnr)
     let exists = await nvim.call('hlexists', 'BGffffff')
     expect(exists).toBe(1)
   })
@@ -106,7 +106,7 @@ describe('Colors', () => {
   it('should pick presentations', async () => {
     let doc = await helper.createDocument()
     await nvim.setLine('#ffffff')
-    await colors.highlightColors(doc, true)
+    await colors.doHighlight(doc.bufnr)
     let p = colors.pickPresentation()
     await helper.wait(100)
     let m = await nvim.mode
@@ -121,7 +121,7 @@ describe('Colors', () => {
     await helper.mockFunction('coc#util#pick_color', [0, 0, 0])
     let doc = await helper.createDocument()
     await nvim.setLine('#ffffff')
-    await colors.highlightColors(doc)
+    await colors.doHighlight(doc.bufnr)
     await colors.pickColor()
     let line = await nvim.getLine()
     expect(line).toBe('#000000')

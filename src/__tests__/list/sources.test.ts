@@ -156,15 +156,6 @@ describe('list sources', () => {
     })
   })
 
-  describe('output', () => {
-    it('should load output source', async () => {
-      await manager.start(['output'])
-      await manager.session?.ui.ready
-      await helper.wait(100)
-      expect(manager.isActivated).toBe(true)
-    })
-  })
-
   describe('services', () => {
     it('should load services source', async () => {
       await manager.start(['services'])
