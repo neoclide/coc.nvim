@@ -284,7 +284,7 @@ export class Extensions {
    * Get all loaded extensions.
    */
   public get all(): Extension<API>[] {
-    return Array.from(this.extensions.values()).map(o => o.extension)
+    return Array.from(this.extensions.values()).map(o => o.extension).filter(o => !this.isDisabled(o.id))
   }
 
   public getExtension(id: string): ExtensionItem {
