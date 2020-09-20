@@ -281,43 +281,37 @@ class Languages {
     return this.signatureManager.shouldTrigger(document, triggerCharacter)
   }
 
-  @check
-  public async getHover(document: TextDocument, position: Position): Promise<Hover[]> {
-    return await this.hoverManager.provideHover(document, position, this.token)
+  public async getHover(document: TextDocument, position: Position, token: CancellationToken): Promise<Hover[]> {
+    return await this.hoverManager.provideHover(document, position, token)
   }
 
   public async getSignatureHelp(document: TextDocument, position: Position, token: CancellationToken): Promise<SignatureHelp> {
     return await this.signatureManager.provideSignatureHelp(document, position, token)
   }
 
-  @check
-  public async getDefinition(document: TextDocument, position: Position): Promise<Location[]> {
+  public async getDefinition(document: TextDocument, position: Position, token: CancellationToken): Promise<Location[]> {
     if (!this.definitionManager.hasProvider(document)) return null
-    return await this.definitionManager.provideDefinition(document, position, this.token)
+    return await this.definitionManager.provideDefinition(document, position, token)
   }
 
-  @check
-  public async getDeclaration(document: TextDocument, position: Position): Promise<Location[] | Location | LocationLink[] | null> {
+  public async getDeclaration(document: TextDocument, position: Position, token: CancellationToken): Promise<Location[] | Location | LocationLink[] | null> {
     if (!this.declarationManager.hasProvider(document)) return null
-    return await this.declarationManager.provideDeclaration(document, position, this.token)
+    return await this.declarationManager.provideDeclaration(document, position, token)
   }
 
-  @check
-  public async getTypeDefinition(document: TextDocument, position: Position): Promise<Location[]> {
+  public async getTypeDefinition(document: TextDocument, position: Position, token: CancellationToken): Promise<Location[]> {
     if (!this.typeDefinitionManager.hasProvider(document)) return null
-    return await this.typeDefinitionManager.provideTypeDefinition(document, position, this.token)
+    return await this.typeDefinitionManager.provideTypeDefinition(document, position, token)
   }
 
-  @check
-  public async getImplementation(document: TextDocument, position: Position): Promise<Location[]> {
+  public async getImplementation(document: TextDocument, position: Position, token: CancellationToken): Promise<Location[]> {
     if (!this.implementationManager.hasProvider(document)) return null
-    return await this.implementationManager.provideReferences(document, position, this.token)
+    return await this.implementationManager.provideReferences(document, position, token)
   }
 
-  @check
-  public async getReferences(document: TextDocument, context: ReferenceContext, position: Position): Promise<Location[]> {
+  public async getReferences(document: TextDocument, context: ReferenceContext, position: Position, token: CancellationToken): Promise<Location[]> {
     if (!this.referenceManager.hasProvider(document)) return null
-    return await this.referenceManager.provideReferences(document, position, context, this.token)
+    return await this.referenceManager.provideReferences(document, position, context, token)
   }
 
   @check
@@ -373,7 +367,7 @@ class Languages {
   }
 
   /**
-   * Get CodeAction list for current document
+   * Get CodeAction list for document
    *
    * @public
    * @param {TextDocument} document
