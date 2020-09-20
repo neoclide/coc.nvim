@@ -19,7 +19,6 @@ import LinksList from './source/links'
 import ListsList from './source/lists'
 import LocationList from './source/location'
 import OutlineList from './source/outline'
-import OutputList from './source/output'
 import ServicesList from './source/services'
 import SourcesList from './source/sources'
 import SymbolsList from './source/symbols'
@@ -82,7 +81,6 @@ export class ListManager implements Disposable {
     this.registerList(new DiagnosticsList(nvim))
     this.registerList(new SourcesList(nvim))
     this.registerList(new ServicesList(nvim))
-    this.registerList(new OutputList(nvim))
     this.registerList(new ListsList(nvim, this.listMap))
     this.registerList(new FolderList(nvim))
     this.registerList(new ActionsList(nvim))

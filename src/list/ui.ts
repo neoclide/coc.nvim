@@ -369,7 +369,9 @@ export default class ListUI {
     if (!bufnr || !window) return
     let buf = nvim.createBuffer(bufnr)
     nvim.pauseNotification()
-    window.notify('nvim_win_set_option', ['statusline', StatusLineOption])
+    if (!append) {
+      window.notify('nvim_win_set_option', ['statusline', StatusLineOption])
+    }
     nvim.call('win_gotoid', window.id, true)
     if (!append) {
       nvim.call('clearmatches', [], true)
