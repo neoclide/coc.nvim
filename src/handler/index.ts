@@ -1125,7 +1125,10 @@ export default class Handler {
 
   public async getSelectionRanges(): Promise<SelectionRange[] | null> {
     let { document, position } = await workspace.getCurrentState()
-    let selectionRanges: SelectionRange[] = await languages.getSelectionRanges(document, [position])
+    let token = this.getRequestToken('selection ranges')
+    let selectionRanges: SelectionRange[] = await languages.getSelectionRanges(document, [position], token)
+    if (token.isCancellationRequested) return null
+    if (this.checkEmpty('selection ranges', selectionRanges)) return null
     if (selectionRanges && selectionRanges.length) return selectionRanges
     return null
   }
@@ -1158,15 +1161,10 @@ export default class Handler {
       }
       return
     }
-    let selectionRanges: SelectionRange[] = await languages.getSelectionRanges(doc.textDocument, positions)
-    if (selectionRanges == null) {
-      workspace.showMessage('Selection range provider not found for current document', 'warning')
-      return
-    }
-    if (!selectionRanges || selectionRanges.length == 0) {
-      workspace.showMessage('No selection range found', 'warning')
-      return
-    }
+    let token = this.getRequestToken('selection ranges')
+    let selectionRanges: SelectionRange[] = await languages.getSelectionRanges(doc.textDocument, positions, token)
+    if (token.isCancellationRequested) return
+    if (this.checkEmpty('selection ranges', selectionRanges)) return
     let mode = await nvim.eval('mode()')
     if (mode != 'n') await nvim.eval(`feedkeys("\\<Esc>", 'in')`)
     let selectionRange: SelectionRange

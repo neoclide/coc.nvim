@@ -317,9 +317,8 @@ class Languages {
     return await this.documentSymbolManager.provideDocumentSymbols(document, token)
   }
 
-  @check
-  public async getSelectionRanges(document: TextDocument, positions: Position[]): Promise<SelectionRange[] | null> {
-    return await this.selectionRangeManager.provideSelectionRanges(document, positions, this.token)
+  public async getSelectionRanges(document: TextDocument, positions: Position[], token): Promise<SelectionRange[] | null> {
+    return await this.selectionRangeManager.provideSelectionRanges(document, positions, token)
   }
 
   @check

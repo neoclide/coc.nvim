@@ -423,9 +423,9 @@ command! -nargs=* -bar -complete=custom,s:InstallOptions CocInstall   :call coc#
 call s:Enable(1)
 call s:Hi()
 
-vnoremap <Plug>(coc-range-select)          :<C-u>call       CocAction('rangeSelect',     visualmode(), v:true)<CR>
-vnoremap <Plug>(coc-range-select-backward) :<C-u>call       CocAction('rangeSelect',     visualmode(), v:false)<CR>
-nnoremap <Plug>(coc-range-select)          :<C-u>call       CocAction('rangeSelect',     '', v:true)<CR>
+vnoremap <Plug>(coc-range-select)          :<C-u>call       CocActionAsync('rangeSelect',     visualmode(), v:true)<CR>
+vnoremap <Plug>(coc-range-select-backward) :<C-u>call       CocActionAsync('rangeSelect',     visualmode(), v:false)<CR>
+nnoremap <Plug>(coc-range-select)          :<C-u>call       CocActionAsync('rangeSelect',     '', v:true)<CR>
 nnoremap <Plug>(coc-codelens-action)       :<C-u>call       CocActionAsync('codeLensAction')<CR>
 vnoremap <Plug>(coc-format-selected)       :<C-u>call       CocActionAsync('formatSelected',     visualmode())<CR>
 vnoremap <Plug>(coc-codeaction-selected)   :<C-u>call       CocActionAsync('codeAction',         visualmode())<CR>
