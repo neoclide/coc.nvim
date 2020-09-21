@@ -1637,14 +1637,6 @@ links 							 *coc-list-links*
 	- 'open': 打开链接, 默认操作。
 	- 'jump': 跳转到定义处。
 
-output 							 *coc-list-output*
-
-	输出日志列表。
-
-	可用操作:
-
-	- 'open': 打开日志, 默认操作。
-
 sources 						 *coc-list-completion-sources*
 
 	可用补全源列表。
@@ -1661,14 +1653,6 @@ lists 							 *coc-list-lists*
 	可用操作:
 
 	- 'open': 打开选中列表源，默认操作。
-
-actions 						 *coc-list-actions*
-
-	已注册的 actions 列表.
-
-	可用操作:
-
-	- 'do': 执行选中的 action.
 
 ==============================================================================
 

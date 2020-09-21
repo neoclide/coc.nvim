@@ -10,7 +10,6 @@ import ListConfiguration from './configuration'
 import Mappings from './mappings'
 import Prompt from './prompt'
 import ListSession from './session'
-import ActionsList from './source/actions'
 import CommandsList from './source/commands'
 import DiagnosticsList from './source/diagnostics'
 import ExtensionList from './source/extensions'
@@ -83,7 +82,6 @@ export class ListManager implements Disposable {
     this.registerList(new ServicesList(nvim))
     this.registerList(new ListsList(nvim, this.listMap))
     this.registerList(new FolderList(nvim))
-    this.registerList(new ActionsList(nvim))
   }
 
   public async start(args: string[]): Promise<void> {
