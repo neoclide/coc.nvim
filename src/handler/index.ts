@@ -587,8 +587,8 @@ export default class Handler {
     if (!languages.hasProvider('definition', document.textDocument)) {
       return null
     }
-    let { token } = this.requestTokenSource
-    let definitions = await languages.getDefinition(document.textDocument, position, token)
+    let tokenSource = new CancellationTokenSource()
+    let definitions = await languages.getDefinition(document.textDocument, position, tokenSource.token)
     if (!definitions || !definitions.length) return null
     return definitions.map(location => {
       let parsedURI = URI.parse(location.uri)
