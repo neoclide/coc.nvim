@@ -1352,7 +1352,7 @@ export class Workspace implements IWorkspace {
    */
   public registerExprKeymap(mode: 'i' | 'n' | 'v' | 's' | 'x', key: string, fn: Function, buffer = false): Disposable {
     if (!key) return
-    let id = uuid()
+    let id = `${mode}${global.Buffer.from(key).toString('base64')}${buffer ? '1' : '0'}`
     let { nvim } = this
     this.keymaps.set(id, [fn, false])
     if (mode == 'i') {
