@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { ColorInformation, Disposable, Position } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, ColorInformation, Disposable, Position } from 'vscode-languageserver-protocol'
 import events from '../events'
 import extensions from '../extensions'
 import languages from '../languages'
@@ -68,7 +68,8 @@ export default class Colors {
     let info = await this.currentColorInfomation()
     if (!info) return workspace.showMessage('Color not found at current position', 'warning')
     let document = await workspace.document
-    let presentations = await languages.provideColorPresentations(info, document.textDocument)
+    let tokenSource = new CancellationTokenSource()
+    let presentations = await languages.provideColorPresentations(info, document.textDocument, tokenSource.token)
     if (!presentations || presentations.length == 0) return
     let res = await workspace.showQuickpick(presentations.map(o => o.label), 'choose a color presentation:')
     if (res == -1) return

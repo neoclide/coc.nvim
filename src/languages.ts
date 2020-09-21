@@ -29,7 +29,7 @@ import sources from './sources'
 import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, Documentation, ISource, SourceType, VimCompleteItem } from './types'
 import * as complete from './util/complete'
 import { getChangedFromEdits, rangeOverlap } from './util/position'
-import { byteLength, byteIndex, byteSlice } from './util/string'
+import { byteIndex, byteLength, byteSlice } from './util/string'
 import workspace from './workspace'
 const logger = require('./util/logger')('languages')
 
@@ -50,33 +50,6 @@ interface CompleteConfig {
 
 function fixDocumentation(str: string): string {
   return str.replace(/&nbsp;/g, ' ')
-}
-
-export function check(_target: any, key: string, descriptor: any): void {
-  let fn = descriptor.value
-  if (typeof fn !== 'function') {
-    return
-  }
-
-  descriptor.value = function(...args: any[]): Promise<any> {
-    let { cancelTokenSource } = this
-    this.cancelTokenSource = new CancellationTokenSource()
-    return new Promise((resolve, reject): void => {
-      let resolved = false
-      let timer = setTimeout(() => {
-        cancelTokenSource.cancel()
-        logger.error(`${key} timeout after 5s`)
-        if (!resolved) reject(new Error(`${key} timeout after 5s`))
-      }, 5000)
-      Promise.resolve(fn.apply(this, args)).then(res => {
-        clearTimeout(timer)
-        resolve(res)
-      }, e => {
-        clearTimeout(timer)
-        reject(e)
-      })
-    })
-  }
 }
 
 class Languages {
@@ -105,21 +78,12 @@ class Languages {
   private completionItemKindMap: Map<CompletionItemKind, string>
 
   constructor() {
-    workspace.onWillSaveUntil(event => {
-      let { languageId } = event.document
-      let config = workspace.getConfiguration('coc.preferences', event.document.uri)
-      let filetypes = config.get<string[]>('formatOnSaveFiletypes', [])
-      if (filetypes.includes(languageId) || filetypes.some(item => item === '*')) {
-        let willSaveWaitUntil = async (): Promise<TextEdit[]> => {
-          let options = await workspace.getFormatOptions(event.document.uri)
-          let textEdits = await this.provideDocumentFormattingEdits(event.document, options)
-          return textEdits
-        }
-        event.waitUntil(willSaveWaitUntil())
-      }
-    }, null, 'languageserver')
     this.loadCompleteConfig()
-    workspace.onDidChangeConfiguration(this.loadCompleteConfig, this)
+    workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('suggest')) {
+        this.loadCompleteConfig()
+      }
+    }, this)
   }
 
   private get nvim(): Neovim {
@@ -338,46 +302,30 @@ class Languages {
     return await this.renameManager.provideRenameEdits(document, position, newName, token)
   }
 
-  @check
-  public async provideDocumentFormattingEdits(document: TextDocument, options: FormattingOptions): Promise<TextEdit[]> {
+  public async provideDocumentFormattingEdits(document: TextDocument, options: FormattingOptions, token: CancellationToken): Promise<TextEdit[]> {
     if (!this.formatManager.hasProvider(document)) {
       let hasRangeFormater = this.formatRangeManager.hasProvider(document)
       if (!hasRangeFormater) return null
       let end = document.positionAt(document.getText().length)
       let range = Range.create(Position.create(0, 0), end)
-      return await this.provideDocumentRangeFormattingEdits(document, range, options)
+      return await this.provideDocumentRangeFormattingEdits(document, range, options, token)
     }
-    return await this.formatManager.provideDocumentFormattingEdits(document, options, this.token)
+    return await this.formatManager.provideDocumentFormattingEdits(document, options, token)
   }
 
-  @check
-  public async provideDocumentRangeFormattingEdits(document: TextDocument, range: Range, options: FormattingOptions): Promise<TextEdit[]> {
+  public async provideDocumentRangeFormattingEdits(document: TextDocument, range: Range, options: FormattingOptions, token: CancellationToken): Promise<TextEdit[]> {
     if (!this.formatRangeManager.hasProvider(document)) return null
-    return await this.formatRangeManager.provideDocumentRangeFormattingEdits(document, range, options, this.token)
+    return await this.formatRangeManager.provideDocumentRangeFormattingEdits(document, range, options, token)
   }
 
-  /**
-   * Get CodeAction list for document
-   *
-   * @public
-   * @param {TextDocument} document
-   * @param {Range} range
-   * @param {CodeActionContext} context
-   * @returns {Promise<CodeAction[]>}
-   */
-  @check
-  public async getCodeActions(document: TextDocument, range: Range, context: CodeActionContext, silent = false): Promise<Map<string, CodeAction[]>> {
-    if (!silent && !this.codeActionManager.hasProvider(document)) {
-      return null
-    }
-    return await this.codeActionManager.provideCodeActions(document, range, context, this.token)
+  public async getCodeActions(document: TextDocument, range: Range, context: CodeActionContext, token: CancellationToken): Promise<Map<string, CodeAction[]>> {
+    return await this.codeActionManager.provideCodeActions(document, range, context, token)
   }
 
   public async getDocumentHighLight(document: TextDocument, position: Position, token: CancellationToken): Promise<DocumentHighlight[]> {
     return await this.documentHighlightManager.provideDocumentHighlights(document, position, token)
   }
 
-  @check
   public async getDocumentLinks(document: TextDocument): Promise<DocumentLink[]> {
     if (!this.documentLinkManager.hasProvider(document)) {
       return null
@@ -393,21 +341,19 @@ class Languages {
     return await this.documentColorManager.provideDocumentColors(document, token)
   }
 
-  @check
-  public async provideFoldingRanges(document: TextDocument, context: FoldingContext): Promise<FoldingRange[] | null> {
+  public async provideFoldingRanges(document: TextDocument, context: FoldingContext, token: CancellationToken): Promise<FoldingRange[] | null> {
     if (!this.foldingRangeManager.hasProvider(document)) {
       return null
     }
-    return await this.foldingRangeManager.provideFoldingRanges(document, context, this.token)
+    return await this.foldingRangeManager.provideFoldingRanges(document, context, token)
   }
 
-  public async provideColorPresentations(color: ColorInformation, document: TextDocument,): Promise<ColorPresentation[]> {
-    return await this.documentColorManager.provideColorPresentations(color, document, this.token)
+  public async provideColorPresentations(color: ColorInformation, document: TextDocument, token: CancellationToken): Promise<ColorPresentation[]> {
+    return await this.documentColorManager.provideColorPresentations(color, document, token)
   }
 
-  @check
-  public async getCodeLens(document: TextDocument): Promise<CodeLens[]> {
-    return await this.codeLensManager.provideCodeLenses(document, this.token)
+  public async getCodeLens(document: TextDocument, token: CancellationToken): Promise<CodeLens[]> {
+    return await this.codeLensManager.provideCodeLenses(document, token)
   }
 
   public async resolveCodeLens(codeLens: CodeLens): Promise<CodeLens> {

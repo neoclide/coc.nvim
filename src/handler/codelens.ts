@@ -1,6 +1,6 @@
 import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { CodeLens, Disposable } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, CodeLens, Disposable } from 'vscode-languageserver-protocol'
 import { ConfigurationChangeEvent, Document } from '..'
 import commandManager from '../commands'
 import events from '../events'
@@ -20,9 +20,9 @@ export default class CodeLensManager {
   private subseparator: string
   private srcId: number
   private enabled: boolean
-  private fetching: Set<number> = new Set()
   private disposables: Disposable[] = []
   private codeLensMap: Map<number, CodeLensInfo> = new Map()
+  private tokenSourceMap: Map<number, CancellationTokenSource> = new Map()
   private resolveCodeLens: Function & { clear(): void }
   constructor(private nvim: Neovim) {
     this.setConfiguration()
@@ -110,16 +110,16 @@ export default class CodeLensManager {
     this.enabled = nvim.hasFunction('nvim_buf_set_virtual_text') && config.get<boolean>('enable', true)
   }
 
-  private async fetchDocumentCodeLenses(retry = 0): Promise<void> {
+  private async fetchDocumentCodeLenses(): Promise<void> {
     let doc = workspace.getDocument(workspace.bufnr)
     if (!doc) return
     let { uri, version, bufnr } = doc
     let document = workspace.getDocument(uri)
     if (!this.validDocument(document)) return
-    if (this.fetching.has(bufnr)) return
-    this.fetching.add(bufnr)
+    let tokenSource = new CancellationTokenSource()
     try {
-      let codeLenses = await languages.getCodeLens(document.textDocument)
+      let codeLenses = await languages.getCodeLens(document.textDocument, tokenSource.token)
+      this.tokenSourceMap.delete(bufnr)
       if (codeLenses && codeLenses.length > 0) {
         this.codeLensMap.set(document.bufnr, { codeLenses, version })
         if (workspace.bufnr == document.bufnr) {
@@ -127,13 +127,9 @@ export default class CodeLensManager {
           await this._resolveCodeLenses(true)
         }
       }
-      this.fetching.delete(bufnr)
     } catch (e) {
-      this.fetching.delete(bufnr)
+      this.tokenSourceMap.delete(bufnr)
       logger.error(e)
-      if (e.message.includes("timeout") && retry < 5) {
-        this.fetchDocumentCodeLenses(retry + 1).logError()
-      }
     }
   }
 

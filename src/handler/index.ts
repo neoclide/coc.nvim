@@ -114,6 +114,24 @@ export default class Handler {
       signatureFloatMaxWidth,
       false)
     this.disposables.push(this.signatureFactory)
+    workspace.onWillSaveUntil(event => {
+      let { languageId } = event.document
+      let config = workspace.getConfiguration('coc.preferences', event.document.uri)
+      let filetypes = config.get<string[]>('formatOnSaveFiletypes', [])
+      if (filetypes.includes(languageId) || filetypes.some(item => item === '*')) {
+        let willSaveWaitUntil = async (): Promise<TextEdit[]> => {
+          let options = await workspace.getFormatOptions(event.document.uri)
+          let tokenSource = new CancellationTokenSource()
+          let timer = setTimeout(() => {
+            tokenSource.cancel()
+          }, 1000)
+          let textEdits = await languages.provideDocumentFormattingEdits(event.document, options, tokenSource.token)
+          clearTimeout(timer)
+          return textEdits
+        }
+        event.waitUntil(willSaveWaitUntil())
+      }
+    }, null, 'languageserver')
 
     events.on('BufUnload', async bufnr => {
       let refactor = this.refactorMap.get(bufnr)
@@ -276,19 +294,20 @@ export default class Handler {
     if (this.requestTokenSource) {
       this.requestTokenSource.cancel()
     }
+    let statusItem = this.requestStatusItem
     this.requestTokenSource = new CancellationTokenSource()
     let { token } = this.requestTokenSource
     let disposable = token.onCancellationRequested(() => {
       disposable.dispose()
-      this.requestStatusItem.text = `${name} request canceled`
-      this.requestStatusItem.isProgress = false
+      statusItem.text = `${name} request canceled`
+      statusItem.isProgress = false
       this.requestTimer = setTimeout(() => {
-        this.requestStatusItem.hide()
+        statusItem.hide()
       }, 500)
     })
-    this.requestStatusItem.isProgress = true
-    this.requestStatusItem.text = `requesting ${name}`
-    this.requestStatusItem.show()
+    statusItem.isProgress = true
+    statusItem.text = `requesting ${name}`
+    statusItem.show()
     if (this.requestTimer) {
       clearTimeout(this.requestTimer)
     }
@@ -549,11 +568,25 @@ export default class Handler {
     let document = workspace.getDocument(bufnr)
     if (!document) return false
     await synchronizeDocument(document)
-    let options = await workspace.getFormatOptions(document.uri)
-    let textEdits = await languages.provideDocumentFormattingEdits(document.textDocument, options)
-    if (!textEdits || textEdits.length == 0) return false
-    await document.applyEdits(textEdits)
-    return true
+    let token = this.getRequestToken('format')
+    try {
+      let options = await workspace.getFormatOptions(document.uri)
+      let textEdits = await languages.provideDocumentFormattingEdits(document.textDocument, options, token)
+      if (token.isCancellationRequested) return false
+      if (Array.isArray(textEdits) && textEdits.length == 0) {
+        // no change
+        this.requestStatusItem.hide()
+        return true
+      }
+      if (this.checkEmpty('format', textEdits)) return false
+      await document.applyEdits(textEdits)
+      return true
+    } catch (e) {
+      this.requestStatusItem.hide()
+      workspace.showMessage(`Error on format: ${e.message}`, 'error')
+      logger.error(e)
+      return false
+    }
   }
 
   public async documentRangeFormatting(mode: string): Promise<number> {
@@ -572,11 +605,25 @@ export default class Handler {
       if (count == 0 || mode == 'i' || mode == 'R') return -1
       range = Range.create(lnum - 1, 0, lnum - 1 + count, 0)
     }
-    let options = await workspace.getFormatOptions(document.uri)
-    let textEdits = await languages.provideDocumentRangeFormattingEdits(document.textDocument, range, options)
-    if (!textEdits) return - 1
-    await document.applyEdits(textEdits)
-    return 0
+    let token = this.getRequestToken('range format')
+    try {
+      let options = await workspace.getFormatOptions(document.uri)
+      let textEdits = await languages.provideDocumentRangeFormattingEdits(document.textDocument, range, options, token)
+      if (token.isCancellationRequested) return -1
+      this.requestStatusItem.hide()
+      if (textEdits && textEdits.length == 0) {
+        this.requestStatusItem.hide()
+        return 0
+      }
+      if (this.checkEmpty('range format', textEdits)) return -1
+      await document.applyEdits(textEdits)
+      return 0
+    } catch (e) {
+      this.requestStatusItem.hide()
+      workspace.showMessage(`Error on range format: ${e.message}`, 'error')
+      logger.error(e)
+      return -1
+    }
   }
 
   public async getTagList(): Promise<TagDefinition[] | null> {
@@ -621,7 +668,10 @@ export default class Handler {
     let diagnostics = diagnosticManager.getDiagnosticsInRange(document.textDocument, range)
     let context: CodeActionContext = { diagnostics }
     if (only && Array.isArray(only)) context.only = only
-    let codeActionsMap = await languages.getCodeActions(document.textDocument, range, context)
+    let token = this.getRequestToken('code action')
+    let codeActionsMap = await languages.getCodeActions(document.textDocument, range, context, token)
+    if (token.isCancellationRequested) return []
+    this.requestStatusItem.hide()
     if (!codeActionsMap) return []
     let codeActions: CodeAction[] = []
     for (let clientId of codeActionsMap.keys()) {
@@ -728,37 +778,33 @@ export default class Handler {
   }
 
   public async fold(kind?: string): Promise<boolean> {
-    let document = await workspace.document
-    if (!document || !document.attached) {
+    let doc = await workspace.document
+    if (!doc || !doc.attached) {
       workspace.showMessage('document not attached', 'warning')
       return false
     }
-    await synchronizeDocument(document)
+    await synchronizeDocument(doc)
     let win = await this.nvim.window
     let foldmethod = await win.getOption('foldmethod')
     if (foldmethod != 'manual') {
       workspace.showMessage('foldmethod option should be manual!', 'warning')
       return false
     }
-    let ranges = await languages.provideFoldingRanges(document.textDocument, {})
-    if (ranges == null) {
-      workspace.showMessage('no folding range provider found', 'warning')
-      return false
-    }
-    if (!ranges || ranges.length == 0) {
-      workspace.showMessage('no range found', 'warning')
-      return false
-    }
+    let token = this.getRequestToken('folding range')
+    let ranges = await languages.provideFoldingRanges(doc.textDocument, {}, token)
+    if (this.checkEmpty('folding range', ranges)) return false
     if (kind) {
       ranges = ranges.filter(o => o.kind == kind)
     }
     if (ranges && ranges.length) {
-      await win.setOption('foldenable', true)
+      this.nvim.pauseNotification()
+      win.setOption('foldenable', true, true)
       for (let range of ranges.reverse()) {
         let { startLine, endLine } = range
         let cmd = `${startLine + 1}, ${endLine + 1}fold`
         this.nvim.command(cmd, true)
       }
+      await this.nvim.resumeNotification()
       return true
     }
     return false
@@ -1357,22 +1403,19 @@ export default class Handler {
   }
 
   private checkEmpty(name: string, location: any | null): boolean {
-    let statusItem = this.requestStatusItem
     if (this.requestTokenSource) {
       this.requestTokenSource.dispose()
       this.requestTokenSource = undefined
     }
+    this.requestStatusItem.hide()
     if (location == null) {
-      statusItem.hide()
-      workspace.showMessage(`${name} provider not found for current document`, 'warning')
+      workspace.showMessage(`${name} provider not found for current buffer`, 'warning')
       return true
     }
     if (Array.isArray(location) && location.length == 0) {
-      statusItem.hide()
       workspace.showMessage(`${name} not found`, 'warning')
       return true
     }
-    this.requestStatusItem.hide()
     return false
   }
 
