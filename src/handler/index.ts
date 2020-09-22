@@ -1254,16 +1254,6 @@ export default class Handler {
     await workspace.selectRange(selectionRange.range)
   }
 
-  public async codeActionRange(start: number, end: number, only: string): Promise<void> {
-    let listArgs = ['--normal', '--number-select', 'actions', `-start`, start + '', `-end`, end + '']
-    if (only == 'quickfix') {
-      listArgs.push('-quickfix')
-    } else if (only == 'source') {
-      listArgs.push('-source')
-    }
-    await listManager.start(listArgs)
-  }
-
   /**
    * Refactor of current symbol
    */

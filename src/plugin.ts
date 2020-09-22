@@ -40,7 +40,6 @@ export default class Plugin extends EventEmitter {
     this.addAction('listLoadItems', async (name: string) => await listManager.loadItems(name))
     this.addAction('search', (...args: string[]) => this.handler.search(args))
     this.addAction('cursorsSelect', (bufnr: number, kind: string, mode: string) => this.cursors.select(bufnr, kind, mode))
-    this.addAction('codeActionRange', (start, end, only) => this.handler.codeActionRange(start, end, only))
     this.addAction('fillDiagnostics', (bufnr: number) => diagnosticManager.setLocationlist(bufnr))
     this.addAction('getConfig', async key => {
       let document = await workspace.document

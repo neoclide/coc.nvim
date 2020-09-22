@@ -2059,17 +2059,6 @@ COMMANDS						*coc-commands*
 	Run a command contributed by extensions, use `<tab>` for name
 	completion.
 
-:{range}CocAction  [{only}]				*:CocAction*
-
-	Get codeActions of current document in actions list,
-	with optional {range}.
-
-	{only} can be 'quickfix' or 'source' as CodeActionKind.
-
-:{range}CocFix						*:CocFix*
-
-	Same as `:CocAction quickfix` for quickfix actions.
-
 :CocOpenLog						*:CocOpenLog*
 
 	Open log file of coc.nvim.
