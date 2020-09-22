@@ -534,7 +534,7 @@ export default class Handler {
       if (!newName) {
         if (Range.is(res)) {
           curname = doc.textDocument.getText(res)
-        } else if (typeof res.placeholder === 'string') {
+        } else if (res && typeof res.placeholder === 'string') {
           curname = res.placeholder
         } else {
           curname = await nvim.eval('expand("<cword>")') as string
