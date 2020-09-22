@@ -11,18 +11,17 @@ const logger = require('../util/logger')('documentHighlight')
 
 export default class DocumentHighlighter {
   private disposables: Disposable[] = []
-  private cursorMoveTs: number
   private tokenSource: CancellationTokenSource
   constructor(private nvim: Neovim, private colors: Colors) {
     events.on('WinLeave', winid => {
-      if (this.tokenSource) this.tokenSource.cancel()
+      this.cancel()
       this.clearHighlight(winid)
     }, null, this.disposables)
     events.on('BufWinEnter', () => {
-      if (this.tokenSource) this.tokenSource.cancel()
+      this.cancel()
     }, null, this.disposables)
-    events.on(['CursorMoved', 'CursorMovedI'], () => {
-      this.cursorMoveTs = Date.now()
+    events.on('CursorMoved', () => {
+      this.cancel()
     }, null, this.disposables)
     events.on('InsertEnter', () => {
       this.clearHighlight()
@@ -31,20 +30,13 @@ export default class DocumentHighlighter {
 
   public clearHighlight(winid?: number): void {
     let { nvim } = workspace
-    nvim.pauseNotification()
     nvim.call('coc#util#clear_highlights', winid ? [winid] : [], true)
-    if (workspace.isVim) {
-      nvim.command('redraw', true)
-    }
-    nvim.resumeNotification(false, true).catch(_e => {
-      // noop
-    })
   }
 
   public async highlight(bufnr: number, position: Position): Promise<void> {
     let { nvim } = this
     let doc = workspace.getDocument(bufnr)
-    if (this.tokenSource) this.tokenSource.cancel()
+    this.cancel()
     let highlights = await this.getHighlights(doc, position)
     if (!highlights || highlights.length == 0) {
       this.clearHighlight()
@@ -78,13 +70,21 @@ export default class DocumentHighlighter {
     if (!ch || !document.isWord(ch) || this.colors.hasColorAtPostion(bufnr, position)) return null
     try {
       this.tokenSource = new CancellationTokenSource()
-      let highlights = await languages.getDocumentHighLight(document.textDocument, position, this.tokenSource.token)
-      if (workspace.bufnr != document.bufnr || (this.cursorMoveTs && this.cursorMoveTs > ts)) {
-        return null
-      }
+      let { token } = this.tokenSource
+      let highlights = await languages.getDocumentHighLight(document.textDocument, position, token)
+      this.tokenSource = null
+      if (token.isCancellationRequested) return null
       return highlights
     } catch (_e) {
       return null
+    }
+  }
+
+  private cancel(): void {
+    if (this.tokenSource) {
+      this.tokenSource.cancel()
+      this.tokenSource.dispose()
+      this.tokenSource = null
     }
   }
 

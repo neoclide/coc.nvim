@@ -697,8 +697,8 @@ export default class Handler {
     let range: Range
     let doc = workspace.getDocument(bufnr)
     if (!doc) return
-    await synchronizeDocument(doc)
     if (mode) range = await workspace.getSelectedRange(mode, doc)
+    await synchronizeDocument(doc)
     let codeActions = await this.getCodeActions(bufnr, range, Array.isArray(only) ? only : null)
     if (only && typeof only == 'string') {
       codeActions = codeActions.filter(o => o.title == only || (o.command && o.command.title == only))

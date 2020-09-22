@@ -453,6 +453,7 @@ export class Completion implements Disposable {
     let source = this.resolveTokenSource = new CancellationTokenSource()
     let { token } = source
     await sources.doCompleteResolve(resolvedItem, token)
+    this.resolveTokenSource = null
     if (token.isCancellationRequested) return
     let docs = resolvedItem.documentation
     if (!docs && resolvedItem.info) {
