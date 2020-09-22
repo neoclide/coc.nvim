@@ -23555,13 +23555,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const events_1 = __webpack_require__(198);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const vscode_languageserver_types_1 = __webpack_require__(223);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const vscode_uri_1 = __webpack_require__(243);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
 const completion_1 = tslib_1.__importDefault(__webpack_require__(331));
-const cursors_1 = tslib_1.__importDefault(__webpack_require__(613));
+const cursors_1 = tslib_1.__importDefault(__webpack_require__(612));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(253));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(333));
-const handler_1 = tslib_1.__importDefault(__webpack_require__(615));
+const handler_1 = tslib_1.__importDefault(__webpack_require__(614));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
 const manager_2 = tslib_1.__importDefault(__webpack_require__(541));
 const services_1 = tslib_1.__importDefault(__webpack_require__(525));
@@ -23570,7 +23571,6 @@ const sources_1 = tslib_1.__importDefault(__webpack_require__(332));
 const types_1 = __webpack_require__(295);
 const util_1 = __webpack_require__(238);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const vscode_uri_1 = __webpack_require__(243);
 const logger = __webpack_require__(64)('plugin');
 class Plugin extends events_1.EventEmitter {
     constructor(nvim) {
@@ -23590,7 +23590,6 @@ class Plugin extends events_1.EventEmitter {
         this.addAction('listLoadItems', async (name) => await manager_2.default.loadItems(name));
         this.addAction('search', (...args) => this.handler.search(args));
         this.addAction('cursorsSelect', (bufnr, kind, mode) => this.cursors.select(bufnr, kind, mode));
-        this.addAction('codeActionRange', (start, end, only) => this.handler.codeActionRange(start, end, only));
         this.addAction('fillDiagnostics', (bufnr) => manager_1.default.setLocationlist(bufnr));
         this.addAction('getConfig', async (key) => {
             let document = await workspace_1.default.document;
@@ -23810,8 +23809,9 @@ class Plugin extends events_1.EventEmitter {
         this.addAction('showSignatureHelp', () => {
             return this.handler.showSignatureHelp();
         });
-        this.addAction('documentSymbols', () => {
-            return this.handler.getDocumentSymbols();
+        this.addAction('documentSymbols', async () => {
+            let doc = await workspace_1.default.document;
+            return await this.handler.getDocumentSymbols(doc);
         });
         this.addAction('symbolRanges', () => {
             return this.handler.getSymbolsRanges();
@@ -23825,13 +23825,9 @@ class Plugin extends events_1.EventEmitter {
         this.addAction('rename', newName => {
             return this.handler.rename(newName);
         });
-        this.addAction('getWorkspaceSymbols', async (input, bufnr) => {
-            if (!bufnr)
-                bufnr = await this.nvim.eval('bufnr("%")');
-            let document = workspace_1.default.getDocument(bufnr);
-            if (!document)
-                return;
-            return await languages_1.default.getWorkspaceSymbols(document.textDocument, input);
+        this.addAction('getWorkspaceSymbols', async (input) => {
+            let tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
+            return await languages_1.default.getWorkspaceSymbols(input, tokenSource.token);
         });
         this.addAction('formatSelected', mode => {
             return this.handler.documentRangeFormatting(mode);
@@ -23852,10 +23848,10 @@ class Plugin extends events_1.EventEmitter {
             return this.handler.doCodeAction(mode, only);
         });
         this.addAction('organizeImport', () => {
-            return this.handler.doCodeAction(null, [vscode_languageserver_types_1.CodeActionKind.SourceOrganizeImports]);
+            return this.handler.doCodeAction(null, [vscode_languageserver_protocol_1.CodeActionKind.SourceOrganizeImports]);
         });
         this.addAction('fixAll', () => {
-            return this.handler.doCodeAction(null, [vscode_languageserver_types_1.CodeActionKind.SourceFixAll]);
+            return this.handler.doCodeAction(null, [vscode_languageserver_protocol_1.CodeActionKind.SourceFixAll]);
         });
         this.addAction('doCodeAction', codeAction => {
             return this.handler.applyCodeAction(codeAction);
@@ -23864,7 +23860,7 @@ class Plugin extends events_1.EventEmitter {
             return this.handler.getCurrentCodeActions(mode, only);
         });
         this.addAction('quickfixes', mode => {
-            return this.handler.getCurrentCodeActions(mode, [vscode_languageserver_types_1.CodeActionKind.QuickFix]);
+            return this.handler.getCurrentCodeActions(mode, [vscode_languageserver_protocol_1.CodeActionKind.QuickFix]);
         });
         this.addAction('codeLensAction', () => {
             return this.handler.doCodeLensAction();
@@ -23984,7 +23980,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "d2a3186309" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "82c3834f8b" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -24415,9 +24411,9 @@ const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(254));
 const util_1 = __webpack_require__(238);
 const position_1 = __webpack_require__(311);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const buffer_1 = __webpack_require__(610);
-const collection_1 = tslib_1.__importDefault(__webpack_require__(612));
-const util_2 = __webpack_require__(611);
+const buffer_1 = __webpack_require__(609);
+const collection_1 = tslib_1.__importDefault(__webpack_require__(611));
+const util_2 = __webpack_require__(610);
 const logger = __webpack_require__(64)('diagnostic-manager');
 class DiagnosticManager {
     constructor() {
@@ -25383,7 +25379,7 @@ const events_1 = tslib_1.__importDefault(__webpack_require__(210));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const Snippets = tslib_1.__importStar(__webpack_require__(329));
 const session_1 = __webpack_require__(330);
-const variableResolve_1 = __webpack_require__(609);
+const variableResolve_1 = __webpack_require__(608);
 const logger = __webpack_require__(64)('snippets-manager');
 class SnippetManager {
     constructor() {
@@ -26856,7 +26852,7 @@ class Workspace {
     registerExprKeymap(mode, key, fn, buffer = false) {
         if (!key)
             return;
-        let id = uuid_1.v1();
+        let id = `${mode}${global.Buffer.from(key).toString('base64')}${buffer ? '1' : '0'}`;
         let { nvim } = this;
         this.keymaps.set(id, [fn, false]);
         if (mode == 'i') {
@@ -40437,8 +40433,8 @@ const completion_1 = tslib_1.__importDefault(__webpack_require__(331));
 const position_1 = __webpack_require__(311);
 const string_1 = __webpack_require__(310);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const snippet_1 = __webpack_require__(608);
-const variableResolve_1 = __webpack_require__(609);
+const snippet_1 = __webpack_require__(607);
+const variableResolve_1 = __webpack_require__(608);
 const logger = __webpack_require__(64)('snippets-session');
 class SnippetSession {
     constructor(nvim, bufnr) {
@@ -40755,9 +40751,9 @@ const events_1 = tslib_1.__importDefault(__webpack_require__(210));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(332));
 const util_1 = __webpack_require__(238);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const complete_1 = tslib_1.__importDefault(__webpack_require__(604));
-const floating_1 = tslib_1.__importDefault(__webpack_require__(606));
-const throttle_1 = tslib_1.__importDefault(__webpack_require__(607));
+const complete_1 = tslib_1.__importDefault(__webpack_require__(603));
+const floating_1 = tslib_1.__importDefault(__webpack_require__(605));
+const throttle_1 = tslib_1.__importDefault(__webpack_require__(606));
 const object_1 = __webpack_require__(249);
 const string_1 = __webpack_require__(310);
 const logger = __webpack_require__(64)('completion');
@@ -41219,6 +41215,7 @@ class Completion {
         let source = this.resolveTokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
         let { token } = source;
         await sources_1.default.doCompleteResolve(resolvedItem, token);
+        this.resolveTokenSource = null;
         if (token.isCancellationRequested)
             return;
         let docs = resolvedItem.documentation;
@@ -41336,8 +41333,8 @@ const util_1 = tslib_1.__importDefault(__webpack_require__(74));
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const events_1 = tslib_1.__importDefault(__webpack_require__(210));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(333));
-const source_1 = tslib_1.__importDefault(__webpack_require__(599));
-const source_vim_1 = tslib_1.__importDefault(__webpack_require__(600));
+const source_1 = tslib_1.__importDefault(__webpack_require__(598));
+const source_vim_1 = tslib_1.__importDefault(__webpack_require__(599));
 const types_1 = __webpack_require__(295);
 const util_2 = __webpack_require__(238);
 const fs_2 = __webpack_require__(304);
@@ -41355,9 +41352,9 @@ class Sources {
     }
     createNativeSources() {
         try {
+            this.disposables.push((__webpack_require__(600)).regist(this.sourceMap));
             this.disposables.push((__webpack_require__(601)).regist(this.sourceMap));
             this.disposables.push((__webpack_require__(602)).regist(this.sourceMap));
-            this.disposables.push((__webpack_require__(603)).regist(this.sourceMap));
         }
         catch (e) {
             console.error('Create source error:' + e.message);
@@ -41942,7 +41939,7 @@ class Extensions {
      * Get all loaded extensions.
      */
     get all() {
-        return Array.from(this.extensions.values()).map(o => o.extension);
+        return Array.from(this.extensions.values()).map(o => o.extension).filter(o => !this.isDisabled(o.id));
     }
     getExtension(id) {
         return this.extensions.get(id);
@@ -70055,33 +70052,6 @@ const logger = __webpack_require__(64)('languages');
 function fixDocumentation(str) {
     return str.replace(/&nbsp;/g, ' ');
 }
-function check(_target, key, descriptor) {
-    let fn = descriptor.value;
-    if (typeof fn !== 'function') {
-        return;
-    }
-    descriptor.value = function (...args) {
-        let { cancelTokenSource } = this;
-        this.cancelTokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
-        return new Promise((resolve, reject) => {
-            let resolved = false;
-            let timer = setTimeout(() => {
-                cancelTokenSource.cancel();
-                logger.error(`${key} timeout after 5s`);
-                if (!resolved)
-                    reject(new Error(`${key} timeout after 5s`));
-            }, 5000);
-            Promise.resolve(fn.apply(this, args)).then(res => {
-                clearTimeout(timer);
-                resolve(res);
-            }, e => {
-                clearTimeout(timer);
-                reject(e);
-            });
-        });
-    };
-}
-exports.check = check;
 class Languages {
     constructor() {
         this.onTypeFormatManager = new onTypeFormatManager_1.default();
@@ -70105,27 +70075,17 @@ class Languages {
         this.codeLensManager = new codeLensManager_1.default();
         this.selectionRangeManager = new rangeManager_1.default();
         this.cancelTokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
-        workspace_1.default.onWillSaveUntil(event => {
-            let { languageId } = event.document;
-            let config = workspace_1.default.getConfiguration('coc.preferences', event.document.uri);
-            let filetypes = config.get('formatOnSaveFiletypes', []);
-            if (filetypes.includes(languageId) || filetypes.some(item => item === '*')) {
-                let willSaveWaitUntil = async () => {
-                    let options = await workspace_1.default.getFormatOptions(event.document.uri);
-                    let textEdits = await this.provideDocumentFormattingEdits(event.document, options);
-                    return textEdits;
-                };
-                event.waitUntil(willSaveWaitUntil());
-            }
-        }, null, 'languageserver');
         this.loadCompleteConfig();
-        workspace_1.default.onDidChangeConfiguration(this.loadCompleteConfig, this);
+        workspace_1.default.onDidChangeConfiguration(e => {
+            if (e.affectsConfiguration('suggest')) {
+                this.loadCompleteConfig();
+            }
+        }, this);
     }
     get nvim() {
         return workspace_1.default.nvim;
     }
     loadCompleteConfig() {
-        let config = workspace_1.default.getConfiguration('coc.preferences');
         let suggest = workspace_1.default.getConfiguration('suggest');
         let labels = suggest.get('completionItemKindLabels', {});
         this.completionItemKindMap = new Map([
@@ -70272,57 +70232,43 @@ class Languages {
             return null;
         return await this.referenceManager.provideReferences(document, position, context, token);
     }
-    async getDocumentSymbol(document) {
-        return await this.documentSymbolManager.provideDocumentSymbols(document, this.token);
+    async getDocumentSymbol(document, token) {
+        return await this.documentSymbolManager.provideDocumentSymbols(document, token);
     }
-    async getSelectionRanges(document, positions) {
-        return await this.selectionRangeManager.provideSelectionRanges(document, positions, this.token);
+    async getSelectionRanges(document, positions, token) {
+        return await this.selectionRangeManager.provideSelectionRanges(document, positions, token);
     }
-    async getWorkspaceSymbols(document, query) {
+    async getWorkspaceSymbols(query, token) {
         query = query || '';
-        return await this.workspaceSymbolsManager.provideWorkspaceSymbols(document, query, this.token);
+        return await this.workspaceSymbolsManager.provideWorkspaceSymbols(query, token);
     }
-    async resolveWorkspaceSymbol(symbol) {
-        return await this.workspaceSymbolsManager.resolveWorkspaceSymbol(symbol, this.token);
+    async resolveWorkspaceSymbol(symbol, token) {
+        return await this.workspaceSymbolsManager.resolveWorkspaceSymbol(symbol, token);
     }
-    async provideRenameEdits(document, position, newName) {
-        return await this.renameManager.provideRenameEdits(document, position, newName, this.token);
+    async prepareRename(document, position, token) {
+        return await this.renameManager.prepareRename(document, position, token);
     }
-    async prepareRename(document, position) {
-        return await this.renameManager.prepareRename(document, position, this.token);
+    async provideRenameEdits(document, position, newName, token) {
+        return await this.renameManager.provideRenameEdits(document, position, newName, token);
     }
-    async provideDocumentFormattingEdits(document, options) {
+    async provideDocumentFormattingEdits(document, options, token) {
         if (!this.formatManager.hasProvider(document)) {
             let hasRangeFormater = this.formatRangeManager.hasProvider(document);
-            if (!hasRangeFormater) {
-                logger.error('Format provider not found for current document', 'error');
+            if (!hasRangeFormater)
                 return null;
-            }
             let end = document.positionAt(document.getText().length);
             let range = vscode_languageserver_protocol_1.Range.create(vscode_languageserver_protocol_1.Position.create(0, 0), end);
-            return await this.provideDocumentRangeFormattingEdits(document, range, options);
+            return await this.provideDocumentRangeFormattingEdits(document, range, options, token);
         }
-        return await this.formatManager.provideDocumentFormattingEdits(document, options, this.token);
+        return await this.formatManager.provideDocumentFormattingEdits(document, options, token);
     }
-    async provideDocumentRangeFormattingEdits(document, range, options) {
+    async provideDocumentRangeFormattingEdits(document, range, options, token) {
         if (!this.formatRangeManager.hasProvider(document))
             return null;
-        return await this.formatRangeManager.provideDocumentRangeFormattingEdits(document, range, options, this.token);
+        return await this.formatRangeManager.provideDocumentRangeFormattingEdits(document, range, options, token);
     }
-    /**
-     * Get CodeAction list for document
-     *
-     * @public
-     * @param {TextDocument} document
-     * @param {Range} range
-     * @param {CodeActionContext} context
-     * @returns {Promise<CodeAction[]>}
-     */
-    async getCodeActions(document, range, context, silent = false) {
-        if (!silent && !this.codeActionManager.hasProvider(document)) {
-            return null;
-        }
-        return await this.codeActionManager.provideCodeActions(document, range, context, this.token);
+    async getCodeActions(document, range, context, token) {
+        return await this.codeActionManager.provideCodeActions(document, range, context, token);
     }
     async getDocumentHighLight(document, position, token) {
         return await this.documentHighlightManager.provideDocumentHighlights(document, position, token);
@@ -70339,17 +70285,17 @@ class Languages {
     async provideDocumentColors(document, token) {
         return await this.documentColorManager.provideDocumentColors(document, token);
     }
-    async provideFoldingRanges(document, context) {
+    async provideFoldingRanges(document, context, token) {
         if (!this.foldingRangeManager.hasProvider(document)) {
             return null;
         }
-        return await this.foldingRangeManager.provideFoldingRanges(document, context, this.token);
+        return await this.foldingRangeManager.provideFoldingRanges(document, context, token);
     }
-    async provideColorPresentations(color, document) {
-        return await this.documentColorManager.provideColorPresentations(color, document, this.token);
+    async provideColorPresentations(color, document, token) {
+        return await this.documentColorManager.provideColorPresentations(color, document, token);
     }
-    async getCodeLens(document) {
-        return await this.codeLensManager.provideCodeLenses(document, this.token);
+    async getCodeLens(document, token) {
+        return await this.codeLensManager.provideCodeLenses(document, token);
     }
     async resolveCodeLens(codeLens) {
         return await this.codeLensManager.resolveCodeLens(codeLens, this.token);
@@ -70730,51 +70676,6 @@ class Languages {
         return obj;
     }
 }
-tslib_1.__decorate([
-    check
-], Languages.prototype, "getDocumentSymbol", null);
-tslib_1.__decorate([
-    check
-], Languages.prototype, "getSelectionRanges", null);
-tslib_1.__decorate([
-    check
-], Languages.prototype, "getWorkspaceSymbols", null);
-tslib_1.__decorate([
-    check
-], Languages.prototype, "resolveWorkspaceSymbol", null);
-tslib_1.__decorate([
-    check
-], Languages.prototype, "provideRenameEdits", null);
-tslib_1.__decorate([
-    check
-], Languages.prototype, "prepareRename", null);
-tslib_1.__decorate([
-    check
-], Languages.prototype, "provideDocumentFormattingEdits", null);
-tslib_1.__decorate([
-    check
-], Languages.prototype, "provideDocumentRangeFormattingEdits", null);
-tslib_1.__decorate([
-    check
-], Languages.prototype, "getCodeActions", null);
-tslib_1.__decorate([
-    check
-], Languages.prototype, "getDocumentLinks", null);
-tslib_1.__decorate([
-    check
-], Languages.prototype, "resolveDocumentLink", null);
-tslib_1.__decorate([
-    check
-], Languages.prototype, "provideFoldingRanges", null);
-tslib_1.__decorate([
-    check
-], Languages.prototype, "provideColorPresentations", null);
-tslib_1.__decorate([
-    check
-], Languages.prototype, "getCodeLens", null);
-tslib_1.__decorate([
-    check
-], Languages.prototype, "resolveCodeLens", null);
 exports.default = new Languages();
 //# sourceMappingURL=languages.js.map
 
@@ -71753,7 +71654,7 @@ class WorkspaceSymbolManager {
             this.providers.delete(id);
         });
     }
-    async provideWorkspaceSymbols(_document, query, token) {
+    async provideWorkspaceSymbols(query, token) {
         let entries = Array.from(this.providers.entries());
         if (!entries.length)
             return [];
@@ -77248,18 +77149,17 @@ const configuration_1 = tslib_1.__importDefault(__webpack_require__(542));
 const mappings_1 = tslib_1.__importDefault(__webpack_require__(543));
 const prompt_1 = tslib_1.__importDefault(__webpack_require__(544));
 const session_1 = tslib_1.__importDefault(__webpack_require__(578));
-const actions_1 = tslib_1.__importDefault(__webpack_require__(585));
-const commands_1 = tslib_1.__importDefault(__webpack_require__(587));
-const diagnostics_1 = tslib_1.__importDefault(__webpack_require__(588));
-const extensions_2 = tslib_1.__importDefault(__webpack_require__(590));
-const folders_1 = tslib_1.__importDefault(__webpack_require__(591));
-const links_1 = tslib_1.__importDefault(__webpack_require__(592));
-const lists_1 = tslib_1.__importDefault(__webpack_require__(593));
-const location_1 = tslib_1.__importDefault(__webpack_require__(589));
-const outline_1 = tslib_1.__importDefault(__webpack_require__(594));
-const services_1 = tslib_1.__importDefault(__webpack_require__(596));
-const sources_1 = tslib_1.__importDefault(__webpack_require__(597));
-const symbols_1 = tslib_1.__importDefault(__webpack_require__(598));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(585));
+const diagnostics_1 = tslib_1.__importDefault(__webpack_require__(587));
+const extensions_2 = tslib_1.__importDefault(__webpack_require__(589));
+const folders_1 = tslib_1.__importDefault(__webpack_require__(590));
+const links_1 = tslib_1.__importDefault(__webpack_require__(591));
+const lists_1 = tslib_1.__importDefault(__webpack_require__(592));
+const location_1 = tslib_1.__importDefault(__webpack_require__(588));
+const outline_1 = tslib_1.__importDefault(__webpack_require__(593));
+const services_1 = tslib_1.__importDefault(__webpack_require__(595));
+const sources_1 = tslib_1.__importDefault(__webpack_require__(596));
+const symbols_1 = tslib_1.__importDefault(__webpack_require__(597));
 const logger = __webpack_require__(64)('list-manager');
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>'];
 class ListManager {
@@ -77319,7 +77219,6 @@ class ListManager {
         this.registerList(new services_1.default(nvim));
         this.registerList(new lists_1.default(nvim, this.listMap));
         this.registerList(new folders_1.default(nvim));
-        this.registerList(new actions_1.default(nvim));
     }
     async start(args) {
         this.getCharMap().logError();
@@ -83900,125 +83799,60 @@ function bestResult(results) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
-const manager_1 = tslib_1.__importDefault(__webpack_require__(253));
-const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
-const services_1 = tslib_1.__importDefault(__webpack_require__(525));
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(586));
-const logger = __webpack_require__(64)('list-actions');
-class ActionsList extends basic_1.default {
+class CommandsList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
-        this.defaultAction = 'do';
-        this.description = 'code actions of selected range.';
-        this.name = 'actions';
-        this.options = [{
-                name: '-start',
-                description: 'start of line',
-                hasValue: true
-            }, {
-                name: '-end',
-                description: 'end of line',
-                hasValue: true
-            }, {
-                name: '-quickfix',
-                description: 'quickfix only',
-            }, {
-                name: '-source',
-                description: 'source action only'
-            }];
-        this.addAction('do', async (item) => {
-            let action = item.data.action;
-            let { command, edit } = action;
-            if (edit)
-                await workspace_1.default.applyEdit(edit);
-            if (command) {
-                if (commands_1.default.has(command.command)) {
-                    commands_1.default.execute(command);
-                }
-                else {
-                    let clientId = action.clientId;
-                    let service = services_1.default.getService(clientId);
-                    let params = {
-                        command: command.command,
-                        arguments: command.arguments
-                    };
-                    if (service.client) {
-                        let { client } = service;
-                        client
-                            .sendRequest(vscode_languageserver_protocol_1.ExecuteCommandRequest.type, params)
-                            .then(undefined, error => {
-                            workspace_1.default.showMessage(`Execute '${command.command} error: ${error}'`, 'error');
-                        });
-                    }
-                }
-            }
+        this.defaultAction = 'run';
+        this.description = 'registered commands of coc.nvim';
+        this.name = 'commands';
+        this.mru = workspace_1.default.createMru('commands');
+        this.addAction('run', async (item) => {
+            let { cmd } = item.data;
+            await events_1.default.fire('Command', [cmd]);
+            await commands_1.default.executeCommand(cmd);
+            await commands_1.default.addRecent(cmd);
+        });
+        this.addAction('append', async (item) => {
+            let { cmd } = item.data;
+            await nvim.feedKeys(`:CocCommand ${cmd} `, 'n', false);
         });
     }
-    async loadItems(context) {
-        let buf = await context.window.buffer;
-        let doc = workspace_1.default.getDocument(buf.id);
-        if (!doc)
-            return null;
-        let args = this.parseArguments(context.args);
-        let range;
-        if (args.start && args.end) {
-            range = vscode_languageserver_protocol_1.Range.create(parseInt(args.start, 10) - 1, 0, parseInt(args.end, 10), 0);
+    async loadItems(_context) {
+        let items = [];
+        let list = commands_1.default.commandList;
+        let { titles } = commands_1.default;
+        let mruList = await this.mru.load();
+        for (const o of list) {
+            const { id } = o;
+            items.push({
+                label: `${id}\t${titles.get(id) || ''}`,
+                filterText: id,
+                data: { cmd: id, score: score(mruList, id) }
+            });
         }
-        else {
-            range = vscode_languageserver_protocol_1.Range.create(0, 0, doc.lineCount, 0);
-        }
-        let diagnostics = manager_1.default.getDiagnosticsInRange(doc.textDocument, range);
-        let actionContext = { diagnostics };
-        if (args.quickfix) {
-            actionContext.only = [vscode_languageserver_protocol_1.CodeActionKind.QuickFix];
-        }
-        else if (args.source) {
-            actionContext.only = [vscode_languageserver_protocol_1.CodeActionKind.Source];
-        }
-        let codeActionsMap = await languages_1.default.getCodeActions(doc.textDocument, range, actionContext);
-        if (!codeActionsMap)
-            return [];
-        let codeActions = [];
-        for (let clientId of codeActionsMap.keys()) {
-            let actions = codeActionsMap.get(clientId);
-            for (let action of actions) {
-                codeActions.push(Object.assign({ clientId }, action));
-            }
-        }
-        codeActions.sort((a, b) => {
-            if (a.isPreferred && !b.isPreferred) {
-                return -1;
-            }
-            if (b.isPreferred && !a.isPreferred) {
-                return 1;
-            }
-            return 0;
-        });
-        let items = codeActions.map(action => ({
-            label: `${action.title} ${action.clientId ? `[${action.clientId}]` : ''} ${action.kind ? `(${action.kind})` : ''}`,
-            data: { action }
-        }));
+        items.sort((a, b) => b.data.score - a.data.score);
         return items;
     }
     doHighlight() {
         let { nvim } = this;
         nvim.pauseNotification();
-        nvim.command('syntax match CocActionsTitle /\\v^[^[]+/ contained containedin=CocActionsLine', true);
-        nvim.command('syntax match CocActionsClient /\\[\\w\\+\\]/ contained containedin=CocActionsLine', true);
-        nvim.command('syntax match CocActionsKind /\\v\\(.*\\)$/ contained containedin=CocActionsLine', true);
-        nvim.command('highlight default link CocActionsTitle Normal', true);
-        nvim.command('highlight default link CocActionsClient Typedef', true);
-        nvim.command('highlight default link CocActionsKind Comment', true);
+        nvim.command('syntax match CocCommandsTitle /\\t.*$/ contained containedin=CocCommandsLine', true);
+        nvim.command('highlight default link CocCommandsTitle Comment', true);
         nvim.resumeNotification().catch(_e => {
             // noop
         });
     }
 }
-exports.default = ActionsList;
-//# sourceMappingURL=actions.js.map
+exports.default = CommandsList;
+function score(list, key) {
+    let idx = list.indexOf(key);
+    return idx == -1 ? -1 : list.length - idx;
+}
+//# sourceMappingURL=commands.js.map
 
 /***/ }),
 /* 586 */
@@ -84342,72 +84176,9 @@ exports.default = BasicList;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
-const events_1 = tslib_1.__importDefault(__webpack_require__(210));
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(586));
-class CommandsList extends basic_1.default {
-    constructor(nvim) {
-        super(nvim);
-        this.defaultAction = 'run';
-        this.description = 'registered commands of coc.nvim';
-        this.name = 'commands';
-        this.mru = workspace_1.default.createMru('commands');
-        this.addAction('run', async (item) => {
-            let { cmd } = item.data;
-            await events_1.default.fire('Command', [cmd]);
-            await commands_1.default.executeCommand(cmd);
-            await commands_1.default.addRecent(cmd);
-        });
-        this.addAction('append', async (item) => {
-            let { cmd } = item.data;
-            await nvim.feedKeys(`:CocCommand ${cmd} `, 'n', false);
-        });
-    }
-    async loadItems(_context) {
-        let items = [];
-        let list = commands_1.default.commandList;
-        let { titles } = commands_1.default;
-        let mruList = await this.mru.load();
-        for (const o of list) {
-            const { id } = o;
-            items.push({
-                label: `${id}\t${titles.get(id) || ''}`,
-                filterText: id,
-                data: { cmd: id, score: score(mruList, id) }
-            });
-        }
-        items.sort((a, b) => b.data.score - a.data.score);
-        return items;
-    }
-    doHighlight() {
-        let { nvim } = this;
-        nvim.pauseNotification();
-        nvim.command('syntax match CocCommandsTitle /\\t.*$/ contained containedin=CocCommandsLine', true);
-        nvim.command('highlight default link CocCommandsTitle Comment', true);
-        nvim.resumeNotification().catch(_e => {
-            // noop
-        });
-    }
-}
-exports.default = CommandsList;
-function score(list, key) {
-    let idx = list.indexOf(key);
-    return idx == -1 ? -1 : list.length - idx;
-}
-//# sourceMappingURL=commands.js.map
-
-/***/ }),
-/* 588 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(65);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(253));
-const location_1 = tslib_1.__importDefault(__webpack_require__(589));
+const location_1 = tslib_1.__importDefault(__webpack_require__(588));
 const fs_1 = __webpack_require__(304);
 const logger = __webpack_require__(64)('list-symbols');
 class DiagnosticsList extends location_1.default {
@@ -84450,7 +84221,7 @@ exports.default = DiagnosticsList;
 //# sourceMappingURL=diagnostics.js.map
 
 /***/ }),
-/* 589 */
+/* 588 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -84472,9 +84243,11 @@ class LocationList extends basic_1.default {
         this.name = 'location';
         this.addLocationActions();
     }
-    async loadItems(context) {
+    async loadItems(context, token) {
         // filename, lnum, col, text, type
         let locs = await this.nvim.getVar('coc_jump_locations');
+        if (token.isCancellationRequested)
+            return [];
         locs = locs || [];
         locs.forEach(loc => {
             if (!loc.uri) {
@@ -84529,7 +84302,7 @@ exports.default = LocationList;
 //# sourceMappingURL=location.js.map
 
 /***/ }),
-/* 590 */
+/* 589 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -84717,7 +84490,7 @@ function getPriority(stat) {
 //# sourceMappingURL=extensions.js.map
 
 /***/ }),
-/* 591 */
+/* 590 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -84771,7 +84544,7 @@ exports.default = FoldList;
 //# sourceMappingURL=folders.js.map
 
 /***/ }),
-/* 592 */
+/* 591 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -84854,7 +84627,7 @@ function formatUri(uri) {
 //# sourceMappingURL=links.js.map
 
 /***/ }),
-/* 593 */
+/* 592 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -84913,7 +84686,7 @@ function score(list, key) {
 //# sourceMappingURL=lists.js.map
 
 /***/ }),
-/* 594 */
+/* 593 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -84928,8 +84701,8 @@ const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
 const util_1 = __webpack_require__(238);
 const fs_1 = __webpack_require__(304);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const location_1 = tslib_1.__importDefault(__webpack_require__(589));
-const convert_1 = __webpack_require__(595);
+const location_1 = tslib_1.__importDefault(__webpack_require__(588));
+const convert_1 = __webpack_require__(594);
 const logger = __webpack_require__(64)('list-symbols');
 function getFilterText(s, kind) {
     return `${s.name}${kind ? ` ${kind}` : ''}`;
@@ -84945,7 +84718,7 @@ class Outline extends location_1.default {
                 description: 'filters also by kind',
             }];
     }
-    async loadItems(context) {
+    async loadItems(context, token) {
         let buf = await context.window.buffer;
         let document = workspace_1.default.getDocument(buf.id);
         if (!document)
@@ -84955,8 +84728,10 @@ class Outline extends location_1.default {
         let symbols;
         let args = this.parseArguments(context.args);
         if (!ctagsFilestypes.includes(document.filetype)) {
-            symbols = await languages_1.default.getDocumentSymbol(document.textDocument);
+            symbols = await languages_1.default.getDocumentSymbol(document.textDocument, token);
         }
+        if (token.isCancellationRequested)
+            return [];
         if (!symbols)
             return await this.loadCtagsSymbols(document);
         if (symbols.length == 0)
@@ -85083,7 +84858,7 @@ function sortSymbols(a, b) {
 //# sourceMappingURL=outline.js.map
 
 /***/ }),
-/* 595 */
+/* 594 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -85152,7 +84927,7 @@ exports.getSymbolKind = getSymbolKind;
 //# sourceMappingURL=convert.js.map
 
 /***/ }),
-/* 596 */
+/* 595 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -85205,7 +84980,7 @@ exports.default = ServicesList;
 //# sourceMappingURL=services.js.map
 
 /***/ }),
-/* 597 */
+/* 596 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -85292,7 +85067,7 @@ function fixWidth(str, width) {
 //# sourceMappingURL=sources.js.map
 
 /***/ }),
-/* 598 */
+/* 597 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -85304,10 +85079,11 @@ const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
 const vscode_uri_1 = __webpack_require__(243);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const location_1 = tslib_1.__importDefault(__webpack_require__(589));
-const convert_1 = __webpack_require__(595);
+const location_1 = tslib_1.__importDefault(__webpack_require__(588));
+const convert_1 = __webpack_require__(594);
 const fs_1 = __webpack_require__(304);
 const fzy_1 = __webpack_require__(583);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const logger = __webpack_require__(64)('list-symbols');
 class Symbols extends location_1.default {
     constructor() {
@@ -85322,20 +85098,16 @@ class Symbols extends location_1.default {
                 hasValue: true
             }];
     }
-    async loadItems(context) {
-        let buf = await context.window.buffer;
-        let document = workspace_1.default.getDocument(buf.id);
-        if (!document)
-            return null;
+    async loadItems(context, token) {
         let { input } = context;
         let args = this.parseArguments(context.args);
         let filterKind = args.kind ? args.kind.toLowerCase() : '';
         if (!context.options.interactive) {
             throw new Error('Symbols only works on interactive mode');
         }
-        let symbols = await languages_1.default.getWorkspaceSymbols(document.textDocument, input);
+        let symbols = await languages_1.default.getWorkspaceSymbols(input, token);
         if (!symbols) {
-            throw new Error('Workspace symbols provider not found for current document');
+            throw new Error('No workspace symbols provider registed');
         }
         let config = this.getConfig();
         let excludes = config.get('excludes', []);
@@ -85374,7 +85146,8 @@ class Symbols extends location_1.default {
         let s = item.data.original;
         if (!s)
             return null;
-        let resolved = await languages_1.default.resolveWorkspaceSymbol(s);
+        let tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
+        let resolved = await languages_1.default.resolveWorkspaceSymbol(s, tokenSource.token);
         if (!resolved)
             return null;
         let kind = convert_1.getSymbolKind(resolved.kind);
@@ -85406,7 +85179,7 @@ exports.default = Symbols;
 //# sourceMappingURL=symbols.js.map
 
 /***/ }),
-/* 599 */
+/* 598 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -85573,7 +85346,7 @@ exports.default = Source;
 //# sourceMappingURL=source.js.map
 
 /***/ }),
-/* 600 */
+/* 599 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -85583,7 +85356,7 @@ const tslib_1 = __webpack_require__(65);
 const fuzzy_1 = __webpack_require__(580);
 const string_1 = __webpack_require__(310);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const source_1 = tslib_1.__importDefault(__webpack_require__(599));
+const source_1 = tslib_1.__importDefault(__webpack_require__(598));
 const logger = __webpack_require__(64)('model-source-vim');
 class VimSource extends source_1.default {
     async callOptinalFunc(fname, args) {
@@ -85685,7 +85458,7 @@ exports.default = VimSource;
 //# sourceMappingURL=source-vim.js.map
 
 /***/ }),
-/* 601 */
+/* 600 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -85693,7 +85466,7 @@ exports.default = VimSource;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
-const source_1 = tslib_1.__importDefault(__webpack_require__(599));
+const source_1 = tslib_1.__importDefault(__webpack_require__(598));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('source-around');
 class Around extends source_1.default {
@@ -85733,7 +85506,7 @@ exports.regist = regist;
 //# sourceMappingURL=around.js.map
 
 /***/ }),
-/* 602 */
+/* 601 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -85741,7 +85514,7 @@ exports.regist = regist;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
-const source_1 = tslib_1.__importDefault(__webpack_require__(599));
+const source_1 = tslib_1.__importDefault(__webpack_require__(598));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
 const logger = __webpack_require__(64)('source-buffer');
 class Buffer extends source_1.default {
@@ -85795,7 +85568,7 @@ exports.regist = regist;
 //# sourceMappingURL=buffer.js.map
 
 /***/ }),
-/* 603 */
+/* 602 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -85807,7 +85580,7 @@ const minimatch_1 = tslib_1.__importDefault(__webpack_require__(271));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const util_1 = tslib_1.__importDefault(__webpack_require__(74));
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
-const source_1 = tslib_1.__importDefault(__webpack_require__(599));
+const source_1 = tslib_1.__importDefault(__webpack_require__(598));
 const fs_2 = __webpack_require__(304);
 const string_1 = __webpack_require__(310);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
@@ -85945,7 +85718,7 @@ exports.regist = regist;
 //# sourceMappingURL=file.js.map
 
 /***/ }),
-/* 604 */
+/* 603 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -85954,7 +85727,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const fuzzy_1 = __webpack_require__(580);
 const string_1 = __webpack_require__(310);
-const match_1 = __webpack_require__(605);
+const match_1 = __webpack_require__(604);
 const logger = __webpack_require__(64)('completion-complete');
 // first time completion
 const FIRST_TIMEOUT = 500;
@@ -86322,7 +86095,7 @@ exports.default = Complete;
 //# sourceMappingURL=complete.js.map
 
 /***/ }),
-/* 605 */
+/* 604 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -86470,7 +86243,7 @@ function nextScore(codes, index, inputCodes, allowFuzzy = true) {
 //# sourceMappingURL=match.js.map
 
 /***/ }),
-/* 606 */
+/* 605 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -86572,7 +86345,7 @@ exports.default = Floating;
 //# sourceMappingURL=floating.js.map
 
 /***/ }),
-/* 607 */
+/* 606 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -86620,7 +86393,7 @@ exports.default = throttle;
 //# sourceMappingURL=throttle.js.map
 
 /***/ }),
-/* 608 */
+/* 607 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -86848,7 +86621,7 @@ exports.CocSnippet = CocSnippet;
 //# sourceMappingURL=snippet.js.map
 
 /***/ }),
-/* 609 */
+/* 608 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -86923,7 +86696,7 @@ exports.SnippetVariableResolver = SnippetVariableResolver;
 //# sourceMappingURL=variableResolve.js.map
 
 /***/ }),
-/* 610 */
+/* 609 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -86933,7 +86706,7 @@ const tslib_1 = __webpack_require__(65);
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(240));
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const util_1 = __webpack_require__(611);
+const util_1 = __webpack_require__(610);
 const logger = __webpack_require__(64)('diagnostic-buffer');
 const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint'];
 // maintains sign and highlightId
@@ -87163,7 +86936,7 @@ exports.DiagnosticBuffer = DiagnosticBuffer;
 //# sourceMappingURL=buffer.js.map
 
 /***/ }),
-/* 611 */
+/* 610 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -87247,7 +87020,7 @@ exports.getLocationListItem = getLocationListItem;
 //# sourceMappingURL=util.js.map
 
 /***/ }),
-/* 612 */
+/* 611 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -87353,7 +87126,7 @@ exports.default = Collection;
 //# sourceMappingURL=collection.js.map
 
 /***/ }),
-/* 613 */
+/* 612 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -87369,7 +87142,7 @@ const util_1 = __webpack_require__(238);
 const array_1 = __webpack_require__(308);
 const position_1 = __webpack_require__(311);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const range_1 = tslib_1.__importDefault(__webpack_require__(614));
+const range_1 = tslib_1.__importDefault(__webpack_require__(613));
 const logger = __webpack_require__(64)('cursors');
 class Cursors {
     constructor(nvim) {
@@ -87993,7 +87766,7 @@ function equalEdit(one, two) {
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 614 */
+/* 613 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -88060,7 +87833,7 @@ exports.default = TextRange;
 //# sourceMappingURL=range.js.map
 
 /***/ }),
-/* 615 */
+/* 614 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -88068,6 +87841,7 @@ exports.default = TextRange;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const vscode_uri_1 = __webpack_require__(243);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(253));
 const events_1 = tslib_1.__importDefault(__webpack_require__(210));
@@ -88077,18 +87851,17 @@ const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(254));
 const services_1 = tslib_1.__importDefault(__webpack_require__(525));
 const manager_3 = tslib_1.__importDefault(__webpack_require__(256));
 const util_1 = __webpack_require__(238);
-const convert_1 = __webpack_require__(595);
+const convert_1 = __webpack_require__(594);
 const object_1 = __webpack_require__(249);
 const position_1 = __webpack_require__(311);
 const string_1 = __webpack_require__(310);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const codelens_1 = tslib_1.__importDefault(__webpack_require__(616));
-const colors_1 = tslib_1.__importDefault(__webpack_require__(617));
-const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(619));
-const refactor_1 = tslib_1.__importDefault(__webpack_require__(620));
-const search_1 = tslib_1.__importDefault(__webpack_require__(621));
+const codelens_1 = tslib_1.__importDefault(__webpack_require__(615));
+const colors_1 = tslib_1.__importDefault(__webpack_require__(616));
+const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(618));
+const refactor_1 = tslib_1.__importDefault(__webpack_require__(619));
+const search_1 = tslib_1.__importDefault(__webpack_require__(620));
 const debounce = __webpack_require__(240);
-const vscode_uri_1 = __webpack_require__(243);
 const logger = __webpack_require__(64)('Handler');
 const pairs = new Map([
     ['<', '>'],
@@ -88105,6 +87878,8 @@ class Handler {
         this.disposables = [];
         this.labels = {};
         this.selectionRange = null;
+        this.symbolsTokenSources = new Map();
+        this.cachedSymbols = new Map();
         this.getPreferences();
         this.requestStatusItem = workspace_1.default.createStatusBarItem(0, { progress: true });
         workspace_1.default.onDidChangeConfiguration(e => {
@@ -88117,6 +87892,24 @@ class Handler {
         let { signaturePreferAbove, signatureFloatMaxWidth, signatureMaxHeight } = this.preferences;
         this.signatureFactory = new floatFactory_1.default(nvim, workspace_1.default.env, signaturePreferAbove, signatureMaxHeight, signatureFloatMaxWidth, false);
         this.disposables.push(this.signatureFactory);
+        workspace_1.default.onWillSaveUntil(event => {
+            let { languageId } = event.document;
+            let config = workspace_1.default.getConfiguration('coc.preferences', event.document.uri);
+            let filetypes = config.get('formatOnSaveFiletypes', []);
+            if (filetypes.includes(languageId) || filetypes.some(item => item === '*')) {
+                let willSaveWaitUntil = async () => {
+                    let options = await workspace_1.default.getFormatOptions(event.document.uri);
+                    let tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
+                    let timer = setTimeout(() => {
+                        tokenSource.cancel();
+                    }, 1000);
+                    let textEdits = await languages_1.default.provideDocumentFormattingEdits(event.document, options, tokenSource.token);
+                    clearTimeout(timer);
+                    return textEdits;
+                };
+                event.waitUntil(willSaveWaitUntil());
+            }
+        }, null, 'languageserver');
         events_1.default.on('BufUnload', async (bufnr) => {
             let refactor = this.refactorMap.get(bufnr);
             if (refactor) {
@@ -88124,7 +87917,7 @@ class Handler {
                 this.refactorMap.delete(bufnr);
             }
         }, null, this.disposables);
-        events_1.default.on(['CursorMoved', 'CursorMovedI'], () => {
+        events_1.default.on(['CursorMoved', 'InsertEnter'], () => {
             if (this.requestTokenSource) {
                 this.requestTokenSource.cancel();
             }
@@ -88291,19 +88084,20 @@ class Handler {
         if (this.requestTokenSource) {
             this.requestTokenSource.cancel();
         }
+        let statusItem = this.requestStatusItem;
         this.requestTokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
         let { token } = this.requestTokenSource;
         let disposable = token.onCancellationRequested(() => {
             disposable.dispose();
-            this.requestStatusItem.text = `${name} request canceled`;
-            this.requestStatusItem.isProgress = false;
+            statusItem.text = `${name} request canceled`;
+            statusItem.isProgress = false;
             this.requestTimer = setTimeout(() => {
-                this.requestStatusItem.hide();
+                statusItem.hide();
             }, 500);
         });
-        this.requestStatusItem.isProgress = true;
-        this.requestStatusItem.text = `requesting ${name}`;
-        this.requestStatusItem.show();
+        statusItem.isProgress = true;
+        statusItem.text = `requesting ${name}`;
+        statusItem.show();
         if (this.requestTimer) {
             clearTimeout(this.requestTimer);
         }
@@ -88435,15 +88229,23 @@ class Handler {
         await this.handleLocations(locs, openCommand);
         return true;
     }
-    async getDocumentSymbols(document) {
-        document = document || workspace_1.default.getDocument(workspace_1.default.bufnr);
-        if (!document)
+    async getDocumentSymbols(doc) {
+        var _a;
+        if (!doc)
             return [];
-        let symbols = await languages_1.default.getDocumentSymbol(document.textDocument);
-        if (!symbols)
+        await synchronizeDocument(doc);
+        let cached = this.cachedSymbols.get(doc.bufnr);
+        if (cached && cached[0] == doc.version) {
+            return cached[1];
+        }
+        (_a = this.symbolsTokenSources.get(doc.bufnr)) === null || _a === void 0 ? void 0 : _a.cancel();
+        let tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
+        this.symbolsTokenSources.set(doc.bufnr, tokenSource);
+        let { version } = doc;
+        let symbols = await languages_1.default.getDocumentSymbol(doc.textDocument, tokenSource.token);
+        this.symbolsTokenSources.delete(doc.bufnr);
+        if (!symbols || symbols.length == 0)
             return null;
-        if (symbols.length == 0)
-            return [];
         let level = 0;
         let res = [];
         let pre = null;
@@ -88481,6 +88283,7 @@ class Handler {
                 pre = o;
             }
         }
+        this.cachedSymbols.set(doc.bufnr, [version, res]);
         return res;
     }
     async getWordEdit() {
@@ -88495,10 +88298,11 @@ class Handler {
         let curname = doc.textDocument.getText(range);
         if (languages_1.default.hasProvider('rename', doc.textDocument)) {
             await synchronizeDocument(doc);
-            let res = await languages_1.default.prepareRename(doc.textDocument, position);
+            let requestTokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
+            let res = await languages_1.default.prepareRename(doc.textDocument, position, requestTokenSource.token);
             if (res === false)
                 return null;
-            let edit = await languages_1.default.provideRenameEdits(doc.textDocument, position, curname);
+            let edit = await languages_1.default.provideRenameEdits(doc.textDocument, position, curname, requestTokenSource.token);
             if (edit)
                 return edit;
         }
@@ -88516,36 +88320,58 @@ class Handler {
         if (!doc)
             return false;
         let { nvim } = this;
+        let statusItem = this.requestStatusItem;
         let position = await workspace_1.default.getCursorPosition();
-        let range = doc.getWordRangeAtPosition(position);
-        if (!range || position_1.emptyRange(range))
-            return false;
         if (!languages_1.default.hasProvider('rename', doc.textDocument)) {
             workspace_1.default.showMessage(`Rename provider not found for current document`, 'error');
             return false;
         }
+        let token = this.getRequestToken('rename');
         await synchronizeDocument(doc);
-        let res = await languages_1.default.prepareRename(doc.textDocument, position);
-        if (res === false) {
-            workspace_1.default.showMessage('Invalid position for renmame', 'error');
-            return false;
-        }
-        if (!newName) {
-            let curname = await nvim.eval('expand("<cword>")');
-            newName = await workspace_1.default.callAsync('input', ['New name: ', curname]);
-            nvim.command('normal! :<C-u>', true);
-            if (!newName) {
-                workspace_1.default.showMessage('Empty name, canceled', 'warning');
+        try {
+            let res = await languages_1.default.prepareRename(doc.textDocument, position, token);
+            if (res === false) {
+                statusItem.hide();
+                workspace_1.default.showMessage('Invalid position for renmame', 'error');
                 return false;
             }
+            if (token.isCancellationRequested)
+                return false;
+            let curname;
+            if (!newName) {
+                if (vscode_languageserver_protocol_1.Range.is(res)) {
+                    curname = doc.textDocument.getText(res);
+                }
+                else if (res && typeof res.placeholder === 'string') {
+                    curname = res.placeholder;
+                }
+                else {
+                    curname = await nvim.eval('expand("<cword>")');
+                }
+                newName = await workspace_1.default.callAsync('input', ['New name: ', curname]);
+                nvim.command('normal! :<C-u>', true);
+            }
+            if (!newName) {
+                statusItem.hide();
+                return false;
+            }
+            let edit = await languages_1.default.provideRenameEdits(doc.textDocument, position, newName, token);
+            if (token.isCancellationRequested)
+                return false;
+            statusItem.hide();
+            if (!edit) {
+                workspace_1.default.showMessage('Invalid position for rename', 'warning');
+                return false;
+            }
+            await workspace_1.default.applyEdit(edit);
+            return true;
         }
-        let edit = await languages_1.default.provideRenameEdits(doc.textDocument, position, newName);
-        if (!edit) {
-            workspace_1.default.showMessage('Invalid position for rename', 'warning');
+        catch (e) {
+            statusItem.hide();
+            workspace_1.default.showMessage(`Error on rename: ${e.message}`, 'error');
+            logger.error(e);
             return false;
         }
-        await workspace_1.default.applyEdit(edit);
-        return true;
     }
     async documentFormatting() {
         let bufnr = await this.nvim.eval('bufnr("%")');
@@ -88553,12 +88379,28 @@ class Handler {
         if (!document)
             return false;
         await synchronizeDocument(document);
-        let options = await workspace_1.default.getFormatOptions(document.uri);
-        let textEdits = await languages_1.default.provideDocumentFormattingEdits(document.textDocument, options);
-        if (!textEdits || textEdits.length == 0)
+        let token = this.getRequestToken('format');
+        try {
+            let options = await workspace_1.default.getFormatOptions(document.uri);
+            let textEdits = await languages_1.default.provideDocumentFormattingEdits(document.textDocument, options, token);
+            if (token.isCancellationRequested)
+                return false;
+            if (Array.isArray(textEdits) && textEdits.length == 0) {
+                // no change
+                this.requestStatusItem.hide();
+                return true;
+            }
+            if (this.checkEmpty('format', textEdits))
+                return false;
+            await document.applyEdits(textEdits);
+            return true;
+        }
+        catch (e) {
+            this.requestStatusItem.hide();
+            workspace_1.default.showMessage(`Error on format: ${e.message}`, 'error');
+            logger.error(e);
             return false;
-        await document.applyEdits(textEdits);
-        return true;
+        }
     }
     async documentRangeFormatting(mode) {
         let document = await workspace_1.default.document;
@@ -88580,12 +88422,28 @@ class Handler {
                 return -1;
             range = vscode_languageserver_protocol_1.Range.create(lnum - 1, 0, lnum - 1 + count, 0);
         }
-        let options = await workspace_1.default.getFormatOptions(document.uri);
-        let textEdits = await languages_1.default.provideDocumentRangeFormattingEdits(document.textDocument, range, options);
-        if (!textEdits)
+        let token = this.getRequestToken('range format');
+        try {
+            let options = await workspace_1.default.getFormatOptions(document.uri);
+            let textEdits = await languages_1.default.provideDocumentRangeFormattingEdits(document.textDocument, range, options, token);
+            if (token.isCancellationRequested)
+                return -1;
+            this.requestStatusItem.hide();
+            if (textEdits && textEdits.length == 0) {
+                this.requestStatusItem.hide();
+                return 0;
+            }
+            if (this.checkEmpty('range format', textEdits))
+                return -1;
+            await document.applyEdits(textEdits);
+            return 0;
+        }
+        catch (e) {
+            this.requestStatusItem.hide();
+            workspace_1.default.showMessage(`Error on range format: ${e.message}`, 'error');
+            logger.error(e);
             return -1;
-        await document.applyEdits(textEdits);
-        return 0;
+        }
     }
     async getTagList() {
         let position = await workspace_1.default.getCursorPosition();
@@ -88596,8 +88454,8 @@ class Handler {
         if (!languages_1.default.hasProvider('definition', document.textDocument)) {
             return null;
         }
-        let { token } = this.requestTokenSource;
-        let definitions = await languages_1.default.getDefinition(document.textDocument, position, token);
+        let tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
+        let definitions = await languages_1.default.getDefinition(document.textDocument, position, tokenSource.token);
         if (!definitions || !definitions.length)
             return null;
         return definitions.map(location => {
@@ -88632,7 +88490,11 @@ class Handler {
         let context = { diagnostics };
         if (only && Array.isArray(only))
             context.only = only;
-        let codeActionsMap = await languages_1.default.getCodeActions(document.textDocument, range, context);
+        let token = this.getRequestToken('code action');
+        let codeActionsMap = await languages_1.default.getCodeActions(document.textDocument, range, context, token);
+        if (token.isCancellationRequested)
+            return [];
+        this.requestStatusItem.hide();
         if (!codeActionsMap)
             return [];
         let codeActions = [];
@@ -88659,9 +88521,9 @@ class Handler {
         let doc = workspace_1.default.getDocument(bufnr);
         if (!doc)
             return;
-        await synchronizeDocument(doc);
         if (mode)
             range = await workspace_1.default.getSelectedRange(mode, doc);
+        await synchronizeDocument(doc);
         let codeActions = await this.getCodeActions(bufnr, range, Array.isArray(only) ? only : null);
         if (only && typeof only == 'string') {
             codeActions = codeActions.filter(o => o.title == only || (o.command && o.command.title == only));
@@ -88743,37 +88605,34 @@ class Handler {
         await this.codeLensManager.doAction();
     }
     async fold(kind) {
-        let document = await workspace_1.default.document;
-        if (!document || !document.attached) {
+        let doc = await workspace_1.default.document;
+        if (!doc || !doc.attached) {
             workspace_1.default.showMessage('document not attached', 'warning');
             return false;
         }
-        await synchronizeDocument(document);
+        await synchronizeDocument(doc);
         let win = await this.nvim.window;
         let foldmethod = await win.getOption('foldmethod');
         if (foldmethod != 'manual') {
             workspace_1.default.showMessage('foldmethod option should be manual!', 'warning');
             return false;
         }
-        let ranges = await languages_1.default.provideFoldingRanges(document.textDocument, {});
-        if (ranges == null) {
-            workspace_1.default.showMessage('no folding range provider found', 'warning');
+        let token = this.getRequestToken('folding range');
+        let ranges = await languages_1.default.provideFoldingRanges(doc.textDocument, {}, token);
+        if (this.checkEmpty('folding range', ranges))
             return false;
-        }
-        if (!ranges || ranges.length == 0) {
-            workspace_1.default.showMessage('no range found', 'warning');
-            return false;
-        }
         if (kind) {
             ranges = ranges.filter(o => o.kind == kind);
         }
         if (ranges && ranges.length) {
-            await win.setOption('foldenable', true);
+            this.nvim.pauseNotification();
+            win.setOption('foldenable', true, true);
             for (let range of ranges.reverse()) {
                 let { startLine, endLine } = range;
                 let cmd = `${startLine + 1}, ${endLine + 1}fold`;
                 this.nvim.command(cmd, true);
             }
+            await this.nvim.resumeNotification();
             return true;
         }
         return false;
@@ -89175,7 +89034,12 @@ class Handler {
     }
     async getSelectionRanges() {
         let { document, position } = await workspace_1.default.getCurrentState();
-        let selectionRanges = await languages_1.default.getSelectionRanges(document, [position]);
+        let token = this.getRequestToken('selection ranges');
+        let selectionRanges = await languages_1.default.getSelectionRanges(document, [position], token);
+        if (token.isCancellationRequested)
+            return null;
+        if (this.checkEmpty('selection ranges', selectionRanges))
+            return null;
         if (selectionRanges && selectionRanges.length)
             return selectionRanges;
         return null;
@@ -89211,15 +89075,12 @@ class Handler {
             }
             return;
         }
-        let selectionRanges = await languages_1.default.getSelectionRanges(doc.textDocument, positions);
-        if (selectionRanges == null) {
-            workspace_1.default.showMessage('Selection range provider not found for current document', 'warning');
+        let token = this.getRequestToken('selection ranges');
+        let selectionRanges = await languages_1.default.getSelectionRanges(doc.textDocument, positions, token);
+        if (token.isCancellationRequested)
             return;
-        }
-        if (!selectionRanges || selectionRanges.length == 0) {
-            workspace_1.default.showMessage('No selection range found', 'warning');
+        if (this.checkEmpty('selection ranges', selectionRanges))
             return;
-        }
         let mode = await nvim.eval('mode()');
         if (mode != 'n')
             await nvim.eval(`feedkeys("\\<Esc>", 'in')`);
@@ -89246,16 +89107,6 @@ class Handler {
         this.selectionRange = selectionRanges[0];
         await workspace_1.default.selectRange(selectionRange.range);
     }
-    async codeActionRange(start, end, only) {
-        let listArgs = ['--normal', '--number-select', 'actions', `-start`, start + '', `-end`, end + ''];
-        if (only == 'quickfix') {
-            listArgs.push('-quickfix');
-        }
-        else if (only == 'source') {
-            listArgs.push('-source');
-        }
-        await manager_2.default.start(listArgs);
-    }
     /**
      * Refactor of current symbol
      */
@@ -89265,20 +89116,34 @@ class Handler {
         if (!doc)
             return;
         let position = { line: cursor[0], character: cursor[1] };
-        let res = await languages_1.default.prepareRename(doc.textDocument, position);
-        if (res === false) {
-            workspace_1.default.showMessage('Invalid position for rename', 'error');
-            return;
+        let token = this.getRequestToken('refactor');
+        try {
+            let res = await languages_1.default.prepareRename(doc.textDocument, position, token);
+            if (token.isCancellationRequested)
+                return;
+            if (res === false) {
+                this.requestStatusItem.hide();
+                workspace_1.default.showMessage('Invalid position for rename', 'error');
+                return;
+            }
+            let edit = await languages_1.default.provideRenameEdits(doc.textDocument, position, 'NewName', token);
+            if (token.isCancellationRequested)
+                return;
+            this.requestStatusItem.hide();
+            if (!edit) {
+                workspace_1.default.showMessage('Empty workspaceEdit from server', 'warning');
+                return;
+            }
+            let refactor = await refactor_1.default.createFromWorkspaceEdit(edit, filetype);
+            if (!refactor.buffer)
+                return;
+            this.refactorMap.set(refactor.buffer.id, refactor);
         }
-        let edit = await languages_1.default.provideRenameEdits(doc.textDocument, position, 'NewName');
-        if (!edit) {
-            workspace_1.default.showMessage('Empty workspaceEdit from server', 'warning');
-            return;
+        catch (e) {
+            this.requestStatusItem.hide();
+            workspace_1.default.showMessage(`Error on refactor ${e.message}`, 'error');
+            logger.error(e);
         }
-        let refactor = await refactor_1.default.createFromWorkspaceEdit(edit, filetype);
-        if (!refactor.buffer)
-            return;
-        this.refactorMap.set(refactor.buffer.id, refactor);
     }
     async saveRefactor(bufnr) {
         let refactor = this.refactorMap.get(bufnr);
@@ -89389,22 +89254,19 @@ class Handler {
         };
     }
     checkEmpty(name, location) {
-        let statusItem = this.requestStatusItem;
         if (this.requestTokenSource) {
             this.requestTokenSource.dispose();
             this.requestTokenSource = undefined;
         }
+        this.requestStatusItem.hide();
         if (location == null) {
-            statusItem.hide();
-            workspace_1.default.showMessage(`${name} provider not found for current document`, 'warning');
+            workspace_1.default.showMessage(`${name} provider not found for current buffer`, 'warning');
             return true;
         }
         if (Array.isArray(location) && location.length == 0) {
-            statusItem.hide();
             workspace_1.default.showMessage(`${name} not found`, 'warning');
             return true;
         }
-        this.requestStatusItem.hide();
         return false;
     }
     dispose() {
@@ -89482,7 +89344,7 @@ async function synchronizeDocument(doc) {
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 616 */
+/* 615 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -89490,6 +89352,7 @@ async function synchronizeDocument(doc) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(240));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
 const events_1 = tslib_1.__importDefault(__webpack_require__(210));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
@@ -89500,9 +89363,9 @@ const logger = __webpack_require__(64)('codelens');
 class CodeLensManager {
     constructor(nvim) {
         this.nvim = nvim;
-        this.fetching = new Set();
         this.disposables = [];
         this.codeLensMap = new Map();
+        this.tokenSourceMap = new Map();
         this.setConfiguration();
         this.srcId = workspace_1.default.createNameSpace('coc-codelens') || 1080;
         services_1.default.on('ready', async (id) => {
@@ -89590,7 +89453,7 @@ class CodeLensManager {
         this.subseparator = config.get('subseparator', ' ');
         this.enabled = nvim.hasFunction('nvim_buf_set_virtual_text') && config.get('enable', true);
     }
-    async fetchDocumentCodeLenses(retry = 0) {
+    async fetchDocumentCodeLenses() {
         let doc = workspace_1.default.getDocument(workspace_1.default.bufnr);
         if (!doc)
             return;
@@ -89598,11 +89461,10 @@ class CodeLensManager {
         let document = workspace_1.default.getDocument(uri);
         if (!this.validDocument(document))
             return;
-        if (this.fetching.has(bufnr))
-            return;
-        this.fetching.add(bufnr);
+        let tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
         try {
-            let codeLenses = await languages_1.default.getCodeLens(document.textDocument);
+            let codeLenses = await languages_1.default.getCodeLens(document.textDocument, tokenSource.token);
+            this.tokenSourceMap.delete(bufnr);
             if (codeLenses && codeLenses.length > 0) {
                 this.codeLensMap.set(document.bufnr, { codeLenses, version });
                 if (workspace_1.default.bufnr == document.bufnr) {
@@ -89610,14 +89472,10 @@ class CodeLensManager {
                     await this._resolveCodeLenses(true);
                 }
             }
-            this.fetching.delete(bufnr);
         }
         catch (e) {
-            this.fetching.delete(bufnr);
+            this.tokenSourceMap.delete(bufnr);
             logger.error(e);
-            if (e.message.includes("timeout") && retry < 5) {
-                this.fetchDocumentCodeLenses(retry + 1).logError();
-            }
         }
     }
     async setVirtualText(buffer, codeLenses) {
@@ -89764,19 +89622,20 @@ exports.default = CodeLensManager;
 //# sourceMappingURL=codelens.js.map
 
 /***/ }),
-/* 617 */
+/* 616 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const events_1 = tslib_1.__importDefault(__webpack_require__(210));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(333));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(497));
 const util_1 = __webpack_require__(238);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(257));
-const highlighter_1 = tslib_1.__importStar(__webpack_require__(618));
+const highlighter_1 = tslib_1.__importStar(__webpack_require__(617));
 const logger = __webpack_require__(64)('colors');
 class Colors {
     constructor(nvim) {
@@ -89841,7 +89700,8 @@ class Colors {
         if (!info)
             return workspace_1.default.showMessage('Color not found at current position', 'warning');
         let document = await workspace_1.default.document;
-        let presentations = await languages_1.default.provideColorPresentations(info, document.textDocument);
+        let tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
+        let presentations = await languages_1.default.provideColorPresentations(info, document.textDocument, tokenSource.token);
         if (!presentations || presentations.length == 0)
             return;
         let res = await workspace_1.default.showQuickpick(presentations.map(o => o.label), 'choose a color presentation:');
@@ -89960,7 +89820,7 @@ function isValid(document) {
 //# sourceMappingURL=colors.js.map
 
 /***/ }),
-/* 618 */
+/* 617 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -90148,7 +90008,7 @@ async function synchronizeDocument(doc) {
 //# sourceMappingURL=highlighter.js.map
 
 /***/ }),
-/* 619 */
+/* 618 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -90167,16 +90027,14 @@ class DocumentHighlighter {
         this.colors = colors;
         this.disposables = [];
         events_1.default.on('WinLeave', winid => {
-            if (this.tokenSource)
-                this.tokenSource.cancel();
+            this.cancel();
             this.clearHighlight(winid);
         }, null, this.disposables);
         events_1.default.on('BufWinEnter', () => {
-            if (this.tokenSource)
-                this.tokenSource.cancel();
+            this.cancel();
         }, null, this.disposables);
-        events_1.default.on(['CursorMoved', 'CursorMovedI'], () => {
-            this.cursorMoveTs = Date.now();
+        events_1.default.on('CursorMoved', () => {
+            this.cancel();
         }, null, this.disposables);
         events_1.default.on('InsertEnter', () => {
             this.clearHighlight();
@@ -90184,20 +90042,12 @@ class DocumentHighlighter {
     }
     clearHighlight(winid) {
         let { nvim } = workspace_1.default;
-        nvim.pauseNotification();
         nvim.call('coc#util#clear_highlights', winid ? [winid] : [], true);
-        if (workspace_1.default.isVim) {
-            nvim.command('redraw', true);
-        }
-        nvim.resumeNotification(false, true).catch(_e => {
-            // noop
-        });
     }
     async highlight(bufnr, position) {
         let { nvim } = this;
         let doc = workspace_1.default.getDocument(bufnr);
-        if (this.tokenSource)
-            this.tokenSource.cancel();
+        this.cancel();
         let highlights = await this.getHighlights(doc, position);
         if (!highlights || highlights.length == 0) {
             this.clearHighlight();
@@ -90234,14 +90084,22 @@ class DocumentHighlighter {
             return null;
         try {
             this.tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
-            let highlights = await languages_1.default.getDocumentHighLight(document.textDocument, position, this.tokenSource.token);
-            if (workspace_1.default.bufnr != document.bufnr || (this.cursorMoveTs && this.cursorMoveTs > ts)) {
+            let { token } = this.tokenSource;
+            let highlights = await languages_1.default.getDocumentHighLight(document.textDocument, position, token);
+            this.tokenSource = null;
+            if (token.isCancellationRequested)
                 return null;
-            }
             return highlights;
         }
         catch (_e) {
             return null;
+        }
+    }
+    cancel() {
+        if (this.tokenSource) {
+            this.tokenSource.cancel();
+            this.tokenSource.dispose();
+            this.tokenSource = null;
         }
     }
     dispose() {
@@ -90254,7 +90112,7 @@ exports.default = DocumentHighlighter;
 //# sourceMappingURL=documentHighlight.js.map
 
 /***/ }),
-/* 620 */
+/* 619 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -90932,7 +90790,7 @@ function emptyWorkspaceEdit(edit) {
 //# sourceMappingURL=refactor.js.map
 
 /***/ }),
-/* 621 */
+/* 620 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
