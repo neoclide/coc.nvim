@@ -355,16 +355,16 @@ export default class Handler {
   }
 
   public async onHover(): Promise<boolean> {
-    let { document, position } = await workspace.getCurrentState()
+    let doc = await workspace.document
+    let position = await workspace.getCursorPosition()
     let winid = await this.nvim.call('win_getid') as number
     let token = this.getRequestToken('hover')
-    let hovers = await languages.getHover(document, position, token)
+    let hovers = await languages.getHover(doc.textDocument, position, token)
     if (token.isCancellationRequested) return false
     if (this.checkEmpty('hover', hovers)) return false
-    let hover = hovers.find(o => Range.is(o.range))
-    if (hover) {
-      let doc = workspace.getDocument(document.uri)
-      if (doc) {
+    if (!token.isCancellationRequested && !this.checkEmpty('hover', hovers)) {
+      let hover = hovers.find(o => Range.is(o.range))
+      if (hover) {
         doc.matchAddRanges([hover.range], 'CocHoverRange', 999)
         setTimeout(() => {
           this.nvim.call('coc#util#clear_pos_matches', ['^CocHoverRange', winid], true)
