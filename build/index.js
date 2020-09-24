@@ -23980,7 +23980,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "82c3834f8b" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "4f35a557af" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -88145,18 +88145,18 @@ class Handler {
         return languages_1.default.hasProvider(id, doc.textDocument);
     }
     async onHover() {
-        let { document, position } = await workspace_1.default.getCurrentState();
+        let doc = await workspace_1.default.document;
+        let position = await workspace_1.default.getCursorPosition();
         let winid = await this.nvim.call('win_getid');
         let token = this.getRequestToken('hover');
-        let hovers = await languages_1.default.getHover(document, position, token);
+        let hovers = await languages_1.default.getHover(doc.textDocument, position, token);
         if (token.isCancellationRequested)
             return false;
         if (this.checkEmpty('hover', hovers))
             return false;
-        let hover = hovers.find(o => vscode_languageserver_protocol_1.Range.is(o.range));
-        if (hover) {
-            let doc = workspace_1.default.getDocument(document.uri);
-            if (doc) {
+        if (!token.isCancellationRequested && !this.checkEmpty('hover', hovers)) {
+            let hover = hovers.find(o => vscode_languageserver_protocol_1.Range.is(o.range));
+            if (hover) {
                 doc.matchAddRanges([hover.range], 'CocHoverRange', 999);
                 setTimeout(() => {
                     this.nvim.call('coc#util#clear_pos_matches', ['^CocHoverRange', winid], true);
