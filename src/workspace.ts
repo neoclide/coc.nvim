@@ -962,6 +962,9 @@ export class Workspace implements IWorkspace {
         let uri = URI.file(filepath).toString()
         let doc = this.getDocument(uri)
         if (doc) return
+        if (!fs.existsSync(path.dirname(filepath))) {
+          fs.mkdirSync(path.dirname(filepath), { recursive: true })
+        }
         let encoding = await this.getFileEncoding()
         fs.writeFileSync(filepath, '', encoding || '')
         await this.loadFile(uri)
