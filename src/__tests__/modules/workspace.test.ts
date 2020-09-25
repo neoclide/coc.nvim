@@ -560,6 +560,16 @@ describe('workspace utility', () => {
     expect(exists).toBe(false)
   })
 
+  it('should create file if parent folder not exists', async () => {
+    const folder = path.join(__dirname, 'foo')
+    const filepath = path.join(folder, 'bar')
+    await workspace.createFile(filepath)
+    const exists = fs.existsSync(filepath)
+    expect(exists).toBe(true)
+    fs.unlinkSync(filepath)
+    fs.rmdirSync(folder)
+  })
+
   it('should not create file if file exists with ignoreIfExists', async () => {
     let file = await createTmpFile('foo')
     await workspace.createFile(file, { ignoreIfExists: true })
