@@ -44,25 +44,27 @@ export default class Highlighter implements Disposable {
   }
 
   public async doHighlight(): Promise<void> {
-    this.cancel()
     let doc = workspace.getDocument(this.bufnr)
     if (!doc) return
-    this.tokenSource = new CancellationTokenSource()
-    let { token } = this.tokenSource
-    await synchronizeDocument(doc)
-    if (workspace.insertMode) return
-    if (token.isCancellationRequested) return
-    if (this.version && doc.version == this.version) return
-    let colors: ColorInformation[]
     try {
+      this.cancel()
+      this.tokenSource = new CancellationTokenSource()
+      let { token } = this.tokenSource
+      await synchronizeDocument(doc)
+      if (workspace.insertMode) return
+      if (token.isCancellationRequested) return
+      if (this.version && doc.version == this.version) return
+      let { version } = doc
+      let colors: ColorInformation[]
+      usedColors.clear()
       colors = await languages.provideDocumentColors(doc.textDocument, token)
       colors = colors || []
       if (token.isCancellationRequested) return
-      this.version = doc.version
+      this.version = version
+      await this.addHighlight(doc, colors, token)
     } catch (e) {
-      logger.error('Error on request colors:', e)
+      logger.error('Error on highlight:', e)
     }
-    await this.addHighlight(doc, colors, token)
   }
 
   private async addHighlight(doc: Document, colors: ColorInformation[], token: CancellationToken): Promise<void> {

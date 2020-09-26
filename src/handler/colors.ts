@@ -34,8 +34,8 @@ export default class Colors {
     events.on('BufUnload', async bufnr => {
       let highlighter = this.highlighters.get(bufnr)
       if (!highlighter) return
-      highlighter.dispose()
       this.highlighters.delete(bufnr)
+      highlighter.dispose()
     }, null, this.disposables)
 
     let config = workspace.getConfiguration('coc.preferences')
