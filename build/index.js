@@ -23980,7 +23980,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "4f35a557af" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "6cb5c6cd2d" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -26458,6 +26458,9 @@ class Workspace {
                 let doc = this.getDocument(uri);
                 if (doc)
                     return;
+                if (!fs_1.default.existsSync(path_1.default.dirname(filepath))) {
+                    fs_1.default.mkdirSync(path_1.default.dirname(filepath), { recursive: true });
+                }
                 let encoding = await this.getFileEncoding();
                 fs_1.default.writeFileSync(filepath, '', encoding || '');
                 await this.loadFile(uri);
@@ -88221,7 +88224,7 @@ class Handler {
     async gotoReferences(openCommand) {
         let { document, position } = await workspace_1.default.getCurrentState();
         let token = this.getRequestToken('references');
-        let locs = await languages_1.default.getReferences(document, { includeDeclaration: false }, position, token);
+        let locs = await languages_1.default.getReferences(document, { includeDeclaration: true }, position, token);
         if (token.isCancellationRequested)
             return false;
         if (this.checkEmpty('references', locs))
@@ -89665,8 +89668,8 @@ class Colors {
             let highlighter = this.highlighters.get(bufnr);
             if (!highlighter)
                 return;
-            highlighter.dispose();
             this.highlighters.delete(bufnr);
+            highlighter.dispose();
         }, null, this.disposables);
         let config = workspace_1.default.getConfiguration('coc.preferences');
         this._enabled = config.get('colorSupport', true);
@@ -89860,31 +89863,33 @@ class Highlighter {
         return this._colors.length > 0;
     }
     async doHighlight() {
-        this.cancel();
         let doc = workspace_1.default.getDocument(this.bufnr);
         if (!doc)
             return;
-        this.tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
-        let { token } = this.tokenSource;
-        await synchronizeDocument(doc);
-        if (workspace_1.default.insertMode)
-            return;
-        if (token.isCancellationRequested)
-            return;
-        if (this.version && doc.version == this.version)
-            return;
-        let colors;
         try {
+            this.cancel();
+            this.tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
+            let { token } = this.tokenSource;
+            await synchronizeDocument(doc);
+            if (workspace_1.default.insertMode)
+                return;
+            if (token.isCancellationRequested)
+                return;
+            if (this.version && doc.version == this.version)
+                return;
+            let { version } = doc;
+            let colors;
+            usedColors.clear();
             colors = await languages_1.default.provideDocumentColors(doc.textDocument, token);
             colors = colors || [];
             if (token.isCancellationRequested)
                 return;
-            this.version = doc.version;
+            this.version = version;
+            await this.addHighlight(doc, colors, token);
         }
         catch (e) {
-            logger.error('Error on request colors:', e);
+            logger.error('Error on highlight:', e);
         }
-        await this.addHighlight(doc, colors, token);
     }
     async addHighlight(doc, colors, token) {
         colors = colors || [];
