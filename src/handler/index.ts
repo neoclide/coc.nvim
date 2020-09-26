@@ -425,7 +425,7 @@ export default class Handler {
   public async gotoReferences(openCommand?: string): Promise<boolean> {
     let { document, position } = await workspace.getCurrentState()
     let token = this.getRequestToken('references')
-    let locs = await languages.getReferences(document, { includeDeclaration: false }, position, token)
+    let locs = await languages.getReferences(document, { includeDeclaration: true }, position, token)
     if (token.isCancellationRequested) return false
     if (this.checkEmpty('references', locs)) return false
     await this.handleLocations(locs, openCommand)
