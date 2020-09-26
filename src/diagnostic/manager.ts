@@ -163,7 +163,7 @@ export class DiagnosticManager implements Disposable {
     this.buffers.set(bufnr, buf)
     buf.onDidRefresh(() => {
       if (['never', 'jump'].includes(this.config.enableMessage)) {
-        return;
+        return
       }
       this.echoMessage(true).logError()
     })
