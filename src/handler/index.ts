@@ -517,7 +517,7 @@ export default class Handler {
     let statusItem = this.requestStatusItem
     let position = await workspace.getCursorPosition()
     if (!languages.hasProvider('rename', doc.textDocument)) {
-      workspace.showMessage(`Rename provider not found for current document`, 'error')
+      workspace.showMessage(`Rename provider not found for current document`, 'warning')
       return false
     }
     let token = this.getRequestToken('rename')
@@ -526,7 +526,7 @@ export default class Handler {
       let res = await languages.prepareRename(doc.textDocument, position, token)
       if (res === false) {
         statusItem.hide()
-        workspace.showMessage('Invalid position for renmame', 'error')
+        workspace.showMessage('Invalid position for renmame', 'warning')
         return false
       }
       if (token.isCancellationRequested) return false
@@ -1268,7 +1268,7 @@ export default class Handler {
       if (token.isCancellationRequested) return
       if (res === false) {
         this.requestStatusItem.hide()
-        workspace.showMessage('Invalid position for rename', 'error')
+        workspace.showMessage('Invalid position for rename', 'warning')
         return
       }
       let edit = await languages.provideRenameEdits(doc.textDocument, position, 'NewName', token)
