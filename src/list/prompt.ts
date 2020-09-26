@@ -55,8 +55,7 @@ export default class Prompt {
       this._mode = opts.mode
       this._matcher = opts.interactive ? '' : opts.matcher
     }
-    let fn = workspace.isVim ? 'coc#list#prompt_start' : 'coc#list#start_prompt'
-    this.nvim.call(fn, [], true)
+    this.nvim.call('coc#list#start_prompt', [], true)
     this.drawPrompt()
   }
 

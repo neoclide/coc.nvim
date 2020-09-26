@@ -493,8 +493,7 @@ export default class ListUI {
     if (start > end) {
       [start, end] = [end, start]
     }
-    let method = workspace.isVim ? 'coc#list#prompt_start' : 'coc#list#start_prompt'
-    this.nvim.call(method, [], true)
+    this.nvim.call('coc#list#start_prompt', [], true)
     return [start, end]
   }
 }
