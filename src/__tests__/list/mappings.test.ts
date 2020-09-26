@@ -398,12 +398,14 @@ describe('list insert mappings', () => {
     await session('foo')
     await session('bar')
     await manager.start(['location'])
+    await manager.session.ui.ready
+    await helper.wait(50)
     await nvim.eval('feedkeys("\\<C-n>", "in")')
-    await helper.wait(200)
+    await helper.wait(100)
     let input = manager.prompt.input
     expect(input.length).toBeGreaterThan(0)
     await nvim.eval('feedkeys("\\<C-p>", "in")')
-    await helper.wait(200)
+    await helper.wait(100)
     input = manager.prompt.input
     expect(input.length).toBeGreaterThan(0)
   })

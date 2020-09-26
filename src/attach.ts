@@ -43,6 +43,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
       case 'TaskStdout':
       case 'GlobalChange':
       case 'InputChar':
+      case 'MenuInput':
       case 'OptionSet':
         await events.fire(method, args)
         break

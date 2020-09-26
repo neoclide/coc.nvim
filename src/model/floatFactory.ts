@@ -1,16 +1,14 @@
-import { Neovim, Buffer, Window } from '@chemzqm/neovim'
+import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { EventEmitter } from 'events'
-import { Mutex } from '../util/mutex'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
-import snippetsManager from '../snippets/manager'
 import { Documentation, Env } from '../types'
 import { disposeAll, wait } from '../util'
-import workspace from '../workspace'
-import FloatBuffer from './floatBuffer'
+import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
 import { byteLength } from '../util/string'
+import FloatBuffer from './floatBuffer'
 const logger = require('../util/logger')('model-float')
 
 export interface WindowConfig {
@@ -20,6 +18,7 @@ export interface WindowConfig {
   row: number
   relative: 'cursor' | 'win' | 'editor'
   style?: string
+  cursorline?: number
 }
 
 // factory class for floating window
@@ -40,9 +39,9 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     private preferTop = false,
     private maxHeight = 999,
     private maxWidth?: number,
-    private autoHide = true) {
+    private autoHide = true,
+    private cursorline = false) {
     super()
-    if (!workspace.floatSupported) return
     this.mutex = new Mutex()
     this.floatBuffer = new FloatBuffer(nvim)
     events.on('BufEnter', bufnr => {
@@ -60,17 +59,21 @@ export default class FloatFactory extends EventEmitter implements Disposable {
         this.close()
       }
     }, null, this.disposables)
+    events.on('BufWinLeave', bufnr => {
+      if (this.bufnr == bufnr) {
+        this.emit('close')
+      }
+    }, null, this.disposables)
     this.onCursorMoved = debounce(this._onCursorMoved.bind(this), 200)
-    events.on('CursorMoved', this.onCursorMoved, null, this.disposables)
-    events.on('CursorMovedI', this.onCursorMoved, null, this.disposables)
+    events.on('CursorMoved', this.onCursorMoved.bind(this, false), null, this.disposables)
+    events.on('CursorMovedI', this.onCursorMoved.bind(this, true), null, this.disposables)
     this.disposables.push(Disposable.create(() => {
       this.onCursorMoved.clear()
       this.cancel()
     }))
   }
 
-  private _onCursorMoved(bufnr: number, cursor: [number, number]): void {
-    let { insertMode } = workspace
+  private _onCursorMoved(insertMode: boolean, bufnr: number, cursor: [number, number]): void {
     if (bufnr == this._bufnr) return
     if (bufnr == this.targetBufnr && equals(cursor, this.cursor)) {
       // cursor not moved
@@ -118,7 +121,8 @@ export default class FloatFactory extends EventEmitter implements Disposable {
   }
 
   public async create(docs: Documentation[], allowSelection = false, offsetX = 0): Promise<void> {
-    if (!workspace.floatSupported) return
+    let { floating, textprop } = this.env
+    if (!floating && !textprop) return
     this.onCursorMoved.clear()
     if (docs.length == 0 || docs.every(doc => doc.content.length == 0)) {
       this.close()
@@ -147,6 +151,9 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     this.targetBufnr = targetBufnr
     this.cursor = cursor
     let config = this.getWindowConfig(docs, win_position, offsetX)
+    if (this.env.isVim && this.cursorline) {
+      config.cursorline = 1
+    }
     // calculat highlights
     await floatBuffer.setDocuments(docs, config.width)
     if (token.isCancellationRequested) return
@@ -159,7 +166,7 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     let bufnr = this._bufnr = res[1]
     if (token.isCancellationRequested) return
     nvim.pauseNotification()
-    if (workspace.isNvim) {
+    if (!this.env.isVim) {
       nvim.command(`noa call win_gotoid(${winid})`, true)
       this.floatBuffer.setLines(bufnr)
       nvim.command(`noa normal! gg0`, true)
@@ -173,9 +180,12 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     this.emit('show', winid, bufnr)
     let [, err] = await nvim.resumeNotification()
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-    if (err) throw new Error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
+    if (err) {
+      logger.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
+      return
+    }
     if (mode == 's' && !token.isCancellationRequested) {
-      await snippetsManager.selectCurrentPlaceholder(false)
+      nvim.call('CocActionAsync', ['selectCurrentPlaceholder'], true)
       await wait(50)
     }
     this.onCursorMoved.clear()
@@ -191,7 +201,7 @@ export default class FloatFactory extends EventEmitter implements Disposable {
       // TODO: sometimes this won't work at all
       this.nvim.call('coc#util#close_win', [winid], true)
       this.winid = 0
-      if (workspace.isVim) this.nvim.command('redraw', true)
+      if (this.env.isVim) this.nvim.command('redraw', true)
     }
   }
 

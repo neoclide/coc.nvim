@@ -718,6 +718,11 @@ Built-in configurations:~
 
 	Highlight timeout for buffer in floating window, default: `500`
 
+"coc.preferences.floatQuickpick":~
+
+	Set to false to disable float/popup support for quickpick menu.
+	Default: `true`
+
 						*coc-config-cursors*
 "cursors.cancelKey":~
 
@@ -2378,6 +2383,12 @@ CocHoverRange						*CocHoverRange*
   Default: `hi default link CocHoverRange Search`
 
   The highlight used for current hover range.
+
+CocMenuSel						*CocMenuSel*
+
+  Default: `hi default link CocMenuSel PmenuSel`
+
+  The highlight used for selected menu item, works on neovim only.
 
 ==============================================================================
 LIST SUPPORT						*coc-list*

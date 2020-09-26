@@ -212,6 +212,7 @@ function! coc#util#create_float_win(winid, bufnr, config) abort
         \ 'padding': [0, 1, 0, 1],
         \ 'highlight': 'CocFloating',
         \ 'fixed': 1,
+        \ 'cursorline': get(a:config, 'cursorline', 0),
         \ 'line': line,
         \ 'col': col,
         \ 'minwidth': a:config['width'] - 2,
@@ -226,14 +227,13 @@ function! coc#util#create_float_win(winid, bufnr, config) abort
     let bufnr = coc#util#create_float_buf(a:bufnr)
     let winid = nvim_open_win(bufnr, 0, a:config)
     call setwinvar(winid, '&foldcolumn', 1)
-    call setwinvar(winid, '&winhl', 'Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating')
+    call setwinvar(winid, '&winhl', 'Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating,CursorLine:CocMenuSel')
     call setwinvar(winid, '&signcolumn', 'no')
   endif
   if winid <= 0
     return null
   endif
   call setwinvar(winid, '&list', 0)
-  call setwinvar(winid, '&wrap', 1)
   call setwinvar(winid, '&number', 0)
   call setwinvar(winid, '&relativenumber', 0)
   call setwinvar(winid, '&cursorcolumn', 0)

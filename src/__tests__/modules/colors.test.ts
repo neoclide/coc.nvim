@@ -109,8 +109,6 @@ describe('Colors', () => {
     await colors.doHighlight(doc.bufnr)
     let p = colors.pickPresentation()
     await helper.wait(100)
-    let m = await nvim.mode
-    expect(m.blocking).toBe(true)
     await nvim.input('1<enter>')
     await p
     let line = await nvim.getLine()

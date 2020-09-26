@@ -815,24 +815,18 @@ describe('workspace utility', () => {
 
   it('should choose quickpick', async () => {
     let p = workspace.showQuickpick(['a', 'b'])
-    await helper.wait(30)
-    let m = await nvim.mode
-    expect(m.blocking).toBe(true)
-    await nvim.input('1<enter>')
+    await helper.wait(100)
+    await nvim.input('1')
     let res = await p
     expect(res).toBe(0)
-    await nvim.input('<enter>')
   })
 
   it('should cancel quickpick', async () => {
     let p = workspace.showQuickpick(['a', 'b'])
-    await helper.wait(30)
-    let m = await nvim.mode
-    expect(m.blocking).toBe(true)
-    await nvim.input('8<enter>')
+    await helper.wait(100)
+    await nvim.input('<esc>')
     let res = await p
     expect(res).toBe(-1)
-    await nvim.input('<enter>')
   })
 
   it('should show prompt', async () => {

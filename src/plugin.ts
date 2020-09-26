@@ -354,6 +354,9 @@ export default class Plugin extends EventEmitter {
     this.addAction('addCommand', cmd => {
       this.addCommand(cmd)
     })
+    this.addAction('selectCurrentPlaceholder', (triggerAutocmd?: boolean) => {
+      return snippetManager.selectCurrentPlaceholder(!!triggerAutocmd)
+    })
     workspace.onDidChangeWorkspaceFolders(() => {
       nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
     })
