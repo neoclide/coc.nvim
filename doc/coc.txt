@@ -2568,7 +2568,7 @@ Note: Type `?` on normal mode to get supported arguments of current list.
 
 LIST MAPPINGS						*coc-list-mappings*
 
-Default mappings in insert mode:
+Default mappings on insert mode:
 
 <Esc>       - cancel list session.
 <C-c>       - stop loading task.
@@ -2595,7 +2595,7 @@ Default mappings in insert mode:
 <C-r>       - insert content from Vim register.
 <Tab>       - select action.
 
-Default mappings in normal mode:
+Default mappings on normal mode:
 
 <Esc>       - cancel list session.
 <C-c>       - stop source from fetching more items.
@@ -2603,6 +2603,8 @@ Default mappings in normal mode:
 <C-a>       - mark all visible items selected.
 <C-o>       - jump to original window on list create.
 <Tab>       - select action.
+<C-e> 	    - scroll preview window down.
+<C-y> 	    - scroll preview window up.
 <Space>     - toggle select of current item.
 i,I,o,O,a,A - change to insert mode.
 p           - preview action.
@@ -2654,6 +2656,8 @@ The mapping expression should be `command:arguments`, available commands:
 	'previous' - move cursor to previous item.
 	'next' - move cursor to next item.
 	'defaultaction' - execute default action.
+	'previewUp' - scroll preview window up.
+	'previewDown' - scroll preview window down.
 	'help' - show help.
 'prompt' - do prompt action, including:
 	'previous' - change to previous input in history.

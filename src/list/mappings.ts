@@ -94,6 +94,8 @@ export default class Mappings {
     this.add('normal', '<esc>', () => manager.cancel())
     this.add('normal', '<C-l>', () => manager.session?.reloadItems())
     this.add('normal', '<C-o>', () => manager.session?.jumpBack())
+    this.add('normal', '<C-e>', () => this.scrollPreview('down'))
+    this.add('normal', '<C-y>', () => this.scrollPreview('up'))
     this.add('normal', ['i', 'I', 'o', 'O', 'a', 'A'], () => manager.toggleMode())
     this.add('normal', '?', () => manager.session?.showHelp())
     this.add('normal', ':', async () => {
@@ -246,6 +248,10 @@ export default class Mappings {
           return
         case 'toggleMode':
           return manager.toggleMode()
+        case 'previewUp':
+          return this.scrollPreview('up')
+        case 'previewDown':
+          return this.scrollPreview('down')
         default:
           await this.onError(`'${action}' not supported`)
       }
@@ -306,5 +312,13 @@ export default class Mappings {
 
   private async doScroll(key: string): Promise<void> {
     await this.manager.feedkeys(key)
+  }
+
+  private async scrollPreview(dir: 'up' | 'down'): Promise<void> {
+    let { nvim } = this
+    nvim.pauseNotification()
+    nvim.call('coc#util#scroll_preview', [dir], true)
+    nvim.command('redraw', true)
+    await nvim.resumeNotification()
   }
 }

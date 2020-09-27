@@ -26,6 +26,22 @@ function! coc#util#has_preview()
   return 0
 endfunction
 
+function! coc#util#scroll_preview(dir) abort
+  let winnr = coc#util#has_preview()
+  if !winnr
+    return
+  endif
+  let winid = win_getid(winnr)
+  if exists('*win_execute')
+    call win_execute(winid, "normal! ".(a:dir ==# 'up' ? "\<C-u>" : "\<C-d>"))
+  else
+    let id = win_getid()
+    noa call win_gotoid(winid)
+    execute "normal! ".(a:dir ==# 'up' ? "\<C-u>" : "\<C-d>")
+    noa call win_gotoid(id)
+  endif
+endfunction
+
 function! coc#util#has_float()
   for i in range(1, winnr('$'))
     if getwinvar(i, 'float')
