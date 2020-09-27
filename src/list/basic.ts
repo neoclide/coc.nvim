@@ -240,6 +240,7 @@ export default abstract class BasicList implements IList, Disposable {
     }
     nvim.command(`exe ${lnum}`, true)
     nvim.command('setl winfixheight nofoldenable', true)
+    nvim.command(`if has('nvim-0.5.0') || has('patch-8.1.0864') | setl scrolloff=3 | endif`, true)
     for (let pos of positions) {
       nvim.call('matchaddpos', [this.hlGroup, [pos]], true)
     }
@@ -288,6 +289,7 @@ export default abstract class BasicList implements IList, Disposable {
     } else if (filetype) {
       nvim.command(`setf ${filetype}`, true)
     }
+    nvim.command(`if has('nvim-0.5.0') || has('patch-8.1.0864') | setl scrolloff=3 | endif`, true)
     if (lnum && lnum != 1) nvim.command('normal! zt', true)
     nvim.call('win_gotoid', [winid], true)
     if (workspace.isVim) nvim.command('redraw', true)
