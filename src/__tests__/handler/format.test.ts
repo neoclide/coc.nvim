@@ -35,7 +35,7 @@ describe('formatOnType', () => {
     await helper.edit()
     await nvim.command('setf text')
     await nvim.input('i|')
-    await helper.wait(50)
+    await helper.wait(100)
     let line = await nvim.line
     expect(line).toBe('  |')
     let cursor = await workspace.getCursorPosition()
@@ -55,7 +55,7 @@ describe('formatOnType', () => {
     await nvim.command('setf text')
     await nvim.setLine('"')
     await nvim.input('i|')
-    await helper.wait(50)
+    await helper.wait(100)
     let line = await nvim.line
     expect(line).toBe('  |"end')
     let cursor = await workspace.getCursorPosition()
