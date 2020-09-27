@@ -707,14 +707,9 @@ export default class Handler {
       workspace.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning')
       return
     }
-    if (!only || codeActions.length > 1) {
-      let idx = await workspace.showQuickpick(codeActions.map(o => o.title))
-      if (idx == -1) return
-      let action = codeActions[idx]
-      if (action) await this.applyCodeAction(action)
-    } else {
-      await this.applyCodeAction(codeActions[0])
-    }
+    let idx = await workspace.showQuickpick(codeActions.map(o => o.title))
+    let action = codeActions[idx]
+    if (action) await this.applyCodeAction(action)
   }
 
   /**
@@ -1252,6 +1247,22 @@ export default class Handler {
     if (!selectionRange) return
     this.selectionRange = selectionRanges[0]
     await workspace.selectRange(selectionRange.range)
+  }
+
+  public async codeActionRange(start: number, end: number, only?: string): Promise<void> {
+    let doc = await workspace.document
+    if (!doc) return
+    await synchronizeDocument(doc)
+    let line = doc.getline(end - 1)
+    let range = Range.create(start - 1, 0, end - 1, line.length)
+    let codeActions = await this.getCodeActions(doc.bufnr, range, only ? [only] : null)
+    if (!codeActions || codeActions.length == 0) {
+      workspace.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning')
+      return
+    }
+    let idx = await workspace.showQuickpick(codeActions.map(o => o.title))
+    let action = codeActions[idx]
+    if (action) await this.applyCodeAction(action)
   }
 
   /**

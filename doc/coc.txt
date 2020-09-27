@@ -1839,6 +1839,14 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	{only} can be title of a codeAction or list of CodeActionKind.
 
+"codeActionRange" {start} {end} [{kind}]		*coc-action-codeActionRange*
+
+	Run code action for range.
+
+	{start} start line number of range.
+	{end} end line number of range.
+	{kind} code action kind, see |coc-action-codeActions| for available
+	action kind.
 
 "codeLensAction"					*coc-action-codeLensAction*
 
@@ -2063,6 +2071,18 @@ COMMANDS						*coc-commands*
 
 	Run a command contributed by extensions, use `<tab>` for name
 	completion.
+
+:{range}CocAction  [{only}]                            *:CocAction*
+
+	Get codeActions of current document in actions list,
+	with optional {range}.
+
+	{only} can be `quickfix`, `refactor`, `source.fixAll` as
+	CodeActionKind.
+
+:{range}CocFix                                         *:CocFix*
+
+	Same as `:CocAction quickfix` for quickfix actions.
 
 :CocOpenLog						*:CocOpenLog*
 
