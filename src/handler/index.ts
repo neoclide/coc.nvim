@@ -1252,6 +1252,7 @@ export default class Handler {
   public async codeActionRange(start: number, end: number, only?: string): Promise<void> {
     let doc = await workspace.document
     if (!doc) return
+    await wait(10)
     await synchronizeDocument(doc)
     let line = doc.getline(end - 1)
     let range = Range.create(start - 1, 0, end - 1, line.length)
