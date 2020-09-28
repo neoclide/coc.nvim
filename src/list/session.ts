@@ -308,9 +308,8 @@ export default class ListSession {
       list, nvim
     } = this
     if (!list) return
-    let previewHeight = await nvim.eval('&previewheight')
     nvim.pauseNotification()
-    nvim.command(`belowright ${previewHeight}sp +setl\\ previewwindow [LIST HELP]`, true)
+    nvim.command(`tabe +setl\\ previewwindow [LIST HELP]`, true)
     nvim.command('setl nobuflisted noswapfile buftype=nofile bufhidden=wipe', true)
     await nvim.resumeNotification()
     let hasOptions = list.options && list.options.length
