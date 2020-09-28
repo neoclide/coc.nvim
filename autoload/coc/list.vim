@@ -161,15 +161,18 @@ function! s:start_prompt(eventName)
 endfunction
 
 function! coc#list#setlines(lines, append)
-  let total = line('$')
   if a:append
     silent call append(line('$'), a:lines)
   else
     silent call append(0, a:lines)
-    let n = len(a:lines) + 1
-    let saved_reg = @"
-    silent execute n.',$d'
-    let @" = saved_reg
+    if exists('*deletebufline')
+      call deletebufline('%', len(a:lines) + 1, '$')
+    else
+      let n = len(a:lines) + 1
+      let saved_reg = @"
+      silent execute n.',$d'
+      let @" = saved_reg
+    endif
   endif
 endfunction
 

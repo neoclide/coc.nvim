@@ -20,7 +20,7 @@ export interface MousePosition {
 
 const StatusLineOption = [
   '%#CocListMode#-- %{get(b:list_status, "mode", "")} --%*',
-  '%{get(g:, "coc_list_loading_status", "")}',
+  '%{get(b:list_status, "loading", "")}',
   '%{get(b:list_status, "args", "")}',
   '(%L/%{get(b:list_status, "total", "")})',
   '%=',
@@ -44,14 +44,12 @@ export default class ListUI {
   private _onDidChangeLine = new Emitter<number>()
   private _onDidOpen = new Emitter<number>()
   private _onDidClose = new Emitter<number>()
-  private _onDidChange = new Emitter<void>()
   private _onDidLineChange = new Emitter<number>()
   private _onDoubleClick = new Emitter<void>()
   public readonly onDidChangeLine: Event<number> = this._onDidChangeLine.event
   public readonly onDidLineChange: Event<number> = this._onDidLineChange.event
   public readonly onDidOpen: Event<number> = this._onDidOpen.event
   public readonly onDidClose: Event<number> = this._onDidClose.event
-  public readonly onDidChange: Event<void> = this._onDidChange.event
   public readonly onDidDoubleClick: Event<void> = this._onDoubleClick.event
 
   constructor(
@@ -88,6 +86,10 @@ export default class ListUI {
       }
     })
     events.on('CursorMoved', debounced, null, this.disposables)
+  }
+
+  private get limitLines(): number {
+    return this.config.get<number>('limitLines', 30000)
   }
 
   private onLineChange(index: number): void {
@@ -321,10 +323,9 @@ export default class ListUI {
 
   public async drawItems(items: ListItem[], height: number, reload = false): Promise<void> {
     let count = this.drawCount = this.drawCount + 1
-    const { config, nvim, name, listOptions } = this
+    const { nvim, name, listOptions } = this
     const release = await this.mutex.acquire()
-    let limitLines = config.get<number>('limitLines', 30000)
-    this.items = items.slice(0, limitLines)
+    this.items = items.length > this.limitLines ? items.slice(0, this.limitLines) : items
     const create = this.window == null
     if (create) {
       try {
@@ -351,43 +352,35 @@ export default class ListUI {
 
   public async appendItems(items: ListItem[]): Promise<void> {
     if (!this.window) return
-    let { config } = this
-    let limitLines = config.get<number>('limitLines', 1000)
     let curr = this.items.length
-    if (curr >= limitLines) {
-      this._onDidChange.fire()
-      return
-    }
-    let max = limitLines - curr
+    if (curr >= this.limitLines) return
+    let max = this.limitLines - curr
     let append = items.slice(0, max)
     this.items = this.items.concat(append)
     await this.setLines(append.map(item => item.label), curr > 0, this.currIndex)
   }
 
   private async setLines(lines: string[], append = false, index: number): Promise<void> {
-    let { nvim, bufnr, window } = this
-    if (!bufnr || !window) return
-    let buf = nvim.createBuffer(bufnr)
+    let { nvim, buffer, window } = this
+    if (!buffer || !window) return
     nvim.pauseNotification()
-    if (!append) {
-      window.notify('nvim_win_set_option', ['statusline', StatusLineOption])
-    }
     nvim.call('win_gotoid', window.id, true)
     if (!append) {
+      window.notify('nvim_win_set_option', ['statusline', StatusLineOption])
       nvim.call('clearmatches', [], true)
       if (!lines.length) {
         lines = ['No results, press ? on normal mode to get help.']
         nvim.call('matchaddpos', ['Comment', [[1]], 99], true)
       }
     }
-    nvim.command('setl modifiable', true)
+    buffer.setOption('modifiable', true, true)
     if (workspace.isVim) {
       nvim.call('coc#list#setlines', [lines, append], true)
     } else {
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      buf.setLines(lines, { start: append ? -1 : 0, end: -1, strictIndexing: false }, true)
+      buffer.setLines(lines, { start: append ? -1 : 0, end: -1, strictIndexing: false }, true)
     }
-    nvim.command('setl nomodifiable', true)
+    buffer.setOption('modifiable', false, true)
     if (!append && index == 0) {
       this.doHighlight(0, 300)
     } else {
@@ -398,7 +391,7 @@ export default class ListUI {
       this.currIndex = index
       window.notify('nvim_win_set_cursor', [[index + 1, 0]])
     }
-    this._onDidChange.fire()
+    nvim.command('redraws', true)
     if (workspace.isVim) nvim.command('redraw', true)
     let res = await nvim.resumeNotification()
     if (res && res[1]) logger.error(res[1])
@@ -425,7 +418,6 @@ export default class ListUI {
     this._onDidChangeLine.dispose()
     this._onDidOpen.dispose()
     this._onDidClose.dispose()
-    this._onDidChange.dispose()
     this._onDidLineChange.dispose()
     this._onDoubleClick.dispose()
   }
@@ -474,12 +466,12 @@ export default class ListUI {
   }
 
   public addHighlights(highlights: ListHighlights[], append = false): void {
-    let limitLines = this.config.get<number>('limitLines', 1000)
+    let { limitLines } = this
     if (!append) {
       this.highlights = highlights.slice(0, limitLines)
     } else {
       if (this.highlights.length < limitLines) {
-        this.highlights = this.highlights.concat(highlights.slice(0, limitLines - this.highlights.length))
+        this.highlights.push(...highlights.slice(0, limitLines - this.highlights.length))
       }
     }
   }

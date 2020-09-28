@@ -11,6 +11,7 @@ import InputHistory from './history'
 import Prompt from './prompt'
 import UI from './ui'
 import Worker from './worker'
+const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 const logger = require('../util/logger')('list-session')
 
 /**
@@ -20,6 +21,9 @@ export default class ListSession {
   public readonly history: InputHistory
   public readonly ui: UI
   public readonly worker: Worker
+  private cwd: string
+  private interval: NodeJS.Timer
+  private loadingFrame = ''
   private timer: NodeJS.Timer
   private hidden = false
   private disposables: Disposable[] = []
@@ -71,6 +75,9 @@ export default class ListSession {
       }
     })
     this.ui.onDidLineChange(debounced, null, this.disposables)
+    this.ui.onDidLineChange(() => {
+      this.updateStatus()
+    }, null, this.disposables)
     this.ui.onDidOpen(async () => {
       if (typeof this.list.doHighlight == 'function') {
         this.list.doHighlight()
@@ -81,10 +88,6 @@ export default class ListSession {
     }, null, this.disposables)
     this.ui.onDidClose(async () => {
       await this.hide()
-    }, null, this.disposables)
-    this.ui.onDidChange(() => {
-      if (this.hidden) return
-      this.updateStatus()
     }, null, this.disposables)
     this.ui.onDidDoubleClick(async () => {
       await this.doAction()
@@ -103,10 +106,28 @@ export default class ListSession {
         await this.ui.drawItems(items, Math.max(1, height), reload)
       }
     }, null, this.disposables)
+    this.worker.onDidChangeLoading(loading => {
+      if (this.hidden) return
+      if (loading) {
+        this.interval = setInterval(() => {
+          let idx = Math.floor((new Date()).getMilliseconds() / 100)
+          this.loadingFrame = frames[idx]
+          this.updateStatus()
+        }, 100)
+      } else {
+        if (this.interval) {
+          this.loadingFrame = ''
+          clearInterval(this.interval)
+          this.interval = null
+        }
+        this.updateStatus()
+      }
+    }, null, this.disposables)
   }
 
   public async start(args: string[]): Promise<void> {
     this.args = args
+    this.cwd = workspace.cwd
     this.hidden = false
     let { listOptions, listArgs } = this
     let res = await this.nvim.eval('[win_getid(),bufnr("%"),winheight("%")]')
@@ -263,7 +284,8 @@ export default class ListSession {
 
   public async hide(): Promise<void> {
     if (this.hidden) return
-    let { nvim, listOptions, savedHeight, window } = this
+    let { nvim, interval, listOptions, savedHeight, window } = this
+    if (interval) clearInterval(interval)
     this.hidden = true
     this.worker.stop()
     this.history.add()
@@ -304,9 +326,7 @@ export default class ListSession {
 
   public async showHelp(): Promise<void> {
     await this.hide()
-    let {
-      list, nvim
-    } = this
+    let { list, nvim } = this
     if (!list) return
     nvim.pauseNotification()
     nvim.command(`tabe +setl\\ previewwindow [LIST HELP]`, true)
@@ -395,8 +415,9 @@ export default class ListSession {
       mode: this.prompt.mode.toUpperCase(),
       args: this.args.join(' '),
       name: list.name,
-      total: this.worker.length,
-      cwd: workspace.cwd
+      cwd: this.cwd,
+      loading: this.loadingFrame,
+      total: this.worker.length
     }
     nvim.pauseNotification()
     buf.setVar('list_status', status, true)
@@ -527,6 +548,9 @@ export default class ListSession {
   }
 
   public dispose(): void {
+    if (this.interval) {
+      clearInterval(this.interval)
+    }
     if (this.timer) {
       clearTimeout(this.timer)
     }

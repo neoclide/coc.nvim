@@ -2,7 +2,6 @@ import { Neovim } from '@chemzqm/neovim'
 import clipboardy from 'clipboardy'
 import { Emitter, Event } from 'vscode-languageserver-protocol'
 import { ListMode, ListOptions, Matcher } from '../types'
-import workspace from '../workspace'
 import ListConfiguration from './configuration'
 const logger = require('../util/logger')('list-prompt')
 

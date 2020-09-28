@@ -9,7 +9,6 @@ import { getMatchResult } from '../util/score'
 import { byteIndex, byteLength } from '../util/string'
 import workspace from '../workspace'
 import Prompt from './prompt'
-const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 const logger = require('../util/logger')('list-worker')
 const controlCode = '\x1b'
 
@@ -28,11 +27,12 @@ export interface WorkerConfiguration {
 export default class Worker {
   private recentFiles: string[] = []
   private _loading = false
-  private interval: NodeJS.Timer
   private totalItems: ListItem[] = []
   private tokenSource: CancellationTokenSource
   private _onDidChangeItems = new Emitter<ListItemsEvent>()
+  private _onDidChangeLoading = new Emitter<boolean>()
   public readonly onDidChangeItems: Event<ListItemsEvent> = this._onDidChangeItems.event
+  public readonly onDidChangeLoading: Event<boolean> = this._onDidChangeLoading.event
 
   constructor(
     private nvim: Neovim,
@@ -50,24 +50,7 @@ export default class Worker {
   private set loading(loading: boolean) {
     if (this._loading == loading) return
     this._loading = loading
-    let { nvim } = this
-    if (loading) {
-      this.interval = setInterval(() => {
-        let idx = Math.floor((new Date()).getMilliseconds() / 100)
-        nvim.pauseNotification()
-        nvim.setVar('coc_list_loading_status', frames[idx], true)
-        nvim.command('redraws', true)
-        nvim.resumeNotification(false, true).logError()
-      }, 100)
-    } else {
-      if (this.interval) {
-        clearInterval(this.interval)
-        nvim.pauseNotification()
-        nvim.setVar('coc_list_loading_status', '', true)
-        nvim.command('redraws', true)
-        nvim.resumeNotification(false, true).logError()
-      }
-    }
+    this._onDidChangeLoading.fire(loading)
   }
 
   public get isLoading(): boolean {
@@ -113,7 +96,6 @@ export default class Worker {
       let lastTs: number
       let _onData = (finished?: boolean) => {
         lastTs = Date.now()
-        if (token.isCancellationRequested) return
         if (count >= totalItems.length) return
         let inputChanged = this.input != currInput
         if (interactive && inputChanged) return
@@ -173,7 +155,12 @@ export default class Worker {
           _onData(true)
         }
       }
-      let disposable = token.onCancellationRequested(onEnd)
+      let disposable = token.onCancellationRequested(() => {
+        if (task) {
+          task.dispose()
+          onEnd()
+        }
+      })
       task.on('error', async (error: Error | string) => {
         if (task == null) return
         task = null
@@ -373,6 +360,7 @@ export default class Worker {
   }
 
   public dispose(): void {
+    this._onDidChangeLoading.dispose()
     this._onDidChangeItems.dispose()
     this.stop()
   }
