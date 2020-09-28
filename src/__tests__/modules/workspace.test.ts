@@ -839,7 +839,7 @@ describe('workspace utility', () => {
 
   it('should request input', async () => {
     let p = workspace.requestInput('Name')
-    await helper.wait(30)
+    await helper.wait(100)
     await nvim.input('bar<enter>')
     let res = await p
     expect(res).toBe('bar')

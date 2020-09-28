@@ -520,9 +520,9 @@ export default class Handler {
       workspace.showMessage(`Rename provider not found for current document`, 'warning')
       return false
     }
-    let token = this.getRequestToken('rename')
     await synchronizeDocument(doc)
     try {
+      let token = (new CancellationTokenSource()).token
       let res = await languages.prepareRename(doc.textDocument, position, token)
       if (res === false) {
         statusItem.hide()
@@ -539,8 +539,7 @@ export default class Handler {
         } else {
           curname = await nvim.eval('expand("<cword>")') as string
         }
-        newName = await workspace.callAsync<string>('input', ['New name: ', curname])
-        nvim.command('normal! :<C-u>', true)
+        newName = await workspace.requestInput('New name', curname)
       }
       if (!newName) {
         statusItem.hide()

@@ -1296,3 +1296,38 @@ function! coc#util#clear_highlights(...) abort
       endfor
     endif
 endfunction
+
+" Create float window for input, works on nvim >= 0.5.0
+function! coc#util#create_prompt_win(title, default) abort
+  let bufnr = nvim_create_buf(v:false, v:true)
+  call setbufvar(bufnr, '&buftype', 'prompt')
+  call setbufvar(bufnr, '&bufhidden', 'unload')
+  call setbufvar(bufnr, '&undolevels', -1)
+  call setbufvar(bufnr, 'coc_suggest_disable', 1)
+  " Calculate col
+  let curr = win_screenpos(winnr())[1] + wincol() - 2
+  let col = curr + 30 < &columns ? 0 : &columns - curr - 31
+  if col == 0 && curr >= len(a:title) + 2
+    let col = 0 - len(a:title) -2
+  endif
+  let winid = nvim_open_win(bufnr, 0, {
+    \ 'relative': 'cursor',
+    \ 'width': 30,
+    \ 'height': 1,
+    \ 'row': 0,
+    \ 'col': col,
+    \ 'style': 'minimal',
+    \ })
+  if !winid
+    return 0
+  endif
+  call setwinvar(winid, '&winhl', 'Normal:CocFloating,NormalNC:CocFloating')
+  call win_gotoid(winid)
+  call matchaddpos("MoreMsg", [[1, 1, len(a:title) + 2]])
+  call prompt_setprompt(bufnr,' '.a:title.': ')
+  call prompt_setcallback(bufnr, {text -> coc#rpc#notify('PromptInsert', [text, bufnr])})
+  call prompt_setinterrupt(bufnr, { -> execute('bd! '.bufnr, 'silent!')})
+  startinsert
+  call feedkeys(a:default, 'in')
+  return bufnr
+endfunction

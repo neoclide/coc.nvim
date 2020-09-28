@@ -8,6 +8,7 @@ import os from 'os'
 import path from 'path'
 import rimraf from 'rimraf'
 import util from 'util'
+import semver from 'semver'
 import { v1 as uuid } from 'uuid'
 import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, LocationLink, Position, Range, RenameFile, RenameFileOptions, TextDocumentEdit, TextDocumentSaveReason, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
@@ -1299,6 +1300,45 @@ export class Workspace implements IWorkspace {
    */
   public async requestInput(title: string, defaultValue?: string): Promise<string> {
     let { nvim } = this
+    const preferences = this.getConfiguration('coc.preferences')
+    if (this.isNvim && semver.gte(this.env.version, '0.5.0') && preferences.get<boolean>('promptInput', true)) {
+      let bufnr = await nvim.call('coc#util#create_prompt_win', [title, defaultValue || ''])
+      if (!bufnr) return null
+      let res = await new Promise<string>(resolve => {
+        let disposables: Disposable[] = []
+        events.on('BufUnload', nr => {
+          if (nr == bufnr) {
+            disposeAll(disposables)
+            resolve(null)
+          }
+        }, null, disposables)
+        events.on('InsertLeave', nr => {
+          if (nr == bufnr) {
+            disposeAll(disposables)
+            setTimeout(() => {
+              nvim.command(`bd! ${nr}`, true)
+            }, 30)
+            resolve(null)
+          }
+        }, null, disposables)
+        events.on('PromptInsert', (value, nr) => {
+          if (nr == bufnr) {
+            disposeAll(disposables)
+            // connection would be broken without timeout, don't know why
+            setTimeout(() => {
+              nvim.command(`stopinsert|bd! ${nr}`, true)
+            }, 30)
+            if (!value) {
+              this.showMessage('Empty word, canceled', 'warning')
+              resolve(null)
+            } else {
+              resolve(value)
+            }
+          }
+        }, null, disposables)
+      })
+      return res
+    }
     let res = await this.callAsync<string>('input', [title + ': ', defaultValue || ''])
     nvim.command('normal! :<C-u>', true)
     if (!res) {

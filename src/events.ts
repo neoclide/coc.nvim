@@ -22,7 +22,7 @@ export type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents | Wind
   | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged'
   | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized'
   | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar'
-  | 'WinLeave' | 'MenuInput'
+  | 'WinLeave' | 'MenuInput' | 'PromptInsert'
 
 export type MoveEvents = 'CursorMoved' | 'CursorMovedI'
 
@@ -101,6 +101,7 @@ class Events {
   public on(event: 'DirChanged', handler: (cwd: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'OptionSet' | 'GlobalChange', handler: (option: string, oldVal: OptionValue, newVal: OptionValue) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'InputChar' | 'MenuInput', handler: (character: string, mode: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'PromptInsert', handler: (value: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: AllEvents[] | AllEvents, handler: (...args: any[]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable {
     if (Array.isArray(event)) {
       let arr = disposables || []

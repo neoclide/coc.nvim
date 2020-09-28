@@ -723,6 +723,12 @@ Built-in configurations:~
 	Set to false to disable float/popup support for quickpick menu.
 	Default: `true`
 
+"coc.preferences.promptInput":~
+
+	Use prompt buffer in float window for user input, works on latest
+	neovim only.
+	Default: `true`
+
 						*coc-config-cursors*
 "cursors.cancelKey":~
 
