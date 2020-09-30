@@ -473,8 +473,13 @@ export default class ListSession {
   }
 
   public jumpBack(): void {
-    let { window } = this
-    if (window) this.nvim.call('win_gotoid', [window.id], true)
+    let { window, nvim } = this
+    if (window) {
+      nvim.pauseNotification()
+      nvim.call('coc#list#stop_prompt', [], true)
+      this.nvim.call('win_gotoid', [window.id], true)
+      nvim.resumeNotification(false, true).logError()
+    }
   }
 
   public async resume(): Promise<void> {
