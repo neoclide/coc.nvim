@@ -31,6 +31,7 @@ export default class DocumentHighlighter {
   public clearHighlight(winid?: number): void {
     let { nvim } = workspace
     nvim.call('coc#util#clear_highlights', winid ? [winid] : [], true)
+    if (workspace.isVim) nvim.command('redraw', true)
   }
 
   public async highlight(bufnr: number, position: Position): Promise<void> {

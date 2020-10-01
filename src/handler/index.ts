@@ -368,6 +368,7 @@ export default class Handler {
         doc.matchAddRanges([hover.range], 'CocHoverRange', 999)
         setTimeout(() => {
           this.nvim.call('coc#util#clear_pos_matches', ['^CocHoverRange', winid], true)
+          if (workspace.isVim) this.nvim.command('redraw', true)
         }, 1000)
       }
       await this.previewHover(hovers)
