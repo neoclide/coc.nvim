@@ -462,7 +462,7 @@ function! coc#util#get_bufoptions(bufnr) abort
   endif
   return {
         \ 'bufname': bufname,
-        \ 'size': buftype ==# '' ? getfsize(bufname) : -1,
+        \ 'size': buftype ==# '' ? (bufname != '' ? getfsize(bufname) : line2byte(line("$") + 1)) : -1,
         \ 'eol': getbufvar(a:bufnr, '&eol'),
         \ 'buftype': buftype,
         \ 'winid': winid,
