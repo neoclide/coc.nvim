@@ -460,9 +460,15 @@ function! coc#util#get_bufoptions(bufnr) abort
   if winid != -1
     let previewwindow = getwinvar(winid, '&previewwindow', 0)
   endif
+  let size = -1
+  if bufnr('%') == a:bufnr
+    let size = line2byte(line("$") + 1)
+  elseif !empty(bufname)
+    let size = getfsize(bufname)
+  endif
   return {
         \ 'bufname': bufname,
-        \ 'size': buftype ==# '' ? getfsize(bufname) : -1,
+        \ 'size': size,
         \ 'eol': getbufvar(a:bufnr, '&eol'),
         \ 'buftype': buftype,
         \ 'winid': winid,
