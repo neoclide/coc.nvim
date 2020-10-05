@@ -982,7 +982,11 @@ normal mode, `v_` works for visual mode.
 <Plug>(coc-references)					*n_coc-references*
 
 	Jump to references of current symbol by invoke
-	||coc-action-jumpReferences||
+	|coc-action-jumpReferences|
+
+<Plug>(coc-references-used)				*n_coc-references-used*
+
+	Jump to references of current symbol exclude declarations.
 
 <Plug>(coc-format-selected)				*n_coc-format-selected*
 							*v_coc-format-selected*

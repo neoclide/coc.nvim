@@ -247,6 +247,9 @@ export default class Plugin extends EventEmitter {
     this.addAction('jumpReferences', openCommand => {
       return this.handler.gotoReferences(openCommand)
     })
+    this.addAction('jumpUsed', openCommand => {
+      return this.handler.gotoReferences(openCommand, false)
+    })
     this.addAction('doHover', () => {
       return this.handler.onHover()
     })
