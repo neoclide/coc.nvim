@@ -115,11 +115,20 @@ function! coc#list#getchar() abort
   return input
 endfunction
 
-function! coc#list#prompt_start() abort
-  call timer_start(100, {-> coc#list#start_prompt()})
+function! coc#list#start_prompt(...) abort
+  let eventName = get(a:, 1, 'InputChar')
+  if s:is_vim
+    call s:start_prompt_vim(eventName)
+  else
+    call s:start_prompt(eventName)
+  endif
 endfunction
 
-function! coc#list#start_prompt()
+function! s:start_prompt_vim(eventName) abort
+  call timer_start(10, {-> s:start_prompt(a:eventName)})
+endfunction
+
+function! s:start_prompt(eventName)
   if s:activated | return | endif
   if !get(g:, 'coc_disable_transparent_cursor', 0)
     if s:gui
@@ -140,27 +149,30 @@ function! coc#list#start_prompt()
       if ch ==# "\<FocusLost>" || ch ==# "\<FocusGained>" || ch ==# "\<CursorHold>"
         continue
       else
-        call coc#rpc#notify('InputChar', [ch, getcharmod()])
+        call coc#rpc#notify(a:eventName, [ch, getcharmod()])
       endif
     endwhile
   catch /^Vim:Interrupt$/
     let s:activated = 0
-    call coc#rpc#notify('InputChar', ["\<C-c>"])
+    call coc#rpc#notify(a:eventName, ["\<C-c>"])
     return
   endtry
   let s:activated = 0
 endfunction
 
 function! coc#list#setlines(lines, append)
-  let total = line('$')
   if a:append
     silent call append(line('$'), a:lines)
   else
     silent call append(0, a:lines)
-    let n = len(a:lines) + 1
-    let saved_reg = @"
-    silent execute n.',$d'
-    let @" = saved_reg
+    if exists('*deletebufline')
+      call deletebufline('%', len(a:lines) + 1, '$')
+    else
+      let n = len(a:lines) + 1
+      let saved_reg = @"
+      silent execute n.',$d'
+      let @" = saved_reg
+    endif
   endif
 endfunction
 
