@@ -30,6 +30,7 @@ export default class ListSession {
   private savedHeight: number
   private window: Window
   private buffer: Buffer
+  private interactiveDebounceTime: number
   /**
    * Original list arguments.
    */
@@ -48,6 +49,7 @@ export default class ListSession {
       interactiveDebounceTime: config.get<number>('interactiveDebounceTime', 100),
       extendedSearchMode: config.get<boolean>('extendedSearchMode', true)
     })
+    this.interactiveDebounceTime = config.get<number>('interactiveDebounceTime', 100)
     let debouncedChangeLine = debounce(async () => {
       let [previewing, mode] = await nvim.eval('[coc#util#has_preview(),mode()]') as [number, string]
       if (!previewing || mode != 'n') return
@@ -540,10 +542,9 @@ export default class ListSession {
     // reload or filter items
     if (this.listOptions.interactive) {
       this.worker.stop()
-      let ms = this.config.get<number>('interactiveDebounceTime', 100)
       this.timer = setTimeout(async () => {
         await this.worker.loadItems(this.context)
-      }, ms)
+      }, this.interactiveDebounceTime)
     } else if (len) {
       let wait = Math.max(Math.min(Math.floor(len / 200), 300), 50)
       this.timer = setTimeout(() => {

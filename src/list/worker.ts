@@ -61,11 +61,12 @@ export default class Worker {
     let { list, listOptions } = this
     this.loading = true
     let { interactive } = listOptions
-    let source = this.tokenSource = new CancellationTokenSource()
-    let token = source.token
+    this.tokenSource = new CancellationTokenSource()
+    let token = this.tokenSource.token
     let items = await list.loadItems(context, token)
     if (token.isCancellationRequested) return
     if (!items || Array.isArray(items)) {
+      this.tokenSource = null
       items = (items || []) as ListItem[]
       this.totalItems = items.map(item => {
         item.label = this.fixLabel(item.label)
@@ -145,6 +146,7 @@ export default class Worker {
       })
       let onEnd = () => {
         if (task == null) return
+        this.tokenSource = null
         task = null
         this.loading = false
         disposable.dispose()
@@ -164,6 +166,7 @@ export default class Worker {
       task.on('error', async (error: Error | string) => {
         if (task == null) return
         task = null
+        this.tokenSource = null
         this.loading = false
         disposable.dispose()
         if (timer) clearTimeout(timer)
