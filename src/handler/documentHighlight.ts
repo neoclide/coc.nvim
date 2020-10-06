@@ -1,21 +1,19 @@
 import { Neovim } from '@chemzqm/neovim'
+import { CancellationTokenSource, Disposable, DocumentHighlight, DocumentHighlightKind, Position, Range } from 'vscode-languageserver-protocol'
 import events from '../events'
-import workspace from '../workspace'
 import languages from '../languages'
-import Colors from './colors'
 import Document from '../model/document'
-import { Range, Disposable, DocumentHighlight, DocumentHighlightKind, CancellationTokenSource, Position } from 'vscode-languageserver-protocol'
-import { byteIndex, byteLength } from '../util/string'
 import { disposeAll } from '../util'
+import workspace from '../workspace'
+import Colors from './colors'
 const logger = require('../util/logger')('documentHighlight')
 
 export default class DocumentHighlighter {
   private disposables: Disposable[] = []
   private tokenSource: CancellationTokenSource
   constructor(private nvim: Neovim, private colors: Colors) {
-    events.on('WinLeave', winid => {
+    events.on('WinLeave', () => {
       this.cancel()
-      this.clearHighlight(winid)
     }, null, this.disposables)
     events.on('BufWinEnter', () => {
       this.cancel()
@@ -34,18 +32,18 @@ export default class DocumentHighlighter {
     if (workspace.isVim) nvim.command('redraw', true)
   }
 
-  public async highlight(bufnr: number, position: Position): Promise<void> {
+  public async highlight(bufnr: number, winid: number, position: Position): Promise<void> {
     let { nvim } = this
     let doc = workspace.getDocument(bufnr)
     this.cancel()
     let highlights = await this.getHighlights(doc, position)
     if (!highlights || highlights.length == 0) {
-      this.clearHighlight()
+      this.clearHighlight(winid)
       return
     }
     if (workspace.bufnr != bufnr) return
     nvim.pauseNotification()
-    this.clearHighlight()
+    nvim.call('coc#util#clear_highlights', [winid], true)
     let groups: { [index: string]: Range[] } = {}
     for (let hl of highlights) {
       if (!hl.range) continue
@@ -62,17 +60,16 @@ export default class DocumentHighlighter {
     await this.nvim.resumeNotification(false, true)
   }
 
-  public async getHighlights(document: Document | null, position: Position): Promise<DocumentHighlight[]> {
-    if (!document) return null
-    let ts = Date.now()
-    let { bufnr } = document
-    let line = document.getline(position.line)
+  public async getHighlights(doc: Document | null, position: Position): Promise<DocumentHighlight[]> {
+    if (!doc || !doc.attached || doc.isCommandLine) return null
+    let { bufnr } = doc
+    let line = doc.getline(position.line)
     let ch = line[position.character]
-    if (!ch || !document.isWord(ch) || this.colors.hasColorAtPostion(bufnr, position)) return null
+    if (!ch || !doc.isWord(ch) || this.colors.hasColorAtPostion(bufnr, position)) return null
     try {
       this.tokenSource = new CancellationTokenSource()
       let { token } = this.tokenSource
-      let highlights = await languages.getDocumentHighLight(document.textDocument, position, token)
+      let highlights = await languages.getDocumentHighLight(doc.textDocument, position, token)
       this.tokenSource = null
       if (token.isCancellationRequested) return null
       return highlights

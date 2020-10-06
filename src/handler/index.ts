@@ -814,8 +814,8 @@ export default class Handler {
   }
 
   public async highlight(): Promise<void> {
-    let [bufnr, arr] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number]]
-    await this.documentHighlighter.highlight(bufnr, Position.create(arr[0], arr[1]))
+    let [bufnr, arr, winid] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),win_getid()]') as [number, [number, number], number]
+    await this.documentHighlighter.highlight(bufnr, winid, Position.create(arr[0], arr[1]))
   }
 
   public async getSymbolsRanges(): Promise<Range[]> {
