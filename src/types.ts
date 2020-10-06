@@ -1,6 +1,6 @@
 import { Neovim, Window, Buffer } from '@chemzqm/neovim'
 import log4js from 'log4js'
-import { CancellationToken, CompletionTriggerKind, CreateFileOptions, DeleteFileOptions, Diagnostic, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFileOptions, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { CancellationToken, CompletionTriggerKind, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Diagnostic, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFile, RenameFileOptions, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import Configurations from './configuration'
@@ -16,6 +16,8 @@ export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
 export interface ParsedUrlQueryInput {
   [key: string]: unknown
 }
+
+export type DocumentChange = TextDocumentEdit | CreateFile | RenameFile | DeleteFile
 
 export interface CodeAction extends protocol.CodeAction {
   clientId?: string

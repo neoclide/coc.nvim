@@ -29,10 +29,10 @@ import Task from './model/task'
 import TerminalModel from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, PatternType, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, PatternType, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, DocumentChange } from './types'
 import { distinct } from './util/array'
 import { findUp, fixDriver, inDirectory, isFile, isParentFolder, readFile, readFileLine, renameAsync, resolveRoot, statAsync } from './util/fs'
-import { CONFIG_FILE_NAME, disposeAll, getKeymapModifier, isDocumentEdit, platform, runCommand, wait } from './util/index'
+import { CONFIG_FILE_NAME, disposeAll, getKeymapModifier, platform, runCommand, wait } from './util/index'
 import { score } from './util/match'
 import { Mutex } from './util/mutex'
 import { comparePosition, getChangedFromEdits } from './util/position'
@@ -527,11 +527,11 @@ export class Workspace implements IWorkspace {
         let textEdits: TextEdit[] = []
         for (let i = 0; i < documentChanges.length; i++) {
           let change = documentChanges[i]
-          if (isDocumentEdit(change)) {
-            let { textDocument, edits } = change as TextDocumentEdit
+          if (TextDocumentEdit.is(change)) {
+            let { textDocument, edits } = change
             let next = documentChanges[i + 1]
             textEdits.push(...edits)
-            if (next && isDocumentEdit(next) && equals((next as TextDocumentEdit).textDocument, textDocument)) {
+            if (next && TextDocumentEdit.is(next) && equals((next).textDocument, textDocument)) {
               continue
             }
             let doc = await this.loadFile(textDocument.uri)
@@ -1573,12 +1573,12 @@ augroup end`
   }
 
   // count of document need change
-  private getChangedUris(documentChanges: any[] | null): string[] {
+  private getChangedUris(documentChanges: DocumentChange[] | null): string[] {
     let uris: Set<string> = new Set()
     let newUris: Set<string> = new Set()
     for (let change of documentChanges) {
-      if (isDocumentEdit(change)) {
-        let { textDocument } = change as TextDocumentEdit
+      if (TextDocumentEdit.is(change)) {
+        let { textDocument } = change
         let { uri, version } = textDocument
         if (!newUris.has(uri)) {
           uris.add(uri)
