@@ -1337,3 +1337,10 @@ function! coc#util#create_prompt_win(title, default) abort
   call feedkeys(a:default, 'in')
   return bufnr
 endfunction
+
+function! coc#util#win_gotoid(winid) abort
+  noa let res = win_gotoid(a:winid)
+  if res == 0
+    throw 'Invalid window number'
+  endif
+endfunction

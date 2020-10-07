@@ -167,7 +167,7 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     if (token.isCancellationRequested) return
     nvim.pauseNotification()
     if (!this.env.isVim) {
-      nvim.command(`noa call win_gotoid(${winid})`, true)
+      nvim.call('coc#util#win_gotoid', [winid], true)
       this.floatBuffer.setLines(bufnr)
       nvim.command(`noa normal! gg0`, true)
       nvim.command('noa wincmd p', true)
@@ -178,11 +178,10 @@ export default class FloatFactory extends EventEmitter implements Disposable {
       nvim.command('redraw', true)
     }
     this.emit('show', winid, bufnr)
-    let [, err] = await nvim.resumeNotification()
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-    if (err) {
-      logger.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
-      return
+    let result = await nvim.resumeNotification()
+    if (Array.isArray(result[1]) && result[1][0] == 0) {
+      // invalid window
+      this.winid = null
     }
     if (mode == 's' && !token.isCancellationRequested) {
       nvim.call('CocActionAsync', ['selectCurrentPlaceholder'], true)

@@ -60,7 +60,7 @@ export default class Floating {
     }
     nvim.pauseNotification()
     if (workspace.isNvim) {
-      nvim.command(`noa call win_gotoid(${winid})`, true)
+      nvim.call('coc#util#win_gotoid', [winid], true)
       this.floatBuffer.setLines(bufnr)
       nvim.command('noa normal! gg0', true)
       nvim.command('noa wincmd p', true)
@@ -69,8 +69,11 @@ export default class Floating {
       nvim.call('win_execute', [winid, `noa normal! gg0`], true)
       nvim.command('redraw', true)
     }
-    let [, err] = await nvim.resumeNotification()
-    if (err) logger.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
+    let result = await nvim.resumeNotification()
+    if (Array.isArray(result[1]) && result[1][0] == 0) {
+      // invalid window
+      this.winid = null
+    }
   }
 
   public close(): void {
