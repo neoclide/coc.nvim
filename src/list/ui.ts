@@ -364,7 +364,7 @@ export default class ListUI {
     let { nvim, buffer, window } = this
     if (!buffer || !window) return
     nvim.pauseNotification()
-    nvim.call('win_gotoid', window.id, true)
+    nvim.call('coc#util#win_gotoid', [window.id], true)
     if (!append) {
       window.notify('nvim_win_set_option', ['statusline', StatusLineOption])
       nvim.call('clearmatches', [], true)
@@ -394,7 +394,9 @@ export default class ListUI {
     nvim.command('redraws', true)
     if (workspace.isVim) nvim.command('redraw', true)
     let res = await nvim.resumeNotification()
-    if (res && res[1]) logger.error(res[1])
+    if (Array.isArray(res[1]) && res[1][0] == 0) {
+      this.window = null
+    }
   }
 
   public restoreWindow(): void {
