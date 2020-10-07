@@ -230,8 +230,8 @@ export default abstract class BasicList implements IList, Disposable {
     let positions = await workspace.getHighlightPositions(uri, range)
     nvim.pauseNotification()
     nvim.command('pclose', true)
+    if (valid && this.splitRight && position != 'tab') nvim.call('win_gotoid', [context.window.id], true)
     if (this.splitRight || position == 'tab') {
-      if (valid && this.splitRight) nvim.call('win_gotoid', [context.window.id], true)
       nvim.command(`silent belowright vs +setl\\ previewwindow ${escaped}`, true)
     } else {
       let mod = context.options.position == 'top' ? 'below' : 'above'
@@ -263,7 +263,7 @@ export default abstract class BasicList implements IList, Disposable {
     nvim.pauseNotification()
     nvim.command('pclose', true)
     if (this.splitRight || context.options.position == 'tab') {
-      if (valid && this.splitRight) nvim.call('win_gotoid', [context.window.id], true)
+      if (valid && this.splitRight && context.options.position != 'tab') nvim.call('win_gotoid', [context.window.id], true)
       if (bufname) {
         nvim.command(`silent belowright vs +setl\\ previewwindow ${bufname}`, true)
       } else {
@@ -293,8 +293,7 @@ export default abstract class BasicList implements IList, Disposable {
     if (lnum && lnum != 1) nvim.command('normal! zt', true)
     nvim.call('win_gotoid', [winid], true)
     if (workspace.isVim) nvim.command('redraw', true)
-    let [, err] = await nvim.resumeNotification()
-    if (err) console.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
+    await nvim.resumeNotification()
   }
 
   protected getPreviewCommand(context: ListContext): string {
