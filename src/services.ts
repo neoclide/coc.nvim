@@ -2,7 +2,7 @@ import { SpawnOptions } from 'child_process'
 import { EventEmitter } from 'events'
 import fs from 'fs'
 import net from 'net'
-import { Disposable, DocumentSelector, Emitter } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, DocumentSelector, Emitter } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Executable, ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, State, Transport, TransportKind } from './language-client'
 import { IServiceProvider, LanguageServerConfig, ServiceStat } from './types'
@@ -225,7 +225,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
     await Promise.resolve(service.client.sendNotification(method, params))
   }
 
-  public async sendRequest(id: string, method: string, params?: any): Promise<any> {
+  public async sendRequest(id: string, method: string, params?: any, token?: CancellationToken): Promise<any> {
     if (!method) throw new Error(`method required for sendRequest`)
     let service = this.getService(id)
     // wait for extension activate
@@ -240,7 +240,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
     if (service.state != ServiceStat.Running) {
       throw new Error(`Language server ${id} not running`)
     }
-    return await Promise.resolve(service.client.sendRequest(method, params))
+    return await Promise.resolve(service.client.sendRequest(method, params, token))
   }
 
   public registLanguageClient(client: LanguageClient): Disposable

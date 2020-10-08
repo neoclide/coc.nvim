@@ -3,10 +3,10 @@ import debounce from 'debounce'
 import fs from 'fs'
 import isuri from 'isuri'
 import path from 'path'
-import { Disposable, TextDocumentIdentifier } from 'vscode-languageserver-protocol'
+import { Disposable, TextDocumentEdit, TextDocumentIdentifier } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import which from 'which'
-import { MapMode } from '../types'
+import { MapMode, DocumentChange } from '../types'
 import * as platform from './platform'
 
 export { platform }
@@ -112,14 +112,6 @@ export function getKeymapModifier(mode: MapMode): string {
   if (mode == 'i') return '<C-o>'
   if (mode == 's') return '<Esc>'
   return ''
-}
-
-// consider textDocument without version to be valid
-export function isDocumentEdit(edit: any): boolean {
-  if (edit == null) return false
-  if (!TextDocumentIdentifier.is(edit.textDocument)) return false
-  if (!Array.isArray(edit.edits)) return false
-  return true
 }
 
 export function concurrent<T>(arr: T[], fn: (val: T) => Promise<void>, limit = 3): Promise<void> {

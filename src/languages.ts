@@ -326,11 +326,11 @@ class Languages {
     return await this.documentHighlightManager.provideDocumentHighlights(document, position, token)
   }
 
-  public async getDocumentLinks(document: TextDocument): Promise<DocumentLink[]> {
+  public async getDocumentLinks(document: TextDocument, token: CancellationToken): Promise<DocumentLink[]> {
     if (!this.documentLinkManager.hasProvider(document)) {
       return null
     }
-    return (await this.documentLinkManager.provideDocumentLinks(document, this.token)) || []
+    return (await this.documentLinkManager.provideDocumentLinks(document, token)) || []
   }
 
   public async resolveDocumentLink(link: DocumentLink): Promise<DocumentLink> {
