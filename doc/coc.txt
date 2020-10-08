@@ -882,15 +882,15 @@ Example key-mappings:~
 
 Map <tab> to trigger completion and navigate to the next item: >
 
-    function! s:check_back_space() abort
-      let col = col('.') - 1
-      return !col || getline('.')[col - 1]  =~ '\s'
-    endfunction
+	function! s:check_back_space() abort
+	  let col = col('.') - 1
+	  return !col || getline('.')[col - 1]  =~ '\s'
+	endfunction
 
-    inoremap <silent><expr> <TAB>
-		  \ pumvisible() ? "\<C-n>" :
-		  \ <SID>check_back_space() ? "\<TAB>" :
-		  \ coc#refresh()
+	inoremap <silent><expr> <TAB>
+	  \ pumvisible() ? "\<C-n>" :
+	  \ <SID>check_back_space() ? "\<TAB>" :
+	  \ coc#refresh()
 
 
 Map <c-space> to trigger completion: >
@@ -899,18 +899,21 @@ Map <c-space> to trigger completion: >
 <
 <CR> to confirm completion, use: >
 
-	inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<CR>"
+	inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<CR>"
 <
 To make <CR> auto-select the first completion item and notify coc.nvim to
 format on enter, use: >
 
-	inoremap <silent><expr> <cr> pumvisible() ? coc#_select_confirm()
-				\: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
+	inoremap <silent><expr> <CR>
+	  \ len(complete_info()["items"]) == 1 ? "\<C-y>" :
+	  \ pumvisible() ? coc#_select_confirm() :
+	  \ "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 
 Map <tab> for trigger completion, completion confirm, snippet expand and jump
 like VSCode. >
 
 	inoremap <silent><expr> <TAB>
+	  \ len(complete_info()["items"]) == 1 ? "\<C-y>" :
 	  \ pumvisible() ? coc#_select_confirm() :
 	  \ coc#expandableOrJumpable() ?
 	  \ "\<C-r>=coc#rpc#request('doKeymap', ['snippets-expand-jump',''])\<CR>" :
