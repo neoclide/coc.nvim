@@ -982,10 +982,6 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 		启动 coc 服务，如果已启动则什么都不做。
 
-:CocStop 					*:CocStop*
-
-		停止 coc 服务。
-
 :CocDisable 					*:CocDisable*
 
 		停用所有 coc 功能。

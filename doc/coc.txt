@@ -2018,10 +2018,6 @@ COMMANDS						*coc-commands*
 
 	Start the coc.nvim server, do nothing if it's already started.
 
-:CocStop						*:CocStop*
-
-	Stop the coc.nvim server, do nothing if it's already stopped.
-
 :CocRestart						*:CocRestart*
 
 	Restart coc.nvim service.
