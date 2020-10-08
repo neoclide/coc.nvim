@@ -7,6 +7,7 @@ import BasicList from '../basic'
 import { DocumentLink, Location } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { isParentFolder } from '../../util/fs'
+import { CancellationToken } from 'vscode-languageserver-protocol'
 
 export default class LinksList extends BasicList {
   public defaultAction = 'open'
@@ -32,12 +33,12 @@ export default class LinksList extends BasicList {
     })
   }
 
-  public async loadItems(context: ListContext): Promise<ListItem[]> {
+  public async loadItems(context: ListContext, token: CancellationToken): Promise<ListItem[]> {
     let buf = await context.window.buffer
     let doc = workspace.getDocument(buf.id)
     if (!doc) return null
     let items: ListItem[] = []
-    let links = await languages.getDocumentLinks(doc.textDocument)
+    let links = await languages.getDocumentLinks(doc.textDocument, token)
     if (links == null) {
       throw new Error('Links provider not found.')
     }

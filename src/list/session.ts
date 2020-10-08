@@ -524,7 +524,6 @@ export default class ListSession {
         }
       }
       if (persist) {
-        this.prompt.start()
         this.ui.restoreWindow()
         if (action.reload) await this.worker.loadItems(this.context, true)
       } else if (noQuit) {
