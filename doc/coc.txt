@@ -1977,7 +1977,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 "fixAll" 						*coc-action-fixAll*
 
-	Run fixAll codeAction ofr current buffer.
+	Run fixAll codeAction for current buffer.
 	Show warning when codeAction not found.
 
 

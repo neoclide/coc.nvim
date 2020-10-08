@@ -21948,17 +21948,6 @@ function getKeymapModifier(mode) {
     return '';
 }
 exports.getKeymapModifier = getKeymapModifier;
-// consider textDocument without version to be valid
-function isDocumentEdit(edit) {
-    if (edit == null)
-        return false;
-    if (!vscode_languageserver_protocol_1.TextDocumentIdentifier.is(edit.textDocument))
-        return false;
-    if (!Array.isArray(edit.edits))
-        return false;
-    return true;
-}
-exports.isDocumentEdit = isDocumentEdit;
 function concurrent(arr, fn, limit = 3) {
     if (arr.length == 0)
         return Promise.resolve();
@@ -23989,7 +23978,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "b1288b0de4" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "f176d09dc9" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -24841,8 +24830,8 @@ class DiagnosticManager {
         if (this.timer)
             clearTimeout(this.timer);
         let useFloat = config.messageTarget == 'float';
-        let [bufnr, cursor, filetype, mode, disabled] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),&filetype,mode(),get(b:,"coc_diagnostic_disable",0)]');
-        if (mode != 'n' || bufnr == this.floatFactory.bufnr || disabled)
+        let [bufnr, cursor, filetype, mode, disabled, isFloat] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),&filetype,mode(),get(b:,"coc_diagnostic_disable",0),get(w:,"float",0)]');
+        if (mode != 'n' || isFloat == 1 || disabled)
             return;
         let diagnostics = this.getDiagnosticsAt(bufnr, cursor);
         if (diagnostics.length == 0) {
@@ -25246,7 +25235,7 @@ class FloatFactory extends events_1.EventEmitter {
             return;
         nvim.pauseNotification();
         if (!this.env.isVim) {
-            nvim.command(`noa call win_gotoid(${winid})`, true);
+            nvim.call('coc#util#win_gotoid', [winid], true);
             this.floatBuffer.setLines(bufnr);
             nvim.command(`noa normal! gg0`, true);
             nvim.command('noa wincmd p', true);
@@ -25258,11 +25247,10 @@ class FloatFactory extends events_1.EventEmitter {
             nvim.command('redraw', true);
         }
         this.emit('show', winid, bufnr);
-        let [, err] = await nvim.resumeNotification();
-        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-        if (err) {
-            logger.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`);
-            return;
+        let result = await nvim.resumeNotification();
+        if (Array.isArray(result[1]) && result[1][0] == 0) {
+            // invalid window
+            this.winid = null;
         }
         if (mode == 's' && !token.isCancellationRequested) {
             nvim.call('CocActionAsync', ['selectCurrentPlaceholder'], true);
@@ -26821,11 +26809,11 @@ class Workspace {
                 let textEdits = [];
                 for (let i = 0; i < documentChanges.length; i++) {
                     let change = documentChanges[i];
-                    if (index_1.isDocumentEdit(change)) {
+                    if (vscode_languageserver_protocol_1.TextDocumentEdit.is(change)) {
                         let { textDocument, edits } = change;
                         let next = documentChanges[i + 1];
                         textEdits.push(...edits);
-                        if (next && index_1.isDocumentEdit(next) && object_1.equals(next.textDocument, textDocument)) {
+                        if (next && vscode_languageserver_protocol_1.TextDocumentEdit.is(next) && object_1.equals((next).textDocument, textDocument)) {
                             continue;
                         }
                         let doc = await this.loadFile(textDocument.uri);
@@ -27897,7 +27885,7 @@ augroup end`;
         let uris = new Set();
         let newUris = new Set();
         for (let change of documentChanges) {
-            if (index_1.isDocumentEdit(change)) {
+            if (vscode_languageserver_protocol_1.TextDocumentEdit.is(change)) {
                 let { textDocument } = change;
                 let { uri, version } = textDocument;
                 if (!newUris.has(uri)) {
@@ -71365,11 +71353,11 @@ class Languages {
     async getDocumentHighLight(document, position, token) {
         return await this.documentHighlightManager.provideDocumentHighlights(document, position, token);
     }
-    async getDocumentLinks(document) {
+    async getDocumentLinks(document, token) {
         if (!this.documentLinkManager.hasProvider(document)) {
             return null;
         }
-        return (await this.documentLinkManager.provideDocumentLinks(document, this.token)) || [];
+        return (await this.documentLinkManager.provideDocumentLinks(document, token)) || [];
     }
     async resolveDocumentLink(link) {
         return await this.documentLinkManager.resolveDocumentLink(link, this.token);
@@ -73422,7 +73410,7 @@ class ServiceManager extends events_1.EventEmitter {
         }
         await Promise.resolve(service.client.sendNotification(method, params));
     }
-    async sendRequest(id, method, params) {
+    async sendRequest(id, method, params, token) {
         if (!method)
             throw new Error(`method required for sendRequest`);
         let service = this.getService(id);
@@ -73439,7 +73427,7 @@ class ServiceManager extends events_1.EventEmitter {
         if (service.state != types_1.ServiceStat.Running) {
             throw new Error(`Language server ${id} not running`);
         }
-        return await Promise.resolve(service.client.sendRequest(method, params));
+        return await Promise.resolve(service.client.sendRequest(method, params, token));
     }
     registLanguageClient(name, config) {
         let id = typeof name === 'string' ? `languageserver.${name}` : name.id;
@@ -83026,7 +83014,6 @@ class ListSession {
                 }
             }
             if (persist) {
-                this.prompt.start();
                 this.ui.restoreWindow();
                 if (action.reload)
                     await this.worker.loadItems(this.context, true);
@@ -83588,7 +83575,7 @@ class ListUI {
         if (!buffer || !window)
             return;
         nvim.pauseNotification();
-        nvim.call('win_gotoid', window.id, true);
+        nvim.call('coc#util#win_gotoid', [window.id], true);
         if (!append) {
             window.notify('nvim_win_set_option', ['statusline', StatusLineOption]);
             nvim.call('clearmatches', [], true);
@@ -83621,8 +83608,9 @@ class ListUI {
         if (workspace_1.default.isVim)
             nvim.command('redraw', true);
         let res = await nvim.resumeNotification();
-        if (res && res[1])
-            logger.error(res[1]);
+        if (Array.isArray(res[1]) && res[1][0] == 0) {
+            this.window = null;
+        }
     }
     restoreWindow() {
         if (this.newTab)
@@ -84709,9 +84697,9 @@ class BasicList {
         let positions = await workspace_1.default.getHighlightPositions(uri, range);
         nvim.pauseNotification();
         nvim.command('pclose', true);
+        if (valid && this.splitRight && position != 'tab')
+            nvim.call('win_gotoid', [context.window.id], true);
         if (this.splitRight || position == 'tab') {
-            if (valid && this.splitRight)
-                nvim.call('win_gotoid', [context.window.id], true);
             nvim.command(`silent belowright vs +setl\\ previewwindow ${escaped}`, true);
         }
         else {
@@ -84747,7 +84735,7 @@ class BasicList {
         nvim.pauseNotification();
         nvim.command('pclose', true);
         if (this.splitRight || context.options.position == 'tab') {
-            if (valid && this.splitRight)
+            if (valid && this.splitRight && context.options.position != 'tab')
                 nvim.call('win_gotoid', [context.window.id], true);
             if (bufname) {
                 nvim.command(`silent belowright vs +setl\\ previewwindow ${bufname}`, true);
@@ -84785,9 +84773,7 @@ class BasicList {
         nvim.call('win_gotoid', [winid], true);
         if (workspace_1.default.isVim)
             nvim.command('redraw', true);
-        let [, err] = await nvim.resumeNotification();
-        if (err)
-            console.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`);
+        await nvim.resumeNotification();
     }
     getPreviewCommand(context) {
         let { position } = context.options;
@@ -85217,13 +85203,13 @@ class LinksList extends basic_1.default {
             await workspace_1.default.jumpTo(location.uri, location.range.start);
         });
     }
-    async loadItems(context) {
+    async loadItems(context, token) {
         let buf = await context.window.buffer;
         let doc = workspace_1.default.getDocument(buf.id);
         if (!doc)
             return null;
         let items = [];
-        let links = await languages_1.default.getDocumentLinks(doc.textDocument);
+        let links = await languages_1.default.getDocumentLinks(doc.textDocument, token);
         if (links == null) {
             throw new Error('Links provider not found.');
         }
@@ -86932,7 +86918,7 @@ class Floating {
         }
         nvim.pauseNotification();
         if (workspace_1.default.isNvim) {
-            nvim.command(`noa call win_gotoid(${winid})`, true);
+            nvim.call('coc#util#win_gotoid', [winid], true);
             this.floatBuffer.setLines(bufnr);
             nvim.command('noa normal! gg0', true);
             nvim.command('noa wincmd p', true);
@@ -86942,9 +86928,11 @@ class Floating {
             nvim.call('win_execute', [winid, `noa normal! gg0`], true);
             nvim.command('redraw', true);
         }
-        let [, err] = await nvim.resumeNotification();
-        if (err)
-            logger.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`);
+        let result = await nvim.resumeNotification();
+        if (Array.isArray(result[1]) && result[1][0] == 0) {
+            // invalid window
+            this.winid = null;
+        }
     }
     close() {
         if (!this.winid)
@@ -88069,7 +88057,6 @@ const colors_1 = tslib_1.__importDefault(__webpack_require__(617));
 const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(619));
 const refactor_1 = tslib_1.__importDefault(__webpack_require__(620));
 const search_1 = tslib_1.__importDefault(__webpack_require__(621));
-const debounce = __webpack_require__(240);
 const logger = __webpack_require__(64)('Handler');
 const pairs = new Map([
     ['<', '>'],
@@ -88221,7 +88208,6 @@ class Handler {
                     let [mode, cursor] = await nvim.eval('[mode(),coc#util#cursor()]');
                     if (mode !== 'i')
                         return;
-                    await synchronizeDocument(doc);
                     await this.triggerSignatureHelp(doc, { line: cursor[0], character: cursor[1] });
                 }
                 catch (e) {
@@ -88237,19 +88223,6 @@ class Handler {
                 return;
             await this.tryFormatOnType('\n', bufnr, true);
         }, null, this.disposables);
-        events_1.default.on('CursorMoved', debounce((bufnr, cursor) => {
-            if (!this.preferences.previewAutoClose || !this.hoverPosition)
-                return;
-            if (this.preferences.hoverTarget == 'float')
-                return;
-            let arr = [bufnr, cursor[0], cursor[1]];
-            if (object_1.equals(arr, this.hoverPosition))
-                return;
-            let doc = workspace_1.default.documents.find(doc => doc.uri.startsWith('coc://'));
-            if (doc && doc.bufnr != bufnr) {
-                nvim.command('pclose', true);
-            }
-        }, 100), null, this.disposables);
         if (this.preferences.currentFunctionSymbolAutoUpdate) {
             events_1.default.on('CursorHold', () => {
                 this.getCurrentFunctionSymbol().logError();
@@ -88275,10 +88248,10 @@ class Handler {
             if (!bufnr)
                 bufnr = await nvim.call('bufnr', '%');
             let doc = workspace_1.default.getDocument(bufnr);
-            if (!doc)
+            if (!doc || !doc.attached)
                 return false;
-            let range = vscode_languageserver_protocol_1.Range.create(0, 0, doc.lineCount, 0);
-            let actions = await this.getCodeActions(bufnr, range, [vscode_languageserver_protocol_1.CodeActionKind.SourceOrganizeImports]);
+            await synchronizeDocument(doc);
+            let actions = await this.getCodeActions(doc, undefined, [vscode_languageserver_protocol_1.CodeActionKind.SourceOrganizeImports]);
             if (actions && actions.length) {
                 await this.applyCodeAction(actions[0]);
                 return true;
@@ -88288,15 +88261,18 @@ class Handler {
         }));
         commands_1.default.titles.set('editor.action.organizeImport', 'run organize import code action.');
     }
-    getRequestToken(name) {
+    async withRequestToken(name, fn, checkEmpty) {
         if (this.requestTokenSource) {
             this.requestTokenSource.cancel();
+            this.requestTokenSource.dispose();
+        }
+        if (this.requestTimer) {
+            clearTimeout(this.requestTimer);
         }
         let statusItem = this.requestStatusItem;
         this.requestTokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
         let { token } = this.requestTokenSource;
-        let disposable = token.onCancellationRequested(() => {
-            disposable.dispose();
+        token.onCancellationRequested(() => {
             statusItem.text = `${name} request canceled`;
             statusItem.isProgress = false;
             this.requestTimer = setTimeout(() => {
@@ -88306,20 +88282,37 @@ class Handler {
         statusItem.isProgress = true;
         statusItem.text = `requesting ${name}`;
         statusItem.show();
-        if (this.requestTimer) {
-            clearTimeout(this.requestTimer);
+        let res;
+        try {
+            res = await Promise.resolve(fn(token));
         }
-        return token;
+        catch (e) {
+            workspace_1.default.showMessage(e.message, 'error');
+            logger.error(`Error on ${name}`, e);
+        }
+        if (this.requestTokenSource) {
+            this.requestTokenSource.dispose();
+            this.requestTokenSource = undefined;
+        }
+        if (token.isCancellationRequested)
+            return null;
+        statusItem.hide();
+        if (res == null) {
+            logger.warn(`${name} provider not found!`);
+        }
+        else if (checkEmpty && Array.isArray(res) && res.length == 0) {
+            workspace_1.default.showMessage(`${name} not found`, 'warning');
+            return null;
+        }
+        return res;
     }
     async getCurrentFunctionSymbol() {
-        let position = await workspace_1.default.getCursorPosition();
-        let buffer = await this.nvim.buffer;
-        let document = workspace_1.default.getDocument(buffer.id);
-        if (!document)
-            return;
-        let symbols = await this.getDocumentSymbols(document);
+        let { doc, position } = await this.getCurrentState();
+        if (!doc)
+            return '';
+        let symbols = await this.getDocumentSymbols(doc);
         if (!symbols || symbols.length === 0) {
-            buffer.setVar('coc_current_function', '', true);
+            doc.buffer.setVar('coc_current_function', '', true);
             this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true);
             return '';
         }
@@ -88341,7 +88334,7 @@ class Handler {
                 break;
             }
         }
-        buffer.setVar('coc_current_function', functionName, true);
+        doc.buffer.setVar('coc_current_function', functionName, true);
         this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true);
         return functionName;
     }
@@ -88353,28 +88346,9 @@ class Handler {
         return languages_1.default.hasProvider(id, doc.textDocument);
     }
     async onHover() {
-        let doc = await workspace_1.default.document;
-        let position = await workspace_1.default.getCursorPosition();
-        let winid = await this.nvim.call('win_getid');
-        let token = this.getRequestToken('hover');
-        let hovers = await languages_1.default.getHover(doc.textDocument, position, token);
-        if (token.isCancellationRequested)
-            return false;
-        if (this.checkEmpty('hover', hovers))
-            return false;
-        if (!token.isCancellationRequested && !this.checkEmpty('hover', hovers)) {
-            let hover = hovers.find(o => vscode_languageserver_protocol_1.Range.is(o.range));
-            if (hover) {
-                doc.matchAddRanges([hover.range], 'CocHoverRange', 999);
-                setTimeout(() => {
-                    this.nvim.call('coc#util#clear_pos_matches', ['^CocHoverRange', winid], true);
-                    if (workspace_1.default.isVim)
-                        this.nvim.command('redraw', true);
-                }, 1000);
-            }
-            await this.previewHover(hovers);
-            return true;
-        }
+        let { doc, position, winid } = await this.getCurrentState();
+        if (doc == null)
+            return;
         let target = this.preferences.hoverTarget;
         if (target == 'float') {
             this.hoverFactory.close();
@@ -88382,66 +88356,92 @@ class Handler {
         else if (target == 'preview') {
             this.nvim.command('pclose', true);
         }
-        return false;
+        await synchronizeDocument(doc);
+        let hovers = await this.withRequestToken('hover', token => {
+            return languages_1.default.getHover(doc.textDocument, position, token);
+        }, true);
+        if (hovers == null)
+            return false;
+        let hover = hovers.find(o => vscode_languageserver_protocol_1.Range.is(o.range));
+        if (hover) {
+            doc.matchAddRanges([hover.range], 'CocHoverRange', 999);
+            setTimeout(() => {
+                this.nvim.call('coc#util#clear_pos_matches', ['^CocHoverRange', winid], true);
+                if (workspace_1.default.isVim)
+                    this.nvim.command('redraw', true);
+            }, 1000);
+        }
+        await this.previewHover(hovers);
+        return true;
     }
     async gotoDefinition(openCommand) {
-        let { document, position } = await workspace_1.default.getCurrentState();
-        let token = this.getRequestToken('definition');
-        let definition = await languages_1.default.getDefinition(document, position, token);
-        if (token.isCancellationRequested)
+        let { doc, position } = await this.getCurrentState();
+        if (doc == null)
             return false;
-        if (this.checkEmpty('definition', definition))
+        await synchronizeDocument(doc);
+        let definition = await this.withRequestToken('definition', token => {
+            return languages_1.default.getDefinition(doc.textDocument, position, token);
+        }, true);
+        if (definition == null)
             return false;
         await this.handleLocations(definition, openCommand);
         return true;
     }
     async gotoDeclaration(openCommand) {
-        let { document, position } = await workspace_1.default.getCurrentState();
-        let token = this.getRequestToken('declaration');
-        let definition = await languages_1.default.getDeclaration(document, position, token);
-        if (token.isCancellationRequested)
+        let { doc, position } = await this.getCurrentState();
+        if (doc == null)
             return false;
-        if (this.checkEmpty('declaration', definition))
+        await synchronizeDocument(doc);
+        let definition = await this.withRequestToken('declaration', token => {
+            return languages_1.default.getDeclaration(doc.textDocument, position, token);
+        }, true);
+        if (definition == null)
             return false;
         await this.handleLocations(definition, openCommand);
         return true;
     }
     async gotoTypeDefinition(openCommand) {
-        let { document, position } = await workspace_1.default.getCurrentState();
-        let token = this.getRequestToken('type definition');
-        let definition = await languages_1.default.getTypeDefinition(document, position, token);
-        if (token.isCancellationRequested)
+        let { doc, position } = await this.getCurrentState();
+        if (doc == null)
             return false;
-        if (this.checkEmpty('type definition', definition))
+        await synchronizeDocument(doc);
+        let definition = await this.withRequestToken('type definition', token => {
+            return languages_1.default.getTypeDefinition(doc.textDocument, position, token);
+        }, true);
+        if (definition == null)
             return false;
         await this.handleLocations(definition, openCommand);
         return true;
     }
     async gotoImplementation(openCommand) {
-        let { document, position } = await workspace_1.default.getCurrentState();
-        let token = this.getRequestToken('implementation');
-        let definition = await languages_1.default.getImplementation(document, position, token);
-        if (token.isCancellationRequested)
+        let { doc, position } = await this.getCurrentState();
+        if (doc == null)
             return false;
-        if (this.checkEmpty('implementation', definition))
+        await synchronizeDocument(doc);
+        let definition = await this.withRequestToken('implementation', token => {
+            return languages_1.default.getImplementation(doc.textDocument, position, token);
+        }, true);
+        if (definition == null)
             return false;
         await this.handleLocations(definition, openCommand);
         return true;
     }
     async gotoReferences(openCommand, includeDeclaration = true) {
-        let { document, position } = await workspace_1.default.getCurrentState();
-        let token = this.getRequestToken('references');
-        let locs = await languages_1.default.getReferences(document, { includeDeclaration }, position, token);
-        if (token.isCancellationRequested)
+        let { doc, position } = await this.getCurrentState();
+        if (doc == null)
             return false;
-        if (this.checkEmpty('references', locs))
+        await synchronizeDocument(doc);
+        let definition = await this.withRequestToken('references', token => {
+            return languages_1.default.getReferences(doc.textDocument, { includeDeclaration }, position, token);
+        }, true);
+        if (definition == null)
             return false;
-        await this.handleLocations(locs, openCommand);
+        await this.handleLocations(definition, openCommand);
         return true;
     }
     async getDocumentSymbols(doc) {
         var _a;
-        if (!doc)
+        if (!doc || !doc.attached)
             return [];
         await synchronizeDocument(doc);
         let cached = this.cachedSymbols.get(doc.bufnr);
@@ -88497,11 +88497,9 @@ class Handler {
         return res;
     }
     async getWordEdit() {
-        let bufnr = await this.nvim.call('bufnr', '%');
-        let doc = workspace_1.default.getDocument(bufnr);
-        if (!doc)
+        let { doc, position } = await this.getCurrentState();
+        if (doc == null)
             return null;
-        let position = await workspace_1.default.getCursorPosition();
         let range = doc.getWordRangeAtPosition(position);
         if (!range || position_1.emptyRange(range))
             return null;
@@ -88525,24 +88523,22 @@ class Handler {
         };
     }
     async rename(newName) {
-        let bufnr = await this.nvim.call('bufnr', '%');
-        let doc = workspace_1.default.getDocument(bufnr);
-        if (!doc)
+        let { doc, position } = await this.getCurrentState();
+        if (doc == null)
             return false;
         let { nvim } = this;
-        let statusItem = this.requestStatusItem;
-        let position = await workspace_1.default.getCursorPosition();
         if (!languages_1.default.hasProvider('rename', doc.textDocument)) {
             workspace_1.default.showMessage(`Rename provider not found for current document`, 'warning');
             return false;
         }
         await synchronizeDocument(doc);
+        let statusItem = this.requestStatusItem;
         try {
             let token = (new vscode_languageserver_protocol_1.CancellationTokenSource()).token;
             let res = await languages_1.default.prepareRename(doc.textDocument, position, token);
             if (res === false) {
                 statusItem.hide();
-                workspace_1.default.showMessage('Invalid position for renmame', 'warning');
+                workspace_1.default.showMessage('Invalid position for rename', 'warning');
                 return false;
             }
             if (token.isCancellationRequested)
@@ -88583,88 +88579,57 @@ class Handler {
         }
     }
     async documentFormatting() {
-        let bufnr = await this.nvim.eval('bufnr("%")');
-        let document = workspace_1.default.getDocument(bufnr);
-        if (!document)
+        let { doc } = await this.getCurrentState();
+        if (doc == null)
             return false;
-        await synchronizeDocument(document);
-        let token = this.getRequestToken('format');
-        try {
-            let options = await workspace_1.default.getFormatOptions(document.uri);
-            let textEdits = await languages_1.default.provideDocumentFormattingEdits(document.textDocument, options, token);
-            if (token.isCancellationRequested)
-                return false;
-            if (Array.isArray(textEdits) && textEdits.length == 0) {
-                // no change
-                this.requestStatusItem.hide();
-                return true;
-            }
-            if (this.checkEmpty('format', textEdits))
-                return false;
-            await document.applyEdits(textEdits);
+        await synchronizeDocument(doc);
+        let options = await workspace_1.default.getFormatOptions(doc.uri);
+        let textEdits = await this.withRequestToken('format', token => {
+            return languages_1.default.provideDocumentFormattingEdits(doc.textDocument, options, token);
+        });
+        if (textEdits && textEdits.length > 0) {
+            await doc.applyEdits(textEdits);
             return true;
         }
-        catch (e) {
-            this.requestStatusItem.hide();
-            workspace_1.default.showMessage(`Error on format: ${e.message}`, 'error');
-            logger.error(e);
-            return false;
-        }
+        return false;
     }
     async documentRangeFormatting(mode) {
-        let document = await workspace_1.default.document;
-        if (!document)
+        let { doc } = await this.getCurrentState();
+        if (doc == null)
             return -1;
-        await synchronizeDocument(document);
+        await synchronizeDocument(doc);
         let range;
         if (mode) {
-            range = await workspace_1.default.getSelectedRange(mode, document);
+            range = await workspace_1.default.getSelectedRange(mode, doc);
             if (!range)
                 return -1;
         }
         else {
-            let lnum = await this.nvim.getVvar('lnum');
-            let count = await this.nvim.getVvar('count');
-            let mode = await this.nvim.call('mode');
+            let [lnum, count, mode] = await this.nvim.eval("[v:lnum,v:count,mode()]");
             // we can't handle
             if (count == 0 || mode == 'i' || mode == 'R')
                 return -1;
             range = vscode_languageserver_protocol_1.Range.create(lnum - 1, 0, lnum - 1 + count, 0);
         }
-        let token = this.getRequestToken('range format');
-        try {
-            let options = await workspace_1.default.getFormatOptions(document.uri);
-            let textEdits = await languages_1.default.provideDocumentRangeFormattingEdits(document.textDocument, range, options, token);
-            if (token.isCancellationRequested)
-                return -1;
-            this.requestStatusItem.hide();
-            if (textEdits && textEdits.length == 0) {
-                this.requestStatusItem.hide();
-                return 0;
-            }
-            if (this.checkEmpty('range format', textEdits))
-                return -1;
-            await document.applyEdits(textEdits);
+        let options = await workspace_1.default.getFormatOptions(doc.uri);
+        let textEdits = await this.withRequestToken('format', token => {
+            return languages_1.default.provideDocumentRangeFormattingEdits(doc.textDocument, range, options, token);
+        });
+        if (textEdits && textEdits.length > 0) {
+            await doc.applyEdits(textEdits);
             return 0;
         }
-        catch (e) {
-            this.requestStatusItem.hide();
-            workspace_1.default.showMessage(`Error on range format: ${e.message}`, 'error');
-            logger.error(e);
-            return -1;
-        }
+        return -1;
     }
     async getTagList() {
-        let position = await workspace_1.default.getCursorPosition();
-        let document = await workspace_1.default.document;
+        let { doc, position } = await this.getCurrentState();
         let word = await this.nvim.call('expand', '<cword>');
-        if (!word)
+        if (!word || doc == null)
             return null;
-        if (!languages_1.default.hasProvider('definition', document.textDocument)) {
+        if (!languages_1.default.hasProvider('definition', doc.textDocument))
             return null;
-        }
         let tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
-        let definitions = await languages_1.default.getDefinition(document.textDocument, position, tokenSource.token);
+        let definitions = await languages_1.default.getDefinition(doc.textDocument, position, tokenSource.token);
         if (!definitions || !definitions.length)
             return null;
         return definitions.map(location => {
@@ -88690,20 +88655,15 @@ class Handler {
             await manager_2.default.start(['commands']);
         }
     }
-    async getCodeActions(bufnr, range, only) {
-        let document = workspace_1.default.getDocument(bufnr);
-        if (!document)
-            return [];
-        range = range || vscode_languageserver_protocol_1.Range.create(0, 0, document.lineCount, 0);
-        let diagnostics = manager_1.default.getDiagnosticsInRange(document.textDocument, range);
+    async getCodeActions(doc, range, only) {
+        range = range || vscode_languageserver_protocol_1.Range.create(0, 0, doc.lineCount, 0);
+        let diagnostics = manager_1.default.getDiagnosticsInRange(doc.textDocument, range);
         let context = { diagnostics };
         if (only && Array.isArray(only))
             context.only = only;
-        let token = this.getRequestToken('code action');
-        let codeActionsMap = await languages_1.default.getCodeActions(document.textDocument, range, context, token);
-        if (token.isCancellationRequested)
-            return [];
-        this.requestStatusItem.hide();
+        let codeActionsMap = await this.withRequestToken('code action', token => {
+            return languages_1.default.getCodeActions(doc.textDocument, range, context, token);
+        });
         if (!codeActionsMap)
             return [];
         let codeActions = [];
@@ -88725,15 +88685,14 @@ class Handler {
         return codeActions;
     }
     async doCodeAction(mode, only) {
-        let bufnr = await this.nvim.call('bufnr', '%');
-        let range;
-        let doc = workspace_1.default.getDocument(bufnr);
+        let { doc } = await this.getCurrentState();
         if (!doc)
             return;
+        let range;
         if (mode)
             range = await workspace_1.default.getSelectedRange(mode, doc);
         await synchronizeDocument(doc);
-        let codeActions = await this.getCodeActions(bufnr, range, Array.isArray(only) ? only : null);
+        let codeActions = await this.getCodeActions(doc, range, Array.isArray(only) ? only : null);
         if (only && typeof only == 'string') {
             codeActions = codeActions.filter(o => o.title == only || (o.command && o.command.title == only));
         }
@@ -88753,14 +88712,13 @@ class Handler {
      * @returns {Promise<CodeAction[]>}
      */
     async getCurrentCodeActions(mode, only) {
-        let bufnr = await this.nvim.call('bufnr', '%');
-        let document = workspace_1.default.getDocument(bufnr);
-        if (!document)
+        let { doc } = await this.getCurrentState();
+        if (!doc)
             return [];
         let range;
         if (mode)
-            range = await workspace_1.default.getSelectedRange(mode, workspace_1.default.getDocument(bufnr));
-        return await this.getCodeActions(bufnr, range, only);
+            range = await workspace_1.default.getSelectedRange(mode, doc);
+        return await this.getCodeActions(doc, range, only);
     }
     /**
      * Invoke preferred quickfix at current position, return false when failed
@@ -88807,26 +88765,24 @@ class Handler {
         await this.codeLensManager.doAction();
     }
     async fold(kind) {
-        let doc = await workspace_1.default.document;
-        if (!doc || !doc.attached) {
-            workspace_1.default.showMessage('document not attached', 'warning');
+        let { doc, winid } = await this.getCurrentState();
+        if (!doc)
             return false;
-        }
         await synchronizeDocument(doc);
-        let win = await this.nvim.window;
+        let win = this.nvim.createWindow(winid);
         let foldmethod = await win.getOption('foldmethod');
         if (foldmethod != 'manual') {
             workspace_1.default.showMessage('foldmethod option should be manual!', 'warning');
             return false;
         }
-        let token = this.getRequestToken('folding range');
-        let ranges = await languages_1.default.provideFoldingRanges(doc.textDocument, {}, token);
-        if (this.checkEmpty('folding range', ranges))
+        let ranges = await this.withRequestToken('folding range', token => {
+            return languages_1.default.provideFoldingRanges(doc.textDocument, {}, token);
+        }, true);
+        if (!ranges)
             return false;
-        if (kind) {
+        if (kind)
             ranges = ranges.filter(o => o.kind == kind);
-        }
-        if (ranges && ranges.length) {
+        if (ranges.length) {
             this.nvim.pauseNotification();
             win.setOption('foldenable', true, true);
             for (let range of ranges.reverse()) {
@@ -88846,19 +88802,27 @@ class Handler {
         await this.colors.pickPresentation();
     }
     async highlight() {
-        let [bufnr, arr] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]');
-        await this.documentHighlighter.highlight(bufnr, vscode_languageserver_protocol_1.Position.create(arr[0], arr[1]));
+        let { doc, position, winid } = await this.getCurrentState();
+        if (!doc)
+            return;
+        await this.documentHighlighter.highlight(doc.bufnr, winid, position);
     }
     async getSymbolsRanges() {
-        let [bufnr, arr] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]');
-        let highlights = await this.documentHighlighter.getHighlights(workspace_1.default.getDocument(bufnr), vscode_languageserver_protocol_1.Position.create(arr[0], arr[1]));
+        let { doc, position } = await this.getCurrentState();
+        if (!doc)
+            return null;
+        let highlights = await this.documentHighlighter.getHighlights(doc, position);
         if (!highlights)
             return null;
         return highlights.map(o => o.range);
     }
     async links() {
-        let doc = await workspace_1.default.document;
-        let links = await languages_1.default.getDocumentLinks(doc.textDocument);
+        let { doc } = await this.getCurrentState();
+        if (!doc)
+            return [];
+        let links = await this.withRequestToken('links', token => {
+            return languages_1.default.getDocumentLinks(doc.textDocument, token);
+        });
         links = links || [];
         let res = [];
         for (let link of links) {
@@ -88873,8 +88837,10 @@ class Handler {
         return links;
     }
     async openLink() {
-        let { document, position } = await workspace_1.default.getCurrentState();
-        let links = await languages_1.default.getDocumentLinks(document);
+        let { doc, position } = await this.getCurrentState();
+        let links = await this.withRequestToken('links', token => {
+            return languages_1.default.getDocumentLinks(doc.textDocument, token);
+        });
         if (!links || links.length == 0)
             return false;
         for (let link of links) {
@@ -88912,7 +88878,6 @@ class Handler {
         let doc = await workspace_1.default.document;
         if (!doc || !doc.attached)
             return;
-        await synchronizeDocument(doc);
         let range;
         if (visualmode) {
             range = await workspace_1.default.getSelectedRange(visualmode, doc);
@@ -89003,27 +88968,25 @@ class Handler {
         if (to)
             await workspace_1.default.moveTo(to);
     }
-    async triggerSignatureHelp(document, position) {
+    async triggerSignatureHelp(doc, position) {
         let { signatureHelpTarget } = this.preferences;
-        if (this.signatureTokenSource) {
-            this.signatureTokenSource.cancel();
-            this.signatureTokenSource = null;
-        }
-        let part = document.getline(position.line).slice(0, position.character);
+        let part = doc.getline(position.line).slice(0, position.character);
         if (part.endsWith(')')) {
             this.signatureFactory.close();
             return;
         }
-        let tokenSource = this.signatureTokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
-        let token = tokenSource.token;
-        let timer = setTimeout(() => {
-            if (!token.isCancellationRequested) {
-                tokenSource.cancel();
-            }
-        }, 3000);
-        let signatureHelp = await languages_1.default.getSignatureHelp(document.textDocument, position, token);
-        clearTimeout(timer);
-        if (token.isCancellationRequested || !signatureHelp || signatureHelp.signatures.length == 0) {
+        await synchronizeDocument(doc);
+        let signatureHelp = await this.withRequestToken('signature help', async (token) => {
+            let timer = setTimeout(() => {
+                if (!token.isCancellationRequested && this.requestTokenSource) {
+                    this.requestTokenSource.cancel();
+                }
+            }, 2000);
+            let res = await languages_1.default.getSignatureHelp(doc.textDocument, position, token);
+            clearTimeout(timer);
+            return res;
+        });
+        if (!signatureHelp || signatureHelp.signatures.length == 0) {
             this.signatureFactory.close();
             return false;
         }
@@ -89130,7 +89093,7 @@ class Handler {
                 }
                 p.push({
                     content: c.label,
-                    filetype: document.filetype,
+                    filetype: doc.filetype,
                     active: activeIndexes
                 });
                 if (paramDoc) {
@@ -89155,7 +89118,7 @@ class Handler {
                 return p;
             }, []);
             if (signatureHelpTarget == 'float') {
-                let session = manager_3.default.getSession(document.bufnr);
+                let session = manager_3.default.getSession(doc.bufnr);
                 if (session && session.isActive) {
                     let { value } = session.placeholder;
                     if (!value.includes('\n'))
@@ -89181,18 +89144,18 @@ class Handler {
         return true;
     }
     async showSignatureHelp() {
-        let buffer = await this.nvim.buffer;
-        let document = workspace_1.default.getDocument(buffer.id);
-        if (!document)
+        let { doc, position } = await this.getCurrentState();
+        if (!doc)
             return false;
-        let position = await workspace_1.default.getCursorPosition();
-        return await this.triggerSignatureHelp(document, position);
+        return await this.triggerSignatureHelp(doc, position);
     }
     async findLocations(id, method, params, openCommand) {
-        let { document, position } = await workspace_1.default.getCurrentState();
+        let { doc, position } = await this.getCurrentState();
+        if (!doc)
+            return null;
         params = params || {};
         Object.assign(params, {
-            textDocument: { uri: document.uri },
+            textDocument: { uri: doc.uri },
             position
         });
         let res = await services_1.default.sendRequest(id, method, params);
@@ -89235,24 +89198,21 @@ class Handler {
         }
     }
     async getSelectionRanges() {
-        let { document, position } = await workspace_1.default.getCurrentState();
-        let token = this.getRequestToken('selection ranges');
-        let selectionRanges = await languages_1.default.getSelectionRanges(document, [position], token);
-        if (token.isCancellationRequested)
-            return null;
-        if (this.checkEmpty('selection ranges', selectionRanges))
-            return null;
+        let { doc, position } = await this.getCurrentState();
+        await synchronizeDocument(doc);
+        let selectionRanges = await this.withRequestToken('selection ranges', token => {
+            return languages_1.default.getSelectionRanges(doc.textDocument, [position], token);
+        });
         if (selectionRanges && selectionRanges.length)
             return selectionRanges;
         return null;
     }
     async selectRange(visualmode, forward) {
         let { nvim } = this;
-        let positions = [];
-        let bufnr = await nvim.call('bufnr', '%');
-        let doc = workspace_1.default.getDocument(bufnr);
+        let { doc } = await this.getCurrentState();
         if (!doc)
             return;
+        let positions = [];
         if (!forward && (!this.selectionRange || !visualmode))
             return;
         if (visualmode) {
@@ -89277,11 +89237,11 @@ class Handler {
             }
             return;
         }
-        let token = this.getRequestToken('selection ranges');
-        let selectionRanges = await languages_1.default.getSelectionRanges(doc.textDocument, positions, token);
-        if (token.isCancellationRequested)
-            return;
-        if (this.checkEmpty('selection ranges', selectionRanges))
+        await synchronizeDocument(doc);
+        let selectionRanges = await this.withRequestToken('selection ranges', token => {
+            return languages_1.default.getSelectionRanges(doc.textDocument, positions, token);
+        });
+        if (!selectionRanges || selectionRanges.length == 0)
             return;
         let mode = await nvim.eval('mode()');
         if (mode != 'n')
@@ -89310,14 +89270,13 @@ class Handler {
         await workspace_1.default.selectRange(selectionRange.range);
     }
     async codeActionRange(start, end, only) {
-        let doc = await workspace_1.default.document;
+        let { doc } = await this.getCurrentState();
         if (!doc)
             return;
-        await util_1.wait(10);
         await synchronizeDocument(doc);
         let line = doc.getline(end - 1);
         let range = vscode_languageserver_protocol_1.Range.create(start - 1, 0, end - 1, line.length);
-        let codeActions = await this.getCodeActions(doc.bufnr, range, only ? [only] : null);
+        let codeActions = await this.getCodeActions(doc, range, only ? [only] : null);
         if (!codeActions || codeActions.length == 0) {
             workspace_1.default.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning');
             return;
@@ -89333,36 +89292,32 @@ class Handler {
     async doRefactor() {
         let [bufnr, cursor, filetype] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),&filetype]');
         let doc = workspace_1.default.getDocument(bufnr);
-        if (!doc)
+        if (!doc || !doc.attached)
             return;
+        await synchronizeDocument(doc);
         let position = { line: cursor[0], character: cursor[1] };
-        let token = this.getRequestToken('refactor');
-        try {
+        let edit = await this.withRequestToken('refactor', async (token) => {
             let res = await languages_1.default.prepareRename(doc.textDocument, position, token);
             if (token.isCancellationRequested)
-                return;
+                return null;
             if (res === false) {
-                this.requestStatusItem.hide();
-                workspace_1.default.showMessage('Invalid position for rename', 'warning');
-                return;
+                workspace_1.default.showMessage('Invalid position', 'warning');
+                return null;
             }
             let edit = await languages_1.default.provideRenameEdits(doc.textDocument, position, 'NewName', token);
             if (token.isCancellationRequested)
-                return;
-            this.requestStatusItem.hide();
+                return null;
             if (!edit) {
-                workspace_1.default.showMessage('Empty workspaceEdit from server', 'warning');
-                return;
+                workspace_1.default.showMessage('Empty workspaceEdit from language server', 'warning');
+                return null;
             }
+            return edit;
+        });
+        if (edit) {
             let refactor = await refactor_1.default.createFromWorkspaceEdit(edit, filetype);
-            if (!refactor.buffer)
+            if (!refactor || !refactor.buffer)
                 return;
             this.refactorMap.set(refactor.buffer.id, refactor);
-        }
-        catch (e) {
-            this.requestStatusItem.hide();
-            workspace_1.default.showMessage(`Error on refactor ${e.message}`, 'error');
-            logger.error(e);
         }
     }
     async saveRefactor(bufnr) {
@@ -89372,14 +89327,13 @@ class Handler {
         }
     }
     async search(args) {
-        let cwd = await this.nvim.call('getcwd');
         let refactor = new refactor_1.default();
         await refactor.createRefactorBuffer();
         if (!refactor.buffer)
             return;
         this.refactorMap.set(refactor.buffer.id, refactor);
         let search = new search_1.default(this.nvim);
-        search.run(args, cwd, refactor).logError();
+        search.run(args, workspace_1.default.cwd, refactor).logError();
     }
     async previewHover(hovers) {
         let lines = [];
@@ -89473,21 +89427,15 @@ class Handler {
             currentFunctionSymbolAutoUpdate: config.get('currentFunctionSymbolAutoUpdate', false),
         };
     }
-    checkEmpty(name, location) {
-        if (this.requestTokenSource) {
-            this.requestTokenSource.dispose();
-            this.requestTokenSource = undefined;
-        }
-        this.requestStatusItem.hide();
-        if (location == null) {
-            workspace_1.default.showMessage(`${name} provider not found for current buffer`, 'warning');
-            return true;
-        }
-        if (Array.isArray(location) && location.length == 0) {
-            workspace_1.default.showMessage(`${name} not found`, 'warning');
-            return true;
-        }
-        return false;
+    async getCurrentState() {
+        let { nvim } = this;
+        let [bufnr, [line, character], winid] = await nvim.eval("[bufnr('%'),coc#util#cursor(),win_getid()]");
+        let doc = workspace_1.default.getDocument(bufnr);
+        return {
+            doc: doc && doc.attached ? doc : null,
+            position: vscode_languageserver_protocol_1.Position.create(line, character),
+            winid
+        };
     }
     dispose() {
         this.colors.dispose();
@@ -90237,20 +90185,19 @@ async function synchronizeDocument(doc) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const events_1 = tslib_1.__importDefault(__webpack_require__(210));
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(270));
-const languages_1 = tslib_1.__importDefault(__webpack_require__(504));
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const languages_1 = tslib_1.__importDefault(__webpack_require__(504));
 const util_1 = __webpack_require__(238);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(270));
 const logger = __webpack_require__(64)('documentHighlight');
 class DocumentHighlighter {
     constructor(nvim, colors) {
         this.nvim = nvim;
         this.colors = colors;
         this.disposables = [];
-        events_1.default.on('WinLeave', winid => {
+        events_1.default.on('WinLeave', () => {
             this.cancel();
-            this.clearHighlight(winid);
         }, null, this.disposables);
         events_1.default.on('BufWinEnter', () => {
             this.cancel();
@@ -90268,19 +90215,19 @@ class DocumentHighlighter {
         if (workspace_1.default.isVim)
             nvim.command('redraw', true);
     }
-    async highlight(bufnr, position) {
+    async highlight(bufnr, winid, position) {
         let { nvim } = this;
         let doc = workspace_1.default.getDocument(bufnr);
         this.cancel();
         let highlights = await this.getHighlights(doc, position);
         if (!highlights || highlights.length == 0) {
-            this.clearHighlight();
+            this.clearHighlight(winid);
             return;
         }
         if (workspace_1.default.bufnr != bufnr)
             return;
         nvim.pauseNotification();
-        this.clearHighlight();
+        nvim.call('coc#util#clear_highlights', [winid], true);
         let groups = {};
         for (let hl of highlights) {
             if (!hl.range)
@@ -90297,19 +90244,18 @@ class DocumentHighlighter {
         this.nvim.command('redraw', true);
         await this.nvim.resumeNotification(false, true);
     }
-    async getHighlights(document, position) {
-        if (!document)
+    async getHighlights(doc, position) {
+        if (!doc || !doc.attached || doc.isCommandLine)
             return null;
-        let ts = Date.now();
-        let { bufnr } = document;
-        let line = document.getline(position.line);
+        let { bufnr } = doc;
+        let line = doc.getline(position.line);
         let ch = line[position.character];
-        if (!ch || !document.isWord(ch) || this.colors.hasColorAtPostion(bufnr, position))
+        if (!ch || !doc.isWord(ch) || this.colors.hasColorAtPostion(bufnr, position))
             return null;
         try {
             this.tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
             let { token } = this.tokenSource;
-            let highlights = await languages_1.default.getDocumentHighLight(document.textDocument, position, token);
+            let highlights = await languages_1.default.getDocumentHighLight(doc.textDocument, position, token);
             this.tokenSource = null;
             if (token.isCancellationRequested)
                 return null;
