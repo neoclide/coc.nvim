@@ -289,6 +289,11 @@
       "description": "The value to send as the `Proxy-Authorization` header for every network request.",
       "default": null
     },
+    "http.proxyCA": {
+      "type": "string",
+      "description": "CA (file) to use as Certificate Authority",
+      "default": null
+    },
     "npm.binPath": {
       "type": "string",
       "default": "npm",

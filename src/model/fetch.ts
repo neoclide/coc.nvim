@@ -83,7 +83,8 @@ export function resolveRequestOptions(url: string, options: FetchOptions = {}): 
   let proxyOptions: ProxyOptions = {
     proxyUrl: config.get<string>('proxy', ''),
     strictSSL: config.get<boolean>('proxyStrictSSL', true),
-    proxyAuthorization: config.get<string | null>('proxyAuthorization', null)
+    proxyAuthorization: config.get<string | null>('proxyAuthorization', null),
+    proxyCA: config.get<string | null>('proxyCA', null)
   }
   if (options.query && !url.includes('?')) {
     url = `${url}?${stringify(options.query)}`
@@ -103,6 +104,9 @@ export function resolveRequestOptions(url: string, options: FetchOptions = {}): 
       'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64)',
       'Accept-Encoding': 'gzip, deflate'
     }, headers)
+  }
+  if (proxyOptions.proxyCA) {
+     opts.ca = fs.readFileSync(proxyOptions.proxyCA)
   }
   if (dataType == 'object') {
     opts.headers['Content-Type'] = 'application/json'
