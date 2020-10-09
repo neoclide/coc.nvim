@@ -18,6 +18,7 @@ export interface ProxyOptions {
   proxyUrl: string
   strictSSL?: boolean
   proxyAuthorization?: string | null
+  proxyCA?: string | null
 }
 
 function getSystemProxyURI(endpoint: UrlWithStringQuery): string {
