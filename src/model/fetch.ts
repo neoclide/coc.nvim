@@ -1,6 +1,7 @@
 import { http, https } from 'follow-redirects'
 import { Readable } from 'stream'
 import { parse, UrlWithStringQuery } from 'url'
+import fs from 'fs'
 import zlib from 'zlib'
 import { objectLiteral } from '../util/is'
 import workspace from '../workspace'
