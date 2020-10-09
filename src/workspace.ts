@@ -719,7 +719,9 @@ export class Workspace implements IWorkspace {
     const preferences = this.getConfiguration('coc.preferences')
     if (preferences.get<boolean>('useQuickfixForLocations', false)) {
       let openCommand = await nvim.getVar('coc_quickfix_open_command') as string
-      nvim.command(typeof openCommand === 'string' ? openCommand : 'copen', true)
+      if (typeof openCommand != 'string') {
+        openCommand = items.length < 10 ? `copen ${items.length}` : 'copen'
+      }
       nvim.pauseNotification()
       nvim.call('setqflist', [items], true)
       nvim.command(openCommand, true)
