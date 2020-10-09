@@ -51,7 +51,7 @@ export default class Outline extends LocationList {
           let kind = getSymbolKind(s.kind)
           let location = Location.create(document.uri, s.selectionRange)
           items.push({
-            label: `${' '.repeat(level * 2)}${s.name}\t[${kind}]\t${s.range.start.line + 1}`,
+            label: `${'| '.repeat(level)}${s.name}\t[${kind}]\t${s.range.start.line + 1}`,
             filterText: getFilterText(s, args.kind == '' ? kind : null),
             location,
             data: { kind }
