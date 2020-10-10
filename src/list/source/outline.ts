@@ -94,10 +94,12 @@ export default class Outline extends LocationList {
   public doHighlight(): void {
     let { nvim } = this
     nvim.pauseNotification()
-    nvim.command('syntax match CocOutlineName /\\v^\\s*[^\t]+/ contained containedin=CocOutlineLine', true)
+    nvim.command('syntax match CocOutlineName /\\v\\s?[^\t]+\\s/ contained containedin=CocOutlineLine', true)
+    nvim.command('syntax match CocOutlineIndentLine /\\v\\|/ contained containedin=CocOutlineLine,CocOutlineName', true)
     nvim.command('syntax match CocOutlineKind /\\[\\w\\+\\]/ contained containedin=CocOutlineLine', true)
     nvim.command('syntax match CocOutlineLine /\\d\\+$/ contained containedin=CocOutlineLine', true)
     nvim.command('highlight default link CocOutlineName Normal', true)
+    nvim.command('highlight default link CocOutlineIndentLine Comment', true)
     nvim.command('highlight default link CocOutlineKind Typedef', true)
     nvim.command('highlight default link CocOutlineLine Comment', true)
     nvim.resumeNotification(false, true).logError()
