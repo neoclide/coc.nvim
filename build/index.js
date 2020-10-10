@@ -23978,7 +23978,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f176d09dc9" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "8a5b4b2f92" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -27019,7 +27019,9 @@ class Workspace {
         const preferences = this.getConfiguration('coc.preferences');
         if (preferences.get('useQuickfixForLocations', false)) {
             let openCommand = await nvim.getVar('coc_quickfix_open_command');
-            nvim.command(typeof openCommand === 'string' ? openCommand : 'copen', true);
+            if (typeof openCommand != 'string') {
+                openCommand = items.length < 10 ? `copen ${items.length}` : 'copen';
+            }
             nvim.pauseNotification();
             nvim.call('setqflist', [items], true);
             nvim.command(openCommand, true);
@@ -69359,6 +69361,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const follow_redirects_1 = __webpack_require__(358);
 const url_1 = __webpack_require__(359);
+const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const zlib_1 = tslib_1.__importDefault(__webpack_require__(145));
 const is_1 = __webpack_require__(250);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(270));
@@ -69432,7 +69435,8 @@ function resolveRequestOptions(url, options = {}) {
     let proxyOptions = {
         proxyUrl: config.get('proxy', ''),
         strictSSL: config.get('proxyStrictSSL', true),
-        proxyAuthorization: config.get('proxyAuthorization', null)
+        proxyAuthorization: config.get('proxyAuthorization', null),
+        proxyCA: config.get('proxyCA', null)
     };
     if (options.query && !url.includes('?')) {
         url = `${url}?${querystring_1.stringify(options.query)}`;
@@ -69453,6 +69457,9 @@ function resolveRequestOptions(url, options = {}) {
             'Accept-Encoding': 'gzip, deflate'
         }, headers)
     };
+    if (proxyOptions.proxyCA) {
+        opts.ca = fs_1.default.readFileSync(proxyOptions.proxyCA);
+    }
     if (dataType == 'object') {
         opts.headers['Content-Type'] = 'application/json';
     }
@@ -85371,7 +85378,7 @@ class Outline extends location_1.default {
                     let kind = convert_1.getSymbolKind(s.kind);
                     let location = vscode_languageserver_types_1.Location.create(document.uri, s.selectionRange);
                     items.push({
-                        label: `${' '.repeat(level * 2)}${s.name}\t[${kind}]\t${s.range.start.line + 1}`,
+                        label: `${'| '.repeat(level)}${s.name}\t[${kind}]\t${s.range.start.line + 1}`,
                         filterText: getFilterText(s, args.kind == '' ? kind : null),
                         location,
                         data: { kind }
@@ -85415,10 +85422,12 @@ class Outline extends location_1.default {
     doHighlight() {
         let { nvim } = this;
         nvim.pauseNotification();
-        nvim.command('syntax match CocOutlineName /\\v^\\s*[^\t]+/ contained containedin=CocOutlineLine', true);
+        nvim.command('syntax match CocOutlineName /\\v\\s?[^\t]+\\s/ contained containedin=CocOutlineLine', true);
+        nvim.command('syntax match CocOutlineIndentLine /\\v\\|/ contained containedin=CocOutlineLine,CocOutlineName', true);
         nvim.command('syntax match CocOutlineKind /\\[\\w\\+\\]/ contained containedin=CocOutlineLine', true);
         nvim.command('syntax match CocOutlineLine /\\d\\+$/ contained containedin=CocOutlineLine', true);
         nvim.command('highlight default link CocOutlineName Normal', true);
+        nvim.command('highlight default link CocOutlineIndentLine Comment', true);
         nvim.command('highlight default link CocOutlineKind Typedef', true);
         nvim.command('highlight default link CocOutlineLine Comment', true);
         nvim.resumeNotification(false, true).logError();
