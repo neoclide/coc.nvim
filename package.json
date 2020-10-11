@@ -100,7 +100,7 @@
     "rimraf": "^3.0.2",
     "semver": "^7.3.2",
     "tar": "^6.0.5",
-    "tslib": "^2.0.1",
+    "tslib": "^2.0.3",
     "unzipper": "^0.10.11",
     "uuid": "^7.0.3",
     "vscode-languageserver-protocol": "^3.15.3",
