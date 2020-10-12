@@ -817,6 +817,7 @@ describe('workspace utility', () => {
     let p = workspace.showQuickpick(['a', 'b'])
     await helper.wait(100)
     await nvim.input('1')
+    await nvim.input('<CR>')
     let res = await p
     expect(res).toBe(0)
   })
