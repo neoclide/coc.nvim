@@ -718,9 +718,9 @@ Built-in configurations:~
 
 	Highlight timeout for buffer in floating window, default: `500`
 
-"coc.preferences.floatQuickpick":~
+"coc.preferences.floatActions":~
 
-	Set to false to disable float/popup support for quickpick menu.
+	Set to false to disable float/popup support for actions menu.
 	Default: `true`
 
 "coc.preferences.promptInput":~

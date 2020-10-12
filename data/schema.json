@@ -954,9 +954,9 @@
       "description": "Set to false to disable snippets support.",
       "default": true
     },
-    "coc.preferences.floatQuickpick": {
+    "coc.preferences.floatActions": {
       "type": "boolean",
-      "description": "Set to false to disable float/popup support for quickpick menu, won't work on vim without float or popup window support.",
+      "description": "Set to false to disable float/popup support for actions menu, won't work on vim without float or popup window support.",
       "default": true
     },
     "coc.preferences.promptInput": {
