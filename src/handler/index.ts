@@ -754,7 +754,7 @@ export default class Handler {
     if (!doc) return false
     await synchronizeDocument(doc)
     let win = this.nvim.createWindow(winid)
-    let foldmethod = await win.getOption('foldmethod')
+    let [foldmethod, foldlevel] = await this.nvim.eval('[&foldmethod,&foldlevel]') as [string, string]
     if (foldmethod != 'manual') {
       workspace.showMessage('foldmethod option should be manual!', 'warning')
       return false
@@ -771,7 +771,7 @@ export default class Handler {
         let cmd = `${startLine + 1}, ${endLine + 1}fold`
         this.nvim.command(cmd, true)
       }
-      this.nvim.command('normal! zx', true)
+      win.setOption('foldlevel', foldlevel, true)
       await this.nvim.resumeNotification()
       return true
     }
