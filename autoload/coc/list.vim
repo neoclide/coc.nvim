@@ -217,7 +217,6 @@ function! coc#list#status(name)
 endfunction
 
 function! coc#list#create(position, height, name, numberSelect)
-  nohlsearch
   if a:position ==# 'tab'
     execute 'silent tabe list:///'.a:name
   else
@@ -231,6 +230,16 @@ function! coc#list#create(position, height, name, numberSelect)
     setl signcolumn=yes
   endif
   return [bufnr('%'), win_getid()]
+endfunction
+
+" close list windows
+function! coc#list#clean_up() abort
+  for i in range(1, winnr('$'))
+    let bufname = bufname(winbufnr(i))
+    if bufname =~# 'list://'
+      execute i.'close!'
+    endif
+  endfor
 endfunction
 
 function! coc#list#setup(source)

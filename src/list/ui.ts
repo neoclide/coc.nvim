@@ -336,6 +336,8 @@ export default class ListUI {
         this.window = nvim.createWindow(winid)
         this._onDidOpen.fire(this.bufnr)
       } catch (e) {
+        nvim.call('coc#list#stop_prompt', [], true)
+        nvim.call('coc#list#clean_up', [], true)
         release()
         workspace.showMessage(`Error on list create: ${e.message}`, 'error')
         return
