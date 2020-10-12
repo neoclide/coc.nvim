@@ -718,9 +718,9 @@ Built-in configurations:~
 
 	Highlight timeout for buffer in floating window, default: `500`
 
-"coc.preferences.floatQuickpick":~
+"coc.preferences.floatActions":~
 
-	Set to false to disable float/popup support for quickpick menu.
+	Set to false to disable float/popup support for actions menu.
 	Default: `true`
 
 "coc.preferences.promptInput":~
@@ -1607,7 +1607,7 @@ coc#util#get_config({key})				*coc#util#get_config()*
 
 	:echo coc#util#get_config('coc.preferences')
 <
-coc#util#close_floats({key})				*coc#util#close_floats()*
+coc#util#close_floats()					*coc#util#close_floats()*
 
 	Close all float/popup windows, works on vim and neovim.
 
