@@ -766,12 +766,12 @@ export default class Handler {
     if (kind) ranges = ranges.filter(o => o.kind == kind)
     if (ranges.length) {
       this.nvim.pauseNotification()
-      win.setOption('foldenable', true, true)
       for (let range of ranges.reverse()) {
         let { startLine, endLine } = range
         let cmd = `${startLine + 1}, ${endLine + 1}fold`
         this.nvim.command(cmd, true)
       }
+      this.nvim.command('normal! zx', true)
       await this.nvim.resumeNotification()
       return true
     }
