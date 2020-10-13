@@ -179,7 +179,7 @@ export default class FloatBuffer {
 
   public static getDimension(docs: Documentation[], maxWidth: number, maxHeight: number): Dimension {
     // width contains padding
-    if (maxWidth <= 2 || maxHeight == 0) return { width: 0, height: 0 }
+    if (maxWidth <= 2 || maxHeight <= 0) return { width: 0, height: 0 }
     let arr: number[] = []
     for (let doc of docs) {
       let lines = doc.content.split(/\r?\n/)

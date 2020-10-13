@@ -94,7 +94,11 @@ export default class Floating {
     if (bounding.col > paddingRight) showRight = false
     let maxWidth = showRight ? paddingRight - 1 : bounding.col - 1
     maxWidth = Math.min(maxPreviewWidth, maxWidth)
-    let maxHeight = lines - bounding.row - workspace.env.cmdheight - 1
+    let maxHeight = lines - bounding.row - 2
+    if (maxHeight <= 0) {
+      logger.error(`Invalid count for &lines: ${lines} - ${bounding.row}`)
+      return null
+    }
     let { width, height } = FloatBuffer.getDimension(docs, maxWidth, maxHeight)
     if (width == 0 || height == 0) return null
     return {
