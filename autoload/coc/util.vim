@@ -1382,3 +1382,10 @@ function! coc#util#win_gotoid(winid) abort
     throw 'Invalid window number'
   endif
 endfunction
+
+function! coc#util#pumvisible() abort
+  let visible = pumvisible()
+  if !visible
+    throw 'Pum not visible'
+  endif
+endfunction

@@ -50,15 +50,19 @@ export default class Floating {
     if (!config || token.isCancellationRequested) return
     await this.floatBuffer.setDocuments(docs, config.width)
     if (token.isCancellationRequested) return
-    let res = await nvim.call('coc#util#create_float_win', [this.winid, this.bufnr, config])
-    if (!res) return
-    let winid = this.winid = res[0]
-    let bufnr = this.bufnr = res[1]
+    nvim.pauseNotification()
+    nvim.call('coc#util#pumvisible', [], true)
+    nvim.call('coc#util#create_float_win', [this.winid, this.bufnr, config], true)
+    let res = await nvim.resumeNotification()
+    if (Array.isArray(res[1])) return
+    let winid = this.winid = res[0][1][0]
+    let bufnr = this.bufnr = res[0][1][1]
     if (token.isCancellationRequested) {
       this.close()
       return
     }
     nvim.pauseNotification()
+    nvim.call('coc#util#pumvisible', [], true)
     if (workspace.isNvim) {
       nvim.call('coc#util#win_gotoid', [winid], true)
       this.floatBuffer.setLines(bufnr)
@@ -69,11 +73,7 @@ export default class Floating {
       nvim.call('win_execute', [winid, `noa normal! gg0`], true)
       nvim.command('redraw', true)
     }
-    let result = await nvim.resumeNotification()
-    if (Array.isArray(result[1]) && result[1][0] == 0) {
-      // invalid window
-      this.winid = null
-    }
+    await nvim.resumeNotification()
   }
 
   public close(): void {
