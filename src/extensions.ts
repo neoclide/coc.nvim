@@ -170,8 +170,15 @@ export class Extensions {
     let installBuffer = this.installBuffer = new InstallBuffer(true, sync, silent)
     installBuffer.setExtensions(stats.map(o => o.id))
 
+    const updates: string[] = []
+    const updatingStatusBar = workspace.createStatusBarItem(0, { progress: true })
     const buffer = workspace.getConfiguration('coc.preferences').get<boolean>('extensionUpdateBuffer')
-    if (buffer) await installBuffer.show(workspace.nvim)
+    if (buffer) {
+      await installBuffer.show(workspace.nvim)
+    } else {
+      updatingStatusBar.text = 'Updating extensions...'
+      updatingStatusBar.show()
+    }
 
     let createInstaller = createInstallerFactory(this.npm, this.modulesFolder)
     let fn = (stat: ExtensionInfo): Promise<void> => {
@@ -188,12 +195,26 @@ export class Extensions {
           installBuffer.finishProgress(id, false)
         })
       } else {
-        return createInstaller(id, msg => workspace.showMessage(`${id}: ${msg}`)).update(url).then(directory => {
+        return createInstaller(id, msg => {
+          if (msg.startsWith('Get info from') || msg.startsWith('Using npm from')) {
+            // ignore
+            return
+          }
+          updatingStatusBar.text = `${id}: ${msg}`
+          updatingStatusBar.show()
+          if (msg.startsWith('Updated to')) {
+            updates.push(id)
+          }
+        }).update(url).then(directory => {
           if (directory) this.loadExtension(directory).logError()
-        }, err => workspace.showMessage(err.message, 'error'))
+        }, err => workspace.showMessage(`Updating ${id} error: ${err.message}`, 'error'))
       }
     }
     await concurrent(stats, fn)
+    if (updates.length) {
+      workspace.showMessage(`Updated extensions: ${updates.join(' ')}`, 'more')
+    }
+    updatingStatusBar.dispose()
   }
 
   private async checkExtensions(): Promise<void> {
