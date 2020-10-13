@@ -23978,7 +23978,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "8da7b2139d" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "6fc00f1a28" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -24766,10 +24766,14 @@ class DiagnosticManager {
      */
     getDiagnosticList() {
         let res = [];
+        const { level } = this.config;
         for (let collection of this.collections) {
             collection.forEach((uri, diagnostics) => {
                 let file = vscode_uri_1.URI.parse(uri).fsPath;
                 for (let diagnostic of diagnostics) {
+                    if (diagnostic.severity && diagnostic.severity > level) {
+                        continue;
+                    }
                     let { start } = diagnostic.range;
                     let o = {
                         file,
@@ -25668,7 +25672,7 @@ class FloatBuffer {
     }
     static getDimension(docs, maxWidth, maxHeight) {
         // width contains padding
-        if (maxWidth <= 2 || maxHeight == 0)
+        if (maxWidth <= 2 || maxHeight <= 0)
             return { width: 0, height: 0 };
         let arr = [];
         for (let doc of docs) {
@@ -86790,16 +86794,20 @@ class Floating {
         await this.floatBuffer.setDocuments(docs, config.width);
         if (token.isCancellationRequested)
             return;
-        let res = await nvim.call('coc#util#create_float_win', [this.winid, this.bufnr, config]);
-        if (!res)
+        nvim.pauseNotification();
+        nvim.call('coc#util#pumvisible', [], true);
+        nvim.call('coc#util#create_float_win', [this.winid, this.bufnr, config], true);
+        let res = await nvim.resumeNotification();
+        if (Array.isArray(res[1]))
             return;
-        let winid = this.winid = res[0];
-        let bufnr = this.bufnr = res[1];
+        let winid = this.winid = res[0][1][0];
+        let bufnr = this.bufnr = res[0][1][1];
         if (token.isCancellationRequested) {
             this.close();
             return;
         }
         nvim.pauseNotification();
+        nvim.call('coc#util#pumvisible', [], true);
         if (workspace_1.default.isNvim) {
             nvim.call('coc#util#win_gotoid', [winid], true);
             this.floatBuffer.setLines(bufnr);
@@ -86811,11 +86819,7 @@ class Floating {
             nvim.call('win_execute', [winid, `noa normal! gg0`], true);
             nvim.command('redraw', true);
         }
-        let result = await nvim.resumeNotification();
-        if (Array.isArray(result[1]) && result[1][0] == 0) {
-            // invalid window
-            this.winid = null;
-        }
+        await nvim.resumeNotification();
     }
     close() {
         if (!this.winid)
@@ -86837,7 +86841,11 @@ class Floating {
             showRight = false;
         let maxWidth = showRight ? paddingRight - 1 : bounding.col - 1;
         maxWidth = Math.min(maxPreviewWidth, maxWidth);
-        let maxHeight = lines - bounding.row - workspace_1.default.env.cmdheight - 1;
+        let maxHeight = lines - bounding.row - 2;
+        if (maxHeight <= 0) {
+            logger.error(`Invalid count for &lines: ${lines} - ${bounding.row}`);
+            return null;
+        }
         let { width, height } = floatBuffer_1.default.getDimension(docs, maxWidth, maxHeight);
         if (width == 0 || height == 0)
             return null;
