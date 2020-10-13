@@ -388,10 +388,14 @@ export class DiagnosticManager implements Disposable {
    */
   public getDiagnosticList(): DiagnosticItem[] {
     let res: DiagnosticItem[] = []
+    const { level } = this.config
     for (let collection of this.collections) {
       collection.forEach((uri, diagnostics) => {
         let file = URI.parse(uri).fsPath
         for (let diagnostic of diagnostics) {
+          if (diagnostic.severity && diagnostic.severity > level) {
+            continue
+          }
           let { start } = diagnostic.range
           let o: DiagnosticItem = {
             file,
