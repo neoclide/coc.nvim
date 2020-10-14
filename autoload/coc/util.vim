@@ -322,6 +322,7 @@ function! coc#util#path_replace_patterns() abort
   return v:null
 endfunction
 
+" Position of cursor relative to editor
 function! coc#util#win_position()
   let nr = winnr()
   let [row, col] = win_screenpos(nr)
