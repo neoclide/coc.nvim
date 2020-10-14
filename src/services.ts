@@ -2,7 +2,7 @@ import { SpawnOptions } from 'child_process'
 import { EventEmitter } from 'events'
 import fs from 'fs'
 import net from 'net'
-import { CancellationToken, Disposable, DocumentSelector, Emitter } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Disposable, DocumentSelector, Emitter } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Executable, ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, State, Transport, TransportKind } from './language-client'
 import { IServiceProvider, LanguageServerConfig, ServiceStat } from './types'
@@ -239,6 +239,10 @@ export class ServiceManager extends EventEmitter implements Disposable {
     }
     if (service.state != ServiceStat.Running) {
       throw new Error(`Language server ${id} not running`)
+    }
+    if (!token) {
+      let tokenSource = new CancellationTokenSource()
+      token = tokenSource.token
     }
     return await Promise.resolve(service.client.sendRequest(method, params, token))
   }
