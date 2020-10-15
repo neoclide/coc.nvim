@@ -224,9 +224,11 @@ function! coc#list#create(position, height, name, numberSelect)
     execute 'resize '.a:height
   endif
   if a:numberSelect
+    setl norelativenumber
     setl number
   else
     setl nonumber
+    setl norelativenumber
     setl signcolumn=yes
   endif
   return [bufnr('%'), win_getid()]
