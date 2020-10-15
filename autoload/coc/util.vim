@@ -213,7 +213,8 @@ function! coc#util#get_float_mode(allow_selection, align_top, pum_align_top) abo
     call feedkeys("\<C-g>u", 'n')
   endif
   let pos = coc#util#win_position()
-  return [mode, bufnr('%'), pos, [line('.'), col('.')]]
+  let viewport = {'lines': &lines, 'columns': &columns, 'cmdheight': &cmdheight}
+  return [mode, bufnr('%'), pos, [line('.'), col('.')], viewport]
 endfunction
 
 " create buffer for popup/float window
