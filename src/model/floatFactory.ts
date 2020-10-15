@@ -18,7 +18,15 @@ export interface WindowConfig {
   row: number
   relative: 'cursor' | 'win' | 'editor'
   style?: string
-  cursorline?: number
+  cursorline?: number // vim only
+  title?: string // vim only
+  border?: number[] // vim only
+}
+
+export interface FloatWinConfig {
+  allowSelection?: boolean
+  offsetX?: number
+  title?: string
 }
 
 export interface ViewportConfig {
@@ -31,6 +39,7 @@ export interface ViewportConfig {
 export default class FloatFactory extends EventEmitter implements Disposable {
   private targetBufnr: number
   private winid = 0
+  private borderWinid: number
   private _bufnr = 0
   private mutex: Mutex
   private disposables: Disposable[] = []
@@ -73,6 +82,10 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     }, null, this.disposables)
     events.on('BufWinLeave', bufnr => {
       if (this.bufnr == bufnr) {
+        if (this.borderWinid) {
+          this.nvim.call('coc#util#close_win', [this.borderWinid], true)
+          this.borderWinid = 0
+        }
         this.emit('close')
       }
     }, null, this.disposables)
@@ -132,6 +145,9 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     }
   }
 
+  /**
+   * @deprecated use show method instead
+   */
   public async create(docs: Documentation[], allowSelection = false, offsetX = 0): Promise<void> {
     let { floating, textprop } = this.env
     if (!floating && !textprop) return
@@ -143,7 +159,7 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     this.cancel()
     let release = await this.mutex.acquire()
     try {
-      await this.createPopup(docs, allowSelection, offsetX)
+      await this.createPopup(docs, { allowSelection, offsetX })
       release()
     } catch (e) {
       release()
@@ -152,7 +168,29 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     }
   }
 
-  private async createPopup(docs: Documentation[], allowSelection = false, offsetX = 0): Promise<void> {
+  public async show(docs: Documentation[], config: FloatWinConfig = {}): Promise<void> {
+    let { floating, textprop } = this.env
+    if (!floating && !textprop) return
+    this.onCursorMoved.clear()
+    if (docs.length == 0 || docs.every(doc => doc.content.length == 0)) {
+      this.close()
+      return
+    }
+    this.cancel()
+    let release = await this.mutex.acquire()
+    try {
+      await this.createPopup(docs, config)
+      release()
+    } catch (e) {
+      release()
+      logger.error(`Error on create popup:`, e.message)
+      this.close()
+    }
+  }
+
+  private async createPopup(docs: Documentation[], opts: FloatWinConfig): Promise<void> {
+    let allowSelection = opts.allowSelection || false
+    let offsetX = opts.offsetX || 0
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
     let { nvim, alignTop, pumAlignTop, floatBuffer } = this
@@ -164,8 +202,10 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     this.cursor = cursor
     this.viewport = viewport
     let config = this.getWindowConfig(docs, win_position, offsetX)
-    if (this.env.isVim && this.cursorline) {
-      config.cursorline = 1
+    if (this.cursorline) config.cursorline = 1
+    if (opts.title) {
+      config.title = opts.title
+      config.border = []
     }
     // calculat highlights
     await floatBuffer.setDocuments(docs, config.width)
@@ -176,7 +216,8 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     if (!res) return
     this.onCursorMoved.clear()
     let winid = this.winid = res[0] as number
-    let bufnr = this._bufnr = res[1]
+    let bufnr = this._bufnr = res[1] as number
+    this.borderWinid = res[2] as number
     if (token.isCancellationRequested) return
     nvim.pauseNotification()
     if (!this.env.isVim) {
@@ -207,13 +248,18 @@ export default class FloatFactory extends EventEmitter implements Disposable {
    * Close float window
    */
   public close(): void {
-    let { winid } = this
+    let { winid, borderWinid, nvim } = this
     this.cancel()
     if (winid) {
       // TODO: sometimes this won't work at all
-      this.nvim.call('coc#util#close_win', [winid], true)
       this.winid = 0
+      this.borderWinid = 0
+      nvim.pauseNotification()
+      nvim.call('coc#util#close_win', [winid], true)
+      nvim.call('coc#util#close_win', [borderWinid], true)
       if (this.env.isVim) this.nvim.command('redraw', true)
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      nvim.resumeNotification(false, true)
     }
   }
 

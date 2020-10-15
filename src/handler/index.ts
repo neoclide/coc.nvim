@@ -1,5 +1,4 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import Menu from '../model/menu'
 import { CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commandManager from '../commands'
@@ -77,7 +76,6 @@ interface Preferences {
 export default class Handler {
   private preferences: Preferences
   private documentHighlighter: DocumentHighlighter
-  private menu: Menu
   private colors: Colors
   private hoverFactory: FloatFactory
   private signatureFactory: FloatFactory
@@ -95,7 +93,6 @@ export default class Handler {
   private cachedSymbols: Map<number, [number, SymbolInfo[]]> = new Map()
 
   constructor(private nvim: Neovim) {
-    this.menu = new Menu(nvim, workspace.env)
     this.getPreferences()
     this.requestStatusItem = workspace.createStatusBarItem(0, { progress: true })
     workspace.onDidChangeConfiguration(e => {
@@ -686,7 +683,7 @@ export default class Handler {
       workspace.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning')
       return
     }
-    let idx = await this.pickActions(codeActions.map(o => o.title))
+    let idx = await workspace.menuPick(codeActions.map(o => o.title), 'Choose action')
     let action = codeActions[idx]
     if (action) await this.applyCodeAction(action)
   }
@@ -1237,7 +1234,7 @@ export default class Handler {
       workspace.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning')
       return
     }
-    let idx = await this.pickActions(codeActions.map(o => o.title))
+    let idx = await workspace.menuPick(codeActions.map(o => o.title), 'Choose action')
     let action = codeActions[idx]
     if (action) await this.applyCodeAction(action)
   }
@@ -1388,26 +1385,6 @@ export default class Handler {
       position: Position.create(line, character),
       winid
     }
-  }
-
-  private async pickActions(items: string[]): Promise<number> {
-    if (workspace.floatSupported && this.preferences.floatActions) {
-      let { menu } = this
-      menu.show(items)
-      let res = await new Promise<number>(resolve => {
-        let disposables: Disposable[] = []
-        menu.onDidCancel(() => {
-          disposeAll(disposables)
-          resolve(-1)
-        }, null, disposables)
-        menu.onDidChoose(idx => {
-          disposeAll(disposables)
-          resolve(idx)
-        }, null, disposables)
-      })
-      return res
-    }
-    return await workspace.showQuickpick(items)
   }
 
   public dispose(): void {

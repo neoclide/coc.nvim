@@ -24,7 +24,6 @@ export default class Menu {
       if (env.isVim) {
         nvim.call('popup_setoptions', [winid, { cursorline: 1, wrap: false }], true)
       } else {
-        win.setOption('cursorline', true, true)
         win.notify('nvim_win_set_cursor', [[1, 1]])
       }
       nvim.command('redraw', true)
@@ -106,16 +105,16 @@ export default class Menu {
     })
   }
 
-  public show(items: string[]): void {
+  public show(items: string[], title?: string): void {
     let lines = items.map((v, i) => {
       if (i < 19) return `${i + 1}. ${v}`
       return v
     })
     this.total = lines.length
-    this.floatFactory.create([{
+    this.floatFactory.show([{
       content: lines.join('\n'),
       filetype: 'menu'
-    }]).logError()
+    }], { title }).logError()
   }
 
   public hide(): void {

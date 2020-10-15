@@ -19,6 +19,7 @@ import ConfigurationShape from './configuration/shape'
 import events from './events'
 import DB from './model/db'
 import Document from './model/document'
+import Menu from './model/menu'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import Mru from './model/mru'
 import BufferChannel from './model/outputChannel'
@@ -47,6 +48,7 @@ export class Workspace implements IWorkspace {
   public readonly version: string
   public readonly keymaps: Map<string, [Function, boolean]> = new Map()
   public bufnr: number
+  private menu: Menu
   private mutex = new Mutex()
   private maxFileSize: number
   private resolver: Resolver = new Resolver()
@@ -122,6 +124,7 @@ export class Workspace implements IWorkspace {
     let preferences = this.getConfiguration('coc.preferences')
     let maxFileSize = preferences.get<string>('maxFileSize', '10MB')
     this.maxFileSize = bytes.parse(maxFileSize)
+    this.menu = new Menu(nvim, this._env)
     if (this._env.workspaceFolders) {
       this._workspaceFolders = this._env.workspaceFolders.map(f => ({
         uri: URI.file(f).toString(),
@@ -1254,6 +1257,26 @@ export class Workspace implements IWorkspace {
       release()
       return -1
     }
+  }
+
+  public async menuPick(items: string[], title?: string): Promise<number> {
+    if (this.floatSupported) {
+      let { menu } = this
+      menu.show(items, title)
+      let res = await new Promise<number>(resolve => {
+        let disposables: Disposable[] = []
+        menu.onDidCancel(() => {
+          disposeAll(disposables)
+          resolve(-1)
+        }, null, disposables)
+        menu.onDidChoose(idx => {
+          disposeAll(disposables)
+          resolve(idx)
+        }, null, disposables)
+      })
+      return res
+    }
+    return await this.showQuickpick(items)
   }
 
   /**
