@@ -7,7 +7,6 @@ const logger = require('../util/logger')('model-menu')
 
 export default class Menu {
   private floatFactory: FloatFactory
-  private window: Window | undefined
   private _onDidChoose = new Emitter<number>()
   private _onDidCancel = new Emitter<void>()
   private currIndex = 0
@@ -16,24 +15,12 @@ export default class Menu {
   public readonly onDidCancel: Event<void> = this._onDidCancel.event
   constructor(private nvim: Neovim, private env: Env) {
     let floatFactory = this.floatFactory = new FloatFactory(
-      nvim, env, false, 20, 120, false, true)
-    floatFactory.on('show', winid => {
+      nvim, env, false, 20, 160, false)
+    floatFactory.on('show', () => {
       choosed = undefined
-      this.currIndex = 0
-      let win = this.window = nvim.createWindow(winid)
-      if (env.isVim) {
-        nvim.call('popup_setoptions', [winid, { cursorline: 1, wrap: false }], true)
-      } else {
-        win.notify('nvim_win_set_cursor', [[1, 1]])
-      }
-      nvim.command('redraw', true)
-      process.nextTick(() => {
-        nvim.call('coc#list#start_prompt', ['MenuInput'], true)
-      })
     })
     floatFactory.on('close', () => {
       firstNumber = undefined
-      this.window = undefined
       nvim.call('coc#list#stop_prompt', [], true)
       if (choosed != null && choosed < this.total) {
         this._onDidChoose.fire(choosed)
@@ -45,7 +32,7 @@ export default class Menu {
     let timer: NodeJS.Timeout
     let firstNumber: number
     let choosed: number
-    events.on('MenuInput', async (character, mode) => {
+    events.on('MenuInput', (character, mode) => {
       if (mode) return
       if (timer) clearTimeout(timer)
       // esc & `<C-c>`
@@ -101,25 +88,39 @@ export default class Menu {
         nvim.command('noa wincmd p', true)
       }
       nvim.command('redraw', true)
-      await nvim.resumeNotification()
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      nvim.resumeNotification(false, true)
     })
+  }
+
+  public get window(): Window {
+    return this.floatFactory.window
   }
 
   public show(items: string[], title?: string): void {
     let lines = items.map((v, i) => {
-      if (i < 19) return `${i + 1}. ${v}`
+      if (i < 99) return `${i + 1}. ${v}`
       return v
     })
     this.total = lines.length
+    this.currIndex = 0
     this.floatFactory.show([{
       content: lines.join('\n'),
       filetype: 'menu'
-    }], { title }).logError()
+    }], { title, cursorline: true }).then(() => {
+      if (this.window) {
+        this.nvim.call('coc#list#start_prompt', ['MenuInput'], true)
+      } else {
+        // failed to create window
+        this._onDidCancel.fire()
+      }
+    }, e => {
+      logger.error(e)
+    })
   }
 
   public hide(): void {
     this.nvim.call('coc#list#stop_prompt', [], true)
-    this.window = undefined
     this.floatFactory.close()
   }
 }

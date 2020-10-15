@@ -142,7 +142,7 @@ describe('Menu', () => {
     await helper.wait(50)
     nvim.call('coc#list#start_prompt', ['MenuInput'], true)
     nvim.call('feedkeys', ['0', 'in'], true)
-    await helper.wait(50)
+    await helper.wait(100)
     expect(selected).toBe(9)
   })
 })

@@ -18,15 +18,17 @@ export interface WindowConfig {
   row: number
   relative: 'cursor' | 'win' | 'editor'
   style?: string
-  cursorline?: number // vim only
-  title?: string // vim only
-  border?: number[] // vim only
+  cursorline?: number
+  title?: string
+  border?: number[]
 }
 
 export interface FloatWinConfig {
   allowSelection?: boolean
   offsetX?: number
   title?: string
+  border?: number[]
+  cursorline?: boolean
 }
 
 export interface ViewportConfig {
@@ -55,8 +57,7 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     private preferTop = false,
     private maxHeight = 999,
     private maxWidth?: number,
-    private autoHide = true,
-    private cursorline = false) {
+    private autoHide = true) {
     super()
     this.mutex = new Mutex()
     this.viewport = {
@@ -202,9 +203,9 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     this.cursor = cursor
     this.viewport = viewport
     let config = this.getWindowConfig(docs, win_position, offsetX)
-    if (this.cursorline) config.cursorline = 1
-    if (opts.title) {
-      config.title = opts.title
+    if (opts.cursorline) config.cursorline = 1
+    if (opts.title || opts.border != null) {
+      config.title = opts.title || ''
       config.border = []
     }
     // calculat highlights
@@ -218,7 +219,13 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     let winid = this.winid = res[0] as number
     let bufnr = this._bufnr = res[1] as number
     this.borderWinid = res[2] as number
-    if (token.isCancellationRequested) return
+    if (token.isCancellationRequested) {
+      if (this.borderWinid) {
+        nvim.call('coc#util#close_win', [this.borderWinid], true)
+        this.borderWinid = 0
+      }
+      return
+    }
     nvim.pauseNotification()
     if (!this.env.isVim) {
       nvim.call('coc#util#win_gotoid', [winid], true)
@@ -234,6 +241,10 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     this.emit('show', winid, bufnr)
     let result = await nvim.resumeNotification()
     if (Array.isArray(result[1]) && result[1][0] == 0) {
+      if (this.borderWinid) {
+        nvim.call('coc#util#close_win', [this.borderWinid], true)
+        this.borderWinid = 0
+      }
       // invalid window
       this.winid = null
     }

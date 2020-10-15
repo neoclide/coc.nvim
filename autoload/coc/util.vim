@@ -241,6 +241,7 @@ endfunction
 
 " create/reuse float window for config position.
 function! coc#util#create_float_win(winid, bufnr, config) abort
+  let border_winid = 0
   " use exists
   if a:winid
     if s:is_vim && !empty(popup_getoptions(a:winid))
@@ -253,15 +254,29 @@ function! coc#util#create_float_win(winid, bufnr, config) abort
         \ 'maxwidth': a:config['width'] - 2,
         \ 'maxheight': a:config['height'],
         \ })
+      let opts = {
+        \ 'cursorline': get(a:config, 'cursorline', 0),
+        \ 'title': get(a:config, 'title', ''),
+        \ }
+      if !empty(opts['title'])
+        let opts['border'] = []
+      elseif has_key(a:config, 'border')
+        let opts['border'] = a:config['border']
+      endif
+      call popup_setoptions(a:winid, opts)
       return [a:winid, winbufnr(a:winid)]
     endif
     if !s:is_vim && nvim_win_is_valid(a:winid)
-      call nvim_win_set_config(a:winid, a:config)
-      return [a:winid, winbufnr(a:winid)]
+      let config = coc#util#omit(a:config, ['title', 'border', 'cursorline'])
+      call nvim_win_set_config(a:winid, config)
+      " can't reuse border window
+      if has_key(a:config, 'border')
+        let border_winid = coc#util#create_border_win(a:config)
+      endif
+      return [a:winid, winbufnr(a:winid), border_winid]
     endif
   endif
   let winid = 0
-  let border_winid = 0
   let title = get(a:config, 'title', v:null)
   if s:is_vim
     let [line, col] = s:popup_position(a:config)
@@ -280,7 +295,7 @@ function! coc#util#create_float_win(winid, bufnr, config) abort
         \ }
     if !empty(title)
       let opts['title'] = title
-      let opts['border'] = []
+      let opts['border'] = get(a:config, 'border', [])
       let opts['borderchars'] = s:borderchars
     endif
     let winid = popup_create(bufnr, opts)
@@ -289,7 +304,7 @@ function! coc#util#create_float_win(winid, bufnr, config) abort
     endif
   else
     let config = coc#util#omit(a:config, ['title', 'border', 'cursorline'])
-    let border = !empty(title)
+    let border = has_key(a:config, 'border')
     if border
       if config['relative'] ==# 'cursor' && config['row'] < 0
         " move top
@@ -315,14 +330,14 @@ function! coc#util#create_float_win(winid, bufnr, config) abort
   if winid <= 0
     return null
   endif
-  call setwinvar(winid, '&list', 0)
-  call setwinvar(winid, '&number', 0)
-  call setwinvar(winid, '&relativenumber', 0)
-  call setwinvar(winid, '&cursorcolumn', 0)
   if !s:is_vim
     " change cursorline option affects vim's own highlight
     call setwinvar(winid, '&cursorline', get(a:config, 'cursorline', 0))
   endif
+  call setwinvar(winid, '&list', 0)
+  call setwinvar(winid, '&number', 0)
+  call setwinvar(winid, '&relativenumber', 0)
+  call setwinvar(winid, '&cursorcolumn', 0)
   call setwinvar(winid, '&colorcolumn', 0)
   call setwinvar(winid, 'float', 1)
   call setwinvar(winid, '&wrap', 1)
