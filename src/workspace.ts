@@ -1312,9 +1312,10 @@ export class Workspace implements IWorkspace {
       let cleanUp = () => {
         nvim.pauseNotification()
         nvim.call('coc#util#close_win', [border_winid], true)
+        nvim.call('coc#util#close_win', [winid], true)
         nvim.command('stopinsert', true)
-        nvim.command(`silent! bd! ${bufnr}`, true)
-        nvim.resumeNotification(false, true).logError()
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        nvim.resumeNotification(false, true)
       }
       let res = await new Promise<string>(resolve => {
         let disposables: Disposable[] = []

@@ -1396,7 +1396,7 @@ function! coc#util#create_prompt_win(title, default) abort
   endif
   let bufnr = nvim_create_buf(v:false, v:true)
   call setbufvar(bufnr, '&buftype', 'prompt')
-  call setbufvar(bufnr, '&bufhidden', 'unload')
+  call setbufvar(bufnr, '&bufhidden', 'wipe')
   call setbufvar(bufnr, '&undolevels', -1)
   call setbufvar(bufnr, 'coc_suggest_disable', 1)
   " Calculate col
