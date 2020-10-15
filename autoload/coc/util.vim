@@ -2,7 +2,8 @@ let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:clear_match_by_id = has('nvim-0.5.0') || has('patch-8.1.1084')
-let s:borderchars   = get(g:, 'coc_borderchars', ['─', '│', '─', '│', '┌', '┐', '┘', '└'])
+let s:borderchars = get(g:, 'coc_borderchars', ['─', '│', '─', '│', '┌', '┐', '┘', '└'])
+let s:prompt_win_width = get(g:, 'coc_prompt_win_width', 30)
 
 let s:activate = ""
 let s:quit = ""
@@ -1388,8 +1389,11 @@ function! coc#util#clear_highlights(...) abort
     endif
 endfunction
 
-" Create float window for input, works on nvim >= 0.5.0
+" Create float window for input
 function! coc#util#create_prompt_win(title, default) abort
+  if !has('nvim-0.5.0')
+    return []
+  endif
   let bufnr = nvim_create_buf(v:false, v:true)
   call setbufvar(bufnr, '&buftype', 'prompt')
   call setbufvar(bufnr, '&bufhidden', 'unload')
@@ -1397,30 +1401,41 @@ function! coc#util#create_prompt_win(title, default) abort
   call setbufvar(bufnr, 'coc_suggest_disable', 1)
   " Calculate col
   let curr = win_screenpos(winnr())[1] + wincol() - 2
-  let col = curr + 30 < &columns ? 0 : &columns - curr - 31
-  if col == 0 && curr >= len(a:title) + 2
-    let col = 0 - len(a:title) -2
+  if s:prompt_win_width > &columns
+    let col = 0
+    let s:prompt_win_width = &columns
+  else
+    let col = curr + s:prompt_win_width < &columns ? 0 : &columns - s:prompt_win_width
   endif
   let winid = nvim_open_win(bufnr, 0, {
     \ 'relative': 'cursor',
-    \ 'width': 30,
+    \ 'width': s:prompt_win_width - 2,
     \ 'height': 1,
     \ 'row': 0,
-    \ 'col': col,
+    \ 'col': col + 1,
     \ 'style': 'minimal',
     \ })
-  if !winid
-    return 0
+  if winid == 0
+    return []
   endif
   call setwinvar(winid, '&winhl', 'Normal:CocFloating,NormalNC:CocFloating')
+  let border_winid = coc#util#create_border_win({
+        \ 'title': a:title,
+        \ 'relative': 'cursor',
+        \ 'width': s:prompt_win_width,
+        \ 'height': 1,
+        \ 'row': -1,
+        \ 'col': col,
+        \ 'focusable': v:false,
+        \ 'style': 'minimal',
+        \ })
   call win_gotoid(winid)
-  call matchaddpos("MoreMsg", [[1, 1, len(a:title) + 2]])
-  call prompt_setprompt(bufnr,' '.a:title.': ')
+  call prompt_setprompt(bufnr,'')
   call prompt_setcallback(bufnr, {text -> coc#rpc#notify('PromptInsert', [text, bufnr])})
-  call prompt_setinterrupt(bufnr, { -> execute('bd! '.bufnr, 'silent!')})
+  call prompt_setinterrupt(bufnr, { -> execute(['bd! '.bufnr, 'call coc#util#close_win('.border_winid.')'], 'silent!')})
   startinsert
   call feedkeys(a:default, 'in')
-  return bufnr
+  return [bufnr, winid, border_winid]
 endfunction
 
 function! coc#util#win_gotoid(winid) abort

@@ -1409,6 +1409,17 @@ g:coc_sources_disable_map 				*g:coc_sources_disable_map*
 >
 	let g:coc_sources_disable_map = { \ 'python': ['omni', 'tag'] \ }
 
+g:coc_borderchars 					*g:coc_borderchars*
+
+	Border characters used by border window, default to:
+>
+	['─', '│', '─', '│', '┌', '┐', '┘', '└']
+
+g:coc_prompt_win_width 					*g:coc_prompt_win_width*
+
+	Width of input prompt window on neovim >= 0.5.0.  Prompt buffer can't
+	work with vim8's popup yet.
+
 ------------------------------------------------------------------------------
 
 Some variables are provided by coc.nvim so you can use them in your

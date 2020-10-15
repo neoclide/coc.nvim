@@ -1306,23 +1306,41 @@ export class Workspace implements IWorkspace {
     let { nvim } = this
     const preferences = this.getConfiguration('coc.preferences')
     if (this.isNvim && semver.gte(this.env.version, '0.5.0') && preferences.get<boolean>('promptInput', true)) {
-      let bufnr = await nvim.call('coc#util#create_prompt_win', [title, defaultValue || ''])
-      if (!bufnr) return null
+      let arr = await nvim.call('coc#util#create_prompt_win', [title, defaultValue || ''])
+      if (!arr || arr.length == 0) return null
+      let [bufnr, winid, border_winid] = arr
+      let cleanUp = () => {
+        nvim.pauseNotification()
+        nvim.call('coc#util#close_win', [border_winid], true)
+        nvim.command('stopinsert', true)
+        nvim.command(`silent! bd! ${bufnr}`, true)
+        nvim.resumeNotification(false, true).logError()
+      }
       let res = await new Promise<string>(resolve => {
         let disposables: Disposable[] = []
         events.on('BufUnload', nr => {
           if (nr == bufnr) {
             disposeAll(disposables)
+            cleanUp()
             resolve(null)
+          }
+        }, null, disposables)
+        events.on('WinLeave', id => {
+          if (id == winid) {
+            disposeAll(disposables)
+            setTimeout(() => {
+              cleanUp()
+              resolve(null)
+            }, 30)
           }
         }, null, disposables)
         events.on('InsertLeave', nr => {
           if (nr == bufnr) {
             disposeAll(disposables)
             setTimeout(() => {
-              nvim.command(`bd! ${nr}`, true)
+              cleanUp()
+              resolve(null)
             }, 30)
-            resolve(null)
           }
         }, null, disposables)
         events.on('PromptInsert', (value, nr) => {
@@ -1330,14 +1348,14 @@ export class Workspace implements IWorkspace {
             disposeAll(disposables)
             // connection would be broken without timeout, don't know why
             setTimeout(() => {
-              nvim.command(`stopinsert|bd! ${nr}`, true)
+              cleanUp()
+              if (!value) {
+                this.showMessage('Empty word, canceled', 'warning')
+                resolve(null)
+              } else {
+                resolve(value)
+              }
             }, 30)
-            if (!value) {
-              this.showMessage('Empty word, canceled', 'warning')
-              resolve(null)
-            } else {
-              resolve(value)
-            }
           }
         }, null, disposables)
       })
