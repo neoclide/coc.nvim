@@ -171,6 +171,9 @@ function! coc#util#close_floats() abort
 endfunction
 
 function! coc#util#close_win(id)
+  if a:id == 0 || type(a:id) != 0
+    return
+  endif
   if s:is_vim && exists('*popup_close')
     if !empty(popup_getpos(a:id))
       call popup_close(a:id)

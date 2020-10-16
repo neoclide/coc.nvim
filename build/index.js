@@ -23978,7 +23978,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "80ae19dee6" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d4d93dc25f" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -25273,11 +25273,10 @@ class FloatFactory extends events_1.EventEmitter {
         this.onCursorMoved.clear();
         let winid = this.winid = res[0];
         let bufnr = this._bufnr = res[1];
-        this.borderWinid = res[2];
+        let borderWinid = this.borderWinid = res[2];
         if (token.isCancellationRequested) {
-            if (this.borderWinid) {
-                nvim.call('coc#util#close_win', [this.borderWinid], true);
-                this.borderWinid = 0;
+            if (borderWinid) {
+                nvim.call('coc#util#close_win', [borderWinid], true);
             }
             return;
         }
@@ -25318,9 +25317,9 @@ class FloatFactory extends events_1.EventEmitter {
         this.cancel();
         if (winid) {
             // TODO: sometimes this won't work at all
+            nvim.pauseNotification();
             this.winid = 0;
             this.borderWinid = 0;
-            nvim.pauseNotification();
             nvim.call('coc#util#close_win', [winid], true);
             nvim.call('coc#util#close_win', [borderWinid], true);
             if (this.env.isVim)
