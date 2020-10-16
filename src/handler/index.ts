@@ -1132,7 +1132,7 @@ export default class Handler {
           p.push('```')
           return p
         }, [])
-        await this.nvim.command(`pedit coc://document`)
+        await this.nvim.command(`noswapfile pedit coc://document`)
       }
     }
     return true
@@ -1361,7 +1361,7 @@ export default class Handler {
     } else if (target == 'float') {
     } else {
       this.documentLines = lines
-      await this.nvim.command(`pedit coc://document`)
+      await this.nvim.command(`noswapfile pedit coc://document`)
     }
   }
 
