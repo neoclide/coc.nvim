@@ -308,6 +308,7 @@ function! coc#util#create_float_win(winid, bufnr, config) abort
       call setwinvar(winid, 'showbreak', 'NONE')
     endif
   else
+    " Note that width is total width, but height is content height
     let config = coc#util#omit(a:config, ['title', 'border', 'cursorline'])
     let border = has_key(a:config, 'border')
     if border
@@ -329,7 +330,9 @@ function! coc#util#create_float_win(winid, bufnr, config) abort
     if !border
       call setwinvar(winid, '&foldcolumn', 1)
     else
-      let border_winid = coc#util#create_border_win(a:config)
+      let c = extend({}, a:config)
+      let c['row'] = config['row'] - 1
+      let border_winid = coc#util#create_border_win(c)
     endif
   endif
   if winid <= 0
