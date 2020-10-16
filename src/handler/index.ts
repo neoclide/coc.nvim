@@ -541,6 +541,7 @@ export default class Handler {
       if (!newName) {
         if (Range.is(res)) {
           curname = doc.textDocument.getText(res)
+          await workspace.moveTo(res.start)
         } else if (res && typeof res.placeholder === 'string') {
           curname = res.placeholder
         } else {
