@@ -26,7 +26,7 @@ describe('Menu', () => {
   it('should show menu', async () => {
     menu.show(['one', 'two', 'three'])
     await helper.wait(100)
-    let id = await nvim.call('coc#util#get_float')
+    let id = await nvim.call('coc#float#get_float_win')
     expect(id).toBeGreaterThan(0)
     let bufnr = await nvim.call('winbufnr', [id])
     let buf = nvim.createBuffer(bufnr)
@@ -42,7 +42,7 @@ describe('Menu', () => {
       fn()
     })
     await helper.wait(100)
-    let id = await nvim.call('coc#util#get_float')
+    let id = await nvim.call('coc#float#get_float_win')
     expect(id).toBeGreaterThan(0)
     await nvim.input('<esc>')
     await helper.wait(100)
@@ -109,7 +109,7 @@ describe('Menu', () => {
   it('should navigate by j, k & G', async () => {
     menu.show(['one', 'two', 'three'])
     await helper.wait(100)
-    let id = await nvim.call('coc#util#get_float')
+    let id = await nvim.call('coc#float#get_float_win')
     expect(id).toBeGreaterThan(0)
     let win = nvim.createWindow(id)
     nvim.call('feedkeys', ['j', 'in'], true)

@@ -187,15 +187,9 @@ function! coc#float#create_border_win(config) abort
 endfunction
 
 function! coc#float#create_border_lines(title, width, height) abort
-  let top = s:borderchars[4] .
-        \ repeat(s:borderchars[0], a:width) .
-        \ s:borderchars[5]
-  let mid = s:borderchars[3] .
-        \ repeat(' ', a:width) .
-        \ s:borderchars[1]
-  let bot = s:borderchars[7] .
-        \ repeat(s:borderchars[2], a:width) .
-        \ s:borderchars[6]
+  let top = s:borderchars[4].repeat(s:borderchars[0], a:width).s:borderchars[5]
+  let mid = s:borderchars[3].repeat(' ', a:width).s:borderchars[1]
+  let bot = s:borderchars[7].repeat(s:borderchars[2], a:width).s:borderchars[6]
   if !empty(a:title)
     let top = coc#helper#str_compose(top, 1, a:title)
   endif
@@ -252,7 +246,7 @@ function! coc#float#create_prompt_win(title, default) abort
 endfunction
 
 " Position of cursor relative to editor
-function! s:win_position()
+function! s:win_position() abort
   let nr = winnr()
   let [row, col] = win_screenpos(nr)
   return [row + winline() - 2, col + wincol() - 2]
@@ -290,4 +284,129 @@ function! coc#float#close(winid) abort
     return 1
   endif
   return 0
+endfunction
+
+" Float window id on current tab.
+" return 0 if not found
+function! coc#float#get_float_win() abort
+  if has('nvim')
+    for i in range(1, winnr('$'))
+      let id = win_getid(i)
+      if (!empty(get(nvim_win_get_config(id), 'relative', '')))
+        return id
+      endif
+    endfor
+  elseif exists('*popup_list')
+    let arr = filter(popup_list(), 'popup_getpos(v:val)["visible"]')
+    if !empty(arr)
+      return arr[0]
+    endif
+  endif
+  return 0
+endfunction
+
+function! coc#float#get_float_win_list() abort
+  if s:is_vim && exists('*popup_list')
+    return filter(popup_list(), 'popup_getpos(v:val)["visible"]')
+  elseif has('nvim') && exists('*nvim_win_get_config')
+    let res = []
+    for i in range(1, winnr('$'))
+      let id = win_getid(i)
+      let config = nvim_win_get_config(id)
+      " ignore border & scratch window
+      if (!empty(config) && config['focusable'] == v:true && !empty(config['relative']))
+        if !getwinvar(id, 'scratch', 0)
+          call add(res, id)
+        endif
+      endif
+    endfor
+    return res
+  endif
+  return []
+endfunction
+
+" Check if a float window is scrollable
+function! coc#float#scrollable(winid) abort
+  let bufnr = winbufnr(a:winid)
+  if bufnr == -1
+    return 0
+  endif
+  if s:is_vim
+    let pos = popup_getpos(a:winid)
+    " scrollbar enabled
+    if get(popup_getoptions(a:winid), 'scrollbar', 0)
+      return get(pos, 'scrollbar', 0)
+    endif
+    if !getwinvar(a:winid, '&wrap')
+      return line('$', a:winid) > pos['core_height']
+    endif
+    let total = 0
+    let width = pos['core_width']
+    for line in getbufline(winbufnr(a:winid), 1, '$')
+      let dw = strdisplaywidth(line)
+      let total += float2nr(ceil(str2float(string(dw))/width))
+    endfor
+    return total > pos['core_height']
+  endif
+  let height = nvim_win_get_height(a:winid)
+  let width = nvim_win_get_width(a:winid)
+  let wrap = getwinvar(a:winid, '&wrap')
+  let lineCount = nvim_buf_line_count(bufnr)
+  if !wrap
+    return lineCount > height
+  endif
+  let total = 0
+  for line in nvim_buf_get_lines(bufnr, 0, -1, 0)
+    let dw = strdisplaywidth(line)
+    let total += float2nr(ceil(str2float(string(dw))/width))
+  endfor
+  return total > height
+endfunction
+
+function! coc#float#has_scroll() abort
+  let win_ids = filter(coc#float#get_float_win_list(), 'coc#float#scrollable(v:val)')
+  return !empty(win_ids)
+endfunction
+
+function! coc#float#scroll(forward)
+  let win_ids = filter(coc#float#get_float_win_list(), 'coc#float#scrollable(v:val)')
+  if empty(win_ids)
+    return ''
+  endif
+  if has('nvim')
+    for id in win_ids
+      let win_height = nvim_win_get_height(id)
+      let cur_line = nvim_win_get_cursor(id)[0]
+      if a:forward
+        let lineCount = nvim_buf_line_count(winbufnr(id))
+        let line = min([cur_line + win_height, lineCount])
+      else
+        let line = max([cur_line - win_height, 1])
+      endif
+      call nvim_win_set_cursor(id, [line, 0])
+    endfor
+    redraw
+  else
+    for id in win_ids
+      let pos = popup_getpos(id)
+      let win_height = pos['core_height']
+      let first = pos['firstline']
+      if a:forward
+        let lineCount = line('$', id)
+        if pos['lastline'] >= lineCount
+          " not scroll when last line is visible
+          let text = getbufline(winbufnr(id), '$')[0]
+          if strdisplaywidth(text) <= pos['core_width']
+            return ''
+          endif
+        endif
+        let line = min([first + win_height, lineCount])
+      else
+        let line = max([first - win_height, 1])
+      endif
+      call popup_setoptions(id, {'firstline': line})
+    endfor
+    redraw
+  endif
+  return ''
 endfunction
