@@ -262,12 +262,14 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     let { winid, borderWinid, nvim } = this
     this.cancel()
     if (winid) {
-      // TODO: sometimes this won't work at all
-      this.winid = 0
-      this.borderWinid = 0
       nvim.pauseNotification()
+      // TODO: sometimes this won't work at all
       nvim.call('coc#util#close_win', [winid], true)
-      nvim.call('coc#util#close_win', [borderWinid], true)
+      this.winid = 0
+      if (borderWinid) {
+        nvim.call('coc#util#close_win', [borderWinid], true)
+        this.borderWinid = 0
+      }
       if (this.env.isVim) this.nvim.command('redraw', true)
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       nvim.resumeNotification(false, true)
