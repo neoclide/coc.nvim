@@ -1601,7 +1601,7 @@ coc#util#float_hide()					*coc#util#float_hide()*
 
 coc#util#float_scrollable()				*coc#util#float_scrollable()*
 
-	Check if coc float window is scrollable.
+	Check if coc float window is scrollable, neovim only.
 
 coc#util#float_scroll({forward})			*coc#util#float_scroll()*
 

@@ -676,7 +676,7 @@ coc#util#has_float()
 
 coc#util#float_scrollable()
 
-	检测是否存在可滚动的浮动窗口。
+	检测是否存在可滚动的浮动窗口, 仅支持 neovim。
 
 						*coc#util#float_scroll()*
 coc#util#float_scroll({forward})
