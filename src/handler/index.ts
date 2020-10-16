@@ -764,8 +764,9 @@ export default class Handler {
     if (!ranges) return false
     if (kind) ranges = ranges.filter(o => o.kind == kind)
     if (ranges.length) {
+      ranges.sort((a, b) => b.startLine - a.startLine)
       this.nvim.pauseNotification()
-      for (let range of ranges.reverse()) {
+      for (let range of ranges) {
         let { startLine, endLine } = range
         let cmd = `${startLine + 1}, ${endLine + 1}fold`
         this.nvim.command(cmd, true)
