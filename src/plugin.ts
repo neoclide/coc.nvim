@@ -253,6 +253,9 @@ export default class Plugin extends EventEmitter {
     this.addAction('doHover', () => {
       return this.handler.onHover()
     })
+    this.addAction('getHover', () => {
+      return this.handler.getHover()
+    })
     this.addAction('showSignatureHelp', () => {
       return this.handler.showSignatureHelp()
     })

@@ -26,7 +26,7 @@ import TypeDefinitionManager from './provider/typeDefinitionManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
 import snippetManager from './snippets/manager'
 import sources from './sources'
-import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, Documentation, ISource, SourceType, VimCompleteItem } from './types'
+import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, Documentation, ISource, SourceType, VimCompleteItem, ProviderName } from './types'
 import * as complete from './util/complete'
 import { getChangedFromEdits, rangeOverlap } from './util/position'
 import { byteIndex, byteLength, byteSlice } from './util/string'
@@ -373,7 +373,7 @@ class Languages {
     return this.onTypeFormatManager.getProvider(document, character) != null
   }
 
-  public hasProvider(id: string, document: TextDocument): boolean {
+  public hasProvider(id: ProviderName, document: TextDocument): boolean {
     switch (id) {
       case 'rename':
         return this.renameManager.hasProvider(document)

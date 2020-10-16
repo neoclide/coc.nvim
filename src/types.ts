@@ -13,6 +13,12 @@ import * as protocol from 'vscode-languageserver-protocol'
 export type MsgTypes = 'error' | 'warning' | 'more'
 export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
 
+export type ProviderName = 'rename' | 'onTypeEdit' | 'documentLink' | 'documentColor'
+  | 'foldingRange' | 'format' | 'codeAction' | 'workspaceSymbols' | 'formatRange'
+  | 'hover' | 'signature' | 'documentSymbol' | 'documentHighlight' | 'definition'
+  | 'declaration' | 'typeDefinition' | 'reference' | 'implementation'
+  | 'codeLens' | 'selectionRange'
+
 export interface ParsedUrlQueryInput {
   [key: string]: unknown
 }

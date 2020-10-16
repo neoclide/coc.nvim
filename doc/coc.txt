@@ -1802,6 +1802,11 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	Note: the behavior would change in Neovim, where floating windows are
 	available.
 
+"getHover"						*coc-action-getHover*
+
+	Get documentation text array on current position, returns array of
+	string.
+
 "showSignatureHelp"					*coc-action-showSignatureHelp*
 
 	Echo signature help of current function, return `v:false` when

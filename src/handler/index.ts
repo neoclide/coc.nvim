@@ -354,7 +354,7 @@ export default class Handler {
     let bufnr = await this.nvim.call('bufnr', '%')
     let doc = workspace.getDocument(bufnr)
     if (!doc) return false
-    return languages.hasProvider(id, doc.textDocument)
+    return languages.hasProvider(id as any, doc.textDocument)
   }
 
   public async onHover(): Promise<boolean> {
@@ -381,6 +381,36 @@ export default class Handler {
     }
     await this.previewHover(hovers)
     return true
+  }
+
+  /**
+   * Get hover text array
+   */
+  public async getHover(): Promise<string[]> {
+    let result: string[] = []
+    let { doc, position } = await this.getCurrentState()
+    if (!languages.hasProvider('hover', doc.textDocument)) {
+      return result
+    }
+    await synchronizeDocument(doc)
+    let tokenSource = new CancellationTokenSource()
+    let hovers = await languages.getHover(doc.textDocument, position, tokenSource.token)
+    if (Array.isArray(hovers)) {
+      for (let h of hovers) {
+        let { contents } = h
+        if (Array.isArray(contents)) {
+          contents.forEach(c => {
+            result.push(typeof c === 'string' ? c : c.value)
+          })
+        } else if (MarkupContent.is(contents)) {
+          result.push(contents.value)
+        } else {
+          result.push(typeof contents === 'string' ? contents : contents.value)
+        }
+      }
+    }
+    result = result.filter(s => s != null && s.length > 0)
+    return result
   }
 
   public async gotoDefinition(openCommand?: string): Promise<boolean> {
