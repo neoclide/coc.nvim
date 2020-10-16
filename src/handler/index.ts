@@ -1,5 +1,5 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, MarkupKind, Position, Range, SelectionRange, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
@@ -1098,7 +1098,7 @@ export default class Handler {
           if (content.trim().length) {
             p.push({
               content,
-              filetype: MarkupContent.is(c.documentation) ? 'markdown' : 'txt'
+              filetype: isMarkdown(c.documentation) ? 'markdown' : 'txt'
             })
           }
         }
@@ -1108,7 +1108,7 @@ export default class Handler {
           if (content.trim().length) {
             p.push({
               content,
-              filetype: MarkupContent.is(c.documentation) ? 'markdown' : 'txt'
+              filetype: isMarkdown(c.documentation) ? 'markdown' : 'txt'
             })
           }
         }
@@ -1319,53 +1319,46 @@ export default class Handler {
   }
 
   private async previewHover(hovers: Hover[]): Promise<void> {
-    let lines: string[] = []
     let target = this.preferences.hoverTarget
-    let i = 0
     let docs: Documentation[] = []
+    let isPreview = target === 'preview'
     for (let hover of hovers) {
       let { contents } = hover
-      if (i > 0) lines.push('---')
       if (Array.isArray(contents)) {
         for (let item of contents) {
           if (typeof item === 'string') {
-            if (item.trim().length) {
-              lines.push(...item.split('\n'))
-              docs.push({ content: item, filetype: 'markdown' })
-            }
+            addDocument(docs, item, 'markdown', isPreview)
           } else {
-            let content = item.value.trim()
-            if (target == 'preview') {
-              content = '``` ' + item.language + '\n' + content + '\n```'
-            }
-            lines.push(...content.trim().split('\n'))
-            docs.push({ filetype: item.language, content: item.value })
+            addDocument(docs, item.value, item.language, isPreview)
           }
         }
-      } else if (typeof contents == 'string') {
-        lines.push(...contents.split('\n'))
-        docs.push({ content: contents, filetype: 'markdown' })
       } else if (MarkedString.is(contents)) {
-        let content = contents.value.trim()
-        if (target == 'preview') {
-          content = '``` ' + contents.language + '\n' + content + '\n```'
+        if (typeof contents == 'string') {
+          addDocument(docs, contents, 'markdown', isPreview)
+        } else {
+          addDocument(docs, contents.value, contents.language, isPreview)
         }
-        lines.push(...content.split('\n'))
-        docs.push({ filetype: contents.language, content: contents.value })
       } else if (MarkupContent.is(contents)) {
-        lines.push(...contents.value.split('\n'))
-        docs.push({ filetype: contents.kind == 'markdown' ? 'markdown' : 'txt', content: contents.value })
+        addDocument(docs, contents.value, isMarkdown(contents) ? 'markdown' : 'txt', isPreview)
       }
-      i++
     }
+    if (target == 'float') {
+      diagnosticManager.hideFloat()
+      await this.hoverFactory.create(docs)
+      return
+    }
+    let lines = docs.reduce((p, c) => {
+      let arr = c.content.split(/\r?\n/)
+      if (p.length > 0) p.push('---')
+      p.push(...arr)
+      return p
+    }, [])
     if (target == 'echo') {
       const msg = lines.join('\n').trim()
       if (msg.length) {
         await this.nvim.call('coc#util#echo_hover', msg)
       }
     } else if (target == 'float') {
-      diagnosticManager.hideFloat()
-      await this.hoverFactory.create(docs)
     } else {
       this.documentLines = lines
       await this.nvim.command(`pedit coc://document`)
@@ -1488,6 +1481,22 @@ function isDocumentSymbol(a: DocumentSymbol | SymbolInformation): a is DocumentS
 
 function isDocumentSymbols(a: DocumentSymbol[] | SymbolInformation[]): a is DocumentSymbol[] {
   return isDocumentSymbol(a[0])
+}
+
+function isMarkdown(content: MarkupContent | string | undefined): boolean {
+  if (MarkupContent.is(content) && content.kind == MarkupKind.Markdown) {
+    return true
+  }
+  return false
+}
+
+function addDocument(docs: Documentation[], text: string, filetype: string, isPreview = false): void {
+  let content = text.trim()
+  if (!content.length) return
+  if (isPreview && filetype !== 'markdown') {
+    content = '``` ' + filetype + '\n' + content + '\n```'
+  }
+  docs.push({ content, filetype })
 }
 
 async function synchronizeDocument(doc: Document): Promise<void> {
