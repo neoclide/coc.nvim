@@ -311,15 +311,9 @@ function! coc#util#create_float_win(winid, bufnr, config) abort
     let config = coc#util#omit(a:config, ['title', 'border', 'cursorline'])
     let border = has_key(a:config, 'border')
     if border
-      if config['relative'] ==# 'cursor' && config['row'] < 0
-        " move top
-        let config['row'] = config['row'] - 1
-      else
-        " move down
-        let config['row'] = config['row'] + 1
-      endif
-      let config['width'] = config['width'] - 2
-      let config['col'] = config['col'] + 1
+      let config['row'] += 1
+      let config['width'] -= 2
+      let config['col'] += 1
       " create border window
     endif
     let bufnr = coc#util#create_float_buf(a:bufnr)
