@@ -23800,6 +23800,9 @@ class Plugin extends events_1.EventEmitter {
         this.addAction('doHover', () => {
             return this.handler.onHover();
         });
+        this.addAction('getHover', () => {
+            return this.handler.getHover();
+        });
         this.addAction('showSignatureHelp', () => {
             return this.handler.showSignatureHelp();
         });
@@ -23978,7 +23981,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "d4d93dc25f" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "b1c5962f6f" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -24127,10 +24130,9 @@ class CommandManager {
                 let document = await workspace_1.default.document;
                 if (!document)
                     return;
-                let lines = document.content.split('\n');
-                await nvim.call('coc#util#diff_content', [lines]);
+                await nvim.call('coc#util#diff_content', [document.getLines()]);
             }
-        }, true);
+        });
         this.register({
             id: 'workspace.clearWatchman',
             execute: async () => {
@@ -25132,7 +25134,7 @@ class FloatFactory extends events_1.EventEmitter {
         events_2.default.on('BufWinLeave', bufnr => {
             if (this.bufnr == bufnr) {
                 if (this.borderWinid) {
-                    this.nvim.call('coc#util#close_win', [this.borderWinid], true);
+                    this.nvim.call('coc#float#close', [this.borderWinid], true);
                     this.borderWinid = 0;
                 }
                 this.emit('close');
@@ -25246,7 +25248,7 @@ class FloatFactory extends events_1.EventEmitter {
         let token = tokenSource.token;
         let { nvim, alignTop, pumAlignTop, floatBuffer } = this;
         // get options
-        let arr = await this.nvim.call('coc#util#get_float_mode', [allowSelection, alignTop, pumAlignTop]);
+        let arr = await this.nvim.call('coc#float#get_float_mode', [allowSelection, alignTop, pumAlignTop]);
         if (!arr || token.isCancellationRequested)
             return;
         let [mode, targetBufnr, win_position, cursor, viewport] = arr;
@@ -25267,7 +25269,7 @@ class FloatFactory extends events_1.EventEmitter {
         if (mode == 's')
             nvim.call('feedkeys', ['\x1b', "in"], true);
         // create window
-        let res = await this.nvim.call('coc#util#create_float_win', [this.winid, this._bufnr, config]);
+        let res = await this.nvim.call('coc#float#create_float_win', [this.winid, this._bufnr, config]);
         if (!res)
             return;
         this.onCursorMoved.clear();
@@ -25276,7 +25278,7 @@ class FloatFactory extends events_1.EventEmitter {
         let borderWinid = this.borderWinid = res[2];
         if (token.isCancellationRequested) {
             if (borderWinid) {
-                nvim.call('coc#util#close_win', [borderWinid], true);
+                nvim.call('coc#float#close', [borderWinid], true);
             }
             return;
         }
@@ -25297,7 +25299,7 @@ class FloatFactory extends events_1.EventEmitter {
         let result = await nvim.resumeNotification();
         if (Array.isArray(result[1]) && result[1][0] == 0) {
             if (this.borderWinid) {
-                nvim.call('coc#util#close_win', [this.borderWinid], true);
+                nvim.call('coc#float#close', [this.borderWinid], true);
                 this.borderWinid = 0;
             }
             // invalid window
@@ -25320,8 +25322,8 @@ class FloatFactory extends events_1.EventEmitter {
             nvim.pauseNotification();
             this.winid = 0;
             this.borderWinid = 0;
-            nvim.call('coc#util#close_win', [winid], true);
-            nvim.call('coc#util#close_win', [borderWinid], true);
+            nvim.call('coc#float#close', [winid], true);
+            nvim.call('coc#float#close', [borderWinid], true);
             if (this.env.isVim)
                 this.nvim.command('redraw', true);
             // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -25351,7 +25353,7 @@ class FloatFactory extends events_1.EventEmitter {
     async activated() {
         if (!this.winid)
             return false;
-        return await this.nvim.call('coc#util#valid_float_win', [this.winid]) != 0;
+        return await this.nvim.call('coc#float#valid', [this.winid]) != 0;
     }
     getMaxWindowHeight(docs) {
         let maxWidth = Math.min(this.maxWidth || 80, 80, this.viewport.columns);
@@ -27668,14 +27670,14 @@ class Workspace {
         let { nvim } = this;
         const preferences = this.getConfiguration('coc.preferences');
         if (this.isNvim && semver_1.default.gte(this.env.version, '0.5.0') && preferences.get('promptInput', true)) {
-            let arr = await nvim.call('coc#util#create_prompt_win', [title, defaultValue || '']);
+            let arr = await nvim.call('coc#float#create_prompt_win', [title, defaultValue || '']);
             if (!arr || arr.length == 0)
                 return null;
             let [bufnr, winid, border_winid] = arr;
             let cleanUp = () => {
                 nvim.pauseNotification();
-                nvim.call('coc#util#close_win', [border_winid], true);
-                nvim.call('coc#util#close_win', [winid], true);
+                nvim.call('coc#float#close', [border_winid], true);
+                nvim.call('coc#float#close', [winid], true);
                 nvim.command('stopinsert', true);
                 // eslint-disable-next-line @typescript-eslint/no-floating-promises
                 nvim.resumeNotification(false, true);
@@ -75091,7 +75093,7 @@ class CompletionItemFeature extends TextDocumentFeature {
         completion.completionItem = {
             snippetSupport,
             commitCharactersSupport: true,
-            documentationFormat: [vscode_languageserver_protocol_1.MarkupKind.Markdown, vscode_languageserver_protocol_1.MarkupKind.PlainText],
+            documentationFormat: this._client.supporedMarkupKind,
             deprecatedSupport: true,
             preselectSupport: true,
         };
@@ -75155,7 +75157,7 @@ class HoverFeature extends TextDocumentFeature {
     fillClientCapabilities(capabilites) {
         const hoverCapability = ensure(ensure(capabilites, 'textDocument'), 'hover');
         hoverCapability.dynamicRegistration = true;
-        hoverCapability.contentFormat = [vscode_languageserver_protocol_1.MarkupKind.Markdown, vscode_languageserver_protocol_1.MarkupKind.PlainText];
+        hoverCapability.contentFormat = this._client.supporedMarkupKind;
     }
     initialize(capabilities, documentSelector) {
         const options = this.getRegistrationOptions(documentSelector, capabilities.hoverProvider);
@@ -75195,7 +75197,7 @@ class SignatureHelpFeature extends TextDocumentFeature {
         config.dynamicRegistration = true;
         // config.contextSupport = true // TODO context and meta support
         config.signatureInformation = {
-            documentationFormat: [vscode_languageserver_protocol_1.MarkupKind.Markdown, vscode_languageserver_protocol_1.MarkupKind.PlainText],
+            documentationFormat: this._client.supporedMarkupKind,
             parameterInformation: {
                 labelOffsetSupport: true
             }
@@ -76095,7 +76097,14 @@ class BaseLanguageClient {
             }
         };
         this._syncedDocuments = new Map();
+        let preferences = workspace_1.default.getConfiguration('coc.preferences');
+        this._markdownSupport = preferences.get('enableMarkdown', true);
         this.registerBuiltinFeatures();
+    }
+    get supporedMarkupKind() {
+        if (this._markdownSupport)
+            return [vscode_languageserver_protocol_1.MarkupKind.Markdown, vscode_languageserver_protocol_1.MarkupKind.PlainText];
+        return [vscode_languageserver_protocol_1.MarkupKind.PlainText];
     }
     get state() {
         return this._state;
@@ -87034,7 +87043,7 @@ class Floating {
             return;
         nvim.pauseNotification();
         nvim.call('coc#util#pumvisible', [], true);
-        nvim.call('coc#util#create_float_win', [this.winid, this.bufnr, config], true);
+        nvim.call('coc#float#create_float_win', [this.winid, this.bufnr, config], true);
         let res = await nvim.resumeNotification();
         if (Array.isArray(res[1]))
             return;
@@ -87064,7 +87073,7 @@ class Floating {
             return;
         let { winid } = this;
         this.winid = null;
-        workspace_1.default.nvim.call('coc#util#close_win', [winid], true);
+        workspace_1.default.nvim.call('coc#float#close', [winid], true);
         if (workspace_1.default.isVim)
             workspace_1.default.nvim.command('redraw', true);
     }
@@ -88503,6 +88512,37 @@ class Handler {
         await this.previewHover(hovers);
         return true;
     }
+    /**
+     * Get hover text array
+     */
+    async getHover() {
+        let result = [];
+        let { doc, position } = await this.getCurrentState();
+        if (!languages_1.default.hasProvider('hover', doc.textDocument)) {
+            return result;
+        }
+        await synchronizeDocument(doc);
+        let tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
+        let hovers = await languages_1.default.getHover(doc.textDocument, position, tokenSource.token);
+        if (Array.isArray(hovers)) {
+            for (let h of hovers) {
+                let { contents } = h;
+                if (Array.isArray(contents)) {
+                    contents.forEach(c => {
+                        result.push(typeof c === 'string' ? c : c.value);
+                    });
+                }
+                else if (vscode_languageserver_protocol_1.MarkupContent.is(contents)) {
+                    result.push(contents.value);
+                }
+                else {
+                    result.push(typeof contents === 'string' ? contents : contents.value);
+                }
+            }
+        }
+        result = result.filter(s => s != null && s.length > 0);
+        return result;
+    }
     async gotoDefinition(openCommand) {
         let { doc, position } = await this.getCurrentState();
         if (doc == null)
@@ -88676,6 +88716,7 @@ class Handler {
             if (!newName) {
                 if (vscode_languageserver_protocol_1.Range.is(res)) {
                     curname = doc.textDocument.getText(res);
+                    await workspace_1.default.moveTo(res.start);
                 }
                 else if (res && typeof res.placeholder === 'string') {
                     curname = res.placeholder;
@@ -88912,8 +88953,9 @@ class Handler {
         if (kind)
             ranges = ranges.filter(o => o.kind == kind);
         if (ranges.length) {
+            ranges.sort((a, b) => b.startLine - a.startLine);
             this.nvim.pauseNotification();
-            for (let range of ranges.reverse()) {
+            for (let range of ranges) {
                 let { startLine, endLine } = range;
                 let cmd = `${startLine + 1}, ${endLine + 1}fold`;
                 this.nvim.command(cmd, true);
@@ -89230,7 +89272,7 @@ class Handler {
                     if (content.trim().length) {
                         p.push({
                             content,
-                            filetype: vscode_languageserver_protocol_1.MarkupContent.is(c.documentation) ? 'markdown' : 'txt'
+                            filetype: isMarkdown(c.documentation) ? 'markdown' : 'txt'
                         });
                     }
                 }
@@ -89240,7 +89282,7 @@ class Handler {
                     if (content.trim().length) {
                         p.push({
                             content,
-                            filetype: vscode_languageserver_protocol_1.MarkupContent.is(c.documentation) ? 'markdown' : 'txt'
+                            filetype: isMarkdown(c.documentation) ? 'markdown' : 'txt'
                         });
                     }
                 }
@@ -89465,50 +89507,45 @@ class Handler {
         search.run(args, workspace_1.default.cwd, refactor).logError();
     }
     async previewHover(hovers) {
-        let lines = [];
         let target = this.preferences.hoverTarget;
-        let i = 0;
         let docs = [];
+        let isPreview = target === 'preview';
         for (let hover of hovers) {
             let { contents } = hover;
-            if (i > 0)
-                lines.push('---');
             if (Array.isArray(contents)) {
                 for (let item of contents) {
                     if (typeof item === 'string') {
-                        if (item.trim().length) {
-                            lines.push(...item.split('\n'));
-                            docs.push({ content: item, filetype: 'markdown' });
-                        }
+                        addDocument(docs, item, 'markdown', isPreview);
                     }
                     else {
-                        let content = item.value.trim();
-                        if (target == 'preview') {
-                            content = '``` ' + item.language + '\n' + content + '\n```';
-                        }
-                        lines.push(...content.trim().split('\n'));
-                        docs.push({ filetype: item.language, content: item.value });
+                        addDocument(docs, item.value, item.language, isPreview);
                     }
                 }
             }
-            else if (typeof contents == 'string') {
-                lines.push(...contents.split('\n'));
-                docs.push({ content: contents, filetype: 'markdown' });
-            }
             else if (vscode_languageserver_protocol_1.MarkedString.is(contents)) {
-                let content = contents.value.trim();
-                if (target == 'preview') {
-                    content = '``` ' + contents.language + '\n' + content + '\n```';
+                if (typeof contents == 'string') {
+                    addDocument(docs, contents, 'markdown', isPreview);
                 }
-                lines.push(...content.split('\n'));
-                docs.push({ filetype: contents.language, content: contents.value });
+                else {
+                    addDocument(docs, contents.value, contents.language, isPreview);
+                }
             }
             else if (vscode_languageserver_protocol_1.MarkupContent.is(contents)) {
-                lines.push(...contents.value.split('\n'));
-                docs.push({ filetype: contents.kind == 'markdown' ? 'markdown' : 'txt', content: contents.value });
+                addDocument(docs, contents.value, isMarkdown(contents) ? 'markdown' : 'txt', isPreview);
             }
-            i++;
         }
+        if (target == 'float') {
+            manager_1.default.hideFloat();
+            await this.hoverFactory.create(docs);
+            return;
+        }
+        let lines = docs.reduce((p, c) => {
+            let arr = c.content.split(/\r?\n/);
+            if (p.length > 0)
+                p.push('---');
+            p.push(...arr);
+            return p;
+        }, []);
         if (target == 'echo') {
             const msg = lines.join('\n').trim();
             if (msg.length) {
@@ -89516,8 +89553,6 @@ class Handler {
             }
         }
         else if (target == 'float') {
-            manager_1.default.hideFloat();
-            await this.hoverFactory.create(docs);
         }
         else {
             this.documentLines = lines;
@@ -89629,6 +89664,21 @@ function isDocumentSymbol(a) {
 }
 function isDocumentSymbols(a) {
     return isDocumentSymbol(a[0]);
+}
+function isMarkdown(content) {
+    if (vscode_languageserver_protocol_1.MarkupContent.is(content) && content.kind == vscode_languageserver_protocol_1.MarkupKind.Markdown) {
+        return true;
+    }
+    return false;
+}
+function addDocument(docs, text, filetype, isPreview = false) {
+    let content = text.trim();
+    if (!content.length)
+        return;
+    if (isPreview && filetype !== 'markdown') {
+        content = '``` ' + filetype + '\n' + content + '\n```';
+    }
+    docs.push({ content, filetype });
 }
 async function synchronizeDocument(doc) {
     let { changedtick } = doc;

@@ -729,6 +729,12 @@ Built-in configurations:~
 	neovim only.
 	Default: `true`
 
+"coc.preferences.enableMarkdown":~
+
+	Tell the language server that markdown text format is supported,
+	note that you may have additional escaped characters for markdown
+	text.
+
 						*coc-config-cursors*
 "cursors.cancelKey":~
 
@@ -1595,7 +1601,7 @@ coc#util#float_hide()					*coc#util#float_hide()*
 
 coc#util#float_scrollable()				*coc#util#float_scrollable()*
 
-	Check if coc float window is scrollable.
+	Check if coc float window is scrollable, neovim only.
 
 coc#util#float_scroll({forward})			*coc#util#float_scroll()*
 
@@ -1801,6 +1807,11 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Note: the behavior would change in Neovim, where floating windows are
 	available.
+
+"getHover"						*coc-action-getHover*
+
+	Get documentation text array on current position, returns array of
+	string.
 
 "showSignatureHelp"					*coc-action-showSignatureHelp*
 
