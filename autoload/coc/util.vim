@@ -53,6 +53,7 @@ function! coc#util#has_float()
   return 0
 endfunction
 
+" neovim only
 function! coc#util#get_float()
   for i in range(1, winnr('$'))
     if getwinvar(i, 'float')

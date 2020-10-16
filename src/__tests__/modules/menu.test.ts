@@ -6,7 +6,6 @@ import { Disposable } from 'vscode-languageserver-protocol'
 
 let nvim: Neovim
 let menu: Menu
-jest.setTimeout(10000)
 
 beforeAll(async () => {
   await helper.setup()
@@ -142,7 +141,7 @@ describe('Menu', () => {
     await helper.wait(50)
     nvim.call('coc#list#start_prompt', ['MenuInput'], true)
     nvim.call('feedkeys', ['0', 'in'], true)
-    await helper.wait(100)
+    await helper.wait(200)
     expect(selected).toBe(9)
   })
 })
