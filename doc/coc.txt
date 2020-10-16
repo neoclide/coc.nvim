@@ -729,6 +729,12 @@ Built-in configurations:~
 	neovim only.
 	Default: `true`
 
+"coc.preferences.enableMarkdown":~
+
+	Tell the language server that markdown text format is supported,
+	note that you may have additional escaped characters for markdown
+	text.
+
 						*coc-config-cursors*
 "cursors.cancelKey":~
 
