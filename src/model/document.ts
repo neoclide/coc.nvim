@@ -640,7 +640,7 @@ export default class Document {
   /**
    * Get lines, zero indexed, end exclude.
    */
-  public getLines(start: number, end: number): string[] {
+  public getLines(start?: number, end?: number): string[] {
     return this.lines.slice(start, end)
   }
 

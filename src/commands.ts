@@ -122,10 +122,9 @@ export class CommandManager implements Disposable {
       execute: async () => {
         let document = await workspace.document
         if (!document) return
-        let lines = document.content.split('\n')
-        await nvim.call('coc#util#diff_content', [lines])
+        await nvim.call('coc#util#diff_content', [document.getLines()])
       }
-    }, true)
+    })
     this.register({
       id: 'workspace.clearWatchman',
       execute: async () => {
@@ -188,10 +187,10 @@ export class CommandManager implements Disposable {
     this.register({
       id: 'document.echoFiletype',
       execute: async () => {
-         let bufnr = await nvim.call('bufnr', '%')
-         let doc = workspace.getDocument(bufnr)
-         if (!doc) return
-         await workspace.echoLines([doc.filetype])
+        let bufnr = await nvim.call('bufnr', '%')
+        let doc = workspace.getDocument(bufnr)
+        if (!doc) return
+        await workspace.echoLines([doc.filetype])
       }
     }, false, 'echo the mapped filetype of the current buffer')
     this.register({
