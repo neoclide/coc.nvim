@@ -1591,10 +1591,6 @@ coc#util#rebuild()					*coc#util#rebuild()*
 	Rebuild coc extensions.
 
 
-coc#util#has_float()					*coc#util#has_float()*
-
-	Check if coc float window exists.
-
 coc#util#float_hide()					*coc#util#float_hide()*
 
 	Close float windows created by coc.nvim.
