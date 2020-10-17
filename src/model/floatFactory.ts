@@ -21,6 +21,7 @@ export interface WindowConfig {
   cursorline?: number
   title?: string
   border?: number[]
+  autohide?: number
 }
 
 export interface FloatWinConfig {
@@ -199,6 +200,7 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     this.viewport = viewport
     let config = this.getWindowConfig(docs, win_position, offsetX)
     if (opts.cursorline) config.cursorline = 1
+    if (this.autoHide) config.autohide = 1
     if (opts.title || opts.border != null) {
       config.title = opts.title || ''
       config.border = opts.border || [1, 1, 1, 1]

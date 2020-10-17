@@ -1308,10 +1308,9 @@ export class Workspace implements IWorkspace {
     if (this.isNvim && semver.gte(this.env.version, '0.5.0') && preferences.get<boolean>('promptInput', true)) {
       let arr = await nvim.call('coc#float#create_prompt_win', [title, defaultValue || ''])
       if (!arr || arr.length == 0) return null
-      let [bufnr, winid, border_winid] = arr
+      let [bufnr, winid] = arr
       let cleanUp = () => {
         nvim.pauseNotification()
-        nvim.call('coc#float#close', [border_winid], true)
         nvim.call('coc#float#close', [winid], true)
         nvim.command('stopinsert', true)
         // eslint-disable-next-line @typescript-eslint/no-floating-promises

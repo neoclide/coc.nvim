@@ -25,6 +25,7 @@ endfunction
 
 " create/reuse float window for config position.
 function! coc#float#create_float_win(winid, bufnr, config) abort
+  call coc#float#close_auto_hide_wins(a:winid)
   " use exists
   if a:winid && coc#float#valid(a:winid)
     if s:is_vim
@@ -121,6 +122,9 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
   call setwinvar(winid, '&relativenumber', 0)
   call setwinvar(winid, '&cursorcolumn', 0)
   call setwinvar(winid, '&colorcolumn', 0)
+  if get(a:config, 'autohide', 0)
+    call setwinvar(winid, 'autohide', 1)
+  endif
   if s:is_vim || has('nvim-0.5.0')
     call setwinvar(winid, '&scrolloff', 0)
   endif
@@ -250,13 +254,14 @@ function! coc#float#create_prompt_win(title, default) abort
   endif
   call setwinvar(winid, '&winhl', 'Normal:CocFloating,NormalNC:CocFloating')
   let border_winid = coc#float#create_border_win(config, [1,1,1,1], a:title)
+  call setwinvar(winid, 'related', [border_winid])
   call win_gotoid(winid)
   call prompt_setprompt(bufnr,'')
   call prompt_setcallback(bufnr, {text -> coc#rpc#notify('PromptInsert', [text, bufnr])})
-  call prompt_setinterrupt(bufnr, { -> execute(['bd! '.bufnr, 'call coc#float#close('.border_winid.')'], 'silent!')})
+  call prompt_setinterrupt(bufnr, { -> execute(['call coc#float#close('.winid.')'], 'silent!')})
   startinsert
   call feedkeys(a:default, 'in')
-  return [bufnr, winid, border_winid]
+  return [bufnr, winid]
 endfunction
 
 " Position of cursor relative to editor
@@ -520,7 +525,7 @@ function! s:popup_visible(id) abort
 endfunction
 
 function! s:convert_config_nvim(config) abort
-  let result = coc#helper#dict_omit(a:config, ['title', 'border', 'cursorline'])
+  let result = coc#helper#dict_omit(a:config, ['title', 'border', 'cursorline', 'autohide'])
   let border = get(a:config, 'border', [])
   if !empty(border)
     if result['relative'] ==# 'cursor' && result['row'] < 0
@@ -557,6 +562,15 @@ function! coc#float#close_related_wins(winid) abort
 endfunction
 
 " Close windows that could auto hide
-function! coc#float#close_auto_hide_wins() abort
-
+function! coc#float#close_auto_hide_wins(...) abort
+  let winids = coc#float#get_float_win_list()
+  let except = get(a:, 1, 0)
+  for id in winids
+    if except && id == except
+      continue
+    endif
+    if getwinvar(id, 'autohide', 0)
+      call coc#float#close(id)
+    endif
+  endfor
 endfunction

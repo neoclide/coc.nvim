@@ -52,7 +52,7 @@ export default class Floating {
     if (token.isCancellationRequested) return
     nvim.pauseNotification()
     nvim.call('coc#util#pumvisible', [], true)
-    nvim.call('coc#float#create_float_win', [this.winid, this.bufnr, config], true)
+    nvim.call('coc#float#create_float_win', [this.winid, this.bufnr, Object.assign({ autohide: true }, config)], true)
     let res = await nvim.resumeNotification()
     if (Array.isArray(res[1])) return
     let winid = this.winid = res[0][1][0]
