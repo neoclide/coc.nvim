@@ -41,7 +41,6 @@ export interface ViewportConfig {
 export default class FloatFactory extends EventEmitter implements Disposable {
   private targetBufnr: number
   private winid = 0
-  private borderWinid: number
   private _bufnr = 0
   private mutex: Mutex
   private disposables: Disposable[] = []
@@ -83,10 +82,6 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     }, null, this.disposables)
     events.on('BufWinLeave', bufnr => {
       if (this.bufnr == bufnr) {
-        if (this.borderWinid) {
-          this.nvim.call('coc#float#close', [this.borderWinid], true)
-          this.borderWinid = 0
-        }
         this.emit('close')
       }
     }, null, this.disposables)
@@ -206,7 +201,10 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     if (opts.cursorline) config.cursorline = 1
     if (opts.title || opts.border != null) {
       config.title = opts.title || ''
-      config.border = []
+      config.border = opts.border || [1, 1, 1, 1]
+      if (config.border.length == 0) {
+        config.border = [1, 1, 1, 1]
+      }
     }
     // calculat highlights
     await floatBuffer.setDocuments(docs, config.width)
@@ -218,13 +216,7 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     this.onCursorMoved.clear()
     let winid = this.winid = res[0] as number
     let bufnr = this._bufnr = res[1] as number
-    let borderWinid = this.borderWinid = res[2] as number
-    if (token.isCancellationRequested) {
-      if (borderWinid) {
-        nvim.call('coc#float#close', [borderWinid], true)
-      }
-      return
-    }
+    if (token.isCancellationRequested) return
     nvim.pauseNotification()
     if (!this.env.isVim) {
       nvim.call('coc#util#win_gotoid', [winid], true)
@@ -240,10 +232,6 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     this.emit('show', winid, bufnr)
     let result = await nvim.resumeNotification()
     if (Array.isArray(result[1]) && result[1][0] == 0) {
-      if (this.borderWinid) {
-        nvim.call('coc#float#close', [this.borderWinid], true)
-        this.borderWinid = 0
-      }
       // invalid window
       this.winid = null
     }
@@ -258,15 +246,13 @@ export default class FloatFactory extends EventEmitter implements Disposable {
    * Close float window
    */
   public close(): void {
-    let { winid, borderWinid, nvim } = this
+    let { winid, nvim } = this
     this.cancel()
     if (winid) {
       // TODO: sometimes this won't work at all
       nvim.pauseNotification()
       this.winid = 0
-      this.borderWinid = 0
       nvim.call('coc#float#close', [winid], true)
-      nvim.call('coc#float#close', [borderWinid], true)
       if (this.env.isVim) this.nvim.command('redraw', true)
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       nvim.resumeNotification(false, true)
