@@ -1591,17 +1591,9 @@ coc#util#rebuild()					*coc#util#rebuild()*
 	Rebuild coc extensions.
 
 
-coc#util#has_float()					*coc#util#has_float()*
-
-	Check if coc float window exists.
-
 coc#util#float_hide()					*coc#util#float_hide()*
 
 	Close float windows created by coc.nvim.
-
-coc#util#float_scrollable()				*coc#util#float_scrollable()*
-
-	Check if coc float window is scrollable, neovim only.
 
 coc#util#float_scroll({forward})			*coc#util#float_scroll()*
 
@@ -1630,6 +1622,21 @@ coc#util#close_floats()					*coc#util#close_floats()*
 
 	Note: Popup/float windows created by other plugins will also be
 	cleared.
+
+coc#float#has_scroll() 					*coc#float#has_scroll()*
+
+	Return `1` when there is scrollable float window or popup.
+	Example key-mappings:
+>
+	nnoremap <expr><C-f> coc#float#has_scroll() ? coc#float#scroll(1) : "\<C-f>"
+	nnoremap <expr><C-b> coc#float#has_scroll() ? coc#float#scroll(0) : "\<C-b>"
+	inoremap <expr><C-f> coc#float#has_scroll() ? coc#float#scroll(1) : "\<Right>"
+	inoremap <expr><C-b> coc#float#has_scroll() ? coc#float#scroll(0) : "\<Left>"
+<
+coc#float#scroll({forward})
+
+	Scroll all scrollable float windows/popups, scroll backward when
+	{forward} is not `1`.
 
 CocRequest({id}, {method}, [{params}])			*CocRequest()*
 

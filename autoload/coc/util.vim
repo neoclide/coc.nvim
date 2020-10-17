@@ -51,16 +51,6 @@ function! coc#util#has_float()
   return 0
 endfunction
 
-" neovim only
-function! coc#util#get_float()
-  for i in range(1, winnr('$'))
-    if getwinvar(i, 'float')
-      return win_getid(i)
-    endif
-  endfor
-  return 0
-endfunction
-
 function! coc#util#float_hide()
   for i in range(1, winnr('$'))
     if getwinvar(i, 'float')
@@ -79,20 +69,6 @@ function! coc#util#float_jump()
   endfor
 endfunction
 
-function! coc#util#float_scrollable()
-  let winnr = winnr()
-  for i in range(1, winnr('$'))
-    if getwinvar(i, 'float')
-      let wid = win_getid(i)
-      let h = nvim_win_get_height(wid)
-      let buf = nvim_win_get_buf(wid)
-      let lineCount = nvim_buf_line_count(buf)
-      return lineCount > h
-    endif
-  endfor
-  return 0
-endfunction
-
 function! coc#util#float_scroll(forward)
   let key = a:forward ? "\<C-f>" : "\<C-b>"
   let winnr = winnr()
@@ -106,7 +82,7 @@ endfunction
 
 " scroll float without exiting insert mode (nvim only)
 function! coc#util#float_scroll_i(amount)
-  let float = coc#util#get_float()
+  let float = coc#float#get_float_win()
   if !float | return '' | endif
   let buf = nvim_win_get_buf(float)
   let buf_height = nvim_buf_line_count(buf)

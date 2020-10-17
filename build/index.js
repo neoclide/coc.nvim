@@ -23981,7 +23981,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "b1c5962f6f" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "a900a8535c" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -25133,10 +25133,6 @@ class FloatFactory extends events_1.EventEmitter {
         }, null, this.disposables);
         events_2.default.on('BufWinLeave', bufnr => {
             if (this.bufnr == bufnr) {
-                if (this.borderWinid) {
-                    this.nvim.call('coc#float#close', [this.borderWinid], true);
-                    this.borderWinid = 0;
-                }
                 this.emit('close');
             }
         }, null, this.disposables);
@@ -25258,9 +25254,14 @@ class FloatFactory extends events_1.EventEmitter {
         let config = this.getWindowConfig(docs, win_position, offsetX);
         if (opts.cursorline)
             config.cursorline = 1;
+        if (this.autoHide)
+            config.autohide = 1;
         if (opts.title || opts.border != null) {
             config.title = opts.title || '';
-            config.border = [];
+            config.border = opts.border || [1, 1, 1, 1];
+            if (config.border.length == 0) {
+                config.border = [1, 1, 1, 1];
+            }
         }
         // calculat highlights
         await floatBuffer.setDocuments(docs, config.width);
@@ -25275,13 +25276,8 @@ class FloatFactory extends events_1.EventEmitter {
         this.onCursorMoved.clear();
         let winid = this.winid = res[0];
         let bufnr = this._bufnr = res[1];
-        let borderWinid = this.borderWinid = res[2];
-        if (token.isCancellationRequested) {
-            if (borderWinid) {
-                nvim.call('coc#float#close', [borderWinid], true);
-            }
+        if (token.isCancellationRequested)
             return;
-        }
         nvim.pauseNotification();
         if (!this.env.isVim) {
             nvim.call('coc#util#win_gotoid', [winid], true);
@@ -25298,10 +25294,6 @@ class FloatFactory extends events_1.EventEmitter {
         this.emit('show', winid, bufnr);
         let result = await nvim.resumeNotification();
         if (Array.isArray(result[1]) && result[1][0] == 0) {
-            if (this.borderWinid) {
-                nvim.call('coc#float#close', [this.borderWinid], true);
-                this.borderWinid = 0;
-            }
             // invalid window
             this.winid = null;
         }
@@ -25315,15 +25307,13 @@ class FloatFactory extends events_1.EventEmitter {
      * Close float window
      */
     close() {
-        let { winid, borderWinid, nvim } = this;
+        let { winid, nvim } = this;
         this.cancel();
         if (winid) {
             // TODO: sometimes this won't work at all
             nvim.pauseNotification();
             this.winid = 0;
-            this.borderWinid = 0;
             nvim.call('coc#float#close', [winid], true);
-            nvim.call('coc#float#close', [borderWinid], true);
             if (this.env.isVim)
                 this.nvim.command('redraw', true);
             // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -27673,10 +27663,9 @@ class Workspace {
             let arr = await nvim.call('coc#float#create_prompt_win', [title, defaultValue || '']);
             if (!arr || arr.length == 0)
                 return null;
-            let [bufnr, winid, border_winid] = arr;
+            let [bufnr, winid] = arr;
             let cleanUp = () => {
                 nvim.pauseNotification();
-                nvim.call('coc#float#close', [border_winid], true);
                 nvim.call('coc#float#close', [winid], true);
                 nvim.command('stopinsert', true);
                 // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -87043,7 +87032,7 @@ class Floating {
             return;
         nvim.pauseNotification();
         nvim.call('coc#util#pumvisible', [], true);
-        nvim.call('coc#float#create_float_win', [this.winid, this.bufnr, config], true);
+        nvim.call('coc#float#create_float_win', [this.winid, this.bufnr, Object.assign({ autohide: true }, config)], true);
         let res = await nvim.resumeNotification();
         if (Array.isArray(res[1]))
             return;
@@ -89309,7 +89298,7 @@ class Handler {
                     p.push('```');
                     return p;
                 }, []);
-                await this.nvim.command(`pedit coc://document`);
+                await this.nvim.command(`noswapfile pedit coc://document`);
             }
         }
         return true;
@@ -89556,7 +89545,7 @@ class Handler {
         }
         else {
             this.documentLines = lines;
-            await this.nvim.command(`pedit coc://document`);
+            await this.nvim.command(`noswapfile pedit coc://document`);
         }
     }
     getPreferences() {
