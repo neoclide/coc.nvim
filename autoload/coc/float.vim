@@ -392,20 +392,21 @@ function! coc#float#has_scroll() abort
   return !empty(win_ids)
 endfunction
 
-function! coc#float#scroll(forward)
+function! coc#float#scroll(forward, ...)
+  let amount = get(a:, 1, 0)
   let win_ids = filter(coc#float#get_float_win_list(), 'coc#float#scrollable(v:val)')
   if empty(win_ids)
     return ''
   endif
   if has('nvim')
-    call timer_start(10, { -> s:scroll_nvim(win_ids, a:forward)})
+    call timer_start(10, { -> s:scroll_nvim(win_ids, a:forward, amount)})
   else
-    call timer_start(10, { -> s:scroll_vim(win_ids, a:forward)})
+    call timer_start(10, { -> s:scroll_vim(win_ids, a:forward, amount)})
   endif
   return "\<Ignore>"
 endfunction
 
-function! s:scroll_nvim(win_ids, forward) abort
+function! s:scroll_nvim(win_ids, forward, amount) abort
   let curr = win_getid()
   for id in a:win_ids
     if nvim_win_is_valid(id)
@@ -425,11 +426,11 @@ function! s:scroll_nvim(win_ids, forward) abort
       endif
       noa call win_gotoid(id)
       if wrapped
-        let delta = nvim_win_get_height(id)
+        let delta = a:amount ? a:amount : nvim_win_get_height(id)
         if a:forward
-          execute 'noa normal! '.delta.'gj'
+          execute 'noa normal! '.delta.'gjzt'
         else
-          execute 'noa normal! '.delta.'gk'
+          execute 'noa normal! '.delta.'gkzb'
         endif
       else
         let firstline = line('w0')
@@ -442,10 +443,12 @@ function! s:scroll_nvim(win_ids, forward) abort
           continue
         endif
         if a:forward
-          call nvim_win_set_cursor(id, [lastline, 0])
+          let lnum = a:amount ? min([linecount, firstline + a:amount]) : lastline
+          call nvim_win_set_cursor(id, [lnum, 0])
           execute 'normal! zt'
         else
-          call nvim_win_set_cursor(id, [firstline, 0])
+          let lnum = a:amount ? max([1, lastline - a:amount]) : firstline
+          call nvim_win_set_cursor(id, [lnum, 0])
           execute 'normal! zb'
         endif
       endif
@@ -455,7 +458,7 @@ function! s:scroll_nvim(win_ids, forward) abort
   redraw
 endfunction
 
-function! s:scroll_vim(win_ids, forward) abort
+function! s:scroll_vim(win_ids, forward, amount) abort
   for id in a:win_ids
     if s:popup_visible(id)
       let pos = popup_getpos(id)
@@ -464,10 +467,7 @@ function! s:scroll_vim(win_ids, forward) abort
       " for forward use last line (or last line + 1) as first line
       if a:forward
         if pos['firstline'] == pos['lastline']
-          if pos['firstline'] == linecount
-            return
-          endif
-          call popup_setoptions(id, {'firstline': pos['firstline'] + 1})
+          call popup_setoptions(id, {'firstline': min([pos['firstline'] + 1, linecount])})
         else
           if pos['lastline'] == linecount
             let win_width = pos['core_width']
@@ -477,7 +477,8 @@ function! s:scroll_vim(win_ids, forward) abort
               return
             endif
           endif
-          call popup_setoptions(id, {'firstline': pos['lastline']})
+          let lnum = a:amount ? min([linecount, pos['firstline'] + a:amount]) : pos['lastline']
+          call popup_setoptions(id, {'firstline': lnum})
         endif
       else
         if pos['firstline'] == 1
@@ -486,7 +487,7 @@ function! s:scroll_vim(win_ids, forward) abort
         endif
         " we could only change firstline
         " iterate lines before last lines to fill content height - 1
-        let total_height = pos['core_height'] - 1
+        let total_height = a:amount ? min([a:amount, pos['core_height']]) : pos['core_height'] - 1
         if total_height == 0
           call popup_setoptions(id, {'firstline': pos['firstline'] - 1})
         else

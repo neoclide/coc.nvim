@@ -666,20 +666,6 @@ coc#util#rebuild()
 
 	对插件执行 `npm rebuild` 命令。
 
-						*coc#util#has_float()*
-
-coc#util#has_float()
-
-	检测是否存在浮动窗口。
-
-						*coc#util#float_scroll()*
-coc#util#float_scroll({forward})
-
-	用于创建滚动浮动窗口的映射，例如： >
-
-	nnoremap <expr><C-f> coc#util#has_float() ? coc#util#float_scroll(1) : "\<C-f>"
-	nnoremap <expr><C-b> coc#util#has_float() ? coc#util#float_scroll(0) : "\<C-b>"
-<
 						*CocRequest()*
 CocRequest({id}, {method}, [{params}])
 
@@ -709,8 +695,9 @@ CocNotify({id}, {params})
 	向指定 language server 发送通知。
 >
 	call CocNotify('ccls', '$ccls/reload')
-
+<
 						*CocLocations()*
+
 CocLocations({id}, {method}, [{params}, {openCommand}])
 
 	从指定 language server 获取地址列表。例如：
