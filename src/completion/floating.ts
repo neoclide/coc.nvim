@@ -67,6 +67,7 @@ export default class Floating {
       nvim.call('coc#util#win_gotoid', [winid], true)
       this.floatBuffer.setLines(bufnr)
       nvim.command('noa normal! gg0', true)
+      nvim.call('coc#float#nvim_scrollbar', [winid], true)
       nvim.command('noa wincmd p', true)
     } else {
       this.floatBuffer.setLines(bufnr, winid)

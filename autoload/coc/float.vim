@@ -3,6 +3,7 @@ let s:is_vim = !has('nvim')
 let s:borderchars = get(g:, 'coc_borderchars',
       \ ['─', '│', '─', '│', '┌', '┐', '┘', '└'])
 let s:prompt_win_width = get(g:, 'coc_prompt_win_width', 30)
+let s:scrollbar_ns = nvim_create_namespace('coc-scrollbar')
 " winvar: border array of numbers,  scratch boolean
 
 function! coc#float#get_float_mode(allow_selection, align_top, pum_align_top) abort
@@ -50,7 +51,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     else
       let config = s:convert_config_nvim(a:config)
       " not reuse related windows
-      call coc#float#close_related_wins(a:winid)
+      call coc#float#nvim_close_related(a:winid)
       call nvim_win_set_config(a:winid, config)
       let related = []
       if has_key(a:config, 'border')
@@ -299,7 +300,7 @@ function! coc#float#close(winid) abort
     call popup_close(a:winid)
     return 1
   else
-    call coc#float#close_related_wins(a:winid)
+    call coc#float#nvim_close_related(a:winid)
     call nvim_win_close(a:winid, 1)
     return 1
   endif
@@ -357,34 +358,18 @@ function! coc#float#scrollable(winid) abort
     if get(popup_getoptions(a:winid), 'scrollbar', 0)
       return get(pos, 'scrollbar', 0)
     endif
-    if !getwinvar(a:winid, '&wrap')
-      return line('$', a:winid) > pos['core_height']
+    let ch = coc#float#content_height(bufnr, pos['core_width'], getwinvar(a:winid, '&wrap'))
+    return ch > pos['core_height']
+  else
+    let height = nvim_win_get_height(a:winid)
+    let width = nvim_win_get_width(a:winid)
+    if width > 1 && getwinvar(a:winid, '&foldcolumn', 0)
+      " since we use foldcolumn for left pading
+      let width = width - 1
     endif
-    let total = 0
-    let width = pos['core_width']
-    for line in getbufline(winbufnr(a:winid), 1, '$')
-      let dw = strdisplaywidth(line)
-      let total += float2nr(ceil(str2float(string(dw))/width))
-    endfor
-    return total > pos['core_height']
+    let ch = coc#float#content_height(bufnr, width, getwinvar(a:winid, '&wrap'))
+    return ch > height
   endif
-  let height = nvim_win_get_height(a:winid)
-  let width = nvim_win_get_width(a:winid)
-  if type(getwinvar(a:winid, 'border', v:null)) == 7
-    " since we use foldcolumn for left pading
-    let width = width - 1
-  endif
-  let wrap = getwinvar(a:winid, '&wrap')
-  let linecount = nvim_buf_line_count(bufnr)
-  if !wrap
-    return linecount > height
-  endif
-  let total = 0
-  for line in nvim_buf_get_lines(bufnr, 0, -1, 0)
-    let dw = strdisplaywidth(line)
-    let total += float2nr(ceil(str2float(string(dw))/width))
-  endfor
-  return total > height
 endfunction
 
 function! coc#float#has_scroll() abort
@@ -413,8 +398,7 @@ function! s:scroll_nvim(win_ids, forward, amount) abort
       let wrapped = 0
       if getwinvar(id, '&wrap', 0)
         let width = nvim_win_get_width(id)
-        if type(getwinvar(id, 'border', v:null)) == 7
-          " since we use foldcolumn for left pading
+        if width > 1 && getwinvar(id, '&foldcolumn', 0)
           let width = width - 1
         endif
         for line in nvim_buf_get_lines(winbufnr(id), 0, -1, v:false)
@@ -425,8 +409,9 @@ function! s:scroll_nvim(win_ids, forward, amount) abort
         endfor
       endif
       noa call win_gotoid(id)
+      let height = nvim_win_get_height(id)
       if wrapped
-        let delta = a:amount ? a:amount : nvim_win_get_height(id)
+        let delta = a:amount ? a:amount : height
         if a:forward
           execute 'noa normal! '.delta.'gjzt'
         else
@@ -443,7 +428,8 @@ function! s:scroll_nvim(win_ids, forward, amount) abort
           continue
         endif
         if a:forward
-          let lnum = a:amount ? min([linecount, firstline + a:amount]) : lastline
+          let max = linecount - height + 1
+          let lnum = a:amount ? min([max, firstline + a:amount]) : min([max, lastline])
           call nvim_win_set_cursor(id, [lnum, 0])
           execute 'normal! zt'
         else
@@ -452,6 +438,7 @@ function! s:scroll_nvim(win_ids, forward, amount) abort
           execute 'normal! zb'
         endif
       endif
+      call coc#float#nvim_scrollbar(id)
     endif
   endfor
   noa call win_gotoid(curr)
@@ -499,7 +486,7 @@ function! s:scroll_vim(win_ids, forward, amount) abort
             if curr == 1
               break
             endif
-            let w = strdisplaywidth(lines[curr - 1])
+            let w = max([1, strdisplaywidth(lines[curr - 1])])
             let used += float2nr(ceil(str2float(string(w))/width))
             if used > total_height
               let curr = curr == pos['firstline'] -1 ? curr : curr + 1
@@ -549,19 +536,6 @@ function! s:convert_config_nvim(config) abort
   return result
 endfunction
 
-" Close related windows for neovim.
-function! coc#float#close_related_wins(winid) abort
-  if !has('nvim')
-    return
-  endif
-  let winids = getwinvar(a:winid, 'related', [])
-  for id in winids
-    if nvim_win_is_valid(id)
-      call nvim_win_close(id, 1)
-    endif
-  endfor
-endfunction
-
 " Close windows that could auto hide
 function! coc#float#close_auto_hide_wins(...) abort
   let winids = coc#float#get_float_win_list()
@@ -574,4 +548,154 @@ function! coc#float#close_auto_hide_wins(...) abort
       call coc#float#close(id)
     endif
   endfor
+endfunction
+
+" neovim only
+function! coc#float#nvim_close_btn(winid) abort
+  " map for winid & close_winid
+  " reuse buffer
+endfunction
+
+" neovim only
+function! coc#float#create_right_padding(winid) abort
+  " reuse buffer
+endfunction
+
+function! coc#float#content_height(bufnr, width, wrap) abort
+  if !bufloaded(a:bufnr)
+    return 0
+  endif
+  if !a:wrap
+    return has('nvim') ? nvim_buf_line_count(a:bufnr) : len(getbufline(a:bufnr, 1, '$'))
+  endif
+  let lines = has('nvim') ? nvim_buf_get_lines(a:bufnr, 0, -1, 0) : getbufline(a:bufnr, 1, '$')
+  let total = 0
+  for line in lines
+    let dw = max([1, strdisplaywidth(line)])
+    let total += float2nr(ceil(str2float(string(dw))/a:width))
+  endfor
+  return total
+endfunction
+
+function! s:add_related(winid, target) abort
+  let arr = getwinvar(a:target, 'related', [])
+  if index(arr, a:winid) >= 0
+    return
+  endif
+  call add(arr, a:winid)
+  call setwinvar(a:target, 'related', arr)
+endfunction
+
+function! coc#float#nvim_refresh_scrollbar() abort
+  let id = getwinvar(win_getid(), 'scrollbar', 0)
+  if coc#float#valid(id)
+    call coc#float#nvim_scrollbar(win_getid())
+  endif
+endfunction
+
+" Close related windows for neovim.
+function! coc#float#nvim_close_related(winid) abort
+  let g:w = a:winid
+  if !has('nvim') || !a:winid
+    return
+  endif
+  let winids = getwinvar(a:winid, 'related', [])
+  if len(winids)
+    call nvim_win_del_var(a:winid, 'related')
+  endif
+  for id in winids
+    if nvim_win_is_valid(id) && id != a:winid
+      call nvim_win_close(id, 1)
+    endif
+  endfor
+endfunction
+
+" Create scrollbar for winid
+" Need called on create, config, buffer change, scrolled
+function! coc#float#nvim_scrollbar(winid) abort
+  if !has('nvim-0.4.3')
+    return
+  endif
+  let bufnr = winbufnr(a:winid)
+  if bufnr == -1
+    return
+  endif
+  let config = nvim_win_get_config(a:winid)
+  let width = config['width']
+  let ch = coc#float#content_height(bufnr, width, getwinvar(a:winid, '&wrap'))
+  if width > 1 && getwinvar(a:winid, '&foldcolumn', 0)
+    let width = width - 1
+  endif
+  let height = config['height']
+  let id = 0
+  if nvim_win_is_valid(getwinvar(a:winid, 'scrollbar', 0))
+    let id = getwinvar(a:winid, 'scrollbar', 0)
+  endif
+  if ch <= height
+    " no scrollbar, remove exists
+    if id
+      call nvim_win_del_var(a:winid, 'scrollbar')
+      call coc#float#close(id)
+    endif
+    return
+  endif
+  if id && bufloaded(winbufnr(id))
+    let sbuf = winbufnr(id)
+  else
+    noa let sbuf = nvim_create_buf(v:false, v:true)
+    call setbufvar(sbuf, '&bufhidden', 'wipe')
+  endif
+  call nvim_buf_set_lines(sbuf, 0, -1, v:false, repeat([' '], height))
+  "  TODO col - col - 1 when have right border
+  let opts = {
+        \ 'row': config['row'],
+        \ 'col': config['col'] + config['width'] - 1,
+        \ 'width': 1,
+        \ 'height': height,
+        \ 'relative': config['relative'],
+        \ 'focusable': v:false,
+        \ 'style': 'minimal',
+        \ }
+  if has_key(config, 'win')
+    let opts['win'] = config['win']
+  endif
+  if has_key(config, 'anchor')
+    let opts['anchor'] = config['anchor']
+  endif
+  if id
+    call nvim_win_set_config(id, opts)
+  else
+    let id = nvim_open_win(sbuf, 0 , opts)
+    "call setwinvar(id, '&winblend', 100)
+  endif
+  let thumb_height = max([1, float2nr(floor(height * (height + 0.0)/ch))])
+  let curr = win_getid()
+  if curr != a:winid
+    noa call win_gotoid(a:winid)
+  endif
+  let firstline = line('w0')
+  let lastline = line('w$')
+  let linecount = line('$')
+  if firstline == 1
+    let start = 0
+  elseif lastline == linecount
+    let start = height - thumb_height
+  else
+    let start = max([1, float2nr(round((height - thumb_height + 0.0)*(firstline - 1.0)/linecount))])
+  endif
+  if curr != a:winid
+    noa call win_gotoid(curr)
+  endif
+  " add highlights
+  call nvim_buf_clear_namespace(sbuf, s:scrollbar_ns, 0, -1)
+  for idx in range(0, height - 1)
+    if idx >= start && idx < start + thumb_height
+      call nvim_buf_add_highlight(sbuf, s:scrollbar_ns, 'PmenuThumb', idx, 0, 1)
+    else
+      call nvim_buf_add_highlight(sbuf, s:scrollbar_ns, 'PmenuSbar', idx, 0, 1)
+    endif
+  endfor
+  " create scrollbar outside window
+  call setwinvar(a:winid, 'scrollbar', id)
+  call s:add_related(id, a:winid)
 endfunction
