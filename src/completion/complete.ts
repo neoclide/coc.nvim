@@ -191,7 +191,7 @@ export default class Complete {
         if (asciiCharactersOnly && !/^[\x00-\x7F]*$/.test(word)) {
           continue
         }
-        if (source !== 'tabnine' && item.dup && words.has(word)) continue
+        if (source !== 'tabnine' && !item.dup && words.has(word)) continue
         if (removeDuplicateItems && !item.isSnippet && words.has(word) && item.line == undefined) continue
         let filterText = item.filterText || item.word
         item.filterText = filterText
