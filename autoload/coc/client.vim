@@ -36,6 +36,10 @@ endfunction
 
 function! s:start() dict
   if self.running | return | endif
+  if !isdirectory(getcwd())
+    echohl Error | echon '[coc.nvim] Current cwd is not a valid directory.' | echohl None
+    return
+  endif
   let timeout = string(get(g:, 'coc_channel_timeout', 30))
   let disable_warning = string(get(g:, 'coc_disable_startup_warning', 0))
   let tmpdir = fnamemodify(tempname(), ':p:h')
