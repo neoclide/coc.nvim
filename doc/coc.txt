@@ -1628,17 +1628,20 @@ coc#float#has_scroll() 					*coc#float#has_scroll()*
 	Return `1` when there is scrollable float window or popup.
 	Example key-mappings:
 >
-	if has('nvim-0.5.0') || has('patch-8.2.0750')
-	  nnoremap <expr><C-f> coc#float#has_scroll() ? coc#float#scroll(1) : "\<C-f>"
-	  nnoremap <expr><C-b> coc#float#has_scroll() ? coc#float#scroll(0) : "\<C-b>"
-	  inoremap <expr><C-f> coc#float#has_scroll() ? coc#float#scroll(1) : "\<Right>"
-	  inoremap <expr><C-b> coc#float#has_scroll() ? coc#float#scroll(0) : "\<Left>"
+	if has('nvim-0.4.3') || has('patch-8.2.0750')
+	  nnoremap <nowait><expr> <C-f> coc#float#has_scroll() ? coc#float#scroll(1) : "\<C-f>"
+	  nnoremap <nowait><expr> <C-b> coc#float#has_scroll() ? coc#float#scroll(0) : "\<C-b>"
+	  inoremap <nowait><expr> <C-f> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(1)\<cr>" : "\<Right>"
+	  inoremap <nowait><expr> <C-b> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(0)\<cr>" : "\<Left>"
 	endif
 <
-coc#float#scroll({forward})
+coc#float#scroll({forward}, [{amount}])
 
 	Scroll all scrollable float windows/popups, scroll backward when
-	{forward} is not `1`.
+	{forward} is not `1`. {amount} could be number or full page when
+	omitted.
+
+	Note: this function requires nvim >= 0.4.3 or vim >= 8.2.750 to work.
 
 CocRequest({id}, {method}, [{params}])			*CocRequest()*
 

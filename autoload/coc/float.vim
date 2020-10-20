@@ -93,7 +93,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
       return []
     endif
     if has("patch-8.1.2281")
-      call setwinvar(winid, 'showbreak', 'NONE')
+      call setwinvar(winid, '&showbreak', 'NONE')
     endif
   else
     " Note that width is total width, but height is content height
@@ -385,6 +385,9 @@ function! coc#float#has_scroll() abort
 endfunction
 
 function! coc#float#scroll(forward, ...)
+  if !has('nvim-0.4.3') && !has('patch-8.2.0750')
+    throw 'coc#float#scroll() requires nvim >= 0.4.3 or vim >= 8.2.0750'
+  endif
   let amount = get(a:, 1, 0)
   let win_ids = filter(coc#float#get_float_win_list(), 'coc#float#scrollable(v:val)')
   if empty(win_ids)
@@ -395,7 +398,7 @@ function! coc#float#scroll(forward, ...)
   else
     call timer_start(10, { -> s:scroll_vim(win_ids, a:forward, amount)})
   endif
-  return "\<Ignore>"
+  return mode() =~ '^i' ? "" : "\<Ignore>"
 endfunction
 
 function! s:scroll_nvim(win_ids, forward, amount) abort
@@ -403,8 +406,9 @@ function! s:scroll_nvim(win_ids, forward, amount) abort
   for id in a:win_ids
     if nvim_win_is_valid(id)
       let wrapped = 0
+      let scrolloff = getwinvar(id, '&scrolloff', 0)
+      let width = nvim_win_get_width(id)
       if getwinvar(id, '&wrap', 0)
-        let width = nvim_win_get_width(id)
         if width > 1 && getwinvar(id, '&foldcolumn', 0)
           let width = width - 1
         endif
@@ -417,17 +421,28 @@ function! s:scroll_nvim(win_ids, forward, amount) abort
       endif
       noa call win_gotoid(id)
       let height = nvim_win_get_height(id)
+      let firstline = line('w0')
+      let lastline = line('w$')
+      let linecount = line('$')
       if wrapped
-        let delta = a:amount ? a:amount : height
+        let delta = a:amount ? a:amount : max([1, height - scrolloff - 1])
         if a:forward
-          execute 'noa normal! '.delta.'gjzt'
+          if lastline == linecount && strdisplaywidth(line('$')) <= width
+            continue
+          endif
+          if !a:amount && firstline != lastline
+            execute 'normal! Lzt'
+          else
+            execute 'noa normal! H'.delta.'gjzt'
+          endif
         else
-          execute 'noa normal! '.delta.'gkzb'
+          if !a:amount && firstline != lastline
+            execute 'normal! Hzb'
+          else
+            execute 'noa normal! L'.delta.'gkzb'
+          endif
         endif
       else
-        let firstline = line('w0')
-        let lastline = line('w$')
-        let linecount = line('$')
         if firstline == 1 && !a:forward
           continue
         endif
@@ -435,13 +450,13 @@ function! s:scroll_nvim(win_ids, forward, amount) abort
           continue
         endif
         if a:forward
-          let max = linecount - height + 1
-          let lnum = a:amount ? min([max, firstline + a:amount]) : min([max, lastline])
-          call nvim_win_set_cursor(id, [lnum, 0])
+          let max = min([linecount, linecount - height + 1 + scrolloff])
+          let lnum = a:amount ? firstline + a:amount + scrolloff : lastline + scrolloff
+          call nvim_win_set_cursor(id, [min([max, lnum]), 0])
           execute 'normal! zt'
         else
-          let lnum = a:amount ? max([1, lastline - a:amount]) : firstline
-          call nvim_win_set_cursor(id, [lnum, 0])
+          let lnum = a:amount ? lastline - a:amount - scrolloff : firstline - scrolloff
+          call nvim_win_set_cursor(id, [max([1, lnum]), 0])
           execute 'normal! zb'
         endif
       endif
@@ -630,7 +645,6 @@ endfunction
 
 " Close related windows for neovim.
 function! coc#float#nvim_close_related(winid) abort
-  let g:w = a:winid
   if !has('nvim') || !a:winid
     return
   endif
