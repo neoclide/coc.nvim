@@ -260,6 +260,10 @@ function! s:Enable(initialize)
       autocmd DirChanged        * call s:Autocmd('DirChanged', get(v:event, 'cwd', ''))
       autocmd TermOpen          * call s:Autocmd('TermOpen', +expand('<abuf>'))
       autocmd TermClose         * call s:Autocmd('TermClose', +expand('<abuf>'))
+      autocmd CursorMoved       * call coc#float#nvim_refresh_scrollbar()
+      if exists('##WinClosed')
+        autocmd WinClosed       * call coc#float#nvim_close_related(+expand('<afile>'))
+      endif
     endif
     autocmd WinLeave            * call coc#util#clear_highlights()
     autocmd WinLeave            * call s:Autocmd('WinLeave', win_getid())

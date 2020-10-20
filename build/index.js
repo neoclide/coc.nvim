@@ -23981,7 +23981,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "a900a8535c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "230b8a7247" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -25283,6 +25283,7 @@ class FloatFactory extends events_1.EventEmitter {
             nvim.call('coc#util#win_gotoid', [winid], true);
             this.floatBuffer.setLines(bufnr);
             nvim.command(`noa normal! gg0`, true);
+            nvim.call('coc#float#nvim_scrollbar', [winid], true);
             nvim.command('noa wincmd p', true);
         }
         else {
@@ -27617,7 +27618,7 @@ class Workspace {
     async menuPick(items, title) {
         if (this.floatSupported) {
             let { menu } = this;
-            menu.show(items, title);
+            await menu.show(items, title);
             let res = await new Promise(resolve => {
                 let disposables = [];
                 menu.onDidCancel(() => {
@@ -27659,7 +27660,7 @@ class Workspace {
     async requestInput(title, defaultValue) {
         let { nvim } = this;
         const preferences = this.getConfiguration('coc.preferences');
-        if (this.isNvim && semver_1.default.gte(this.env.version, '0.5.0') && preferences.get('promptInput', true)) {
+        if (this.isNvim && semver_1.default.gte(this.env.version, '0.4.3') && preferences.get('promptInput', true)) {
             let arr = await nvim.call('coc#float#create_prompt_win', [title, defaultValue || '']);
             if (!arr || arr.length == 0)
                 return null;
@@ -27667,7 +27668,6 @@ class Workspace {
             let cleanUp = () => {
                 nvim.pauseNotification();
                 nvim.call('coc#float#close', [winid], true);
-                nvim.command('stopinsert', true);
                 // eslint-disable-next-line @typescript-eslint/no-floating-promises
                 nvim.resumeNotification(false, true);
             };
@@ -27680,38 +27680,15 @@ class Workspace {
                         resolve(null);
                     }
                 }, null, disposables);
-                events_1.default.on('WinLeave', id => {
-                    if (id == winid) {
-                        index_1.disposeAll(disposables);
-                        setTimeout(() => {
-                            cleanUp();
-                            resolve(null);
-                        }, 30);
-                    }
-                }, null, disposables);
-                events_1.default.on('InsertLeave', nr => {
-                    if (nr == bufnr) {
-                        index_1.disposeAll(disposables);
-                        setTimeout(() => {
-                            cleanUp();
-                            resolve(null);
-                        }, 30);
-                    }
-                }, null, disposables);
                 events_1.default.on('PromptInsert', (value, nr) => {
-                    if (nr == bufnr) {
-                        index_1.disposeAll(disposables);
-                        // connection would be broken without timeout, don't know why
+                    if (!value) {
                         setTimeout(() => {
-                            cleanUp();
-                            if (!value) {
-                                this.showMessage('Empty word, canceled', 'warning');
-                                resolve(null);
-                            }
-                            else {
-                                resolve(value);
-                            }
+                            this.showMessage('Empty word, canceled', 'warning');
                         }, 30);
+                        resolve(null);
+                    }
+                    else {
+                        resolve(value);
                     }
                 }, null, disposables);
             });
@@ -37577,6 +37554,7 @@ class Menu {
         this.onDidCancel = this._onDidCancel.event;
         let floatFactory = this.floatFactory = new floatFactory_1.default(nvim, env, false, 20, 160, false);
         floatFactory.on('show', () => {
+            this.doHighlight(0);
             choosed = undefined;
         });
         floatFactory.on('close', () => {
@@ -37654,6 +37632,7 @@ class Menu {
             else {
                 nvim.call('coc#util#win_gotoid', [this.window.id], true);
                 nvim.call('cursor', [this.currIndex + 1, 1], true);
+                this.doHighlight(this.currIndex);
                 nvim.command('noa wincmd p', true);
             }
             nvim.command('redraw', true);
@@ -37664,18 +37643,39 @@ class Menu {
     get window() {
         return this.floatFactory.window;
     }
-    show(items, title) {
+    doHighlight(index) {
+        let { nvim, srcId } = this;
+        if (this.env.isVim)
+            return;
+        let buf = this.floatFactory.buffer;
+        if (!buf)
+            return;
+        buf.clearNamespace(this.srcId, 0, -1);
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        buf.addHighlight({
+            srcId: this.srcId,
+            line: index,
+            colStart: 0,
+            colEnd: -1,
+            hlGroup: 'CocMenuSel'
+        });
+    }
+    async show(items, title) {
         let lines = items.map((v, i) => {
             if (i < 99)
                 return `${i + 1}. ${v}`;
             return v;
         });
+        lines = await this.normalizeLines(lines);
+        if (!this.env.isVim) {
+            this.srcId = await this.nvim.createNamespace('coc-menu');
+        }
         this.total = lines.length;
         this.currIndex = 0;
         this.floatFactory.show([{
                 content: lines.join('\n'),
                 filetype: 'menu'
-            }], { title, cursorline: true }).then(() => {
+            }], { title, cursorline: this.env.isVim }).then(() => {
             if (this.window) {
                 this.nvim.call('coc#list#start_prompt', ['MenuInput'], true);
             }
@@ -37690,6 +37690,24 @@ class Menu {
     hide() {
         this.nvim.call('coc#list#stop_prompt', [], true);
         this.floatFactory.close();
+    }
+    async normalizeLines(lines) {
+        let { nvim } = this;
+        nvim.pauseNotification();
+        for (let line of lines) {
+            nvim.call('strwidth', [line], true);
+        }
+        let [vals, err] = await nvim.resumeNotification();
+        if (err) {
+            logger.error(err[1]);
+            return lines;
+        }
+        let result = [];
+        let max = Math.max(...vals);
+        for (let i = 0; i < lines.length; i++) {
+            result.push(lines[i] + ' '.repeat(max - vals[i]));
+        }
+        return result;
     }
 }
 exports.default = Menu;
@@ -43039,7 +43057,7 @@ class Extensions {
             if (this.installBuffer && bufnr == this.installBuffer.bufnr) {
                 let lnum = await workspace_1.default.nvim.call('line', ['.']);
                 let msgs = this.installBuffer.getMessages(lnum - 1);
-                let docs = msgs.length ? [{ content: msgs.join('\n'), filetype: 'txt' }] : [];
+                let docs = msgs && msgs.length ? [{ content: msgs.join('\n'), filetype: 'txt' }] : [];
                 await floatFactory.create(docs, false);
             }
         }, 500));
@@ -86659,7 +86677,7 @@ class Complete {
                 if (asciiCharactersOnly && !/^[\x00-\x7F]*$/.test(word)) {
                     continue;
                 }
-                if ((!item.dup || source == 'tabnine') && words.has(word))
+                if (!item.dup && words.has(word))
                     continue;
                 if (removeDuplicateItems && !item.isSnippet && words.has(word) && item.line == undefined)
                     continue;
@@ -87048,6 +87066,7 @@ class Floating {
             nvim.call('coc#util#win_gotoid', [winid], true);
             this.floatBuffer.setLines(bufnr);
             nvim.command('noa normal! gg0', true);
+            nvim.call('coc#float#nvim_scrollbar', [winid], true);
             nvim.command('noa wincmd p', true);
         }
         else {
