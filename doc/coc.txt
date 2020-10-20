@@ -726,7 +726,7 @@ Built-in configurations:~
 "coc.preferences.promptInput":~
 
 	Use prompt buffer in float window for user input, works on latest
-	neovim only.
+	neovim >= 0.4.3 only.
 	Default: `true`
 
 "coc.preferences.enableMarkdown":~

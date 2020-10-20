@@ -1305,14 +1305,13 @@ export class Workspace implements IWorkspace {
   public async requestInput(title: string, defaultValue?: string): Promise<string> {
     let { nvim } = this
     const preferences = this.getConfiguration('coc.preferences')
-    if (this.isNvim && semver.gte(this.env.version, '0.5.0') && preferences.get<boolean>('promptInput', true)) {
+    if (this.isNvim && semver.gte(this.env.version, '0.4.3') && preferences.get<boolean>('promptInput', true)) {
       let arr = await nvim.call('coc#float#create_prompt_win', [title, defaultValue || ''])
       if (!arr || arr.length == 0) return null
       let [bufnr, winid] = arr
       let cleanUp = () => {
         nvim.pauseNotification()
         nvim.call('coc#float#close', [winid], true)
-        nvim.command('stopinsert', true)
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
         nvim.resumeNotification(false, true)
       }
@@ -1325,37 +1324,14 @@ export class Workspace implements IWorkspace {
             resolve(null)
           }
         }, null, disposables)
-        events.on('WinLeave', id => {
-          if (id == winid) {
-            disposeAll(disposables)
-            setTimeout(() => {
-              cleanUp()
-              resolve(null)
-            }, 30)
-          }
-        }, null, disposables)
-        events.on('InsertLeave', nr => {
-          if (nr == bufnr) {
-            disposeAll(disposables)
-            setTimeout(() => {
-              cleanUp()
-              resolve(null)
-            }, 30)
-          }
-        }, null, disposables)
         events.on('PromptInsert', (value, nr) => {
-          if (nr == bufnr) {
-            disposeAll(disposables)
-            // connection would be broken without timeout, don't know why
+          if (!value) {
             setTimeout(() => {
-              cleanUp()
-              if (!value) {
-                this.showMessage('Empty word, canceled', 'warning')
-                resolve(null)
-              } else {
-                resolve(value)
-              }
+              this.showMessage('Empty word, canceled', 'warning')
             }, 30)
+            resolve(null)
+          } else {
+            resolve(value)
           }
         }, null, disposables)
       })

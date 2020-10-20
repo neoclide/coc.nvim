@@ -2,7 +2,7 @@
 let s:is_vim = !has('nvim')
 let s:borderchars = get(g:, 'coc_borderchars',
       \ ['─', '│', '─', '│', '┌', '┐', '┘', '└'])
-let s:prompt_win_width = get(g:, 'coc_prompt_win_width', 30)
+let s:prompt_win_width = get(g:, 'coc_prompt_win_width', 32)
 let s:scrollbar_ns = nvim_create_namespace('coc-scrollbar')
 " winvar: border array of numbers,  button boolean
 
@@ -190,7 +190,7 @@ function! coc#float#create_border_win(config, border, title) abort
   let col = a:border[3] ? a:config['col'] - 1 : a:config['col']
   let width = a:config['width'] + a:border[1] + a:border[3]
   let height = a:config['height'] + a:border[0] + a:border[2]
-  let winid = nvim_open_win(bufnr, 0, {
+  let opt = {
         \ 'relative': a:config['relative'],
         \ 'width': width,
         \ 'height': height,
@@ -198,7 +198,9 @@ function! coc#float#create_border_win(config, border, title) abort
         \ 'col': col,
         \ 'focusable': v:false,
         \ 'style': 'minimal',
-        \ })
+        \ }
+  let g:o = opt
+  let winid = nvim_open_win(bufnr, 0, opt)
   call setwinvar(winid, '&winhl', 'Normal:CocFloating,NormalNC:CocFloating')
   call setwinvar(winid, '&signcolumn', 'no')
   let lines = coc#float#create_border_lines(a:border, a:title, a:config['width'], a:config['height'])
@@ -232,28 +234,24 @@ endfunction
 
 " Create float window for input
 function! coc#float#create_prompt_win(title, default) abort
-  if !has('nvim-0.5.0')
-    return []
-  endif
+  call coc#float#close_auto_hide_wins()
   let bufnr = nvim_create_buf(v:false, v:true)
-  call setbufvar(bufnr, '&buftype', 'prompt')
+  call nvim_buf_set_lines(bufnr, 0, -1, v:false, [a:default])
   call setbufvar(bufnr, '&bufhidden', 'wipe')
-  call setbufvar(bufnr, '&undolevels', -1)
-  call setbufvar(bufnr, 'coc_suggest_disable', 1)
   " Calculate col
   let curr = win_screenpos(winnr())[1] + wincol() - 2
-  if s:prompt_win_width > &columns
-    let col = 0
-    let s:prompt_win_width = &columns
+  let width = min([max([strdisplaywidth(a:title) + 2, s:prompt_win_width]), &columns - 2])
+  if width == &columns - 2
+    let col = 0 - curr
   else
-    let col = curr + s:prompt_win_width < &columns ? 0 : &columns - s:prompt_win_width
+    let col = curr + width <= &columns - 2 ? 0 : &columns - s:prompt_win_width
   endif
   let config = {
         \ 'relative': 'cursor',
-        \ 'width': s:prompt_win_width - 2,
+        \ 'width': width,
         \ 'height': 1,
         \ 'row': 0,
-        \ 'col': col + 1,
+        \ 'col': col,
         \ 'style': 'minimal',
         \ }
   let winid = nvim_open_win(bufnr, 0, config)
@@ -264,12 +262,26 @@ function! coc#float#create_prompt_win(title, default) abort
   let border_winid = coc#float#create_border_win(config, [1,1,1,1], a:title)
   call setwinvar(winid, 'related', [border_winid])
   call win_gotoid(winid)
-  call prompt_setprompt(bufnr,'')
-  call prompt_setcallback(bufnr, {text -> coc#rpc#notify('PromptInsert', [text, bufnr])})
-  call prompt_setinterrupt(bufnr, { -> execute(['call coc#float#close('.winid.')'], 'silent!')})
-  startinsert
-  call feedkeys(a:default, 'in')
+  inoremap <buffer> <C-a> <Home>
+  inoremap <buffer><expr><C-e> pumvisible() ? "\<C-e>" : "\<End>"
+  exe 'inoremap <buffer> <esc> <C-r>=coc#float#close_i('.winid.')<CR><esc>'
+  exe 'nnoremap <buffer> <esc> :call coc#float#close('.winid.')<CR>'
+  exe 'inoremap <expr><nowait><buffer> <cr> "\<c-r>=coc#float#prompt_insert('.winid.')\<cr>\<esc>"'
+  call feedkeys('A', 'in')
   return [bufnr, winid]
+endfunction
+
+function! coc#float#close_i(winid) abort
+  call coc#float#close(a:winid)
+  return ''
+endfunction
+
+function! coc#float#prompt_insert(winid) abort
+  let text = getline('.')
+  let bufnr = winbufnr(a:winid)
+  call coc#rpc#notify('PromptInsert',[text, bufnr])
+  call timer_start(50, { -> coc#float#close(a:winid)})
+  return ''
 endfunction
 
 " Position of cursor relative to editor
@@ -320,8 +332,11 @@ function! coc#float#get_float_win() abort
   if has('nvim')
     for i in range(1, winnr('$'))
       let id = win_getid(i)
-      if (!empty(get(nvim_win_get_config(id), 'relative', '')))
-        return id
+      let config = nvim_win_get_config(id)
+      if (!empty(config) && config['focusable'] == v:true && !empty(config['relative']))
+        if !getwinvar(id, 'button', 0)
+          return id
+        endif
       endif
     endfor
   elseif exists('*popup_list')
