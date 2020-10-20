@@ -24,14 +24,14 @@ afterEach(async () => {
 
 describe('Menu', () => {
   it('should show menu', async () => {
-    await menu.show(['one', 'two', 'three'])
+    await menu.show(['one', 'two', 'thr'])
     await helper.wait(100)
     let id = await nvim.call('coc#float#get_float_win')
     expect(id).toBeGreaterThan(0)
     let bufnr = await nvim.call('winbufnr', [id])
     let buf = nvim.createBuffer(bufnr)
     let lines = await buf.lines
-    expect(lines).toEqual(['1. one', '2. two', '3. three'])
+    expect(lines).toEqual(['1. one', '2. two', '3. thr'])
   })
 
   it('should cancel by <esc>', async () => {
