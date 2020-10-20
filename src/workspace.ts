@@ -1262,7 +1262,7 @@ export class Workspace implements IWorkspace {
   public async menuPick(items: string[], title?: string): Promise<number> {
     if (this.floatSupported) {
       let { menu } = this
-      menu.show(items, title)
+      await menu.show(items, title)
       let res = await new Promise<number>(resolve => {
         let disposables: Disposable[] = []
         menu.onDidCancel(() => {

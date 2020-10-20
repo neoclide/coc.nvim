@@ -24,7 +24,7 @@ afterEach(async () => {
 
 describe('Menu', () => {
   it('should show menu', async () => {
-    menu.show(['one', 'two', 'three'])
+    await menu.show(['one', 'two', 'three'])
     await helper.wait(100)
     let id = await nvim.call('coc#float#get_float_win')
     expect(id).toBeGreaterThan(0)
@@ -36,7 +36,7 @@ describe('Menu', () => {
 
   it('should cancel by <esc>', async () => {
     let fn = jest.fn()
-    menu.show(['one', 'two', 'three'])
+    await menu.show(['one', 'two', 'three'])
     let disposable = menu.onDidCancel(() => {
       disposable.dispose()
       fn()
@@ -51,7 +51,7 @@ describe('Menu', () => {
 
   it('should select by CR', async () => {
     let cancelFn = jest.fn()
-    menu.show(['one', 'two', 'three'])
+    await menu.show(['one', 'two', 'three'])
     let selected: number
     let disposables: Disposable[] = []
     disposables.push(menu.onDidCancel(() => {
@@ -71,7 +71,7 @@ describe('Menu', () => {
   })
 
   it('should ignore invalid index', async () => {
-    menu.show(['one', 'two', 'three'])
+    await menu.show(['one', 'two', 'three'])
     let canceled = false
     let disposables: Disposable[] = []
     disposables.push(menu.onDidCancel(() => {
@@ -91,7 +91,7 @@ describe('Menu', () => {
   })
 
   it('should select by index number', async () => {
-    menu.show(['one', 'two', 'three'])
+    await menu.show(['one', 'two', 'three'])
     let selected: number
     let disposables: Disposable[] = []
     disposables.push(menu.onDidChoose(n => {
@@ -107,7 +107,7 @@ describe('Menu', () => {
   })
 
   it('should navigate by j, k & G', async () => {
-    menu.show(['one', 'two', 'three'])
+    await menu.show(['one', 'two', 'three'])
     await helper.wait(100)
     let id = await nvim.call('coc#float#get_float_win')
     expect(id).toBeGreaterThan(0)
@@ -131,7 +131,7 @@ describe('Menu', () => {
 
   it('should select by numbers', async () => {
     let selected: number
-    menu.show(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
+    await menu.show(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
     let disposable = menu.onDidChoose(n => {
       disposable.dispose()
       selected = n
