@@ -143,7 +143,7 @@ export class Extensions {
       if (this.installBuffer && bufnr == this.installBuffer.bufnr) {
         let lnum = await workspace.nvim.call('line', ['.'])
         let msgs = this.installBuffer.getMessages(lnum - 1)
-        let docs: Documentation[] = msgs.length ? [{ content: msgs.join('\n'), filetype: 'txt' }] : []
+        let docs: Documentation[] = msgs && msgs.length ? [{ content: msgs.join('\n'), filetype: 'txt' }] : []
         await floatFactory.create(docs, false)
       }
     }, 500))
