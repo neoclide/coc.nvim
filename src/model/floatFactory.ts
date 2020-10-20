@@ -22,6 +22,7 @@ export interface WindowConfig {
   title?: string
   border?: number[]
   autohide?: number
+  close?: number
 }
 
 export interface FloatWinConfig {
@@ -30,6 +31,7 @@ export interface FloatWinConfig {
   title?: string
   border?: number[]
   cursorline?: boolean
+  close?: boolean
 }
 
 export interface ViewportConfig {
@@ -207,6 +209,9 @@ export default class FloatFactory extends EventEmitter implements Disposable {
       if (config.border.length == 0) {
         config.border = [1, 1, 1, 1]
       }
+    }
+    if (opts.close) {
+      config.close = 1
     }
     // calculat highlights
     await floatBuffer.setDocuments(docs, config.width)
