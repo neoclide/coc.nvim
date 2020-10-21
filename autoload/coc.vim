@@ -11,6 +11,40 @@ let s:warning_sign = get(g:, 'coc_status_warning_sign', has('mac') ? '⚠️ ' :
 let s:select_api = exists('*nvim_select_popupmenu_item')
 let s:callbacks = {}
 
+autocmd User doHover call coc#conceal() <cr>
+
+function! coc#conceal() abort
+  let popup_id = g:coc_last_float_win
+  let bufnr = winbufnr(popup_id)
+  let escapes = []
+
+  let lines = getbufline(bufnr, 1, '$')
+
+  let lineN = 1
+  for line in lines
+    let chars = split(line, '\zs')
+    let n = len(chars)
+    let column = 0
+
+    while column < n
+      if chars[column] == '\'
+        let posColumn = column + 1
+        let tuple = [lineN, posColumn, 1]
+        let escapes = add(escapes, tuple)
+      endif
+      let column += 1
+    endwhile
+
+    let lineN += 1
+  endfor
+
+  if len(escapes) > 0
+    for escape in escapes
+      call win_execute(popup_id, 'call matchaddpos("Conceal", [escape], 10, -1, {"conceal": ""})')
+    endfor
+  endif
+endfunction
+
 function! coc#expandable() abort
   return coc#rpc#request('snippetCheck', [1, 0])
 endfunction

@@ -89,7 +89,9 @@ function! coc#rpc#request(method, args) abort
   if !coc#rpc#ready()
     return ''
   endif
-  return s:client['request'](a:method, a:args)
+  let m = s:client['request'](a:method, a:args)
+  call coc#util#do_autocmd(a:method)
+  return m
 endfunction
 
 function! coc#rpc#notify(method, args) abort
