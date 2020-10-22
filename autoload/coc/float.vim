@@ -409,7 +409,6 @@ function! s:scroll_nvim(win_ids, forward, amount) abort
   for id in a:win_ids
     if nvim_win_is_valid(id)
       let wrapped = 0
-      let scrolloff = getwinvar(id, '&scrolloff', 0)
       let width = nvim_win_get_width(id)
       if getwinvar(id, '&wrap', 0)
         if width > 1 && getwinvar(id, '&foldcolumn', 0)
@@ -427,41 +426,35 @@ function! s:scroll_nvim(win_ids, forward, amount) abort
       let firstline = line('w0')
       let lastline = line('w$')
       let linecount = line('$')
-      if wrapped
-        let delta = a:amount ? a:amount : max([1, height - scrolloff - 1])
-        if a:forward
-          if lastline == linecount && strdisplaywidth(line('$')) <= width
-            continue
-          endif
-          if !a:amount && firstline != lastline
-            execute 'normal! Lzt'
-          else
-            execute 'noa normal! H'.delta.'gjzt'
-          endif
-        else
-          if !a:amount && firstline != lastline
-            execute 'normal! Hzb'
-          else
-            execute 'noa normal! L'.delta.'gkzb'
-          endif
+      let delta = a:amount ? a:amount : max([1, height - 1])
+      if a:forward
+        if lastline == linecount && strdisplaywidth(line('$')) <= width
+          continue
         endif
+        if !a:amount && firstline != lastline
+          execute 'noa normal! Lzt'
+        else
+          execute 'noa normal! H'.delta.'jzt'
+        endif
+        let lnum = line('.')
+        let g:e = line('w0') == firstline && line('w$') == lastline
+        let g:f = firstline
+        let g:l = lastline
+        while lnum < linecount && line('w0') == firstline && line('w$') == lastline
+          execute 'noa normal! jzt'
+          let lnum = lnum + 1
+        endwhile
       else
-        if firstline == 1 && !a:forward
-          continue
-        endif
-        if lastline == linecount && a:forward
-          continue
-        endif
-        if a:forward
-          let max = min([linecount, linecount - height + 1 + scrolloff])
-          let lnum = a:amount ? firstline + a:amount + scrolloff : lastline + scrolloff
-          call nvim_win_set_cursor(id, [min([max, lnum]), 0])
-          execute 'normal! zt'
+        if !a:amount && firstline != lastline
+          execute 'noa normal! Hzb'
         else
-          let lnum = a:amount ? lastline - a:amount - scrolloff : firstline - scrolloff
-          call nvim_win_set_cursor(id, [max([1, lnum]), 0])
-          execute 'normal! zb'
+          execute 'noa normal! L'.delta.'kzb'
         endif
+        let lnum = line('.')
+        while lnum > 1 && line('w0') == firstline && line('w$') == lastline
+          execute 'noa normal! kzb'
+          let lnum = lnum - 1
+        endwhile
       endif
       call coc#float#nvim_scrollbar(id)
     endif
