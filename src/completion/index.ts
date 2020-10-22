@@ -239,7 +239,9 @@ export class Completion implements Disposable {
       if (s) arr.push(s)
     }
     if (!arr.length) return
-    await wait(this.config.triggerCompletionWait)
+    if (this.config.autoTrigger !== 'none') {
+      await wait(this.config.triggerCompletionWait)
+    }
     await document.patchChange()
     // document get changed, not complete
     if (document.changedtick != option.changedtick) return
