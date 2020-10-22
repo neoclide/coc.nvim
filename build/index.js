@@ -23981,7 +23981,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "230b8a7247" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "799348cd1a" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -25262,6 +25262,9 @@ class FloatFactory extends events_1.EventEmitter {
             if (config.border.length == 0) {
                 config.border = [1, 1, 1, 1];
             }
+        }
+        if (opts.close) {
+            config.close = 1;
         }
         // calculat highlights
         await floatBuffer.setDocuments(docs, config.width);
@@ -42223,11 +42226,11 @@ class Completion {
     async _doComplete(option) {
         let { source } = option;
         let { nvim, config } = this;
-        let document = workspace_1.default.getDocument(option.bufnr);
-        if (!document || !document.attached)
+        let doc = workspace_1.default.getDocument(option.bufnr);
+        if (!doc || !doc.attached)
             return;
         // use fixed filetype
-        option.filetype = document.filetype;
+        option.filetype = doc.filetype;
         // current input
         this.input = option.input;
         let arr = [];
@@ -42241,12 +42244,14 @@ class Completion {
         }
         if (!arr.length)
             return;
-        await util_1.wait(this.config.triggerCompletionWait);
-        await document.patchChange();
+        if (option.triggerCharacter) {
+            await util_1.wait(this.config.triggerCompletionWait);
+        }
+        await doc.patchChange();
         // document get changed, not complete
-        if (document.changedtick != option.changedtick)
+        if (doc.changedtick != option.changedtick)
             return;
-        let complete = new complete_1.default(option, document, this.recentScores, config, arr, nvim);
+        let complete = new complete_1.default(option, doc, this.recentScores, config, arr, nvim);
         this.start(complete);
         let items = await this.complete.doComplete();
         if (complete.isCanceled)
