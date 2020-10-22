@@ -202,7 +202,7 @@ function! coc#float#create_border_lines(border, title, width, height) abort
           \.repeat(s:borderchars[0], a:width)
           \.(a:border[1] ? s:borderchars[5] : '')
     if !empty(a:title)
-      let top = coc#helper#str_compose(top, 1, a:title)
+      let top = coc#helper#str_compose(top, 1, a:title.' ')
     endif
     call add(list, top)
   endif
@@ -437,9 +437,6 @@ function! s:scroll_nvim(win_ids, forward, amount) abort
           execute 'noa normal! H'.delta.'jzt'
         endif
         let lnum = line('.')
-        let g:e = line('w0') == firstline && line('w$') == lastline
-        let g:f = firstline
-        let g:l = lastline
         while lnum < linecount && line('w0') == firstline && line('w$') == lastline
           execute 'noa normal! jzt'
           let lnum = lnum + 1
@@ -588,9 +585,9 @@ function! coc#float#nvim_close_btn(config, winid, close, border, related) abort
   call setbufvar(bufnr, '&bufhidden', 'wipe')
   call nvim_buf_set_lines(bufnr, 0, -1, v:false, ['X'])
   let winid = nvim_open_win(bufnr, 0, config)
-  let g:w = winid
   " map for winid & close_winid
   if winid
+    call setwinvar(winid, 'button', 1)
     call setwinvar(winid, 'close_target', a:winid)
     call setwinvar(a:winid, 'close_winid', winid)
     call setwinvar(winid, '&winhl', 'Normal:CocFloating,NormalNC:CocFloating')
@@ -692,17 +689,20 @@ function! coc#float#nvim_scrollbar(winid) abort
   if !has('nvim-0.4.3')
     return
   endif
-  let bufnr = winbufnr(a:winid)
-  if bufnr == -1
+  if a:winid == 0 || !nvim_win_is_valid(a:winid) || getwinvar(a:winid, 'button', 0)
     return
   endif
   let config = nvim_win_get_config(a:winid)
-  let width = config['width']
-  let ch = coc#float#content_height(bufnr, width, getwinvar(a:winid, '&wrap'))
-  if width > 1 && getwinvar(a:winid, '&foldcolumn', 0)
-    let width = width - 1
+  " ignore border & button window
+  if (!get(config, 'focusable', v:false) || empty(get(config, 'relative', v:null)))
+    return
   endif
-  let height = config['height']
+  let [row, column] = nvim_win_get_position(a:winid)
+  let width = nvim_win_get_width(a:winid)
+  let height = nvim_win_get_height(a:winid)
+  let bufnr = winbufnr(a:winid)
+  let cw = getwinvar(a:winid, '&foldcolumn', 0) ? width - 1 : width
+  let ch = coc#float#content_height(bufnr, cw, getwinvar(a:winid, '&wrap'))
   let close_winid = getwinvar(a:winid, 'close_winid', 0)
   let border = getwinvar(a:winid, 'border', [])
   let move_down = close_winid && !get(border, 0, 0)
@@ -732,20 +732,14 @@ function! coc#float#nvim_scrollbar(winid) abort
   endif
   call nvim_buf_set_lines(sbuf, 0, -1, v:false, repeat([' '], height))
   let opts = {
-        \ 'row': move_down ? config['row'] + 1 : config['row'],
-        \ 'col': config['col'] + config['width'],
+        \ 'row': move_down ? row + 1 : row,
+        \ 'col': column + width,
+        \ 'relative': 'editor',
         \ 'width': 1,
         \ 'height': height,
-        \ 'relative': config['relative'],
         \ 'focusable': v:false,
         \ 'style': 'minimal',
         \ }
-  if has_key(config, 'win')
-    let opts['win'] = config['win']
-  endif
-  if has_key(config, 'anchor')
-    let opts['anchor'] = config['anchor']
-  endif
   if id
     call nvim_win_set_config(id, opts)
   else
