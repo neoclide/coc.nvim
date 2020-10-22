@@ -225,10 +225,10 @@ export class Completion implements Disposable {
   private async _doComplete(option: CompleteOption): Promise<void> {
     let { source } = option
     let { nvim, config } = this
-    let document = workspace.getDocument(option.bufnr)
-    if (!document || !document.attached) return
+    let doc = workspace.getDocument(option.bufnr)
+    if (!doc || !doc.attached) return
     // use fixed filetype
-    option.filetype = document.filetype
+    option.filetype = doc.filetype
     // current input
     this.input = option.input
     let arr: ISource[] = []
@@ -239,11 +239,13 @@ export class Completion implements Disposable {
       if (s) arr.push(s)
     }
     if (!arr.length) return
-    await wait(this.config.triggerCompletionWait)
-    await document.patchChange()
+    if (option.triggerCharacter) {
+      await wait(this.config.triggerCompletionWait)
+    }
+    await doc.patchChange()
     // document get changed, not complete
-    if (document.changedtick != option.changedtick) return
-    let complete = new Complete(option, document, this.recentScores, config, arr, nvim)
+    if (doc.changedtick != option.changedtick) return
+    let complete = new Complete(option, doc, this.recentScores, config, arr, nvim)
     this.start(complete)
     let items = await this.complete.doComplete()
     if (complete.isCanceled) return
