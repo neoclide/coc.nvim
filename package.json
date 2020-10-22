@@ -77,7 +77,7 @@
     "vscode-languageserver": "^6.1.1"
   },
   "dependencies": {
-    "@chemzqm/neovim": "^5.2.6",
+    "@chemzqm/neovim": "^5.2.8",
     "bser": "^2.1.1",
     "bytes": "^3.1.0",
     "clipboardy": "^2.3.0",
