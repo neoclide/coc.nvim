@@ -11,12 +11,14 @@ export default class Menu {
   private _onDidCancel = new Emitter<void>()
   private currIndex = 0
   private total = 0
-  private srcId: number
   public readonly onDidChoose: Event<number> = this._onDidChoose.event
   public readonly onDidCancel: Event<void> = this._onDidCancel.event
   constructor(private nvim: Neovim, private env: Env) {
     let floatFactory = this.floatFactory = new FloatFactory(
-      nvim, env, false, 20, 160, false)
+      nvim, env, false, 20, 80, false)
+    if (!env.isVim) {
+      nvim.command(`sign define CocCurrentLine linehl=PmenuSel`, true)
+    }
     floatFactory.on('show', () => {
       this.doHighlight(0)
       choosed = undefined
@@ -101,19 +103,12 @@ export default class Menu {
   }
 
   private doHighlight(index: number): void {
-    let { nvim, srcId } = this
+    let { nvim } = this
     if (this.env.isVim) return
     let buf = this.floatFactory.buffer
     if (!buf) return
-    buf.clearNamespace(this.srcId, 0, -1)
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    buf.addHighlight({
-      srcId: this.srcId,
-      line: index,
-      colStart: 0,
-      colEnd: -1,
-      hlGroup: 'CocMenuSel'
-    })
+    nvim.command(`sign unplace 6 buffer=${buf.id}`, true)
+    nvim.command(`sign place 6 line=${index + 1} name=CocCurrentLine buffer=${buf.id}`, true)
   }
 
   public async show(items: string[], title?: string): Promise<void> {
@@ -121,10 +116,6 @@ export default class Menu {
       if (i < 99) return `${i + 1}. ${v}`
       return v
     })
-    lines = await this.normalizeLines(lines)
-    if (!this.env.isVim) {
-      this.srcId = await this.nvim.createNamespace('coc-menu')
-    }
     this.total = lines.length
     this.currIndex = 0
     this.floatFactory.show([{
@@ -145,24 +136,5 @@ export default class Menu {
   public hide(): void {
     this.nvim.call('coc#list#stop_prompt', [], true)
     this.floatFactory.close()
-  }
-
-  private async normalizeLines(lines: string[]): Promise<string[]> {
-    let { nvim } = this
-    nvim.pauseNotification()
-    for (let line of lines) {
-      nvim.call('strwidth', [line], true)
-    }
-    let [vals, err] = await nvim.resumeNotification() as [number[], [string, string, number]]
-    if (err) {
-      logger.error(err[1])
-      return lines
-    }
-    let result: string[] = []
-    let max = Math.max(...vals)
-    for (let i = 0; i < lines.length; i++) {
-      result.push(lines[i] + ' '.repeat(max - vals[i]))
-    }
-    return result
   }
 }
