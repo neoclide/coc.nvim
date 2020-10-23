@@ -17,12 +17,12 @@ import which from 'which'
 import Configurations from './configuration'
 import ConfigurationShape from './configuration/shape'
 import events from './events'
+import channels from './channels'
 import DB from './model/db'
 import Document from './model/document'
 import Menu from './model/menu'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import Mru from './model/mru'
-import BufferChannel from './model/outputChannel'
 import Resolver from './model/resolver'
 import StatusLine from './model/status'
 import Task from './model/task'
@@ -68,7 +68,6 @@ export class Workspace implements IWorkspace {
   private autocmds: Map<number, Autocmd> = new Map()
   private terminals: Map<number, Terminal> = new Map()
   private creatingSources: Map<number, CancellationTokenSource> = new Map()
-  private outputChannels: Map<string, OutputChannel> = new Map()
   private schemeProviderMap: Map<string, TextDocumentContentProvider> = new Map()
   private namespaceMap: Map<string, number> = new Map()
   private disposables: Disposable[] = []
@@ -195,7 +194,7 @@ export class Workspace implements IWorkspace {
     let provider: TextDocumentContentProvider = {
       onDidChange: null,
       provideTextDocumentContent: async (uri: URI) => {
-        let channel = this.outputChannels.get(uri.path.slice(1))
+        let channel = channels.get(uri.path.slice(1))
         if (!channel) return ''
         nvim.pauseNotification()
         nvim.command('setlocal nospell nofoldenable nowrap noswapfile', true)
@@ -351,7 +350,7 @@ export class Workspace implements IWorkspace {
   }
 
   public get channelNames(): string[] {
-    return Array.from(this.outputChannels.keys())
+    return channels.names
   }
 
   public get pluginRoot(): string {
@@ -1131,22 +1130,14 @@ export class Workspace implements IWorkspace {
    * Create a new output channel
    */
   public createOutputChannel(name: string): OutputChannel {
-    if (this.outputChannels.has(name)) return this.outputChannels.get(name)
-    let channel = new BufferChannel(name, this.nvim)
-    this.outputChannels.set(name, channel)
-    return channel
+    return channels.create(name, this.nvim)
   }
 
   /**
    * Reveal buffer of output channel.
    */
   public showOutputChannel(name: string, preserveFocus?: boolean): void {
-    let channel = this.outputChannels.get(name)
-    if (!channel) {
-      this.showMessage(`Channel "${name}" not found`, 'error')
-      return
-    }
-    channel.show(preserveFocus)
+    channels.show(name, preserveFocus)
   }
 
   /**
@@ -1324,7 +1315,7 @@ export class Workspace implements IWorkspace {
             resolve(null)
           }
         }, null, disposables)
-        events.on('PromptInsert', (value, nr) => {
+        events.on('PromptInsert', value => {
           if (!value) {
             setTimeout(() => {
               this.showMessage('Empty word, canceled', 'warning')
@@ -1453,9 +1444,7 @@ export class Workspace implements IWorkspace {
 
   public dispose(): void {
     this._disposed = true
-    for (let ch of this.outputChannels.values()) {
-      ch.dispose()
-    }
+    channels.dispose()
     for (let doc of this.documents) {
       doc.detach()
     }
