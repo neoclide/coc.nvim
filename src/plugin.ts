@@ -1,6 +1,7 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
 import path from 'path'
+import fs from 'fs'
 import { CancellationTokenSource, CodeActionKind } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commandManager from './commands'
@@ -172,12 +173,12 @@ export default class Plugin extends EventEmitter {
       channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM))
       channel.appendLine('platform: ' + process.platform)
       channel.appendLine('')
-      for (let ch of (workspace as any).outputChannels.values()) {
-        if (ch.name !== 'info') {
-          channel.appendLine(`## Output channel: ${ch.name}\n`)
-          channel.append(ch.content)
-          channel.appendLine('')
-        }
+      channel.appendLine('## Log of coc.nvim')
+      channel.appendLine('')
+      let file = logger.getLogFile()
+      if (fs.existsSync(file)) {
+        let content = fs.readFileSync(file, { encoding: 'utf8' })
+        channel.appendLine(content)
       }
       channel.show()
     })
