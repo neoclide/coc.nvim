@@ -2454,6 +2454,18 @@ CocMenuSel						*CocMenuSel*
 
   The highlight used for selected menu item, works on neovim only.
 
+CocListMode						*CocListMode*
+
+  Default: `hi default link CocListMode ModeMsg`
+
+  The highlight used for mode in statusline of CocList.
+
+CocListPath						*CocListPath*
+
+  Default: `hi default link CocListPath Comment`
+
+  The highlight used for current cwd in statusline of CocList.
+
 ==============================================================================
 LIST SUPPORT						*coc-list*
 
