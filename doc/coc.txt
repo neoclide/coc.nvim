@@ -735,6 +735,10 @@ Built-in configurations:~
 	note that you may have additional escaped characters for markdown
 	text.
 
+"coc.preferences.silentAutoupdate"~
+
+	Not open split window with update status when performing auto update.
+
 						*coc-config-cursors*
 "cursors.cancelKey":~
 
