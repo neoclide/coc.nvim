@@ -6,12 +6,11 @@ let s:prompt_win_width = get(g:, 'coc_prompt_win_width', 32)
 let s:scrollbar_ns = exists('*nvim_create_namespace') ?  nvim_create_namespace('coc-scrollbar') : 0
 " winvar: border array of numbers,  button boolean
 
-function! coc#float#get_float_mode(allow_selection, align_top, pum_align_top) abort
+function! coc#float#get_float_mode(lines, config) abort
+  let allowSelection = get(a:config, 'allowSelection', 0)
+  let pumAlignTop = get(a:config, 'pumAlignTop', 0)
   let mode = mode()
-  if pumvisible() && a:align_top == a:pum_align_top
-    return v:null
-  endif
-  let checked = (mode == 's' && a:allow_selection) || index(['i', 'n', 'ic'], mode) != -1
+  let checked = (mode == 's' && allowSelection) || index(['i', 'n', 'ic'], mode) != -1
   if !checked
     return v:null
   endif
@@ -19,9 +18,14 @@ function! coc#float#get_float_mode(allow_selection, align_top, pum_align_top) ab
     " helps to fix undo issue, don't know why.
     call feedkeys("\<C-g>u", 'n')
   endif
-  let pos = s:win_position()
-  let viewport = {'lines': &lines, 'columns': &columns, 'cmdheight': &cmdheight}
-  return [mode, bufnr('%'), pos, [line('.'), col('.')], viewport]
+  let dimension = coc#float#calculate_dimension(a:lines, a:config)
+  if empty(dimension)
+    return v:null
+  endif
+  if pumvisible() && ((pumAlignTop && dimension['row'] <0)|| (!pumAlignTop && dimension['row'] > 0))
+    return v:null
+  endif
+  return [mode, bufnr('%'), [line('.'), col('.')], dimension]
 endfunction
 
 " create/reuse float window for config position.
@@ -588,7 +592,6 @@ function! coc#float#nvim_close_btn(config, winid, close, border, related) abort
   " map for winid & close_winid
   if winid
     call setwinvar(winid, 'button', 1)
-    call setwinvar(winid, 'close_target', a:winid)
     call setwinvar(a:winid, 'close_winid', winid)
     call setwinvar(winid, '&winhl', 'Normal:CocFloating,NormalNC:CocFloating')
     call add(a:related, winid)
@@ -596,7 +599,7 @@ function! coc#float#nvim_close_btn(config, winid, close, border, related) abort
 endfunction
 
 function! coc#float#nvim_check_close(winid) abort
-  let target = getwinvar(a:winid, 'close_target', 0)
+  let target = getwinvar(a:winid, 'target_winid', 0)
   if target
     call coc#float#close(target)
   endif
@@ -666,7 +669,7 @@ function! coc#float#nvim_close_related(winid) abort
     return
   endif
   let winids = getwinvar(a:winid, 'related', [])
-  if len(winids)
+  if !empty(winids)
     call nvim_win_del_var(a:winid, 'related')
   endif
   for id in winids
@@ -681,6 +684,9 @@ function! coc#float#nvim_create_related(winid, config, opts) abort
   call coc#float#nvim_close_btn(a:config, a:winid, get(a:opts, 'close', 0), get(a:opts, 'border', []), related)
   call coc#float#nvim_border_win(a:config, get(a:opts, 'border', []), get(a:opts, 'title', ''), related)
   call coc#float#nvim_right_pad(a:config, get(a:opts, 'border', []), related)
+  for id in related
+    call setwinvar(id, 'target_winid', a:winid)
+  endfor
   call setwinvar(a:winid, 'related', related)
 endfunction
 
@@ -749,6 +755,7 @@ function! coc#float#nvim_scrollbar(winid) abort
   else
     let id = nvim_open_win(sbuf, 0 , opts)
     call setwinvar(id, 'isscrollbar', 1)
+    call setwinvar(id, 'target_winid', a:winid)
   endif
   let thumb_height = max([1, float2nr(floor(height * (height + 0.0)/ch))])
   let curr = win_getid()
@@ -780,4 +787,60 @@ function! coc#float#nvim_scrollbar(winid) abort
   " create scrollbar outside window
   call setwinvar(a:winid, 'scrollbar', id)
   call s:add_related(id, a:winid)
+endfunction
+
+function! coc#float#nvim_check_related() abort
+  if !has('nvim')
+    return
+  endif
+  let invalids = []
+  for i in range(1, winnr('$'))
+    let id = win_getid(i)
+    let target = getwinvar(id, 'target_winid', 0)
+    if target && !nvim_win_is_valid(target)
+      call add(invalids, id)
+    endif
+  endfor
+  for id in invalids
+    noa call nvim_win_close(id, 1)
+  endfor
+endfunction
+
+" Dimension of window with lines relative to cursor
+function! coc#float#calculate_dimension(lines, config) abort
+  let preferTop = get(a:config, 'preferTop', 0)
+  let vh = &lines - &cmdheight - 1
+  if vh <= 0
+    return v:null
+  endif
+  let maxWidth = min([get(a:config, 'maxWidth', 80), &columns - 1])
+  if maxWidth < 3
+    return v:null
+  endif
+  let maxHeight = min([get(a:config, 'maxHeight', 80), vh])
+  let ch = 0
+  let width = 0
+  for line in a:lines
+    let dw = max([1, strdisplaywidth(line)])
+    let width = max([width, dw + 2])
+    let ch += float2nr(ceil(str2float(string(dw))/(maxWidth - 2)))
+  endfor
+  let width = min([maxWidth, width])
+  " How much we should move left
+  let [lineIdx, colIdx] = s:win_position()
+  let offsetX = min([get(a:config, 'offsetX', 0), colIdx])
+  let showTop = 0
+  let hb = vh - lineIdx -1
+  if lineIdx > 2 && (preferTop || (lineIdx > hb && hb < ch))
+    let showTop = 1
+  endif
+  let height =  min([ch, showTop ? lineIdx - 1 : hb])
+  let col = - max([offsetX, colIdx - (&columns - 1 - width)])
+  let row = showTop ? - height : 1
+  return {
+        \ 'row': row,
+        \ 'col': col,
+        \ 'width': width,
+        \ 'height': height
+        \ }
 endfunction
