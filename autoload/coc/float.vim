@@ -3,7 +3,7 @@ let s:is_vim = !has('nvim')
 let s:borderchars = get(g:, 'coc_borderchars',
       \ ['─', '│', '─', '│', '┌', '┐', '┘', '└'])
 let s:prompt_win_width = get(g:, 'coc_prompt_win_width', 32)
-let s:scrollbar_ns = nvim_create_namespace('coc-scrollbar')
+let s:scrollbar_ns = exists('*nvim_create_namespace') ?  nvim_create_namespace('coc-scrollbar') : 0
 " winvar: border array of numbers,  button boolean
 
 function! coc#float#get_float_mode(allow_selection, align_top, pum_align_top) abort
@@ -622,6 +622,7 @@ function! coc#float#nvim_right_pad(config, border, related) abort
   call nvim_buf_set_lines(bufnr, 0, -1, v:false, repeat([' '], a:config['height']))
   let winid = nvim_open_win(bufnr, 0, config)
   if winid
+    call setwinvar(winid, 'ispad', 1)
     call setwinvar(winid, '&winhl', 'Normal:CocFloating,NormalNC:CocFloating')
     call add(a:related, winid)
   endif
@@ -694,7 +695,7 @@ function! coc#float#nvim_scrollbar(winid) abort
   endif
   let config = nvim_win_get_config(a:winid)
   " ignore border & button window
-  if (!get(config, 'focusable', v:false) || empty(get(config, 'relative', v:null)))
+  if (!get(config, 'focusable', v:false) || empty(get(config, 'relative', '')))
     return
   endif
   let [row, column] = nvim_win_get_position(a:winid)
@@ -716,12 +717,15 @@ function! coc#float#nvim_scrollbar(winid) abort
   if nvim_win_is_valid(getwinvar(a:winid, 'scrollbar', 0))
     let id = getwinvar(a:winid, 'scrollbar', 0)
   endif
-  if ch <= height
+  if ch <= height || height == 0
     " no scrollbar, remove exists
     if id
       call nvim_win_del_var(a:winid, 'scrollbar')
       call coc#float#close(id)
     endif
+    return
+  endif
+  if height == 0
     return
   endif
   if id && bufloaded(winbufnr(id))
@@ -744,7 +748,7 @@ function! coc#float#nvim_scrollbar(winid) abort
     call nvim_win_set_config(id, opts)
   else
     let id = nvim_open_win(sbuf, 0 , opts)
-    "call setwinvar(id, '&winblend', 100)
+    call setwinvar(id, 'isscrollbar', 1)
   endif
   let thumb_height = max([1, float2nr(floor(height * (height + 0.0)/ch))])
   let curr = win_getid()
