@@ -3,12 +3,11 @@ import debounce from 'debounce'
 import fs from 'fs'
 import isuri from 'isuri'
 import path from 'path'
-import { Disposable, TextDocumentEdit, TextDocumentIdentifier } from 'vscode-languageserver-protocol'
+import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import which from 'which'
-import { MapMode, DocumentChange } from '../types'
+import { MapMode } from '../types'
 import * as platform from './platform'
-
 export { platform }
 const logger = require('./logger')('util-index')
 

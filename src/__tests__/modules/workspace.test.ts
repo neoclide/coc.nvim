@@ -35,10 +35,9 @@ afterEach(async () => {
 describe('workspace properties', () => {
 
   it('should have initialized', () => {
-    let { nvim, channelNames, rootPath, cwd, documents, initialized, textDocuments } = workspace
+    let { nvim, rootPath, cwd, documents, initialized, textDocuments } = workspace
     expect(nvim).toBeTruthy()
     expect(initialized).toBe(true)
-    expect(channelNames.length).toBe(0)
     expect(documents.length).toBe(1)
     expect(textDocuments.length).toBe(1)
     expect(rootPath).toBe(process.cwd())

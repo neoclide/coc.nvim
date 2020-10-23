@@ -1,7 +1,8 @@
-import { frames } from './status'
+import { Buffer, Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
-import { Neovim, Buffer } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
+import { OutputChannel } from '../types'
+import { frames } from './status'
 const logger = require('../util/logger')('model-installBuffer')
 
 export enum State {
@@ -22,7 +23,7 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
   constructor(
     private isUpdate = false,
     private isSync = false,
-    private silent = false) {
+    private channel: OutputChannel | undefined = undefined) {
     super()
   }
 
@@ -34,9 +35,11 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
     }
   }
 
-  public addMessage(name: string, msg: string): void {
+  public addMessage(name: string, msg: string, isProgress = false): void {
+    if (isProgress && this.channel) return
     let lines = this.messagesMap.get(name) || []
     this.messagesMap.set(name, lines.concat(msg.trim().split(/\r?\n/)))
+    if (this.channel) this.channel.appendLine(`[${name}] ${msg}`)
   }
 
   public startProgress(names: string[]): void {
@@ -46,6 +49,13 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
   }
 
   public finishProgress(name: string, succeed = true): void {
+    if (this.channel) {
+      if (succeed) {
+        this.channel.appendLine(`[${name}] install succeed!`)
+      } else {
+        this.channel.appendLine(`[${name}] install failed!`)
+      }
+    }
     this.statMap.set(name, succeed ? State.Success : State.Faild)
   }
 
@@ -117,7 +127,7 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
 
   public async show(nvim: Neovim): Promise<void> {
     let { isSync } = this
-    if (this.silent) return
+    if (this.channel) return
     nvim.pauseNotification()
     nvim.command(isSync ? 'enew' : 'vs +enew', true)
     nvim.call('bufnr', ['%'], true)

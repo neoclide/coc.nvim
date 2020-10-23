@@ -23,7 +23,7 @@ export class Channels {
 
   public show(name: string, preserveFocus?: boolean): void {
     let channel = outputChannels.get(name)
-    if (!channel) throw new Error(`Channel "${name}" not found`)
+    if (!channel) return
     channel.show(preserveFocus)
   }
 

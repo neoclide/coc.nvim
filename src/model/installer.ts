@@ -1,3 +1,4 @@
+import { EventEmitter } from 'events'
 import { spawn } from 'child_process'
 import readline from 'readline'
 import fs from 'fs'
@@ -28,7 +29,7 @@ function registryUrl(scope = 'coc.nvim'): string {
   return registry.endsWith('/') ? registry : registry + '/'
 }
 
-export class Installer {
+export class Installer extends EventEmitter {
   private name: string
   private url: string
   private version: string
@@ -36,9 +37,9 @@ export class Installer {
     private root: string,
     private npm: string,
     // could be url or name@version or name
-    private def: string,
-    private onMessage?: (msg: string) => void
+    private def: string
   ) {
+    super()
     if (!fs.existsSync(root)) mkdirp.sync(root)
     if (/^https?:/.test(def)) {
       this.url = def
@@ -111,7 +112,7 @@ export class Installer {
     let tmpFolder = await promisify(fs.mkdtemp)(path.join(os.tmpdir(), `${info.name}-`))
     let url = info['dist.tarball']
     this.log(`Downloading from ${url}`)
-    await download(url, { dest: tmpFolder, onProgress: p => this.log(`Download progress ${p}%`), extract: 'untar' })
+    await download(url, { dest: tmpFolder, onProgress: p => this.log(`Download progress ${p}%`, true), extract: 'untar' })
     this.log(`Extension download at ${tmpFolder}`)
     let content = await promisify(fs.readFile)(path.join(tmpFolder, 'package.json'), 'utf8')
     let { dependencies } = JSON.parse(content)
@@ -129,7 +130,7 @@ export class Installer {
           input: child.stdout
         })
         rl.on('line', line => {
-          this.log(`[npm] ${line}`)
+          this.log(`[npm] ${line}`, true)
         })
         child.stderr.setEncoding('utf8')
         child.stdout.setEncoding('utf8')
@@ -214,14 +215,12 @@ export class Installer {
     }
   }
 
-  private log(msg: string, extra?: any): void {
-    logger.info(msg, extra ? extra : '')
-    if (typeof this.onMessage === 'function') {
-      this.onMessage(msg)
-    }
+  private log(msg: string, isProgress = false): void {
+    logger.info(msg)
+    this.emit('message', msg, isProgress)
   }
 }
 
-export function createInstallerFactory(npm: string, root: string): (def: string, onMessage?: (msg: string) => void) => Installer {
-  return (def, onMessage): Installer => new Installer(root, npm, def, onMessage)
+export function createInstallerFactory(npm: string, root: string): (def: string) => Installer {
+  return (def): Installer => new Installer(root, npm, def)
 }

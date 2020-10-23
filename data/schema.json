@@ -969,6 +969,11 @@
       "description": "Tell the language server that markdown text format is supported, note that markdown text may not rendered as expected.",
       "default": true
     },
+    "coc.preferences.silentAutoupdate": {
+      "type": "boolean",
+      "description": "Not open split window with update status when performing auto update.",
+      "default": true
+    },
     "coc.source.around.enable": {
       "type": "boolean",
       "default": true

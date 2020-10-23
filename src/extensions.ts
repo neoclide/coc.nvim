@@ -25,6 +25,7 @@ import { objectLiteral } from './util/is'
 import Watchman from './watchman'
 import workspace from './workspace'
 import mkdirp from 'mkdirp'
+import { OutputChannel } from './types'
 
 const createLogger = require('./util/logger')
 const logger = createLogger('extensions')
@@ -73,6 +74,7 @@ export class Extensions {
   private activated = false
   private installBuffer: InstallBuffer
   private disposables: Disposable[] = []
+  private outputChannel: OutputChannel | undefined
   public ready = true
   public readonly onDidLoadExtension: Event<Extension<API>> = this._onDidLoadExtension.event
   public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
@@ -95,6 +97,7 @@ export class Extensions {
   public async init(): Promise<void> {
     let data = loadJson(this.db.filepath) || {}
     let keys = Object.keys(data.extension || {})
+    this.outputChannel = workspace.createOutputChannel('extensions')
     for (let key of keys) {
       if (data.extension[key].disabled == true) {
         this.disabled.add(key)
@@ -152,12 +155,14 @@ export class Extensions {
     this.checkExtensions().logError()
     let config = workspace.getConfiguration('coc.preferences')
     let interval = config.get<string>('extensionUpdateCheck', 'never')
+    let silent = config.get<boolean>('silentAutoupdate', true)
     if (interval != 'never') {
       let now = new Date()
       let day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (interval == 'daily' ? 0 : 7))
       let ts = this.db.fetch('lastUpdate')
       if (ts && Number(ts) > day.getTime()) return
-      this.updateExtensions(false, true).logError()
+      this.outputChannel.appendLine('Start auto update...')
+      this.updateExtensions(false, silent).logError()
     }
   }
 
@@ -167,7 +172,10 @@ export class Extensions {
     let stats = await this.globalExtensionStats()
     stats = stats.filter(o => ![...lockedList, ...this.disabled].includes(o.id))
     this.db.push('lastUpdate', Date.now())
-    let installBuffer = this.installBuffer = new InstallBuffer(true, sync, silent)
+    if (silent) {
+      workspace.showMessage('Updating extensions, checkout output:///extensions for details.', 'more')
+    }
+    let installBuffer = this.installBuffer = new InstallBuffer(true, sync, silent ? this.outputChannel : undefined)
     installBuffer.setExtensions(stats.map(o => o.id))
     await installBuffer.show(workspace.nvim)
     let createInstaller = createInstallerFactory(this.npm, this.modulesFolder)
@@ -175,7 +183,12 @@ export class Extensions {
       let { id } = stat
       installBuffer.startProgress([id])
       let url = stat.exotic ? stat.uri : null
-      return createInstaller(id, msg => installBuffer.addMessage(id, msg)).update(url).then(directory => {
+      // msg => installBuffer.addMessage(id, msg)
+      let installer = createInstaller(id)
+      installer.on('message', (msg, isProgress) => {
+        installBuffer.addMessage(id, msg, isProgress)
+      })
+      return installer.update(url).then(directory => {
         installBuffer.finishProgress(id, true)
         if (directory) {
           this.loadExtension(directory).logError()
@@ -185,7 +198,7 @@ export class Extensions {
         installBuffer.finishProgress(id, false)
       })
     }
-    await concurrent(stats, fn)
+    await concurrent(stats, fn, silent ? 1 : 3)
   }
 
   private async checkExtensions(): Promise<void> {
@@ -232,7 +245,11 @@ export class Extensions {
     let createInstaller = createInstallerFactory(this.npm, this.modulesFolder)
     let fn = (key: string): Promise<void> => {
       installBuffer.startProgress([key])
-      return createInstaller(key, msg => installBuffer.addMessage(key, msg)).install().then(name => {
+      let installer = createInstaller(key)
+      installer.on('message', (msg, isProgress) => {
+        installBuffer.addMessage(key, msg, isProgress)
+      })
+      return installer.install().then(name => {
         installBuffer.finishProgress(key, true)
         let directory = path.join(this.modulesFolder, name)
         this.loadExtension(directory).logError()
