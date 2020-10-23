@@ -44,6 +44,8 @@ export class Completion implements Disposable {
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
     events.on('TextChangedP', this.onTextChangedP, this, this.disposables)
     events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
+    events.on('BufEnter', this.onBufEnter, this, this.disposables)
+    events.on('FileType', this.onFileType, this, this.disposables)
     let fn = throttle(this.onPumChange.bind(this), workspace.isVim ? 200 : 100)
     events.on('CompleteDone', async item => {
       this.currItem = null
@@ -65,6 +67,18 @@ export class Completion implements Disposable {
         this.config = this.getCompleteConfig()
       }
     }, null, this.disposables)
+  }
+
+  private async onFileType(ft: string): Promise<void> {
+    this.config = this.getCompleteConfig(ft)
+  }
+
+  private async onBufEnter(bufnr: number): Promise<void> {
+    const doc = workspace.getDocument(bufnr)
+    if (doc == null) {
+      return
+    }
+    this.config = this.getCompleteConfig(doc.filetype)
   }
 
   private get nvim(): Neovim {
@@ -94,9 +108,18 @@ export class Completion implements Disposable {
     return workspace.getDocument(this.option.bufnr)
   }
 
-  private getCompleteConfig(): CompleteConfig {
+  private getCompleteConfig(ft?: string): CompleteConfig {
     let suggest = workspace.getConfiguration('suggest')
     function getConfig<T>(key, defaultValue: T): T {
+      if (ft) {
+        const ftConfig = suggest.get(ft)
+        if (ftConfig) {
+          const maybeResult = ftConfig[key]
+          if (maybeResult) {
+            return maybeResult
+          }
+        }
+      }
       return suggest.get<T>(key, suggest.get<T>(key, defaultValue))
     }
     let keepCompleteopt = getConfig<boolean>('keepCompleteopt', false)

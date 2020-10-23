@@ -64,6 +64,20 @@ export default class Configurations {
       this._errorItems.push(...errors)
     })
     this._onError.fire(this._errorItems)
+
+    const suggest = res.contents['suggest']
+    const langservers = res.contents['languageserver']
+    if (!langservers) {
+      return res
+    }
+
+    Object.keys(langservers).forEach(key => {
+      const ls = langservers[key]
+      if (suggest && ls.suggest) {
+        ls.filetypes.forEach(ft => suggest[ft] = ls.suggest)
+      }
+    })
+
     return res
   }
 

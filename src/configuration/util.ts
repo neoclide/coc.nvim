@@ -55,7 +55,7 @@ export function parseConfiguration(content: string): [ParseError[], any] {
         let first = parts.shift()
         addProperty(dest, first, parts, obj[key])
       } else {
-        dest[key] = convert(obj[key])
+        dest[key] = convert(obj[key], split)
       }
     }
     return dest
