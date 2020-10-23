@@ -12,7 +12,13 @@ export interface ConfigurationWorkspaceMiddleware {
 }
 
 export class ConfigurationFeature implements StaticFeature {
-  constructor(private _client: BaseLanguageClient) { }
+  private languageserverSection: string | undefined
+  constructor(private _client: BaseLanguageClient) {
+    let section = this._client.clientOptions.synchronize?.configurationSection
+    if (typeof section === 'string' && section.startsWith('languageserver.')) {
+      this.languageserverSection = section
+    }
+  }
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
     capabilities.workspace = capabilities.workspace || {}
@@ -41,11 +47,9 @@ export class ConfigurationFeature implements StaticFeature {
     section: string | undefined
   ): any {
     let result: any = null
-    let { id } = this._client
     if (section) {
-      if (id.startsWith('languageserver')) {
-        let config = workspace.getConfiguration(id, resource).get<any>('settings')
-        if (config && config[section] != null) return config[section]
+      if (this.languageserverSection) {
+        section = `${this.languageserverSection}.${section}`
       }
       let index = section.lastIndexOf('.')
       if (index === -1) {
@@ -57,14 +61,31 @@ export class ConfigurationFeature implements StaticFeature {
         }
       }
     } else {
-      let config = workspace.getConfiguration(undefined, resource)
+      let config = workspace.getConfiguration(this.languageserverSection, resource)
       result = {}
       for (let key of Object.keys(config)) {
         if (config.has(key)) {
-          result[key] = config.get(key)
+          result[key] = toJSONObject(config.get(key))
         }
       }
     }
     return result
   }
+}
+
+export function toJSONObject(obj: any): any {
+  if (obj) {
+    if (Array.isArray(obj)) {
+      return obj.map(toJSONObject)
+    } else if (typeof obj === 'object') {
+      const res = Object.create(null)
+      for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          res[key] = toJSONObject(obj[key])
+        }
+      }
+      return res
+    }
+  }
+  return obj
 }

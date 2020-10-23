@@ -2804,7 +2804,7 @@ class ConfigurationFeature implements DynamicFeature<DidChangeConfigurationRegis
   }
 
   public initialize(): void {
-    let section = this._client.clientOptions.synchronize!.configurationSection
+    let section = this._client.clientOptions.synchronize?.configurationSection
     if (section !== void 0) {
       this.register(this.messages, {
         id: UUID.generateUuid(),
@@ -2821,8 +2821,14 @@ class ConfigurationFeature implements DynamicFeature<DidChangeConfigurationRegis
   ): void {
     let { section } = data.registerOptions
     let disposable = workspace.onDidChangeConfiguration((event) => {
+      if (typeof section == 'string' && !event.affectsConfiguration(section)) {
+        return
+      }
+      if (Array.isArray(section) && !section.some(v => event.affectsConfiguration(v))) {
+        return
+      }
       if (section != null) {
-        this.onDidChangeConfiguration(data.registerOptions.section, event)
+        this.onDidChangeConfiguration(data.registerOptions.section)
       }
     })
     this._listeners.set(data.id, disposable)
@@ -2831,7 +2837,8 @@ class ConfigurationFeature implements DynamicFeature<DidChangeConfigurationRegis
       if (!settings || Is.emptyObject(settings)) return
     }
     if (section != null) {
-      this.onDidChangeConfiguration(data.registerOptions.section, undefined)
+      // Avoid server bug
+      this.onDidChangeConfiguration(data.registerOptions.section)
     }
   }
 
@@ -2850,25 +2857,17 @@ class ConfigurationFeature implements DynamicFeature<DidChangeConfigurationRegis
     this._listeners.clear()
   }
 
-  private onDidChangeConfiguration(configurationSection: string | string[], event: ConfigurationChangeEvent | undefined): void {
+  private onDidChangeConfiguration(configurationSection: string | string[]): void {
+    let isConfigured = typeof configurationSection === 'string' && configurationSection.startsWith('languageserver.')
     let sections: string[] | undefined
     if (Is.string(configurationSection)) {
       sections = [configurationSection]
     } else {
       sections = configurationSection
     }
-    if (sections !== void 0 && event !== void 0) {
-      const affected = sections.some((section) => event.affectsConfiguration(section))
-      if (!affected) {
-        return
-      }
-    }
-    let isConfigured = sections.length == 1 && /^languageserver\..+\.settings$/.test(sections[0])
     let didChangeConfiguration = (sections: string[] | undefined): void => {
-      if (sections == null) {
-        this._client.sendNotification(DidChangeConfigurationNotification.type, {
-          settings: null
-        })
+      if (sections === undefined) {
+        this._client.sendNotification(DidChangeConfigurationNotification.type, { settings: null })
         return
       }
       this._client.sendNotification(DidChangeConfigurationNotification.type, {
@@ -2881,6 +2880,7 @@ class ConfigurationFeature implements DynamicFeature<DidChangeConfigurationRegis
       : didChangeConfiguration(sections)
   }
 
+  // for configured languageserver
   private getConfiguredSettings(key: string): any {
     let len = '.settings'.length
     let config = workspace.getConfiguration(key.slice(0, - len))
