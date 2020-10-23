@@ -252,8 +252,8 @@ function! coc#float#create_prompt_win(title, default) abort
   call win_gotoid(winid)
   inoremap <buffer> <C-a> <Home>
   inoremap <buffer><expr><C-e> pumvisible() ? "\<C-e>" : "\<End>"
-  exe 'inoremap <buffer> <esc> <C-r>=coc#float#close_i('.winid.')<CR><esc>'
-  exe 'nnoremap <buffer> <esc> :call coc#float#close('.winid.')<CR>'
+  exe 'inoremap <silent><buffer> <esc> <C-r>=coc#float#close_i('.winid.')<CR><esc>'
+  exe 'nnoremap <silent><buffer> <esc> :call coc#float#close('.winid.')<CR>'
   exe 'inoremap <expr><nowait><buffer> <cr> "\<c-r>=coc#float#prompt_insert('.winid.')\<cr>\<esc>"'
   call feedkeys('A', 'in')
   return [bufnr, winid]

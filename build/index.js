@@ -23987,7 +23987,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "cd4c6adf8f" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "45cda5fc30" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -75828,7 +75828,8 @@ class ConfigurationFeature {
         ensure(ensure(capabilities, 'workspace'), 'didChangeConfiguration').dynamicRegistration = true;
     }
     initialize() {
-        let section = this._client.clientOptions.synchronize.configurationSection;
+        var _a;
+        let section = (_a = this._client.clientOptions.synchronize) === null || _a === void 0 ? void 0 : _a.configurationSection;
         if (section !== void 0) {
             this.register(this.messages, {
                 id: UUID.generateUuid(),
@@ -75841,8 +75842,14 @@ class ConfigurationFeature {
     register(_message, data) {
         let { section } = data.registerOptions;
         let disposable = workspace_1.default.onDidChangeConfiguration((event) => {
+            if (typeof section == 'string' && !event.affectsConfiguration(section)) {
+                return;
+            }
+            if (Array.isArray(section) && !section.some(v => event.affectsConfiguration(v))) {
+                return;
+            }
             if (section != null) {
-                this.onDidChangeConfiguration(data.registerOptions.section, event);
+                this.onDidChangeConfiguration(data.registerOptions.section);
             }
         });
         this._listeners.set(data.id, disposable);
@@ -75852,7 +75859,8 @@ class ConfigurationFeature {
                 return;
         }
         if (section != null) {
-            this.onDidChangeConfiguration(data.registerOptions.section, undefined);
+            // Avoid server bug
+            this.onDidChangeConfiguration(data.registerOptions.section);
         }
     }
     unregister(id) {
@@ -75868,7 +75876,8 @@ class ConfigurationFeature {
         }
         this._listeners.clear();
     }
-    onDidChangeConfiguration(configurationSection, event) {
+    onDidChangeConfiguration(configurationSection) {
+        let isConfigured = typeof configurationSection === 'string' && configurationSection.startsWith('languageserver.');
         let sections;
         if (Is.string(configurationSection)) {
             sections = [configurationSection];
@@ -75876,18 +75885,9 @@ class ConfigurationFeature {
         else {
             sections = configurationSection;
         }
-        if (sections !== void 0 && event !== void 0) {
-            const affected = sections.some((section) => event.affectsConfiguration(section));
-            if (!affected) {
-                return;
-            }
-        }
-        let isConfigured = sections.length == 1 && /^languageserver\..+\.settings$/.test(sections[0]);
         let didChangeConfiguration = (sections) => {
-            if (sections == null) {
-                this._client.sendNotification(vscode_languageserver_protocol_1.DidChangeConfigurationNotification.type, {
-                    settings: null
-                });
+            if (sections === undefined) {
+                this._client.sendNotification(vscode_languageserver_protocol_1.DidChangeConfigurationNotification.type, { settings: null });
                 return;
             }
             this._client.sendNotification(vscode_languageserver_protocol_1.DidChangeConfigurationNotification.type, {
@@ -75899,6 +75899,7 @@ class ConfigurationFeature {
             ? middleware(sections, didChangeConfiguration)
             : didChangeConfiguration(sections);
     }
+    // for configured languageserver
     getConfiguredSettings(key) {
         let len = '.settings'.length;
         let config = workspace_1.default.getConfiguration(key.slice(0, -len));
@@ -77325,7 +77326,12 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(270));
 const logger = __webpack_require__(64)('languageclient-configuration');
 class ConfigurationFeature {
     constructor(_client) {
+        var _a;
         this._client = _client;
+        let section = (_a = this._client.clientOptions.synchronize) === null || _a === void 0 ? void 0 : _a.configurationSection;
+        if (typeof section === 'string' && section.startsWith('languageserver.')) {
+            this.languageserverSection = section;
+        }
     }
     fillClientCapabilities(capabilities) {
         capabilities.workspace = capabilities.workspace || {};
@@ -77349,12 +77355,9 @@ class ConfigurationFeature {
     }
     getConfiguration(resource, section) {
         let result = null;
-        let { id } = this._client;
         if (section) {
-            if (id.startsWith('languageserver')) {
-                let config = workspace_1.default.getConfiguration(id, resource).get('settings');
-                if (config && config[section] != null)
-                    return config[section];
+            if (this.languageserverSection) {
+                section = `${this.languageserverSection}.${section}`;
             }
             let index = section.lastIndexOf('.');
             if (index === -1) {
@@ -77368,11 +77371,11 @@ class ConfigurationFeature {
             }
         }
         else {
-            let config = workspace_1.default.getConfiguration(undefined, resource);
+            let config = workspace_1.default.getConfiguration(this.languageserverSection, resource);
             result = {};
             for (let key of Object.keys(config)) {
                 if (config.has(key)) {
-                    result[key] = config.get(key);
+                    result[key] = toJSONObject(config.get(key));
                 }
             }
         }
@@ -77380,6 +77383,24 @@ class ConfigurationFeature {
     }
 }
 exports.ConfigurationFeature = ConfigurationFeature;
+function toJSONObject(obj) {
+    if (obj) {
+        if (Array.isArray(obj)) {
+            return obj.map(toJSONObject);
+        }
+        else if (typeof obj === 'object') {
+            const res = Object.create(null);
+            for (const key in obj) {
+                if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                    res[key] = toJSONObject(obj[key]);
+                }
+            }
+            return res;
+        }
+    }
+    return obj;
+}
+exports.toJSONObject = toJSONObject;
 //# sourceMappingURL=configuration.js.map
 
 /***/ }),
