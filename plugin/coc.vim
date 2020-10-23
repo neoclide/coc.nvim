@@ -262,6 +262,7 @@ function! s:Enable(initialize)
       autocmd TermClose         * call s:Autocmd('TermClose', +expand('<abuf>'))
       autocmd CursorMoved       * call coc#float#nvim_refresh_scrollbar()
       autocmd WinEnter          * call coc#float#nvim_check_close(win_getid())
+      autocmd CursorHold        * call coc#float#nvim_check_related()
       if exists('##WinClosed')
         autocmd WinClosed       * call coc#float#nvim_close_related(+expand('<afile>'))
       endif

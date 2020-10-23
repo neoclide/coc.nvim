@@ -588,7 +588,6 @@ function! coc#float#nvim_close_btn(config, winid, close, border, related) abort
   " map for winid & close_winid
   if winid
     call setwinvar(winid, 'button', 1)
-    call setwinvar(winid, 'close_target', a:winid)
     call setwinvar(a:winid, 'close_winid', winid)
     call setwinvar(winid, '&winhl', 'Normal:CocFloating,NormalNC:CocFloating')
     call add(a:related, winid)
@@ -596,7 +595,7 @@ function! coc#float#nvim_close_btn(config, winid, close, border, related) abort
 endfunction
 
 function! coc#float#nvim_check_close(winid) abort
-  let target = getwinvar(a:winid, 'close_target', 0)
+  let target = getwinvar(a:winid, 'target_winid', 0)
   if target
     call coc#float#close(target)
   endif
@@ -666,7 +665,7 @@ function! coc#float#nvim_close_related(winid) abort
     return
   endif
   let winids = getwinvar(a:winid, 'related', [])
-  if len(winids)
+  if !empty(winids)
     call nvim_win_del_var(a:winid, 'related')
   endif
   for id in winids
@@ -681,6 +680,9 @@ function! coc#float#nvim_create_related(winid, config, opts) abort
   call coc#float#nvim_close_btn(a:config, a:winid, get(a:opts, 'close', 0), get(a:opts, 'border', []), related)
   call coc#float#nvim_border_win(a:config, get(a:opts, 'border', []), get(a:opts, 'title', ''), related)
   call coc#float#nvim_right_pad(a:config, get(a:opts, 'border', []), related)
+  for id in related
+    call setwinvar(id, 'target_winid', a:winid)
+  endfor
   call setwinvar(a:winid, 'related', related)
 endfunction
 
@@ -749,6 +751,7 @@ function! coc#float#nvim_scrollbar(winid) abort
   else
     let id = nvim_open_win(sbuf, 0 , opts)
     call setwinvar(id, 'isscrollbar', 1)
+    call setwinvar(id, 'target_winid', a:winid)
   endif
   let thumb_height = max([1, float2nr(floor(height * (height + 0.0)/ch))])
   let curr = win_getid()
@@ -780,4 +783,21 @@ function! coc#float#nvim_scrollbar(winid) abort
   " create scrollbar outside window
   call setwinvar(a:winid, 'scrollbar', id)
   call s:add_related(id, a:winid)
+endfunction
+
+function! coc#float#nvim_check_related() abort
+  if !has('nvim')
+    return
+  endif
+  let invalids = []
+  for i in range(1, winnr('$'))
+    let id = win_getid(i)
+    let target = getwinvar(id, 'target_winid', 0)
+    if target && !nvim_win_is_valid(target)
+      call add(invalids, id)
+    endif
+  endfor
+  for id in invalids
+    noa call nvim_win_close(id, 1)
+  endfor
 endfunction
