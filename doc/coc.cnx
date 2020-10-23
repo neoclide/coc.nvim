@@ -789,7 +789,7 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	行为与 "jumpDefinition" 相同。
 
-"doHover" 					*coc-action-doHover*
+"doHover" [{hoverTarget}] 					*coc-action-doHover*
 
 	显示当前位置的悬浮信息。
 
