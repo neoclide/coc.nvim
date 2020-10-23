@@ -6,12 +6,11 @@ let s:prompt_win_width = get(g:, 'coc_prompt_win_width', 32)
 let s:scrollbar_ns = exists('*nvim_create_namespace') ?  nvim_create_namespace('coc-scrollbar') : 0
 " winvar: border array of numbers,  button boolean
 
-function! coc#float#get_float_mode(allow_selection, align_top, pum_align_top) abort
+function! coc#float#get_float_mode(lines, config) abort
+  let allowSelection = get(a:config, 'allowSelection', 0)
+  let pumAlignTop = get(a:config, 'pumAlignTop', 0)
   let mode = mode()
-  if pumvisible() && a:align_top == a:pum_align_top
-    return v:null
-  endif
-  let checked = (mode == 's' && a:allow_selection) || index(['i', 'n', 'ic'], mode) != -1
+  let checked = (mode == 's' && allowSelection) || index(['i', 'n', 'ic'], mode) != -1
   if !checked
     return v:null
   endif
@@ -19,9 +18,14 @@ function! coc#float#get_float_mode(allow_selection, align_top, pum_align_top) ab
     " helps to fix undo issue, don't know why.
     call feedkeys("\<C-g>u", 'n')
   endif
-  let pos = s:win_position()
-  let viewport = {'lines': &lines, 'columns': &columns, 'cmdheight': &cmdheight}
-  return [mode, bufnr('%'), pos, [line('.'), col('.')], viewport]
+  let dimension = coc#float#calculate_dimension(a:lines, a:config)
+  if empty(dimension)
+    return v:null
+  endif
+  if pumvisible() && ((pumAlignTop && dimension['row'] <0)|| (!pumAlignTop && dimension['row'] > 0))
+    return v:null
+  endif
+  return [mode, bufnr('%'), [line('.'), col('.')], dimension]
 endfunction
 
 " create/reuse float window for config position.
@@ -800,4 +804,43 @@ function! coc#float#nvim_check_related() abort
   for id in invalids
     noa call nvim_win_close(id, 1)
   endfor
+endfunction
+
+" Dimension of window with lines relative to cursor
+function! coc#float#calculate_dimension(lines, config) abort
+  let preferTop = get(a:config, 'preferTop', 0)
+  let vh = &lines - &cmdheight - 1
+  if vh <= 0
+    return v:null
+  endif
+  let maxWidth = min([get(a:config, 'maxWidth', 80), &columns - 1])
+  if maxWidth < 3
+    return v:null
+  endif
+  let maxHeight = min([get(a:config, 'maxHeight', 80), vh])
+  let ch = 0
+  let width = 0
+  for line in a:lines
+    let dw = max([1, strdisplaywidth(line)])
+    let width = max([width, dw + 2])
+    let ch += float2nr(ceil(str2float(string(dw))/(maxWidth - 2)))
+  endfor
+  let width = min([maxWidth, width])
+  " How much we should move left
+  let [lineIdx, colIdx] = s:win_position()
+  let offsetX = min([get(a:config, 'offsetX', 0), colIdx])
+  let showTop = 0
+  let hb = vh - lineIdx -1
+  if lineIdx > 2 && (preferTop || (lineIdx > hb && hb < ch))
+    let showTop = 1
+  endif
+  let height =  min([ch, showTop ? lineIdx - 1 : hb])
+  let col = - max([offsetX, colIdx - (&columns - 1 - width)])
+  let row = showTop ? - height : 1
+  return {
+        \ 'row': row,
+        \ 'col': col,
+        \ 'width': width,
+        \ 'height': height
+        \ }
 endfunction

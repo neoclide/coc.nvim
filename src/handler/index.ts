@@ -1123,7 +1123,7 @@ export default class Handler {
         } else {
           this.signaturePosition = position
         }
-        await this.signatureFactory.create(docs, true, offset)
+        await this.signatureFactory.show(docs, { allowSelection: true, offsetX: offset })
         // show float
       } else {
         this.documentLines = docs.reduce((p, c) => {
@@ -1344,7 +1344,7 @@ export default class Handler {
     }
     if (target == 'float') {
       diagnosticManager.hideFloat()
-      await this.hoverFactory.create(docs)
+      await this.hoverFactory.show(docs)
       return
     }
     let lines = docs.reduce((p, c) => {

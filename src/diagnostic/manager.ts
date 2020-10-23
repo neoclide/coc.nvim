@@ -499,7 +499,7 @@ export class DiagnosticManager implements Disposable {
       docs.push({ filetype, content: str })
     })
     if (useFloat) {
-      await this.floatFactory.create(docs)
+      await this.floatFactory.show(docs)
     } else {
       let lines = docs.map(d => d.content).join('\n').split(/\r?\n/)
       if (lines.length) {

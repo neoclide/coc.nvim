@@ -177,6 +177,26 @@ export default class FloatBuffer {
     return fragments
   }
 
+  // return lines for calculate dimension
+  // TODO need use parsed lines for markdown
+  public static getLines(docs: Documentation[], isNvim: boolean): string[] {
+    let res: string[] = []
+    for (let i = 0; i < docs.length; i++) {
+      let doc = docs[i]
+      let lines = doc.content.split(/\r?\n/)
+      for (let line of lines) {
+        if (isNvim && doc.filetype == 'markdown' && /^\s*```/.test(line)) {
+          continue
+        }
+        res.push(line)
+      }
+      if (i != docs.length - 1) {
+        res.push('-')
+      }
+    }
+    return res
+  }
+
   public static getDimension(docs: Documentation[], maxWidth: number, maxHeight: number): Dimension {
     // width contains padding
     if (maxWidth <= 2 || maxHeight <= 0) return { width: 0, height: 0 }

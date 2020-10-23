@@ -211,6 +211,12 @@ export class Helper extends EventEmitter {
     }
     return floatWin
   }
+
+  public async getFloats(): Promise<Window[]> {
+    let ids = await this.nvim.call('coc#float#get_float_win_list', [])
+    if (!ids) return []
+    return ids.map(id => this.nvim.createWindow(id))
+  }
 }
 
 export async function createTmpFile(content: string): Promise<string> {

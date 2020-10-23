@@ -7,7 +7,6 @@ import { Documentation, Env } from '../types'
 import { disposeAll, wait } from '../util'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
-import { byteLength } from '../util/string'
 import FloatBuffer from './floatBuffer'
 const logger = require('../util/logger')('model-float')
 
@@ -32,6 +31,7 @@ export interface FloatWinConfig {
   border?: number[]
   cursorline?: boolean
   close?: boolean
+  preferTop?: boolean
 }
 
 export interface ViewportConfig {
@@ -53,7 +53,6 @@ export default class FloatFactory extends EventEmitter implements Disposable {
   private pumAlignTop = false
   private cursor: [number, number]
   private onCursorMoved: ((bufnr: number, cursor: [number, number]) => void) & { clear(): void }
-  private viewport: ViewportConfig
   constructor(private nvim: Neovim,
     private env: Env,
     private preferTop = false,
@@ -62,11 +61,6 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     private autoHide = true) {
     super()
     this.mutex = new Mutex()
-    this.viewport = {
-      lines: env.lines,
-      columns: env.columns,
-      cmdheight: env.cmdheight
-    }
     this.floatBuffer = new FloatBuffer(nvim)
     events.on('BufEnter', bufnr => {
       if (bufnr == this._bufnr
@@ -110,37 +104,6 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     if (!insertMode || bufnr != this.targetBufnr) {
       this.close()
       return
-    }
-  }
-
-  private getWindowConfig(docs: Documentation[], win_position: [number, number], offsetX = 0): WindowConfig {
-    let { columns } = this.viewport
-    let lines = this.viewport.lines - this.viewport.cmdheight - 1
-    let { preferTop } = this
-    let alignTop = false
-    let [row, col] = win_position
-    let max = this.getMaxWindowHeight(docs)
-    if (preferTop && row >= max) {
-      alignTop = true
-    } else if (!preferTop && lines - row - 1 >= max) {
-      alignTop = false
-    } else if ((preferTop && row >= 3) || (!preferTop && row >= lines - row - 1)) {
-      alignTop = true
-    }
-    let maxHeight = alignTop ? row : lines - row - 1
-    maxHeight = Math.min(maxHeight, this.maxHeight || lines)
-    let maxWidth = Math.min(this.maxWidth || 80, 80, columns)
-    let { width, height } = FloatBuffer.getDimension(docs, maxWidth, maxHeight)
-    if (col - offsetX + width > columns) {
-      offsetX = col + width - columns
-    }
-    this.alignTop = alignTop
-    return {
-      height,
-      width,
-      row: alignTop ? - height : 1,
-      col: offsetX == 0 ? 0 : - offsetX,
-      relative: 'cursor'
     }
   }
 
@@ -188,19 +151,24 @@ export default class FloatFactory extends EventEmitter implements Disposable {
   }
 
   private async createPopup(docs: Documentation[], opts: FloatWinConfig): Promise<void> {
-    let allowSelection = opts.allowSelection || false
-    let offsetX = opts.offsetX || 0
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
-    let { nvim, alignTop, pumAlignTop, floatBuffer } = this
+    let { nvim, floatBuffer } = this
+    let lines = FloatBuffer.getLines(docs, !this.env.isVim)
     // get options
-    let arr = await this.nvim.call('coc#float#get_float_mode', [allowSelection, alignTop, pumAlignTop])
+    let arr = await this.nvim.call('coc#float#get_float_mode', [lines, {
+      allowSelection: opts.allowSelection || false,
+      pumAlignTop: this.pumAlignTop,
+      preferTop: typeof opts.preferTop === 'boolean' ? opts.preferTop : this.preferTop,
+      maxWidth: this.maxWidth || 80,
+      maxHeight: this.maxHeight,
+      offsetX: opts.offsetX || 0
+    }])
     if (!arr || token.isCancellationRequested) return
-    let [mode, targetBufnr, win_position, cursor, viewport] = arr
+    let [mode, targetBufnr, cursor, config] = arr
     this.targetBufnr = targetBufnr
     this.cursor = cursor
-    this.viewport = viewport
-    let config = this.getWindowConfig(docs, win_position, offsetX)
+    config.relative = 'cursor'
     if (opts.cursorline) config.cursorline = 1
     if (this.autoHide) config.autohide = 1
     if (opts.title || opts.border != null) {
@@ -210,9 +178,7 @@ export default class FloatFactory extends EventEmitter implements Disposable {
         config.border = [1, 1, 1, 1]
       }
     }
-    if (opts.close) {
-      config.close = 1
-    }
+    config.close = opts.close ? 1 : 0
     // calculat highlights
     await floatBuffer.setDocuments(docs, config.width)
     if (token.isCancellationRequested) return
@@ -295,22 +261,5 @@ export default class FloatFactory extends EventEmitter implements Disposable {
   public async activated(): Promise<boolean> {
     if (!this.winid) return false
     return await this.nvim.call('coc#float#valid', [this.winid]) != 0
-  }
-
-  private getMaxWindowHeight(docs: Documentation[]): number {
-    let maxWidth = Math.min(this.maxWidth || 80, 80, this.viewport.columns)
-    let w = maxWidth - 2
-    let h = 0
-    for (let doc of docs) {
-      let lines = doc.content.split(/\r?\n/)
-      for (let s of lines) {
-        if (s.length == 0) {
-          h = h + 1
-        } else {
-          h = h + Math.ceil(byteLength(s.replace(/\t/g, '  ')) / w)
-        }
-      }
-    }
-    return Math.min(this.maxHeight, h)
   }
 }

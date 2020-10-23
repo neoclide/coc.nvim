@@ -3,7 +3,6 @@ import FloatFactory from '../../model/floatFactory'
 import snippetManager from '../../snippets/manager'
 import { Documentation } from '../../types'
 import workspace from '../../workspace'
-import events from '../../events'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -37,12 +36,26 @@ describe('FloatFactory', () => {
       expect(floatFactory.window.id).toBe(winid)
     }
     floatFactory.on('show', fn)
-    await floatFactory.create(docs)
+    await floatFactory.show(docs)
     let hasFloat = await nvim.call('coc#util#has_float')
     expect(hasFloat).toBe(1)
     await nvim.call('coc#util#float_hide')
     floatFactory.removeListener('show', fn)
     expect(called).toBe(true)
+  })
+
+  it('should respect prefer top', async () => {
+    let docs: Documentation[] = [{
+      filetype: 'markdown',
+      content: 'foo\nbar'
+    }]
+    await nvim.call('append', [1, ['', '', '']])
+    await nvim.command('exe 4')
+    await floatFactory.show(docs, { preferTop: true })
+    let win = await helper.getFloat()
+    expect(win).toBeDefined()
+    let pos = await nvim.call('nvim_win_get_position', [win.id])
+    expect(pos).toEqual([1, 0])
   })
 
   it('should hide on BufEnter', async () => {
@@ -51,7 +64,7 @@ describe('FloatFactory', () => {
       filetype: 'markdown',
       content: 'foo'
     }]
-    await floatFactory.create(docs)
+    await floatFactory.show(docs)
     await nvim.command(`edit foo`)
     await helper.wait(100)
     let hasFloat = await nvim.call('coc#util#has_float')
@@ -65,7 +78,7 @@ describe('FloatFactory', () => {
       filetype: 'markdown',
       content: 'foo'
     }]
-    await floatFactory.create(docs)
+    await floatFactory.show(docs)
     let hasFloat = await nvim.call('coc#util#has_float')
     expect(hasFloat).toBe(1)
     await helper.wait(30)
@@ -83,7 +96,7 @@ describe('FloatFactory', () => {
       filetype: 'markdown',
       content: 'foo'
     }]
-    await floatFactory.create(docs)
+    await floatFactory.show(docs)
     await nvim.call('cursor', [1, 2])
     await helper.wait(10)
     await nvim.call('cursor', cursor)
@@ -100,8 +113,8 @@ describe('FloatFactory', () => {
       content: 'foo'
     }]
     await Promise.all([
-      floatFactory.create(docs),
-      floatFactory.create(docs)
+      floatFactory.show(docs),
+      floatFactory.show(docs)
     ])
     await helper.wait(30)
     let count = 0
@@ -120,7 +133,7 @@ describe('FloatFactory', () => {
       filetype: 'markdown',
       content: 'foo'
     }]
-    await floatFactory.create(docs, true)
+    await floatFactory.show(docs, { allowSelection: true })
     let { mode } = await nvim.mode
     expect(mode).toBe('s')
   })
@@ -130,7 +143,7 @@ describe('FloatFactory', () => {
       filetype: 'markdown',
       content: 'f'.repeat(81)
     }]
-    await floatFactory.create(docs)
+    await floatFactory.show(docs)
     let res = await floatFactory.activated()
     expect(res).toBe(true)
     await nvim.call('coc#util#float_hide')
