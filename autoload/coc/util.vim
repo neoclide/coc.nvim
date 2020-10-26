@@ -773,7 +773,9 @@ function! coc#util#diff_content(lines) abort
   let ft = &filetype
   diffthis
   execute 'vs '.tmpfile
-  execute 'setf ' . ft
+  if !empty(ft)
+    execute 'setf ' . ft
+  endif
   diffthis
   setl foldenable
 endfunction

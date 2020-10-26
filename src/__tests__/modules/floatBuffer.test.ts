@@ -100,7 +100,7 @@ describe('FloatBuffer', () => {
       content: "class Foo",
       active: [0, 5]
     }]
-    await buf.setDocuments(docs, 16)
+    await buf.setDocuments(docs, 14)
     nvim.pauseNotification()
     let buffer = await nvim.createNewBuffer(false, false)
     buf.setLines(buffer.id)
@@ -126,20 +126,5 @@ describe('FloatBuffer', () => {
     }]
     let res = FloatBuffer.getDimension(docs, 100, 100)
     expect(res).toEqual({ width: 16, height: 5 })
-  })
-
-  it('should get documents width for multiple docs', async () => {
-    let docs: Documentation[] = [
-      {
-        filetype: "typescript",
-        content: "(method) JSON.stringify(value: any, replacer?: (this: any, key: string, value: any) => any, space?: string | number): string (+1 overload)"
-      },
-      {
-        content: "Converts a JavaScript value to a JavaScript Object Notation (JSON) string.\n\n*@param* `value` — A JavaScript value, usually an object or array, to be converted.  \n\n*@param* `replacer` — A function that transforms the results.  \n\n*@param* `space` — Adds indentation, white space, and line break characters to the return-value JSON text to make it easier to read.",
-        filetype: "markdown"
-      }
-    ]
-    let res = FloatBuffer.getDimension(docs, 80, 100)
-    expect(res).toEqual({ width: 80, height: 12 })
   })
 })

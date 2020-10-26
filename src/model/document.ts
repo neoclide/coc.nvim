@@ -735,9 +735,6 @@ export default class Document {
   public detach(): void {
     this._attached = false
     disposeAll(this.disposables)
-    this.buffer.detach().catch(() => {
-      // ignore invalid buffer error
-    })
     this.disposables = []
     this.fetchContent.clear()
     this.fireContentChanges.clear()
