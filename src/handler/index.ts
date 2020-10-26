@@ -357,10 +357,10 @@ export default class Handler {
     return languages.hasProvider(id as any, doc.textDocument)
   }
 
-  public async onHover(): Promise<boolean> {
+  public async onHover(hoverTarget?: string): Promise<boolean> {
     let { doc, position, winid } = await this.getCurrentState()
     if (doc == null) return
-    let target = this.preferences.hoverTarget
+    let target = hoverTarget ?? this.preferences.hoverTarget
     if (target == 'float') {
       this.hoverFactory.close()
     } else if (target == 'preview') {
@@ -379,7 +379,7 @@ export default class Handler {
         if (workspace.isVim) this.nvim.command('redraw', true)
       }, 1000)
     }
-    await this.previewHover(hovers)
+    await this.previewHover(hovers, target)
     return true
   }
 
@@ -1318,8 +1318,7 @@ export default class Handler {
     search.run(args, workspace.cwd, refactor).logError()
   }
 
-  private async previewHover(hovers: Hover[]): Promise<void> {
-    let target = this.preferences.hoverTarget
+  private async previewHover(hovers: Hover[], target: string): Promise<void> {
     let docs: Documentation[] = []
     let isPreview = target === 'preview'
     for (let hover of hovers) {
