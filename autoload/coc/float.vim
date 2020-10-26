@@ -18,7 +18,7 @@ function! coc#float#get_float_mode(lines, config) abort
     " helps to fix undo issue, don't know why.
     call feedkeys("\<C-g>u", 'n')
   endif
-  let dimension = coc#float#calculate_dimension(a:lines, a:config)
+  let dimension = coc#float#get_config_cursor(a:lines, a:config)
   if empty(dimension)
     return v:null
   endif
@@ -28,7 +28,15 @@ function! coc#float#get_float_mode(lines, config) abort
   return [mode, bufnr('%'), [line('.'), col('.')], dimension]
 endfunction
 
-" create/reuse float window for config position.
+" create/reuse float window for config position, config including:
+" - line: line count relative to cursor, nagetive number means abover cursor.
+" - col: column count relative to cursor, nagetive number means left of cursor.
+" - width: content width without border and title.
+" - height: content height without border and title.
+" - title: (optional) title.
+" - border: (optional) border as number list, like [1, 1, 1 ,1].
+" - cursorline: (optional) enable cursorline when is 1.
+" - autohide: (optional) window should be closed on CursorMoved when is 1.
 function! coc#float#create_float_win(winid, bufnr, config) abort
   call coc#float#close_auto_hide_wins(a:winid)
   " use exists
@@ -38,16 +46,16 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
       call popup_move(a:winid, {
             \ 'line': line,
             \ 'col': col,
-            \ 'minwidth': a:config['width'] - 2,
+            \ 'minwidth': a:config['width'],
             \ 'minheight': a:config['height'],
-            \ 'maxwidth': a:config['width'] - 2,
+            \ 'maxwidth': a:config['width'],
             \ 'maxheight': a:config['height'],
             \ })
       let opts = {
             \ 'cursorline': get(a:config, 'cursorline', 0),
             \ 'title': get(a:config, 'title', ''),
             \ }
-      if has_key(a:config, 'border')
+      if !s:empty_border(get(a:config, 'border', []))
         let opts['border'] = a:config['border']
       endif
       call popup_setoptions(a:winid, opts)
@@ -75,15 +83,15 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
           \ 'highlight': 'CocFloating',
           \ 'fixed': 1,
           \ 'cursorline': get(a:config, 'cursorline', 0),
-          \ 'minwidth': a:config['width'] - 2,
+          \ 'minwidth': a:config['width'],
           \ 'minheight': a:config['height'],
-          \ 'maxwidth': a:config['width'] - 2,
+          \ 'maxwidth': a:config['width'],
           \ 'maxheight': a:config['height']
           \ }
     if get(a:config, 'close', 0)
       let opts['close'] = 'button'
     endif
-    if has_key(a:config, 'border')
+    if !s:empty_border(get(a:config, 'border', []))
       let opts['border'] = a:config['border']
     endif
     let winid = popup_create(bufnr, opts)
@@ -94,7 +102,6 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
       call setwinvar(winid, '&showbreak', 'NONE')
     endif
   else
-    " Note that width is total width, but height is content height
     let config = s:convert_config_nvim(a:config)
     let bufnr = coc#float#create_float_buf(a:bufnr)
     let winid = nvim_open_win(bufnr, 0, config)
@@ -103,7 +110,8 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     endif
     call setwinvar(winid, '&winhl', 'Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating,CursorLine:CocMenuSel')
     call setwinvar(winid, '&signcolumn', 'no')
-    if !get(get(a:config, 'border', []), 3, 0)
+    " no left border
+    if s:empty_border(get(a:config, 'border', [])) || a:config['border'][3] == 0
       call setwinvar(winid, '&foldcolumn', 1)
     endif
     call coc#float#nvim_create_related(winid, config, a:config)
@@ -170,7 +178,7 @@ endfunction
 
 " border window for neovim, content config with border
 function! coc#float#nvim_border_win(config, border, title, related) abort
-  if empty(a:border)
+  if s:empty_border(a:border)
     return
   endif
   " width height col row relative
@@ -534,7 +542,7 @@ endfunction
 function! s:convert_config_nvim(config) abort
   let result = coc#helper#dict_omit(a:config, ['title', 'border', 'cursorline', 'autohide', 'close'])
   let border = get(a:config, 'border', [])
-  if !empty(border)
+  if !s:empty_border(border)
     if result['relative'] ==# 'cursor' && result['row'] < 0
       " move top when has bottom border
       if get(border, 2, 0)
@@ -550,9 +558,9 @@ function! s:convert_config_nvim(config) abort
     if get(border, 3, 0)
       let result['col'] = result['col'] + 1
     endif
-    let result['width'] = result['width'] - 1 - get(border,3, 0)
+    let result['width'] = result['width'] + 1 - get(border,3, 0)
   else
-    let result['width'] = result['width'] - 1
+    let result['width'] = result['width'] + 1
   endif
   return result
 endfunction
@@ -807,8 +815,15 @@ function! coc#float#nvim_check_related() abort
 endfunction
 
 " Dimension of window with lines relative to cursor
-function! coc#float#calculate_dimension(lines, config) abort
+" Width & height excludes border & padding
+function! coc#float#get_config_cursor(lines, config) abort
   let preferTop = get(a:config, 'preferTop', 0)
+  let title = get(a:config, 'title', '')
+  let border = get(a:config, 'border', [0, 0, 0, 0])
+  if s:empty_border(border) && len(title)
+    let border = [1, 1, 1, 1]
+  endif
+  let bh = get(border, 0, 0) + get(border, 2, 0)
   let vh = &lines - &cmdheight - 1
   if vh <= 0
     return v:null
@@ -819,6 +834,48 @@ function! coc#float#calculate_dimension(lines, config) abort
   endif
   let maxHeight = min([get(a:config, 'maxHeight', 80), vh])
   let ch = 0
+  let width = min([40, strdisplaywidth(title)]) + 3
+  for line in a:lines
+    let dw = max([1, strdisplaywidth(line)])
+    let width = max([width, dw + 2])
+    let ch += float2nr(ceil(str2float(string(dw))/(maxWidth - 2)))
+  endfor
+  let width = min([maxWidth, width])
+  let [lineIdx, colIdx] = s:win_position()
+  " How much we should move left
+  let offsetX = min([get(a:config, 'offsetX', 0), colIdx])
+  let showTop = 0
+  let hb = vh - lineIdx -1
+  if lineIdx > bh + 2 && (preferTop || (lineIdx > hb && hb < ch + bh))
+    let showTop = 1
+  endif
+  let height =  min([maxHeight, ch + bh, showTop ? lineIdx - 1 : hb])
+  if height <= bh
+    return v:null
+  endif
+  let col = - max([offsetX, colIdx - (&columns - 1 - width)])
+  let row = showTop ? - height : 1
+  return {
+        \ 'row': row,
+        \ 'col': col,
+        \ 'width': width - 2,
+        \ 'height': height - bh
+        \ }
+endfunction
+
+function! coc#float#get_config_pum(lines, pumconfig, maxwidth) abort
+  if !pumvisible()
+    return v:null
+  endif
+  let pw = a:pumconfig['width'] + get(a:pumconfig, 'scrollbar', 0)
+  let rp = &columns - a:pumconfig['col'] - pw
+  let showRight = a:pumconfig['col'] > rp ? 0 : 1
+  let maxWidth = showRight ? min([rp - 1, a:maxwidth]) : min([a:pumconfig['col'] - 1, a:maxwidth])
+  let maxHeight = &lines - a:pumconfig['row'] - &cmdheight - 1
+  if maxWidth <= 2 || maxHeight < 1
+    return v:null
+  endif
+  let ch = 0
   let width = 0
   for line in a:lines
     let dw = max([1, strdisplaywidth(line)])
@@ -826,21 +883,22 @@ function! coc#float#calculate_dimension(lines, config) abort
     let ch += float2nr(ceil(str2float(string(dw))/(maxWidth - 2)))
   endfor
   let width = min([maxWidth, width])
-  " How much we should move left
-  let [lineIdx, colIdx] = s:win_position()
-  let offsetX = min([get(a:config, 'offsetX', 0), colIdx])
-  let showTop = 0
-  let hb = vh - lineIdx -1
-  if lineIdx > 2 && (preferTop || (lineIdx > hb && hb < ch))
-    let showTop = 1
-  endif
-  let height =  min([ch, showTop ? lineIdx - 1 : hb])
-  let col = - max([offsetX, colIdx - (&columns - 1 - width)])
-  let row = showTop ? - height : 1
+  let height = min([maxHeight, ch])
   return {
-        \ 'row': row,
-        \ 'col': col,
-        \ 'width': width,
-        \ 'height': height
-        \ }
+    \ 'col': showRight ? a:pumconfig['col'] + pw : a:pumconfig['col'] - width - 1,
+    \ 'row': a:pumconfig['row'],
+    \ 'height': height,
+    \ 'width': width - 2 + (s:is_vim && ch > height ? -1 : 0),
+    \ 'relative': 'editor'
+    \ }
+endfunction
+
+function! s:empty_border(border) abort
+  if empty(a:border)
+    return 1
+  endif
+  if a:border[0] == 0 && a:border[1] == 0 && a:border[2] == 0 && a:border[3] == 0
+    return 1
+  endif
+  return 0
 endfunction

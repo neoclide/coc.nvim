@@ -23804,8 +23804,8 @@ class Plugin extends events_1.EventEmitter {
         this.addAction('jumpUsed', openCommand => {
             return this.handler.gotoReferences(openCommand, false);
         });
-        this.addAction('doHover', () => {
-            return this.handler.onHover();
+        this.addAction('doHover', hoverTarget => {
+            return this.handler.onHover(hoverTarget);
         });
         this.addAction('getHover', () => {
             return this.handler.getHover();
@@ -23988,7 +23988,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "d3293597d1" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "047a87b01d" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -25211,33 +25211,35 @@ class FloatFactory extends events_1.EventEmitter {
         let token = tokenSource.token;
         let { nvim, floatBuffer } = this;
         let lines = floatBuffer_1.default.getLines(docs, !this.env.isVim);
-        // get options
-        let arr = await this.nvim.call('coc#float#get_float_mode', [lines, {
-                allowSelection: opts.allowSelection || false,
-                pumAlignTop: this.pumAlignTop,
-                preferTop: typeof opts.preferTop === 'boolean' ? opts.preferTop : this.preferTop,
-                maxWidth: this.maxWidth || 80,
-                maxHeight: this.maxHeight,
-                offsetX: opts.offsetX || 0
-            }]);
+        let floatConfig = {
+            allowSelection: opts.allowSelection || false,
+            pumAlignTop: this.pumAlignTop,
+            preferTop: typeof opts.preferTop === 'boolean' ? opts.preferTop : this.preferTop,
+            maxWidth: this.maxWidth || 80,
+            maxHeight: this.maxHeight,
+            offsetX: opts.offsetX || 0,
+            title: opts.title || ''
+        };
+        if (opts.border) {
+            floatConfig.border = opts.border;
+        }
+        if (opts.title && !floatConfig.border) {
+            floatConfig.border = [1, 1, 1, 1];
+        }
+        let arr = await this.nvim.call('coc#float#get_float_mode', [lines, floatConfig]);
         if (!arr || token.isCancellationRequested)
             return;
         let [mode, targetBufnr, cursor, config] = arr;
-        this.targetBufnr = targetBufnr;
-        this.cursor = cursor;
         config.relative = 'cursor';
+        config.title = floatConfig.title;
+        config.border = floatConfig.border;
+        config.close = opts.close ? 1 : 0;
         if (opts.cursorline)
             config.cursorline = 1;
         if (this.autoHide)
             config.autohide = 1;
-        if (opts.title || opts.border != null) {
-            config.title = opts.title || '';
-            config.border = opts.border || [1, 1, 1, 1];
-            if (config.border.length == 0) {
-                config.border = [1, 1, 1, 1];
-            }
-        }
-        config.close = opts.close ? 1 : 0;
+        this.targetBufnr = targetBufnr;
+        this.cursor = cursor;
         // calculat highlights
         await floatBuffer.setDocuments(docs, config.width);
         if (token.isCancellationRequested)
@@ -25548,7 +25550,7 @@ class FloatBuffer {
             let filtered = workspace_1.default.isNvim && doc.filetype === 'markdown' ? lines.filter(s => !/^\s*```/.test(s)) : lines;
             newLines.push(...filtered);
             if (idx != docs.length - 1) {
-                newLines.push('—'.repeat(width - 2));
+                newLines.push('—'.repeat(width));
                 currLine = newLines.length;
             }
             idx = idx + 1;
@@ -37071,9 +37073,6 @@ class Document {
     detach() {
         this._attached = false;
         index_1.disposeAll(this.disposables);
-        this.buffer.detach().catch(() => {
-            // ignore invalid buffer error
-        });
         this.disposables = [];
         this.fetchContent.clear();
         this.fireContentChanges.clear();
@@ -42506,6 +42505,7 @@ class Completion {
             this.complete = null;
         }
         nvim.pauseNotification();
+        this.floating.close();
         if (this.config.numberSelect) {
             nvim.call('coc#_unmap', [], true);
         }
@@ -87071,7 +87071,8 @@ class Floating {
     }
     async showDocumentationFloating(docs, bounding, token) {
         let { nvim } = workspace_1.default;
-        let config = this.calculateBounding(docs, bounding);
+        let lines = floatBuffer_1.default.getLines(docs, workspace_1.default.isNvim);
+        let config = await nvim.call('coc#float#get_config_pum', [lines, bounding, this.config.maxPreviewWidth]);
         if (!config || token.isCancellationRequested)
             return;
         await this.floatBuffer.setDocuments(docs, config.width);
@@ -87113,33 +87114,6 @@ class Floating {
         workspace_1.default.nvim.call('coc#float#close', [winid], true);
         if (workspace_1.default.isVim)
             workspace_1.default.nvim.command('redraw', true);
-    }
-    calculateBounding(docs, bounding) {
-        let { config } = this;
-        let { columns, lines } = workspace_1.default.env;
-        let { maxPreviewWidth } = config;
-        let pumWidth = bounding.width + (bounding.scrollbar ? 1 : 0);
-        let showRight = true;
-        let paddingRight = columns - bounding.col - pumWidth;
-        if (bounding.col > paddingRight)
-            showRight = false;
-        let maxWidth = showRight ? paddingRight - 1 : bounding.col - 1;
-        maxWidth = Math.min(maxPreviewWidth, maxWidth);
-        let maxHeight = lines - bounding.row - 2;
-        if (maxHeight <= 0) {
-            logger.error(`Invalid count for &lines: ${lines} - ${bounding.row}`);
-            return null;
-        }
-        let { width, height } = floatBuffer_1.default.getDimension(docs, maxWidth, maxHeight);
-        if (width == 0 || height == 0)
-            return null;
-        return {
-            col: showRight ? bounding.col + pumWidth : bounding.col - width - 1,
-            row: bounding.row,
-            height,
-            width,
-            relative: 'editor'
-        };
     }
 }
 exports.default = Floating;
@@ -88520,11 +88494,11 @@ class Handler {
             return false;
         return languages_1.default.hasProvider(id, doc.textDocument);
     }
-    async onHover() {
+    async onHover(hoverTarget) {
         let { doc, position, winid } = await this.getCurrentState();
         if (doc == null)
             return;
-        let target = this.preferences.hoverTarget;
+        let target = (hoverTarget !== null && hoverTarget !== void 0 ? hoverTarget : this.preferences.hoverTarget);
         if (target == 'float') {
             this.hoverFactory.close();
         }
@@ -88546,7 +88520,7 @@ class Handler {
                     this.nvim.command('redraw', true);
             }, 1000);
         }
-        await this.previewHover(hovers);
+        await this.previewHover(hovers, target);
         return true;
     }
     /**
@@ -89543,8 +89517,7 @@ class Handler {
         let search = new search_1.default(this.nvim);
         search.run(args, workspace_1.default.cwd, refactor).logError();
     }
-    async previewHover(hovers) {
-        let target = this.preferences.hoverTarget;
+    async previewHover(hovers, target) {
         let docs = [];
         let isPreview = target === 'preview';
         for (let hover of hovers) {
@@ -89588,8 +89561,6 @@ class Handler {
             if (msg.length) {
                 await this.nvim.call('coc#util#echo_hover', msg);
             }
-        }
-        else if (target == 'float') {
         }
         else {
             this.documentLines = lines;
