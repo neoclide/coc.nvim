@@ -503,6 +503,7 @@ export class Completion implements Disposable {
       this.complete = null
     }
     nvim.pauseNotification()
+    this.floating.close()
     if (this.config.numberSelect) {
       nvim.call('coc#_unmap', [], true)
     }
