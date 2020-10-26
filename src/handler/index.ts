@@ -1357,7 +1357,6 @@ export default class Handler {
       if (msg.length) {
         await this.nvim.call('coc#util#echo_hover', msg)
       }
-    } else if (target == 'float') {
     } else {
       this.documentLines = lines
       await this.nvim.command(`noswapfile pedit coc://document`)

@@ -850,7 +850,7 @@ function! coc#float#cursor_dimension(lines, config) abort
     let showTop = 1
   endif
   let height =  min([maxHeight, ch + bh, showTop ? lineIdx - 1 : hb])
-  if height <= bh + 1
+  if height <= bh
     return v:null
   endif
   let col = - max([offsetX, colIdx - (&columns - 1 - width)])
