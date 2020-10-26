@@ -32,7 +32,6 @@ List						|coc-list|
     Services						|coc-list-services|
     Commands						|coc-list-commands|
     Links						|coc-list-links|
-    Output						|coc-list-output|
     Sources						|coc-list-completion-sources|
     Lists						|coc-list-lists|
 Statusline support				|coc-status|
