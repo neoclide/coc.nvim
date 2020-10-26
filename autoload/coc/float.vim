@@ -18,7 +18,7 @@ function! coc#float#get_float_mode(lines, config) abort
     " helps to fix undo issue, don't know why.
     call feedkeys("\<C-g>u", 'n')
   endif
-  let dimension = coc#float#cursor_dimension(a:lines, a:config)
+  let dimension = coc#float#get_config_cursor(a:lines, a:config)
   if empty(dimension)
     return v:null
   endif
@@ -816,7 +816,7 @@ endfunction
 
 " Dimension of window with lines relative to cursor
 " Width & height excludes border & padding
-function! coc#float#cursor_dimension(lines, config) abort
+function! coc#float#get_config_cursor(lines, config) abort
   let preferTop = get(a:config, 'preferTop', 0)
   let title = get(a:config, 'title', '')
   let border = get(a:config, 'border', [0, 0, 0, 0])
@@ -861,6 +861,36 @@ function! coc#float#cursor_dimension(lines, config) abort
         \ 'width': width - 2,
         \ 'height': height - bh
         \ }
+endfunction
+
+function! coc#float#get_config_pum(lines, pumconfig, maxwidth) abort
+  if !pumvisible()
+    return v:null
+  endif
+  let pw = a:pumconfig['width'] + get(a:pumconfig, 'scrollbar', 0)
+  let rp = &columns - a:pumconfig['col'] - pw
+  let showRight = a:pumconfig['col'] > rp ? 0 : 1
+  let maxWidth = showRight ? min([rp - 1, a:maxwidth]) : min([a:pumconfig['col'] - 1, a:maxwidth])
+  let maxHeight = &lines - a:pumconfig['row'] - &cmdheight - 1
+  if maxWidth <= 2 || maxHeight < 1
+    return v:null
+  endif
+  let ch = 0
+  let width = 0
+  for line in a:lines
+    let dw = max([1, strdisplaywidth(line)])
+    let width = max([width, dw + 2])
+    let ch += float2nr(ceil(str2float(string(dw))/(maxWidth - 2)))
+  endfor
+  let width = min([maxWidth, width])
+  let height = min([maxHeight, ch])
+  return {
+    \ 'col': showRight ? a:pumconfig['col'] + pw : a:pumconfig['col'] - width - 1,
+    \ 'row': a:pumconfig['row'],
+    \ 'height': height,
+    \ 'width': width - 2 + (s:is_vim && ch > height ? -1 : 0),
+    \ 'relative': 'editor'
+    \ }
 endfunction
 
 function! s:empty_border(border) abort

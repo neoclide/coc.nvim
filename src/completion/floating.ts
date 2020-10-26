@@ -46,7 +46,8 @@ export default class Floating {
 
   private async showDocumentationFloating(docs: Documentation[], bounding: PumBounding, token: CancellationToken): Promise<void> {
     let { nvim } = workspace
-    let config = this.calculateBounding(docs, bounding)
+    let lines = FloatBuffer.getLines(docs, workspace.isNvim)
+    let config = await nvim.call('coc#float#get_config_pum', [lines, bounding, this.config.maxPreviewWidth])
     if (!config || token.isCancellationRequested) return
     await this.floatBuffer.setDocuments(docs, config.width)
     if (token.isCancellationRequested) return
@@ -83,31 +84,5 @@ export default class Floating {
     this.winid = null
     workspace.nvim.call('coc#float#close', [winid], true)
     if (workspace.isVim) workspace.nvim.command('redraw', true)
-  }
-
-  private calculateBounding(docs: Documentation[], bounding: PumBounding): Bounding {
-    let { config } = this
-    let { columns, lines } = workspace.env
-    let { maxPreviewWidth } = config
-    let pumWidth = bounding.width + (bounding.scrollbar ? 1 : 0)
-    let showRight = true
-    let paddingRight = columns - bounding.col - pumWidth
-    if (bounding.col > paddingRight) showRight = false
-    let maxWidth = showRight ? paddingRight - 1 : bounding.col - 1
-    maxWidth = Math.min(maxPreviewWidth, maxWidth)
-    let maxHeight = lines - bounding.row - 2
-    if (maxHeight <= 0) {
-      logger.error(`Invalid count for &lines: ${lines} - ${bounding.row}`)
-      return null
-    }
-    let { width, height } = FloatBuffer.getDimension(docs, maxWidth, maxHeight)
-    if (width == 0 || height == 0) return null
-    return {
-      col: showRight ? bounding.col + pumWidth : bounding.col - width - 1,
-      row: bounding.row,
-      height,
-      width: width - 2,
-      relative: 'editor'
-    }
   }
 }
