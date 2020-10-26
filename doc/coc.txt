@@ -1819,8 +1819,9 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	Show documentation of the current word in a preview window.
 	Return `v:false` when hover not found.
 
-	{hoverTarget}: optional specification for where to show hover info, defaults to
-	`coc.preferences.hoverTarget` in `coc-settings.json`.
+	{hoverTarget}: optional specification for where to show hover info,
+	defaults to `coc.preferences.hoverTarget` in `coc-settings.json`.
+	Valid options: ["preview", "echo", "float"]
 
 	Note: the behavior would change in Neovim, where floating windows are
 	available.
