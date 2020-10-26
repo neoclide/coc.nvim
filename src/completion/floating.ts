@@ -106,7 +106,7 @@ export default class Floating {
       col: showRight ? bounding.col + pumWidth : bounding.col - width - 1,
       row: bounding.row,
       height,
-      width,
+      width: width - 2,
       relative: 'editor'
     }
   }

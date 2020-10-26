@@ -155,30 +155,32 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     let token = tokenSource.token
     let { nvim, floatBuffer } = this
     let lines = FloatBuffer.getLines(docs, !this.env.isVim)
-    // get options
-    let arr = await this.nvim.call('coc#float#get_float_mode', [lines, {
+    let floatConfig: any = {
       allowSelection: opts.allowSelection || false,
       pumAlignTop: this.pumAlignTop,
       preferTop: typeof opts.preferTop === 'boolean' ? opts.preferTop : this.preferTop,
       maxWidth: this.maxWidth || 80,
       maxHeight: this.maxHeight,
-      offsetX: opts.offsetX || 0
-    }])
+      offsetX: opts.offsetX || 0,
+      title: opts.title || ''
+    }
+    if (opts.border) {
+      floatConfig.border = opts.border
+    }
+    if (opts.title && !floatConfig.border) {
+      floatConfig.border = [1, 1, 1, 1]
+    }
+    let arr = await this.nvim.call('coc#float#get_float_mode', [lines, floatConfig])
     if (!arr || token.isCancellationRequested) return
     let [mode, targetBufnr, cursor, config] = arr
-    this.targetBufnr = targetBufnr
-    this.cursor = cursor
     config.relative = 'cursor'
+    config.title = floatConfig.title
+    config.border = floatConfig.border
+    config.close = opts.close ? 1 : 0
     if (opts.cursorline) config.cursorline = 1
     if (this.autoHide) config.autohide = 1
-    if (opts.title || opts.border != null) {
-      config.title = opts.title || ''
-      config.border = opts.border || [1, 1, 1, 1]
-      if (config.border.length == 0) {
-        config.border = [1, 1, 1, 1]
-      }
-    }
-    config.close = opts.close ? 1 : 0
+    this.targetBufnr = targetBufnr
+    this.cursor = cursor
     // calculat highlights
     await floatBuffer.setDocuments(docs, config.width)
     if (token.isCancellationRequested) return
