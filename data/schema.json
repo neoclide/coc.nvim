@@ -665,10 +665,16 @@
       "description": "Target of signature help, use float when possible by default.",
       "enum": ["float", "echo", "preview"]
     },
-    "signature.floatMaxWidth": {
+    "signature.maxWindowWidth": {
       "type": "integer",
-      "default": 60,
-      "description": "Max width of signature float window."
+      "default": 80,
+      "description": "Maximum width of signature float window (or popup on vim8)."
+    },
+    "signature.maxWindowHeight": {
+      "type": "number",
+      "description": "Maximum height of signature float window (or popup on vim8).",
+      "minimum": 3,
+      "default": 8
     },
     "signature.preferShownAbove": {
       "type": "boolean",
@@ -679,11 +685,6 @@
       "type": "boolean",
       "description": "Hide signature float window when text changed, require restart service on change.",
       "default": false
-    },
-    "signature.maxWindowHeight": {
-      "type": "number",
-      "description": "Maximum height of floating signature help window.",
-      "default": 8
     },
     "codeLens.enable": {
       "type": "boolean",

@@ -23988,7 +23988,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "047a87b01d" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "fe165b2b62" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -27470,7 +27470,7 @@ class Workspace {
     async menuPick(items, title) {
         if (this.floatSupported) {
             let { menu } = this;
-            await menu.show(items, title);
+            menu.show(items, title);
             let res = await new Promise(resolve => {
                 let disposables = [];
                 menu.onDidCancel(() => {
@@ -37795,7 +37795,7 @@ class Menu {
         nvim.command(`sign unplace 6 buffer=${buf.id}`, true);
         nvim.command(`sign place 6 line=${index + 1} name=CocCurrentLine buffer=${buf.id}`, true);
     }
-    async show(items, title) {
+    show(items, title) {
         let lines = items.map((v, i) => {
             if (i < 99)
                 return `${i + 1}. ${v}`;
@@ -44146,6 +44146,9 @@ class Installer extends events_1.EventEmitter {
                 let args = ['install', '--ignore-scripts', '--no-lockfile', '--production'];
                 if (url.startsWith('https://github.com')) {
                     args = ['install'];
+                }
+                if (this.npm.endsWith('npm')) {
+                    args.push('--legacy-peer-deps');
                 }
                 this.log(`Installing dependencies by: ${this.npm} ${args.join(' ')}.`);
                 const child = child_process_1.spawn(this.npm, args, {
@@ -78220,8 +78223,6 @@ class ListManager {
     }
     async onInputChar(ch, charmod) {
         let { mode } = this.prompt;
-        if (!this.lastSession || !this.lastSession.winid)
-            return;
         let mapped = this.charMap.get(ch);
         let now = Date.now();
         if (mapped == '<plug>' || now - this.plugTs < 2) {
@@ -78278,8 +78279,8 @@ class ListManager {
             await this.onMouseEvent(inserted);
             return;
         }
-        let done = await this.mappings.doNormalKeymap(inserted);
-        if (!done)
+        let used = await this.mappings.doNormalKeymap(inserted);
+        if (!used)
             await this.feedkeys(inserted);
     }
     onMouseEvent(key) {
@@ -78759,16 +78760,16 @@ class Mappings {
         this.manager.prompt.start();
     }
     async evalExpression(expr, _mode) {
-        var _a, _b, _c, _d, _e, _f;
+        var _a, _b, _c, _d, _e, _f, _g;
         if (typeof expr != 'string' || !expr.includes(':')) {
-            await this.onError(`Invalid expression ${expr}`);
+            await this.onError(`Invalid list mapping expression: ${expr}`);
             return;
         }
         let { manager } = this;
         let { prompt } = manager;
         let [key, action] = expr.split(':', 2);
         if (key == 'do') {
-            switch (action) {
+            switch (action.toLowerCase()) {
                 case 'switch':
                     manager.switchMatcher();
                     return;
@@ -78793,6 +78794,9 @@ class Mappings {
                 case 'toggle':
                     await ((_d = manager.session) === null || _d === void 0 ? void 0 : _d.ui.toggleSelection());
                     return;
+                case 'jumpback':
+                    (_e = manager.session) === null || _e === void 0 ? void 0 : _e.jumpBack();
+                    return;
                 case 'previous':
                     await manager.normal('k');
                     return;
@@ -78802,11 +78806,11 @@ class Mappings {
                 case 'defaultaction':
                     await manager.doAction();
                     return;
-                case 'toggleMode':
+                case 'togglemode':
                     return manager.toggleMode();
-                case 'previewUp':
+                case 'previewup':
                     return this.scrollPreview('up');
-                case 'previewDown':
+                case 'previewdown':
                     return this.scrollPreview('down');
                 default:
                     await this.onError(`'${action}' not supported`);
@@ -78815,10 +78819,10 @@ class Mappings {
         else if (key == 'prompt') {
             switch (action) {
                 case 'previous':
-                    (_e = manager.session) === null || _e === void 0 ? void 0 : _e.history.previous();
+                    (_f = manager.session) === null || _f === void 0 ? void 0 : _f.history.previous();
                     return;
                 case 'next':
-                    (_f = manager.session) === null || _f === void 0 ? void 0 : _f.history.next();
+                    (_g = manager.session) === null || _g === void 0 ? void 0 : _g.history.next();
                     return;
                 case 'start':
                     return prompt.moveToStart();
@@ -83543,9 +83547,9 @@ class ListUI {
     }
     async onMouse(event) {
         let { nvim, window } = this;
-        let winid = await nvim.getVvar('mouse_winid');
         if (!window)
             return;
+        let winid = await nvim.getVvar('mouse_winid');
         let lnum = await nvim.getVvar('mouse_lnum');
         let col = await nvim.getVvar('mouse_col');
         if (event == 'mouseDown') {
@@ -89586,7 +89590,7 @@ class Handler {
             triggerSignatureHelp: signatureConfig.get('enable', true),
             triggerSignatureWait: Math.max(signatureConfig.get('triggerSignatureWait', 50), 50),
             signaturePreferAbove: signatureConfig.get('preferShownAbove', true),
-            signatureFloatMaxWidth: signatureConfig.get('floatMaxWidth', 60),
+            signatureFloatMaxWidth: signatureConfig.get('maxWindowWidth', 80),
             signatureHideOnChange: signatureConfig.get('hideOnTextChange', false),
             formatOnType: config.get('formatOnType', false),
             formatOnTypeFiletypes: config.get('formatOnTypeFiletypes', []),
