@@ -175,8 +175,8 @@ export default class ListUI {
 
   public async onMouse(event: MouseEvent): Promise<void> {
     let { nvim, window } = this
-    let winid = await nvim.getVvar('mouse_winid') as number
     if (!window) return
+    let winid = await nvim.getVvar('mouse_winid') as number
     let lnum = await nvim.getVvar('mouse_lnum') as number
     let col = await nvim.getVvar('mouse_col') as number
     if (event == 'mouseDown') {

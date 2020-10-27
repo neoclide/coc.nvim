@@ -205,14 +205,14 @@ export default class Mappings {
 
   private async evalExpression(expr: string, _mode: string): Promise<void> {
     if (typeof expr != 'string' || !expr.includes(':')) {
-      await this.onError(`Invalid expression ${expr}`)
+      await this.onError(`Invalid list mapping expression: ${expr}`)
       return
     }
     let { manager } = this
     let { prompt } = manager
     let [key, action] = expr.split(':', 2)
     if (key == 'do') {
-      switch (action) {
+      switch (action.toLowerCase()) {
         case 'switch':
           manager.switchMatcher()
           return
@@ -237,6 +237,9 @@ export default class Mappings {
         case 'toggle':
           await manager.session?.ui.toggleSelection()
           return
+        case 'jumpback':
+          manager.session?.jumpBack()
+          return
         case 'previous':
           await manager.normal('k')
           return
@@ -246,11 +249,11 @@ export default class Mappings {
         case 'defaultaction':
           await manager.doAction()
           return
-        case 'toggleMode':
+        case 'togglemode':
           return manager.toggleMode()
-        case 'previewUp':
+        case 'previewup':
           return this.scrollPreview('up')
-        case 'previewDown':
+        case 'previewdown':
           return this.scrollPreview('down')
         default:
           await this.onError(`'${action}' not supported`)

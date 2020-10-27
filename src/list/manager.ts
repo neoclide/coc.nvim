@@ -296,7 +296,6 @@ export class ListManager implements Disposable {
 
   private async onInputChar(ch: string, charmod: number): Promise<void> {
     let { mode } = this.prompt
-    if (!this.lastSession || !this.lastSession.winid) return
     let mapped = this.charMap.get(ch)
     let now = Date.now()
     if (mapped == '<plug>' || now - this.plugTs < 2) {
@@ -347,8 +346,8 @@ export class ListManager implements Disposable {
       await this.onMouseEvent(inserted)
       return
     }
-    let done = await this.mappings.doNormalKeymap(inserted)
-    if (!done) await this.feedkeys(inserted)
+    let used = await this.mappings.doNormalKeymap(inserted)
+    if (!used) await this.feedkeys(inserted)
   }
 
   public onMouseEvent(key): Promise<void> {
