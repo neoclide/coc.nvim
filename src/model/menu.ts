@@ -111,7 +111,7 @@ export default class Menu {
     nvim.command(`sign place 6 line=${index + 1} name=CocCurrentLine buffer=${buf.id}`, true)
   }
 
-  public async show(items: string[], title?: string): Promise<void> {
+  public show(items: string[], title?: string): void {
     let lines = items.map((v, i) => {
       if (i < 99) return `${i + 1}. ${v}`
       return v
