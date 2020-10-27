@@ -126,7 +126,7 @@ class Languages {
       echodocSupport: suggest.get<boolean>('echodocSupport', false),
       detailField: suggest.get<string>('detailField', 'menu'),
       detailMaxLength: suggest.get<number>('detailMaxLength', 100),
-      invalidInsertCharacters: suggest.get<string[]>('invalidInsertCharacters', [' ', '(', '<', '{', '[', '\r', '\n']),
+      invalidInsertCharacters: suggest.get<string[]>('invalidInsertCharacters', ['(', '<', '{', '[', '\r', '\n']),
     }
   }
 
@@ -592,18 +592,6 @@ class Languages {
     let doc = workspace.getDocument(bufnr)
     if (!doc) return false
     let { range, newText } = textEdit
-    // handle possible indent change for textEdit
-    let oi = line.match(/^\s*/)[0]
-    let ci = doc.getline(linenr - 1).match(/^\s*/)[0]
-    if (oi != ci) {
-      let c = ci.length - oi.length
-      if (range.start.line == linenr - 1) {
-        range.start.character = range.start.character + c
-      }
-      if (range.end.line == linenr - 1) {
-        range.end.character = range.end.character + c
-      }
-    }
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
     // replace inserted word
     let start = line.substr(0, range.start.character)
@@ -652,7 +640,11 @@ class Languages {
   private getStartColumn(line: string, items: CompletionItem[]): number | null {
     let first = items[0]
     if (!first.textEdit) return null
-    let { character } = first.textEdit.range.start
+    let { range, newText } = first.textEdit
+    let { character } = range.start
+    if (newText.length < range.end.character - character) {
+      return null
+    }
     for (let i = 0; i < 10; i++) {
       let o = items[i]
       if (!o) break
