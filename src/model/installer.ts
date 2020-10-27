@@ -122,6 +122,9 @@ export class Installer extends EventEmitter {
         if (url.startsWith('https://github.com')) {
           args = ['install']
         }
+        if (this.npm.endsWith('npm')) {
+          args.push('--legacy-peer-deps')
+        }
         this.log(`Installing dependencies by: ${this.npm} ${args.join(' ')}.`)
         const child = spawn(this.npm, args, {
           cwd: tmpFolder,
