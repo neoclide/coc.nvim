@@ -464,7 +464,7 @@ Built-in configurations:~
 	Enable signature help when trigger character typed. Requires service restart
 	on change, default: `true`
 
-"signature.floatMaxWidth":~
+"signature.maxWindowWidth":~
 
 	Max width of signature float window, default: `60`
 

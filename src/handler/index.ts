@@ -1382,7 +1382,7 @@ export default class Handler {
       triggerSignatureHelp: signatureConfig.get<boolean>('enable', true),
       triggerSignatureWait: Math.max(signatureConfig.get<number>('triggerSignatureWait', 50), 50),
       signaturePreferAbove: signatureConfig.get<boolean>('preferShownAbove', true),
-      signatureFloatMaxWidth: signatureConfig.get<number>('floatMaxWidth', 60),
+      signatureFloatMaxWidth: signatureConfig.get<number>('maxWindowWidth', 80),
       signatureHideOnChange: signatureConfig.get<boolean>('hideOnTextChange', false),
       formatOnType: config.get<boolean>('formatOnType', false),
       formatOnTypeFiletypes: config.get('formatOnTypeFiletypes', []),
