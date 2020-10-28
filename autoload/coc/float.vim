@@ -6,6 +6,44 @@ let s:prompt_win_width = get(g:, 'coc_prompt_win_width', 32)
 let s:scrollbar_ns = exists('*nvim_create_namespace') ?  nvim_create_namespace('coc-scrollbar') : 0
 " winvar: border array of numbers,  button boolean
 
+" detect if there's float window/popup created by coc.nvim
+function! coc#float#has_float() abort
+  if s:is_vim
+    if !exists('*popup_list')
+      return 0
+    endif
+    let arr = filter(popup_list(), 'getwinvar(v:val,"float",0)&&popup_getpos(v:val)["visible"]')
+    return !empty(arr)
+  endif
+  for i in range(1, winnr('$'))
+    if getwinvar(i, 'float')
+      return 1
+    endif
+  endfor
+  return 0
+endfunction
+
+function! coc#float#close_all() abort
+  if !has('nvim') && exists('*popup_clear')
+    call popup_clear()
+    return
+  endif
+  let winids = coc#float#get_float_win_list()
+  for id in winids
+    call coc#float#close(id)
+  endfor
+endfunction
+
+function! coc#float#jump() abort
+  if s:is_vim
+    return
+  endif
+  let winids = coc#float#get_float_win_list()
+  if !empty(winids)
+    call win_gotoid(winids[0])
+  endif
+endfunction
+
 function! coc#float#get_float_mode(lines, config) abort
   let allowSelection = get(a:config, 'allowSelection', 0)
   let pumAlignTop = get(a:config, 'pumAlignTop', 0)

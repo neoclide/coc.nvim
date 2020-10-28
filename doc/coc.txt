@@ -1056,7 +1056,8 @@ normal mode, `v_` works for visual mode.
 
 <Plug>(coc-float-jump)					*n_coc-float-jump*
 
-	Jump to first float window.
+	Jump to first float window, works on neovim only since vim's popup
+	doesn't have support for focus.
 
 <Plug>(coc-refactor)					*n_coc-refactor*
 
@@ -1593,18 +1594,10 @@ coc#util#rebuild()					*coc#util#rebuild()*
 
 	Rebuild coc extensions.
 
-
-coc#util#float_hide()					*coc#util#float_hide()*
-
-	Close float windows created by coc.nvim.
-
 coc#util#float_scroll({forward})			*coc#util#float_scroll()*
 
-	Return expr for scrolling a floating window forward or backward. ex: >
+	Deprecated, please use |coc#float#scroll|.
 
-	nnoremap <expr><C-f> coc#util#has_float() ? coc#util#float_scroll(1) : "\<C-f>"
-	nnoremap <expr><C-b> coc#util#has_float() ? coc#util#float_scroll(0) : "\<C-b>"
-<
 coc#util#root_patterns()				*coc#util#root_patterns()*
 
 	Get root patterns used for current document.
@@ -1618,13 +1611,17 @@ coc#util#get_config({key})				*coc#util#get_config()*
 	Get configuration (mostly defined in coc-settings.json)	by {key}, ex: >
 
 	:echo coc#util#get_config('coc.preferences')
-<
-coc#util#close_floats()					*coc#util#close_floats()*
 
-	Close all float/popup windows, works on vim and neovim.
+coc#float#close_all() 					*coc#float#close_all()*
+
+	Close all float windows/popups.
 
 	Note: Popup/float windows created by other plugins will also be
 	cleared.
+
+coc#float#close({winid}) 				*coc#float#close()*
+
+	Close float window/popup with {winid}.
 
 coc#float#has_scroll() 					*coc#float#has_scroll()*
 
