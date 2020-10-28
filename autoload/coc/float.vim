@@ -863,6 +863,49 @@ function! coc#float#nvim_check_related() abort
   endfor
 endfunction
 
+" Scroll float in any mode (neovim only)
+" Only really useful for visual mode scroll, where coc#float#scroll
+" is not yet implemented
+function! coc#float#nvim_scroll(forward, ...)
+  let float = coc#float#get_float_win()
+  if !float | return '' | endif
+  let buf = nvim_win_get_buf(float)
+  let buf_height = nvim_buf_line_count(buf)
+  let win_height = nvim_win_get_height(float)
+  if buf_height < win_height | return '' | endif
+  let pos = nvim_win_get_cursor(float)
+  let amount = (a:forward == 1 ? 1 : -1) * get(a:, 1, max([1, win_height/2]))
+  let scrolloff = &scrolloff*2 < win_height ? &scrolloff : 0
+  try
+    let last_amount = nvim_win_get_var(float, 'coc_float_scroll_last_amount')
+  catch
+    let last_amount = 0
+  endtry
+  if amount > 0
+    if pos[0] == 1
+      let pos[0] += amount + win_height - scrolloff*1 - 1
+    elseif last_amount > 0
+      let pos[0] += amount
+    else
+      let pos[0] += amount + win_height - scrolloff*2 - 1
+    endif
+    let pos[0] = pos[0] < buf_height - scrolloff ? pos[0] : buf_height
+  elseif amount < 0
+    if pos[0] == buf_height
+      let pos[0] += amount - win_height + scrolloff*1 + 1
+    elseif last_amount < 0
+      let pos[0] += amount
+    else
+      let pos[0] += amount - win_height + scrolloff*2 + 1
+    endif
+    let pos[0] = pos[0] > scrolloff ? pos[0] : 1
+  endif
+  call nvim_win_set_var(float, 'coc_float_scroll_last_amount', amount)
+  call nvim_win_set_cursor(float, pos)
+  call timer_start(10, { -> coc#float#nvim_scrollbar(float) })
+  return ''
+endfunction
+
 " Dimension of window with lines relative to cursor
 " Width & height excludes border & padding
 function! coc#float#get_config_cursor(lines, config) abort
