@@ -45,7 +45,7 @@ describe('completion float', () => {
     await nvim.input('if')
     await helper.visible('foo', 'float')
     helper.updateConfiguration('suggest.floatEnable', true)
-    let hasFloat = await nvim.call('coc#util#has_float')
+    let hasFloat = await nvim.call('coc#float#has_float')
     expect(hasFloat).toBe(0)
   })
 
@@ -60,7 +60,7 @@ describe('completion float', () => {
     await helper.wait(500)
     await nvim.input('<esc>')
     await helper.wait(100)
-    let hasFloat = await nvim.call('coc#util#has_float')
+    let hasFloat = await nvim.call('coc#float#has_float')
     expect(hasFloat).toBe(0)
   })
 
@@ -103,7 +103,7 @@ describe('completion float', () => {
     await helper.wait(10)
     await nvim.input('<C-n>')
     await helper.wait(100)
-    let hasFloat = await nvim.call('coc#util#has_float')
+    let hasFloat = await nvim.call('coc#float#has_float')
     expect(hasFloat).toBe(0)
   })
 
@@ -116,7 +116,7 @@ describe('completion float', () => {
     await helper.wait(100)
     await nvim.input('<C-y>')
     await helper.wait(30)
-    let hasFloat = await nvim.call('coc#util#has_float')
+    let hasFloat = await nvim.call('coc#float#has_float')
     expect(hasFloat).toBe(0)
   })
 })
