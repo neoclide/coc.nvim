@@ -831,7 +831,7 @@ describe('workspace utility', () => {
 
   it('should show prompt', async () => {
     let p = workspace.showPrompt('prompt')
-    await helper.wait(30)
+    await helper.wait(100)
     await nvim.input('y')
     let res = await p
     expect(res).toBe(true)

@@ -54,3 +54,14 @@ function! coc#helper#dict_omit(dict, keys) abort
   endfor
   return res
 endfunction
+
+" Return new dict with keys only
+function! coc#helper#dict_pick(dict, keys) abort
+  let res = {}
+  for key in keys(a:dict)
+    if index(a:keys, key) != -1
+      let res[key] = a:dict[key]
+    endif
+  endfor
+  return res
+endfunction
