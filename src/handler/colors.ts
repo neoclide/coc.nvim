@@ -31,13 +31,12 @@ export default class Colors {
       let highlighter = this.highlighters.get(bufnr)
       if (highlighter && this.enabled) highlighter.highlight()
     }, null, this.disposables)
-    events.on('BufUnload', async bufnr => {
+    workspace.onDidCloseTextDocument(({ bufnr }) => {
       let highlighter = this.highlighters.get(bufnr)
       if (!highlighter) return
-      this.highlighters.delete(bufnr)
       highlighter.dispose()
-    }, null, this.disposables)
-
+      this.highlighters.delete(bufnr)
+    })
     let config = workspace.getConfiguration('coc.preferences')
     this._enabled = config.get<boolean>('colorSupport', true)
     this.srcId = workspace.createNameSpace('coc-colors')
