@@ -1643,6 +1643,23 @@ coc#float#scroll({forward}, [{amount}])
 
 	Note: this function requires nvim >= 0.4.3 or vim >= 8.2.750 to work.
 
+coc#float#nvim_scroll({forward}, [{amount}]) 		*coc#float#nvim_scroll()*
+
+	NeoVim-only function to scroll float window on current tab, scroll
+	backward when {forward} is not `1`. {amount} could be number, or
+	approximately half page when omitted.
+	Example key-mappings:
+>
+	if has('nvim')
+	  vnoremap <nowait><expr> <C-f> coc#float#has_scroll() ? coc#float#nvim_scroll(1, 1) : "\<C-f>"
+	  vnoremap <nowait><expr> <C-b> coc#float#has_scroll() ? coc#float#nvim_scroll(0, 1) : "\<C-b>"
+	endif
+<
+	Note: This function is only relevant for visual mode mapping, to be
+	able to scroll on jump placeholder of signature help expansion, where
+	|coc#float#scroll| is not implemented. Use |coc#float#scroll|
+	otherwise.
+
 CocRequest({id}, {method}, [{params}])			*CocRequest()*
 
 	Send a request to language client of {id} with {method} and optional
