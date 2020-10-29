@@ -875,7 +875,8 @@ function! coc#float#nvim_scroll(forward, ...)
   if buf_height < win_height | return '' | endif
   let pos = nvim_win_get_cursor(float)
   let amount = (a:forward == 1 ? 1 : -1) * get(a:, 1, max([1, win_height/2]))
-  let scrolloff = &scrolloff*2 < win_height ? &scrolloff : 0
+  let scrolloff = getwinvar(float, '&scrolloff', 0)
+  let scrolloff = scrolloff*2 < win_height ? scrolloff : 0
   try
     let last_amount = nvim_win_get_var(float, 'coc_float_scroll_last_amount')
   catch
