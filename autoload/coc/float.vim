@@ -874,14 +874,10 @@ function! coc#float#nvim_scroll(forward, ...)
   let win_height = nvim_win_get_height(float)
   if buf_height < win_height | return '' | endif
   let pos = nvim_win_get_cursor(float)
-  let amount = (a:forward == 1 ? 1 : -1) * get(a:, 1, max([1, win_height/2]))
   let scrolloff = getwinvar(float, '&scrolloff', 0)
   let scrolloff = scrolloff*2 < win_height ? scrolloff : 0
-  try
-    let last_amount = nvim_win_get_var(float, 'coc_float_scroll_last_amount')
-  catch
-    let last_amount = 0
-  endtry
+  let amount = (a:forward == 1 ? 1 : -1) * get(a:, 1, max([1, win_height/2]))
+  let last_amount = getwinvar(float, 'coc_float_nvim_scroll_last_amount', 0)
   if amount > 0
     if pos[0] == 1
       let pos[0] += amount + win_height - scrolloff*1 - 1
@@ -901,7 +897,7 @@ function! coc#float#nvim_scroll(forward, ...)
     endif
     let pos[0] = pos[0] > scrolloff ? pos[0] : 1
   endif
-  call nvim_win_set_var(float, 'coc_float_scroll_last_amount', amount)
+  call setwinvar(float, 'coc_float_nvim_scroll_last_amount', amount)
   call nvim_win_set_cursor(float, pos)
   call timer_start(10, { -> coc#float#nvim_scrollbar(float) })
   return ''
