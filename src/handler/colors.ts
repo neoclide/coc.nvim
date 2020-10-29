@@ -26,7 +26,7 @@ export default class Colors {
       let doc = workspace.getDocument(e.uri)
       let highlighter = this.createHighlighter(doc.bufnr)
       if (highlighter && this.enabled) highlighter.highlight()
-    })
+    }, null, this.disposables)
     workspace.onDidChangeTextDocument(({ bufnr }) => {
       let highlighter = this.highlighters.get(bufnr)
       if (highlighter && this.enabled) highlighter.highlight()
@@ -36,7 +36,7 @@ export default class Colors {
       if (!highlighter) return
       highlighter.dispose()
       this.highlighters.delete(bufnr)
-    })
+    }, null, this.disposables)
     let config = workspace.getConfiguration('coc.preferences')
     this._enabled = config.get<boolean>('colorSupport', true)
     this.srcId = workspace.createNameSpace('coc-colors')
@@ -180,5 +180,6 @@ export default class Colors {
 
 function isValid(document: Document): boolean {
   if (['help', 'terminal', 'quickfix'].includes(document.buftype)) return false
+  if (!document.attached) return false
   return true
 }
