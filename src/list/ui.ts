@@ -18,15 +18,6 @@ export interface MousePosition {
   current: boolean
 }
 
-const StatusLineOption = [
-  '%#CocListMode#-- %{get(b:list_status, "mode", "")} --%*',
-  '%{get(b:list_status, "loading", "")}',
-  '%{get(b:list_status, "args", "")}',
-  '(%L/%{get(b:list_status, "total", "")})',
-  '%=',
-  '%#CocListPath# %{get(b:list_status, "cwd", "")} %l/%L%*'
-].join(' ')
-
 export default class ListUI {
   private window: Window
   private height: number
@@ -364,11 +355,14 @@ export default class ListUI {
 
   private async setLines(lines: string[], append = false, index: number): Promise<void> {
     let { nvim, buffer, window } = this
+    let statusSegments : Array<String> | null = this.config.get('statusLineSegments')
     if (!buffer || !window) return
     nvim.pauseNotification()
     nvim.call('coc#util#win_gotoid', [window.id], true)
     if (!append) {
-      window.notify('nvim_win_set_option', ['statusline', StatusLineOption])
+      if(statusSegments) {
+        window.notify('nvim_win_set_option', ['statusline', statusSegments.join(" ")])
+      }
       nvim.call('clearmatches', [], true)
       if (!lines.length) {
         lines = ['No results, press ? on normal mode to get help.']

@@ -739,6 +739,21 @@
       "default": 10,
       "description": "Height of split list window."
     },
+    "list.statusLineSegments": {
+      "type": ["array", "null"],
+      "default": [
+        "%#CocListMode#-- %{get(b:list_status, \"mode\", \"\")} --%*",
+        "%{get(b:list_status, \"loading\", \"\")}",
+        "%{get(b:list_status, \"args\", \"\")}",
+        "(%L/%{get(b:list_status, \"total\", \"\")})",
+        "%=",
+        "%#CocListPath# %{get(b:list_status, \"cwd\", \"\")} %l/%L%*"
+      ],
+      "items": {
+        "types": "string"
+      },
+      "description": "An array of statusline segments that will be used to draw the status line for list windows."
+    },
     "list.signOffset": {
       "type": "number",
       "default": 900,
