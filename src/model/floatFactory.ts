@@ -196,13 +196,11 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     if (!this.env.isVim) {
       nvim.call('coc#util#win_gotoid', [winid], true)
       this.floatBuffer.setLines(bufnr)
-      nvim.command(`noa normal! gg0`, true)
       nvim.call('coc#float#nvim_scrollbar', [winid], true)
       nvim.command('noa wincmd p', true)
     } else {
       // no need to change cursor position
       this.floatBuffer.setLines(bufnr, winid)
-      nvim.call('win_execute', [winid, `noa normal! gg0`], true)
       nvim.command('redraw', true)
     }
     this.emit('show', winid, bufnr)

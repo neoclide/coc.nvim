@@ -39,6 +39,8 @@ import { comparePosition, getChangedFromEdits } from './util/position'
 import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
 import { equals } from './util/object'
+import Dialog from './model/dialog'
+import { DialogConfig } from './types'
 
 const logger = require('./util/logger')('workspace')
 let NAME_SPACE = 1080
@@ -1288,6 +1290,12 @@ export class Workspace implements IWorkspace {
   public async callAsync<T>(method: string, args: any[]): Promise<T> {
     if (this.isNvim) return await this.nvim.call(method, args)
     return await this.nvim.callAsync('coc#util#with_callback', [method, args])
+  }
+
+  public async showDiaglog(config: DialogConfig): Promise<Dialog> {
+    let dialog = new Dialog(this.nvim, config)
+    await dialog.show({})
+    return dialog
   }
 
   /**

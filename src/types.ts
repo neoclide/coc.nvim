@@ -23,6 +23,34 @@ export interface ParsedUrlQueryInput {
   [key: string]: unknown
 }
 
+export interface DialogButton {
+  index: number
+  text: string
+  /**
+   * Not shown when true
+   */
+  disabled?: boolean
+}
+
+export interface DialogPreferences {
+  maxWidth?: number
+  maxHeight?: number
+}
+
+export interface DialogConfig {
+  title?: string
+  content: string
+  /**
+   * show close button.
+   */
+  close?: boolean
+  buttons?: DialogButton[]
+  /**
+   * index is -1 for window close without button click
+   */
+  callback: (index: number) => void
+}
+
 export type DocumentChange = TextDocumentEdit | CreateFile | RenameFile | DeleteFile
 
 export interface CodeAction extends protocol.CodeAction {

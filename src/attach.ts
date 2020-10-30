@@ -46,6 +46,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
       case 'InputChar':
       case 'MenuInput':
       case 'OptionSet':
+      case 'FloatBtnClick':
         await events.fire(method, args)
         break
       case 'CocAutocmd':
