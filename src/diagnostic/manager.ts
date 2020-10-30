@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import semver from 'semver'
-import { Diagnostic, DiagnosticSeverity, Disposable, Location, Position, Range } from 'vscode-languageserver-protocol'
+import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Disposable, Location, Position, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import events from '../events'
@@ -43,6 +43,8 @@ export interface DiagnosticConfig {
   virtualTextLines: number
   virtualTextLineSeparator: string
   filetypeMap: object
+  showUnused?: boolean
+  showDeprecated?: boolean
   format?: string
 }
 
@@ -259,14 +261,25 @@ export class DiagnosticManager implements Disposable {
    */
   public getDiagnostics(uri: string): Diagnostic[] {
     let collections = this.getCollections(uri)
-    let { level } = this.config
+    let { level, showUnused, showDeprecated } = this.config
     let res: Diagnostic[] = []
     for (let collection of collections) {
       let items = collection.get(uri)
       if (!items) continue
-      if (level && level < DiagnosticSeverity.Hint) {
-        items = items.filter(s => s.severity == null || s.severity <= level)
-      }
+
+      items = items.filter(d => {
+        if (level && level < DiagnosticSeverity.Hint && d.severity && d.severity > level) {
+          return false
+        }
+        if (!showUnused && d.tags?.includes(DiagnosticTag.Unnecessary)) {
+          return false
+        }
+        if (!showDeprecated && d.tags?.includes(DiagnosticTag.Deprecated)) {
+          return false
+        }
+        return true
+      })
+
       res.push(...items)
     }
     res.sort((a, b) => {
@@ -388,12 +401,18 @@ export class DiagnosticManager implements Disposable {
    */
   public getDiagnosticList(): DiagnosticItem[] {
     let res: DiagnosticItem[] = []
-    const { level } = this.config
+    const { level, showUnused, showDeprecated } = this.config
     for (let collection of this.collections) {
       collection.forEach((uri, diagnostics) => {
         let file = URI.parse(uri).fsPath
         for (let diagnostic of diagnostics) {
           if (diagnostic.severity && diagnostic.severity > level) {
+            continue
+          }
+          if (!showUnused && diagnostic.tags?.includes(DiagnosticTag.Unnecessary)) {
+            continue
+          }
+          if (!showDeprecated && diagnostic.tags?.includes(DiagnosticTag.Deprecated)) {
             continue
           }
           let { start } = diagnostic.range
@@ -592,6 +611,8 @@ export class DiagnosticManager implements Disposable {
       refreshAfterSave: config.get<boolean>('refreshAfterSave', false),
       refreshOnInsertMode: config.get<boolean>('refreshOnInsertMode', false),
       filetypeMap: config.get<object>('filetypeMap', {}),
+      showUnused: config.get<boolean>('showUnused', true),
+      showDeprecated: config.get<boolean>('showDeprecated', true),
       format: config.get<string>('format', '[%source%code] [%severity] %message')
     }
     this.enabled = config.get<boolean>('enable', true)
