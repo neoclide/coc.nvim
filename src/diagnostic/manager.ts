@@ -266,25 +266,20 @@ export class DiagnosticManager implements Disposable {
     for (let collection of collections) {
       let items = collection.get(uri)
       if (!items) continue
-      if (level && level < DiagnosticSeverity.Hint) {
-        items = items.filter(s => s.severity == null || s.severity <= level)
-      }
-      if (!showUnused) {
-        items = items.filter(d => {
-          if (d.tags && d.tags.includes(DiagnosticTag.Unnecessary)) {
-            return false
-          }
-          return true
-        })
-      }
-      if (!showDeprecated) {
-        items = items.filter(d => {
-          if (d.tags && d.tags.includes(DiagnosticTag.Deprecated)) {
-            return false
-          }
-          return true
-        })
-      }
+
+      items = items.filter(d => {
+        if (level && level < DiagnosticSeverity.Hint && d.severity && d.severity > level) {
+          return false
+        }
+        if (!showUnused && d.tags && d.tags.includes(DiagnosticTag.Unnecessary)) {
+          return false
+        }
+        if (!showDeprecated && d.tags && d.tags.includes(DiagnosticTag.Deprecated)) {
+          return false
+        }
+        return true
+      })
+
       res.push(...items)
     }
     res.sort((a, b) => {
