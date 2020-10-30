@@ -271,10 +271,10 @@ export class DiagnosticManager implements Disposable {
         if (level && level < DiagnosticSeverity.Hint && d.severity && d.severity > level) {
           return false
         }
-        if (!showUnused && d.tags && d.tags.includes(DiagnosticTag.Unnecessary)) {
+        if (!showUnused && d.tags?.includes(DiagnosticTag.Unnecessary)) {
           return false
         }
-        if (!showDeprecated && d.tags && d.tags.includes(DiagnosticTag.Deprecated)) {
+        if (!showDeprecated && d.tags?.includes(DiagnosticTag.Deprecated)) {
           return false
         }
         return true
@@ -409,10 +409,10 @@ export class DiagnosticManager implements Disposable {
           if (diagnostic.severity && diagnostic.severity > level) {
             continue
           }
-          if (!showUnused && diagnostic.tags && diagnostic.tags.includes(DiagnosticTag.Unnecessary)) {
+          if (!showUnused && diagnostic.tags?.includes(DiagnosticTag.Unnecessary)) {
             continue
           }
-          if (!showDeprecated && diagnostic.tags && diagnostic.tags.includes(DiagnosticTag.Deprecated)) {
+          if (!showDeprecated && diagnostic.tags?.includes(DiagnosticTag.Deprecated)) {
             continue
           }
           let { start } = diagnostic.range
