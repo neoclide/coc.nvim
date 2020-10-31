@@ -769,8 +769,6 @@ function! coc#float#nvim_scrollbar(winid) abort
   if !has('nvim-0.4.3') || !coc#float#valid(a:winid) || getwinvar(a:winid, 'target_winid', 0)
     return
   endif
-  " needed for correct getwininfo
-  redraw
   let config = nvim_win_get_config(a:winid)
   let [row, column] = nvim_win_get_position(a:winid)
   let width = nvim_win_get_width(a:winid)
@@ -821,8 +819,9 @@ function! coc#float#nvim_scrollbar(winid) abort
   let wininfo = getwininfo(a:winid)[0]
   let start = 0
   if wininfo['topline'] != 1
+    " needed for correct getwininfo
     let firstline = wininfo['topline']
-    let lastline = wininfo['botline']
+    let lastline = s:nvim_get_botline(firstline, height, cw, bufnr)
     let linecount = nvim_buf_line_count(winbufnr(a:winid))
     if lastline >= linecount
       let start = height - thumb_height
@@ -1399,4 +1398,21 @@ function! s:nvim_create_keymap(winid) abort
     nnoremap <buffer><silent> <LeftRelease> :call coc#float#nvim_float_click()<CR>
     noa call win_gotoid(curr)
   endif
+endfunction
+
+" getwininfo is buggy on neovim, use topline, width & height should for content
+function! s:nvim_get_botline(topline, height, width, bufnr) abort
+  let lines = getbufline(a:bufnr, a:topline, a:topline + a:height - 1)
+  let botline = a:topline
+  let count = 0
+  for i in range(0, len(lines) - 1)
+    let w = coc#helper#max(1, strdisplaywidth(lines[i]))
+    let lh = float2nr(ceil(str2float(string(w))/a:width))
+    let count = count + lh
+    let botline = a:topline + i
+    if count >= a:height
+      break
+    endif
+  endfor
+  return botline
 endfunction
