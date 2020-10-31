@@ -267,6 +267,10 @@ Try these steps when you have problem with coc.nvim.
 - Checkout the log of coc.nvim by command `:CocOpenLog`.
 - When you have issues with the language server, it's recommended to [checkout
   the output](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server#using-output-channel).
+- Fedora provides `yarn` tool also from nodejs-yarn package. If you install it this way, add
+  `let g:coc_nvim_yarn='nodejs-yarn'`
+  into the head of your vimrc.
+
 
 ## Feedback
 
