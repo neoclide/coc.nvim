@@ -960,6 +960,10 @@ function! coc#float#get_config_cursor(lines, config) abort
         \ }
 endfunction
 
+function! s:fmin(a, b) abort
+  return a:a < a:b ? a:a : a:b
+endfunction
+
 function! coc#float#get_config_pum(lines, pumconfig, maxwidth) abort
   if !pumvisible()
     return v:null
@@ -967,7 +971,7 @@ function! coc#float#get_config_pum(lines, pumconfig, maxwidth) abort
   let pw = a:pumconfig['width'] + get(a:pumconfig, 'scrollbar', 0)
   let rp = &columns - a:pumconfig['col'] - pw
   let showRight = a:pumconfig['col'] > rp ? 0 : 1
-  let maxWidth = showRight ? min([rp - 1, a:maxwidth]) : min([a:pumconfig['col'] - 1, a:maxwidth])
+  let maxWidth = showRight ? s:fmin(rp - 1, a:maxwidth) : s:fmin(a:pumconfig['col'] - 1, a:maxwidth)
   let maxHeight = &lines - a:pumconfig['row'] - &cmdheight - 1
   if maxWidth <= 2 || maxHeight < 1
     return v:null
@@ -979,8 +983,8 @@ function! coc#float#get_config_pum(lines, pumconfig, maxwidth) abort
     let width = max([width, dw + 2])
     let ch += float2nr(ceil(str2float(string(dw))/(maxWidth - 2)))
   endfor
-  let width = min([maxWidth, width])
-  let height = min([maxHeight, ch])
+  let width = s:fmin(maxWidth, width)
+  let height = s:fmin(maxHeight, ch)
   return {
     \ 'col': showRight ? a:pumconfig['col'] + pw : a:pumconfig['col'] - width - 1,
     \ 'row': a:pumconfig['row'],
