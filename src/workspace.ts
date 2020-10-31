@@ -1292,7 +1292,11 @@ export class Workspace implements IWorkspace {
     return await this.nvim.callAsync('coc#util#with_callback', [method, args])
   }
 
-  public async showDiaglog(config: DialogConfig): Promise<Dialog> {
+  public async showDiaglog(config: DialogConfig): Promise<Dialog | null> {
+    if (!this.env.dialog) {
+      this.showMessage('Dialog requires vim >= 8.2.0750 or neovim >= 0.4.3', 'warning')
+      return null
+    }
     let dialog = new Dialog(this.nvim, config)
     await dialog.show({})
     return dialog

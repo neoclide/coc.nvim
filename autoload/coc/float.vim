@@ -1,7 +1,7 @@
 " Related to float window create
 let s:is_vim = !has('nvim')
-let s:borderchars = get(g:, 'coc_borderchars',
-      \ ['─', '│', '─', '│', '┌', '┐', '┘', '└'])
+let s:borderchars = get(g:, 'coc_borderchars', ['─', '│', '─', '│', '┌', '┐', '┘', '└'])
+let s:borderjoinchars = get(g:, 'coc_border_joinchars', ['┬', '┤', '┴', '├'])
 let s:prompt_win_width = get(g:, 'coc_prompt_win_width', 32)
 let s:scrollbar_ns = exists('*nvim_create_namespace') ?  nvim_create_namespace('coc-scrollbar') : 0
 " winvar: border array of numbers,  button boolean 
@@ -139,7 +139,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     if get(a:config, 'close', 0)
       let opts['close'] = 'button'
     endif
-    if !empty(get(a:config), 'borderhighlight', [])
+    if !empty(get(a:config, 'borderhighlight', []))
       let opts['borderhighlight'] = a:config['borderhighlight']
     endif
     if !s:empty_border(get(a:config, 'border', []))
@@ -282,9 +282,9 @@ function! coc#float#create_border_lines(border, title, width, height, hasbtn) ab
         \.(a:border[1] ? s:borderchars[1] : '')
   call extend(list, repeat([mid], a:height + (a:hasbtn ? 2 : 0)))
   if a:hasbtn
-    let list[len(list) - 2] = (a:border[3] ?  '├': '')
+    let list[len(list) - 2] = (a:border[3] ?  s:borderjoinchars[3]: '')
         \.repeat(' ', a:width)
-        \.(a:border[1] ? '┤' : '')
+        \.(a:border[1] ? s:borderjoinchars[1] : '')
   endif
   if a:border[2]
     let bot = (a:border[3] ?  s:borderchars[7]: '')
@@ -298,8 +298,7 @@ endfunction
 " Create float window for input, neovim only since vim doesn't support focus
 function! coc#float#create_prompt_win(title, default) abort
   call coc#float#close_auto_hide_wins()
-  let bufnr = s:create_tmp_buf()
-  call nvim_buf_set_lines(bufnr, 0, -1, v:false, [a:default])
+  let bufnr = s:create_tmp_buf([a:default])
   " Calculate col
   let curr = win_screenpos(winnr())[1] + wincol() - 2
   let width = min([max([strdisplaywidth(a:title) + 2, s:prompt_win_width]), &columns - 2])
@@ -644,8 +643,7 @@ function! coc#float#nvim_close_btn(config, winid, border, related) abort
         \ 'focusable': v:true,
         \ 'style': 'minimal',
         \ }
-  let bufnr = s:create_tmp_buf()
-  call nvim_buf_set_lines(bufnr, 0, -1, v:false, ['X'])
+  let bufnr = s:create_tmp_buf(['X'])
   let winid = nvim_open_win(bufnr, 0, config)
   if winid
     call s:nvim_create_keymap(winid)
@@ -665,8 +663,7 @@ function! coc#float#nvim_right_pad(config, related) abort
         \ 'focusable': v:false,
         \ 'style': 'minimal',
         \ }
-  let bufnr = s:create_tmp_buf()
-  call nvim_buf_set_lines(bufnr, 0, -1, v:false, repeat([' '], a:config['height']))
+  let bufnr = s:create_tmp_buf(repeat([' '], a:config['height']))
   let winid = nvim_open_win(bufnr, 0, config)
   if winid
     call setwinvar(winid, 'kind', 'pad')
@@ -700,7 +697,7 @@ function! s:add_related(winid, target) abort
 endfunction
 
 function! coc#float#nvim_refresh_scrollbar(winid) abort
-  let id = s:get_related(a:winid, 'scrollbar')
+  let id = coc#float#get_related(a:winid, 'scrollbar')
   if id && nvim_win_is_valid(id)
     call coc#float#nvim_scrollbar(a:winid)
   endif
@@ -780,13 +777,13 @@ function! coc#float#nvim_scrollbar(winid) abort
   let bufnr = winbufnr(a:winid)
   let cw = getwinvar(a:winid, '&foldcolumn', 0) ? width - 1 : width
   let ch = coc#float#content_height(bufnr, cw, getwinvar(a:winid, '&wrap'))
-  let closewin = s:get_related(a:winid, 'close')
+  let closewin = coc#float#get_related(a:winid, 'close')
   let border = getwinvar(a:winid, 'border', [])
   let move_down = closewin && !get(border, 0, 0)
   if move_down
     let height = height - 1
   endif
-  let id = s:get_related(a:winid, 'scrollbar')
+  let id = coc#float#get_related(a:winid, 'scrollbar')
   if ch <= height || height <= 0
     " no scrollbar, remove exists
     if id
@@ -1018,8 +1015,7 @@ function! coc#float#prompt_confirm(title, cb) abort
   endif
   if has('nvim-0.4.3')
     let text = ' '. a:title . ' (y/n)? '
-    let bufnr = s:create_tmp_buf()
-    call nvim_buf_set_lines(bufnr, 0, -1, 0, [text])
+    let bufnr = s:create_tmp_buf([text])
     let maxWidth = min([78, &columns - 2])
     let width = min([maxWidth, strdisplaywidth(text)])
     let maxHeight = &lines - &cmdheight - 1
@@ -1083,7 +1079,7 @@ function! coc#float#vim_buttons(winid, config, related) abort
   if !has('patch-8.2.0750')
     return
   endif
-  let winid = s:get_related(a:winid, 'buttons')
+  let winid = coc#float#get_related(a:winid, 'buttons')
   let btns = get(a:config, 'buttons', [])
   if empty(btns)
     if winid
@@ -1224,14 +1220,20 @@ function! coc#float#vim_filter(winid, key, keys) abort
   return 0
 endfunction
 
-function! coc#float#get_config_dialog(title, lines, buttons, config) abort
+" Create dialog at center
+function! coc#float#create_dialog(lines, config) abort
   " dialog always have borders
+  let title = get(a:config, 'title', '')
+  let buttons = get(a:config, 'buttons', [])
+  let highlight = get(a:config, 'highlight', 'CocFloating')
+  let borderhighlight = get(a:config, 'borderhighlight', [highlight])
   let maxheight = min([get(a:config, 'maxheight', 78), &lines - &cmdheight - 6])
   let maxwidth = min([get(a:config, 'maxwidth', 78), &columns - 2])
+  let close = get(a:config, 'close', 1)
   let minwidth = 0
-  if !empty(a:buttons)
-    let minwidth = len(a:buttons)*3 - 1
-    for txt in a:buttons
+  if !empty(buttons)
+    let minwidth = len(buttons)*3 - 1
+    for txt in buttons
       let minwidth = minwidth + strdisplaywidth(txt)
     endfor
   endif
@@ -1239,7 +1241,7 @@ function! coc#float#get_config_dialog(title, lines, buttons, config) abort
     throw 'Not enough spaces for dialog'
   endif
   let ch = 0
-  let width = min([strdisplaywidth(a:title) + 1, maxwidth])
+  let width = min([strdisplaywidth(title) + 1, maxwidth])
   for line in a:lines
     let dw = max([1, strdisplaywidth(line)])
     if dw < maxwidth && dw > width
@@ -1251,18 +1253,38 @@ function! coc#float#get_config_dialog(title, lines, buttons, config) abort
   endfor
   let width = max([minwidth, width])
   let height = min([ch ,maxheight])
-  return {
+  let opts = {
     \ 'relative': 'editor',
     \ 'col': &columns/2 - (width + 2)/2,
     \ 'row': &lines/2 - (height + 4)/2,
     \ 'width': width,
     \ 'height': height,
     \ 'border': [1,1,1,1],
-    \ 'title': a:title,
+    \ 'title': title,
+    \ 'close': close,
+    \ 'highlight': highlight,
+    \ 'buttons': buttons,
+    \ 'borderhighlight': borderhighlight,
     \ }
+  let bufnr = s:create_tmp_buf(a:lines)
+  let res =  coc#float#create_float_win(0, bufnr, opts)
+  if res[0] && has('nvim')
+    call coc#float#nvim_scrollbar(res[0])
+  endif
+  return res
 endfunction
 
-function! s:create_tmp_buf() abort
+function! coc#float#get_related(winid, kind) abort
+  for winid in getwinvar(a:winid, 'related', [])
+    if getwinvar(winid, 'kind', '') ==# a:kind
+      return winid
+    endif
+  endfor
+  return 0
+endfunction
+
+" Create temporarily buffer with optional lines
+function! s:create_tmp_buf(...) abort
   if s:is_vim
     noa let bufnr = bufadd('')
     noa call bufload(bufnr)
@@ -1273,6 +1295,14 @@ function! s:create_tmp_buf() abort
   call setbufvar(bufnr, '&bufhidden', 'wipe')
   call setbufvar(bufnr, '&swapfile', 0)
   call setbufvar(bufnr, '&undolevels', -1)
+  let lines = get(a:, 1, [])
+  if !empty(lines)
+    if s:is_vim
+      call setbufline(bufnr, 1, lines)
+    else
+      call nvim_buf_set_lines(bufnr, 0, -1, v:false, lines)
+    endif
+  endif
   return bufnr
 endfunction
 
@@ -1304,9 +1334,9 @@ function! s:create_btns_buffer(bufnr, width, buttons, borderbottom) abort
     call add(lines, repeat('─', a:width))
   endif
   for idx in idxes
-    let lines[0] = strcharpart(lines[0], 0, idx).'┬'.strcharpart(lines[0], idx + 1)
+    let lines[0] = strcharpart(lines[0], 0, idx).s:borderjoinchars[0].strcharpart(lines[0], idx + 1)
     if a:borderbottom
-      let lines[2] = strcharpart(lines[0], 0, idx).'┴'.strcharpart(lines[0], idx + 1)
+      let lines[2] = strcharpart(lines[0], 0, idx).s:borderjoinchars[2].strcharpart(lines[0], idx + 1)
     endif
   endfor
   let bufnr = a:bufnr && bufloaded(a:bufnr) ? a:bufnr : s:create_tmp_buf()
@@ -1357,15 +1387,6 @@ function! s:close_win(winid) abort
       call nvim_win_close(a:winid, 1)
     endif
   endif
-endfunction
-
-function! s:get_related(winid, kind) abort
-  for winid in getwinvar(a:winid, 'related', [])
-    if getwinvar(winid, 'kind', '') ==# a:kind
-      return winid
-    endif
-  endfor
-  return 0
 endfunction
 
 function! s:nvim_create_keymap(winid) abort

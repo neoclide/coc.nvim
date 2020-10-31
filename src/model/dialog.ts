@@ -13,41 +13,42 @@ export default class Dialog {
     events.on('BufWinLeave', bufnr => {
       if (bufnr == this.bufnr) {
         this.dispose()
-        config.callback(-1)
+        if (config.callback) config.callback(-1)
       }
     }, null, this.disposables)
     events.on('FloatBtnClick', (bufnr, idx) => {
       if (bufnr == this.bufnr) {
         this.dispose()
         let btns = config?.buttons.filter(o => o.disabled != true)
-        config.callback(btns[idx].index)
+        if (config.callback) config.callback(btns[idx].index)
       }
     }, null, this.disposables)
   }
 
+  private get lines(): string[] {
+    return [...this.config.content.split(/\r?\n/)]
+  }
+
   public async show(preferences: DialogPreferences): Promise<void> {
     let { nvim } = this
-    let { title, content, close, buttons } = this.config
-    title = title || ''
-    buttons = buttons || []
-    let btns = buttons.filter(o => !o.disabled).map(o => o.text)
-    let config = await nvim.call('coc#float#get_config_dialog', [title, content.split(/\r?\n/), btns, {
-      maxheight: preferences.maxHeight || 80,
-      maxwidth: preferences.maxWidth || 80
-    }])
-    if (!config) return
-    let obj = Object.assign({}, config, {
-      buttons: btns,
-      close: close == null ? 1 : close
-    })
-    let res = await nvim.call('coc#float#create_float_win', [0, 0, obj])
+    let { title, highlight, borderhighlight, close, buttons } = this.config
+    let opts: any = { maxwidth: preferences.maxWidth || 80, }
+    if (preferences.maxHeight) opts.maxheight = preferences.maxHeight
+    if (preferences.maxWidth) opts.maxwidth = preferences.maxWidth
+    if (title) opts.title = title
+    if (close) opts.close = 1
+    if (highlight) opts.highlight = highlight
+    if (borderhighlight) opts.borderhighlight = borderhighlight
+    if (buttons) opts.buttons = buttons.filter(o => !o.disabled).map(o => o.text)
+    let res = await nvim.call('coc#float#create_dialog', [this.lines, opts])
+    if (!res[1]) return
     this.bufnr = res[1]
-    let buf = nvim.createBuffer(this.bufnr)
-    nvim.pauseNotification()
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    buf.setLines(content.split(/\r?\n/), { start: 0, end: -1, strictIndexing: false }, true)
     nvim.command('redraw', true)
-    await nvim.resumeNotification()
+  }
+
+  public get winid(): Promise<number | null> {
+    if (!this.bufnr) return Promise.resolve(null)
+    return this.nvim.call('bufwinid', [this.bufnr])
   }
 
   public dispose(): void {

@@ -1424,6 +1424,16 @@ g:coc_borderchars 					*g:coc_borderchars*
 	Border characters used by border window, default to:
 >
 	['─', '│', '─', '│', '┌', '┐', '┘', '└']
+<
+	Note: you may need special font like Nerd font to show them.
+
+g:coc_border_joinchars 					*g:coc_border_joinchars*
+
+	Border join characters used by float window/popup, default to:
+>
+	['┬', '┤', '┴', '├']
+<
+	Note: you may need special font like Nerd font to show them.
 
 g:coc_prompt_win_width 					*g:coc_prompt_win_width*
 

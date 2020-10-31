@@ -24,6 +24,9 @@ export interface ParsedUrlQueryInput {
 }
 
 export interface DialogButton {
+  /**
+   * Use by callback, should >= 0
+   */
   index: number
   text: string
   /**
@@ -38,17 +41,28 @@ export interface DialogPreferences {
 }
 
 export interface DialogConfig {
-  title?: string
   content: string
+  title?: string
   /**
-   * show close button.
+   * show close button, default to true when not specified.
    */
   close?: boolean
+  /**
+   * highlight group for dialog window,
+   */
+  highlight?: string
+  /**
+   * highlight groups for border, only first highlight works for now.
+   */
+  borderhighlight?: string[]
+  /**
+   * Buttons as bottom of dialog.
+   */
   buttons?: DialogButton[]
   /**
    * index is -1 for window close without button click
    */
-  callback: (index: number) => void
+  callback?: (index: number) => void
 }
 
 export type DocumentChange = TextDocumentEdit | CreateFile | RenameFile | DeleteFile
@@ -321,6 +335,7 @@ export interface Env {
   readonly version: string
   readonly locationlist: boolean
   readonly progpath: string
+  readonly dialog: boolean
   readonly textprop: boolean
   readonly vimCommands: CommandConfig[]
 }
