@@ -1645,7 +1645,7 @@ coc#float#has_scroll() 					*coc#float#has_scroll()*
 	  inoremap <nowait><expr> <C-b> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(0)\<cr>" : "\<Left>"
 	endif
 <
-coc#float#scroll({forward}, [{amount}])
+coc#float#scroll({forward}, [{amount}])                 *coc#float#scroll()*
 
 	Scroll all scrollable float windows/popups, scroll backward when
 	{forward} is not `1`. {amount} could be number or full page when
