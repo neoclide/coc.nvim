@@ -657,7 +657,8 @@ function! coc#float#nvim_close_btn(config, winid, border, related) abort
 endfunction
 
 " Create padding window by config of current window & border config
-function! coc#float#nvim_right_pad(config, related) abort
+function! coc#float#nvim_right_pad(config, winid, related) abort
+  let winid = coc#float#get_related(a:winid, 'pad')
   let config = {
         \ 'relative': a:config['relative'],
         \ 'width': 1,
@@ -667,10 +668,16 @@ function! coc#float#nvim_right_pad(config, related) abort
         \ 'focusable': v:false,
         \ 'style': 'minimal',
         \ }
-  let bufnr = s:create_tmp_buf(repeat([' '], a:config['height']))
-  let winid = nvim_open_win(bufnr, 0, config)
   if winid
+    let bufnr = winbufnr(winid)
+    call nvim_buf_set_lines(bufnr, 0, -1, 0, repeat([' '], a:config['height']))
+    call nvim_win_set_config(winid, config)
+  else
+    let bufnr = s:create_tmp_buf(repeat([' '], a:config['height']))
+    let winid = nvim_open_win(bufnr, 0, config)
     call setwinvar(winid, 'kind', 'pad')
+  endif
+  if winid
     call add(a:related, winid)
   endif
 endfunction
@@ -753,7 +760,7 @@ function! coc#float#nvim_create_related(winid, config, opts) abort
   endif
   " Check right border
   if pad
-    call coc#float#nvim_right_pad(a:config, related)
+    call coc#float#nvim_right_pad(a:config, a:winid, related)
   elseif exists
     call coc#float#close_related(a:winid, 'pad')
   endif
@@ -1302,6 +1309,7 @@ function! s:create_tmp_buf(...) abort
   if s:is_vim
     noa let bufnr = bufadd('')
     noa call bufload(bufnr)
+    call setbufvar(bufnr, '&buflisted', 0)
   else
     noa let bufnr = nvim_create_buf(v:false, v:true)
   endif
