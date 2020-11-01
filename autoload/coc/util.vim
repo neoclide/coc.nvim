@@ -72,44 +72,6 @@ function! coc#util#float_scroll(forward)
   call coc#float#scroll(a:forward)
 endfunction
 
-" scroll float without exiting insert mode (nvim only)
-function! coc#util#float_scroll_i(amount)
-  let float = coc#float#get_float_win()
-  if !float | return '' | endif
-  let buf = nvim_win_get_buf(float)
-  let buf_height = nvim_buf_line_count(buf)
-  let win_height = nvim_win_get_height(float)
-  if buf_height < win_height | return '' | endif
-  let pos = nvim_win_get_cursor(float)
-  try
-    let last_amount = nvim_win_get_var(float, 'coc_float_scroll_last_amount')
-  catch
-    let last_amount = 0
-  endtry
-  if a:amount > 0
-    if pos[0] == 1
-      let pos[0] += a:amount + win_height - 2
-    elseif last_amount > 0
-      let pos[0] += a:amount
-    else
-      let pos[0] += a:amount + win_height - 3
-    endif
-    let pos[0] = pos[0] < buf_height ? pos[0] : buf_height
-  elseif a:amount < 0
-    if pos[0] == buf_height
-      let pos[0] += a:amount - win_height + 2
-    elseif last_amount < 0
-      let pos[0] += a:amount
-    else
-      let pos[0] += a:amount - win_height + 3
-    endif
-    let pos[0] = pos[0] > 1 ? pos[0] : 1
-  endif
-  call nvim_win_set_var(float, 'coc_float_scroll_last_amount', a:amount)
-  call nvim_win_set_cursor(float, pos)
-  return ''
-endfunction
-
 " get cursor position
 function! coc#util#cursor()
   let pos = getcurpos()
@@ -484,55 +446,6 @@ function! coc#util#quickpick(title, items, cb) abort
   endif
 endfunction
 
-function! coc#util#prompt(title, cb) abort
-  if exists('*popup_dialog')
-    function! s:PromptHandler(id, result) closure
-      call a:cb(v:null, a:result)
-    endfunction
-    try
-      call popup_dialog(a:title. ' (y/n)', #{
-        \ filter: 'popup_filter_yesno',
-        \ callback: function('s:PromptHandler'),
-        \ })
-    catch /.*/
-      call a:cb(v:exception)
-    endtry
-  elseif !s:is_vim && exists('*confirm')
-    let choice = confirm(a:title, "&Yes\n&No")
-    call a:cb(v:null, choice == 1)
-  else
-    echohl MoreMsg
-    echom a:title.' (y/n)'
-    echohl None
-    let confirm = nr2char(getchar())
-    redraw!
-    if !(confirm ==? "y" || confirm ==? "\r")
-      echohl Moremsg | echo 'Cancelled.' | echohl None
-      return 0
-      call a:cb(v:null, 0)
-    end
-    call a:cb(v:null, 1)
-  endif
-endfunction
-
-function! coc#util#prompt_confirm(title)
-  if exists('*confirm') && !s:is_vim
-    let choice = confirm(a:title, "&Yes\n&No")
-    return choice == 1
-  else
-    echohl MoreMsg
-    echom a:title.' (y/n)'
-    echohl None
-    let confirm = nr2char(getchar())
-    redraw!
-    if !(confirm ==? "y" || confirm ==? "\r")
-      echohl Moremsg | echo 'Cancelled.' | echohl None
-      return 0
-    end
-    return 1
-  endif
-endfunction
-
 function! coc#util#get_syntax_name(lnum, col)
   return synIDattr(synIDtrans(synID(a:lnum,a:col,1)),"name")
 endfunction
@@ -681,6 +594,7 @@ function! coc#util#vim_info()
         \ 'guicursor': &guicursor,
         \ 'vimCommands': get(g:, 'coc_vim_commands', []),
         \ 'textprop': has('textprop') && has('patch-8.1.1719') && !has('nvim') ? v:true : v:false,
+        \ 'dialog': has('nvim-0.4.3') || has('patch-8.2.0750') ? v:true : v:false,
         \ 'disabledSources': get(g:, 'coc_sources_disable_map', {}),
         \}
 endfunction
