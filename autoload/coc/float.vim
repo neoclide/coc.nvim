@@ -211,7 +211,7 @@ endfunction
 
 function! coc#float#nvim_create_related(winid, config, opts) abort
   let related = getwinvar(a:winid, 'related', [])
-  let exists = !empty(getwinvar(a:winid, 'related', []))
+  let exists = !empty(related)
   let border = get(a:opts, 'border', [])
   let highlights = get(a:opts, 'borderhighlight', [])
   let borderhighlight = get(highlights, 0, 'CocFloating')
@@ -240,24 +240,19 @@ function! coc#float#nvim_create_related(winid, config, opts) abort
   elseif exists
     call coc#float#close_related(a:winid, 'pad')
   endif
-  let related = filter(related, 'nvim_win_is_valid(v:val)')
-  call setwinvar(a:winid, 'related', related)
+  call setwinvar(a:winid, 'related', filter(related, 'nvim_win_is_valid(v:val)'))
 endfunction
 
 " border window for neovim, content config with border
 function! coc#float#nvim_border_win(config, winid, border, title, hasbtn, hlgroup, related) abort
   let winid = coc#float#get_related(a:winid, 'border')
-  if winid
-    let bufnr = winbufnr(winid)
-  else
-    let bufnr = coc#float#create_buf(0)
-  endif
   let row = a:border[0] ? a:config['row'] - 1 : a:config['row']
   let col = a:border[3] ? a:config['col'] - 1 : a:config['col']
   let width = a:config['width'] + a:border[1] + a:border[3]
   let height = a:config['height'] + a:border[0] + a:border[2] + (a:hasbtn ? 2 : 0)
   let lines = coc#float#create_border_lines(a:border, a:title, a:config['width'], a:config['height'], a:hasbtn)
-  call nvim_buf_set_lines(bufnr, 0, -1, v:false, lines)
+  let bufnr = winid ? winbufnr(winid) : 0
+  let bufnr = coc#float#create_buf(bufnr, lines)
   let opt = {
         \ 'relative': a:config['relative'],
         \ 'width': width,
@@ -320,18 +315,18 @@ function! coc#float#nvim_right_pad(config, winid, hlgroup, related) abort
         \ 'focusable': v:false,
         \ 'style': 'minimal',
         \ }
-  let bufnr = winid ? winbufnr(winid) : 0
-  let bufnr = coc#float#create_buf(bufnr, repeat([' '], a:config['height']))
   if winid
-    call nvim_win_set_config(winid, config)
-  else
-    let winid = nvim_open_win(bufnr, 0, config)
-    if winid
-      call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup)
-      call setwinvar(winid, 'target_winid', a:winid)
-      call setwinvar(winid, 'kind', 'pad')
-      call add(a:related, winid)
-    endif
+    noa call nvim_win_close(winid, 1)
+  endif
+  let bufnr = coc#float#create_buf(0, repeat([''], a:config['height']))
+  let winid = nvim_open_win(bufnr, 0, config)
+  if winid
+    " neovim'bug: the content shown in window could be wired.
+    call setwinvar(winid, '&foldcolumn', 1)
+    call setwinvar(winid, '&winhl', 'FoldColumn:'.a:hlgroup)
+    call setwinvar(winid, 'target_winid', a:winid)
+    call setwinvar(winid, 'kind', 'pad')
+    call add(a:related, winid)
   endif
 endfunction
 
@@ -392,6 +387,7 @@ function! coc#float#nvim_scrollbar(winid) abort
     endif
     return
   endif
+  call coc#float#close_related(a:winid, 'pad')
   let sbuf = id ? winbufnr(id) : 0
   let sbuf = coc#float#create_buf(sbuf, repeat([' '], height))
   let opts = {
@@ -1247,7 +1243,7 @@ endfunction
 " Create temporarily buffer with optional lines
 "function! s:create_tmp_buf(...) abort
 function! coc#float#create_buf(bufnr, ...) abort
-  if a:bufnr && bufloaded(a:bufnr)
+  if a:bufnr > 0 && bufloaded(a:bufnr)
     let bufnr = a:bufnr
   else
     if s:is_vim
@@ -1263,11 +1259,11 @@ function! coc#float#create_buf(bufnr, ...) abort
     call setbufvar(bufnr, '&undolevels', -1)
   endif
   let lines = get(a:, 1, v:null)
-  if !empty(lines)
-    if s:is_vim
-      call setbufline(bufnr, 1, lines)
-    else
+  if type(lines) != 7
+    if has('nvim')
       call nvim_buf_set_lines(bufnr, 0, -1, v:false, lines)
+    else
+      call setbufline(bufnr, 1, lines)
     endif
   endif
   return bufnr
