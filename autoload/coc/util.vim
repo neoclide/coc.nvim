@@ -2,6 +2,7 @@ let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:clear_match_by_id = has('nvim-0.5.0') || has('patch-8.1.1084')
+let s:vim_api_version = 1
 
 let s:activate = ""
 let s:quit = ""
@@ -24,6 +25,10 @@ function! coc#util#has_preview()
     endif
   endfor
   return 0
+endfunction
+
+function! coc#util#api_version() abort
+  return s:vim_api_version
 endfunction
 
 function! coc#util#scroll_preview(dir) abort
@@ -567,7 +572,7 @@ endfunction
 
 function! coc#util#vim_info()
   return {
-        \ 'apiversion': 1,
+        \ 'apiversion': s:vim_api_version,
         \ 'mode': mode(),
         \ 'floating': has('nvim') && exists('*nvim_open_win') ? v:true : v:false,
         \ 'extensionRoot': coc#util#extension_root(),
@@ -1013,6 +1018,20 @@ function! coc#util#clear_highlights(...) abort
         call matchdelete(item['id'], winid)
       endfor
     endif
+endfunction
+
+" Character offset of current cursor
+function! coc#util#get_offset() abort
+  let offset = 0
+  let lnum = line('.')
+  for i in range(1, lnum)
+    if i == lnum
+      let offset += strchars(strpart(getline('.'), 0, col('.')-1))
+    else
+      let offset += strchars(getline(i)) + 1
+    endif
+  endfor
+  return offset
 endfunction
 
 " Make sure window exists

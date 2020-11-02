@@ -12,7 +12,6 @@ const isTest = global.hasOwnProperty('__TEST__')
 
 export default (opts: Attach, requestApi = true): Plugin => {
   const nvim: NeovimClient = attach(opts, log4js.getLogger('node-client'), requestApi)
-  const timeout: number = process.env.COC_CHANNEL_TIMEOUT ? parseInt(process.env.COC_CHANNEL_TIMEOUT, 10) : 30
   if (!global.hasOwnProperty('__TEST__')) {
     nvim.call('coc#util#path_replace_patterns').then(prefixes => {
       if (objectLiteral(prefixes)) {
@@ -76,7 +75,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
   nvim.on('request', async (method: string, args, resp) => {
     let timer = setTimeout(() => {
       logger.error('Request cost more than 3s', method, args)
-    }, timeout * 3000)
+    }, 3000)
     try {
       if (method == 'CocAutocmd') {
         await events.fire(args[0], args.slice(1))

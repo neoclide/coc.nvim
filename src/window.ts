@@ -4,7 +4,6 @@ import os from 'os'
 import path from 'path'
 import semver from 'semver'
 import { Disposable, Position } from 'vscode-languageserver-protocol'
-import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import events from './events'
 import Dialog from './model/dialog'
@@ -285,14 +284,8 @@ class Window {
    * Get current cursor offset in document.
    */
   public async getOffset(): Promise<number> {
-    let buf = await this.nvim.buffer
-    let document = workspace.getDocument(buf.id)
-    if (!document) return
-    let pos = await this.getCursorPosition()
-    let doc = TextDocument.create('file:///1', '', 0, document.getDocumentContent())
-    return doc.offsetAt(pos)
+    return await this.nvim.call('coc#util#get_offset') as number
   }
-
 }
 
 export default new Window()

@@ -1584,6 +1584,10 @@ health#coc#check()					*health#coc#check()*
 	Neovim only, run health check, triggered by ':checkhealth'
 	command.
 
+coc#util#api_version() 					 *coc#util#api_version()*
+
+	Get coc.nvim's vim api version number, start from `1`.
+
 coc#util#job_command()					*coc#util#job_command()*
 
 	Get the job command used for starting the coc service.
