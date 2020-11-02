@@ -60,25 +60,12 @@ afterEach(async () => {
 })
 
 describe('diagnostic buffer', () => {
-
-  it('should check signs', async () => {
-    let buf = await createDiagnosticBuffer()
-    await nvim.setLine('foo')
-    await nvim.command(`sign place 1005 line=1 name=CocError buffer=${buf.bufnr}`)
-    await nvim.command(`sign place 1006 line=1 name=CocError buffer=${buf.bufnr}`)
-    await buf.checkSigns()
-    let content = await nvim.call('execute', [`sign place buffer=${buf.bufnr}`])
-    let lines: string[] = content.split('\n')
-    let line = lines.find(s => s.includes('CocError'))
-    expect(line).toBeUndefined()
-  })
-
   it('should add signs', async () => {
     let diagnostics = [createDiagnostic('foo'), createDiagnostic('bar')]
     let buf = await createDiagnosticBuffer()
     buf.addSigns(diagnostics)
     await helper.wait(30)
-    let content = await nvim.call('execute', [`sign place buffer=${buf.bufnr}`])
+    let content = await nvim.call('execute', [`sign place group=* buffer=${buf.bufnr}`])
     let lines: string[] = content.split('\n')
     let line = lines.find(s => s.includes('CocError'))
     expect(line).toBeDefined()

@@ -8,11 +8,11 @@ import { getNameFromSeverity, getLocationListItem } from './util'
 import { LocationListItem } from '..'
 const logger = require('../util/logger')('diagnostic-buffer')
 const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint']
+const signGroup = 'Coc'
 
 // maintains sign and highlightId
 export class DiagnosticBuffer {
   private readonly srdId: number
-  private readonly signIds: Set<number> = new Set()
   private readonly _onDidRefresh = new Emitter<void>()
   public readonly matchIds: Set<number> = new Set()
   public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
@@ -65,31 +65,8 @@ export class DiagnosticBuffer {
   }
 
   private clearSigns(): void {
-    let { nvim, signIds, bufnr } = this
-    if (signIds.size > 0) {
-      nvim.call('coc#util#unplace_signs', [bufnr, Array.from(signIds)], true)
-      signIds.clear()
-    }
-  }
-
-  public async checkSigns(): Promise<void> {
-    let { nvim, bufnr, signIds } = this
-    try {
-      let content = await this.nvim.call('execute', [`sign place buffer=${bufnr}`])
-      let lines: string[] = content.split('\n')
-      let ids = []
-      for (let line of lines) {
-        let ms = line.match(/^\s*line=\d+\s+id=(\d+)\s+name=(\w+)/)
-        if (!ms) continue
-        let [, id, name] = ms
-        if (!signIds.has(Number(id)) && severityNames.includes(name)) {
-          ids.push(id)
-        }
-      }
-      await nvim.call('coc#util#unplace_signs', [bufnr, ids])
-    } catch (e) {
-      // noop
-    }
+    let { nvim, bufnr } = this
+    nvim.call('sign_unplace', [signGroup, { buffer: bufnr }], true)
   }
 
   public updateLocationList(curr: { title: string }, diagnostics: ReadonlyArray<Diagnostic>): void {
@@ -106,7 +83,7 @@ export class DiagnosticBuffer {
   public addSigns(diagnostics: ReadonlyArray<Diagnostic>): void {
     if (!this.config.enableSign) return
     this.clearSigns()
-    let { nvim, bufnr, signIds } = this
+    let { nvim, bufnr } = this
     let signId = this.config.signOffset
     let lines: Set<number> = new Set()
     for (let diagnostic of diagnostics) {
@@ -115,8 +92,7 @@ export class DiagnosticBuffer {
       if (lines.has(line)) continue
       lines.add(line)
       let name = getNameFromSeverity(severity)
-      nvim.command(`sign place ${signId} line=${line + 1} name=${name} buffer=${bufnr}`, true)
-      signIds.add(signId)
+      nvim.call('sign_place', [signId, signGroup, name, bufnr, { lnum: line + 1 }], true)
       signId = signId + 1
     }
   }
