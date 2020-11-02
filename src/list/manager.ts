@@ -6,6 +6,7 @@ import extensions from '../extensions'
 import { IList, ListOptions, Matcher } from '../types'
 import { disposeAll } from '../util'
 import workspace from '../workspace'
+import window from '../window'
 import ListConfiguration from './configuration'
 import Mappings from './mappings'
 import Prompt from './prompt'
@@ -99,7 +100,7 @@ export class ListManager implements Disposable {
     } catch (e) {
       this.nvim.call('coc#list#stop_prompt', [], true)
       let msg = e instanceof Error ? e.message : e.toString()
-      workspace.showMessage(`Error on "CocList ${name}": ${msg}`, 'error')
+      window.showMessage(`Error on "CocList ${name}": ${msg}`, 'error')
       logger.error(e)
     }
   }
@@ -131,7 +132,7 @@ export class ListManager implements Disposable {
     } else {
       let session = this.sessionsMap.get(name)
       if (!session) {
-        workspace.showMessage(`Can't find exists ${name} list`)
+        window.showMessage(`Can't find exists ${name} list`)
         return
       }
       await session.resume()
@@ -226,7 +227,7 @@ export class ListManager implements Disposable {
         listOptions.push(arg)
       } else if (!name) {
         if (!/^\w+$/.test(arg)) {
-          workspace.showMessage(`Invalid list option: "${arg}"`, 'error')
+          window.showMessage(`Invalid list option: "${arg}"`, 'error')
           return null
         }
         name = arg
@@ -262,17 +263,17 @@ export class ListManager implements Disposable {
       } else if (opt == '--no-quit') {
         noQuit = true
       } else {
-        workspace.showMessage(`Invalid option "${opt}" of list`, 'error')
+        window.showMessage(`Invalid option "${opt}" of list`, 'error')
         return null
       }
     }
     let list = this.listMap.get(name)
     if (!list) {
-      workspace.showMessage(`List ${name} not found`, 'error')
+      window.showMessage(`List ${name} not found`, 'error')
       return null
     }
     if (interactive && !list.interactive) {
-      workspace.showMessage(`Interactive mode of "${name}" list not supported`, 'error')
+      window.showMessage(`Interactive mode of "${name}" list not supported`, 'error')
       return null
     }
     return {
@@ -314,7 +315,7 @@ export class ListManager implements Disposable {
         await this.onNormalInput(ch, charmod)
       }
     } catch (e) {
-      workspace.showMessage(`Error on input ${ch}: ${e}`)
+      window.showMessage(`Error on input ${ch}: ${e}`)
       logger.error(e)
     }
   }
@@ -394,7 +395,7 @@ export class ListManager implements Disposable {
         }
         this.listMap.delete(name)
       }
-      workspace.showMessage(`list "${name}" recreated.`)
+      window.showMessage(`list "${name}" recreated.`)
     }
     this.listMap.set(name, list)
     extensions.addSchemeProperty(`list.source.${name}.defaultOptions`, {

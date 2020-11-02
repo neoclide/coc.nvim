@@ -6,7 +6,7 @@
 
 import { Disposable, NotificationHandler, NotificationType, ProgressToken, ProgressType, WorkDoneProgress, WorkDoneProgressBegin, WorkDoneProgressReport } from 'vscode-languageserver-protocol'
 import { StatusBarItem } from '../types'
-import workspace from '../workspace'
+import window from '../window'
 import { disposeAll } from '../util'
 
 export interface ProgressContext {
@@ -23,7 +23,7 @@ class ProgressPart {
   private title: string
 
   public constructor(private _client: ProgressContext, private _token: ProgressToken) {
-    this._statusBarItem = workspace.createStatusBarItem(99, { progress: true })
+    this._statusBarItem = window.createStatusBarItem(99, { progress: true })
     this._disposables.push(this._statusBarItem)
     this._disposables.push(_client.onProgress(WorkDoneProgress.type, this._token, value => {
       switch (value.kind) {

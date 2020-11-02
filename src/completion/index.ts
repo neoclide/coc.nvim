@@ -144,8 +144,7 @@ export class Completion implements Disposable {
       await this._doComplete(option)
     } catch (e) {
       this.stop()
-      workspace.showMessage(`Complete error: ${e.message}`, 'error')
-      logger.error(e.stack)
+      logger.error('Complete error:', e.stack)
     }
   }
 

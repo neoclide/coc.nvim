@@ -1,5 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import workspace from '../../workspace'
+import window from '../../window'
 import languages from '../../languages'
 import helper from '../helper'
 import { disposeAll } from '../../util'
@@ -38,7 +39,7 @@ describe('formatOnType', () => {
     await helper.wait(200)
     let line = await nvim.line
     expect(line).toBe('  |')
-    let cursor = await workspace.getCursorPosition()
+    let cursor = await window.getCursorPosition()
     expect(cursor).toEqual({ line: 0, character: 3 })
   })
 
@@ -58,7 +59,7 @@ describe('formatOnType', () => {
     await helper.wait(100)
     let line = await nvim.line
     expect(line).toBe('  |"end')
-    let cursor = await workspace.getCursorPosition()
+    let cursor = await window.getCursorPosition()
     expect(cursor).toEqual({ line: 0, character: 3 })
   })
 })

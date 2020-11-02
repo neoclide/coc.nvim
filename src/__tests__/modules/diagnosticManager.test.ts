@@ -4,6 +4,7 @@ import { Range, DiagnosticSeverity, Diagnostic, Location } from 'vscode-language
 import { URI } from 'vscode-uri'
 import Document from '../../model/document'
 import workspace from '../../workspace'
+import window from '../../window'
 import manager from '../../diagnostic/manager'
 import helper from '../helper'
 
@@ -156,7 +157,7 @@ describe('diagnostic manager', () => {
     ranges.reverse()
     for (let i = 0; i < ranges.length; i++) {
       await manager.jumpPrevious()
-      let pos = await workspace.getCursorPosition()
+      let pos = await window.getCursorPosition()
       expect(pos).toEqual(ranges[i].start)
     }
   })
@@ -167,7 +168,7 @@ describe('diagnostic manager', () => {
     let ranges = manager.getSortedRanges(doc.uri)
     for (let i = 0; i < ranges.length; i++) {
       await manager.jumpNext()
-      let pos = await workspace.getCursorPosition()
+      let pos = await window.getCursorPosition()
       expect(pos).toEqual(ranges[i].start)
     }
   })

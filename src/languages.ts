@@ -31,6 +31,7 @@ import * as complete from './util/complete'
 import { getChangedFromEdits, rangeOverlap } from './util/position'
 import { byteIndex, byteLength, byteSlice } from './util/string'
 import workspace from './workspace'
+import window from './window'
 const logger = require('./util/logger')('languages')
 
 export interface CompletionSource {
@@ -606,7 +607,7 @@ class Languages {
     let newLines = `${start}${newText}${end}`.split('\n')
     if (newLines.length == 1) {
       await nvim.call('coc#util#setline', [linenr, newLines[0]])
-      await workspace.moveTo(Position.create(linenr - 1, (start + newText).length))
+      await window.moveTo(Position.create(linenr - 1, (start + newText).length))
     } else {
       let buffer = nvim.createBuffer(bufnr)
       await buffer.setLines(newLines, {
@@ -616,7 +617,7 @@ class Languages {
       })
       let line = linenr - 1 + newLines.length - 1
       let character = newLines[newLines.length - 1].length - end.length
-      await workspace.moveTo({ line, character })
+      await window.moveTo({ line, character })
     }
     return false
   }
@@ -631,10 +632,10 @@ class Languages {
     await document.patchChange(true)
     // move cursor after edit
     let changed = null
-    let pos = await workspace.getCursorPosition()
+    let pos = await window.getCursorPosition()
     if (!snippet) changed = getChangedFromEdits(pos, textEdits)
     await document.applyEdits(textEdits)
-    if (changed) await workspace.moveTo(Position.create(pos.line + changed.line, pos.character + changed.character))
+    if (changed) await window.moveTo(Position.create(pos.line + changed.line, pos.character + changed.character))
   }
 
   private getStartColumn(line: string, items: CompletionItem[]): number | null {

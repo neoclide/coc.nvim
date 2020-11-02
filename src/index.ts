@@ -12,6 +12,7 @@ import FileSystemWatcher from './model/fileSystemWatcher'
 import services from './services'
 import sources from './sources'
 import workspace from './workspace'
+import window from './window'
 import extensions from './extensions'
 import listManager from './list/manager'
 import snippetManager from './snippets/manager'
@@ -28,5 +29,5 @@ export * from './language-client'
 export * from './provider'
 
 export { Neovim, Buffer, Window, Highligher, Mru, Watchman, URI as Uri, Disposable, Event, Emitter, FloatFactory, fetch, download, FloatBuffer, ansiparse }
-export { workspace, snippetManager, events, services, commands, sources, languages, diagnosticManager, Document, FileSystemWatcher, extensions, listManager, BasicList }
+export { workspace, window, snippetManager, events, services, commands, sources, languages, diagnosticManager, Document, FileSystemWatcher, extensions, listManager, BasicList }
 export { disposeAll, concurrent, wait, runCommand, isRunning, executable } from './util'

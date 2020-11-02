@@ -6,6 +6,7 @@ import Highlighter from '../model/highligher'
 import { IList, ListAction, ListContext, ListItem, ListMode, ListOptions, Matcher } from '../types'
 import { disposeAll, wait } from '../util'
 import workspace from '../workspace'
+import window from '../window'
 import ListConfiguration from './configuration'
 import InputHistory from './history'
 import Prompt from './prompt'
@@ -208,7 +209,7 @@ export default class ListSession {
     name = name || list.defaultAction
     let action = list.actions.find(o => o.name == name)
     if (!action) {
-      workspace.showMessage(`Action ${name} not found`, 'error')
+      window.showMessage(`Action ${name} not found`, 'error')
       return
     }
     let items: ListItem[]

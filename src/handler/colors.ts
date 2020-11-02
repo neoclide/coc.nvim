@@ -6,6 +6,7 @@ import languages from '../languages'
 import Document from '../model/document'
 import { disposeAll } from '../util'
 import workspace from '../workspace'
+import window from '../window'
 import Highlighter, { toHexString } from './highlighter'
 const logger = require('../util/logger')('colors')
 
@@ -65,12 +66,12 @@ export default class Colors {
 
   public async pickPresentation(): Promise<void> {
     let info = await this.currentColorInfomation()
-    if (!info) return workspace.showMessage('Color not found at current position', 'warning')
+    if (!info) return window.showMessage('Color not found at current position', 'warning')
     let document = await workspace.document
     let tokenSource = new CancellationTokenSource()
     let presentations = await languages.provideColorPresentations(info, document.textDocument, tokenSource.token)
     if (!presentations || presentations.length == 0) return
-    let res = await workspace.showQuickpick(presentations.map(o => o.label), 'choose a color presentation:')
+    let res = await window.showQuickpick(presentations.map(o => o.label), 'choose a color presentation:')
     if (res == -1) return
     let presentation = presentations[res]
     let { textEdit, additionalTextEdits, label } = presentation
@@ -83,7 +84,7 @@ export default class Colors {
 
   public async pickColor(): Promise<void> {
     let info = await this.currentColorInfomation()
-    if (!info) return workspace.showMessage('Color not found at current position', 'warning')
+    if (!info) return window.showMessage('Color not found at current position', 'warning')
     let { color } = info
     let colorArr = [(color.red * 255).toFixed(0), (color.green * 255).toFixed(0), (color.blue * 255).toFixed(0)]
     let res = await this.nvim.call('coc#util#pick_color', [colorArr])
@@ -92,7 +93,7 @@ export default class Colors {
       return
     }
     if (!res || res.length != 3) {
-      workspace.showMessage('Failed to get color', 'warning')
+      window.showMessage('Failed to get color', 'warning')
       return
     }
     let hex = toHexString({
@@ -163,7 +164,7 @@ export default class Colors {
     let bufnr = await this.nvim.call('bufnr', '%')
     let highlighter = this.highlighters.get(bufnr)
     if (!highlighter) return null
-    let position = await workspace.getCursorPosition()
+    let position = await window.getCursorPosition()
     for (let info of highlighter.colors) {
       let { range } = info
       let { start, end } = range

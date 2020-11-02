@@ -9,6 +9,7 @@ import { ListContext, ListItem } from '../../types'
 import { wait } from '../../util'
 import { readdirAsync } from '../../util/fs'
 import workspace from '../../workspace'
+import window from '../../window'
 import BasicList from '../basic'
 const logger = require('../../util/logger')('list-extensions')
 
@@ -83,7 +84,7 @@ export default class ExtensionList extends BasicList {
       let { root, isLocal } = item.data
       let { npm } = extensions
       if (isLocal) {
-        workspace.showMessage(`Can't fix for local extension.`, 'warning')
+        window.showMessage(`Can't fix for local extension.`, 'warning')
         return
       }
       if (!npm) return

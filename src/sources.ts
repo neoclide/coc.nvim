@@ -12,6 +12,7 @@ import { CompleteOption, ISource, SourceStat, SourceType, VimCompleteItem, Sourc
 import { disposeAll } from './util'
 import { statAsync } from './util/fs'
 import workspace from './workspace'
+import window from './window'
 import { byteSlice } from './util/string'
 const logger = require('./util/logger')('sources')
 
@@ -41,7 +42,7 @@ export class Sources {
       let fns = await nvim.call('coc#util#remote_fns', name) as string[]
       for (let fn of ['init', 'complete']) {
         if (!fns.includes(fn)) {
-          workspace.showMessage(`${fn} not found for source ${name}`, 'error')
+          window.showMessage(`${fn} not found for source ${name}`, 'error')
           return null
         }
       }
@@ -121,7 +122,7 @@ export class Sources {
         this.removeSource(source)
       })
     } catch (e) {
-      workspace.showMessage(`Error on create vim source ${name}: ${e.message}`, 'error')
+      window.showMessage(`Error on create vim source ${name}: ${e.message}`, 'error')
     }
   }
 
@@ -269,7 +270,7 @@ export class Sources {
   public addSource(source: ISource): Disposable {
     let { name } = source
     if (this.names.includes(name)) {
-      workspace.showMessage(`Source "${name}" recreated`, 'warning')
+      window.showMessage(`Source "${name}" recreated`, 'warning')
     }
     this.sourceMap.set(name, source)
     return Disposable.create(() => {

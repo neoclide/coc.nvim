@@ -3,7 +3,7 @@ import clipboardy from 'clipboardy'
 import { CancellationToken } from 'vscode-jsonrpc'
 import BasicList from '../../list/basic'
 import manager from '../../list/manager'
-import workspace from '../../workspace'
+import window from '../../window'
 import { ListContext, IList, ListItem, QuickfixItem } from '../../types'
 import helper from '../helper'
 
@@ -50,7 +50,7 @@ const lineList: IList = {
   actions: [{
     name: 'open',
     execute: async item => {
-      await workspace.moveTo({
+      await window.moveTo({
         line: (item as ListItem).data.line,
         character: 0
       })

@@ -6,6 +6,7 @@ import { ListHighlights, ListItem, ListOptions } from '../types'
 import { disposeAll } from '../util'
 import { Mutex } from '../util/mutex'
 import workspace from '../workspace'
+import window from '../window'
 import ListConfiguration from './configuration'
 const logger = require('../util/logger')('list-ui')
 
@@ -330,7 +331,7 @@ export default class ListUI {
         nvim.call('coc#list#stop_prompt', [], true)
         nvim.call('coc#list#clean_up', [], true)
         release()
-        workspace.showMessage(`Error on list create: ${e.message}`, 'error')
+        window.showMessage(`Error on list create: ${e.message}`, 'error')
         return
       }
     }
@@ -355,12 +356,12 @@ export default class ListUI {
 
   private async setLines(lines: string[], append = false, index: number): Promise<void> {
     let { nvim, buffer, window } = this
-    let statusSegments : Array<String> | null = this.config.get('statusLineSegments')
+    let statusSegments: Array<String> | null = this.config.get('statusLineSegments')
     if (!buffer || !window) return
     nvim.pauseNotification()
     nvim.call('coc#util#win_gotoid', [window.id], true)
     if (!append) {
-      if(statusSegments) {
+      if (statusSegments) {
         window.notify('nvim_win_set_option', ['statusline', statusSegments.join(" ")])
       }
       nvim.call('clearmatches', [], true)

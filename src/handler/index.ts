@@ -18,6 +18,7 @@ import { equals } from '../util/object'
 import { emptyRange, getChangedFromEdits, positionInRange, rangeInRange } from '../util/position'
 import { byteLength, isWord } from '../util/string'
 import workspace from '../workspace'
+import window from '../window'
 import CodeLensManager from './codelens'
 import Colors from './colors'
 import DocumentHighlighter from './documentHighlight'
@@ -94,7 +95,7 @@ export default class Handler {
 
   constructor(private nvim: Neovim) {
     this.getPreferences()
-    this.requestStatusItem = workspace.createStatusBarItem(0, { progress: true })
+    this.requestStatusItem = window.createStatusBarItem(0, { progress: true })
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('coc.preferences')) {
         this.getPreferences()
@@ -202,7 +203,7 @@ export default class Handler {
             }
             edits.push({ range: Range.create(pos, pos), newText })
             await doc.applyEdits(edits)
-            await workspace.moveTo(Position.create(line, newText.length - 1))
+            await window.moveTo(Position.create(line, newText.length - 1))
           }
         }
       }
@@ -270,7 +271,7 @@ export default class Handler {
         await this.applyCodeAction(actions[0])
         return true
       }
-      workspace.showMessage(`Organize import action not found.`, 'warning')
+      window.showMessage(`Organize import action not found.`, 'warning')
       return false
     }))
     commandManager.titles.set('editor.action.organizeImport', 'run organize import code action.')
@@ -301,7 +302,7 @@ export default class Handler {
     try {
       res = await Promise.resolve(fn(token))
     } catch (e) {
-      workspace.showMessage(e.message, 'error')
+      window.showMessage(e.message, 'error')
       logger.error(`Error on ${name}`, e)
     }
     if (this.requestTokenSource) {
@@ -313,7 +314,7 @@ export default class Handler {
     if (res == null) {
       logger.warn(`${name} provider not found!`)
     } else if (checkEmpty && Array.isArray(res) && res.length == 0) {
-      workspace.showMessage(`${name} not found`, 'warning')
+      window.showMessage(`${name} not found`, 'warning')
       return null
     }
     return res
@@ -539,7 +540,7 @@ export default class Handler {
       let edit = await languages.provideRenameEdits(doc.textDocument, position, curname, requestTokenSource.token)
       if (edit) return edit
     }
-    workspace.showMessage('Rename provider not found, extract word ranges from current buffer', 'more')
+    window.showMessage('Rename provider not found, extract word ranges from current buffer', 'more')
     let ranges = doc.getSymbolRanges(curname)
     return {
       changes: {
@@ -553,7 +554,7 @@ export default class Handler {
     if (doc == null) return false
     let { nvim } = this
     if (!languages.hasProvider('rename', doc.textDocument)) {
-      workspace.showMessage(`Rename provider not found for current document`, 'warning')
+      window.showMessage(`Rename provider not found for current document`, 'warning')
       return false
     }
     await synchronizeDocument(doc)
@@ -563,7 +564,7 @@ export default class Handler {
       let res = await languages.prepareRename(doc.textDocument, position, token)
       if (res === false) {
         statusItem.hide()
-        workspace.showMessage('Invalid position for rename', 'warning')
+        window.showMessage('Invalid position for rename', 'warning')
         return false
       }
       if (token.isCancellationRequested) return false
@@ -571,13 +572,13 @@ export default class Handler {
       if (!newName) {
         if (Range.is(res)) {
           curname = doc.textDocument.getText(res)
-          await workspace.moveTo(res.start)
+          await window.moveTo(res.start)
         } else if (res && typeof res.placeholder === 'string') {
           curname = res.placeholder
         } else {
           curname = await nvim.eval('expand("<cword>")') as string
         }
-        newName = await workspace.requestInput('New name', curname)
+        newName = await window.requestInput('New name', curname)
       }
       if (!newName) {
         statusItem.hide()
@@ -587,14 +588,14 @@ export default class Handler {
       if (token.isCancellationRequested) return false
       statusItem.hide()
       if (!edit) {
-        workspace.showMessage('Invalid position for rename', 'warning')
+        window.showMessage('Invalid position for rename', 'warning')
         return false
       }
       await workspace.applyEdit(edit)
       return true
     } catch (e) {
       statusItem.hide()
-      workspace.showMessage(`Error on rename: ${e.message}`, 'error')
+      window.showMessage(`Error on rename: ${e.message}`, 'error')
       logger.error(e)
       return false
     }
@@ -711,10 +712,10 @@ export default class Handler {
       codeActions = codeActions.filter(o => o.title == only || (o.command && o.command.title == only))
     }
     if (!codeActions || codeActions.length == 0) {
-      workspace.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning')
+      window.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning')
       return
     }
-    let idx = await workspace.menuPick(codeActions.map(o => o.title), 'Choose action')
+    let idx = await window.menuPick(codeActions.map(o => o.title), 'Choose action')
     let action = codeActions[idx]
     if (action) await this.applyCodeAction(action)
   }
@@ -741,7 +742,7 @@ export default class Handler {
   public async doQuickfix(): Promise<boolean> {
     let actions = await this.getCurrentCodeActions('n', [CodeActionKind.QuickFix])
     if (!actions || actions.length == 0) {
-      workspace.showMessage('No quickfix action available', 'warning')
+      window.showMessage('No quickfix action available', 'warning')
       return false
     }
     await this.applyCodeAction(actions[0])
@@ -767,7 +768,7 @@ export default class Handler {
           client
             .sendRequest(ExecuteCommandRequest.type, params)
             .then(undefined, error => {
-              workspace.showMessage(`Execute '${command.command} error: ${error}'`, 'error')
+              window.showMessage(`Execute '${command.command} error: ${error}'`, 'error')
             })
         }
       }
@@ -785,7 +786,7 @@ export default class Handler {
     let win = this.nvim.createWindow(winid)
     let [foldmethod, foldlevel] = await this.nvim.eval('[&foldmethod,&foldlevel]') as [string, string]
     if (foldmethod != 'manual') {
-      workspace.showMessage('foldmethod option should be manual!', 'warning')
+      window.showMessage('foldmethod option should be manual!', 'warning')
       return false
     }
     let ranges = await this.withRequestToken('folding range', token => {
@@ -895,12 +896,12 @@ export default class Handler {
     if (visualmode) {
       range = await workspace.getSelectedRange(visualmode, doc)
     } else {
-      let pos = await workspace.getCursorPosition()
+      let pos = await window.getCursorPosition()
       range = Range.create(pos, pos)
     }
     let symbols = await this.getDocumentSymbols(doc)
     if (!symbols || symbols.length === 0) {
-      workspace.showMessage('No symbols found', 'warning')
+      window.showMessage('No symbols found', 'warning')
       return
     }
     let properties = symbols.filter(s => s.kind == 'Property')
@@ -940,7 +941,7 @@ export default class Handler {
       // Only check formatOnTypeFiletypes when set, avoid breaking change
       return
     }
-    let position = await workspace.getCursorPosition()
+    let position = await window.getCursorPosition()
     let origLine = doc.getline(position.line)
     let pos: Position = insertLeave ? { line: position.line, character: origLine.length } : position
     let { changedtick } = doc
@@ -969,7 +970,7 @@ export default class Handler {
     let changed = getChangedFromEdits(position, edits)
     await doc.applyEdits(edits)
     let to = changed ? Position.create(position.line + changed.line, position.character + changed.character) : null
-    if (to) await workspace.moveTo(to)
+    if (to) await window.moveTo(to)
   }
 
   private async triggerSignatureHelp(doc: Document, position: Position): Promise<boolean> {
@@ -1209,7 +1210,7 @@ export default class Handler {
       let range = await workspace.getSelectedRange(visualmode, doc)
       positions.push(range.start, range.end)
     } else {
-      let position = await workspace.getCursorPosition()
+      let position = await window.getCursorPosition()
       positions.push(position)
     }
     if (!forward) {
@@ -1263,10 +1264,10 @@ export default class Handler {
     let range = Range.create(start - 1, 0, end - 1, line.length)
     let codeActions = await this.getCodeActions(doc, range, only ? [only] : null)
     if (!codeActions || codeActions.length == 0) {
-      workspace.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning')
+      window.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning')
       return
     }
-    let idx = await workspace.menuPick(codeActions.map(o => o.title), 'Choose action')
+    let idx = await window.menuPick(codeActions.map(o => o.title), 'Choose action')
     let action = codeActions[idx]
     if (action) await this.applyCodeAction(action)
   }
@@ -1284,13 +1285,13 @@ export default class Handler {
       let res = await languages.prepareRename(doc.textDocument, position, token)
       if (token.isCancellationRequested) return null
       if (res === false) {
-        workspace.showMessage('Invalid position', 'warning')
+        window.showMessage('Invalid position', 'warning')
         return null
       }
       let edit = await languages.provideRenameEdits(doc.textDocument, position, 'NewName', token)
       if (token.isCancellationRequested) return null
       if (!edit) {
-        workspace.showMessage('Empty workspaceEdit from language server', 'warning')
+        window.showMessage('Empty workspaceEdit from language server', 'warning')
         return null
       }
       return edit

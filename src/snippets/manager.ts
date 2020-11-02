@@ -2,6 +2,7 @@ import { Disposable, Range } from 'vscode-languageserver-protocol'
 import events from '../events'
 import * as types from '../types'
 import workspace from '../workspace'
+import window from '../window'
 import * as Snippets from "./parser"
 import { SnippetSession } from './session'
 import { SnippetVariableResolver } from './variableResolve'
@@ -46,7 +47,7 @@ export class SnippetManager implements types.SnippetManager {
 
   public init(): void {
     let config = workspace.getConfiguration('coc.preferences')
-    this.statusItem = workspace.createStatusBarItem(0)
+    this.statusItem = window.createStatusBarItem(0)
     this.statusItem.text = config.get<string>('snippetStatusText', 'SNIP')
   }
 

@@ -5,6 +5,7 @@ import mkdirp from 'mkdirp'
 import { ListContext, ListItem } from '../../types'
 import { statAsync } from '../../util/fs'
 import workspace from '../../workspace'
+import window from '../../window'
 import BasicList from '../basic'
 
 export default class FoldList extends BasicList {
@@ -19,7 +20,7 @@ export default class FoldList extends BasicList {
       let newPath = await nvim.call('input', ['Folder: ', item.label, 'dir'])
       let stat = await statAsync(newPath)
       if (!stat || !stat.isDirectory()) {
-        workspace.showMessage(`invalid path: ${newPath}`, 'error')
+        window.showMessage(`invalid path: ${newPath}`, 'error')
         return
       }
       workspace.renameWorkspaceFolder(item.label, newPath)
@@ -30,13 +31,13 @@ export default class FoldList extends BasicList {
     }, { reload: true, persist: true })
 
     this.addAction('newfile', async item => {
-      let file = await workspace.requestInput('File name', item.label + '/')
+      let file = await window.requestInput('File name', item.label + '/')
       let dir = path.dirname(file)
       let stat = await statAsync(dir)
       if (!stat || !stat.isDirectory()) {
         let success = await mkdirp(dir)
         if (!success) {
-          workspace.showMessage(`Error creating new directory ${dir}`, 'error')
+          window.showMessage(`Error creating new directory ${dir}`, 'error')
           return
         }
       }

@@ -3,6 +3,7 @@ import { CompleteOption, CompleteResult, VimCompleteItem } from '../types'
 import { fuzzyChar } from '../util/fuzzy'
 import { byteSlice } from '../util/string'
 import workspace from '../workspace'
+import window from '../window'
 import Source from './source'
 const logger = require('../util/logger')('model-source-vim')
 
@@ -16,7 +17,7 @@ export default class VimSource extends Source {
     try {
       res = await this.nvim.call(name, args)
     } catch (e) {
-      workspace.showMessage(`Vim error from source ${this.name}: ${e.message}`, 'error')
+      window.showMessage(`Vim error from source ${this.name}: ${e.message}`, 'error')
       return null
     }
     return res

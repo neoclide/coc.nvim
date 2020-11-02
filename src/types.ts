@@ -65,6 +65,28 @@ export interface DialogConfig {
   callback?: (index: number) => void
 }
 
+/**
+ * Represents an item that can be selected from
+ * a list of items.
+ */
+export interface QuickPickItem {
+
+  /**
+   * A human-readable string which is rendered prominent
+   */
+  label: string
+
+  /**
+   * A human-readable string which is rendered less prominent in the same line
+   */
+  description?: string
+
+  /**
+   * Optional flag indicating if this item is picked initially.
+   */
+  picked?: boolean
+}
+
 export type DocumentChange = TextDocumentEdit | CreateFile | RenameFile | DeleteFile
 
 export interface CodeAction extends protocol.CodeAction {
@@ -1249,7 +1271,7 @@ export interface Thenable<T> {
  * An output channel is a container for readonly textual information.
  *
  * To get an instance of an `OutputChannel` use
- * [createOutputChannel](#workspace.createOutputChannel).
+ * [createOutputChannel](#window.createOutputChannel).
  */
 export interface OutputChannel {
 
@@ -1410,10 +1432,8 @@ export interface IWorkspace {
   onDidChangeConfiguration: Event<ConfigurationChangeEvent>
   onDidWorkspaceInitialized: Event<void>
   onWillSaveUntil(callback: (event: TextDocumentWillSaveEvent) => void, thisArg: any, clientId: string): Disposable
-  showMessage(msg: string, identify?: MsgTypes): void
   findUp(filename: string | string[]): Promise<string | null>
   getDocument(uri: number | string): Document
-  getOffset(): Promise<number>
   getFormatOptions(uri?: string): Promise<FormattingOptions>
   getConfigFile(target: ConfigurationTarget): string
   applyEdit(edit: WorkspaceEdit): Promise<boolean>
@@ -1423,23 +1443,14 @@ export interface IWorkspace {
   getQuickfixItem(loc: Location, text?: string, type?: string): Promise<QuickfixItem>
   getLine(uri: string, line: number): Promise<string>
   readFile(uri: string): Promise<string>
-  echoLines(lines: string[], truncate?: boolean): Promise<void>
   getCurrentState(): Promise<EditerState>
-  getCursorPosition(): Promise<Position>
   jumpTo(uri: string, position: Position): Promise<void>
   createFile(filepath: string, opts?: CreateFileOptions): Promise<void>
   renameFile(oldPath: string, newPath: string, opts?: RenameFileOptions): Promise<void>
   deleteFile(filepath: string, opts?: DeleteFileOptions): Promise<void>
   openResource(uri: string): Promise<void>
-  createOutputChannel(name: string): OutputChannel
-  showOutputChannel(name: string): void
   resolveModule(name: string): Promise<string>
-  showQuickpick(items: string[], placeholder?: string): Promise<number>
-  showPrompt(title: string): Promise<boolean>
-  requestInput(title: string, defaultValue?: string): Promise<string>
   match(selector: DocumentSelector, document: TextDocument): number
   runCommand(cmd: string, cwd?: string, timeout?: number): Promise<string>
-  runTerminalCommand(cmd: string, cwd?: string, keepfocus?: boolean): Promise<TerminalResult>
-  createStatusBarItem(priority?: number): StatusBarItem
   dispose(): void
 }

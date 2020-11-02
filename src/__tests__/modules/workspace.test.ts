@@ -12,6 +12,7 @@ import { ConfigurationTarget } from '../../types'
 import { disposeAll } from '../../util'
 import { readFile } from '../../util/fs'
 import workspace from '../../workspace'
+import window from '../../window'
 import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
@@ -168,14 +169,14 @@ describe('workspace applyEdits', () => {
 
   it('should adjust cursor position after applyEdits', async () => {
     let doc = await helper.createDocument()
-    let pos = await workspace.getCursorPosition()
+    let pos = await window.getCursorPosition()
     expect(pos).toEqual({ line: 0, character: 0 })
     let edit = TextEdit.insert(Position.create(0, 0), 'foo\n')
     let versioned = VersionedTextDocumentIdentifier.create(doc.uri, null)
     let documentChanges = [TextDocumentEdit.create(versioned, [edit])]
     let res = await workspace.applyEdit({ documentChanges })
     expect(res).toBe(true)
-    pos = await workspace.getCursorPosition()
+    pos = await window.getCursorPosition()
     expect(pos).toEqual({ line: 1, character: 0 })
   })
 
@@ -304,17 +305,6 @@ describe('workspace methods', () => {
     expect(doc.buffer.equals(buf)).toBeTruthy()
   })
 
-  it('should get offset', async () => {
-    let doc = await helper.createDocument()
-    await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: 'foo\nbar' }])
-    let buf = await nvim.buffer
-    await buf.setLines(['foo', 'bar'], { start: 0, end: -1 })
-    await helper.wait(100)
-    await nvim.call('cursor', [2, 2])
-    let n = await workspace.getOffset()
-    expect(n).toBe(5)
-  })
-
   it('should get format options', async () => {
     let opts = await workspace.getFormatOptions()
     expect(opts.insertSpaces).toBe(true)
@@ -374,20 +364,6 @@ describe('workspace methods', () => {
     expect(line).toBe('quickfix')
   })
 
-  it('should echo lines', async () => {
-    await workspace.echoLines(['a', 'b'])
-    let ch = await nvim.call('screenchar', [79, 1])
-    let s = String.fromCharCode(ch)
-    expect(s).toBe('a')
-  })
-
-  it('should echo multiple lines with truncate', async () => {
-    await workspace.echoLines(['a', 'b', 'd', 'e'], true)
-    let ch = await nvim.call('screenchar', [79, 1])
-    let s = String.fromCharCode(ch)
-    expect(s).toBe('a')
-  })
-
   it('should read content from buffer', async () => {
     let doc = await helper.createDocument()
     await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: 'foo' }])
@@ -438,35 +414,6 @@ describe('workspace methods', () => {
   it('should run command', async () => {
     let res = await workspace.runCommand('ls', __dirname, 1)
     expect(res).toMatch('workspace')
-  })
-
-  it('should run terminal command', async () => {
-    let res = await workspace.runTerminalCommand('ls', __dirname)
-    expect(res.success).toBe(true)
-  })
-
-  it('should open temimal buffer', async () => {
-    let bufnr = await workspace.openTerminal('ls', { autoclose: false, keepfocus: false })
-    let curr = await nvim.eval('bufnr("%")')
-    expect(curr).toBe(bufnr)
-    let buftype = await nvim.eval('&buftype')
-    expect(buftype).toBe('terminal')
-  })
-
-  it('should show mesages', async () => {
-    await helper.edit()
-    workspace.showMessage('error', 'error')
-    await helper.wait(100)
-    let str = await helper.getCmdline()
-    expect(str).toMatch('error')
-    workspace.showMessage('warning', 'warning')
-    await helper.wait(100)
-    str = await helper.getCmdline()
-    expect(str).toMatch('warning')
-    workspace.showMessage('moremsg')
-    await helper.wait(100)
-    str = await helper.getCmdline()
-    expect(str).toMatch('moremsg')
   })
 
   it('should resolve module path if exists', async () => {
@@ -578,7 +525,6 @@ describe('workspace utility', () => {
 
   it('should create file if not exists', async () => {
     await helper.edit()
-    let bufnr = await nvim.eval('bufnr("%")')
     let filepath = path.join(__dirname, 'foo')
     await workspace.createFile(filepath, { ignoreIfExists: true })
     let exists = fs.existsSync(filepath)
@@ -695,40 +641,6 @@ describe('workspace utility', () => {
     db.destroy()
   })
 
-  it('should create outputChannel', () => {
-    let channel = workspace.createOutputChannel('channel')
-    expect(channel.name).toBe('channel')
-  })
-
-  it('should show outputChannel', async () => {
-    workspace.createOutputChannel('channel')
-    workspace.showOutputChannel('channel')
-    await helper.wait(50)
-    let buf = await nvim.buffer
-    let name = await buf.name
-    expect(name).toMatch('channel')
-  })
-
-  it('should not show none exists channel', async () => {
-    let buf = await nvim.buffer
-    let bufnr = buf.id
-    workspace.showOutputChannel('NONE')
-    await helper.wait(10)
-    buf = await nvim.buffer
-    expect(buf.id).toBe(bufnr)
-  })
-
-  it('should get cursor position', async () => {
-    await helper.createDocument()
-    await nvim.setLine('       ')
-    await nvim.call('cursor', [1, 3])
-    let pos = await workspace.getCursorPosition()
-    expect(pos).toEqual({
-      line: 0,
-      character: 2
-    })
-  })
-
   it('should get current state', async () => {
     let buf = await helper.edit()
     await buf.setLines(['foo', 'bar'], { start: 0, end: -1, strictIndexing: false })
@@ -776,17 +688,6 @@ describe('workspace utility', () => {
     expect(name).toBe(uri)
   })
 
-  it('should moveTo position in insert mode', async () => {
-    await helper.edit()
-    await nvim.setLine('foo')
-    await nvim.input('i')
-    await workspace.moveTo({ line: 0, character: 3 })
-    let col = await nvim.call('col', '.')
-    expect(col).toBe(4)
-    let virtualedit = await nvim.getOption('virtualedit')
-    expect(virtualedit).toBe('')
-  })
-
   it('should findUp to tsconfig.json from current file', async () => {
     await helper.edit(path.join(__dirname, 'edit'))
     let filepath = await workspace.findUp('tsconfig.json')
@@ -810,47 +711,6 @@ describe('workspace utility', () => {
     let uri = URI.file(file)
     let res = await workspace.resolveRootFolder(uri, ['.git'])
     expect(res).toMatch('coc.nvim')
-  })
-
-  it('should choose quickpick', async () => {
-    let p = workspace.showQuickpick(['a', 'b'])
-    await helper.wait(100)
-    await nvim.input('1')
-    await nvim.input('<CR>')
-    let res = await p
-    expect(res).toBe(0)
-  })
-
-  it('should cancel quickpick', async () => {
-    let p = workspace.showQuickpick(['a', 'b'])
-    await helper.wait(100)
-    await nvim.input('<esc>')
-    let res = await p
-    expect(res).toBe(-1)
-  })
-
-  it('should show prompt', async () => {
-    let p = workspace.showPrompt('prompt')
-    await helper.wait(100)
-    await nvim.input('y')
-    let res = await p
-    expect(res).toBe(true)
-  })
-
-  it('should request input', async () => {
-    let p = workspace.requestInput('Name')
-    await helper.wait(100)
-    await nvim.input('bar<enter>')
-    let res = await p
-    expect(res).toBe('bar')
-  })
-
-  it('should return null when input empty', async () => {
-    let p = workspace.requestInput('Name')
-    await helper.wait(30)
-    await nvim.input('<enter>')
-    let res = await p
-    expect(res).toBeNull()
   })
 
   it('should register autocmd', async () => {

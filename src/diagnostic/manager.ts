@@ -11,6 +11,7 @@ import { ConfigurationChangeEvent, DiagnosticItem, Documentation, LocationListIt
 import { disposeAll } from '../util'
 import { comparePosition, lineInRange, positionInRange, rangeIntersect } from '../util/position'
 import workspace from '../workspace'
+import window from '../window'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
 import { getSeverityName, getSeverityType, severityLevel, getLocationListItem } from './util'
@@ -194,7 +195,7 @@ export class DiagnosticManager implements Disposable {
     }
     let { errorItems } = workspace.configurations
     if (errorItems && errorItems.length) {
-      if (init) workspace.showMessage(`settings file parse error, run ':CocList diagnostics'`, 'error')
+      if (init) window.showMessage(`settings file parse error, run ':CocList diagnostics'`, 'error')
       let entries: Map<string, Diagnostic[]> = new Map()
       for (let item of errorItems) {
         let { uri } = item.location
@@ -318,7 +319,7 @@ export class DiagnosticManager implements Disposable {
     let diagnostics = this.getDiagnosticsAt(bufnr, cursor)
     if (diagnostics.length == 0) {
       nvim.command('pclose', true)
-      workspace.showMessage(`Empty diagnostics`, 'warning')
+      window.showMessage(`Empty diagnostics`, 'warning')
       return
     }
     let lines: string[] = []
@@ -341,11 +342,11 @@ export class DiagnosticManager implements Disposable {
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
     if (!document) return
-    let offset = await workspace.getOffset()
+    let offset = await window.getOffset()
     if (offset == null) return
     let ranges = this.getSortedRanges(document.uri, severity)
     if (ranges.length == 0) {
-      workspace.showMessage('Empty diagnostics', 'warning')
+      window.showMessage('Empty diagnostics', 'warning')
       return
     }
     let { textDocument } = document
@@ -360,7 +361,7 @@ export class DiagnosticManager implements Disposable {
       }
     }
     if (pos) {
-      await workspace.moveTo(pos)
+      await window.moveTo(pos)
       if (this.config.enableMessage == 'never') return
       await this.echoMessage(false)
     }
@@ -372,10 +373,10 @@ export class DiagnosticManager implements Disposable {
   public async jumpNext(severity?: string): Promise<void> {
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
-    let offset = await workspace.getOffset()
+    let offset = await window.getOffset()
     let ranges = this.getSortedRanges(document.uri, severity)
     if (ranges.length == 0) {
-      workspace.showMessage('Empty diagnostics', 'warning')
+      window.showMessage('Empty diagnostics', 'warning')
       return
     }
     let { textDocument } = document
@@ -390,7 +391,7 @@ export class DiagnosticManager implements Disposable {
       }
     }
     if (pos) {
-      await workspace.moveTo(pos)
+      await window.moveTo(pos)
       if (this.config.enableMessage == 'never') return
       await this.echoMessage(false)
     }
@@ -524,7 +525,7 @@ export class DiagnosticManager implements Disposable {
       if (lines.length) {
         await this.nvim.command('echo ""')
         this.lastMessage = lines[0].slice(0, 30)
-        await workspace.echoLines(lines, truncate)
+        await window.echoLines(lines, truncate)
       }
     }
   }
