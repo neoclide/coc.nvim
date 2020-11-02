@@ -912,7 +912,7 @@ function! coc#float#get_config_cursor(lines, config) abort
     let ch += float2nr(ceil(str2float(string(dw))/(maxWidth - 2)))
   endfor
   let width = coc#helper#min(maxWidth, width)
-  let [lineIdx, colIdx] = s:win_position()
+  let [lineIdx, colIdx] = coc#float#win_position()
   " How much we should move left
   let offsetX = coc#helper#min(get(a:config, 'offsetX', 0), colIdx)
   let showTop = 0
@@ -1379,7 +1379,7 @@ function! s:nvim_get_botline(topline, height, width, bufnr) abort
 endfunction
 
 " Position of cursor relative to editor
-function! s:win_position() abort
+function! coc#float#win_position() abort
   let nr = winnr()
   let [row, col] = win_screenpos(nr)
   return [row + winline() - 2, col + wincol() - 2]

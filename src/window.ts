@@ -14,6 +14,7 @@ import { DialogConfig, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel
 import { CONFIG_FILE_NAME, disposeAll } from './util'
 import { Mutex } from './util/mutex'
 import workspace from './workspace'
+import { ScreenPosition } from './types'
 const logger = require('./util/logger')('window')
 
 class Window {
@@ -265,7 +266,7 @@ class Window {
   }
 
   /**
-   * Get current cursor position.
+   * Get current cursor position (line, character).
    */
   public async getCursorPosition(): Promise<Position> {
     let [line, character] = await this.nvim.call('coc#util#cursor')
@@ -285,6 +286,14 @@ class Window {
    */
   public async getOffset(): Promise<number> {
     return await this.nvim.call('coc#util#get_offset') as number
+  }
+
+  /**
+   * Get screen position of current cursor, 0 based
+   */
+  public async getCursorScreenPosition(): Promise<ScreenPosition> {
+    let [row, col] = await this.nvim.call('coc#float#win_position') as [number, number]
+    return { row, col }
   }
 }
 

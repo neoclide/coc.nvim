@@ -28,7 +28,7 @@ import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, DocumentChange, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, OutputChannel, PatternType, QuickfixItem, Terminal, TerminalOptions, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { distinct } from './util/array'
-import { findUp, fixDriver, inDirectory, isFile, isParentFolder, readFile, readFileLine, renameAsync, resolveRoot, statAsync } from './util/fs'
+import { findUp, fixDriver, inDirectory, isFile, isParentFolder, readFileLine, renameAsync, resolveRoot, statAsync } from './util/fs'
 import { CONFIG_FILE_NAME, disposeAll, getKeymapModifier, platform, runCommand, wait } from './util/index'
 import { score } from './util/match'
 import { equals } from './util/object'
@@ -37,6 +37,7 @@ import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
 import window from './window'
 
+const APIVERSION = 3
 const logger = require('./util/logger')('workspace')
 let NAME_SPACE = 1080
 const methods = ['showMessage', 'runTerminalCommand', 'openTerminal', 'showQuickpick', 'menuPick',
@@ -123,9 +124,8 @@ export class Workspace implements IWorkspace {
       })
     }
     this._env = await nvim.call('coc#util#vim_info') as Env
-    let v = 2
-    if (this._env.apiversion != v) {
-      console.error(`API version ${this._env.apiversion} is not ${v}, please build coc.nvim by 'yarn install' after pull source code.`)
+    if (this._env.apiversion != APIVERSION) {
+      console.error(`API version ${this._env.apiversion} is not ${APIVERSION}, please build coc.nvim by 'yarn install' after pull source code.`)
       process.exit()
     }
     this._insertMode = this._env.mode.startsWith('insert')

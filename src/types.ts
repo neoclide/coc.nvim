@@ -591,6 +591,11 @@ export interface InsertChange {
   changedtick: number
 }
 
+export interface ScreenPosition {
+  row: number
+  col: number
+}
+
 export interface PumBounding {
   readonly height: number
   readonly width: number
