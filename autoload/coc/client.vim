@@ -72,8 +72,7 @@ function! s:start() dict
     let self['running'] = 1
     let self['channel'] = job_getchannel(job)
   else
-    let tmpdir = $TMPDIR
-    let original = {}
+    let original = {'tmpdir': $TMPDIR}
     " env option not work on neovim
     if exists('*setenv')
       let original = {
@@ -100,7 +99,7 @@ function! s:start() dict
         call setenv(key, original[key])
       endfor
     else
-      let $TMPDIR = tmpdir
+      let $TMPDIR = original['tmpdir']
     endif
     if chan_id <= 0
       echohl Error | echom 'Failed to start '.self.name.' service' | echohl None
