@@ -726,7 +726,10 @@ export class Workspace implements IWorkspace {
     let document = this.getDocument(uri)
     if (document) return document.getline(line) || ''
     if (!uri.startsWith('file:')) return ''
-    return await readFileLine(URI.parse(uri).fsPath, line)
+    let fsPath = URI.parse(uri).fsPath
+    if (!fs.existsSync(fsPath)) return ''
+    let lines = await this.nvim.call('readfile', [fsPath, '', line + 1]) as string[]
+    return lines[lines.length - 1]
   }
 
   /**
