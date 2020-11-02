@@ -338,6 +338,7 @@ export interface Env {
   disabledSources: { [filetype: string]: string[] }
   readonly guicursor: string
   readonly mode: string
+  readonly apiversion: number
   readonly floating: boolean
   readonly extensionRoot: string
   readonly watchExtensions: string[]

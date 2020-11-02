@@ -567,6 +567,7 @@ endfunction
 
 function! coc#util#vim_info()
   return {
+        \ 'apiversion': 1,
         \ 'mode': mode(),
         \ 'floating': has('nvim') && exists('*nvim_open_win') ? v:true : v:false,
         \ 'extensionRoot': coc#util#extension_root(),
