@@ -2,6 +2,7 @@ let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:clear_match_by_id = has('nvim-0.5.0') || has('patch-8.1.1084')
+let s:vim_api_version = 4
 
 let s:activate = ""
 let s:quit = ""
@@ -24,6 +25,10 @@ function! coc#util#has_preview()
     endif
   endfor
   return 0
+endfunction
+
+function! coc#util#api_version() abort
+  return s:vim_api_version
 endfunction
 
 function! coc#util#scroll_preview(dir) abort
@@ -354,13 +359,11 @@ function! coc#util#get_data_home()
 endfunction
 
 function! coc#util#get_input()
-  let pos = getcurpos()
-  let line = getline('.')
-  let l:start = pos[2] - 1
-  while l:start > 0 && line[l:start - 1] =~# '\k'
-    let l:start -= 1
-  endwhile
-  return pos[2] == 1 ? '' : line[l:start : pos[2] - 2]
+  let before = strpart(getline('.'), 0, col('.')-1)
+  if len(before) == 0
+    return ''
+  endif
+  return matchstr(before, '\k*$')
 endfunction
 
 function! coc#util#move_cursor(delta)
@@ -369,26 +372,13 @@ function! coc#util#move_cursor(delta)
 endfunction
 
 function! coc#util#get_complete_option()
-  let disabled = get(b:, 'coc_suggest_disable', 0)
-  if disabled | return | endif
-  let blacklist = get(b:, 'coc_suggest_blacklist', [])
   let pos = getcurpos()
-  let l:start = pos[2] - 1
   let line = getline(pos[1])
-  for char in reverse(split(line[0: l:start - 1], '\zs'))
-    if l:start > 0 && char =~# '\k'
-      let l:start = l:start - strlen(char)
-    else
-      break
-    endif
-  endfor
-  let input = pos[2] == 1 ? '' : line[l:start : pos[2] - 2]
-  if !empty(blacklist) && index(blacklist, input) >= 0
-    return
-  endif
-  let synname = synIDattr(synID(pos[1], l:start, 1),"name")
+  let input = matchstr(strpart(line, 0, pos[2] - 1), '\k*$')
+  let col = pos[2] - strlen(input)
+  let synname = synIDattr(synID(pos[1], col, 1), 'name')
   return {
-        \ 'word': matchstr(line[l:start : ], '^\k\+'),
+        \ 'word': matchstr(strpart(line, col - 1), '^\k\+'),
         \ 'input': empty(input) ? '' : input,
         \ 'line': line,
         \ 'filetype': &filetype,
@@ -396,10 +386,10 @@ function! coc#util#get_complete_option()
         \ 'bufnr': bufnr('%'),
         \ 'linenr': pos[1],
         \ 'colnr' : pos[2],
-        \ 'col': l:start,
+        \ 'col': col - 1,
         \ 'synname': synname,
         \ 'changedtick': b:changedtick,
-        \ 'blacklist': blacklist,
+        \ 'blacklist': get(b:, 'coc_suggest_blacklist', []),
         \}
 endfunction
 
@@ -567,10 +557,10 @@ endfunction
 
 function! coc#util#vim_info()
   return {
+        \ 'apiversion': s:vim_api_version,
         \ 'mode': mode(),
         \ 'floating': has('nvim') && exists('*nvim_open_win') ? v:true : v:false,
         \ 'extensionRoot': coc#util#extension_root(),
-        \ 'watchExtensions': get(g:, 'coc_watch_extensions', []),
         \ 'globalExtensions': get(g:, 'coc_global_extensions', []),
         \ 'config': get(g:, 'coc_user_config', {}),
         \ 'pid': coc#util#getpid(),
@@ -1012,6 +1002,20 @@ function! coc#util#clear_highlights(...) abort
         call matchdelete(item['id'], winid)
       endfor
     endif
+endfunction
+
+" Character offset of current cursor
+function! coc#util#get_offset() abort
+  let offset = 0
+  let lnum = line('.')
+  for i in range(1, lnum)
+    if i == lnum
+      let offset += strchars(strpart(getline('.'), 0, col('.')-1))
+    else
+      let offset += strchars(getline(i)) + 1
+    endif
+  endfor
+  return offset
 endfunction
 
 " Make sure window exists

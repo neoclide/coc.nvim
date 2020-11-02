@@ -1357,11 +1357,6 @@ g:coc_status_warning_sign				*g:coc_status_warning_sign*
 
 	Warning character used for statusline, default: `W`
 
-g:coc_watch_extensions					*g:coc_watch_extensions*
-
-	Extensions to watch for reload, used for developing extensions only,
-	need watchman installed.
-
 g:coc_quickfix_open_command				*g:coc_quickfix_open_command*
 
 	Command used for open quickfix list.  To jump fist position after
@@ -1584,6 +1579,10 @@ health#coc#check()					*health#coc#check()*
 	Neovim only, run health check, triggered by ':checkhealth'
 	command.
 
+coc#util#api_version() 					 *coc#util#api_version()*
+
+	Get coc.nvim's vim api version number, start from `1`.
+
 coc#util#job_command()					*coc#util#job_command()*
 
 	Get the job command used for starting the coc service.
@@ -1645,7 +1644,7 @@ coc#float#has_scroll() 					*coc#float#has_scroll()*
 	  inoremap <nowait><expr> <C-b> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(0)\<cr>" : "\<Left>"
 	endif
 <
-coc#float#scroll({forward}, [{amount}])
+coc#float#scroll({forward}, [{amount}])                 *coc#float#scroll()*
 
 	Scroll all scrollable float windows/popups, scroll backward when
 	{forward} is not `1`. {amount} could be number or full page when
@@ -2236,6 +2235,11 @@ COMMANDS						*coc-commands*
 	change the text and save refactor buffer to make changes across all
 	related files. You can make any kind of changes, including add lines
 	and remove lines.
+
+:CocWatch [extension] 						*:CocWatch*
+
+	Watch loaded [extension] for reload on file change, use <tab> for
+	complete extension id.
 
 ------------------------------------------------------------------------------
 AUTOCMD							*coc-autocmds*
