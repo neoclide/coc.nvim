@@ -23,7 +23,7 @@ function! coc#terminal#start(cmd, cwd, env) abort
     " use env option when possible
     if s:is_vim
       let env = copy(a:env)
-    else
+    elseif exists('*setenv')
       for key in keys(a:env)
         let original[key] = getenv(key)
         call setenv(key, a:env[key])
@@ -44,7 +44,7 @@ function! coc#terminal#start(cmd, cwd, env) abort
           \ 'on_exit': {job, status -> s:OnExit(status)},
           \ 'env': env,
           \ })
-    if !empty(original)
+    if !empty(original) && exists('*setenv')
       for key in keys(original)
         call setenv(key, original[key])
       endfor
