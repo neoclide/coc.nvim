@@ -283,6 +283,7 @@ export class Completion implements Disposable {
     this.lastInsert = null
     if (info.pre.match(/^\s*/)[0] !== option.line.match(/^\s*/)[0]) {
       // Can't handle indent change
+      logger.warn('Complete stopped by indent change.')
       this.stop()
       return
     }
@@ -300,12 +301,12 @@ export class Completion implements Disposable {
     let noChange = this.pretext == info.pre
     let pretext = this.pretext = info.pre
     this.lastInsert = null
-    let document = workspace.getDocument(bufnr)
-    if (!document || !document.attached) return
+    let doc = workspace.getDocument(bufnr)
+    if (!doc) return
     // try trigger on character type
     if (!this.activated) {
       if (!latestInsertChar) return
-      await this.triggerCompletion(document, this.pretext)
+      await this.triggerCompletion(doc, this.pretext)
       return
     }
     // Ignore change with other buffer
@@ -336,28 +337,38 @@ export class Completion implements Disposable {
         await nvim.call('coc#util#setline', [linenr, newLine])
         let curcol = col + word.length + 2
         await nvim.call('cursor', [linenr, curcol])
-        await document.patchChange()
+        await doc.patchChange()
         return
       }
     }
     // prefer trigger completion
-    if (sources.shouldTrigger(pretext, document.filetype)) {
-      await this.triggerCompletion(document, pretext, false)
+    if (sources.shouldTrigger(pretext, doc.filetype)) {
+      await this.triggerCompletion(doc, pretext, false)
     } else {
       await this.resumeCompletion()
     }
   }
 
-  private async triggerCompletion(document: Document, pre: string, checkTrigger = true): Promise<void> {
-    if (this.config.autoTrigger == 'none') return
+  private async triggerCompletion(doc: Document, pre: string, checkTrigger = true): Promise<void> {
+    if (!doc || !doc.attached) {
+      logger.warn('Document not attached, suggest disabled.')
+      return
+    }
     // check trigger
     if (checkTrigger) {
-      let shouldTrigger = this.shouldTrigger(document, pre)
+      let shouldTrigger = this.shouldTrigger(doc, pre)
       if (!shouldTrigger) return
     }
-    await document.patchChange()
-    let option: CompleteOption = await this.nvim.call('coc#util#get_complete_option')
-    if (!option) return
+    let [disabled, option] = await this.nvim.eval('[get(b:,"coc_suggest_disable",0),coc#util#get_complete_option()]') as [number, CompleteOption]
+    if (disabled == 1) {
+      logger.warn(`Suggest disabled by b:coc_suggest_disable`)
+      return
+    }
+    if (option.blacklist && option.blacklist.includes(option.input)) {
+      logger.warn(`Suggest disabled by b:coc_suggest_blacklist`, option.blacklist)
+      return
+    }
+    await doc.patchChange()
     if (pre.length) {
       option.triggerCharacter = pre.slice(-1)
     }
@@ -398,7 +409,7 @@ export class Completion implements Disposable {
   private async onInsertEnter(bufnr: number): Promise<void> {
     if (!this.config.triggerAfterInsertEnter || this.config.autoTrigger !== 'always') return
     let doc = workspace.getDocument(bufnr)
-    if (!doc || !doc.attached) return
+    if (!doc) return
     let pre = await this.nvim.eval(`strpart(getline('.'), 0, col('.') - 1)`) as string
     if (!pre) return
     await this.triggerCompletion(doc, pre)

@@ -123,9 +123,9 @@ export class Workspace implements IWorkspace {
       })
     }
     this._env = await nvim.call('coc#util#vim_info') as Env
-    let v = 1
+    let v = 2
     if (this._env.apiversion != v) {
-      console.error(`API version requires ${this._env.apiversion} but current is ${v}, make sure build coc.nvim after pull source code.`)
+      console.error(`API version ${this._env.apiversion} is not ${v}, please build coc.nvim by 'yarn install' after pull source code.`)
       process.exit()
     }
     this._insertMode = this._env.mode.startsWith('insert')
