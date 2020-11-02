@@ -16,7 +16,7 @@ import InstallBuffer from './model/installBuffer'
 import { createInstallerFactory } from './model/installer'
 import Memos from './model/memos'
 import { Documentation, Extension, ExtensionContext, ExtensionInfo, ExtensionState, ExtensionType } from './types'
-import { disposeAll, wait, concurrent } from './util'
+import { disposeAll, wait, concurrent, watchFile } from './util'
 import { distinct, splitArray } from './util/array'
 import './util/extensions'
 import { createExtension, ExtensionExport } from './util/factory'
@@ -203,33 +203,10 @@ export class Extensions {
   }
 
   private async checkExtensions(): Promise<void> {
-    let { globalExtensions, watchExtensions } = workspace.env
+    let { globalExtensions } = workspace.env
     if (globalExtensions && globalExtensions.length) {
       let names = this.filterGlobalExtensions(globalExtensions)
       this.installExtensions(names).logError()
-    }
-    // watch for changes
-    if (watchExtensions && watchExtensions.length) {
-      let watchmanPath = workspace.getWatchmanPath()
-      if (!watchmanPath) return
-      for (let name of watchExtensions) {
-        let item = this.extensions.get(name)
-        if (item && item.directory) {
-          let directory = await promisify(fs.realpath)(item.directory)
-          let client = await Watchman.createClient(watchmanPath, directory)
-          if (client) {
-            this.disposables.push(client)
-            client.subscribe('**/*.js', async () => {
-              await this.reloadExtension(name)
-              window.showMessage(`reloaded ${name}`)
-            }).then(disposable => {
-              this.disposables.push(disposable)
-            }, e => {
-              logger.error(e)
-            })
-          }
-        }
-      }
     }
   }
 
@@ -476,27 +453,46 @@ export class Extensions {
     for (let file of files) {
       await this.loadExtensionFile(path.join(folder, file))
     }
-    let watchmanPath = workspace.getWatchmanPath()
-    if (!watchmanPath) return
-    let client = await Watchman.createClient(watchmanPath, folder)
-    if (!client) return
-    this.disposables.push(client)
-    client.subscribe('*.js', async ({ root, files }) => {
-      files = files.filter(f => f.type == 'f')
-      for (let file of files) {
-        let id = `single-` + path.basename(file.name, 'js')
-        if (file.exists) {
-          let filepath = path.join(root, file.name)
-          await this.loadExtensionFile(filepath)
-        } else {
-          await this.unloadExtension(id)
-        }
+  }
+
+  public loadedExtensions(): string[] {
+    return Array.from(this.extensions.keys())
+  }
+
+  public async watchExtension(id: string): Promise<void> {
+    let item = this.extensions.get(id)
+    if (!item) {
+      window.showMessage(`extension ${id} not found`, 'error')
+      return
+    }
+    if (id.startsWith('single-')) {
+      window.showMessage(`watching ${item.filepath}`)
+      this.disposables.push(watchFile(item.filepath, async () => {
+        await this.loadExtensionFile(item.filepath)
+        window.showMessage(`reloaded ${id}`)
+      }))
+    } else {
+      let watchmanPath = workspace.getWatchmanPath()
+      if (!watchmanPath) {
+        window.showMessage('watchman not found', 'error')
+        return
       }
-    }).then(disposable => {
-      this.disposables.push(disposable)
-    }, e => {
-      logger.error(e)
-    })
+      let client = await Watchman.createClient(watchmanPath, item.directory)
+      if (!client) {
+        window.showMessage(`Can't create watchman client, check output:///watchman`)
+        return
+      }
+      window.showMessage(`watching ${item.directory}`)
+      this.disposables.push(client)
+      client.subscribe('**/*.js', async () => {
+        await this.reloadExtension(id)
+        window.showMessage(`reloaded ${id}`)
+      }).then(disposable => {
+        this.disposables.push(disposable)
+      }, e => {
+        logger.error(e)
+      })
+    }
   }
 
   /**

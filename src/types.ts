@@ -341,7 +341,6 @@ export interface Env {
   readonly apiversion: number
   readonly floating: boolean
   readonly extensionRoot: string
-  readonly watchExtensions: string[]
   readonly globalExtensions: string[]
   readonly workspaceFolders: string[]
   readonly config: any

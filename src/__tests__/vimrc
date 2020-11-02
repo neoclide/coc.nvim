@@ -14,7 +14,6 @@ set shortmess=at
 
 let s:dir = expand('<sfile>:h')
 let s:root = expand('<sfile>:h:h:h')
-let g:coc_watch_extensions = ['test']
 let g:coc_node_env = 'test'
 
 autocmd BufNewFile,BufRead *.ts  set filetype=typescript

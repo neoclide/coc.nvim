@@ -332,6 +332,12 @@ export default class Plugin extends EventEmitter {
     this.addAction('extensionStats', () => {
       return extensions.getExtensionStates()
     })
+    this.addAction('loadedExtensions', () => {
+      return extensions.loadedExtensions()
+    })
+    this.addAction('watchExtension', (id: string) => {
+      return extensions.watchExtension(id)
+    })
     this.addAction('activeExtension', name => {
       return extensions.activate(name)
     })

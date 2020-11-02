@@ -138,6 +138,11 @@ function! s:SearchOptions(...) abort
   return join(list, "\n")
 endfunction
 
+function! s:LoadedExtensions(...) abort
+  let list = CocAction('loadedExtensions')
+  return join(list, "\n")
+endfunction
+
 function! s:InstallOptions(...)abort
   let list = ['-terminal', '-sync']
   return join(list, "\n")
@@ -414,6 +419,7 @@ command! -nargs=0 CocLocalConfig  :call coc#rpc#notify('openLocalConfig', [])
 command! -nargs=0 CocRestart      :call coc#rpc#restart()
 command! -nargs=0 CocStart        :call coc#rpc#start_server()
 command! -nargs=0 CocRebuild      :call coc#util#rebuild()
+command! -nargs=1 -complete=custom,s:LoadedExtensions  CocWatch    :call coc#rpc#notify('watchExtension', [<f-args>])
 command! -nargs=+ -complete=custom,s:SearchOptions  CocSearch    :call coc#rpc#notify('search', [<f-args>])
 command! -nargs=+ -complete=custom,s:ExtensionList  CocUninstall :call CocActionAsync('uninstallExtension', <f-args>)
 command! -nargs=* -complete=custom,s:CommandList -range CocCommand :call coc#rpc#notify('runCommand', [<f-args>])

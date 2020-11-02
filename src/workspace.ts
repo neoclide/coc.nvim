@@ -28,7 +28,7 @@ import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, DocumentChange, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, OutputChannel, PatternType, QuickfixItem, Terminal, TerminalOptions, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { distinct } from './util/array'
-import { findUp, fixDriver, inDirectory, isFile, isParentFolder, readFileLine, renameAsync, resolveRoot, statAsync } from './util/fs'
+import { findUp, fixDriver, inDirectory, isFile, isParentFolder, renameAsync, resolveRoot, statAsync } from './util/fs'
 import { CONFIG_FILE_NAME, disposeAll, getKeymapModifier, platform, runCommand, wait } from './util/index'
 import { score } from './util/match'
 import { equals } from './util/object'
@@ -37,7 +37,7 @@ import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
 import window from './window'
 
-const APIVERSION = 3
+const APIVERSION = 4
 const logger = require('./util/logger')('workspace')
 let NAME_SPACE = 1080
 const methods = ['showMessage', 'runTerminalCommand', 'openTerminal', 'showQuickpick', 'menuPick',
