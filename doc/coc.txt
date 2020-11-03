@@ -1220,7 +1220,6 @@ g:coc_start_at_startup					*g:coc_start_at_startup*
 
 g:coc_user_config					*g:coc_user_config*
 
-
 	User configuration object, define this variable when you can't use
 	|coc#config()|
 
@@ -1435,6 +1434,10 @@ g:coc_prompt_win_width 					*g:coc_prompt_win_width*
 	Width of input prompt window on neovim >= 0.5.0.  Prompt buffer can't
 	work with vim8's popup yet.
 
+g:coc_install_yarn_cmd 					*g:coc_install_yarn_cmd*
+
+	Yarn command used for |coc#util#install()| function.
+
 ------------------------------------------------------------------------------
 
 Some variables are provided by coc.nvim so you can use them in your
@@ -1620,6 +1623,11 @@ coc#util#get_config({key})				*coc#util#get_config()*
 	Get configuration (mostly defined in coc-settings.json)	by {key}, ex: >
 
 	:echo coc#util#get_config('coc.preferences')
+
+coc#util#install()  					*coc#util#install()*
+
+	Install dependencies and compile source code, not needed unless
+	you need compile typescript code.
 
 coc#float#close_all() 					*coc#float#close_all()*
 
