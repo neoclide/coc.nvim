@@ -76,9 +76,9 @@ export default class Menu {
       firstNumber = undefined
       if (character == 'G') {
         this.currIndex = this.total - 1
-      } else if (['j', '\x0e', '\t'].includes(character)) {
+      } else if (['j', '\x0e', '\t', '\x0a'].includes(character)) {
         this.currIndex = this.currIndex >= this.total - 1 ? 0 : this.currIndex + 1
-      } else if (['k', '\x10'].includes(character)) {
+      } else if (['k', '\x10', '\x0b', '\ufffd\u006b\u0042'].includes(character)) {
         this.currIndex = this.currIndex == 0 ? this.total - 1 : this.currIndex - 1
       } else {
         return
