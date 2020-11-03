@@ -18,12 +18,6 @@ elseif has('mac')
   let s:activate = 'activate'
 endif
 
-" Let user customize yarn executable name.
-" E.g. Fedora provides executable named as nodejs-yarn.
-if !exists('g:coc_nvim_yarn')
-  let g:coc_nvim_yarn='yarn'
-endif
-
 function! coc#util#has_preview()
   for i in range(1, winnr('$'))
     if getwinvar(i, '&previewwindow')
@@ -670,7 +664,7 @@ endfunction
 function! coc#util#install() abort
   call coc#util#open_terminal({
         \ 'cwd': s:root,
-        \ 'cmd': g:coc_nvim_yarn . ' install --frozen-lockfile',
+        \ 'cmd': 'yarn install --frozen-lockfile',
         \ 'autoclose': 0,
         \ })
 endfunction
