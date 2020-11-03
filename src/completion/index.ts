@@ -359,6 +359,11 @@ export class Completion implements Disposable {
       let shouldTrigger = this.shouldTrigger(doc, pre)
       if (!shouldTrigger) return
     }
+    if (doc.getVar('suggest_disable')) {
+      logger.warn(`Suggest disabled by b:coc_suggest_disable`)
+      return
+    }
+    await doc.patchChange()
     let [disabled, option] = await this.nvim.eval('[get(b:,"coc_suggest_disable",0),coc#util#get_complete_option()]') as [number, CompleteOption]
     if (disabled == 1) {
       logger.warn(`Suggest disabled by b:coc_suggest_disable`)
@@ -368,7 +373,6 @@ export class Completion implements Disposable {
       logger.warn(`Suggest disabled by b:coc_suggest_blacklist`, option.blacklist)
       return
     }
-    await doc.patchChange()
     if (pre.length) {
       option.triggerCharacter = pre.slice(-1)
     }
