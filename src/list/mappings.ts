@@ -198,7 +198,7 @@ export default class Mappings {
 
   private async onError(msg: string): Promise<void> {
     let { nvim } = this
-    await nvim.call('coc#list#stop_prompt', [])
+    await nvim.call('coc#prompt#stop_prompt', ['list'])
     window.showMessage(msg, 'error')
     this.manager.prompt.start()
   }

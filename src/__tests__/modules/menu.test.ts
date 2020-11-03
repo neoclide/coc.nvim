@@ -117,12 +117,12 @@ describe('Menu', () => {
     nvim.call('feedkeys', ['j', 'in'], true)
     await helper.wait(100)
     // neovim would cancel input
-    nvim.call('coc#list#start_prompt', ['MenuInput'], true)
+    nvim.call('coc#prompt#start_prompt', ['menu'], true)
     let cursor = await win.cursor
     expect(cursor[0]).toBe(2)
     nvim.call('feedkeys', ['k', 'in'], true)
     await helper.wait(100)
-    nvim.call('coc#list#start_prompt', ['MenuInput'], true)
+    nvim.call('coc#prompt#start_prompt', ['menu'], true)
     cursor = await win.cursor
     expect(cursor[0]).toBe(1)
     nvim.call('feedkeys', ['G', 'in'], true)
@@ -144,7 +144,7 @@ describe('Menu', () => {
     await helper.wait(100)
     nvim.call('feedkeys', ['1', 'in'], true)
     await helper.wait(50)
-    nvim.call('coc#list#start_prompt', ['MenuInput'], true)
+    nvim.call('coc#prompt#start_prompt', ['menu'], true)
     nvim.call('feedkeys', ['0', 'in'], true)
     await promise
     expect(selected).toBe(9)

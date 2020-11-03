@@ -25,7 +25,7 @@ export default class Menu {
     })
     floatFactory.on('close', () => {
       firstNumber = undefined
-      nvim.call('coc#list#stop_prompt', [], true)
+      nvim.call('coc#prompt#stop_prompt', ['menu'], true)
       if (choosed != null && choosed < this.total) {
         this._onDidChoose.fire(choosed)
         choosed = undefined
@@ -36,8 +36,8 @@ export default class Menu {
     let timer: NodeJS.Timeout
     let firstNumber: number
     let choosed: number
-    events.on('MenuInput', (character, mode) => {
-      if (mode) return
+    events.on('InputChar', (scope, character, mode) => {
+      if (mode || scope !== 'menu') return
       if (timer) clearTimeout(timer)
       // esc & `<C-c>`
       if (character == '\x1b' || character == '\x03' || !this.window) {
@@ -123,7 +123,7 @@ export default class Menu {
       filetype: 'menu'
     }], { title, cursorline: this.env.isVim }).then(() => {
       if (this.window) {
-        this.nvim.call('coc#list#start_prompt', ['MenuInput'], true)
+        this.nvim.call('coc#prompt#start_prompt', ['menu'], true)
       } else {
         // failed to create window
         this._onDidCancel.fire()
@@ -134,7 +134,7 @@ export default class Menu {
   }
 
   public hide(): void {
-    this.nvim.call('coc#list#stop_prompt', [], true)
+    this.nvim.call('coc#prompt#stop_prompt', ['menu'], true)
     this.floatFactory.close()
   }
 }

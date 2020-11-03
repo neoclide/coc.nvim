@@ -171,7 +171,7 @@ export default class Worker {
         this.loading = false
         disposable.dispose()
         if (timer) clearTimeout(timer)
-        this.nvim.call('coc#list#stop_prompt', [], true)
+        this.nvim.call('coc#prompt#stop_prompt', ['list'], true)
         window.showMessage(`Task error: ${error.toString()}`, 'error')
         logger.error(error)
       })

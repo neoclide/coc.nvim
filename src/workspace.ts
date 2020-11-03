@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
 import bytes from 'bytes'
 import fastDiff from 'fast-diff'
@@ -37,7 +36,7 @@ import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
 import window from './window'
 
-const APIVERSION = 4
+const APIVERSION = 5
 const logger = require('./util/logger')('workspace')
 let NAME_SPACE = 1080
 const methods = ['showMessage', 'runTerminalCommand', 'openTerminal', 'showQuickpick', 'menuPick',
@@ -928,7 +927,6 @@ export class Workspace implements IWorkspace {
     let bufnrs = await this.nvim.call('coc#util#open_files', [uris.map(u => URI.parse(u).fsPath)]) as number[]
     let create = bufnrs.filter(bufnr => this.getDocument(bufnr) == null)
     if (!create.length) return
-    create.map(bufnr => this.onBufCreate(bufnr).logError())
     return new Promise((resolve, reject) => {
       let timer = setTimeout(() => {
         disposable.dispose()

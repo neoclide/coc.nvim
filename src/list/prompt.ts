@@ -54,13 +54,13 @@ export default class Prompt {
       this._mode = opts.mode
       this._matcher = opts.interactive ? '' : opts.matcher
     }
-    this.nvim.call('coc#list#start_prompt', [], true)
+    this.nvim.call('coc#prompt#start_prompt', ['list'], true)
     this.drawPrompt()
   }
 
   public cancel(): void {
     let { nvim } = this
-    nvim.call('coc#list#stop_prompt', [], true)
+    nvim.call('coc#prompt#stop_prompt', ['list'], true)
   }
 
   public reset(): void {

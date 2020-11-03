@@ -98,7 +98,7 @@ export class ListManager implements Disposable {
     try {
       await session.start(args)
     } catch (e) {
-      this.nvim.call('coc#list#stop_prompt', [], true)
+      this.nvim.call('coc#prompt#stop_prompt', ['list'], true)
       let msg = e instanceof Error ? e.message : e.toString()
       window.showMessage(`Error on "CocList ${name}": ${msg}`, 'error')
       logger.error(e)
@@ -295,7 +295,8 @@ export class ListManager implements Disposable {
     }
   }
 
-  private async onInputChar(ch: string, charmod: number): Promise<void> {
+  private async onInputChar(session: string, ch: string, charmod: number): Promise<void> {
+    if (session != 'list') return
     let { mode } = this.prompt
     let mapped = this.charMap.get(ch)
     let now = Date.now()
@@ -358,21 +359,21 @@ export class ListManager implements Disposable {
   public async feedkeys(key: string, remap = true): Promise<void> {
     let { nvim } = this
     key = key.startsWith('<') && key.endsWith('>') ? `\\${key}` : key
-    await nvim.call('coc#list#stop_prompt', [1])
+    await nvim.call('coc#prompt#stop_prompt', ['list'])
     await nvim.call('eval', [`feedkeys("${key}", "${remap ? 'i' : 'in'}")`])
     this.prompt.start()
   }
 
   public async command(command: string): Promise<void> {
     let { nvim } = this
-    await nvim.call('coc#list#stop_prompt', [1])
+    await nvim.call('coc#prompt#stop_prompt', ['list'])
     await nvim.command(command)
     this.prompt.start()
   }
 
   public async normal(command: string, bang = true): Promise<void> {
     let { nvim } = this
-    await nvim.call('coc#list#stop_prompt', [1])
+    await nvim.call('coc#prompt#stop_prompt', ['list'])
     await nvim.command(`normal${bang ? '!' : ''} ${command}`)
     this.prompt.start()
   }

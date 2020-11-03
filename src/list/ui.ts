@@ -328,7 +328,7 @@ export default class ListUI {
         this.window = nvim.createWindow(winid)
         this._onDidOpen.fire(this.bufnr)
       } catch (e) {
-        nvim.call('coc#list#stop_prompt', [], true)
+        nvim.call('coc#prompt#stop_prompt', ['list'], true)
         nvim.call('coc#list#clean_up', [], true)
         release()
         window.showMessage(`Error on list create: ${e.message}`, 'error')
@@ -477,14 +477,14 @@ export default class ListUI {
 
   private async getSelectedRange(): Promise<[number, number]> {
     let { nvim } = this
-    await nvim.call('coc#list#stop_prompt')
+    await nvim.call('coc#prompt#stop_prompt', ['list'])
     await nvim.eval('feedkeys("\\<esc>", "in")')
     let [, start] = await nvim.call('getpos', "'<")
     let [, end] = await nvim.call('getpos', "'>")
     if (start > end) {
       [start, end] = [end, start]
     }
-    this.nvim.call('coc#list#start_prompt', [], true)
+    this.nvim.call('coc#prompt#start_prompt', ['list'], true)
     return [start, end]
   }
 }

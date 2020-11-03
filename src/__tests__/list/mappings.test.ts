@@ -514,7 +514,7 @@ describe('User mappings', () => {
     await nvim.eval('feedkeys("\\<C-b>", "in")')
     await helper.wait(100)
     expect(manager.isActivated).toBe(true)
-    await nvim.call('coc#list#stop_prompt', [])
+    await nvim.call('coc#prompt#stop_prompt', ['list'])
   }, 20000)
 
   it('should execute prompt mappings', async () => {
