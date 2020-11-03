@@ -35,7 +35,6 @@ export class ListManager implements Disposable {
   private sessionsMap: Map<string, ListSession> = new Map()
   private lastSession: ListSession | undefined
   private disposables: Disposable[] = []
-  private charMap: Map<string, string>
   private listMap: Map<string, IList> = new Map()
 
   public init(nvim: Neovim): void {
@@ -82,7 +81,6 @@ export class ListManager implements Disposable {
   }
 
   public async start(args: string[]): Promise<void> {
-    this.getCharMap().logError()
     let res = this.parseArgs(args)
     if (!res) return
     let { name } = res.list
@@ -298,14 +296,13 @@ export class ListManager implements Disposable {
   private async onInputChar(session: string, ch: string, charmod: number): Promise<void> {
     if (session != 'list') return
     let { mode } = this.prompt
-    let mapped = this.charMap.get(ch)
     let now = Date.now()
-    if (mapped == '<plug>' || now - this.plugTs < 2) {
+    if (ch == '<plug>' || now - this.plugTs < 2) {
       this.plugTs = now
       return
     }
     if (!ch) return
-    if (ch == '\x1b') {
+    if (ch == '<esc>') {
       await this.cancel()
       return
     }
@@ -324,15 +321,14 @@ export class ListManager implements Disposable {
   private async onInsertInput(ch: string, charmod: number): Promise<void> {
     let { session } = this
     if (!session) return
-    let inserted = this.charMap.get(ch) || ch
-    if (mouseKeys.includes(inserted)) {
-      await this.onMouseEvent(inserted)
+    if (mouseKeys.includes(ch)) {
+      await this.onMouseEvent(ch)
       return
     }
     let n = await session.doNumberSelect(ch)
     if (n) return
-    let done = await this.mappings.doInsertKeymap(inserted)
-    if (done || charmod || this.charMap.has(ch)) return
+    let done = await this.mappings.doInsertKeymap(ch)
+    if (done || charmod) return
     for (let s of ch) {
       let code = s.codePointAt(0)
       if (code == 65533) return
@@ -343,13 +339,12 @@ export class ListManager implements Disposable {
   }
 
   private async onNormalInput(ch: string, _charmod: number): Promise<void> {
-    let inserted = this.charMap.get(ch) || ch
-    if (mouseKeys.includes(inserted)) {
-      await this.onMouseEvent(inserted)
+    if (mouseKeys.includes(ch)) {
+      await this.onMouseEvent(ch)
       return
     }
-    let used = await this.mappings.doNormalKeymap(inserted)
-    if (!used) await this.feedkeys(inserted)
+    let used = await this.mappings.doNormalKeymap(ch)
+    if (!used) await this.feedkeys(ch)
   }
 
   public onMouseEvent(key): Promise<void> {
@@ -477,16 +472,6 @@ export class ListManager implements Disposable {
   public stop(): void {
     let lastSession = this.lastSession
     if (lastSession) lastSession.stop()
-  }
-
-  private async getCharMap(): Promise<void> {
-    if (this.charMap) return
-    this.charMap = new Map()
-    let chars = await this.nvim.call('coc#list#get_chars')
-    Object.keys(chars).forEach(key => {
-      this.charMap.set(chars[key], key)
-    })
-    return
   }
 
   public dispose(): void {

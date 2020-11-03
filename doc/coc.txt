@@ -506,7 +506,15 @@ Built-in configurations:~
 
 	Print num lines of trailing context after each match, default: `3`
 
+							*coc-config-dialog*
+"dialog.maxWidth": ~
+
+	Maximum width of dialog window.
 							*coc-config-codelens*
+"dialog.maxHeight": ~
+
+	Maximum height of dialog window.
+
 "codeLens.enable":~
 
 	Enable `codeLens` feature. Requires Neovim with virtual text feature,

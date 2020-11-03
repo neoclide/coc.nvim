@@ -5,6 +5,80 @@ let s:saved_ve = &t_ve
 let s:saved_cursor = &guicursor
 let s:gui = has('gui_running') || has('nvim')
 
+let s:char_map = {
+      \ "\<Plug>": '<plug>',
+      \ "\<Esc>": '<esc>',
+      \ "\<Tab>": '<tab>',
+      \ "\<S-Tab>": '<s-tab>',
+      \ "\<bs>": '<bs>',
+      \ "\<right>": '<right>',
+      \ "\<left>": '<left>',
+      \ "\<up>": '<up>',
+      \ "\<down>": '<down>',
+      \ "\<home>": '<home>',
+      \ "\<end>": '<end>',
+      \ "\<cr>": '<cr>',
+      \ "\<PageUp>":'<PageUp>' ,
+      \ "\<PageDown>":'<PageDown>' ,
+      \ "\<FocusGained>":'<FocusGained>' ,
+      \ "\<ScrollWheelUp>": '<ScrollWheelUp>',
+      \ "\<ScrollWheelDown>": '<ScrollWheelDown>',
+      \ "\<LeftMouse>": '<LeftMouse>',
+      \ "\<LeftDrag>": '<LeftDrag>',
+      \ "\<LeftRelease>": '<LeftRelease>',
+      \ "\<2-LeftMouse>": '<2-LeftMouse>',
+      \ "\<C-a>": '<C-a>',
+      \ "\<C-b>": '<C-b>',
+      \ "\<C-c>": '<C-c>',
+      \ "\<C-d>": '<C-d>',
+      \ "\<C-e>": '<C-e>',
+      \ "\<C-f>": '<C-f>',
+      \ "\<C-g>": '<C-g>',
+      \ "\<C-h>": '<C-h>',
+      \ "\<C-j>": '<C-j>',
+      \ "\<C-k>": '<C-k>',
+      \ "\<C-l>": '<C-l>',
+      \ "\<C-n>": '<C-n>',
+      \ "\<C-o>": '<C-o>',
+      \ "\<C-p>": '<C-p>',
+      \ "\<C-q>": '<C-q>',
+      \ "\<C-r>": '<C-r>',
+      \ "\<C-s>": '<C-s>',
+      \ "\<C-t>": '<C-t>',
+      \ "\<C-u>": '<C-u>',
+      \ "\<C-v>": '<C-v>',
+      \ "\<C-w>": '<C-w>',
+      \ "\<C-x>": '<C-x>',
+      \ "\<C-y>": '<C-y>',
+      \ "\<C-z>": '<C-z>',
+      \ "\<A-a>": '<A-a>',
+      \ "\<A-b>": '<A-b>',
+      \ "\<A-c>": '<A-c>',
+      \ "\<A-d>": '<A-d>',
+      \ "\<A-e>": '<A-e>',
+      \ "\<A-f>": '<A-f>',
+      \ "\<A-g>": '<A-g>',
+      \ "\<A-h>": '<A-h>',
+      \ "\<A-i>": '<A-i>',
+      \ "\<A-j>": '<A-j>',
+      \ "\<A-k>": '<A-k>',
+      \ "\<A-l>": '<A-l>',
+      \ "\<A-m>": '<A-m>',
+      \ "\<A-n>": '<A-n>',
+      \ "\<A-o>": '<A-o>',
+      \ "\<A-p>": '<A-p>',
+      \ "\<A-q>": '<A-q>',
+      \ "\<A-r>": '<A-r>',
+      \ "\<A-s>": '<A-s>',
+      \ "\<A-t>": '<A-t>',
+      \ "\<A-u>": '<A-u>',
+      \ "\<A-v>": '<A-v>',
+      \ "\<A-w>": '<A-w>',
+      \ "\<A-x>": '<A-x>',
+      \ "\<A-y>": '<A-y>',
+      \ "\<A-z>": '<A-z>',
+      \ }
+
 function! coc#prompt#getc() abort
   let c = getchar()
   return type(c) == type(0) ? nr2char(c) : c
@@ -74,12 +148,17 @@ function! s:start_prompt()
       if ch ==# "\<FocusLost>" || ch ==# "\<FocusGained>" || ch ==# "\<CursorHold>"
         continue
       else
-        call coc#rpc#notify('InputChar', [s:current_session(), ch, getcharmod()])
+        let mapped = get(s:char_map, ch, ch)
+        let curr = s:current_session()
+        call coc#rpc#notify('InputChar', [curr, mapped, getcharmod()])
+        if mapped == '<esc>'
+          call coc#prompt#stop_prompt(curr)
+        endif
       endif
     endwhile
   catch /^Vim:Interrupt$/
     let s:activated = 0
-    call coc#rpc#notify('InputChar', [s:current_session(), "\<esc>"])
+    call coc#rpc#notify('InputChar', [s:current_session(), '<esc>'])
     return
   endtry
   let s:activated = 0

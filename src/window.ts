@@ -3,18 +3,19 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import semver from 'semver'
-import { Disposable, Position } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Position } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import events from './events'
 import Dialog from './model/dialog'
 import Menu from './model/menu'
 import channels from './channels'
 import StatusLine from './model/status'
+import Picker from './model/picker'
 import { DialogConfig, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, StatusBarItem, StatusItemOption, TerminalResult } from './types'
 import { CONFIG_FILE_NAME, disposeAll } from './util'
 import { Mutex } from './util/mutex'
 import workspace from './workspace'
-import { ScreenPosition } from './types'
+import { DialogPreferences, ScreenPosition, QuickPickItem } from './types'
 const logger = require('./util/logger')('window')
 
 class Window {
@@ -80,7 +81,7 @@ class Window {
   }
 
   /**
-   * Show quickpick
+   * Show quickpick for single item
    */
   public async showQuickpick(items: string[], placeholder = 'Choose by number'): Promise<number> {
     let release = await this.mutex.acquire()
@@ -161,7 +162,7 @@ class Window {
       return null
     }
     let dialog = new Dialog(this.nvim, config)
-    await dialog.show({})
+    await dialog.show(this.dialogPreference)
     return dialog
   }
 
@@ -291,6 +292,35 @@ class Window {
   public async getCursorScreenPosition(): Promise<ScreenPosition> {
     let [row, col] = await this.nvim.call('coc#float#win_position') as [number, number]
     return { row, col }
+  }
+
+  public async showPickerDialog(items: string[], title: string, token?: CancellationToken): Promise<string[] | undefined>
+  public async showPickerDialog<T extends QuickPickItem>(items: T[], title: string, token?: CancellationToken): Promise<T[] | undefined>
+  public async showPickerDialog<T extends QuickPickItem>(items: any[], title: string, token?: CancellationToken): Promise<string[] | T[] | undefined> {
+    let useString = typeof items[0] === 'string'
+    let picker = new Picker(this.nvim, {
+      title,
+      items: useString ? items.map(s => {
+        return { label: s }
+      }) : items,
+    }, token)
+    let promise = new Promise<number[]>(resolve => {
+      picker.onDidClose(selected => {
+        resolve(selected)
+      })
+    })
+    await picker.show(this.dialogPreference)
+    let picked = await promise
+    if (!picked) return undefined
+    return items.filter((_, i) => picked.includes(i))
+  }
+
+  private get dialogPreference(): DialogPreferences {
+    let config = workspace.getConfiguration('dialog')
+    return {
+      maxWidth: config.get('maxWidth', 80),
+      maxHeight: config.get('maxHeight', 20)
+    }
   }
 }
 

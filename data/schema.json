@@ -726,6 +726,16 @@
       "default": 3,
       "description": "Print num lines of trailing context after each match."
     },
+    "dialog.maxHeight": {
+      "type": "number",
+      "default": 20,
+      "description": "Maximum height of dialog window."
+    },
+    "dialog.maxWidth": {
+      "type": "number",
+      "default": 80,
+      "description": "Maximum width of dialog window."
+    },
     "workspace.ignoredFiletypes": {
       "type": "array",
       "default": ["markdown", "log", "txt", "help"],

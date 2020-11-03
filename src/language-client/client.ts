@@ -2235,7 +2235,6 @@ class DocumentSymbolFeature extends TextDocumentFeature<
                 return []
               } else {
                 let element = data[0]
-                // TODO
                 if (DocumentSymbol.is(element)) {
                   return data as DocumentSymbol[]
                 } else {

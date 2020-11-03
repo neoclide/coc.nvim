@@ -16,9 +16,6 @@ export default class Menu {
   constructor(private nvim: Neovim, private env: Env) {
     let floatFactory = this.floatFactory = new FloatFactory(
       nvim, env, false, 20, 80, false)
-    if (!env.isVim) {
-      nvim.command(`sign define CocCurrentLine linehl=PmenuSel`, true)
-    }
     floatFactory.on('show', () => {
       this.doHighlight(0)
       choosed = undefined
@@ -40,11 +37,11 @@ export default class Menu {
       if (mode || scope !== 'menu') return
       if (timer) clearTimeout(timer)
       // esc & `<C-c>`
-      if (character == '\x1b' || character == '\x03' || !this.window) {
+      if (character == '<esc>' || character == '<C-c>' || !this.window) {
         this.hide()
         return
       }
-      if (character == '\r') {
+      if (character == '\r' || character == '<cr>') {
         choosed = this.currIndex
         this.hide()
         return
@@ -76,9 +73,9 @@ export default class Menu {
       firstNumber = undefined
       if (character == 'G') {
         this.currIndex = this.total - 1
-      } else if (['j', '\x0e', '\t', '\x0a'].includes(character)) {
+      } else if (['j', '<C-j>', '<tab>', '<down>', '<C-n>'].includes(character)) {
         this.currIndex = this.currIndex >= this.total - 1 ? 0 : this.currIndex + 1
-      } else if (['k', '\x10', '\x0b', '\ufffd\u006b\u0042'].includes(character)) {
+      } else if (['k', '<C-k>', '<up>', '<s-tab>', '<C-p>'].includes(character)) {
         this.currIndex = this.currIndex == 0 ? this.total - 1 : this.currIndex - 1
       } else {
         return

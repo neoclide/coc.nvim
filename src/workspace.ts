@@ -36,7 +36,7 @@ import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
 import window from './window'
 
-const APIVERSION = 5
+const APIVERSION = 6
 const logger = require('./util/logger')('workspace')
 let NAME_SPACE = 1080
 const methods = ['showMessage', 'runTerminalCommand', 'openTerminal', 'showQuickpick', 'menuPick',

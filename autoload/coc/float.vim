@@ -214,7 +214,7 @@ function! coc#float#nvim_create_related(winid, config, opts) abort
   let exists = !empty(related)
   let border = get(a:opts, 'border', [])
   let highlights = get(a:opts, 'borderhighlight', [])
-  let borderhighlight = get(highlights, 0, 'CocFloating')
+  let borderhighlight = type(highlights) == 1 ? highlights : get(highlights, 0, 'CocFloating')
   let title = get(a:opts, 'title', '')
   let hlgroup = get(a:opts, 'highlight', 'CocFloating')
   let buttons = get(a:opts, 'buttons', [])
@@ -225,7 +225,7 @@ function! coc#float#nvim_create_related(winid, config, opts) abort
     call coc#float#close_related(a:winid, 'close')
   endif
   if !empty(buttons)
-    call coc#float#nvim_buttons(a:config, a:winid, buttons, get(border, 2, 0), pad, hlgroup, related)
+    call coc#float#nvim_buttons(a:config, a:winid, buttons, get(border, 2, 0), pad, hlgroup, borderhighlight, related)
   elseif exists
     call coc#float#close_related(a:winid, 'buttons')
   endif
@@ -331,7 +331,7 @@ function! coc#float#nvim_right_pad(config, winid, hlgroup, related) abort
 endfunction
 
 " draw buttons window for window with config
-function! coc#float#nvim_buttons(config, winid, buttons, borderbottom, pad, hlgroup, related) abort
+function! coc#float#nvim_buttons(config, winid, buttons, borderbottom, pad, hlgroup, borderhighlight, related) abort
   let winid = coc#float#get_related(a:winid, 'buttons')
   let width = a:config['width'] + (a:pad ? 1 : 0)
   let config = {
@@ -357,6 +357,18 @@ function! coc#float#nvim_buttons(config, winid, buttons, borderbottom, pad, hlgr
       call add(a:related, winid)
       call s:nvim_create_keymap(winid)
     endif
+  endif
+  if bufnr && a:hlgroup != a:borderhighlight
+    call nvim_buf_clear_namespace(bufnr, -1, 0, -1)
+    call nvim_buf_add_highlight(bufnr, 1, a:borderhighlight, 0, 0, -1)
+    if a:borderbottom
+      call nvim_buf_add_highlight(bufnr, 1, a:borderhighlight, 2, 0, -1)
+    endif
+    let vcols = getbufvar(bufnr, 'vcols', [])
+    " TODO need change vol to col
+    for col in vcols
+      call nvim_buf_add_highlight(bufnr, 1, a:borderhighlight, 1, col, col + 3)
+    endfor
   endif
 endfunction
 
@@ -1223,6 +1235,9 @@ function! coc#float#create_dialog(lines, config) abort
     \ 'buttons': buttons,
     \ 'borderhighlight': borderhighlight,
     \ }
+  if get(a:config, 'cursorline', 0)
+    let opts['cursorline'] = 1
+  endif
   let bufnr = coc#float#create_buf(0, a:lines)
   let res =  coc#float#create_float_win(0, bufnr, opts)
   if res[0] && has('nvim')
