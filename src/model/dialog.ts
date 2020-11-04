@@ -31,14 +31,16 @@ export default class Dialog {
 
   public async show(preferences: DialogPreferences): Promise<void> {
     let { nvim } = this
-    let { title, highlight, borderhighlight, close, buttons } = this.config
+    let { title, close, buttons } = this.config
+    let borderhighlight = this.config.borderhighlight || preferences.floatBorderHighlight
+    let highlight = this.config.highlight || preferences.floatHighlight
     let opts: any = { maxwidth: preferences.maxWidth || 80, }
+    if (title) opts.title = title
+    if (close || typeof close === 'undefined') opts.close = 1
     if (preferences.maxHeight) opts.maxheight = preferences.maxHeight
     if (preferences.maxWidth) opts.maxwidth = preferences.maxWidth
-    if (title) opts.title = title
-    if (close) opts.close = 1
     if (highlight) opts.highlight = highlight
-    if (borderhighlight) opts.borderhighlight = borderhighlight
+    if (borderhighlight) opts.borderhighlight = [borderhighlight]
     if (buttons) opts.buttons = buttons.filter(o => !o.disabled).map(o => o.text)
     let res = await nvim.call('coc#float#create_dialog', [this.lines, opts])
     if (!res[1]) return

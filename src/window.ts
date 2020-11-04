@@ -27,29 +27,19 @@ class Window {
     return workspace.nvim
   }
 
-  private get messageLevel(): MessageLevel {
-    let config = workspace.getConfiguration('coc.preferences')
-    let level = config.get<string>('messageLevel', 'more')
-    switch (level) {
-      case 'error':
-        return MessageLevel.Error
-      case 'warning':
-        return MessageLevel.Warning
-      default:
-        return MessageLevel.More
-    }
-  }
-
   /**
-   * Show message in vim.
+   * Reveal message with message type.
+   *
+   * @param msg Message text to show.
+   * @param messageType Type of message, could be `error` `warning` and `more`, default to `more`
    */
-  public showMessage(msg: string, identify: MsgTypes = 'more'): void {
+  public showMessage(msg: string, messageType: MsgTypes = 'more'): void {
     if (this.mutex.busy || !this.nvim) return
     let { messageLevel } = this
     let method = process.env.VIM_NODE_RPC == '1' ? 'callTimer' : 'call'
     let hl = 'Error'
     let level = MessageLevel.Error
-    switch (identify) {
+    switch (messageType) {
       case 'more':
         level = MessageLevel.More
         hl = 'MoreMsg'
@@ -66,6 +56,9 @@ class Window {
 
   /**
    * Run command in vim terminal for result
+   *
+   * @param cmd Command to run.
+   * @param cwd Cwd of terminal, default to result of |getcwd()|.
    */
   public async runTerminalCommand(cmd: string, cwd?: string, keepfocus = false): Promise<TerminalResult> {
     cwd = cwd || workspace.cwd
@@ -73,7 +66,11 @@ class Window {
   }
 
   /**
-   * Open terminal buffer with cmd & opts
+   * Open terminal window.
+   *
+   * @param cmd Command to run.
+   * @param opts Terminal option.
+   * @returns buffer number of terminal.
    */
   public async openTerminal(cmd: string, opts: OpenTerminalOption = {}): Promise<number> {
     let bufnr = await this.nvim.call('coc#util#open_terminal', { cmd, ...opts })
@@ -81,7 +78,11 @@ class Window {
   }
 
   /**
-   * Show quickpick for single item
+   * Show quickpick for single item, use `window.menuPick` for menu at current current position.
+   *
+   * @param items Label list.
+   * @param placeholder Prompt text, default to 'choose by number'.
+   * @returns Index of selected item, or -1 when canceled.
    */
   public async showQuickpick(items: string[], placeholder = 'Choose by number'): Promise<number> {
     let release = await this.mutex.acquire()
@@ -100,13 +101,18 @@ class Window {
   }
 
   /**
-   * Show menu picker at current cursor position.
+   * Show menu picker at current cursor position, |inputlist()| is used as fallback.
+   * Use `workspace.env.dialog` to check if the picker window/popup could work.
+   *
+   * @param items Array of texts.
+   * @param title Optional title of float/popup window.
+   * @returns Selected index (0 based), -1 when canceled.
    */
-  public async menuPick(items: string[], title?: string): Promise<number> {
+  public async showMenuPicker(items: string[], title?: string): Promise<number> {
     if (workspace.env.dialog) {
       if (!this.menu) this.menu = new Menu(this.nvim, workspace.env)
       let menu = this.menu
-      menu.show(items, title)
+      menu.show(items, title, this.dialogPreference)
       let res = await new Promise<number>(resolve => {
         let disposables: Disposable[] = []
         menu.onDidCancel(() => {
@@ -142,7 +148,11 @@ class Window {
   }
 
   /**
-   * Prompt for confirm action.
+   * Prompt user for confirm, a float/popup window would be used when possible,
+   * use vim's |confirm()| function as callback.
+   *
+   * @param title The prompt text.
+   * @returns Result of confirm.
    */
   public async showPrompt(title: string): Promise<boolean> {
     let release = await this.mutex.acquire()
@@ -156,11 +166,16 @@ class Window {
     }
   }
 
+  /**
+   * Show dialog window at the center of screen.
+   * Note that the dialog would always be closed after button click.
+   * Use `workspace.env.dialog` to check if dialog could work.
+   *
+   * @param config Dialog configuration.
+   * @returns Dialog or null when dialog can't work.
+   */
   public async showDialog(config: DialogConfig): Promise<Dialog | null> {
-    if (!workspace.env.dialog) {
-      this.showMessage('Dialog requires vim >= 8.2.0750 or neovim >= 0.4.3', 'warning')
-      return null
-    }
+    if (!this.checkDialog()) return null
     let dialog = new Dialog(this.nvim, config)
     await dialog.show(this.dialogPreference)
     return dialog
@@ -168,6 +183,9 @@ class Window {
 
   /**
    * Request input from user
+   *
+   * @param title Title text of prompt window.
+   * @param defaultValue Default value of input, empty text by default.
    */
   public async requestInput(title: string, defaultValue?: string): Promise<string> {
     let { nvim } = this
@@ -214,9 +232,13 @@ class Window {
   }
 
   /**
-   * Create StatusBarItem
+   * Create statusbar item that would be included in `g:coc_status`.
+   *
+   * @param priority Higher priority item would be shown right.
+   * @param option
+   * @return A new status bar item.
    */
-  public createStatusBarItem(priority = 0, opt: StatusItemOption = {}): StatusBarItem {
+  public createStatusBarItem(priority = 0, option: StatusItemOption = {}): StatusBarItem {
     if (!workspace.env) {
       let fn = () => { }
       return { text: '', show: fn, dispose: fn, hide: fn, priority: 0, isProgress: false }
@@ -224,11 +246,14 @@ class Window {
     if (!this.statusLine) {
       this.statusLine = new StatusLine(this.nvim)
     }
-    return this.statusLine.createStatusBarItem(priority, opt.progress || false)
+    return this.statusLine.createStatusBarItem(priority, option.progress || false)
   }
 
   /**
    * Create a new output channel
+   *
+   * @param name Unique name of output channel.
+   * @returns A new output channel.
    */
   public createOutputChannel(name: string): OutputChannel {
     return channels.create(name, this.nvim)
@@ -236,13 +261,19 @@ class Window {
 
   /**
    * Reveal buffer of output channel.
+   *
+   * @param name Name of output channel.
+   * @param preserveFocus Preserve window focus when true.
    */
   public showOutputChannel(name: string, preserveFocus?: boolean): void {
     channels.show(name, preserveFocus)
   }
 
   /**
-   * Echo lines.
+   * Echo lines at the bottom of vim.
+   *
+   * @param lines Line list.
+   * @param truncate Truncate the lines to avoid 'press enter to continue' when true
    */
   public async echoLines(lines: string[], truncate = false): Promise<void> {
     let { nvim } = this
@@ -264,7 +295,9 @@ class Window {
   }
 
   /**
-   * Get current cursor position (line, character).
+   * Get current cursor position (line, character both 0 based).
+   *
+   * @returns Cursor position.
    */
   public async getCursorPosition(): Promise<Position> {
     let [line, character] = await this.nvim.call('coc#util#cursor')
@@ -273,6 +306,8 @@ class Window {
 
   /**
    * Move cursor to position.
+   *
+   * @param position LSP position.
    */
   public async moveTo(position: Position): Promise<void> {
     await this.nvim.call('coc#util#jumpTo', [position.line, position.character])
@@ -280,46 +315,96 @@ class Window {
   }
 
   /**
-   * Get current cursor offset in document.
+   * Get current cursor character offset in document,
+   * length of line break would always be 1.
+   *
+   * @returns Charactor offset.
    */
   public async getOffset(): Promise<number> {
     return await this.nvim.call('coc#util#get_offset') as number
   }
 
   /**
-   * Get screen position of current cursor, 0 based
+   * Get screen position of current cursor(relative to editor),
+   * both `row` and `col` are 0 based.
+   *
+   * @returns Cursor screen position.
    */
   public async getCursorScreenPosition(): Promise<ScreenPosition> {
     let [row, col] = await this.nvim.call('coc#float#win_position') as [number, number]
     return { row, col }
   }
 
+  /**
+   * Show multiple picker at center of screen.
+   * Use `workspace.env.dialog` to check if dialog could work.
+   *
+   * @param items Array of QuickPickItem or string.
+   * @param title Title of picker dialog.
+   * @param token A token that can be used to signal cancellation.
+   * @return A promise that resolves to the selected items or `undefined`.
+   */
   public async showPickerDialog(items: string[], title: string, token?: CancellationToken): Promise<string[] | undefined>
   public async showPickerDialog<T extends QuickPickItem>(items: T[], title: string, token?: CancellationToken): Promise<T[] | undefined>
-  public async showPickerDialog<T extends QuickPickItem>(items: any[], title: string, token?: CancellationToken): Promise<string[] | T[] | undefined> {
-    let useString = typeof items[0] === 'string'
-    let picker = new Picker(this.nvim, {
-      title,
-      items: useString ? items.map(s => {
-        return { label: s }
-      }) : items,
-    }, token)
-    let promise = new Promise<number[]>(resolve => {
-      picker.onDidClose(selected => {
-        resolve(selected)
+  public async showPickerDialog(items: any, title: string, token?: CancellationToken): Promise<any | undefined> {
+    if (!this.checkDialog()) return undefined
+    let release = await this.mutex.acquire()
+    if (token && token.isCancellationRequested) {
+      release()
+      return undefined
+    }
+    try {
+      let useString = typeof items[0] === 'string'
+      let picker = new Picker(this.nvim, {
+        title,
+        items: useString ? items.map(s => {
+          return { label: s }
+        }) : items,
+      }, token)
+      let promise = new Promise<number[]>(resolve => {
+        picker.onDidClose(selected => {
+          resolve(selected)
+        })
       })
-    })
-    await picker.show(this.dialogPreference)
-    let picked = await promise
-    if (!picked) return undefined
-    return items.filter((_, i) => picked.includes(i))
+      await picker.show(this.dialogPreference)
+      let picked = await promise
+      let res = picked == undefined ? undefined : items.filter((_, i) => picked.includes(i))
+      release()
+      return res
+    } catch (e) {
+      logger.error(`Error on showPickerDialog:`, e)
+      release()
+    }
   }
 
   private get dialogPreference(): DialogPreferences {
     let config = workspace.getConfiguration('dialog')
     return {
-      maxWidth: config.get('maxWidth', 80),
-      maxHeight: config.get('maxHeight', 20)
+      maxWidth: config.get<number>('maxWidth'),
+      maxHeight: config.get<number>('maxHeight'),
+      floatHighlight: config.get<string>('floatHighlight'),
+      floatBorderHighlight: config.get<string>('floatBorderHighlight'),
+      pickerButtons: config.get<boolean>('pickerButtons'),
+      pickerButtonShortcut: config.get<boolean>('pickerButtonShortcut'),
+    }
+  }
+
+  private checkDialog(): boolean {
+    if (workspace.env.dialog) return true
+    this.showMessage('Dialog requires vim >= 8.2.0750 or neovim >= 0.4.3', 'warning')
+    return false
+  }
+
+  private get messageLevel(): MessageLevel {
+    let config = workspace.getConfiguration('coc.preferences')
+    let level = config.get<string>('messageLevel', 'more')
+    switch (level) {
+      case 'error':
+        return MessageLevel.Error
+      case 'warning':
+        return MessageLevel.Warning
+      default:
+        return MessageLevel.More
     }
   }
 }

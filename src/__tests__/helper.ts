@@ -92,8 +92,8 @@ export class Helper extends EventEmitter {
   }
 
   public async reset(): Promise<void> {
-    let mode = await this.nvim.call('mode')
-    if (mode !== 'n') {
+    let mode = await this.nvim.mode
+    if (mode.mode != 'n' || mode.blocking) {
       await this.nvim.command('stopinsert')
       await this.nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
     }

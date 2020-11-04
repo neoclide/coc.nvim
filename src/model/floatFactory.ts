@@ -32,6 +32,10 @@ export interface FloatWinConfig {
   cursorline?: boolean
   close?: boolean
   preferTop?: boolean
+  highlight?: string
+  borderhighlight?: string
+  maxHeight?: number
+  maxWidth?: number
 }
 
 export interface ViewportConfig {
@@ -45,7 +49,7 @@ export default class FloatFactory extends EventEmitter implements Disposable {
   private targetBufnr: number
   private winid = 0
   private _bufnr = 0
-  private mutex: Mutex
+  private mutex: Mutex = new Mutex()
   private disposables: Disposable[] = []
   private floatBuffer: FloatBuffer
   private tokenSource: CancellationTokenSource
@@ -56,11 +60,10 @@ export default class FloatFactory extends EventEmitter implements Disposable {
   constructor(private nvim: Neovim,
     private env: Env,
     private preferTop = false,
-    private maxHeight = 999,
+    private maxHeight?: number,
     private maxWidth?: number,
     private autoHide = true) {
     super()
-    this.mutex = new Mutex()
     this.floatBuffer = new FloatBuffer(nvim)
     events.on('BufEnter', bufnr => {
       if (bufnr == this._bufnr
@@ -159,10 +162,14 @@ export default class FloatFactory extends EventEmitter implements Disposable {
       allowSelection: opts.allowSelection || false,
       pumAlignTop: this.pumAlignTop,
       preferTop: typeof opts.preferTop === 'boolean' ? opts.preferTop : this.preferTop,
-      maxWidth: this.maxWidth || 80,
-      maxHeight: this.maxHeight,
       offsetX: opts.offsetX || 0,
       title: opts.title || ''
+    }
+    if (opts.maxHeight || this.maxHeight) {
+      floatConfig.maxHeight = opts.maxHeight || this.maxHeight
+    }
+    if (opts.maxWidth || this.maxWidth) {
+      floatConfig.maxWidth = opts.maxWidth || this.maxWidth
     }
     if (opts.border) {
       floatConfig.border = opts.border
@@ -177,6 +184,12 @@ export default class FloatFactory extends EventEmitter implements Disposable {
     config.title = floatConfig.title
     config.border = floatConfig.border
     config.close = opts.close ? 1 : 0
+    if (opts.highlight) {
+      config.highlight = opts.highlight
+    }
+    if (opts.borderhighlight) {
+      config.borderhighlight = [opts.borderhighlight]
+    }
     if (opts.cursorline) config.cursorline = 1
     if (this.autoHide) config.autohide = 1
     this.targetBufnr = targetBufnr

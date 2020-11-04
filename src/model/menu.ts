@@ -1,8 +1,9 @@
 import { Event, Emitter } from 'vscode-languageserver-protocol'
 import { Neovim, Window } from '@chemzqm/neovim'
-import FloatFactory from './floatFactory'
+import FloatFactory, { FloatWinConfig } from './floatFactory'
 import { Env } from '../types'
 import events from '../events'
+import { DialogPreferences } from '..'
 const logger = require('../util/logger')('model-menu')
 
 export default class Menu {
@@ -73,9 +74,9 @@ export default class Menu {
       firstNumber = undefined
       if (character == 'G') {
         this.currIndex = this.total - 1
-      } else if (['j', '<C-j>', '<tab>', '<down>', '<C-n>'].includes(character)) {
+      } else if (['j', '<tab>', '<down>', '<C-n>'].includes(character)) {
         this.currIndex = this.currIndex >= this.total - 1 ? 0 : this.currIndex + 1
-      } else if (['k', '<C-k>', '<up>', '<s-tab>', '<C-p>'].includes(character)) {
+      } else if (['k', '<up>', '<s-tab>', '<C-p>'].includes(character)) {
         this.currIndex = this.currIndex == 0 ? this.total - 1 : this.currIndex - 1
       } else {
         return
@@ -108,17 +109,19 @@ export default class Menu {
     nvim.command(`sign place 6 line=${index + 1} name=CocCurrentLine buffer=${buf.id}`, true)
   }
 
-  public show(items: string[], title?: string): void {
+  public show(items: string[], title?: string, preferences: DialogPreferences = {}): void {
     let lines = items.map((v, i) => {
       if (i < 99) return `${i + 1}. ${v}`
       return v
     })
     this.total = lines.length
     this.currIndex = 0
-    this.floatFactory.show([{
-      content: lines.join('\n'),
-      filetype: 'menu'
-    }], { title, cursorline: this.env.isVim }).then(() => {
+    let opts: FloatWinConfig = { title, cursorline: this.env.isVim }
+    opts.maxWidth = preferences.maxWidth
+    opts.maxHeight = preferences.maxHeight
+    opts.highlight = preferences.floatHighlight
+    opts.borderhighlight = preferences.floatBorderHighlight
+    this.floatFactory.show([{ content: lines.join('\n'), filetype: 'menu' }], opts).then(() => {
       if (this.window) {
         this.nvim.call('coc#prompt#start_prompt', ['menu'], true)
       } else {

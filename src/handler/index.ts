@@ -715,7 +715,7 @@ export default class Handler {
       window.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning')
       return
     }
-    let idx = await window.menuPick(codeActions.map(o => o.title), 'Choose action')
+    let idx = await window.showMenuPicker(codeActions.map(o => o.title), 'Choose action')
     let action = codeActions[idx]
     if (action) await this.applyCodeAction(action)
   }
@@ -1267,7 +1267,7 @@ export default class Handler {
       window.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning')
       return
     }
-    let idx = await window.menuPick(codeActions.map(o => o.title), 'Choose action')
+    let idx = await window.showMenuPicker(codeActions.map(o => o.title), 'Choose action')
     let action = codeActions[idx]
     if (action) await this.applyCodeAction(action)
   }

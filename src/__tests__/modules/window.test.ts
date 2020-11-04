@@ -147,6 +147,13 @@ describe('window functions', () => {
     expect(res).toBe(true)
   })
 
+  it('should show dialog', async () => {
+    let dialog = await window.showDialog({ content: 'foo' })
+    let winid = await dialog.winid
+    expect(winid).toBeDefined()
+    expect(winid).toBeGreaterThan(1000)
+  })
+
   it('should request input', async () => {
     let p = window.requestInput('Name')
     await helper.wait(100)
@@ -163,4 +170,13 @@ describe('window functions', () => {
     expect(res).toBeNull()
   })
 
+  it('should return select items for picker', async () => {
+    let p = window.showPickerDialog(['foo', 'bar'], 'select')
+    await helper.wait(100)
+    await nvim.input(' ')
+    await helper.wait(30)
+    await nvim.input('<cr>')
+    let res = await p
+    expect(res).toEqual(['foo'])
+  })
 })

@@ -36,12 +36,24 @@ import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
 import window from './window'
 
-const APIVERSION = 6
+const APIVERSION = 7
 const logger = require('./util/logger')('workspace')
 let NAME_SPACE = 1080
-const methods = ['showMessage', 'runTerminalCommand', 'openTerminal', 'showQuickpick', 'menuPick',
-  'openLocalConfig', 'showPrompt', 'showDialog', 'createStatusBarItem', 'createOutputChannel',
-  'showOutputChannel', 'echoLines', 'getCursorPosition', 'moveTo', 'getOffset']
+const methods = [
+  'showMessage',
+  'runTerminalCommand',
+  'openTerminal',
+  'showQuickpick',
+  'menuPick',
+  'openLocalConfig',
+  'showPrompt',
+  'createStatusBarItem',
+  'createOutputChannel',
+  'showOutputChannel',
+  'echoLines',
+  'getCursorPosition',
+  'moveTo',
+  'getOffset']
 
 export class Workspace implements IWorkspace {
   public readonly nvim: Neovim

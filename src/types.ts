@@ -38,23 +38,30 @@ export interface DialogButton {
 export interface DialogPreferences {
   maxWidth?: number
   maxHeight?: number
+  floatHighlight?: string
+  floatBorderHighlight?: string
+  pickerButtons?: boolean
+  pickerButtonShortcut?: boolean
 }
 
 export interface DialogConfig {
   content: string
+  /**
+   * Optional title text.
+   */
   title?: string
   /**
    * show close button, default to true when not specified.
    */
   close?: boolean
   /**
-   * highlight group for dialog window,
+   * highlight group for dialog window, default to `"dialog.floatHighlight"` or 'CocFlating'
    */
   highlight?: string
   /**
-   * highlight groups for border, only first highlight works for now.
+   * highlight groups for border, default to `"dialog.borderhighlight"` or 'CocFlating'
    */
-  borderhighlight?: string[]
+  borderhighlight?: string
   /**
    * Buttons as bottom of dialog.
    */
@@ -808,10 +815,17 @@ export interface RenameEvent {
 }
 
 export interface OpenTerminalOption {
+  /**
+   * Cwd of terminal, default to result of |getcwd()|
+   */
   cwd?: string
-  // default true
+  /**
+   * Close terminal on job finish, default to true.
+   */
   autoclose?: boolean
-  // default false
+  /**
+   * Keep foucus current window, default to false,
+   */
   keepfocus?: boolean
 }
 
