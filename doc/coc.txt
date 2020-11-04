@@ -34,6 +34,10 @@ List						|coc-list|
     Links						|coc-list-links|
     Sources						|coc-list-completion-sources|
     Lists						|coc-list-lists|
+Dialog 						|coc-dialog|
+  Dialog basic 						|coc-dialog-basic|
+  Dialog menu 						|coc-dialog-menu|
+  Dialog picker                                 	|coc-dialog-picker|
 Statusline support				|coc-status|
   Manual						|coc-status-manual|
   Airline						|coc-status-airline|
@@ -506,15 +510,42 @@ Built-in configurations:~
 
 	Print num lines of trailing context after each match, default: `3`
 
+							*coc-config-dialog*
+"dialog.maxWidth": ~
+
+	Maximum width of dialog window.
+
+"dialog.maxHeight": ~
+
+	Maximum height of dialog window.
+
+"dialog.pickerButtons":~
+
+	Show buttons for picker dialog window/popup, default `true`.
+
+"dialog.pickerButtonShortcut":~
+
+	Show shortcut in buttons of picker dialog window/popup, used when
+	dialog.pickerButtons is true, default `true`.
+
+"dialog.floatHighlight":~
+
+	Highlight group for dialog window/popup, default to 'CocFloating'
+
+"dialog.floatBorderHighlight":~
+
+	Highlight group for border of dialog window/popup, default to
+	'CocFloating'
+
 							*coc-config-codelens*
 "codeLens.enable":~
 
 	Enable `codeLens` feature. Requires Neovim with virtual text feature,
-	default: `false`
+	default: `false`.
 
 "codeLens.separator":~
 
-	Separator text for `codeLens` in virtual text, default: `"‣"`
+	Separator text for `codeLens` in virtual text, default: `"‣"`.
 
 "codeLens.subseparator":~
 
@@ -1220,7 +1251,6 @@ g:coc_start_at_startup					*g:coc_start_at_startup*
 
 g:coc_user_config					*g:coc_user_config*
 
-
 	User configuration object, define this variable when you can't use
 	|coc#config()|
 
@@ -1435,6 +1465,10 @@ g:coc_prompt_win_width 					*g:coc_prompt_win_width*
 	Width of input prompt window on neovim >= 0.5.0.  Prompt buffer can't
 	work with vim8's popup yet.
 
+g:coc_install_yarn_cmd 					*g:coc_install_yarn_cmd*
+
+	Yarn command used for |coc#util#install()| function.
+
 ------------------------------------------------------------------------------
 
 Some variables are provided by coc.nvim so you can use them in your
@@ -1620,6 +1654,11 @@ coc#util#get_config({key})				*coc#util#get_config()*
 	Get configuration (mostly defined in coc-settings.json)	by {key}, ex: >
 
 	:echo coc#util#get_config('coc.preferences')
+
+coc#util#install()  					*coc#util#install()*
+
+	Install dependencies and compile source code, not needed unless
+	you need compile typescript code.
 
 coc#float#close_all() 					*coc#float#close_all()*
 
@@ -2913,6 +2952,64 @@ lists							*coc-list-lists*
 	Actions:
 
 	- 'open': open selected list, default action.
+
+==============================================================================
+
+DIALOG SUPPORT						*coc-dialog*
+
+Dialog is special float window/popup that could response to user actions,
+dialog have close button, border, title (optional), bottom buttons(optional).
+
+Note bottom buttons work different on neovim and vim, on neovim you can
+click the button since neovim allows focus of window, on vim you have to type
+highlighted character to trigger button callback.
+
+Note dialog feature requires neovim >= 0.4.3 or vim >= 8.2.0750 to work.
+
+See |coc-config-dialog| for available configurations.
+
+------------------------------------------------------------------------------
+
+							*coc-dialog-basic*
+
+A basic dialog is create by 'window.showDialog' api, which is just some texts
+with optional buttons.
+
+------------------------------------------------------------------------------
+
+							*coc-dialog-menu*
+
+A menu dialog is shown aside current cursor position for pick a single item
+from list of items, |coc-codeaction| uses menu dialog by default when it's
+available.
+
+Supported key-mappings:
+
+<Esc> <C-c>          - cancel selection.
+<cr>                 - confirm selection of current item.
+1-9                  - select item with 1 based index.
+G                    - move to last item.
+j <tab> <down> <C-n> - move to next item.
+k <s-tab> <up> <C-p> - move to previous item.
+
+------------------------------------------------------------------------------
+
+							*coc-dialog-picker*
+
+A picker dialog is used for multiple selection. On neovim, it's possible to
+toggle selection by mouse click inside the bracket.
+
+Supported key-mappings:
+
+<Esc> <C-c>          - cancel selection.
+<cr>                 - confirm selection of selected items.
+<space>              - toggle selection of current item.
+G                    - move to last item.
+j <tab> <down> <C-n> - move to next item.
+k <s-tab> <up> <C-p> - move to previous item.
+
+Note when close button is clicked, the selection is canceled with undefined
+result (same as <esc>).
 
 ==============================================================================
 

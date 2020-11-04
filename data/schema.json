@@ -726,6 +726,36 @@
       "default": 3,
       "description": "Print num lines of trailing context after each match."
     },
+    "dialog.maxHeight": {
+      "type": "number",
+      "default": 20,
+      "description": "Maximum height of dialog window."
+    },
+    "dialog.maxWidth": {
+      "type": "number",
+      "default": 80,
+      "description": "Maximum width of dialog window."
+    },
+    "dialog.pickerButtons": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show buttons for picker dialog window/popup."
+    },
+    "dialog.pickerButtonShortcut": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show shortcut in buttons of picker dialog window/popup, used when dialog.pickerButtons is true."
+    },
+    "dialog.floatHighlight": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Highlight group for dialog window/popup, default to 'CocFloating'"
+    },
+    "dialog.floatBorderHighlight": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Highlight group for border of dialog window/popup, default to 'CocFloating'"
+    },
     "workspace.ignoredFiletypes": {
       "type": "array",
       "default": ["markdown", "log", "txt", "help"],

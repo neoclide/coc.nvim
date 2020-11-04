@@ -2,7 +2,7 @@ let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:clear_match_by_id = has('nvim-0.5.0') || has('patch-8.1.1084')
-let s:vim_api_version = 4
+let s:vim_api_version = 7
 
 let s:activate = ""
 let s:quit = ""
@@ -147,7 +147,7 @@ function! coc#util#job_command()
   endif
   if filereadable(s:root.'/bin/server.js') && filereadable(s:root.'/src/index.ts') && !get(g:, 'coc_force_bundle', 0)
     if !filereadable(s:root.'/lib/attach.js')
-      echohl Error | echom '[coc.nvim] javascript bundle not found, please try :call coc#util#install()' | echohl None
+      echohl Error | echom '[coc.nvim] javascript bundle not found, please compile typescript code.' | echohl None
       return
     endif
     "use javascript from lib
@@ -662,9 +662,10 @@ function! coc#util#open_url(url)
 endfunction
 
 function! coc#util#install() abort
+  let yarncmd = get(g:, 'coc_install_yarn_cmd', executable('yarnpkg') ? 'yarnpkg' : 'yarn')
   call coc#util#open_terminal({
         \ 'cwd': s:root,
-        \ 'cmd': 'yarn install --frozen-lockfile',
+        \ 'cmd': yarncmd.' install --frozen-lockfile',
         \ 'autoclose': 0,
         \ })
 endfunction
