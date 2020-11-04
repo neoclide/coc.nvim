@@ -364,8 +364,6 @@ export default class Handler {
     let target = hoverTarget ?? this.preferences.hoverTarget
     if (target == 'float') {
       this.hoverFactory.close()
-    } else if (target == 'preview') {
-      this.nvim.command('pclose', true)
     }
     await synchronizeDocument(doc)
     let hovers = await this.withRequestToken<Hover[]>('hover', token => {
