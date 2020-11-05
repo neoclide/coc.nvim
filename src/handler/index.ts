@@ -138,7 +138,7 @@ export default class Handler {
         this.refactorMap.delete(bufnr)
       }
     }, null, this.disposables)
-    events.on(['CursorMoved', 'InsertEnter'], () => {
+    events.on(['CursorMoved', 'CursorMovedI', 'InsertEnter', 'InsertSnippet', 'InsertLeave'], () => {
       if (this.requestTokenSource) {
         this.requestTokenSource.cancel()
       }
@@ -980,13 +980,13 @@ export default class Handler {
       this.signatureFactory.close()
       return
     }
-    await synchronizeDocument(doc)
     let signatureHelp = await this.withRequestToken('signature help', async token => {
       let timer = setTimeout(() => {
         if (!token.isCancellationRequested && this.requestTokenSource) {
           this.requestTokenSource.cancel()
         }
       }, 2000)
+      await synchronizeDocument(doc)
       let res = await languages.getSignatureHelp(doc.textDocument, position, token)
       clearTimeout(timer)
       return res
@@ -1124,7 +1124,7 @@ export default class Handler {
         } else {
           this.signaturePosition = position
         }
-        await this.signatureFactory.show(docs, { allowSelection: true, offsetX: offset })
+        this.signatureFactory.show(docs, { allowSelection: true, offsetX: offset }).logError()
         // show float
       } else {
         this.documentLines = docs.reduce((p, c) => {
@@ -1133,7 +1133,7 @@ export default class Handler {
           p.push('```')
           return p
         }, [])
-        await this.nvim.command(`noswapfile pedit coc://document`)
+        this.nvim.command(`noswapfile pedit coc://document`, true)
       }
     }
     return true
