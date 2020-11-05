@@ -37,8 +37,8 @@ export default class Dialog {
     let opts: any = { maxwidth: preferences.maxWidth || 80, }
     if (title) opts.title = title
     if (close || typeof close === 'undefined') opts.close = 1
-    if (preferences.maxHeight) opts.maxheight = preferences.maxHeight
-    if (preferences.maxWidth) opts.maxwidth = preferences.maxWidth
+    if (preferences.maxHeight) opts.maxHeight = preferences.maxHeight
+    if (preferences.maxWidth) opts.maxWidth = preferences.maxWidth
     if (highlight) opts.highlight = highlight
     if (borderhighlight) opts.borderhighlight = [borderhighlight]
     if (buttons) opts.buttons = buttons.filter(o => !o.disabled).map(o => o.text)

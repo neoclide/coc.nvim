@@ -154,6 +154,16 @@ describe('window functions', () => {
     expect(winid).toBeGreaterThan(1000)
   })
 
+  it('should show menu', async () => {
+    let p = window.showMenuPicker(['a', 'b', 'c'], 'choose item')
+    await helper.wait(100)
+    let exists = await nvim.call('coc#float#has_float', [])
+    expect(exists).toBe(1)
+    await nvim.input('2')
+    let res = await p
+    expect(res).toBe(1)
+  })
+
   it('should request input', async () => {
     let p = window.requestInput('Name')
     await helper.wait(100)

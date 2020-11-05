@@ -36,6 +36,8 @@ List						|coc-list|
     Lists						|coc-list-lists|
 Dialog 						|coc-dialog|
   Dialog basic 						|coc-dialog-basic|
+  Dialog confirm  					|coc-dialog-confirm|
+  Dialog input 						|coc-dialog-input|
   Dialog menu 						|coc-dialog-menu|
   Dialog picker                                 	|coc-dialog-picker|
 Statusline support				|coc-status|
@@ -2977,11 +2979,41 @@ with optional buttons.
 
 ------------------------------------------------------------------------------
 
+							*coc-dialog-confirm*
+
+A confirm dialog is used for user to confirm an action. Confirm dialog uses
+filter feature on vim8 and |getchar()| on neoivm. The difference is you can
+operate vim on vim8, but not on neovim.
+
+Supported key-mappings:
+
+<C-c>         - force cancel, return -1 for callback.
+<esc>, n, N   - reject the action, return 0 for callback.
+y,Y           - accept the action, return 1 for callback.
+
+------------------------------------------------------------------------------
+
+							*coc-dialog-input*
+
+A input dialog request user input with optional default value, input dialog
+works on neovim >= 0.4.3 only since vim's popup doesn't support focus.
+
+Supported key-mappings:
+
+<C-a>         - move cursor to first col.
+<C-e>         - move cursor to last col.
+<esc>         - cancel input, an empty string is received by callback.
+<cr>          - confirm current input.
+
+And other insert mode key-mappings that your neovim provided.
+
+------------------------------------------------------------------------------
+
 							*coc-dialog-menu*
 
 A menu dialog is shown aside current cursor position for pick a single item
 from list of items, |coc-codeaction| uses menu dialog by default when it's
-available.
+supported.
 
 Supported key-mappings:
 
@@ -2991,6 +3023,8 @@ Supported key-mappings:
 G                    - move to last item.
 j <tab> <down> <C-n> - move to next item.
 k <s-tab> <up> <C-p> - move to previous item.
+<C-f>                - scroll forward.
+<C-b>                - scroll backward.
 
 ------------------------------------------------------------------------------
 

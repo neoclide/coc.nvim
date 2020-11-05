@@ -19,7 +19,6 @@ import { DialogPreferences, ScreenPosition, QuickPickItem } from './types'
 const logger = require('./util/logger')('window')
 
 class Window {
-  private menu: Menu
   private mutex = new Mutex()
   private statusLine: StatusLine
 
@@ -106,25 +105,31 @@ class Window {
    *
    * @param items Array of texts.
    * @param title Optional title of float/popup window.
+   * @param token A token that can be used to signal cancellation.
    * @returns Selected index (0 based), -1 when canceled.
    */
-  public async showMenuPicker(items: string[], title?: string): Promise<number> {
+  public async showMenuPicker(items: string[], title?: string, token?: CancellationToken): Promise<number> {
     if (workspace.env.dialog) {
-      if (!this.menu) this.menu = new Menu(this.nvim, workspace.env)
-      let menu = this.menu
-      menu.show(items, title, this.dialogPreference)
-      let res = await new Promise<number>(resolve => {
-        let disposables: Disposable[] = []
-        menu.onDidCancel(() => {
-          disposeAll(disposables)
-          resolve(-1)
-        }, null, disposables)
-        menu.onDidChoose(idx => {
-          disposeAll(disposables)
-          resolve(idx)
-        }, null, disposables)
-      })
-      return res
+      let release = await this.mutex.acquire()
+      if (token && token.isCancellationRequested) {
+        release()
+        return undefined
+      }
+      try {
+        let menu = new Menu(this.nvim, { items, title }, token)
+        let promise = new Promise<number>(resolve => {
+          menu.onDidClose(selected => {
+            resolve(selected)
+          })
+        })
+        await menu.show(this.dialogPreference)
+        let res = await promise
+        release()
+        return res
+      } catch (e) {
+        logger.error(`Error on showMenuPicker:`, e)
+        release()
+      }
     }
     return await this.showQuickpick(items)
   }

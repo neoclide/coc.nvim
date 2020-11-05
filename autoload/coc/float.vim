@@ -1195,8 +1195,8 @@ function! coc#float#create_dialog(lines, config) abort
   let buttons = get(a:config, 'buttons', [])
   let highlight = get(a:config, 'highlight', 'CocFloating')
   let borderhighlight = get(a:config, 'borderhighlight', [highlight])
-  let maxheight = coc#helper#min(get(a:config, 'maxheight', 78), &lines - &cmdheight - 6)
-  let maxwidth = coc#helper#min(get(a:config, 'maxwidth', 78), &columns - 2)
+  let maxheight = coc#helper#min(get(a:config, 'maxHeight', 78), &lines - &cmdheight - 6)
+  let maxwidth = coc#helper#min(get(a:config, 'maxWidth', 78), &columns - 2)
   let close = get(a:config, 'close', 1)
   let minwidth = 0
   if !empty(buttons)
@@ -1240,6 +1240,7 @@ function! coc#float#create_dialog(lines, config) abort
   let bufnr = coc#float#create_buf(0, a:lines)
   let res =  coc#float#create_float_win(0, bufnr, opts)
   if res[0] && has('nvim')
+    redraw
     call coc#float#nvim_scrollbar(res[0])
   endif
   return res
@@ -1255,7 +1256,6 @@ function! coc#float#get_related(winid, kind) abort
 endfunction
 
 " Create temporarily buffer with optional lines
-"function! s:create_tmp_buf(...) abort
 function! coc#float#create_buf(bufnr, ...) abort
   if a:bufnr > 0 && bufloaded(a:bufnr)
     let bufnr = a:bufnr
@@ -1281,6 +1281,36 @@ function! coc#float#create_buf(bufnr, ...) abort
     endif
   endif
   return bufnr
+endfunction
+
+function! coc#float#create_menu(lines, config) abort
+  let highlight = get(a:config, 'highlight', 'CocFloating')
+  let borderhighlight = get(a:config, 'borderhighlight', [highlight])
+  let opts = {
+    \ 'title': get(a:config, 'title', ''),
+    \ 'highlight': highlight,
+    \ 'borderhighlight': borderhighlight,
+    \ 'maxWidth': get(a:config, 'maxWidth', 80),
+    \ 'maxHeight': get(a:config, 'maxHeight', 80),
+    \ 'border': [1, 1, 1, 1],
+    \ 'relative': 'cursor',
+    \ }
+  if s:is_vim
+    let opts['cursorline'] = 1
+  endif
+  let bufnr = coc#float#create_buf(0, a:lines)
+  let dimension = coc#float#get_config_cursor(a:lines, opts)
+  call extend(opts, dimension)
+  let res = coc#float#create_float_win(0, bufnr, opts)
+  if empty(res)
+    return
+  endif
+  if has('nvim')
+    redraw
+    call coc#float#nvim_scrollbar(res[0])
+    execute 'sign place 6 line=1 name=CocCurrentLine buffer='.bufnr
+  endif
+  return res
 endfunction
 
 function! s:create_btns_buffer(bufnr, width, buttons, borderbottom) abort

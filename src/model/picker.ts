@@ -148,9 +148,9 @@ export default class Picker {
   public async show(preferences: DialogPreferences = {}): Promise<number> {
     let { nvim } = this
     let { title, items } = this.config
-    let opts: any = {}
-    if (preferences.maxHeight) opts.maxheight = preferences.maxHeight
-    if (preferences.maxWidth) opts.maxwidth = preferences.maxWidth
+    let opts: any = { close: 1, cursorline: 1 }
+    if (preferences.maxHeight) opts.maxHeight = preferences.maxHeight
+    if (preferences.maxWidth) opts.maxWidth = preferences.maxWidth
     if (title) opts.title = title
     opts.close = 1
     opts.cursorline = 1
