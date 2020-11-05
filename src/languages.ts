@@ -47,6 +47,7 @@ interface CompleteConfig {
   detailMaxLength: number
   detailField: string
   invalidInsertCharacters: string[]
+  floatEnable: boolean
 }
 
 function fixDocumentation(str: string): string {
@@ -91,6 +92,14 @@ class Languages {
     return workspace.nvim
   }
 
+  private get detailField(): string {
+    let { detailField, floatEnable } = this.completeConfig
+    if (detailField == 'preview' && (!floatEnable || !workspace.floatSupported)) {
+      return 'menu'
+    }
+    return 'preview'
+  }
+
   private loadCompleteConfig(): void {
     let suggest = workspace.getConfiguration('suggest')
     let labels = suggest.get<{ [key: string]: string }>('completionItemKindLabels', {})
@@ -121,12 +130,14 @@ class Languages {
       [CompletionItemKind.Operator, labels['operator'] || 'O'],
       [CompletionItemKind.TypeParameter, labels['typeParameter'] || 'T'],
     ])
+    // let useFloat = workspace.floatSupported && suggest.get
     this.completeConfig = {
       defaultKindText: labels['default'] || '',
       priority: suggest.get<number>('languageSourcePriority', 99),
       echodocSupport: suggest.get<boolean>('echodocSupport', false),
-      detailField: suggest.get<string>('detailField', 'menu'),
+      detailField: suggest.get<string>('detailField', 'preview'),
       detailMaxLength: suggest.get<number>('detailMaxLength', 100),
+      floatEnable: suggest.get<boolean>('floatEnable', true),
       invalidInsertCharacters: suggest.get<string[]>('invalidInsertCharacters', ['(', '<', '{', '[', '\r', '\n']),
     }
   }
@@ -656,7 +667,8 @@ class Languages {
   }
 
   private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption, prefix: string): VimCompleteItem {
-    let { echodocSupport, detailField, detailMaxLength, invalidInsertCharacters } = this.completeConfig
+    let { echodocSupport, detailMaxLength, invalidInsertCharacters } = this.completeConfig
+    let { detailField } = this
     let hasAdditionalEdit = item.additionalTextEdits && item.additionalTextEdits.length > 0
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet || hasAdditionalEdit
     let label = item.label.trim()

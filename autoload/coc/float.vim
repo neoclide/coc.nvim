@@ -197,7 +197,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
 endfunction
 
 function! coc#float#valid(winid) abort
-  if a:winid == 0
+  if a:winid <= 0
     return 0
   endif
   if s:is_vim
@@ -813,19 +813,19 @@ endfunction
 
 " Close related windows, or specific kind
 function! coc#float#close_related(winid, ...) abort
-  if a:winid == 0
+  if !coc#float#valid(a:winid)
     return
   endif
   let kind = get(a:, 1, '')
   let winids = getwinvar(a:winid, 'related', [])
   for id in winids
-    if !empty(kind) && getwinvar(id, 'kind', '') !=# kind
-      continue
-    endif
     if s:is_vim
-      noa call popup_close(id)
+      " vim doesn't throw
+      call popup_close(id)
     elseif nvim_win_is_valid(id)
-      noa call nvim_win_close(id, 1)
+      if empty(kind) || getwinvar(id, 'kind', '') ==# kind
+        noa call nvim_win_close(id, 1)
+      endif
     endif
   endfor
 endfunction
@@ -845,10 +845,9 @@ function! coc#float#check_related() abort
     endfor
   else
     for i in range(1, winnr('$'))
-      let id = win_getid(i)
-      let target = getwinvar(id, 'target_winid', 0)
+      let target = getwinvar(i, 'target_winid', 0)
       if target && !nvim_win_is_valid(target)
-        call add(invalids, id)
+        call add(invalids, win_getid(i))
       endif
     endfor
   endif

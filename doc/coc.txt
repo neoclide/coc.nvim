@@ -159,7 +159,7 @@ Built-in configurations:~
 "suggest.detailField":~
 
 	Where to add the detail in complete item when it's less than max
-	length, default: `"menu"`
+	length, default: `"preview"` when floating documentation is enabled.
 
 	Valid options: ["abbr", "menu", "preview"]
 
