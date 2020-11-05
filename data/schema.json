@@ -331,8 +331,8 @@
     },
     "suggest.detailField": {
       "type": "string",
-      "default": "menu",
-      "description": "Where to add the detail in complete item when it's less than max length.",
+      "default": "preview",
+      "description": "Where to show the detail text of CompleteItem from LS.",
       "enum": ["abbr", "menu", "preview"]
     },
     "suggest.autoTrigger": {

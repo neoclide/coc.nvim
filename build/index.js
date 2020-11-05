@@ -23999,7 +23999,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "73397d535c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "a634acee42" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -24086,7 +24086,7 @@ class CommandManager {
                 let doc = workspace_1.default.getDocument(workspace_1.default.bufnr);
                 if (!doc)
                     return;
-                await nvim.call('coc#_cancel', []);
+                nvim.call('coc#_cancel', [], true);
                 if (doc.dirty)
                     doc.forceSync();
                 await manager_2.default.insertSnippet(edit.newText, true, edit.range);
@@ -42266,6 +42266,7 @@ const position_1 = __webpack_require__(315);
 const string_1 = __webpack_require__(314);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(269));
 const window_1 = tslib_1.__importDefault(__webpack_require__(324));
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
 const snippet_1 = __webpack_require__(616);
 const variableResolve_1 = __webpack_require__(617);
 const logger = __webpack_require__(64)('snippets-session');
@@ -42289,6 +42290,7 @@ class SnippetSession {
         const { document } = this;
         if (!document || !document.attached)
             return false;
+        events_1.default.fire('InsertSnippet', []).logError();
         if (!range) {
             let position = await window_1.default.getCursorPosition();
             range = vscode_languageserver_protocol_1.Range.create(position, position);
@@ -71913,6 +71915,13 @@ class Languages {
     get nvim() {
         return workspace_1.default.nvim;
     }
+    get detailField() {
+        let { detailField, floatEnable } = this.completeConfig;
+        if (detailField == 'preview' && (!floatEnable || !workspace_1.default.floatSupported)) {
+            return 'menu';
+        }
+        return 'preview';
+    }
     loadCompleteConfig() {
         let suggest = workspace_1.default.getConfiguration('suggest');
         let labels = suggest.get('completionItemKindLabels', {});
@@ -71943,12 +71952,14 @@ class Languages {
             [vscode_languageserver_protocol_1.CompletionItemKind.Operator, labels['operator'] || 'O'],
             [vscode_languageserver_protocol_1.CompletionItemKind.TypeParameter, labels['typeParameter'] || 'T'],
         ]);
+        // let useFloat = workspace.floatSupported && suggest.get
         this.completeConfig = {
             defaultKindText: labels['default'] || '',
             priority: suggest.get('languageSourcePriority', 99),
             echodocSupport: suggest.get('echodocSupport', false),
-            detailField: suggest.get('detailField', 'menu'),
+            detailField: suggest.get('detailField', 'preview'),
             detailMaxLength: suggest.get('detailMaxLength', 100),
+            floatEnable: suggest.get('floatEnable', true),
             invalidInsertCharacters: suggest.get('invalidInsertCharacters', ['(', '<', '{', '[', '\r', '\n']),
         };
     }
@@ -72425,7 +72436,8 @@ class Languages {
         return string_1.byteIndex(line, character);
     }
     convertVimCompleteItem(item, shortcut, opt, prefix) {
-        let { echodocSupport, detailField, detailMaxLength, invalidInsertCharacters } = this.completeConfig;
+        let { echodocSupport, detailMaxLength, invalidInsertCharacters } = this.completeConfig;
+        let { detailField } = this;
         let hasAdditionalEdit = item.additionalTextEdits && item.additionalTextEdits.length > 0;
         let isSnippet = item.insertTextFormat === vscode_languageserver_protocol_1.InsertTextFormat.Snippet || hasAdditionalEdit;
         let label = item.label.trim();
@@ -88899,7 +88911,7 @@ class Handler {
                 this.refactorMap.delete(bufnr);
             }
         }, null, this.disposables);
-        events_1.default.on(['CursorMoved', 'InsertEnter'], () => {
+        events_1.default.on(['CursorMoved', 'CursorMovedI', 'InsertEnter', 'InsertSnippet', 'InsertLeave'], () => {
             if (this.requestTokenSource) {
                 this.requestTokenSource.cancel();
             }
@@ -89795,13 +89807,13 @@ class Handler {
             this.signatureFactory.close();
             return;
         }
-        await synchronizeDocument(doc);
         let signatureHelp = await this.withRequestToken('signature help', async (token) => {
             let timer = setTimeout(() => {
                 if (!token.isCancellationRequested && this.requestTokenSource) {
                     this.requestTokenSource.cancel();
                 }
             }, 2000);
+            await synchronizeDocument(doc);
             let res = await languages_1.default.getSignatureHelp(doc.textDocument, position, token);
             clearTimeout(timer);
             return res;
@@ -89948,7 +89960,7 @@ class Handler {
                 else {
                     this.signaturePosition = position;
                 }
-                await this.signatureFactory.show(docs, { allowSelection: true, offsetX: offset });
+                this.signatureFactory.show(docs, { allowSelection: true, offsetX: offset }).logError();
                 // show float
             }
             else {
@@ -89958,7 +89970,7 @@ class Handler {
                     p.push('```');
                     return p;
                 }, []);
-                await this.nvim.command(`noswapfile pedit coc://document`);
+                this.nvim.command(`noswapfile pedit coc://document`, true);
             }
         }
         return true;

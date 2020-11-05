@@ -15,7 +15,6 @@ Interface					|coc-interface|
   Key mappings					|coc-key-mappings|
   Variables						|coc-variables|
   Functions						|coc-functions|
-  Actions 						|coc-actions|
   Commands						|coc-commands|
   Autocmds						|coc-autocmds|
   Highlights					|coc-highlights|
@@ -160,7 +159,7 @@ Built-in configurations:~
 "suggest.detailField":~
 
 	Where to add the detail in complete item when it's less than max
-	length, default: `"menu"`
+	length, default: `"preview"` when floating documentation is enabled.
 
 	Valid options: ["abbr", "menu", "preview"]
 
@@ -1799,7 +1798,7 @@ CocTagFunc({pattern}, {flags}, {info})			*CocTagFunc()*
 	coc.nvim as provider.
 
 ------------------------------------------------------------------------------
-							*coc-actions*
+							*coc-action*
 Available Actions ~
 
 Acceptable {action} names for |CocAction()| and |CocActionAsync|.
@@ -2280,9 +2279,6 @@ COMMANDS						*coc-commands*
 
 	Watch loaded [extension] for reload on file change, use <tab> for
 	complete extension id.
-
-	Note install https://facebook.github.io/watchman/ required for file
-	watching.
 
 ------------------------------------------------------------------------------
 AUTOCMD							*coc-autocmds*
