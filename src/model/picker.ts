@@ -5,6 +5,7 @@ import events from '../events'
 import { QuickPickItem } from '../types'
 import { disposeAll } from '../util'
 import { byteLength } from '../util/string'
+import Window from './window'
 const logger = require('../util/logger')('model-dialog')
 const isVim = process.env.VIM_NODE_RPC == '1'
 
@@ -17,12 +18,12 @@ interface PickerConfig {
  * Pick multiple items from dialog
  */
 export default class Picker {
-  private disposables: Disposable[] = []
   private bufnr: number
-  private winid: number
+  private win: Window | undefined
   private picked: Set<number> = new Set()
   private currIndex = 0
   private total: number
+  private disposables: Disposable[] = []
   private keyMappings: Map<string, (character: string) => void> = new Map()
   private readonly _onDidClose = new Emitter<number[] | undefined>()
   public readonly onDidClose: Event<number[] | undefined> = this._onDidClose.event
@@ -34,18 +35,20 @@ export default class Picker {
     this.total = config.items.length
     if (token) {
       token.onCancellationRequested(() => {
-        if (this.winid) {
-          nvim.call('coc#float#close', [this.winid], true)
-        }
+        this.win?.close()
       })
     }
     this.disposables.push(this._onDidClose)
+    this.addKeymappings()
+  }
+
+  private attachEvents(): void {
     events.on('InputChar', this.onInputChar.bind(this), null, this.disposables)
     events.on('BufWinLeave', bufnr => {
       if (bufnr == this.bufnr) {
         this._onDidClose.fire(undefined)
         this.bufnr = undefined
-        this.winid = undefined
+        this.win = undefined
         this.dispose()
       }
     }, null, this.disposables)
@@ -60,7 +63,6 @@ export default class Picker {
         this.dispose()
       }
     }, null, this.disposables)
-    this.addKeymappings()
   }
 
   private addKeymappings(): void {
@@ -74,7 +76,7 @@ export default class Picker {
     }
     this.addKeys('<LeftRelease>', async () => {
       // not work on vim
-      if (isVim || !this.winid) return
+      if (isVim || !this.win) return
       let [winid, lnum, col] = await nvim.eval('[v:mouse_winid,v:mouse_lnum,v:mouse_col]') as [number, number, number]
       // can't simulate vvar.
       if (global.hasOwnProperty('__TEST__')) {
@@ -84,7 +86,7 @@ export default class Picker {
         col = res[2]
       }
       nvim.pauseNotification()
-      if (winid == this.winid) {
+      if (winid == this.win.winid) {
         if (col <= 3) {
           toggleSelect(lnum - 1)
           this.changeLine(lnum - 1)
@@ -114,6 +116,7 @@ export default class Picker {
     let setCursorIndex = idx => {
       nvim.pauseNotification()
       this.setCursor(idx)
+      this.win.refreshScrollbar()
       nvim.command('redraw', true)
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       nvim.resumeNotification(false, true)
@@ -127,6 +130,9 @@ export default class Picker {
       // previous
       let idx = this.currIndex == 0 ? this.total - 1 : this.currIndex - 1
       setCursorIndex(idx)
+    })
+    this.addKeys(['g'], () => {
+      setCursorIndex(0)
     })
     this.addKeys(['G'], () => {
       setCursorIndex(this.total - 1)
@@ -142,6 +148,12 @@ export default class Picker {
       nvim.command('redraw', true)
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       await nvim.resumeNotification()
+    })
+    this.addKeys('<C-f>', async () => {
+      await this.win?.scrollForward()
+    })
+    this.addKeys('<C-b>', async () => {
+      await this.win?.scrollBackward()
     })
   }
 
@@ -173,22 +185,21 @@ export default class Picker {
       if (item.description) line = line + ` ${item.description}`
       lines.push(line)
     }
-    let res = await nvim.call('coc#float#create_dialog', [lines, opts])
-    if (!res[1]) return
-    this.winid = res[0]
+    let res = await nvim.call('coc#float#create_dialog', [lines, opts]) as [number, number]
+    this.win = new Window(nvim, res[0], res[1])
     this.bufnr = res[1]
+    this.attachEvents()
     let buf = nvim.createBuffer(this.bufnr)
     nvim.pauseNotification()
     for (let pos of positions) {
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       buf.addHighlight({ hlGroup: 'Comment', line: pos[0], srcId: 1, colStart: pos[1], colEnd: -1 })
     }
-    this.highlightLine()
     nvim.command('redraw', true)
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     nvim.resumeNotification(false, true)
     nvim.call('coc#prompt#start_prompt', ['picker'], true)
-    return this.winid
+    return res[0]
   }
 
   public get buffer(): Buffer {
@@ -199,14 +210,12 @@ export default class Picker {
     disposeAll(this.disposables)
     this.disposables = []
     this.nvim.call('coc#prompt#stop_prompt', ['picker'], true)
-    if (this.winid) {
-      this.nvim.call('coc#float#close', [this.winid], true)
-      this.winid = undefined
-    }
+    this.win?.close()
+    this.win = undefined
   }
 
   private async onInputChar(session: string, character: string): Promise<void> {
-    if (session != 'picker' || !this.winid) return
+    if (session != 'picker' || !this.win) return
     let fn = this.keyMappings.get(character)
     if (fn) {
       await Promise.resolve(fn(character))
@@ -231,24 +240,9 @@ export default class Picker {
   }
 
   private setCursor(index: number): void {
-    let { nvim, winid } = this
-    if (!winid) return
+    if (!this.win) return
     this.currIndex = index
-    if (isVim) {
-      nvim.call('win_execute', [winid, `exe ${this.currIndex + 1}`], true)
-    } else {
-      let win = nvim.createWindow(winid)
-      win.notify('nvim_win_set_cursor', [[index + 1, 0]])
-      this.highlightLine()
-    }
-  }
-
-  private highlightLine(): void {
-    let { nvim, currIndex } = this
-    // user cursorline on vim8
-    if (isVim || !this.bufnr) return
-    nvim.command(`sign unplace 6 buffer=${this.bufnr}`, true)
-    nvim.command(`sign place 6 line=${currIndex + 1} name=CocCurrentLine buffer=${this.bufnr}`, true)
+    this.win.setCursor(index)
   }
 
   private addKeys(keys: string | string[], fn: (character: string) => void): void {

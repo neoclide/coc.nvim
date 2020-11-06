@@ -3,8 +3,8 @@ import { CancellationToken, Disposable, Emitter, Event } from 'vscode-languagese
 import { DialogPreferences } from '..'
 import events from '../events'
 import { disposeAll } from '../util'
+import Window from './window'
 const logger = require('../util/logger')('model-menu')
-const isVim = process.env.VIM_NODE_RPC == '1'
 
 export interface MenuConfig {
   items: string[]
@@ -16,7 +16,7 @@ export interface MenuConfig {
  */
 export default class Menu {
   private bufnr: number
-  private winid: number
+  private win: Window
   private currIndex = 0
   private total: number
   private disposables: Disposable[] = []
@@ -27,22 +27,23 @@ export default class Menu {
     this.total = config.items.length
     if (token) {
       token.onCancellationRequested(() => {
-        if (this.winid) {
-          nvim.call('coc#float#close', [this.winid], true)
-        }
+        this.win?.close()
       })
     }
     this.disposables.push(this._onDidClose)
+    this.addKeymappings()
+  }
+
+  private attachEvents(): void {
     events.on('InputChar', this.onInputChar.bind(this), null, this.disposables)
     events.on('BufWinLeave', bufnr => {
       if (bufnr == this.bufnr) {
         this._onDidClose.fire(-1)
         this.bufnr = undefined
-        this.winid = undefined
+        this.win = undefined
         this.dispose()
       }
     }, null, this.disposables)
-    this.addKeymappings()
   }
 
   private addKeymappings(): void {
@@ -56,44 +57,19 @@ export default class Menu {
       this.dispose()
     })
     let setCursorIndex = idx => {
+      if (!this.win) return
       nvim.pauseNotification()
       this.setCursor(idx)
+      this.win?.refreshScrollbar()
       nvim.command('redraw', true)
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       nvim.resumeNotification(false, true)
     }
     this.addKeys('<C-f>', async () => {
-      if (!isVim) {
-        let infos = await nvim.call('getwininfo', [this.winid])
-        let botline = infos[0].botline
-        if (botline >= this.total) return
-        nvim.pauseNotification()
-        nvim.call('win_gotoid', this.winid, true)
-        this.setCursor(botline - 1)
-        nvim.command(`normal! ${botline}Gzt`, true)
-        nvim.call('coc#float#nvim_scrollbar', [this.winid], true)
-        nvim.command('redraw', true)
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        nvim.resumeNotification(false, true)
-      }
-      // TODO support vim8
-      // nvim.call('coc#float#scroll', [1], true)
+      await this.win?.scrollForward()
     })
     this.addKeys('<C-b>', async () => {
-      if (!isVim) {
-        let infos = await nvim.call('getwininfo', [this.winid])
-        let topline = infos[0].topline
-        if (topline == 1) return
-        nvim.pauseNotification()
-        nvim.call('win_gotoid', this.winid, true)
-        this.setCursor(topline - 1)
-        nvim.command(`normal! ${topline}Gzb`, true)
-        nvim.call('coc#float#nvim_scrollbar', [this.winid], true)
-        nvim.command('redraw', true)
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        nvim.resumeNotification(false, true)
-      }
-      // TODO support vim8
+      await this.win?.scrollBackward()
     })
     this.addKeys(['j', '<down>', '<tab>', '<C-n>'], () => {
       // next
@@ -104,6 +80,9 @@ export default class Menu {
       // previous
       let idx = this.currIndex == 0 ? this.total - 1 : this.currIndex - 1
       setCursorIndex(idx)
+    })
+    this.addKeys(['g'], () => {
+      setCursorIndex(0)
     })
     this.addKeys(['G'], () => {
       setCursorIndex(this.total - 1)
@@ -148,12 +127,12 @@ export default class Menu {
       if (i < 99) return `${i + 1}. ${v}`
       return v
     })
-    let res = await nvim.call('coc#float#create_menu', [lines, opts])
-    if (!res[1]) return
-    this.winid = res[0]
+    let res = await nvim.call('coc#float#create_menu', [lines, opts]) as [number, number]
+    this.win = new Window(nvim, res[0], res[1])
     this.bufnr = res[1]
+    this.attachEvents()
     nvim.call('coc#prompt#start_prompt', ['menu'], true)
-    return this.winid
+    return res[0]
   }
 
   public get buffer(): Buffer {
@@ -164,14 +143,12 @@ export default class Menu {
     disposeAll(this.disposables)
     this.disposables = []
     this.nvim.call('coc#prompt#stop_prompt', ['menu'], true)
-    if (this.winid) {
-      this.nvim.call('coc#float#close', [this.winid], true)
-      this.winid = undefined
-    }
+    this.win?.close()
+    this.win = undefined
   }
 
   private async onInputChar(session: string, character: string): Promise<void> {
-    if (session != 'menu' || !this.winid) return
+    if (session != 'menu' || !this.win) return
     let fn = this.keyMappings.get(character)
     if (fn) {
       await Promise.resolve(fn(character))
@@ -181,24 +158,9 @@ export default class Menu {
   }
 
   private setCursor(index: number): void {
-    let { nvim, winid } = this
-    if (!winid) return
+    if (!this.win) return
     this.currIndex = index
-    if (isVim) {
-      nvim.call('win_execute', [winid, `exe ${this.currIndex + 1}`], true)
-    } else {
-      let win = nvim.createWindow(winid)
-      win.notify('nvim_win_set_cursor', [[index + 1, 0]])
-      this.highlightLine()
-    }
-  }
-
-  private highlightLine(): void {
-    let { nvim, currIndex } = this
-    // user cursorline on vim8
-    if (isVim || !this.bufnr) return
-    nvim.command(`sign unplace 6 buffer=${this.bufnr}`, true)
-    nvim.command(`sign place 6 line=${currIndex + 1} name=CocCurrentLine buffer=${this.bufnr}`, true)
+    this.win.setCursor(index)
   }
 
   private addKeys(keys: string | string[], fn: (character: string) => void): void {

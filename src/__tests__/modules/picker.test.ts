@@ -95,7 +95,7 @@ describe('Picker key mappings', () => {
     expect(fn).toBeCalledWith([0])
   })
 
-  it('should move cursor by j, k & G', async () => {
+  it('should move cursor by j, k, g & G', async () => {
     picker = new Picker(nvim, { title: 'title', items })
     let winid = await picker.show({ pickerButtons: true })
     expect(winid).toBeDefined()
@@ -111,6 +111,10 @@ describe('Picker key mappings', () => {
     await helper.wait(50)
     res = await nvim.call('sign_getplaced', [picker.buffer.id])
     expect(res[0].signs[0].lnum).toBe(2)
+    await nvim.input('g')
+    await helper.wait(50)
+    res = await nvim.call('sign_getplaced', [picker.buffer.id])
+    expect(res[0].signs[0].lnum).toBe(1)
   })
 
   it('should toggle selection by <space>', async () => {

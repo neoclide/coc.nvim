@@ -23,6 +23,25 @@ function! coc#float#has_float() abort
   return 0
 endfunction
 
+function! coc#float#execute(winid, command)
+  if s:is_vim
+    if type(a:command) == v:t_string
+      keepalt call win_execute(a:winid, a:command)
+    elseif type(a:command) == v:t_list
+      keepalt call win_execute(a:winid, join(a:command, "\n"))
+    endif
+  else
+    let curr = nvim_get_current_win()
+    noa keepalt call nvim_set_current_win(a:winid)
+    if type(a:command) == v:t_string
+      exec a:command
+    elseif type(a:command) == v:t_list
+      exec join(a:command, "\n")
+    endif
+    noa keepalt call nvim_set_current_win(curr)
+  endif
+endfunc
+
 function! coc#float#close_all() abort
   if !has('nvim') && exists('*popup_clear')
     call popup_clear()
@@ -1236,7 +1255,13 @@ function! coc#float#create_dialog(lines, config) abort
   endif
   let bufnr = coc#float#create_buf(0, a:lines)
   let res =  coc#float#create_float_win(0, bufnr, opts)
-  if res[0] && has('nvim')
+  if empty(res)
+    return
+  endif
+  if has('nvim')
+    if get(a:config, 'cursorline', 0)
+      execute 'sign place 6 line=1 name=CocCurrentLine buffer='.bufnr
+    endif
     redraw
     call coc#float#nvim_scrollbar(res[0])
   endif

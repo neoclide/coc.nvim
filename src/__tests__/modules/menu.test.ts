@@ -74,7 +74,7 @@ describe('Menu', () => {
     expect(res).toBe(0)
   })
 
-  it('should navigate by j, k & G', async () => {
+  it('should navigate by j, k, g & G', async () => {
     menu = new Menu(nvim, { items: ['one', 'two', 'three'] })
     await menu.show()
     await helper.wait(50)
@@ -93,6 +93,10 @@ describe('Menu', () => {
     await helper.wait(50)
     cursor = await win.cursor
     expect(cursor[0]).toBe(3)
+    await nvim.input('g')
+    await helper.wait(50)
+    cursor = await win.cursor
+    expect(cursor[0]).toBe(1)
   })
 
   it('should select by numbers', async () => {
