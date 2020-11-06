@@ -52,22 +52,14 @@ export default class CodeLensManager {
     workspace.onDidChangeConfiguration(e => {
       this.setConfiguration(e)
     }, null, this.disposables)
-
     events.on(['TextChanged', 'TextChangedI'], async () => {
       if (!this.enabled) return
       this.resolveCodeLens.clear()
     }, null, this.disposables)
-
     events.on('CursorMoved', () => {
       if (!this.enabled) return
       this.resolveCodeLens()
     }, null, this.disposables)
-
-    events.on('BufUnload', bufnr => {
-      if (!this.enabled) return
-      this.clear(bufnr)
-    }, null, this.disposables)
-
     events.on('BufEnter', bufnr => {
       if (!this.enabled) return
       setTimeout(async () => {
