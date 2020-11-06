@@ -23999,7 +23999,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "2e253e357a" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "8c1e94ea7b" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -38137,26 +38137,32 @@ class Window {
      *
      * @param items Array of texts.
      * @param title Optional title of float/popup window.
+     * @param token A token that can be used to signal cancellation.
      * @returns Selected index (0 based), -1 when canceled.
      */
-    async showMenuPicker(items, title) {
+    async showMenuPicker(items, title, token) {
         if (workspace_1.default.env.dialog) {
-            if (!this.menu)
-                this.menu = new menu_1.default(this.nvim, workspace_1.default.env);
-            let menu = this.menu;
-            menu.show(items, title, this.dialogPreference);
-            let res = await new Promise(resolve => {
-                let disposables = [];
-                menu.onDidCancel(() => {
-                    util_1.disposeAll(disposables);
-                    resolve(-1);
-                }, null, disposables);
-                menu.onDidChoose(idx => {
-                    util_1.disposeAll(disposables);
-                    resolve(idx);
-                }, null, disposables);
-            });
-            return res;
+            let release = await this.mutex.acquire();
+            if (token && token.isCancellationRequested) {
+                release();
+                return undefined;
+            }
+            try {
+                let menu = new menu_1.default(this.nvim, { items, title }, token);
+                let promise = new Promise(resolve => {
+                    menu.onDidClose(selected => {
+                        resolve(selected);
+                    });
+                });
+                await menu.show(this.dialogPreference);
+                let res = await promise;
+                release();
+                return res;
+            }
+            catch (e) {
+                logger.error(`Error on showMenuPicker:`, e);
+                release();
+            }
         }
         return await this.showQuickpick(items);
     }
@@ -38225,19 +38231,12 @@ class Window {
             let arr = await nvim.call('coc#float#create_prompt_win', [title, defaultValue || '']);
             if (!arr || arr.length == 0)
                 return null;
-            let [bufnr, winid] = arr;
-            let cleanUp = () => {
-                nvim.pauseNotification();
-                nvim.call('coc#float#close', [winid], true);
-                // eslint-disable-next-line @typescript-eslint/no-floating-promises
-                nvim.resumeNotification(false, true);
-            };
+            let [bufnr] = arr;
             let res = await new Promise(resolve => {
                 let disposables = [];
-                events_1.default.on('BufUnload', nr => {
+                events_1.default.on('BufWinLeave', nr => {
                     if (nr == bufnr) {
                         util_1.disposeAll(disposables);
-                        cleanUp();
                         resolve(null);
                     }
                 }, null, disposables);
@@ -38472,9 +38471,9 @@ class Dialog {
         if (close || typeof close === 'undefined')
             opts.close = 1;
         if (preferences.maxHeight)
-            opts.maxheight = preferences.maxHeight;
+            opts.maxHeight = preferences.maxHeight;
         if (preferences.maxWidth)
-            opts.maxwidth = preferences.maxWidth;
+            opts.maxWidth = preferences.maxWidth;
         if (highlight)
             opts.highlight = highlight;
         if (borderhighlight)
@@ -38510,148 +38509,218 @@ exports.default = Dialog;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
-const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(254));
 const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const util_1 = __webpack_require__(238);
 const logger = __webpack_require__(64)('model-menu');
+const isVim = process.env.VIM_NODE_RPC == '1';
+/**
+ * Select single item from menu at cursor position.
+ */
 class Menu {
-    constructor(nvim, env) {
+    constructor(nvim, config, token) {
         this.nvim = nvim;
-        this.env = env;
-        this._onDidChoose = new vscode_languageserver_protocol_1.Emitter();
-        this._onDidCancel = new vscode_languageserver_protocol_1.Emitter();
+        this.config = config;
         this.currIndex = 0;
-        this.total = 0;
-        this.onDidChoose = this._onDidChoose.event;
-        this.onDidCancel = this._onDidCancel.event;
-        let floatFactory = this.floatFactory = new floatFactory_1.default(nvim, env, false, 20, 80, false);
-        floatFactory.on('show', () => {
-            this.doHighlight(0);
-            choosed = undefined;
-        });
-        floatFactory.on('close', () => {
-            firstNumber = undefined;
-            nvim.call('coc#prompt#stop_prompt', ['menu'], true);
-            if (choosed != null && choosed < this.total) {
-                this._onDidChoose.fire(choosed);
-                choosed = undefined;
-            }
-            else {
-                this._onDidCancel.fire();
-            }
-        });
-        let timer;
-        let firstNumber;
-        let choosed;
-        events_1.default.on('InputChar', (scope, character, mode) => {
-            if (mode || scope !== 'menu')
-                return;
-            if (timer)
-                clearTimeout(timer);
-            // esc & `<C-c>`
-            if (character == '<esc>' || character == '<C-c>' || !this.window) {
-                this.hide();
-                return;
-            }
-            if (character == '\r' || character == '<cr>') {
-                choosed = this.currIndex;
-                this.hide();
-                return;
-            }
-            if (character >= '0' && character <= '9') {
-                let n = parseInt(character, 10);
-                if (isNaN(n) || n > this.total)
-                    return;
-                if (firstNumber == null && n == 0)
-                    return;
-                if (firstNumber) {
-                    let count = firstNumber * 10 + n;
-                    firstNumber = undefined;
-                    choosed = count - 1;
-                    this.hide();
-                    return;
+        this.disposables = [];
+        this.keyMappings = new Map();
+        this._onDidClose = new vscode_languageserver_protocol_1.Emitter();
+        this.onDidClose = this._onDidClose.event;
+        this.total = config.items.length;
+        if (token) {
+            token.onCancellationRequested(() => {
+                if (this.winid) {
+                    nvim.call('coc#float#close', [this.winid], true);
                 }
-                if (this.total < 10 || n * 10 > this.total) {
-                    choosed = n - 1;
-                    this.hide();
-                    return;
-                }
-                timer = setTimeout(async () => {
-                    choosed = n - 1;
-                    this.hide();
-                    firstNumber = undefined;
-                }, 200);
-                firstNumber = n;
-                return;
+            });
+        }
+        this.disposables.push(this._onDidClose);
+        events_1.default.on('InputChar', this.onInputChar.bind(this), null, this.disposables);
+        events_1.default.on('BufWinLeave', bufnr => {
+            if (bufnr == this.bufnr) {
+                this._onDidClose.fire(-1);
+                this.bufnr = undefined;
+                this.winid = undefined;
+                this.dispose();
             }
-            firstNumber = undefined;
-            if (character == 'G') {
-                this.currIndex = this.total - 1;
-            }
-            else if (['j', '<tab>', '<down>', '<C-n>'].includes(character)) {
-                this.currIndex = this.currIndex >= this.total - 1 ? 0 : this.currIndex + 1;
-            }
-            else if (['k', '<up>', '<s-tab>', '<C-p>'].includes(character)) {
-                this.currIndex = this.currIndex == 0 ? this.total - 1 : this.currIndex - 1;
-            }
-            else {
-                return;
-            }
+        }, null, this.disposables);
+        this.addKeymappings();
+    }
+    addKeymappings() {
+        let { nvim } = this;
+        this.addKeys(['<esc>', '<C-c>'], () => {
+            this._onDidClose.fire(-1);
+            this.dispose();
+        });
+        this.addKeys(['\r', '<cr>'], () => {
+            this._onDidClose.fire(this.currIndex);
+            this.dispose();
+        });
+        let setCursorIndex = idx => {
             nvim.pauseNotification();
-            if (this.env.isVim) {
-                nvim.call('win_execute', [this.window.id, `exe ${this.currIndex + 1}`], true);
-            }
-            else {
-                nvim.call('coc#util#win_gotoid', [this.window.id], true);
-                nvim.call('cursor', [this.currIndex + 1, 1], true);
-                this.doHighlight(this.currIndex);
-                nvim.command('noa wincmd p', true);
-            }
+            this.setCursor(idx);
             nvim.command('redraw', true);
             // eslint-disable-next-line @typescript-eslint/no-floating-promises
             nvim.resumeNotification(false, true);
+        };
+        this.addKeys('<C-f>', async () => {
+            if (!isVim) {
+                let infos = await nvim.call('getwininfo', [this.winid]);
+                let botline = infos[0].botline;
+                if (botline >= this.total)
+                    return;
+                nvim.pauseNotification();
+                nvim.call('win_gotoid', this.winid, true);
+                this.setCursor(botline - 1);
+                nvim.command(`normal! ${botline}Gzt`, true);
+                nvim.call('coc#float#nvim_scrollbar', [this.winid], true);
+                nvim.command('redraw', true);
+                // eslint-disable-next-line @typescript-eslint/no-floating-promises
+                nvim.resumeNotification(false, true);
+            }
+            // TODO support vim8
+            // nvim.call('coc#float#scroll', [1], true)
+        });
+        this.addKeys('<C-b>', async () => {
+            if (!isVim) {
+                let infos = await nvim.call('getwininfo', [this.winid]);
+                let topline = infos[0].topline;
+                if (topline == 1)
+                    return;
+                nvim.pauseNotification();
+                nvim.call('win_gotoid', this.winid, true);
+                this.setCursor(topline - 1);
+                nvim.command(`normal! ${topline}Gzb`, true);
+                nvim.call('coc#float#nvim_scrollbar', [this.winid], true);
+                nvim.command('redraw', true);
+                // eslint-disable-next-line @typescript-eslint/no-floating-promises
+                nvim.resumeNotification(false, true);
+            }
+            // TODO support vim8
+        });
+        this.addKeys(['j', '<down>', '<tab>', '<C-n>'], () => {
+            // next
+            let idx = this.currIndex == this.total - 1 ? 0 : this.currIndex + 1;
+            setCursorIndex(idx);
+        });
+        this.addKeys(['k', '<up>', '<s-tab>', '<C-p>'], () => {
+            // previous
+            let idx = this.currIndex == 0 ? this.total - 1 : this.currIndex - 1;
+            setCursorIndex(idx);
+        });
+        this.addKeys(['G'], () => {
+            setCursorIndex(this.total - 1);
+        });
+        let timer;
+        let firstNumber;
+        this.addKeys(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], character => {
+            if (timer)
+                clearTimeout(timer);
+            let n = parseInt(character, 10);
+            if (isNaN(n) || n > this.total)
+                return;
+            if (firstNumber == null && n == 0)
+                return;
+            if (firstNumber) {
+                let count = firstNumber * 10 + n;
+                firstNumber = undefined;
+                this._onDidClose.fire(count - 1);
+                this.dispose();
+                return;
+            }
+            if (this.total < 10 || n * 10 > this.total) {
+                this._onDidClose.fire(n - 1);
+                this.dispose();
+                return;
+            }
+            timer = setTimeout(async () => {
+                this._onDidClose.fire(n - 1);
+                this.dispose();
+            }, 200);
+            firstNumber = n;
         });
     }
-    get window() {
-        return this.floatFactory.window;
-    }
-    doHighlight(index) {
+    async show(preferences = {}) {
         let { nvim } = this;
-        if (this.env.isVim)
-            return;
-        let buf = this.floatFactory.buffer;
-        if (!buf)
-            return;
-        nvim.command(`sign unplace 6 buffer=${buf.id}`, true);
-        nvim.command(`sign place 6 line=${index + 1} name=CocCurrentLine buffer=${buf.id}`, true);
-    }
-    show(items, title, preferences = {}) {
+        let { title, items } = this.config;
+        let opts = {};
+        if (title)
+            opts.title = title;
+        if (preferences.maxHeight)
+            opts.maxHeight = preferences.maxHeight;
+        if (preferences.maxWidth)
+            opts.maxWidth = preferences.maxWidth;
+        if (preferences.floatHighlight)
+            opts.highlight = preferences.floatHighlight;
+        if (preferences.floatBorderHighlight)
+            opts.borderhighlight = [preferences.floatBorderHighlight];
         let lines = items.map((v, i) => {
             if (i < 99)
                 return `${i + 1}. ${v}`;
             return v;
         });
-        this.total = lines.length;
-        this.currIndex = 0;
-        let opts = { title, cursorline: this.env.isVim };
-        opts.maxWidth = preferences.maxWidth;
-        opts.maxHeight = preferences.maxHeight;
-        opts.highlight = preferences.floatHighlight;
-        opts.borderhighlight = preferences.floatBorderHighlight;
-        this.floatFactory.show([{ content: lines.join('\n'), filetype: 'menu' }], opts).then(() => {
-            if (this.window) {
-                this.nvim.call('coc#prompt#start_prompt', ['menu'], true);
-            }
-            else {
-                // failed to create window
-                this._onDidCancel.fire();
-            }
-        }, e => {
-            logger.error(e);
-        });
+        let res = await nvim.call('coc#float#create_menu', [lines, opts]);
+        if (!res[1])
+            return;
+        this.winid = res[0];
+        this.bufnr = res[1];
+        nvim.command('redraw', true);
+        nvim.call('coc#prompt#start_prompt', ['menu'], true);
+        return this.winid;
     }
-    hide() {
+    get buffer() {
+        return this.bufnr ? this.nvim.createBuffer(this.bufnr) : undefined;
+    }
+    dispose() {
+        util_1.disposeAll(this.disposables);
+        this.disposables = [];
         this.nvim.call('coc#prompt#stop_prompt', ['menu'], true);
-        this.floatFactory.close();
+        if (this.winid) {
+            this.nvim.call('coc#float#close', [this.winid], true);
+            this.winid = undefined;
+        }
+    }
+    async onInputChar(session, character) {
+        if (session != 'menu' || !this.winid)
+            return;
+        let fn = this.keyMappings.get(character);
+        if (fn) {
+            await Promise.resolve(fn(character));
+        }
+        else {
+            logger.warn(`Ignored key press: ${character}`);
+        }
+    }
+    setCursor(index) {
+        let { nvim, winid } = this;
+        if (!winid)
+            return;
+        this.currIndex = index;
+        if (isVim) {
+            nvim.call('win_execute', [winid, `exe ${this.currIndex + 1}`], true);
+        }
+        else {
+            let win = nvim.createWindow(winid);
+            win.notify('nvim_win_set_cursor', [[index + 1, 0]]);
+            this.highlightLine();
+        }
+    }
+    highlightLine() {
+        let { nvim, currIndex } = this;
+        // user cursorline on vim8
+        if (isVim || !this.bufnr)
+            return;
+        nvim.command(`sign unplace 6 buffer=${this.bufnr}`, true);
+        nvim.command(`sign place 6 line=${currIndex + 1} name=CocCurrentLine buffer=${this.bufnr}`, true);
+    }
+    addKeys(keys, fn) {
+        if (Array.isArray(keys)) {
+            for (let key of keys) {
+                this.keyMappings.set(key, fn);
+            }
+        }
+        else {
+            this.keyMappings.set(keys, fn);
+        }
     }
 }
 exports.default = Menu;
@@ -38891,11 +38960,11 @@ class Picker {
     async show(preferences = {}) {
         let { nvim } = this;
         let { title, items } = this.config;
-        let opts = {};
+        let opts = { close: 1, cursorline: 1 };
         if (preferences.maxHeight)
-            opts.maxheight = preferences.maxHeight;
+            opts.maxHeight = preferences.maxHeight;
         if (preferences.maxWidth)
-            opts.maxwidth = preferences.maxWidth;
+            opts.maxWidth = preferences.maxWidth;
         if (title)
             opts.title = title;
         opts.close = 1;
@@ -84052,7 +84121,7 @@ class ListUI {
         this.onDidDoubleClick = this._onDoubleClick.event;
         this.signOffset = config.get('signOffset');
         this.newTab = listOptions.position == 'tab';
-        events_1.default.on('BufUnload', async (bufnr) => {
+        events_1.default.on('BufWinLeave', async (bufnr) => {
             if (bufnr != this.bufnr || this.window == null)
                 return;
             this.window = null;
@@ -90409,11 +90478,6 @@ class CodeLensManager {
             if (!this.enabled)
                 return;
             this.resolveCodeLens();
-        }, null, this.disposables);
-        events_1.default.on('BufUnload', bufnr => {
-            if (!this.enabled)
-                return;
-            this.clear(bufnr);
         }, null, this.disposables);
         events_1.default.on('BufEnter', bufnr => {
             if (!this.enabled)
