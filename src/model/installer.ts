@@ -1,14 +1,12 @@
 import { EventEmitter } from 'events'
 import { spawn } from 'child_process'
 import readline from 'readline'
-import fs from 'fs'
+import fs from 'fs-extra'
 import mkdirp from 'mkdirp'
-import mv from 'mv'
 import os from 'os'
 import path from 'path'
 import rc from 'rc'
 import semver from 'semver'
-import { promisify } from 'util'
 import workspace from '../workspace'
 import download from './download'
 import fetch from './fetch'
@@ -70,14 +68,14 @@ export class Installer extends EventEmitter {
   public async update(url?: string): Promise<string> {
     this.url = url
     let folder = path.join(this.root, this.name)
-    let stat = await promisify(fs.lstat)(folder)
+    let stat = await fs.lstat(folder)
     if (stat.isSymbolicLink()) {
       this.log(`Skipped update for symbol link`)
       return
     }
     let version: string
     if (fs.existsSync(path.join(folder, 'package.json'))) {
-      let content = await promisify(fs.readFile)(path.join(folder, 'package.json'), 'utf8')
+      let content = await fs.readFile(path.join(folder, 'package.json'), 'utf8')
       version = JSON.parse(content).version
     }
     this.log(`Using npm from: ${this.npm}`)
@@ -109,12 +107,12 @@ export class Installer extends EventEmitter {
         return
       }
     }
-    let tmpFolder = await promisify(fs.mkdtemp)(path.join(os.tmpdir(), `${info.name}-`))
+    let tmpFolder = await fs.mkdtemp(path.join(os.tmpdir(), `${info.name}-`))
     let url = info['dist.tarball']
     this.log(`Downloading from ${url}`)
     await download(url, { dest: tmpFolder, onProgress: p => this.log(`Download progress ${p}%`, true), extract: 'untar' })
     this.log(`Extension download at ${tmpFolder}`)
-    let content = await promisify(fs.readFile)(path.join(tmpFolder, 'package.json'), 'utf8')
+    let content = await fs.readFile(path.join(tmpFolder, 'package.json'), 'utf8')
     let { dependencies } = JSON.parse(content)
     if (dependencies && Object.keys(dependencies).length) {
       let p = new Promise<void>((resolve, reject) => {
@@ -173,8 +171,8 @@ export class Installer extends EventEmitter {
         fs.unlinkSync(folder)
       }
     }
-    await promisify(mv)(tmpFolder, folder, { mkdirp: true, clobber: true })
-    fs.writeFileSync(jsonFile, JSON.stringify(sortedObj, null, 2), { encoding: 'utf8' })
+    await fs.move(tmpFolder, folder, { overwrite: true })
+    await fs.writeFile(jsonFile, JSON.stringify(sortedObj, null, 2), { encoding: 'utf8' })
     this.log(`Update package.json at ${jsonFile}`)
     this.log(`Installed extension ${this.name}@${info.version} at ${folder}`)
   }
