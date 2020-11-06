@@ -198,19 +198,12 @@ class Window {
     if (workspace.isNvim && semver.gte(workspace.env.version, '0.4.3') && preferences.get<boolean>('promptInput', true)) {
       let arr = await nvim.call('coc#float#create_prompt_win', [title, defaultValue || ''])
       if (!arr || arr.length == 0) return null
-      let [bufnr, winid] = arr
-      let cleanUp = () => {
-        nvim.pauseNotification()
-        nvim.call('coc#float#close', [winid], true)
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        nvim.resumeNotification(false, true)
-      }
+      let [bufnr] = arr
       let res = await new Promise<string>(resolve => {
         let disposables: Disposable[] = []
-        events.on('BufUnload', nr => {
+        events.on('BufWinLeave', nr => {
           if (nr == bufnr) {
             disposeAll(disposables)
-            cleanUp()
             resolve(null)
           }
         }, null, disposables)

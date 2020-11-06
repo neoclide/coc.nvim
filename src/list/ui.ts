@@ -52,7 +52,7 @@ export default class ListUI {
   ) {
     this.signOffset = config.get<number>('signOffset')
     this.newTab = listOptions.position == 'tab'
-    events.on('BufUnload', async bufnr => {
+    events.on('BufWinLeave', async bufnr => {
       if (bufnr != this.bufnr || this.window == null) return
       this.window = null
       this._onDidClose.fire(bufnr)
