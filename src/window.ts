@@ -196,29 +196,36 @@ class Window {
     let { nvim } = this
     const preferences = workspace.getConfiguration('coc.preferences')
     if (workspace.isNvim && semver.gte(workspace.env.version, '0.4.3') && preferences.get<boolean>('promptInput', true)) {
-      let arr = await nvim.call('coc#float#create_prompt_win', [title, defaultValue || ''])
-      if (!arr || arr.length == 0) return null
-      let [bufnr] = arr
-      let res = await new Promise<string>(resolve => {
-        let disposables: Disposable[] = []
-        events.on('BufWinLeave', nr => {
-          if (nr == bufnr) {
+      let release = await this.mutex.acquire()
+      try {
+        let arr = await nvim.call('coc#float#create_prompt_win', [title, defaultValue || '']) as [number, number]
+        let [bufnr] = arr
+        let res = await new Promise<string>(resolve => {
+          let disposables: Disposable[] = []
+          events.on('BufWinLeave', nr => {
+            if (nr == bufnr) {
+              disposeAll(disposables)
+              resolve(null)
+            }
+          }, null, disposables)
+          events.on('PromptInsert', value => {
             disposeAll(disposables)
-            resolve(null)
-          }
-        }, null, disposables)
-        events.on('PromptInsert', value => {
-          if (!value) {
-            setTimeout(() => {
-              this.showMessage('Empty word, canceled', 'warning')
-            }, 30)
-            resolve(null)
-          } else {
-            resolve(value)
-          }
-        }, null, disposables)
-      })
-      return res
+            if (!value) {
+              setTimeout(() => {
+                this.showMessage('Empty word, canceled', 'warning')
+              }, 30)
+              resolve(null)
+            } else {
+              resolve(value)
+            }
+          }, null, disposables)
+        })
+        release()
+        return res
+      } catch (e) {
+        logger.error('Error on requestInput:', e)
+        release()
+      }
     }
     let res = await workspace.callAsync<string>('input', [title + ': ', defaultValue || ''])
     nvim.command('normal! :<C-u>', true)

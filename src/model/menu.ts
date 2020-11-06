@@ -152,7 +152,6 @@ export default class Menu {
     if (!res[1]) return
     this.winid = res[0]
     this.bufnr = res[1]
-    nvim.command('redraw', true)
     nvim.call('coc#prompt#start_prompt', ['menu'], true)
     return this.winid
   }
