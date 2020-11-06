@@ -1,6 +1,6 @@
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { ListHighlights, ListItem, ListOptions } from '../types'
 import { disposeAll } from '../util'
@@ -313,20 +313,24 @@ export default class ListUI {
     })
   }
 
-  public async drawItems(items: ListItem[], height: number, reload = false): Promise<void> {
+  public async drawItems(items: ListItem[], height: number, reload = false, token?: CancellationToken): Promise<void> {
     let count = this.drawCount = this.drawCount + 1
     const { nvim, name, listOptions } = this
     const release = await this.mutex.acquire()
     this.items = items.length > this.limitLines ? items.slice(0, this.limitLines) : items
     const create = this.window == null
-    if (create) {
+    if (create && !(token && token.isCancellationRequested)) {
       try {
         let { position, numberSelect } = listOptions
         let [bufnr, winid] = await nvim.call('coc#list#create', [position, height, name, numberSelect])
-        this.height = height
-        this.buffer = nvim.createBuffer(bufnr)
-        this.window = nvim.createWindow(winid)
-        this._onDidOpen.fire(this.bufnr)
+        if (token && token.isCancellationRequested) {
+          nvim.call('coc#list#clean_up', [], true)
+        } else {
+          this.height = height
+          this.buffer = nvim.createBuffer(bufnr)
+          this.window = nvim.createWindow(winid)
+          this._onDidOpen.fire(this.bufnr)
+        }
       } catch (e) {
         nvim.call('coc#prompt#stop_prompt', ['list'], true)
         nvim.call('coc#list#clean_up', [], true)
@@ -336,6 +340,7 @@ export default class ListUI {
       }
     }
     release()
+    if (token && token.isCancellationRequested) return
     if (count !== this.drawCount) return
     let lines = this.items.map(item => item.label)
     this.clearSelection()
