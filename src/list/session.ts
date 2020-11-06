@@ -1,6 +1,6 @@
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import extensions from '../extensions'
 import Highlighter from '../model/highligher'
 import { IList, ListAction, ListContext, ListItem, ListMode, ListOptions, Matcher } from '../types'
@@ -23,6 +23,7 @@ export default class ListSession {
   public readonly ui: UI
   public readonly worker: Worker
   private cwd: string
+  private uiTokenSource: CancellationTokenSource
   private interval: NodeJS.Timer
   private loadingFrame = ''
   private timer: NodeJS.Timer
@@ -106,7 +107,8 @@ export default class ListSession {
         if (finished && !listOptions.interactive && listOptions.input.length == 0) {
           height = Math.min(items.length, height)
         }
-        await this.ui.drawItems(items, Math.max(1, height), reload)
+        let tokenSource = this.uiTokenSource = new CancellationTokenSource()
+        await this.ui.drawItems(items, Math.max(1, height), reload, tokenSource.token)
       }
     }, null, this.disposables)
     this.worker.onDidChangeLoading(loading => {
@@ -287,6 +289,11 @@ export default class ListSession {
 
   public async hide(): Promise<void> {
     if (this.hidden) return
+    if (this.uiTokenSource) {
+      this.uiTokenSource.cancel()
+      this.uiTokenSource.dispose()
+      this.uiTokenSource = null
+    }
     let { nvim, interval, listOptions, savedHeight, window } = this
     if (interval) clearInterval(interval)
     this.hidden = true
