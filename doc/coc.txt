@@ -3020,6 +3020,7 @@ Supported key-mappings:
 <Esc> <C-c>          - cancel selection.
 <cr>                 - confirm selection of current item.
 1-9                  - select item with 1 based index.
+g                    - move to first item.
 G                    - move to last item.
 j <tab> <down> <C-n> - move to next item.
 k <s-tab> <up> <C-p> - move to previous item.
@@ -3038,9 +3039,12 @@ Supported key-mappings:
 <Esc> <C-c>          - cancel selection.
 <cr>                 - confirm selection of selected items.
 <space>              - toggle selection of current item.
+g                    - move to first item.
 G                    - move to last item.
 j <tab> <down> <C-n> - move to next item.
 k <s-tab> <up> <C-p> - move to previous item.
+<C-f>                - scroll forward.
+<C-b>                - scroll backward.
 
 Note when close button is clicked, the selection is canceled with undefined
 result (same as <esc>).
