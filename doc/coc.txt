@@ -2359,6 +2359,36 @@ Note: highlight commands should appear after the |:colorscheme| command or use
 |ColorScheme| autocmd to make sure customized highlight works after color
 scheme change.
 
+CocUnderline						*CocUnderline*
+
+  Default: `hi default CocUnderline cterm=underline gui=underline`
+
+  The highlight for undefined text.
+
+CocBold							*CocBold*
+
+  Default: `hi default CocBold term=bold cterm=bold gui=bold`
+
+  The highlight for bold text.
+
+CocItalic						*CocItalic*
+
+  Default: `hi default CocItalic term=italic cterm=italic gui=italic`
+
+  The highlight for italic text.
+
+CocMarkdownCode						*CocMarkdownCode*
+
+  Default: `hi default link CocMarkdownCode     markdownCode`
+
+  The highlight for markdown code in floating window/popup.
+
+CocMarkdownHeader					*CocMarkdownHeader*
+
+  Default: `hi default link CocMarkdownHeader   markdownH1`
+
+  The highlight for markdown header in floating window/popup.
+
 CocErrorSign						*CocErrorSign*
 
   Default: `hi CocErrorSign  ctermfg=Red guifg=#ff0000`

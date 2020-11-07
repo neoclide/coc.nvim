@@ -4,6 +4,7 @@ let s:borderchars = get(g:, 'coc_borderchars', ['─', '│', '─', '│', '┌
 let s:borderjoinchars = get(g:, 'coc_border_joinchars', ['┬', '┤', '┴', '├'])
 let s:prompt_win_width = get(g:, 'coc_prompt_win_width', 32)
 let s:prompt_win_bufnr = 0
+let s:float_supported = exists('*nvim_open_win') || has('patch-8.1.1719')
 " winvar: border array of numbers,  button boolean 
 
 " detect if there's float window/popup created by coc.nvim
@@ -61,28 +62,6 @@ function! coc#float#jump() abort
   if !empty(winids)
     call win_gotoid(winids[0])
   endif
-endfunction
-
-function! coc#float#get_float_mode(lines, config) abort
-  let allowSelection = get(a:config, 'allowSelection', 0)
-  let pumAlignTop = get(a:config, 'pumAlignTop', 0)
-  let mode = mode()
-  let checked = (mode == 's' && allowSelection) || index(['i', 'n', 'ic'], mode) != -1
-  if !checked
-    return v:null
-  endif
-  if !s:is_vim && mode ==# 'i'
-    " helps to fix undo issue, don't know why.
-    call feedkeys("\<C-g>u", 'n')
-  endif
-  let dimension = coc#float#get_config_cursor(a:lines, a:config)
-  if empty(dimension)
-    return v:null
-  endif
-  if pumvisible() && ((pumAlignTop && dimension['row'] <0)|| (!pumAlignTop && dimension['row'] > 0))
-    return v:null
-  endif
-  return [mode, bufnr('%'), [line('.'), col('.')], dimension]
 endfunction
 
 " create/reuse float window for config position, config including:
@@ -490,6 +469,49 @@ function! coc#float#create_border_lines(border, title, width, height, hasbtn) ab
   return list
 endfunction
 
+" Get config, convert lines, create window, add highlights
+function! coc#float#create_cursor_float(winid, bufnr, lines, config) abort
+  if !s:float_supported
+    return v:null
+  endif
+  let allowSelection = get(a:config, 'allowSelection', 0)
+  let pumAlignTop = get(a:config, 'pumAlignTop', 0)
+  let mode = mode()
+  let currbuf = bufnr('%')
+  let pos = [line('.'), col('.')]
+  let checked = (mode == 's' && allowSelection) || index(['i', 'n', 'ic'], mode) != -1
+  if !checked
+    return v:null
+  endif
+  if !s:is_vim && mode ==# 'i'
+    " helps to fix undo issue, don't know why.
+    call feedkeys("\<C-g>u", 'n')
+  endif
+  let dimension = coc#float#get_config_cursor(a:lines, a:config)
+  if empty(dimension)
+    return v:null
+  endif
+  if pumvisible() && ((pumAlignTop && dimension['row'] <0)|| (!pumAlignTop && dimension['row'] > 0))
+    return v:null
+  endif
+  let width = dimension['width']
+  let lines = map(a:lines, {_, s -> s =~# '^—' ? repeat('—', width) : s})
+  let config = extend({'lines': lines, 'relative': 'cursor'}, a:config)
+  let config = extend(config, dimension)
+  let res = coc#float#create_float_win(a:winid, a:bufnr, config)
+  if empty(res)
+    return v:null
+  endif
+  let winid = res[0]
+  let bufnr = res[1]
+  call coc#highlight#add_highlights(winid, get(a:config, 'codes', []), get(a:config, 'highlights', []))
+  redraw
+  if has('nvim')
+    call coc#float#nvim_scrollbar(winid)
+  endif
+  return [currbuf, pos, winid, bufnr]
+endfunction
+
 " Create float window for input, neovim only since vim doesn't support focus
 function! coc#float#create_prompt_win(title, default) abort
   call coc#float#close_auto_hide_wins()
@@ -518,6 +540,7 @@ function! coc#float#create_prompt_win(title, default) abort
   endif
   let winid = res[0]
   let s:prompt_win_bufnr = res[1]
+  execute 'sign unplace 6 buffer='.s:prompt_win_bufnr
   call nvim_set_current_win(winid)
   inoremap <buffer> <C-a> <Home>
   inoremap <buffer><expr><C-e> pumvisible() ? "\<C-e>" : "\<End>"
@@ -960,15 +983,16 @@ function! coc#float#get_config_cursor(lines, config) abort
         \ }
 endfunction
 
-function! coc#float#get_config_pum(lines, pumconfig, maxwidth) abort
-  if !pumvisible()
+function! coc#float#create_pum_float(winid, bufnr, lines, config) abort
+  if !pumvisible() || !s:float_supported
     return v:null
   endif
-  let pw = a:pumconfig['width'] + get(a:pumconfig, 'scrollbar', 0)
-  let rp = &columns - a:pumconfig['col'] - pw
-  let showRight = a:pumconfig['col'] > rp ? 0 : 1
-  let maxWidth = showRight ? coc#helper#min(rp - 1, a:maxwidth) : coc#helper#min(a:pumconfig['col'] - 1, a:maxwidth)
-  let maxHeight = &lines - a:pumconfig['row'] - &cmdheight - 1
+  let pumbounding = a:config['pumbounding']
+  let pw = pumbounding['width'] + get(pumbounding, 'scrollbar', 0)
+  let rp = &columns - pumbounding['col'] - pw
+  let showRight = pumbounding['col'] > rp ? 0 : 1
+  let maxWidth = showRight ? coc#helper#min(rp - 1, a:config['maxWidth']) : coc#helper#min(pumbounding['col'] - 1, a:config['maxWidth'])
+  let maxHeight = &lines - pumbounding['row'] - &cmdheight - 1
   if maxWidth <= 2 || maxHeight < 1
     return v:null
   endif
@@ -981,13 +1005,26 @@ function! coc#float#get_config_pum(lines, pumconfig, maxwidth) abort
   endfor
   let width = coc#helper#min(maxWidth, width)
   let height = coc#helper#min(maxHeight, ch)
-  return {
-    \ 'col': showRight ? a:pumconfig['col'] + pw : a:pumconfig['col'] - width - 1,
-    \ 'row': a:pumconfig['row'],
-    \ 'height': height,
-    \ 'width': width - 2 + (s:is_vim && ch > height ? -1 : 0),
-    \ 'relative': 'editor'
-    \ }
+  let lines = map(a:lines, {_, s -> s =~# '^—' ? repeat('—', width - 2 + (s:is_vim && ch > height ? -1 : 0)) : s})
+  let opts = {
+        \ 'lines': lines,
+        \ 'autohide': 1,
+        \ 'relative': 'editor',
+        \ 'col': showRight ? pumbounding['col'] + pw : pumbounding['col'] - width - 1,
+        \ 'row': pumbounding['row'],
+        \ 'height': height,
+        \ 'width': width - 2 + (s:is_vim && ch > height ? -1 : 0),
+        \ }
+  let res = coc#float#create_float_win(a:winid, a:bufnr, opts)
+  if empty(res)
+    return v:null
+  endif
+  call coc#highlight#add_highlights(res[0], a:config['codes'], a:config['highlights'])
+  redraw
+  if has('nvim')
+    call coc#float#nvim_scrollbar(res[0])
+  endif
+  return res
 endfunction
 
 function! s:empty_border(border) abort

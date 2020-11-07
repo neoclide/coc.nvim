@@ -103,14 +103,7 @@ export default class Handler {
     })
     this.hoverFactory = new FloatFactory(nvim, workspace.env)
     this.disposables.push(this.hoverFactory)
-    let { signaturePreferAbove, signatureFloatMaxWidth, signatureMaxHeight } = this.preferences
-    this.signatureFactory = new FloatFactory(
-      nvim,
-      workspace.env,
-      signaturePreferAbove,
-      signatureMaxHeight,
-      signatureFloatMaxWidth,
-      false)
+    this.signatureFactory = new FloatFactory(nvim, workspace.env)
     this.disposables.push(this.signatureFactory)
     workspace.onWillSaveUntil(event => {
       let { languageId } = event.document
@@ -1122,7 +1115,15 @@ export default class Handler {
         } else {
           this.signaturePosition = position
         }
-        this.signatureFactory.show(docs, { allowSelection: true, offsetX: offset }).logError()
+        let { signaturePreferAbove, signatureFloatMaxWidth, signatureMaxHeight } = this.preferences
+        this.signatureFactory.show(docs, {
+          maxWidth: signatureFloatMaxWidth,
+          maxHeight: signatureMaxHeight,
+          preferTop: signaturePreferAbove,
+          autoHide: false,
+          allowSelection: true,
+          offsetX: offset
+        }).logError()
         // show float
       } else {
         this.documentLines = docs.reduce((p, c) => {

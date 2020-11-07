@@ -29,19 +29,9 @@ describe('FloatFactory', () => {
       filetype: 'markdown',
       content: 'f'.repeat(81)
     }]
-    let called = false
-    let fn = (winid, bufnr) => {
-      called = true
-      expect(floatFactory.bufnr).toBe(bufnr)
-      expect(floatFactory.window.id).toBe(winid)
-    }
-    floatFactory.on('show', fn)
     await floatFactory.show(docs)
     let hasFloat = await nvim.call('coc#float#has_float')
     expect(hasFloat).toBe(1)
-    await nvim.call('coc#float#close_all')
-    floatFactory.removeListener('show', fn)
-    expect(called).toBe(true)
   })
 
   it('should respect prefer top', async () => {
