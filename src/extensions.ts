@@ -1,10 +1,8 @@
 import { debounce } from 'debounce'
-import fs from 'fs'
+import fs from 'fs-extra'
 import isuri from 'isuri'
 import path from 'path'
-import rimraf from 'rimraf'
 import semver from 'semver'
-import { promisify } from 'util'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import which from 'which'
@@ -20,12 +18,11 @@ import { disposeAll, wait, concurrent, watchFile } from './util'
 import { distinct, splitArray } from './util/array'
 import './util/extensions'
 import { createExtension, ExtensionExport } from './util/factory'
-import { inDirectory, readdirAsync, readFile, realpathAsync } from './util/fs'
+import { inDirectory, readFile } from './util/fs'
 import { objectLiteral } from './util/is'
 import Watchman from './watchman'
 import workspace from './workspace'
 import window from './window'
-import mkdirp from 'mkdirp'
 import { OutputChannel } from './types'
 
 const createLogger = require('./util/logger')
@@ -85,7 +82,7 @@ export class Extensions {
     let folder = global.hasOwnProperty('__TEST__') ? path.join(__dirname, '__tests__') : process.env.COC_DATA_HOME
     let root = this.root = path.join(folder, 'extensions')
     if (!fs.existsSync(root)) {
-      mkdirp.sync(root)
+      fs.mkdirpSync(root)
     }
     let jsonFile = path.join(root, 'package.json')
     if (!fs.existsSync(jsonFile)) {
@@ -367,10 +364,10 @@ export class Extensions {
     let res: string[] = []
     for (let id of ids) {
       let directory = path.join(dir, id)
-      let stat = await promisify(fs.lstat)(directory)
+      let stat = await fs.lstat(directory)
       if (!stat || (stat && stat.isSymbolicLink())) continue
       await this.unloadExtension(id)
-      await promisify(rimraf)(directory, { glob: false })
+      await fs.remove(directory)
       res.push(id)
     }
     return res
@@ -390,7 +387,7 @@ export class Extensions {
         // remove directory
         let folder = path.join(this.modulesFolder, id)
         if (fs.existsSync(folder)) {
-          await promisify(rimraf)(folder, { glob: false })
+          await fs.remove(folder)
         }
       }
       // update package.json
@@ -448,7 +445,7 @@ export class Extensions {
     if (!process.env.COC_VIMCONFIG) return
     let folder = path.join(process.env.COC_VIMCONFIG, 'coc-extensions')
     if (!fs.existsSync(folder)) return
-    let files = await readdirAsync(folder)
+    let files = await fs.readdir(folder)
     files = files.filter(f => f.endsWith('.js'))
     for (let file of files) {
       await this.loadExtensionFile(path.join(folder, file))
@@ -601,7 +598,7 @@ export class Extensions {
           return resolve(null)
         }
         let content = await readFile(path.join(root, 'package.json'), 'utf8')
-        root = await realpathAsync(root)
+        root = await fs.realpath(root)
         let obj = JSON.parse(content)
         let version = obj ? obj.version || '' : ''
         let description = obj ? obj.description || '' : ''

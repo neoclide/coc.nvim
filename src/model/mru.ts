@@ -1,7 +1,5 @@
 import path from 'path'
-import fs from 'fs'
-import util from 'util'
-import mkdirp from 'mkdirp'
+import fs from 'fs-extra'
 
 /**
  * Mru - manage string items as lines in mru file.
@@ -23,11 +21,11 @@ export default class Mru {
   public async load(): Promise<string[]> {
     let dir = path.dirname(this.file)
     try {
-      mkdirp.sync(dir)
+      fs.mkdirpSync(dir)
       if (!fs.existsSync(this.file)) {
         fs.writeFileSync(this.file, '', 'utf8')
       }
-      let content = await util.promisify(fs.readFile)(this.file, 'utf8')
+      let content = await fs.readFile(this.file, 'utf8')
       content = content.trim()
       return content.length ? content.trim().split('\n') : []
     } catch (e) {
@@ -63,7 +61,7 @@ export default class Mru {
    */
   public async clean(): Promise<void> {
     try {
-      await util.promisify(fs.unlink)(this.file)
+      await fs.unlink(this.file)
     } catch (e) {
       // noop
     }

@@ -600,7 +600,7 @@ describe('workspace utility', () => {
   })
 
   it('should open resource', async () => {
-    let uri = URI.file(path.join(__dirname, 'bar')).toString()
+    let uri = URI.file(path.join(os.tmpdir(), 'bar')).toString()
     await workspace.openResource(uri)
     let buf = await nvim.buffer
     let name = await buf.name

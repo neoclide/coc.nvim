@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { URI } from 'vscode-uri'
-import mkdirp from 'mkdirp'
+import fs from 'fs-extra'
 import { ListContext, ListItem } from '../../types'
 import { statAsync } from '../../util/fs'
 import workspace from '../../workspace'
@@ -35,7 +35,7 @@ export default class FoldList extends BasicList {
       let dir = path.dirname(file)
       let stat = await statAsync(dir)
       if (!stat || !stat.isDirectory()) {
-        let success = await mkdirp(dir)
+        let success = await fs.mkdirp(dir)
         if (!success) {
           window.showMessage(`Error creating new directory ${dir}`, 'error')
           return

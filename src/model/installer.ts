@@ -2,7 +2,6 @@ import { EventEmitter } from 'events'
 import { spawn } from 'child_process'
 import readline from 'readline'
 import fs from 'fs-extra'
-import mkdirp from 'mkdirp'
 import os from 'os'
 import path from 'path'
 import rc from 'rc'
@@ -10,7 +9,6 @@ import semver from 'semver'
 import workspace from '../workspace'
 import download from './download'
 import fetch from './fetch'
-import rimraf from 'rimraf'
 import { statAsync } from '../util/fs'
 const logger = require('../util/logger')('model-installer')
 
@@ -38,7 +36,7 @@ export class Installer extends EventEmitter {
     private def: string
   ) {
     super()
-    if (!fs.existsSync(root)) mkdirp.sync(root)
+    if (!fs.existsSync(root)) fs.mkdirpSync(root)
     if (/^https?:/.test(def)) {
       this.url = def
     } else {
@@ -166,7 +164,7 @@ export class Installer extends EventEmitter {
     let stat = await statAsync(folder)
     if (stat) {
       if (stat.isDirectory()) {
-        rimraf.sync(folder, { glob: false })
+        fs.removeSync(folder)
       } else {
         fs.unlinkSync(folder)
       }
