@@ -23999,7 +23999,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "56bbd049d0" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "de4aa597b8" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -24448,8 +24448,7 @@ class DiagnosticManager {
     init() {
         this.setConfiguration();
         let { nvim } = workspace_1.default;
-        let { maxWindowHeight, maxWindowWidth } = this.config;
-        this.floatFactory = new floatFactory_1.default(nvim, workspace_1.default.env, false, maxWindowHeight, maxWindowWidth);
+        this.floatFactory = new floatFactory_1.default(nvim);
         this.disposables.push(vscode_languageserver_protocol_1.Disposable.create(() => {
             if (this.timer)
                 clearTimeout(this.timer);
@@ -24924,7 +24923,8 @@ class DiagnosticManager {
             docs.push({ filetype, content: str });
         });
         if (useFloat) {
-            await this.floatFactory.show(docs);
+            let { maxWindowHeight, maxWindowWidth } = this.config;
+            await this.floatFactory.show(docs, { maxWidth: maxWindowWidth, maxHeight: maxWindowHeight });
         }
         else {
             let lines = docs.map(d => d.content).join('\n').split(/\r?\n/);
@@ -25132,33 +25132,19 @@ const mutex_1 = __webpack_require__(289);
 const object_1 = __webpack_require__(249);
 const isVim = process.env.VIM_NODE_RPC == '1';
 const logger = __webpack_require__(64)('model-float');
-// factory class for floating window
+/**
+ * Float window/popup factory for create float/popup around current cursor.
+ */
 class FloatFactory {
-    constructor(nvim, 
-    /**
-     * @deprecated not used any more
-     */
-    env, preferTop = false, 
-    /**
-     * @deprecated pass maxHeight by `show()` instead.
-     */
-    maxHeight, 
-    /**
-     * @deprecated pass maxWidth by `show()` instead.
-     */
-    maxWidth, autoHide = true) {
+    constructor(nvim) {
         this.nvim = nvim;
-        this.env = env;
-        this.preferTop = preferTop;
-        this.maxHeight = maxHeight;
-        this.maxWidth = maxWidth;
-        this.autoHide = autoHide;
         this.winid = 0;
         this._bufnr = 0;
         this.mutex = new mutex_1.Mutex();
         this.disposables = [];
         this.alignTop = false;
         this.pumAlignTop = false;
+        this.autoHide = true;
         this.mutex = new mutex_1.Mutex();
         events_1.default.on('BufEnter', bufnr => {
             if (bufnr == this._bufnr
@@ -25204,7 +25190,7 @@ class FloatFactory {
     /**
      * @deprecated use show method instead
      */
-    async create(docs, allowSelection = false, offsetX = 0) {
+    async create(docs, _allowSelection = false, offsetX = 0) {
         this.onCursorMoved.clear();
         if (docs.length == 0 || docs.every(doc => doc.content.length == 0)) {
             this.close();
@@ -25212,7 +25198,7 @@ class FloatFactory {
         }
         let release = await this.mutex.acquire();
         try {
-            await this.createPopup(docs, { allowSelection, offsetX });
+            await this.createPopup(docs, { offsetX });
             release();
         }
         catch (e) {
@@ -25222,7 +25208,9 @@ class FloatFactory {
         }
     }
     /**
-     * Show documentations in float window/popup
+     * Show documentations in float window/popup around cursor.
+     * Window and buffer are reused when possible.
+     * Window is closed automatically on change buffer, InsertEnter, CursorMoved and CursorMovedI.
      *
      * @param docs List of documentations.
      * @param config Configuration for floating window/popup.
@@ -25250,34 +25238,31 @@ class FloatFactory {
         docs = docs.filter(o => o.content.trim().length > 0);
         let { lines, codes, highlights } = markdown_1.parseDocuments(docs);
         let config = {
-            allowSelection: opts.allowSelection || false,
             pumAlignTop: this.pumAlignTop,
-            preferTop: typeof opts.preferTop === 'boolean' ? opts.preferTop : this.preferTop,
+            preferTop: typeof opts.preferTop === 'boolean' ? opts.preferTop : false,
             offsetX: opts.offsetX || 0,
             title: opts.title || '',
             close: opts.close ? 1 : 0,
             codes,
             highlights
         };
-        if (opts.maxHeight || this.maxHeight) {
-            config.maxHeight = opts.maxHeight || this.maxHeight;
-        }
-        if (opts.maxWidth || this.maxWidth) {
-            config.maxWidth = opts.maxWidth || this.maxWidth;
-        }
+        if (opts.maxHeight)
+            config.maxHeight = opts.maxHeight;
+        if (opts.maxWidth)
+            config.maxWidth = opts.maxWidth;
         if (opts.border && !opts.border.every(o => o == 0)) {
             config.border = opts.border;
         }
-        if (opts.title && !config.border) {
+        if (opts.title && !config.border)
             config.border = [1, 1, 1, 1];
-        }
         if (opts.highlight)
             config.highlight = opts.highlight;
         if (opts.borderhighlight)
             config.borderhighlight = [opts.borderhighlight];
         if (opts.cursorline)
             config.cursorline = 1;
-        if (this.autoHide && !opts.autoHide === false)
+        this.autoHide = opts.autoHide == false ? false : true;
+        if (this.autoHide)
             config.autohide = 1;
         let arr = await this.nvim.call('coc#float#create_cursor_float', [this.winid, this._bufnr, lines, config]);
         if (!arr || arr.length == 0) {
@@ -25305,7 +25290,6 @@ class FloatFactory {
         this.cancel();
         if (winid) {
             this.winid = 0;
-            // TODO: sometimes this won't work at all
             nvim.pauseNotification();
             nvim.call('coc#float#close', [winid], true);
             if (isVim)
@@ -25357,7 +25341,6 @@ const ansiparse_1 = __webpack_require__(287);
 exports.diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint'];
 const logger = __webpack_require__(64)('markdown-index');
 marked_1.default.setOptions({
-    smartypants: true,
     renderer: new renderer_1.default()
 });
 function parseDocuments(docs) {
@@ -32693,15 +32676,14 @@ augroup end`;
         if (this._attached)
             return;
         this._attached = true;
-        let buffers = await this.nvim.buffers;
-        let bufnr = this.bufnr = await this.nvim.call('bufnr', '%');
-        await Promise.all(buffers.map(buf => this.onBufCreate(buf)));
+        let [bufs, bufnr, winid] = await this.nvim.eval(`[map(getbufinfo({'bufloaded': 1}), 'v:val["bufnr"]'),bufnr('%'),win_getid()]`);
+        this.bufnr = bufnr;
+        await Promise.all(bufs.map(buf => this.onBufCreate(buf)));
         if (!this._initialized) {
             this._onDidWorkspaceInitialized.fire(void 0);
             this._initialized = true;
         }
         await events_1.default.fire('BufEnter', [bufnr]);
-        let winid = await this.nvim.call('win_getid');
         await events_1.default.fire('BufWinEnter', [bufnr, winid]);
     }
     // count of document need change
@@ -41185,8 +41167,7 @@ class Document {
      */
     async init(nvim, token) {
         this.nvim = nvim;
-        let { buffer } = this;
-        let opts = await nvim.call('coc#util#get_bufoptions', buffer.id);
+        let opts = await nvim.call('coc#util#get_bufoptions', [this.bufnr, this.maxFileSize]);
         if (opts == null)
             return false;
         let buftype = this.buftype = opts.buftype;
@@ -41196,10 +41177,11 @@ class Document {
         this.variables = opts.variables;
         this._changedtick = opts.changedtick;
         this.eol = opts.eol == 1;
-        let uri = this._uri = index_1.getUri(opts.fullpath, buffer.id, buftype, this.env.isCygwin);
+        let uri = this._uri = index_1.getUri(opts.fullpath, this.bufnr, buftype, this.env.isCygwin);
         if (token.isCancellationRequested)
             return false;
         if (this.shouldAttach) {
+            this.lines = opts.lines;
             let res = await this.attach();
             if (!res)
                 return false;
@@ -41216,14 +41198,9 @@ class Document {
         return true;
     }
     async attach() {
-        if (this.env.isVim) {
-            this.lines = await this.nvim.call('getbufline', [this.bufnr, 1, '$']);
-            return true;
-        }
-        let attached = await this.buffer.attach(false);
+        let attached = await this.buffer.attach(true);
         if (!attached)
             return false;
-        this.lines = await this.buffer.lines;
         let lastChange;
         this.buffer.listen('lines', (...args) => {
             // avoid neovim send same change multiple times after checktime
@@ -48348,7 +48325,7 @@ class Extensions {
             await this.setupActiveEvents(id, packageJSON);
         }
         // make sure workspace.env exists
-        let floatFactory = new floatFactory_1.default(workspace_1.default.nvim, workspace_1.default.env);
+        let floatFactory = new floatFactory_1.default(workspace_1.default.nvim);
         events_1.default.on('CursorMoved', debounce_1.debounce(async (bufnr) => {
             if (this.installBuffer && bufnr == this.installBuffer.bufnr) {
                 let lnum = await workspace_1.default.nvim.call('line', ['.']);
@@ -88318,21 +88295,15 @@ class ListSession {
             this.uiTokenSource.dispose();
             this.uiTokenSource = null;
         }
-        let { nvim, interval, listOptions, savedHeight, window } = this;
+        let { nvim, interval } = this;
         if (interval)
             clearInterval(interval);
         this.hidden = true;
         this.worker.stop();
         this.history.add();
-        nvim.pauseNotification();
-        nvim.call('coc#prompt#stop_prompt', ['list'], true);
-        nvim.command('pclose', true);
-        this.ui.close();
-        if (window && savedHeight && listOptions.position != 'tab') {
-            nvim.call('coc#list#restore', [window.id, savedHeight], true);
-        }
-        nvim.command('redraw', true);
-        await nvim.resumeNotification();
+        let { winid } = this.ui;
+        this.ui.reset();
+        await nvim.call('coc#list#hide', [winid]);
     }
     toggleMode() {
         let mode = this.prompt.mode == 'normal' ? 'insert' : 'normal';
@@ -89168,15 +89139,15 @@ class ListUI {
             this.nvim.call('coc#list#restore', [window.id, height], true);
         }
     }
-    close() {
+    reset() {
         if (this.window) {
-            this.window.close(true, true);
             this.window = null;
+            this.buffer = null;
         }
     }
     dispose() {
-        this.close();
         util_1.disposeAll(this.disposables);
+        this.window = null;
         this._onDidChangeLine.dispose();
         this._onDidOpen.dispose();
         this._onDidClose.dispose();
@@ -93619,9 +93590,9 @@ class Handler {
                 this.getPreferences();
             }
         });
-        this.hoverFactory = new floatFactory_1.default(nvim, workspace_1.default.env);
+        this.hoverFactory = new floatFactory_1.default(nvim);
         this.disposables.push(this.hoverFactory);
-        this.signatureFactory = new floatFactory_1.default(nvim, workspace_1.default.env);
+        this.signatureFactory = new floatFactory_1.default(nvim);
         this.disposables.push(this.signatureFactory);
         workspace_1.default.onWillSaveUntil(event => {
             let { languageId } = event.document;
@@ -94700,7 +94671,6 @@ class Handler {
                     maxHeight: signatureMaxHeight,
                     preferTop: signaturePreferAbove,
                     autoHide: false,
-                    allowSelection: true,
                     offsetX: offset
                 }).logError();
                 // show float

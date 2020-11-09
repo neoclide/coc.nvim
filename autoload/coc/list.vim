@@ -115,3 +115,18 @@ function! coc#list#set_height(height) abort
   if winnr('$') == 1| return | endif
   execute 'resize '.a:height
 endfunction
+
+function! coc#list#hide(winid) abort
+  call coc#prompt#stop_prompt('list')
+  silent! pclose
+  if a:winid
+    if s:is_vim
+      noa call win_execute(winid, 'close!', 'silent!')
+    else
+      if nvim_win_is_valid(a:winid)
+        silent! noa call nvim_win_close(a:winid, 1)
+      endif
+    endif
+  endif
+  redraw
+endfunction

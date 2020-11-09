@@ -242,7 +242,7 @@ function! s:Call(method, args)
   endtry
 endfunction
 
-function! coc#util#get_bufoptions(bufnr) abort
+function! coc#util#get_bufoptions(bufnr, maxFileSize) abort
   if !bufloaded(a:bufnr) | return v:null | endif
   let bufname = bufname(a:bufnr)
   let buftype = getbufvar(a:bufnr, '&buftype')
@@ -257,6 +257,10 @@ function! coc#util#get_bufoptions(bufnr) abort
   elseif !empty(bufname)
     let size = getfsize(bufname)
   endif
+  let lines = []
+  if (buftype == '' || buftype == 'acwrite') && size < a:maxFileSize
+    let lines = getbufline(a:bufnr, 1, '$')
+  endif
   return {
         \ 'bufname': bufname,
         \ 'size': size,
@@ -269,6 +273,7 @@ function! coc#util#get_bufoptions(bufnr) abort
         \ 'filetype': getbufvar(a:bufnr, '&filetype'),
         \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
         \ 'changedtick': getbufvar(a:bufnr, 'changedtick'),
+        \ 'lines': lines,
         \}
 endfunction
 
