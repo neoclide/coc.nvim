@@ -120,6 +120,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     let [line, col] = s:popup_position(a:config)
     let title = get(a:config, 'title', '')
     let buttons = get(a:config, 'buttons', [])
+    let hlgroup = get(a:config, 'highlight',  'CocFloating')
     let opts = {
           \ 'title': title,
           \ 'line': line,
@@ -127,7 +128,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
           \ 'fixed': 1,
           \ 'padding': empty(title) ?  [0, 1, 0, 1] : [0, 0, 0, 0],
           \ 'borderchars': s:borderchars,
-          \ 'highlight': get(a:config, 'highlight',  'CocFloating'),
+          \ 'highlight': hlgroup,
           \ 'cursorline': get(a:config, 'cursorline', 0),
           \ 'minwidth': a:config['width'],
           \ 'minheight': a:config['height'],
@@ -138,7 +139,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
       let opts['close'] = 'button'
     endif
     if !empty(get(a:config, 'borderhighlight', []))
-      let opts['borderhighlight'] = a:config['borderhighlight']
+      let opts['borderhighlight'] = map(a:config['borderhighlight'], 'coc#highlight#compose_hlgroup(v:val,"'.hlgroup.'")')
     endif
     if !s:empty_border(get(a:config, 'border', []))
       let opts['border'] = a:config['border']
@@ -207,9 +208,10 @@ function! coc#float#nvim_create_related(winid, config, opts) abort
   let exists = !empty(related)
   let border = get(a:opts, 'border', [])
   let highlights = get(a:opts, 'borderhighlight', [])
-  let borderhighlight = type(highlights) == 1 ? highlights : get(highlights, 0, 'CocFloating')
-  let title = get(a:opts, 'title', '')
   let hlgroup = get(a:opts, 'highlight', 'CocFloating')
+  let borderhighlight = type(highlights) == 1 ? highlights : get(highlights, 0, 'CocFloating')
+  let borderhighlight =  coc#highlight#compose_hlgroup(borderhighlight, hlgroup)
+  let title = get(a:opts, 'title', '')
   let buttons = get(a:opts, 'buttons', [])
   let pad = empty(border) || get(border, 1, 0) == 0
   if get(a:opts, 'close', 0)

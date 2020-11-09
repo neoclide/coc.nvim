@@ -107,6 +107,51 @@ function! coc#highlight#syntax_clear(winid) abort
   call s:execute(a:winid, 'syntax clear')
 endfunction
 
+function! coc#highlight#compose_hlgroup(fgGroup, bgGroup) abort
+  let hlGroup = 'Fg'.a:fgGroup.'Bg'.a:bgGroup
+  if a:fgGroup == a:bgGroup
+    return a:fgGroup
+  endif
+  if hlexists(hlGroup)
+    return hlGroup
+  endif
+  let fg = synIDattr(synIDtrans(hlID(a:fgGroup)), 'fg', 'gui')
+  let bg = synIDattr(synIDtrans(hlID(a:bgGroup)), 'bg', 'gui')
+  if fg =~# '^#' || bg =~# '^#'
+    call s:create_gui_hlgroup(hlGroup, fg, bg, '')
+  else
+    let fg = synIDattr(synIDtrans(hlID(a:fgGroup)), 'fg', 'cterm')
+    let bg = synIDattr(synIDtrans(hlID(a:bgGroup)), 'bg', 'cterm')
+    call s:create_cterm_hlgroup(hlGroup, fg, bg, '')
+  endif
+  return hlGroup
+endfunction
+
+" Sets the highlighting for the given group
+function! s:create_gui_hlgroup(group, fg, bg, attr)
+  if a:fg != ""
+    exec "silent hi " . a:group . " guifg=" . a:fg . " ctermfg=" . coc#color#rgb2term(strpart(a:fg, 1))
+  endif
+  if a:bg != ""
+    exec "silent hi " . a:group . " guibg=" . a:bg . " ctermbg=" . coc#color#rgb2term(strpart(a:bg, 1))
+  endif
+  if a:attr != ""
+    exec "silent hi " . a:group . " gui=" . a:attr . " cterm=" . a:attr
+  endif
+endfun
+
+function! s:create_cterm_hlgroup(group, fg, bg, attr) abort
+  if a:fg != ""
+    exec "silent hi " . a:group . " ctermfg=" . a:fg
+  endif
+  if a:bg != ""
+    exec "silent hi " . a:group . " ctermbg=" . a:bg
+  endif
+  if a:attr != ""
+    exec "silent hi " . a:group . " cterm=" . a:attr
+  endif
+endfunction
+
 function! s:execute(winid, cmd) abort
   if has('nvim')
     execute 'silent! ' a:cmd
