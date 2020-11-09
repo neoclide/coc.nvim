@@ -985,26 +985,6 @@ function! coc#util#clearmatches(ids, ...)
   endif
 endfunction
 
-" clear document highlights of current window
-function! coc#util#clear_highlights(...) abort
-    let winid = get(a:, 1, win_getid())
-    if empty(getwininfo(winid))
-      " not valid
-      return
-    endif
-    if winid == win_getid()
-      let arr = filter(getmatches(), 'v:val["group"] =~# "^CocHighlight"')
-      for item in arr
-        call matchdelete(item['id'])
-      endfor
-    elseif s:clear_match_by_id
-      let arr = filter(getmatches(winid), 'v:val["group"] =~# "^CocHighlight"')
-      for item in arr
-        call matchdelete(item['id'], winid)
-      endfor
-    endif
-endfunction
-
 " Character offset of current cursor
 function! coc#util#get_offset() abort
   let offset = 0

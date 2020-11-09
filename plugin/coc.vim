@@ -273,7 +273,7 @@ function! s:Enable(initialize)
     if has('nvim-0.4.0') || has('patch-8.1.1719')
       autocmd CursorHold        * call coc#float#check_related()
     endif
-    autocmd WinLeave            * call coc#util#clear_highlights()
+    autocmd WinLeave            * call coc#highlight#clear_highlights()
     autocmd WinLeave            * call s:Autocmd('WinLeave', win_getid())
     autocmd WinEnter            * call s:Autocmd('WinEnter', win_getid())
     autocmd BufWinLeave         * call s:Autocmd('BufWinLeave', +expand('<abuf>'), bufwinid(+expand('<abuf>')))
@@ -314,14 +314,18 @@ function! s:Enable(initialize)
 endfunction
 
 function! s:Hi() abort
-  hi default CocUnderline    cterm=underline gui=underline
-  hi default CocBold         term=bold cterm=bold gui=bold
   hi default CocErrorSign    ctermfg=Red     guifg=#ff0000 guibg=NONE
   hi default CocWarningSign  ctermfg=Brown   guifg=#ff922b guibg=NONE
   hi default CocInfoSign     ctermfg=Yellow  guifg=#fab005 guibg=NONE
   hi default CocHintSign     ctermfg=Blue    guifg=#15aabf guibg=NONE
   hi default CocSelectedText ctermfg=Red     guifg=#fb4934 guibg=NONE
   hi default CocCodeLens     ctermfg=Gray    guifg=#999999 guibg=NONE
+  hi default CocUnderline    cterm=underline gui=underline
+  hi default CocBold         term=bold cterm=bold gui=bold
+  hi default CocItalic       term=italic cterm=italic gui=italic
+  hi default CocMarkdownLink ctermfg=Blue    guifg=#15aabf guibg=NONE
+  hi default link CocMarkdownCode     markdownCode
+  hi default link CocMarkdownHeader   markdownH1
   hi default link CocMenuSel          PmenuSel
   hi default link CocErrorFloat       CocErrorSign
   hi default link CocWarningFloat     CocWarningSign

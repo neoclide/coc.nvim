@@ -30,21 +30,44 @@ const styles = {
   4: 'underline'
 }
 
-export function parseAnsiHighlights(line: string): { line: string; highlights: AnsiHighlight[] } {
+export interface AnsiResult {
+  line: string
+  highlights: AnsiHighlight[]
+}
+
+export function parseAnsiHighlights(line: string, markdown = false): AnsiResult {
   let items = ansiparse(line)
   let highlights: AnsiHighlight[] = []
   let newLabel = ''
   for (let item of items) {
     if (!item.text) continue
-    let { foreground, background } = item
+    let { foreground, background, bold, italic, underline } = item
     let len = byteLength(newLabel)
-    if (foreground || background) {
+    if (foreground || background || bold || italic || underline) {
       let span: [number, number] = [len, len + byteLength(item.text)]
       let hlGroup = ''
-      if (foreground && background) {
+      if (bold) {
+        hlGroup = 'CocBold'
+      } else if (italic) {
+        hlGroup = 'CocItalic'
+      } else if (underline) {
+        hlGroup = 'CocUnderline'
+      } else if (foreground && background) {
         hlGroup = `CocList${upperFirst(foreground)}${upperFirst(background)}`
       } else if (foreground) {
-        hlGroup = `CocListFg${upperFirst(foreground)}`
+        if (markdown) {
+          if (foreground == 'yellow') {
+            hlGroup = 'CocMarkdownCode'
+          } else if (foreground == 'blue') {
+            hlGroup = 'CocMarkdownLink'
+          } else if (foreground == 'magenta') {
+            hlGroup = 'CocMarkdownHeader'
+          } else {
+            hlGroup = `CocListFg${upperFirst(foreground)}`
+          }
+        } else {
+          hlGroup = `CocListFg${upperFirst(foreground)}`
+        }
       } else if (background) {
         hlGroup = `CocListBg${upperFirst(background)}`
       }

@@ -28,7 +28,7 @@ export default class DocumentHighlighter {
 
   public clearHighlight(winid?: number): void {
     let { nvim } = workspace
-    nvim.call('coc#util#clear_highlights', winid ? [winid] : [], true)
+    nvim.call('coc#highlight#clear_highlights', winid ? [winid] : [], true)
     if (workspace.isVim) nvim.command('redraw', true)
   }
 
@@ -43,7 +43,7 @@ export default class DocumentHighlighter {
     }
     if (workspace.bufnr != bufnr) return
     nvim.pauseNotification()
-    nvim.call('coc#util#clear_highlights', [winid], true)
+    nvim.call('coc#highlight#clear_highlights', [winid], true)
     let groups: { [index: string]: Range[] } = {}
     for (let hl of highlights) {
       if (!hl.range) continue
