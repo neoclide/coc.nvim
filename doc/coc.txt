@@ -2389,6 +2389,12 @@ CocMarkdownHeader					*CocMarkdownHeader*
 
   The highlight for markdown header in floating window/popup.
 
+CocMarkdownLink						*CocMarkdownLink*
+
+  Default: `hi default CocMarkdownLink ctermfg=Blue guifg=#15aabf guibg=NONE`
+
+  The highlight for markdown link text in floating window/popup.
+
 CocErrorSign						*CocErrorSign*
 
   Default: `hi CocErrorSign  ctermfg=Red guifg=#ff0000`

@@ -82,7 +82,7 @@ export function parseMarkdown(content: string): DocumentInfo {
   for (let line of parsed.replace(/\s*$/, '').split(/\n/)) {
     if (!line.length) {
       let pre = lines[lines.length - 1]
-      if (pre.length) {
+      if (pre && pre.length) {
         lines.push(line)
         currline++
       }
@@ -104,7 +104,7 @@ export function parseMarkdown(content: string): DocumentInfo {
           endLine: currline
         })
       }
-      if (pre.length) {
+      if (pre && pre.length) {
         lines.push('')
         currline++
       }
