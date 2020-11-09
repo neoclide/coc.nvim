@@ -348,7 +348,7 @@
     },
     "suggest.numberSelect": {
       "type": "boolean",
-      "description": "Input number to select complete item, works on neovim >= 0.4.3 only.",
+      "description": "Input number to select complete item, works on neovim >= 0.4.0 only.",
       "default": false
     },
     "suggest.disableKind": {
@@ -1017,7 +1017,7 @@
     },
     "coc.preferences.promptInput": {
       "type": "boolean",
-      "description": "Use prompt buffer in float window for user input, works on neovim >= 0.4.3 only.",
+      "description": "Use prompt buffer in float window for user input, works on neovim >= 0.4.0 only.",
       "default": true
     },
     "coc.preferences.enableMarkdown": {

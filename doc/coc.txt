@@ -758,7 +758,7 @@ Built-in configurations:~
 "coc.preferences.promptInput":~
 
 	Use prompt buffer in float window for user input, works on latest
-	neovim >= 0.4.3 only.
+	neovim >= 0.4.0 only.
 	Default: `true`
 
 "coc.preferences.enableMarkdown":~
@@ -1678,7 +1678,7 @@ coc#float#has_scroll() 					*coc#float#has_scroll()*
 	Return `1` when there is scrollable float window or popup.
 	Example key-mappings:
 >
-	if has('nvim-0.4.3') || has('patch-8.2.0750')
+	if has('nvim-0.4.0') || has('patch-8.2.0750')
 	  nnoremap <nowait><expr> <C-f> coc#float#has_scroll() ? coc#float#scroll(1) : "\<C-f>"
 	  nnoremap <nowait><expr> <C-b> coc#float#has_scroll() ? coc#float#scroll(0) : "\<C-b>"
 	  inoremap <nowait><expr> <C-f> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(1)\<cr>" : "\<Right>"
@@ -1691,7 +1691,7 @@ coc#float#scroll({forward}, [{amount}])                 *coc#float#scroll()*
 	{forward} is not `1`. {amount} could be number or full page when
 	omitted.
 
-	Note: this function requires nvim >= 0.4.3 or vim >= 8.2.750 to work.
+	Note: this function requires nvim >= 0.4.0 or vim >= 8.2.750 to work.
 
 coc#float#nvim_scroll({forward}, [{amount}]) 		*coc#float#nvim_scroll()*
 
@@ -2359,6 +2359,42 @@ Note: highlight commands should appear after the |:colorscheme| command or use
 |ColorScheme| autocmd to make sure customized highlight works after color
 scheme change.
 
+CocUnderline						*CocUnderline*
+
+  Default: `hi default CocUnderline cterm=underline gui=underline`
+
+  The highlight for undefined text.
+
+CocBold							*CocBold*
+
+  Default: `hi default CocBold term=bold cterm=bold gui=bold`
+
+  The highlight for bold text.
+
+CocItalic						*CocItalic*
+
+  Default: `hi default CocItalic term=italic cterm=italic gui=italic`
+
+  The highlight for italic text.
+
+CocMarkdownCode						*CocMarkdownCode*
+
+  Default: `hi default link CocMarkdownCode     markdownCode`
+
+  The highlight for markdown code in floating window/popup.
+
+CocMarkdownHeader					*CocMarkdownHeader*
+
+  Default: `hi default link CocMarkdownHeader   markdownH1`
+
+  The highlight for markdown header in floating window/popup.
+
+CocMarkdownLink						*CocMarkdownLink*
+
+  Default: `hi default CocMarkdownLink ctermfg=Blue guifg=#15aabf guibg=NONE`
+
+  The highlight for markdown link text in floating window/popup.
+
 CocErrorSign						*CocErrorSign*
 
   Default: `hi CocErrorSign  ctermfg=Red guifg=#ff0000`
@@ -2966,7 +3002,7 @@ Note bottom buttons work different on neovim and vim, on neovim you can
 click the button since neovim allows focus of window, on vim you have to type
 highlighted character to trigger button callback.
 
-Note dialog feature requires neovim >= 0.4.3 or vim >= 8.2.0750 to work.
+Note dialog feature requires neovim >= 0.4.0 or vim >= 8.2.0750 to work.
 
 See |coc-config-dialog| for available configurations.
 
@@ -2996,7 +3032,7 @@ y,Y           - accept the action, return 1 for callback.
 							*coc-dialog-input*
 
 A input dialog request user input with optional default value, input dialog
-works on neovim >= 0.4.3 only since vim's popup doesn't support focus.
+works on neovim >= 0.4.0 only since vim's popup doesn't support focus.
 
 Supported key-mappings:
 
@@ -3158,7 +3194,7 @@ A:	On neovim, coc.nvim uses background neovim instance which load syntax
 Q: 	I don't have float/popup window shown up.
 
 A: 	For vim8,  make sure `echo has('textprop') && has('patch-8.1.1719')`
-	echo 1. For neovim, you need neovim >= 0.4.3.
+	echo 1. For neovim, you need neovim >= 0.4.0.
 
 
 ==============================================================================
