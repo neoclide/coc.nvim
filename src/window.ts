@@ -195,7 +195,7 @@ class Window {
   public async requestInput(title: string, defaultValue?: string): Promise<string> {
     let { nvim } = this
     const preferences = workspace.getConfiguration('coc.preferences')
-    if (workspace.isNvim && semver.gte(workspace.env.version, '0.4.3') && preferences.get<boolean>('promptInput', true)) {
+    if (workspace.isNvim && semver.gte(workspace.env.version, '0.4.0') && preferences.get<boolean>('promptInput', true)) {
       let release = await this.mutex.acquire()
       try {
         let arr = await nvim.call('coc#float#create_prompt_win', [title, defaultValue || '']) as [number, number]
@@ -396,7 +396,7 @@ class Window {
 
   private checkDialog(): boolean {
     if (workspace.env.dialog) return true
-    this.showMessage('Dialog requires vim >= 8.2.0750 or neovim >= 0.4.3', 'warning')
+    this.showMessage('Dialog requires vim >= 8.2.0750 or neovim >= 0.4.0', 'warning')
     return false
   }
 

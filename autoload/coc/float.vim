@@ -389,7 +389,7 @@ endfunction
 " Create or refresh scrollbar for winid
 " Need called on create, config, buffer change, scrolled
 function! coc#float#nvim_scrollbar(winid) abort
-  if !has('nvim-0.4.3') || !coc#float#valid(a:winid) || getwinvar(a:winid, 'target_winid', 0)
+  if !has('nvim-0.4.0') || !coc#float#valid(a:winid) || getwinvar(a:winid, 'target_winid', 0)
     return
   endif
   let config = nvim_win_get_config(a:winid)
@@ -622,8 +622,8 @@ function! coc#float#has_scroll() abort
 endfunction
 
 function! coc#float#scroll(forward, ...)
-  if !has('nvim-0.4.3') && !has('patch-8.2.0750')
-    throw 'coc#float#scroll() requires nvim >= 0.4.3 or vim >= 8.2.0750'
+  if !has('nvim-0.4.0') && !has('patch-8.2.0750')
+    throw 'coc#float#scroll() requires nvim >= 0.4.0 or vim >= 8.2.0750'
   endif
   let amount = get(a:, 1, 0)
   let win_ids = filter(coc#float#get_float_win_list(), 'coc#float#scrollable(v:val)')
@@ -1016,7 +1016,7 @@ function! coc#float#prompt_confirm(title, cb) abort
     endtry
     return
   endif
-  if has('nvim-0.4.3')
+  if has('nvim-0.4.0')
     let text = ' '. a:title . ' (y/n)? '
     let maxWidth = coc#helper#min(78, &columns - 2)
     let width = coc#helper#min(maxWidth, strdisplaywidth(text))

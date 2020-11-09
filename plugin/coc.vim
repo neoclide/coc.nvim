@@ -22,9 +22,9 @@ function! s:checkVersion() abort
       echohl None
       sleep 2
     else
-      if has('nvim') && !has('nvim-0.4.3')
+      if has('nvim') && !has('nvim-0.4.0')
         echohl WarningMsg
-        echom "coc.nvim works best on neovim >= 0.4.3, consider upgrade your neovim."
+        echom "coc.nvim works best on neovim >= 0.4.0, consider upgrade your neovim."
         echom "You can add this to your vimrc to avoid this message:"
         echom "    let g:coc_disable_startup_warning = 1"
         echom "Note that some features may behave incorrectly."
@@ -270,7 +270,7 @@ function! s:Enable(initialize)
         autocmd WinClosed       * call coc#float#close_related(+expand('<afile>'))
       endif
     endif
-    if has('nvim-0.4.3') || has('patch-8.1.1719')
+    if has('nvim-0.4.0') || has('patch-8.1.1719')
       autocmd CursorHold        * call coc#float#check_related()
     endif
     autocmd WinLeave            * call coc#util#clear_highlights()
