@@ -181,10 +181,10 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
       return []
     endif
     let hlgroup = get(a:config, 'highlight', 'CocFloating')
-    call setwinvar(winid, '&winhl', 'Normal:'.hlgroup.',NormalNC:'.hlgroup.',FoldColumn:'.hlgroup.',CursorLine:CocMenuSel')
+    call setwinvar(winid, '&winhl', 'Normal:'.hlgroup.',NormalNC:'.hlgroup.',FoldColumn:'.hlgroup)
     call setwinvar(winid, '&signcolumn', 'no')
-    " not work on old neovim
-    "call setwinvar(winid, '&cursorline', get(a:config, 'cursorline', 0))
+    " cursorline highlight not work on old neovim
+    call setwinvar(winid, '&cursorline', 0)
     call setwinvar(winid, 'border', get(a:config, 'border', []))
     " no left border
     if s:empty_border(get(a:config, 'border', [])) || a:config['border'][3] == 0

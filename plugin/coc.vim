@@ -344,7 +344,7 @@ function! s:Hi() abort
     hi default link CocFloating Pmenu
   endif
   if has('nvim') && (!exists('*sign_getdefined') || empty(sign_getdefined('CocCurrentLine')))
-    sign define CocCurrentLine linehl=PmenuSel
+    sign define CocCurrentLine linehl=CocMenuSel
   endif
   if has('nvim-0.5.0')
     hi default CocCursorTransparent gui=strikethrough blend=100
