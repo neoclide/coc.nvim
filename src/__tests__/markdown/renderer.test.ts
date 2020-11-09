@@ -3,7 +3,6 @@ import Renderer from '../../markdown/renderer'
 import { parseAnsiHighlights, AnsiResult } from '../../util/ansiparse'
 
 marked.setOptions({
-  smartypants: true,
   renderer: new Renderer()
 })
 

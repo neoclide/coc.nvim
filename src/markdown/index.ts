@@ -6,7 +6,6 @@ export const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
 const logger = require('../util/logger')('markdown-index')
 
 marked.setOptions({
-  smartypants: true,
   renderer: new Renderer()
 })
 
