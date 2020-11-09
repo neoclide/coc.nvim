@@ -23999,7 +23999,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "53a090362b" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "56bbd049d0" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -31435,6 +31435,7 @@ const methods = [
     'createStatusBarItem',
     'createOutputChannel',
     'showOutputChannel',
+    'requestInput',
     'echoLines',
     'getCursorPosition',
     'moveTo',
