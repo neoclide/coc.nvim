@@ -23999,7 +23999,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "ba325939d8" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "53a090362b" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -91834,15 +91834,21 @@ class File extends source_1.default {
         let res = [];
         let part = pathstr.endsWith("/") ? pathstr : path_1.default.dirname(pathstr);
         let dir = path_1.default.isAbsolute(pathstr) ? part : path_1.default.join(root, part);
-        let stat = await fs_2.statAsync(dir);
-        if (stat && stat.isDirectory()) {
-            let files = await util_1.default.promisify(fs_1.default.readdir)(dir);
-            files = this.filterFiles(files);
-            let items = await Promise.all(files.map(filename => this.getFileItem(dir, filename)));
-            res = res.concat(items);
+        try {
+            let stat = await fs_2.statAsync(dir);
+            if (stat && stat.isDirectory()) {
+                let files = await util_1.default.promisify(fs_1.default.readdir)(dir);
+                files = this.filterFiles(files);
+                let items = await Promise.all(files.map(filename => this.getFileItem(dir, filename)));
+                res = res.concat(items);
+            }
+            res = res.filter(item => item != null);
+            return res;
         }
-        res = res.filter(item => item != null);
-        return res;
+        catch (e) {
+            logger.error(`Error on list files:`, e);
+            return res;
+        }
     }
     get trimSameExts() {
         return this.getConfig('trimSameExts', []);
