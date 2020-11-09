@@ -1,5 +1,4 @@
-import fs from 'fs'
-import mkdirp from 'mkdirp'
+import fs from 'fs-extra'
 import path from 'path'
 
 export default class DB {
@@ -78,7 +77,7 @@ export default class DB {
     let len = parts.length
     if (obj == null) {
       let dir = path.dirname(this.filepath)
-      mkdirp.sync(dir)
+      fs.mkdirpSync(dir)
       obj = origin
     }
     for (let i = 0; i < len; i++) {
@@ -101,7 +100,7 @@ export default class DB {
     let dir = path.dirname(this.filepath)
     let stat = fs.statSync(dir)
     if (!stat || !stat.isDirectory()) {
-      mkdirp.sync(dir)
+      fs.mkdirpSync(dir)
       fs.writeFileSync(this.filepath, '{}', 'utf8')
       return {}
     }

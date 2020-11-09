@@ -1,7 +1,6 @@
 import { http, https } from 'follow-redirects'
 import { v1 as uuidv1 } from 'uuid'
-import fs, { Stats } from 'fs'
-import mkdirp from 'mkdirp'
+import fs, { Stats } from 'fs-extra'
 import path from 'path'
 import tar from 'tar'
 import unzip from 'unzipper'
@@ -27,7 +26,7 @@ export default function download(url: string, options: DownloadOptions, token?: 
   try {
     stat = fs.statSync(dest)
   } catch (_e) {
-    mkdirp.sync(dest)
+    fs.mkdirpSync(dest)
   }
   if (stat && !stat.isDirectory()) {
     throw new Error(`${dest} exists, but not directory!`)
