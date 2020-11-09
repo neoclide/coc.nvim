@@ -409,16 +409,16 @@ export default class ListUI {
     }
   }
 
-  public close(): void {
+  public reset(): void {
     if (this.window) {
-      this.window.close(true, true)
       this.window = null
+      this.buffer = null
     }
   }
 
   public dispose(): void {
-    this.close()
     disposeAll(this.disposables)
+    this.window = null
     this._onDidChangeLine.dispose()
     this._onDidOpen.dispose()
     this._onDidClose.dispose()

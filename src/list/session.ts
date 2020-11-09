@@ -294,20 +294,14 @@ export default class ListSession {
       this.uiTokenSource.dispose()
       this.uiTokenSource = null
     }
-    let { nvim, interval, listOptions, savedHeight, window } = this
+    let { nvim, interval } = this
     if (interval) clearInterval(interval)
     this.hidden = true
     this.worker.stop()
     this.history.add()
-    nvim.pauseNotification()
-    nvim.call('coc#prompt#stop_prompt', ['list'], true)
-    nvim.command('pclose', true)
-    this.ui.close()
-    if (window && savedHeight && listOptions.position != 'tab') {
-      nvim.call('coc#list#restore', [window.id, savedHeight], true)
-    }
-    nvim.command('redraw', true)
-    await nvim.resumeNotification()
+    let { winid } = this.ui
+    this.ui.reset()
+    await nvim.call('coc#list#hide', [winid])
   }
 
   public toggleMode(): void {
