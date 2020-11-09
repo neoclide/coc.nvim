@@ -121,7 +121,7 @@ function! s:funcs.get_api_info()
 endfunction
 
 function! s:funcs.list_bufs()
-  return map(getbufinfo({'buflisted': 1}), 'v:val["bufnr"]')
+  return map(getbufinfo({'bufloaded': 1}), 'v:val["bufnr"]')
 endfunction
 
 function! s:funcs.feedkeys(keys, mode, escape_csi)

@@ -1310,15 +1310,14 @@ augroup end`
   public async attach(): Promise<void> {
     if (this._attached) return
     this._attached = true
-    let buffers = await this.nvim.buffers
-    let bufnr = this.bufnr = await this.nvim.call('bufnr', '%')
-    await Promise.all(buffers.map(buf => this.onBufCreate(buf)))
+    let [bufs, bufnr, winid] = await this.nvim.eval(`[map(getbufinfo({'bufloaded': 1}), 'v:val["bufnr"]'),bufnr('%'),win_getid()]`) as [number[], number, number]
+    this.bufnr = bufnr
+    await Promise.all(bufs.map(buf => this.onBufCreate(buf)))
     if (!this._initialized) {
       this._onDidWorkspaceInitialized.fire(void 0)
       this._initialized = true
     }
     await events.fire('BufEnter', [bufnr])
-    let winid = await this.nvim.call('win_getid')
     await events.fire('BufWinEnter', [bufnr, winid])
   }
 

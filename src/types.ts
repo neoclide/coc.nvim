@@ -518,20 +518,6 @@ export interface ChangeItem {
   removed: string
 }
 
-export interface BufferOption {
-  eol: number
-  size: number
-  winid: number
-  previewwindow: boolean
-  variables: { [key: string]: any }
-  bufname: string
-  fullpath: string
-  buftype: string
-  filetype: string
-  iskeyword: string
-  changedtick: number
-}
-
 export interface DiagnosticInfo {
   error: number
   warning: number
