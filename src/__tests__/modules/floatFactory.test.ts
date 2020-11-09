@@ -2,7 +2,6 @@ import { Neovim } from '@chemzqm/neovim'
 import FloatFactory from '../../model/floatFactory'
 import snippetManager from '../../snippets/manager'
 import { Documentation } from '../../types'
-import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -10,7 +9,7 @@ let floatFactory: FloatFactory
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  floatFactory = new FloatFactory(nvim, workspace.env, false, 8)
+  floatFactory = new FloatFactory(nvim)
 })
 
 afterAll(async () => {
@@ -123,7 +122,7 @@ describe('FloatFactory', () => {
       filetype: 'markdown',
       content: 'foo'
     }]
-    await floatFactory.show(docs, { allowSelection: true })
+    await floatFactory.show(docs)
     let { mode } = await nvim.mode
     expect(mode).toBe('s')
   })

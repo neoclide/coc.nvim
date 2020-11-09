@@ -101,9 +101,9 @@ export default class Handler {
         this.getPreferences()
       }
     })
-    this.hoverFactory = new FloatFactory(nvim, workspace.env)
+    this.hoverFactory = new FloatFactory(nvim)
     this.disposables.push(this.hoverFactory)
-    this.signatureFactory = new FloatFactory(nvim, workspace.env)
+    this.signatureFactory = new FloatFactory(nvim)
     this.disposables.push(this.signatureFactory)
     workspace.onWillSaveUntil(event => {
       let { languageId } = event.document
@@ -1121,7 +1121,6 @@ export default class Handler {
           maxHeight: signatureMaxHeight,
           preferTop: signaturePreferAbove,
           autoHide: false,
-          allowSelection: true,
           offsetX: offset
         }).logError()
         // show float

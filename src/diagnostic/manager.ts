@@ -62,8 +62,7 @@ export class DiagnosticManager implements Disposable {
   public init(): void {
     this.setConfiguration()
     let { nvim } = workspace
-    let { maxWindowHeight, maxWindowWidth } = this.config
-    this.floatFactory = new FloatFactory(nvim, workspace.env, false, maxWindowHeight, maxWindowWidth)
+    this.floatFactory = new FloatFactory(nvim)
     this.disposables.push(Disposable.create(() => {
       if (this.timer) clearTimeout(this.timer)
     }))
@@ -519,7 +518,8 @@ export class DiagnosticManager implements Disposable {
       docs.push({ filetype, content: str })
     })
     if (useFloat) {
-      await this.floatFactory.show(docs)
+      let { maxWindowHeight, maxWindowWidth } = this.config
+      await this.floatFactory.show(docs, { maxWidth: maxWindowWidth, maxHeight: maxWindowHeight })
     } else {
       let lines = docs.map(d => d.content).join('\n').split(/\r?\n/)
       if (lines.length) {

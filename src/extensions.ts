@@ -139,7 +139,7 @@ export class Extensions {
       await this.setupActiveEvents(id, packageJSON)
     }
     // make sure workspace.env exists
-    let floatFactory = new FloatFactory(workspace.nvim, workspace.env)
+    let floatFactory = new FloatFactory(workspace.nvim)
     events.on('CursorMoved', debounce(async bufnr => {
       if (this.installBuffer && bufnr == this.installBuffer.bufnr) {
         let lnum = await workspace.nvim.call('line', ['.'])

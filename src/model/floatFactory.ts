@@ -3,7 +3,7 @@ import debounce from 'debounce'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { parseDocuments } from '../markdown'
-import { Documentation, Env } from '../types'
+import { Documentation } from '../types'
 import { disposeAll } from '../util'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
@@ -25,18 +25,17 @@ export interface WindowConfig {
 }
 
 export interface FloatWinConfig {
-  allowSelection?: boolean
+  maxHeight?: number
+  maxWidth?: number
+  preferTop?: boolean
   autoHide?: boolean
   offsetX?: number
   title?: string
   border?: number[]
   cursorline?: boolean
   close?: boolean
-  preferTop?: boolean
   highlight?: string
   borderhighlight?: string
-  maxHeight?: number
-  maxWidth?: number
 }
 
 export interface ViewportConfig {
@@ -45,7 +44,9 @@ export interface ViewportConfig {
   cmdheight: number
 }
 
-// factory class for floating window
+/**
+ * Float window/popup factory for create float/popup around current cursor.
+ */
 export default class FloatFactory implements Disposable {
   private targetBufnr: number
   private winid = 0
@@ -55,24 +56,10 @@ export default class FloatFactory implements Disposable {
   private tokenSource: CancellationTokenSource
   private alignTop = false
   private pumAlignTop = false
+  private autoHide = true
   private cursor: [number, number]
   private onCursorMoved: ((bufnr: number, cursor: [number, number]) => void) & { clear(): void }
-  constructor(
-    private nvim: Neovim,
-    /**
-     * @deprecated not used any more
-     */
-    private env: Env,
-    private preferTop = false,
-    /**
-     * @deprecated pass maxHeight by `show()` instead.
-     */
-    private maxHeight?: number,
-    /**
-     * @deprecated pass maxWidth by `show()` instead.
-     */
-    private maxWidth?: number,
-    private autoHide = true) {
+  constructor(private nvim: Neovim) {
     this.mutex = new Mutex()
     events.on('BufEnter', bufnr => {
       if (bufnr == this._bufnr
@@ -117,7 +104,7 @@ export default class FloatFactory implements Disposable {
   /**
    * @deprecated use show method instead
    */
-  public async create(docs: Documentation[], allowSelection = false, offsetX = 0): Promise<void> {
+  public async create(docs: Documentation[], _allowSelection = false, offsetX = 0): Promise<void> {
     this.onCursorMoved.clear()
     if (docs.length == 0 || docs.every(doc => doc.content.length == 0)) {
       this.close()
@@ -125,7 +112,7 @@ export default class FloatFactory implements Disposable {
     }
     let release = await this.mutex.acquire()
     try {
-      await this.createPopup(docs, { allowSelection, offsetX })
+      await this.createPopup(docs, { offsetX })
       release()
     } catch (e) {
       release()
@@ -135,7 +122,9 @@ export default class FloatFactory implements Disposable {
   }
 
   /**
-   * Show documentations in float window/popup
+   * Show documentations in float window/popup around cursor.
+   * Window and buffer are reused when possible.
+   * Window is closed automatically on change buffer, InsertEnter, CursorMoved and CursorMovedI.
    *
    * @param docs List of documentations.
    * @param config Configuration for floating window/popup.
@@ -163,31 +152,25 @@ export default class FloatFactory implements Disposable {
     docs = docs.filter(o => o.content.trim().length > 0)
     let { lines, codes, highlights } = parseDocuments(docs)
     let config: any = {
-      allowSelection: opts.allowSelection || false,
       pumAlignTop: this.pumAlignTop,
-      preferTop: typeof opts.preferTop === 'boolean' ? opts.preferTop : this.preferTop,
+      preferTop: typeof opts.preferTop === 'boolean' ? opts.preferTop : false,
       offsetX: opts.offsetX || 0,
       title: opts.title || '',
       close: opts.close ? 1 : 0,
       codes,
       highlights
     }
-    if (opts.maxHeight || this.maxHeight) {
-      config.maxHeight = opts.maxHeight || this.maxHeight
-    }
-    if (opts.maxWidth || this.maxWidth) {
-      config.maxWidth = opts.maxWidth || this.maxWidth
-    }
+    if (opts.maxHeight) config.maxHeight = opts.maxHeight
+    if (opts.maxWidth) config.maxWidth = opts.maxWidth
     if (opts.border && !opts.border.every(o => o == 0)) {
       config.border = opts.border
     }
-    if (opts.title && !config.border) {
-      config.border = [1, 1, 1, 1]
-    }
+    if (opts.title && !config.border) config.border = [1, 1, 1, 1]
     if (opts.highlight) config.highlight = opts.highlight
     if (opts.borderhighlight) config.borderhighlight = [opts.borderhighlight]
     if (opts.cursorline) config.cursorline = 1
-    if (this.autoHide && !opts.autoHide === false) config.autohide = 1
+    this.autoHide = opts.autoHide == false ? false : true
+    if (this.autoHide) config.autohide = 1
     let arr = await this.nvim.call('coc#float#create_cursor_float', [this.winid, this._bufnr, lines, config])
     if (!arr || arr.length == 0) {
       this.winid = null
@@ -215,7 +198,6 @@ export default class FloatFactory implements Disposable {
     this.cancel()
     if (winid) {
       this.winid = 0
-      // TODO: sometimes this won't work at all
       nvim.pauseNotification()
       nvim.call('coc#float#close', [winid], true)
       if (isVim) this.nvim.command('redraw', true)
