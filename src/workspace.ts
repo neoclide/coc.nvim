@@ -47,6 +47,7 @@ const methods = [
   'createStatusBarItem',
   'createOutputChannel',
   'showOutputChannel',
+  'requestInput',
   'echoLines',
   'getCursorPosition',
   'moveTo',
