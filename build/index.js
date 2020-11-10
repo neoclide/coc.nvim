@@ -23999,7 +23999,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "067bb77efa" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "f0e68fbf29" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -31548,11 +31548,6 @@ class Workspace {
             }
             this._env.runtimepath = newValue;
         }, this.disposables);
-        this.watchOption('iskeyword', (_, newValue) => {
-            let doc = this.getDocument(this.bufnr);
-            if (doc)
-                doc.setIskeyword(newValue);
-        }, this.disposables);
         this.watchOption('completeopt', async (_, newValue) => {
             this.env.completeOpt = newValue;
             if (!this._attached)
@@ -31569,21 +31564,7 @@ class Workspace {
         this.watchGlobal('coc_sources_disable_map', async (_, newValue) => {
             this.env.disabledSources = newValue;
         });
-        let provider = {
-            onDidChange: null,
-            provideTextDocumentContent: async (uri) => {
-                let channel = channels_1.default.get(uri.path.slice(1));
-                if (!channel)
-                    return '';
-                nvim.pauseNotification();
-                nvim.command('setlocal nospell nofoldenable nowrap noswapfile', true);
-                nvim.command('setlocal buftype=nofile bufhidden=hide', true);
-                nvim.command('setfiletype log', true);
-                await nvim.resumeNotification();
-                return channel.content;
-            }
-        };
-        this.disposables.push(this.registerTextDocumentContentProvider('output', provider));
+        this.disposables.push(this.registerTextDocumentContentProvider('output', channels_1.default.getProvider(nvim)));
     }
     getConfigFile(target) {
         return this.configurations.getConfigFile(target);
@@ -36564,6 +36545,26 @@ const tslib_1 = __webpack_require__(65);
 const outputChannel_1 = tslib_1.__importDefault(__webpack_require__(339));
 const outputChannels = new Map();
 class Channels {
+    /**
+     * Get text document provider
+     */
+    getProvider(nvim) {
+        let provider = {
+            onDidChange: null,
+            provideTextDocumentContent: async (uri) => {
+                let channel = this.get(uri.path.slice(1));
+                if (!channel)
+                    return '';
+                nvim.pauseNotification();
+                nvim.command('setlocal nospell nofoldenable nowrap noswapfile', true);
+                nvim.command('setlocal buftype=nofile bufhidden=hide', true);
+                nvim.command('setfiletype log', true);
+                await nvim.resumeNotification();
+                return channel.content;
+            }
+        };
+        return provider;
+    }
     get names() {
         return Array.from(outputChannels.keys());
     }
@@ -44025,6 +44026,8 @@ class Watchman {
         });
     }
     dispose() {
+        if (this._disposed)
+            return;
         this._disposed = true;
         this.client.removeAllListeners();
         this.client.end();
