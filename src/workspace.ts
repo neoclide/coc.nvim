@@ -189,10 +189,6 @@ export class Workspace implements IWorkspace {
       }
       this._env.runtimepath = newValue
     }, this.disposables)
-    this.watchOption('iskeyword', (_, newValue: string) => {
-      let doc = this.getDocument(this.bufnr)
-      if (doc) doc.setIskeyword(newValue)
-    }, this.disposables)
     this.watchOption('completeopt', async (_, newValue) => {
       this.env.completeOpt = newValue
       if (!this._attached) return
@@ -208,20 +204,7 @@ export class Workspace implements IWorkspace {
     this.watchGlobal('coc_sources_disable_map', async (_, newValue) => {
       this.env.disabledSources = newValue
     })
-    let provider: TextDocumentContentProvider = {
-      onDidChange: null,
-      provideTextDocumentContent: async (uri: URI) => {
-        let channel = channels.get(uri.path.slice(1))
-        if (!channel) return ''
-        nvim.pauseNotification()
-        nvim.command('setlocal nospell nofoldenable nowrap noswapfile', true)
-        nvim.command('setlocal buftype=nofile bufhidden=hide', true)
-        nvim.command('setfiletype log', true)
-        await nvim.resumeNotification()
-        return channel.content
-      }
-    }
-    this.disposables.push(this.registerTextDocumentContentProvider('output', provider))
+    this.disposables.push(this.registerTextDocumentContentProvider('output', channels.getProvider(nvim)))
   }
 
   public getConfigFile(target: ConfigurationTarget): string {

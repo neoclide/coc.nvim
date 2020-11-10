@@ -19,7 +19,6 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  Watchman.dispose()
   await helper.shutdown()
 })
 
