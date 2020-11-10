@@ -1005,8 +1005,8 @@ function! coc#float#create_pum_float(winid, bufnr, lines, config) abort
     let width = max([width, dw + 2])
     let ch += float2nr(ceil(str2float(string(dw))/(maxWidth - 2)))
   endfor
-  let width = coc#helper#min(maxWidth, width)
-  let height = coc#helper#min(maxHeight, ch)
+  let width = float2nr(coc#helper#min(maxWidth, width))
+  let height = float2nr(coc#helper#min(maxHeight, ch))
   let lines = map(a:lines, {_, s -> s =~# '^—' ? repeat('—', width - 2 + (s:is_vim && ch > height ? -1 : 0)) : s})
   let opts = {
         \ 'lines': lines,
