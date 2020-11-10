@@ -2624,6 +2624,10 @@ LIST COMMAND						*coc-list-command*
 
 	Reopen last opened list, input and cursor position will be preserved.
 
+:CocListCancel						*:CocListCancel*
+
+	Close list, useful when the list is not the current window.
+
 :CocPrev [{name}]					*:CocPrev*
 
 	Invoke default action for the previous item in the last {name} list.
