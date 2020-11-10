@@ -548,7 +548,7 @@ function! coc#float#create_prompt_win(title, default) abort
   inoremap <buffer><expr><C-e> pumvisible() ? "\<C-e>" : "\<End>"
   exe 'inoremap <silent><buffer> <esc> <C-r>=coc#float#close_i('.winid.')<CR><esc>'
   exe 'nnoremap <silent><buffer> <esc> :call coc#float#close('.winid.')<CR>'
-  exe 'inoremap <expr><nowait><buffer> <cr> "\<c-r>=coc#float#prompt_insert('.winid.')\<cr>\<esc>"'
+  exe 'inoremap <expr><nowait><buffer> <cr> "\<C-r>=coc#float#prompt_insert('.winid.')\<cr>\<esc>"'
   call feedkeys('A', 'in')
   return [s:prompt_win_bufnr, winid]
 endfunction
@@ -559,10 +559,9 @@ function! coc#float#close_i(winid) abort
 endfunction
 
 function! coc#float#prompt_insert(winid) abort
-  let text = getline('.')
+  let text = getline(1)
   let bufnr = winbufnr(a:winid)
-  call coc#rpc#notify('PromptInsert',[text, bufnr])
-  call timer_start(50, { -> coc#float#close(a:winid)})
+  call coc#rpc#notify('PromptInsert',[text])
   return ''
 endfunction
 

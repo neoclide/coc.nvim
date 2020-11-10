@@ -23999,7 +23999,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "ebee8c3137" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "fed2bf122d" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -42888,7 +42888,7 @@ class Window {
             let release = await this.mutex.acquire();
             try {
                 let arr = await nvim.call('coc#float#create_prompt_win', [title, defaultValue || '']);
-                let [bufnr] = arr;
+                let [bufnr, winid] = arr;
                 let res = await new Promise(resolve => {
                     let disposables = [];
                     events_1.default.on('BufWinLeave', nr => {
@@ -42897,12 +42897,11 @@ class Window {
                             resolve(null);
                         }
                     }, null, disposables);
-                    events_1.default.on('PromptInsert', value => {
+                    events_1.default.on('PromptInsert', async (value) => {
                         util_1.disposeAll(disposables);
+                        await nvim.call('coc#float#close', [winid]);
                         if (!value) {
-                            setTimeout(() => {
-                                this.showMessage('Empty word, canceled', 'warning');
-                            }, 30);
+                            this.showMessage('Empty word, canceled', 'warning');
                             resolve(null);
                         }
                         else {
