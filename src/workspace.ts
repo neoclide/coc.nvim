@@ -33,7 +33,7 @@ import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
 import window from './window'
 
-const APIVERSION = 7
+const APIVERSION = 8
 const logger = require('./util/logger')('workspace')
 let NAME_SPACE = 1080
 const methods = [

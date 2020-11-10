@@ -184,12 +184,15 @@ describe('window functions', () => {
   })
 
   it('should return select items for picker', async () => {
+    let curr = await nvim.call('win_getid')
     let p = window.showPickerDialog(['foo', 'bar'], 'select')
     await helper.wait(100)
     await nvim.input(' ')
     await helper.wait(30)
     await nvim.input('<cr>')
     let res = await p
+    let winid = await nvim.call('win_getid')
+    expect(winid).toBe(curr)
     expect(res).toEqual(['foo'])
   })
 })

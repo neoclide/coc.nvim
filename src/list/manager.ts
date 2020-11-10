@@ -329,6 +329,7 @@ export class ListManager implements Disposable {
     if (n) return
     let done = await this.mappings.doInsertKeymap(ch)
     if (done || charmod) return
+    if (ch.startsWith('<') && ch.endsWith('>')) return
     for (let s of ch) {
       let code = s.codePointAt(0)
       if (code == 65533) return

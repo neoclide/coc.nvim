@@ -302,6 +302,11 @@ export default class ListSession {
     let { winid } = this.ui
     this.ui.reset()
     await nvim.call('coc#list#hide', [winid])
+    if (workspace.isVim) {
+      // Needed for tabe action, don't know why.
+      await wait(10)
+    }
+    nvim.call('coc#prompt#stop_prompt', ['list'], true)
   }
 
   public toggleMode(): void {
