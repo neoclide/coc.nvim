@@ -543,12 +543,33 @@ Built-in configurations:~
 
 "dialog.floatHighlight":~
 
-	Highlight group for dialog window/popup, default to 'CocFloating'
+	Highlight group for dialog window/popup, default to 'CocFloating'.
 
 "dialog.floatBorderHighlight":~
 
 	Highlight group for border of dialog window/popup, default to
-	'CocFloating'
+	'CocFloating'.
+
+							*coc-config-notification*
+"notification.marginTop": ~
+
+	Margin top for notification dialog, default to `1`.
+
+"notification.marginRight": ~
+
+	Margin right for notification dialog, default to `1`.
+
+"notification.maxWidth": ~
+
+	Maximum content width of notification dialog, default to `60`.
+
+"notification.maxHeight": ~
+
+	Maximum content height of notification dialog, default to `10`.
+
+"notification.highlightGroup": ~
+
+	Highlight group of notification dialog, default to `CocFloating`.
 
 							*coc-config-codelens*
 "codeLens.enable":~

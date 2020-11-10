@@ -46,9 +46,10 @@ function! coc#float#jump() abort
   endif
 endfunction
 
-" create/reuse float window for config position, config including:
-" - line: line count relative to cursor, nagetive number means abover cursor.
-" - col: column count relative to cursor, nagetive number means left of cursor.
+" create or config float window, returns [winid, bufnr], config including:
+" - relative:  could be 'editor' 'cursor'
+" - row: line count relative to editor/cursor, nagetive number means abover cursor.
+" - col: column count relative to editor/cursor, nagetive number means left of cursor.
 " - width: content width without border and title.
 " - height: content height without border and title.
 " - lines: (optional) lines to insert, default to v:null.
@@ -1297,6 +1298,157 @@ function! coc#float#create_menu(lines, config) abort
   return res
 endfunction
 
+" Notification always have border
+" config including:
+" - title: optional title.
+" - close: default to 1
+" - borderhighlight: highlight group string
+" - timeout: timeout in miniseconds
+" - buttons: array of button text for create buttons at bottom.
+
+" - top: default to 1
+" - right: default to 1
+" - maxHeight: default to 10
+" - maxWidth: default to 60
+" - highlight: highlight of window, default to 'CocFloating'
+function! coc#float#create_notification(lines, config) abort
+  let g:c = a:config
+  let close = get(a:config, 'close', 1)
+  let timeout = get(a:config, 'timeout', 0)
+  let borderhighlight = get(a:config, 'borderhighlight', 'CocFloating')
+  let highlight = get(a:config, 'highlight', 'CocFloating')
+  let top = get(a:config, 'top', 1)
+  let right = get(a:config, 'right', 1)
+  let maxHeight = get(a:config, 'maxHeight', 10)
+  let maxWidth = get(a:config, 'maxWidth', 60)
+  let buttons = get(a:config, 'buttons', [])
+  let arr = map(copy(a:lines), "strdisplaywidth(v:val)")
+  if &columns < right + 10
+    throw 'no enough spaces for notification'
+  endif
+  let width = min([maxWidth, max(arr), &columns - right - 10])
+  let height = 0
+  for line in a:lines
+    let w = max([1, strdisplaywidth(line)])
+    let height += float2nr(ceil(str2float(string(w))/width))
+  endfor
+  let height = min([maxHeight, height, &lines - &cmdheight - 1])
+  let col = &columns - right - width - 2
+  let opts = {
+        \ 'row': top,
+        \ 'col': col,
+        \ 'lines': a:lines,
+        \ 'relative': 'editor',
+        \ 'width': width,
+        \ 'height': height,
+        \ 'highlight': highlight,
+        \ 'borderhighlight': [borderhighlight],
+        \ 'border': [1, 1, 1, 1],
+        \ 'title': get(a:config, 'title', ''),
+        \ 'close': close,
+        \ 'buttons': buttons,
+        \ }
+  call coc#float#reflow(top + height + 2 + (empty(buttons) ? 0 : 2))
+  let res =  coc#float#create_float_win(0, 0, opts)
+  if empty(res)
+    return
+  endif
+  let [winid, bufnr] = res
+  call setwinvar(winid, 'kind', 'notification')
+  redraw
+  if has('nvim')
+    call coc#float#nvim_scrollbar(winid)
+  endif
+  if timeout
+    call timer_start(timeout, { -> coc#float#close(winid)})
+  endif
+  return res
+endfunction
+
+" adjust position for notification windows
+function! coc#float#reflow(top) abort
+  let winids = coc#float#get_float_win_list()
+  let optlist = []
+  for winid in winids
+    if getwinvar(winid, 'kind', '') !=# 'notification'
+      continue
+    endif
+    call add(optlist, s:get_win_opts(winid))
+  endfor
+  call sort(optlist, {a, b -> a['row'] - b['row']})
+  "echo optlist
+  let top = a:top
+  for opts in optlist
+    if opts['row'] <= top
+      let changed = top + 1 - opts['row']
+      let opts['row'] = top + 1
+      call s:adjust_win_row(opts['winid'], changed)
+    endif
+    " adjust top
+    let top = opts['row'] + opts['height']
+  endfor
+endfunction
+
+" move winid include relative windows.
+function! s:adjust_win_row(winid, changed) abort
+  if s:is_vim
+    let pos = popup_getpos(a:winid)
+    if pos['line'] - 1 + a:changed + pos['height'] > &lines - &cmdheight
+      call coc#float#close(a:winid)
+      return
+    endif
+    call popup_move(a:winid, {
+      \ 'line': pos['line'] + a:changed
+      \ })
+  else
+    let ids = getwinvar(a:winid, 'related', [])
+    let ids = [a:winid] + ids
+    " close it if it's fully shown
+    let borderwin = coc#float#get_related(a:winid, 'border')
+    let winid = borderwin == 0 ? a:winid : borderwin
+    let height = nvim_win_get_height(winid)
+    let pos = nvim_win_get_position(winid)
+    if pos[0] + a:changed + height > &lines - &cmdheight
+      call coc#float#close(a:winid)
+      return
+    endif
+    for winid in ids
+      let [row, col] = nvim_win_get_position(winid)
+      call nvim_win_set_config(winid, {
+        \ 'relative': 'editor',
+        \ 'row': row + a:changed,
+        \ 'col': col,
+        \ })
+    endfor
+  endif
+endfunction
+
+" winid, width, height, row, col (0 based).
+" works on vim & neovim, check relative window
+function! s:get_win_opts(winid) abort
+  if s:is_vim
+    let pos = popup_getpos(a:winid)
+    return {
+      \ 'winid': a:winid,
+      \ 'row': pos['line'] - 1,
+      \ 'col': pos['col'] - 1,
+      \ 'width': pos['width'],
+      \ 'height': pos['height'],
+      \ }
+  else
+    let borderwin = coc#float#get_related(a:winid, 'border')
+    let winid = borderwin == 0 ? a:winid : borderwin
+    let [row, col] = nvim_win_get_position(winid)
+    return {
+      \ 'winid': a:winid,
+      \ 'row': row,
+      \ 'col': col,
+      \ 'width': nvim_win_get_width(winid),
+      \ 'height': nvim_win_get_height(winid)
+      \ }
+  endif
+endfunction
+
 function! s:create_btns_buffer(bufnr, width, buttons, borderbottom) abort
   let n = len(a:buttons)
   let spaces = a:width - n + 1
@@ -1468,7 +1620,6 @@ function! s:get_cursorline(topline, lines, scrolloff, width, height) abort
   for lnum in range(a:topline, lastline)
     let w = max([1, strdisplaywidth(a:lines[lnum - 1])])
     let dh = float2nr(ceil(str2float(string(w))/a:width))
-    let g:l = a:lines
     if used + dh >= a:height || lnum == lastline
       let bottomline = lnum
       break
@@ -1476,8 +1627,6 @@ function! s:get_cursorline(topline, lines, scrolloff, width, height) abort
     let used += dh
   endfor
   let cursorline = a:topline + a:scrolloff
-  let g:b = bottomline
-  let g:h = a:height
   if cursorline + a:scrolloff > bottomline
     " unable to satisfy scrolloff
     let cursorline = (a:topline + bottomline)/2

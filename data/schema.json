@@ -766,6 +766,31 @@
       "default": null,
       "description": "Highlight group for border of dialog window/popup, default to 'CocFloating'"
     },
+    "notification.marginTop": {
+      "type": "number",
+      "default": 1,
+      "description": "Margin top for notification dialog."
+    },
+    "notification.marginRight": {
+      "type": "number",
+      "default": 1,
+      "description": "Margin right for notification dialog."
+    },
+    "notification.maxWidth": {
+      "type": "number",
+      "default": 60,
+      "description": "Maximum content width of notification dialog."
+    },
+    "notification.maxHeight": {
+      "type": "number",
+      "default": 10,
+      "description": "Maximum content height of notification dialog."
+    },
+    "notification.highlightGroup": {
+      "type": "string",
+      "default": "CocFloating",
+      "description": "Highlight group of notification dialog."
+    },
     "workspace.ignoredFiletypes": {
       "type": "array",
       "default": ["markdown", "log", "txt", "help"],

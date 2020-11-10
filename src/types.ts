@@ -23,6 +23,32 @@ export interface ParsedUrlQueryInput {
   [key: string]: unknown
 }
 
+/**
+ * Represents an action that is shown with an information, warning, or
+ * error message.
+ *
+ * @see [showInformationMessage](#window.showInformationMessage)
+ * @see [showWarningMessage](#window.showWarningMessage)
+ * @see [showErrorMessage](#window.showErrorMessage)
+ */
+export interface MessageItem {
+
+  /**
+   * A short title like 'Retry', 'Open Log' etc.
+   */
+  title: string
+
+  /**
+   * A hint for modal dialogs that the item should be triggered
+   * when the user cancels the dialog (e.g. by pressing the ESC
+   * key).
+   *
+   * Note: this option is ignored for non-modal messages.
+   * Note: not used by coc.nvim for now.
+   */
+  isCloseAffordance?: boolean
+}
+
 export interface DialogButton {
   /**
    * Use by callback, should >= 0
@@ -45,6 +71,14 @@ export interface DialogPreferences {
   confirmKey?: string
 }
 
+export interface NotificationPreferences {
+  top: number
+  right: number
+  maxWidth: number
+  maxHeight: number
+  highlight: string
+}
+
 export interface DialogConfig {
   content: string
   /**
@@ -59,6 +93,34 @@ export interface DialogConfig {
    * highlight group for dialog window, default to `"dialog.floatHighlight"` or 'CocFlating'
    */
   highlight?: string
+  /**
+   * highlight groups for border, default to `"dialog.borderhighlight"` or 'CocFlating'
+   */
+  borderhighlight?: string
+  /**
+   * Buttons as bottom of dialog.
+   */
+  buttons?: DialogButton[]
+  /**
+   * index is -1 for window close without button click
+   */
+  callback?: (index: number) => void
+}
+
+export interface NotificationConfig {
+  content: string
+  /**
+   * Optional title text.
+   */
+  title?: string
+  /**
+   * Timeout in miliseconds to dismiss notification.
+   */
+  timeout?: number
+  /**
+   * show close button, default to true when not specified.
+   */
+  close?: boolean
   /**
    * highlight groups for border, default to `"dialog.borderhighlight"` or 'CocFlating'
    */

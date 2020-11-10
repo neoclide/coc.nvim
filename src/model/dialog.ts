@@ -1,8 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
-import { DialogPreferences } from '..'
 import events from '../events'
-import { DialogConfig } from '../types'
+import { DialogConfig, DialogPreferences } from '../types'
 import { disposeAll } from '../util'
 const logger = require('../util/logger')('model-dialog')
 

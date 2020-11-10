@@ -4,13 +4,15 @@ import os from 'os'
 import path from 'path'
 import { CancellationToken, Disposable, Position } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
+import { NotificationConfig, NotificationPreferences } from '.'
 import channels from './channels'
 import events from './events'
 import Dialog from './model/dialog'
 import Menu from './model/menu'
 import Picker from './model/picker'
+import Notification from './model/notification'
 import StatusLine from './model/status'
-import { DialogConfig, DialogPreferences, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, QuickPickItem, ScreenPosition, StatusBarItem, StatusItemOption, TerminalResult } from './types'
+import { DialogConfig, DialogPreferences, MessageItem, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, QuickPickItem, ScreenPosition, StatusBarItem, StatusItemOption, TerminalResult } from './types'
 import { CONFIG_FILE_NAME, disposeAll } from './util'
 import { Mutex } from './util/mutex'
 import workspace from './workspace'
@@ -385,6 +387,86 @@ class Window {
     }
   }
 
+  /**
+   * Show an information message to users. Optionally provide an array of items which will be presented as
+   * clickable buttons.
+   *
+   * @param message The message to show.
+   * @param items A set of items that will be rendered as actions in the message.
+   * @return Promise that resolves to the selected item or `undefined` when being dismissed.
+   */
+  public async showInformationMessage(message: string, ...items: string[]): Promise<string | undefined>
+  public async showInformationMessage<T extends MessageItem>(message: string, ...items: T[]): Promise<T | undefined>
+  public async showInformationMessage<T>(message: string, ...items: T[]): Promise<T | undefined> {
+    let texts = typeof items[0] === 'string' ? items : (items as any[]).map(s => s.title)
+    let idx = await this.createNotification('CocInfoFloat', message, texts)
+    return idx == -1 ? undefined : items[idx]
+  }
+
+  /**
+   * Show an warning message to users. Optionally provide an array of items which will be presented as
+   * clickable buttons.
+   *
+   * @param message The message to show.
+   * @param items A set of items that will be rendered as actions in the message.
+   * @return Promise that resolves to the selected item or `undefined` when being dismissed.
+   */
+  public async showWarningMessage(message: string, ...items: string[]): Promise<string | undefined>
+  public async showWarningMessage<T extends MessageItem>(message: string, ...items: T[]): Promise<T | undefined>
+  public async showWarningMessage<T>(message: string, ...items: T[]): Promise<T | undefined> {
+    let texts = typeof items[0] === 'string' ? items : (items as any[]).map(s => s.title)
+    let idx = await this.createNotification('CocWarningFloat', message, texts)
+    return idx == -1 ? undefined : items[idx]
+  }
+
+  /**
+   * Show an error message to users. Optionally provide an array of items which will be presented as
+   * clickable buttons.
+   *
+   * @param message The message to show.
+   * @param items A set of items that will be rendered as actions in the message.
+   * @return Promise that resolves to the selected item or `undefined` when being dismissed.
+   */
+  public async showErrorMessage(message: string, ...items: string[]): Promise<string | undefined>
+  public async showErrorMessage<T extends MessageItem>(message: string, ...items: T[]): Promise<T | undefined>
+  public async showErrorMessage<T>(message: string, ...items: T[]): Promise<T | undefined> {
+    let texts = typeof items[0] === 'string' ? items : (items as any[]).map(s => s.title)
+    let idx = await this.createNotification('CocErrorFloat', message, texts)
+    return idx == -1 ? undefined : items[idx]
+  }
+
+  public async showNotification(config: NotificationConfig): Promise<boolean> {
+    let notification = new Notification(this.nvim, config)
+    return await notification.show(this.notificationPreference)
+  }
+
+  private createNotification(borderhighlight: string, message: string, items: string[]): Promise<number> {
+    return new Promise(resolve => {
+      let config: NotificationConfig = {
+        content: message,
+        borderhighlight,
+        close: true,
+        buttons: items.map((s, index) => {
+          return { text: s, index }
+        }),
+        callback: idx => {
+          resolve(idx)
+        }
+      }
+      let notification = new Notification(this.nvim, config)
+      notification.show(this.notificationPreference).then(shown => {
+        if (!shown) {
+          logger.error('Unable to open notification window')
+          resolve(-1)
+        }
+        if (!items.length) resolve(-1)
+      }, e => {
+        logger.error('Unable to open notification window', e)
+        resolve(-1)
+      })
+    })
+  }
+
   private get dialogPreference(): DialogPreferences {
     let config = workspace.getConfiguration('dialog')
     return {
@@ -395,6 +477,17 @@ class Window {
       pickerButtons: config.get<boolean>('pickerButtons'),
       pickerButtonShortcut: config.get<boolean>('pickerButtonShortcut'),
       confirmKey: config.get<string>('confirmKey'),
+    }
+  }
+
+  private get notificationPreference(): NotificationPreferences {
+    let config = workspace.getConfiguration('notification')
+    return {
+      top: config.get<number>('marginTop'),
+      right: config.get<number>('marginRight'),
+      maxWidth: config.get<number>('maxWidth'),
+      maxHeight: config.get<number>('maxHeight'),
+      highlight: config.get<string>('highlightGroup'),
     }
   }
 
