@@ -199,7 +199,7 @@ class Window {
       let release = await this.mutex.acquire()
       try {
         let arr = await nvim.call('coc#float#create_prompt_win', [title, defaultValue || '']) as [number, number]
-        let [bufnr] = arr
+        let [bufnr, winid] = arr
         let res = await new Promise<string>(resolve => {
           let disposables: Disposable[] = []
           events.on('BufWinLeave', nr => {
@@ -208,12 +208,11 @@ class Window {
               resolve(null)
             }
           }, null, disposables)
-          events.on('PromptInsert', value => {
+          events.on('PromptInsert', async value => {
             disposeAll(disposables)
+            await nvim.call('coc#float#close', [winid])
             if (!value) {
-              setTimeout(() => {
-                this.showMessage('Empty word, canceled', 'warning')
-              }, 30)
+              this.showMessage('Empty word, canceled', 'warning')
               resolve(null)
             } else {
               resolve(value)

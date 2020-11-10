@@ -165,10 +165,13 @@ describe('window functions', () => {
   })
 
   it('should request input', async () => {
+    let winid = await nvim.call('win_getid')
     let p = window.requestInput('Name')
     await helper.wait(100)
     await nvim.input('bar<enter>')
     let res = await p
+    let curr = await nvim.call('win_getid')
+    expect(curr).toBe(winid)
     expect(res).toBe('bar')
   })
 
