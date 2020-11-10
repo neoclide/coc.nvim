@@ -1293,7 +1293,7 @@ augroup end`
   public async attach(): Promise<void> {
     if (this._attached) return
     this._attached = true
-    let [bufs, bufnr, winid] = await this.nvim.eval(`[map(getbufinfo({'bufloaded': 1}), 'v:val["bufnr"]'),bufnr('%'),win_getid()]`) as [number[], number, number]
+    let [bufs, bufnr, winid] = await this.nvim.eval(`[map(getbufinfo({'bufloaded': 1}),'v:val["bufnr"]'),bufnr('%'),win_getid()]`) as [number[], number, number]
     this.bufnr = bufnr
     await Promise.all(bufs.map(buf => this.onBufCreate(buf)))
     if (!this._initialized) {
