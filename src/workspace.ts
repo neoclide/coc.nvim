@@ -148,10 +148,10 @@ export class Workspace implements IWorkspace {
       }))
     }
     this.configurations.updateUserConfig(this._env.config)
-    events.on('InsertEnter', () => {
+    events.on(['InsertEnter', 'CursorMovedI'], () => {
       this._insertMode = true
     }, null, this.disposables)
-    events.on('InsertLeave', () => {
+    events.on(['InsertLeave', 'CursorMoved'], () => {
       this._insertMode = false
     }, null, this.disposables)
     events.on('BufWinLeave', (_, winid) => {
