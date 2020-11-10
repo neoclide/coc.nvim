@@ -116,18 +116,38 @@ function! coc#list#set_height(height) abort
   execute 'resize '.a:height
 endfunction
 
-function! coc#list#hide(winid) abort
-  noa silent! pclose
+function! coc#list#hide(original, height, winid) abort
+  if !empty(getwininfo(a:original))
+    if exists('*nvim_set_current_win')
+      noa call nvim_set_current_win(a:original)
+    else
+      noa call win_gotoid(a:original)
+    endif
+    if a:height
+      if exists('*nvim_win_set_height')
+        call nvim_win_set_height(a:original, a:height)
+      elseif win_getid() == a:original
+        execute 'resize '.a:height
+      endif
+    endif
+  endif
+  if !&previewwindow
+    noa silent! pclose
+  endif
   if a:winid
     if s:is_vim
-      if win_getid() == a:winid
-        noa silent! close!
+      if exists('*win_execute')
+        noa call win_execute(a:winid, 'close!', 'silent!')
       else
-        let winid = win_getid()
-        let res = win_gotoid(winid)
-        if res
+        if win_getid() == a:winid
           noa silent! close!
-          noa wincmd p
+        else
+          let winid = win_getid()
+          let res = win_gotoid(winid)
+          if res
+            noa silent! close!
+            noa wincmd p
+          endif
         endif
       endif
     else

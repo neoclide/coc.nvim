@@ -23999,7 +23999,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "35757636b9" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "cc975fd0ca" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -32657,7 +32657,7 @@ augroup end`;
         if (this._attached)
             return;
         this._attached = true;
-        let [bufs, bufnr, winid] = await this.nvim.eval(`[map(getbufinfo({'bufloaded': 1}), 'v:val["bufnr"]'),bufnr('%'),win_getid()]`);
+        let [bufs, bufnr, winid] = await this.nvim.eval(`[map(getbufinfo({'bufloaded': 1}),'v:val["bufnr"]'),bufnr('%'),win_getid()]`);
         this.bufnr = bufnr;
         await Promise.all(bufs.map(buf => this.onBufCreate(buf)));
         if (!this._initialized) {
@@ -88307,7 +88307,7 @@ class ListSession {
         this.history.add();
         let { winid } = this.ui;
         this.ui.reset();
-        await nvim.call('coc#list#hide', [winid]);
+        await nvim.call('coc#list#hide', [this.window.id, this.savedHeight, winid]);
         if (workspace_1.default.isVim) {
             // Needed for tabe action, don't know why.
             await util_1.wait(10);
