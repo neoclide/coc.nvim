@@ -476,13 +476,11 @@ function! coc#float#create_cursor_float(winid, bufnr, lines, config) abort
   if !s:float_supported
     return v:null
   endif
-  let allowSelection = get(a:config, 'allowSelection', 0)
   let pumAlignTop = get(a:config, 'pumAlignTop', 0)
   let mode = mode()
   let currbuf = bufnr('%')
   let pos = [line('.'), col('.')]
-  let checked = (mode == 's' && allowSelection) || index(['i', 'n', 'ic'], mode) != -1
-  if !checked
+  if index(['s', 'n', 'ic'], mode) == -1
     return v:null
   endif
   if !s:is_vim && mode ==# 'i'

@@ -23999,7 +23999,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f0e68fbf29" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "35757636b9" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -31507,10 +31507,10 @@ class Workspace {
             }));
         }
         this.configurations.updateUserConfig(this._env.config);
-        events_1.default.on('InsertEnter', () => {
+        events_1.default.on(['InsertEnter', 'CursorMovedI'], () => {
             this._insertMode = true;
         }, null, this.disposables);
-        events_1.default.on('InsertLeave', () => {
+        events_1.default.on(['InsertLeave', 'CursorMoved'], () => {
             this._insertMode = false;
         }, null, this.disposables);
         events_1.default.on('BufWinLeave', (_, winid) => {
