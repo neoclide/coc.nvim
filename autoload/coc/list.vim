@@ -117,11 +117,19 @@ function! coc#list#set_height(height) abort
 endfunction
 
 function! coc#list#hide(winid) abort
-  call coc#prompt#stop_prompt('list')
-  silent! pclose
+  noa silent! pclose
   if a:winid
     if s:is_vim
-      noa call win_execute(winid, 'close!', 'silent!')
+      if win_getid() == a:winid
+        noa silent! close!
+      else
+        let winid = win_getid()
+        let res = win_gotoid(winid)
+        if res
+          noa silent! close!
+          noa wincmd p
+        endif
+      endif
     else
       if nvim_win_is_valid(a:winid)
         silent! noa call nvim_win_close(a:winid, 1)

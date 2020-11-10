@@ -23999,7 +23999,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "fed2bf122d" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "067bb77efa" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -31404,7 +31404,7 @@ const position_1 = __webpack_require__(290);
 const string_1 = __webpack_require__(288);
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(377));
 const window_1 = tslib_1.__importDefault(__webpack_require__(370));
-const APIVERSION = 7;
+const APIVERSION = 8;
 const logger = __webpack_require__(64)('workspace');
 let NAME_SPACE = 1080;
 const methods = [
@@ -83612,6 +83612,8 @@ class ListManager {
         let done = await this.mappings.doInsertKeymap(ch);
         if (done || charmod)
             return;
+        if (ch.startsWith('<') && ch.endsWith('>'))
+            return;
         for (let s of ch) {
             let code = s.codePointAt(0);
             if (code == 65533)
@@ -88303,6 +88305,11 @@ class ListSession {
         let { winid } = this.ui;
         this.ui.reset();
         await nvim.call('coc#list#hide', [winid]);
+        if (workspace_1.default.isVim) {
+            // Needed for tabe action, don't know why.
+            await util_1.wait(10);
+        }
+        nvim.call('coc#prompt#stop_prompt', ['list'], true);
     }
     toggleMode() {
         let mode = this.prompt.mode == 'normal' ? 'insert' : 'normal';

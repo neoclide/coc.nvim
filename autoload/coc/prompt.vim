@@ -142,17 +142,18 @@ function! s:start_prompt()
   try
     while s:activated
       let ch = coc#prompt#getchar()
-      if ch ==# "\u26d4"
-        break
-      endif
       if ch ==# "\<FocusLost>" || ch ==# "\<FocusGained>" || ch ==# "\<CursorHold>"
         continue
       else
         let mapped = get(s:char_map, ch, ch)
         let curr = s:current_session()
-        call coc#rpc#notify('InputChar', [curr, mapped, getcharmod()])
+        if !empty(curr)
+          call coc#rpc#notify('InputChar', [curr, mapped, getcharmod()])
+        endif
         if mapped == '<esc>'
-          call coc#prompt#stop_prompt(curr)
+          let s:session_names = []
+          call s:reset()
+          break
         endif
       endif
     endwhile
@@ -171,23 +172,30 @@ function! coc#prompt#stop_prompt(session)
   endif
   if s:activated
     let s:activated = 0
-    if !get(g:, 'coc_disable_transparent_cursor',0)
-      " neovim has bug with revert empty &guicursor
-      if s:gui && !empty(s:saved_cursor)
-        if has('nvim-0.5.0')
-          set guicursor+=a:ver1-Cursor/lCursor
-          let &guicursor = s:saved_cursor
-        endif
-      elseif s:is_vim
-        let &t_ve = s:saved_ve
-      endif
-    endif
-    echo ""
-    call feedkeys("\u26d4", 'int')
+    call s:reset()
+    call feedkeys("\<esc>", 'int')
   endif
 endfunction
 
+function! s:reset() abort
+  if !get(g:, 'coc_disable_transparent_cursor',0)
+    " neovim has bug with revert empty &guicursor
+    if s:gui && !empty(s:saved_cursor)
+      if has('nvim-0.5.0')
+        set guicursor+=a:ver1-Cursor/lCursor
+        let &guicursor = s:saved_cursor
+      endif
+    elseif s:is_vim
+      let &t_ve = s:saved_ve
+    endif
+  endif
+  echo ""
+endfunction
+
 function! s:current_session() abort
+  if empty(s:session_names)
+    return v:null
+  endif
   return s:session_names[len(s:session_names) - 1]
 endfunction
 
