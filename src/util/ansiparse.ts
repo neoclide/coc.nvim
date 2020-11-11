@@ -46,13 +46,7 @@ export function parseAnsiHighlights(line: string, markdown = false): AnsiResult 
     if (foreground || background || bold || italic || underline) {
       let span: [number, number] = [len, len + byteLength(item.text)]
       let hlGroup = ''
-      if (bold) {
-        hlGroup = 'CocBold'
-      } else if (italic) {
-        hlGroup = 'CocItalic'
-      } else if (underline) {
-        hlGroup = 'CocUnderline'
-      } else if (foreground && background) {
+      if (foreground && background) {
         hlGroup = `CocList${upperFirst(foreground)}${upperFirst(background)}`
       } else if (foreground) {
         if (markdown) {
@@ -70,6 +64,12 @@ export function parseAnsiHighlights(line: string, markdown = false): AnsiResult 
         }
       } else if (background) {
         hlGroup = `CocListBg${upperFirst(background)}`
+      } else if (bold) {
+        hlGroup = 'CocBold'
+      } else if (italic) {
+        hlGroup = 'CocItalic'
+      } else if (underline) {
+        hlGroup = 'CocUnderline'
       }
       highlights.push({ span, hlGroup })
     }

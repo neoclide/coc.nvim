@@ -24,7 +24,7 @@ import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, DocumentChange, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, OutputChannel, PatternType, QuickfixItem, Terminal, TerminalOptions, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { distinct } from './util/array'
-import { findUp, fixDriver, inDirectory, isFile, isParentFolder, renameAsync, resolveRoot, statAsync } from './util/fs'
+import { findUp, fixDriver, inDirectory, isFile, isParentFolder, readFileLine, renameAsync, resolveRoot, statAsync } from './util/fs'
 import { CONFIG_FILE_NAME, disposeAll, getKeymapModifier, platform, runCommand, wait } from './util/index'
 import { score } from './util/match'
 import { equals } from './util/object'
@@ -722,8 +722,7 @@ export class Workspace implements IWorkspace {
     if (!uri.startsWith('file:')) return ''
     let fsPath = URI.parse(uri).fsPath
     if (!fs.existsSync(fsPath)) return ''
-    let lines = await this.nvim.call('readfile', [fsPath, '', line + 1]) as string[]
-    return lines[lines.length - 1]
+    return await readFileLine(fsPath, line)
   }
 
   /**
