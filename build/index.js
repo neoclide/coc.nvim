@@ -23999,7 +23999,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "cc975fd0ca" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "4ed54d6735" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -25333,11 +25333,12 @@ exports.default = FloatFactory;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseMarkdown = exports.parseDocuments = exports.diagnosticFiletypes = void 0;
+exports.parseMarkdown = exports.getHighlightItems = exports.parseDocuments = exports.diagnosticFiletypes = void 0;
 const tslib_1 = __webpack_require__(65);
 const marked_1 = tslib_1.__importDefault(__webpack_require__(256));
 const renderer_1 = tslib_1.__importDefault(__webpack_require__(266));
 const ansiparse_1 = __webpack_require__(287);
+const string_1 = __webpack_require__(288);
 exports.diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint'];
 const logger = __webpack_require__(64)('markdown-index');
 marked_1.default.setOptions({
@@ -25374,6 +25375,11 @@ function parseDocuments(docs) {
             }
             lines.push(...parts);
         }
+        if (doc.active) {
+            let arr = getHighlightItems(content, currline, doc.active);
+            if (arr.length)
+                highlights.push(...arr);
+        }
         if (idx != docs.length - 1) {
             lines.push('—'); // separate line
         }
@@ -25382,6 +25388,53 @@ function parseDocuments(docs) {
     return { lines, highlights, codes };
 }
 exports.parseDocuments = parseDocuments;
+/**
+ * Get highlight items from offset range
+ */
+function getHighlightItems(content, currline, active) {
+    let res = [];
+    let [start, end] = active;
+    let lines = content.split(/\r?\n/);
+    let used = 0;
+    let inRange = false;
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+        if (!inRange) {
+            if (used + line.length > start) {
+                inRange = true;
+                let colStart = string_1.byteLength(line.slice(0, start - used));
+                if (used + line.length > end) {
+                    let colEnd = string_1.byteLength(line.slice(0, end - used));
+                    inRange = false;
+                    res.push({ colStart, colEnd, lnum: i + currline, hlGroup: 'CocUnderline' });
+                    break;
+                }
+                else {
+                    let colEnd = string_1.byteLength(line);
+                    res.push({ colStart, colEnd, lnum: i + currline, hlGroup: 'CocUnderline' });
+                }
+            }
+        }
+        else {
+            if (used + line.length > end) {
+                let colEnd = string_1.byteLength(line.slice(0, end - used));
+                res.push({ colStart: 0, colEnd, lnum: i + currline, hlGroup: 'CocUnderline' });
+                inRange = false;
+                break;
+            }
+            else {
+                let colEnd = string_1.byteLength(line);
+                res.push({ colStart: 0, colEnd, lnum: i + currline, hlGroup: 'CocUnderline' });
+            }
+        }
+        used = used + line.length + 1;
+    }
+    return res;
+}
+exports.getHighlightItems = getHighlightItems;
+/**
+ * Parse markdown for lines, highlights & codes
+ */
 function parseMarkdown(content) {
     let lines = [];
     let highlights = [];
@@ -93655,7 +93708,6 @@ class Handler {
             if (this.preferences.signatureHideOnChange) {
                 this.signatureFactory.close();
             }
-            this.hoverFactory.close();
         }, null, this.disposables);
         let lastInsert;
         events_1.default.on('InsertCharPre', async (character) => {
@@ -93703,28 +93755,30 @@ class Handler {
                 }
             }
         }, null, this.disposables);
-        events_1.default.on('TextChangedI', async (bufnr) => {
-            let curr = Date.now();
-            if (!lastInsert || curr - lastInsert > 300)
+        let insertLeaveTs;
+        let changedTs;
+        events_1.default.on('TextChangedI', async (bufnr, info) => {
+            changedTs = Date.now();
+            let curr = changedTs;
+            if (!lastInsert || changedTs - lastInsert > 300)
                 return;
             lastInsert = null;
             let doc = workspace_1.default.getDocument(bufnr);
             if (!doc || doc.isCommandLine || !doc.attached)
                 return;
             let { triggerSignatureHelp, formatOnType } = this.preferences;
-            if (!triggerSignatureHelp && !formatOnType)
+            // if (!triggerSignatureHelp && !formatOnType) return
+            let pre = info.pre[info.pre.length - 1];
+            if (!pre)
                 return;
-            let [pos, line] = await nvim.eval('[coc#util#cursor(), getline(".")]');
-            let pre = pos[1] == 0 ? '' : line.slice(pos[1] - 1, pos[1]);
-            if (!pre || string_1.isWord(pre))
-                return;
-            await this.tryFormatOnType(pre, bufnr);
+            if (formatOnType && !string_1.isWord(pre)) {
+                await this.tryFormatOnType(pre, bufnr);
+            }
             if (triggerSignatureHelp && languages_1.default.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
+                if (changedTs > curr || (insertLeaveTs && insertLeaveTs > curr))
+                    return;
                 try {
-                    let [mode, cursor] = await nvim.eval('[mode(),coc#util#cursor()]');
-                    if (mode !== 'i')
-                        return;
-                    await this.triggerSignatureHelp(doc, { line: cursor[0], character: cursor[1] });
+                    await this.triggerSignatureHelp(doc, { line: info.lnum - 1, character: info.pre.length });
                 }
                 catch (e) {
                     logger.error(`Error on signature help:`, e);
@@ -93732,10 +93786,9 @@ class Handler {
             }
         }, null, this.disposables);
         events_1.default.on('InsertLeave', async (bufnr) => {
-            if (!this.preferences.formatOnInsertLeave)
-                return;
-            await util_1.wait(30);
-            if (workspace_1.default.insertMode)
+            insertLeaveTs = Date.now();
+            let { formatOnInsertLeave, formatOnType } = this.preferences;
+            if (!formatOnInsertLeave || !formatOnType)
                 return;
             await this.tryFormatOnType('\n', bufnr, true);
         }, null, this.disposables);
@@ -94471,15 +94524,18 @@ class Handler {
         let doc = workspace_1.default.getDocument(bufnr);
         if (!doc || !doc.attached)
             return;
-        if (!languages_1.default.hasOnTypeProvider(ch, doc.textDocument))
-            return;
         const filetypes = this.preferences.formatOnTypeFiletypes;
         if (filetypes.length && !filetypes.includes(doc.filetype)) {
             // Only check formatOnTypeFiletypes when set, avoid breaking change
             return;
         }
+        if (!languages_1.default.hasOnTypeProvider(ch, doc.textDocument))
+            return;
         let position = await window_1.default.getCursorPosition();
         let origLine = doc.getline(position.line);
+        if (insertLeave && /^\s*$/.test(origLine)) {
+            return;
+        }
         let pos = insertLeave ? { line: position.line, character: origLine.length } : position;
         let { changedtick } = doc;
         await synchronizeDocument(doc);
@@ -94675,13 +94731,13 @@ class Handler {
                     this.signaturePosition = position;
                 }
                 let { signaturePreferAbove, signatureFloatMaxWidth, signatureMaxHeight } = this.preferences;
-                this.signatureFactory.show(docs, {
+                await this.signatureFactory.show(docs, {
                     maxWidth: signatureFloatMaxWidth,
                     maxHeight: signatureMaxHeight,
                     preferTop: signaturePreferAbove,
                     autoHide: false,
                     offsetX: offset
-                }).logError();
+                });
                 // show float
             }
             else {
