@@ -1124,7 +1124,8 @@ export default class Handler {
           maxHeight: signatureMaxHeight,
           preferTop: signaturePreferAbove,
           autoHide: false,
-          offsetX: offset
+          offsetX: offset,
+          modes: ['i', 'ic', 's']
         })
         // show float
       } else {
@@ -1345,7 +1346,7 @@ export default class Handler {
     }
     if (target == 'float') {
       diagnosticManager.hideFloat()
-      await this.hoverFactory.show(docs)
+      await this.hoverFactory.show(docs, { modes: ['n'] })
       return
     }
     let lines = docs.reduce((p, c) => {

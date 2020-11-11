@@ -480,10 +480,11 @@ function! coc#float#create_cursor_float(winid, bufnr, lines, config) abort
     return v:null
   endif
   let pumAlignTop = get(a:config, 'pumAlignTop', 0)
+  let modes = get(a:config, 'modes', ['n', 'i', 'ic', 's'])
   let mode = mode()
   let currbuf = bufnr('%')
   let pos = [line('.'), col('.')]
-  if index(['s', 'i', 'n', 'ic'], mode) == -1
+  if index(modes, mode) == -1
     return v:null
   endif
   if has('nvim') && mode ==# 'i'
