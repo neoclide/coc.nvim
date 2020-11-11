@@ -24,8 +24,11 @@ function! coc#float#has_float() abort
   return 0
 endfunction
 
-function! coc#float#execute(winid, command)
+function! coc#float#execute(winid, command) abort
   if s:is_vim
+    if !exists('*win_execute')
+      throw 'win_execute function not exists, please upgrade your vim.'
+    endif
     if type(a:command) == v:t_string
       keepalt call win_execute(a:winid, a:command)
     elseif type(a:command) == v:t_list
@@ -477,10 +480,11 @@ function! coc#float#create_cursor_float(winid, bufnr, lines, config) abort
     return v:null
   endif
   let pumAlignTop = get(a:config, 'pumAlignTop', 0)
+  let modes = get(a:config, 'modes', ['n', 'i', 'ic', 's'])
   let mode = mode()
   let currbuf = bufnr('%')
   let pos = [line('.'), col('.')]
-  if index(['s', 'i', 'n', 'ic'], mode) == -1
+  if index(modes, mode) == -1
     return v:null
   endif
   if has('nvim') && mode ==# 'i'
@@ -721,7 +725,7 @@ function! s:scroll_vim(win_ids, forward, amount) abort
     if s:popup_visible(id)
       let pos = popup_getpos(id)
       let bufnr = winbufnr(id)
-      let linecount = get(getbufinfo(bufnr)[0], 'linecount', 0)
+      let linecount = len(getbufline(bufnr, 1, '$'))
       " for forward use last line (or last line + 1) as first line
       if a:forward
         if pos['firstline'] == pos['lastline']

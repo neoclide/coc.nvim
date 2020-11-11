@@ -2,7 +2,7 @@
 " Description: Client api used by vim8
 " Author: Qiming Zhao <chemzqm@gmail.com>
 " Licence: MIT licence
-" Last Modified:  June 28, 2019
+" Last Modified:  Nov 11, 2020
 " ============================================================================
 if has('nvim') | finish | endif
 let s:funcs = {}
@@ -244,14 +244,9 @@ function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEn
     return
   endif
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
-  let key = 'Coc'.a:hlGroup.(a:srcId != -1 ? a:srcId : '')
-  if empty(prop_type_get(key, {'bufnr': a:bufnr}))
-    call prop_type_add(key, {'highlight': a:hlGroup, 'combine': 1, 'bufnr': a:bufnr})
-    if a:srcId != -1
-      let cached = getbufvar(bufnr, 'prop_namespace_'.a:srcId, [])
-      call add(cached, key)
-      call setbufvar(bufnr, 'prop_namespace_'.a:srcId, cached)
-    endif
+  let type = 'CocHighlight'.(a:srcId == -1 ? '' : a:srcId)
+  if empty(prop_type_get(type, {'bufnr': a:bufnr}))
+    call prop_type_add(type, {'highlight': a:hlGroup, 'combine': 1, 'bufnr': a:bufnr})
   endif
   let total = strlen(getbufline(bufnr, a:line + 1)[0])
   let end = a:colEnd
@@ -266,7 +261,7 @@ function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEn
   let id = s:prop_id
   let s:prop_id = id + 1
   try
-    call prop_add(a:line + 1, a:colStart + 1, {'length': end - a:colStart, 'bufnr': bufnr, 'type': key, 'id': id})
+    call prop_add(a:line + 1, a:colStart + 1, {'length': end - a:colStart, 'bufnr': bufnr, 'type': type, 'id': id})
   catch /^Vim\%((\a\+)\)\=:E967/
     " ignore 967
   endtry
@@ -276,20 +271,17 @@ function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
   if !has('textprop')
     return
   endif
+  let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
+  let start = a:startLine + 1
+  let end = a:endLine == -1 ? len(getbufline(bufnr, 1, '$')) : a:endLine + 1
   if a:srcId == -1
-    if a:endLine == -1
-      call prop_clear(a:startLine + 1, {'bufnr': a:bufnr})
-    else
-      call prop_clear(a:startLine + 1, a:endLine + 1, {'bufnr': a:bufnr})
-    endif
-  else
-    let cached = getbufvar(a:bufnr, 'prop_namespace_'.a:srcId, [])
-    if empty(cached)
-      return
-    endif
-    for key in cached
-      call prop_remove({'type': key, 'bufnr': a:bufnr, 'all': 1})
+    let types = filter(prop_type_list({'bufnr': bufnr}), 'v:val =~# "^CocHighlight"')
+    for type in types
+      call prop_remove({'type': type, 'bufnr': bufnr, 'all': 1}, start, end)
     endfor
+  else
+    let type = 'CocHighlight'.a:srcId
+    call prop_remove({'type': type, 'bufnr': bufnr, 'all': 1}, start, end)
   endif
 endfunction
 
