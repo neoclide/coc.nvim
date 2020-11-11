@@ -23999,7 +23999,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "4ed54d6735" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "e1ef9858a7" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -92508,6 +92508,10 @@ class Floating {
         let { nvim } = workspace_1.default;
         docs = docs.filter(o => o.content.trim().length > 0);
         let { lines, codes, highlights } = markdown_1.parseDocuments(docs);
+        if (lines.length == 0) {
+            this.close();
+            return;
+        }
         let res = await nvim.call('coc#float#create_pum_float', [this.winid, this.bufnr, lines, {
                 codes,
                 highlights,
