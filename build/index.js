@@ -23999,7 +23999,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "c5e2fe792d" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "9752b8fb0a" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -36657,46 +36657,42 @@ exports.default = new Channels();
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(65);
 const util_1 = __webpack_require__(238);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(291));
+const mutex_1 = __webpack_require__(289);
 const logger = __webpack_require__(64)("outpubChannel");
 const MAX_STRING_LENGTH = __webpack_require__(340).constants.MAX_STRING_LENGTH;
 class BufferChannel {
     constructor(name, nvim) {
         this.name = name;
         this.nvim = nvim;
+        this.mutex = new mutex_1.Mutex();
         this._disposed = false;
         this._content = '';
         this.disposables = [];
         this._showing = false;
-        this.promise = Promise.resolve(void 0);
     }
     get content() {
         return this._content;
     }
-    async _append(value, isLine) {
-        let { buffer } = this;
-        if (!buffer)
+    async _append(value) {
+        if (!this.validate())
             return;
+        let release = await this.mutex.acquire();
         try {
-            if (isLine) {
-                await buffer.append(value.split('\n'));
+            let buf = await this.buffer;
+            if (buf) {
+                let line = await this.nvim.call('getbufline', [buf.id, '$']);
+                let lines = value.split('\n');
+                await buf.setLines([line + lines[0], ...lines.slice(1)], {
+                    start: -2,
+                    end: -1,
+                    strictIndexing: false
+                });
             }
-            else {
-                let last = await this.nvim.call('getbufline', [buffer.id, '$']);
-                let content = last + value;
-                if (this.buffer) {
-                    await buffer.setLines(content.split('\n'), {
-                        start: -2,
-                        end: -1,
-                        strictIndexing: false
-                    });
-                }
-            }
+            release();
         }
         catch (e) {
-            logger.error(`Error on append output:`, e);
+            release();
         }
     }
     append(value) {
@@ -36704,61 +36700,55 @@ class BufferChannel {
             this.clear(10);
         }
         this._content += value;
-        this.promise = this.promise.then(() => this._append(value, false));
+        this._append(value).logError();
     }
     appendLine(value) {
         if (this._content.length + value.length >= MAX_STRING_LENGTH) {
             this.clear(10);
         }
         this._content += value + '\n';
-        this.promise = this.promise.then(() => this._append(value, true));
+        this._append(value + '\n').logError();
     }
     clear(keep) {
+        if (!this.validate())
+            return;
         let latest = [];
-        if (keep) {
+        if (keep)
             latest = this._content.split('\n').slice(-keep);
-        }
         this._content = latest.join('\n');
-        let { buffer } = this;
-        if (buffer) {
-            Promise.resolve(buffer.setLines(latest, {
-                start: 0,
-                end: -1,
-                strictIndexing: false
-            })).catch(_e => {
-                // noop
-            });
-        }
+        this.buffer.then(buf => {
+            if (buf) {
+                // eslint-disable-next-line @typescript-eslint/no-floating-promises
+                buf.setLines(latest, {
+                    start: 0,
+                    end: -1,
+                    strictIndexing: false
+                });
+            }
+        }).logError();
     }
     hide() {
-        let { nvim, buffer } = this;
-        if (buffer)
-            nvim.command(`silent! bd! ${buffer.id}`, true);
+        this.nvim.command(`silent! bd! output:///${this.name}`, true);
     }
     get buffer() {
-        let doc = workspace_1.default.getDocument(`output:///${this.name}`);
-        return doc ? doc.buffer : null;
+        return new Promise((resolve, reject) => {
+            this.nvim.call('bufnr', [`output:///${this.name}`]).then(res => {
+                if (res == -1)
+                    return resolve(null);
+                resolve(this.nvim.createBuffer(res));
+            }, reject);
+        });
     }
     async openBuffer(preserveFocus) {
-        let { nvim, buffer } = this;
-        if (buffer) {
-            let loaded = await nvim.call('bufloaded', buffer.id);
-            if (!loaded)
-                buffer = null;
-        }
-        if (!buffer) {
-            await nvim.command(`belowright vs output:///${this.name}`);
-        }
-        else {
-            // check shown
-            let wnr = await nvim.call('bufwinnr', buffer.id);
-            if (wnr != -1)
-                return;
-            await nvim.command(`vert belowright sb ${buffer.id}`);
-        }
+        let { nvim } = this;
+        let winid = await nvim.call('win_getid');
+        nvim.pauseNotification();
+        nvim.command(`tab drop output:///${this.name}`, true);
         if (preserveFocus) {
-            await nvim.command('wincmd p');
+            nvim.call('win_gotoid', [winid], true);
         }
+        nvim.command('redraw', true);
+        await nvim.resumeNotification();
     }
     show(preserveFocus) {
         if (this._showing)
@@ -36769,6 +36759,11 @@ class BufferChannel {
         }, () => {
             this._showing = false;
         });
+    }
+    validate() {
+        if (this._disposed)
+            return false;
+        return true;
     }
     dispose() {
         if (this._disposed)
