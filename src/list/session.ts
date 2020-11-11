@@ -135,7 +135,7 @@ export default class ListSession {
     this.cwd = workspace.cwd
     this.hidden = false
     let { listOptions, listArgs } = this
-    let res = await this.nvim.eval('[win_getid(),bufnr("%"),winheight("%")]')
+    let res = await this.nvim.eval('[win_getid(),bufnr("%"),winheight("%"),execute("pclose","silent!")]')
     this.listArgs = listArgs
     this.history.load(listOptions.input || '')
     this.window = this.nvim.createWindow(res[0])

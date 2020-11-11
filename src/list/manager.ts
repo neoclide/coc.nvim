@@ -85,10 +85,7 @@ export class ListManager implements Disposable {
     if (!res) return
     let { name } = res.list
     let curr = this.sessionsMap.get(name)
-    if (curr) {
-      this.nvim.command('pclose', true)
-      curr.dispose()
-    }
+    if (curr) curr.dispose()
     this.prompt.start(res.options)
     let session = new ListSession(this.nvim, this.prompt, res.list, res.options, res.listArgs, this.config)
     this.sessionsMap.set(name, session)

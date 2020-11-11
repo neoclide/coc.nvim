@@ -1,3 +1,44 @@
+
+" highlight LSP range,
+" TODO don't know how to count UTF16 code point, should work most cases.
+function! coc#highlight#range(bufnr, hlGroup, range) abort
+  let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
+  if !bufloaded(bufnr)
+    return
+  endif
+  let start = a:range['start']
+  let end = a:range['end']
+  for lnum in range(start['line'] + 1, end['line'] + 1)
+    let arr = getbufline(bufnr, lnum)
+    let line = empty(arr) ? '' : arr[0]
+    if empty(line)
+      continue
+    endif
+    let colStart = lnum == start['line'] + 1 ? strlen(strcharpart(line, 0, start['character'])) : 0
+    let colEnd = lnum == end['line'] + 1 ? strlen(strcharpart(line, 0, end['character'])) : -1
+    if colStart == colEnd
+      continue
+    endif
+    call coc#highlight#add_highlight(bufnr, -1, a:hlGroup, lnum - 1, colStart, colEnd)
+  endfor
+endfunction
+
+function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, col_end) abort
+  if has('nvim')
+    call nvim_buf_add_highlight(a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end)
+  else
+    call coc#api#call('buf_add_highlight', [a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end])
+  endif
+endfunction
+
+function! coc#highlight#clear_highlight(bufnr, src_id, start_line, end_line) abort
+  if has('nvim')
+    call nvim_buf_clear_namespace(a:bufnr, a:src_id, a:start_line, a:end_line)
+  else
+    call coc#api#call('buf_clear_namespace', [a:bufnr, a:src_id, a:start_line, a:end_line])
+  endif
+endfunction
+
 " highlight buffer in winid with CodeBlock &HighlightItems
 " export interface HighlightItem {
 "   lnum: number // 0 based
@@ -25,8 +66,7 @@ function! coc#highlight#add_highlights(winid, codes, highlights) abort
     call clearmatches(a:winid)
   endif
   if !empty(a:codes)
-    let codes = map(a:codes, function('s:convert_code'))
-    call coc#highlight#highlight_lines(a:winid, codes)
+    call coc#highlight#highlight_lines(a:winid, a:codes)
   endif
   if !empty(a:highlights)
     for item in a:highlights
@@ -41,15 +81,6 @@ function! coc#highlight#add_highlights(winid, codes, highlights) abort
   if has('nvim')
     noa call nvim_set_current_win(winid)
   endif
-endfunction
-
-function! s:convert_code(...) abort
-  return {
-    \ 'startLine': a:2['startLine'] + 1,
-    \ 'endLine': a:2['endLine'] + 1,
-    \ 'filetype': get(a:2, 'filetype', ''),
-    \ 'hlGroup': get(a:2, 'hlGroup', ''),
-    \ }
 endfunction
 
 " clear document highlights of current window
@@ -75,26 +106,33 @@ endfunction
 " Add highlights to line groups of winid, support hlGroup and filetype
 " config should have startLine, endLine (1 based, end excluded) and filetype or hlGroup
 " endLine should > startLine and endLine is excluded
-function! coc#highlight#highlight_lines(winid, highlights) abort
+"
+" export interface CodeBlock {
+"   filetype?: string
+"   hlGroup?: string
+"   startLine: number // 0 based
+"   endLine: number
+" }
+function! coc#highlight#highlight_lines(winid, blocks) abort
   if has('nvim') && win_getid() != a:winid
     return
   endif
   let defined = []
   let region_id = 1
-  for config in a:highlights
-    let startLine = config['startLine']
-    let endLine = config['endLine']
+  for config in a:blocks
+    let start = config['startLine'] + 1
+    let end = config['endLine'] == -1 ? len(getbufline(winbufnr(a:winid), 1, '$')) + 1 : config['endLine'] + 1
     let filetype = get(config, 'filetype', '')
     let hlGroup = get(config, 'hlGroup', '')
     if !empty(hlGroup)
-      call s:execute(a:winid, 'syntax region '.hlGroup.' start=/\%'.startLine.'l/ end=/\%'.endLine.'l/')
+      call s:execute(a:winid, 'syntax region '.hlGroup.' start=/\%'.start.'l/ end=/\%'.end.'l/')
     else
       let filetype = matchstr(filetype, '\v[^.]*')
       if index(defined, filetype) == -1
         call s:execute(a:winid, 'syntax include @'.toupper(filetype).' syntax/'.filetype.'.vim')
         call add(defined, filetype)
       endif
-      call s:execute(a:winid, 'syntax region CodeBlock'.region_id.' start=/\%'.startLine.'l/ end=/\%'.endLine.'l/ contains=@'.toupper(filetype))
+      call s:execute(a:winid, 'syntax region CodeBlock'.region_id.' start=/\%'.start.'l/ end=/\%'.end.'l/ contains=@'.toupper(filetype))
       let region_id = region_id + 1
     endif
   endfor

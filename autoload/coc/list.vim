@@ -1,4 +1,5 @@
 let s:is_vim = !has('nvim')
+let s:preview_bufnr = 0
 
 function! coc#list#getchar() abort
   return coc#prompt#getchar()
@@ -117,6 +118,7 @@ function! coc#list#set_height(height) abort
 endfunction
 
 function! coc#list#hide(original, height, winid) abort
+  noa silent! pclose
   if !empty(getwininfo(a:original))
     if exists('*nvim_set_current_win')
       noa call nvim_set_current_win(a:original)
@@ -130,9 +132,6 @@ function! coc#list#hide(original, height, winid) abort
         execute 'resize '.a:height
       endif
     endif
-  endif
-  if !&previewwindow
-    noa silent! pclose
   endif
   if a:winid
     if s:is_vim
@@ -157,4 +156,118 @@ function! coc#list#hide(original, height, winid) abort
     endif
   endif
   redraw
+endfunction
+
+" Improve preview performance by reused window & buffer.
+" lines - list of lines
+" config.position - could be 'below' 'top' 'tab'.
+" config.name - (optional )name of preview buffer.
+" config.splitRight - (optional) split to right when 1.
+" config.lnum - (optional) current line number
+" config.filetype - (optional) filetype of lines.
+" config.hlGroup - (optional) highlight group.
+" config.maxHeight - (optional) max height of window, valid for 'below' & 'top' position.
+function! coc#list#preview(lines, config) abort
+  if s:is_vim && !exists('*win_execute')
+    echoerr 'win_execute function required for preview, please upgrade your vim.'
+    return
+  endif
+  if empty(a:lines)
+    silent! pclose
+    return
+  endif
+  " Try reuse buffer & window
+  let s:preview_bufnr = coc#float#create_buf(s:preview_bufnr, a:lines)
+  if s:preview_bufnr == 0
+    return
+  endif
+  let filetype = get(a:config, 'filetype', '')
+  let range = get(a:config, 'range', v:null)
+  let hlGroup = get(a:config, 'hlGroup', 'Search')
+  let lnum = get(a:config, 'lnum', 1)
+  let winid = bufwinid(s:preview_bufnr)
+  let position = get(a:config, 'position', 'below')
+  if winid > 0 && win_id2win(winid) == 0
+    " not in current tab
+    if s:is_vim
+      noa call win_execute(winid, 'close!', 'silent!')
+    else
+      call nvim_win_close(winid)
+    endif
+    let winid = -1
+  endif
+  let commands = []
+  if winid == -1
+    let winid = s:get_preview_winid()
+    if winid == -1
+      let change = position != 'tab' && get(a:config, 'splitRight', 0)
+      let curr = win_getid()
+      if change
+        noa wincmd t
+        noa belowright vnew +setl\ previewwindow
+        let winid = win_getid()
+      elseif position == 'tab' || get(a:config, 'splitRight', 0)
+        noa belowright vnew +setl\ previewwindow
+        let winid = win_getid()
+      else
+        let mod = position == 'top' ? 'below' : 'above'
+        let height = s:get_height(a:lines, a:config)
+        execute 'noa '.mod.' '.height.'new +setl\ previewwindow'
+        let winid = win_getid()
+      endif
+      noa call win_gotoid(curr)
+    endif
+    " load the buffer to preview window
+    if has('nvim')
+      noa call nvim_win_set_buf(winid, s:preview_bufnr)
+    else
+      call win_execute(winid, 'noa silent! b '.s:preview_bufnr)
+    endif
+  endif
+  if winid == -1
+    return
+  endif
+  if s:is_vim
+    call add(commands, 'noa file [Preview] ' . fnameescape(get(a:config, 'name', '[Sketch]')))
+  else
+    noa call nvim_buf_set_name(s:preview_bufnr, '[Preview] ' . get(a:config, 'name', '[Sketch]'))
+  endif
+  " height of window
+  let height = s:get_height(a:lines, a:config)
+  if height != 0
+    call add(commands, 'noa resize '.height)
+  endif
+  " change to current line.
+  call add(commands, 'noa call winrestview({"lnum":'.lnum.',"topline":'.max([1, lnum - 3]).'})')
+  " highlights
+  call add(commands, 'syntax clear')
+  if empty(filetype) && !empty(get(a:config, 'name', ''))
+    call add(commands, 'filetype detect')
+  elseif !empty(filetype)
+    call add(commands, 'setfiletype '.filetype)
+  endif
+  call coc#float#execute(winid, commands)
+  if !empty(range)
+    call coc#highlight#clear_highlight(s:preview_bufnr, -1, 0, -1)
+    call coc#highlight#range(s:preview_bufnr, hlGroup, range)
+    call setwinvar(winid, '&cursorline', 1)
+  endif
+  redraw
+endfunction
+
+function! s:get_height(lines, config) abort
+  if get(a:config, 'splitRight', 0) || get(a:config, 'position', 'below') == 'tab'
+    return 0
+  endif
+  let height = min([get(a:config, 'maxHeight', 10), len(a:lines)])
+  return height
+endfunction
+
+function! s:get_preview_winid() abort
+  for i in range(1, winnr('$'))
+    if getwinvar(i, '&previewwindow')
+      return i
+    endif
+  endfor
+  return -1
 endfunction

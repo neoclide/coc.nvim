@@ -1011,10 +1011,14 @@ export interface IList {
 
 export interface PreiewOptions {
   bufname?: string
-  sketch: boolean
   filetype: string
-  lines?: string[]
+  lines: string[]
   lnum?: number
+  range?: Range
+  /**
+   * @deprecated not used
+   */
+  sketch?: boolean
 }
 
 export interface FetchOptions {
