@@ -19,6 +19,7 @@ afterAll(async () => {
 
 describe('OutputChannel', () => {
   test('outputChannel.show(true)', async () => {
+    await nvim.setLine('foo')
     let c = new OutputChannel('0', nvim)
     let bufnr = (await nvim.buffer).id
     c.show(true)
