@@ -41,7 +41,8 @@ export default class Window {
    */
   public async scrollForward(): Promise<void> {
     let { nvim, bufnr, winid } = this
-    let total = await nvim.eval(`getbufinfo(${bufnr})[0]['linecount']`) as number
+    let buf = nvim.createBuffer(bufnr)
+    let total = await buf.length
     let botline: number
     if (!isVim) {
       let infos = await nvim.call('getwininfo', [winid])
