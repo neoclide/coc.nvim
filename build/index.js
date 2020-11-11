@@ -23999,7 +23999,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "9752b8fb0a" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d7b7fd9e13" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -95939,7 +95939,8 @@ class Refactor {
         this.config = {
             afterContext: config.get('afterContext', 3),
             beforeContext: config.get('beforeContext', 3),
-            openCommand: config.get('openCommand', 'edit')
+            openCommand: config.get('openCommand', 'edit'),
+            saveToFile: config.get('saveToFile', true)
         };
     }
     get buffer() {
@@ -96239,7 +96240,9 @@ class Refactor {
         this.changing = false;
         nvim.pauseNotification();
         buffer.setOption('modified', false, true);
-        nvim.command('silent noa wa', true);
+        if (this.config.saveToFile) {
+            nvim.command('silent noa wa', true);
+        }
         this.highlightLineNr();
         await nvim.resumeNotification();
         return true;

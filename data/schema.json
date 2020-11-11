@@ -716,6 +716,11 @@
       "description": "Open command for refactor window.",
       "default": "vsplit"
     },
+    "refactor.saveToFile": {
+      "type": "boolean",
+      "description": "Save to file when write refactor buffer with ':noa wa' command, set to false if you want save buffer by yourself.",
+      "default": true
+    },
     "refactor.beforeContext": {
       "type": "number",
       "default": 3,
