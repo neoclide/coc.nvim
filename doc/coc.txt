@@ -500,6 +500,11 @@ Built-in configurations:~
 	Maximum height of floating window with the signature help, default: `8`
 
 							*coc-config-refactor*
+"refactor.saveToFile":~
+
+	Save to file when write refactor buffer with ':noa wa' command, set to
+	false if you want save buffer by yourself.
+
 "refactor.openCommand":~
 
 	Open command for refactor window, default: `vsplit`
