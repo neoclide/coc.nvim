@@ -7,6 +7,7 @@ const logger = require('../util/logger')("outpubChannel")
 const MAX_STRING_LENGTH: number = require('buffer').constants.MAX_STRING_LENGTH
 
 export default class BufferChannel implements OutputChannel {
+  private _disposed = false
   private _content = ''
   private disposables: Disposable[] = []
   private _showing = false
@@ -80,12 +81,6 @@ export default class BufferChannel implements OutputChannel {
     if (buffer) nvim.command(`silent! bd! ${buffer.id}`, true)
   }
 
-  public dispose(): void {
-    this.hide()
-    this._content = ''
-    disposeAll(this.disposables)
-  }
-
   private get buffer(): Buffer | null {
     let doc = workspace.getDocument(`output:///${this.name}`)
     return doc ? doc.buffer : null
@@ -118,5 +113,13 @@ export default class BufferChannel implements OutputChannel {
     }, () => {
       this._showing = false
     })
+  }
+
+  public dispose(): void {
+    if (this._disposed) return
+    this._disposed = true
+    this.hide()
+    this._content = ''
+    disposeAll(this.disposables)
   }
 }

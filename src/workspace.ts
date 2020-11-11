@@ -294,6 +294,8 @@ export class Workspace implements IWorkspace {
 
   /**
    * uri of current file, could be null
+   *
+   * @deprecated this method is reliable, will be removed in the feature.
    */
   public get uri(): string {
     let { bufnr } = this
@@ -780,19 +782,20 @@ export class Workspace implements IWorkspace {
    * Current document.
    */
   public get document(): Promise<Document> {
-    let { bufnr } = this
-    if (bufnr == null) return null
-    if (this.buffers.has(bufnr)) {
-      return Promise.resolve(this.buffers.get(bufnr))
-    }
-    if (!this.creatingSources.has(bufnr)) {
-      this.onBufCreate(bufnr).logError()
-    }
-    return new Promise<Document>(resolve => {
-      let disposable = this.onDidOpenTextDocument(doc => {
-        disposable.dispose()
-        resolve(this.getDocument(doc.uri))
-      })
+    return new Promise<Document>((resolve, reject) => {
+      this.nvim.buffer.then(buf => {
+        let bufnr = buf.id
+        this.bufnr = bufnr
+        if (this.buffers.has(bufnr)) {
+          resolve(this.buffers.get(bufnr))
+          return
+        }
+        this.onBufCreate(bufnr).catch(reject)
+        let disposable = this.onDidOpenTextDocument(doc => {
+          disposable.dispose()
+          resolve(this.getDocument(doc.uri))
+        })
+      }, reject)
     })
   }
 
