@@ -23999,7 +23999,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "e1ef9858a7" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "c5e2fe792d" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -31694,6 +31694,8 @@ class Workspace {
     }
     /**
      * uri of current file, could be null
+     *
+     * @deprecated this method is reliable, will be removed in the feature.
      */
     get uri() {
         let { bufnr } = this;
@@ -32186,20 +32188,20 @@ class Workspace {
      * Current document.
      */
     get document() {
-        let { bufnr } = this;
-        if (bufnr == null)
-            return null;
-        if (this.buffers.has(bufnr)) {
-            return Promise.resolve(this.buffers.get(bufnr));
-        }
-        if (!this.creatingSources.has(bufnr)) {
-            this.onBufCreate(bufnr).logError();
-        }
-        return new Promise(resolve => {
-            let disposable = this.onDidOpenTextDocument(doc => {
-                disposable.dispose();
-                resolve(this.getDocument(doc.uri));
-            });
+        return new Promise((resolve, reject) => {
+            this.nvim.buffer.then(buf => {
+                let bufnr = buf.id;
+                this.bufnr = bufnr;
+                if (this.buffers.has(bufnr)) {
+                    resolve(this.buffers.get(bufnr));
+                    return;
+                }
+                this.onBufCreate(bufnr).catch(reject);
+                let disposable = this.onDidOpenTextDocument(doc => {
+                    disposable.dispose();
+                    resolve(this.getDocument(doc.uri));
+                });
+            }, reject);
         });
     }
     /**
@@ -36664,6 +36666,7 @@ class BufferChannel {
     constructor(name, nvim) {
         this.name = name;
         this.nvim = nvim;
+        this._disposed = false;
         this._content = '';
         this.disposables = [];
         this._showing = false;
@@ -36732,11 +36735,6 @@ class BufferChannel {
         if (buffer)
             nvim.command(`silent! bd! ${buffer.id}`, true);
     }
-    dispose() {
-        this.hide();
-        this._content = '';
-        util_1.disposeAll(this.disposables);
-    }
     get buffer() {
         let doc = workspace_1.default.getDocument(`output:///${this.name}`);
         return doc ? doc.buffer : null;
@@ -36771,6 +36769,14 @@ class BufferChannel {
         }, () => {
             this._showing = false;
         });
+    }
+    dispose() {
+        if (this._disposed)
+            return;
+        this._disposed = true;
+        this.hide();
+        this._content = '';
+        util_1.disposeAll(this.disposables);
     }
 }
 exports.default = BufferChannel;

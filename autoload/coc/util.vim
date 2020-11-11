@@ -258,7 +258,7 @@ function! coc#util#get_bufoptions(bufnr, maxFileSize) abort
     let size = getfsize(bufname)
   endif
   let lines = []
-  if (buftype == '' || buftype == 'acwrite') && size < a:maxFileSize
+  if getbufvar(a:bufnr, 'coc_enabled', 1) && (buftype == '' || buftype == 'acwrite') && size < a:maxFileSize
     let lines = getbufline(a:bufnr, 1, '$')
   endif
   return {
