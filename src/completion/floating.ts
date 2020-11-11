@@ -44,6 +44,10 @@ export default class Floating {
     let { nvim } = workspace
     docs = docs.filter(o => o.content.trim().length > 0)
     let { lines, codes, highlights } = parseDocuments(docs)
+    if (lines.length == 0) {
+      this.close()
+      return
+    }
     let res = await nvim.call('coc#float#create_pum_float', [this.winid, this.bufnr, lines, {
       codes,
       highlights,
