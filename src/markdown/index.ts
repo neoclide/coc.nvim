@@ -2,6 +2,7 @@ import marked from 'marked'
 import Renderer from './renderer'
 import { parseAnsiHighlights } from '../util/ansiparse'
 import { Documentation } from '../types'
+import { byteLength } from '../util/string'
 export const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
 const logger = require('../util/logger')('markdown-index')
 
@@ -61,6 +62,10 @@ export function parseDocuments(docs: Documentation[]): DocumentInfo {
       }
       lines.push(...parts)
     }
+    if (doc.active) {
+      let arr = getHighlightItems(content, currline, doc.active)
+      if (arr.length) highlights.push(...arr)
+    }
     if (idx != docs.length - 1) {
       lines.push('—') // separate line
     }
@@ -69,6 +74,50 @@ export function parseDocuments(docs: Documentation[]): DocumentInfo {
   return { lines, highlights, codes }
 }
 
+/**
+ * Get highlight items from offset range
+ */
+export function getHighlightItems(content: string, currline: number, active: [number, number]): HighlightItem[] {
+  let res: HighlightItem[] = []
+  let [start, end] = active
+  let lines = content.split(/\r?\n/)
+  let used = 0
+  let inRange = false
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i]
+    if (!inRange) {
+      if (used + line.length > start) {
+        inRange = true
+        let colStart = byteLength(line.slice(0, start - used))
+        if (used + line.length > end) {
+          let colEnd = byteLength(line.slice(0, end - used))
+          inRange = false
+          res.push({ colStart, colEnd, lnum: i + currline, hlGroup: 'CocUnderline' })
+          break
+        } else {
+          let colEnd = byteLength(line)
+          res.push({ colStart, colEnd, lnum: i + currline, hlGroup: 'CocUnderline' })
+        }
+      }
+    } else {
+      if (used + line.length > end) {
+        let colEnd = byteLength(line.slice(0, end - used))
+        res.push({ colStart: 0, colEnd, lnum: i + currline, hlGroup: 'CocUnderline' })
+        inRange = false
+        break
+      } else {
+        let colEnd = byteLength(line)
+        res.push({ colStart: 0, colEnd, lnum: i + currline, hlGroup: 'CocUnderline' })
+      }
+    }
+    used = used + line.length + 1
+  }
+  return res
+}
+
+/**
+ * Parse markdown for lines, highlights & codes
+ */
 export function parseMarkdown(content: string): DocumentInfo {
   let lines: string[] = []
   let highlights: HighlightItem[] = []

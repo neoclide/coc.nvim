@@ -480,10 +480,10 @@ function! coc#float#create_cursor_float(winid, bufnr, lines, config) abort
   let mode = mode()
   let currbuf = bufnr('%')
   let pos = [line('.'), col('.')]
-  if index(['s', 'n', 'ic'], mode) == -1
+  if index(['s', 'i', 'ic'], mode) == -1
     return v:null
   endif
-  if !s:is_vim && mode ==# 'i'
+  if has('nvim') && mode ==# 'i'
     " helps to fix undo issue, don't know why.
     call feedkeys("\<C-g>u", 'n')
   endif

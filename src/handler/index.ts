@@ -155,9 +155,7 @@ export default class Handler {
       if (this.preferences.signatureHideOnChange) {
         this.signatureFactory.close()
       }
-      this.hoverFactory.close()
     }, null, this.disposables)
-
     let lastInsert: number
     events.on('InsertCharPre', async character => {
       lastInsert = Date.now()
@@ -202,33 +200,35 @@ export default class Handler {
       }
     }, null, this.disposables)
 
-    events.on('TextChangedI', async bufnr => {
-      let curr = Date.now()
-      if (!lastInsert || curr - lastInsert > 300) return
+    let insertLeaveTs: number
+    let changedTs: number
+    events.on('TextChangedI', async (bufnr, info) => {
+      changedTs = Date.now()
+      let curr = changedTs
+      if (!lastInsert || changedTs - lastInsert > 300) return
       lastInsert = null
       let doc = workspace.getDocument(bufnr)
       if (!doc || doc.isCommandLine || !doc.attached) return
       let { triggerSignatureHelp, formatOnType } = this.preferences
-      if (!triggerSignatureHelp && !formatOnType) return
-      let [pos, line] = await nvim.eval('[coc#util#cursor(), getline(".")]') as [[number, number], string]
-      let pre = pos[1] == 0 ? '' : line.slice(pos[1] - 1, pos[1])
-      if (!pre || isWord(pre)) return
-      await this.tryFormatOnType(pre, bufnr)
+      // if (!triggerSignatureHelp && !formatOnType) return
+      let pre = info.pre[info.pre.length - 1]
+      if (!pre) return
+      if (formatOnType && !isWord(pre)) {
+        await this.tryFormatOnType(pre, bufnr)
+      }
       if (triggerSignatureHelp && languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
+        if (changedTs > curr || (insertLeaveTs && insertLeaveTs > curr)) return
         try {
-          let [mode, cursor] = await nvim.eval('[mode(),coc#util#cursor()]') as [string, [number, number]]
-          if (mode !== 'i') return
-          await this.triggerSignatureHelp(doc, { line: cursor[0], character: cursor[1] })
+          await this.triggerSignatureHelp(doc, { line: info.lnum - 1, character: info.pre.length })
         } catch (e) {
           logger.error(`Error on signature help:`, e)
         }
       }
     }, null, this.disposables)
-
     events.on('InsertLeave', async bufnr => {
-      if (!this.preferences.formatOnInsertLeave) return
-      await wait(30)
-      if (workspace.insertMode) return
+      insertLeaveTs = Date.now()
+      let { formatOnInsertLeave, formatOnType } = this.preferences
+      if (!formatOnInsertLeave || !formatOnType) return
       await this.tryFormatOnType('\n', bufnr, true)
     }, null, this.disposables)
 
@@ -926,14 +926,17 @@ export default class Handler {
     if (snippetManager.getSession(bufnr) != null) return
     let doc = workspace.getDocument(bufnr)
     if (!doc || !doc.attached) return
-    if (!languages.hasOnTypeProvider(ch, doc.textDocument)) return
     const filetypes = this.preferences.formatOnTypeFiletypes
     if (filetypes.length && !filetypes.includes(doc.filetype)) {
       // Only check formatOnTypeFiletypes when set, avoid breaking change
       return
     }
+    if (!languages.hasOnTypeProvider(ch, doc.textDocument)) return
     let position = await window.getCursorPosition()
     let origLine = doc.getline(position.line)
+    if (insertLeave && /^\s*$/.test(origLine)) {
+      return
+    }
     let pos: Position = insertLeave ? { line: position.line, character: origLine.length } : position
     let { changedtick } = doc
     await synchronizeDocument(doc)
@@ -1116,13 +1119,13 @@ export default class Handler {
           this.signaturePosition = position
         }
         let { signaturePreferAbove, signatureFloatMaxWidth, signatureMaxHeight } = this.preferences
-        this.signatureFactory.show(docs, {
+        await this.signatureFactory.show(docs, {
           maxWidth: signatureFloatMaxWidth,
           maxHeight: signatureMaxHeight,
           preferTop: signaturePreferAbove,
           autoHide: false,
           offsetX: offset
-        }).logError()
+        })
         // show float
       } else {
         this.documentLines = docs.reduce((p, c) => {
