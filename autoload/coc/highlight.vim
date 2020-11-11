@@ -1,7 +1,7 @@
 
 " highlight LSP range,
 " TODO don't know how to count UTF16 code point, should work most cases.
-function! coc#highlight#range(bufnr, hlGroup, range) abort
+function! coc#highlight#range(bufnr, srcId, hlGroup, range) abort
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
   if !bufloaded(bufnr)
     return
@@ -19,7 +19,7 @@ function! coc#highlight#range(bufnr, hlGroup, range) abort
     if colStart == colEnd
       continue
     endif
-    call coc#highlight#add_highlight(bufnr, -1, a:hlGroup, lnum - 1, colStart, colEnd)
+    call coc#highlight#add_highlight(bufnr, a:srcId, a:hlGroup, lnum - 1, colStart, colEnd)
   endfor
 endfunction
 
