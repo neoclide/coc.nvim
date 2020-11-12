@@ -22,9 +22,9 @@ function! s:checkVersion() abort
       echohl None
       sleep 2
     else
-      if has('nvim') && !has('nvim-0.4.3')
+      if has('nvim') && !has('nvim-0.4.0')
         echohl WarningMsg
-        echom "coc.nvim works best on neovim >= 0.4.3, consider upgrade your neovim."
+        echom "coc.nvim works best on neovim >= 0.4.0, consider upgrade your neovim."
         echom "You can add this to your vimrc to avoid this message:"
         echom "    let g:coc_disable_startup_warning = 1"
         echom "Note that some features may behave incorrectly."
@@ -138,6 +138,11 @@ function! s:SearchOptions(...) abort
   return join(list, "\n")
 endfunction
 
+function! s:LoadedExtensions(...) abort
+  let list = CocAction('loadedExtensions')
+  return join(list, "\n")
+endfunction
+
 function! s:InstallOptions(...)abort
   let list = ['-terminal', '-sync']
   return join(list, "\n")
@@ -202,7 +207,6 @@ function! s:Disable() abort
   augroup coc_nvim
     autocmd!
   augroup end
-  call coc#util#close_floats()
   call coc#rpc#request('detach', [])
   echohl MoreMsg
     echom '[coc.nvim] Event disabled'
@@ -260,14 +264,16 @@ function! s:Enable(initialize)
       autocmd DirChanged        * call s:Autocmd('DirChanged', get(v:event, 'cwd', ''))
       autocmd TermOpen          * call s:Autocmd('TermOpen', +expand('<abuf>'))
       autocmd TermClose         * call s:Autocmd('TermClose', +expand('<abuf>'))
-      autocmd CursorMoved       * call coc#float#nvim_refresh_scrollbar()
-      autocmd WinEnter          * call coc#float#nvim_check_close(win_getid())
-      autocmd CursorHold        * call coc#float#nvim_check_related()
+      autocmd CursorMoved       * call coc#float#nvim_refresh_scrollbar(win_getid())
+      autocmd WinEnter          * call coc#float#nvim_win_enter(win_getid())
       if exists('##WinClosed')
-        autocmd WinClosed       * call coc#float#nvim_close_related(+expand('<afile>'))
+        autocmd WinClosed       * call coc#float#close_related(+expand('<afile>'))
       endif
     endif
-    autocmd WinLeave            * call coc#util#clear_highlights()
+    if has('nvim-0.4.0') || has('patch-8.1.1719')
+      autocmd CursorHold        * call coc#float#check_related()
+    endif
+    autocmd WinLeave            * call coc#highlight#clear_highlights()
     autocmd WinLeave            * call s:Autocmd('WinLeave', win_getid())
     autocmd WinEnter            * call s:Autocmd('WinEnter', win_getid())
     autocmd BufWinLeave         * call s:Autocmd('BufWinLeave', +expand('<abuf>'), bufwinid(+expand('<abuf>')))
@@ -290,7 +296,7 @@ function! s:Enable(initialize)
     autocmd CursorHold          * call s:Autocmd('CursorHold', +expand('<abuf>'))
     autocmd CursorHoldI         * call s:Autocmd('CursorHoldI', +expand('<abuf>'))
     autocmd BufNewFile,BufReadPost * call s:Autocmd('BufCreate', +expand('<abuf>'))
-    autocmd BufUnload           * call s:SyncAutocmd('BufUnload', +expand('<abuf>'))
+    autocmd BufUnload           * call s:Autocmd('BufUnload', +expand('<abuf>'))
     autocmd BufWritePre         * call s:SyncAutocmd('BufWritePre', +expand('<abuf>'))
     autocmd FocusGained         * if mode() !~# '^c' | call s:Autocmd('FocusGained') | endif
     autocmd VimResized          * call s:Autocmd('VimResized', &columns, &lines)
@@ -308,14 +314,18 @@ function! s:Enable(initialize)
 endfunction
 
 function! s:Hi() abort
+  hi default CocErrorSign    ctermfg=Red     guifg=#ff0000 guibg=NONE
+  hi default CocWarningSign  ctermfg=Brown   guifg=#ff922b guibg=NONE
+  hi default CocInfoSign     ctermfg=Yellow  guifg=#fab005 guibg=NONE
+  hi default CocHintSign     ctermfg=Blue    guifg=#15aabf guibg=NONE
+  hi default CocSelectedText ctermfg=Red     guifg=#fb4934 guibg=NONE
+  hi default CocCodeLens     ctermfg=Gray    guifg=#999999 guibg=NONE
   hi default CocUnderline    cterm=underline gui=underline
   hi default CocBold         term=bold cterm=bold gui=bold
-  hi default CocErrorSign    ctermfg=Red     guifg=#ff0000
-  hi default CocWarningSign  ctermfg=Brown   guifg=#ff922b
-  hi default CocInfoSign     ctermfg=Yellow  guifg=#fab005
-  hi default CocHintSign     ctermfg=Blue    guifg=#15aabf
-  hi default CocSelectedText ctermfg=Red     guifg=#fb4934
-  hi default CocCodeLens     ctermfg=Gray    guifg=#999999
+  hi default CocItalic       term=italic cterm=italic gui=italic
+  hi default CocMarkdownLink ctermfg=Blue    guifg=#15aabf guibg=NONE
+  hi default link CocMarkdownCode     markdownCode
+  hi default link CocMarkdownHeader   markdownH1
   hi default link CocMenuSel          PmenuSel
   hi default link CocErrorFloat       CocErrorSign
   hi default link CocWarningFloat     CocWarningSign
@@ -336,6 +346,9 @@ function! s:Hi() abort
     hi default link CocFloating NormalFloat
   else
     hi default link CocFloating Pmenu
+  endif
+  if has('nvim') && (!exists('*sign_getdefined') || empty(sign_getdefined('CocCurrentLine')))
+    sign define CocCurrentLine linehl=CocMenuSel
   endif
   if has('nvim-0.5.0')
     hi default CocCursorTransparent gui=strikethrough blend=100
@@ -413,6 +426,7 @@ command! -nargs=0 CocLocalConfig  :call coc#rpc#notify('openLocalConfig', [])
 command! -nargs=0 CocRestart      :call coc#rpc#restart()
 command! -nargs=0 CocStart        :call coc#rpc#start_server()
 command! -nargs=0 CocRebuild      :call coc#util#rebuild()
+command! -nargs=1 -complete=custom,s:LoadedExtensions  CocWatch    :call coc#rpc#notify('watchExtension', [<f-args>])
 command! -nargs=+ -complete=custom,s:SearchOptions  CocSearch    :call coc#rpc#notify('search', [<f-args>])
 command! -nargs=+ -complete=custom,s:ExtensionList  CocUninstall :call CocActionAsync('uninstallExtension', <f-args>)
 command! -nargs=* -complete=custom,s:CommandList -range CocCommand :call coc#rpc#notify('runCommand', [<f-args>])
@@ -456,8 +470,8 @@ nnoremap <silent> <Plug>(coc-references)            :<C-u>call       CocActionAs
 nnoremap <silent> <Plug>(coc-references-used)       :<C-u>call       CocActionAsync('jumpUsed')<CR>
 nnoremap <silent> <Plug>(coc-openlink)              :<C-u>call       CocActionAsync('openLink')<CR>
 nnoremap <silent> <Plug>(coc-fix-current)           :<C-u>call       CocActionAsync('doQuickfix')<CR>
-nnoremap <silent> <Plug>(coc-float-hide)            :<C-u>call       coc#util#float_hide()<CR>
-nnoremap <silent> <Plug>(coc-float-jump)            :<c-u>call       coc#util#float_jump()<cr>
+nnoremap <silent> <Plug>(coc-float-hide)            :<C-u>call       coc#float#close_all()<CR>
+nnoremap <silent> <Plug>(coc-float-jump)            :<c-u>call       coc#float#jump()<cr>
 nnoremap <silent> <Plug>(coc-command-repeat)        :<C-u>call       CocAction('repeatCommand')<CR>
 nnoremap <silent> <Plug>(coc-refactor)              :<C-u>call       CocActionAsync('refactor')<CR>
 inoremap <silent>                          <Plug>CocRefresh <C-r>=coc#_complete()<CR>

@@ -1,14 +1,13 @@
 import { Neovim } from '@chemzqm/neovim'
-import rimraf from 'rimraf'
-import fs from 'fs'
+import fs from 'fs-extra'
 import os from 'os'
 import path from 'path'
 import { URI } from 'vscode-uri'
 import extensions from '../../extensions'
 import { ListContext, ListItem } from '../../types'
 import { wait } from '../../util'
-import { readdirAsync } from '../../util/fs'
 import workspace from '../../workspace'
+import window from '../../window'
 import BasicList from '../basic'
 const logger = require('../../util/logger')('list-extensions')
 
@@ -66,7 +65,7 @@ export default class ExtensionList extends BasicList {
 
     this.addAction('help', async item => {
       let { root } = item.data
-      let files = await readdirAsync(root)
+      let files = await fs.readdir(root)
       let file = files.find(f => /^readme/i.test(f))
       if (file) {
         let escaped = await nvim.call('fnameescape', [path.join(root, file)])
@@ -83,13 +82,13 @@ export default class ExtensionList extends BasicList {
       let { root, isLocal } = item.data
       let { npm } = extensions
       if (isLocal) {
-        workspace.showMessage(`Can't fix for local extension.`, 'warning')
+        window.showMessage(`Can't fix for local extension.`, 'warning')
         return
       }
       if (!npm) return
       let folder = path.join(root, 'node_modules')
       if (fs.existsSync(folder)) {
-        rimraf.sync(folder)
+        fs.removeSync(folder)
       }
       let terminal = await workspace.createTerminal({
         cwd: root

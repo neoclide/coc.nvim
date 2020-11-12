@@ -4,7 +4,7 @@ import { CancellationToken, Disposable, Emitter, Event, Position, Range, TextEdi
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import events from '../events'
-import { BufferOption, ChangeInfo, DidChangeTextDocumentParams, Env } from '../types'
+import { ChangeInfo, DidChangeTextDocumentParams, Env } from '../types'
 import { distinct, group } from '../util/array'
 import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
@@ -15,6 +15,21 @@ import { Chars } from './chars'
 const logger = require('../util/logger')('model-document')
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
+
+export interface BufferOption {
+  eol: number
+  size: number
+  winid: number
+  previewwindow: boolean
+  variables: { [key: string]: any }
+  bufname: string
+  fullpath: string
+  buftype: string
+  filetype: string
+  iskeyword: string
+  changedtick: number
+  lines: string[]
+}
 
 // wrapper class of TextDocument
 export default class Document {
@@ -138,8 +153,7 @@ export default class Document {
    */
   public async init(nvim: Neovim, token: CancellationToken): Promise<boolean> {
     this.nvim = nvim
-    let { buffer } = this
-    let opts: BufferOption = await nvim.call('coc#util#get_bufoptions', buffer.id)
+    let opts: BufferOption = await nvim.call('coc#util#get_bufoptions', [this.bufnr, this.maxFileSize])
     if (opts == null) return false
     let buftype = this.buftype = opts.buftype
     this._previewwindow = opts.previewwindow
@@ -148,9 +162,10 @@ export default class Document {
     this.variables = opts.variables
     this._changedtick = opts.changedtick
     this.eol = opts.eol == 1
-    let uri = this._uri = getUri(opts.fullpath, buffer.id, buftype, this.env.isCygwin)
+    let uri = this._uri = getUri(opts.fullpath, this.bufnr, buftype, this.env.isCygwin)
     if (token.isCancellationRequested) return false
     if (this.shouldAttach) {
+      this.lines = opts.lines
       let res = await this.attach()
       if (!res) return false
       this._attached = true
@@ -167,13 +182,8 @@ export default class Document {
   }
 
   private async attach(): Promise<boolean> {
-    if (this.env.isVim) {
-      this.lines = await this.nvim.call('getbufline', [this.bufnr, 1, '$'])
-      return true
-    }
-    let attached = await this.buffer.attach(false)
+    let attached = await this.buffer.attach(true)
     if (!attached) return false
-    this.lines = await this.buffer.lines
     let lastChange: number
     this.buffer.listen('lines', (...args: any[]) => {
       // avoid neovim send same change multiple times after checktime

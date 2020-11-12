@@ -8,6 +8,7 @@ import languages from '../languages'
 import services from '../services'
 import { disposeAll, wait } from '../util'
 import workspace from '../workspace'
+import window from '../window'
 const logger = require('../util/logger')('codelens')
 
 export interface CodeLensInfo {
@@ -51,22 +52,14 @@ export default class CodeLensManager {
     workspace.onDidChangeConfiguration(e => {
       this.setConfiguration(e)
     }, null, this.disposables)
-
     events.on(['TextChanged', 'TextChangedI'], async () => {
       if (!this.enabled) return
       this.resolveCodeLens.clear()
     }, null, this.disposables)
-
     events.on('CursorMoved', () => {
       if (!this.enabled) return
       this.resolveCodeLens()
     }, null, this.disposables)
-
-    events.on('BufUnload', bufnr => {
-      if (!this.enabled) return
-      this.clear(bufnr)
-    }, null, this.disposables)
-
     events.on('BufEnter', bufnr => {
       if (!this.enabled) return
       setTimeout(async () => {
@@ -199,7 +192,7 @@ export default class CodeLensManager {
     let line = (await nvim.call('line', '.') as number) - 1
     let { codeLenses } = this.codeLensMap.get(bufnr) || {}
     if (!codeLenses || codeLenses.length == 0) {
-      workspace.showMessage('No codeLenses available', 'warning')
+      window.showMessage('No codeLenses available', 'warning')
       return
     }
     let list: Map<number, CodeLens[]> = new Map()
@@ -221,17 +214,17 @@ export default class CodeLensManager {
       }
     }
     if (!current) {
-      workspace.showMessage('No codeLenses available', 'warning')
+      window.showMessage('No codeLenses available', 'warning')
       return
     }
     let commands = current.map(o => o.command)
     commands = commands.filter(c => c.command != null && c.command != '')
     if (commands.length == 0) {
-      workspace.showMessage('CodeLenses command not found', 'warning')
+      window.showMessage('CodeLenses command not found', 'warning')
     } else if (commands.length == 1) {
       commandManager.execute(commands[0])
     } else {
-      let res = await workspace.showQuickpick(commands.map(c => c.title))
+      let res = await window.showQuickpick(commands.map(c => c.title))
       if (res == -1) return
       commandManager.execute(commands[res])
     }

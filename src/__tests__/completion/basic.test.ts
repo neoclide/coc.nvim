@@ -222,7 +222,7 @@ describe('completion', () => {
     await helper.waitPopup()
     await nvim.eval('feedkeys("\\<down>","in")')
     await helper.wait(800)
-    let hasFloat = await nvim.call('coc#util#has_float')
+    let hasFloat = await nvim.call('coc#float#has_float')
     expect(hasFloat).toBe(1)
     sources.removeSource(source)
     let res = await helper.visible('foo', 'float')

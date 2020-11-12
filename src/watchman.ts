@@ -140,6 +140,7 @@ export default class Watchman {
   }
 
   public dispose(): void {
+    if (this._disposed) return
     this._disposed = true
     this.client.removeAllListeners()
     this.client.end()

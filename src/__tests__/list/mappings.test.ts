@@ -3,7 +3,7 @@ import clipboardy from 'clipboardy'
 import { CancellationToken } from 'vscode-jsonrpc'
 import BasicList from '../../list/basic'
 import manager from '../../list/manager'
-import workspace from '../../workspace'
+import window from '../../window'
 import { ListContext, IList, ListItem, QuickfixItem } from '../../types'
 import helper from '../helper'
 
@@ -50,7 +50,7 @@ const lineList: IList = {
   actions: [{
     name: 'open',
     execute: async item => {
-      await workspace.moveTo({
+      await window.moveTo({
         line: (item as ListItem).data.line,
         character: 0
       })
@@ -514,7 +514,7 @@ describe('User mappings', () => {
     await nvim.eval('feedkeys("\\<C-b>", "in")')
     await helper.wait(100)
     expect(manager.isActivated).toBe(true)
-    await nvim.call('coc#list#stop_prompt', [])
+    await nvim.call('coc#prompt#stop_prompt', ['list'])
   }, 20000)
 
   it('should execute prompt mappings', async () => {

@@ -18,6 +18,7 @@ import sources from './sources'
 import { Autocmd, OutputChannel, PatternType } from './types'
 import { CONFIG_FILE_NAME } from './util'
 import workspace from './workspace'
+import window from './window'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -90,7 +91,7 @@ export default class Plugin extends EventEmitter {
           await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args))
         } catch (e) {
           logger.error(`Error on autocmd ${autocmd.event}`, e)
-          workspace.showMessage(`Error on autocmd ${autocmd.event}: ${e.message}`)
+          window.showMessage(`Error on autocmd ${autocmd.event}: ${e.message}`)
         }
       }
     })
@@ -109,7 +110,7 @@ export default class Plugin extends EventEmitter {
       snippetManager.cancel()
     })
     this.addAction('openLocalConfig', async () => {
-      await workspace.openLocalConfig()
+      await window.openLocalConfig()
     })
     this.addAction('openLog', async () => {
       let file = logger.getLogFile()
@@ -157,7 +158,7 @@ export default class Plugin extends EventEmitter {
     })
     this.addAction('showInfo', async () => {
       if (!this.infoChannel) {
-        this.infoChannel = workspace.createOutputChannel('info')
+        this.infoChannel = window.createOutputChannel('info')
       } else {
         this.infoChannel.clear()
       }
@@ -331,6 +332,12 @@ export default class Plugin extends EventEmitter {
     this.addAction('extensionStats', () => {
       return extensions.getExtensionStates()
     })
+    this.addAction('loadedExtensions', () => {
+      return extensions.loadedExtensions()
+    })
+    this.addAction('watchExtension', (id: string) => {
+      return extensions.watchExtension(id)
+    })
     this.addAction('activeExtension', name => {
       return extensions.activate(name)
     })
@@ -418,7 +425,7 @@ export default class Plugin extends EventEmitter {
     workspace.onDidOpenTextDocument(async doc => {
       if (!doc.uri.endsWith(CONFIG_FILE_NAME)) return
       if (extensions.has('coc-json')) return
-      workspace.showMessage(`Run :CocInstall coc-json for json intellisense`, 'more')
+      window.showMessage(`Run :CocInstall coc-json for json intellisense`, 'more')
     })
   }
 

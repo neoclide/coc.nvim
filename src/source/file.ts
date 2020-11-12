@@ -80,15 +80,20 @@ export default class File extends Source {
     let res = []
     let part = pathstr.endsWith("/") ? pathstr : path.dirname(pathstr)
     let dir = path.isAbsolute(pathstr) ? part : path.join(root, part)
-    let stat = await statAsync(dir)
-    if (stat && stat.isDirectory()) {
-      let files = await util.promisify(fs.readdir)(dir)
-      files = this.filterFiles(files)
-      let items = await Promise.all(files.map(filename => this.getFileItem(dir, filename)))
-      res = res.concat(items)
+    try {
+      let stat = await statAsync(dir)
+      if (stat && stat.isDirectory()) {
+        let files = await util.promisify(fs.readdir)(dir)
+        files = this.filterFiles(files)
+        let items = await Promise.all(files.map(filename => this.getFileItem(dir, filename)))
+        res = res.concat(items)
+      }
+      res = res.filter(item => item != null)
+      return res
+    } catch (e) {
+      logger.error(`Error on list files:`, e)
+      return res
     }
-    res = res.filter(item => item != null)
-    return res
   }
 
   public get trimSameExts(): string[] {

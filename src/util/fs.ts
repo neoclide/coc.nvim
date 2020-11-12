@@ -1,5 +1,5 @@
 import { exec } from 'child_process'
-import fs from 'fs'
+import fs from 'fs-extra'
 import net from 'net'
 import os from 'os'
 import path from 'path'
@@ -13,7 +13,7 @@ export type OnReadLine = (line: string) => void
 export async function statAsync(filepath: string): Promise<fs.Stats | null> {
   let stat = null
   try {
-    stat = await util.promisify(fs.stat)(filepath)
+    stat = await fs.stat(filepath)
   } catch (e) { }
   return stat
 }
@@ -25,7 +25,7 @@ export async function isDirectory(filepath: string): Promise<boolean> {
 
 export async function unlinkAsync(filepath: string): Promise<void> {
   try {
-    await util.promisify(fs.unlink)(filepath)
+    await fs.unlink(filepath)
   } catch (e) { }
 }
 
@@ -190,7 +190,7 @@ export function readFileLine(fullpath: string, count: number): Promise<string> {
 }
 
 export async function writeFile(fullpath: string, content: string): Promise<void> {
-  await util.promisify(fs.writeFile)(fullpath, content, { encoding: 'utf8' })
+  await fs.writeFile(fullpath, content, { encoding: 'utf8' })
 }
 
 export function validSocket(path: string): Promise<boolean> {
@@ -209,10 +209,6 @@ export function validSocket(path: string): Promise<boolean> {
 export function isFile(uri: string): boolean {
   return uri.startsWith('file:')
 }
-
-export const readdirAsync = util.promisify(fs.readdir)
-
-export const realpathAsync = util.promisify(fs.realpath)
 
 export function parentDirs(pth: string): string[] {
   let { root, dir } = path.parse(pth)

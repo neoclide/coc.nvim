@@ -1,140 +1,175 @@
-import { Event, Emitter } from 'vscode-languageserver-protocol'
-import { Neovim, Window } from '@chemzqm/neovim'
-import FloatFactory from './floatFactory'
-import { Env } from '../types'
+import { Buffer, Neovim } from '@chemzqm/neovim'
+import { CancellationToken, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
+import { DialogPreferences } from '..'
 import events from '../events'
+import { disposeAll } from '../util'
+import Window from './window'
 const logger = require('../util/logger')('model-menu')
 
+export interface MenuConfig {
+  items: string[]
+  title?: string
+}
+
+/**
+ * Select single item from menu at cursor position.
+ */
 export default class Menu {
-  private floatFactory: FloatFactory
-  private _onDidChoose = new Emitter<number>()
-  private _onDidCancel = new Emitter<void>()
+  private bufnr: number
+  private win: Window
   private currIndex = 0
-  private total = 0
-  public readonly onDidChoose: Event<number> = this._onDidChoose.event
-  public readonly onDidCancel: Event<void> = this._onDidCancel.event
-  constructor(private nvim: Neovim, private env: Env) {
-    let floatFactory = this.floatFactory = new FloatFactory(
-      nvim, env, false, 20, 80, false)
-    if (!env.isVim) {
-      nvim.command(`sign define CocCurrentLine linehl=PmenuSel`, true)
+  private total: number
+  private disposables: Disposable[] = []
+  private keyMappings: Map<string, (character: string) => void> = new Map()
+  private readonly _onDidClose = new Emitter<number>()
+  public readonly onDidClose: Event<number> = this._onDidClose.event
+  constructor(private nvim: Neovim, private config: MenuConfig, token?: CancellationToken) {
+    this.total = config.items.length
+    if (token) {
+      token.onCancellationRequested(() => {
+        this.win?.close()
+      })
     }
-    floatFactory.on('show', () => {
-      this.doHighlight(0)
-      choosed = undefined
+    this.disposables.push(this._onDidClose)
+    this.addKeymappings()
+  }
+
+  private attachEvents(): void {
+    events.on('InputChar', this.onInputChar.bind(this), null, this.disposables)
+    events.on('BufWinLeave', bufnr => {
+      if (bufnr == this.bufnr) {
+        this._onDidClose.fire(-1)
+        this.bufnr = undefined
+        this.win = undefined
+        this.dispose()
+      }
+    }, null, this.disposables)
+  }
+
+  private addKeymappings(): void {
+    let { nvim } = this
+    this.addKeys(['<esc>', '<C-c>'], () => {
+      this._onDidClose.fire(-1)
+      this.dispose()
     })
-    floatFactory.on('close', () => {
-      firstNumber = undefined
-      nvim.call('coc#list#stop_prompt', [], true)
-      if (choosed != null && choosed < this.total) {
-        this._onDidChoose.fire(choosed)
-        choosed = undefined
-      } else {
-        this._onDidCancel.fire()
-      }
+    this.addKeys(['\r', '<cr>'], () => {
+      this._onDidClose.fire(this.currIndex)
+      this.dispose()
     })
-    let timer: NodeJS.Timeout
-    let firstNumber: number
-    let choosed: number
-    events.on('MenuInput', (character, mode) => {
-      if (mode) return
-      if (timer) clearTimeout(timer)
-      // esc & `<C-c>`
-      if (character == '\x1b' || character == '\x03' || !this.window) {
-        this.hide()
-        return
-      }
-      if (character == '\r') {
-        choosed = this.currIndex
-        this.hide()
-        return
-      }
-      if (character >= '0' && character <= '9') {
-        let n = parseInt(character, 10)
-        if (isNaN(n) || n > this.total) return
-        if (firstNumber == null && n == 0) return
-        if (firstNumber) {
-          let count = firstNumber * 10 + n
-          firstNumber = undefined
-          choosed = count - 1
-          this.hide()
-          return
-        }
-        if (this.total < 10 || n * 10 > this.total) {
-          choosed = n - 1
-          this.hide()
-          return
-        }
-        timer = setTimeout(async () => {
-          choosed = n - 1
-          this.hide()
-          firstNumber = undefined
-        }, 200)
-        firstNumber = n
-        return
-      }
-      firstNumber = undefined
-      if (character == 'G') {
-        this.currIndex = this.total - 1
-      } else if (['j', '\x0e', '\t'].includes(character)) {
-        this.currIndex = this.currIndex >= this.total - 1 ? 0 : this.currIndex + 1
-      } else if (['k', '\x10'].includes(character)) {
-        this.currIndex = this.currIndex == 0 ? this.total - 1 : this.currIndex - 1
-      } else {
-        return
-      }
+    let setCursorIndex = idx => {
+      if (!this.win) return
       nvim.pauseNotification()
-      if (this.env.isVim) {
-        nvim.call('win_execute', [this.window.id, `exe ${this.currIndex + 1}`], true)
-      } else {
-        nvim.call('coc#util#win_gotoid', [this.window.id], true)
-        nvim.call('cursor', [this.currIndex + 1, 1], true)
-        this.doHighlight(this.currIndex)
-        nvim.command('noa wincmd p', true)
-      }
+      this.setCursor(idx)
+      this.win?.refreshScrollbar()
       nvim.command('redraw', true)
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       nvim.resumeNotification(false, true)
+    }
+    this.addKeys('<C-f>', async () => {
+      await this.win?.scrollForward()
+    })
+    this.addKeys('<C-b>', async () => {
+      await this.win?.scrollBackward()
+    })
+    this.addKeys(['j', '<down>', '<tab>', '<C-n>'], () => {
+      // next
+      let idx = this.currIndex == this.total - 1 ? 0 : this.currIndex + 1
+      setCursorIndex(idx)
+    })
+    this.addKeys(['k', '<up>', '<s-tab>', '<C-p>'], () => {
+      // previous
+      let idx = this.currIndex == 0 ? this.total - 1 : this.currIndex - 1
+      setCursorIndex(idx)
+    })
+    this.addKeys(['g'], () => {
+      setCursorIndex(0)
+    })
+    this.addKeys(['G'], () => {
+      setCursorIndex(this.total - 1)
+    })
+    let timer: NodeJS.Timeout
+    let firstNumber: number
+    this.addKeys(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], character => {
+      if (timer) clearTimeout(timer)
+      let n = parseInt(character, 10)
+      if (isNaN(n) || n > this.total) return
+      if (firstNumber == null && n == 0) return
+      if (firstNumber) {
+        let count = firstNumber * 10 + n
+        firstNumber = undefined
+        this._onDidClose.fire(count - 1)
+        this.dispose()
+        return
+      }
+      if (this.total < 10 || n * 10 > this.total) {
+        this._onDidClose.fire(n - 1)
+        this.dispose()
+        return
+      }
+      timer = setTimeout(async () => {
+        this._onDidClose.fire(n - 1)
+        this.dispose()
+      }, 200)
+      firstNumber = n
     })
   }
 
-  public get window(): Window {
-    return this.floatFactory.window
-  }
-
-  private doHighlight(index: number): void {
+  public async show(preferences: DialogPreferences = {}): Promise<number> {
     let { nvim } = this
-    if (this.env.isVim) return
-    let buf = this.floatFactory.buffer
-    if (!buf) return
-    nvim.command(`sign unplace 6 buffer=${buf.id}`, true)
-    nvim.command(`sign place 6 line=${index + 1} name=CocCurrentLine buffer=${buf.id}`, true)
-  }
-
-  public show(items: string[], title?: string): void {
+    let { title, items } = this.config
+    let opts: any = {}
+    if (title) opts.title = title
+    if (preferences.maxHeight) opts.maxHeight = preferences.maxHeight
+    if (preferences.maxWidth) opts.maxWidth = preferences.maxWidth
+    if (preferences.floatHighlight) opts.highlight = preferences.floatHighlight
+    if (preferences.floatBorderHighlight) opts.borderhighlight = [preferences.floatBorderHighlight]
     let lines = items.map((v, i) => {
       if (i < 99) return `${i + 1}. ${v}`
       return v
     })
-    this.total = lines.length
-    this.currIndex = 0
-    this.floatFactory.show([{
-      content: lines.join('\n'),
-      filetype: 'menu'
-    }], { title, cursorline: this.env.isVim }).then(() => {
-      if (this.window) {
-        this.nvim.call('coc#list#start_prompt', ['MenuInput'], true)
-      } else {
-        // failed to create window
-        this._onDidCancel.fire()
-      }
-    }, e => {
-      logger.error(e)
-    })
+    let res = await nvim.call('coc#float#create_menu', [lines, opts]) as [number, number]
+    this.win = new Window(nvim, res[0], res[1])
+    this.bufnr = res[1]
+    this.attachEvents()
+    nvim.call('coc#prompt#start_prompt', ['menu'], true)
+    return res[0]
   }
 
-  public hide(): void {
-    this.nvim.call('coc#list#stop_prompt', [], true)
-    this.floatFactory.close()
+  public get buffer(): Buffer {
+    return this.bufnr ? this.nvim.createBuffer(this.bufnr) : undefined
+  }
+
+  public dispose(): void {
+    disposeAll(this.disposables)
+    this.disposables = []
+    this.nvim.call('coc#prompt#stop_prompt', ['menu'], true)
+    this.win?.close()
+    this.win = undefined
+  }
+
+  private async onInputChar(session: string, character: string): Promise<void> {
+    if (session != 'menu' || !this.win) return
+    let fn = this.keyMappings.get(character)
+    if (fn) {
+      await Promise.resolve(fn(character))
+    } else {
+      logger.warn(`Ignored key press: ${character}`)
+    }
+  }
+
+  private setCursor(index: number): void {
+    if (!this.win) return
+    this.currIndex = index
+    this.win.setCursor(index)
+  }
+
+  private addKeys(keys: string | string[], fn: (character: string) => void): void {
+    if (Array.isArray(keys)) {
+      for (let key of keys) {
+        this.keyMappings.set(key, fn)
+      }
+    } else {
+      this.keyMappings.set(keys, fn)
+    }
   }
 }

@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { ListMode } from '../types'
 import '../util/extensions'
-import workspace from '../workspace'
+import window from '../window'
 import ListConfiguration, { validKeys } from './configuration'
 import { ListManager } from './manager'
 const logger = require('../util/logger')('list-mappings')
@@ -136,10 +136,10 @@ export default class Mappings {
               break
             }
           }
-          if (!find) workspace.showMessage(`Invalid mappings key: ${key}`, 'error')
+          if (!find) window.showMessage(`Invalid mappings key: ${key}`, 'error')
         }
       } else {
-        workspace.showMessage(`Invalid mappings key: ${key}`, 'error')
+        window.showMessage(`Invalid mappings key: ${key}`, 'error')
       }
     }
     return res
@@ -198,8 +198,8 @@ export default class Mappings {
 
   private async onError(msg: string): Promise<void> {
     let { nvim } = this
-    await nvim.call('coc#list#stop_prompt', [])
-    workspace.showMessage(msg, 'error')
+    await nvim.call('coc#prompt#stop_prompt', ['list'])
+    window.showMessage(msg, 'error')
     this.manager.prompt.start()
   }
 

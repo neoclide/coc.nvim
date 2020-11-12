@@ -1,6 +1,7 @@
 import { Range } from 'vscode-languageserver-protocol'
 import { Neovim } from '@chemzqm/neovim'
 import workspace from '../../workspace'
+import window from '../../window'
 import { SnippetSession } from '../../snippets/session'
 import helper from '../helper'
 
@@ -27,7 +28,7 @@ describe('SnippetSession#start', () => {
     let session = new SnippetSession(nvim, buf.id)
     let res = await session.start('bar$0')
     expect(res).toBe(false)
-    let pos = await workspace.getCursorPosition()
+    let pos = await window.getCursorPosition()
     expect(pos).toEqual({ line: 0, character: 3 })
   })
 
@@ -60,7 +61,7 @@ describe('SnippetSession#start', () => {
     let session = new SnippetSession(nvim, buf.id)
     let res = await session.start('bar$0')
     expect(res).toBe(false)
-    let pos = await workspace.getCursorPosition()
+    let pos = await window.getCursorPosition()
     expect(pos).toEqual({ line: 0, character: 3 })
   })
 
@@ -104,7 +105,7 @@ describe('SnippetSession#start', () => {
     expect(line).toBe(' aa bb aa')
     let { mode } = await nvim.mode
     expect(mode).toBe('s')
-    let pos = await workspace.getCursorPosition()
+    let pos = await window.getCursorPosition()
     expect(pos).toEqual({ line: 0, character: 2 })
   })
 
@@ -163,7 +164,7 @@ describe('SnippetSession#start', () => {
     await session.nextPlaceholder()
     await session.nextPlaceholder()
     await session.nextPlaceholder()
-    let pos = await workspace.getCursorPosition()
+    let pos = await window.getCursorPosition()
     expect(pos).toEqual({ line: 0, character: 8 })
   })
 
@@ -174,7 +175,7 @@ describe('SnippetSession#start', () => {
     await session.selectCurrentPlaceholder()
     await helper.wait(100)
     await session.nextPlaceholder()
-    let pos = await workspace.getCursorPosition()
+    let pos = await window.getCursorPosition()
     expect(pos).toEqual({ line: 0, character: 6 })
   })
 
@@ -184,7 +185,7 @@ describe('SnippetSession#start', () => {
     await session.start('${foo} ${1:bar}', false)
     await session.selectCurrentPlaceholder()
     await session.nextPlaceholder()
-    let pos = await workspace.getCursorPosition()
+    let pos = await window.getCursorPosition()
     expect(pos).toEqual({ line: 0, character: 2 })
   })
 
@@ -195,7 +196,7 @@ describe('SnippetSession#start', () => {
     await session.selectCurrentPlaceholder()
     await session.nextPlaceholder()
     await session.nextPlaceholder()
-    let pos = await workspace.getCursorPosition()
+    let pos = await window.getCursorPosition()
     expect(pos).toEqual({ line: 0, character: 11 })
   })
 

@@ -54,3 +54,36 @@ function! coc#helper#dict_omit(dict, keys) abort
   endfor
   return res
 endfunction
+
+" Return new dict with keys only
+function! coc#helper#dict_pick(dict, keys) abort
+  let res = {}
+  for key in keys(a:dict)
+    if index(a:keys, key) != -1
+      let res[key] = a:dict[key]
+    endif
+  endfor
+  return res
+endfunction
+
+" support for float values
+function! coc#helper#min(first, ...) abort
+  let val = a:first
+  for i in range(0, len(a:000) - 1)
+    if a:000[i] < val
+      let val = a:000[i]
+    endif
+  endfor
+  return val
+endfunction
+
+" support for float values
+function! coc#helper#max(first, ...) abort
+  let val = a:first
+  for i in range(0, len(a:000) - 1)
+    if a:000[i] > val
+      let val = a:000[i]
+    endif
+  endfor
+  return val
+endfunction

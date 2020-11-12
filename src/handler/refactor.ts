@@ -14,6 +14,7 @@ import { getFileLineCount, isParentFolder, readFileLines } from '../util/fs'
 import { equals } from '../util/object'
 import { byteLength } from '../util/string'
 import workspace from '../workspace'
+import window from '../window'
 const logger = require('../util/logger')('refactor')
 // cases: buffer change event
 
@@ -59,6 +60,7 @@ export interface RefactorConfig {
   openCommand: string
   beforeContext: number
   afterContext: number
+  saveToFile: boolean
 }
 
 export default class Refactor {
@@ -83,7 +85,8 @@ export default class Refactor {
     this.config = {
       afterContext: config.get('afterContext', 3),
       beforeContext: config.get('beforeContext', 3),
-      openCommand: config.get('openCommand', 'edit')
+      openCommand: config.get('openCommand', 'edit'),
+      saveToFile: config.get('saveToFile', true)
     }
   }
 
@@ -140,7 +143,7 @@ export default class Refactor {
     let [, err] = await nvim.resumeNotification()
     if (err) {
       logger.error(err)
-      workspace.showMessage(`Error on open refactor window: ${err}`, 'error')
+      window.showMessage(`Error on open refactor window: ${err}`, 'error')
       return
     }
     let [bufnr, win] = await nvim.eval('[bufnr("%"),win_getid()]') as [number, number]
@@ -358,7 +361,7 @@ export default class Refactor {
     }
     if (removeList.length) changes = changes.filter((_, i) => !removeList.includes(i))
     if (changes.length == 0) {
-      workspace.showMessage('No change.', 'more')
+      window.showMessage('No change.', 'more')
       await buffer.setOption('modified', false)
       return false
     }
@@ -377,7 +380,9 @@ export default class Refactor {
     this.changing = false
     nvim.pauseNotification()
     buffer.setOption('modified', false, true)
-    nvim.command('silent noa wa', true)
+    if (this.config.saveToFile) {
+      nvim.command('silent noa wa', true)
+    }
     this.highlightLineNr()
     await nvim.resumeNotification()
     return true
@@ -500,7 +505,7 @@ export default class Refactor {
         }
         nvim.command('normal! zz', true)
         let [, err] = await nvim.resumeNotification()
-        if (err) workspace.showMessage(`Error on open ${filepath}: ${err}`, 'error')
+        if (err) window.showMessage(`Error on open ${filepath}: ${err}`, 'error')
         if (!valid) {
           this.fromWinid = await nvim.call('win_getid')
         }

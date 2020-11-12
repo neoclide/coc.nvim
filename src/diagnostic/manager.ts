@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import semver from 'semver'
-import { Diagnostic, DiagnosticSeverity, Disposable, Location, Position, Range } from 'vscode-languageserver-protocol'
+import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Disposable, Location, Position, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import events from '../events'
@@ -11,6 +11,7 @@ import { ConfigurationChangeEvent, DiagnosticItem, Documentation, LocationListIt
 import { disposeAll } from '../util'
 import { comparePosition, lineInRange, positionInRange, rangeIntersect } from '../util/position'
 import workspace from '../workspace'
+import window from '../window'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
 import { getSeverityName, getSeverityType, severityLevel, getLocationListItem } from './util'
@@ -43,6 +44,8 @@ export interface DiagnosticConfig {
   virtualTextLines: number
   virtualTextLineSeparator: string
   filetypeMap: object
+  showUnused?: boolean
+  showDeprecated?: boolean
   format?: string
 }
 
@@ -59,8 +62,7 @@ export class DiagnosticManager implements Disposable {
   public init(): void {
     this.setConfiguration()
     let { nvim } = workspace
-    let { maxWindowHeight, maxWindowWidth } = this.config
-    this.floatFactory = new FloatFactory(nvim, workspace.env, false, maxWindowHeight, maxWindowWidth)
+    this.floatFactory = new FloatFactory(nvim)
     this.disposables.push(Disposable.create(() => {
       if (this.timer) clearTimeout(this.timer)
     }))
@@ -157,9 +159,16 @@ export class DiagnosticManager implements Disposable {
     if (!this.shouldValidate(doc)) return
     let { bufnr } = doc
     let buf = this.buffers.get(bufnr)
-    if (buf) return
+    if (buf) {
+      buf.clear()
+      buf.dispose()
+    }
     buf = new DiagnosticBuffer(bufnr, doc.uri, this.config)
     this.buffers.set(bufnr, buf)
+    if (this.enabled) {
+      let diagnostics = this.getDiagnostics(buf.uri)
+      if (diagnostics.length) buf.forceRefresh(diagnostics)
+    }
     buf.onDidRefresh(() => {
       if (['never', 'jump'].includes(this.config.enableMessage)) {
         return
@@ -191,7 +200,7 @@ export class DiagnosticManager implements Disposable {
     }
     let { errorItems } = workspace.configurations
     if (errorItems && errorItems.length) {
-      if (init) workspace.showMessage(`settings file parse error, run ':CocList diagnostics'`, 'error')
+      if (init) window.showMessage(`settings file parse error, run ':CocList diagnostics'`, 'error')
       let entries: Map<string, Diagnostic[]> = new Map()
       for (let item of errorItems) {
         let { uri } = item.location
@@ -258,14 +267,25 @@ export class DiagnosticManager implements Disposable {
    */
   public getDiagnostics(uri: string): Diagnostic[] {
     let collections = this.getCollections(uri)
-    let { level } = this.config
+    let { level, showUnused, showDeprecated } = this.config
     let res: Diagnostic[] = []
     for (let collection of collections) {
       let items = collection.get(uri)
       if (!items) continue
-      if (level && level < DiagnosticSeverity.Hint) {
-        items = items.filter(s => s.severity == null || s.severity <= level)
-      }
+
+      items = items.filter(d => {
+        if (level && level < DiagnosticSeverity.Hint && d.severity && d.severity > level) {
+          return false
+        }
+        if (!showUnused && d.tags?.includes(DiagnosticTag.Unnecessary)) {
+          return false
+        }
+        if (!showDeprecated && d.tags?.includes(DiagnosticTag.Deprecated)) {
+          return false
+        }
+        return true
+      })
+
       res.push(...items)
     }
     res.sort((a, b) => {
@@ -304,7 +324,7 @@ export class DiagnosticManager implements Disposable {
     let diagnostics = this.getDiagnosticsAt(bufnr, cursor)
     if (diagnostics.length == 0) {
       nvim.command('pclose', true)
-      workspace.showMessage(`Empty diagnostics`, 'warning')
+      window.showMessage(`Empty diagnostics`, 'warning')
       return
     }
     let lines: string[] = []
@@ -327,11 +347,11 @@ export class DiagnosticManager implements Disposable {
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
     if (!document) return
-    let offset = await workspace.getOffset()
+    let offset = await window.getOffset()
     if (offset == null) return
     let ranges = this.getSortedRanges(document.uri, severity)
     if (ranges.length == 0) {
-      workspace.showMessage('Empty diagnostics', 'warning')
+      window.showMessage('Empty diagnostics', 'warning')
       return
     }
     let { textDocument } = document
@@ -346,7 +366,7 @@ export class DiagnosticManager implements Disposable {
       }
     }
     if (pos) {
-      await workspace.moveTo(pos)
+      await window.moveTo(pos)
       if (this.config.enableMessage == 'never') return
       await this.echoMessage(false)
     }
@@ -358,10 +378,10 @@ export class DiagnosticManager implements Disposable {
   public async jumpNext(severity?: string): Promise<void> {
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
-    let offset = await workspace.getOffset()
+    let offset = await window.getOffset()
     let ranges = this.getSortedRanges(document.uri, severity)
     if (ranges.length == 0) {
-      workspace.showMessage('Empty diagnostics', 'warning')
+      window.showMessage('Empty diagnostics', 'warning')
       return
     }
     let { textDocument } = document
@@ -376,7 +396,7 @@ export class DiagnosticManager implements Disposable {
       }
     }
     if (pos) {
-      await workspace.moveTo(pos)
+      await window.moveTo(pos)
       if (this.config.enableMessage == 'never') return
       await this.echoMessage(false)
     }
@@ -387,12 +407,18 @@ export class DiagnosticManager implements Disposable {
    */
   public getDiagnosticList(): DiagnosticItem[] {
     let res: DiagnosticItem[] = []
-    const { level } = this.config
+    const { level, showUnused, showDeprecated } = this.config
     for (let collection of this.collections) {
       collection.forEach((uri, diagnostics) => {
         let file = URI.parse(uri).fsPath
         for (let diagnostic of diagnostics) {
           if (diagnostic.severity && diagnostic.severity > level) {
+            continue
+          }
+          if (!showUnused && diagnostic.tags?.includes(DiagnosticTag.Unnecessary)) {
+            continue
+          }
+          if (!showDeprecated && diagnostic.tags?.includes(DiagnosticTag.Deprecated)) {
             continue
           }
           let { start } = diagnostic.range
@@ -498,13 +524,14 @@ export class DiagnosticManager implements Disposable {
       docs.push({ filetype, content: str })
     })
     if (useFloat) {
-      await this.floatFactory.show(docs)
+      let { maxWindowHeight, maxWindowWidth } = this.config
+      await this.floatFactory.show(docs, { maxWidth: maxWindowWidth, maxHeight: maxWindowHeight, modes: ['n'] })
     } else {
       let lines = docs.map(d => d.content).join('\n').split(/\r?\n/)
       if (lines.length) {
         await this.nvim.command('echo ""')
         this.lastMessage = lines[0].slice(0, 30)
-        await workspace.echoLines(lines, truncate)
+        await window.echoLines(lines, truncate)
       }
     }
   }
@@ -525,7 +552,7 @@ export class DiagnosticManager implements Disposable {
   private disposeBuffer(bufnr: number): void {
     let buf = this.buffers.get(bufnr)
     if (!buf) return
-    buf.clear().logError()
+    buf.clear()
     buf.dispose()
     this.buffers.delete(bufnr)
     for (let collection of this.collections) {
@@ -541,7 +568,7 @@ export class DiagnosticManager implements Disposable {
 
   public dispose(): void {
     for (let buf of this.buffers.values()) {
-      buf.clear().logError()
+      buf.clear()
       buf.dispose()
     }
     for (let collection of this.collections) {
@@ -591,6 +618,8 @@ export class DiagnosticManager implements Disposable {
       refreshAfterSave: config.get<boolean>('refreshAfterSave', false),
       refreshOnInsertMode: config.get<boolean>('refreshOnInsertMode', false),
       filetypeMap: config.get<object>('filetypeMap', {}),
+      showUnused: config.get<boolean>('showUnused', true),
+      showDeprecated: config.get<boolean>('showDeprecated', true),
       format: config.get<string>('format', '[%source%code] [%severity] %message')
     }
     this.enabled = config.get<boolean>('enable', true)
@@ -609,6 +638,10 @@ export class DiagnosticManager implements Disposable {
     }
   }
 
+  public getCollectionByName(name: string): DiagnosticCollection {
+    return this.collections.find(o => o.name == name)
+  }
+
   private getCollections(uri: string): DiagnosticCollection[] {
     return this.collections.filter(c => c.has(uri))
   }
@@ -623,7 +656,7 @@ export class DiagnosticManager implements Disposable {
     for (let collection of this.collections) {
       collection.delete(buf.uri)
     }
-    buf.clear().logError()
+    buf.clear()
   }
 
   public toggleDiagnostic(): void {
@@ -634,7 +667,7 @@ export class DiagnosticManager implements Disposable {
         let diagnostics = this.getDiagnostics(buf.uri)
         buf.forceRefresh(diagnostics)
       } else {
-        buf.clear().logError()
+        buf.clear()
       }
     }
   }
@@ -643,8 +676,8 @@ export class DiagnosticManager implements Disposable {
     let buf = Array.from(this.buffers.values()).find(o => o.uri == uri)
     if (!buf) return false
     let { displayByAle, refreshOnInsertMode } = this.config
+    if (!refreshOnInsertMode && workspace.insertMode) return false
     if (!displayByAle) {
-      if (!refreshOnInsertMode && workspace.insertMode) return false
       let diagnostics = this.getDiagnostics(uri)
       if (this.enabled) {
         if (force) {

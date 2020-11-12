@@ -1,11 +1,12 @@
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { ListHighlights, ListItem, ListOptions } from '../types'
 import { disposeAll } from '../util'
 import { Mutex } from '../util/mutex'
 import workspace from '../workspace'
+import window from '../window'
 import ListConfiguration from './configuration'
 const logger = require('../util/logger')('list-ui')
 
@@ -17,15 +18,6 @@ export interface MousePosition {
   col: number
   current: boolean
 }
-
-const StatusLineOption = [
-  '%#CocListMode#-- %{get(b:list_status, "mode", "")} --%*',
-  '%{get(b:list_status, "loading", "")}',
-  '%{get(b:list_status, "args", "")}',
-  '(%L/%{get(b:list_status, "total", "")})',
-  '%=',
-  '%#CocListPath# %{get(b:list_status, "cwd", "")} %l/%L%*'
-].join(' ')
 
 export default class ListUI {
   private window: Window
@@ -60,7 +52,7 @@ export default class ListUI {
   ) {
     this.signOffset = config.get<number>('signOffset')
     this.newTab = listOptions.position == 'tab'
-    events.on('BufUnload', async bufnr => {
+    events.on('BufWinLeave', async bufnr => {
       if (bufnr != this.bufnr || this.window == null) return
       this.window = null
       this._onDidClose.fire(bufnr)
@@ -321,29 +313,34 @@ export default class ListUI {
     })
   }
 
-  public async drawItems(items: ListItem[], height: number, reload = false): Promise<void> {
+  public async drawItems(items: ListItem[], height: number, reload = false, token?: CancellationToken): Promise<void> {
     let count = this.drawCount = this.drawCount + 1
     const { nvim, name, listOptions } = this
     const release = await this.mutex.acquire()
     this.items = items.length > this.limitLines ? items.slice(0, this.limitLines) : items
     const create = this.window == null
-    if (create) {
+    if (create && !(token && token.isCancellationRequested)) {
       try {
         let { position, numberSelect } = listOptions
         let [bufnr, winid] = await nvim.call('coc#list#create', [position, height, name, numberSelect])
-        this.height = height
-        this.buffer = nvim.createBuffer(bufnr)
-        this.window = nvim.createWindow(winid)
-        this._onDidOpen.fire(this.bufnr)
+        if (token && token.isCancellationRequested) {
+          nvim.call('coc#list#clean_up', [], true)
+        } else {
+          this.height = height
+          this.buffer = nvim.createBuffer(bufnr)
+          this.window = nvim.createWindow(winid)
+          this._onDidOpen.fire(this.bufnr)
+        }
       } catch (e) {
-        nvim.call('coc#list#stop_prompt', [], true)
+        nvim.call('coc#prompt#stop_prompt', ['list'], true)
         nvim.call('coc#list#clean_up', [], true)
         release()
-        workspace.showMessage(`Error on list create: ${e.message}`, 'error')
+        window.showMessage(`Error on list create: ${e.message}`, 'error')
         return
       }
     }
     release()
+    if (token && token.isCancellationRequested) return
     if (count !== this.drawCount) return
     let lines = this.items.map(item => item.label)
     this.clearSelection()
@@ -364,11 +361,14 @@ export default class ListUI {
 
   private async setLines(lines: string[], append = false, index: number): Promise<void> {
     let { nvim, buffer, window } = this
+    let statusSegments: Array<String> | null = this.config.get('statusLineSegments')
     if (!buffer || !window) return
     nvim.pauseNotification()
     nvim.call('coc#util#win_gotoid', [window.id], true)
     if (!append) {
-      window.notify('nvim_win_set_option', ['statusline', StatusLineOption])
+      if (statusSegments) {
+        window.notify('nvim_win_set_option', ['statusline', statusSegments.join(" ")])
+      }
       nvim.call('clearmatches', [], true)
       if (!lines.length) {
         lines = ['No results, press ? on normal mode to get help.']
@@ -409,16 +409,16 @@ export default class ListUI {
     }
   }
 
-  public close(): void {
+  public reset(): void {
     if (this.window) {
-      this.window.close(true, true)
       this.window = null
+      this.buffer = null
     }
   }
 
   public dispose(): void {
-    this.close()
     disposeAll(this.disposables)
+    this.window = null
     this._onDidChangeLine.dispose()
     this._onDidOpen.dispose()
     this._onDidClose.dispose()
@@ -482,14 +482,14 @@ export default class ListUI {
 
   private async getSelectedRange(): Promise<[number, number]> {
     let { nvim } = this
-    await nvim.call('coc#list#stop_prompt')
+    await nvim.call('coc#prompt#stop_prompt', ['list'])
     await nvim.eval('feedkeys("\\<esc>", "in")')
     let [, start] = await nvim.call('getpos', "'<")
     let [, end] = await nvim.call('getpos', "'>")
     if (start > end) {
       [start, end] = [end, start]
     }
-    this.nvim.call('coc#list#start_prompt', [], true)
+    this.nvim.call('coc#prompt#start_prompt', ['list'], true)
     return [start, end]
   }
 }

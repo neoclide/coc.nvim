@@ -7,6 +7,8 @@ import workspace from '../../workspace'
 import { URI } from 'vscode-uri'
 import { isParentFolder } from '../../util/fs'
 import { CancellationToken } from 'vscode-languageserver-protocol'
+import { AnsiHighlight } from '../..'
+import { byteLength } from '../../util/string'
 const logger = require('../../util/logger')('list-location')
 
 export default class LocationList extends BasicList {
@@ -48,10 +50,19 @@ export default class LocationList extends BasicList {
       if (path.isAbsolute(filename)) {
         filename = isParentFolder(context.cwd, filename) ? path.relative(context.cwd, filename) : filename
       }
+      let pre = `${filename} |${loc.type ? loc.type + ' ' : ''}${loc.lnum} col ${loc.col}| `
+      let highlight: AnsiHighlight
+      if (loc.range && loc.range.start.line == loc.range.end.line) {
+        let start = byteLength(pre) + byteLength(loc.text.slice(0, loc.range.start.character))
+        let end = byteLength(pre) + byteLength(loc.text.slice(0, loc.range.end.character))
+        highlight = { hlGroup: 'Search', span: [start, end] }
+      }
+      let label = pre + loc.text
       return {
-        label: `${filename} |${loc.type ? loc.type + ' ' : ''}${loc.lnum} col ${loc.col}| ${loc.text}`,
+        label,
         location: Location.create(loc.uri, loc.range),
-        filterText
+        filterText,
+        ansiHighlights: highlight ? [highlight] : undefined
       } as ListItem
     })
     return items

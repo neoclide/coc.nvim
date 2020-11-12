@@ -10,10 +10,11 @@ import commands from '../commands'
 import languages from '../languages'
 import FileWatcher from '../model/fileSystemWatcher'
 import { CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ProviderResult, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from '../provider'
-import { ConfigurationChangeEvent, DiagnosticCollection, OutputChannel, TextDocumentWillSaveEvent, Thenable } from '../types'
+import { DiagnosticCollection, OutputChannel, TextDocumentWillSaveEvent, Thenable } from '../types'
 import { resolveRoot } from '../util/fs'
 import * as Is from '../util/is'
 import { omit } from '../util/lodash'
+import window from '../window'
 import workspace from '../workspace'
 import { ColorProviderMiddleware } from './colorProvider'
 import { ConfigurationWorkspaceMiddleware } from './configuration'
@@ -316,7 +317,7 @@ class DefaultErrorHandler implements ErrorHandler {
     } else {
       let diff = this.restarts[this.restarts.length - 1] - this.restarts[0]
       if (diff <= 3 * 60 * 1000) {
-        workspace.showMessage(`The "${this.name}" server crashed 5 times in the last 3 minutes. The server will not be restarted.`, 'error')
+        window.showMessage(`The "${this.name}" server crashed 5 times in the last 3 minutes. The server will not be restarted.`, 'error')
         return CloseAction.DoNotRestart
       } else {
         this.restarts.shift()
@@ -1424,7 +1425,7 @@ class WillSaveWaitUntilFeature implements DynamicFeature<TextDocumentRegistratio
           .then(edits => {
             return edits ? edits : []
           }, e => {
-            workspace.showMessage(`Error on willSaveWaitUntil: ${e}`, 'error')
+            window.showMessage(`Error on willSaveWaitUntil: ${e}`, 'error')
             logger.error(e)
             return []
           })
@@ -2234,7 +2235,6 @@ class DocumentSymbolFeature extends TextDocumentFeature<
                 return []
               } else {
                 let element = data[0]
-                // TODO
                 if (DocumentSymbol.is(element)) {
                   return data as DocumentSymbol[]
                 } else {
@@ -3305,7 +3305,7 @@ export abstract class BaseLanguageClient {
   public get outputChannel(): OutputChannel {
     if (!this._outputChannel) {
       let { outputChannelName } = this._clientOptions
-      this._outputChannel = workspace.createOutputChannel(outputChannelName ? outputChannelName : this._name)
+      this._outputChannel = window.createOutputChannel(outputChannelName ? outputChannelName : this._name)
     }
     return this._outputChannel
   }
@@ -3464,27 +3464,27 @@ export abstract class BaseLanguageClient {
         connection.onShowMessage(message => {
           switch (message.type) {
             case MessageType.Error:
-              workspace.showMessage(message.message, 'error')
+              window.showMessage(message.message, 'error')
               break
             case MessageType.Warning:
-              workspace.showMessage(message.message, 'warning')
+              window.showMessage(message.message, 'warning')
               break
             case MessageType.Info:
-              workspace.showMessage(message.message)
+              window.showMessage(message.message)
               break
             default:
-              workspace.showMessage(message.message)
+              window.showMessage(message.message)
           }
         })
         connection.onRequest(ShowMessageRequest.type, params => {
           if (!params.actions || params.actions.length == 0) {
             let msgType = params.type == MessageType.Error
               ? 'error' : params.type == MessageType.Warning ? 'warning' : 'more'
-            workspace.showMessage(params.message, msgType as any)
+            window.showMessage(params.message, msgType as any)
             return Promise.resolve(null)
           }
           let items = params.actions.map(o => typeof o === 'string' ? o : o.title)
-          return workspace.showQuickpick(items, params.message).then(idx => {
+          return window.showQuickpick(items, params.message).then(idx => {
             return params.actions[idx]
           })
         })
@@ -3532,7 +3532,7 @@ export abstract class BaseLanguageClient {
     if (required && !resolved) return null
     let rootPath = resolved || workspace.rootPath || workspace.cwd
     if (ignoredRootPaths && ignoredRootPaths.indexOf(rootPath) !== -1) {
-      workspace.showMessage(`Ignored rootPath ${rootPath} of client "${this._id}"`, 'warning')
+      window.showMessage(`Ignored rootPath ${rootPath} of client "${this._id}"`, 'warning')
       return null
     }
     return rootPath
@@ -3645,7 +3645,7 @@ export abstract class BaseLanguageClient {
         error.data &&
         error.data.retry
       ) {
-        workspace.showPrompt(error.message + ' Retry?').then(confirmed => {
+        window.showPrompt(error.message + ' Retry?').then(confirmed => {
           if (confirmed) {
             this.initialize(connection)
           } else {
@@ -3655,7 +3655,7 @@ export abstract class BaseLanguageClient {
         })
       } else {
         if (error && error.message) {
-          workspace.showMessage(error.message, 'error')
+          window.showMessage(error.message, 'error')
         }
         this.error('Server initialization failed.', error)
         this.stop()

@@ -7,6 +7,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import events from '../events'
 import Document from '../model/document'
 import { disposeAll } from '../util'
+import window from '../window'
 import { distinct } from '../util/array'
 import { comparePosition, rangeInRange, rangeIntersect, rangeOverlap, positionInRange, emptyRange } from '../util/position'
 import workspace from '../workspace'
@@ -55,14 +56,14 @@ export default class Cursors {
     if (this._changed || bufnr != this.bufnr) {
       this.cancel()
     }
-    let pos = await workspace.getCursorPosition()
+    let pos = await window.getCursorPosition()
     let range: Range
     if (kind == 'operator') {
       await nvim.command(`normal! ${mode == 'line' ? `'[` : '`['}`)
-      let start = await workspace.getCursorPosition()
+      let start = await window.getCursorPosition()
       await nvim.command(`normal! ${mode == 'line' ? `']` : '`]'}`)
-      let end = await workspace.getCursorPosition()
-      await workspace.moveTo(pos)
+      let end = await window.getCursorPosition()
+      await window.moveTo(pos)
       let relative = comparePosition(start, end)
       // do nothing for empty range
       if (relative == 0) return
@@ -109,7 +110,7 @@ export default class Cursors {
         this.addRange(r, text)
       }
     } else {
-      workspace.showMessage(`${kind} not supported`, 'error')
+      window.showMessage(`${kind} not supported`, 'error')
       return
     }
     if (this._activated && !this.ranges.length) {
@@ -190,27 +191,27 @@ export default class Cursors {
     workspace.registerLocalKeymap('n', nextKey, async () => {
       if (!this._activated) return this.unmap(nextKey)
       let ranges = this.ranges.map(o => o.currRange)
-      let curr = await workspace.getCursorPosition()
+      let curr = await window.getCursorPosition()
       for (let r of ranges) {
         if (comparePosition(r.start, curr) > 0) {
-          await workspace.moveTo(r.start)
+          await window.moveTo(r.start)
           return
         }
       }
-      if (ranges.length) await workspace.moveTo(ranges[0].start)
+      if (ranges.length) await window.moveTo(ranges[0].start)
     }, true)
     workspace.registerLocalKeymap('n', previousKey, async () => {
       if (!this._activated) return this.unmap(previousKey)
       let ranges = this.ranges.map(o => o.currRange)
       ranges.reverse()
-      let curr = await workspace.getCursorPosition()
+      let curr = await window.getCursorPosition()
       for (let r of ranges) {
         if (comparePosition(r.end, curr) < 0) {
-          await workspace.moveTo(r.start)
+          await window.moveTo(r.start)
           return
         }
       }
-      if (ranges.length) await workspace.moveTo(ranges[0].start)
+      if (ranges.length) await window.moveTo(ranges[0].start)
     }, true)
     events.on('CursorMoved', debounce(async bufnr => {
       if (bufnr != this.bufnr) return this.cancel()

@@ -73,7 +73,7 @@ NodeJS https://nodejs.org/ >= 10.12.0
 
 推荐使用 https://github.com/junegunn/vim-plug 添加
 >
-  Plug 'neoclide/coc.nvim', {'branch': 'release'}
+  Plug 'neoclide/coc.nvim'
 
 到 `init.vim` 然后执行: >
 

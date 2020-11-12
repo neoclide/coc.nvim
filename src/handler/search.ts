@@ -8,7 +8,7 @@ import { Range } from 'vscode-languageserver-types'
 import which from 'which'
 import Highlighter from '../model/highligher'
 import { ansiparse } from '../util/ansiparse'
-import workspace from '../workspace'
+import window from '../window'
 import Refactor, { FileItem, FileRange } from './refactor'
 const logger = require('../util/logger')('handler-search')
 
@@ -114,7 +114,7 @@ export default class Search {
     try {
       cmd = which.sync(cmd)
     } catch (e) {
-      workspace.showMessage('Please install ripgrep and make sure rg is in your $PATH', 'error')
+      window.showMessage('Please install ripgrep and make sure rg is in your $PATH', 'error')
       return Promise.reject(e)
     }
     this.task = new Task()
@@ -146,7 +146,7 @@ export default class Search {
       })
       this.task.on('error', message => {
         clearInterval(interval)
-        workspace.showMessage(`Error on command "${cmd}": ${message}`, 'error')
+        window.showMessage(`Error on command "${cmd}": ${message}`, 'error')
         this.task = null
         reject(new Error(message))
       })

@@ -2,7 +2,6 @@ import { Neovim } from '@chemzqm/neovim'
 import FloatFactory from '../../model/floatFactory'
 import snippetManager from '../../snippets/manager'
 import { Documentation } from '../../types'
-import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -10,7 +9,7 @@ let floatFactory: FloatFactory
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  floatFactory = new FloatFactory(nvim, workspace.env, false, 8)
+  floatFactory = new FloatFactory(nvim)
 })
 
 afterAll(async () => {
@@ -29,19 +28,9 @@ describe('FloatFactory', () => {
       filetype: 'markdown',
       content: 'f'.repeat(81)
     }]
-    let called = false
-    let fn = (winid, bufnr) => {
-      called = true
-      expect(floatFactory.bufnr).toBe(bufnr)
-      expect(floatFactory.window.id).toBe(winid)
-    }
-    floatFactory.on('show', fn)
     await floatFactory.show(docs)
-    let hasFloat = await nvim.call('coc#util#has_float')
+    let hasFloat = await nvim.call('coc#float#has_float')
     expect(hasFloat).toBe(1)
-    await nvim.call('coc#util#float_hide')
-    floatFactory.removeListener('show', fn)
-    expect(called).toBe(true)
   })
 
   it('should respect prefer top', async () => {
@@ -67,7 +56,7 @@ describe('FloatFactory', () => {
     await floatFactory.show(docs)
     await nvim.command(`edit foo`)
     await helper.wait(100)
-    let hasFloat = await nvim.call('coc#util#has_float')
+    let hasFloat = await nvim.call('coc#float#has_float')
     expect(hasFloat).toBe(0)
   })
 
@@ -79,12 +68,12 @@ describe('FloatFactory', () => {
       content: 'foo'
     }]
     await floatFactory.show(docs)
-    let hasFloat = await nvim.call('coc#util#has_float')
+    let hasFloat = await nvim.call('coc#float#has_float')
     expect(hasFloat).toBe(1)
     await helper.wait(30)
     await nvim.input('$')
     await helper.wait(500)
-    hasFloat = await nvim.call('coc#util#has_float')
+    hasFloat = await nvim.call('coc#float#has_float')
     expect(hasFloat).toBe(0)
   })
 
@@ -101,7 +90,7 @@ describe('FloatFactory', () => {
     await helper.wait(10)
     await nvim.call('cursor', cursor)
     await helper.wait(300)
-    let hasFloat = await nvim.call('coc#util#has_float')
+    let hasFloat = await nvim.call('coc#float#has_float')
     expect(hasFloat).toBe(1)
   })
 
@@ -133,7 +122,7 @@ describe('FloatFactory', () => {
       filetype: 'markdown',
       content: 'foo'
     }]
-    await floatFactory.show(docs, { allowSelection: true })
+    await floatFactory.show(docs)
     let { mode } = await nvim.mode
     expect(mode).toBe('s')
   })
@@ -146,7 +135,7 @@ describe('FloatFactory', () => {
     await floatFactory.show(docs)
     let res = await floatFactory.activated()
     expect(res).toBe(true)
-    await nvim.call('coc#util#float_hide')
+    await nvim.call('coc#float#close_all')
     res = await floatFactory.activated()
     expect(res).toBe(false)
   })

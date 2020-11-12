@@ -10,7 +10,7 @@ export type BufEvents = 'BufHidden' | 'BufEnter' | 'BufWritePost'
   | 'CursorHold' | 'InsertLeave' | 'TermOpen' | 'TermClose' | 'InsertEnter'
   | 'BufCreate' | 'BufUnload' | 'BufWritePre' | 'CursorHoldI' | 'Enter'
 
-export type EmptyEvents = 'FocusGained'
+export type EmptyEvents = 'FocusGained' | 'InsertSnippet'
 
 export type InsertChangeEvents = 'TextChangedP' | 'TextChangedI'
 
@@ -22,7 +22,7 @@ export type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents | Wind
   | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged'
   | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized'
   | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar'
-  | 'WinLeave' | 'MenuInput' | 'PromptInsert'
+  | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet'
 
 export type MoveEvents = 'CursorMoved' | 'CursorMovedI'
 
@@ -87,6 +87,7 @@ class Events {
   public on(event: MoveEvents, handler: (bufnr: number, cursor: [number, number]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: InsertChangeEvents, handler: (bufnr: number, info: InsertChange) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: WindowEvents, handler: (winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'FloatBtnClick', handler: (bufnr: number, index: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TextChanged', handler: (bufnr: number, changedtick: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TaskExit', handler: (id: string, code: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TaskStderr' | 'TaskStdout', handler: (id: string, lines: string[]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
@@ -100,7 +101,7 @@ class Events {
   public on(event: 'BufWinEnter' | 'BufWinLeave', handler: (bufnr: number, winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'DirChanged', handler: (cwd: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'OptionSet' | 'GlobalChange', handler: (option: string, oldVal: OptionValue, newVal: OptionValue) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: 'InputChar' | 'MenuInput', handler: (character: string, mode: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'InputChar', handler: (session: string, character: string, mode: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'PromptInsert', handler: (value: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: AllEvents[] | AllEvents, handler: (...args: any[]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable {
     if (Array.isArray(event)) {

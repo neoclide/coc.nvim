@@ -331,8 +331,8 @@
     },
     "suggest.detailField": {
       "type": "string",
-      "default": "menu",
-      "description": "Where to add the detail in complete item when it's less than max length.",
+      "default": "preview",
+      "description": "Where to show the detail text of CompleteItem from LS.",
       "enum": ["abbr", "menu", "preview"]
     },
     "suggest.autoTrigger": {
@@ -348,7 +348,7 @@
     },
     "suggest.numberSelect": {
       "type": "boolean",
-      "description": "Input number to select complete item, works on neovim >= 0.4.3 only.",
+      "description": "Input number to select complete item, works on neovim >= 0.4.0 only.",
       "default": false
     },
     "suggest.disableKind": {
@@ -648,6 +648,16 @@
       "default": false,
       "description": "Separate related information as diagnostics"
     },
+    "diagnostic.showUnused": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show unused variables"
+    },
+    "diagnostic.showDeprecated": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show deprecated variables"
+    },
     "signature.enable": {
       "type": "boolean",
       "description": "Enable signature help when trigger character typed, require restart service on change.",
@@ -706,6 +716,11 @@
       "description": "Open command for refactor window.",
       "default": "vsplit"
     },
+    "refactor.saveToFile": {
+      "type": "boolean",
+      "description": "Save to file when write refactor buffer with ':noa wa' command, set to false if you want save buffer by yourself.",
+      "default": true
+    },
     "refactor.beforeContext": {
       "type": "number",
       "default": 3,
@@ -715,6 +730,36 @@
       "type": "number",
       "default": 3,
       "description": "Print num lines of trailing context after each match."
+    },
+    "dialog.maxHeight": {
+      "type": "number",
+      "default": 20,
+      "description": "Maximum height of dialog window."
+    },
+    "dialog.maxWidth": {
+      "type": "number",
+      "default": 80,
+      "description": "Maximum width of dialog window."
+    },
+    "dialog.pickerButtons": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show buttons for picker dialog window/popup."
+    },
+    "dialog.pickerButtonShortcut": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show shortcut in buttons of picker dialog window/popup, used when dialog.pickerButtons is true."
+    },
+    "dialog.floatHighlight": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Highlight group for dialog window/popup, default to 'CocFloating'"
+    },
+    "dialog.floatBorderHighlight": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Highlight group for border of dialog window/popup, default to 'CocFloating'"
     },
     "workspace.ignoredFiletypes": {
       "type": "array",
@@ -738,6 +783,21 @@
       "type": "number",
       "default": 10,
       "description": "Height of split list window."
+    },
+    "list.statusLineSegments": {
+      "type": ["array", "null"],
+      "default": [
+        "%#CocListMode#-- %{get(b:list_status, \"mode\", \"\")} --%*",
+        "%{get(b:list_status, \"loading\", \"\")}",
+        "%{get(b:list_status, \"args\", \"\")}",
+        "(%L/%{get(b:list_status, \"total\", \"\")})",
+        "%=",
+        "%#CocListPath# %{get(b:list_status, \"cwd\", \"\")} %l/%L%*"
+      ],
+      "items": {
+        "types": "string"
+      },
+      "description": "An array of statusline segments that will be used to draw the status line for list windows."
     },
     "list.signOffset": {
       "type": "number",
@@ -962,7 +1022,7 @@
     },
     "coc.preferences.promptInput": {
       "type": "boolean",
-      "description": "Use prompt buffer in float window for user input, works on neovim >= 0.4.3 only.",
+      "description": "Use prompt buffer in float window for user input, works on neovim >= 0.4.0 only.",
       "default": true
     },
     "coc.preferences.enableMarkdown": {

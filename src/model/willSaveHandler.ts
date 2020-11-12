@@ -1,6 +1,7 @@
 import { Disposable, TextEdit } from 'vscode-languageserver-protocol'
 import { IWorkspace, TextDocumentWillSaveEvent } from '../types'
 import { wait } from '../util'
+import window from '../window'
 const logger = require('../util/logger')('willSaveHandler')
 
 export type Callback = (event: TextDocumentWillSaveEvent) => void
@@ -22,7 +23,7 @@ export default class WillSaveUntilHandler {
           called = true
           let { document } = ev
           let timer = setTimeout(() => {
-            workspace.showMessage(`${clientId} will save operation timeout after 0.5s`, 'warning')
+            window.showMessage(`${clientId} will save operation timeout after 0.5s`, 'warning')
             resolve(null)
           }, 500)
           Promise.resolve(thenable).then((edits: TextEdit[]) => {
@@ -34,7 +35,7 @@ export default class WillSaveUntilHandler {
                 setTimeout(resolve, 50)
               }, e => {
                 logger.error(e)
-                workspace.showMessage(`${clientId} error on applyEdits ${e.message}`, 'error')
+                window.showMessage(`${clientId} error on applyEdits ${e.message}`, 'error')
                 resolve()
               })
             } else {

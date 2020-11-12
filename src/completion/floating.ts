@@ -1,7 +1,7 @@
+import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken } from 'vscode-jsonrpc'
-import FloatBuffer from '../model/floatBuffer'
+import { parseDocuments } from '../markdown'
 import { Documentation, PumBounding } from '../types'
-import workspace from '../workspace'
 const logger = require('../util/logger')('floating')
 
 interface Bounding {
@@ -13,76 +13,47 @@ interface Bounding {
 }
 
 export interface FloatingConfig {
-  srcId: number
   maxPreviewWidth: number
-  enable: boolean
 }
 
 export default class Floating {
   private winid = 0
   private bufnr = 0
-  private floatBuffer: FloatBuffer
-  private config: FloatingConfig
 
-  constructor() {
-    this.floatBuffer = new FloatBuffer(workspace.nvim)
-    let configuration = workspace.getConfiguration('suggest')
-    let enableFloat = configuration.get<boolean>('floatEnable', true)
-    let { env } = workspace
-    if (enableFloat && !env.floating && !env.textprop) {
-      enableFloat = false
-    }
-    this.config = {
-      srcId: workspace.createNameSpace('coc-pum-float'),
-      maxPreviewWidth: configuration.get<number>('maxPreviewWidth', 80),
-      enable: enableFloat
-    }
+  constructor(
+    private nvim: Neovim,
+    private isVim: boolean) {
   }
 
-  public async show(docs: Documentation[], bounding: PumBounding, token: CancellationToken): Promise<void> {
-    if (!this.config.enable) return
-    await this.showDocumentationFloating(docs, bounding, token)
-  }
-
-  private async showDocumentationFloating(docs: Documentation[], bounding: PumBounding, token: CancellationToken): Promise<void> {
-    let { nvim } = workspace
-    let lines = FloatBuffer.getLines(docs, workspace.isNvim)
-    let config = await nvim.call('coc#float#get_config_pum', [lines, bounding, this.config.maxPreviewWidth])
-    if (!config || token.isCancellationRequested) return
-    await this.floatBuffer.setDocuments(docs, config.width)
-    if (token.isCancellationRequested) return
-    nvim.pauseNotification()
-    nvim.call('coc#util#pumvisible', [], true)
-    nvim.call('coc#float#create_float_win', [this.winid, this.bufnr, Object.assign({ autohide: true }, config)], true)
-    let res = await nvim.resumeNotification()
-    if (Array.isArray(res[1])) return
-    let winid = this.winid = res[0][1][0]
-    let bufnr = this.bufnr = res[0][1][1]
+  public async show(docs: Documentation[], bounding: PumBounding, config: FloatingConfig, token: CancellationToken): Promise<void> {
+    let { nvim } = this
+    docs = docs.filter(o => o.content.trim().length > 0)
+    let { lines, codes, highlights } = parseDocuments(docs)
+    if (lines.length == 0) {
+      this.close()
+      return
+    }
+    let res = await nvim.call('coc#float#create_pum_float', [this.winid, this.bufnr, lines, {
+      codes,
+      highlights,
+      maxWidth: config.maxPreviewWidth,
+      pumbounding: bounding,
+    }])
+    if (this.isVim) nvim.command('redraw', true)
+    if (!res || res.length == 0) return
+    this.winid = res[0]
+    this.bufnr = res[1]
     if (token.isCancellationRequested) {
       this.close()
       return
     }
-    nvim.pauseNotification()
-    nvim.call('coc#util#pumvisible', [], true)
-    if (workspace.isNvim) {
-      nvim.call('coc#util#win_gotoid', [winid], true)
-      this.floatBuffer.setLines(bufnr)
-      nvim.command('noa normal! gg0', true)
-      nvim.call('coc#float#nvim_scrollbar', [winid], true)
-      nvim.command('noa wincmd p', true)
-    } else {
-      this.floatBuffer.setLines(bufnr, winid)
-      nvim.call('win_execute', [winid, `noa normal! gg0`], true)
-      nvim.command('redraw', true)
-    }
-    await nvim.resumeNotification()
   }
 
   public close(): void {
-    if (!this.winid) return
-    let { winid } = this
-    this.winid = null
-    workspace.nvim.call('coc#float#close', [winid], true)
-    if (workspace.isVim) workspace.nvim.command('redraw', true)
+    let { winid, nvim } = this
+    this.winid = 0
+    if (!winid) return
+    nvim.call('coc#float#close', [winid], true)
+    if (this.isVim) nvim.command('redraw', true)
   }
 }

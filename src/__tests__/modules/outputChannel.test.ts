@@ -19,6 +19,7 @@ afterAll(async () => {
 
 describe('OutputChannel', () => {
   test('outputChannel.show(true)', async () => {
+    await nvim.setLine('foo')
     let c = new OutputChannel('0', nvim)
     let bufnr = (await nvim.buffer).id
     c.show(true)
@@ -53,7 +54,7 @@ describe('OutputChannel', () => {
     await wait(60)
     c.append('foo')
     c.append('bar')
-    await wait(300)
+    await wait(500)
     let buf = await nvim.buffer
     let lines = await buf.lines
     expect(lines.join('\n')).toMatch('foo')

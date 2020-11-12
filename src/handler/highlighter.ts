@@ -151,8 +151,8 @@ export default class Highlighter implements Disposable {
   public dispose(): void {
     this.highlight.clear()
     if (this.tokenSource) {
-      this.tokenSource.cancel()
       this.tokenSource.dispose()
+      this.tokenSource = null
     }
   }
 }

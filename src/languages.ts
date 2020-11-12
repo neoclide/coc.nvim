@@ -31,6 +31,7 @@ import * as complete from './util/complete'
 import { getChangedFromEdits, rangeOverlap } from './util/position'
 import { byteIndex, byteLength, byteSlice } from './util/string'
 import workspace from './workspace'
+import window from './window'
 const logger = require('./util/logger')('languages')
 
 export interface CompletionSource {
@@ -46,6 +47,7 @@ interface CompleteConfig {
   detailMaxLength: number
   detailField: string
   invalidInsertCharacters: string[]
+  floatEnable: boolean
 }
 
 function fixDocumentation(str: string): string {
@@ -90,6 +92,14 @@ class Languages {
     return workspace.nvim
   }
 
+  private get detailField(): string {
+    let { detailField, floatEnable } = this.completeConfig
+    if (detailField == 'preview' && (!floatEnable || !workspace.floatSupported)) {
+      return 'menu'
+    }
+    return 'preview'
+  }
+
   private loadCompleteConfig(): void {
     let suggest = workspace.getConfiguration('suggest')
     let labels = suggest.get<{ [key: string]: string }>('completionItemKindLabels', {})
@@ -120,12 +130,14 @@ class Languages {
       [CompletionItemKind.Operator, labels['operator'] || 'O'],
       [CompletionItemKind.TypeParameter, labels['typeParameter'] || 'T'],
     ])
+    // let useFloat = workspace.floatSupported && suggest.get
     this.completeConfig = {
       defaultKindText: labels['default'] || '',
       priority: suggest.get<number>('languageSourcePriority', 99),
       echodocSupport: suggest.get<boolean>('echodocSupport', false),
-      detailField: suggest.get<string>('detailField', 'menu'),
+      detailField: suggest.get<string>('detailField', 'preview'),
       detailMaxLength: suggest.get<number>('detailMaxLength', 100),
+      floatEnable: suggest.get<boolean>('floatEnable', true),
       invalidInsertCharacters: suggest.get<string[]>('invalidInsertCharacters', ['(', '<', '{', '[', '\r', '\n']),
     }
   }
@@ -606,7 +618,7 @@ class Languages {
     let newLines = `${start}${newText}${end}`.split('\n')
     if (newLines.length == 1) {
       await nvim.call('coc#util#setline', [linenr, newLines[0]])
-      await workspace.moveTo(Position.create(linenr - 1, (start + newText).length))
+      await window.moveTo(Position.create(linenr - 1, (start + newText).length))
     } else {
       let buffer = nvim.createBuffer(bufnr)
       await buffer.setLines(newLines, {
@@ -616,7 +628,7 @@ class Languages {
       })
       let line = linenr - 1 + newLines.length - 1
       let character = newLines[newLines.length - 1].length - end.length
-      await workspace.moveTo({ line, character })
+      await window.moveTo({ line, character })
     }
     return false
   }
@@ -631,10 +643,10 @@ class Languages {
     await document.patchChange(true)
     // move cursor after edit
     let changed = null
-    let pos = await workspace.getCursorPosition()
+    let pos = await window.getCursorPosition()
     if (!snippet) changed = getChangedFromEdits(pos, textEdits)
     await document.applyEdits(textEdits)
-    if (changed) await workspace.moveTo(Position.create(pos.line + changed.line, pos.character + changed.character))
+    if (changed) await window.moveTo(Position.create(pos.line + changed.line, pos.character + changed.character))
   }
 
   private getStartColumn(line: string, items: CompletionItem[]): number | null {
@@ -655,7 +667,8 @@ class Languages {
   }
 
   private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption, prefix: string): VimCompleteItem {
-    let { echodocSupport, detailField, detailMaxLength, invalidInsertCharacters } = this.completeConfig
+    let { echodocSupport, detailMaxLength, invalidInsertCharacters } = this.completeConfig
+    let { detailField } = this
     let hasAdditionalEdit = item.additionalTextEdits && item.additionalTextEdits.length > 0
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet || hasAdditionalEdit
     let label = item.label.trim()

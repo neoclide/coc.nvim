@@ -1,4 +1,5 @@
 import workspace from '../workspace'
+import window from '../window'
 import { WorkspaceConfiguration } from '../types'
 import { EventEmitter } from 'events'
 import { Disposable } from 'vscode-languageserver-protocol'
@@ -112,7 +113,7 @@ export default class ListConfiguration extends EventEmitter {
     if (validKeys.includes(key)) return key
     let find = validKeys.find(s => s.toLowerCase() == key.toLowerCase())
     if (find) return find
-    workspace.showMessage(`Configured key "${key}" not supported.`, 'error')
+    window.showMessage(`Configured key "${key}" not supported.`, 'error')
     return null
   }
 }

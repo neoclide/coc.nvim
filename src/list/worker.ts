@@ -8,6 +8,7 @@ import { hasMatch, positions, score } from '../util/fzy'
 import { getMatchResult } from '../util/score'
 import { byteIndex, byteLength } from '../util/string'
 import workspace from '../workspace'
+import window from '../window'
 import Prompt from './prompt'
 const logger = require('../util/logger')('list-worker')
 const controlCode = '\x1b'
@@ -170,8 +171,8 @@ export default class Worker {
         this.loading = false
         disposable.dispose()
         if (timer) clearTimeout(timer)
-        this.nvim.call('coc#list#stop_prompt', [], true)
-        workspace.showMessage(`Task error: ${error.toString()}`, 'error')
+        this.nvim.call('coc#prompt#stop_prompt', ['list'], true)
+        window.showMessage(`Task error: ${error.toString()}`, 'error')
         logger.error(error)
       })
       task.on('end', onEnd)

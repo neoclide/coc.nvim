@@ -1,163 +1,8 @@
-let s:activated = 0
 let s:is_vim = !has('nvim')
-let s:saved_ve = &t_ve
-let s:saved_cursor = &guicursor
-let s:gui = has('gui_running') || has('nvim')
-
-function! coc#list#get_chars()
-  return {
-        \ '<plug>': "\<Plug>",
-        \ '<esc>': "\<Esc>",
-        \ '<tab>': "\<Tab>",
-        \ '<s-tab>': "\<S-Tab>",
-        \ '<bs>': "\<bs>",
-        \ '<right>': "\<right>",
-        \ '<left>': "\<left>",
-        \ '<up>': "\<up>",
-        \ '<down>': "\<down>",
-        \ '<home>': "\<home>",
-        \ '<end>': "\<end>",
-        \ '<cr>': "\<cr>",
-        \ '<PageUp>' : "\<PageUp>",
-        \ '<PageDown>' : "\<PageDown>",
-        \ '<FocusGained>' : "\<FocusGained>",
-        \ '<ScrollWheelUp>': "\<ScrollWheelUp>",
-        \ '<ScrollWheelDown>': "\<ScrollWheelDown>",
-        \ '<LeftMouse>': "\<LeftMouse>",
-        \ '<LeftDrag>': "\<LeftDrag>",
-        \ '<LeftRelease>': "\<LeftRelease>",
-        \ '<2-LeftMouse>': "\<2-LeftMouse>",
-        \ '<C-a>': "\<C-a>",
-        \ '<C-b>': "\<C-b>",
-        \ '<C-c>': "\<C-c>",
-        \ '<C-d>': "\<C-d>",
-        \ '<C-e>': "\<C-e>",
-        \ '<C-f>': "\<C-f>",
-        \ '<C-g>': "\<C-g>",
-        \ '<C-h>': "\<C-h>",
-        \ '<C-i>': "\<C-i>",
-        \ '<C-j>': "\<C-j>",
-        \ '<C-k>': "\<C-k>",
-        \ '<C-l>': "\<C-l>",
-        \ '<C-m>': "\<C-m>",
-        \ '<C-n>': "\<C-n>",
-        \ '<C-o>': "\<C-o>",
-        \ '<C-p>': "\<C-p>",
-        \ '<C-q>': "\<C-q>",
-        \ '<C-r>': "\<C-r>",
-        \ '<C-s>': "\<C-s>",
-        \ '<C-t>': "\<C-t>",
-        \ '<C-u>': "\<C-u>",
-        \ '<C-v>': "\<C-v>",
-        \ '<C-w>': "\<C-w>",
-        \ '<C-x>': "\<C-x>",
-        \ '<C-y>': "\<C-y>",
-        \ '<C-z>': "\<C-z>",
-        \ '<A-a>': "\<A-a>",
-        \ '<A-b>': "\<A-b>",
-        \ '<A-c>': "\<A-c>",
-        \ '<A-d>': "\<A-d>",
-        \ '<A-e>': "\<A-e>",
-        \ '<A-f>': "\<A-f>",
-        \ '<A-g>': "\<A-g>",
-        \ '<A-h>': "\<A-h>",
-        \ '<A-i>': "\<A-i>",
-        \ '<A-j>': "\<A-j>",
-        \ '<A-k>': "\<A-k>",
-        \ '<A-l>': "\<A-l>",
-        \ '<A-m>': "\<A-m>",
-        \ '<A-n>': "\<A-n>",
-        \ '<A-o>': "\<A-o>",
-        \ '<A-p>': "\<A-p>",
-        \ '<A-q>': "\<A-q>",
-        \ '<A-r>': "\<A-r>",
-        \ '<A-s>': "\<A-s>",
-        \ '<A-t>': "\<A-t>",
-        \ '<A-u>': "\<A-u>",
-        \ '<A-v>': "\<A-v>",
-        \ '<A-w>': "\<A-w>",
-        \ '<A-x>': "\<A-x>",
-        \ '<A-y>': "\<A-y>",
-        \ '<A-z>': "\<A-z>",
-        \}
-endfunction
-
-function! coc#list#getc() abort
-  let c = getchar()
-  return type(c) == type(0) ? nr2char(c) : c
-endfunction
+let s:preview_bufnr = 0
 
 function! coc#list#getchar() abort
-  let input = coc#list#getc()
-  if 1 != &iminsert
-    return input
-  endif
-  "a language keymap is activated, so input must be resolved to the mapped values.
-  let partial_keymap = mapcheck(input, "l")
-  while partial_keymap !=# ""
-    let full_keymap = maparg(input, "l")
-    if full_keymap ==# "" && len(input) >= 3 "HACK: assume there are no keymaps longer than 3.
-      return input
-    elseif full_keymap ==# partial_keymap
-      return full_keymap
-    endif
-    let c = coc#list#getc()
-    if c ==# "\<Esc>" || c ==# "\<CR>"
-      "if the short sequence has a valid mapping, return that.
-      if !empty(full_keymap)
-        return full_keymap
-      endif
-      return input
-    endif
-    let input .= c
-    let partial_keymap = mapcheck(input, "l")
-  endwhile
-  return input
-endfunction
-
-function! coc#list#start_prompt(...) abort
-  let eventName = get(a:, 1, 'InputChar')
-  if s:is_vim
-    call s:start_prompt_vim(eventName)
-  else
-    call s:start_prompt(eventName)
-  endif
-endfunction
-
-function! s:start_prompt_vim(eventName) abort
-  call timer_start(10, {-> s:start_prompt(a:eventName)})
-endfunction
-
-function! s:start_prompt(eventName)
-  if s:activated | return | endif
-  if !get(g:, 'coc_disable_transparent_cursor', 0)
-    if s:gui
-      if has('nvim-0.5.0') && !empty(s:saved_cursor)
-        set guicursor+=a:ver1-CocCursorTransparent/lCursor
-      endif
-    elseif s:is_vim
-      set t_ve=
-    endif
-  endif
-  let s:activated = 1
-  try
-    while s:activated
-      let ch = coc#list#getchar()
-      if ch ==# "\u26d4"
-        break
-      endif
-      if ch ==# "\<FocusLost>" || ch ==# "\<FocusGained>" || ch ==# "\<CursorHold>"
-        continue
-      else
-        call coc#rpc#notify(a:eventName, [ch, getcharmod()])
-      endif
-    endwhile
-  catch /^Vim:Interrupt$/
-    let s:activated = 0
-    call coc#rpc#notify(a:eventName, ["\<C-c>"])
-    return
-  endtry
-  let s:activated = 0
+  return coc#prompt#getchar()
 endfunction
 
 function! coc#list#setlines(lines, append)
@@ -190,25 +35,6 @@ endfunction
 function! coc#list#names(...) abort
   let names = coc#rpc#request('listNames', [])
   return join(names, "\n")
-endfunction
-
-function! coc#list#stop_prompt(...)
-  if s:activated
-    let s:activated = 0
-    if get(a:, 1, 0) == 0 && !get(g:, 'coc_disable_transparent_cursor',0)
-      " neovim has bug with revert empty &guicursor
-      if s:gui && !empty(s:saved_cursor)
-        if has('nvim-0.5.0')
-          set guicursor+=a:ver1-Cursor/lCursor
-          let &guicursor = s:saved_cursor
-        endif
-      elseif s:is_vim
-        let &t_ve = s:saved_ve
-      endif
-    endif
-    echo ""
-    call feedkeys("\u26d4", 'int')
-  endif
 endfunction
 
 function! coc#list#status(name)
@@ -289,4 +115,160 @@ endfunction
 function! coc#list#set_height(height) abort
   if winnr('$') == 1| return | endif
   execute 'resize '.a:height
+endfunction
+
+function! coc#list#hide(original, height, winid) abort
+  noa silent! pclose
+  if !empty(getwininfo(a:original))
+    if exists('*nvim_set_current_win')
+      noa call nvim_set_current_win(a:original)
+    else
+      noa call win_gotoid(a:original)
+    endif
+    if a:height
+      if exists('*nvim_win_set_height')
+        call nvim_win_set_height(a:original, a:height)
+      elseif win_getid() == a:original
+        execute 'resize '.a:height
+      endif
+    endif
+  endif
+  if a:winid
+    if s:is_vim
+      if exists('*win_execute')
+        noa call win_execute(a:winid, 'close!', 'silent!')
+      else
+        if win_getid() == a:winid
+          noa silent! close!
+        else
+          let winid = win_getid()
+          let res = win_gotoid(winid)
+          if res
+            noa silent! close!
+            noa wincmd p
+          endif
+        endif
+      endif
+    else
+      if nvim_win_is_valid(a:winid)
+        silent! noa call nvim_win_close(a:winid, 1)
+      endif
+    endif
+  endif
+  redraw
+endfunction
+
+" Improve preview performance by reused window & buffer.
+" lines - list of lines
+" config.position - could be 'below' 'top' 'tab'.
+" config.name - (optional )name of preview buffer.
+" config.splitRight - (optional) split to right when 1.
+" config.lnum - (optional) current line number
+" config.filetype - (optional) filetype of lines.
+" config.hlGroup - (optional) highlight group.
+" config.maxHeight - (optional) max height of window, valid for 'below' & 'top' position.
+function! coc#list#preview(lines, config) abort
+  if s:is_vim && !exists('*win_execute')
+    echoerr 'win_execute function required for preview, please upgrade your vim.'
+    return
+  endif
+  if empty(a:lines)
+    silent! pclose
+    return
+  endif
+  " Try reuse buffer & window
+  let s:preview_bufnr = coc#float#create_buf(s:preview_bufnr, a:lines)
+  if s:preview_bufnr == 0
+    return
+  endif
+  let filetype = get(a:config, 'filetype', '')
+  let range = get(a:config, 'range', v:null)
+  let hlGroup = get(a:config, 'hlGroup', 'Search')
+  let lnum = get(a:config, 'lnum', 1)
+  let winid = bufwinid(s:preview_bufnr)
+  let position = get(a:config, 'position', 'below')
+  if winid > 0 && win_id2win(winid) == 0
+    " not in current tab
+    if s:is_vim
+      noa call win_execute(winid, 'close!', 'silent!')
+    else
+      call nvim_win_close(winid)
+    endif
+    let winid = -1
+  endif
+  let commands = []
+  if winid == -1
+    let winid = s:get_preview_winid()
+    if winid == -1
+      let change = position != 'tab' && get(a:config, 'splitRight', 0)
+      let curr = win_getid()
+      if change
+        noa wincmd t
+        noa belowright vnew +setl\ previewwindow
+        let winid = win_getid()
+      elseif position == 'tab' || get(a:config, 'splitRight', 0)
+        noa belowright vnew +setl\ previewwindow
+        let winid = win_getid()
+      else
+        let mod = position == 'top' ? 'below' : 'above'
+        let height = s:get_height(a:lines, a:config)
+        execute 'noa '.mod.' '.height.'new +setl\ previewwindow'
+        let winid = win_getid()
+      endif
+      noa call win_gotoid(curr)
+    endif
+    " load the buffer to preview window
+    if has('nvim')
+      noa call nvim_win_set_buf(winid, s:preview_bufnr)
+    else
+      call win_execute(winid, 'noa silent! b '.s:preview_bufnr)
+    endif
+  endif
+  if winid == -1
+    return
+  endif
+  if s:is_vim
+    call add(commands, 'noa file [Preview] ' . fnameescape(get(a:config, 'name', '[Sketch]')))
+  else
+    noa call nvim_buf_set_name(s:preview_bufnr, '[Preview] ' . get(a:config, 'name', '[Sketch]'))
+  endif
+  " height of window
+  let height = s:get_height(a:lines, a:config)
+  if height != 0
+    call add(commands, 'noa resize '.height)
+  endif
+  " change to current line.
+  call add(commands, 'noa call winrestview({"lnum":'.lnum.',"topline":'.max([1, lnum - 3]).'})')
+  " highlights
+  call add(commands, 'syntax clear')
+  if empty(filetype) && !empty(get(a:config, 'name', ''))
+    call add(commands, 'filetype detect')
+  elseif !empty(filetype)
+    call add(commands, 'setfiletype '.filetype)
+  endif
+  call coc#float#execute(winid, commands)
+  if !empty(range)
+    call coc#highlight#clear_highlight(s:preview_bufnr, -1, 0, -1)
+    let srcId = has('nvim') ? nvim_create_namespace('coc-list') : -1
+    call coc#highlight#range(s:preview_bufnr, srcId, hlGroup, range)
+    call setwinvar(winid, '&cursorline', 1)
+  endif
+  redraw
+endfunction
+
+function! s:get_height(lines, config) abort
+  if get(a:config, 'splitRight', 0) || get(a:config, 'position', 'below') == 'tab'
+    return 0
+  endif
+  let height = min([get(a:config, 'maxHeight', 10), len(a:lines)])
+  return height
+endfunction
+
+function! s:get_preview_winid() abort
+  for i in range(1, winnr('$'))
+    if getwinvar(i, '&previewwindow')
+      return i
+    endif
+  endfor
+  return -1
 endfunction

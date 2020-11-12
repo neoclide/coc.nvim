@@ -6,6 +6,8 @@ import Document from '../model/document'
 import { comparePosition, positionInRange, rangeInRange } from '../util/position'
 import { byteLength } from '../util/string'
 import workspace from '../workspace'
+import window from '../window'
+import events from '../events'
 import { CocSnippet, CocSnippetPlaceholder } from "./snippet"
 import { SnippetVariableResolver } from "./variableResolve"
 const logger = require('../util/logger')('snippets-session')
@@ -29,8 +31,9 @@ export class SnippetSession {
   public async start(snippetString: string, select = true, range?: Range): Promise<boolean> {
     const { document } = this
     if (!document || !document.attached) return false
+    events.fire('InsertSnippet', []).logError()
     if (!range) {
-      let position = await workspace.getCursorPosition()
+      let position = await window.getCursorPosition()
       range = Range.create(position, position)
     }
     let position = range.start
@@ -68,7 +71,7 @@ export class SnippetSession {
     if (snippet.isPlainText) {
       this.deactivate()
       let placeholder = snippet.finalPlaceholder
-      await workspace.moveTo(placeholder.range.start)
+      await window.moveTo(placeholder.range.start)
       return false
     }
     // new snippet
@@ -251,7 +254,7 @@ export class SnippetSession {
 
   public async checkPosition(): Promise<void> {
     if (!this.isActive) return
-    let position = await workspace.getCursorPosition()
+    let position = await window.getCursorPosition()
     if (this.snippet && positionInRange(position, this.snippet.range) != 0) {
       logger.info('Cursor insert out of range, cancelling snippet session')
       this.deactivate()

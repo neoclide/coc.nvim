@@ -8,6 +8,7 @@ import { Executable, ForkOptions, LanguageClient, LanguageClientOptions, RevealO
 import { IServiceProvider, LanguageServerConfig, ServiceStat } from './types'
 import { disposeAll, wait } from './util'
 import workspace from './workspace'
+import window from './window'
 const logger = require('./util/logger')('services')
 
 interface ServiceInfo {
@@ -126,7 +127,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
   public stop(id: string): Promise<void> {
     let service = this.registered.get(id)
     if (!service) {
-      workspace.showMessage(`Service ${id} not found`, 'error')
+      window.showMessage(`Service ${id} not found`, 'error')
       return
     }
     return Promise.resolve(service.stop())
@@ -142,7 +143,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
   public async toggle(id: string): Promise<void> {
     let service = this.registered.get(id)
     if (!service) {
-      workspace.showMessage(`Service ${id} not found`, 'error')
+      window.showMessage(`Service ${id} not found`, 'error')
       return
     }
     let { state } = service
@@ -155,7 +156,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
         await service.restart()
       }
     } catch (e) {
-      workspace.showMessage(`Service error: ${e.message}`, 'error')
+      window.showMessage(`Service error: ${e.message}`, 'error')
     }
   }
 
@@ -202,7 +203,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
     await this.waitClient(id)
     let service = this.getService(id)
     if (!service.client) {
-      workspace.showMessage(`Not a language client: ${id}`, 'error')
+      window.showMessage(`Not a language client: ${id}`, 'error')
       return
     }
     let client = service.client
@@ -308,7 +309,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
             onDidServiceReady.fire(void 0)
             resolve()
           }, e => {
-            workspace.showMessage(`Server ${id} failed to start: ${e}`, 'error')
+            window.showMessage(`Server ${id} failed to start: ${e}`, 'error')
             logger.error(`Server ${id} failed to start:`, e)
             service.state = ServiceStat.StartFailed
             resolve()
@@ -352,18 +353,18 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
   let { command, module, port, args, filetypes } = config
   args = args || []
   if (!filetypes) {
-    workspace.showMessage(`Wrong configuration of LS "${name}", filetypes not found`, 'error')
+    window.showMessage(`Wrong configuration of LS "${name}", filetypes not found`, 'error')
     return null
   }
   if (!command && !module && !port) {
-    workspace.showMessage(`Wrong configuration of LS "${name}", no command or module specified.`, 'error')
+    window.showMessage(`Wrong configuration of LS "${name}", no command or module specified.`, 'error')
     return null
   }
   let serverOptions: ServerOptions
   if (module) {
     module = workspace.expand(module)
     if (!fs.existsSync(module)) {
-      workspace.showMessage(`Module file "${module}" not found for LS "${name}"`, 'error')
+      window.showMessage(`Module file "${module}" not found for LS "${name}"`, 'error')
       return null
     }
     serverOptions = {
