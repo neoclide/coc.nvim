@@ -23999,7 +23999,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "518279af15" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "a0fa27383c" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -24551,10 +24551,17 @@ class DiagnosticManager {
             return;
         let { bufnr } = doc;
         let buf = this.buffers.get(bufnr);
-        if (buf)
-            return;
+        if (buf) {
+            buf.clear();
+            buf.dispose();
+        }
         buf = new buffer_1.DiagnosticBuffer(bufnr, doc.uri, this.config);
         this.buffers.set(bufnr, buf);
+        if (this.enabled) {
+            let diagnostics = this.getDiagnostics(buf.uri);
+            if (diagnostics.length)
+                buf.forceRefresh(diagnostics);
+        }
         buf.onDidRefresh(() => {
             if (['never', 'jump'].includes(this.config.enableMessage)) {
                 return;
@@ -24954,7 +24961,7 @@ class DiagnosticManager {
         let buf = this.buffers.get(bufnr);
         if (!buf)
             return;
-        buf.clear().logError();
+        buf.clear();
         buf.dispose();
         this.buffers.delete(bufnr);
         for (let collection of this.collections) {
@@ -24968,7 +24975,7 @@ class DiagnosticManager {
     }
     dispose() {
         for (let buf of this.buffers.values()) {
-            buf.clear().logError();
+            buf.clear();
             buf.dispose();
         }
         for (let collection of this.collections) {
@@ -25036,6 +25043,9 @@ class DiagnosticManager {
             }
         }
     }
+    getCollectionByName(name) {
+        return this.collections.find(o => o.name == name);
+    }
     getCollections(uri) {
         return this.collections.filter(c => c.has(uri));
     }
@@ -25049,7 +25059,7 @@ class DiagnosticManager {
         for (let collection of this.collections) {
             collection.delete(buf.uri);
         }
-        buf.clear().logError();
+        buf.clear();
     }
     toggleDiagnostic() {
         let { enabled } = this;
@@ -25060,7 +25070,7 @@ class DiagnosticManager {
                 buf.forceRefresh(diagnostics);
             }
             else {
-                buf.clear().logError();
+                buf.clear();
             }
         }
     }
@@ -45560,7 +45570,7 @@ class DiagnosticBuffer {
      * @public
      * @returns {Promise<void>}
      */
-    async clear() {
+    clear() {
         this.refresh.clear();
         let { nvim } = this;
         nvim.pauseNotification();
@@ -45571,7 +45581,8 @@ class DiagnosticBuffer {
             buffer.clearNamespace(this.config.virtualTextSrcId);
         }
         this.setDiagnosticInfo([]);
-        await nvim.resumeNotification(false, true);
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        nvim.resumeNotification(false, true);
     }
     hasHighlights() {
         return this.matchIds.size > 0;
