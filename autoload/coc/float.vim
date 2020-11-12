@@ -527,10 +527,11 @@ function! coc#float#create_prompt_win(title, default) abort
   else
     let col = curr + width <= &columns - 2 ? 0 : &columns - s:prompt_win_width
   endif
+  let [lineIdx, colIdx] = coc#float#win_position()
   let res = coc#float#create_float_win(0, s:prompt_win_bufnr, {
         \ 'relative': 'cursor',
-        \ 'row': 0,
-        \ 'col': col - 1,
+        \ 'row': lineIdx == 0 ? 1 : 0,
+        \ 'col': colIdx == 0 ? 0 : col - 1,
         \ 'width': width,
         \ 'height': 1,
         \ 'style': 'minimal',
