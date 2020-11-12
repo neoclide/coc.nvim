@@ -23999,7 +23999,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "b77dc8336e" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "518279af15" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -25266,6 +25266,8 @@ class FloatFactory {
         if (this.autoHide)
             config.autohide = 1;
         let arr = await this.nvim.call('coc#float#create_cursor_float', [this.winid, this._bufnr, lines, config]);
+        if (isVim)
+            this.nvim.command('redraw', true);
         if (!arr || arr.length == 0) {
             this.winid = null;
             return;
@@ -47344,7 +47346,7 @@ class Completion {
     }
     init() {
         this.config = this.getCompleteConfig();
-        this.floating = new floating_1.default();
+        this.floating = new floating_1.default(workspace_1.default.nvim, workspace_1.default.env.isVim);
         events_1.default.on('InsertCharPre', this.onInsertCharPre, this, this.disposables);
         events_1.default.on('InsertLeave', this.onInsertLeave, this, this.disposables);
         events_1.default.on('InsertEnter', this.onInsertEnter, this, this.disposables);
@@ -47402,7 +47404,7 @@ class Completion {
     getCompleteConfig() {
         let suggest = workspace_1.default.getConfiguration('suggest');
         function getConfig(key, defaultValue) {
-            return suggest.get(key, suggest.get(key, defaultValue));
+            return suggest.get(key, defaultValue);
         }
         let keepCompleteopt = getConfig('keepCompleteopt', false);
         let autoTrigger = getConfig('autoTrigger', 'always');
@@ -47412,9 +47414,11 @@ class Completion {
                 autoTrigger = 'none';
             }
         }
+        let floatEnable = workspace_1.default.floatSupported && getConfig('floatEnable', true);
         let acceptSuggestionOnCommitCharacter = workspace_1.default.env.pumevent && getConfig('acceptSuggestionOnCommitCharacter', false);
         return {
             autoTrigger,
+            floatEnable,
             keepCompleteopt,
             defaultSortMethod: getConfig('defaultSortMethod', 'length'),
             removeDuplicateItems: getConfig('removeDuplicateItems', false),
@@ -47817,7 +47821,7 @@ class Completion {
             this.floating.close();
         }
         else {
-            await this.floating.show(docs, bounding, token);
+            await this.floating.show(docs, bounding, { maxPreviewWidth: this.config.maxPreviewWidth }, token);
             if (!this.isActivated) {
                 this.floating.close();
             }
@@ -92339,32 +92343,17 @@ function nextScore(codes, index, inputCodes, allowFuzzy = true) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(65);
 const markdown_1 = __webpack_require__(255);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(291));
 const logger = __webpack_require__(64)('floating');
 class Floating {
-    constructor() {
+    constructor(nvim, isVim) {
+        this.nvim = nvim;
+        this.isVim = isVim;
         this.winid = 0;
         this.bufnr = 0;
-        let configuration = workspace_1.default.getConfiguration('suggest');
-        let enableFloat = configuration.get('floatEnable', true);
-        let { env } = workspace_1.default;
-        if (enableFloat && !env.floating && !env.textprop) {
-            enableFloat = false;
-        }
-        this.config = {
-            maxPreviewWidth: configuration.get('maxPreviewWidth', 80),
-            enable: enableFloat
-        };
     }
-    async show(docs, bounding, token) {
-        if (!this.config.enable)
-            return;
-        await this.showDocumentationFloating(docs, bounding, token);
-    }
-    async showDocumentationFloating(docs, bounding, token) {
-        let { nvim } = workspace_1.default;
+    async show(docs, bounding, config, token) {
+        let { nvim } = this;
         docs = docs.filter(o => o.content.trim().length > 0);
         let { lines, codes, highlights } = markdown_1.parseDocuments(docs);
         if (lines.length == 0) {
@@ -92374,9 +92363,11 @@ class Floating {
         let res = await nvim.call('coc#float#create_pum_float', [this.winid, this.bufnr, lines, {
                 codes,
                 highlights,
-                maxWidth: this.config.maxPreviewWidth,
+                maxWidth: config.maxPreviewWidth,
                 pumbounding: bounding,
             }]);
+        if (this.isVim)
+            nvim.command('redraw', true);
         if (!res || res.length == 0)
             return;
         this.winid = res[0];
@@ -92387,13 +92378,13 @@ class Floating {
         }
     }
     close() {
-        let { winid } = this;
+        let { winid, nvim } = this;
         this.winid = 0;
         if (!winid)
             return;
-        workspace_1.default.nvim.call('coc#float#close', [winid], true);
-        if (workspace_1.default.isVim)
-            workspace_1.default.nvim.command('redraw', true);
+        nvim.call('coc#float#close', [winid], true);
+        if (this.isVim)
+            nvim.command('redraw', true);
     }
 }
 exports.default = Floating;
