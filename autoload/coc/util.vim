@@ -588,6 +588,7 @@ function! coc#util#vim_info()
         \ 'progpath': v:progpath,
         \ 'guicursor': &guicursor,
         \ 'vimCommands': get(g:, 'coc_vim_commands', []),
+        \ 'sign': exists('*sign_place') && exists('*sign_unplace'),
         \ 'textprop': has('textprop') && has('patch-8.1.1719') && !has('nvim') ? v:true : v:false,
         \ 'dialog': has('nvim-0.4.0') || has('patch-8.2.0750') ? v:true : v:false,
         \ 'disabledSources': get(g:, 'coc_sources_disable_map', {}),
@@ -947,47 +948,9 @@ function! coc#util#get_format_opts(bufnr) abort
   return [tabsize, &expandtab]
 endfunction
 
-function! coc#util#clear_pos_matches(match, ...) abort
-  let winid = get(a:, 1, win_getid())
-  if empty(getwininfo(winid))
-    " not valid
-    return
-  endif
-  if win_getid() == winid
-    let arr = filter(getmatches(), 'v:val["group"] =~# "'.a:match.'"')
-    for item in arr
-      call matchdelete(item['id'])
-    endfor
-  elseif s:clear_match_by_id
-    let arr = filter(getmatches(winid), 'v:val["group"] =~# "'.a:match.'"')
-    for item in arr
-      call matchdelete(item['id'], winid)
-    endfor
-  endif
-endfunction
-
 function! coc#util#clearmatches(ids, ...)
   let winid = get(a:, 1, win_getid())
-  if empty(getwininfo(winid))
-    return
-  endif
-  if win_getid() == winid
-    for id in a:ids
-      try
-        call matchdelete(id)
-      catch /.*/
-        " matches have been cleared in other ways,
-      endtry
-    endfor
-   elseif s:clear_match_by_id
-    for id in a:ids
-      try
-        call matchdelete(id, winid)
-      catch /.*/
-        " matches have been cleared in other ways,
-      endtry
-    endfor
-  endif
+  call coc#highlight#clear_matches(winid, a:ids)
 endfunction
 
 " Character offset of current cursor

@@ -249,8 +249,7 @@ function! coc#list#preview(lines, config) abort
   call coc#float#execute(winid, commands)
   if !empty(range)
     call coc#highlight#clear_highlight(s:preview_bufnr, -1, 0, -1)
-    let srcId = has('nvim') ? nvim_create_namespace('coc-list') : -1
-    call coc#highlight#range(s:preview_bufnr, srcId, hlGroup, range)
+    call coc#highlight#range(s:preview_bufnr, 'list', hlGroup, range)
     call setwinvar(winid, '&cursorline', 1)
   endif
   redraw

@@ -23999,7 +23999,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "a0fa27383c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "4487f4019a" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -24502,7 +24502,6 @@ class DiagnosticManager {
             let buf = this.buffers.get(bufnr);
             if (!buf)
                 return;
-            await buf.checkSigns();
             if (!this.config.refreshAfterSave)
                 return;
             this.refreshBuffer(buf.uri);
@@ -24999,10 +24998,9 @@ class DiagnosticManager {
         }
         this.config = {
             messageTarget,
-            srcId: workspace_1.default.createNameSpace('coc-diagnostic') || 1000,
             virtualTextSrcId: workspace_1.default.createNameSpace('diagnostic-virtualText'),
             checkCurrentLine: config.get('checkCurrentLine', false),
-            enableSign: config.get('enableSign', true),
+            enableSign: workspace_1.default.env.sign && config.get('enableSign', true),
             locationlistUpdate: config.get('locationlistUpdate', true),
             enableHighlightLineNumber: config.get('enableHighlightLineNumber', true),
             maxWindowHeight: config.get('maxWindowHeight', 10),
@@ -25016,7 +25014,7 @@ class DiagnosticManager {
             virtualTextLines: config.get('virtualTextLines', 3),
             displayByAle: config.get('displayByAle', false),
             level: util_2.severityLevel(config.get('level', 'hint')),
-            signOffset: config.get('signOffset', 1000),
+            signPriority: config.get('signPriority', 10),
             errorSign: config.get('errorSign', '>>'),
             warningSign: config.get('warningSign', '>>'),
             infoSign: config.get('infoSign', '>>'),
@@ -25031,16 +25029,6 @@ class DiagnosticManager {
         this.enabled = config.get('enable', true);
         if (this.config.displayByAle) {
             this.enabled = false;
-        }
-        if (event) {
-            for (let severity of ['error', 'info', 'warning', 'hint']) {
-                let key = `diagnostic.${severity}Sign`;
-                if (event.affectsConfiguration(key)) {
-                    let text = config.get(`${severity}Sign`, '>>');
-                    let name = severity[0].toUpperCase() + severity.slice(1);
-                    this.nvim.command(`sign define Coc${name}   text=${text}   linehl=Coc${name}Line texthl=Coc${name}Sign`, true);
-                }
-            }
         }
     }
     getCollectionByName(name) {
@@ -31454,14 +31442,14 @@ const shape_1 = tslib_1.__importDefault(__webpack_require__(357));
 const events_1 = tslib_1.__importDefault(__webpack_require__(210));
 const db_1 = tslib_1.__importDefault(__webpack_require__(358));
 const document_1 = tslib_1.__importDefault(__webpack_require__(359));
-const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(363));
+const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(362));
 const mru_1 = tslib_1.__importDefault(__webpack_require__(364));
 const resolver_1 = tslib_1.__importDefault(__webpack_require__(365));
 const task_1 = tslib_1.__importDefault(__webpack_require__(367));
 const terminal_1 = tslib_1.__importDefault(__webpack_require__(368));
 const willSaveHandler_1 = tslib_1.__importDefault(__webpack_require__(369));
 const types_1 = __webpack_require__(342);
-const array_1 = __webpack_require__(360);
+const array_1 = __webpack_require__(363);
 const fs_1 = __webpack_require__(352);
 const index_1 = __webpack_require__(238);
 const match_1 = __webpack_require__(376);
@@ -31580,7 +31568,7 @@ class Workspace {
             this._insertMode = false;
         }, null, this.disposables);
         events_1.default.on('BufWinLeave', (_, winid) => {
-            this.nvim.call('coc#util#clear_pos_matches', ['^Coc', winid], true);
+            this.nvim.call('coc#highlight#clear_match_group', [winid, '^Coc'], true);
         }, null, this.disposables);
         events_1.default.on('BufEnter', this.onBufEnter, this, this.disposables);
         events_1.default.on('CursorMoved', this.checkCurrentBuffer, this, this.disposables);
@@ -41119,13 +41107,11 @@ const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const vscode_languageserver_textdocument_1 = __webpack_require__(346);
 const vscode_uri_1 = __webpack_require__(243);
 const events_1 = tslib_1.__importDefault(__webpack_require__(210));
-const array_1 = __webpack_require__(360);
-const diff_1 = __webpack_require__(361);
+const diff_1 = __webpack_require__(360);
 const fs_1 = __webpack_require__(352);
 const index_1 = __webpack_require__(238);
-const position_1 = __webpack_require__(290);
 const string_1 = __webpack_require__(288);
-const chars_1 = __webpack_require__(362);
+const chars_1 = __webpack_require__(361);
 const logger = __webpack_require__(64)('model-document');
 // wrapper class of TextDocument
 class Document {
@@ -41134,8 +41120,6 @@ class Document {
         this.env = env;
         this.maxFileSize = maxFileSize;
         this.isIgnored = false;
-        // start id for matchaddpos
-        this.colorId = 1080;
         this.size = 0;
         this.eol = true;
         // real current lines
@@ -41606,105 +41590,30 @@ class Document {
         return col;
     }
     /**
-     * Use matchaddpos for highlight ranges, must use `redraw` command on vim
-     */
-    matchAddRanges(ranges, hlGroup, priority = 10) {
-        let res = [];
-        let arr = [];
-        let splited = ranges.reduce((p, c) => {
-            for (let i = c.start.line; i <= c.end.line; i++) {
-                let curr = this.getline(i) || '';
-                let sc = i == c.start.line ? c.start.character : 0;
-                let ec = i == c.end.line ? c.end.character : curr.length;
-                if (sc == ec)
-                    continue;
-                p.push(vscode_languageserver_protocol_1.Range.create(i, sc, i, ec));
-            }
-            return p;
-        }, []);
-        for (let range of splited) {
-            let { start, end } = range;
-            let line = this.getline(start.line);
-            if (start.character == end.character)
-                continue;
-            arr.push([start.line + 1, string_1.byteIndex(line, start.character) + 1, string_1.byteLength(line.slice(start.character, end.character))]);
-        }
-        for (let grouped of array_1.group(arr, 8)) {
-            let id = this.colorId;
-            this.colorId = this.colorId + 1;
-            this.nvim.call('matchaddpos', [hlGroup, grouped, priority, id], true);
-            res.push(id);
-        }
-        return res;
-    }
-    /**
-     * Highlight ranges in document, return match id list.
+     * Highlight ranges in document, requires textprop on vim8
      *
-     * Note: match id could by namespace id or vim's match id.
+     * @param {Range} ranges List of ranges.
+     * @param {string} hlGroup Highlight group.
+     * @param {string} key Unique key for namespace.
      */
-    highlightRanges(ranges, hlGroup, srcId, priority = 10) {
-        let res = [];
-        if (this.env.isVim && !this.env.textprop) {
-            res = this.matchAddRanges(ranges, hlGroup, priority);
+    highlightRanges(ranges, hlGroup, key) {
+        if (typeof key === 'number') {
+            logger.error(`signature for highlight ranges was changed!`);
+            return [];
         }
-        else {
-            let lineRanges = [];
-            for (let range of ranges) {
-                if (range.start.line == range.end.line) {
-                    lineRanges.push(range);
-                }
-                else {
-                    // split range by lines
-                    for (let i = range.start.line; i < range.end.line; i++) {
-                        let line = this.getline(i);
-                        if (i == range.start.line) {
-                            lineRanges.push(vscode_languageserver_protocol_1.Range.create(i, range.start.character, i, line.length));
-                        }
-                        else if (i == range.end.line) {
-                            lineRanges.push(vscode_languageserver_protocol_1.Range.create(i, Math.min(line.match(/^\s*/)[0].length, range.end.character), i, range.end.character));
-                        }
-                        else {
-                            lineRanges.push(vscode_languageserver_protocol_1.Range.create(i, Math.min(line.match(/^\s*/)[0].length, line.length), i, line.length));
-                        }
-                    }
-                }
-            }
-            for (let range of lineRanges) {
-                let { start, end } = range;
-                if (position_1.comparePosition(start, end) == 0)
-                    continue;
-                let line = this.getline(start.line);
-                this.buffer.addHighlight({
-                    hlGroup,
-                    srcId,
-                    line: start.line,
-                    colStart: string_1.byteIndex(line, start.character),
-                    colEnd: end.line - start.line == 1 && end.character == 0 ? -1 : string_1.byteIndex(line, end.character)
-                }).logError();
-            }
-            res.push(srcId);
+        for (let range of ranges) {
+            this.nvim.call('coc#highlight#range', [this.bufnr, key, hlGroup, range], true);
         }
-        return res;
     }
     /**
-     * Clear match id list, for vim support namespace, list should be namespace id list.
+     * Clear namespace with key, requires textprop on vim8
+     *
+     * @param {string} key Unique key of namespace.
+     * @param {number} startLine Default to `0`, 0 based.
+     * @param {number} endLine Default to `-1` as the end.
      */
-    clearMatchIds(ids) {
-        if (this.env.isVim && !this.env.textprop) {
-            this.nvim.call('coc#util#clear_buf_matches', [Array.from(ids), this.bufnr], true);
-        }
-        else {
-            ids = array_1.distinct(Array.from(ids));
-            let hasNamesapce = this.nvim.hasFunction('nvim_create_namespace');
-            ids.forEach(id => {
-                if (hasNamesapce) {
-                    this.buffer.clearNamespace(id);
-                }
-                else {
-                    this.buffer.clearHighlight({ srcId: id });
-                }
-            });
-        }
+    clearNamespace(key, startLine = 0, endLine = -1) {
+        this.nvim.call('coc#highlight#clear_highlight', [this.bufnr, key, startLine, endLine], true);
     }
     /**
      * Get cwd of this document.
@@ -41890,82 +41799,6 @@ exports.default = Document;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.flatMap = exports.lastIndex = exports.distinct = exports.group = exports.tail = exports.splitArray = exports.intersect = void 0;
-function intersect(array, other) {
-    for (let item of other) {
-        if (array.includes(item)) {
-            return true;
-        }
-    }
-    return false;
-}
-exports.intersect = intersect;
-function splitArray(array, fn) {
-    let res = [[], []];
-    for (let item of array) {
-        if (fn(item)) {
-            res[0].push(item);
-        }
-        else {
-            res[1].push(item);
-        }
-    }
-    return res;
-}
-exports.splitArray = splitArray;
-function tail(array, n = 0) {
-    return array[array.length - (1 + n)];
-}
-exports.tail = tail;
-function group(array, size) {
-    let len = array.length;
-    let res = [];
-    for (let i = 0; i < Math.ceil(len / size); i++) {
-        res.push(array.slice(i * size, (i + 1) * size));
-    }
-    return res;
-}
-exports.group = group;
-/**
- * Removes duplicates from the given array. The optional keyFn allows to specify
- * how elements are checked for equalness by returning a unique string for each.
- */
-function distinct(array, keyFn) {
-    if (!keyFn) {
-        return array.filter((element, position) => array.indexOf(element) === position);
-    }
-    const seen = Object.create(null);
-    return array.filter(elem => {
-        const key = keyFn(elem);
-        if (seen[key]) {
-            return false;
-        }
-        seen[key] = true;
-        return true;
-    });
-}
-exports.distinct = distinct;
-function lastIndex(array, fn) {
-    let i = array.length - 1;
-    while (i >= 0) {
-        if (fn(array[i])) {
-            break;
-        }
-        i--;
-    }
-    return i;
-}
-exports.lastIndex = lastIndex;
-exports.flatMap = (xs, f) => xs.reduce((x, y) => [...x, ...f(y)], []);
-//# sourceMappingURL=array.js.map
-
-/***/ }),
-/* 361 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
 exports.patchLine = exports.getChange = exports.diffLines = void 0;
 const tslib_1 = __webpack_require__(65);
 const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(293));
@@ -42093,7 +41926,7 @@ exports.patchLine = patchLine;
 //# sourceMappingURL=diff.js.map
 
 /***/ }),
-/* 362 */
+/* 361 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -42228,7 +42061,7 @@ exports.Chars = Chars;
 //# sourceMappingURL=chars.js.map
 
 /***/ }),
-/* 363 */
+/* 362 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -42240,7 +42073,7 @@ const vscode_uri_1 = __webpack_require__(243);
 const minimatch_1 = tslib_1.__importDefault(__webpack_require__(353));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const util_1 = __webpack_require__(238);
-const array_1 = __webpack_require__(360);
+const array_1 = __webpack_require__(363);
 const logger = __webpack_require__(64)('filesystem-watcher');
 class FileSystemWatcher {
     constructor(clientPromise, globPattern, ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents) {
@@ -42325,6 +42158,82 @@ class FileSystemWatcher {
 }
 exports.default = FileSystemWatcher;
 //# sourceMappingURL=fileSystemWatcher.js.map
+
+/***/ }),
+/* 363 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.flatMap = exports.lastIndex = exports.distinct = exports.group = exports.tail = exports.splitArray = exports.intersect = void 0;
+function intersect(array, other) {
+    for (let item of other) {
+        if (array.includes(item)) {
+            return true;
+        }
+    }
+    return false;
+}
+exports.intersect = intersect;
+function splitArray(array, fn) {
+    let res = [[], []];
+    for (let item of array) {
+        if (fn(item)) {
+            res[0].push(item);
+        }
+        else {
+            res[1].push(item);
+        }
+    }
+    return res;
+}
+exports.splitArray = splitArray;
+function tail(array, n = 0) {
+    return array[array.length - (1 + n)];
+}
+exports.tail = tail;
+function group(array, size) {
+    let len = array.length;
+    let res = [];
+    for (let i = 0; i < Math.ceil(len / size); i++) {
+        res.push(array.slice(i * size, (i + 1) * size));
+    }
+    return res;
+}
+exports.group = group;
+/**
+ * Removes duplicates from the given array. The optional keyFn allows to specify
+ * how elements are checked for equalness by returning a unique string for each.
+ */
+function distinct(array, keyFn) {
+    if (!keyFn) {
+        return array.filter((element, position) => array.indexOf(element) === position);
+    }
+    const seen = Object.create(null);
+    return array.filter(elem => {
+        const key = keyFn(elem);
+        if (seen[key]) {
+            return false;
+        }
+        seen[key] = true;
+        return true;
+    });
+}
+exports.distinct = distinct;
+function lastIndex(array, fn) {
+    let i = array.length - 1;
+    while (i >= 0) {
+        if (fn(array[i])) {
+            break;
+        }
+        i--;
+    }
+    return i;
+}
+exports.lastIndex = lastIndex;
+exports.flatMap = (xs, f) => xs.reduce((x, y) => [...x, ...f(y)], []);
+//# sourceMappingURL=array.js.map
 
 /***/ }),
 /* 364 */
@@ -43439,6 +43348,24 @@ class Window {
         return this.nvim.call('coc#float#valid', [this.winid]).then(res => {
             return !!res;
         });
+    }
+    /**
+     * Add matches for ranges by matchaddpos.
+     *
+     * @param {Range[]} ranges List of range.
+     * @param {string} hlGroup Highlight group.
+     * @param {number} priority Optional priority, default to 10
+     */
+    addMatches(ranges, hlGroup, priority = 10) {
+        this.nvim.call('coc#highlight#match_ranges', [this.winid, this.bufnr, ranges, hlGroup, priority], true);
+    }
+    /**
+     * Clear window matches by highlight group.
+     *
+     * @param {string} hlGroup
+     */
+    clearMatchByGroup(hlGroup) {
+        this.nvim.call('coc#highlight#clear_match_group', [this.winid, '^' + hlGroup], true);
     }
     close() {
         this.nvim.call('coc#float#close', [this.winid], true);
@@ -45373,18 +45300,18 @@ const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(291));
 const util_1 = __webpack_require__(383);
 const logger = __webpack_require__(64)('diagnostic-buffer');
-const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint'];
-// maintains sign and highlightId
+const signGroup = 'Coc';
+/**
+ * Manage buffer actions for diagnostics, including 'highlights', 'variable',
+ * 'signs', 'location list' and 'virtual text'.
+ */
 class DiagnosticBuffer {
     constructor(bufnr, uri, config) {
         this.bufnr = bufnr;
         this.uri = uri;
         this.config = config;
-        this.signIds = new Set();
         this._onDidRefresh = new vscode_languageserver_protocol_1.Emitter();
-        this.matchIds = new Set();
         this.onDidRefresh = this._onDidRefresh.event;
-        this.srdId = workspace_1.default.createNameSpace('coc-diagnostic');
         this.refresh = debounce_1.default((diagnostics) => {
             this._refresh(diagnostics).logError();
         }, 300);
@@ -45410,7 +45337,7 @@ class DiagnosticBuffer {
         nvim.pauseNotification();
         this.setDiagnosticInfo(diagnostics);
         this.addSigns(diagnostics);
-        this.addHighlight(diagnostics, bufnr);
+        this.addHighlight(diagnostics);
         this.updateLocationList(arr[4], diagnostics);
         if (this.bufnr == bufnr) {
             this.showVirtualText(diagnostics, lnum);
@@ -45422,34 +45349,6 @@ class DiagnosticBuffer {
         if (Array.isArray(res) && res[1])
             throw new Error(res[1]);
         this._onDidRefresh.fire(void 0);
-    }
-    clearSigns() {
-        let { nvim, signIds, bufnr } = this;
-        if (signIds.size > 0) {
-            nvim.call('coc#util#unplace_signs', [bufnr, Array.from(signIds)], true);
-            signIds.clear();
-        }
-    }
-    async checkSigns() {
-        let { nvim, bufnr, signIds } = this;
-        try {
-            let content = await this.nvim.call('execute', [`sign place buffer=${bufnr}`]);
-            let lines = content.split('\n');
-            let ids = [];
-            for (let line of lines) {
-                let ms = line.match(/^\s*line=\d+\s+id=(\d+)\s+name=(\w+)/);
-                if (!ms)
-                    continue;
-                let [, id, name] = ms;
-                if (!signIds.has(Number(id)) && severityNames.includes(name)) {
-                    ids.push(id);
-                }
-            }
-            await nvim.call('coc#util#unplace_signs', [bufnr, ids]);
-        }
-        catch (e) {
-            // noop
-        }
     }
     updateLocationList(curr, diagnostics) {
         if (!this.config.locationlistUpdate)
@@ -45467,20 +45366,17 @@ class DiagnosticBuffer {
         if (!this.config.enableSign)
             return;
         this.clearSigns();
-        let { nvim, bufnr, signIds } = this;
-        let signId = this.config.signOffset;
-        let lines = new Set();
+        let { nvim, bufnr } = this;
         for (let diagnostic of diagnostics) {
             let { range, severity } = diagnostic;
             let line = range.start.line;
-            if (lines.has(line))
-                continue;
-            lines.add(line);
             let name = util_1.getNameFromSeverity(severity);
-            nvim.command(`sign place ${signId} line=${line + 1} name=${name} buffer=${bufnr}`, true);
-            signIds.add(signId);
-            signId = signId + 1;
+            nvim.call('sign_place', [0, signGroup, name, bufnr, { lnum: line + 1, priority: 14 - severity }], true);
         }
+    }
+    clearSigns() {
+        let { nvim, bufnr } = this;
+        nvim.call('sign_unplace', [signGroup, { buffer: bufnr }], true);
     }
     setDiagnosticInfo(diagnostics) {
         let lnums = [0, 0, 0, 0];
@@ -45532,37 +45428,33 @@ class DiagnosticBuffer {
             buffer.setVirtualText(srcId, line, [[prefix + msg, highlight]], {}).logError();
         }
     }
-    clearHighlight() {
-        let { matchIds, document } = this;
-        if (document) {
-            document.clearMatchIds(matchIds);
-        }
-        this.matchIds.clear();
-    }
-    addHighlight(diagnostics, bufnr) {
+    addHighlight(diagnostics) {
+        if (workspace_1.default.isVim && !workspace_1.default.env.textprop)
+            return;
         this.clearHighlight();
         if (diagnostics.length == 0)
             return;
         // can't add highlight for old vim
-        if (workspace_1.default.isVim && !workspace_1.default.env.textprop && bufnr != this.bufnr)
-            return;
-        let { document } = this;
-        if (!document)
-            return;
-        // TODO support DiagnosticTag
+        let { nvim, bufnr } = this;
+        // TODO support DiagnosticTag, fade unnecessary ranges.
         const highlights = new Map();
         for (let diagnostic of diagnostics) {
             let { range, severity } = diagnostic;
-            let hlGroup = util_1.getNameFromSeverity(severity) + 'Highlight';
-            let ranges = highlights.get(hlGroup) || [];
+            let ranges = highlights.get(severity) || [];
             ranges.push(range);
-            highlights.set(hlGroup, ranges);
+            highlights.set(severity, ranges);
         }
-        for (let [hlGroup, ranges] of highlights.entries()) {
-            let matchIds = document.highlightRanges(ranges, hlGroup, this.srdId);
-            for (let id of matchIds)
-                this.matchIds.add(id);
+        for (let severity of [vscode_languageserver_protocol_1.DiagnosticSeverity.Hint, vscode_languageserver_protocol_1.DiagnosticSeverity.Information, vscode_languageserver_protocol_1.DiagnosticSeverity.Warning, vscode_languageserver_protocol_1.DiagnosticSeverity.Error]) {
+            let ranges = highlights.get(severity) || [];
+            let hlGroup = util_1.getNameFromSeverity(severity) + 'Highlight';
+            ranges.forEach(range => {
+                nvim.call('coc#highlight#range', [bufnr, 'diagnostic', hlGroup, range], true);
+            });
         }
+    }
+    clearHighlight() {
+        let { bufnr } = this;
+        this.nvim.call('coc#highlight#clear_highlight', [bufnr, 'diagnostic', 0, -1], true);
     }
     /**
      * Used on buffer unload
@@ -45575,7 +45467,9 @@ class DiagnosticBuffer {
         let { nvim } = this;
         nvim.pauseNotification();
         this.clearHighlight();
-        this.clearSigns();
+        if (this.config.enableSign) {
+            this.clearSigns();
+        }
         if (this.config.virtualText) {
             let buffer = nvim.createBuffer(this.bufnr);
             buffer.clearNamespace(this.config.virtualTextSrcId);
@@ -45584,15 +45478,9 @@ class DiagnosticBuffer {
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
         nvim.resumeNotification(false, true);
     }
-    hasHighlights() {
-        return this.matchIds.size > 0;
-    }
     dispose() {
         this.refresh.clear();
         this._onDidRefresh.dispose();
-    }
-    get document() {
-        return workspace_1.default.getDocument(this.uri);
     }
     get nvim() {
         return workspace_1.default.nvim;
@@ -48303,7 +48191,7 @@ const installer_1 = __webpack_require__(392);
 const memos_1 = tslib_1.__importDefault(__webpack_require__(557));
 const types_1 = __webpack_require__(342);
 const util_1 = __webpack_require__(238);
-const array_1 = __webpack_require__(360);
+const array_1 = __webpack_require__(363);
 __webpack_require__(558);
 const factory_1 = __webpack_require__(559);
 const fs_1 = __webpack_require__(352);
@@ -76680,7 +76568,7 @@ const download_1 = tslib_1.__importDefault(__webpack_require__(399));
 exports.download = download_1.default;
 const highligher_1 = tslib_1.__importDefault(__webpack_require__(587));
 exports.Highligher = highligher_1.default;
-const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(363));
+const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(362));
 exports.FileSystemWatcher = fileSystemWatcher_1.default;
 const services_1 = tslib_1.__importDefault(__webpack_require__(588));
 exports.services = services_1.default;
@@ -77409,7 +77297,7 @@ const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(566));
 const uuid_1 = __webpack_require__(328);
-const array_1 = __webpack_require__(360);
+const array_1 = __webpack_require__(363);
 const logger = __webpack_require__(64)('codeActionManager');
 class CodeActionManager extends manager_1.default {
     register(selector, provider, clientId, codeActionKinds) {
@@ -89248,7 +89136,7 @@ const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const vscode_uri_1 = __webpack_require__(243);
 const ansiparse_1 = __webpack_require__(287);
-const diff_1 = __webpack_require__(361);
+const diff_1 = __webpack_require__(360);
 const fzy_1 = __webpack_require__(647);
 const score_1 = __webpack_require__(648);
 const string_1 = __webpack_require__(288);
@@ -92769,7 +92657,7 @@ const vscode_languageserver_textdocument_1 = __webpack_require__(346);
 const events_1 = tslib_1.__importDefault(__webpack_require__(210));
 const util_1 = __webpack_require__(238);
 const window_1 = tslib_1.__importDefault(__webpack_require__(370));
-const array_1 = __webpack_require__(360);
+const array_1 = __webpack_require__(363);
 const position_1 = __webpack_require__(290);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(291));
 const range_1 = tslib_1.__importDefault(__webpack_require__(675));
@@ -93000,9 +92888,9 @@ class Cursors {
         let doc = workspace_1.default.getDocument(this.bufnr);
         if (!doc || !this.ranges.length)
             return;
-        this.nvim.call('coc#util#clear_pos_matches', ['^CocCursorRange', this.winid], true);
+        this.nvim.call('coc#highlight#clear_match_group', [this.winid, '^CocCursorRange'], true);
         let searchRanges = this.ranges.map(o => o.currRange);
-        doc.matchAddRanges(searchRanges, 'CocCursorRange', 99);
+        this.nvim.call('coc#highlight#match_ranges', [this.winid, this.bufnr, searchRanges, 'CocCursorRange', 99], true);
         if (workspace_1.default.isVim)
             this.nvim.command('redraw', true);
     }
@@ -93010,7 +92898,7 @@ class Cursors {
         if (!this._activated)
             return;
         this.nvim.setVar('coc_cursors_activated', 0, true);
-        this.nvim.call('coc#util#clear_pos_matches', ['^CocCursorRange', this.winid], true);
+        this.nvim.call('coc#highlight#clear_match_group', [this.winid, '^CocCursorRange'], true);
         util_1.disposeAll(this.disposables);
         this._changed = false;
         this.ranges = [];
@@ -93794,10 +93682,10 @@ class Handler {
         if (hovers == null)
             return false;
         let hover = hovers.find(o => vscode_languageserver_protocol_1.Range.is(o.range));
-        if (hover) {
-            doc.matchAddRanges([hover.range], 'CocHoverRange', 999);
+        if (hover && hover.range) {
+            this.nvim.call('coc#highlight#match_ranges', [winid, doc.bufnr, [hover.range], 'CocHoverRange', 99], true);
             setTimeout(() => {
-                this.nvim.call('coc#util#clear_pos_matches', ['^CocHoverRange', winid], true);
+                this.nvim.call('coc#highlight#clear_match_group', [winid, '^CocHoverRange'], true);
                 if (workspace_1.default.isVim)
                     this.nvim.command('redraw', true);
             }, 1000);
@@ -95178,7 +95066,7 @@ class CodeLensManager {
         nvim.pauseNotification();
         let doc = workspace_1.default.getDocument(bufnr);
         if (doc && clear) {
-            doc.clearMatchIds([this.srcId]);
+            this.clear(doc.bufnr);
         }
         if (codeLenses && codeLenses.length)
             await this.setVirtualText(doc.buffer, codeLenses);
@@ -95477,7 +95365,7 @@ const tslib_1 = __webpack_require__(65);
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(240));
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const util_1 = __webpack_require__(238);
-const array_1 = __webpack_require__(360);
+const array_1 = __webpack_require__(363);
 const object_1 = __webpack_require__(249);
 const position_1 = __webpack_require__(290);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(291));
@@ -95565,7 +95453,7 @@ class Highlighter {
     highlightColor(doc, ranges, color) {
         let { red, green, blue } = toHexColor(color);
         let hlGroup = `BG${toHexString(color)}`;
-        doc.highlightRanges(ranges, hlGroup, this.srcId);
+        doc.highlightRanges(ranges, hlGroup, 'color');
     }
     addColors(colors) {
         let commands = [];
@@ -95690,7 +95578,7 @@ class DocumentHighlighter {
     }
     clearHighlight(winid) {
         let { nvim } = workspace_1.default;
-        nvim.call('coc#highlight#clear_highlights', winid ? [winid] : [], true);
+        nvim.call('coc#highlight#clear_match_group', [winid || 0, '^CocHighlight'], true);
         if (workspace_1.default.isVim)
             nvim.command('redraw', true);
     }
@@ -95706,7 +95594,7 @@ class DocumentHighlighter {
         if (workspace_1.default.bufnr != bufnr)
             return;
         nvim.pauseNotification();
-        nvim.call('coc#highlight#clear_highlights', [winid], true);
+        nvim.call('coc#highlight#clear_match_group', [winid || 0, '^CocHighlight'], true);
         let groups = {};
         for (let hl of highlights) {
             if (!hl.range)
@@ -95718,7 +95606,7 @@ class DocumentHighlighter {
             groups[hlGroup].push(hl.range);
         }
         for (let hlGroup of Object.keys(groups)) {
-            doc.matchAddRanges(groups[hlGroup], hlGroup, -1);
+            this.nvim.call('coc#highlight#match_ranges', [winid, bufnr, groups[hlGroup], hlGroup, 99], true);
         }
         this.nvim.command('redraw', true);
         await this.nvim.resumeNotification(false, true);
@@ -95970,7 +95858,7 @@ class Refactor {
         }
         else {
             if (this.matchIds.size) {
-                nvim.call('coc#util#clearmatches', [Array.from(this.matchIds), this.winid], true);
+                nvim.call('coc#highlight#clear_matches', [this.winid, Array.from(this.matchIds)], true);
                 this.matchIds.clear();
             }
             let id = 2000;

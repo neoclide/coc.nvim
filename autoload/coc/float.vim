@@ -479,6 +479,9 @@ function! coc#float#create_cursor_float(winid, bufnr, lines, config) abort
   if !s:float_supported
     return v:null
   endif
+  if s:is_blocking()
+    return v:null
+  endif
   let pumAlignTop = get(a:config, 'pumAlignTop', 0)
   let modes = get(a:config, 'modes', ['n', 'i', 'ic', 's'])
   let mode = mode()
@@ -1522,4 +1525,11 @@ function! s:popup_cursor(n) abort
     return 'cursor'.a:n
   endif
   return 'cursor+'.a:n
+endfunction
+
+function! s:is_blocking() abort
+  if coc#prompt#activated()
+    return 1
+  endif
+  return 0
 endfunction
