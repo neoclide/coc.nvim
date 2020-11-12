@@ -118,44 +118,52 @@ function! coc#list#set_height(height) abort
 endfunction
 
 function! coc#list#hide(original, height, winid) abort
-  noa silent! pclose
-  if !empty(getwininfo(a:original))
-    if exists('*nvim_set_current_win')
-      noa call nvim_set_current_win(a:original)
-    else
-      noa call win_gotoid(a:original)
-    endif
-    if a:height
-      if exists('*nvim_win_set_height')
-        call nvim_win_set_height(a:original, a:height)
-      elseif win_getid() == a:original
-        execute 'resize '.a:height
-      endif
+  if s:preview_bufnr
+    let winid = bufwinid(s:preview_bufnr)
+    if winid != -1
+      call s:close_win(winid)
     endif
   endif
+  if !empty(getwininfo(a:original))
+    call win_gotoid(a:original)
+  endif
   if a:winid
-    if s:is_vim
-      if exists('*win_execute')
-        noa call win_execute(a:winid, 'close!', 'silent!')
-      else
-        if win_getid() == a:winid
-          noa silent! close!
-        else
-          let winid = win_getid()
-          let res = win_gotoid(winid)
-          if res
-            noa silent! close!
-            noa wincmd p
-          endif
-        endif
-      endif
-    else
-      if nvim_win_is_valid(a:winid)
-        silent! noa call nvim_win_close(a:winid, 1)
-      endif
+    call s:close_win(a:winid)
+  endif
+  if a:height
+    if exists('*nvim_win_set_height')
+      call nvim_win_set_height(a:original, a:height)
+    elseif win_getid() == a:original
+      execute 'resize '.a:height
     endif
   endif
   redraw
+endfunction
+
+function! s:close_win(winid) abort
+  if a:winid == 0 || empty(getwininfo(a:winid))
+    return
+  endif
+  if s:is_vim
+    if exists('*win_execute')
+      noa call win_execute(a:winid, 'close!', 'silent!')
+    else
+      if win_getid() == a:winid
+        noa silent! close!
+      else
+        let winid = win_getid()
+        let res = win_gotoid(winid)
+        if res
+          noa silent! close!
+          noa wincmd p
+        endif
+      endif
+    endif
+  else
+    if nvim_win_is_valid(a:winid)
+      silent! noa call nvim_win_close(a:winid, 1)
+    endif
+  endif
 endfunction
 
 " Improve preview performance by reused window & buffer.
@@ -259,7 +267,7 @@ function! s:get_height(lines, config) abort
   if get(a:config, 'splitRight', 0) || get(a:config, 'position', 'below') == 'tab'
     return 0
   endif
-  let height = min([get(a:config, 'maxHeight', 10), len(a:lines)])
+  let height = min([get(a:config, 'maxHeight', 10), len(a:lines), &lines - &cmdheight - 2])
   return height
 endfunction
 

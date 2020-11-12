@@ -23999,7 +23999,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "4487f4019a" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "4dc66848d3" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);

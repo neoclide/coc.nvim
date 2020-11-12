@@ -981,7 +981,7 @@ function! coc#float#get_config_cursor(lines, config) abort
     return v:null
   endif
   let col = - max([offsetX, colIdx - (&columns - 1 - width)])
-  let row = showTop ? - height : 1
+  let row = showTop ? - height + bh : 1
   return {
         \ 'row': row,
         \ 'col': col,
