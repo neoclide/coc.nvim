@@ -712,6 +712,7 @@ export interface CompleteConfig {
   enablePreview: boolean
   enablePreselect: boolean
   labelMaxLength: number
+  floatEnable: boolean
   maxPreviewWidth: number
   autoTrigger: string
   previewIsKeyword: string

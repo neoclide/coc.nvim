@@ -174,6 +174,7 @@ export default class FloatFactory implements Disposable {
     this.autoHide = opts.autoHide == false ? false : true
     if (this.autoHide) config.autohide = 1
     let arr = await this.nvim.call('coc#float#create_cursor_float', [this.winid, this._bufnr, lines, config])
+    if (isVim) this.nvim.command('redraw', true)
     if (!arr || arr.length == 0) {
       this.winid = null
       return

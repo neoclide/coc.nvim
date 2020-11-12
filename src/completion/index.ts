@@ -38,7 +38,7 @@ export class Completion implements Disposable {
 
   public init(): void {
     this.config = this.getCompleteConfig()
-    this.floating = new Floating()
+    this.floating = new Floating(workspace.nvim, workspace.env.isVim)
     events.on('InsertCharPre', this.onInsertCharPre, this, this.disposables)
     events.on('InsertLeave', this.onInsertLeave, this, this.disposables)
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
@@ -97,7 +97,7 @@ export class Completion implements Disposable {
   private getCompleteConfig(): CompleteConfig {
     let suggest = workspace.getConfiguration('suggest')
     function getConfig<T>(key, defaultValue: T): T {
-      return suggest.get<T>(key, suggest.get<T>(key, defaultValue))
+      return suggest.get<T>(key, defaultValue)
     }
     let keepCompleteopt = getConfig<boolean>('keepCompleteopt', false)
     let autoTrigger = getConfig<string>('autoTrigger', 'always')
@@ -107,9 +107,11 @@ export class Completion implements Disposable {
         autoTrigger = 'none'
       }
     }
+    let floatEnable = workspace.floatSupported && getConfig<boolean>('floatEnable', true)
     let acceptSuggestionOnCommitCharacter = workspace.env.pumevent && getConfig<boolean>('acceptSuggestionOnCommitCharacter', false)
     return {
       autoTrigger,
+      floatEnable,
       keepCompleteopt,
       defaultSortMethod: getConfig<string>('defaultSortMethod', 'length'),
       removeDuplicateItems: getConfig<boolean>('removeDuplicateItems', false),
@@ -481,7 +483,7 @@ export class Completion implements Disposable {
     if (!docs || docs.length == 0) {
       this.floating.close()
     } else {
-      await this.floating.show(docs, bounding, token)
+      await this.floating.show(docs, bounding, { maxPreviewWidth: this.config.maxPreviewWidth }, token)
       if (!this.isActivated) {
         this.floating.close()
       }
