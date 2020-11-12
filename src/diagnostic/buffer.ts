@@ -208,7 +208,7 @@ export class DiagnosticBuffer {
    * @public
    * @returns {Promise<void>}
    */
-  public async clear(): Promise<void> {
+  public clear(): void {
     this.refresh.clear()
     let { nvim } = this
     nvim.pauseNotification()
@@ -219,7 +219,8 @@ export class DiagnosticBuffer {
       buffer.clearNamespace(this.config.virtualTextSrcId)
     }
     this.setDiagnosticInfo([])
-    await nvim.resumeNotification(false, true)
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    nvim.resumeNotification(false, true)
   }
 
   public hasHighlights(): boolean {

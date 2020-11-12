@@ -160,7 +160,10 @@ export class DiagnosticManager implements Disposable {
     if (!this.shouldValidate(doc)) return
     let { bufnr } = doc
     let buf = this.buffers.get(bufnr)
-    if (buf) return
+    if (buf) {
+      buf.clear()
+      buf.dispose()
+    }
     buf = new DiagnosticBuffer(bufnr, doc.uri, this.config)
     this.buffers.set(bufnr, buf)
     if (this.enabled) {
@@ -550,7 +553,7 @@ export class DiagnosticManager implements Disposable {
   private disposeBuffer(bufnr: number): void {
     let buf = this.buffers.get(bufnr)
     if (!buf) return
-    buf.clear().logError()
+    buf.clear()
     buf.dispose()
     this.buffers.delete(bufnr)
     for (let collection of this.collections) {
@@ -566,7 +569,7 @@ export class DiagnosticManager implements Disposable {
 
   public dispose(): void {
     for (let buf of this.buffers.values()) {
-      buf.clear().logError()
+      buf.clear()
       buf.dispose()
     }
     for (let collection of this.collections) {
@@ -636,6 +639,10 @@ export class DiagnosticManager implements Disposable {
     }
   }
 
+  public getCollectionByName(name: string): DiagnosticCollection {
+    return this.collections.find(o => o.name == name)
+  }
+
   private getCollections(uri: string): DiagnosticCollection[] {
     return this.collections.filter(c => c.has(uri))
   }
@@ -650,7 +657,7 @@ export class DiagnosticManager implements Disposable {
     for (let collection of this.collections) {
       collection.delete(buf.uri)
     }
-    buf.clear().logError()
+    buf.clear()
   }
 
   public toggleDiagnostic(): void {
@@ -661,7 +668,7 @@ export class DiagnosticManager implements Disposable {
         let diagnostics = this.getDiagnostics(buf.uri)
         buf.forceRefresh(diagnostics)
       } else {
-        buf.clear().logError()
+        buf.clear()
       }
     }
   }

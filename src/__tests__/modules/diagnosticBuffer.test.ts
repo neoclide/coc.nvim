@@ -118,7 +118,7 @@ describe('diagnostic buffer', () => {
     let diagnostics = [diagnostic]
     buf.refresh(diagnostics)
     await helper.wait(100)
-    await buf.clear()
+    buf.clear()
     let content = await nvim.call('execute', [`sign place buffer=${buf.bufnr}`])
     let lines: string[] = content.split('\n')
     let line = lines.find(s => s.includes('CocError'))

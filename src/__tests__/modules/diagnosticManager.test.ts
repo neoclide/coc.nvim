@@ -1,4 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
+import path from 'path'
 import { severityLevel, getNameFromSeverity } from '../../diagnostic/util'
 import { Range, DiagnosticSeverity, Diagnostic, Location } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
@@ -48,6 +49,18 @@ async function createDocument(): Promise<Document> {
 }
 
 describe('diagnostic manager', () => {
+  it('should refresh on buffer create', async () => {
+    let uri = URI.file(path.join(path.dirname(__dirname), 'doc')).toString()
+    let collection = manager.create('tmp')
+    let diagnostic = createDiagnostic('My Error')
+    collection.set(uri, [diagnostic])
+    let doc = await helper.createDocument('doc')
+    let val = await doc.buffer.getVar('coc_diagnostic_info') as any
+    expect(val).toBeDefined()
+    expect(val.error).toBe(1)
+    collection.dispose()
+  })
+
   it('should get all diagnostics', async () => {
     await createDocument()
     let list = manager.getDiagnosticList()
