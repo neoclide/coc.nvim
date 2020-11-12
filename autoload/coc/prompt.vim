@@ -177,6 +177,10 @@ function! coc#prompt#stop_prompt(session)
   endif
 endfunction
 
+function! coc#prompt#activated() abort
+  return s:activated
+endfunction
+
 function! s:reset() abort
   if !get(g:, 'coc_disable_transparent_cursor',0)
     " neovim has bug with revert empty &guicursor
