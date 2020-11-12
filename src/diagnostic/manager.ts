@@ -163,6 +163,10 @@ export class DiagnosticManager implements Disposable {
     if (buf) return
     buf = new DiagnosticBuffer(bufnr, doc.uri, this.config)
     this.buffers.set(bufnr, buf)
+    if (this.enabled) {
+      let diagnostics = this.getDiagnostics(buf.uri)
+      if (diagnostics.length) buf.forceRefresh(diagnostics)
+    }
     buf.onDidRefresh(() => {
       if (['never', 'jump'].includes(this.config.enableMessage)) {
         return
