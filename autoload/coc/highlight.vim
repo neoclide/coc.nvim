@@ -1,11 +1,17 @@
+" for vim8
+let s:clear_match_by_window = has('nvim-0.5.0') || has('patch-8.1.1084')
+let s:switch_win = has('nvim') && !has('nvim-0.5.0')
+let s:namespace_map = {}
+let s:ns_id = 1
 
 " highlight LSP range,
 " TODO don't know how to count UTF16 code point, should work most cases.
-function! coc#highlight#range(bufnr, srcId, hlGroup, range) abort
+function! coc#highlight#range(bufnr, key, hlGroup, range) abort
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
   if !bufloaded(bufnr)
     return
   endif
+  let srcId = s:create_namespace(a:key)
   let start = a:range['start']
   let end = a:range['end']
   for lnum in range(start['line'] + 1, end['line'] + 1)
@@ -19,7 +25,7 @@ function! coc#highlight#range(bufnr, srcId, hlGroup, range) abort
     if colStart == colEnd
       continue
     endif
-    call coc#highlight#add_highlight(bufnr, a:srcId, a:hlGroup, lnum - 1, colStart, colEnd)
+    call coc#highlight#add_highlight(bufnr, srcId, a:hlGroup, lnum - 1, colStart, colEnd)
   endfor
 endfunction
 
@@ -31,11 +37,16 @@ function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, 
   endif
 endfunction
 
-function! coc#highlight#clear_highlight(bufnr, src_id, start_line, end_line) abort
+function! coc#highlight#clear_highlight(bufnr, key, start_line, end_line) abort
+  let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
+  if !bufloaded(bufnr)
+    return
+  endif
+  let src_id = s:create_namespace(a:key)
   if has('nvim')
-    call nvim_buf_clear_namespace(a:bufnr, a:src_id, a:start_line, a:end_line)
+    call nvim_buf_clear_namespace(a:bufnr, src_id, a:start_line, a:end_line)
   else
-    call coc#api#call('buf_clear_namespace', [a:bufnr, a:src_id, a:start_line, a:end_line])
+    call coc#api#call('buf_clear_namespace', [a:bufnr, src_id, a:start_line, a:end_line])
   endif
 endfunction
 
@@ -83,25 +94,6 @@ function! coc#highlight#add_highlights(winid, codes, highlights) abort
   endif
 endfunction
 
-" clear document highlights of current window
-function! coc#highlight#clear_highlights(...) abort
-    let winid = get(a:, 1, win_getid())
-    if empty(getwininfo(winid))
-      " not valid
-      return
-    endif
-    if winid == win_getid()
-      let arr = filter(getmatches(), 'v:val["group"] =~# "^CocHighlight"')
-      for item in arr
-        call matchdelete(item['id'])
-      endfor
-    elseif s:clear_match_by_id
-      let arr = filter(getmatches(winid), 'v:val["group"] =~# "^CocHighlight"')
-      for item in arr
-        call matchdelete(item['id'], winid)
-      endfor
-    endif
-endfunction
 
 " Add highlights to line groups of winid, support hlGroup and filetype
 " config should have startLine, endLine (1 based, end excluded) and filetype or hlGroup
@@ -165,6 +157,103 @@ function! coc#highlight#compose_hlgroup(fgGroup, bgGroup) abort
   return hlGroup
 endfunction
 
+" add matches for winid, use 0 for current window.
+function! coc#highlight#match_ranges(winid, bufnr, ranges, hlGroup, priority) abort
+  let winid = a:winid == 0 ? win_getid() : a:winid
+  if empty(getwininfo(winid)) || winbufnr(a:winid) != a:bufnr
+    " not valid
+    return
+  endif
+  if s:switch_win
+    let curr = win_getid()
+    noa call nvim_set_current_win(winid)
+  endif
+  for range in a:ranges
+    let list = []
+    let start = range['start']
+    let end = range['end']
+    for lnum in range(start['line'] + 1, end['line'] + 1)
+      let arr = getbufline(a:bufnr, lnum)
+      let line = empty(arr) ? '' : arr[0]
+      if empty(line)
+        continue
+      endif
+      let colStart = lnum == start['line'] + 1 ? strlen(strcharpart(line, 0, start['character'])) + 1 : 1
+      let colEnd = lnum == end['line'] + 1 ? strlen(strcharpart(line, 0, end['character'])) + 1 : strlen(line) + 1
+      if colStart == colEnd
+        continue
+      endif
+      call add(list, [lnum, colStart, colEnd - colStart])
+    endfor
+    if !empty(list)
+      if s:clear_match_by_window
+        call matchaddpos(a:hlGroup, list, 10, -1, {'window': a:winid})
+      else
+        call matchaddpos(a:hlGroup, list, 10)
+      endif
+    endif
+  endfor
+  if s:switch_win
+    noa call nvim_set_current_win(curr)
+  endif
+endfunction
+
+" Clear matches by hlGroup regexp.
+function! coc#highlight#clear_match_group(winid, match) abort
+  let winid = a:winid == 0 ? win_getid() : a:winid
+  if empty(getwininfo(winid))
+    " not valid
+    return
+  endif
+  if win_getid() == winid
+    let arr = filter(getmatches(), 'v:val["group"] =~# "'.a:match.'"')
+    for item in arr
+      call matchdelete(item['id'])
+    endfor
+  elseif s:clear_match_by_window
+    let arr = filter(getmatches(winid), 'v:val["group"] =~# "'.a:match.'"')
+    for item in arr
+      call matchdelete(item['id'], winid)
+    endfor
+  endif
+endfunction
+
+" Clear matches by match ids, use 0 for current win.
+function! coc#highlight#clear_matches(winid, ids)
+  let winid = a:winid == 0 ? win_getid() : a:winid
+  if empty(getwininfo(winid))
+    return
+  endif
+  if win_getid() == winid
+    for id in a:ids
+      try
+        call matchdelete(id)
+      catch /.*/
+        " matches have been cleared in other ways,
+      endtry
+    endfor
+  elseif s:clear_match_by_window
+    for id in a:ids
+      try
+        call matchdelete(id, winid)
+      catch /.*/
+        " matches have been cleared in other ways,
+      endtry
+    endfor
+  elseif exists('*nvim_set_current_win')
+    let curr = win_getid()
+    noa call nvim_set_current_win(a:winid)
+    for id in a:ids
+      try
+        call matchdelete(id, winid)
+      catch /.*/
+        " matches have been cleared in other ways,
+      endtry
+    endfor
+    noa call nvim_set_current_win(curr)
+  endif
+endfunction
+
 " Sets the highlighting for the given group
 function! s:create_gui_hlgroup(group, fg, bg, attr)
   if a:fg != ""
@@ -196,4 +285,18 @@ function! s:execute(winid, cmd) abort
   else
     call win_execute(a:winid, a:cmd, 'silent!')
   endif
+endfunction
+
+function! s:create_namespace(key) abort
+  if a:key == -1
+    return -1
+  endif
+  if has('nvim')
+    return nvim_create_namespace('coc-'.a:key)
+  endif
+  if !has_key(s:namespace_map, a:key)
+    let s:namespace_map[a:key] = s:ns_id
+    let s:ns_id = s:ns_id + 1
+  endif
+  return s:namespace_map[a:key]
 endfunction

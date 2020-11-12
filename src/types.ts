@@ -347,6 +347,7 @@ export interface Env {
   readonly mode: string
   readonly apiversion: number
   readonly floating: boolean
+  readonly sign: boolean
   readonly extensionRoot: string
   readonly globalExtensions: string[]
   readonly workspaceFolders: string[]

@@ -5,12 +5,10 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import events from '../events'
 import { ChangeInfo, DidChangeTextDocumentParams, Env } from '../types'
-import { distinct, group } from '../util/array'
 import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
 import { disposeAll, getUri } from '../util/index'
-import { comparePosition } from '../util/position'
-import { byteIndex, byteLength, byteSlice } from '../util/string'
+import { byteLength, byteSlice } from '../util/string'
 import { Chars } from './chars'
 const logger = require('../util/logger')('model-document')
 
@@ -39,8 +37,6 @@ export default class Document {
   public textDocument: TextDocument
   public fireContentChanges: Function & { clear(): void }
   public fetchContent: Function & { clear(): void }
-  // start id for matchaddpos
-  private colorId = 1080
   private size = 0
   private nvim: Neovim
   private eol = true
@@ -535,98 +531,31 @@ export default class Document {
   }
 
   /**
-   * Use matchaddpos for highlight ranges, must use `redraw` command on vim
-   */
-  public matchAddRanges(ranges: Range[], hlGroup: string, priority = 10): number[] {
-    let res: number[] = []
-    let arr: number[][] = []
-    let splited: Range[] = ranges.reduce((p, c) => {
-      for (let i = c.start.line; i <= c.end.line; i++) {
-        let curr = this.getline(i) || ''
-        let sc = i == c.start.line ? c.start.character : 0
-        let ec = i == c.end.line ? c.end.character : curr.length
-        if (sc == ec) continue
-        p.push(Range.create(i, sc, i, ec))
-      }
-      return p
-    }, [])
-    for (let range of splited) {
-      let { start, end } = range
-      let line = this.getline(start.line)
-      if (start.character == end.character) continue
-      arr.push([start.line + 1, byteIndex(line, start.character) + 1, byteLength(line.slice(start.character, end.character))])
-    }
-    for (let grouped of group(arr, 8)) {
-      let id = this.colorId
-      this.colorId = this.colorId + 1
-      this.nvim.call('matchaddpos', [hlGroup, grouped, priority, id], true)
-      res.push(id)
-    }
-    return res
-  }
-
-  /**
-   * Highlight ranges in document, return match id list.
+   * Highlight ranges in document, requires textprop on vim8
    *
-   * Note: match id could by namespace id or vim's match id.
+   * @param {Range} ranges List of ranges.
+   * @param {string} hlGroup Highlight group.
+   * @param {string} key Unique key for namespace.
    */
-  public highlightRanges(ranges: Range[], hlGroup: string, srcId: number, priority = 10): number[] {
-    let res: number[] = []
-    if (this.env.isVim && !this.env.textprop) {
-      res = this.matchAddRanges(ranges, hlGroup, priority)
-    } else {
-      let lineRanges = []
-      for (let range of ranges) {
-        if (range.start.line == range.end.line) {
-          lineRanges.push(range)
-        } else {
-          // split range by lines
-          for (let i = range.start.line; i < range.end.line; i++) {
-            let line = this.getline(i)
-            if (i == range.start.line) {
-              lineRanges.push(Range.create(i, range.start.character, i, line.length))
-            } else if (i == range.end.line) {
-              lineRanges.push(Range.create(i, Math.min(line.match(/^\s*/)[0].length, range.end.character), i, range.end.character))
-            } else {
-              lineRanges.push(Range.create(i, Math.min(line.match(/^\s*/)[0].length, line.length), i, line.length))
-            }
-          }
-        }
-      }
-      for (let range of lineRanges) {
-        let { start, end } = range
-        if (comparePosition(start, end) == 0) continue
-        let line = this.getline(start.line)
-        this.buffer.addHighlight({
-          hlGroup,
-          srcId,
-          line: start.line,
-          colStart: byteIndex(line, start.character),
-          colEnd: end.line - start.line == 1 && end.character == 0 ? -1 : byteIndex(line, end.character)
-        }).logError()
-      }
-      res.push(srcId)
+  public highlightRanges(ranges: Range[], hlGroup: string, key: string): void {
+    if (typeof key === 'number') {
+      logger.error(`signature for highlight ranges was changed!`)
+      return [] as any
     }
-    return res
+    for (let range of ranges) {
+      this.nvim.call('coc#highlight#range', [this.bufnr, key, hlGroup, range], true)
+    }
   }
 
   /**
-   * Clear match id list, for vim support namespace, list should be namespace id list.
+   * Clear namespace with key, requires textprop on vim8
+   *
+   * @param {string} key Unique key of namespace.
+   * @param {number} startLine Default to `0`, 0 based.
+   * @param {number} endLine Default to `-1` as the end.
    */
-  public clearMatchIds(ids: Set<number> | number[]): void {
-    if (this.env.isVim && !this.env.textprop) {
-      this.nvim.call('coc#util#clear_buf_matches', [Array.from(ids), this.bufnr], true)
-    } else {
-      ids = distinct(Array.from(ids))
-      let hasNamesapce = this.nvim.hasFunction('nvim_create_namespace')
-      ids.forEach(id => {
-        if (hasNamesapce) {
-          this.buffer.clearNamespace(id)
-        } else {
-          this.buffer.clearHighlight({ srcId: id })
-        }
-      })
-    }
+  public clearNamespace(key: string, startLine = 0, endLine = -1): void {
+    this.nvim.call('coc#highlight#clear_highlight', [this.bufnr, key, startLine, endLine], true)
   }
 
   /**

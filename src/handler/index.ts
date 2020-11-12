@@ -364,10 +364,10 @@ export default class Handler {
     }, true)
     if (hovers == null) return false
     let hover = hovers.find(o => Range.is(o.range))
-    if (hover) {
-      doc.matchAddRanges([hover.range], 'CocHoverRange', 999)
+    if (hover && hover.range) {
+      this.nvim.call('coc#highlight#match_ranges', [winid, doc.bufnr, [hover.range], 'CocHoverRange', 99], true)
       setTimeout(() => {
-        this.nvim.call('coc#util#clear_pos_matches', ['^CocHoverRange', winid], true)
+        this.nvim.call('coc#highlight#clear_match_group', [winid, '^CocHoverRange'], true)
         if (workspace.isVim) this.nvim.command('redraw', true)
       }, 1000)
     }

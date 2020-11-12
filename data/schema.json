@@ -598,10 +598,10 @@
       "description": "Offset number of buffer.addHighlight, neovim only.",
       "default": 1000
     },
-    "diagnostic.signOffset": {
+    "diagnostic.signPriority": {
       "type": "number",
-      "description": "Offset number of sign",
-      "default": 1000
+      "description": "Priority of diagnostic signs, default to 10",
+      "default": 10
     },
     "diagnostic.errorSign": {
       "type": "string",

@@ -254,7 +254,7 @@ export default class Refactor {
       }
     } else {
       if (this.matchIds.size) {
-        nvim.call('coc#util#clearmatches', [Array.from(this.matchIds), this.winid], true)
+        nvim.call('coc#highlight#clear_matches', [this.winid, Array.from(this.matchIds)], true)
         this.matchIds.clear()
       }
       let id = 2000

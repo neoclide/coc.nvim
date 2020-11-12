@@ -424,9 +424,9 @@ Built-in configurations:~
 
 	Offset number of buffer.addHighlight, Neovim only, default: `1000`
 
-"diagnostic.signOffset":~
+"diagnostic.signPriority":~
 
-	Offset number of sign, default: `1000`
+	Priority of diagnostic sign, default to `10`, check |sign-priority|.
 
 "diagnostic.errorSign":~
 

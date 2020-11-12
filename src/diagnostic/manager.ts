@@ -24,8 +24,7 @@ export interface DiagnosticConfig {
   checkCurrentLine: boolean
   enableMessage: string
   displayByAle: boolean
-  srcId: number
-  signOffset: number
+  signPriority: number
   errorSign: string
   warningSign: string
   infoSign: string
@@ -593,10 +592,9 @@ export class DiagnosticManager implements Disposable {
     }
     this.config = {
       messageTarget,
-      srcId: workspace.createNameSpace('coc-diagnostic') || 1000,
       virtualTextSrcId: workspace.createNameSpace('diagnostic-virtualText'),
       checkCurrentLine: config.get<boolean>('checkCurrentLine', false),
-      enableSign: config.get<boolean>('enableSign', true),
+      enableSign: workspace.env.sign && config.get<boolean>('enableSign', true),
       locationlistUpdate: config.get<boolean>('locationlistUpdate', true),
       enableHighlightLineNumber: config.get<boolean>('enableHighlightLineNumber', true),
       maxWindowHeight: config.get<number>('maxWindowHeight', 10),
@@ -610,7 +608,7 @@ export class DiagnosticManager implements Disposable {
       virtualTextLines: config.get<number>('virtualTextLines', 3),
       displayByAle: config.get<boolean>('displayByAle', false),
       level: severityLevel(config.get<string>('level', 'hint')),
-      signOffset: config.get<number>('signOffset', 1000),
+      signPriority: config.get<number>('signPriority', 10),
       errorSign: config.get<string>('errorSign', '>>'),
       warningSign: config.get<string>('warningSign', '>>'),
       infoSign: config.get<string>('infoSign', '>>'),
@@ -625,16 +623,6 @@ export class DiagnosticManager implements Disposable {
     this.enabled = config.get<boolean>('enable', true)
     if (this.config.displayByAle) {
       this.enabled = false
-    }
-    if (event) {
-      for (let severity of ['error', 'info', 'warning', 'hint']) {
-        let key = `diagnostic.${severity}Sign`
-        if (event.affectsConfiguration(key)) {
-          let text = config.get<string>(`${severity}Sign`, '>>')
-          let name = severity[0].toUpperCase() + severity.slice(1)
-          this.nvim.command(`sign define Coc${name}   text=${text}   linehl=Coc${name}Line texthl=Coc${name}Sign`, true)
-        }
-      }
     }
   }
 

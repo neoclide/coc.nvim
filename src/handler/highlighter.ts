@@ -97,7 +97,7 @@ export default class Highlighter implements Disposable {
   private highlightColor(doc: Document, ranges: Range[], color: Color): void {
     let { red, green, blue } = toHexColor(color)
     let hlGroup = `BG${toHexString(color)}`
-    doc.highlightRanges(ranges, hlGroup, this.srcId)
+    doc.highlightRanges(ranges, hlGroup, 'color')
   }
 
   private addColors(colors: Color[]): void {

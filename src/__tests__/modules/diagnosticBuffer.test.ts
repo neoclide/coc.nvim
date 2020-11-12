@@ -23,9 +23,8 @@ const config: DiagnosticConfig = {
   virtualTextLines: 3,
   virtualTextLineSeparator: " \\ ",
   displayByAle: false,
-  srcId: 1000,
   level: DiagnosticSeverity.Hint,
-  signOffset: 1000,
+  signPriority: 11,
   errorSign: '>>',
   warningSign: '>>',
   infoSign: '>>',
@@ -46,9 +45,11 @@ function createDiagnostic(msg: string, range?: Range, severity?: DiagnosticSever
   return Diagnostic.create(range, msg, severity || DiagnosticSeverity.Error, 999, 'test')
 }
 
+let ns: number
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
+  ns = await nvim.createNamespace('coc-diagnostic')
 })
 
 afterAll(async () => {
@@ -95,8 +96,12 @@ describe('diagnostic buffer', () => {
   it('should add highlight neovim', async () => {
     let diagnostic = createDiagnostic('foo')
     let buf = await createDiagnosticBuffer()
-    buf.addHighlight([diagnostic], buf.bufnr)
-    expect(buf.hasHighlights()).toBe(true)
+    await nvim.setLine('abc')
+    nvim.pauseNotification()
+    buf.addHighlight([diagnostic])
+    await nvim.resumeNotification()
+    let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, {}]) as [number, number, number][]
+    expect(res.length).toBe(1)
   })
 
   it('should clear all diagnostics', async () => {
@@ -114,7 +119,5 @@ describe('diagnostic buffer', () => {
     let buffer = await nvim.buffer
     let res = await buffer.getVar("coc_diagnostic_info")
     expect(res).toEqual({ lnums: [0, 0, 0, 0], error: 0, hint: 0, information: 0, warning: 0 })
-    let { matchIds } = buf as any
-    expect(matchIds.size).toBe(0)
   })
 })
