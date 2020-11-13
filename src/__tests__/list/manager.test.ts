@@ -193,7 +193,7 @@ describe('list options', () => {
   it('should respect auto preview option', async () => {
     await manager.start(['--auto-preview', 'location'])
     await helper.wait(300)
-    let previewWinnr = await nvim.call('coc#util#has_preview')
+    let previewWinnr = await nvim.call('coc#list#has_preview')
     expect(previewWinnr).toBe(2)
     let bufnr = await nvim.call('winbufnr', previewWinnr)
     let buf = nvim.createBuffer(bufnr)
@@ -201,7 +201,7 @@ describe('list options', () => {
     expect(name).toMatch('manager.test.ts')
     await nvim.eval('feedkeys("j", "in")')
     await helper.wait(100)
-    let winnr = await nvim.call('coc#util#has_preview')
+    let winnr = await nvim.call('coc#list#has_preview')
     expect(winnr).toBe(previewWinnr)
   })
 
@@ -210,7 +210,7 @@ describe('list options', () => {
     await manager.session.ui.ready
     await helper.wait(200)
     await nvim.command('wincmd l')
-    let previewwindow = await nvim.eval('&previewwindow')
+    let previewwindow = await nvim.eval('w:previewwindow')
     expect(previewwindow).toBe(1)
   })
 })
@@ -236,8 +236,8 @@ describe('list configuration', () => {
     await nvim.call('win_gotoid', [win.id])
     await nvim.command('wincmd l')
     let curr = await nvim.window
-    let isPreview = await curr.getOption('previewwindow')
-    expect(isPreview).toBe(true)
+    let isPreview = await curr.getVar('previewwindow')
+    expect(isPreview).toBe(1)
     helper.updateConfiguration('list.previewSplitRight', false)
   })
 
@@ -301,7 +301,7 @@ describe('list configuration', () => {
     await manager.togglePreview()
     await helper.wait(100)
     let has = await nvim.call('coc#list#has_preview')
-    expect(has).toBe(1)
+    expect(has).toBeGreaterThan(0)
   })
 
   it('should show help of current list', async () => {

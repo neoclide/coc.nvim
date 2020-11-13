@@ -111,9 +111,8 @@ export default class ListUI {
     return this.items[this.items.length - 1]
   }
 
-  public getItem(delta: number): ListItem {
-    let { currIndex } = this
-    return this.items[currIndex + delta]
+  public getItem(index: number): ListItem {
+    return this.items[index]
   }
 
   public get item(): Promise<ListItem> {

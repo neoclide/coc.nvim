@@ -338,7 +338,7 @@ function! s:Hi() abort
   else
     hi default link CocFloating Pmenu
   endif
-  if has('nvim') && (!exists('*sign_getdefined') || empty(sign_getdefined('CocCurrentLine')))
+  if !exists('*sign_getdefined') || empty(sign_getdefined('CocCurrentLine'))
     sign define CocCurrentLine linehl=CocMenuSel
   endif
   if has('nvim-0.5.0')

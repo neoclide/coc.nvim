@@ -190,9 +190,10 @@ export class ListManager implements Disposable {
 
   public async togglePreview(): Promise<void> {
     let { nvim } = this
-    let has = await nvim.call('coc#list#has_preview')
-    if (has) {
-      await nvim.command('pclose')
+    let winid = await nvim.call('coc#list#get_preview', [0])
+    if (winid != -1) {
+      let win = nvim.createWindow(winid)
+      await win.close(true)
       await nvim.command('redraw')
     } else {
       await this.doAction('preview')

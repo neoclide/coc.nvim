@@ -47,7 +47,7 @@ describe('list commands', () => {
     let name = await nvim.eval('bufname("%")')
     expect(name).toMatch('location.test.ts')
     let buf = await nvim.buffer
-    let res = await nvim.call('nvim_buf_get_extmarks', [buf.id, ns, 0, -1, {}]) as [number, number, number][]
+    let res = await nvim.call('getmatches')
     expect(res.length).toBe(1)
   })
 
@@ -61,9 +61,9 @@ describe('list commands', () => {
     await helper.wait(300)
     await nvim.command('wincmd k')
     let buf = await nvim.buffer
-    let res = await nvim.call('nvim_buf_get_extmarks', [buf.id, ns, 0, -1, {}]) as [number, number, number][]
+    let res = await nvim.call('getmatches')
     expect(res.length).toBe(1)
-    expect(res[0]).toEqual([2, 2, 0])
+    expect(res[0]['pos1']).toEqual([3, 1, 6])
   })
 
   it('should highlight multiple line range', async () => {
@@ -76,8 +76,9 @@ describe('list commands', () => {
     await helper.wait(300)
     await nvim.command('wincmd k')
     let buf = await nvim.buffer
-    let res = await nvim.call('nvim_buf_get_extmarks', [buf.id, ns, 0, -1, {}]) as [number, number, number][]
-    expect(res.length).toBe(2)
-    expect(res[0]).toEqual([2, 3, 0])
+    let res = await nvim.call('getmatches')
+    expect(res.length).toBe(1)
+    expect(res[0]['pos1']).toBeDefined()
+    expect(res[0]['pos2']).toBeDefined()
   })
 })

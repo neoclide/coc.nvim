@@ -86,8 +86,8 @@ describe('BasicList', () => {
       await helper.wait(100)
       await nvim.command('wincmd p')
       let win = await nvim.window
-      let isPreview = await win.getOption('previewwindow')
-      expect(isPreview).toBe(true)
+      let isPreview = await win.getVar('previewwindow')
+      expect(isPreview).toBe(1)
       let line = await nvim.line
       expect(line).toBe('foo')
       disposable.dispose()

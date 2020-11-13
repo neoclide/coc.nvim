@@ -113,7 +113,7 @@ describe('list normal mappings', () => {
     await helper.wait(50)
     await nvim.eval('feedkeys("p", "in")')
     await helper.wait(200)
-    let winnr = await nvim.call('coc#util#has_preview')
+    let winnr = await nvim.call('coc#list#has_preview')
     expect(winnr).toBe(2)
   })
 

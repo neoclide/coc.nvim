@@ -1,4 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
+import path from 'path'
 import fs from 'fs'
 import readline from 'readline'
 import { CancellationToken, Position, Disposable, Location, Range } from 'vscode-languageserver-protocol'
@@ -7,7 +8,7 @@ import { ProviderResult } from '../provider'
 import { IList, ListAction, ListContext, ListItem, ListTask, LocationWithLine, WorkspaceConfiguration, ListArgument, PreiewOptions } from '../types'
 import { disposeAll } from '../util'
 import { readFileLines } from '../util/fs'
-import { comparePosition } from '../util/position'
+import { comparePosition, emptyRange } from '../util/position'
 import workspace from '../workspace'
 import ListConfiguration from './configuration'
 const logger = require('../util/logger')('list-basic')
@@ -211,16 +212,17 @@ export default abstract class BasicList implements IList, Disposable {
       lines = await readFileLines(u.fsPath, 0, range.end.line + 30)
     }
     let config: PreviewConfig = {
-      range,
+      range: emptyRange(range) ? null : range,
       lnum: range.start.line + 1,
       name: u.scheme == 'file' ? u.fsPath : '',
-      filetype: doc ? doc.filetype : '',
+      filetype: doc ? doc.filetype : this.getFiletype(u.fsPath),
       position: context.options.position,
       maxHeight: this.previewHeight,
       splitRight: this.splitRight,
       hlGroup: this.hlGroup,
     }
     await nvim.call('coc#list#preview', [lines, config])
+    if (workspace.isVim) nvim.command('redraw', true)
   }
 
   public async preview(options: PreiewOptions, context: ListContext): Promise<void> {
@@ -228,7 +230,7 @@ export default abstract class BasicList implements IList, Disposable {
     let { bufname, filetype, range, lines, lnum } = options
     let config: PreviewConfig = {
       lnum: range ? range.start.line + 1 : lnum || 1,
-      filetype: filetype || '',
+      filetype: filetype || 'txt',
       position: context.options.position,
       maxHeight: this.previewHeight,
       splitRight: this.splitRight,
@@ -237,6 +239,7 @@ export default abstract class BasicList implements IList, Disposable {
     if (bufname) config.name = bufname
     if (range) config.range = range
     await nvim.call('coc#list#preview', [lines, config])
+    if (workspace.isVim) nvim.command('redraw', true)
   }
 
   public abstract loadItems(context: ListContext, token?: CancellationToken): Promise<ListItem[] | ListTask | null | undefined>
@@ -247,5 +250,25 @@ export default abstract class BasicList implements IList, Disposable {
 
   public dispose(): void {
     disposeAll(this.disposables)
+  }
+
+  /**
+   * Get filetype by check same extension name buffer.
+   */
+  private getFiletype(filepath: string): string {
+    let extname = path.extname(filepath)
+    if (!extname) return ''
+    for (let doc of workspace.documents) {
+      let fsPath = URI.parse(doc.uri).fsPath
+      if (path.extname(fsPath) == extname) {
+        let { filetype } = doc
+        // react syntax could be slow
+        if (filetype == 'javascriptreact') return 'javascript'
+        if (filetype == 'typescriptreact') return 'typescript'
+        if (filetype.indexOf('.') !== -1) return filetype.split('.')[0]
+        return filetype
+      }
+    }
+    return ''
   }
 }
