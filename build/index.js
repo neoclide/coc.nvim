@@ -23999,7 +23999,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "4dc66848d3" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "54473038f8" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -47720,7 +47720,9 @@ class Completion {
             this.floating.close();
         }
         else {
-            await this.floating.show(docs, bounding, { maxPreviewWidth: this.config.maxPreviewWidth }, token);
+            if (this.config.floatEnable) {
+                await this.floating.show(docs, bounding, { maxPreviewWidth: this.config.maxPreviewWidth }, token);
+            }
             if (!this.isActivated) {
                 this.floating.close();
             }
@@ -49388,6 +49390,9 @@ class Installer extends events_1.EventEmitter {
                 }
                 if (this.npm.endsWith('npm')) {
                     args.push('--legacy-peer-deps');
+                }
+                if (this.npm.endsWith('yarn')) {
+                    args.push('--ignore-engines');
                 }
                 this.log(`Installing dependencies by: ${this.npm} ${args.join(' ')}.`);
                 const child = child_process_1.spawn(this.npm, args, {
@@ -83352,9 +83357,10 @@ class ListManager {
     }
     async togglePreview() {
         let { nvim } = this;
-        let has = await nvim.call('coc#list#has_preview');
-        if (has) {
-            await nvim.command('pclose');
+        let winid = await nvim.call('coc#list#get_preview', [0]);
+        if (winid != -1) {
+            let win = nvim.createWindow(winid);
+            await win.close(true);
             await nvim.command('redraw');
         }
         else {
@@ -87946,11 +87952,10 @@ class ListSession {
         });
         this.interactiveDebounceTime = config.get('interactiveDebounceTime', 100);
         let debouncedChangeLine = debounce_1.default(async () => {
-            let [previewing, mode] = await nvim.eval('[coc#util#has_preview(),mode()]');
-            if (!previewing || mode != 'n')
-                return;
-            if (previewing)
-                await this.doAction('preview');
+            let [previewing, currwin, lnum] = await nvim.eval('[coc#list#has_preview(),win_getid(),line(".")]');
+            if (previewing && currwin == this.winid) {
+                await this.doPreview(lnum - 1);
+            }
         }, 50);
         this.disposables.push({
             dispose: () => {
@@ -87963,7 +87968,7 @@ class ListSession {
         let debounced = debounce_1.default(async () => {
             let { autoPreview } = this.listOptions;
             if (!autoPreview) {
-                let [previewing, mode] = await nvim.eval('[coc#util#has_preview(),mode()]');
+                let [previewing, mode] = await nvim.eval('[coc#list#has_preview(),mode()]');
                 if (!previewing || mode != 'n')
                     return;
             }
@@ -88034,7 +88039,7 @@ class ListSession {
         this.cwd = workspace_1.default.cwd;
         this.hidden = false;
         let { listOptions, listArgs } = this;
-        let res = await this.nvim.eval('[win_getid(),bufnr("%"),winheight("%"),execute("pclose","silent!")]');
+        let res = await this.nvim.eval('[win_getid(),bufnr("%"),winheight("%")]');
         this.listArgs = listArgs;
         this.history.load(listOptions.input || '');
         this.window = this.nvim.createWindow(res[0]);
@@ -88124,6 +88129,13 @@ class ListSession {
         if (items.length)
             await this.doItemAction(items, action);
     }
+    async doPreview(index) {
+        let item = this.ui.getItem(index);
+        let action = this.list.actions.find(o => o.name == 'preview');
+        if (!item || !action)
+            return;
+        await this.doItemAction([item], action);
+    }
     async first() {
         let { ui } = this;
         let item = this.ui.firstItem;
@@ -88144,7 +88156,7 @@ class ListSession {
     }
     async previous() {
         let { ui } = this;
-        let item = ui.getItem(-1);
+        let item = ui.getItem(ui.index - 1);
         if (!item)
             return;
         ui.index = ui.index - 1;
@@ -88153,7 +88165,7 @@ class ListSession {
     }
     async next() {
         let { ui } = this;
-        let item = ui.getItem(1);
+        let item = ui.getItem(ui.index + 1);
         if (!item)
             return;
         ui.index = ui.index + 1;
@@ -88202,6 +88214,7 @@ class ListSession {
         this.ui.reset();
         await nvim.call('coc#list#hide', [this.window.id, this.savedHeight, winid]);
         if (workspace_1.default.isVim) {
+            nvim.command('redraw', true);
             // Needed for tabe action, don't know why.
             await util_1.wait(10);
         }
@@ -88218,7 +88231,7 @@ class ListSession {
     }
     async resolveItem() {
         let index = this.ui.index;
-        let item = this.ui.getItem(0);
+        let item = this.ui.getItem(index);
         if (!item || item.resolved)
             return;
         let { list } = this;
@@ -88428,7 +88441,7 @@ class ListSession {
                     await Promise.resolve(action.execute(item, this.context));
                 }
             }
-            if (persist) {
+            if (persist && action.name != 'preview') {
                 this.ui.restoreWindow();
                 if (action.reload)
                     await this.worker.loadItems(this.context, true);
@@ -88729,9 +88742,8 @@ class ListUI {
     get lastItem() {
         return this.items[this.items.length - 1];
     }
-    getItem(delta) {
-        let { currIndex } = this;
-        return this.items[currIndex + delta];
+    getItem(index) {
+        return this.items[index];
     }
     get item() {
         let { window } = this;
@@ -89910,6 +89922,7 @@ function score(list, key) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
+const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(66));
 const readline_1 = tslib_1.__importDefault(__webpack_require__(206));
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
@@ -90090,23 +90103,25 @@ class BasicList {
             lines = await fs_2.readFileLines(u.fsPath, 0, range.end.line + 30);
         }
         let config = {
-            range,
+            range: position_1.emptyRange(range) ? null : range,
             lnum: range.start.line + 1,
             name: u.scheme == 'file' ? u.fsPath : '',
-            filetype: doc ? doc.filetype : '',
+            filetype: doc ? doc.filetype : this.getFiletype(u.fsPath),
             position: context.options.position,
             maxHeight: this.previewHeight,
             splitRight: this.splitRight,
             hlGroup: this.hlGroup,
         };
         await nvim.call('coc#list#preview', [lines, config]);
+        if (workspace_1.default.isVim)
+            nvim.command('redraw', true);
     }
     async preview(options, context) {
         let { nvim } = this;
         let { bufname, filetype, range, lines, lnum } = options;
         let config = {
             lnum: range ? range.start.line + 1 : lnum || 1,
-            filetype: filetype || '',
+            filetype: filetype || 'txt',
             position: context.options.position,
             maxHeight: this.previewHeight,
             splitRight: this.splitRight,
@@ -90117,12 +90132,37 @@ class BasicList {
         if (range)
             config.range = range;
         await nvim.call('coc#list#preview', [lines, config]);
+        if (workspace_1.default.isVim)
+            nvim.command('redraw', true);
     }
     doHighlight() {
         // noop
     }
     dispose() {
         util_1.disposeAll(this.disposables);
+    }
+    /**
+     * Get filetype by check same extension name buffer.
+     */
+    getFiletype(filepath) {
+        let extname = path_1.default.extname(filepath);
+        if (!extname)
+            return '';
+        for (let doc of workspace_1.default.documents) {
+            let fsPath = vscode_uri_1.URI.parse(doc.uri).fsPath;
+            if (path_1.default.extname(fsPath) == extname) {
+                let { filetype } = doc;
+                // react syntax could be slow
+                if (filetype == 'javascriptreact')
+                    return 'javascript';
+                if (filetype == 'typescriptreact')
+                    return 'typescript';
+                if (filetype.indexOf('.') !== -1)
+                    return filetype.split('.')[0];
+                return filetype;
+            }
+        }
+        return '';
     }
 }
 exports.default = BasicList;
@@ -95114,7 +95154,7 @@ class CodeLensManager {
             commands_1.default.execute(commands[0]);
         }
         else {
-            let res = await window_1.default.showQuickpick(commands.map(c => c.title));
+            let res = await window_1.default.showMenuPicker(commands.map(c => c.title));
             if (res == -1)
                 return;
             commands_1.default.execute(commands[res]);
@@ -95606,7 +95646,7 @@ class DocumentHighlighter {
             groups[hlGroup].push(hl.range);
         }
         for (let hlGroup of Object.keys(groups)) {
-            this.nvim.call('coc#highlight#match_ranges', [winid, bufnr, groups[hlGroup], hlGroup, 99], true);
+            this.nvim.call('coc#highlight#match_ranges', [winid, bufnr, groups[hlGroup], hlGroup, -1], true);
         }
         this.nvim.command('redraw', true);
         await this.nvim.resumeNotification(false, true);

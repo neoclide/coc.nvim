@@ -1,5 +1,13 @@
 let s:is_vim = !has('nvim')
-let s:preview_bufnr = 0
+let s:prefix = '[List Preview]'
+" filetype detect could be slow.
+let s:filetype_map = {
+  \ 'vim': 'vim',
+  \ 'ts': 'typescript',
+  \ 'js': 'javascript',
+  \ 'html': 'html',
+  \ 'css': 'css'
+  \ }
 
 function! coc#list#getchar() abort
   return coc#prompt#getchar()
@@ -90,14 +98,45 @@ function! coc#list#setup(source)
   nnoremap <silent><nowait><buffer> <esc> <C-w>c
 endfunction
 
+" Check if previewwindow exists on current tab.
 function! coc#list#has_preview()
   for i in range(1, winnr('$'))
-    let preview = getwinvar(i, '&previewwindow')
+    let preview = getwinvar(i, 'previewwindow', getwinvar(i, '&previewwindow', 0))
     if preview
-      return 1
+      return i
     endif
   endfor
   return 0
+endfunction
+
+" Get previewwindow from tabnr, use 0 for current tab
+function! coc#list#get_preview(...) abort
+  let tabnr = get(a:, 1, 0) == 0 ? tabpagenr() : a:1
+  let info = gettabinfo(tabnr)
+  if !empty(info)
+    for win in info[0]['windows']
+      if getwinvar(win, 'previewwindow', 0)
+        return win
+      endif
+    endfor
+  endif
+  return -1
+endfunction
+
+function! coc#list#scroll_preview(dir) abort
+  let winnr = coc#list#has_preview()
+  if !winnr
+    return
+  endif
+  let winid = win_getid(winnr)
+  if exists('*win_execute')
+    call win_execute(winid, "normal! ".(a:dir ==# 'up' ? "\<C-u>" : "\<C-d>"))
+  else
+    let id = win_getid()
+    noa call win_gotoid(winid)
+    execute "normal! ".(a:dir ==# 'up' ? "\<C-u>" : "\<C-d>")
+    noa call win_gotoid(id)
+  endif
 endfunction
 
 function! coc#list#restore(winid, height)
@@ -118,11 +157,12 @@ function! coc#list#set_height(height) abort
 endfunction
 
 function! coc#list#hide(original, height, winid) abort
-  if s:preview_bufnr
-    let winid = bufwinid(s:preview_bufnr)
-    if winid != -1
-      call s:close_win(winid)
-    endif
+  let arr = win_id2tabwin(a:winid)
+  " close preview window
+  if !empty(arr) && arr[0] != 0
+    silent! pclose!
+    let previewwin = coc#list#get_preview(arr[0])
+    call s:close_win(previewwin)
   endif
   if !empty(getwininfo(a:original))
     call win_gotoid(a:original)
@@ -130,18 +170,17 @@ function! coc#list#hide(original, height, winid) abort
   if a:winid
     call s:close_win(a:winid)
   endif
-  if a:height
+  if !empty(a:height) && win_getid() == a:original
     if exists('*nvim_win_set_height')
       call nvim_win_set_height(a:original, a:height)
     elseif win_getid() == a:original
       execute 'resize '.a:height
     endif
   endif
-  redraw
 endfunction
 
 function! s:close_win(winid) abort
-  if a:winid == 0 || empty(getwininfo(a:winid))
+  if empty(a:winid) || a:winid == -1 || empty(getwininfo(a:winid))
     return
   endif
   if s:is_vim
@@ -180,85 +219,90 @@ function! coc#list#preview(lines, config) abort
     echoerr 'win_execute function required for preview, please upgrade your vim.'
     return
   endif
+  let winid = coc#list#get_preview(0)
   if empty(a:lines)
-    silent! pclose
+    call s:close_win(winid)
     return
   endif
+  let bufnr = winid == -1 ? 0 : winbufnr(winid)
   " Try reuse buffer & window
-  let s:preview_bufnr = coc#float#create_buf(s:preview_bufnr, a:lines)
-  if s:preview_bufnr == 0
+  let bufnr = coc#float#create_buf(bufnr, a:lines)
+  if bufnr == 0
     return
   endif
+  call setbufvar(bufnr, '&synmaxcol', 500)
+  let name = get(a:config, 'name', '')
   let filetype = get(a:config, 'filetype', '')
+  let extname = matchstr(name, '\.\zs[^.]\+$')
+  if empty(filetype) && !empty(extname)
+    let filetype = get(s:filetype_map, extname, '')
+  endif
   let range = get(a:config, 'range', v:null)
   let hlGroup = get(a:config, 'hlGroup', 'Search')
   let lnum = get(a:config, 'lnum', 1)
-  let winid = bufwinid(s:preview_bufnr)
   let position = get(a:config, 'position', 'below')
-  if winid > 0 && win_id2win(winid) == 0
-    " not in current tab
-    if s:is_vim
-      noa call win_execute(winid, 'close!', 'silent!')
-    else
-      call nvim_win_close(winid)
-    endif
-    let winid = -1
-  endif
-  let commands = []
   if winid == -1
-    let winid = s:get_preview_winid()
-    if winid == -1
-      let change = position != 'tab' && get(a:config, 'splitRight', 0)
-      let curr = win_getid()
-      if change
-        noa wincmd t
-        noa belowright vnew +setl\ previewwindow
-        let winid = win_getid()
-      elseif position == 'tab' || get(a:config, 'splitRight', 0)
-        noa belowright vnew +setl\ previewwindow
-        let winid = win_getid()
-      else
-        let mod = position == 'top' ? 'below' : 'above'
-        let height = s:get_height(a:lines, a:config)
-        execute 'noa '.mod.' '.height.'new +setl\ previewwindow'
-        let winid = win_getid()
-      endif
-      noa call win_gotoid(curr)
-    endif
-    " load the buffer to preview window
-    if has('nvim')
-      noa call nvim_win_set_buf(winid, s:preview_bufnr)
+    let change = position != 'tab' && get(a:config, 'splitRight', 0)
+    let curr = win_getid()
+    "noa above sb +5 52
+    if change
+      noa wincmd t
+      execute 'noa belowright vnew +b\ '.bufnr
+      let winid = win_getid()
+    elseif position == 'tab' || get(a:config, 'splitRight', 0)
+      execute 'noa belowright vnew +b\ '.bufnr
+      let winid = win_getid()
     else
-      call win_execute(winid, 'noa silent! b '.s:preview_bufnr)
+      let mod = position == 'top' ? 'below' : 'above'
+      let height = s:get_height(a:lines, a:config)
+      execute 'noa '.mod.' '.height.'new +b\ '.bufnr
+      let winid = win_getid()
     endif
-  endif
-  if winid == -1
-    return
-  endif
-  if s:is_vim
-    call add(commands, 'noa file [Preview] ' . fnameescape(get(a:config, 'name', '[Sketch]')))
+    execute 'noa exe '.lnum
+    call setwinvar(winid, '&signcolumn', 'no')
+    call setwinvar(winid, '&number', 1)
+    call setwinvar(winid, '&cursorline', 0)
+    call setwinvar(winid, '&relativenumber', 0)
+    call setwinvar(winid, 'previewwindow', 1)
+    noa call win_gotoid(curr)
   else
-    noa call nvim_buf_set_name(s:preview_bufnr, '[Preview] ' . get(a:config, 'name', '[Sketch]'))
+    let height = s:get_height(a:lines, a:config)
+    if height > 0
+      if s:is_vim
+        let curr = win_getid()
+        noa call win_gotoid(winid)
+        execute 'silent! noa resize '.height
+        noa call win_gotoid(curr)
+      else
+        call nvim_win_set_height(winid, height)
+      endif
+    endif
+    call coc#float#execute(winid, ['syntax clear', 'noa call winrestview({"lnum":'.lnum.',"topline":'.max([1, lnum - 3]).'})'])
   endif
-  " height of window
-  let height = s:get_height(a:lines, a:config)
-  if height != 0
-    call add(commands, 'noa resize '.height)
+  if s:prefix.' '.name != bufname(bufnr)
+    if s:is_vim
+      call win_execute(winid, 'noa file '.fnameescape(s:prefix.' '.name), 'silent!')
+    else
+      silent! noa call nvim_buf_set_name(bufnr, s:prefix.' '.name)
+    endif
   endif
-  " change to current line.
-  call add(commands, 'noa call winrestview({"lnum":'.lnum.',"topline":'.max([1, lnum - 3]).'})')
   " highlights
-  call add(commands, 'syntax clear')
-  if empty(filetype) && !empty(get(a:config, 'name', ''))
-    call add(commands, 'filetype detect')
-  elseif !empty(filetype)
-    call add(commands, 'setfiletype '.filetype)
+  if !empty(filetype)
+    let start = max([0, lnum - 300])
+    let end = min([len(a:lines), lnum + 300])
+    call coc#highlight#highlight_lines(winid, [{'filetype': filetype, 'startLine': start, 'endLine': end}])
+  else
+    call coc#float#execute(winid, 'filetype detect')
+    let ft = getbufvar(bufnr, '&filetype', '')
+    if !empty(extname) && !empty(ft)
+      let s:filetype_map[extname] = ft
+    endif
   endif
-  call coc#float#execute(winid, commands)
+  call sign_unplace('coc', {'buffer': bufnr})
+  call coc#float#execute(winid, 'call clearmatches()')
   if !empty(range)
-    call coc#highlight#clear_highlight(s:preview_bufnr, -1, 0, -1)
-    call coc#highlight#range(s:preview_bufnr, 'list', hlGroup, range)
-    call setwinvar(winid, '&cursorline', 1)
+    call sign_place(1, 'coc', 'CocCurrentLine', bufnr, {'lnum': lnum})
+    call coc#highlight#match_ranges(winid, bufnr, [range], hlGroup, 10)
   endif
   redraw
 endfunction
@@ -269,13 +313,4 @@ function! s:get_height(lines, config) abort
   endif
   let height = min([get(a:config, 'maxHeight', 10), len(a:lines), &lines - &cmdheight - 2])
   return height
-endfunction
-
-function! s:get_preview_winid() abort
-  for i in range(1, winnr('$'))
-    if getwinvar(i, '&previewwindow')
-      return i
-    endif
-  endfor
-  return -1
 endfunction

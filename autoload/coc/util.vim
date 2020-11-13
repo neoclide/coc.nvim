@@ -31,22 +31,6 @@ function! coc#util#api_version() abort
   return s:vim_api_version
 endfunction
 
-function! coc#util#scroll_preview(dir) abort
-  let winnr = coc#util#has_preview()
-  if !winnr
-    return
-  endif
-  let winid = win_getid(winnr)
-  if exists('*win_execute')
-    call win_execute(winid, "normal! ".(a:dir ==# 'up' ? "\<C-u>" : "\<C-d>"))
-  else
-    let id = win_getid()
-    noa call win_gotoid(winid)
-    execute "normal! ".(a:dir ==# 'up' ? "\<C-u>" : "\<C-d>")
-    noa call win_gotoid(id)
-  endif
-endfunction
-
 function! coc#util#has_float()
   echohl Error | echon 'coc#util#has_float is deprecated, use coc#float#has_float instead'  | echohl None
   return coc#float#has_float()
@@ -671,7 +655,7 @@ function! coc#util#install() abort
   let yarncmd = get(g:, 'coc_install_yarn_cmd', executable('yarnpkg') ? 'yarnpkg' : 'yarn')
   call coc#util#open_terminal({
         \ 'cwd': s:root,
-        \ 'cmd': yarncmd.' install --frozen-lockfile',
+        \ 'cmd': yarncmd.' install --frozen-lockfile --ignore-engines',
         \ 'autoclose': 0,
         \ })
 endfunction

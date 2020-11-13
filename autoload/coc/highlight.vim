@@ -1,6 +1,5 @@
-" for vim8
+let s:is_vim = !has('nvim')
 let s:clear_match_by_window = has('nvim-0.5.0') || has('patch-8.1.1084')
-let s:switch_win = has('nvim') && !has('nvim-0.5.0')
 let s:namespace_map = {}
 let s:ns_id = 1
 
@@ -106,8 +105,9 @@ endfunction
 "   endLine: number
 " }
 function! coc#highlight#highlight_lines(winid, blocks) abort
-  if has('nvim') && win_getid() != a:winid
-    return
+  let currwin = win_getid()
+  if has('nvim') && currwin != a:winid
+    noa call nvim_set_current_win(a:winid)
   endif
   let defined = []
   let region_id = 1
@@ -128,6 +128,9 @@ function! coc#highlight#highlight_lines(winid, blocks) abort
       let region_id = region_id + 1
     endif
   endfor
+  if has('nvim')
+    noa call nvim_set_current_win(currwin)
+  endif
 endfunction
 
 function! coc#highlight#syntax_clear(winid) abort
@@ -164,9 +167,13 @@ function! coc#highlight#match_ranges(winid, bufnr, ranges, hlGroup, priority) ab
     " not valid
     return
   endif
-  if s:switch_win
+  if s:clear_match_by_window
     let curr = win_getid()
-    noa call nvim_set_current_win(winid)
+    if has('nvim')
+      noa call nvim_set_current_win(winid)
+    else
+      noa call win_gotoid(winid)
+    endif
   endif
   for range in a:ranges
     let list = []
@@ -187,14 +194,18 @@ function! coc#highlight#match_ranges(winid, bufnr, ranges, hlGroup, priority) ab
     endfor
     if !empty(list)
       if s:clear_match_by_window
-        call matchaddpos(a:hlGroup, list, 10, -1, {'window': a:winid})
+        call matchaddpos(a:hlGroup, list, a:priority, -1, {'window': a:winid})
       else
-        call matchaddpos(a:hlGroup, list, 10)
+        call matchaddpos(a:hlGroup, list, a:priority)
       endif
     endif
   endfor
-  if s:switch_win
-    noa call nvim_set_current_win(curr)
+  if s:clear_match_by_window
+    if has('nvim')
+      noa call nvim_set_current_win(curr)
+    else
+      noa call win_gotoid(curr)
+    endif
   endif
 endfunction
 
