@@ -73,6 +73,7 @@ export default class Plugin extends EventEmitter {
     })
     this.addAction('selectSymbolRange', (inner: boolean, visualmode: string, supportedSymbols: string[]) => this.handler.selectSymbolRange(inner, visualmode, supportedSymbols))
     this.addAction('listResume', (name?: string) => listManager.resume(name))
+    this.addAction('listCancel', () => listManager.cancel(true))
     this.addAction('listPrev', (name?: string) => listManager.previous(name))
     this.addAction('listNext', (name?: string) => listManager.next(name))
     this.addAction('listFirst', (name?: string) => listManager.first(name))
