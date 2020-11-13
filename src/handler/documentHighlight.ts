@@ -54,7 +54,7 @@ export default class DocumentHighlighter {
       groups[hlGroup].push(hl.range)
     }
     for (let hlGroup of Object.keys(groups)) {
-      this.nvim.call('coc#highlight#match_ranges', [winid, bufnr, groups[hlGroup], hlGroup, 99], true)
+      this.nvim.call('coc#highlight#match_ranges', [winid, bufnr, groups[hlGroup], hlGroup, -1], true)
     }
     this.nvim.command('redraw', true)
     await this.nvim.resumeNotification(false, true)

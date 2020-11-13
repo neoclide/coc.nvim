@@ -187,9 +187,9 @@ function! coc#highlight#match_ranges(winid, bufnr, ranges, hlGroup, priority) ab
     endfor
     if !empty(list)
       if s:clear_match_by_window
-        call matchaddpos(a:hlGroup, list, 10, -1, {'window': a:winid})
+        call matchaddpos(a:hlGroup, list, a:priority, -1, {'window': a:winid})
       else
-        call matchaddpos(a:hlGroup, list, 10)
+        call matchaddpos(a:hlGroup, list, a:priority)
       endif
     endif
   endfor
