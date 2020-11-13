@@ -224,7 +224,7 @@ export default class CodeLensManager {
     } else if (commands.length == 1) {
       commandManager.execute(commands[0])
     } else {
-      let res = await window.showQuickpick(commands.map(c => c.title))
+      let res = await window.showMenuPicker(commands.map(c => c.title))
       if (res == -1) return
       commandManager.execute(commands[res])
     }
