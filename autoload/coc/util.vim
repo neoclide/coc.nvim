@@ -671,7 +671,7 @@ function! coc#util#install() abort
   let yarncmd = get(g:, 'coc_install_yarn_cmd', executable('yarnpkg') ? 'yarnpkg' : 'yarn')
   call coc#util#open_terminal({
         \ 'cwd': s:root,
-        \ 'cmd': yarncmd.' install --frozen-lockfile',
+        \ 'cmd': yarncmd.' install --frozen-lockfile --ignore-engines',
         \ 'autoclose': 0,
         \ })
 endfunction

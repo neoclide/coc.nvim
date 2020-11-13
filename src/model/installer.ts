@@ -121,6 +121,9 @@ export class Installer extends EventEmitter {
         if (this.npm.endsWith('npm')) {
           args.push('--legacy-peer-deps')
         }
+        if (this.npm.endsWith('yarn')) {
+          args.push('--ignore-engines')
+        }
         this.log(`Installing dependencies by: ${this.npm} ${args.join(' ')}.`)
         const child = spawn(this.npm, args, {
           cwd: tmpFolder,
