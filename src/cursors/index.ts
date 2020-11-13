@@ -225,16 +225,16 @@ export default class Cursors {
   private doHighlights(): void {
     let doc = workspace.getDocument(this.bufnr)
     if (!doc || !this.ranges.length) return
-    this.nvim.call('coc#util#clear_pos_matches', ['^CocCursorRange', this.winid], true)
+    this.nvim.call('coc#highlight#clear_match_group', [this.winid, '^CocCursorRange'], true)
     let searchRanges = this.ranges.map(o => o.currRange)
-    doc.matchAddRanges(searchRanges, 'CocCursorRange', 99)
+    this.nvim.call('coc#highlight#match_ranges', [this.winid, this.bufnr, searchRanges, 'CocCursorRange', 99], true)
     if (workspace.isVim) this.nvim.command('redraw', true)
   }
 
   public cancel(): void {
     if (!this._activated) return
     this.nvim.setVar('coc_cursors_activated', 0, true)
-    this.nvim.call('coc#util#clear_pos_matches', ['^CocCursorRange', this.winid], true)
+    this.nvim.call('coc#highlight#clear_match_group', [this.winid, '^CocCursorRange'], true)
     disposeAll(this.disposables)
     this._changed = false
     this.ranges = []

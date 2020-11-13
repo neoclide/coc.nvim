@@ -163,6 +163,10 @@ export class Helper extends EventEmitter {
     return doc
   }
 
+  public async getMarkers(bufnr: number, ns: number): Promise<[number, number, number][]> {
+    return await this.nvim.call('nvim_buf_get_extmarks', [bufnr, ns, 0, -1, {}]) as [number, number, number][]
+  }
+
   public async getCmdline(): Promise<string> {
     let str = ''
     for (let i = 1, l = 70; i < l; i++) {

@@ -180,7 +180,7 @@ export default class CodeLensManager {
     nvim.pauseNotification()
     let doc = workspace.getDocument(bufnr)
     if (doc && clear) {
-      doc.clearMatchIds([this.srcId])
+      this.clear(doc.bufnr)
     }
     if (codeLenses && codeLenses.length) await this.setVirtualText(doc.buffer, codeLenses)
     await nvim.resumeNotification(false, true)
