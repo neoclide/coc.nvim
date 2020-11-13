@@ -230,7 +230,7 @@ function! coc#list#preview(lines, config) abort
   if bufnr == 0
     return
   endif
-  call setbufvar(bufnr, '&synmaxcol', 300)
+  call setbufvar(bufnr, '&synmaxcol', 500)
   let name = get(a:config, 'name', '')
   let filetype = get(a:config, 'filetype', '')
   let extname = matchstr(name, '\.\zs[^.]\+$')
@@ -288,10 +288,11 @@ function! coc#list#preview(lines, config) abort
   endif
   " highlights
   if !empty(filetype)
-    call coc#float#execute(winid, 'setfiletype '.filetype)
-    "let start = max([0, lnum - 300])
-    "let end = min([len(a:lines), lnum + 300])
-    "call coc#highlight#highlight_lines(winid, [{'filetype': filetype, 'startLine': start, 'endLine': end}])
+    let start = max([0, lnum - 300])
+    let end = min([len(a:lines), lnum + 300])
+    call coc#highlight#highlight_lines(winid, [{'filetype': filetype, 'startLine': start, 'endLine': end}])
+    call coc#float#execute(winid, 'syn sync fromstart')
+    "call coc#float#execute(winid, 'setfiletype '.filetype)
   else
     call coc#float#execute(winid, 'filetype detect')
     let ft = getbufvar(bufnr, '&filetype', '')
