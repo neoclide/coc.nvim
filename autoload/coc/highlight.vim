@@ -167,7 +167,7 @@ function! coc#highlight#match_ranges(winid, bufnr, ranges, hlGroup, priority) ab
     " not valid
     return
   endif
-  if s:clear_match_by_window
+  if !s:clear_match_by_window
     let curr = win_getid()
     if has('nvim')
       noa call nvim_set_current_win(winid)
@@ -200,7 +200,7 @@ function! coc#highlight#match_ranges(winid, bufnr, ranges, hlGroup, priority) ab
       endif
     endif
   endfor
-  if s:clear_match_by_window
+  if !s:clear_match_by_window
     if has('nvim')
       noa call nvim_set_current_win(curr)
     else
