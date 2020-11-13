@@ -483,7 +483,9 @@ export class Completion implements Disposable {
     if (!docs || docs.length == 0) {
       this.floating.close()
     } else {
-      await this.floating.show(docs, bounding, { maxPreviewWidth: this.config.maxPreviewWidth }, token)
+      if (this.config.floatEnable) {
+        await this.floating.show(docs, bounding, { maxPreviewWidth: this.config.maxPreviewWidth }, token)
+      }
       if (!this.isActivated) {
         this.floating.close()
       }
