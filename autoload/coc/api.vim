@@ -6,7 +6,7 @@
 " ============================================================================
 if has('nvim') | finish | endif
 let s:funcs = {}
-let s:prop_id = 1000
+let s:prop_offset = get(g:, 'coc_text_prop_offset', 1000)
 let s:namespace_id = 1
 let s:namespace_cache = {}
 
@@ -244,9 +244,9 @@ function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEn
     return
   endif
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
-  let type = 'CocHighlight'.(a:srcId == -1 ? '' : a:srcId)
-  if empty(prop_type_get(type, {'bufnr': a:bufnr}))
-    call prop_type_add(type, {'highlight': a:hlGroup, 'combine': 1, 'bufnr': a:bufnr})
+  let type = 'CocHighlight'.a:hlGroup
+  if empty(prop_type_get(type))
+    call prop_type_add(type, {'highlight': a:hlGroup, 'combine': 1})
   endif
   let total = strlen(getbufline(bufnr, a:line + 1)[0])
   let end = a:colEnd
@@ -258,8 +258,7 @@ function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEn
   if end <= a:colStart
     return
   endif
-  let id = s:prop_id
-  let s:prop_id = id + 1
+  let id = a:srcId == -1 ? 0 : s:prop_offset + a:srcId
   try
     call prop_add(a:line + 1, a:colStart + 1, {'length': end - a:colStart, 'bufnr': bufnr, 'type': type, 'id': id})
   catch /^Vim\%((\a\+)\)\=:E967/
@@ -275,13 +274,13 @@ function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
   let start = a:startLine + 1
   let end = a:endLine == -1 ? len(getbufline(bufnr, 1, '$')) : a:endLine + 1
   if a:srcId == -1
-    let types = filter(prop_type_list({'bufnr': bufnr}), 'v:val =~# "^CocHighlight"')
-    for type in types
-      call prop_remove({'type': type, 'bufnr': bufnr, 'all': 1}, start, end)
-    endfor
+    call prop_clear(start, end, {'bufnr' : bufnr})
   else
-    let type = 'CocHighlight'.a:srcId
-    call prop_remove({'type': type, 'bufnr': bufnr, 'all': 1}, start, end)
+    try
+      call prop_remove({'bufnr': bufnr, 'all': 1, 'id': s:prop_offset + a:srcId}, start, end)
+    catch /^Vim\%((\a\+)\)\=:E968/
+      " ignore 967
+    endtry
   endif
 endfunction
 
