@@ -299,8 +299,8 @@ function! s:execute(winid, cmd) abort
 endfunction
 
 function! s:create_namespace(key) abort
-  if a:key == -1
-    return -1
+  if type(a:key) == 0
+    return a:key
   endif
   if has('nvim')
     return nvim_create_namespace('coc-'.a:key)
