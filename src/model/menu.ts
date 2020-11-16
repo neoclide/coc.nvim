@@ -3,7 +3,7 @@ import { CancellationToken, Disposable, Emitter, Event } from 'vscode-languagese
 import { DialogPreferences } from '..'
 import events from '../events'
 import { disposeAll } from '../util'
-import Window from './window'
+import Popup from './popup'
 const logger = require('../util/logger')('model-menu')
 
 export interface MenuConfig {
@@ -16,7 +16,7 @@ export interface MenuConfig {
  */
 export default class Menu {
   private bufnr: number
-  private win: Window
+  private win: Popup
   private currIndex = 0
   private total: number
   private disposables: Disposable[] = []
@@ -128,7 +128,7 @@ export default class Menu {
       return v
     })
     let res = await nvim.call('coc#float#create_menu', [lines, opts]) as [number, number]
-    this.win = new Window(nvim, res[0], res[1])
+    this.win = new Popup(nvim, res[0], res[1])
     this.bufnr = res[1]
     this.attachEvents()
     nvim.call('coc#prompt#start_prompt', ['menu'], true)

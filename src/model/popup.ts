@@ -4,7 +4,7 @@ const isVim = process.env.VIM_NODE_RPC == '1'
 /**
  * More methods for float window/popup
  */
-export default class Window {
+export default class Popup {
   constructor(
     private nvim: Neovim,
     public readonly winid,
