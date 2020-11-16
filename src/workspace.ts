@@ -28,7 +28,7 @@ import { findUp, fixDriver, inDirectory, isFile, isParentFolder, readFileLine, r
 import { CONFIG_FILE_NAME, disposeAll, getKeymapModifier, platform, runCommand, wait } from './util/index'
 import { score } from './util/match'
 import { equals } from './util/object'
-import { comparePosition, getChangedFromEdits } from './util/position'
+import { getChangedFromEdits } from './util/position'
 import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
 import window from './window'

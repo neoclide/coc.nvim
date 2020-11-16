@@ -416,6 +416,7 @@ function! coc#util#quickpick(title, items, cb) abort
         \ 'filter': function('s:QuickpickFilter'),
         \ 'callback': function('s:QuickpickHandler'),
         \ })
+      redraw
     catch /.*/
       call a:cb(v:exception)
     endtry
