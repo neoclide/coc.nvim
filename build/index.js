@@ -24027,7 +24027,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "c6527b1ed3" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "50e077709a" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -92571,36 +92571,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SnippetVariableResolver = void 0;
 const tslib_1 = __webpack_require__(65);
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(291));
+const window_1 = tslib_1.__importDefault(__webpack_require__(370));
 const clipboardy_1 = tslib_1.__importDefault(__webpack_require__(609));
 const logger = __webpack_require__(64)('snippets-variable');
 class SnippetVariableResolver {
     constructor() {
         this._variableToValue = {};
-        const currentDate = new Date();
-        this._variableToValue = {
-            CURRENT_YEAR: currentDate.getFullYear().toString(),
-            CURRENT_YEAR_SHORT: currentDate
-                .getFullYear()
-                .toString()
-                .slice(-2),
-            CURRENT_MONTH: (currentDate.getMonth() + 1).toString(),
-            CURRENT_DATE: currentDate.getDate().toString(),
-            CURRENT_HOUR: currentDate.getHours().toString(),
-            CURRENT_MINUTE: currentDate.getMinutes().toString(),
-            CURRENT_SECOND: currentDate.getSeconds().toString(),
-            CURRENT_DAY_NAME: currentDate.toLocaleString("en-US", { weekday: "long" }),
-            CURRENT_DAY_NAME_SHORT: currentDate.toLocaleString("en-US", { weekday: "short" }),
-            CURRENT_MONTH_NAME: currentDate.toLocaleString("en-US", { month: "long" }),
-            CURRENT_MONTH_NAME_SHORT: currentDate.toLocaleString("en-US", { month: "short" })
-        };
     }
     get nvim() {
-        return workspace_1.default.nvim;
+        return window_1.default.nvim;
     }
     async init() {
         let [filepath, lnum, line, cword, selected, yank] = await this.nvim.eval(`[expand('%:p'),line('.'),getline('.'),expand('<cword>'),get(g:,'coc_selected_text', ''),getreg('"')]`);
         let clipboard = '';
+        const currentDate = new Date();
         try {
             clipboard = await clipboardy_1.default.read();
         }
@@ -92619,17 +92603,36 @@ class SnippetVariableResolver {
             TM_FILENAME_BASE: path_1.default.basename(filepath, path_1.default.extname(filepath)),
             TM_DIRECTORY: path_1.default.dirname(filepath),
             TM_FILEPATH: filepath,
+            CURRENT_YEAR: currentDate.getFullYear().toString(),
+            CURRENT_YEAR_SHORT: currentDate
+                .getFullYear()
+                .toString()
+                .slice(-2),
+            CURRENT_MONTH: (currentDate.getMonth() + 1).toString(),
+            CURRENT_DATE: currentDate.getDate().toString(),
+            CURRENT_HOUR: currentDate.getHours().toString(),
+            CURRENT_MINUTE: currentDate.getMinutes().toString(),
+            CURRENT_SECOND: currentDate.getSeconds().toString(),
+            CURRENT_DAY_NAME: currentDate.toLocaleString("en-US", { weekday: "long" }),
+            CURRENT_DAY_NAME_SHORT: currentDate.toLocaleString("en-US", { weekday: "short" }),
+            CURRENT_MONTH_NAME: currentDate.toLocaleString("en-US", { month: "long" }),
+            CURRENT_MONTH_NAME_SHORT: currentDate.toLocaleString("en-US", { month: "short" })
         });
     }
     resolve(variable) {
         const variableName = variable.name;
-        if (this._variableToValue.hasOwnProperty(variableName)) {
-            return this._variableToValue[variableName] || '';
+        let resolved = this._variableToValue[variableName];
+        if (resolved != null) {
+            return resolved.toString();
         }
+        // use default value when resolved is undefined
         if (variable.children && variable.children.length) {
             return variable.toString();
         }
-        return variableName;
+        if (!this._variableToValue.hasOwnProperty(variableName)) {
+            return variableName;
+        }
+        return '';
     }
 }
 exports.SnippetVariableResolver = SnippetVariableResolver;
