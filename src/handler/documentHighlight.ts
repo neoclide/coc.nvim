@@ -42,8 +42,7 @@ export default class DocumentHighlighter {
       return
     }
     if (workspace.bufnr != bufnr) return
-    nvim.pauseNotification()
-    nvim.call('coc#highlight#clear_match_group', [winid || 0, '^CocHighlight'], true)
+    let win = nvim.createWindow(winid)
     let groups: { [index: string]: Range[] } = {}
     for (let hl of highlights) {
       if (!hl.range) continue
@@ -53,11 +52,13 @@ export default class DocumentHighlighter {
       groups[hlGroup] = groups[hlGroup] || []
       groups[hlGroup].push(hl.range)
     }
+    nvim.pauseNotification()
+    win.clearMatchGroup('^CocHighlight')
     for (let hlGroup of Object.keys(groups)) {
-      this.nvim.call('coc#highlight#match_ranges', [winid, bufnr, groups[hlGroup], hlGroup, -1], true)
+      win.highlightRanges(hlGroup, groups[hlGroup], -1, true)
     }
-    this.nvim.command('redraw', true)
-    await this.nvim.resumeNotification(false, true)
+    this.nvim.resumeNotification(false, true)
+    if (workspace.isVim) nvim.command('redraw', true)
   }
 
   public async getHighlights(doc: Document | null, position: Position): Promise<DocumentHighlight[]> {

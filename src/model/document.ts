@@ -531,35 +531,9 @@ export default class Document {
   }
 
   /**
-   * Highlight ranges in document, requires textprop on vim8
-   *
-   * @param {Range} ranges List of ranges.
-   * @param {string} hlGroup Highlight group.
-   * @param {string} key Unique key for namespace.
-   */
-  public highlightRanges(ranges: Range[], hlGroup: string, key: string): void {
-    if (typeof key === 'number') {
-      logger.error(`signature for highlight ranges was changed!`)
-      return [] as any
-    }
-    for (let range of ranges) {
-      this.nvim.call('coc#highlight#range', [this.bufnr, key, hlGroup, range], true)
-    }
-  }
-
-  /**
-   * Clear namespace with key, requires textprop on vim8
-   *
-   * @param {string} key Unique key of namespace.
-   * @param {number} startLine Default to `0`, 0 based.
-   * @param {number} endLine Default to `-1` as the end.
-   */
-  public clearNamespace(key: string, startLine = 0, endLine = -1): void {
-    this.nvim.call('coc#highlight#clear_highlight', [this.bufnr, key, startLine, endLine], true)
-  }
-
-  /**
    * Get cwd of this document.
+   *
+   * @deprecated won't work when buffer not in current tab.
    */
   public async getcwd(): Promise<string> {
     let wid = await this.nvim.call('bufwinid', this.buffer.id)

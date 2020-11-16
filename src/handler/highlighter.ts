@@ -23,7 +23,7 @@ export default class Highlighter implements Disposable {
   private version: number
   public highlight: Function & { clear(): void }
   // last highlight version
-  constructor(private nvim: Neovim, private bufnr: number, private srcId) {
+  constructor(private nvim: Neovim, private bufnr: number) {
     this.highlight = debounce(() => {
       this.doHighlight().catch(e => {
         logger.error('Error on color highlight:', e.stack)
@@ -61,55 +61,56 @@ export default class Highlighter implements Disposable {
       colors = colors || []
       if (token.isCancellationRequested) return
       this.version = version
-      await this.addHighlight(doc, colors, token)
+      await this.addHighlight(colors, token)
     } catch (e) {
       logger.error('Error on highlight:', e)
     }
   }
 
-  private async addHighlight(doc: Document, colors: ColorInformation[], token: CancellationToken): Promise<void> {
+  private async addHighlight(colors: ColorInformation[], token: CancellationToken): Promise<void> {
     colors = colors || []
-    if (equals(this._colors, colors) || !doc) return
+    if (equals(this._colors, colors)) return
+    let { nvim } = this
     this._colors = colors
     // improve performance
     let groups = group(colors, 100)
-    let cleared = false
+    nvim.pauseNotification()
+    this.buffer.clearNamespace('color')
+    this.defineColors(colors)
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    nvim.resumeNotification(false, true)
     for (let colors of groups) {
       if (token.isCancellationRequested) {
         this._colors = []
         return
       }
-      this.nvim.pauseNotification()
-      if (!cleared) {
-        this.buffer.clearHighlight({ srcId: this.srcId })
-        cleared = true
-      }
+      nvim.pauseNotification()
       let colorRanges = this.getColorRanges(colors)
-      this.addColors(colors.map(o => o.color))
       for (let o of colorRanges) {
-        this.highlightColor(doc, o.ranges, o.color)
+        this.highlightColor(o.ranges, o.color)
       }
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      nvim.resumeNotification(false, true)
+    }
+    if (workspace.isVim) {
       this.nvim.command('redraw', true)
-      await this.nvim.resumeNotification()
     }
   }
 
-  private highlightColor(doc: Document, ranges: Range[], color: Color): void {
+  private highlightColor(ranges: Range[], color: Color): void {
     let { red, green, blue } = toHexColor(color)
     let hlGroup = `BG${toHexString(color)}`
-    doc.highlightRanges(ranges, hlGroup, 'color')
+    this.buffer.highlightRanges('color', hlGroup, ranges)
   }
 
-  private addColors(colors: Color[]): void {
-    let commands: string[] = []
+  private defineColors(colors: ColorInformation[]): void {
     for (let color of colors) {
-      let hex = toHexString(color)
+      let hex = toHexString(color.color)
       if (!usedColors.has(hex)) {
-        commands.push(`hi BG${hex} guibg=#${hex} guifg=#${isDark(color) ? 'ffffff' : '000000'}`)
+        this.nvim.command(`hi BG${hex} guibg=#${hex} guifg=#${isDark(color.color) ? 'ffffff' : '000000'}`, true)
         usedColors.add(hex)
       }
     }
-    this.nvim.command(commands.join('|'), true)
   }
 
   private getColorRanges(infos: ColorInformation[]): ColorRanges[] {
@@ -133,7 +134,7 @@ export default class Highlighter implements Disposable {
   public clearHighlight(): void {
     this._colors = []
     this.version = null
-    this.buffer.clearHighlight({ srcId: this.srcId })
+    this.buffer.clearNamespace('color')
   }
 
   public hasColorAtPostion(position: Position): boolean {

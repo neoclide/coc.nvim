@@ -155,6 +155,7 @@ export class Workspace implements IWorkspace {
       this._insertMode = false
     }, null, this.disposables)
     events.on('BufWinLeave', (_, winid) => {
+      if (winid == -1) return
       this.nvim.call('coc#highlight#clear_match_group', [winid, '^Coc'], true)
     }, null, this.disposables)
     events.on('BufEnter', this.onBufEnter, this, this.disposables)

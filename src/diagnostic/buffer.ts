@@ -155,18 +155,17 @@ export class DiagnosticBuffer {
       ranges.push(range)
       highlights.set(severity, ranges)
     }
+    let buffer = nvim.createBuffer(bufnr)
     for (let severity of [DiagnosticSeverity.Hint, DiagnosticSeverity.Information, DiagnosticSeverity.Warning, DiagnosticSeverity.Error]) {
       let ranges = highlights.get(severity) || []
       let hlGroup = getNameFromSeverity(severity) + 'Highlight'
-      ranges.forEach(range => {
-        nvim.call('coc#highlight#range', [bufnr, 'diagnostic', hlGroup, range], true)
-      })
+      buffer.highlightRanges('diagnostic', hlGroup, ranges)
     }
   }
 
   private clearHighlight(): void {
-    let { bufnr } = this
-    this.nvim.call('coc#highlight#clear_highlight', [bufnr, 'diagnostic', 0, -1], true)
+    let buffer = this.nvim.createBuffer(this.bufnr)
+    buffer.clearNamespace('diagnostic')
   }
 
   /**

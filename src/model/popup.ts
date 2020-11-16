@@ -17,15 +17,6 @@ export default class Popup {
     })
   }
 
-  /**
-   * Clear window matches by highlight group.
-   *
-   * @param {string} hlGroup
-   */
-  public clearMatchByGroup(hlGroup: string): void {
-    this.nvim.call('coc#highlight#clear_match_group', [this.winid, '^' + hlGroup], true)
-  }
-
   public close(): void {
     this.nvim.call('coc#float#close', [this.winid], true)
   }

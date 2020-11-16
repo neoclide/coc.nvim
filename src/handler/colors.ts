@@ -12,7 +12,6 @@ const logger = require('../util/logger')('colors')
 
 export default class Colors {
   private _enabled = true
-  private srcId = 1090
   private disposables: Disposable[] = []
   private highlighters: Map<number, Highlighter> = new Map()
 
@@ -40,7 +39,6 @@ export default class Colors {
     }, null, this.disposables)
     let config = workspace.getConfiguration('coc.preferences')
     this._enabled = config.get<boolean>('colorSupport', true)
-    this.srcId = workspace.createNameSpace('coc-colors')
     extensions.onDidLoadExtension(() => {
       this.highlightAll()
     }, null, this.disposables)
@@ -155,7 +153,7 @@ export default class Colors {
   private createHighlighter(bufnr: number): Highlighter {
     let doc = workspace.getDocument(bufnr)
     if (!doc || !isValid(doc)) return null
-    let obj = new Highlighter(this.nvim, bufnr, this.srcId)
+    let obj = new Highlighter(this.nvim, bufnr)
     this.highlighters.set(bufnr, obj)
     return obj
   }

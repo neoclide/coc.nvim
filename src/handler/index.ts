@@ -365,9 +365,10 @@ export default class Handler {
     if (hovers == null) return false
     let hover = hovers.find(o => Range.is(o.range))
     if (hover && hover.range) {
-      this.nvim.call('coc#highlight#match_ranges', [winid, doc.bufnr, [hover.range], 'CocHoverRange', 99], true)
+      let win = this.nvim.createWindow(winid)
+      let ids = await win.highlightRanges('CocHoverRange', [hover.range], 99) as number[]
       setTimeout(() => {
-        this.nvim.call('coc#highlight#clear_match_group', [winid, '^CocHoverRange'], true)
+        if (ids.length) win.clearMatches(ids)
         if (workspace.isVim) this.nvim.command('redraw', true)
       }, 1000)
     }

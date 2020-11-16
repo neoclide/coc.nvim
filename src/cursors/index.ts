@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim, Window } from '@chemzqm/neovim'
 import fastDiff from 'fast-diff'
 import debounce from 'debounce'
 import { Disposable } from 'vscode-jsonrpc'
@@ -223,18 +223,18 @@ export default class Cursors {
   }
 
   private doHighlights(): void {
-    let doc = workspace.getDocument(this.bufnr)
-    if (!doc || !this.ranges.length) return
-    this.nvim.call('coc#highlight#clear_match_group', [this.winid, '^CocCursorRange'], true)
+    let win = this.nvim.createWindow(this.winid)
+    win.clearMatchGroup('^CocCursorRange')
     let searchRanges = this.ranges.map(o => o.currRange)
-    this.nvim.call('coc#highlight#match_ranges', [this.winid, this.bufnr, searchRanges, 'CocCursorRange', 99], true)
+    win.highlightRanges('CocCursorRange', searchRanges, 99, true)
     if (workspace.isVim) this.nvim.command('redraw', true)
   }
 
   public cancel(): void {
     if (!this._activated) return
+    let win = this.nvim.createWindow(this.winid)
+    win.clearMatchGroup('^CocCursorRange')
     this.nvim.setVar('coc_cursors_activated', 0, true)
-    this.nvim.call('coc#highlight#clear_match_group', [this.winid, '^CocCursorRange'], true)
     disposeAll(this.disposables)
     this._changed = false
     this.ranges = []

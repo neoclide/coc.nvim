@@ -301,7 +301,7 @@ describe('document getEndOffset', () => {
 
 describe('highlights', () => {
   it('should add highlights to document', async () => {
-    let doc = await helper.createDocument()
+    await helper.createDocument()
     let buf = await nvim.buffer
     await buf.setLines(['你好', 'world'], { start: 0, end: -1, strictIndexing: false })
     let ranges = [
@@ -310,27 +310,51 @@ describe('highlights', () => {
     ]
     let ns = await nvim.createNamespace('coc-highlight')
     nvim.pauseNotification()
-    doc.highlightRanges(ranges, 'Search', 'highlight')
+    buf.highlightRanges('highlight', 'Search', ranges)
     await nvim.resumeNotification()
     let markers = await helper.getMarkers(buf.id, ns)
     expect(markers.length).toBe(2)
-  })
-
-  it('should clear highlights', async () => {
-    let doc = await helper.createDocument()
-    let buf = await nvim.buffer
-    await nvim.setLine('foo')
-    let ranges = [Range.create(0, 0, 0, 2),]
-    let ns = await nvim.createNamespace('coc-highlight')
     nvim.pauseNotification()
-    doc.highlightRanges(ranges, 'Search', 'highlight')
-    await nvim.resumeNotification()
-    let markers = await helper.getMarkers(buf.id, ns)
-    expect(markers.length).toBe(1)
-    nvim.pauseNotification()
-    doc.clearNamespace('highlight')
+    buf.clearNamespace('highlight')
     await nvim.resumeNotification()
     markers = await helper.getMarkers(buf.id, ns)
     expect(markers.length).toBe(0)
+  })
+
+  it('should add/clear highlights of current window', async () => {
+    await helper.createDocument()
+    let buf = await nvim.buffer
+    await buf.setLines(['你好', 'world'], { start: 0, end: -1, strictIndexing: false })
+    let win = await nvim.window
+    let ranges = [
+      Range.create(0, 0, 0, 2),
+      Range.create(1, 0, 1, 3)
+    ]
+    let res = await win.highlightRanges('Search', ranges)
+    expect(res.length).toBe(2)
+    let matches = await nvim.call('getmatches', [win.id])
+    expect(matches.length).toBe(2)
+    nvim.pauseNotification()
+    win.clearMatchGroup('Search')
+    await nvim.resumeNotification()
+    matches = await nvim.call('getmatches', [win.id])
+    expect(matches.length).toBe(0)
+  })
+
+  it('should clear matches by ids', async () => {
+    await helper.createDocument()
+    let buf = await nvim.buffer
+    await buf.setLines(['你好', 'world'], { start: 0, end: -1, strictIndexing: false })
+    let win = await nvim.window
+    let ranges = [
+      Range.create(0, 0, 0, 2),
+      Range.create(1, 0, 1, 3)
+    ]
+    let ids = await win.highlightRanges('Search', ranges)
+    nvim.pauseNotification()
+    win.clearMatches(ids)
+    await nvim.resumeNotification()
+    let matches = await nvim.call('getmatches', [win.id])
+    expect(matches.length).toBe(0)
   })
 })
