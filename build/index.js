@@ -24027,7 +24027,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "1021fef1fb" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "c6527b1ed3" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -42849,8 +42849,14 @@ class Window {
         const preferences = workspace_1.default.getConfiguration('coc.preferences');
         if (workspace_1.default.isNvim && semver_1.default.gte(workspace_1.default.env.version, '0.4.0') && preferences.get('promptInput', true)) {
             let release = await this.mutex.acquire();
+            let preferences = this.dialogPreference;
             try {
-                let arr = await nvim.call('coc#float#create_prompt_win', [title, defaultValue || '']);
+                let opts = {};
+                if (preferences.floatHighlight)
+                    opts.highlight = preferences.floatHighlight;
+                if (preferences.floatBorderHighlight)
+                    opts.borderhighlight = preferences.floatBorderHighlight;
+                let arr = await nvim.call('coc#float#create_prompt_win', [title, defaultValue || '', opts]);
                 let [bufnr, winid] = arr;
                 let res = await new Promise(resolve => {
                     let disposables = [];
@@ -93668,7 +93674,7 @@ class Handler {
         if (hovers == null)
             return false;
         let hover = hovers.find(o => vscode_languageserver_protocol_1.Range.is(o.range));
-        if (hover && hover.range) {
+        if (hover === null || hover === void 0 ? void 0 : hover.range) {
             let win = this.nvim.createWindow(winid);
             let ids = await win.highlightRanges('CocHoverRange', [hover.range], 99);
             setTimeout(() => {
