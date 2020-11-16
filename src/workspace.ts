@@ -1401,6 +1401,7 @@ augroup end`
       })
     }
     if (document.buftype == '' && document.schema == 'file') {
+      this.configurations.checkFolderConfiguration(document.uri)
       let config = this.getConfiguration('workspace')
       let filetypes = config.get<string[]>('ignoredFiletypes', [])
       if (!filetypes.includes(document.filetype)) {
@@ -1412,7 +1413,6 @@ augroup end`
           }
         }
       }
-      this.configurations.checkFolderConfiguration(document.uri)
     }
     if (document.enabled) {
       let textDocument: TextDocument & { bufnr: number } = Object.assign(document.textDocument, { bufnr })
