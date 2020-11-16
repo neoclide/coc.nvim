@@ -24000,7 +24000,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "53f8a1d52b" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "f7d2a64674" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -32826,6 +32826,7 @@ augroup end`;
             });
         }
         if (document.buftype == '' && document.schema == 'file') {
+            this.configurations.checkFolderConfiguration(document.uri);
             let config = this.getConfiguration('workspace');
             let filetypes = config.get('ignoredFiletypes', []);
             if (!filetypes.includes(document.filetype)) {
@@ -32837,7 +32838,6 @@ augroup end`;
                     }
                 }
             }
-            this.configurations.checkFolderConfiguration(document.uri);
         }
         if (document.enabled) {
             let textDocument = Object.assign(document.textDocument, { bufnr });
