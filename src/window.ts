@@ -197,8 +197,12 @@ class Window {
     const preferences = workspace.getConfiguration('coc.preferences')
     if (workspace.isNvim && semver.gte(workspace.env.version, '0.4.0') && preferences.get<boolean>('promptInput', true)) {
       let release = await this.mutex.acquire()
+      let preferences = this.dialogPreference
       try {
-        let arr = await nvim.call('coc#float#create_prompt_win', [title, defaultValue || '']) as [number, number]
+        let opts: any = {}
+        if (preferences.floatHighlight) opts.highlight = preferences.floatHighlight
+        if (preferences.floatBorderHighlight) opts.borderhighlight = preferences.floatBorderHighlight
+        let arr = await nvim.call('coc#float#create_prompt_win', [title, defaultValue || '', opts]) as [number, number]
         let [bufnr, winid] = arr
         let res = await new Promise<string>(resolve => {
           let disposables: Disposable[] = []

@@ -364,7 +364,7 @@ export default class Handler {
     }, true)
     if (hovers == null) return false
     let hover = hovers.find(o => Range.is(o.range))
-    if (hover && hover.range) {
+    if (hover?.range) {
       let win = this.nvim.createWindow(winid)
       let ids = await win.highlightRanges('CocHoverRange', [hover.range], 99) as number[]
       setTimeout(() => {

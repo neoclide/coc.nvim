@@ -520,7 +520,7 @@ function! coc#float#create_cursor_float(winid, bufnr, lines, config) abort
 endfunction
 
 " Create float window for input, neovim only since vim doesn't support focus
-function! coc#float#create_prompt_win(title, default) abort
+function! coc#float#create_prompt_win(title, default, opts) abort
   call coc#float#close_auto_hide_wins()
   " Calculate col
   let curr = win_screenpos(winnr())[1] + wincol() - 2
@@ -542,6 +542,8 @@ function! coc#float#create_prompt_win(title, default) abort
         \ 'prompt': 1,
         \ 'title': a:title,
         \ 'lines': [a:default],
+        \ 'highlight': get(a:opts, 'highlight', 'CocFloating'),
+        \ 'borderhighlight': [get(a:opts, 'borderhighlight', 'CocFloating')],
         \ })
   if empty(res) || res[0] == 0
     return
