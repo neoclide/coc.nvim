@@ -234,6 +234,21 @@ describe('SnippetSession#start', () => {
     let col = await nvim.call('col', '.')
     expect(col).toBe(3)
   })
+
+  it('should indent multiple lines variable text', async () => {
+    let text = 'abc\n  def'
+    await nvim.setVar('coc_selected_text', text)
+    let buf = await helper.edit()
+    await nvim.input('i')
+    let session = new SnippetSession(nvim, buf.id)
+    await session.start('fun\n  ${0:${TM_SELECTED_TEXT:return}}\nend')
+    await helper.wait(30)
+    let lines = await buf.lines
+    expect(lines.length).toBe(4)
+    expect(lines).toEqual([
+      'fun', '  abc', '    def', 'end'
+    ])
+  })
 })
 
 describe('SnippetSession#deactivate', () => {
