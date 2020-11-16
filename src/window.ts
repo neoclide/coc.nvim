@@ -22,7 +22,7 @@ class Window {
   private mutex = new Mutex()
   private statusLine: StatusLine
 
-  private get nvim(): Neovim {
+  public get nvim(): Neovim {
     return workspace.nvim
   }
 

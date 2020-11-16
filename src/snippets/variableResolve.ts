@@ -1,5 +1,5 @@
 import path from 'path'
-import workspace from '../workspace'
+import window from '../window'
 import { Variable, VariableResolver } from "./parser"
 import { Neovim } from '@chemzqm/neovim'
 import clipboardy from 'clipboardy'
@@ -9,12 +9,13 @@ export class SnippetVariableResolver implements VariableResolver {
   private _variableToValue: { [key: string]: string } = {}
 
   private get nvim(): Neovim {
-    return workspace.nvim
+    return window.nvim
   }
 
   public async init(): Promise<void> {
     let [filepath, lnum, line, cword, selected, yank] = await this.nvim.eval(`[expand('%:p'),line('.'),getline('.'),expand('<cword>'),get(g:,'coc_selected_text', ''),getreg('"')]`) as any[]
     let clipboard = ''
+    const currentDate = new Date()
     try {
       clipboard = await clipboardy.read()
     } catch (e) {
@@ -32,12 +33,6 @@ export class SnippetVariableResolver implements VariableResolver {
       TM_FILENAME_BASE: path.basename(filepath, path.extname(filepath)),
       TM_DIRECTORY: path.dirname(filepath),
       TM_FILEPATH: filepath,
-    })
-  }
-
-  constructor() {
-    const currentDate = new Date()
-    this._variableToValue = {
       CURRENT_YEAR: currentDate.getFullYear().toString(),
       CURRENT_YEAR_SHORT: currentDate
         .getFullYear()
@@ -52,17 +47,22 @@ export class SnippetVariableResolver implements VariableResolver {
       CURRENT_DAY_NAME_SHORT: currentDate.toLocaleString("en-US", { weekday: "short" }),
       CURRENT_MONTH_NAME: currentDate.toLocaleString("en-US", { month: "long" }),
       CURRENT_MONTH_NAME_SHORT: currentDate.toLocaleString("en-US", { month: "short" })
-    }
+    })
   }
 
   public resolve(variable: Variable): string {
     const variableName = variable.name
-    if (this._variableToValue.hasOwnProperty(variableName)) {
-      return this._variableToValue[variableName] || ''
+    let resolved = this._variableToValue[variableName]
+    if (resolved != null) {
+      return resolved.toString()
     }
+    // use default value when resolved is undefined
     if (variable.children && variable.children.length) {
       return variable.toString()
     }
-    return variableName
+    if (!this._variableToValue.hasOwnProperty(variableName)) {
+      return variableName
+    }
+    return ''
   }
 }

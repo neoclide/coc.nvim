@@ -44,6 +44,17 @@ describe('SnippetSession#start', () => {
     expect(line).toBe('bar')
   })
 
+  it('should insert placeholder with default value', async () => {
+    let buf = await helper.edit()
+    await helper.wait(30)
+    await nvim.input('i')
+    let session = new SnippetSession(nvim, buf.id)
+    let res = await session.start('a${TM_SELECTED_TEXT:return}b')
+    expect(res).toBe(false)
+    let line = await nvim.line
+    expect(line).toBe('areturnb')
+  })
+
   it('should fix indent of next line when necessary', async () => {
     let buf = await helper.edit()
     await nvim.setLine('  ab')
