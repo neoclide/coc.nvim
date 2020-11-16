@@ -1,9 +1,7 @@
-import * as path from "path"
+import path from 'path'
 import workspace from '../workspace'
-import { URI } from 'vscode-uri'
 import { Variable, VariableResolver } from "./parser"
 import { Neovim } from '@chemzqm/neovim'
-import Document from '../model/document'
 import clipboardy from 'clipboardy'
 const logger = require('../util/logger')('snippets-variable')
 
@@ -14,9 +12,8 @@ export class SnippetVariableResolver implements VariableResolver {
     return workspace.nvim
   }
 
-  public async init(document: Document): Promise<void> {
-    let filepath = URI.parse(document.uri).fsPath
-    let [lnum, line, cword, selected, yank] = await this.nvim.eval(`[line('.'),getline('.'),expand('<cword>'),get(g:,'coc_selected_text', ''),getreg('"')]`) as any[]
+  public async init(): Promise<void> {
+    let [filepath, lnum, line, cword, selected, yank] = await this.nvim.eval(`[expand('%:p'),line('.'),getline('.'),expand('<cword>'),get(g:,'coc_selected_text', ''),getreg('"')]`) as any[]
     let clipboard = ''
     try {
       clipboard = await clipboardy.read()
