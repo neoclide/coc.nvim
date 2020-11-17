@@ -283,7 +283,15 @@ Try these steps when you have problem with coc.nvim.
 - If something is not working, [create an
   issue](https://github.com/neoclide/coc.nvim/issues/new).
 
-<img src="https://user-images.githubusercontent.com/251450/57566955-fb850200-7404-11e9-960f-711673f1a461.png" width="593" height="574">
+## 支持开发者
+
+产品二维码：
+
+<img src="http://alfs.chigua.cn/dianyou/data/platform/default/20201117/y.jpeg" width="630" height="773">
+<img src="http://alfs.chigua.cn/dianyou/data/platform/default/20201117/2.jpeg" width="630" height="744">
+<img src="http://alfs.chigua.cn/dianyou/data/platform/default/20201117/3.jpeg" width="630" height="860">
+
+七牛推广链接: https://portal.qiniu.com/signup?code=1h5t8rklpfnf6
 
 ## License
 
