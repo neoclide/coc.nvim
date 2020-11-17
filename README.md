@@ -287,7 +287,7 @@ Try these steps when you have problem with coc.nvim.
 
 产品二维码：
 
-<img src="http://alfs.chigua.cn/dianyou/data/platform/default/20201117/Group.png" width="100%" title="qrcode">
+<img src="http://alfs.chigua.cn/dianyou/data/platform/default/20201117/p.png" width="900">
 
 七牛推广链接: https://portal.qiniu.com/signup?code=1h5t8rklpfnf6
 
