@@ -1340,6 +1340,8 @@ function! coc#float#create_buf(bufnr, ...) abort
     call setbufvar(bufnr, '&bufhidden', bufhidden)
     call setbufvar(bufnr, '&swapfile', 0)
     call setbufvar(bufnr, '&undolevels', -1)
+    " neovim's bug
+    call setbufvar(bufnr, '&modifiable', 1)
   endif
   let lines = get(a:, 1, v:null)
   if type(lines) != 7
