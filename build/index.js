@@ -23982,6 +23982,7 @@ class Plugin extends events_1.EventEmitter {
         try {
             await extensions_1.default.init();
             await workspace_1.default.init();
+            languages_1.default.init();
             for (let item of workspace_1.default.env.vimCommands) {
                 this.addCommand(item);
             }
@@ -24027,7 +24028,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "41d77ab2ca" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "b97e18374b" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -42661,12 +42662,12 @@ const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const vscode_uri_1 = __webpack_require__(243);
+const channels_1 = tslib_1.__importDefault(__webpack_require__(338));
 const events_1 = tslib_1.__importDefault(__webpack_require__(210));
 const dialog_1 = tslib_1.__importDefault(__webpack_require__(371));
 const menu_1 = tslib_1.__importDefault(__webpack_require__(372));
-const channels_1 = tslib_1.__importDefault(__webpack_require__(338));
-const status_1 = tslib_1.__importDefault(__webpack_require__(374));
-const picker_1 = tslib_1.__importDefault(__webpack_require__(375));
+const picker_1 = tslib_1.__importDefault(__webpack_require__(374));
+const status_1 = tslib_1.__importDefault(__webpack_require__(375));
 const types_1 = __webpack_require__(342);
 const util_1 = __webpack_require__(238);
 const mutex_1 = __webpack_require__(289);
@@ -43435,88 +43436,6 @@ exports.default = Popup;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.frames = void 0;
-const uuid_1 = __webpack_require__(328);
-const logger = __webpack_require__(64)('model-status');
-exports.frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-class StatusLine {
-    constructor(nvim) {
-        this.nvim = nvim;
-        this.items = new Map();
-        this.shownIds = new Set();
-        this._text = '';
-        this.interval = setInterval(() => {
-            this.setStatusText().logError();
-        }, 100);
-    }
-    dispose() {
-        clearInterval(this.interval);
-    }
-    createStatusBarItem(priority = 0, isProgress = false) {
-        let uid = uuid_1.v1();
-        let item = {
-            text: '',
-            priority,
-            isProgress,
-            show: () => {
-                this.shownIds.add(uid);
-            },
-            hide: () => {
-                this.shownIds.delete(uid);
-            },
-            dispose: () => {
-                this.shownIds.delete(uid);
-                this.items.delete(uid);
-            }
-        };
-        this.items.set(uid, item);
-        return item;
-    }
-    getText() {
-        if (this.shownIds.size == 0)
-            return '';
-        let d = new Date();
-        let idx = Math.floor(d.getMilliseconds() / 100);
-        let text = '';
-        let items = [];
-        for (let [id, item] of this.items) {
-            if (this.shownIds.has(id)) {
-                items.push(item);
-            }
-        }
-        items.sort((a, b) => a.priority - b.priority);
-        for (let item of items) {
-            if (!item.isProgress) {
-                text = `${text} ${item.text}`;
-            }
-            else {
-                text = `${text} ${exports.frames[idx]} ${item.text}`;
-            }
-        }
-        return text;
-    }
-    async setStatusText() {
-        let text = this.getText();
-        let { nvim } = this;
-        if (text != this._text) {
-            this._text = text;
-            nvim.pauseNotification();
-            this.nvim.setVar('coc_status', text, true);
-            this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true);
-            await nvim.resumeNotification(false, true);
-        }
-    }
-}
-exports.default = StatusLine;
-//# sourceMappingURL=status.js.map
-
-/***/ }),
-/* 375 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const events_1 = tslib_1.__importDefault(__webpack_require__(210));
@@ -43778,6 +43697,88 @@ class Picker {
 }
 exports.default = Picker;
 //# sourceMappingURL=picker.js.map
+
+/***/ }),
+/* 375 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.frames = void 0;
+const uuid_1 = __webpack_require__(328);
+const logger = __webpack_require__(64)('model-status');
+exports.frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+class StatusLine {
+    constructor(nvim) {
+        this.nvim = nvim;
+        this.items = new Map();
+        this.shownIds = new Set();
+        this._text = '';
+        this.interval = setInterval(() => {
+            this.setStatusText().logError();
+        }, 100);
+    }
+    dispose() {
+        clearInterval(this.interval);
+    }
+    createStatusBarItem(priority = 0, isProgress = false) {
+        let uid = uuid_1.v1();
+        let item = {
+            text: '',
+            priority,
+            isProgress,
+            show: () => {
+                this.shownIds.add(uid);
+            },
+            hide: () => {
+                this.shownIds.delete(uid);
+            },
+            dispose: () => {
+                this.shownIds.delete(uid);
+                this.items.delete(uid);
+            }
+        };
+        this.items.set(uid, item);
+        return item;
+    }
+    getText() {
+        if (this.shownIds.size == 0)
+            return '';
+        let d = new Date();
+        let idx = Math.floor(d.getMilliseconds() / 100);
+        let text = '';
+        let items = [];
+        for (let [id, item] of this.items) {
+            if (this.shownIds.has(id)) {
+                items.push(item);
+            }
+        }
+        items.sort((a, b) => a.priority - b.priority);
+        for (let item of items) {
+            if (!item.isProgress) {
+                text = `${text} ${item.text}`;
+            }
+            else {
+                text = `${text} ${exports.frames[idx]} ${item.text}`;
+            }
+        }
+        return text;
+    }
+    async setStatusText() {
+        let text = this.getText();
+        let { nvim } = this;
+        if (text != this._text) {
+            this._text = text;
+            nvim.pauseNotification();
+            this.nvim.setVar('coc_status', text, true);
+            this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true);
+            await nvim.resumeNotification(false, true);
+        }
+    }
+}
+exports.default = StatusLine;
+//# sourceMappingURL=status.js.map
 
 /***/ }),
 /* 376 */
@@ -49104,7 +49105,7 @@ exports.default = new Extensions();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.State = void 0;
 const events_1 = __webpack_require__(198);
-const status_1 = __webpack_require__(374);
+const status_1 = __webpack_require__(375);
 const logger = __webpack_require__(64)('model-installBuffer');
 var State;
 (function (State) {
@@ -76634,8 +76635,8 @@ const types_1 = __webpack_require__(342);
 const complete = tslib_1.__importStar(__webpack_require__(586));
 const position_1 = __webpack_require__(290);
 const string_1 = __webpack_require__(288);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(291));
 const window_1 = tslib_1.__importDefault(__webpack_require__(370));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(291));
 const logger = __webpack_require__(64)('languages');
 function fixDocumentation(str) {
     return str.replace(/&nbsp;/g, ' ');
@@ -76663,6 +76664,8 @@ class Languages {
         this.codeLensManager = new codeLensManager_1.default();
         this.selectionRangeManager = new rangeManager_1.default();
         this.cancelTokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
+    }
+    init() {
         this.loadCompleteConfig();
         workspace_1.default.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('suggest')) {
@@ -93398,10 +93401,8 @@ class Handler {
         this.cachedSymbols = new Map();
         this.getPreferences();
         this.requestStatusItem = window_1.default.createStatusBarItem(0, { progress: true });
-        workspace_1.default.onDidChangeConfiguration(e => {
-            if (e.affectsConfiguration('coc.preferences')) {
-                this.getPreferences();
-            }
+        workspace_1.default.onDidChangeConfiguration(() => {
+            this.getPreferences();
         });
         this.hoverFactory = new floatFactory_1.default(nvim);
         this.disposables.push(this.hoverFactory);
@@ -94750,12 +94751,12 @@ class Handler {
     }
     getPreferences() {
         let config = workspace_1.default.getConfiguration('coc.preferences');
+        let signatureConfig = workspace_1.default.getConfiguration('signature');
         let hoverTarget = config.get('hoverTarget', 'float');
-        if (hoverTarget == 'float' && !workspace_1.default.env.floating && !workspace_1.default.env.textprop) {
+        let signatureHelpTarget = signatureConfig.get('target', 'float');
+        if (hoverTarget == 'float' && !workspace_1.default.floatSupported) {
             hoverTarget = 'preview';
         }
-        let signatureConfig = workspace_1.default.getConfiguration('signature');
-        let signatureHelpTarget = signatureConfig.get('target', 'float');
         if (signatureHelpTarget == 'float' && !workspace_1.default.floatSupported) {
             signatureHelpTarget = 'echo';
         }
@@ -95607,6 +95608,7 @@ class DocumentHighlighter {
         for (let hlGroup of Object.keys(groups)) {
             win.highlightRanges(hlGroup, groups[hlGroup], -1, true);
         }
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
         this.nvim.resumeNotification(false, true);
         if (workspace_1.default.isVim)
             nvim.command('redraw', true);
