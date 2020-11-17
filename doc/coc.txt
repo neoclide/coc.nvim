@@ -2269,7 +2269,7 @@ COMMANDS						*coc-commands*
 >
 	:CocSearch import\ \{\ Neovim
 <
-	The escape for `{` is required because rg use regexp be default, or:
+	The escape for `{` is required because rg uses regexp by default, or:
 >
 	:CocSearch -F import\ {\ Neovim
 <
