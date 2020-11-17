@@ -300,6 +300,7 @@ Built-in configurations:~
 		"variable": "\ue79b",
 		"value": "\uf89f",
 		"operator": "\u03a8",
+		"constructor": "\uf0ad",
 		"function": "\u0192",
 		"reference": "\ufa46",
 		"constant": "\uf8fe",
