@@ -26,12 +26,12 @@ import TypeDefinitionManager from './provider/typeDefinitionManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
 import snippetManager from './snippets/manager'
 import sources from './sources'
-import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, Documentation, ISource, SourceType, VimCompleteItem, ProviderName } from './types'
+import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, Documentation, ISource, ProviderName, SourceType, VimCompleteItem } from './types'
 import * as complete from './util/complete'
 import { getChangedFromEdits, rangeOverlap } from './util/position'
 import { byteIndex, byteLength, byteSlice } from './util/string'
-import workspace from './workspace'
 import window from './window'
+import workspace from './workspace'
 const logger = require('./util/logger')('languages')
 
 export interface CompletionSource {
@@ -79,7 +79,7 @@ class Languages {
   private cancelTokenSource: CancellationTokenSource = new CancellationTokenSource()
   private completionItemKindMap: Map<CompletionItemKind, string>
 
-  constructor() {
+  public init(): void {
     this.loadCompleteConfig()
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('suggest')) {

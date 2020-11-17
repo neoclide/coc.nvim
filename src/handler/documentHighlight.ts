@@ -57,6 +57,7 @@ export default class DocumentHighlighter {
     for (let hlGroup of Object.keys(groups)) {
       win.highlightRanges(hlGroup, groups[hlGroup], -1, true)
     }
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     this.nvim.resumeNotification(false, true)
     if (workspace.isVim) nvim.command('redraw', true)
   }

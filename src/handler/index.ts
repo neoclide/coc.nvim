@@ -96,10 +96,8 @@ export default class Handler {
   constructor(private nvim: Neovim) {
     this.getPreferences()
     this.requestStatusItem = window.createStatusBarItem(0, { progress: true })
-    workspace.onDidChangeConfiguration(e => {
-      if (e.affectsConfiguration('coc.preferences')) {
-        this.getPreferences()
-      }
+    workspace.onDidChangeConfiguration(() => {
+      this.getPreferences()
     })
     this.hoverFactory = new FloatFactory(nvim)
     this.disposables.push(this.hoverFactory)
@@ -1369,12 +1367,12 @@ export default class Handler {
 
   private getPreferences(): void {
     let config = workspace.getConfiguration('coc.preferences')
+    let signatureConfig = workspace.getConfiguration('signature')
     let hoverTarget = config.get<string>('hoverTarget', 'float')
-    if (hoverTarget == 'float' && !workspace.env.floating && !workspace.env.textprop) {
+    let signatureHelpTarget = signatureConfig.get<string>('target', 'float')
+    if (hoverTarget == 'float' && !workspace.floatSupported) {
       hoverTarget = 'preview'
     }
-    let signatureConfig = workspace.getConfiguration('signature')
-    let signatureHelpTarget = signatureConfig.get<string>('target', 'float')
     if (signatureHelpTarget == 'float' && !workspace.floatSupported) {
       signatureHelpTarget = 'echo'
     }

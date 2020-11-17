@@ -400,6 +400,7 @@ export default class Plugin extends EventEmitter {
     try {
       await extensions.init()
       await workspace.init()
+      languages.init()
       for (let item of workspace.env.vimCommands) {
         this.addCommand(item)
       }
