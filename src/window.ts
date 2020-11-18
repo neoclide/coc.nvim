@@ -338,7 +338,7 @@ class Window {
    * @returns Cursor screen position.
    */
   public async getCursorScreenPosition(): Promise<ScreenPosition> {
-    let [row, col] = await this.nvim.call('coc#float#win_position') as [number, number]
+    let [row, col] = await this.nvim.call('coc#util#cursor_pos') as [number, number]
     return { row, col }
   }
 

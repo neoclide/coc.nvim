@@ -194,6 +194,13 @@ function! coc#util#jumpTo(line, character) abort
   call cursor(a:line + 1, col)
 endfunction
 
+" Position of cursor relative to editor
+function! coc#util#cursor_pos() abort
+  let nr = winnr()
+  let [row, col] = win_screenpos(nr)
+  return [row + winline() - 2, col + wincol() - 2]
+endfunction
+
 function! coc#util#echo_messages(hl, msgs)
   if a:hl !~# 'Error' && (mode() !~# '\v^(i|n)$')
     return
