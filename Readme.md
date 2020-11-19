@@ -283,13 +283,14 @@ Try these steps when you have problem with coc.nvim.
 - If something is not working, [create an
   issue](https://github.com/neoclide/coc.nvim/issues/new).
 
-## 支持开发者
+## Backers
 
-产品二维码：
+[Become a backer](https://opencollective.com/cocnvim#backer) and get your image on our README on Github with a link to your site.
 
-![qrcode](http://alfs.chigua.cn/dianyou/data/platform/default/20201117/p.png)
+<a href="https://opencollective.com/webpack/backer/0/website?requireActive=false" target="_blank"><img src="https://opencollective.com/webpack/backer/0/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/webpack/backer/1/website?requireActive=false" target="_blank"><img src="https://opencollective.com/webpack/backer/1/avatar.svg?requireActive=false"></a>
 
-七牛推广链接: https://portal.qiniu.com/signup?code=1h5t8rklpfnf6
+<a href="https://opencollective.com/cocnvim#backer" target="_blank"><img src="https://images.opencollective.com/static/images/become_backer.svg"></a>
 
 ## License
 
