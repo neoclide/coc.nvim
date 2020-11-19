@@ -81,9 +81,6 @@ export default (opts: Attach, requestApi = true): Plugin => {
         await events.fire(args[0], args.slice(1))
         resp.send()
       } else {
-        if (!plugin.hasAction(method)) {
-          throw new Error(`action "${method}" not registered`)
-        }
         if (!plugin.isReady) {
           logger.warn(`Plugin not ready when received "${method}"`, args)
         }

@@ -23,7 +23,7 @@ const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
   private _ready = false
-  private handler: Handler
+  private handler: Handler | undefined
   private infoChannel: OutputChannel
   private cursors: Cursors
   private actions: Map<string, Function> = new Map()
@@ -454,6 +454,7 @@ export default class Plugin extends EventEmitter {
 
   public async cocAction(method: string, ...args: any[]): Promise<any> {
     let fn = this.actions.get(method)
+    if (!fn) throw new Error(`Action "${method}" not exists`)
     return await Promise.resolve(fn.apply(null, args))
   }
 
