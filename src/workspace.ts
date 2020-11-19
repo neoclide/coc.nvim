@@ -488,12 +488,9 @@ export class Workspace implements IWorkspace {
         let changedUris = this.getChangedUris(documentChanges)
         changeCount = changedUris.length
         if (promptUser) {
-          let diskCount = 0
-          for (let uri of changedUris) {
-            if (!this.getDocument(uri)) {
-              diskCount = diskCount + 1
-            }
-          }
+          let diskCount = changedUris.reduce((p, c) => {
+            return p + (this.getDocument(c) == null ? 1 : 0)
+          }, 0)
           if (diskCount) {
             let res = await window.showPrompt(`${diskCount} documents on disk would be loaded for change, confirm?`)
             if (!res) return
@@ -1287,14 +1284,12 @@ augroup end`
   // count of document need change
   private getChangedUris(documentChanges: DocumentChange[] | null): string[] {
     let uris: Set<string> = new Set()
-    let newUris: Set<string> = new Set()
+    let createUris: Set<string> = new Set()
     for (let change of documentChanges) {
       if (TextDocumentEdit.is(change)) {
         let { textDocument } = change
         let { uri, version } = textDocument
-        if (!newUris.has(uri)) {
-          uris.add(uri)
-        }
+        uris.add(uri)
         if (version != null && version > 0) {
           let doc = this.getDocument(uri)
           if (!doc) {
@@ -1303,16 +1298,12 @@ augroup end`
           if (doc.version != version) {
             throw new Error(`${uri} changed before apply edit`)
           }
-        } else if (isFile(uri) && !this.getDocument(uri)) {
-          let file = URI.parse(uri).fsPath
-          if (!fs.existsSync(file)) {
-            throw new Error(`file "${file}" not exists`)
-          }
         }
       } else if (CreateFile.is(change) || DeleteFile.is(change)) {
         if (!isFile(change.uri)) {
           throw new Error(`change of scheme ${change.uri} not supported`)
         }
+        createUris.add(change.uri)
         uris.add(change.uri)
       } else if (RenameFile.is(change)) {
         if (!isFile(change.oldUri) || !isFile(change.newUri)) {
@@ -1323,7 +1314,6 @@ augroup end`
           throw new Error(`file "${newFile}" already exists for rename`)
         }
         uris.add(change.oldUri)
-        newUris.add(change.newUri)
       } else {
         throw new Error(`Invalid document change: ${JSON.stringify(change, null, 2)}`)
       }

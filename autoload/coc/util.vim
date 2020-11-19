@@ -876,6 +876,7 @@ function! coc#util#open_files(files)
   " added on latest vim8
   if exists('*bufadd') && exists('*bufload')
     for file in a:files
+      let file = fnamemodify(file, ':.')
       if bufloaded(file)
         call add(bufnrs, bufnr(file))
       else
@@ -888,6 +889,7 @@ function! coc#util#open_files(files)
   else
     noa keepalt 1new +setl\ bufhidden=wipe
     for file in a:files
+      let file = fnamemodify(file, ':.')
       execute 'noa edit +setl\ bufhidden=hide '.fnameescape(file)
       if &filetype ==# ''
         filetype detect

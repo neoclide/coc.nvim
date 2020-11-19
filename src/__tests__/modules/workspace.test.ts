@@ -158,15 +158,6 @@ describe('workspace applyEdits', () => {
     expect(res).toBe(true)
   })
 
-  it('should return false for change to file not exists', async () => {
-    let uri = URI.file('/tmp/not_exists').toString()
-    let versioned = VersionedTextDocumentIdentifier.create(uri, null)
-    let edit = TextEdit.insert(Position.create(0, 0), 'bar')
-    let documentChanges = [TextDocumentEdit.create(versioned, [edit])]
-    let res = await workspace.applyEdit({ documentChanges })
-    expect(res).toBe(false)
-  })
-
   it('should adjust cursor position after applyEdits', async () => {
     let doc = await helper.createDocument()
     let pos = await window.getCursorPosition()
@@ -283,6 +274,26 @@ describe('workspace applyEdits', () => {
     expect(curr.getline(0)).toBe('bar')
     let line = await nvim.line
     expect(line).toBe('bar')
+  })
+
+  it('should support edit new file with CreateFile', async () => {
+    let file = path.join(os.tmpdir(), 'foo')
+    let uri = URI.file(file).toString()
+    let workspaceEdit: WorkspaceEdit = {
+      documentChanges: [
+        CreateFile.create(uri, { overwrite: true }),
+        TextDocumentEdit.create({ uri, version: 0 }, [
+          TextEdit.insert(Position.create(0, 0), 'foo bar')
+        ])
+      ]
+    }
+    let res = await workspace.applyEdit(workspaceEdit)
+    expect(res).toBe(true)
+    let doc = workspace.getDocument(uri)
+    expect(doc).toBeDefined()
+    let line = doc.getline(0)
+    expect(line).toBe('foo bar')
+    await workspace.deleteFile(file, { ignoreIfNotExists: true })
   })
 })
 
