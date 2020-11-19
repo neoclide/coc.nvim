@@ -1892,9 +1892,6 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	defaults to `coc.preferences.hoverTarget` in `coc-settings.json`.
 	Valid options: ["preview", "echo", "float"]
 
-	Note: the behavior would change in Neovim, where floating windows are
-	available.
-
 "getHover"						*coc-action-getHover*
 
 	Get documentation text array on current position, returns array of
