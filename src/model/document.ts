@@ -325,17 +325,17 @@ export default class Document {
     }
   }
 
-  public changeLines(lines: [number, string][], sync = true, check = false): void {
+  public changeLines(lines: [number, string][], sync = true): void {
     let { nvim } = this
     let filtered: [number, string][] = []
     for (let [lnum, text] of lines) {
-      if (check && this.lines[lnum] != text) {
+      if (this.lines[lnum] != text) {
         filtered.push([lnum, text])
+        this.lines[lnum] = text
       }
-      this.lines[lnum] = text
     }
-    if (check && !filtered.length) return
-    nvim.call('coc#util#change_lines', [this.bufnr, check ? filtered : lines], true)
+    if (!filtered.length) return
+    nvim.call('coc#util#change_lines', [this.bufnr, filtered], true)
     if (sync) this.forceSync()
   }
 
