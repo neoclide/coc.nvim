@@ -300,6 +300,7 @@ Built-in configurations:~
 		"variable": "\ue79b",
 		"value": "\uf89f",
 		"operator": "\u03a8",
+		"constructor": "\uf0ad",
 		"function": "\u0192",
 		"reference": "\ufa46",
 		"constant": "\uf8fe",
@@ -2269,7 +2270,7 @@ COMMANDS						*coc-commands*
 >
 	:CocSearch import\ \{\ Neovim
 <
-	The escape for `{` is required because rg uses regexp by default, or:
+	The escape for `{` is required because rg use regexp be default, or:
 >
 	:CocSearch -F import\ {\ Neovim
 <

@@ -530,7 +530,7 @@ function! coc#float#create_prompt_win(title, default, opts) abort
   else
     let col = curr + width <= &columns - 2 ? 0 : &columns - s:prompt_win_width
   endif
-  let [lineIdx, colIdx] = coc#float#win_position()
+  let [lineIdx, colIdx] = coc#util#cursor_pos()
   let res = coc#float#create_float_win(0, s:prompt_win_bufnr, {
         \ 'relative': 'cursor',
         \ 'row': lineIdx == 0 ? 1 : 0,
@@ -970,7 +970,7 @@ function! coc#float#get_config_cursor(lines, config) abort
     let ch += float2nr(ceil(str2float(string(dw))/(maxWidth - 2)))
   endfor
   let width = coc#helper#min(maxWidth, width)
-  let [lineIdx, colIdx] = coc#float#win_position()
+  let [lineIdx, colIdx] = coc#util#cursor_pos()
   " How much we should move left
   let offsetX = coc#helper#min(get(a:config, 'offsetX', 0), colIdx)
   let showTop = 0
@@ -1494,13 +1494,6 @@ function! s:nvim_get_botline(topline, height, width, bufnr) abort
     endif
   endfor
   return botline
-endfunction
-
-" Position of cursor relative to editor
-function! coc#float#win_position() abort
-  let nr = winnr()
-  let [row, col] = win_screenpos(nr)
-  return [row + winline() - 2, col + wincol() - 2]
 endfunction
 
 " get popup position for vim8 based on config of neovim float window

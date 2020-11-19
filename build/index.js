@@ -11613,9 +11613,6 @@ exports.default = (opts, requestApi = true) => {
                 resp.send();
             }
             else {
-                if (!plugin.hasAction(method)) {
-                    throw new Error(`action "${method}" not registered`);
-                }
                 if (!plugin.isReady) {
                     logger.warn(`Plugin not ready when received "${method}"`, args);
                 }
@@ -24028,13 +24025,15 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "1e1f452a03" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "cee25d9d6f" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
     }
     async cocAction(method, ...args) {
         let fn = this.actions.get(method);
+        if (!fn)
+            throw new Error(`Action "${method}" not exists`);
         return await Promise.resolve(fn.apply(null, args));
     }
     dispose() {
@@ -31909,12 +31908,9 @@ class Workspace {
                 let changedUris = this.getChangedUris(documentChanges);
                 changeCount = changedUris.length;
                 if (promptUser) {
-                    let diskCount = 0;
-                    for (let uri of changedUris) {
-                        if (!this.getDocument(uri)) {
-                            diskCount = diskCount + 1;
-                        }
-                    }
+                    let diskCount = changedUris.reduce((p, c) => {
+                        return p + (this.getDocument(c) == null ? 1 : 0);
+                    }, 0);
                     if (diskCount) {
                         let res = await window_1.default.showPrompt(`${diskCount} documents on disk would be loaded for change, confirm?`);
                         if (!res)
@@ -32737,14 +32733,12 @@ augroup end`;
     // count of document need change
     getChangedUris(documentChanges) {
         let uris = new Set();
-        let newUris = new Set();
+        let createUris = new Set();
         for (let change of documentChanges) {
             if (vscode_languageserver_protocol_1.TextDocumentEdit.is(change)) {
                 let { textDocument } = change;
                 let { uri, version } = textDocument;
-                if (!newUris.has(uri)) {
-                    uris.add(uri);
-                }
+                uris.add(uri);
                 if (version != null && version > 0) {
                     let doc = this.getDocument(uri);
                     if (!doc) {
@@ -32754,17 +32748,12 @@ augroup end`;
                         throw new Error(`${uri} changed before apply edit`);
                     }
                 }
-                else if (fs_1.isFile(uri) && !this.getDocument(uri)) {
-                    let file = vscode_uri_1.URI.parse(uri).fsPath;
-                    if (!fs_extra_1.default.existsSync(file)) {
-                        throw new Error(`file "${file}" not exists`);
-                    }
-                }
             }
             else if (vscode_languageserver_protocol_1.CreateFile.is(change) || vscode_languageserver_protocol_1.DeleteFile.is(change)) {
                 if (!fs_1.isFile(change.uri)) {
                     throw new Error(`change of scheme ${change.uri} not supported`);
                 }
+                createUris.add(change.uri);
                 uris.add(change.uri);
             }
             else if (vscode_languageserver_protocol_1.RenameFile.is(change)) {
@@ -32776,7 +32765,6 @@ augroup end`;
                     throw new Error(`file "${newFile}" already exists for rename`);
                 }
                 uris.add(change.oldUri);
-                newUris.add(change.newUri);
             }
             else {
                 throw new Error(`Invalid document change: ${JSON.stringify(change, null, 2)}`);
@@ -41398,18 +41386,18 @@ class Document {
             this.forceSync();
         }
     }
-    changeLines(lines, sync = true, check = false) {
+    changeLines(lines, sync = true) {
         let { nvim } = this;
         let filtered = [];
         for (let [lnum, text] of lines) {
-            if (check && this.lines[lnum] != text) {
+            if (this.lines[lnum] != text) {
                 filtered.push([lnum, text]);
+                this.lines[lnum] = text;
             }
-            this.lines[lnum] = text;
         }
-        if (check && !filtered.length)
+        if (!filtered.length)
             return;
-        nvim.call('coc#util#change_lines', [this.bufnr, check ? filtered : lines], true);
+        nvim.call('coc#util#change_lines', [this.bufnr, filtered], true);
         if (sync)
             this.forceSync();
     }
@@ -42990,7 +42978,7 @@ class Window {
      * @returns Cursor screen position.
      */
     async getCursorScreenPosition() {
-        let [row, col] = await this.nvim.call('coc#float#win_position');
+        let [row, col] = await this.nvim.call('coc#util#cursor_pos');
         return { row, col };
     }
     async showPickerDialog(items, title, token) {
