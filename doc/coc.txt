@@ -1218,6 +1218,11 @@ b:coc_current_function					*b:coc_current_function*
 	Set `"coc.preferences.currentFunctionSymbolAutoUpdate": true`
 	in coc-settings.json to update it on CursorHold.
 
+b:coc_cursors_activated					*b:coc_cursors_activated*
+
+	Use expression `get(b:, 'coc_cursors_activated',0)` to check if
+	cursors session is activated for current buffer.
+
 g:coc_disable_startup_warning 				*g:coc_disable_startup_warning*
 
 	Disable possible warning on startup for old vim/node version.
@@ -1419,11 +1424,6 @@ g:node_client_debug					*g:node_client_debug*
 	to open the log file.
 
 	Default: `0`
-
-g:coc_cursors_activated					*g:coc_cursors_activated*
-
-	Use expression `get(g:, 'coc_cursors_activated',0)` to check if
-	cursors session is activated.
 
 g:coc_config_home					*g:coc_config_home*
 

@@ -23588,7 +23588,7 @@ const completion_1 = tslib_1.__importDefault(__webpack_require__(388));
 const cursors_1 = tslib_1.__importDefault(__webpack_require__(674));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(253));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(390));
-const handler_1 = tslib_1.__importDefault(__webpack_require__(676));
+const handler_1 = tslib_1.__importDefault(__webpack_require__(678));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(564));
 const manager_2 = tslib_1.__importDefault(__webpack_require__(605));
 const services_1 = tslib_1.__importDefault(__webpack_require__(588));
@@ -23700,10 +23700,11 @@ class Plugin extends events_1.EventEmitter {
         this.addAction('detach', () => {
             return workspace_1.default.detach();
         });
-        this.addAction('doKeymap', async (key, defaultReturn = '') => {
+        this.addAction('doKeymap', async (key, defaultReturn = '', pressed) => {
             let keymap = workspace_1.default.keymaps.get(key);
             if (!keymap) {
                 logger.error(`keymap for ${key} not found`);
+                this.nvim.command(`silent! unmap <buffer> ${pressed.startsWith('{') && pressed.endsWith('}') ? `<${pressed.slice(1, -1)}>` : pressed}`, true);
                 return defaultReturn;
             }
             let [fn, repeat] = keymap;
@@ -24025,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "d4b169684f" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "f2d9837ead" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -32628,11 +32629,29 @@ class Workspace {
         let id = uuid_1.v1();
         let { nvim } = this;
         this.keymaps.set(id, [fn, false]);
+        let buf = this.nvim.createBuffer(this.bufnr);
+        let method = notify ? 'notify' : 'request';
         let modify = index_1.getKeymapModifier(mode);
-        nvim.command(`${mode}noremap <silent><nowait><buffer> ${key} :${modify}call coc#rpc#${notify ? 'notify' : 'request'}('doKeymap', ['${id}'])<CR>`, true);
+        // neoivm's bug '<' can't be used.
+        let escaped = key.startsWith('<') && key.endsWith('>') ? `{${key.slice(1, -1)}}` : key;
+        if (this.isNvim && !global.hasOwnProperty('__TEST__')) {
+            buf.notify('nvim_buf_set_keymap', [mode, key, `:${modify}call coc#rpc#${method}('doKeymap', ['${id}', '', '${escaped}'])<CR>`, {
+                    silent: true,
+                    nowait: true
+                }]);
+        }
+        else {
+            let cmd = `${mode}noremap <silent><nowait><buffer> ${key} :${modify}call coc#rpc#${method}('doKeymap', ['${id}', '', '${escaped}'])<CR>`;
+            nvim.command(cmd, true);
+        }
         return vscode_languageserver_protocol_1.Disposable.create(() => {
             this.keymaps.delete(id);
-            nvim.command(`${mode}unmap <buffer> ${key}`, true);
+            if (this.isNvim && !global.hasOwnProperty('__TEST__')) {
+                buf.notify('nvim_buf_del_keymap', [mode, key]);
+            }
+            else {
+                nvim.command(`silent! ${mode}unmap <buffer> ${key}`, true);
+            }
         });
     }
     /**
@@ -41120,6 +41139,7 @@ class Document {
         this.env = env;
         this.maxFileSize = maxFileSize;
         this.isIgnored = false;
+        this.ignoreChange = false;
         this.size = 0;
         this.eol = true;
         // real current lines
@@ -41135,7 +41155,7 @@ class Document {
         this.onDocumentDetach = this._onDocumentDetach.event;
         this.fireContentChanges = debounce_1.default(() => {
             this._fireContentChanges();
-        }, 200);
+        }, 100);
         this.fetchContent = debounce_1.default(() => {
             this._fetchContent().logError();
         }, 100);
@@ -41277,6 +41297,10 @@ class Document {
         if (buf.id !== this.buffer.id || tick == null)
             return;
         this._changedtick = tick;
+        if (this.ignoreChange) {
+            this.ignoreChange = false;
+            return;
+        }
         let lines = this.lines.slice(0, firstline);
         lines = lines.concat(linedata, this.lines.slice(lastline));
         this.lines = lines;
@@ -41307,7 +41331,7 @@ class Document {
             if (cursor && cursor.bufnr == this.bufnr) {
                 endOffset = this.getEndOffset(cursor.lnum, cursor.col, cursor.insert);
             }
-            let change = diff_1.getChange(this.content, content, endOffset);
+            let change = diff_1.getChange(textDocument.getText(), content, endOffset);
             if (change == null)
                 return;
             this.createDocument();
@@ -41398,6 +41422,7 @@ class Document {
         if (!filtered.length)
             return;
         nvim.call('coc#util#change_lines', [this.bufnr, filtered], true);
+        this.ignoreChange = true;
         if (sync)
             this.forceSync();
     }
@@ -42679,6 +42704,8 @@ class Window {
             return;
         let { messageLevel } = this;
         let method = process.env.VIM_NODE_RPC == '1' ? 'callTimer' : 'call';
+        if (global.hasOwnProperty('__TEST__'))
+            console.log(msg);
         let hl = 'Error';
         let level = types_1.MessageLevel.Error;
         switch (messageType) {
@@ -83653,6 +83680,7 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(291));
 const window_1 = tslib_1.__importDefault(__webpack_require__(370));
 const events_1 = __webpack_require__(198);
 exports.validKeys = [
+    '<backspace>',
     '<esc>',
     '<space>',
     '<tab>',
@@ -92640,32 +92668,32 @@ exports.SnippetVariableResolver = SnippetVariableResolver;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(293));
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(240));
 const vscode_languageserver_types_1 = __webpack_require__(223);
-const vscode_languageserver_textdocument_1 = __webpack_require__(346);
 const events_1 = tslib_1.__importDefault(__webpack_require__(210));
-const util_1 = __webpack_require__(238);
-const window_1 = tslib_1.__importDefault(__webpack_require__(370));
-const array_1 = __webpack_require__(363);
 const position_1 = __webpack_require__(290);
+const window_1 = tslib_1.__importDefault(__webpack_require__(370));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(291));
-const range_1 = tslib_1.__importDefault(__webpack_require__(675));
+const session_1 = tslib_1.__importDefault(__webpack_require__(675));
+const util_1 = __webpack_require__(677);
 const logger = __webpack_require__(64)('cursors');
 class Cursors {
     constructor(nvim) {
         this.nvim = nvim;
-        this._activated = false;
-        this._changed = false;
-        this.ranges = [];
+        this.sessionsMap = new Map();
         this.disposables = [];
-        this.changing = false;
         this.loadConfig();
         workspace_1.default.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('cursors')) {
                 this.loadConfig();
             }
-        });
+        }, null, this.disposables);
+        events_1.default.on('BufUnload', bufnr => {
+            let session = this.getSession(bufnr);
+            if (!session)
+                return;
+            session.dispose();
+            this.sessionsMap.delete(bufnr);
+        }, null, this.disposables);
     }
     loadConfig() {
         let config = workspace_1.default.getConfiguration('cursors');
@@ -92675,15 +92703,21 @@ class Cursors {
             cancelKey: config.get('cancelKey', '<esc>')
         };
     }
+    getSession(bufnr) {
+        return this.sessionsMap.get(bufnr);
+    }
+    async isActivated() {
+        let bufnr = await this.nvim.call('bufnr', ['%']);
+        return this.sessionsMap.get(bufnr) != null;
+    }
     async select(bufnr, kind, mode) {
         let doc = workspace_1.default.getDocument(bufnr);
-        if (!doc)
+        if (!doc || !doc.attached) {
+            window_1.default.showMessage(`buffer ${bufnr} not attached.`);
             return;
-        doc.forceSync();
-        let { nvim } = this;
-        if (this._changed || bufnr != this.bufnr) {
-            this.cancel();
         }
+        let { nvim } = this;
+        let session = this.createSession(doc);
         let pos = await window_1.default.getCursorPosition();
         let range;
         if (kind == 'operator') {
@@ -92703,10 +92737,10 @@ class Cursors {
             if (end.character < line.length) {
                 end.character = end.character + 1;
             }
-            let ranges = splitRange(doc, vscode_languageserver_types_1.Range.create(start, end));
+            let ranges = util_1.splitRange(doc, vscode_languageserver_types_1.Range.create(start, end));
             for (let r of ranges) {
                 let text = doc.textDocument.getText(r);
-                this.addRange(r, text);
+                session.addRange(r, text);
             }
         }
         else if (kind == 'word') {
@@ -92722,7 +92756,7 @@ class Cursors {
             }
             let line = doc.getline(pos.line);
             let text = line.slice(range.start.character, range.end.character);
-            this.addRange(range, text);
+            session.addRange(range, text);
         }
         else if (kind == 'position') {
             // make sure range contains character for highlight
@@ -92733,112 +92767,114 @@ class Cursors {
             else {
                 range = vscode_languageserver_types_1.Range.create(pos.line, pos.character, pos.line, pos.character + 1);
             }
-            this.addRange(range, line.slice(range.start.character, range.end.character));
+            session.addRange(range, line.slice(range.start.character, range.end.character));
         }
         else if (kind == 'range') {
             await nvim.call('eval', 'feedkeys("\\<esc>", "in")');
             let range = await workspace_1.default.getSelectedRange(mode, doc);
             if (!range || position_1.comparePosition(range.start, range.end) == 0)
                 return;
-            let ranges = mode == '\x16' ? getVisualRanges(doc, range) : splitRange(doc, range);
+            let ranges = mode == '\x16' ? util_1.getVisualRanges(doc, range) : util_1.splitRange(doc, range);
             for (let r of ranges) {
                 let text = doc.textDocument.getText(r);
-                this.addRange(r, text);
+                session.addRange(r, text);
             }
         }
         else {
             window_1.default.showMessage(`${kind} not supported`, 'error');
             return;
         }
-        if (this._activated && !this.ranges.length) {
-            this.cancel();
-        }
-        else if (this.ranges.length && !this._activated) {
-            let winid = await nvim.call('win_getid');
-            this.activate(doc, winid);
-        }
-        if (this._activated) {
-            nvim.pauseNotification();
-            this.doHighlights();
-            let [, err] = await nvim.resumeNotification();
-            if (err)
-                logger.error(err);
-        }
         if (kind == 'word' || kind == 'position') {
             await nvim.command(`silent! call repeat#set("\\<Plug>(coc-cursors-${kind})", -1)`);
         }
     }
-    activate(doc, winid) {
-        if (this._activated)
-            return;
-        this._activated = true;
-        this.bufnr = doc.bufnr;
-        this.winid = winid;
-        this.nvim.setVar('coc_cursors_activated', 1, true);
-        doc.forceSync();
-        this.textDocument = doc.textDocument;
-        workspace_1.default.onDidChangeTextDocument(async (e) => {
-            if (e.textDocument.uri != doc.uri)
-                return;
-            if (this.changing || !this.ranges.length)
-                return;
-            let change = e.contentChanges[0];
-            if (!('range' in change))
-                return;
-            let { original } = e;
-            let { text, range } = change;
-            // ignore change after last range
-            if (position_1.comparePosition(range.start, this.lastPosition) > 0) {
-                if (this._changed) {
-                    this.cancel();
-                }
-                else {
-                    this.textDocument = doc.textDocument;
-                }
-                return;
-            }
-            let changeCount = text.split('\n').length - (range.end.line - range.start.line + 1);
-            // adjust line when change before first position
-            let d = position_1.comparePosition(range.end, this.firstPosition);
-            if (d < 0 || d == 0 && (position_1.comparePosition(range.start, range.end) != 0 || text.endsWith('\n'))) {
-                if (this._changed) {
-                    this.cancel();
-                }
-                else {
-                    if (changeCount != 0)
-                        this.ranges.forEach(r => r.line = r.line + changeCount);
-                    this.textDocument = doc.textDocument;
-                }
-                return;
-            }
-            // ignore changes when not overlap
-            if (changeCount == 0) {
-                let lnums = array_1.distinct(this.ranges.map(r => r.line));
-                let startLine = range.start.line;
-                let endLine = range.end.line;
-                let overlap = lnums.some(line => line >= startLine && line <= endLine);
-                if (!overlap)
-                    return;
-            }
-            this._changed = true;
-            // get range from edit
-            let textRange = this.getTextRange(range, text);
-            if (textRange) {
-                await this.applySingleEdit(textRange, { range, newText: text });
-            }
-            else {
-                await this.applyComposedEdit(original, { range, newText: text });
-            }
-        }, null, this.disposables);
+    createSession(doc) {
+        let session = this.getSession(doc.bufnr);
+        if (session)
+            return session;
+        session = new session_1.default(this.nvim, doc, this.config);
+        this.sessionsMap.set(doc.bufnr, session);
+        session.onDidCancel(() => {
+            session.dispose();
+            this.sessionsMap.delete(doc.bufnr);
+        });
+        return session;
+    }
+    // Add ranges to current document
+    async addRanges(ranges) {
+        let { nvim } = this;
+        let bufnr = await nvim.call('bufnr', ['%']);
+        let doc = workspace_1.default.getDocument(bufnr);
+        if (!doc || !doc.attached) {
+            window_1.default.showMessage('Document not attached', 'error');
+            return false;
+        }
+        let session = this.createSession(doc);
+        return session.addRanges(ranges);
+    }
+    reset() {
+        for (let session of this.sessionsMap.values()) {
+            session.cancel();
+        }
+        this.sessionsMap.clear();
+    }
+    dispose() {
+        for (let session of this.sessionsMap.values()) {
+            session.dispose();
+        }
+        this.sessionsMap.clear();
+        for (let disposable of this.disposables) {
+            disposable.dispose();
+        }
+    }
+}
+exports.default = Cursors;
+//# sourceMappingURL=index.js.map
+
+/***/ }),
+/* 675 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(65);
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(293));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const vscode_languageserver_textdocument_1 = __webpack_require__(346);
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const position_1 = __webpack_require__(290);
+const window_1 = tslib_1.__importDefault(__webpack_require__(370));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(291));
+const range_1 = tslib_1.__importDefault(__webpack_require__(676));
+const util_1 = __webpack_require__(677);
+const logger = __webpack_require__(64)('cursors-session');
+/**
+ * Cursor session for single buffer
+ * session.cancel() session.dispose()
+ */
+class CursorSession {
+    constructor(nvim, doc, config) {
+        this.nvim = nvim;
+        this.doc = doc;
+        this.config = config;
+        this._onDidCancel = new vscode_languageserver_protocol_1.Emitter();
+        this.onDidCancel = this._onDidCancel.event;
+        this.disposables = [];
+        this.ranges = [];
+        this.activated = true;
+        this.changing = false;
+        this.changed = false;
+        this.doc.forceSync();
+        this.textDocument = this.doc.textDocument;
+        this.buffer.setVar('coc_cursors_activated', 1, true);
         let { cancelKey, nextKey, previousKey } = this.config;
-        workspace_1.default.registerLocalKeymap('n', cancelKey, () => {
-            if (!this._activated)
-                return this.unmap(cancelKey);
+        this.disposables.push(workspace_1.default.registerLocalKeymap('n', cancelKey, () => {
             this.cancel();
-        }, true);
-        workspace_1.default.registerLocalKeymap('n', nextKey, async () => {
-            if (!this._activated)
-                return this.unmap(nextKey);
+        }, true));
+        this.disposables.push(workspace_1.default.registerLocalKeymap('n', nextKey, async () => {
+            if (!this.activated)
+                return;
             let ranges = this.ranges.map(o => o.currRange);
             let curr = await window_1.default.getCursorPosition();
             for (let r of ranges) {
@@ -92849,10 +92885,10 @@ class Cursors {
             }
             if (ranges.length)
                 await window_1.default.moveTo(ranges[0].start);
-        }, true);
-        workspace_1.default.registerLocalKeymap('n', previousKey, async () => {
-            if (!this._activated)
-                return this.unmap(previousKey);
+        }, true));
+        this.disposables.push(workspace_1.default.registerLocalKeymap('n', previousKey, async () => {
+            if (!this.activated)
+                return;
             let ranges = this.ranges.map(o => o.currRange);
             ranges.reverse();
             let curr = await window_1.default.getCursorPosition();
@@ -92863,68 +92899,68 @@ class Cursors {
                 }
             }
             if (ranges.length)
-                await window_1.default.moveTo(ranges[0].start);
-        }, true);
-        events_1.default.on('CursorMoved', debounce_1.default(async (bufnr) => {
-            if (bufnr != this.bufnr)
-                return this.cancel();
-            let winid = await this.nvim.call('win_getid');
-            if (winid != this.winid) {
-                this.cancel();
-            }
-        }, 100), null, this.disposables);
+                await window_1.default.moveTo(ranges[ranges.length - 1].start);
+        }, true));
+        this.doc.onDocumentChange(this.onChange, this, this.disposables);
     }
-    doHighlights() {
-        let win = this.nvim.createWindow(this.winid);
-        win.clearMatchGroup('^CocCursorRange');
-        let searchRanges = this.ranges.map(o => o.currRange);
-        win.highlightRanges('CocCursorRange', searchRanges, 99, true);
-        if (workspace_1.default.isVim)
-            this.nvim.command('redraw', true);
-    }
-    cancel() {
-        if (!this._activated)
+    onChange(e) {
+        if (!this.activated || this.ranges.length == 0)
             return;
-        let win = this.nvim.createWindow(this.winid);
-        win.clearMatchGroup('^CocCursorRange');
-        this.nvim.setVar('coc_cursors_activated', 0, true);
-        util_1.disposeAll(this.disposables);
-        this._changed = false;
-        this.ranges = [];
-        this.changing = false;
-        this._activated = false;
-    }
-    unmap(key) {
-        let { nvim, bufnr } = this;
-        let { cancelKey, nextKey, previousKey } = this.config;
-        let escaped = key.startsWith('<') && key.endsWith('>') ? `\\${key}` : key;
-        nvim.pauseNotification();
-        nvim.call('coc#util#unmap', [bufnr, [cancelKey, nextKey, previousKey]], true);
-        nvim.call('eval', `feedkeys("${escaped}", 't')`, true);
-        nvim.resumeNotification(false, true).logError();
-    }
-    // Add ranges to current document
-    async addRanges(ranges) {
-        let { nvim } = this;
-        let [bufnr, winid] = await nvim.eval('[bufnr("%"),win_getid()]');
-        if (this._activated && (this.bufnr != bufnr || this.winid != winid)) {
-            this.cancel();
+        if (this.changing)
+            return;
+        let change = e.contentChanges[0];
+        if (!('range' in change))
+            return;
+        let { text, range } = change;
+        logger.debug('change:', JSON.stringify(change, null, 2));
+        let intersect = this.ranges.some(r => position_1.rangeIntersect(range, r.currRange));
+        let begin = this.ranges[0].currRange.start;
+        if (text.endsWith('\n') && position_1.comparePosition(begin, range.end) == 0) {
+            // prepend lines
+            intersect = false;
         }
-        let doc = workspace_1.default.getDocument(bufnr);
-        if (!doc)
-            return;
-        doc.forceSync();
-        // filter overlap ranges
-        if (!this._changed) {
-            this.ranges = this.ranges.filter(r => {
-                let { currRange } = r;
-                return !ranges.some(range => position_1.rangeOverlap(range, currRange));
+        if (!intersect) {
+            this.ranges.forEach(r => {
+                r.adjustFromEdit({ range, newText: text });
             });
+            this.doHighlights();
+            this.textDocument = this.doc.textDocument;
+            return;
+        }
+        this.changed = true;
+        // get range from edit
+        let textRange = this.getTextRange(range, text);
+        if (textRange) {
+            this.applySingleEdit(textRange, { range, newText: text });
         }
         else {
-            // use new ranges
-            this.ranges = [];
+            this.applyComposedEdit(e.original, { range, newText: text });
         }
+        if (this.activated) {
+            this.ranges.forEach(r => {
+                r.sync();
+            });
+            this.textDocument = this.doc.textDocument;
+        }
+    }
+    doHighlights() {
+        let { nvim, buffer, ranges } = this;
+        buffer.clearNamespace('cursors');
+        let arr = ranges.map(o => o.currRange);
+        buffer.highlightRanges('cursors', 'CocCursorRange', arr);
+        nvim.command('redraw', true);
+    }
+    addRanges(ranges) {
+        let { nvim, doc } = this;
+        if (this.changed) {
+            window_1.default.showMessage(`Can't add ranges after range change.`);
+            return false;
+        }
+        // filter overlap ranges
+        this.ranges = this.ranges.filter(r => {
+            let { currRange } = r;
+            return !ranges.some(range => position_1.rangeOverlap(range, currRange));
+        });
         let { textDocument } = doc;
         for (let range of ranges) {
             let { line } = range.start;
@@ -92944,26 +92980,54 @@ class Cursors {
             preCount = preCount + 1;
             currline = line;
         }
-        if (!this.ranges.length)
-            return;
-        this.activate(doc, winid);
         nvim.pauseNotification();
         this.doHighlights();
-        let [, err] = await nvim.resumeNotification();
-        if (err)
-            logger.error(err);
-    }
-    get activated() {
-        return this._activated;
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        nvim.resumeNotification(false, true);
+        return true;
     }
     /**
-     * Find single range from edit
+     * Cancel session and highlights
+     */
+    cancel() {
+        if (!this.activated)
+            return;
+        let { nvim } = this;
+        this.activated = false;
+        let { cancelKey, nextKey, previousKey } = this.config;
+        nvim.pauseNotification();
+        this.buffer.clearNamespace('cursors');
+        this.buffer.setVar('coc_cursors_activated', 0, true);
+        nvim.command('redraw', true);
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        nvim.resumeNotification(false, true);
+        this._onDidCancel.fire();
+    }
+    /**
+     * Called on buffer unload or cancel
+     */
+    dispose() {
+        if (!this.doc)
+            return;
+        this._onDidCancel.dispose();
+        for (let disposable of this.disposables) {
+            disposable.dispose();
+        }
+        this.ranges = [];
+        this.doc = null;
+        this.textDocument = null;
+    }
+    get buffer() {
+        return this.nvim.createBuffer(this.doc.bufnr);
+    }
+    /**
+     * Find changed range from edit
      */
     getTextRange(range, text) {
         let { ranges } = this;
-        // can't support line count change
-        if (text.includes('\n') || range.start.line != range.end.line)
+        if (text.indexOf('\n') !== -1 || range.start.line != range.end.line) {
             return null;
+        }
         ranges.sort((a, b) => {
             if (a.line != b.line)
                 return a.line - b.line;
@@ -92987,139 +93051,10 @@ class Cursors {
         }
         return null;
     }
-    async applySingleEdit(textRange, edit) {
-        // single range change, calculate & apply changes for all ranges
-        let { range, newText } = edit;
-        let doc = workspace_1.default.getDocument(this.bufnr);
-        this.adjustChange(textRange, range, newText);
-        if (this.ranges.length == 1) {
-            this.doHighlights();
-            return;
-        }
-        let edits = this.ranges.map(o => o.textEdit);
-        let content = vscode_languageserver_textdocument_1.TextDocument.applyEdits(this.textDocument, edits);
-        let newLines = content.split('\n');
-        let changedLnum = new Set();
-        let arr = [];
-        for (let r of this.ranges) {
-            if (!changedLnum.has(r.line)) {
-                changedLnum.add(r.line);
-                arr.push([r.line, newLines[r.line]]);
-            }
-        }
-        let { nvim } = this;
-        this.changing = true;
-        // apply changes
-        nvim.pauseNotification();
-        nvim.command('undojoin', true);
-        doc.changeLines(arr);
-        let { cursor } = events_1.default;
-        if (textRange.preCount > 0 && cursor.bufnr == this.bufnr && textRange.line + 1 == cursor.lnum) {
-            let changed = textRange.preCount * (newText.length - (range.end.character - range.start.character));
-            nvim.call('cursor', [cursor.lnum, cursor.col + changed], true);
-        }
-        this.doHighlights();
-        if (workspace_1.default.isNvim)
-            nvim.command('redraw', true);
-        let [, err] = await nvim.resumeNotification();
-        this.changing = false;
-        if (err)
-            logger.error(err);
-    }
-    async applyComposedEdit(original, edit) {
-        // check complex edit
-        let { range, newText } = edit;
-        let { nvim, ranges } = this;
-        let doc = vscode_languageserver_textdocument_1.TextDocument.create('file:///1', '', 0, original);
-        let edits = [];
-        let diffs = fast_diff_1.default(original, newText);
-        let offset = 0;
-        for (let i = 0; i < diffs.length; i++) {
-            let diff = diffs[i];
-            let pos = adjustPosition(range.start, doc.positionAt(offset));
-            if (diff[0] == fast_diff_1.default.EQUAL) {
-                offset = offset + diff[1].length;
-            }
-            else if (diff[0] == fast_diff_1.default.DELETE) {
-                let end = adjustPosition(range.start, doc.positionAt(offset + diff[1].length));
-                if (diffs[i + 1] && diffs[i + 1][0] == fast_diff_1.default.INSERT) {
-                    // change
-                    edits.push({ range: vscode_languageserver_types_1.Range.create(pos, end), newText: diffs[i + 1][1] });
-                    i = i + 1;
-                }
-                else {
-                    // delete
-                    edits.push({ range: vscode_languageserver_types_1.Range.create(pos, end), newText: '' });
-                }
-                offset = offset + diff[1].length;
-            }
-            else if (diff[0] == fast_diff_1.default.INSERT) {
-                edits.push({ range: vscode_languageserver_types_1.Range.create(pos, pos), newText: diff[1] });
-            }
-        }
-        if (edits.some(edit => edit.newText.includes('\n') || edit.range.start.line != edit.range.end.line)) {
-            this.cancel();
-            return;
-        }
-        if (edits.length == ranges.length) {
-            let last;
-            for (let i = 0; i < edits.length; i++) {
-                let edit = edits[i];
-                let textRange = this.ranges[i];
-                if (!position_1.rangeIntersect(textRange.currRange, edit.range)) {
-                    this.cancel();
-                    return;
-                }
-                if (last && !equalEdit(edit, last)) {
-                    this.cancel();
-                    return;
-                }
-                textRange.applyEdit(edit);
-                last = edit;
-            }
-        }
-        else if (edits.length == ranges.length * 2) {
-            for (let i = 0; i < edits.length - 1; i = i + 2) {
-                let edit = edits[i];
-                let next = edits[i + 1];
-                if (edit.newText.length == 0 && next.newText.length == 0) {
-                    // remove begin & end
-                    let textRange = this.ranges[i / 2];
-                    if (position_1.comparePosition(textRange.currRange.end, next.range.end) != 0) {
-                        this.cancel();
-                        return;
-                    }
-                    let start = edit.range.start.character - textRange.currRange.start.character;
-                    textRange.replace(start, edit.range.end.character - edit.range.start.character, '');
-                    let offset = next.range.end.character - next.range.start.character;
-                    let len = textRange.text.length;
-                    textRange.replace(len - offset, len);
-                }
-                else if (position_1.emptyRange(edit.range) && position_1.emptyRange(next.range)) {
-                    // add begin & end
-                    let textRange = this.ranges[i / 2];
-                    if (position_1.comparePosition(textRange.currRange.end, next.range.start) != 0) {
-                        this.cancel();
-                        return;
-                    }
-                    let start = edit.range.start.character - textRange.currRange.start.character;
-                    textRange.add(start, edit.newText);
-                    let len = textRange.text.length;
-                    textRange.add(len, next.newText);
-                }
-                else {
-                    this.cancel();
-                }
-            }
-        }
-        else {
-            this.cancel();
-        }
-        nvim.pauseNotification();
-        this.doHighlights();
-        await nvim.resumeNotification(false, true);
-    }
-    adjustChange(textRange, range, text) {
+    /**
+     * Adjust change for current ranges
+     */
+    adjustRanges(textRange, range, text) {
         let { ranges } = this;
         if (range.start.character == range.end.character) {
             // add
@@ -93182,6 +93117,10 @@ class Cursors {
         }
     }
     addRange(range, text) {
+        if (this.changed) {
+            window_1.default.showMessage(`Can't add range after range change.`);
+            return;
+        }
         let { ranges } = this;
         let idx = ranges.findIndex(o => position_1.rangeIntersect(o.range, range));
         // remove range when intersect
@@ -93216,70 +93155,155 @@ class Cursors {
                 }
             }
         }
+        if (this.ranges.length == 0) {
+            this.cancel();
+        }
+        else {
+            this.doHighlights();
+        }
     }
-    get lastPosition() {
+    applySingleEdit(textRange, edit) {
+        // single range change, calculate & apply changes for all ranges
+        let { range, newText } = edit;
+        let { doc } = this;
+        this.adjustRanges(textRange, range, newText);
+        if (this.ranges.length == 1) {
+            this.doHighlights();
+            return;
+        }
+        let edits = this.ranges.map(o => o.textEdit);
+        let content = vscode_languageserver_textdocument_1.TextDocument.applyEdits(this.textDocument, edits);
+        let newLines = content.split('\n');
+        let changedLnum = new Set();
+        let arr = [];
+        for (let r of this.ranges) {
+            if (!changedLnum.has(r.line)) {
+                changedLnum.add(r.line);
+                arr.push([r.line, newLines[r.line]]);
+            }
+        }
+        let { nvim } = this;
+        this.changing = true;
+        // apply changes
+        nvim.pauseNotification();
+        nvim.command('undojoin', true);
+        doc.changeLines(arr);
+        let { cursor } = events_1.default;
+        if (textRange.preCount > 0 && cursor.bufnr == doc.bufnr && textRange.line + 1 == cursor.lnum) {
+            let changed = textRange.preCount * (newText.length - (range.end.character - range.start.character));
+            nvim.call('cursor', [cursor.lnum, cursor.col + changed], true);
+        }
+        this.doHighlights();
+        this.changing = false;
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        nvim.resumeNotification(false, true);
+    }
+    applyComposedEdit(original, edit) {
+        // check complex edit
+        let { range, newText } = edit;
         let { ranges } = this;
-        let r = ranges[ranges.length - 1];
-        return r.currRange.end;
-    }
-    get firstPosition() {
-        let { ranges } = this;
-        return ranges[0].currRange.start;
+        let doc = vscode_languageserver_textdocument_1.TextDocument.create('file:///1', '', 0, original);
+        let edits = [];
+        let diffs = fast_diff_1.default(original, newText);
+        let offset = 0;
+        for (let i = 0; i < diffs.length; i++) {
+            let diff = diffs[i];
+            let pos = util_1.adjustPosition(range.start, doc.positionAt(offset));
+            if (diff[0] == fast_diff_1.default.EQUAL) {
+                offset = offset + diff[1].length;
+            }
+            else if (diff[0] == fast_diff_1.default.DELETE) {
+                let end = util_1.adjustPosition(range.start, doc.positionAt(offset + diff[1].length));
+                if (diffs[i + 1] && diffs[i + 1][0] == fast_diff_1.default.INSERT) {
+                    // change
+                    edits.push({ range: vscode_languageserver_protocol_1.Range.create(pos, end), newText: diffs[i + 1][1] });
+                    i = i + 1;
+                }
+                else {
+                    // delete
+                    edits.push({ range: vscode_languageserver_protocol_1.Range.create(pos, end), newText: '' });
+                }
+                offset = offset + diff[1].length;
+            }
+            else if (diff[0] == fast_diff_1.default.INSERT) {
+                edits.push({ range: vscode_languageserver_protocol_1.Range.create(pos, pos), newText: diff[1] });
+            }
+        }
+        if (edits.some(edit => edit.newText.includes('\n') || edit.range.start.line != edit.range.end.line)) {
+            this.cancel();
+            return;
+        }
+        if (edits.length == ranges.length) {
+            let last;
+            for (let i = 0; i < edits.length; i++) {
+                let edit = edits[i];
+                let textRange = this.ranges[i];
+                if (!position_1.rangeIntersect(textRange.currRange, edit.range)) {
+                    this.cancel();
+                    return;
+                }
+                if (last && !util_1.equalEdit(edit, last)) {
+                    this.cancel();
+                    return;
+                }
+                textRange.applyEdit(edit);
+                last = edit;
+            }
+        }
+        else if (edits.length == ranges.length * 2) {
+            for (let i = 0; i < edits.length - 1; i = i + 2) {
+                let edit = edits[i];
+                let next = edits[i + 1];
+                if (edit.newText.length == 0 && next.newText.length == 0) {
+                    // remove begin & end
+                    let textRange = this.ranges[i / 2];
+                    if (position_1.comparePosition(textRange.currRange.end, next.range.end) != 0) {
+                        this.cancel();
+                        return;
+                    }
+                    let start = edit.range.start.character - textRange.currRange.start.character;
+                    textRange.replace(start, edit.range.end.character - edit.range.start.character, '');
+                    let offset = next.range.end.character - next.range.start.character;
+                    let len = textRange.text.length;
+                    textRange.replace(len - offset, len);
+                }
+                else if (position_1.emptyRange(edit.range) && position_1.emptyRange(next.range)) {
+                    // add begin & end
+                    let textRange = this.ranges[i / 2];
+                    if (position_1.comparePosition(textRange.currRange.end, next.range.start) != 0) {
+                        this.cancel();
+                        return;
+                    }
+                    let start = edit.range.start.character - textRange.currRange.start.character;
+                    textRange.add(start, edit.newText);
+                    let len = textRange.text.length;
+                    textRange.add(len, next.newText);
+                }
+                else {
+                    this.cancel();
+                    return;
+                }
+            }
+        }
+        else {
+            this.cancel();
+            return;
+        }
+        this.doHighlights();
     }
 }
-exports.default = Cursors;
-function splitRange(doc, range) {
-    let splited = [];
-    for (let i = range.start.line; i <= range.end.line; i++) {
-        let curr = doc.getline(i) || '';
-        let sc = i == range.start.line ? range.start.character : 0;
-        let ec = i == range.end.line ? range.end.character : curr.length;
-        if (sc == ec)
-            continue;
-        splited.push(vscode_languageserver_types_1.Range.create(i, sc, i, ec));
-    }
-    return splited;
-}
-/**
- * Get ranges of visual block
- */
-function getVisualRanges(doc, range) {
-    let { start, end } = range;
-    if (start.line > end.line) {
-        [start, end] = [end, start];
-    }
-    let sc = start.character < end.character ? start.character : end.character;
-    let ec = start.character < end.character ? end.character : start.character;
-    let ranges = [];
-    for (let i = start.line; i <= end.line; i++) {
-        let line = doc.getline(i);
-        ranges.push(vscode_languageserver_types_1.Range.create(i, sc, i, Math.min(line.length, ec)));
-    }
-    return ranges;
-}
-function adjustPosition(position, delta) {
-    let { line, character } = delta;
-    return vscode_languageserver_types_1.Position.create(position.line + line, line == 0 ? position.character + character : character);
-}
-function equalEdit(one, two) {
-    if (one.newText.length != two.newText.length)
-        return false;
-    let { range } = one;
-    if (range.end.character - range.start.character != two.range.end.character - two.range.start.character) {
-        return false;
-    }
-    return true;
-}
-//# sourceMappingURL=index.js.map
+exports.default = CursorSession;
+//# sourceMappingURL=session.js.map
 
 /***/ }),
-/* 675 */
+/* 676 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_languageserver_types_1 = __webpack_require__(223);
+const position_1 = __webpack_require__(290);
 const logger = __webpack_require__(64)('cursors-range');
 // edit range
 class TextRange {
@@ -93329,6 +93353,45 @@ class TextRange {
             this.replace(start - this.currStart, end - this.currStart, newText);
         }
     }
+    /**
+     * Adjust from textEdit that not overlap
+     */
+    adjustFromEdit(edit) {
+        let { range, newText } = edit;
+        // no change if edit after current range
+        if (position_1.comparePosition(range.start, vscode_languageserver_types_1.Position.create(this.line, this.currEnd)) > 0) {
+            return;
+        }
+        let newLines = newText.split('\n');
+        let changeCount = newLines.length - (range.end.line - range.start.line + 1);
+        this.line = this.line + changeCount;
+        if (range.end.line == this.line) {
+            let remove = range.start.line == range.end.line ? range.end.character - range.start.character : range.end.character;
+            if (newLines.length > 1 && range.start.line == range.end.line) {
+                remove = remove + range.start.character;
+            }
+            let add = 0;
+            if (newLines.length > 1) {
+                add = newLines[newLines.length - 1].length;
+            }
+            else {
+                if (range.start.line == range.end.line) {
+                    add = newText.length;
+                }
+                else {
+                    add = range.start.character + newText.length;
+                }
+            }
+            let delta = add - remove;
+            for (let key of ['start', 'end', 'currStart', 'currEnd']) {
+                this[key] += delta;
+            }
+        }
+    }
+    sync() {
+        this.start = this.currStart;
+        this.end = this.currEnd;
+    }
     get textEdit() {
         return {
             range: this.range,
@@ -93340,7 +93403,67 @@ exports.default = TextRange;
 //# sourceMappingURL=range.js.map
 
 /***/ }),
-/* 676 */
+/* 677 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.equalEdit = exports.adjustPosition = exports.getVisualRanges = exports.splitRange = void 0;
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+/**
+ * Split to single line ranges
+ */
+function splitRange(doc, range) {
+    let splited = [];
+    for (let i = range.start.line; i <= range.end.line; i++) {
+        let curr = doc.getline(i) || '';
+        let sc = i == range.start.line ? range.start.character : 0;
+        let ec = i == range.end.line ? range.end.character : curr.length;
+        if (sc == ec)
+            continue;
+        splited.push(vscode_languageserver_protocol_1.Range.create(i, sc, i, ec));
+    }
+    return splited;
+}
+exports.splitRange = splitRange;
+/**
+ * Get ranges of visual block
+ */
+function getVisualRanges(doc, range) {
+    let { start, end } = range;
+    if (start.line > end.line) {
+        [start, end] = [end, start];
+    }
+    let sc = start.character < end.character ? start.character : end.character;
+    let ec = start.character < end.character ? end.character : start.character;
+    let ranges = [];
+    for (let i = start.line; i <= end.line; i++) {
+        let line = doc.getline(i);
+        ranges.push(vscode_languageserver_protocol_1.Range.create(i, sc, i, Math.min(line.length, ec)));
+    }
+    return ranges;
+}
+exports.getVisualRanges = getVisualRanges;
+function adjustPosition(position, delta) {
+    let { line, character } = delta;
+    return vscode_languageserver_protocol_1.Position.create(position.line + line, line == 0 ? position.character + character : character);
+}
+exports.adjustPosition = adjustPosition;
+function equalEdit(one, two) {
+    if (one.newText.length != two.newText.length)
+        return false;
+    let { range } = one;
+    if (range.end.character - range.start.character != two.range.end.character - two.range.start.character) {
+        return false;
+    }
+    return true;
+}
+exports.equalEdit = equalEdit;
+//# sourceMappingURL=util.js.map
+
+/***/ }),
+/* 678 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -93364,11 +93487,11 @@ const position_1 = __webpack_require__(290);
 const string_1 = __webpack_require__(288);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(291));
 const window_1 = tslib_1.__importDefault(__webpack_require__(370));
-const codelens_1 = tslib_1.__importDefault(__webpack_require__(677));
-const colors_1 = tslib_1.__importDefault(__webpack_require__(678));
-const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(680));
-const refactor_1 = tslib_1.__importDefault(__webpack_require__(681));
-const search_1 = tslib_1.__importDefault(__webpack_require__(682));
+const codelens_1 = tslib_1.__importDefault(__webpack_require__(679));
+const colors_1 = tslib_1.__importDefault(__webpack_require__(680));
+const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(682));
+const refactor_1 = tslib_1.__importDefault(__webpack_require__(683));
+const search_1 = tslib_1.__importDefault(__webpack_require__(684));
 const logger = __webpack_require__(64)('Handler');
 const pairs = new Map([
     ['<', '>'],
@@ -94868,7 +94991,7 @@ async function synchronizeDocument(doc) {
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 677 */
+/* 679 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -95142,7 +95265,7 @@ exports.default = CodeLensManager;
 //# sourceMappingURL=codelens.js.map
 
 /***/ }),
-/* 678 */
+/* 680 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -95156,7 +95279,7 @@ const languages_1 = tslib_1.__importDefault(__webpack_require__(564));
 const util_1 = __webpack_require__(238);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(291));
 const window_1 = tslib_1.__importDefault(__webpack_require__(370));
-const highlighter_1 = tslib_1.__importStar(__webpack_require__(679));
+const highlighter_1 = tslib_1.__importStar(__webpack_require__(681));
 const logger = __webpack_require__(64)('colors');
 class Colors {
     constructor(nvim) {
@@ -95341,7 +95464,7 @@ function isValid(document) {
 //# sourceMappingURL=colors.js.map
 
 /***/ }),
-/* 679 */
+/* 681 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -95532,7 +95655,7 @@ async function synchronizeDocument(doc) {
 //# sourceMappingURL=highlighter.js.map
 
 /***/ }),
-/* 680 */
+/* 682 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -95639,7 +95762,7 @@ exports.default = DocumentHighlighter;
 //# sourceMappingURL=documentHighlight.js.map
 
 /***/ }),
-/* 681 */
+/* 683 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -96321,7 +96444,7 @@ function emptyWorkspaceEdit(edit) {
 //# sourceMappingURL=refactor.js.map
 
 /***/ }),
-/* 682 */
+/* 684 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
