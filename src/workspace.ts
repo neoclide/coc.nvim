@@ -1178,11 +1178,27 @@ export class Workspace implements IWorkspace {
     let id = uuid()
     let { nvim } = this
     this.keymaps.set(id, [fn, false])
+    let buf = this.nvim.createBuffer(this.bufnr)
+    let method = notify ? 'notify' : 'request'
     let modify = getKeymapModifier(mode)
-    nvim.command(`${mode}noremap <silent><nowait><buffer> ${key} :${modify}call coc#rpc#${notify ? 'notify' : 'request'}('doKeymap', ['${id}'])<CR>`, true)
+    // neoivm's bug '<' can't be used.
+    let escaped = key.startsWith('<') && key.endsWith('>') ? `{${key.slice(1, -1)}}` : key
+    if (this.isNvim) {
+      buf.notify('nvim_buf_set_keymap', [mode, key, `:${modify}call coc#rpc#${method}('doKeymap', ['${id}', '', '${escaped}'])<CR>`, {
+        silent: true,
+        nowait: true
+      }])
+    } else {
+      let cmd = `${mode}noremap <silent><nowait><buffer> ${key} :${modify}call coc#rpc#${method}('doKeymap', ['${id}', '', '${escaped}'])<CR>`
+      nvim.command(cmd, true)
+    }
     return Disposable.create(() => {
       this.keymaps.delete(id)
-      nvim.command(`${mode}unmap <buffer> ${key}`, true)
+      if (this.isNvim) {
+        buf.notify('nvim_buf_del_keymap', [mode, key])
+      } else {
+        nvim.command(`silent! ${mode}unmap <buffer> ${key}`, true)
+      }
     })
   }
 
