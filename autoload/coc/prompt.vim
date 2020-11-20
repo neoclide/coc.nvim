@@ -145,8 +145,12 @@ function! s:start_prompt()
       if ch ==# "\<FocusLost>" || ch ==# "\<FocusGained>" || ch ==# "\<CursorHold>"
         continue
       else
-        let mapped = get(s:char_map, ch, ch)
         let curr = s:current_session()
+        if ch == "\<Backspace>"
+          call coc#rpc#notify('InputChar', [curr, '<backspace>', getcharmod()])
+          return
+        endif
+        let mapped = get(s:char_map, ch, ch)
         if !empty(curr)
           call coc#rpc#notify('InputChar', [curr, mapped, getcharmod()])
         endif
