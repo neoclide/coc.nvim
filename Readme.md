@@ -91,6 +91,9 @@ possible to avoid conflict with your other plugins.
 `:verbose imap <tab>` to make sure that your keymap has taken effect.
 
 ```vim
+" required or else plugin commands will fail silently
+syntax on
+
 " TextEdit might fail if hidden is not set.
 set hidden
 
