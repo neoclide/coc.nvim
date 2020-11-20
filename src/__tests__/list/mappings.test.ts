@@ -525,14 +525,14 @@ describe('User mappings', () => {
       '<C-e>': 'prompt:end',
       '<Left>': 'prompt:left',
       '<Right>': 'prompt:right',
-      '<Backspace>': 'prompt:deleteforward',
+      '<backspace>': 'prompt:deleteforward',
       '<C-x>': 'prompt:deletebackward',
-      '<C-k>': 'prompt:removeTail',
-      '<C-u>': 'prompt.removeAhead',
+      '<C-k>': 'prompt:removetail',
+      '<C-u>': 'prompt:removeahead',
     })
     await manager.start(['location'])
     await manager.session.ui.ready
-    for (let key of ['<C-p>', '<C-n>', '<C-a>', '<C-e>', '<Left>', '<Right>', '<Backspace>', '<C-x>', '<C-k>', '<C-u>']) {
+    for (let key of ['<C-p>', '<C-n>', '<C-a>', '<C-e>', '<Left>', '<Right>', '<backspace>', '<C-x>', '<C-k>', '<C-u>']) {
       await nvim.input(key)
       await helper.wait(30)
     }
