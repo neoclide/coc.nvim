@@ -37,6 +37,7 @@ export default class Document {
   public textDocument: TextDocument
   public fireContentChanges: Function & { clear(): void }
   public fetchContent: Function & { clear(): void }
+  private ignoreChange = false
   private size = 0
   private nvim: Neovim
   private eol = true
@@ -61,7 +62,7 @@ export default class Document {
     private maxFileSize: number | null) {
     this.fireContentChanges = debounce(() => {
       this._fireContentChanges()
-    }, 200)
+    }, 100)
     this.fetchContent = debounce(() => {
       this._fetchContent().logError()
     }, 100)
@@ -209,6 +210,10 @@ export default class Document {
   ): void {
     if (buf.id !== this.buffer.id || tick == null) return
     this._changedtick = tick
+    if (this.ignoreChange) {
+      this.ignoreChange = false
+      return
+    }
     let lines = this.lines.slice(0, firstline)
     lines = lines.concat(linedata, this.lines.slice(lastline))
     this.lines = lines
@@ -242,7 +247,7 @@ export default class Document {
       if (cursor && cursor.bufnr == this.bufnr) {
         endOffset = this.getEndOffset(cursor.lnum, cursor.col, cursor.insert)
       }
-      let change = getChange(this.content, content, endOffset)
+      let change = getChange(textDocument.getText(), content, endOffset)
       if (change == null) return
       this.createDocument()
       let { version, uri } = this
@@ -336,6 +341,7 @@ export default class Document {
     }
     if (!filtered.length) return
     nvim.call('coc#util#change_lines', [this.bufnr, filtered], true)
+    this.ignoreChange = true
     if (sync) this.forceSync()
   }
 

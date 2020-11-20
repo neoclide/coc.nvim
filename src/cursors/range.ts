@@ -1,4 +1,5 @@
-import { Range, TextEdit } from 'vscode-languageserver-types'
+import { Position, Range, TextEdit } from 'vscode-languageserver-types'
+import { comparePosition } from '../util/position'
 const logger = require('../util/logger')('cursors-range')
 
 // edit range
@@ -7,8 +8,8 @@ export default class TextRange {
   private currEnd: number
 
   constructor(public line: number,
-    public readonly start: number,
-    public readonly end: number,
+    public start: number,
+    public end: number,
     public text: string,
     // range count at this line before, shuld be updated on range add
     public preCount: number) {
@@ -53,6 +54,45 @@ export default class TextRange {
     } else {
       this.replace(start - this.currStart, end - this.currStart, newText)
     }
+  }
+
+  /**
+   * Adjust from textEdit that not overlap
+   */
+  public adjustFromEdit(edit: TextEdit): void {
+    let { range, newText } = edit
+    // no change if edit after current range
+    if (comparePosition(range.start, Position.create(this.line, this.currEnd)) > 0) {
+      return
+    }
+    let newLines = newText.split('\n')
+    let changeCount = newLines.length - (range.end.line - range.start.line + 1)
+    this.line = this.line + changeCount
+    if (range.end.line == this.line) {
+      let remove = range.start.line == range.end.line ? range.end.character - range.start.character : range.end.character
+      if (newLines.length > 1 && range.start.line == range.end.line) {
+        remove = remove + range.start.character
+      }
+      let add = 0
+      if (newLines.length > 1) {
+        add = newLines[newLines.length - 1].length
+      } else {
+        if (range.start.line == range.end.line) {
+          add = newText.length
+        } else {
+          add = range.start.character + newText.length
+        }
+      }
+      let delta = add - remove
+      for (let key of ['start', 'end', 'currStart', 'currEnd']) {
+        this[key] += delta
+      }
+    }
+  }
+
+  public sync(): void {
+    this.start = this.currStart
+    this.end = this.currEnd
   }
 
   public get textEdit(): TextEdit {

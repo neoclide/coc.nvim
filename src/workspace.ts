@@ -1183,7 +1183,7 @@ export class Workspace implements IWorkspace {
     let modify = getKeymapModifier(mode)
     // neoivm's bug '<' can't be used.
     let escaped = key.startsWith('<') && key.endsWith('>') ? `{${key.slice(1, -1)}}` : key
-    if (this.isNvim) {
+    if (this.isNvim && !global.hasOwnProperty('__TEST__')) {
       buf.notify('nvim_buf_set_keymap', [mode, key, `:${modify}call coc#rpc#${method}('doKeymap', ['${id}', '', '${escaped}'])<CR>`, {
         silent: true,
         nowait: true
@@ -1194,7 +1194,7 @@ export class Workspace implements IWorkspace {
     }
     return Disposable.create(() => {
       this.keymaps.delete(id)
-      if (this.isNvim) {
+      if (this.isNvim && !global.hasOwnProperty('__TEST__')) {
         buf.notify('nvim_buf_del_keymap', [mode, key])
       } else {
         nvim.command(`silent! ${mode}unmap <buffer> ${key}`, true)
