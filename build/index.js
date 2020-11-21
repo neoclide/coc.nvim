@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "03e563e5c1" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d4a9993447" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -25480,6 +25480,10 @@ function parseMarkdown(content) {
     let filetype;
     let startLnum = 0;
     let parsed = marked_1.default(content);
+    let links = renderer_1.default.getLinks();
+    if (links.length) {
+        parsed = parsed + '\n\n' + links.join('\n');
+    }
     for (let line of parsed.replace(/\s*$/, '').split(/\n/)) {
         if (!line.length) {
             let pre = lines[lines.length - 1];
@@ -28342,6 +28346,7 @@ function unescapeEntities(html) {
 function identity(str) {
     return str;
 }
+const links = new Map();
 class Renderer {
     constructor(options = {}, highlightOptions = {}) {
         this.options = options;
@@ -28349,7 +28354,7 @@ class Renderer {
         this.o = Object.assign({}, defaultOptions, options);
         this.tab = sanitizeTab(this.o.tab, defaultOptions.tab);
         this.tableSettings = this.o.tableOptions;
-        this.emoji = identity;
+        // this.emoji = identity
         this.unescape = this.o.unescape ? unescapeEntities : identity;
         this.highlightOptions = highlightOptions || {};
         this.transform = this.compose(undoColon, this.unescape);
@@ -28446,14 +28451,16 @@ class Renderer {
             catch (e) {
                 return '';
             }
-            if (prot.indexOf('javascript:') === 0) {
+            if (prot.startsWith('javascript:')) {
                 return '';
             }
         }
+        if (text && href) {
+            links.set(text, href);
+        }
         if (text && text != href)
             return styles.blue(text);
-        let out = '';
-        out += this.o.href(href);
+        let out = this.o.href(href);
         return this.o.link(out);
     }
     image(href, title, text) {
@@ -28472,6 +28479,14 @@ class Renderer {
             }
             return args[0];
         };
+    }
+    static getLinks() {
+        let res = [];
+        for (let [text, href] of links.entries()) {
+            res.push(`${styles.blue(text)}: ${href}`);
+        }
+        links.clear();
+        return res;
     }
 }
 exports.default = Renderer;
@@ -90087,18 +90102,16 @@ class BasicList {
                 [`Error on read file ${u.fsPath}`, e.message];
             }
         }
-        else {
-            lines = [`Unable to preview ${uri}`];
-        }
         let config = {
             range: position_1.emptyRange(range) ? null : range,
             lnum: range.start.line + 1,
-            name: u.scheme == 'file' ? u.fsPath : '',
+            name: u.scheme == 'file' ? u.fsPath : uri,
             filetype: doc ? doc.filetype : this.getFiletype(u.fsPath),
             position: context.options.position,
             maxHeight: this.previewHeight,
             splitRight: this.splitRight,
             hlGroup: this.hlGroup,
+            scheme: u.scheme,
         };
         await nvim.call('coc#list#preview', [lines, config]);
         if (workspace_1.default.isVim)
