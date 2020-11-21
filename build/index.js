@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "d4a9993447" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "1cf07be052" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -42770,7 +42770,7 @@ class Window {
         try {
             let title = placeholder + ':';
             items = items.map((s, idx) => `${idx + 1}. ${s}`);
-            let res = await this.nvim.callAsync('coc#util#quickpick', [title, items]);
+            let res = await this.nvim.callAsync('coc#util#quickpick', [title, items.map(s => s.trim())]);
             release();
             let n = parseInt(res, 10);
             if (isNaN(n) || n <= 0 || n > items.length)
@@ -42799,7 +42799,7 @@ class Window {
                 return undefined;
             }
             try {
-                let menu = new menu_1.default(this.nvim, { items, title }, token);
+                let menu = new menu_1.default(this.nvim, { items: items.map(s => s.trim()), title }, token);
                 let promise = new Promise(resolve => {
                     menu.onDidClose(selected => {
                         resolve(selected);
@@ -50415,7 +50415,7 @@ function download(url, options, token) {
             });
         }
         const req = mod.request(opts, (res) => {
-            var _a;
+            var _a, _b;
             if ((res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 1223) {
                 let headers = res.headers || {};
                 let dispositionHeader = headers['content-disposition'];
@@ -50459,7 +50459,7 @@ function download(url, options, token) {
                 });
                 let stream;
                 if (extract === 'untar') {
-                    stream = res.pipe(tar_1.default.x({ strip: 1, C: dest }));
+                    stream = res.pipe(tar_1.default.x({ strip: (_b = options.strip) !== null && _b !== void 0 ? _b : 1, C: dest }));
                 }
                 else if (extract === 'unzip') {
                     stream = res.pipe(unzipper_1.default.Extract({ path: dest }));
