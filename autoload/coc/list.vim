@@ -225,10 +225,12 @@ function! coc#list#preview(lines, config) abort
     return
   endif
   let bufnr = winid == -1 ? 0 : winbufnr(winid)
-  "let bufnr = coc#float#create_buf(bufnr, a:lines)
-  "if bufnr == 0
-  "  return
-  "endif
+  " Try reuse buffer & window
+  let bufnr = coc#float#create_buf(bufnr, a:lines)
+  if bufnr == 0
+    return
+  endif
+  call setbufvar(bufnr, '&synmaxcol', 500)
   let name = get(a:config, 'name', '')
   let filetype = get(a:config, 'filetype', '')
   let extname = matchstr(name, '\.\zs[^.]\+$')
@@ -242,23 +244,20 @@ function! coc#list#preview(lines, config) abort
   if winid == -1
     let change = position != 'tab' && get(a:config, 'splitRight', 0)
     let curr = win_getid()
-    "noa above sb +5 52
     if change
       noa wincmd t
-      execute 'noa belowright vnew'
+      execute 'noa belowright vert sb '.bufnr
       let winid = win_getid()
     elseif position == 'tab' || get(a:config, 'splitRight', 0)
-      execute 'noa belowright vnew'
+      execute 'noa belowright vert sb '.bufnr
       let winid = win_getid()
     else
       let mod = position == 'top' ? 'below' : 'above'
       let height = s:get_height(a:lines, a:config)
-      execute 'noa '.mod.' '.height.'new'
+      execute 'noa '.mod.' sb +resize\ '.height.' '.bufnr
       let winid = win_getid()
     endif
-    execute 'noa exe '.lnum
-    let bufnr = bufnr('%')
-    call s:preview_buf_opts(bufnr)
+    noa call winrestview({"lnum": lnum ,"topline":max([1, lnum - 3])})
     call setwinvar(winid, '&signcolumn', 'no')
     call setwinvar(winid, '&number', 1)
     call setwinvar(winid, '&cursorline', 0)
@@ -286,14 +285,12 @@ function! coc#list#preview(lines, config) abort
       silent! noa call nvim_buf_set_name(bufnr, s:prefix.' '.name)
     endif
   endif
-  call s:set_buf_lines(bufnr, a:lines)
   " highlights
   if !empty(filetype)
     let start = max([0, lnum - 300])
     let end = min([len(a:lines), lnum + 300])
     call coc#highlight#highlight_lines(winid, [{'filetype': filetype, 'startLine': start, 'endLine': end}])
     call coc#float#execute(winid, 'syn sync fromstart')
-    "call coc#float#execute(winid, 'setfiletype '.filetype)
   else
     call coc#float#execute(winid, 'filetype detect')
     let ft = getbufvar(bufnr, '&filetype', '')
@@ -316,23 +313,4 @@ function! s:get_height(lines, config) abort
   endif
   let height = min([get(a:config, 'maxHeight', 10), len(a:lines), &lines - &cmdheight - 2])
   return height
-endfunction
-
-function! s:preview_buf_opts(bufnr) abort
-  call setbufvar(a:bufnr, '&buftype', 'nofile')
-  call setbufvar(a:bufnr, '&bufhidden', 'wipe')
-  call setbufvar(a:bufnr, '&swapfile', 0)
-  call setbufvar(a:bufnr, '&undolevels', -1)
-  " neovim's bug
-  call setbufvar(a:bufnr, '&modifiable', 1)
-  call setbufvar(a:bufnr, '&synmaxcol', 500)
-endfunction
-
-function! s:set_buf_lines(bufnr, lines) abort
-  if has('nvim')
-    call nvim_buf_set_lines(a:bufnr, 0, -1, v:false, a:lines)
-  else
-    call deletebufline(a:bufnr, 1, '$')
-    call setbufline(a:bufnr, 1, a:lines)
-  endif
 endfunction

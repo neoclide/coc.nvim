@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "d92a599b2e" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "03e563e5c1" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -90077,10 +90077,18 @@ class BasicList {
         let u = vscode_uri_1.URI.parse(uri);
         let lines = [];
         if (doc) {
-            lines = doc.getLines(0, range.end.line + this.previewHeight);
+            lines = doc.getLines(0, range.end.line + 60);
         }
         else if (u.scheme == 'file') {
-            lines = await fs_2.readFileLines(u.fsPath, 0, range.end.line + 30);
+            try {
+                lines = await fs_2.readFileLines(u.fsPath, 0, range.end.line + 60);
+            }
+            catch (e) {
+                [`Error on read file ${u.fsPath}`, e.message];
+            }
+        }
+        else {
+            lines = [`Unable to preview ${uri}`];
         }
         let config = {
             range: position_1.emptyRange(range) ? null : range,
