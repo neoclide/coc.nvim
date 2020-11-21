@@ -219,19 +219,29 @@ function! coc#list#preview(lines, config) abort
     echoerr 'win_execute function required for preview, please upgrade your vim.'
     return
   endif
-  let winid = coc#list#get_preview(0)
-  if empty(a:lines)
-    call s:close_win(winid)
-    return
+  let name = fnamemodify(get(a:config, 'name', ''), ':.')
+  let lines = a:lines
+  if empty(lines)
+    if get(a:config, 'scheme', 'file') != 'file'
+      let bufnr = s:load_buffer(name)
+      if bufnr != 0
+        let lines = getbufline(bufnr, 1, '$')
+      else
+        let lines = ['']
+      endif
+    else
+      " Show empty lines so not close window.
+      let lines = ['']
+    endif
   endif
+  let winid = coc#list#get_preview(0)
   let bufnr = winid == -1 ? 0 : winbufnr(winid)
   " Try reuse buffer & window
-  let bufnr = coc#float#create_buf(bufnr, a:lines)
+  let bufnr = coc#float#create_buf(bufnr, lines)
   if bufnr == 0
     return
   endif
   call setbufvar(bufnr, '&synmaxcol', 500)
-  let name = get(a:config, 'name', '')
   let filetype = get(a:config, 'filetype', '')
   let extname = matchstr(name, '\.\zs[^.]\+$')
   if empty(filetype) && !empty(extname)
@@ -253,7 +263,7 @@ function! coc#list#preview(lines, config) abort
       let winid = win_getid()
     else
       let mod = position == 'top' ? 'below' : 'above'
-      let height = s:get_height(a:lines, a:config)
+      let height = s:get_height(lines, a:config)
       execute 'noa '.mod.' sb +resize\ '.height.' '.bufnr
       let winid = win_getid()
     endif
@@ -265,7 +275,7 @@ function! coc#list#preview(lines, config) abort
     call setwinvar(winid, 'previewwindow', 1)
     noa call win_gotoid(curr)
   else
-    let height = s:get_height(a:lines, a:config)
+    let height = s:get_height(lines, a:config)
     if height > 0
       if s:is_vim
         let curr = win_getid()
@@ -288,7 +298,7 @@ function! coc#list#preview(lines, config) abort
   " highlights
   if !empty(filetype)
     let start = max([0, lnum - 300])
-    let end = min([len(a:lines), lnum + 300])
+    let end = min([len(lines), lnum + 300])
     call coc#highlight#highlight_lines(winid, [{'filetype': filetype, 'startLine': start, 'endLine': end}])
     call coc#float#execute(winid, 'syn sync fromstart')
   else
@@ -313,4 +323,13 @@ function! s:get_height(lines, config) abort
   endif
   let height = min([get(a:config, 'maxHeight', 10), len(a:lines), &lines - &cmdheight - 2])
   return height
+endfunction
+
+function! s:load_buffer(name) abort
+  if exists('*bufadd') && exists('*bufload')
+    let bufnr = bufadd(a:name)
+    call bufload(bufnr)
+    return bufnr
+  endif
+  return 0
 endfunction

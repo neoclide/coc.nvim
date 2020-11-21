@@ -33,6 +33,7 @@ interface PreviewConfig {
   lnum: number
   filetype?: string
   range?: Range
+  scheme?: string
 }
 
 export default abstract class BasicList implements IList, Disposable {
@@ -214,18 +215,17 @@ export default abstract class BasicList implements IList, Disposable {
       } catch (e) {
         [`Error on read file ${u.fsPath}`, e.message]
       }
-    } else {
-      lines = [`Unable to preview ${uri}`]
     }
     let config: PreviewConfig = {
       range: emptyRange(range) ? null : range,
       lnum: range.start.line + 1,
-      name: u.scheme == 'file' ? u.fsPath : '',
+      name: u.scheme == 'file' ? u.fsPath : uri,
       filetype: doc ? doc.filetype : this.getFiletype(u.fsPath),
       position: context.options.position,
       maxHeight: this.previewHeight,
       splitRight: this.splitRight,
       hlGroup: this.hlGroup,
+      scheme: u.scheme,
     }
     await nvim.call('coc#list#preview', [lines, config])
     if (workspace.isVim) nvim.command('redraw', true)
