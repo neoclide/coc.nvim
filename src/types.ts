@@ -1059,6 +1059,10 @@ export interface DownloadOptions extends FetchOptions {
    */
   dest: string
   /**
+   * Remove the specified number of leading path elements for *untar* only, default to `1`.
+   */
+  strip?: number
+  /**
    * If true, use untar for `.tar.gz` filename
    */
   extract?: boolean | 'untar' | 'unzip'

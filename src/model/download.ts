@@ -82,7 +82,7 @@ export default function download(url: string, options: DownloadOptions, token?: 
         })
         let stream: any
         if (extract === 'untar') {
-          stream = res.pipe(tar.x({ strip: 1, C: dest }))
+          stream = res.pipe(tar.x({ strip: options.strip ?? 1, C: dest }))
         } else if (extract === 'unzip') {
           stream = res.pipe(unzip.Extract({ path: dest }))
         } else {
