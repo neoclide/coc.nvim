@@ -127,6 +127,10 @@ export function parseMarkdown(content: string): DocumentInfo {
   let filetype: string
   let startLnum = 0
   let parsed = marked(content)
+  let links = Renderer.getLinks()
+  if (links.length) {
+    parsed = parsed + '\n\n' + links.join('\n')
+  }
   for (let line of parsed.replace(/\s*$/, '').split(/\n/)) {
     if (!line.length) {
       let pre = lines[lines.length - 1]

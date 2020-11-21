@@ -121,7 +121,6 @@ export default class Handler {
         event.waitUntil(willSaveWaitUntil())
       }
     }, null, 'languageserver')
-
     events.on('BufUnload', async bufnr => {
       let refactor = this.refactorMap.get(bufnr)
       if (refactor) {

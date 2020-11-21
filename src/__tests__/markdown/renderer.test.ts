@@ -45,8 +45,12 @@ describe('Renderer of marked', () => {
   it('should parse link', async () => {
     // let res = parse('https://doc.rust-lang.org/nightly/core/iter/traits/iterator/Iterator.t.html#map.v')
     // console.log(JSON.stringify(res, null, 2))
-    let parsed = marked('https://doc.rust-lang.org/nightly/core/iter/traits/iterator/Iterator.t.html#map.v')
+    let link = 'https://doc.rust-lang.org/nightly/core/iter/traits/iterator/Iterator.t.html#map.v'
+    let parsed = marked(link)
     let res = parseAnsiHighlights(parsed.split(/\n/)[0], true)
+    expect(res.line).toEqual(link)
+    expect(res.highlights.length).toBeGreaterThan(0)
+    expect(res.highlights[0].hlGroup).toBe('CocUnderline')
   })
 
   it('should create highlight for code span', async () => {

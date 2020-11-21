@@ -201,18 +201,20 @@ function identity(str) {
   return str
 }
 
+const links: Map<string, string> = new Map()
+
 class Renderer {
   private o: any
   private tab: any
   private tableSettings: any
-  private emoji: any
+  // private emoji: any
   private unescape: any
   private transform: any
   constructor(public options: any = {}, public highlightOptions: any = {}) {
     this.o = Object.assign({}, defaultOptions, options)
     this.tab = sanitizeTab(this.o.tab, defaultOptions.tab)
     this.tableSettings = this.o.tableOptions
-    this.emoji = identity
+    // this.emoji = identity
     this.unescape = this.o.unescape ? unescapeEntities : identity
     this.highlightOptions = highlightOptions || {}
     this.transform = this.compose(undoColon, this.unescape)
@@ -326,7 +328,7 @@ class Renderer {
   }
 
   public link(href, title, text): string {
-    let prot: any
+    let prot: string
     if (this.options.sanitize) {
       try {
         prot = decodeURIComponent(unescape(href))
@@ -335,13 +337,15 @@ class Renderer {
       } catch (e) {
         return ''
       }
-      if (prot.indexOf('javascript:') === 0) {
+      if (prot.startsWith('javascript:')) {
         return ''
       }
     }
+    if (text && href) {
+      links.set(text, href)
+    }
     if (text && text != href) return styles.blue(text)
-    let out = ''
-    out += this.o.href(href)
+    let out = this.o.href(href)
     return this.o.link(out)
   }
 
@@ -361,6 +365,15 @@ class Renderer {
       }
       return args[0]
     }
+  }
+
+  public static getLinks(): string[] {
+    let res = []
+    for (let [text, href] of links.entries()) {
+      res.push(`${styles.blue(text)}: ${href}`)
+    }
+    links.clear()
+    return res
   }
 }
 
