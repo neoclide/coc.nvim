@@ -207,9 +207,15 @@ export default abstract class BasicList implements IList, Disposable {
     let u = URI.parse(uri)
     let lines: string[] = []
     if (doc) {
-      lines = doc.getLines(0, range.end.line + this.previewHeight)
+      lines = doc.getLines(0, range.end.line + 60)
     } else if (u.scheme == 'file') {
-      lines = await readFileLines(u.fsPath, 0, range.end.line + 30)
+      try {
+        lines = await readFileLines(u.fsPath, 0, range.end.line + 60)
+      } catch (e) {
+        [`Error on read file ${u.fsPath}`, e.message]
+      }
+    } else {
+      lines = [`Unable to preview ${uri}`]
     }
     let config: PreviewConfig = {
       range: emptyRange(range) ? null : range,
