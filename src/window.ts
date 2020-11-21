@@ -88,7 +88,7 @@ class Window {
     try {
       let title = placeholder + ':'
       items = items.map((s, idx) => `${idx + 1}. ${s}`)
-      let res = await this.nvim.callAsync('coc#util#quickpick', [title, items])
+      let res = await this.nvim.callAsync('coc#util#quickpick', [title, items.map(s => s.trim())])
       release()
       let n = parseInt(res, 10)
       if (isNaN(n) || n <= 0 || n > items.length) return -1
@@ -116,7 +116,7 @@ class Window {
         return undefined
       }
       try {
-        let menu = new Menu(this.nvim, { items, title }, token)
+        let menu = new Menu(this.nvim, { items: items.map(s => s.trim()), title }, token)
         let promise = new Promise<number>(resolve => {
           menu.onDidClose(selected => {
             resolve(selected)
