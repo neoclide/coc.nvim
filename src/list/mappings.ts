@@ -57,7 +57,7 @@ export default class Mappings {
     this.add('insert', ['<home>', '<C-a>'], () => {
       prompt.moveToStart()
     })
-    this.add('insert', ['<C-h>', '<bs>'], () => {
+    this.add('insert', ['<C-h>', '<bs>', '<backspace>'], () => {
       prompt.onBackspace()
     })
     this.add('insert', '<C-w>', () => {
@@ -125,6 +125,8 @@ export default class Mappings {
       } else if (key.startsWith('<') && key.endsWith('>')) {
         if (key.toLowerCase() == '<space>') {
           res.set(' ', value)
+        } else if (key.toLowerCase() == '<backspace>') {
+          res.set('<bs>', value)
         } else if (validKeys.includes(key)) {
           res.set(key, value)
         } else {
@@ -136,10 +138,10 @@ export default class Mappings {
               break
             }
           }
-          if (!find) window.showMessage(`Invalid mappings key: ${key}`, 'error')
+          if (!find) window.showMessage(`Invalid list mappings key configuration: "${key}"`, 'warning')
         }
       } else {
-        window.showMessage(`Invalid mappings key: ${key}`, 'error')
+        window.showMessage(`Invalid list mappings key configuration: "${key}"`, 'warning')
       }
     }
     return res
