@@ -146,10 +146,6 @@ function! s:start_prompt()
         continue
       else
         let curr = s:current_session()
-        if ch == "\<Backspace>"
-          call coc#rpc#notify('InputChar', [curr, '<backspace>', getcharmod()])
-          return
-        endif
         let mapped = get(s:char_map, ch, ch)
         if !empty(curr)
           call coc#rpc#notify('InputChar', [curr, mapped, getcharmod()])

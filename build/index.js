@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "62b31350f5" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d92a599b2e" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -83855,7 +83855,7 @@ class Mappings {
         this.add('insert', ['<home>', '<C-a>'], () => {
             prompt.moveToStart();
         });
-        this.add('insert', ['<C-h>', '<bs>'], () => {
+        this.add('insert', ['<C-h>', '<bs>', '<backspace>'], () => {
             prompt.onBackspace();
         });
         this.add('insert', '<C-w>', () => {
@@ -83922,6 +83922,9 @@ class Mappings {
                 if (key.toLowerCase() == '<space>') {
                     res.set(' ', value);
                 }
+                else if (key.toLowerCase() == '<backspace>') {
+                    res.set('<bs>', value);
+                }
                 else if (configuration_1.validKeys.includes(key)) {
                     res.set(key, value);
                 }
@@ -83935,11 +83938,11 @@ class Mappings {
                         }
                     }
                     if (!find)
-                        window_1.default.showMessage(`Invalid mappings key: ${key}`, 'error');
+                        window_1.default.showMessage(`Invalid list mappings key configuration: "${key}"`, 'warning');
                 }
             }
             else {
-                window_1.default.showMessage(`Invalid mappings key: ${key}`, 'error');
+                window_1.default.showMessage(`Invalid list mappings key configuration: "${key}"`, 'warning');
             }
         }
         return res;
