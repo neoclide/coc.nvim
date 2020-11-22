@@ -30,7 +30,6 @@ const config: DiagnosticConfig = {
   infoSign: '>>',
   refreshAfterSave: false,
   listIncludeCode: true,
-  listAlign: true,
   listFormatPath: "full",
   hintSign: '>>',
   filetypeMap: {

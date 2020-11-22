@@ -516,6 +516,17 @@
       "default": "hint",
       "enum": ["hint", "information", "warning", "error"]
     },
+    "diagnostic.listIncludeCode": {
+      "type": "boolean",
+      "description":"Whether to show the diagnostic code in the list.",
+      "default": true
+    },
+   "diagnostic.listFormatPath": {
+      "type": "string",
+      "description":"Decide how the filepath is shown in the list.",
+      "enum": ["full", "short", "filename", "hidden"],
+      "default": "full"
+    },
     "diagnostic.locationlistUpdate": {
       "type": "boolean",
       "description": "Update locationlist on diagnostics change, only works with locationlist opened by :CocDiagnostics command and first window of associated buffer.",
@@ -773,6 +784,11 @@
       "type": "string",
       "default": ">",
       "description": "The character used as first character in prompt line"
+    },
+    "list.alignColumns": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether to align lists in columns, default: `false`"
     },
     "list.interactiveDebounceTime": {
       "type": "number",

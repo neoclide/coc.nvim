@@ -10,6 +10,7 @@ import { getSymbolKind } from '../../util/convert'
 import { isParentFolder } from '../../util/fs'
 import { score } from '../../util/fzy'
 import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol'
+import { formatPath } from '../formatting'
 const logger = require('../../util/logger')('list-symbols')
 
 export default class Symbols extends LocationList {
@@ -50,7 +51,7 @@ export default class Symbols extends LocationList {
         continue
       }
       items.push({
-        label: `${s.name} [${kind}]\t${file}`,
+        label: `${s.name}\t[${kind}]\t${file}`,
         filterText: `${s.name}`,
         location: s.location,
         data: { original: s, kind: s.kind, file, score: score(input, s.name) }
@@ -90,7 +91,7 @@ export default class Symbols extends LocationList {
     let { nvim } = this
     nvim.pauseNotification()
     nvim.command('syntax match CocSymbolsName /\\v^\\s*\\S+/ contained containedin=CocSymbolsLine', true)
-    nvim.command('syntax match CocSymbolsKind /\\[\\w\\+\\]\\t/ contained containedin=CocSymbolsLine', true)
+    nvim.command('syntax match CocSymbolsKind /\\[\\w\\+\\]\\s*\\t/ contained containedin=CocSymbolsLine', true)
     nvim.command('syntax match CocSymbolsFile /\\S\\+$/ contained containedin=CocSymbolsLine', true)
     nvim.command('highlight default link CocSymbolsName Normal', true)
     nvim.command('highlight default link CocSymbolsKind Typedef', true)

@@ -329,6 +329,20 @@ Built-in configurations:~
 
 	Display diagnostics, default: `true`
 
+"diagnostic.listFormatPath":~
+
+	Decide how the filepath is shown in the list.
+
+	Valid options: ["full", "short", "filename", "hidden"].
+
+	default: `"full"`
+
+"diagnostic.listIncludeCode":~
+
+	Whether to show the diagnostic code in the list.
+
+	default: `true`
+
 "diagnostic.enableSign":~
 
 	Enable signs for diagnostics, default: `true`
@@ -570,6 +584,10 @@ Built-in configurations:~
 "list.indicator":~
 
 	The character used as first character in prompt line, default: `">"`
+
+"list.alignColumns":~
+
+	Whether to align lists in columns, default: `false`
 
 "list.height":~
 

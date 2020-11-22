@@ -3,7 +3,7 @@ import diagnosticManager from '../../diagnostic/manager'
 import { DiagnosticItem, ListContext, ListItem } from '../../types'
 import LocationList from './location'
 import { isParentFolder } from '../../util/fs'
-import { zip, formatPath, alignElements } from '../formatting'
+import { formatPath } from '../formatting'
 const logger = require('../../util/logger')('list-symbols')
 
 export default class DiagnosticsList extends LocationList {
@@ -15,19 +15,16 @@ export default class DiagnosticsList extends LocationList {
     let list: DiagnosticItem[] = diagnosticManager.getDiagnosticList()
     let { cwd } = context
 
-    if (list.length === 0) {
-      return []
-    }
-
-    const lines = list.map(item => {
+    return list.map(item => {
       const file = isParentFolder(cwd, item.file) ? path.relative(cwd, item.file) : item.file
       const formattedPath = formatPath(diagnosticManager.config.listFormatPath, file)
-      const optionalCode = diagnosticManager.config.listIncludeCode ? [`[${item.source}`, `${item.code}]`] : []
-      return [ `${formattedPath}:${item.lnum}`, ...optionalCode, item.severity, item.message ]
+      const formattedPosition = diagnosticManager.config.listFormatPath !== "hidden" ? `${formattedPath}:${item.lnum}\t` : ""
+      const code = diagnosticManager.config.listIncludeCode ? `[${item.source}\t${item.code}]\t` : ''
+      return {
+        label: `${formattedPosition}\t${code}${item.severity}\t${item.message}`,
+        location: item.location,
+      }
     })
-    const alignedLines = alignElements(lines)
-    return zip(alignedLines, list).map(( [label, {location}] ) => ({ label, location })
-    )
   }
 
   public doHighlight(): void {
