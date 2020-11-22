@@ -46,6 +46,9 @@ export interface DiagnosticConfig {
   showUnused?: boolean
   showDeprecated?: boolean
   format?: string
+  listIncludeCode: boolean
+  listFormatPath: "full" | "short" | "filename"
+  listAlign: boolean
 }
 
 export class DiagnosticManager implements Disposable {
@@ -426,7 +429,9 @@ export class DiagnosticManager implements Disposable {
             file,
             lnum: start.line + 1,
             col: start.character + 1,
-            message: `[${diagnostic.source || collection.name}${diagnostic.code ? ' ' + diagnostic.code : ''}] ${diagnostic.message}`,
+            code: diagnostic.code,
+            source: diagnostic.source || collection.name,
+            message: diagnostic.message,
             severity: getSeverityName(diagnostic.severity),
             level: diagnostic.severity || 0,
             location: Location.create(uri, diagnostic.range)
@@ -623,7 +628,10 @@ export class DiagnosticManager implements Disposable {
       filetypeMap: config.get<object>('filetypeMap', {}),
       showUnused: config.get<boolean>('showUnused', true),
       showDeprecated: config.get<boolean>('showDeprecated', true),
-      format: config.get<string>('format', '[%source%code] [%severity] %message')
+      format: config.get<string>('format', '[%source%code] [%severity] %message'),
+      listIncludeCode: config.get<boolean>('listIncludeCode', true),
+      listFormatPath: config.get<"full" | "short" | "filename">('listFormatPath', "full"),
+      listAlign: config.get<boolean>('listAlign', true)
     }
     this.enabled = config.get<boolean>('enable', true)
     if (this.config.displayByAle) {
