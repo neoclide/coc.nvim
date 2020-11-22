@@ -31,7 +31,9 @@ import { equals } from './util/object'
 import { getChangedFromEdits } from './util/position'
 import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
-import window from './window'
+import window from './window';
+
+import logError from "./util/extensions";
 
 const APIVERSION = 8
 const logger = require('./util/logger')('workspace')
@@ -1258,7 +1260,7 @@ augroup end`
       if (this.env.isCygwin && platform.isWindows) {
         cmd = `execute "source" . substitute(system('cygpath ${filepath.replace(/\\/g, '/')}'), '\\n', '', 'g')`
       }
-      this.nvim.command(cmd).logError()
+      logError(this.nvim.command(cmd))
     } catch (e) {
       window.showMessage(`Can't create tmp file: ${e.message}`, 'error')
     }

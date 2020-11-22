@@ -16,14 +16,14 @@ import Memos from './model/memos'
 import { Documentation, Extension, ExtensionContext, ExtensionInfo, ExtensionState, ExtensionType } from './types'
 import { disposeAll, wait, concurrent, watchFile } from './util'
 import { distinct, splitArray } from './util/array'
-import './util/extensions'
 import { createExtension, ExtensionExport } from './util/factory'
 import { inDirectory, readFile } from './util/fs'
 import { objectLiteral } from './util/is'
 import Watchman from './watchman'
 import workspace from './workspace'
 import window from './window'
-import { OutputChannel } from './types'
+import { OutputChannel } from './types';
+import logError from "./util/extensions";
 
 const createLogger = require('./util/logger')
 const logger = createLogger('extensions')
@@ -150,7 +150,7 @@ export class Extensions {
     }, 500))
     if (global.hasOwnProperty('__TEST__')) return
     // check extensions need watch & install
-    this.checkExtensions().logError()
+    logError(this.checkExtensions())
     let config = workspace.getConfiguration('coc.preferences')
     let interval = config.get<string>('extensionUpdateCheck', 'never')
     let silent = config.get<boolean>('silentAutoupdate', true)
@@ -160,7 +160,7 @@ export class Extensions {
       let ts = this.db.fetch('lastUpdate')
       if (ts && Number(ts) > day.getTime()) return
       this.outputChannel.appendLine('Start auto update...')
-      this.updateExtensions(false, silent).logError()
+      logError(this.updateExtensions(false, silent))
     }
   }
 
@@ -189,12 +189,12 @@ export class Extensions {
       return installer.update(url).then(directory => {
         installBuffer.finishProgress(id, true)
         if (directory) {
-          this.loadExtension(directory).logError()
+          logError(this.loadExtension(directory))
         }
       }, err => {
         installBuffer.addMessage(id, err.message)
         installBuffer.finishProgress(id, false)
-      })
+      });
     }
     await concurrent(stats, fn, silent ? 1 : 3)
   }
@@ -203,7 +203,7 @@ export class Extensions {
     let { globalExtensions } = workspace.env
     if (globalExtensions && globalExtensions.length) {
       let names = this.filterGlobalExtensions(globalExtensions)
-      this.installExtensions(names).logError()
+      logError(this.installExtensions(names))
     }
   }
 
@@ -227,12 +227,12 @@ export class Extensions {
       return installer.install().then(name => {
         installBuffer.finishProgress(key, true)
         let directory = path.join(this.modulesFolder, name)
-        this.loadExtension(directory).logError()
+        logError(this.loadExtension(directory))
       }, err => {
         installBuffer.addMessage(key, err.message)
         installBuffer.finishProgress(key, false)
         logger.error(`Error on install ${key}`, err)
-      })
+      });
     }
     await concurrent(list, fn)
   }
@@ -574,7 +574,7 @@ export class Extensions {
       }
     }
     this._onDidLoadExtension.fire(extension)
-    this.setupActiveEvents(id, packageJSON).logError()
+    logError(this.setupActiveEvents(id, packageJSON))
   }
 
   public get globalExtensions(): string[] {
@@ -718,13 +718,13 @@ export class Extensions {
         }
         workspace.onDidOpenTextDocument(document => {
           if (document.languageId == parts[1]) {
-            active().logError()
+            logError(active())
           }
         }, null, disposables)
       } else if (ev == 'onCommand') {
         events.on('Command', command => {
           if (command == parts[1]) {
-            active().logError()
+            logError(active())
             // wait for service ready
             return new Promise(resolve => {
               setTimeout(resolve, 500)
@@ -755,7 +755,7 @@ export class Extensions {
         workspace.onDidOpenTextDocument(document => {
           let u = URI.parse(document.uri)
           if (u.scheme == parts[1]) {
-            active().logError()
+            logError(active())
           }
         }, null, disposables)
       } else {
@@ -870,7 +870,7 @@ export class Extensions {
     }
     this._onDidLoadExtension.fire(extension)
     if (this.activated) {
-      this.setupActiveEvents(id, packageJSON).logError()
+      logError(this.setupActiveEvents(id, packageJSON))
     }
   }
 

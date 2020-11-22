@@ -7,7 +7,8 @@ import { disposeAll } from '../util'
 import { Mutex } from '../util/mutex'
 import workspace from '../workspace'
 import window from '../window'
-import ListConfiguration from './configuration'
+import ListConfiguration from './configuration';
+import logError from "../util/extensions";
 const logger = require('../util/logger')('list-ui')
 
 export type MouseEvent = 'mouseDown' | 'mouseDrag' | 'mouseUp' | 'doubleClick'
@@ -96,7 +97,7 @@ export default class ListUI {
     nvim.pauseNotification()
     this.setCursor(n + 1, 0)
     nvim.command('redraw', true)
-    nvim.resumeNotification(false, true).logError()
+    logError(nvim.resumeNotification(false, true))
   }
 
   public get index(): number {

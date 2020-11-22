@@ -4,7 +4,8 @@ import { Diagnostic, DiagnosticSeverity, Emitter, Event, Range } from 'vscode-la
 import workspace from '../workspace'
 import { DiagnosticConfig } from './manager'
 import { getNameFromSeverity, getLocationListItem } from './util'
-import { LocationListItem } from '..'
+import { LocationListItem } from '..';
+import logError from "../util/extensions";
 const logger = require('../util/logger')('diagnostic-buffer')
 const signGroup = 'Coc'
 
@@ -25,7 +26,7 @@ export class DiagnosticBuffer {
     public readonly uri: string,
     private config: DiagnosticConfig) {
     this.refresh = debounce((diagnostics: Diagnostic[]) => {
-      this._refresh(diagnostics).logError()
+      logError(this._refresh(diagnostics))
     }, 300)
   }
 
@@ -34,7 +35,7 @@ export class DiagnosticBuffer {
    */
   public forceRefresh(diagnostics: ReadonlyArray<Diagnostic>): void {
     this.refresh.clear()
-    this._refresh(diagnostics).logError()
+    logError(this._refresh(diagnostics))
   }
 
   private async _refresh(diagnostics: ReadonlyArray<Diagnostic>): Promise<void> {
@@ -137,7 +138,7 @@ export class DiagnosticBuffer {
         .filter((l: string) => l.length > 0)
         .slice(0, this.config.virtualTextLines)
         .join(this.config.virtualTextLineSeparator)
-      buffer.setVirtualText(srcId, line, [[prefix + msg, highlight]], {}).logError()
+      logError(buffer.setVirtualText(srcId, line, [[prefix + msg, highlight]], {}))
     }
   }
 

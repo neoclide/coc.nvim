@@ -1,6 +1,8 @@
 import { Buffer } from '@chemzqm/neovim'
 import { parseAnsiHighlights } from '../util/ansiparse'
-import { byteLength } from '../util/string'
+import { byteLength } from '../util/string';
+
+import logError from "../util/extensions";
 
 export interface HighlightItem {
   // all zero indexed
@@ -91,13 +93,13 @@ export default class Highlighter {
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     buffer.setLines(this.lines, { start, end, strictIndexing: false }, true)
     for (let item of this.highlights) {
-      buffer.addHighlight({
+      logError(buffer.addHighlight({
         hlGroup: item.hlGroup,
         colStart: item.colStart,
         colEnd: item.colEnd == null ? -1 : item.colEnd,
         line: start + item.line,
         srcId: this.srcId
-      }).logError()
+      }))
     }
   }
 }

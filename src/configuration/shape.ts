@@ -5,7 +5,8 @@ import path from 'path'
 import { FormattingOptions } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { ConfigurationShape, ConfigurationTarget, IWorkspace } from '../types'
-import { CONFIG_FILE_NAME } from '../util'
+import { CONFIG_FILE_NAME } from '../util';
+import logError from "../util/extensions";
 const logger = require('../util/logger')('configuration-shape')
 
 export default class ConfigurationProxy implements ConfigurationShape {
@@ -38,10 +39,10 @@ export default class ConfigurationProxy implements ConfigurationShape {
   }
 
   public $updateConfigurationOption(target: ConfigurationTarget, key: string, value: any): void {
-    this.modifyConfiguration(target, key, value).logError()
+    logError(this.modifyConfiguration(target, key, value))
   }
 
   public $removeConfigurationOption(target: ConfigurationTarget, key: string): void {
-    this.modifyConfiguration(target, key).logError()
+    logError(this.modifyConfiguration(target, key))
   }
 }

@@ -11,7 +11,8 @@ import ListConfiguration from './configuration'
 import InputHistory from './history'
 import Prompt from './prompt'
 import UI from './ui'
-import Worker from './worker'
+import Worker from './worker';
+import logError from "../util/extensions";
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 const logger = require('../util/logger')('list-session')
 
@@ -429,7 +430,7 @@ export default class ListSession {
     nvim.pauseNotification()
     buf.setVar('list_status', status, true)
     nvim.command('redraws', true)
-    nvim.resumeNotification(false, true).logError()
+    logError(nvim.resumeNotification(false, true))
   }
 
   public get context(): ListContext {
@@ -485,7 +486,7 @@ export default class ListSession {
       nvim.pauseNotification()
       nvim.call('coc#prompt#stop_prompt', ['list'], true)
       this.nvim.call('win_gotoid', [window.id], true)
-      nvim.resumeNotification(false, true).logError()
+      logError(nvim.resumeNotification(false, true))
     }
   }
 

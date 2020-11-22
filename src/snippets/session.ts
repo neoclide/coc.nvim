@@ -9,7 +9,8 @@ import workspace from '../workspace'
 import window from '../window'
 import events from '../events'
 import { CocSnippet, CocSnippetPlaceholder } from "./snippet"
-import { SnippetVariableResolver } from "./variableResolve"
+import { SnippetVariableResolver } from "./variableResolve";
+import logError from "../util/extensions";
 const logger = require('../util/logger')('snippets-session')
 
 export class SnippetSession {
@@ -31,7 +32,7 @@ export class SnippetSession {
   public async start(snippetString: string, select = true, range?: Range): Promise<boolean> {
     const { document } = this
     if (!document || !document.attached) return false
-    events.fire('InsertSnippet', []).logError()
+    logError(events.fire('InsertSnippet', []))
     if (!range) {
       let position = await window.getCursorPosition()
       range = Range.create(position, position)

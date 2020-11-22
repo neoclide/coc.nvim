@@ -14,7 +14,8 @@ import workspace from '../workspace'
 import window from '../window'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
-import { getSeverityName, getSeverityType, severityLevel, getLocationListItem } from './util'
+import { getSeverityName, getSeverityType, severityLevel, getLocationListItem } from './util';
+import logError from "../util/extensions";
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
@@ -173,7 +174,7 @@ export class DiagnosticManager implements Disposable {
       if (['never', 'jump'].includes(this.config.enableMessage)) {
         return
       }
-      this.echoMessage(true).logError()
+      logError(this.echoMessage(true))
     })
   }
 
@@ -704,7 +705,7 @@ export class DiagnosticManager implements Disposable {
         })
         nvim.call('ale#other_source#ShowResults', [buf.bufnr, collection.name, aleItems], true)
       }
-      nvim.resumeNotification(false, true).logError()
+      logError(nvim.resumeNotification(false, true))
     }
     return false
   }

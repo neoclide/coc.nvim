@@ -9,7 +9,8 @@ import which from 'which'
 import Highlighter from '../model/highligher'
 import { ansiparse } from '../util/ansiparse'
 import window from '../window'
-import Refactor, { FileItem, FileRange } from './refactor'
+import Refactor, { FileItem, FileRange } from './refactor';
+import logError from "../util/extensions";
 const logger = require('../util/logger')('handler-search')
 
 const defaultArgs = ['--color', 'ansi', '--colors', 'path:fg:black', '--colors', 'line:fg:green', '--colors', 'match:fg:red', '--no-messages', '--heading', '-n']
@@ -165,7 +166,9 @@ export default class Search {
             if (files == 0) {
               // eslint-disable-next-line @typescript-eslint/no-floating-promises
               buf.setLines(['No match found'], { start: 1, end: 2, strictIndexing: false }, true)
-              buf.addHighlight({ line: 1, srcId: -1, colEnd: -1, colStart: 0, hlGroup: 'Error' }).logError()
+              logError(
+                buf.addHighlight({ line: 1, srcId: -1, colEnd: -1, colStart: 0, hlGroup: 'Error' })
+              )
               buf.setOption('modified', false, true)
             } else {
               let highligher = new Highlighter()
@@ -189,6 +192,6 @@ export default class Search {
         }
         resolve()
       })
-    })
+    });
   }
 }

@@ -23,7 +23,8 @@ import CodeLensManager from './codelens'
 import Colors from './colors'
 import DocumentHighlighter from './documentHighlight'
 import Refactor from './refactor'
-import Search from './search'
+import Search from './search';
+import logError from "../util/extensions";
 const logger = require('../util/logger')('Handler')
 const pairs: Map<string, string> = new Map([
   ['<', '>'],
@@ -231,7 +232,7 @@ export default class Handler {
 
     if (this.preferences.currentFunctionSymbolAutoUpdate) {
       events.on('CursorHold', () => {
-        this.getCurrentFunctionSymbol().logError()
+        logError(this.getCurrentFunctionSymbol())
       }, null, this.disposables)
     }
 
@@ -1316,7 +1317,7 @@ export default class Handler {
     if (!refactor.buffer) return
     this.refactorMap.set(refactor.buffer.id, refactor)
     let search = new Search(this.nvim)
-    search.run(args, workspace.cwd, refactor).logError()
+    logError(search.run(args, workspace.cwd, refactor))
   }
 
   private async previewHover(hovers: Hover[], target: string): Promise<void> {

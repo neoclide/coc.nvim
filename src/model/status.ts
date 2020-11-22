@@ -1,7 +1,8 @@
 import { Disposable } from 'vscode-languageserver-protocol'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { StatusBarItem } from '../types'
-import { v1 as uuidv1 } from 'uuid'
+import { v1 as uuidv1 } from 'uuid';
+import logError from "../util/extensions";
 const logger = require('../util/logger')('model-status')
 
 export const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
@@ -13,7 +14,7 @@ export default class StatusLine implements Disposable {
   private interval: NodeJS.Timer
   constructor(private nvim: Neovim) {
     this.interval = setInterval(() => {
-      this.setStatusText().logError()
+      logError(this.setStatusText())
     }, 100)
   }
 

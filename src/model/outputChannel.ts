@@ -2,7 +2,8 @@ import { Buffer, Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { OutputChannel } from '../types'
 import { disposeAll } from '../util'
-import { Mutex } from '../util/mutex'
+import { Mutex } from '../util/mutex';
+import logError from "../util/extensions";
 const logger = require('../util/logger')("outpubChannel")
 const MAX_STRING_LENGTH: number = require('buffer').constants.MAX_STRING_LENGTH
 
@@ -44,7 +45,7 @@ export default class BufferChannel implements OutputChannel {
       this.clear(10)
     }
     this._content += value
-    this._append(value).logError()
+    logError(this._append(value))
   }
 
   public appendLine(value: string): void {
@@ -52,7 +53,7 @@ export default class BufferChannel implements OutputChannel {
       this.clear(10)
     }
     this._content += value + '\n'
-    this._append(value + '\n').logError()
+    logError(this._append(value + '\n'))
   }
 
   public clear(keep?: number): void {
@@ -60,7 +61,7 @@ export default class BufferChannel implements OutputChannel {
     let latest = []
     if (keep) latest = this._content.split('\n').slice(-keep)
     this._content = latest.join('\n')
-    this.buffer.then(buf => {
+    logError(this.buffer.then(buf => {
       if (buf) {
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
         buf.setLines(latest, {
@@ -69,7 +70,7 @@ export default class BufferChannel implements OutputChannel {
           strictIndexing: false
         })
       }
-    }).logError()
+    }))
   }
 
   public hide(): void {

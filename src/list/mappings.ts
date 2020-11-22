@@ -1,6 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
 import { ListMode } from '../types'
-import '../util/extensions'
 import window from '../window'
 import ListConfiguration, { validKeys } from './configuration'
 import { ListManager } from './manager'

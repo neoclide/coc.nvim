@@ -5,15 +5,15 @@ import events from './events'
 import Plugin from './plugin'
 import semver from 'semver'
 import { objectLiteral } from './util/is'
-import './util/extensions'
-import { URI } from 'vscode-uri'
+import { URI } from 'vscode-uri';
+import logError from "./util/extensions";
 const logger = require('./util/logger')('attach')
 const isTest = global.hasOwnProperty('__TEST__')
 
 export default (opts: Attach, requestApi = true): Plugin => {
   const nvim: NeovimClient = attach(opts, log4js.getLogger('node-client'), requestApi)
   if (!global.hasOwnProperty('__TEST__')) {
-    nvim.call('coc#util#path_replace_patterns').then(prefixes => {
+    logError(nvim.call('coc#util#path_replace_patterns').then(prefixes => {
       if (objectLiteral(prefixes)) {
         const old_uri = URI.file
         URI.file = (path): URI => {
@@ -22,7 +22,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
           return old_uri(path)
         }
       }
-    }).logError()
+    }))
   }
   nvim.setVar('coc_process_pid', process.pid, true)
   const plugin = new Plugin(nvim)

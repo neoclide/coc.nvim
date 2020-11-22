@@ -9,7 +9,8 @@ import { getMatchResult } from '../util/score'
 import { byteIndex, byteLength } from '../util/string'
 import workspace from '../workspace'
 import window from '../window'
-import Prompt from './prompt'
+import Prompt from './prompt';
+import logError from "../util/extensions";
 const logger = require('../util/logger')('list-worker')
 const controlCode = '\x1b'
 
@@ -43,9 +44,9 @@ export default class Worker {
     private config: WorkerConfiguration
   ) {
     let mru = workspace.createMru('mru')
-    mru.load().then(files => {
+    logError(mru.load().then(files => {
       this.recentFiles = files
-    }).logError()
+    }))
   }
 
   private set loading(loading: boolean) {

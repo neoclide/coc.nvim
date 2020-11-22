@@ -8,7 +8,8 @@ import languages from '../languages'
 import services from '../services'
 import { disposeAll, wait } from '../util'
 import workspace from '../workspace'
-import window from '../window'
+import window from '../window';
+import logError from "../util/extensions";
 const logger = require('../util/logger')('codelens')
 
 export interface CodeLensInfo {
@@ -81,7 +82,7 @@ export default class CodeLensManager {
     }, null, this.disposables)
 
     this.resolveCodeLens = debounce(() => {
-      this._resolveCodeLenses().logError()
+      logError(this._resolveCodeLenses())
     }, 200)
   }
 
@@ -91,7 +92,7 @@ export default class CodeLensManager {
     let config = workspace.getConfiguration('codeLens')
     if (e) {
       if (!this.enabled && config.get('enable')) {
-        this.fetchDocumentCodeLenses().logError()
+        logError(this.fetchDocumentCodeLenses())
       } else if (this.enabled && config.get('enable') == false) {
         workspace.documents.forEach(doc => {
           this.clear(doc.bufnr)
