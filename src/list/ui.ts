@@ -8,7 +8,6 @@ import { Mutex } from '../util/mutex'
 import workspace from '../workspace'
 import window from '../window'
 import ListConfiguration from './configuration'
-import { alignElements } from './formatting'
 const logger = require('../util/logger')('list-ui')
 
 export type MouseEvent = 'mouseDown' | 'mouseDrag' | 'mouseUp' | 'doubleClick'
@@ -350,9 +349,7 @@ export default class ListUI {
     if (token && token.isCancellationRequested) return
     if (count !== this.drawCount) return
 
-    const lines = this.config.get('alignColumns')
-      ? alignElements(this.items.map(item => item.label.split("\t")))
-      : this.items.map(item => item.label)
+    const lines = this.items.map(item => item.label)
 
     this.clearSelection()
     let newIndex = reload ? this.currIndex : 0

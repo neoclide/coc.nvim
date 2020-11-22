@@ -3,7 +3,7 @@ import diagnosticManager from '../../diagnostic/manager'
 import { DiagnosticItem, ListContext, ListItem } from '../../types'
 import LocationList from './location'
 import { isParentFolder } from '../../util/fs'
-import { formatPath } from '../formatting'
+import { formatListItems, formatPath, UnformattedListItem } from '../formatting'
 const logger = require('../../util/logger')('list-symbols')
 
 export default class DiagnosticsList extends LocationList {
@@ -15,16 +15,17 @@ export default class DiagnosticsList extends LocationList {
     let list: DiagnosticItem[] = diagnosticManager.getDiagnosticList()
     let { cwd } = context
 
-    return list.map(item => {
+    const unformatted: UnformattedListItem[] = list.map(item => {
       const file = isParentFolder(cwd, item.file) ? path.relative(cwd, item.file) : item.file
       const formattedPath = formatPath(diagnosticManager.config.listFormatPath, file)
-      const formattedPosition = diagnosticManager.config.listFormatPath !== "hidden" ? `${formattedPath}:${item.lnum}\t` : ""
-      const code = diagnosticManager.config.listIncludeCode ? `[${item.source}\t${item.code}]\t` : ''
+      const formattedPosition = diagnosticManager.config.listFormatPath !== "hidden" ? [`${formattedPath}:${item.lnum}`] : []
+      const code = diagnosticManager.config.listIncludeCode ? [`[${item.source}${item.code ? '' : ']'}`, item.code ? `${item.code}]` : ''] : []
       return {
-        label: `${formattedPosition}\t${code}${item.severity}\t${item.message}`,
+        label: [...formattedPosition, ...code, item.severity, item.message],
         location: item.location,
       }
     })
+    return formatListItems(this.alignColumns, unformatted)
   }
 
   public doHighlight(): void {

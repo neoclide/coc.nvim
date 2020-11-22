@@ -3,6 +3,7 @@ import services from '../../services'
 import { ListContext, ListItem } from '../../types'
 import BasicList from '../basic'
 import { wait } from '../../util'
+import { formatListItems } from '../formatting'
 
 export default class ServicesList extends BasicList {
   public defaultAction = 'toggle'
@@ -22,13 +23,13 @@ export default class ServicesList extends BasicList {
   public async loadItems(_context: ListContext): Promise<ListItem[]> {
     let stats = services.getServiceStats()
     stats.sort((a, b) => a.id > b.id ? -1 : 1)
-    return stats.map(stat => {
+    return formatListItems(this.alignColumns, stats.map(stat => {
       let prefix = stat.state == 'running' ? '*' : ' '
       return {
-        label: `${prefix}\t${stat.id}\t[${stat.state}]\t${stat.languageIds.join(', ')}`,
+        label: [prefix, stat.id, `[${stat.state}]`, stat.languageIds.join(', ')],
         data: { id: stat.id }
       }
-    })
+    }))
   }
 
   public doHighlight(): void {

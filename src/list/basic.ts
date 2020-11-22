@@ -50,6 +50,10 @@ export default abstract class BasicList implements IList, Disposable {
     this.config = new ListConfiguration()
   }
 
+  public get alignColumns(): boolean {
+    return this.config.get('alignColumns', false)
+  }
+
   protected get hlGroup(): string {
     return this.config.get('previewHighlightGroup', 'Search')
   }

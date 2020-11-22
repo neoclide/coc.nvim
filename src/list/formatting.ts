@@ -1,18 +1,35 @@
 import { PathFormatting } from '../diagnostic/manager'
+import { ListItem } from '../types'
 
-export function alignElements(elements: string[][]): string[] {
-  if (elements.length === 0 || !elements.every(elem => elem.length === elements[0].length)) {
+export interface UnformattedListItem extends Omit<ListItem, 'label'> {
+  label: string[]
+}
+
+export function formatListItems(align: boolean, list: UnformattedListItem[]): ListItem[] {
+  if (list.length === 0) {
     return []
   }
-  const lengths = elements.map(item => item.map(x => x.length))
 
-  const maxLengths = []
-  for (let elementIdx = 0; elementIdx < elements[0].length; elementIdx++) {
-    maxLengths.push(Math.max(...lengths.map(x => x[elementIdx])))
+  let processedList: ListItem[] = []
+
+  if (align) {
+    const maxWidths = Array(Math.min(...list.map(item => item.label.length))).fill(0)
+    for (let item of list) {
+      for (let i = 0; i < maxWidths.length; i++) {
+        maxWidths[i] = Math.max(maxWidths[i], item.label[i].length)
+      }
+    }
+    processedList = list
+      .map(item => ({
+        ...item,
+        label: item.label
+          .map((element, idx) => element.padEnd(maxWidths[idx]))
+          .join("\t")
+      }))
+  } else {
+    processedList = list.map(item => ({...item, label: item.label.join("\t")}))
   }
-  return elements
-    .map(item => item.map((element, elementIdx) => element.padEnd(maxLengths[elementIdx])))
-    .map(line => line.join("\t"))
+  return processedList
 }
 
 export function formatPath(format: PathFormatting, path: string): string {
