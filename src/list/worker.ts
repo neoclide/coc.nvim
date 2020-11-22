@@ -9,8 +9,8 @@ import { getMatchResult } from '../util/score'
 import { byteIndex, byteLength } from '../util/string'
 import workspace from '../workspace'
 import window from '../window'
-import Prompt from './prompt';
-import logError from "../util/extensions";
+import Prompt from './prompt'
+import logError from "../util/extensions"
 const logger = require('../util/logger')('list-worker')
 const controlCode = '\x1b'
 

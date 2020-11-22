@@ -14,8 +14,8 @@ import workspace from '../workspace'
 import window from '../window'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
-import { getSeverityName, getSeverityType, severityLevel, getLocationListItem } from './util';
-import logError from "../util/extensions";
+import { getSeverityName, getSeverityType, severityLevel, getLocationListItem } from './util'
+import logError from "../util/extensions"
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {

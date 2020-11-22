@@ -13,8 +13,8 @@ import { disposeAll } from './util'
 import { statAsync } from './util/fs'
 import workspace from './workspace'
 import window from './window'
-import { byteSlice } from './util/string';
-import logError from "./util/extensions";
+import { byteSlice } from './util/string'
+import logError from "./util/extensions"
 const logger = require('./util/logger')('sources')
 
 export class Sources {

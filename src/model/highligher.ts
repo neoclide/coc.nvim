@@ -1,8 +1,8 @@
 import { Buffer } from '@chemzqm/neovim'
 import { parseAnsiHighlights } from '../util/ansiparse'
-import { byteLength } from '../util/string';
+import { byteLength } from '../util/string'
 
-import logError from "../util/extensions";
+import logError from "../util/extensions"
 
 export interface HighlightItem {
   // all zero indexed

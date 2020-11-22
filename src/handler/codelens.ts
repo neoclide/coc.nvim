@@ -8,8 +8,8 @@ import languages from '../languages'
 import services from '../services'
 import { disposeAll, wait } from '../util'
 import workspace from '../workspace'
-import window from '../window';
-import logError from "../util/extensions";
+import window from '../window'
+import logError from "../util/extensions"
 const logger = require('../util/logger')('codelens')
 
 export interface CodeLensInfo {

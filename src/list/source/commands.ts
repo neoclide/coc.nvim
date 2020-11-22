@@ -4,9 +4,9 @@ import events from '../../events'
 import Mru from '../../model/mru'
 import { ListContext, ListItem } from '../../types'
 import workspace from '../../workspace'
-import BasicList from '../basic';
+import BasicList from '../basic'
 
-import logError from "../../util/extensions";
+import logError from "../../util/extensions"
 
 export default class CommandsList extends BasicList {
   public defaultAction = 'run'

@@ -5,8 +5,8 @@ import path from 'path'
 import { FormattingOptions } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { ConfigurationShape, ConfigurationTarget, IWorkspace } from '../types'
-import { CONFIG_FILE_NAME } from '../util';
-import logError from "../util/extensions";
+import { CONFIG_FILE_NAME } from '../util'
+import logError from "../util/extensions"
 const logger = require('../util/logger')('configuration-shape')
 
 export default class ConfigurationProxy implements ConfigurationShape {

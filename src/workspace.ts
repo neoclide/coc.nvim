@@ -31,9 +31,9 @@ import { equals } from './util/object'
 import { getChangedFromEdits } from './util/position'
 import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
-import window from './window';
+import window from './window'
 
-import logError from "./util/extensions";
+import logError from "./util/extensions"
 
 const APIVERSION = 8
 const logger = require('./util/logger')('workspace')

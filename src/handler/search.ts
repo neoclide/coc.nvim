@@ -9,8 +9,8 @@ import which from 'which'
 import Highlighter from '../model/highligher'
 import { ansiparse } from '../util/ansiparse'
 import window from '../window'
-import Refactor, { FileItem, FileRange } from './refactor';
-import logError from "../util/extensions";
+import Refactor, { FileItem, FileRange } from './refactor'
+import logError from "../util/extensions"
 const logger = require('../util/logger')('handler-search')
 
 const defaultArgs = ['--color', 'ansi', '--colors', 'path:fg:black', '--colors', 'line:fg:green', '--colors', 'match:fg:red', '--no-messages', '--heading', '-n']
@@ -192,6 +192,6 @@ export default class Search {
         }
         resolve()
       })
-    });
+    })
   }
 }

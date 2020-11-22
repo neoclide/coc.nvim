@@ -2,8 +2,8 @@ import { Buffer, Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { OutputChannel } from '../types'
 import { disposeAll } from '../util'
-import { Mutex } from '../util/mutex';
-import logError from "../util/extensions";
+import { Mutex } from '../util/mutex'
+import logError from "../util/extensions"
 const logger = require('../util/logger')("outpubChannel")
 const MAX_STRING_LENGTH: number = require('buffer').constants.MAX_STRING_LENGTH
 

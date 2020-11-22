@@ -11,8 +11,8 @@ import ListConfiguration from './configuration'
 import InputHistory from './history'
 import Prompt from './prompt'
 import UI from './ui'
-import Worker from './worker';
-import logError from "../util/extensions";
+import Worker from './worker'
+import logError from "../util/extensions"
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 const logger = require('../util/logger')('list-session')
 

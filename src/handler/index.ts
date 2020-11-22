@@ -23,8 +23,8 @@ import CodeLensManager from './codelens'
 import Colors from './colors'
 import DocumentHighlighter from './documentHighlight'
 import Refactor from './refactor'
-import Search from './search';
-import logError from "../util/extensions";
+import Search from './search'
+import logError from "../util/extensions"
 const logger = require('../util/logger')('Handler')
 const pairs: Map<string, string> = new Map([
   ['<', '>'],

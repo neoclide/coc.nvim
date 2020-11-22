@@ -1,8 +1,8 @@
 import { Disposable } from 'vscode-languageserver-protocol'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { StatusBarItem } from '../types'
-import { v1 as uuidv1 } from 'uuid';
-import logError from "../util/extensions";
+import { v1 as uuidv1 } from 'uuid'
+import logError from "../util/extensions"
 const logger = require('../util/logger')('model-status')
 
 export const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']

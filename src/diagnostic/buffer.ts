@@ -4,8 +4,8 @@ import { Diagnostic, DiagnosticSeverity, Emitter, Event, Range } from 'vscode-la
 import workspace from '../workspace'
 import { DiagnosticConfig } from './manager'
 import { getNameFromSeverity, getLocationListItem } from './util'
-import { LocationListItem } from '..';
-import logError from "../util/extensions";
+import { LocationListItem } from '..'
+import logError from "../util/extensions"
 const logger = require('../util/logger')('diagnostic-buffer')
 const signGroup = 'Coc'
 

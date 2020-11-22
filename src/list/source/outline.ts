@@ -10,8 +10,8 @@ import { writeFile } from '../../util/fs'
 import workspace from '../../workspace'
 import LocationList from './location'
 import { getSymbolKind } from '../../util/convert'
-import { CancellationToken } from 'vscode-languageserver-protocol';
-import logError from "../../util/extensions";
+import { CancellationToken } from 'vscode-languageserver-protocol'
+import logError from "../../util/extensions"
 const logger = require('../../util/logger')('list-symbols')
 
 function getFilterText(s: DocumentSymbol | SymbolInformation, kind: string | null): string {

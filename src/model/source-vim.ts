@@ -4,8 +4,8 @@ import { fuzzyChar } from '../util/fuzzy'
 import { byteSlice } from '../util/string'
 import workspace from '../workspace'
 import window from '../window'
-import Source from './source';
-import logError from "../util/extensions";
+import Source from './source'
+import logError from "../util/extensions"
 const logger = require('../util/logger')('model-source-vim')
 
 export default class VimSource extends Source {

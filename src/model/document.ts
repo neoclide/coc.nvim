@@ -9,8 +9,8 @@ import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
 import { disposeAll, getUri } from '../util/index'
 import { byteLength, byteSlice } from '../util/string'
-import { Chars } from './chars';
-import logError from "../util/extensions";
+import { Chars } from './chars'
+import logError from "../util/extensions"
 const logger = require('../util/logger')('model-document')
 
 export type LastChangeType = 'insert' | 'change' | 'delete'

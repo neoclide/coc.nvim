@@ -22,8 +22,8 @@ import { objectLiteral } from './util/is'
 import Watchman from './watchman'
 import workspace from './workspace'
 import window from './window'
-import { OutputChannel } from './types';
-import logError from "./util/extensions";
+import { OutputChannel } from './types'
+import logError from "./util/extensions"
 
 const createLogger = require('./util/logger')
 const logger = createLogger('extensions')
@@ -194,7 +194,7 @@ export class Extensions {
       }, err => {
         installBuffer.addMessage(id, err.message)
         installBuffer.finishProgress(id, false)
-      });
+      })
     }
     await concurrent(stats, fn, silent ? 1 : 3)
   }
@@ -232,7 +232,7 @@ export class Extensions {
         installBuffer.addMessage(key, err.message)
         installBuffer.finishProgress(key, false)
         logger.error(`Error on install ${key}`, err)
-      });
+      })
     }
     await concurrent(list, fn)
   }

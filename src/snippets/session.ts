@@ -9,8 +9,8 @@ import workspace from '../workspace'
 import window from '../window'
 import events from '../events'
 import { CocSnippet, CocSnippetPlaceholder } from "./snippet"
-import { SnippetVariableResolver } from "./variableResolve";
-import logError from "../util/extensions";
+import { SnippetVariableResolver } from "./variableResolve"
+import logError from "../util/extensions"
 const logger = require('../util/logger')('snippets-session')
 
 export class SnippetSession {

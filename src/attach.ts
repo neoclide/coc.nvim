@@ -5,8 +5,8 @@ import events from './events'
 import Plugin from './plugin'
 import semver from 'semver'
 import { objectLiteral } from './util/is'
-import { URI } from 'vscode-uri';
-import logError from "./util/extensions";
+import { URI } from 'vscode-uri'
+import logError from "./util/extensions"
 const logger = require('./util/logger')('attach')
 const isTest = global.hasOwnProperty('__TEST__')
 
