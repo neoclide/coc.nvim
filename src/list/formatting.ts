@@ -1,5 +1,6 @@
 import { PathFormatting } from '../diagnostic/manager'
 import { ListItem } from '../types'
+import path from 'path'
 
 export interface UnformattedListItem extends Omit<ListItem, 'label'> {
   label: string[]
@@ -32,23 +33,23 @@ export function formatListItems(align: boolean, list: UnformattedListItem[]): Li
   return processedList
 }
 
-export function formatPath(format: PathFormatting, path: string): string {
+export function formatPath(format: PathFormatting, pathToFormat: string): string {
   if (format === "hidden") {
     return ""
   } else if (format === "full") {
-    return path
+    return pathToFormat
   } else if (format === "short") {
-    const segments = path.split("/")
+    const segments = pathToFormat.split(path.sep)
     if (segments.length < 2) {
-      return path
+      return pathToFormat
     }
     const shortenedInit = segments
       .slice(0, segments.length - 2)
       .filter(seg => seg.length > 0)
       .map(seg => seg[0])
-    return [...shortenedInit, segments[segments.length - 1]].join("/")
+    return [...shortenedInit, segments[segments.length - 1]].join(path.sep)
   } else {
-    const segments = path.split("/")
+    const segments = pathToFormat.split(path.sep)
     return segments[segments.length - 1] ?? ""
   }
 }
