@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "d28451040b" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "0b82465e6a" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -88696,7 +88696,8 @@ class ListUI {
             nvim.pauseNotification();
             this.doHighlight(start - 1, end);
             nvim.command('redraw', true);
-            await nvim.resumeNotification(false, true);
+            // eslint-disable-next-line @typescript-eslint/no-floating-promises
+            nvim.resumeNotification(false, true);
         }, 100);
         this.disposables.push({
             dispose: () => {
@@ -88992,24 +88993,23 @@ class ListUI {
     }
     async setLines(lines, append = false, index) {
         let { nvim, buffer, window } = this;
-        let statusSegments = this.config.get('statusLineSegments');
         if (!buffer || !window)
             return;
         nvim.pauseNotification();
-        nvim.call('coc#util#win_gotoid', [window.id], true);
         if (!append) {
+            let statusSegments = this.config.get('statusLineSegments');
             if (statusSegments) {
                 window.notify('nvim_win_set_option', ['statusline', statusSegments.join(" ")]);
             }
-            nvim.call('clearmatches', [], true);
+            nvim.call('coc#compat#clear_matches', [window.id], true);
             if (!lines.length) {
                 lines = ['No results, press ? on normal mode to get help.'];
-                nvim.call('matchaddpos', ['Comment', [[1]], 99], true);
+                nvim.call('coc#compat#matchaddpos', ['Comment', [[1]], 99, this.window.id], true);
             }
         }
         buffer.setOption('modifiable', true, true);
         if (workspace_1.default.isVim) {
-            nvim.call('coc#list#setlines', [lines, append], true);
+            nvim.call('coc#list#setlines', [buffer.id, lines, append], true);
         }
         else {
             // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -89028,8 +89028,6 @@ class ListUI {
             window.notify('nvim_win_set_cursor', [[index + 1, 0]]);
         }
         nvim.command('redraws', true);
-        if (workspace_1.default.isVim)
-            nvim.command('redraw', true);
         let res = await nvim.resumeNotification();
         if (Array.isArray(res[1]) && res[1][0] == 0) {
             this.window = null;
@@ -89073,22 +89071,24 @@ class ListUI {
     doHighlight(start, end) {
         let { nvim } = workspace_1.default;
         let { highlights, items } = this;
+        let groups = [];
         for (let i = start; i <= Math.min(end, items.length - 1); i++) {
             let { ansiHighlights } = items[i];
             let highlight = highlights[i];
             if (ansiHighlights) {
                 for (let hi of ansiHighlights) {
                     let { span, hlGroup } = hi;
-                    nvim.call('matchaddpos', [hlGroup, [[i + 1, span[0] + 1, span[1] - span[0]]], 9], true);
+                    groups.push({ hlGroup, priority: 9, pos: [i + 1, span[0] + 1, span[1] - span[0]] });
                 }
             }
             if (highlight) {
                 let { spans, hlGroup } = highlight;
                 for (let span of spans) {
-                    nvim.call('matchaddpos', [hlGroup || 'Search', [[i + 1, span[0] + 1, span[1] - span[0]]], 11], true);
+                    groups.push({ hlGroup: hlGroup || 'Search', priority: 11, pos: [i + 1, span[0] + 1, span[1] - span[0]] });
                 }
             }
         }
+        nvim.call('coc#compat#matchaddgroups', [this.window.id, groups], true);
     }
     setCursor(lnum, col) {
         let { window, items } = this;

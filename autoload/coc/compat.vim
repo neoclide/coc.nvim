@@ -43,6 +43,49 @@ function! coc#compat#clear_matches(winid) abort
   endif
 endfunction
 
+function! coc#compat#matchaddpos(group, pos, priority, winid) abort
+  let curr = win_getid()
+  if curr == a:winid
+    call matchaddpos(a:group, a:pos, a:priority, -1)
+  else
+    if s:is_vim
+      if has('patch-8.1.0218')
+        call matchaddpos(a:group, a:pos, a:priority, -1, {'window': a:winid})
+      endif
+    else
+      if has('nvim-0.4.0')
+        call matchaddpos(a:group, a:pos, a:priority, -1, {'window': a:winid})
+      elseif exists('*nvim_set_current_win')
+        noa call nvim_set_current_win(a:winid)
+        call matchaddpos(a:group, a:pos, a:priority, -1)
+        noa call nvim_set_current_win(curr)
+      endif
+    endif
+  endif
+endfunction
+
+" hlGroup, pos, priority
+function! coc#compat#matchaddgroups(winid, groups) abort
+  " add by winid
+  if s:is_vim && has('patch-8.1.0218') || has('nvim-0.4.0')
+    for group in a:groups
+      call matchaddpos(group['hlGroup'], [group['pos']], group['priority'], -1, {'window': a:winid})
+    endfor
+  endif
+  let curr = win_getid()
+  if curr == a:winid
+    for group in a:groups
+      call matchaddpos(group['hlGroup'], [group['pos']], group['priority'], -1)
+    endfor
+  elseif exists('*nvim_set_current_win')
+    noa call nvim_set_current_win(a:winid)
+    for group in a:groups
+      call matchaddpos(group['hlGroup'], [group['pos']], group['priority'], -1)
+    endfor
+    noa call nvim_set_current_win(curr)
+  endif
+endfunction
+
 " remove keymap for specfic buffer
 function! coc#compat#buf_del_keymap(bufnr, mode, lhs) abort
   if !bufloaded(a:bufnr)

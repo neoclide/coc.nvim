@@ -13,19 +13,19 @@ function! coc#list#getchar() abort
   return coc#prompt#getchar()
 endfunction
 
-function! coc#list#setlines(lines, append)
+function! coc#list#setlines(bufnr, lines, append)
   if a:append
-    silent call append(line('$'), a:lines)
+    silent call appendbufline(a:bufnr, '$', a:lines)
   else
-    silent call append(0, a:lines)
     if exists('*deletebufline')
-      call deletebufline('%', len(a:lines) + 1, '$')
+      call deletebufline(a:bufnr, len(a:lines) + 1, '$')
     else
       let n = len(a:lines) + 1
       let saved_reg = @"
       silent execute n.',$d'
       let @" = saved_reg
     endif
+    silent call setbufline(a:bufnr, 1, a:lines)
   endif
 endfunction
 

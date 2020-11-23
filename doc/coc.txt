@@ -1803,8 +1803,13 @@ CocHasProvider({feature})				*CocHasProvider()*
 CocTagFunc({pattern}, {flags}, {info})			*CocTagFunc()*
 
 	Used for vim's 'tagfunc' option, to make tag search by |CTRL-]| use
-	coc.nvim as provider.
+	coc.nvim as provider, tag search would be performed when no result
+	from coc.nvim.
 
+	Make sure your vim support 'tagfunc' by
+>
+	:echo exists('&tagfunc')
+<
 ------------------------------------------------------------------------------
 							*coc-action*
 Available Actions ~
