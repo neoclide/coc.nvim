@@ -27,6 +27,7 @@ export class Sources {
 
   private createNativeSources(): void {
     try {
+      this.disposables.push((require('./source/lru')).regist(this.sourceMap))
       this.disposables.push((require('./source/around')).regist(this.sourceMap))
       this.disposables.push((require('./source/buffer')).regist(this.sourceMap))
       this.disposables.push((require('./source/file')).regist(this.sourceMap))
@@ -194,10 +195,13 @@ export class Sources {
   }
 
   public async doCompleteDone(item: VimCompleteItem, opt: CompleteOption): Promise<void> {
-    let data = JSON.parse(item.user_data)
-    let source = this.getSource(data.source)
+    let source = this.getSource(item.source)
     if (source && typeof source.onCompleteDone === 'function') {
       await Promise.resolve(source.onCompleteDone(item, opt))
+    }
+    const lru = this.getSource('lru')
+    if (lru) {
+      await Promise.resolve(lru.onCompleteDone(item, opt))
     }
   }
 

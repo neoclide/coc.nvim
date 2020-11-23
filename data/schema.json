@@ -1186,6 +1186,25 @@
         "type": "string"
       }
     },
+    "coc.source.lru.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "coc.source.lru.shortcut": {
+      "type": "string",
+      "default": "LRU"
+    },
+    "coc.source.lru.priority": {
+      "type": "integer",
+      "default": 9
+    },
+    "coc.source.lru.disableSyntaxes": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
     "languageserver": {
       "type": "object",
       "default": {},
