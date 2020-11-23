@@ -341,7 +341,7 @@ class Renderer {
         return ''
       }
     }
-    if (text && href) {
+    if (text && href && text != href) {
       links.set(text, href)
     }
     if (text && text != href) return styles.blue(text)
