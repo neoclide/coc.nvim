@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "1cf07be052" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "f6b201d91d" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -32661,12 +32661,7 @@ class Workspace {
         }
         return vscode_languageserver_protocol_1.Disposable.create(() => {
             this.keymaps.delete(id);
-            if (this.isNvim && !global.hasOwnProperty('__TEST__')) {
-                buf.notify('nvim_buf_del_keymap', [mode, key]);
-            }
-            else {
-                nvim.command(`silent! ${mode}unmap <buffer> ${key}`, true);
-            }
+            nvim.call('coc#compat#buf_del_keymap', [buf.id, mode, key], true);
         });
     }
     /**
