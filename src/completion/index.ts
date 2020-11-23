@@ -255,9 +255,9 @@ export class Completion implements Disposable {
       return
     }
     complete.onDidComplete(async () => {
+      if (this.currItem != null) return
       let search = this.getResumeInput()
       if (complete.isCanceled || search == null) return
-      if (this.currItem != null && this.completeOpt.includes('noselect')) return
       let { input } = this.option
       if (search == input) {
         let items = complete.filterResults(search, Math.floor(Date.now() / 1000))
