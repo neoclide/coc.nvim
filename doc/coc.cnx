@@ -1,6 +1,6 @@
 *coc-nvim.txt*				 基于 LSP 的 vim 智能引擎
 
-版本号: 0.0.57
+版本号: 0.0.79
 作者: Qiming Zhao <chemzqm at gmail.com>
 开源协议: MIT license
 
@@ -93,6 +93,786 @@ NodeJS https://nodejs.org/ >= 10.12.0
 
 执行命令 `:CocInstall coc-json` 安装 json 语言支持，该插件可提供配置补全
 和验证等功能。
+
+Built-in configurations:~
+
+							*coc-config-http*
+"http.proxy":~
+
+	HTTP proxy URI, used for extensions that send request, default: `""`
+
+"http.proxyStrictSSL":~
+
+	Controls whether the proxy server certificate should be verified
+	against the list of supplied CAs, default: `true`
+
+							*coc-config-suggest*
+"suggest.enablePreselect":~
+
+	Enable preselect feature on Neovim, default: `false`
+
+"suggest.maxPreviewWidth":~
+
+	Maximum width of floating preview window, default: `80`
+
+"suggest.labelMaxLength":~
+
+	Maximum length of label shown in 'pum', default: `200`
+
+"suggest.enablePreview":~
+
+	Add preview option to 'completeopt', default: `false`
+
+"suggest.floatEnable":~
+
+	Enable floating window for documentation when possible, default: `true`
+
+"suggest.detailMaxLength":~
+
+	Max length of detail that will be shown in popup menu, default: `100`
+
+"suggest.detailField":~
+
+	Where to add the detail in complete item when it's less than max
+	length, default: `"preview"` when floating documentation is enabled.
+
+	Valid options: ["abbr", "menu", "preview"]
+
+"suggest.autoTrigger":~
+
+	How should completion be triggered, default: `"always"`
+
+	Valid options: ["always", "trigger", "none"]
+
+	- `always`: trigger suggest on word characters and trigger
+	  characters.
+	- `trigger`: trigger suggest on trigger characters only.
+	- `none`: no auto trigger at all.
+
+"suggest.languageSourcePriority":~
+
+	Priority of language sources, default: `99`
+
+"suggest.numberSelect":~
+
+	Input number to select complete item, it could be wrong when
+	using '<up>' and '<down>' to select complete item, default: `false`
+
+"suggest.disableKind":~
+
+	Remove kind field from Vim complete item, default: `false`
+
+"suggest.disableMenu":~
+
+	Remove menu field from Vim complete item, default: `false`
+
+"suggest.snippetIndicator":~
+
+	The character used in completion item abbreviation to indicate it
+	expands as code snippet, default: `"~"`
+
+"suggest.maxCompleteItemCount":~
+
+	Maximum number of complete items shown in Vim, default: `50`
+
+"suggest.preferCompleteThanJumpPlaceholder":~
+
+	Confirm completion instead of jump to next placeholder when completion
+	activates, default: `false`
+
+"suggest.fixInsertedWord":~
+
+	Inserted word replaces the next one, default: `true`
+
+"suggest.localityBonus":~
+
+	Boost suggestions that appear closer to the cursor position,
+	default: `true`
+
+"suggest.triggerAfterInsertEnter":~
+
+	Trigger completion after |InsertEnter|. Requires "suggest.autoTrigger"
+	to be set, default: `false`
+
+"suggest.timeout":~
+
+	Timeout for completion (unit: milliseconds), default: `5000`
+
+"suggest.minTriggerInputLength":~
+
+	Number of characters in the current word after which the completion
+	triggers, default: `1`
+
+"suggest.triggerCompletionWait":~
+
+	Delay between typing the trigger character and completion start which
+	initiates server synchronization, default: `50`
+
+"suggest.echodocSupport":~
+
+	Add function signature to `user_data.signature` to support `echodoc.vim`,
+	default: `false`
+
+"suggest.acceptSuggestionOnCommitCharacter":~
+
+	The server provides a set of commit characters: these characters can
+	trigger completion item acceptance. This also inserts commit character
+	after the completion item text. Requires `CompleteChanged` event to work,
+	default: `false`
+
+"suggest.noselect":~
+
+	Prevent Vim from selecting the first item on completion start,
+	default: `true`
+
+"suggest.keepCompleteopt":~
+
+	When enabled, 'completeopt' is not overridden. Autocompletion will be
+	disabled if 'completeopt' doesn't have 'noinsert' and 'noselect', default:
+	`false`
+
+"suggest.lowPrioritySourceLimit":~
+
+	Max items count for source priority lower than `90`.
+
+"suggest.highPrioritySourceLimit":~
+
+	Max items count for source priority bigger than or equal to `90`.
+
+"suggest.disableMenuShortcut":~
+
+	Disable shortcut of completion source in menu, default: `false`
+
+"suggest.removeDuplicateItems":~
+
+	Remove completion items with duplicated word for all sources, snippet
+	items are excluded, default: `false`
+
+"suggest.defaultSortMethod":~
+
+	Default sorting behavior for suggested completion items, default:
+	`length`
+
+"suggest.invalidInsertCharacters":~
+
+	Invalid character for strip valid word when inserting text of complete
+	item, default: ` ,(,<,{,[,\r,\n`
+
+"suggest.asciiCharactersOnly":~
+
+	Suggest ASCII characters only, default: `false`
+
+"suggest.completionItemKindLabels":~
+
+	Set custom labels to completion item kinds, default: `{}`.
+
+	Example configuration: with https://nerdfonts.com:  >
+
+	  "suggest.completionItemKindLabels": {
+		"keyword": "\uf1de",
+		"variable": "\ue79b",
+		"value": "\uf89f",
+		"operator": "\u03a8",
+		"constructor": "\uf0ad",
+		"function": "\u0192",
+		"reference": "\ufa46",
+		"constant": "\uf8fe",
+		"method": "\uf09a",
+		"struct": "\ufb44",
+		"class": "\uf0e8",
+		"interface": "\uf417",
+		"text": "\ue612",
+		"enum": "\uf435",
+		"enumMember": "\uf02b",
+		"module": "\uf40d",
+		"color": "\ue22b",
+		"property": "\ue624",
+		"field": "\uf9be",
+		"unit": "\uf475",
+		"event": "\ufacd",
+		"file": "\uf723",
+		"folder": "\uf114",
+		"snippet": "\ue60b",
+		"typeParameter": "\uf728",
+		"default": "\uf29c"
+	}
+<
+							*coc-config-diagnostic*
+"diagnostic.enable":~
+
+	Display diagnostics, default: `true`
+
+"diagnostic.enableSign":~
+
+	Enable signs for diagnostics, default: `true`
+
+"diagnostic.enableMessage":~
+
+	When to enable show messages of diagnostics.
+
+	Valid options: ["always","jump","never"], always means including
+	cursor hold and after jump to another diagnostic.
+
+	default: `"always"`
+
+"diagnostic.enableHighlightLineNumber":~
+
+	Enable highlighting line numbers for diagnostics, only works with
+	neovim and `diagnostic.enableSign` is true.
+
+	default: `true`
+
+"diagnostic.locationlistUpdate"~
+
+	Update locationlist on diagnostics change, only works with
+	locationlist opened by :CocDiagnostics command and first window of
+	associated buffer.
+
+	default: `true`
+
+"diagnostic.level":~
+
+	Filter diagnostics by severity, default: `"hint"`
+
+	Valid options: ["hint", "information", "warning", "error"]
+
+"diagnostic.messageDelay":~
+
+	How long to wait (in milliseconds) before displaying the diagnostic
+	message with echo or float.
+
+	Default: `200`
+
+"diagnostic.maxWindowWidth":~
+
+	Maximum width of diagnostics floating window, default: `80`
+
+"diagnostic.checkCurrentLine":~
+
+	Show all diagnostics of the current line if none of them are at the current
+	position, default: `false`
+
+"diagnostic.messageTarget":~
+
+	Diagnostic message target, default: `"float"`
+
+	Valid options: ["echo", "float"]
+
+"diagnostic.refreshOnInsertMode":~
+
+	Refresh diagnostics when in insert mode, default: `false`
+
+"diagnostic.refreshAfterSave":~
+
+	Refresh diagnostics after file save only, default: `false`
+
+"diagnostic.displayByAle":~
+
+	Use ALE for displaying diagnostics. This will disable coc.nvim for
+	displaying diagnostics. Restart to make changes take the effect, default:
+	`false`
+
+"diagnostic.virtualText":~
+
+	Use Neovim virtual text to display diagnostics, default: `false`
+
+"diagnostic.virtualTextCurrentLineOnly":~
+
+	Only show virtualText diagnostic on current cursor line, default:
+	`true`
+
+"diagnostic.virtualTextPrefix":~
+
+	The prefix added for virtual text diagnostics, default: `" "`
+
+"diagnostic.virtualTextLines":~
+
+	The number of non-empty lines from a diagnostic to display, default: `3`
+
+"diagnostic.virtualTextLineSeparator":~
+
+	The text that will mark a line end from the diagnostic message,
+	default: `" \\ "`
+
+"diagnostic.highlightOffset":~
+
+	Offset number of buffer.addHighlight, Neovim only, default: `1000`
+
+"diagnostic.signPriority":~
+
+	Priority of diagnostic sign, default to `10`, check |sign-priority|.
+
+"diagnostic.errorSign":~
+
+	Sign of error diagnostics shown in the 'signcolumn', default: `">>"`
+
+"diagnostic.warningSign":~
+
+	Sign of warning diagnostics shown in the 'signcolumn', default: `"⚠"`
+
+"diagnostic.infoSign":~
+
+	Sign of info diagnostics shown in the 'signcolumn', default: `">>"`
+
+"diagnostic.hintSign":~
+
+	Sign of hint diagnostics shown in the 'signcolumn', default: `">>"`
+
+"diagnostic.maxWindowHeight":~
+
+	Maximum height of diagnostics floating window, default: `8`
+
+"diagnostic.filetypeMap":~
+
+	A map between buffer filetype and the filetype assigned to diagnostics.
+	To syntax highlight diagnostics withs their parent buffer type use
+	`"default": "bufferType"`, default: `{}`
+
+"diagnostic.format":~
+
+	Define the diagnostic format.
+	Available parts: source, code, severity, message
+
+	Default: `[%source%code] [%severity] %message`
+
+"diagnostic.separateRelatedInformationAsDiagnostics":~
+
+	Separate related information as diagnostics, default: `false`
+
+"signature.enable":~
+
+	Enable signature help when trigger character typed. Requires service restart
+	on change, default: `true`
+
+"signature.maxWindowWidth":~
+
+	Max width of signature float window, default: `60`
+
+"signature.triggerSignatureWait":~
+
+	Delay for signature request trigger (milliseconds), default: `50`.
+	Change to higher value for slow Language Servers.
+
+"signature.target":~
+
+	Target of signature help, use `"float"` when possible by default.
+
+	Valid options: ["float", "echo"]
+
+"signature.preferShownAbove":~
+
+	Show signature help's floating window above cursor when possible. Requires
+	restart on change, default: `true`
+
+"signature.hideOnTextChange":~
+
+	Hide signature help's floating window when text changed. Requires restart
+	on change, default: `false`
+
+"signature.maxWindowHeight":~
+
+	Maximum height of floating window with the signature help, default: `8`
+
+							*coc-config-refactor*
+"refactor.saveToFile":~
+
+	Save to file when write refactor buffer with ':noa wa' command, set to
+	false if you want save buffer by yourself.
+
+"refactor.openCommand":~
+
+	Open command for refactor window, default: `vsplit`
+
+"refactor.beforeContext":~
+
+	Print num lines of leading context before each match, default: `3`
+
+"refactor.afterContext":~
+
+	Print num lines of trailing context after each match, default: `3`
+
+							*coc-config-dialog*
+"dialog.maxWidth": ~
+
+	Maximum width of dialog window.
+
+"dialog.maxHeight": ~
+
+	Maximum height of dialog window.
+
+"dialog.pickerButtons":~
+
+	Show buttons for picker dialog window/popup, default `true`.
+
+"dialog.pickerButtonShortcut":~
+
+	Show shortcut in buttons of picker dialog window/popup, used when
+	dialog.pickerButtons is true, default `true`.
+
+"dialog.floatHighlight":~
+
+	Highlight group for dialog window/popup, default to 'CocFloating'
+
+"dialog.floatBorderHighlight":~
+
+	Highlight group for border of dialog window/popup, default to
+	'CocFloating'
+
+							*coc-config-codelens*
+"codeLens.enable":~
+
+	Enable `codeLens` feature. Requires Neovim with virtual text feature,
+	default: `false`.
+
+"codeLens.separator":~
+
+	Separator text for `codeLens` in virtual text, default: `"‣"`.
+
+"codeLens.subseparator":~
+
+	Subseparator text for multiple `codeLens`es in virtual text, default: `" "`
+
+"workspace.ignoredFiletypes":~
+
+	Filetypes to ignore for workspace folder resolution,
+	default: `["markdown","log","txt","help"]`
+
+	Note: This is the filetype after mapping by `g:coc_filetype_map`.
+
+							*coc-config-list*
+"list.indicator":~
+
+	The character used as first character in prompt line, default: `">"`
+
+"list.height":~
+
+	Height of split list window, default: `10`
+
+"list.signOffset":~
+
+	Sign offset of list, should be different from other plugins, default: `900`
+
+"list.selectedSignText":~
+
+	Sign text for selected lines, default: `"*"`
+
+"list.limitLines":~
+
+	Limit lines shown in the list buffer, default: `30000`
+
+"list.maxPreviewHeight":~
+
+	Max height for preview window of list, default: `12`
+
+"list.previewHighlightGroup":~
+
+	Highlight group used for highlighting the range in preview window,
+	default: `"Search"`
+
+"list.nextKeymap":~
+
+	Key for selecting next line in the insert mode, default: `"<C-j>"`
+
+"list.previousKeymap":~
+
+	Key for selecting previous line in the insert mode, default: `"<C-k>"`
+
+"list.extendedSearchMode": ~
+
+	Enable extended search mode which allows multiple search patterns delimited
+	by spaces, default: `true`
+
+"list.normalMappings":~
+
+	Custom key mappings in the normal mode, default: `{}`
+
+"list.insertMappings":~
+
+	Custom key mappings in the insert mode, default: `{}`
+
+"list.interactiveDebounceTime":~
+
+	Debouce time for input change on interactive mode, default: `100`
+
+"list.previewSplitRight":~
+
+	Use vsplit for preview window, default: `false`
+
+"list.source.symbols.excludes":~
+
+	Patterns of mimimatch for filepath to execlude from symbols list,
+	default: `[]`
+
+"list.source.outline.ctagsFilestypes":~
+
+	Filetypes that should use `ctags` for outline instead of language server,
+	default: `[]`
+
+							*coc-config-preferences*
+"coc.preferences.maxFileSize":~
+
+	Maximum file size in bytes that coc.nvim should handle, default: `'10MB'`
+
+"coc.preferences.promptWorkspaceEdit":~
+
+	Prompt confirm from user for workspace edit.
+	default: `true`
+
+"coc.preferences.useQuickfixForLocations":~
+
+	Use Vim's quickfix list for jump locations. Requires restart on change,
+	default: `false`
+
+"coc.preferences.extensionUpdateCheck":~
+
+	Interval for checking extension updates, default: `"daily"`
+
+	Valid options: ["daily","weekly","never"]
+
+"coc.preferences.snippetStatusText":~
+
+	Text shown in 'statusline' to indicate snippet session is activate.
+	Check |coc-status| for statusline integration.
+
+	Default: `"SNIP"`
+
+"coc.preferences.hoverTarget":~
+
+	Target to show hover information, default is floating window when possible.
+
+	Valid options: ["preview", "echo", "float"]
+
+"coc.preferences.previewAutoClose":~
+
+	Auto close preview window of hover upon cursor move, default: `true`
+
+"coc.preferences.previewMaxHeight":~
+
+	Max height of preview window for hover, default: `12`
+
+"coc.preferences.colorSupport":~
+
+	Enable color highlight if Language Server support it, default: `true`
+
+"coc.preferences.currentFunctionSymbolAutoUpdate":~
+
+	Automatically update the value of `b:coc_current_function` on `CursorHold`
+	event, default: `false`
+
+"coc.preferences.formatOnInsertLeave":~
+
+	Trigger format on type when insert leave by send \n to the server.
+	Default: `false`
+
+"coc.preferences.formatOnSaveFiletypes":~
+
+	Filetypes for which formatting triggers after saving, default: `[]`
+
+	Note: This is the filetype after mapping by `g:coc_filetype_map`.
+
+"coc.preferences.enableFloatHighlight":~
+
+	Enable highlight for floating window, default: `true`
+
+"coc.preferences.rootPatterns":~
+
+	Root patterns to resolve `workspaceFolder` from parent folders of opened
+	files, resolved from up to down, default:
+	`[".git",".hg",".projections.json"]`
+
+"coc.preferences.watchmanPath":~
+
+	Executable path for https://facebook.github.io/watchman/, detected
+	from $PATH by default, default: `null`
+
+"coc.preferences.jumpCommand":~
+
+	Command used for location jump performed for goto definition, goto
+	references etc, default: `"edit"`
+
+	Valid options: ["edit", "split", "vsplit", "tabe", "drop", "tab drop"]
+
+"coc.preferences.messageLevel":~
+
+	Message level for filter echoed messages default: `"more"`
+
+	Valid options: ["more", "warning", "error"]
+
+"coc.preferences.formatOnType":~
+
+	Set to true to enable format on type, default: `false`
+
+"coc.preferences.bracketEnterImprove":~
+
+	Improve handling of pressing enter inside brackets (`<> {} [] ()`) by
+	adding a new empty line below and moving the cursor to it.
+
+	Works with |coc#on_enter()|, default: `true`
+
+"coc.preferences.formatOnTypeFiletypes":~
+
+	Filetypes that should run format on typing, default: `[]`
+
+	Note: takes effect when `coc.preferences.formatOnType` set `true`.
+	Note: This is the filetype after mapping by `g:coc_filetype_map`.
+
+"coc.preferences.snippets.enable":~
+
+	Enables snippets support, default: `true`
+
+"coc.preferences.listOfWorkspaceEdit":~
+
+	List should contains changed locations after workspace edit, default
+	to vim's quickfix, default: `quickfix`
+
+"coc.preferences.highlightTimeout":~
+
+	Highlight timeout for buffer in floating window, default: `500`
+
+"coc.preferences.floatActions":~
+
+	Set to false to disable float/popup support for actions menu.
+	Default: `true`
+
+"coc.preferences.promptInput":~
+
+	Use prompt buffer in float window for user input, works on latest
+	neovim >= 0.4.0 only.
+	Default: `true`
+
+"coc.preferences.enableMarkdown":~
+
+	Tell the language server that markdown text format is supported,
+	note that you may have additional escaped characters for markdown
+	text.
+
+"coc.preferences.silentAutoupdate"~
+
+	Not open split window with update status when performing auto update.
+
+						*coc-config-cursors*
+"cursors.cancelKey":~
+
+	Key used for cancel cursors session, default: `<esc>`
+
+"cursors.nextKey":~
+
+	Key used for jump to next cursors position. , default: `<C-n>`
+
+"cursors.previousKey":~
+
+	Key used for jump to previous cursors position, default: `<C-p>`
+
+						*coc-config-npm*
+"npm.binPath":~
+
+	Command or full path of npm or yarn executable for install/update
+	extensions, default: `npm`
+
+						*coc-config-languageserver*
+"languageserver":~
+
+	Dictionary of Language Servers, key is the ID of corresponding server,
+	and value is configuration of languageserver. Default: `{}`
+
+	Properties of languageserver configuration:
+
+	- "enable": Change to `false` to disable that languageserver.
+
+	- "filetypes": Supported filetypes, add * in array for all filetypes.
+	  Note: it's required for start the languageserver, please make sure
+	  your filetype is expected by `:CocCommand document.echoFiletype` command
+
+	- "additionalSchemes": Additional uri schemes, default schemes
+	  including file & untitled.
+	  Note: you have to setup vim provide content for custom uri as well.
+
+	- "cwd": Working directory used to start languageserver, vim's cwd is
+	  used by default.
+
+	- "env": Environment variables for child process.
+
+	- "settings": Settings for languageserver, received on server
+	  initialiation.
+
+	- "trace.server": Trace level of communication between server and
+	  client that showed with output channel.
+
+	- "stdioEncoding": Encoding used for stdio of child process.
+
+	- "initializationOptions": Initialization options passed to
+	  languageserver (it's deprecated)
+
+	- "rootPatterns": Root patterns used to resolve rootPath from current
+	  file.
+
+	- "requireRootPattern": If true, doesn't start server when root
+	  pattern not found.
+
+	- "ignoredRootPaths": Absolute root paths that language server should
+	  not use as rootPath, higher priority than rootPatterns.
+
+	- "disableDynamicRegister": Disable dynamic registerCapability feature
+	  for this languageserver to avoid duplicated feature regstration.
+
+	- "disableWorkspaceFolders": Disable workspaceFolders feature for this
+	  languageserver.
+
+	- "disableSnippetCompletion": Disable snippet completion feature for
+	  this languageserver.
+
+	- "disableDiagnostics": Disable handle diagnostics for this
+	  languageserver.
+
+	- "disableCompletion": Disable completion feature for this
+	  languageserver.
+
+	- "formatterPriority": Priority of this languageserver's fomatter.
+
+	- "revealOutputChannelOn": Configure message level to show the output
+	  channel buffer.
+
+	- "progressOnInitialization": Enable progress report on languageserver
+	  initialize.
+
+Language server start with command:~
+
+	Additional fields can be used for command language server:
+
+	- "command": Executable program name in $PATH or absolute path of
+	  executable used for start languageserver.
+
+	- "args": Command line arguments of command.
+
+	- "detached": Detach language server when is true.
+
+	- "shell": Use shell for server process, default: `false`
+
+Language server start with module:~
+
+	Additional fields can be used forlanguage server started by node
+	module:
+
+	- "module": Absolute filepath of javascript file.
+
+	- "args": Extra arguments used on fork javascript module.
+
+	- "runtime": Absolute path of node runtime, node runtime of coc.nvim
+	  is used by default.
+
+	- "execArgv": Argv passed to node on fork, normally used for
+	  debugging, ex: `["--nolazy", "--inspect-brk=6045"]`
+
+	- "transport": Transport kind used by server, could be 'ipc', 'stdio',
+	  'socket' and 'pipe'. 'ipc' is used by default (recommended).
+
+	- "transportPort": Port number used when transport is 'socket'.
+
+Language server use initialized socket server:~
+
+	- "port": Port number of socket server.
+
+	- "host": Host of socket server, default to `127.0.0.1`.
 
 ==============================================================================
 
@@ -312,6 +1092,22 @@ coc 不会向 vim 添加自己的快捷键，你需要手工配置来满足需�
 
 			选择当前函数所在区间，默认映射到 `af`。
 
+<Plug>(coc-classobj-i)					*n_coc-classobj-i*
+										*v_coc-classobj-i*
+
+	选择 class/struct/interface 内所有行. 推荐配置:
+
+	xmap ic <Plug>(coc-classobj-i)
+	omap ic <Plug>(coc-classobj-i)
+
+<Plug>(coc-classobj-a)					*n_coc-classobj-a*
+										*v_coc-classobj-a*
+
+	选择 class/struct/interface 所在区间. 推荐配置:
+
+	xmap ac <Plug>(coc-classobj-a)
+	omap ac <Plug>(coc-classobj-a)
+
 ==============================================================================
 
 变量 						*coc-variables*
@@ -335,6 +1131,10 @@ b:coc_suggest_disable 				*b:coc_suggest_disable*
 
 			" 对 python 文件禁用补全
 			autocmd FileType python let b:coc_suggest_disable = 1
+
+b:coc_diagnostic_disable				*b:coc_diagnostic_disable*
+
+	当前 buffer 禁用诊断提示.
 
 b:coc_additional_keywords			*b:coc_additional_keywords*
 
@@ -366,6 +1166,30 @@ b:coc_current_function 				*b:coc_current_function*
 			`"coc.preferences.currentFunctionSymbolAutoUpdate": true`
 			启用 CursorHold 时自动更新。
 
+g:coc_disable_startup_warning 				*g:coc_disable_startup_warning*
+
+	禁用旧版 Vim/Node.js 启动时可能出现的警告.
+
+	Default: 0
+
+g:coc_disable_uncaught_error 				 *g:coc_disable_uncaught_error*
+
+	禁用 coc.nvim node 进程中未捕获的错误信息.
+
+	Default: 0
+
+g:coc_channel_timeout					*g:coc_channel_timeout*
+
+	node 请求超时时间.
+
+	Default: 30
+
+g:coc_disable_transparent_cursor			*g:coc_disable_transparent_cursor*
+
+	当 CocList 被激活时，禁用透明光标.
+
+	Default: 0
+
 g:coc_last_hover_message 			*g:coc_last_hover_message*
 
 			最近一条由 `doHover` 返回的消息。
@@ -395,7 +1219,13 @@ g:coc_global_extensions 			*g:coc_global_extensions*
 >
 	let g:coc_global_extensions = ['coc-json', 'coc-git']
 <
+g:coc_uri_prefix_replace_patterns			*g:coc_uri_prefix_replace_patterns*
 
+	定义目录结构的替换前缀，比如 `/Users/myUser/workspace` 替换为
+	`/home/myUser/workspace`.
+>
+	let g:coc_uri_prefix_replace_patterns = {'/Users': '/home'}
+<
 g:coc_enable_locationlist 			*g:coc_enable_locationlist*
 
 			自动打开 CocList 提供地址列表，如果使用其它插件提供
@@ -471,6 +1301,16 @@ g:coc_node_args 				*g:coc_node_args*
 <
 			默认: []
 
+g:coc_jump_locations					*g:coc_jump_locations*
+
+	当 |CocLocationsChange| 激活时，设置地址列表参数。
+
+	每个地址项包含:
+
+	'filename': 文件全路径.
+	'lnum': 从 1 开始的行号.
+	'col': 从 1 开始的列号.
+	'text': 行内容.
 
 g:coc_process_pid 				*g:coc_process_pid*
 
@@ -489,11 +1329,32 @@ g:coc_status 					*g:coc_status*
 
 			插件给出的提示信息，用于状态栏使用。
 
+g:coc_quickfix_open_command				*g:coc_quickfix_open_command*
+
+	用于打开修复列表的命令。比如在打开修复列表时跳转到第一个位置，可以设置:
+>
+	let g:coc_quickfix_open_command = 'copen|cfirst'
+<
+	Default: |copen|
+
 g:WorkspaceFolders 				*g:WorkspaceFolders*
 
 			当前的 workspaceFolders，用于 session 使用。
 			需添加 `set sessionoptions+=globals` 让 session 支持
 			globals 变量。
+
+g:node_client_debug					*g:node_client_debug*
+
+	启用 coc.nvim 的调试模式, 可以用以下命令打开日志文件: >
+
+	:call coc#client#open_log()
+<
+
+	Default: `0`
+
+g:coc_cursors_activated					*g:coc_cursors_activated*
+
+	可以用 `get(g:, 'coc_cursors_activated',0)` 检查多光标模式是否激活.
 
 g:coc_config_home				*g:coc_config_home*
 
@@ -513,6 +1374,38 @@ g:coc_data_home					*g:coc_data_home*
 				`~/AppData/Local/coc`
 			其它:
 				`~/.config/coc`
+
+g:coc_last_float_win					*g:coc_last_float_win*
+
+	最新创建的浮动窗口 ID.
+
+g:coc_sources_disable_map 				*g:coc_sources_disable_map*
+
+	为不同文件类型禁用补全来源，比如:
+>
+	let g:coc_sources_disable_map = { \ 'python': ['omni', 'tag'] \ }
+
+g:coc_borderchars 					*g:coc_borderchars*
+
+	窗口边框字符，默认:
+>
+	['─', '│', '─', '│', '┌', '┐', '┘', '└']
+<
+	Note: 可以使用自定义 Nerd 字。
+
+g:coc_border_joinchars 					*g:coc_border_joinchars*
+
+	浮动窗口使用的边框连接字符，默认:
+>
+	['┬', '┤', '┴', '├']
+<
+g:coc_prompt_win_width 					*g:coc_prompt_win_width*
+
+	输入提示窗口宽度，只支持 neovim >= 0.5.0.
+
+g:coc_install_yarn_cmd 					*g:coc_install_yarn_cmd*
+
+	自定义 |coc#util#install()| 使用的 yarn 命令。
 
 ------------------------------------------------------------------------------
 
@@ -641,6 +1534,10 @@ health#coc#check()
 
 						*coc#util#job_command()*
 
+coc#util#api_version() 					 *coc#util#api_version()*
+
+	获取当前 coc.nvim 的 vim API 版本，从 `1` 开始。
+
 coc#util#job_command()
 
 	获取服务启动执行的命令。
@@ -664,6 +1561,62 @@ coc#util#extension_root()
 coc#util#rebuild()
 
 	对插件执行 `npm rebuild` 命令。
+
+coc#util#root_patterns()				*coc#util#root_patterns()*
+
+	获取当前定位文件列表。
+
+	结果示例: >
+
+	{'global': ['.git', '.hg', '.projections.json'], 'buffer': [], 'server': v:null}
+<
+coc#util#get_config({key})				*coc#util#get_config()*
+
+	获取 coc-settings.json 设置的配置项，比如: >
+
+	:echo coc#util#get_config('coc.preferences')
+
+coc#util#install()  					*coc#util#install()*
+
+	从源码编译安装 coc.nvim.
+
+coc#float#close_all() 					*coc#float#close_all()*
+
+	关闭所有浮动窗口.
+
+	Note: 由其他插件创建的浮动窗口也会被关闭。
+
+coc#float#close({winid}) 				*coc#float#close()*
+
+	关闭指定 {winid} 的浮动窗口。
+
+coc#float#has_scroll() 					*coc#float#has_scroll()*
+
+	有可滚动的浮动窗口时，返回 `1`. 比如:
+>
+	if has('nvim-0.4.0') || has('patch-8.2.0750')
+	  nnoremap <nowait><expr> <C-f> coc#float#has_scroll() ? coc#float#scroll(1) : "\<C-f>"
+	  nnoremap <nowait><expr> <C-b> coc#float#has_scroll() ? coc#float#scroll(0) : "\<C-b>"
+	  inoremap <nowait><expr> <C-f> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(1)\<cr>" : "\<Right>"
+	  inoremap <nowait><expr> <C-b> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(0)\<cr>" : "\<Left>"
+	endif
+<
+coc#float#scroll({forward}, [{amount}])                 *coc#float#scroll()*
+
+	滚动浮动窗口内容，{forward} 不为 `1` 时向前滚动。
+
+	Note: 该功能需要 nvim >= 0.4.0 or vim >= 8.2.750.
+
+coc#float#nvim_scroll({forward}, [{amount}]) 		*coc#float#nvim_scroll()*
+
+	Neovim 独有的滚动浮动窗口，示例:
+>
+	if has('nvim')
+	  vnoremap <nowait><expr> <C-f> coc#float#has_scroll() ? coc#float#nvim_scroll(1, 1) : "\<C-f>"
+	  vnoremap <nowait><expr> <C-b> coc#float#has_scroll() ? coc#float#nvim_scroll(0, 1) : "\<C-b>"
+	endif
+<
+	Note: 此功能主要用于滚动函数签名文档，其他情况请使用 |coc#float#scroll|.
 
 						*CocRequest()*
 CocRequest({id}, {method}, [{params}])
@@ -695,6 +1648,19 @@ CocNotify({id}, {params})
 >
 	call CocNotify('ccls', '$ccls/reload')
 <
+							*CocRegistNotification()*
+
+CocRegistNotification({id}, {method}, {callback})
+
+	向指定 language server 注册消息回调，比如: >
+
+	autocmd User CocNvimInit call CocRegistNotification('ccls',
+		\ '$ccls/publishSemanticHighlight', function('s:Handler'))
+<
+	{callback} is called with single param as notification result.
+
+	Note: 注册相同 {id} 和 {method} 的回调，只有最后注册的才工作。
+
 						*CocLocations()*
 
 CocLocations({id}, {method}, [{params}, {openCommand}])
@@ -727,8 +1693,22 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	{callback} 第一个参数为 {error}，第二个为 {response}
 
-------------------------------------------------------------------------------
+CocHasProvider({feature})				*CocHasProvider()*
 
+	检查 language server 是否支持指定功能，支持的功能参数:
+
+	`rename` `onTypeEdit` `documentLink` `documentColor` `foldingRange`
+	`format` `codeAction` `workspaceSymbols` `formatRange` `hover`
+	`signature` `documentSymbol` `documentHighlight` `definition`
+	`declaration` `typeDefinition` `reference` `implementation` `codeLens`
+	`selectionRange`
+
+CocTagFunc({pattern}, {flags}, {info})			*CocTagFunc()*
+
+	coc.nvim 作为 'tagfunc' 搜索提供者。
+
+------------------------------------------------------------------------------
+								*coc-action*
 可用的 Actions 列表
 
 "sourceStat" 					*coc-action-sourceStat*
@@ -750,6 +1730,10 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 "diagnosticInfo" 				*coc-action-diagnosticInfo*
 
 	显示当前位置诊断详情，没有截断。
+
+"diagnosticToggle"					*coc-action-diagnosticToggle*
+
+	启用/禁用诊断，当 `displayByAle` 启用时无效。
 
 "diagnosticPreview" 				*coc-action-diagnosticPreview*
 
@@ -792,9 +1776,11 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	显示当前位置的悬浮信息。
 
-	使用 `coc.preferences.hoverTarget` 改变信息显示方式，默认为预览窗口。
+	使用 `coc.preferences.hoverTarget` 改变信息显示方式，默认为浮动窗口。
 
-	后续将支持浮动窗口。
+"getHover"						*coc-action-getHover*
+
+	获取当前位置的文档内容。
 
 "showSignatureHelp" 				*coc-action-showSignatureHelp*
 
@@ -847,6 +1833,14 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 	{mode} 为 visualmode() 返回结果。
 
 	{only} 可以是某个 codeAction 的 title，或者是 CodeActionKind 列表
+
+"codeActionRange" {start} {end} [{kind}]		*coc-action-codeActionRange*
+
+	执行指定位置范围内的 codeAction.
+
+	{start} 位置范围起始行号。
+	{end} 位置范围结束行号。
+	{kind} codeAction 类别，参见 |coc-action-codeActions|.
 
 "codeLensAction" 				*coc-action-codeLensAction*
 
@@ -932,10 +1926,32 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	推荐安装 coc-highlight 插件在所有文件中支持该功能。
 
-"codeActions" [{visualmode}]			*coc-action-codeActions*
+"codeActions" [{mode}] [{only}]			*coc-action-codeActions*
 
-	获取当前行的所有 codeActions，指定 {visualmode}
-	获取上一次选择区间的中的 codeActions.
+	获取当前文档所有 codeActions.
+
+	{mode} 是当前文本选择方式 |visualmode()|, 为空时使用当前文档。
+
+	{only} can be array of codeActionKind, possible values including:
+	 - 'refactor': Base kind for refactoring actions
+	 - 'quickfix': base kind for quickfix actions
+	 - 'refactor.extract': Base kind for refactoring extraction actions
+	 - 'refactor.inline': Base kind for refactoring inline actions
+	 - 'refactor.rewrite': Base kind for refactoring rewrite actions
+	 - 'source': Base kind for source actions
+	 - 'source.organizeImports': Base kind for an organize imports source
+	   action
+	 - 'source.fixAll': Base kind for auto-fix source actions
+
+	{only} can also be string, which means filter by tilte of codeAction.
+
+"organizeImport" 					*coc-action-organizeImport*
+
+	对当前 buffer 执行 organize import codeAction.
+
+"fixAll" 						*coc-action-fixAll*
+
+	对当前 buffer 执行 fixAll codeAction.
 
 "quickfixes" [{visualmode}]			*coc-action-quickfixes*
 
@@ -953,6 +1969,16 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 "addRanges" {ranges}					*coc-action-addRanges*
 
 	Ranges 必须为 LSP 定义的 Range 数组： https://git.io/fjiEG
+
+"getWordEdit"						 *coc-action-getWordEdit*
+
+	Get workspaceEdit of current word, language server used when possible,
+	extract word from current buffer as fallback.
+
+"getWorkspaceSymbols" {input} [{bufnr}]		*coc-action-getWorkspaceSymbols*
+
+	Get workspace symbols from {input} and optional {bufnr} (use current
+	bufnr when empty).
 
 ==============================================================================
 
@@ -1044,6 +2070,62 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 		获取当前系统版本以及日志等信息，bug 报告需提供该命令给出内容。
 
+:CocDiagnostics	[height] 				*:CocDiagnostics*
+
+	使用 |location-list| 展示当前 buffer 诊断信息.
+
+:CocSearch 						*:CocSearch*
+
+	使用 ripgrep https://github.com/BurntSushi/ripgrep 搜索并打开重构文档。
+
+	Note: 需要先保存文件再执行该命令。
+
+	ripgrep 参数:~
+
+	`-e` `--regexp`: treat search pattern as regexp.
+	`-F` `--fixed-strings`: treat search pattern as fixed string.
+	`-L` `--follow`: follow symbolic links while traversing directories.
+	`-g` `--glob` {GLOB}: Include or exclude files and directories for
+	searching that match the given glob.
+	`--hidden`: Search hidden files and directories.
+	`--no-ignore-vcs`:  Don't respect version control ignore files
+	(.gitignore, etc.).
+	`--no-ignore`: Don't respect ignore files (.gitignore, .ignore, etc.).
+	`-w` `--word-regexp`: Only show matches surrounded by word boundaries.
+	`-S` `--smart-case`: Searches case insensitively if the pattern is all
+	lowercase. Search case sensitively otherwise.
+	`--no-config`: Never read configuration files.
+	`-x` `--line-regexp`: Only show matches surrounded by line boundaries.
+
+	Use `:man 1 rg` in your terminal for more details.
+
+	Note: 默认情况下，忽略隐藏文件和文件夹。
+
+	Note: 默认情况下，忽略 `.gitignore` 和 `.ignore` 所包含的文件。
+
+	Excape arguments:~
+
+	|<f-args>| is used to convert command line arguments to arguments of
+	rg, which means you have to escape space for single argument. For
+	example, if you want to search `import { Neovim` , you have to use:
+>
+	:CocSearch import\ \{\ Neovim
+<
+	The escape for `{` is required because rg use regexp be default, or:
+>
+	:CocSearch -F import\ {\ Neovim
+<
+	for strict match.
+
+	Change and save:~
+
+	重构会话开始时，搜索匹配的内容将被高亮显示，只需修改文本并保存重构缓冲区，
+	即可对所有相关文件进行修改。你可以进行任何形式的修改，包括添加行和删除行。
+
+:CocWatch [extension] 						*:CocWatch*
+
+	监控已加载扩展的文件变化。
+
 ==============================================================================
 
 自动命令 					*coc-autocmds*
@@ -1111,6 +2193,42 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 注意: highlight 命令必须在 |:colorscheme| 命令之后使用。
 
 注意: 不要使用 `:hi default`
+
+CocUnderline						*CocUnderline*
+
+  Default: `hi default CocUnderline cterm=underline gui=underline`
+
+  未定义文本使用的高亮。
+
+CocBold							*CocBold*
+
+  Default: `hi default CocBold term=bold cterm=bold gui=bold`
+
+  加粗文本使用的高亮。
+
+CocItalic						*CocItalic*
+
+  Default: `hi default CocItalic term=italic cterm=italic gui=italic`
+
+  斜体文本使用的高亮。
+
+CocMarkdownCode						*CocMarkdownCode*
+
+  Default: `hi default link CocMarkdownCode     markdownCode`
+
+  浮动窗口中 markdown 代码块使用的高亮。
+
+CocMarkdownHeader					*CocMarkdownHeader*
+
+  Default: `hi default link CocMarkdownHeader   markdownH1`
+
+  浮动窗口中 markdown header 使用的高亮。
+
+CocMarkdownLink						*CocMarkdownLink*
+
+  Default: `hi default CocMarkdownLink ctermfg=Blue guifg=#15aabf guibg=NONE`
+
+  浮动窗口中 markdown link 使用的高亮。
 
 CocErrorSign 					*CocErrorSign*
 
@@ -1275,6 +2393,24 @@ CocHoverRange 					*CocHoverRange*
 
   当前 hover 范围使用的高亮。
 
+CocMenuSel						*CocMenuSel*
+
+  Default: `hi default link CocMenuSel PmenuSel`
+
+  选中项使用的高亮，只适用于 Neovim.
+
+CocListMode						*CocListMode*
+
+  Default: `hi default link CocListMode ModeMsg`
+
+  CocList 状态栏模式使用的高亮。
+
+CocListPath						*CocListPath*
+
+  Default: `hi default link CocListPath Comment`
+
+  CocList 状态栏当前路径使用的高亮。
+
 ==============================================================================
 
 LIST SUPPORT 					*coc-list*
@@ -1332,6 +2468,14 @@ LIST COMMAND 					*coc-list-command*
 
 		该操作不会打开之前列表。
 
+:CocFirst [{name}]					*:CocFirst*
+
+		对之前列表的第一个选项执行默认操作。
+
+:CocLast [{name}]					*:CocLast*
+
+		对之前列表的最后一个选项执行默认操作。
+
 Command options 					*coc-list-options*
 
 --top
@@ -1377,6 +2521,14 @@ Command options 					*coc-list-options*
 --auto-preview
 -A
 	开启自动预览模式，开启后预览窗口将自动打开。
+
+--no-quit
+
+	执行操作后不退出列表。
+
+--first
+
+	对列表打开时第一个选项执行默认操作，列表为空时不做任何操作。
 
 ------------------------------------------------------------------------------
 
@@ -1491,6 +2643,7 @@ s           - 执行 'split' 操作.
 	'exit' -  退出列表
 	'selectall' - 将所有展示项目设置为选中状态
 	'switch' - 切换过滤匹配模式
+	'exit' - 推出列表会话
 	'stop' - 停止加载任务
 	'cancel' - 取消列表同时保留窗口
 	'toggle' - 切换当前项选中状态
@@ -1498,6 +2651,9 @@ s           - 执行 'split' 操作.
 	'previous' - 移动到前一个项目
 	'next' - 移动到后一个项目
 	'defaultaction' - 执行默认操作
+	'jumpback' - 停止提示操作并跳回原窗口
+	'previewup' - 向上滚动预览窗口
+	'previewdown' - 向下滚动预览窗口
 	'help' - 显示帮助
 'prompt' - 提示栏相关操作：
 	'previous' - 切换到匹配历史记录的上一个
@@ -1570,6 +2726,7 @@ extensions 						 *coc-list-extensions*
 	- 'enable' 启动插件
 	- 'lock' 锁定/解除插件在当前版本
 	- 'doc' 查看插件文档
+	- 'fix' 打开终端窗口修复插件依赖
 	- 'reload' 重载插件
 	- 'uninstall' 卸载插件
 
@@ -1633,6 +2790,93 @@ lists 							 *coc-list-lists*
 	可用操作:
 
 	- 'open': 打开选中列表源，默认操作。
+
+==============================================================================
+
+对话框支持						*coc-dialog*
+
+对话框是一个特殊的浮动窗口，可以响应用户操作。对话框有关闭按钮，边框，可选的标题和底部按钮。
+
+Note: 底部按钮功能在 Neovim 和 Vim 上有不同的表现。因为 Neovim 允许窗口焦点，你可以点击按钮，
+在 Vim 你必须手动输入高亮的字符才会触发按钮回调。
+
+Note: 对话框功能需要 Neovim >= 0.4.0 or Vim >= 8.2.0750
+
+查看 |coc-config-dialog|.
+
+------------------------------------------------------------------------------
+
+							*coc-dialog-basic*
+
+常规对话框可以通过 'window.showDialog' 创建，只可显示文本和可选的按钮。
+
+------------------------------------------------------------------------------
+
+							*coc-dialog-confirm*
+
+确认对话框用于让用户确认某个操作。确认对话框在 Vim8 使用过滤功能，在 Neovim 使用 |getchar()|.
+这个差异导致在 Vim8 上允许 vim 操作，但在 Neovim 不能。
+
+Supported key-mappings:
+
+<C-c>         - 强制中断取消操作，回调结果是 -1
+<esc>, n, N   - 拒绝某个操作，回调结果 0
+y,Y           - 接收某个操作，回调结果 1.
+
+------------------------------------------------------------------------------
+
+							*coc-dialog-input*
+
+输入对话框可以要求用户输入，附带可选的默认值。
+输入对话框只适用在 Neovim>= 0.4.0, 因为 Vim 弹窗不支持获取焦点。
+
+Supported key-mappings:
+
+<C-a>         - 移动到行首
+<C-e>         - 移动到行尾
+<esc>         - 取消输入，回调收到一个空字符串
+<cr>          - 确认输入
+
+同样支持其他 Neovim 在输入模式下的键盘映射。
+
+------------------------------------------------------------------------------
+
+							*coc-dialog-menu*
+
+菜单对话框可以在光标当前位置显示一个菜单，便于从一系列选项中选择某一个。
+在版本支持的情况下， |coc-codeaction| 默认会使用菜单对话框。
+
+Supported key-mappings:
+
+<Esc> <C-c>          - 取消选择
+<cr>                 - 确认当前选项
+1-9                  - 使用数字进行选择
+g                    - 移动到第一个选项
+G                    - 移动到最后一个选项
+j <tab> <down> <C-n> - 移动到下一个选项
+k <s-tab> <up> <C-p> - 移动到上一个选项
+<C-f>                - 向下滚动选项列表
+<C-b>                - 向上滚动选项列表
+
+------------------------------------------------------------------------------
+
+							*coc-dialog-picker*
+
+选择器对话框允许多重选择。在 Neovim 上，可以通过鼠标点击括号内的内容来切换选择。
+
+Supported key-mappings:
+
+<Esc> <C-c>          - 取消选择
+<cr>                 - 确认当前选择
+<space>              - 切换当前选项的选择状态
+g                    - 移动到第一个选项
+G                    - 移动到最后一个选项
+j <tab> <down> <C-n> - 移动到下一个选项
+k <s-tab> <up> <C-p> - 移动到上一个选项
+<C-f>                - 向下滚动选项列表
+<C-b>                - 向上滚动选项列表
+
+Note: 点击关闭按钮时，已选择的会被取消并返回未定义的结果，和 `<esc>` 一样。
 
 ==============================================================================
 

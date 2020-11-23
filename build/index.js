@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f6b201d91d" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d28451040b" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -28455,7 +28455,7 @@ class Renderer {
                 return '';
             }
         }
-        if (text && href) {
+        if (text && href && text != href) {
             links.set(text, href);
         }
         if (text && text != href)
@@ -47477,10 +47477,10 @@ class Completion {
             return;
         }
         complete.onDidComplete(async () => {
+            if (this.currItem != null)
+                return;
             let search = this.getResumeInput();
             if (complete.isCanceled || search == null)
-                return;
-            if (this.currItem != null && this.completeOpt.includes('noselect'))
                 return;
             let { input } = this.option;
             if (search == input) {
