@@ -968,18 +968,3 @@ function! coc#util#win_gotoid(winid) abort
     throw 'Invalid window number'
   endif
 endfunction
-
-function! coc#util#check_mode(modes) abort
-  let mode = mode()
-  if index(a:modes, mode) < 0
-    throw 'Invalid mode '.mode
-  endif
-endfunction
-
-" Make sure pum is visible
-function! coc#util#pumvisible() abort
-  let visible = pumvisible()
-  if !visible
-    throw 'Pum not visible'
-  endif
-endfunction

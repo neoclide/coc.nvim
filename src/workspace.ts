@@ -1194,11 +1194,7 @@ export class Workspace implements IWorkspace {
     }
     return Disposable.create(() => {
       this.keymaps.delete(id)
-      if (this.isNvim && !global.hasOwnProperty('__TEST__')) {
-        buf.notify('nvim_buf_del_keymap', [mode, key])
-      } else {
-        nvim.command(`silent! ${mode}unmap <buffer> ${key}`, true)
-      }
+      nvim.call('coc#compat#buf_del_keymap', [buf.id, mode, key], true)
     })
   }
 
