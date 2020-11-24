@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "7875e8b4ba" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "15ed30d122" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -43380,7 +43380,8 @@ class Popup {
         this.execute(`normal! ${botline}Gzt`);
         this.refreshScrollbar();
         nvim.command('redraw', true);
-        await nvim.resumeNotification();
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        nvim.resumeNotification(false, true);
     }
     /**
      * Simple scroll method, not consider wrapped lines.
@@ -90081,6 +90082,7 @@ class BasicList {
             }
         }
         let config = {
+            winid: context.window.id,
             range: position_1.emptyRange(range) ? null : range,
             lnum: range.start.line + 1,
             name: u.scheme == 'file' ? u.fsPath : uri,
@@ -90099,6 +90101,7 @@ class BasicList {
         let { nvim } = this;
         let { bufname, filetype, range, lines, lnum } = options;
         let config = {
+            winid: context.window.id,
             lnum: range ? range.start.line + 1 : lnum || 1,
             filetype: filetype || 'txt',
             position: context.options.position,
