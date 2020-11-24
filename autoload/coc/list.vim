@@ -208,6 +208,7 @@ endfunction
 " Improve preview performance by reused window & buffer.
 " lines - list of lines
 " config.position - could be 'below' 'top' 'tab'.
+" config.winid - id of original window.
 " config.name - (optional )name of preview buffer.
 " config.splitRight - (optional) split to right when 1.
 " config.lnum - (optional) current line number
@@ -251,11 +252,16 @@ function! coc#list#preview(lines, config) abort
   let hlGroup = get(a:config, 'hlGroup', 'Search')
   let lnum = get(a:config, 'lnum', 1)
   let position = get(a:config, 'position', 'below')
+  let original = get(a:config, 'winid', -1)
   if winid == -1
     let change = position != 'tab' && get(a:config, 'splitRight', 0)
     let curr = win_getid()
     if change
-      noa wincmd t
+      if original && win_id2win(original)
+        call win_gotoid(original)
+      else
+        noa wincmd t
+      endif
       execute 'noa belowright vert sb '.bufnr
       let winid = win_getid()
     elseif position == 'tab' || get(a:config, 'splitRight', 0)

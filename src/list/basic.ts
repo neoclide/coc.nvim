@@ -25,6 +25,7 @@ interface ArgumentItem {
 }
 
 interface PreviewConfig {
+  winid: number
   position: string
   hlGroup: string
   maxHeight: number
@@ -217,6 +218,7 @@ export default abstract class BasicList implements IList, Disposable {
       }
     }
     let config: PreviewConfig = {
+      winid: context.window.id,
       range: emptyRange(range) ? null : range,
       lnum: range.start.line + 1,
       name: u.scheme == 'file' ? u.fsPath : uri,
@@ -235,6 +237,7 @@ export default abstract class BasicList implements IList, Disposable {
     let { nvim } = this
     let { bufname, filetype, range, lines, lnum } = options
     let config: PreviewConfig = {
+      winid: context.window.id,
       lnum: range ? range.start.line + 1 : lnum || 1,
       filetype: filetype || 'txt',
       position: context.options.position,
