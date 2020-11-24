@@ -57,6 +57,17 @@ function! CocTagFunc(pattern, flags, info) abort
   return coc#rpc#request('getTagList', [])
 endfunction
 
+function! CocPopupCallback(bufnr, arglist) abort
+  if len(a:arglist) == 2
+    if a:arglist[0] == 'confirm'
+      call coc#rpc#notify('PromptInsert', [a:arglist[1]])
+    elseif a:arglist[0] == 'exit'
+      execute 'silent! bd! '.a:bufnr
+      "call coc#rpc#notify('PromptUpdate', [a:arglist[1]])
+    endif
+  endif
+endfunction
+
 function! CocAction(name, ...) abort
   return coc#rpc#request(a:name, a:000)
 endfunction

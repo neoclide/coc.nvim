@@ -1,5 +1,6 @@
 " Related to float window create
 let s:is_vim = !has('nvim')
+let s:root = expand('<sfile>:h:h:h')
 let s:borderchars = get(g:, 'coc_borderchars', ['─', '│', '─', '│', '┌', '┐', '┘', '└'])
 let s:borderjoinchars = get(g:, 'coc_border_joinchars', ['┬', '┤', '┴', '├'])
 let s:prompt_win_width = get(g:, 'coc_prompt_win_width', 32)
@@ -531,7 +532,20 @@ function! coc#float#create_prompt_win(title, default, opts) abort
     let col = curr + width <= &columns - 2 ? 0 : &columns - s:prompt_win_width
   endif
   let [lineIdx, colIdx] = coc#util#cursor_pos()
-  let res = coc#float#create_float_win(0, s:prompt_win_bufnr, {
+  let bufnr = 0
+  if has('nvim')
+    let bufnr = s:prompt_win_bufnr
+  else
+    execute 'hi link CocPopupTerminal '.get(a:opts, 'highlight', 'CocFloating')
+    let node =  expand(get(g:, 'coc_node_path', 'node'))
+    let bufnr = term_start([node, s:root . '/bin/prompt.js', a:default], {
+          \ 'term_highlight': 'CocPopupTerminal',
+          \ 'hidden': 1,
+          \ 'term_finish': 'close'
+          \ })
+    call term_setapi(bufnr, "Coc")
+  endif
+  let res = coc#float#create_float_win(0, bufnr, {
         \ 'relative': 'cursor',
         \ 'row': lineIdx == 0 ? 1 : 0,
         \ 'col': colIdx == 0 ? 0 : col - 1,
@@ -549,16 +563,19 @@ function! coc#float#create_prompt_win(title, default, opts) abort
     return
   endif
   let winid = res[0]
-  let s:prompt_win_bufnr = res[1]
-  execute 'sign unplace 6 buffer='.s:prompt_win_bufnr
-  call nvim_set_current_win(winid)
-  inoremap <buffer> <C-a> <Home>
-  inoremap <buffer><expr><C-e> pumvisible() ? "\<C-e>" : "\<End>"
-  exe 'inoremap <silent><buffer> <esc> <C-r>=coc#float#close_i('.winid.')<CR><esc>'
-  exe 'nnoremap <silent><buffer> <esc> :call coc#float#close('.winid.')<CR>'
-  exe 'inoremap <expr><nowait><buffer> <cr> "\<C-r>=coc#float#prompt_insert('.winid.')\<cr>\<esc>"'
-  call feedkeys('A', 'in')
-  return [s:prompt_win_bufnr, winid]
+  let bufnr = res[1]
+  if has('nvim')
+    let s:prompt_win_bufnr = res[1]
+    execute 'sign unplace 6 buffer='.s:prompt_win_bufnr
+    call nvim_set_current_win(winid)
+    inoremap <buffer> <C-a> <Home>
+    inoremap <buffer><expr><C-e> pumvisible() ? "\<C-e>" : "\<End>"
+    exe 'inoremap <silent><buffer> <esc> <C-r>=coc#float#close_i('.winid.')<CR><esc>'
+    exe 'nnoremap <silent><buffer> <esc> :call coc#float#close('.winid.')<CR>'
+    exe 'inoremap <expr><nowait><buffer> <cr> "\<C-r>=coc#float#prompt_insert(getline(''.''))\<cr>\<esc>"'
+    call feedkeys('A', 'in')
+  endif
+  return [bufnr, winid]
 endfunction
 
 function! coc#float#close_i(winid) abort
@@ -566,10 +583,8 @@ function! coc#float#close_i(winid) abort
   return ''
 endfunction
 
-function! coc#float#prompt_insert(winid) abort
-  let text = getline(1)
-  let bufnr = winbufnr(a:winid)
-  call coc#rpc#notify('PromptInsert',[text])
+function! coc#float#prompt_insert(text) abort
+  call coc#rpc#notify('PromptInsert', [a:text])
   return ''
 endfunction
 

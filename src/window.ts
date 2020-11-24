@@ -2,7 +2,6 @@ import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import semver from 'semver'
 import { CancellationToken, Disposable, Position } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import channels from './channels'
@@ -195,7 +194,7 @@ class Window {
   public async requestInput(title: string, defaultValue?: string): Promise<string> {
     let { nvim } = this
     const preferences = workspace.getConfiguration('coc.preferences')
-    if (workspace.isNvim && semver.gte(workspace.env.version, '0.4.0') && preferences.get<boolean>('promptInput', true)) {
+    if (workspace.env.dialog && preferences.get<boolean>('promptInput', true)) {
       let release = await this.mutex.acquire()
       let preferences = this.dialogPreference
       try {
@@ -229,14 +228,15 @@ class Window {
         logger.error('Error on requestInput:', e)
         release()
       }
+    } else {
+      let res = await workspace.callAsync<string>('input', [title + ': ', defaultValue || ''])
+      nvim.command('normal! :<C-u>', true)
+      if (!res) {
+        this.showMessage('Empty word, canceled', 'warning')
+        return null
+      }
+      return res
     }
-    let res = await workspace.callAsync<string>('input', [title + ': ', defaultValue || ''])
-    nvim.command('normal! :<C-u>', true)
-    if (!res) {
-      this.showMessage('Empty word, canceled', 'warning')
-      return null
-    }
-    return res
   }
 
   /**

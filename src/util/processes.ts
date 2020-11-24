@@ -5,6 +5,7 @@
  *--------------------------------------------------------------------------------------------*/
 import * as cp from 'child_process'
 import { join, dirname, resolve } from 'path'
+import fs from 'fs'
 import ChildProcess = cp.ChildProcess
 
 declare let __webpack_require__: any
@@ -37,8 +38,12 @@ export function terminate(process: ChildProcess, cwd?: string): boolean {
     }
   } else if (isLinux || isMacintosh) {
     try {
-      let cmd = join(pluginRoot, 'bin/terminateProcess.sh')
-      let result = cp.spawnSync(cmd, [process.pid.toString()])
+      let filepath = join(pluginRoot, 'bin/terminateProcess.sh')
+      if (!fs.existsSync(filepath)) {
+        console.error(`"${filepath}" not found`)
+        return false
+      }
+      let result = cp.spawnSync(filepath, [process.pid.toString()])
       return result.error ? false : true
     } catch (err) {
       return false

@@ -2817,7 +2817,7 @@ Note: 对话框功能需要 Neovim >= 0.4.0 or Vim >= 8.2.0750
 确认对话框用于让用户确认某个操作。确认对话框在 Vim8 使用过滤功能，在 Neovim 使用 |getchar()|.
 这个差异导致在 Vim8 上允许 vim 操作，但在 Neovim 不能。
 
-Supported key-mappings:
+支持按键：
 
 <C-c>         - 强制中断取消操作，回调结果是 -1
 <esc>, n, N   - 拒绝某个操作，回调结果 0
@@ -2828,9 +2828,8 @@ y,Y           - 接收某个操作，回调结果 1.
 							*coc-dialog-input*
 
 输入对话框可以要求用户输入，附带可选的默认值。
-输入对话框只适用在 Neovim>= 0.4.0, 因为 Vim 弹窗不支持获取焦点。
 
-Supported key-mappings:
+支持按键：
 
 <C-a>         - 移动到行首
 <C-e>         - 移动到行尾
