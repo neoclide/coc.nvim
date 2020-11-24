@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "b21c148d13" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "7875e8b4ba" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -41226,7 +41226,7 @@ class Document {
         this._previewwindow = opts.previewwindow;
         this._winid = opts.winid;
         this.size = typeof opts.size == 'number' ? opts.size : 0;
-        this.variables = opts.variables;
+        this.variables = opts.variables || {};
         this._changedtick = opts.changedtick;
         this.eol = opts.eol == 1;
         let uri = this._uri = index_1.getUri(opts.fullpath, this.bufnr, buftype, this.env.isCygwin);

@@ -255,12 +255,12 @@ function! coc#util#get_bufoptions(bufnr, maxFileSize) abort
   return {
         \ 'bufname': bufname,
         \ 'size': size,
-        \ 'eol': getbufvar(a:bufnr, '&eol'),
         \ 'buftype': buftype,
         \ 'winid': winid,
         \ 'previewwindow': previewwindow == 0 ? v:false : v:true,
         \ 'variables': s:variables(a:bufnr),
         \ 'fullpath': empty(bufname) ? '' : fnamemodify(bufname, ':p'),
+        \ 'eol': getbufvar(a:bufnr, '&eol'),
         \ 'filetype': getbufvar(a:bufnr, '&filetype'),
         \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
         \ 'changedtick': getbufvar(a:bufnr, 'changedtick'),
@@ -269,8 +269,8 @@ function! coc#util#get_bufoptions(bufnr, maxFileSize) abort
 endfunction
 
 function! s:variables(bufnr) abort
-  let info = getbufinfo({'bufnr':a:bufnr, 'variables': 1})
-  let variables = copy(info[0]['variables'])
+  let info = getbufinfo(a:bufnr)
+  let variables = empty(info) ? {} : copy(info[0]['variables'])
   for key in keys(variables)
     if key !~# '\v^coc'
       unlet variables[key]
