@@ -1,6 +1,7 @@
-import { PathFormatting } from '../diagnostic/manager'
 import { ListItem } from '../types'
 import path from 'path'
+
+export type PathFormatting = "full" | "short" | "filename" | "hidden"
 
 export interface UnformattedListItem extends Omit<ListItem, 'label'> {
   label: string[]

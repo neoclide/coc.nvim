@@ -17,8 +17,6 @@ import DiagnosticCollection from './collection'
 import { getSeverityName, getSeverityType, severityLevel, getLocationListItem } from './util'
 const logger = require('../util/logger')('diagnostic-manager')
 
-export type PathFormatting = "full" | "short" | "filename" | "hidden"
-
 export interface DiagnosticConfig {
   enableSign: boolean
   locationlistUpdate: boolean
@@ -48,8 +46,6 @@ export interface DiagnosticConfig {
   showUnused?: boolean
   showDeprecated?: boolean
   format?: string
-  listIncludeCode: boolean
-  listFormatPath: PathFormatting
 }
 
 export class DiagnosticManager implements Disposable {
@@ -630,8 +626,6 @@ export class DiagnosticManager implements Disposable {
       showUnused: config.get<boolean>('showUnused', true),
       showDeprecated: config.get<boolean>('showDeprecated', true),
       format: config.get<string>('format', '[%source%code] [%severity] %message'),
-      listIncludeCode: config.get<boolean>('listIncludeCode', true),
-      listFormatPath: config.get<PathFormatting>('listFormatPath', "full"),
     }
     this.enabled = config.get<boolean>('enable', true)
     if (this.config.displayByAle) {

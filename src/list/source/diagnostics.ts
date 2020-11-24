@@ -3,7 +3,7 @@ import diagnosticManager from '../../diagnostic/manager'
 import { DiagnosticItem, ListContext, ListItem } from '../../types'
 import LocationList from './location'
 import { isParentFolder } from '../../util/fs'
-import { formatListItems, formatPath, UnformattedListItem } from '../formatting'
+import { formatListItems, formatPath, PathFormatting, UnformattedListItem } from '../formatting'
 const logger = require('../../util/logger')('list-symbols')
 
 export default class DiagnosticsList extends LocationList {
@@ -15,11 +15,14 @@ export default class DiagnosticsList extends LocationList {
     let list: DiagnosticItem[] = diagnosticManager.getDiagnosticList()
     let { cwd } = context
 
+    const shouldIncludeCode = this.getConfig().get<boolean>('includeCode', true)
+    const pathFormat = this.getConfig().get<PathFormatting>('pathFormat', "full")
+
     const unformatted: UnformattedListItem[] = list.map(item => {
       const file = isParentFolder(cwd, item.file) ? path.relative(cwd, item.file) : item.file
-      const formattedPath = formatPath(diagnosticManager.config.listFormatPath, file)
-      const formattedPosition = diagnosticManager.config.listFormatPath !== "hidden" ? [`${formattedPath}:${item.lnum}`] : []
-      const code = diagnosticManager.config.listIncludeCode ? [`[${item.source}${item.code ? '' : ']'}`, item.code ? `${item.code}]` : ''] : []
+      const formattedPath = formatPath(pathFormat, file)
+      const formattedPosition = pathFormat !== "hidden" ? [`${formattedPath}:${item.lnum}`] : []
+      const code = shouldIncludeCode ? [`[${item.source}${item.code ? '' : ']'}`, item.code ? `${item.code}]` : ''] : []
       return {
         label: [...formattedPosition, ...code, item.severity, item.message],
         location: item.location,

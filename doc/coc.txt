@@ -329,20 +329,6 @@ Built-in configurations:~
 
 	Display diagnostics, default: `true`
 
-"diagnostic.listFormatPath":~
-
-	Decide how the filepath is shown in the list.
-
-	Valid options: ["full", "short", "filename", "hidden"].
-
-	default: `"full"`
-
-"diagnostic.listIncludeCode":~
-
-	Whether to show the diagnostic code in the list.
-
-	default: `true`
-
 "diagnostic.enableSign":~
 
 	Enable signs for diagnostics, default: `true`
@@ -652,6 +638,21 @@ Built-in configurations:~
 
 	Filetypes that should use `ctags` for outline instead of language server,
 	default: `[]`
+
+
+"list.source.diagnostics.pathFormat":~
+
+	Decide how the filepath is shown in the list.
+
+	Valid options: ["full", "short", "filename", "hidden"].
+
+	default: `"full"`
+
+"list.source.diagnostics.includeCode":~
+
+	Whether to show the diagnostic code in the list.
+
+	default: `true`
 
 							*coc-config-preferences*
 "coc.preferences.maxFileSize":~

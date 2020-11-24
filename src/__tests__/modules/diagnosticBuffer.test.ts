@@ -29,8 +29,6 @@ const config: DiagnosticConfig = {
   warningSign: '>>',
   infoSign: '>>',
   refreshAfterSave: false,
-  listIncludeCode: true,
-  listFormatPath: "full",
   hintSign: '>>',
   filetypeMap: {
     default: ''
