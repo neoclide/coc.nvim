@@ -3043,8 +3043,7 @@ y,Y           - accept the action, return 1 for callback.
 
 							*coc-dialog-input*
 
-A input dialog request user input with optional default value, input dialog
-works on neovim >= 0.4.0 only since vim's popup doesn't support focus.
+A input dialog request user input with optional default value.
 
 Supported key-mappings:
 
