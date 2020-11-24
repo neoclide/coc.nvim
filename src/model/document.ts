@@ -156,7 +156,7 @@ export default class Document {
     this._previewwindow = opts.previewwindow
     this._winid = opts.winid
     this.size = typeof opts.size == 'number' ? opts.size : 0
-    this.variables = opts.variables
+    this.variables = opts.variables || {}
     this._changedtick = opts.changedtick
     this.eol = opts.eol == 1
     let uri = this._uri = getUri(opts.fullpath, this.bufnr, buftype, this.env.isCygwin)
