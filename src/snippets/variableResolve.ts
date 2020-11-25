@@ -23,7 +23,18 @@ export class SnippetVariableResolver implements VariableResolver {
       CURRENT_DAY_NAME: currentDate.toLocaleString("en-US", { weekday: "long" }),
       CURRENT_DAY_NAME_SHORT: currentDate.toLocaleString("en-US", { weekday: "short" }),
       CURRENT_MONTH_NAME: currentDate.toLocaleString("en-US", { month: "long" }),
-      CURRENT_MONTH_NAME_SHORT: currentDate.toLocaleString("en-US", { month: "short" })
+      CURRENT_MONTH_NAME_SHORT: currentDate.toLocaleString("en-US", { month: "short" }),
+      TM_FILENAME: null,
+      TM_FILENAME_BASE: null,
+      TM_DIRECTORY: null,
+      TM_FILEPATH: null,
+      YANK: null,
+      TM_LINE_INDEX: null,
+      TM_LINE_NUMBER: null,
+      TM_CURRENT_LINE: null,
+      TM_CURRENT_WORD: null,
+      TM_SELECTED_TEXT: null,
+      CLIPBOARD: null
     })
   }
 
