@@ -1,38 +1,15 @@
+import clipboardy from 'clipboardy'
 import path from 'path'
 import window from '../window'
 import { Variable, VariableResolver } from "./parser"
-import { Neovim } from '@chemzqm/neovim'
-import clipboardy from 'clipboardy'
 const logger = require('../util/logger')('snippets-variable')
 
 export class SnippetVariableResolver implements VariableResolver {
   private _variableToValue: { [key: string]: string } = {}
 
-  private get nvim(): Neovim {
-    return window.nvim
-  }
-
-  public async init(): Promise<void> {
-    let [filepath, lnum, line, cword, selected, yank] = await this.nvim.eval(`[expand('%:p'),line('.'),getline('.'),expand('<cword>'),get(g:,'coc_selected_text', ''),getreg('"')]`) as any[]
-    let clipboard = ''
+  constructor() {
     const currentDate = new Date()
-    try {
-      clipboard = await clipboardy.read()
-    } catch (e) {
-      logger.error(`Error with clipboardy:`, e.message)
-    }
     Object.assign(this._variableToValue, {
-      YANK: yank || undefined,
-      CLIPBOARD: clipboard || undefined,
-      TM_CURRENT_LINE: line,
-      TM_SELECTED_TEXT: selected || undefined,
-      TM_CURRENT_WORD: cword,
-      TM_LINE_INDEX: (lnum as number - 1).toString(),
-      TM_LINE_NUMBER: lnum.toString(),
-      TM_FILENAME: path.basename(filepath),
-      TM_FILENAME_BASE: path.basename(filepath, path.extname(filepath)),
-      TM_DIRECTORY: path.dirname(filepath),
-      TM_FILEPATH: filepath,
       CURRENT_YEAR: currentDate.getFullYear().toString(),
       CURRENT_YEAR_SHORT: currentDate
         .getFullYear()
@@ -50,18 +27,63 @@ export class SnippetVariableResolver implements VariableResolver {
     })
   }
 
-  public resolve(variable: Variable): string {
-    const variableName = variable.name
-    let resolved = this._variableToValue[variableName]
-    if (resolved != null) {
-      return resolved.toString()
+  private async resovleValue(name: string): Promise<string | undefined> {
+    let { nvim } = window
+    if (['TM_FILENAME', 'TM_FILENAME_BASE', 'TM_DIRECTORY', 'TM_FILEPATH'].includes(name)) {
+      let filepath = await nvim.eval('expand("%:p")') as string
+      if (name == 'TM_FILENAME') return path.basename(filepath)
+      if (name == 'TM_FILENAME_BASE') return path.basename(filepath, path.extname(filepath))
+      if (name == 'TM_DIRECTORY') return path.dirname(filepath)
+      if (name == 'TM_FILEPATH') return filepath
     }
+    if (name == 'YANK') {
+      let yank = await nvim.call('getreg', ['""']) as string
+      return yank
+    }
+    if (name == 'TM_LINE_INDEX') {
+      let lnum = await nvim.call('line', ['.']) as number
+      return (lnum - 1).toString()
+    }
+    if (name == 'TM_LINE_NUMBER') {
+      let lnum = await nvim.call('line', ['.']) as number
+      return lnum.toString()
+    }
+    if (name == 'TM_CURRENT_LINE') {
+      let line = await nvim.call('getline', ['.']) as string
+      return line
+    }
+    if (name == 'TM_CURRENT_WORD') {
+      let word = await nvim.eval(`expand('<cword>')`) as string
+      return word
+    }
+    if (name == 'TM_SELECTED_TEXT') {
+      let text = await nvim.eval(`get(g:,'coc_selected_text', '')`) as string
+      return text
+    }
+    if (name == 'CLIPBOARD') {
+      let clipboard = ''
+      try {
+        clipboard = await clipboardy.read()
+      } catch (e) {
+        logger.error(`Error with clipboardy:`, e.message)
+      }
+      return clipboard
+    }
+  }
+
+  public async resolve(variable: Variable): Promise<string> {
+    const name = variable.name
+    let resolved = this._variableToValue[name]
+    if (resolved != null) return resolved.toString()
+    // resolve value from vim
+    let value = await this.resovleValue(name)
+    if (value) return value
     // use default value when resolved is undefined
     if (variable.children && variable.children.length) {
       return variable.toString()
     }
-    if (!this._variableToValue.hasOwnProperty(variableName)) {
-      return variableName
+    if (!this._variableToValue.hasOwnProperty(name)) {
+      return name
     }
     return ''
   }

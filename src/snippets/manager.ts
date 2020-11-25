@@ -126,8 +126,7 @@ export class SnippetManager implements types.SnippetManager {
     let parser = new Snippets.SnippetParser()
     const snippet = parser.parse(body, true)
     const resolver = new SnippetVariableResolver()
-    await resolver.init()
-    snippet.resolveVariables(resolver)
+    await snippet.resolveVariables(resolver)
     return snippet
   }
 

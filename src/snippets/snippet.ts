@@ -27,9 +27,13 @@ export class CocSnippet {
   constructor(private _snippetString: string,
     private position: Position,
     private _variableResolver?: VariableResolver) {
+  }
+
+  public async init(): Promise<void> {
     const snippet = this._parser.parse(this._snippetString, true)
+    let { _variableResolver } = this
     if (_variableResolver) {
-      snippet.resolveVariables(_variableResolver)
+      await snippet.resolveVariables(_variableResolver)
     }
     this.tmSnippet = snippet
     this.update()

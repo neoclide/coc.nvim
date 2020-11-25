@@ -446,8 +446,8 @@ export class Variable extends TransformableMarker {
     super()
   }
 
-  public resolve(resolver: VariableResolver): boolean {
-    let value = resolver.resolve(this)
+  public async resolve(resolver: VariableResolver): Promise<boolean> {
+    let value = await resolver.resolve(this)
     if (value && value.includes('\n')) {
       // get indent from previous texts
       let indent = ''
@@ -502,7 +502,7 @@ export class Variable extends TransformableMarker {
 }
 
 export interface VariableResolver {
-  resolve(variable: Variable): string | undefined
+  resolve(variable: Variable): Promise<string | undefined>
 }
 
 function walk(marker: Marker[], visitor: (marker: Marker) => boolean): void {
@@ -670,16 +670,15 @@ export class TextmateSnippet extends Marker {
     return ret
   }
 
-  public resolveVariables(resolver: VariableResolver): this {
+  public async resolveVariables(resolver: VariableResolver): Promise<void> {
+    let items: Variable[] = []
     this.walk(candidate => {
       if (candidate instanceof Variable) {
-        if (candidate.resolve(resolver)) {
-          this._placeholders = undefined
-        }
+        items.push(candidate)
       }
       return true
     })
-    return this
+    await Promise.all(items.map(o => o.resolve(resolver)))
   }
 
   public appendChild(child: Marker): this {
