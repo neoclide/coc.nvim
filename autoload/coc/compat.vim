@@ -33,9 +33,7 @@ function! coc#compat#clear_matches(winid) abort
       call clearmatches(a:winid)
     endif
   else
-    if has('nvim-0.5.0')
-      call clearmatches(a:winid)
-    elseif exists('*nvim_set_current_win')
+    if exists('*nvim_set_current_win')
       noa call nvim_set_current_win(a:winid)
       call clearmatches()
       noa call nvim_set_current_win(curr)
