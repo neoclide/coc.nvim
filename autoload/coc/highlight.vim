@@ -63,33 +63,17 @@ endfunction
 "   endLine: number
 " }
 function! coc#highlight#add_highlights(winid, codes, highlights) abort
-  let winid = win_getid()
-  if has('nvim') && winid != a:winid
-    noa call nvim_set_current_win(a:winid)
-  endif
-  " clean highlights
-  call coc#highlight#syntax_clear(a:winid)
+  " clear highlights
+  call coc#compat#execute(a:winid, 'syntax clear')
   let bufnr = winbufnr(a:winid)
-  if has('nvim')
-    call nvim_buf_clear_namespace(bufnr, -1, 0, -1)
-  else
-    call clearmatches(a:winid)
-  endif
+  call coc#highlight#clear_highlight(bufnr, -1, 0, -1)
   if !empty(a:codes)
     call coc#highlight#highlight_lines(a:winid, a:codes)
   endif
   if !empty(a:highlights)
     for item in a:highlights
-      if has('nvim')
-        call nvim_buf_add_highlight(bufnr, -1, item['hlGroup'], item['lnum'], item['colStart'], item['colEnd'])
-      else
-        let pos = [item['lnum'] +1, item['colStart'] + 1, item['colEnd'] - item['colStart']]
-        call matchaddpos(item['hlGroup'], [pos], 10, -1, {'window': a:winid})
-      endif
+      call coc#highlight#add_highlight(bufnr, -1, item['hlGroup'], item['lnum'], item['colStart'], item['colEnd'])
     endfor
-  endif
-  if has('nvim')
-    noa call nvim_set_current_win(winid)
   endif
 endfunction
 
@@ -131,13 +115,6 @@ function! coc#highlight#highlight_lines(winid, blocks) abort
   if has('nvim')
     noa call nvim_set_current_win(currwin)
   endif
-endfunction
-
-function! coc#highlight#syntax_clear(winid) abort
-  if has('nvim') && win_getid() != a:winid
-    return
-  endif
-  call s:execute(a:winid, 'syntax clear')
 endfunction
 
 function! coc#highlight#compose_hlgroup(fgGroup, bgGroup) abort

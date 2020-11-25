@@ -33,9 +33,7 @@ function! coc#compat#clear_matches(winid) abort
       call clearmatches(a:winid)
     endif
   else
-    if has('nvim-0.5.0')
-      call clearmatches(a:winid)
-    elseif exists('*nvim_set_current_win')
+    if exists('*nvim_set_current_win')
       noa call nvim_set_current_win(a:winid)
       call clearmatches()
       noa call nvim_set_current_win(curr)
@@ -110,3 +108,26 @@ function! coc#compat#buf_del_keymap(bufnr, mode, lhs) abort
     endif
   endif
 endfunction
+
+" execute command or list of commands in window
+function! coc#compat#execute(winid, command) abort
+  if s:is_vim
+    if !exists('*win_execute')
+      throw 'win_execute function not exists, please upgrade your vim.'
+    endif
+    if type(a:command) == v:t_string
+      keepalt call win_execute(a:winid, a:command)
+    elseif type(a:command) == v:t_list
+      keepalt call win_execute(a:winid, join(a:command, "\n"))
+    endif
+  else
+    let curr = nvim_get_current_win()
+    noa keepalt call nvim_set_current_win(a:winid)
+    if type(a:command) == v:t_string
+      exec a:command
+    elseif type(a:command) == v:t_list
+      exec join(a:command, "\n")
+    endif
+    noa keepalt call nvim_set_current_win(curr)
+  endif
+endfunc

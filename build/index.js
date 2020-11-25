@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "15ed30d122" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "9fb15b6b51" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -45783,8 +45783,7 @@ class SnippetManager {
         let parser = new Snippets.SnippetParser();
         const snippet = parser.parse(body, true);
         const resolver = new variableResolve_1.SnippetVariableResolver();
-        await resolver.init();
-        snippet.resolveVariables(resolver);
+        await snippet.resolveVariables(resolver);
         return snippet;
     }
     dispose() {
@@ -46185,8 +46184,8 @@ class Variable extends TransformableMarker {
         super();
         this.name = name;
     }
-    resolve(resolver) {
-        let value = resolver.resolve(this);
+    async resolve(resolver) {
+        let value = await resolver.resolve(this);
         if (value && value.includes('\n')) {
             // get indent from previous texts
             let indent = '';
@@ -46392,16 +46391,15 @@ class TextmateSnippet extends Marker {
         }
         return ret;
     }
-    resolveVariables(resolver) {
+    async resolveVariables(resolver) {
+        let items = [];
         this.walk(candidate => {
             if (candidate instanceof Variable) {
-                if (candidate.resolve(resolver)) {
-                    this._placeholders = undefined;
-                }
+                items.push(candidate);
             }
             return true;
         });
-        return this;
+        await Promise.all(items.map(o => o.resolve(resolver)));
     }
     appendChild(child) {
         this._placeholders = undefined;
@@ -46916,8 +46914,8 @@ class SnippetSession {
         const currentIndent = currentLine.match(/^\s*/)[0];
         let inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions);
         const resolver = new variableResolve_1.SnippetVariableResolver();
-        await resolver.init();
         const snippet = new snippet_1.CocSnippet(inserted, position, resolver);
+        await snippet.init();
         const edit = vscode_languageserver_protocol_1.TextEdit.replace(range, snippet.toString());
         if (snippetString.endsWith('\n')
             && currentLine.slice(position.character).length) {
@@ -92380,9 +92378,12 @@ class CocSnippet {
         this.position = position;
         this._variableResolver = _variableResolver;
         this._parser = new Snippets.SnippetParser();
+    }
+    async init() {
         const snippet = this._parser.parse(this._snippetString, true);
+        let { _variableResolver } = this;
         if (_variableResolver) {
-            snippet.resolveVariables(_variableResolver);
+            await snippet.resolveVariables(_variableResolver);
         }
         this.tmSnippet = snippet;
         this.update();
@@ -92597,39 +92598,15 @@ exports.CocSnippet = CocSnippet;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SnippetVariableResolver = void 0;
 const tslib_1 = __webpack_require__(65);
+const clipboardy_1 = tslib_1.__importDefault(__webpack_require__(609));
 const path_1 = tslib_1.__importDefault(__webpack_require__(82));
 const window_1 = tslib_1.__importDefault(__webpack_require__(369));
-const clipboardy_1 = tslib_1.__importDefault(__webpack_require__(609));
 const logger = __webpack_require__(64)('snippets-variable');
 class SnippetVariableResolver {
     constructor() {
         this._variableToValue = {};
-    }
-    get nvim() {
-        return window_1.default.nvim;
-    }
-    async init() {
-        let [filepath, lnum, line, cword, selected, yank] = await this.nvim.eval(`[expand('%:p'),line('.'),getline('.'),expand('<cword>'),get(g:,'coc_selected_text', ''),getreg('"')]`);
-        let clipboard = '';
         const currentDate = new Date();
-        try {
-            clipboard = await clipboardy_1.default.read();
-        }
-        catch (e) {
-            logger.error(`Error with clipboardy:`, e.message);
-        }
         Object.assign(this._variableToValue, {
-            YANK: yank || undefined,
-            CLIPBOARD: clipboard || undefined,
-            TM_CURRENT_LINE: line,
-            TM_SELECTED_TEXT: selected || undefined,
-            TM_CURRENT_WORD: cword,
-            TM_LINE_INDEX: (lnum - 1).toString(),
-            TM_LINE_NUMBER: lnum.toString(),
-            TM_FILENAME: path_1.default.basename(filepath),
-            TM_FILENAME_BASE: path_1.default.basename(filepath, path_1.default.extname(filepath)),
-            TM_DIRECTORY: path_1.default.dirname(filepath),
-            TM_FILEPATH: filepath,
             CURRENT_YEAR: currentDate.getFullYear().toString(),
             CURRENT_YEAR_SHORT: currentDate
                 .getFullYear()
@@ -92646,18 +92623,69 @@ class SnippetVariableResolver {
             CURRENT_MONTH_NAME_SHORT: currentDate.toLocaleString("en-US", { month: "short" })
         });
     }
-    resolve(variable) {
-        const variableName = variable.name;
-        let resolved = this._variableToValue[variableName];
-        if (resolved != null) {
-            return resolved.toString();
+    async resovleValue(name) {
+        let { nvim } = window_1.default;
+        if (['TM_FILENAME', 'TM_FILENAME_BASE', 'TM_DIRECTORY', 'TM_FILEPATH'].includes(name)) {
+            let filepath = await nvim.eval('expand("%:p")');
+            if (name == 'TM_FILENAME')
+                return path_1.default.basename(filepath);
+            if (name == 'TM_FILENAME_BASE')
+                return path_1.default.basename(filepath, path_1.default.extname(filepath));
+            if (name == 'TM_DIRECTORY')
+                return path_1.default.dirname(filepath);
+            if (name == 'TM_FILEPATH')
+                return filepath;
         }
+        if (name == 'YANK') {
+            let yank = await nvim.call('getreg', ['""']);
+            return yank;
+        }
+        if (name == 'TM_LINE_INDEX') {
+            let lnum = await nvim.call('line', ['.']);
+            return (lnum - 1).toString();
+        }
+        if (name == 'TM_LINE_NUMBER') {
+            let lnum = await nvim.call('line', ['.']);
+            return lnum.toString();
+        }
+        if (name == 'TM_CURRENT_LINE') {
+            let line = await nvim.call('getline', ['.']);
+            return line;
+        }
+        if (name == 'TM_CURRENT_WORD') {
+            let word = await nvim.eval(`expand('<cword>')`);
+            return word;
+        }
+        if (name == 'TM_SELECTED_TEXT') {
+            let text = await nvim.eval(`get(g:,'coc_selected_text', '')`);
+            return text;
+        }
+        if (name == 'CLIPBOARD') {
+            let clipboard = '';
+            try {
+                clipboard = await clipboardy_1.default.read();
+            }
+            catch (e) {
+                logger.error(`Error with clipboardy:`, e.message);
+            }
+            return clipboard;
+        }
+    }
+    async resolve(variable) {
+        const name = variable.name;
+        let resolved = this._variableToValue[name];
+        if (resolved != null)
+            return resolved.toString();
+        // resolve value from vim
+        let value = await this.resovleValue(name);
+        if (value)
+            return value;
         // use default value when resolved is undefined
         if (variable.children && variable.children.length) {
             return variable.toString();
         }
-        if (!this._variableToValue.hasOwnProperty(variableName)) {
-            return variableName;
+        if (!this._variableToValue.hasOwnProperty(name)) {
+            return name;
         }
         return '';
     }
