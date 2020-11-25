@@ -292,7 +292,7 @@ function! coc#list#preview(lines, config) abort
         call nvim_win_set_height(winid, height)
       endif
     endif
-    call coc#float#execute(winid, ['syntax clear', 'noa call winrestview({"lnum":'.lnum.',"topline":'.max([1, lnum - 3]).'})'])
+    call coc#compat#execute(winid, ['syntax clear', 'noa call winrestview({"lnum":'.lnum.',"topline":'.max([1, lnum - 3]).'})'])
   endif
   if s:prefix.' '.name != bufname(bufnr)
     if s:is_vim
@@ -306,16 +306,16 @@ function! coc#list#preview(lines, config) abort
     let start = max([0, lnum - 300])
     let end = min([len(lines), lnum + 300])
     call coc#highlight#highlight_lines(winid, [{'filetype': filetype, 'startLine': start, 'endLine': end}])
-    call coc#float#execute(winid, 'syn sync fromstart')
+    call coc#compat#execute(winid, 'syn sync fromstart')
   else
-    call coc#float#execute(winid, 'filetype detect')
+    call coc#compat#execute(winid, 'filetype detect')
     let ft = getbufvar(bufnr, '&filetype', '')
     if !empty(extname) && !empty(ft)
       let s:filetype_map[extname] = ft
     endif
   endif
   call sign_unplace('coc', {'buffer': bufnr})
-  call coc#float#execute(winid, 'call clearmatches()')
+  call coc#compat#execute(winid, 'call clearmatches()')
   if !empty(range)
     call sign_place(1, 'coc', 'CocCurrentLine', bufnr, {'lnum': lnum})
     call coc#highlight#match_ranges(winid, bufnr, [range], hlGroup, 10)
