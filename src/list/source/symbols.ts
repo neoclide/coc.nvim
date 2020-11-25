@@ -10,6 +10,7 @@ import { getSymbolKind } from '../../util/convert'
 import { isParentFolder } from '../../util/fs'
 import { score } from '../../util/fzy'
 import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol'
+import { formatListItems, formatPath, UnformattedListItem } from '../formatting'
 const logger = require('../../util/logger')('list-symbols')
 
 export default class Symbols extends LocationList {
@@ -36,7 +37,7 @@ export default class Symbols extends LocationList {
     }
     let config = this.getConfig()
     let excludes = config.get<string[]>('excludes', [])
-    let items: ListItem[] = []
+    let items: UnformattedListItem[] = []
     for (let s of symbols) {
       let kind = getSymbolKind(s.kind)
       if (filterKind && kind.toLowerCase() != filterKind) {
@@ -50,7 +51,7 @@ export default class Symbols extends LocationList {
         continue
       }
       items.push({
-        label: `${s.name} [${kind}]\t${file}`,
+        label: [s.name, `[${kind}]`, file],
         filterText: `${s.name}`,
         location: s.location,
         data: { original: s, kind: s.kind, file, score: score(input, s.name) }
@@ -65,7 +66,7 @@ export default class Symbols extends LocationList {
       }
       return a.data.file.length - b.data.file.length
     })
-    return items
+    return formatListItems(this.alignColumns, items)
   }
 
   public async resolveItem(item: ListItem): Promise<ListItem> {
@@ -90,7 +91,7 @@ export default class Symbols extends LocationList {
     let { nvim } = this
     nvim.pauseNotification()
     nvim.command('syntax match CocSymbolsName /\\v^\\s*\\S+/ contained containedin=CocSymbolsLine', true)
-    nvim.command('syntax match CocSymbolsKind /\\[\\w\\+\\]\\t/ contained containedin=CocSymbolsLine', true)
+    nvim.command('syntax match CocSymbolsKind /\\[\\w\\+\\]\\s*\\t/ contained containedin=CocSymbolsLine', true)
     nvim.command('syntax match CocSymbolsFile /\\S\\+$/ contained containedin=CocSymbolsLine', true)
     nvim.command('highlight default link CocSymbolsName Normal', true)
     nvim.command('highlight default link CocSymbolsKind Typedef', true)

@@ -2,6 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { IList, ListContext, ListItem } from '../../types'
 import BasicList from '../basic'
 import Mru from '../../model/mru'
+import { formatListItems, UnformattedListItem } from '../formatting'
 
 export default class LinksList extends BasicList {
   public readonly name = 'lists'
@@ -20,12 +21,12 @@ export default class LinksList extends BasicList {
   }
 
   public async loadItems(_context: ListContext): Promise<ListItem[]> {
-    let items: ListItem[] = []
+    let items: UnformattedListItem[] = []
     let mruList = await this.mru.load()
     for (let list of this.listMap.values()) {
       if (list.name == 'lists') continue
       items.push({
-        label: `${list.name}\t${list.description || ''}`,
+        label: [list.name, ...(list.description ? [list.description] : [])],
         data: {
           name: list.name,
           interactive: list.interactive,
@@ -34,7 +35,7 @@ export default class LinksList extends BasicList {
       })
     }
     items.sort((a, b) => b.data.score - a.data.score)
-    return items
+    return formatListItems(this.alignColumns, items)
   }
 
   public doHighlight(): void {

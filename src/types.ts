@@ -530,6 +530,8 @@ export interface DiagnosticItem {
   file: string
   lnum: number
   col: number
+  source: string
+  code: string | number
   message: string
   severity: string
   level: number

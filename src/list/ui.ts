@@ -348,7 +348,9 @@ export default class ListUI {
     release()
     if (token && token.isCancellationRequested) return
     if (count !== this.drawCount) return
-    let lines = this.items.map(item => item.label)
+
+    const lines = this.items.map(item => item.label)
+
     this.clearSelection()
     let newIndex = reload ? this.currIndex : 0
     await this.setLines(lines, false, newIndex)

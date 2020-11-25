@@ -9,6 +9,7 @@ import { wait } from '../../util'
 import workspace from '../../workspace'
 import window from '../../window'
 import BasicList from '../basic'
+import { formatListItems, UnformattedListItem } from '../formatting'
 const logger = require('../../util/logger')('list-extensions')
 
 export default class ExtensionList extends BasicList {
@@ -112,7 +113,7 @@ export default class ExtensionList extends BasicList {
   }
 
   public async loadItems(_context: ListContext): Promise<ListItem[]> {
-    let items: ListItem[] = []
+    let items: UnformattedListItem[] = []
     let list = await extensions.getExtensionStates()
     let lockedList = await extensions.getLockedList()
     for (let stat of list) {
@@ -127,7 +128,7 @@ export default class ExtensionList extends BasicList {
       let root = await this.nvim.call('resolve', stat.root)
       let locked = lockedList.includes(stat.id)
       items.push({
-        label: `${prefix} ${stat.id}${locked ? ' ' : ''}\t${stat.isLocal ? '[RTP]\t' : ''}${stat.version}\t${root.replace(os.homedir(), '~')}`,
+        label: [`${prefix} ${stat.id}${locked ? ' ' : ''}`, ...(stat.isLocal ? ['[RTP]'] : []), stat.version, root.replace(os.homedir(), '~')],
         filterText: stat.id,
         data: {
           id: stat.id,
@@ -144,7 +145,7 @@ export default class ExtensionList extends BasicList {
       }
       return b.data.id - a.data.id ? 1 : -1
     })
-    return items
+    return formatListItems(this.alignColumns, items)
   }
 
   public doHighlight(): void {

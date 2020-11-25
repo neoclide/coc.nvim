@@ -3,6 +3,7 @@ import diagnosticManager from '../../diagnostic/manager'
 import { DiagnosticItem, ListContext, ListItem } from '../../types'
 import LocationList from './location'
 import { isParentFolder } from '../../util/fs'
+import { formatListItems, formatPath, PathFormatting, UnformattedListItem } from '../formatting'
 const logger = require('../../util/logger')('list-symbols')
 
 export default class DiagnosticsList extends LocationList {
@@ -13,23 +14,31 @@ export default class DiagnosticsList extends LocationList {
   public async loadItems(context: ListContext): Promise<ListItem[]> {
     let list: DiagnosticItem[] = diagnosticManager.getDiagnosticList()
     let { cwd } = context
-    return list.map(item => {
-      let file = isParentFolder(cwd, item.file) ? path.relative(cwd, item.file) : item.file
+
+    const shouldIncludeCode = this.getConfig().get<boolean>('includeCode', true)
+    const pathFormat = this.getConfig().get<PathFormatting>('pathFormat', "full")
+
+    const unformatted: UnformattedListItem[] = list.map(item => {
+      const file = isParentFolder(cwd, item.file) ? path.relative(cwd, item.file) : item.file
+      const formattedPath = formatPath(pathFormat, file)
+      const formattedPosition = pathFormat !== "hidden" ? [`${formattedPath}:${item.lnum}`] : []
+      const code = shouldIncludeCode ? [`[${item.source}${item.code ? '' : ']'}`, item.code ? `${item.code}]` : ''] : []
       return {
-        label: `${file}:${item.lnum}:${item.col}\t${item.severity}\t${item.message.replace(/\n/g, '')}`,
-        location: item.location
+        label: [...formattedPosition, ...code, item.severity, item.message],
+        location: item.location,
       }
     })
+    return formatListItems(this.alignColumns, unformatted)
   }
 
   public doHighlight(): void {
     let { nvim } = this
     nvim.pauseNotification()
     nvim.command('syntax match CocDiagnosticsFile /\\v^\\s*\\S+/ contained containedin=CocDiagnosticsLine', true)
-    nvim.command('syntax match CocDiagnosticsError /\\tError\\t/ contained containedin=CocDiagnosticsLine', true)
-    nvim.command('syntax match CocDiagnosticsWarning /\\tWarning\\t/ contained containedin=CocDiagnosticsLine', true)
-    nvim.command('syntax match CocDiagnosticsInfo /\\tInformation\\t/ contained containedin=CocDiagnosticsLine', true)
-    nvim.command('syntax match CocDiagnosticsHint /\\tHint\\t/ contained containedin=CocDiagnosticsLine', true)
+    nvim.command('syntax match CocDiagnosticsError /\\tError\\s*\\t/ contained containedin=CocDiagnosticsLine', true)
+    nvim.command('syntax match CocDiagnosticsWarning /\\tWarning\\s*\\t/ contained containedin=CocDiagnosticsLine', true)
+    nvim.command('syntax match CocDiagnosticsInfo /\\tInformation\\s*\\t/ contained containedin=CocDiagnosticsLine', true)
+    nvim.command('syntax match CocDiagnosticsHint /\\tHint\\s*\\t/ contained containedin=CocDiagnosticsLine', true)
     nvim.command('highlight default link CocDiagnosticsFile Comment', true)
     nvim.command('highlight default link CocDiagnosticsError CocErrorSign', true)
     nvim.command('highlight default link CocDiagnosticsWarning CocWarningSign', true)
@@ -40,3 +49,4 @@ export default class DiagnosticsList extends LocationList {
     })
   }
 }
+

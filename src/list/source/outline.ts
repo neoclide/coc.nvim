@@ -11,6 +11,7 @@ import workspace from '../../workspace'
 import LocationList from './location'
 import { getSymbolKind } from '../../util/convert'
 import { CancellationToken } from 'vscode-languageserver-protocol'
+import { formatListItems, UnformattedListItem } from '../formatting'
 const logger = require('../../util/logger')('list-symbols')
 
 function getFilterText(s: DocumentSymbol | SymbolInformation, kind: string | null): string {
@@ -41,7 +42,7 @@ export default class Outline extends LocationList {
     if (!symbols) return await this.loadCtagsSymbols(document)
     if (symbols.length == 0) return []
     let filterKind = args.kind ? (args.kind as string).toLowerCase() : null
-    let items: ListItem[] = []
+    let items: UnformattedListItem[] = []
     let isSymbols = !symbols[0].hasOwnProperty('location')
     if (isSymbols) {
       // eslint-disable-next-line no-inner-declarations
@@ -51,7 +52,7 @@ export default class Outline extends LocationList {
           let kind = getSymbolKind(s.kind)
           let location = Location.create(document.uri, s.selectionRange)
           items.push({
-            label: `${'| '.repeat(level)}${s.name}\t[${kind}]\t${s.range.start.line + 1}`,
+            label: [`${'| '.repeat(level)}${s.name}`, `[${kind}]`, `${s.range.start.line + 1}`],
             filterText: getFilterText(s, args.kind == '' ? kind : null),
             location,
             data: { kind }
@@ -82,19 +83,19 @@ export default class Outline extends LocationList {
           s.location.uri = document.uri
         }
         items.push({
-          label: `${s.name} [${kind}] ${s.location.range.start.line + 1}`,
+          label: [s.name, `[${kind}]`, `${s.location.range.start.line + 1}`],
           filterText: getFilterText(s, args.kind == '' ? kind : null),
           location: s.location
         })
       }
     }
-    return items
+    return formatListItems(this.alignColumns, items)
   }
 
   public doHighlight(): void {
     let { nvim } = this
     nvim.pauseNotification()
-    nvim.command('syntax match CocOutlineName /\\v\\s?[^\t]+\\s/ contained containedin=CocOutlineLine', true)
+    nvim.command('syntax match CocOutlineName /\\v\\s?[^\\t]+\\s/ contained containedin=CocOutlineLine', true)
     nvim.command('syntax match CocOutlineIndentLine /\\v\\|/ contained containedin=CocOutlineLine,CocOutlineName', true)
     nvim.command('syntax match CocOutlineKind /\\[\\w\\+\\]/ contained containedin=CocOutlineLine', true)
     nvim.command('syntax match CocOutlineLine /\\d\\+$/ contained containedin=CocOutlineLine', true)

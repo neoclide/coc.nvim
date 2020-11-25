@@ -5,6 +5,7 @@ import Mru from '../../model/mru'
 import { ListContext, ListItem } from '../../types'
 import workspace from '../../workspace'
 import BasicList from '../basic'
+import { formatListItems, UnformattedListItem } from '../formatting'
 
 export default class CommandsList extends BasicList {
   public defaultAction = 'run'
@@ -28,20 +29,20 @@ export default class CommandsList extends BasicList {
   }
 
   public async loadItems(_context: ListContext): Promise<ListItem[]> {
-    let items: ListItem[] = []
+    let items: UnformattedListItem[] = []
     let list = commandManager.commandList
     let { titles } = commandManager
     let mruList = await this.mru.load()
     for (const o of list) {
       const { id } = o
       items.push({
-        label: `${id}\t${titles.get(id) || ''}`,
+        label: [id, ...(titles.get(id) ? [titles.get(id)] : [])],
         filterText: id,
         data: { cmd: id, score: score(mruList, id) }
       })
     }
     items.sort((a, b) => b.data.score - a.data.score)
-    return items
+    return formatListItems(this.alignColumns, items)
   }
 
   public doHighlight(): void {
