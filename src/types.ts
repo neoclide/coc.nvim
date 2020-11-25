@@ -42,6 +42,7 @@ export interface DialogPreferences {
   floatBorderHighlight?: string
   pickerButtons?: boolean
   pickerButtonShortcut?: boolean
+  confirmKey?: string
 }
 
 export interface DialogConfig {

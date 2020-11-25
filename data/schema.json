@@ -640,7 +640,7 @@
     },
     "diagnostic.format": {
       "type": "string",
-      "description": "Define the diagnostic format. Available parts: source, code, severity, message",
+      "description": "Define the diagnostic format that shown in float window or echoed, available parts: source, code, severity, message",
       "default": "[%source%code] [%severity] %message"
     },
     "diagnostic.separateRelatedInformationAsDiagnostics": {
@@ -740,6 +740,11 @@
       "type": "number",
       "default": 80,
       "description": "Maximum width of dialog window."
+    },
+    "dialog.confirmKey": {
+      "type": "string",
+      "default": "<cr>",
+      "description": "Confirm key for confirm selection used by menu and picker, you can always use <esc> to cancel."
     },
     "dialog.pickerButtons": {
       "type": "boolean",
@@ -861,12 +866,12 @@
     },
     "list.source.diagnostics.includeCode": {
       "type": "boolean",
-      "description":"Whether to show the diagnostic code in the list.",
+      "description": "Whether to show the diagnostic code in the list.",
       "default": true
     },
-   "list.source.diagnostics.pathFormat": {
+    "list.source.diagnostics.pathFormat": {
       "type": "string",
-      "description":"Decide how the filepath is shown in the list.",
+      "description": "Decide how the filepath is shown in the list.",
       "enum": ["full", "short", "filename", "hidden"],
       "default": "full"
     },

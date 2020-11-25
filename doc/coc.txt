@@ -527,6 +527,11 @@ Built-in configurations:~
 
 	Maximum height of dialog window.
 
+"dialog.confirmKey":~
+
+	Confirm key for confirm selection used by menu and picker, you can
+	always use <esc> to cancel, default to `<cr>`.
+
 "dialog.pickerButtons":~
 
 	Show buttons for picker dialog window/popup, default `true`.

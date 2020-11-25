@@ -176,6 +176,12 @@ export default class Picker {
       let shortcut = preferences.pickerButtonShortcut
       opts.buttons = ['Submit' + (shortcut ? ' <cr>' : ''), 'Cancel' + (shortcut ? ' <esc>' : '')]
     }
+    if (preferences.confirmKey && preferences.confirmKey != '<cr>') {
+      this.addKeys(preferences.confirmKey, () => {
+        this._onDidClose.fire(undefined)
+        this.dispose()
+      })
+    }
     let lines = []
     let positions: [number, number][] = []
     for (let i = 0; i < items.length; i++) {

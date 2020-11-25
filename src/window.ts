@@ -394,6 +394,7 @@ class Window {
       floatBorderHighlight: config.get<string>('floatBorderHighlight'),
       pickerButtons: config.get<boolean>('pickerButtons'),
       pickerButtonShortcut: config.get<boolean>('pickerButtonShortcut'),
+      confirmKey: config.get<string>('confirmKey'),
     }
   }
 
