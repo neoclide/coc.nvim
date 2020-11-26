@@ -1595,10 +1595,12 @@ coc#float#has_scroll() 					*coc#float#has_scroll()*
 	有可滚动的浮动窗口时，返回 `1`. 比如:
 >
 	if has('nvim-0.4.0') || has('patch-8.2.0750')
-	  nnoremap <nowait><expr> <C-f> coc#float#has_scroll() ? coc#float#scroll(1) : "\<C-f>"
-	  nnoremap <nowait><expr> <C-b> coc#float#has_scroll() ? coc#float#scroll(0) : "\<C-b>"
-	  inoremap <nowait><expr> <C-f> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(1)\<cr>" : "\<Right>"
-	  inoremap <nowait><expr> <C-b> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(0)\<cr>" : "\<Left>"
+	  nnoremap <silent><nowait><expr> <C-f> coc#float#has_scroll() ? coc#float#scroll(1) : "\<C-f>"
+	  nnoremap <silent><nowait><expr> <C-b> coc#float#has_scroll() ? coc#float#scroll(0) : "\<C-b>"
+	  inoremap <silent><nowait><expr> <C-f> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(1)\<cr>" : "\<Right>"
+	  inoremap <silent><nowait><expr> <C-b> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(0)\<cr>" : "\<Left>"
+	  vnoremap <silent><nowait><expr> <C-f> coc#float#has_scroll() ? coc#float#scroll(1) : "\<C-f>"
+	  vnoremap <silent><nowait><expr> <C-b> coc#float#has_scroll() ? coc#float#scroll(0) : "\<C-b>"
 	endif
 <
 coc#float#scroll({forward}, [{amount}])                 *coc#float#scroll()*
@@ -1609,14 +1611,7 @@ coc#float#scroll({forward}, [{amount}])                 *coc#float#scroll()*
 
 coc#float#nvim_scroll({forward}, [{amount}]) 		*coc#float#nvim_scroll()*
 
-	Neovim 独有的滚动浮动窗口，示例:
->
-	if has('nvim')
-	  vnoremap <nowait><expr> <C-f> coc#float#has_scroll() ? coc#float#nvim_scroll(1, 1) : "\<C-f>"
-	  vnoremap <nowait><expr> <C-b> coc#float#has_scroll() ? coc#float#nvim_scroll(0, 1) : "\<C-b>"
-	endif
-<
-	Note: 此功能主要用于滚动函数签名文档，其他情况请使用 |coc#float#scroll|.
+	已废弃。
 
 						*CocRequest()*
 CocRequest({id}, {method}, [{params}])
