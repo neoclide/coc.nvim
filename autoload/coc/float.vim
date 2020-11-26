@@ -6,7 +6,7 @@ let s:borderjoinchars = get(g:, 'coc_border_joinchars', ['┬', '┤', '┴', '�
 let s:prompt_win_width = get(g:, 'coc_prompt_win_width', 32)
 let s:prompt_win_bufnr = 0
 let s:float_supported = exists('*nvim_open_win') || has('patch-8.1.1719')
-" winvar: border array of numbers,  button boolean 
+" winvar: border array of numbers,  button boolean
 
 " detect if there's float window/popup created by coc.nvim
 function! coc#float#has_float() abort
@@ -651,131 +651,47 @@ function! coc#float#scroll(forward, ...)
     throw 'coc#float#scroll() requires nvim >= 0.4.0 or vim >= 8.2.0750'
   endif
   let amount = get(a:, 1, 0)
-  let win_ids = filter(coc#float#get_float_win_list(), 'coc#float#scrollable(v:val)')
-  if empty(win_ids)
+  let winids = filter(coc#float#get_float_win_list(), 'coc#float#scrollable(v:val)')
+  if empty(winids)
     return ''
   endif
-  if has('nvim')
-    call timer_start(10, { -> s:scroll_nvim(win_ids, a:forward, amount)})
-  else
-    call timer_start(10, { -> s:scroll_vim(win_ids, a:forward, amount)})
+  for winid in winids
+    call coc#float#scroll_win(winid, a:forward, amount)
+  endfor
+  return mode() =~ '^i' || mode() ==# 'v' ? "" : "\<Ignore>"
+endfunction
+
+function! coc#float#scroll_win(winid, forward, amount) abort
+  let opts = s:get_options(a:winid)
+  let lines = getbufline(winbufnr(a:winid), 1, '$')
+  let maxfirst = s:max_firstline(lines, opts['height'], opts['width'])
+  let topline = opts['topline']
+  let height = opts['height']
+  let width = opts['width']
+  let scrolloff = getwinvar(a:winid, '&scrolloff', 0)
+  if a:forward && topline >= maxfirst
+    return
   endif
-  return mode() =~ '^i' ? "" : "\<Ignore>"
-endfunction
-
-function! s:scroll_nvim(win_ids, forward, amount) abort
-  let curr = win_getid()
-  for id in a:win_ids
-    if nvim_win_is_valid(id)
-      let wrapped = 0
-      let width = nvim_win_get_width(id)
-      if getwinvar(id, '&wrap', 0)
-        if width > 1 && getwinvar(id, '&foldcolumn', 0)
-          let width = width - 1
-        endif
-        for line in nvim_buf_get_lines(winbufnr(id), 0, -1, v:false)
-          if strdisplaywidth(line) > width
-            let wrapped = 1
-            break
-          endif
-        endfor
-      endif
-      noa call win_gotoid(id)
-      let height = float2nr(nvim_win_get_height(id))
-      let firstline = line('w0')
-      let lastline = line('w$')
-      let linecount = line('$')
-      let delta = a:amount ? a:amount : max([1, height - 1])
-      if a:forward
-        if lastline == linecount && strdisplaywidth(line('$')) <= width
-          continue
-        endif
-        if !a:amount && firstline != lastline
-          execute 'noa normal! Lzt'
-        else
-          execute 'noa normal! H'.delta.'jzt'
-        endif
-        let lnum = line('.')
-        while lnum < linecount && line('w0') == firstline && line('w$') == lastline
-          execute 'noa normal! jzt'
-          let lnum = lnum + 1
-        endwhile
-      else
-        if !a:amount && firstline != lastline
-          execute 'noa normal! Hzb'
-        else
-          execute 'noa normal! L'.delta.'kzb'
-        endif
-        let lnum = line('.')
-        while lnum > 1 && line('w0') == firstline && line('w$') == lastline
-          execute 'noa normal! kzb'
-          let lnum = lnum - 1
-        endwhile
-      endif
-      call coc#float#nvim_scrollbar(id)
+  if !a:forward && topline == 1
+    return
+  endif
+  if a:amount == 0
+    let topline = s:get_topline(opts['topline'], lines, a:forward, height, width)
+  else
+    let topline = topline + (a:forward ? a:amount : - a:amount)
+  endif
+  let topline = a:forward ? min([maxfirst, topline]) : max([1, topline])
+  let lnum = s:get_cursorline(topline, lines, scrolloff, width, height)
+  call s:win_setview(a:winid, topline, lnum)
+  let top = s:get_options(a:winid)['topline']
+  " not changed
+  if top == opts['topline']
+    if a:forward
+      call s:win_setview(a:winid, topline + 1, lnum + 1)
+    else
+      call s:win_setview(a:winid, topline - 1, lnum - 1)
     endif
-  endfor
-  noa call win_gotoid(curr)
-  redraw
-endfunction
-
-function! s:scroll_vim(win_ids, forward, amount) abort
-  for id in a:win_ids
-    if s:popup_visible(id)
-      let pos = popup_getpos(id)
-      let bufnr = winbufnr(id)
-      let linecount = len(getbufline(bufnr, 1, '$'))
-      " for forward use last line (or last line + 1) as first line
-      if a:forward
-        if pos['firstline'] == pos['lastline']
-          call popup_setoptions(id, {'firstline': min([pos['firstline'] + 1, linecount])})
-        else
-          if pos['lastline'] == linecount
-            let win_width = pos['core_width']
-            let text = getbufline(bufnr, '$')[0]
-            if strdisplaywidth(text) <= win_width
-              " last line shown
-              return
-            endif
-          endif
-          let lnum = a:amount ? min([linecount, pos['firstline'] + a:amount]) : pos['lastline']
-          call popup_setoptions(id, {'firstline': lnum})
-        endif
-      else
-        if pos['firstline'] == 1
-          call win_execute(id, 'normal! gg0')
-          return
-        endif
-        " we could only change firstline
-        " iterate lines before last lines to fill content height - 1
-        let total_height = a:amount ? min([a:amount, pos['core_height']]) : pos['core_height'] - 1
-        if total_height == 0
-          call popup_setoptions(id, {'firstline': pos['firstline'] - 1})
-        else
-          let lines = getbufline(bufnr, 1, '$')
-          let curr = pos['firstline'] - 1
-          let width = pos['core_width']
-          let used = 0
-          while v:true
-            if curr == 1
-              break
-            endif
-            let w = max([1, strdisplaywidth(lines[curr - 1])])
-            let used += float2nr(ceil(str2float(string(w))/width))
-            if used > total_height
-              let curr = curr == pos['firstline'] -1 ? curr : curr + 1
-              break
-            elseif used == total_height
-              break
-            endif
-            let curr = curr - 1
-          endwhile
-          call popup_setoptions(id, {'firstline': curr})
-        endif
-      endif
-    endif
-  endfor
-  redraw
+  endif
 endfunction
 
 function! s:popup_visible(id) abort
@@ -900,6 +816,7 @@ endfunction
 " Only really useful for visual mode scroll, where coc#float#scroll
 " is not yet implemented
 function! coc#float#nvim_scroll(forward, ...)
+  echohl WarningMsg | echon 'coc#float#nvim_scroll is deprecated, use coc#float#scroll instead' | echohl None
   let float = coc#float#get_float_win()
   if !float | return '' | endif
   let buf = nvim_win_get_buf(float)
@@ -1522,4 +1439,107 @@ function! s:is_blocking() abort
     return 1
   endif
   return 0
+endfunction
+
+" max firstline of lines, height > 0, width > 0
+function! s:max_firstline(lines, height, width) abort
+  let max = len(a:lines)
+  let remain = a:height
+  for line in reverse(copy(a:lines))
+    let w = max([1, strdisplaywidth(line)])
+    let dh = float2nr(ceil(str2float(string(w))/a:width))
+    if remain - dh < 0
+      break
+    endif
+    let remain = remain - dh
+    let max = max - 1
+  endfor
+  return min([len(a:lines), max + 1])
+endfunction
+
+" Get best lnum by topline
+function! s:get_cursorline(topline, lines, scrolloff, width, height) abort
+  let lastline = len(a:lines)
+  if a:topline == lastline
+    return lastline
+  endif
+  let bottomline = a:topline
+  let used = 0
+  for lnum in range(a:topline, lastline)
+    let w = max([1, strdisplaywidth(a:lines[lnum - 1])])
+    let dh = float2nr(ceil(str2float(string(w))/a:width))
+    let g:l = a:lines
+    if used + dh >= a:height || lnum == lastline
+      let bottomline = lnum
+      break
+    endif
+    let used += dh
+  endfor
+  let cursorline = a:topline + a:scrolloff
+  let g:b = bottomline
+  let g:h = a:height
+  if cursorline + a:scrolloff > bottomline
+    " unable to satisfy scrolloff
+    let cursorline = (a:topline + bottomline)/2
+  endif
+  return cursorline
+endfunction
+
+" Get firstline for full scroll
+function! s:get_topline(topline, lines, forward, height, width) abort
+  let used = 0
+  let lnums = a:forward ? range(a:topline, len(a:lines)) : reverse(range(1, a:topline))
+  let topline = a:forward ? len(a:lines) : 1
+  for lnum in lnums
+    let w = max([1, strdisplaywidth(a:lines[lnum - 1])])
+    let dh = float2nr(ceil(str2float(string(w))/a:width))
+    if used + dh >= a:height
+      let topline = lnum
+      break
+    endif
+    let used += dh
+  endfor
+  if topline == a:topline
+    if a:forward
+      let topline = min([len(a:lines), topline + 1])
+    else
+      let topline = max([1, topline - 1])
+    endif
+  endif
+  return topline
+endfunction
+
+" topline content_height content_width
+function! s:get_options(winid) abort
+  if has('nvim')
+    let width = nvim_win_get_width(a:winid)
+    if getwinvar(a:winid, '&foldcolumn', 0)
+      let width = width - 1
+    endif
+    let info = getwininfo(a:winid)[0]
+    return {
+      \ 'topline': info['topline'],
+      \ 'height': nvim_win_get_height(a:winid),
+      \ 'width': width
+      \ }
+  else
+    let pos = popup_getpos(a:winid)
+    return {
+      \ 'topline': pos['firstline'],
+      \ 'width': pos['core_width'],
+      \ 'height': pos['core_height']
+      \ }
+  endif
+endfunction
+
+function! s:win_setview(winid, topline, lnum) abort
+  if has('nvim')
+    call coc#compat#execute(a:winid, 'call winrestview({"lnum":'.a:lnum.',"topline":'.a:topline.'})')
+    call timer_start(10, { -> coc#float#nvim_refresh_scrollbar(a:winid) })
+  else
+    call coc#compat#execute(a:winid, 'exe '.a:lnum)
+    call popup_setoptions(a:winid, {
+          \ 'firstline': a:topline,
+          \ })
+  endif
 endfunction
