@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "14ac4e5105" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "a237a0499f" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -43033,6 +43033,7 @@ class Window {
             floatBorderHighlight: config.get('floatBorderHighlight'),
             pickerButtons: config.get('pickerButtons'),
             pickerButtonShortcut: config.get('pickerButtonShortcut'),
+            confirmKey: config.get('confirmKey'),
         };
     }
     checkDialog() {
@@ -43271,6 +43272,12 @@ class Menu {
                 return `${i + 1}. ${v}`;
             return v;
         });
+        if (preferences.confirmKey && preferences.confirmKey != '<cr>') {
+            this.addKeys(preferences.confirmKey, () => {
+                this._onDidClose.fire(this.currIndex);
+                this.dispose();
+            });
+        }
         let res = await nvim.call('coc#float#create_menu', [lines, opts]);
         this.win = new popup_1.default(nvim, res[0], res[1]);
         this.bufnr = res[1];
@@ -43613,6 +43620,12 @@ class Picker {
         if (preferences.pickerButtons) {
             let shortcut = preferences.pickerButtonShortcut;
             opts.buttons = ['Submit' + (shortcut ? ' <cr>' : ''), 'Cancel' + (shortcut ? ' <esc>' : '')];
+        }
+        if (preferences.confirmKey && preferences.confirmKey != '<cr>') {
+            this.addKeys(preferences.confirmKey, () => {
+                this._onDidClose.fire(undefined);
+                this.dispose();
+            });
         }
         let lines = [];
         let positions = [];

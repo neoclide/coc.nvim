@@ -287,8 +287,11 @@ Try these steps when you have problem with coc.nvim.
 
 [Become a backer](https://opencollective.com/cocnvim#backer) and get your image on our README on Github with a link to your site.
 
-<a href="https://opencollective.com/webpack/backer/0/website?requireActive=false" target="_blank"><img src="https://opencollective.com/webpack/backer/0/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/webpack/backer/1/website?requireActive=false" target="_blank"><img src="https://opencollective.com/webpack/backer/1/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/0/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/0/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/1/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/1/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/2/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/2/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/3/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/3/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/4/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/4/avatar.svg?requireActive=false"></a>
 
 <a href="https://opencollective.com/cocnvim#backer" target="_blank"><img src="https://images.opencollective.com/static/images/become_backer.svg"></a>
 
