@@ -36,6 +36,7 @@ export default class ListUI {
   private items: ListItem[] = []
   private disposables: Disposable[] = []
   private signOffset: number
+  private matchHighlightGroup: string
   private selected: Set<number> = new Set()
   private mouseDown: MousePosition
   private mutex: Mutex = new Mutex()
@@ -57,6 +58,7 @@ export default class ListUI {
     private config: ListConfiguration
   ) {
     this.signOffset = config.get<number>('signOffset')
+    this.matchHighlightGroup = config.get<string>('matchHighlightGroup', 'Search')
     this.newTab = listOptions.position == 'tab'
     events.on('BufWinLeave', async bufnr => {
       if (bufnr != this.bufnr || this.window == null) return
@@ -461,7 +463,7 @@ export default class ListUI {
       if (highlight) {
         let { spans, hlGroup } = highlight
         for (let span of spans) {
-          groups.push({ hlGroup: hlGroup || 'Search', priority: 11, pos: [i + 1, span[0] + 1, span[1] - span[0]] })
+          groups.push({ hlGroup: hlGroup || this.matchHighlightGroup, priority: 11, pos: [i + 1, span[0] + 1, span[1] - span[0]] })
         }
       }
     }

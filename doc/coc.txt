@@ -600,6 +600,11 @@ Built-in configurations:~
 
 	Max height for preview window of list, default: `12`
 
+"list.matchHighlightGroup":~
+
+	Highlight group used for matched texts in list window.
+	default: `"Search"`
+
 "list.previewHighlightGroup":~
 
 	Highlight group used for highlighting the range in preview window,
