@@ -95,7 +95,7 @@ describe('window functions', () => {
     await helper.wait(50)
     buf = await nvim.buffer
     name = await buf.name
-    expect(name).toMatch('channel_name_with_space')
+    expect(name).toMatch('channelnamewithspace')
   })
 
   it('should not show none exists channel', async () => {

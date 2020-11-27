@@ -29,7 +29,7 @@ export class Channels {
   }
 
   public get names(): string[] {
-    return Array.from(outputChannels.keys()).map(n => n.replace(/_/g, ' '))
+    return Array.from(outputChannels.keys())
   }
 
   public get(channelName: string): OutputChannel | null {
@@ -37,7 +37,7 @@ export class Channels {
   }
 
   public create(name: string, nvim: Neovim): OutputChannel | null {
-    name = name.replace(/\s/g, '_')
+    name = name.replace(/\s/g, '')
     if (outputChannels.has(name)) return outputChannels.get(name)
     let channel = new BufferChannel(name, nvim)
     outputChannels.set(name, channel)
@@ -45,7 +45,7 @@ export class Channels {
   }
 
   public show(name: string, preserveFocus?: boolean): void {
-    name = name.replace(/\s/g, '_')
+    name = name.replace(/\s/g, '')
     let channel = outputChannels.get(name)
     if (!channel) return
     channel.show(preserveFocus)
