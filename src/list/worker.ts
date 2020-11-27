@@ -238,7 +238,7 @@ export default class Worker {
     }
     let filtered: ListItem[] | ExtendedItem[]
     if (input.length > 0) {
-      let inputs = this.config.extendedSearchMode ? input.split(/\s+/) : [input]
+      let inputs = this.config.extendedSearchMode ? parseInput(input) : [input]
       if (matcher == 'strict') {
         filtered = items.filter(item => {
           let spans: [number, number][] = []
@@ -378,4 +378,31 @@ function getItemUri(item: ListItem): string {
   let { location } = item
   if (typeof location == 'string') return location
   return location.uri
+}
+
+/**
+ * `a\ b` => [`a b`]
+ * `a b` =>  ['a', 'b']
+ */
+export function parseInput(input): string[] {
+  let res = []
+  let startIdx = 0
+  let currIdx = 0
+  let prev = ''
+  for (; currIdx < input.length; currIdx++) {
+    let ch = input[currIdx]
+    if (ch.charCodeAt(0) === 32) {
+      // find space
+      if (prev && prev != '\\' && startIdx != currIdx) {
+        res.push(input.slice(startIdx, currIdx))
+        startIdx = currIdx + 1
+      }
+    } else {
+    }
+    prev = ch
+  }
+  if (startIdx != input.length) {
+    res.push(input.slice(startIdx, input.length))
+  }
+  return res.map(s => s.replace(/\\\s/g, ' ').trim()).filter(s => s.length > 0)
 }
