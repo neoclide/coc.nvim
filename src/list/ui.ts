@@ -2,11 +2,11 @@ import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { CancellationToken, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
-import { ListHighlights, ListItem, ListOptions } from '../types'
+import { ListItem, ListItemWithHighlights, ListOptions } from '../types'
 import { disposeAll } from '../util'
 import { Mutex } from '../util/mutex'
-import workspace from '../workspace'
 import window from '../window'
+import workspace from '../workspace'
 import ListConfiguration from './configuration'
 const logger = require('../util/logger')('list-ui')
 
@@ -32,8 +32,7 @@ export default class ListUI {
   private buffer: Buffer
   private currIndex = 0
   private drawCount = 0
-  private highlights: ListHighlights[] = []
-  private items: ListItem[] = []
+  private items: ListItemWithHighlights[] = []
   private disposables: Disposable[] = []
   private signOffset: number
   private matchHighlightGroup: string
@@ -449,19 +448,18 @@ export default class ListUI {
 
   private doHighlight(start: number, end: number): void {
     let { nvim } = workspace
-    let { highlights, items } = this
+    let { items } = this
     let groups: HighlightGroup[] = []
     for (let i = start; i <= Math.min(end, items.length - 1); i++) {
-      let { ansiHighlights } = items[i]
-      let highlight = highlights[i]
+      let { ansiHighlights, highlights } = items[i]
       if (ansiHighlights) {
         for (let hi of ansiHighlights) {
           let { span, hlGroup } = hi
           groups.push({ hlGroup, priority: 9, pos: [i + 1, span[0] + 1, span[1] - span[0]] })
         }
       }
-      if (highlight) {
-        let { spans, hlGroup } = highlight
+      if (highlights && Array.isArray(highlights.spans)) {
+        let { spans, hlGroup } = highlights
         for (let span of spans) {
           groups.push({ hlGroup: hlGroup || this.matchHighlightGroup, priority: 11, pos: [i + 1, span[0] + 1, span[1] - span[0]] })
         }
@@ -477,17 +475,6 @@ export default class ListUI {
     // change index since CursorMoved event not fired (seems bug of neovim)!
     this.onLineChange(lnum - 1)
     if (window) window.notify('nvim_win_set_cursor', [[lnum, col]])
-  }
-
-  public addHighlights(highlights: ListHighlights[], append = false): void {
-    let { limitLines } = this
-    if (!append) {
-      this.highlights = highlights.slice(0, limitLines)
-    } else {
-      if (this.highlights.length < limitLines) {
-        this.highlights.push(...highlights.slice(0, limitLines - this.highlights.length))
-      }
-    }
   }
 
   private async getSelectedRange(): Promise<[number, number]> {

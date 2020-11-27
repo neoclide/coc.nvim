@@ -892,9 +892,13 @@ export interface LocationWithLine {
 export interface ListItem {
   label: string
   filterText?: string
+  /**
+   * A string that should be used when comparing this item
+   * with other items, only used for fuzzy filter.
+   */
+  sortText?: string
   location?: Location | LocationWithLine | string
   data?: any
-  recentScore?: number
   ansiHighlights?: AnsiHighlight[]
   resolved?: boolean
 }
@@ -905,6 +909,10 @@ export interface ListHighlights {
   hlGroup?: string
 }
 
+export interface ListItemWithHighlights extends ListItem {
+  highlights?: ListHighlights
+}
+
 export interface AnsiHighlight {
   // column indexes, end exclusive
   span: [number, number]
@@ -913,7 +921,6 @@ export interface AnsiHighlight {
 
 export interface ListItemsEvent {
   items: ListItem[]
-  highlights: ListHighlights[]
   finished: boolean
   append?: boolean
   reload?: boolean
@@ -983,6 +990,10 @@ export interface IList {
    * Default action name.
    */
   defaultAction: string
+  /**
+   * Sort the result items by fzy score, default false.
+   */
+  fzySort?: boolean
   /**
    * Load list items.
    */

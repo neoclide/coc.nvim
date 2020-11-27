@@ -54,10 +54,10 @@ function compute(needle, haystack, D, M): void {
 
   let match_bonus = precompute_bonus(haystack)
 
-	/*
-	 * D[][] Stores the best score for this position ending with a match.
-	 * M[][] Stores the best possible score at this position.
-	 */
+  /*
+   * D[][] Stores the best score for this position ending with a match.
+   * M[][] Stores the best possible score at this position.
+   */
 
   for (let i = 0; i < n; i++) {
     D[i] = new Array(m)
@@ -96,19 +96,19 @@ export function score(needle, haystack): number {
     return SCORE_MIN
 
   if (n === m) {
-		/* Since this method can only be called with a haystack which
-		 * matches needle. If the lengths of the strings are equal the
-		 * strings themselves must also be equal (ignoring case).
-		 */
+    /* Since this method can only be called with a haystack which
+     * matches needle. If the lengths of the strings are equal the
+     * strings themselves must also be equal (ignoring case).
+     */
     return SCORE_MAX
   }
 
   if (m > 1024) {
-		/*
-		 * Unreasonably large candidate: return no score
-		 * If it is a valid match it will still be returned, it will
-		 * just be ranked below any reasonably sized candidates
-		 */
+    /*
+     * Unreasonably large candidate: return no score
+     * If it is a valid match it will still be returned, it will
+     * just be ranked below any reasonably sized candidates
+     */
     return SCORE_MIN
   }
 
@@ -149,20 +149,20 @@ export function positions(needle: string, haystack: string): number[] {
 
   for (let i = n - 1, j = m - 1; i >= 0; i--) {
     for (; j >= 0; j--) {
-			/*
-			 * There may be multiple paths which result in
-			 * the optimal weight.
-			 *
-			 * For simplicity, we will pick the first one
-			 * we encounter, the latest in the candidate
-			 * string.
-			 */
+      /*
+       * There may be multiple paths which result in
+       * the optimal weight.
+       *
+       * For simplicity, we will pick the first one
+       * we encounter, the latest in the candidate
+       * string.
+       */
       if (D[i][j] !== SCORE_MIN &&
         (match_required || D[i][j] === M[i][j])) {
-				/* If this score was determined using
-				 * SCORE_MATCH_CONSECUTIVE, the
-				 * previous character MUST be a match
-				 */
+        /* If this score was determined using
+         * SCORE_MATCH_CONSECUTIVE, the
+         * previous character MUST be a match
+         */
         match_required =
           i && j &&
           M[i][j] === D[i - 1][j - 1] + SCORE_MATCH_CONSECUTIVE
@@ -175,7 +175,7 @@ export function positions(needle: string, haystack: string): number[] {
   return positions
 }
 
-export function hasMatch(needle, haystack): boolean {
+export function hasMatch(needle: string, haystack: string): boolean {
   needle = needle.toLowerCase()
   haystack = haystack.toLowerCase()
   let l = needle.length

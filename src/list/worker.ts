@@ -1,22 +1,20 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Emitter, Event } from 'vscode-languageserver-protocol'
-import { URI } from 'vscode-uri'
+import { ListItemWithHighlights } from '..'
 import { IList, ListContext, ListHighlights, ListItem, ListItemsEvent, ListOptions, ListTask } from '../types'
 import { parseAnsiHighlights } from '../util/ansiparse'
 import { patchLine } from '../util/diff'
 import { hasMatch, positions, score } from '../util/fzy'
 import { getMatchResult } from '../util/score'
 import { byteIndex, byteLength } from '../util/string'
-import workspace from '../workspace'
 import window from '../window'
+import workspace from '../workspace'
 import Prompt from './prompt'
 const logger = require('../util/logger')('list-worker')
 const controlCode = '\x1b'
 
 export interface ExtendedItem extends ListItem {
   score: number
-  matches: number[]
-  filterLabel: string
 }
 
 export interface WorkerConfiguration {
@@ -26,7 +24,6 @@ export interface WorkerConfiguration {
 
 // perform loading task
 export default class Worker {
-  private recentFiles: string[] = []
   private _loading = false
   private totalItems: ListItem[] = []
   private tokenSource: CancellationTokenSource
@@ -42,10 +39,6 @@ export default class Worker {
     private listOptions: ListOptions,
     private config: WorkerConfiguration
   ) {
-    let mru = workspace.createMru('mru')
-    mru.load().then(files => {
-      this.recentFiles = files
-    }).logError()
   }
 
   private set loading(loading: boolean) {
@@ -75,17 +68,14 @@ export default class Worker {
         return item
       })
       this.loading = false
-      let highlights: ListHighlights[] = []
+      let filtered: ListItemWithHighlights[]
       if (!interactive) {
-        let res = this.filterItems(items)
-        items = res.items
-        highlights = res.highlights
+        filtered = this.filterItems(items)
       } else {
-        highlights = this.getItemsHighlight(items)
+        filtered = this.convertToHighlightItems(items)
       }
       this._onDidChangeItems.fire({
-        items,
-        highlights,
+        items: filtered,
         reload,
         finished: true
       })
@@ -105,30 +95,22 @@ export default class Worker {
           currInput = this.input
           count = totalItems.length
           let items: ListItem[]
-          let highlights: ListHighlights[] = []
           if (interactive) {
-            items = totalItems.slice()
-            highlights = this.getItemsHighlight(items)
+            items = this.convertToHighlightItems(totalItems)
           } else {
-            let res = this.filterItems(totalItems)
-            items = res.items
-            highlights = res.highlights
+            items = this.filterItems(totalItems)
           }
-          this._onDidChangeItems.fire({ items, highlights, reload, append: false, finished })
+          this._onDidChangeItems.fire({ items, reload, append: false, finished })
         } else {
           let remain = totalItems.slice(count)
           count = totalItems.length
           let items: ListItem[]
-          let highlights: ListHighlights[] = []
           if (!interactive) {
-            let res = this.filterItems(remain)
-            items = res.items
-            highlights = res.highlights
+            items = this.filterItems(remain)
           } else {
-            items = remain
-            highlights = this.getItemsHighlight(remain)
+            items = this.convertToHighlightItems(remain)
           }
-          this._onDidChangeItems.fire({ items, highlights, append: true, finished })
+          this._onDidChangeItems.fire({ items, append: true, finished })
         }
       }
       task.on('data', item => {
@@ -153,7 +135,7 @@ export default class Worker {
         disposable.dispose()
         if (timer) clearTimeout(timer)
         if (totalItems.length == 0) {
-          this._onDidChangeItems.fire({ items: [], highlights: [], finished: true })
+          this._onDidChangeItems.fire({ items: [], finished: true })
         } else {
           _onData(true)
         }
@@ -184,16 +166,13 @@ export default class Worker {
    */
   public drawItems(): void {
     let { totalItems, listOptions } = this
-    let items = totalItems
-    let highlights: ListHighlights[] = []
-    if (!listOptions.interactive) {
-      let res = this.filterItems(totalItems)
-      items = res.items
-      highlights = res.highlights
+    let items: ListItemWithHighlights[]
+    if (listOptions.interactive) {
+      items = this.convertToHighlightItems(totalItems)
     } else {
-      highlights = this.getItemsHighlight(items)
+      items = this.filterItems(totalItems)
     }
-    this._onDidChangeItems.fire({ items, highlights, finished: true })
+    this._onDidChangeItems.fire({ items, finished: true })
   }
 
   public stop(): void {
@@ -212,123 +191,118 @@ export default class Worker {
     return this.prompt.input
   }
 
-  private getItemsHighlight(items: ListItem[]): ListHighlights[] {
+  /**
+   * Add highlights for interactive list
+   */
+  private convertToHighlightItems(items: ListItem[]): ListItemWithHighlights[] {
     let { input } = this
     if (!input) return []
     return items.map(item => {
       let filterLabel = getFilterLabel(item)
-      if (filterLabel == '') return null
+      if (filterLabel == '') return item
       let res = getMatchResult(filterLabel, input)
-      if (!res || !res.score) return null
-      return this.getHighlights(filterLabel, res.matches)
+      if (!res || !res.score) return item
+      let highlights = this.getHighlights(filterLabel, res.matches)
+      return Object.assign({}, item, { highlights })
     })
   }
 
-  private filterItems(items: ListItem[]): { items: ListItem[]; highlights: ListHighlights[] } {
+  private filterItems(items: ListItem[]): ListItemWithHighlights[] {
     let { input } = this
-    let highlights: ListHighlights[] = []
     let { sort, matcher, ignorecase } = this.listOptions
-    if (input.length == 0) {
-      let filtered = items.slice()
-      let sort = filtered.length && typeof filtered[0].recentScore == 'number'
-      return {
-        items: sort ? filtered.sort((a, b) => b.recentScore - a.recentScore) : filtered,
-        highlights
-      }
-    }
-    let filtered: ListItem[] | ExtendedItem[]
-    if (input.length > 0) {
-      let inputs = this.config.extendedSearchMode ? parseInput(input) : [input]
-      if (matcher == 'strict') {
-        filtered = items.filter(item => {
-          let spans: [number, number][] = []
-          let filterLabel = getFilterLabel(item)
-          for (let input of inputs) {
-            let idx = ignorecase ? filterLabel.toLowerCase().indexOf(input.toLowerCase()) : filterLabel.indexOf(input)
-            if (idx == -1) return false
-            spans.push([byteIndex(filterLabel, idx), byteIndex(filterLabel, idx + byteLength(input))])
+    let inputs = this.config.extendedSearchMode ? parseInput(input) : [input]
+    if (input.length == 0 || inputs.length == 0) return items
+    if (matcher == 'strict') {
+      let filtered: ListItemWithHighlights[] = []
+      for (let item of items) {
+        let spans: [number, number][] = []
+        let filterLabel = getFilterLabel(item)
+        let match = true
+        for (let input of inputs) {
+          let idx = ignorecase ? filterLabel.toLowerCase().indexOf(input.toLowerCase()) : filterLabel.indexOf(input)
+          if (idx == -1) {
+            match = false
+            break
           }
-          highlights.push({ spans })
-          return true
-        })
-      } else if (matcher == 'regex') {
-        let flags = ignorecase ? 'iu' : 'u'
-        let regexes = inputs.reduce((p, c) => {
-          try {
-            let regex = new RegExp(c, flags)
-            p.push(regex)
-          } catch (e) { }
-          return p
-        }, [])
-        filtered = items.filter(item => {
-          let spans: [number, number][] = []
-          let filterLabel = getFilterLabel(item)
-          for (let regex of regexes) {
-            let ms = filterLabel.match(regex)
-            if (ms == null) return false
-            spans.push([byteIndex(filterLabel, ms.index), byteIndex(filterLabel, ms.index + byteLength(ms[0]))])
-          }
-          highlights.push({ spans })
-          return true
-        })
-      } else {
-        filtered = items.filter(item => {
-          let filterText = item.filterText || item.label
-          return inputs.every(s => hasMatch(s, filterText))
-        })
-        filtered = filtered.map(item => {
-          let filterLabel = getFilterLabel(item)
-          let matchScore = 0
-          let matches: number[] = []
-          for (let input of inputs) {
-            matches.push(...positions(input, filterLabel))
-            matchScore += score(input, filterLabel)
-          }
-          let { recentScore } = item
-          if (!recentScore && item.location) {
-            let uri = getItemUri(item)
-            if (uri.startsWith('file')) {
-              let fsPath = URI.parse(uri).fsPath
-              recentScore = - this.recentFiles.indexOf(fsPath)
-            }
-          }
-          return Object.assign({}, item, {
-            filterLabel,
-            score: matchScore,
-            recentScore,
-            matches
-          })
-        }) as ExtendedItem[]
-        if (sort && items.length) {
-          (filtered as ExtendedItem[]).sort((a, b) => {
-            if (a.score != b.score) return b.score - a.score
-            if (input.length && a.recentScore != b.recentScore) {
-              return (a.recentScore || -Infinity) - (b.recentScore || -Infinity)
-            }
-            if (a.location && b.location) {
-              let au = getItemUri(a)
-              let bu = getItemUri(b)
-              return au > bu ? 1 : -1
-            }
-            return a.label > b.label ? 1 : -1
-          })
+          spans.push([byteIndex(filterLabel, idx), byteIndex(filterLabel, idx + byteLength(input))])
         }
-        for (let item of filtered as ExtendedItem[]) {
-          if (!item.matches) continue
-          let hi = this.getHighlights(item.filterLabel, item.matches)
-          highlights.push(hi)
+        if (match) {
+          filtered.push(Object.assign({}, item, {
+            highlights: { spans }
+          }))
         }
       }
+      return filtered
     }
-    return {
-      items: filtered,
-      highlights
+    if (matcher == 'regex') {
+      let filtered: ListItemWithHighlights[] = []
+      let flags = ignorecase ? 'iu' : 'u'
+      let regexes = inputs.reduce((p, c) => {
+        try {
+          let regex = new RegExp(c, flags)
+          p.push(regex)
+        } catch (e) { }
+        return p
+      }, [])
+      for (let item of items) {
+        let spans: [number, number][] = []
+        let filterLabel = getFilterLabel(item)
+        let match = true
+        for (let regex of regexes) {
+          let ms = filterLabel.match(regex)
+          if (ms == null) {
+            match = false
+            break
+          }
+          spans.push([byteIndex(filterLabel, ms.index), byteIndex(filterLabel, ms.index + byteLength(ms[0]))])
+        }
+        if (match) {
+          filtered.push(Object.assign({}, item, {
+            highlights: { spans }
+          }))
+        }
+      }
+      return filtered
     }
+    let filtered: ExtendedItem[] = []
+    let { fzySort } = this.list
+    let idx = 0
+    for (let item of items) {
+      let filterText = item.filterText || item.label
+      let matchScore = 0
+      let matches: number[] = []
+      let filterLabel = getFilterLabel(item)
+      let match = true
+      for (let input of inputs) {
+        if (!hasMatch(input, filterText)) {
+          match = false
+          break
+        }
+        matches.push(...positions(input, filterLabel))
+        if (fzySort) matchScore += score(input, filterText)
+      }
+      if (!match) continue
+      let obj = Object.assign({}, item, {
+        sortText: typeof item.sortText === 'string' ? item.sortText : String.fromCharCode(idx),
+        score: matchScore,
+        highlights: this.getHighlights(filterLabel, matches)
+      })
+      filtered.push(obj)
+      idx = idx + 1
+    }
+    if (sort && filtered.length) {
+      filtered.sort((a, b) => {
+        if (a.score != b.score) return b.score - a.score
+        if (a.sortText > b.sortText) return 1
+        return -1
+      })
+    }
+    return filtered
   }
 
-  private getHighlights(text: string, matches: number[]): ListHighlights {
+  private getHighlights(text: string, matches?: number[]): ListHighlights {
     let spans: [number, number][] = []
-    if (matches.length) {
+    if (matches && matches.length) {
       let start = matches.shift()
       let next = matches.shift()
       let curr = start
@@ -372,12 +346,6 @@ export default class Worker {
 
 function getFilterLabel(item: ListItem): string {
   return item.filterText != null ? patchLine(item.filterText, item.label) : item.label
-}
-
-function getItemUri(item: ListItem): string {
-  let { location } = item
-  if (typeof location == 'string') return location
-  return location.uri
 }
 
 /**

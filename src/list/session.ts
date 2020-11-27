@@ -97,13 +97,11 @@ export default class ListSession {
     this.ui.onDidDoubleClick(async () => {
       await this.doAction()
     }, null, this.disposables)
-    this.worker.onDidChangeItems(async ({ items, highlights, reload, append, finished }) => {
+    this.worker.onDidChangeItems(async ({ items, reload, append, finished }) => {
       if (this.hidden) return
       if (append) {
-        this.ui.addHighlights(highlights, true)
         await this.ui.appendItems(items)
       } else {
-        this.ui.addHighlights(highlights)
         let height = this.config.get<number>('height', 10)
         if (finished && !listOptions.interactive && listOptions.input.length == 0) {
           height = Math.min(items.length, height)
