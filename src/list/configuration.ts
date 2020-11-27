@@ -5,7 +5,6 @@ import { EventEmitter } from 'events'
 import { Disposable } from 'vscode-languageserver-protocol'
 
 export const validKeys = [
-  '<backspace>',
   '<esc>',
   '<space>',
   '<tab>',
