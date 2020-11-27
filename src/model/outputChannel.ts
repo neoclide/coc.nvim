@@ -68,7 +68,8 @@ export default class BufferChannel implements OutputChannel {
     let { nvim } = this
     let winid = await nvim.call('win_getid')
     nvim.pauseNotification()
-    nvim.command(`tab drop output:///${this.name}`, true)
+    const escapedName = await nvim.call('fnameescape', this.name)
+    nvim.command(`tab drop output:///${escapedName}`, true)
     if (preserveFocus) {
       nvim.call('win_gotoid', [winid], true)
     }
