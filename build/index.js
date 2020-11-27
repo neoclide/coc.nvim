@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "3658eda4fa" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "535825d3af" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -83687,7 +83687,6 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(291));
 const window_1 = tslib_1.__importDefault(__webpack_require__(369));
 const events_1 = __webpack_require__(198);
 exports.validKeys = [
-    '<backspace>',
     '<esc>',
     '<space>',
     '<tab>',
@@ -88004,15 +88003,13 @@ class ListSession {
         this.ui.onDidDoubleClick(async () => {
             await this.doAction();
         }, null, this.disposables);
-        this.worker.onDidChangeItems(async ({ items, highlights, reload, append, finished }) => {
+        this.worker.onDidChangeItems(async ({ items, reload, append, finished }) => {
             if (this.hidden)
                 return;
             if (append) {
-                this.ui.addHighlights(highlights, true);
                 await this.ui.appendItems(items);
             }
             else {
-                this.ui.addHighlights(highlights);
                 let height = this.config.get('height', 10);
                 if (finished && !listOptions.interactive && listOptions.input.length == 0) {
                     height = Math.min(items.length, height);
@@ -88641,8 +88638,8 @@ const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const events_1 = tslib_1.__importDefault(__webpack_require__(210));
 const util_1 = __webpack_require__(238);
 const mutex_1 = __webpack_require__(289);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(291));
 const window_1 = tslib_1.__importDefault(__webpack_require__(369));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(291));
 const logger = __webpack_require__(64)('list-ui');
 class ListUI {
     constructor(nvim, name, listOptions, config) {
@@ -88653,7 +88650,6 @@ class ListUI {
         this.newTab = false;
         this.currIndex = 0;
         this.drawCount = 0;
-        this.highlights = [];
         this.items = [];
         this.disposables = [];
         this.selected = new Set();
@@ -88669,6 +88665,7 @@ class ListUI {
         this.onDidClose = this._onDidClose.event;
         this.onDidDoubleClick = this._onDoubleClick.event;
         this.signOffset = config.get('signOffset');
+        this.matchHighlightGroup = config.get('matchHighlightGroup', 'Search');
         this.newTab = listOptions.position == 'tab';
         events_1.default.on('BufWinLeave', async (bufnr) => {
             if (bufnr != this.bufnr || this.window == null)
@@ -89067,21 +89064,20 @@ class ListUI {
     }
     doHighlight(start, end) {
         let { nvim } = workspace_1.default;
-        let { highlights, items } = this;
+        let { items } = this;
         let groups = [];
         for (let i = start; i <= Math.min(end, items.length - 1); i++) {
-            let { ansiHighlights } = items[i];
-            let highlight = highlights[i];
+            let { ansiHighlights, highlights } = items[i];
             if (ansiHighlights) {
                 for (let hi of ansiHighlights) {
                     let { span, hlGroup } = hi;
                     groups.push({ hlGroup, priority: 9, pos: [i + 1, span[0] + 1, span[1] - span[0]] });
                 }
             }
-            if (highlight) {
-                let { spans, hlGroup } = highlight;
+            if (highlights && Array.isArray(highlights.spans)) {
+                let { spans, hlGroup } = highlights;
                 for (let span of spans) {
-                    groups.push({ hlGroup: hlGroup || 'Search', priority: 11, pos: [i + 1, span[0] + 1, span[1] - span[0]] });
+                    groups.push({ hlGroup: hlGroup || this.matchHighlightGroup, priority: 11, pos: [i + 1, span[0] + 1, span[1] - span[0]] });
                 }
             }
         }
@@ -89096,17 +89092,6 @@ class ListUI {
         this.onLineChange(lnum - 1);
         if (window)
             window.notify('nvim_win_set_cursor', [[lnum, col]]);
-    }
-    addHighlights(highlights, append = false) {
-        let { limitLines } = this;
-        if (!append) {
-            this.highlights = highlights.slice(0, limitLines);
-        }
-        else {
-            if (this.highlights.length < limitLines) {
-                this.highlights.push(...highlights.slice(0, limitLines - this.highlights.length));
-            }
-        }
     }
     async getSelectedRange() {
         let { nvim } = this;
@@ -89131,16 +89116,16 @@ exports.default = ListUI;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.parseInput = void 0;
 const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
-const vscode_uri_1 = __webpack_require__(243);
 const ansiparse_1 = __webpack_require__(287);
 const diff_1 = __webpack_require__(359);
 const fzy_1 = __webpack_require__(647);
 const score_1 = __webpack_require__(648);
 const string_1 = __webpack_require__(288);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(291));
 const window_1 = tslib_1.__importDefault(__webpack_require__(369));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(291));
 const logger = __webpack_require__(64)('list-worker');
 const controlCode = '\x1b';
 // perform loading task
@@ -89151,17 +89136,12 @@ class Worker {
         this.prompt = prompt;
         this.listOptions = listOptions;
         this.config = config;
-        this.recentFiles = [];
         this._loading = false;
         this.totalItems = [];
         this._onDidChangeItems = new vscode_languageserver_protocol_1.Emitter();
         this._onDidChangeLoading = new vscode_languageserver_protocol_1.Emitter();
         this.onDidChangeItems = this._onDidChangeItems.event;
         this.onDidChangeLoading = this._onDidChangeLoading.event;
-        let mru = workspace_1.default.createMru('mru');
-        mru.load().then(files => {
-            this.recentFiles = files;
-        }).logError();
     }
     set loading(loading) {
         if (this._loading == loading)
@@ -89190,18 +89170,15 @@ class Worker {
                 return item;
             });
             this.loading = false;
-            let highlights = [];
+            let filtered;
             if (!interactive) {
-                let res = this.filterItems(items);
-                items = res.items;
-                highlights = res.highlights;
+                filtered = this.filterItems(items);
             }
             else {
-                highlights = this.getItemsHighlight(items);
+                filtered = this.convertToHighlightItems(items);
             }
             this._onDidChangeItems.fire({
-                items,
-                highlights,
+                items: filtered,
                 reload,
                 finished: true
             });
@@ -89224,33 +89201,25 @@ class Worker {
                     currInput = this.input;
                     count = totalItems.length;
                     let items;
-                    let highlights = [];
                     if (interactive) {
-                        items = totalItems.slice();
-                        highlights = this.getItemsHighlight(items);
+                        items = this.convertToHighlightItems(totalItems);
                     }
                     else {
-                        let res = this.filterItems(totalItems);
-                        items = res.items;
-                        highlights = res.highlights;
+                        items = this.filterItems(totalItems);
                     }
-                    this._onDidChangeItems.fire({ items, highlights, reload, append: false, finished });
+                    this._onDidChangeItems.fire({ items, reload, append: false, finished });
                 }
                 else {
                     let remain = totalItems.slice(count);
                     count = totalItems.length;
                     let items;
-                    let highlights = [];
                     if (!interactive) {
-                        let res = this.filterItems(remain);
-                        items = res.items;
-                        highlights = res.highlights;
+                        items = this.filterItems(remain);
                     }
                     else {
-                        items = remain;
-                        highlights = this.getItemsHighlight(remain);
+                        items = this.convertToHighlightItems(remain);
                     }
-                    this._onDidChangeItems.fire({ items, highlights, append: true, finished });
+                    this._onDidChangeItems.fire({ items, append: true, finished });
                 }
             };
             task.on('data', item => {
@@ -89281,7 +89250,7 @@ class Worker {
                 if (timer)
                     clearTimeout(timer);
                 if (totalItems.length == 0) {
-                    this._onDidChangeItems.fire({ items: [], highlights: [], finished: true });
+                    this._onDidChangeItems.fire({ items: [], finished: true });
                 }
                 else {
                     _onData(true);
@@ -89314,17 +89283,14 @@ class Worker {
      */
     drawItems() {
         let { totalItems, listOptions } = this;
-        let items = totalItems;
-        let highlights = [];
-        if (!listOptions.interactive) {
-            let res = this.filterItems(totalItems);
-            items = res.items;
-            highlights = res.highlights;
+        let items;
+        if (listOptions.interactive) {
+            items = this.convertToHighlightItems(totalItems);
         }
         else {
-            highlights = this.getItemsHighlight(items);
+            items = this.filterItems(totalItems);
         }
-        this._onDidChangeItems.fire({ items, highlights, finished: true });
+        this._onDidChangeItems.fire({ items, finished: true });
     }
     stop() {
         if (this.tokenSource) {
@@ -89339,131 +89305,125 @@ class Worker {
     get input() {
         return this.prompt.input;
     }
-    getItemsHighlight(items) {
+    /**
+     * Add highlights for interactive list
+     */
+    convertToHighlightItems(items) {
         let { input } = this;
         if (!input)
             return [];
         return items.map(item => {
             let filterLabel = getFilterLabel(item);
             if (filterLabel == '')
-                return null;
+                return item;
             let res = score_1.getMatchResult(filterLabel, input);
             if (!res || !res.score)
-                return null;
-            return this.getHighlights(filterLabel, res.matches);
+                return item;
+            let highlights = this.getHighlights(filterLabel, res.matches);
+            return Object.assign({}, item, { highlights });
         });
     }
     filterItems(items) {
         let { input } = this;
-        let highlights = [];
         let { sort, matcher, ignorecase } = this.listOptions;
-        if (input.length == 0) {
-            let filtered = items.slice();
-            let sort = filtered.length && typeof filtered[0].recentScore == 'number';
-            return {
-                items: sort ? filtered.sort((a, b) => b.recentScore - a.recentScore) : filtered,
-                highlights
-            };
-        }
-        let filtered;
-        if (input.length > 0) {
-            let inputs = this.config.extendedSearchMode ? input.split(/\s+/) : [input];
-            if (matcher == 'strict') {
-                filtered = items.filter(item => {
-                    let spans = [];
-                    let filterLabel = getFilterLabel(item);
-                    for (let input of inputs) {
-                        let idx = ignorecase ? filterLabel.toLowerCase().indexOf(input.toLowerCase()) : filterLabel.indexOf(input);
-                        if (idx == -1)
-                            return false;
-                        spans.push([string_1.byteIndex(filterLabel, idx), string_1.byteIndex(filterLabel, idx + string_1.byteLength(input))]);
+        let inputs = this.config.extendedSearchMode ? parseInput(input) : [input];
+        if (input.length == 0 || inputs.length == 0)
+            return items;
+        if (matcher == 'strict') {
+            let filtered = [];
+            for (let item of items) {
+                let spans = [];
+                let filterLabel = getFilterLabel(item);
+                let match = true;
+                for (let input of inputs) {
+                    let idx = ignorecase ? filterLabel.toLowerCase().indexOf(input.toLowerCase()) : filterLabel.indexOf(input);
+                    if (idx == -1) {
+                        match = false;
+                        break;
                     }
-                    highlights.push({ spans });
-                    return true;
-                });
-            }
-            else if (matcher == 'regex') {
-                let flags = ignorecase ? 'iu' : 'u';
-                let regexes = inputs.reduce((p, c) => {
-                    try {
-                        let regex = new RegExp(c, flags);
-                        p.push(regex);
-                    }
-                    catch (e) { }
-                    return p;
-                }, []);
-                filtered = items.filter(item => {
-                    let spans = [];
-                    let filterLabel = getFilterLabel(item);
-                    for (let regex of regexes) {
-                        let ms = filterLabel.match(regex);
-                        if (ms == null)
-                            return false;
-                        spans.push([string_1.byteIndex(filterLabel, ms.index), string_1.byteIndex(filterLabel, ms.index + string_1.byteLength(ms[0]))]);
-                    }
-                    highlights.push({ spans });
-                    return true;
-                });
-            }
-            else {
-                filtered = items.filter(item => {
-                    let filterText = item.filterText || item.label;
-                    return inputs.every(s => fzy_1.hasMatch(s, filterText));
-                });
-                filtered = filtered.map(item => {
-                    let filterLabel = getFilterLabel(item);
-                    let matchScore = 0;
-                    let matches = [];
-                    for (let input of inputs) {
-                        matches.push(...fzy_1.positions(input, filterLabel));
-                        matchScore += fzy_1.score(input, filterLabel);
-                    }
-                    let { recentScore } = item;
-                    if (!recentScore && item.location) {
-                        let uri = getItemUri(item);
-                        if (uri.startsWith('file')) {
-                            let fsPath = vscode_uri_1.URI.parse(uri).fsPath;
-                            recentScore = -this.recentFiles.indexOf(fsPath);
-                        }
-                    }
-                    return Object.assign({}, item, {
-                        filterLabel,
-                        score: matchScore,
-                        recentScore,
-                        matches
-                    });
-                });
-                if (sort && items.length) {
-                    filtered.sort((a, b) => {
-                        if (a.score != b.score)
-                            return b.score - a.score;
-                        if (input.length && a.recentScore != b.recentScore) {
-                            return (a.recentScore || -Infinity) - (b.recentScore || -Infinity);
-                        }
-                        if (a.location && b.location) {
-                            let au = getItemUri(a);
-                            let bu = getItemUri(b);
-                            return au > bu ? 1 : -1;
-                        }
-                        return a.label > b.label ? 1 : -1;
-                    });
+                    spans.push([string_1.byteIndex(filterLabel, idx), string_1.byteIndex(filterLabel, idx + string_1.byteLength(input))]);
                 }
-                for (let item of filtered) {
-                    if (!item.matches)
-                        continue;
-                    let hi = this.getHighlights(item.filterLabel, item.matches);
-                    highlights.push(hi);
+                if (match) {
+                    filtered.push(Object.assign({}, item, {
+                        highlights: { spans }
+                    }));
                 }
             }
+            return filtered;
         }
-        return {
-            items: filtered,
-            highlights
-        };
+        if (matcher == 'regex') {
+            let filtered = [];
+            let flags = ignorecase ? 'iu' : 'u';
+            let regexes = inputs.reduce((p, c) => {
+                try {
+                    let regex = new RegExp(c, flags);
+                    p.push(regex);
+                }
+                catch (e) { }
+                return p;
+            }, []);
+            for (let item of items) {
+                let spans = [];
+                let filterLabel = getFilterLabel(item);
+                let match = true;
+                for (let regex of regexes) {
+                    let ms = filterLabel.match(regex);
+                    if (ms == null) {
+                        match = false;
+                        break;
+                    }
+                    spans.push([string_1.byteIndex(filterLabel, ms.index), string_1.byteIndex(filterLabel, ms.index + string_1.byteLength(ms[0]))]);
+                }
+                if (match) {
+                    filtered.push(Object.assign({}, item, {
+                        highlights: { spans }
+                    }));
+                }
+            }
+            return filtered;
+        }
+        let filtered = [];
+        let { fzySort } = this.list;
+        let idx = 0;
+        for (let item of items) {
+            let filterText = item.filterText || item.label;
+            let matchScore = 0;
+            let matches = [];
+            let filterLabel = getFilterLabel(item);
+            let match = true;
+            for (let input of inputs) {
+                if (!fzy_1.hasMatch(input, filterText)) {
+                    match = false;
+                    break;
+                }
+                matches.push(...fzy_1.positions(input, filterLabel));
+                if (fzySort)
+                    matchScore += fzy_1.score(input, filterText);
+            }
+            if (!match)
+                continue;
+            let obj = Object.assign({}, item, {
+                sortText: typeof item.sortText === 'string' ? item.sortText : String.fromCharCode(idx),
+                score: matchScore,
+                highlights: this.getHighlights(filterLabel, matches)
+            });
+            filtered.push(obj);
+            idx = idx + 1;
+        }
+        if (sort && filtered.length) {
+            filtered.sort((a, b) => {
+                if (a.score != b.score)
+                    return b.score - a.score;
+                if (a.sortText > b.sortText)
+                    return 1;
+                return -1;
+            });
+        }
+        return filtered;
     }
     getHighlights(text, matches) {
         let spans = [];
-        if (matches.length) {
+        if (matches && matches.length) {
             let start = matches.shift();
             let next = matches.shift();
             let curr = start;
@@ -89506,12 +89466,34 @@ exports.default = Worker;
 function getFilterLabel(item) {
     return item.filterText != null ? diff_1.patchLine(item.filterText, item.label) : item.label;
 }
-function getItemUri(item) {
-    let { location } = item;
-    if (typeof location == 'string')
-        return location;
-    return location.uri;
+/**
+ * `a\ b` => [`a b`]
+ * `a b` =>  ['a', 'b']
+ */
+function parseInput(input) {
+    let res = [];
+    let startIdx = 0;
+    let currIdx = 0;
+    let prev = '';
+    for (; currIdx < input.length; currIdx++) {
+        let ch = input[currIdx];
+        if (ch.charCodeAt(0) === 32) {
+            // find space
+            if (prev && prev != '\\' && startIdx != currIdx) {
+                res.push(input.slice(startIdx, currIdx));
+                startIdx = currIdx + 1;
+            }
+        }
+        else {
+        }
+        prev = ch;
+    }
+    if (startIdx != input.length) {
+        res.push(input.slice(startIdx, input.length));
+    }
+    return res.map(s => s.replace(/\\\s/g, ' ').trim()).filter(s => s.length > 0);
 }
+exports.parseInput = parseInput;
 //# sourceMappingURL=worker.js.map
 
 /***/ }),
