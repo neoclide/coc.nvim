@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "ada0b910bd" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "6fe357fc97" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -36660,7 +36660,7 @@ class Channels {
     create(name, nvim) {
         if (outputChannels.has(name))
             return outputChannels.get(name);
-        if (!/^[\w\s-]+$/.test(name))
+        if (!/^[\w\s-.]+$/.test(name))
             throw new Error(`Invalid channel name "${name}", only word characters and white space allowed.`);
         let channel = new outputChannel_1.default(name, nvim);
         outputChannels.set(name, channel);
