@@ -2787,6 +2787,7 @@ LIST MAPPINGS						*coc-list-mappings*
 Default mappings on insert mode:
 
 <Esc>       - cancel list session.
+<CR>        - do default action with selected items or current item.
 <C-c>       - stop loading task.
 <C-v>       - paste text from system clipboard.
 <C-l>       - reload list.
@@ -2814,6 +2815,7 @@ Default mappings on insert mode:
 Default mappings on normal mode:
 
 <Esc>       - cancel list session.
+<CR>        - do default action with selected items or current item.
 <C-c>       - stop source from fetching more items.
 <C-l>       - reload list.
 <C-a>       - mark all visible items selected.
@@ -2871,7 +2873,7 @@ The mapping expression should be `command:arguments`, available commands:
 	'togglemode'    - toggle between insert and normal mode.
 	'previous'      - move cursor to previous item.
 	'next'          - move cursor to next item.
-	'defaultaction' - execute default action.
+	'defaultaction' - do default action for selected items or current item.
 	'jumpback'      - stop prompt and jump back to original window.
 	'previewup'     - scroll preview window up.
 	'previewdown'   - scroll preview window down.
