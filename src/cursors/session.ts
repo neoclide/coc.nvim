@@ -20,7 +20,6 @@ export interface Config {
 
 /**
  * Cursor session for single buffer
- * session.cancel() session.dispose()
  */
 export default class CursorSession {
   private readonly _onDidCancel = new Emitter<void>()

@@ -139,7 +139,6 @@ export default class Refactor {
     nvim.command('setl nomod', true)
     if (filetype) nvim.command(`runtime! syntax/${filetype}.vim`, true)
     nvim.call('coc#util#do_autocmd', ['CocRefactorOpen'], true)
-    workspace.registerLocalKeymap('n', '<CR>', this.splitOpen.bind(this), true)
     let [, err] = await nvim.resumeNotification()
     if (err) {
       logger.error(err)
@@ -147,6 +146,7 @@ export default class Refactor {
       return
     }
     let [bufnr, win] = await nvim.eval('[bufnr("%"),win_getid()]') as [number, number]
+    workspace.registerLocalKeymap('n', '<CR>', this.splitOpen.bind(this), true)
     this.fromWinid = fromWinid
     this.winid = win
     this.bufnr = bufnr
