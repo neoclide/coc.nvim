@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "535825d3af" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "fa703c786c" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -36660,6 +36660,8 @@ class Channels {
     create(name, nvim) {
         if (outputChannels.has(name))
             return outputChannels.get(name);
+        if (!/^[\w\s-]+$/.test(name))
+            throw new Error(`Invalid channel name "${name}", only word characters and white space allowed.`);
         let channel = new outputChannel_1.default(name, nvim);
         outputChannels.set(name, channel);
         return channel;
@@ -36689,13 +36691,12 @@ exports.default = new Channels();
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const util_1 = __webpack_require__(238);
-const logger = __webpack_require__(64)("outpubChannel");
+const logger = __webpack_require__(64)('outpubChannel');
 class BufferChannel {
     constructor(name, nvim) {
         this.name = name;
         this.nvim = nvim;
         this._disposed = false;
-        this._showing = false;
         this.lines = [''];
         this.disposables = [];
     }
@@ -36742,31 +36743,21 @@ class BufferChannel {
         nvim.resumeNotification(false, true);
     }
     hide() {
-        this.nvim.command(`silent! bd! ${this.bufname}`, true);
+        this.nvim.command(`exe 'silent! bd! '.fnameescape('${this.bufname}')`, true);
     }
     get bufname() {
         return `output:///${this.name}`;
     }
-    async openBuffer(preserveFocus) {
+    show(preserveFocus) {
         let { nvim } = this;
-        let winid = await nvim.call('win_getid');
         nvim.pauseNotification();
-        nvim.command(`tab drop output:///${this.name}`, true);
+        nvim.command(`exe 'vsplit '.fnameescape('${this.bufname}')`, true);
         if (preserveFocus) {
-            nvim.call('win_gotoid', [winid], true);
+            nvim.command('wincmd p', true);
         }
         nvim.command('redraw', true);
-        await nvim.resumeNotification();
-    }
-    show(preserveFocus) {
-        if (this._showing)
-            return;
-        this._showing = true;
-        this.openBuffer(preserveFocus).then(() => {
-            this._showing = false;
-        }, () => {
-            this._showing = false;
-        });
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        nvim.resumeNotification(false, true);
     }
     validate() {
         if (this._disposed)
@@ -95260,7 +95251,7 @@ class CodeLensManager {
             let n_commands = commands.length;
             for (let i = 0; i < n_commands; i++) {
                 let c = commands[i];
-                chunks.push([c.title, 'CocCodeLens']);
+                chunks.push([c.title.replace(/(\r\n|\r|\n) */g, " "), 'CocCodeLens']);
                 if (i != n_commands - 1) {
                     chunks.push([this.subseparator, 'CocCodeLens']);
                 }
