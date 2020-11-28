@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "fa703c786c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "ada0b910bd" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -92959,7 +92959,6 @@ const util_1 = __webpack_require__(678);
 const logger = __webpack_require__(64)('cursors-session');
 /**
  * Cursor session for single buffer
- * session.cancel() session.dispose()
  */
 class CursorSession {
     constructor(nvim, doc, config) {
@@ -95961,7 +95960,6 @@ class Refactor {
         if (filetype)
             nvim.command(`runtime! syntax/${filetype}.vim`, true);
         nvim.call('coc#util#do_autocmd', ['CocRefactorOpen'], true);
-        workspace_1.default.registerLocalKeymap('n', '<CR>', this.splitOpen.bind(this), true);
         let [, err] = await nvim.resumeNotification();
         if (err) {
             logger.error(err);
@@ -95969,6 +95967,7 @@ class Refactor {
             return;
         }
         let [bufnr, win] = await nvim.eval('[bufnr("%"),win_getid()]');
+        workspace_1.default.registerLocalKeymap('n', '<CR>', this.splitOpen.bind(this), true);
         this.fromWinid = fromWinid;
         this.winid = win;
         this.bufnr = bufnr;
