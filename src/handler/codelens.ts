@@ -146,7 +146,7 @@ export default class CodeLensManager {
       let n_commands = commands.length
       for (let i = 0; i < n_commands; i++) {
         let c = commands[i]
-        chunks.push([c.title, 'CocCodeLens'] as [string, string])
+        chunks.push([c.title.replace(/(\r\n|\r|\n) */g, " "), 'CocCodeLens'] as [string, string])
         if (i != n_commands - 1) {
           chunks.push([this.subseparator, 'CocCodeLens'] as [string, string])
         }
