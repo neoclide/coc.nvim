@@ -1,12 +1,11 @@
-import { Buffer, Neovim } from '@chemzqm/neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { OutputChannel } from '../types'
 import { disposeAll } from '../util'
-const logger = require('../util/logger')("outpubChannel")
+const logger = require('../util/logger')('outpubChannel')
 
 export default class BufferChannel implements OutputChannel {
   private _disposed = false
-  private _showing = false
   private lines: string[] = ['']
   private disposables: Disposable[] = []
   constructor(public name: string, private nvim: Neovim) {
@@ -57,33 +56,23 @@ export default class BufferChannel implements OutputChannel {
   }
 
   public hide(): void {
-    this.nvim.command(`silent! bd! ${this.bufname}`, true)
+    this.nvim.command(`exe 'silent! bd! '.fnameescape('${this.bufname}')`, true)
   }
 
   private get bufname(): string {
     return `output:///${this.name}`
   }
 
-  private async openBuffer(preserveFocus?: boolean): Promise<void> {
+  public show(preserveFocus?: boolean): void {
     let { nvim } = this
-    let winid = await nvim.call('win_getid')
     nvim.pauseNotification()
-    nvim.command(`tab drop output:///${this.name}`, true)
+    nvim.command(`exe 'vsplit '.fnameescape('${this.bufname}')`, true)
     if (preserveFocus) {
-      nvim.call('win_gotoid', [winid], true)
+      nvim.command('wincmd p', true)
     }
     nvim.command('redraw', true)
-    await nvim.resumeNotification()
-  }
-
-  public show(preserveFocus?: boolean): void {
-    if (this._showing) return
-    this._showing = true
-    this.openBuffer(preserveFocus).then(() => {
-      this._showing = false
-    }, () => {
-      this._showing = false
-    })
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    nvim.resumeNotification(false, true)
   }
 
   private validate(): boolean {
