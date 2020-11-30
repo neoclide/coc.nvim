@@ -3,6 +3,14 @@ let s:clear_match_by_window = has('nvim-0.5.0') || has('patch-8.1.1084')
 let s:namespace_map = {}
 let s:ns_id = 1
 
+if has('nvim-0.5.0')
+  try
+    call getmatches(0)
+  catch /^Vim\%((\a\+)\)\=:E118/
+    let s:clear_match_by_window = 0
+  endtry
+endif
+
 " highlight LSP range,
 " TODO don't know how to count UTF16 code point, should work most cases.
 function! coc#highlight#range(bufnr, key, hlGroup, range) abort

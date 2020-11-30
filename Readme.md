@@ -296,6 +296,8 @@ Try these steps when you have problem with coc.nvim.
 <a href="https://opencollective.com/cocnvim/backer/3/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/3/avatar.svg?requireActive=false"></a>
 <a href="https://opencollective.com/cocnvim/backer/4/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/4/avatar.svg?requireActive=false"></a>
 <a href="https://opencollective.com/cocnvim/backer/5/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/5/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/6/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/6/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/7/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/7/avatar.svg?requireActive=false"></a>
 
 <a href="https://opencollective.com/cocnvim#backer" target="_blank"><img src="https://images.opencollective.com/static/images/become_backer.svg"></a>
 
