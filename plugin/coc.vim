@@ -153,7 +153,16 @@ endfunction
 function! s:OpenConfig()
   let home = coc#util#get_config_home()
   if !isdirectory(home)
-    call mkdir(home, 'p')
+    echohl MoreMsg
+    echom 'Config directory "'.home.'" not exists, create? (y/n)'
+    echohl None
+    let confirm = nr2char(getchar())
+    redraw!
+    if !(confirm ==? "y" || confirm ==? "\r")
+      return
+    else
+      call mkdir(home, 'p')
+    end
   endif
   execute 'edit '.home.'/coc-settings.json'
 endfunction
