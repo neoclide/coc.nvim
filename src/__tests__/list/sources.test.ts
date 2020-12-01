@@ -1,11 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
-import { BasicList, ListContext, ListItem, ListArgument } from '../..'
+import { ListContext, ListItem, ListArgument } from '../../types'
 import manager from '../../list/manager'
 import languages from '../../languages'
 import helper from '../helper'
 import workspace from '../../workspace'
 import { CancellationToken } from 'vscode-jsonrpc'
 import { Location, Range } from 'vscode-languageserver-types'
+import BasicList from '../../list/basic'
 
 let listItems: ListItem[] = []
 class OptionList extends BasicList {

@@ -19,11 +19,9 @@ const locations: any[] = [{
   text: 'multiple'
 }]
 
-let ns: number
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  ns = await nvim.createNamespace('coc-list') as number
   await nvim.setVar('coc_jump_locations', locations)
 })
 
@@ -46,7 +44,6 @@ describe('list commands', () => {
     await nvim.command('wincmd k')
     let name = await nvim.eval('bufname("%")')
     expect(name).toMatch('location.test.ts')
-    let buf = await nvim.buffer
     let res = await nvim.call('getmatches')
     expect(res.length).toBe(1)
   })
@@ -60,7 +57,6 @@ describe('list commands', () => {
     await events.fire('CursorMoved', [bufnr, [2, 1]])
     await helper.wait(300)
     await nvim.command('wincmd k')
-    let buf = await nvim.buffer
     let res = await nvim.call('getmatches')
     expect(res.length).toBe(1)
     expect(res[0]['pos1']).toEqual([3, 1, 6])
@@ -75,7 +71,6 @@ describe('list commands', () => {
     await events.fire('CursorMoved', [bufnr, [2, 1]])
     await helper.wait(300)
     await nvim.command('wincmd k')
-    let buf = await nvim.buffer
     let res = await nvim.call('getmatches')
     expect(res.length).toBe(1)
     expect(res[0]['pos1']).toBeDefined()

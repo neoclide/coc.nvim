@@ -1,10 +1,11 @@
 import { Neovim } from '@chemzqm/neovim'
 import manager from '../../list/manager'
 import helper from '../helper'
-import { BasicList, ListContext, ListTask, ListItem } from '../..'
+import { ListContext, ListTask, ListItem } from '../../types'
 import { CancellationToken } from 'vscode-languageserver-protocol'
 import { EventEmitter } from 'events'
 import colors from 'colors/safe'
+import BasicList from '../../list/basic'
 
 class TaskList extends BasicList {
   public name = 'task'
