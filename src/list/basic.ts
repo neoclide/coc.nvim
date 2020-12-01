@@ -11,6 +11,7 @@ import { readFileLines } from '../util/fs'
 import { comparePosition, emptyRange } from '../util/position'
 import workspace from '../workspace'
 import ListConfiguration from './configuration'
+import CommandTask, { CommandTaskOption } from './commandTask'
 const logger = require('../util/logger')('list-basic')
 
 interface ActionOptions {
@@ -115,6 +116,10 @@ export default abstract class BasicList implements IList, Disposable {
       multiple: true,
       execute: fn
     }, options || {}))
+  }
+
+  protected createCommandTask(opt: CommandTaskOption): CommandTask {
+    return new CommandTask(opt)
   }
 
   public addLocationActions(): void {
