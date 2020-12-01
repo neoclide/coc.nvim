@@ -1053,10 +1053,6 @@ export interface IList {
    */
   defaultAction: string
   /**
-   * Sort the result items by fzy score, default false.
-   */
-  fzySort?: boolean
-  /**
    * Load list items.
    */
   loadItems(context: ListContext, token: CancellationToken): Promise<ListItem[] | ListTask | null | undefined>

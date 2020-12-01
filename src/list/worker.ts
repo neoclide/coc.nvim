@@ -265,7 +265,6 @@ export default class Worker {
       return filtered
     }
     let filtered: ExtendedItem[] = []
-    let { fzySort } = this.list
     let idx = 0
     for (let item of items) {
       let filterText = item.filterText || item.label
@@ -279,7 +278,7 @@ export default class Worker {
           break
         }
         matches.push(...positions(input, filterLabel))
-        if (fzySort) matchScore += score(input, filterText)
+        if (sort) matchScore += score(input, filterText)
       }
       if (!match) continue
       let obj = Object.assign({}, item, {
