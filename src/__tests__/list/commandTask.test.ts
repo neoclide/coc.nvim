@@ -36,7 +36,6 @@ class SleepList extends BasicList {
     }
 }
 
-
 let nvim: Neovim
 beforeAll(async () => {
     await helper.setup()
