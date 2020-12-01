@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "481294d1d2" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "b9b69a267b" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -49494,7 +49494,7 @@ class Installer extends events_1.EventEmitter {
                 if (url.startsWith('https://github.com')) {
                     args = ['install'];
                 }
-                if (this.npm.endsWith('npm')) {
+                if (this.npm.endsWith('npm') && !this.npm.endsWith('pnpm')) {
                     args.push('--legacy-peer-deps');
                 }
                 if (this.npm.endsWith('yarn')) {
@@ -89499,7 +89499,6 @@ class Worker {
             return filtered;
         }
         let filtered = [];
-        let { fzySort } = this.list;
         let idx = 0;
         for (let item of items) {
             let filterText = item.filterText || item.label;
@@ -89513,7 +89512,7 @@ class Worker {
                     break;
                 }
                 matches.push(...fzy_1.positions(input, filterLabel));
-                if (fzySort)
+                if (sort)
                     matchScore += fzy_1.score(input, filterText);
             }
             if (!match)
