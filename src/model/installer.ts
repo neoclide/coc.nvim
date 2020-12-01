@@ -118,7 +118,7 @@ export class Installer extends EventEmitter {
         if (url.startsWith('https://github.com')) {
           args = ['install']
         }
-        if (this.npm.endsWith('npm')) {
+        if (this.npm.endsWith('npm') && !this.npm.endsWith('pnpm')) {
           args.push('--legacy-peer-deps')
         }
         if (this.npm.endsWith('yarn')) {
