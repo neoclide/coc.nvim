@@ -115,7 +115,7 @@ export default class Plugin extends EventEmitter {
     })
     this.addAction('openLog', async () => {
       let file = logger.getLogFile()
-      await workspace.jumpTo(URI.file(file).toString())
+      await workspace.jumpTo(URI.file(file).toString(), null, 'tabe')
     })
     this.addAction('attach', () => {
       return workspace.attach()
