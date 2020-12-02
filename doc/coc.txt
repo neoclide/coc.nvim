@@ -571,6 +571,10 @@ Built-in configurations:~
 
 	Highlight group of notification dialog, default to `CocFloating`.
 
+"notification.minProgressWidth": ~
+
+	Minimum width of progress notification, default to `30`.
+
 							*coc-config-codelens*
 "codeLens.enable":~
 
@@ -1751,9 +1755,6 @@ coc#float#scroll({forward}, [{amount}])                 *coc#float#scroll()*
 
 	Note: this function requires nvim >= 0.4.0 or vim >= 8.2.750 to work.
 
-coc#float#nvim_scroll({forward}, [{amount}]) 		*coc#float#nvim_scroll()*
-
-	Deprecated function for scroll float window on neovim.
 
 CocRequest({id}, {method}, [{params}])			*CocRequest()*
 

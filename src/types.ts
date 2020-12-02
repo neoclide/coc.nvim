@@ -24,6 +24,38 @@ export interface ParsedUrlQueryInput {
 }
 
 /**
+ * Value-object describing where and how progress should show.
+ */
+export interface ProgressOptions {
+
+  /**
+   * A human-readable string which will be used to describe the
+   * operation.
+   */
+  title?: string
+
+  /**
+   * Controls if a cancel button should show to allow the user to
+   * cancel the long running operation.
+   */
+  cancellable?: boolean
+}
+
+/**
+ * Defines a generalized way of reporting progress updates.
+ */
+export interface Progress<T> {
+
+  /**
+   * Report a progress update.
+   *
+   * @param value A progress item, like a message and/or an
+   * report on how much work finished
+   */
+  report(value: T): void
+}
+
+/**
  * Represents an action that is shown with an information, warning, or
  * error message.
  *
@@ -77,6 +109,7 @@ export interface NotificationPreferences {
   maxWidth: number
   maxHeight: number
   highlight: string
+  minProgressWidth: number
 }
 
 export interface DialogConfig {

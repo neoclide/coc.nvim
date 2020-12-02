@@ -791,6 +791,11 @@
       "default": "CocFloating",
       "description": "Highlight group of notification dialog."
     },
+    "notification,minProgressWidth": {
+      "type": "number",
+      "default": 30,
+      "description": "Minimum width of progress notification."
+    },
     "workspace.ignoredFiletypes": {
       "type": "array",
       "default": ["markdown", "log", "txt", "help"],

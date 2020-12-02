@@ -1609,10 +1609,6 @@ coc#float#scroll({forward}, [{amount}])                 *coc#float#scroll()*
 
 	Note: 该功能需要 nvim >= 0.4.0 or vim >= 8.2.750.
 
-coc#float#nvim_scroll({forward}, [{amount}]) 		*coc#float#nvim_scroll()*
-
-	已废弃。
-
 						*CocRequest()*
 CocRequest({id}, {method}, [{params}])
 

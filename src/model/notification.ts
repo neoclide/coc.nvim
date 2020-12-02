@@ -3,13 +3,15 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { NotificationConfig, NotificationPreferences } from '../types'
 import { disposeAll } from '../util'
+const isVim = process.env.VIM_NODE_RPC == '1'
 const logger = require('../util/logger')('model-notification')
 
 export default class Notification {
-  private disposables: Disposable[] = []
-  private bufnr: number
-  private _winid: number
-  constructor(private nvim: Neovim, private config: NotificationConfig) {
+  protected disposables: Disposable[] = []
+  protected bufnr: number
+  protected _winid: number
+  private _disposed = false
+  constructor(protected nvim: Neovim, protected config: NotificationConfig) {
     events.on('BufWinLeave', bufnr => {
       if (bufnr == this.bufnr) {
         this.dispose()
@@ -25,11 +27,11 @@ export default class Notification {
     }, null, this.disposables)
   }
 
-  private get lines(): string[] {
-    return this.config.content.trim().split(/\r?\n/)
+  protected get lines(): string[] {
+    return this.config.content.split(/\r?\n/)
   }
 
-  public async show(preferences: Partial<NotificationPreferences>): Promise<boolean> {
+  public async show(preferences: Partial<NotificationPreferences>): Promise<any> {
     let { nvim } = this
     let { title, close, timeout, buttons, borderhighlight } = this.config
     let opts: any = Object.assign({}, preferences)
@@ -50,6 +52,13 @@ export default class Notification {
   }
 
   public dispose(): void {
+    if (this._disposed) return
+    this._disposed = true
+    let { winid } = this
+    if (winid) {
+      this.nvim.call('coc#float#close', [winid], true)
+      if (isVim) this.nvim.command('redraw', true)
+    }
     this.bufnr = undefined
     this._winid = undefined
     disposeAll(this.disposables)
