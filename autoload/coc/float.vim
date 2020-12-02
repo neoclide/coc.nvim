@@ -1,6 +1,7 @@
 " Related to float window create
 let s:is_vim = !has('nvim')
 let s:root = expand('<sfile>:h:h:h')
+let s:progresschars = get(g:, 'coc_progress_chars', ['░', '▇'])
 let s:borderchars = get(g:, 'coc_borderchars', ['─', '│', '─', '│', '┌', '┐', '┘', '└'])
 let s:borderjoinchars = get(g:, 'coc_border_joinchars', ['┬', '┤', '┴', '├'])
 let s:prompt_win_width = get(g:, 'coc_prompt_win_width', 32)
@@ -769,6 +770,10 @@ function! coc#float#close_related(winid, ...) abort
   if !coc#float#valid(a:winid)
     return
   endif
+  let timer = getwinvar(a:winid, 'timer', 0)
+  if timer
+    call timer_stop(timer)
+  endif
   let kind = get(a:, 1, '')
   let winids = getwinvar(a:winid, 'related', [])
   for id in winids
@@ -813,40 +818,7 @@ endfunction
 " Only really useful for visual mode scroll, where coc#float#scroll
 " is not yet implemented
 function! coc#float#nvim_scroll(forward, ...)
-  echohl WarningMsg | echon 'coc#float#nvim_scroll is deprecated, use coc#float#scroll instead' | echohl None
-  let float = coc#float#get_float_win()
-  if !float | return '' | endif
-  let buf = nvim_win_get_buf(float)
-  let buf_height = nvim_buf_line_count(buf)
-  let win_height = nvim_win_get_height(float)
-  if buf_height < win_height | return '' | endif
-  let pos = nvim_win_get_cursor(float)
-  let scrolloff = getwinvar(float, '&scrolloff', 0)
-  let scrolloff = scrolloff*2 < win_height ? scrolloff : 0
-  let amount = (a:forward == 1 ? 1 : -1) * get(a:, 1, max([1, win_height/2]))
-  let last_amount = getwinvar(float, 'coc_float_nvim_scroll_last_amount', 0)
-  if amount > 0
-    if pos[0] == 1
-      let pos[0] += amount + win_height - scrolloff*1 - 1
-    elseif last_amount > 0
-      let pos[0] += amount
-    else
-      let pos[0] += amount + win_height - scrolloff*2 - 1
-    endif
-    let pos[0] = pos[0] < buf_height - scrolloff ? pos[0] : buf_height
-  elseif amount < 0
-    if pos[0] == buf_height
-      let pos[0] += amount - win_height + scrolloff*1 + 1
-    elseif last_amount < 0
-      let pos[0] += amount
-    else
-      let pos[0] += amount - win_height + scrolloff*2 + 1
-    endif
-    let pos[0] = pos[0] > scrolloff ? pos[0] : 1
-  endif
-  call setwinvar(float, 'coc_float_nvim_scroll_last_amount', amount)
-  call nvim_win_set_cursor(float, pos)
-  call timer_start(10, { -> coc#float#nvim_scrollbar(float) })
+  echohl WarningMsg | echon 'coc#float#nvim_scroll is removed, use coc#float#scroll instead' | echohl None
   return ''
 endfunction
 
@@ -1319,7 +1291,9 @@ function! coc#float#create_notification(lines, config) abort
   let buttons = get(a:config, 'buttons', [])
   let maxHeight = get(a:config, 'maxHeight', 10)
   let maxWidth = min([&columns - right - 10, get(a:config, 'maxWidth', 60)])
-  let minWidth = s:min_btns_width(buttons)
+  let progress = get(a:config, 'progress', 0)
+  let minWidth = get(a:config, 'minWidth', 1)
+  let minWidth = max([minWidth, s:min_btns_width(buttons)])
   if &columns < right + 10 || minWidth > maxWidth
     throw 'no enough spaces for notification'
   endif
@@ -1359,6 +1333,13 @@ function! coc#float#create_notification(lines, config) abort
   endif
   if timeout
     call timer_start(timeout, { -> coc#float#close(winid)})
+  endif
+  if progress
+    let start = reltime()
+    let timer = timer_start(16, { -> s:update_progress(bufnr, width, reltimefloat(reltime(start)))}, {
+      \ 'repeat': -1
+      \ })
+    call setwinvar(winid, 'timer', timer)
   endif
   return res
 endfunction
@@ -1706,4 +1687,28 @@ function! s:min_btns_width(buttons) abort
     let minwidth = minwidth + strdisplaywidth(txt)
   endfor
   return minwidth
+endfunction
+
+function! s:update_progress(bufnr, width, ts) abort
+  let duration = 5000
+  " count of blocks
+  let width = float2nr((a:width + 0.0)/4)
+  let percent = (float2nr(a:ts*1000)%duration + 0.0)/duration
+  let line = repeat(s:progresschars[0], a:width)
+  let startIdx = float2nr(round(a:width * percent))
+  let endIdx = startIdx + width
+  let delta = a:width - endIdx
+  if delta > 0
+    let line = s:str_compose(line, startIdx, repeat(s:progresschars[1], width))
+  else
+    let inserted = repeat(s:progresschars[1], width + delta)
+    let line = s:str_compose(line, startIdx, inserted)
+    let line = s:str_compose(line, 0, repeat(s:progresschars[1], - delta))
+  endif
+  call setbufline(a:bufnr, 1, line)
+endfunction
+
+function! s:str_compose(line, idx, text) abort
+  let first = strcharpart(a:line, 0, a:idx)
+  return first.a:text.strcharpart(a:line, a:idx + strwidth(a:text))
 endfunction
