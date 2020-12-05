@@ -43,6 +43,8 @@ export default class ProgressNotification<R> extends Notification {
           this.nvim.call('setbufline', [this.bufnr, 2, text], true)
         }
       }, tokenSource.token).then(res => {
+        tokenSource.dispose()
+        this.tokenSource = null
         this.dispose()
         resolve(res)
       }, err => {
