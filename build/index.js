@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "eaa2147280" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "5a9a0f22a2" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -43026,22 +43026,22 @@ class Window {
         }
     }
     async showInformationMessage(message, ...items) {
-        if (!this.checkDialog())
-            return undefined;
+        if (!workspace_1.default.env.dialog)
+            return await this.showConfirm(message, items, 'Info');
         let texts = typeof items[0] === 'string' ? items : items.map(s => s.title);
         let idx = await this.createNotification('CocInfoFloat', message, texts);
         return idx == -1 ? undefined : items[idx];
     }
     async showWarningMessage(message, ...items) {
-        if (!this.checkDialog())
-            return undefined;
+        if (!workspace_1.default.env.dialog)
+            return await this.showConfirm(message, items, 'Warning');
         let texts = typeof items[0] === 'string' ? items : items.map(s => s.title);
         let idx = await this.createNotification('CocWarningFloat', message, texts);
         return idx == -1 ? undefined : items[idx];
     }
     async showErrorMessage(message, ...items) {
-        if (!this.checkDialog())
-            return undefined;
+        if (!workspace_1.default.env.dialog)
+            return await this.showConfirm(message, items, 'Error');
         let texts = typeof items[0] === 'string' ? items : items.map(s => s.title);
         let idx = await this.createNotification('CocErrorFloat', message, texts);
         return idx == -1 ? undefined : items[idx];
@@ -43051,6 +43051,17 @@ class Window {
             return false;
         let notification = new notification_1.default(this.nvim, config);
         return await notification.show(this.notificationPreference);
+    }
+    // fallback for vim without dialog
+    async showConfirm(message, items, kind) {
+        if (!items || items.length == 0) {
+            let msgType = kind == 'Info' ? 'more' : kind == 'Error' ? 'error' : 'warning';
+            this.showMessage(message, msgType);
+            return undefined;
+        }
+        let choices = typeof items[0] === 'string' ? items.slice() : items.map(o => o.title);
+        let res = await this.nvim.callAsync('coc#util#with_callback', ['confirm', [message, choices.join('\n'), 0, kind]]);
+        return items[res - 1];
     }
     /**
      * Show progress in the editor. Progress is shown while running the given callback
@@ -79398,6 +79409,10 @@ class LanguageClient extends client_1.BaseLanguageClient {
     checkProcessDied(childProcess) {
         if (!childProcess || global.hasOwnProperty('__TEST__'))
             return;
+        if (global.hasOwnProperty('__TEST__')) {
+            process.kill(childProcess.pid, 0);
+            return;
+        }
         setTimeout(() => {
             // Test if the process is still alive. Throws an exception if not
             try {
@@ -79407,7 +79422,7 @@ class LanguageClient extends client_1.BaseLanguageClient {
             catch (error) {
                 // All is fine.
             }
-        }, 1000);
+        }, 2000);
     }
     handleConnectionClosed() {
         this._serverProcess = undefined;
@@ -79644,10 +79659,6 @@ class LanguageClient extends client_1.BaseLanguageClient {
     }
     appendOutput(data, encoding) {
         let msg = Is.string(data) ? data : data.toString(encoding);
-        if (global.hasOwnProperty('__TEST__')) {
-            console.log(msg);
-            return;
-        }
         this.outputChannel.append(msg.endsWith('\n') ? msg : msg + '\n');
     }
 }
@@ -79729,6 +79740,8 @@ const isMacintosh = process.platform === 'darwin';
 const isLinux = process.platform === 'linux';
 const pluginRoot = isWebpack ? path_1.dirname(__dirname) : path_1.resolve(__dirname, '../..');
 function terminate(process, cwd) {
+    if (process.killed)
+        return;
     if (isWindows) {
         try {
             // This we run in Atom execFileSync is available.
@@ -82069,6 +82082,13 @@ class BaseLanguageClient {
                 this._connectionPromise = undefined;
                 this._resolvedConnection = undefined;
             });
+        }).catch(e => {
+            logger.error('Error on stop languageserver:', e);
+            this.state = ClientState.Stopped;
+            this.cleanUpChannel();
+            this._onStop = undefined;
+            this._connectionPromise = undefined;
+            this._resolvedConnection = undefined;
         }));
     }
     cleanUp(channel = true, diagnostics = true) {
