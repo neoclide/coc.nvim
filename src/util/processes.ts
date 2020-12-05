@@ -16,6 +16,7 @@ const isLinux = process.platform === 'linux'
 const pluginRoot = isWebpack ? dirname(__dirname) : resolve(__dirname, '../..')
 
 export function terminate(process: ChildProcess, cwd?: string): boolean {
+  if (process.killed) return
   if (isWindows) {
     try {
       // This we run in Atom execFileSync is available.

@@ -250,6 +250,10 @@ export class LanguageClient extends BaseLanguageClient {
 
   private checkProcessDied(childProcess: ChildProcess | undefined): void {
     if (!childProcess || global.hasOwnProperty('__TEST__')) return
+    if (global.hasOwnProperty('__TEST__')) {
+      process.kill(childProcess.pid, 0)
+      return
+    }
     setTimeout(() => {
       // Test if the process is still alive. Throws an exception if not
       try {
@@ -258,7 +262,7 @@ export class LanguageClient extends BaseLanguageClient {
       } catch (error) {
         // All is fine.
       }
-    }, 1000)
+    }, 2000)
   }
 
   protected handleConnectionClosed(): void {
@@ -486,10 +490,6 @@ export class LanguageClient extends BaseLanguageClient {
 
   private appendOutput(data: any, encoding: string): void {
     let msg: string = Is.string(data) ? data : data.toString(encoding)
-    if (global.hasOwnProperty('__TEST__')) {
-      console.log(msg)
-      return
-    }
     this.outputChannel.append(msg.endsWith('\n') ? msg : msg + '\n')
   }
 }

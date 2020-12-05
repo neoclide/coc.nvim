@@ -3687,6 +3687,13 @@ export abstract class BaseLanguageClient {
         this._connectionPromise = undefined
         this._resolvedConnection = undefined
       })
+    }).catch(e => {
+      logger.error('Error on stop languageserver:', e)
+      this.state = ClientState.Stopped
+      this.cleanUpChannel()
+      this._onStop = undefined
+      this._connectionPromise = undefined
+      this._resolvedConnection = undefined
     }))
   }
 
