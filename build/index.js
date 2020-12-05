@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "67cc18bcbf" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "2a875a94e3" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -25188,10 +25188,13 @@ class FloatFactory {
             this.close();
         }, null, this.disposables);
         events_1.default.on('InsertEnter', bufnr => {
-            if (bufnr == this._bufnr)
+            if (bufnr == this._bufnr || !this.autoHide)
                 return;
             this.close();
-        });
+        }, null, this.disposables);
+        events_1.default.on('InsertLeave', () => {
+            this.close();
+        }, null, this.disposables);
         events_1.default.on('MenuPopupChanged', (ev, cursorline) => {
             let pumAlignTop = this.pumAlignTop = cursorline > ev.row;
             if (pumAlignTop == this.alignTop) {
@@ -25223,6 +25226,8 @@ class FloatFactory {
         }
     }
     /**
+     * Create float window/popup at cursor position.
+     *
      * @deprecated use show method instead
      */
     async create(docs, _allowSelection = false, offsetX = 0) {
@@ -25313,6 +25318,9 @@ class FloatFactory {
             this.close();
             return;
         }
+        let pos = await this.nvim.call('coc#float#cursor_relative', [winid]);
+        if (pos)
+            this.alignTop = pos.row < 0;
         this._bufnr = bufnr;
         this.tokenSource.dispose();
         this.tokenSource = null;
