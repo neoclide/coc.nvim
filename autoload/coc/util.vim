@@ -194,7 +194,7 @@ function! coc#util#jumpTo(line, character) abort
   call cursor(a:line + 1, col)
 endfunction
 
-" Position of cursor relative to editor
+" Position of cursor relative to screen cell
 function! coc#util#cursor_pos() abort
   let nr = winnr()
   let [row, col] = win_screenpos(nr)

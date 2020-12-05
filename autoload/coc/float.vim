@@ -1368,6 +1368,24 @@ function! coc#float#reflow(top) abort
   endfor
 endfunction
 
+" float/popup relative to current cursor position
+function! coc#float#cursor_relative(winid) abort
+  if !coc#float#valid(a:winid)
+    return v:null
+  endif
+  let winid = win_getid()
+  if winid == a:winid
+    return v:null
+  endif
+  let [cursorLine, cursorCol] = coc#util#cursor_pos()
+  if has('nvim')
+    let [row, col] = nvim_win_get_position(a:winid)
+    return {'row' : row - cursorLine, 'col' : col - cursorCol}
+  endif
+  let pos = popup_getpos(a:winid)
+  return {'row' : pos['line'] - cursorLine - 1, 'col' : pos['col'] - cursorCol - 1}
+endfunction
+
 " move winid include relative windows.
 function! s:adjust_win_row(winid, changed) abort
   let ids = getwinvar(a:winid, 'related', [])
