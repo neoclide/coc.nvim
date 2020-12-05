@@ -395,7 +395,7 @@ function! coc#util#with_callback(method, args, cb)
       let res = call(a:method, a:args)
       call a:cb(v:null, res)
     catch /.*/
-      call a:cb(v:exception)
+      call a:cb(v:exception, v:null)
     endtry
   endfunction
   let timeout = s:is_vim ? 10 : 0
@@ -425,7 +425,7 @@ function! coc#util#quickpick(title, items, cb) abort
         \ })
       redraw
     catch /.*/
-      call a:cb(v:exception)
+      call a:cb(v:exception, v:null)
     endtry
   else
     let res = inputlist([a:title] + a:items)
