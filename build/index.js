@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "2a875a94e3" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "eaa2147280" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -42660,8 +42660,8 @@ const channels_1 = tslib_1.__importDefault(__webpack_require__(338));
 const events_1 = tslib_1.__importDefault(__webpack_require__(210));
 const dialog_1 = tslib_1.__importDefault(__webpack_require__(370));
 const menu_1 = tslib_1.__importDefault(__webpack_require__(371));
-const picker_1 = tslib_1.__importDefault(__webpack_require__(373));
-const notification_1 = tslib_1.__importDefault(__webpack_require__(374));
+const notification_1 = tslib_1.__importDefault(__webpack_require__(373));
+const picker_1 = tslib_1.__importDefault(__webpack_require__(374));
 const progress_1 = tslib_1.__importDefault(__webpack_require__(375));
 const status_1 = tslib_1.__importDefault(__webpack_require__(376));
 const types_1 = __webpack_require__(341);
@@ -43535,6 +43535,85 @@ exports.default = Popup;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const util_1 = __webpack_require__(238);
+const isVim = process.env.VIM_NODE_RPC == '1';
+const logger = __webpack_require__(64)('model-notification');
+class Notification {
+    constructor(nvim, config) {
+        this.nvim = nvim;
+        this.config = config;
+        this.disposables = [];
+        this._disposed = false;
+        events_1.default.on('BufWinLeave', bufnr => {
+            if (bufnr == this.bufnr) {
+                this.dispose();
+                if (config.callback)
+                    config.callback(-1);
+            }
+        }, null, this.disposables);
+        events_1.default.on('FloatBtnClick', (bufnr, idx) => {
+            if (bufnr == this.bufnr) {
+                this.dispose();
+                let btns = config === null || config === void 0 ? void 0 : config.buttons.filter(o => o.disabled != true);
+                if (config.callback)
+                    config.callback(btns[idx].index);
+            }
+        }, null, this.disposables);
+    }
+    get lines() {
+        return this.config.content.split(/\r?\n/);
+    }
+    async show(preferences) {
+        let { nvim } = this;
+        let { title, close, timeout, buttons, borderhighlight } = this.config;
+        let opts = Object.assign({}, preferences);
+        opts.close = close ? 1 : 0;
+        if (title)
+            opts.title = title;
+        if (borderhighlight)
+            opts.borderhighlight = borderhighlight;
+        if (buttons)
+            opts.buttons = buttons.filter(o => !o.disabled).map(o => o.text);
+        if (timeout)
+            opts.timeout = timeout;
+        let res = await nvim.call('coc#float#create_notification', [this.lines, opts]);
+        if (!res)
+            return false;
+        this._winid = res[0];
+        this.bufnr = res[1];
+        return true;
+    }
+    get winid() {
+        return this._winid;
+    }
+    dispose() {
+        if (this._disposed)
+            return;
+        this._disposed = true;
+        let { winid } = this;
+        if (winid) {
+            this.nvim.call('coc#float#close', [winid], true);
+            if (isVim)
+                this.nvim.command('redraw', true);
+        }
+        this.bufnr = undefined;
+        this._winid = undefined;
+        util_1.disposeAll(this.disposables);
+        this.disposables = [];
+    }
+}
+exports.default = Notification;
+//# sourceMappingURL=notification.js.map
+
+/***/ }),
+/* 374 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(65);
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const events_1 = tslib_1.__importDefault(__webpack_require__(210));
 const util_1 = __webpack_require__(238);
@@ -43803,85 +43882,6 @@ exports.default = Picker;
 //# sourceMappingURL=picker.js.map
 
 /***/ }),
-/* 374 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(65);
-const events_1 = tslib_1.__importDefault(__webpack_require__(210));
-const util_1 = __webpack_require__(238);
-const isVim = process.env.VIM_NODE_RPC == '1';
-const logger = __webpack_require__(64)('model-notification');
-class Notification {
-    constructor(nvim, config) {
-        this.nvim = nvim;
-        this.config = config;
-        this.disposables = [];
-        this._disposed = false;
-        events_1.default.on('BufWinLeave', bufnr => {
-            if (bufnr == this.bufnr) {
-                this.dispose();
-                if (config.callback)
-                    config.callback(-1);
-            }
-        }, null, this.disposables);
-        events_1.default.on('FloatBtnClick', (bufnr, idx) => {
-            if (bufnr == this.bufnr) {
-                this.dispose();
-                let btns = config === null || config === void 0 ? void 0 : config.buttons.filter(o => o.disabled != true);
-                if (config.callback)
-                    config.callback(btns[idx].index);
-            }
-        }, null, this.disposables);
-    }
-    get lines() {
-        return this.config.content.split(/\r?\n/);
-    }
-    async show(preferences) {
-        let { nvim } = this;
-        let { title, close, timeout, buttons, borderhighlight } = this.config;
-        let opts = Object.assign({}, preferences);
-        opts.close = close ? 1 : 0;
-        if (title)
-            opts.title = title;
-        if (borderhighlight)
-            opts.borderhighlight = borderhighlight;
-        if (buttons)
-            opts.buttons = buttons.filter(o => !o.disabled).map(o => o.text);
-        if (timeout)
-            opts.timeout = timeout;
-        let res = await nvim.call('coc#float#create_notification', [this.lines, opts]);
-        if (!res)
-            return false;
-        this._winid = res[0];
-        this.bufnr = res[1];
-        return true;
-    }
-    get winid() {
-        return this._winid;
-    }
-    dispose() {
-        if (this._disposed)
-            return;
-        this._disposed = true;
-        let { winid } = this;
-        if (winid) {
-            this.nvim.call('coc#float#close', [winid], true);
-            if (isVim)
-                this.nvim.command('redraw', true);
-        }
-        this.bufnr = undefined;
-        this._winid = undefined;
-        util_1.disposeAll(this.disposables);
-        this.disposables = [];
-    }
-}
-exports.default = Notification;
-//# sourceMappingURL=notification.js.map
-
-/***/ }),
 /* 375 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -43889,7 +43889,7 @@ exports.default = Notification;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
-const notification_1 = tslib_1.__importDefault(__webpack_require__(374));
+const notification_1 = tslib_1.__importDefault(__webpack_require__(373));
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
 class ProgressNotification extends notification_1.default {
     constructor(nvim, option) {
@@ -43927,6 +43927,8 @@ class ProgressNotification extends notification_1.default {
                     this.nvim.call('setbufline', [this.bufnr, 2, text], true);
                 }
             }, tokenSource.token).then(res => {
+                tokenSource.dispose();
+                this.tokenSource = null;
                 this.dispose();
                 resolve(res);
             }, err => {
@@ -79536,6 +79538,9 @@ class LanguageClient extends client_1.BaseLanguageClient {
                         return Promise.reject(`Launching server module "${node.module}" failed.`);
                     }
                     logger.info(`${this.id} started with ${serverProcess.pid}`);
+                    serverProcess.on('error', e => {
+                        logger.error(`Process ${runtime} error: `, e);
+                    });
                     this._serverProcess = serverProcess;
                     serverProcess.stderr.on('data', data => this.appendOutput(data, encoding));
                     return {
