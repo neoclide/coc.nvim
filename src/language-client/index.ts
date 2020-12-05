@@ -383,6 +383,9 @@ export class LanguageClient extends BaseLanguageClient {
             return Promise.reject<MessageTransports>(`Launching server module "${node.module}" failed.`)
           }
           logger.info(`${this.id} started with ${serverProcess.pid}`)
+          serverProcess.on('error', e => {
+            logger.error(`Process ${runtime} error: `, e)
+          })
           this._serverProcess = serverProcess
           serverProcess.stderr.on('data', data => this.appendOutput(data, encoding))
           return {
