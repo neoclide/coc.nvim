@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "9245f3a08c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "8b967b0bbd" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -25201,7 +25201,7 @@ class FloatFactory {
                 this.close();
             }
         }, null, this.disposables);
-        this.onCursorMoved = debounce_1.default(this._onCursorMoved.bind(this), 200);
+        this.onCursorMoved = debounce_1.default(this._onCursorMoved.bind(this), 300);
         events_1.default.on('CursorMoved', this.onCursorMoved.bind(this, false), null, this.disposables);
         events_1.default.on('CursorMovedI', this.onCursorMoved.bind(this, true), null, this.disposables);
         this.disposables.push(vscode_languageserver_protocol_1.Disposable.create(() => {
@@ -45838,23 +45838,26 @@ class Collection {
         this.name = owner;
     }
     set(entries, diagnostics) {
-        if (!Array.isArray(entries)) {
-            let uri = entries;
-            // if called as set(uri, diagnostics)
-            // -> convert into single-entry entries list
-            entries = [[uri, diagnostics]];
-        }
         let diagnosticsPerFile = new Map();
-        for (let item of entries) {
-            let [file, diagnostics] = item;
-            if (diagnostics == null) {
-                // clear diagnostics if entry contains null
-                diagnostics = [];
+        if (!Array.isArray(entries)) {
+            let doc = workspace_1.default.getDocument(entries);
+            let uri = doc ? doc.uri : entries;
+            diagnosticsPerFile.set(uri, diagnostics);
+        }
+        else {
+            for (let item of entries) {
+                let [uri, diagnostics] = item;
+                let doc = workspace_1.default.getDocument(uri);
+                uri = doc ? doc.uri : uri;
+                if (diagnostics === undefined) {
+                    // clear diagnostics if entry contains null
+                    diagnostics = [];
+                }
+                else {
+                    diagnostics = (diagnosticsPerFile.get(uri) || []).concat(diagnostics);
+                }
+                diagnosticsPerFile.set(uri, diagnostics);
             }
-            else {
-                diagnostics = (diagnosticsPerFile.get(file) || []).concat(diagnostics);
-            }
-            diagnosticsPerFile.set(file, diagnostics);
         }
         for (let item of diagnosticsPerFile) {
             let [uri, diagnostics] = item;
