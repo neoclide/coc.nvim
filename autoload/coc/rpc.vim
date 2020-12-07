@@ -117,11 +117,11 @@ endfunction
 
 " send async response to server
 function! coc#rpc#async_request(id, method, args)
-  let l:Cb = {err, res -> coc#rpc#notify('nvim_async_response_event', [a:id, err, res])}
+  let l:Cb = {err, ... -> coc#rpc#notify('nvim_async_response_event', [a:id, err, get(a:000, 0, v:null)])}
   let args = a:args + [l:Cb]
   try
     call call(a:method, args)
   catch /.*/
-    call coc#rpc#notify('nvim_async_response_event', [a:id, v:exception])
+    call coc#rpc#notify('nvim_async_response_event', [a:id, v:exception, v:null])
   endtry
 endfunction
