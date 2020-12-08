@@ -46,7 +46,7 @@ export default class Collection implements DiagnosticCollection {
     for (let item of diagnosticsPerFile) {
       let [uri, diagnostics] = item
       uri = URI.parse(uri).toString()
-      diagnostics.forEach(o => {
+      diagnostics?.forEach(o => {
         o.range = o.range || Range.create(0, 0, 1, 0)
         o.message = o.message || 'Empty error message'
         if (emptyRange(o.range)) {
