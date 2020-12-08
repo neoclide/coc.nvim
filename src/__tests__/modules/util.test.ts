@@ -11,6 +11,8 @@ import { indexOf } from '../../util/string'
 import helper from '../helper'
 import { ansiparse } from '../../util/ansiparse'
 import { concurrent } from '../../util'
+import { spawn } from 'child_process'
+import { terminate } from '../../util/processes'
 
 describe('score test', () => {
   test('should match schema', () => {
@@ -226,5 +228,16 @@ describe('Mutex', () => {
     await helper.wait(10)
     await mutex.use(fn)
     expect(count).toBe(2)
+  })
+})
+
+describe('terminate', () => {
+  test('should terminate process', async () => {
+    let cwd = process.cwd()
+    let child = spawn('sleep', ['10'], { cwd, detached: true })
+    let res = terminate(child, cwd)
+    await helper.wait(60)
+    expect(res).toBe(true)
+    expect(child.connected).toBe(false)
   })
 })
