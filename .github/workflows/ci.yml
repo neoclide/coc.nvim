@@ -44,7 +44,7 @@ jobs:
           export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-osx64/bin"
           nvim --version
           yarn test
-      - if: matrix.os == 'ubuntu-latest'
+      - if: matrix.os == 'ubuntu-20.04'
         name: yarn test on Ubuntu
         run: |
           curl -LO https://github.com/neovim/neovim/releases/download/nightly/nvim-linux64.tar.gz
