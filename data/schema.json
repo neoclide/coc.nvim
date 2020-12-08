@@ -805,6 +805,12 @@
         "type": "string"
       }
     },
+    "workspace.progressTarget": {
+      "type": "string",
+      "default": "float",
+      "description": "Target to show workDoneProgress, default is floating window when possible.",
+      "enum": ["statusline", "float"]
+    },
     "list.indicator": {
       "type": "string",
       "default": ">",

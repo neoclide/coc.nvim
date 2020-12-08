@@ -4,10 +4,12 @@
  * ------------------------------------------------------------------------------------------ */
 'use strict'
 
-import { Disposable, NotificationHandler, NotificationType, ProgressToken, ProgressType, WorkDoneProgress, WorkDoneProgressBegin, WorkDoneProgressReport } from 'vscode-languageserver-protocol'
-import { StatusBarItem } from '../types'
-import window from '../window'
+import { CancellationToken, Disposable, NotificationHandler, NotificationType, ProgressToken, ProgressType, WorkDoneProgress, WorkDoneProgressBegin, WorkDoneProgressCancelNotification, WorkDoneProgressReport } from 'vscode-languageserver-protocol'
+import { Progress, StatusBarItem } from '../types'
 import { disposeAll } from '../util'
+import window from '../window'
+import workspace from '../workspace'
+const logger = require('../util/logger')('language-client-progressPart')
 
 export interface ProgressContext {
   onProgress<P>(type: ProgressType<P>, token: string | number, handler: NotificationHandler<P>): Disposable
@@ -21,8 +23,19 @@ class ProgressPart {
   private _statusBarItem: StatusBarItem | undefined
   private _cancelled = false
   private title: string
+  private _progress: Progress<{ message?: string; increment?: number}>
+  private _cancellationToken: CancellationToken
+  private _progressTarget: string
+
+  private _reported = 0
+  private _resolve: (() => void) | undefined
+  private _reject: ((reason?: any) => void) | undefined
 
   public constructor(private _client: ProgressContext, private _token: ProgressToken) {
+    this._progressTarget = workspace.getConfiguration('workspace').get<string>('progressTarget', 'float')
+    if (!workspace.env.dialog) {
+      this._progressTarget = 'statusline'
+    }
     this._statusBarItem = window.createStatusBarItem(99, { progress: true })
     this._disposables.push(this._statusBarItem)
     this._disposables.push(_client.onProgress(WorkDoneProgress.type, this._token, value => {
@@ -41,19 +54,46 @@ class ProgressPart {
   }
 
   public begin(params: WorkDoneProgressBegin): void {
-    // TODO: support progress window with cancel button & WorkDoneProgressCancelNotification
     this.title = params.title
-    this.report(params)
+
+    if (this._progressTarget === 'float') {
+      window.withProgress<void>({ title: params.title, cancellable: params.cancellable }, async (progress, cancellationToken) => {
+        this._progress = progress
+        this._cancellationToken = cancellationToken
+        this._cancellationToken.onCancellationRequested(() => {
+          this._client.sendNotification(WorkDoneProgressCancelNotification.type, { token: this._token })
+        })
+        this.report(params)
+        return new Promise((resolve, reject) => {
+          this._resolve = resolve
+          this._reject = reject
+        })
+      }).catch(err => {
+        logger.error('Progress error:', err)
+      })
+    } else {
+      this.report(params)
+    }
   }
 
   private report(params: WorkDoneProgressReport | WorkDoneProgressBegin): void {
-    let statusBarItem = this._statusBarItem
-    let parts: string[] = []
-    if (this.title) parts.push(this.title)
-    if (params.percentage) parts.push(params.percentage.toFixed(0) + '%')
-    if (params.message) parts.push(params.message)
-    statusBarItem.text = parts.join(' ')
-    statusBarItem.show()
+    if (this._progressTarget === 'float') {
+      let delta = 0
+      if (params.percentage) {
+        const current = Math.max(0, Math.min(params.percentage, 100))
+        delta = Math.max(0, current - this._reported)
+        this._reported = current
+      }
+      this._progress?.report({ message: params.message, increment: delta })
+    } else {
+      let statusBarItem = this._statusBarItem
+      let parts: string[] = []
+      if (this.title) parts.push(this.title)
+      if (params.percentage) parts.push(params.percentage.toFixed(0) + '%')
+      if (params.message) parts.push(params.message)
+      statusBarItem.text = parts.join(' ')
+      statusBarItem.show()
+    }
   }
 
   public cancel(): void {
@@ -63,18 +103,26 @@ class ProgressPart {
     if (progressParts.has(this._token)) {
       progressParts.delete(this._token)
     }
+    if (this._resolve) {
+      this._resolve()
+      this._resolve = undefined
+      this._reject = undefined
+    }
+    if (this._reject) {
+      this._reject()
+      this._resolve = undefined
+      this._reject = undefined
+    }
   }
 
   public done(message?: string): void {
-    let statusBarItem = this._statusBarItem
-    if (!message) {
-      this.cancel()
-    } else {
+    if (message && this._progressTarget === 'statusline') {
+      const statusBarItem = this._statusBarItem
       statusBarItem.text = `${this.title} ${message}`
-      setTimeout(() => {
-        this.cancel()
-      }, 500)
     }
+    setTimeout(() => {
+      this.cancel()
+    }, 500)
   }
 }
 
