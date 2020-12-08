@@ -665,7 +665,7 @@
     },
     "signature.triggerSignatureWait": {
       "type": "integer",
-      "default": 50,
+      "default": 100,
       "minimum": 50,
       "maximum": 300,
       "description": "Timeout for trigger signature help, in miliseconds."
@@ -673,7 +673,8 @@
     "signature.target": {
       "type": "string",
       "description": "Target of signature help, use float when possible by default.",
-      "enum": ["float", "echo", "preview"]
+      "default": "float",
+      "enum": ["float", "echo"]
     },
     "signature.maxWindowWidth": {
       "type": "integer",
@@ -693,7 +694,7 @@
     },
     "signature.hideOnTextChange": {
       "type": "boolean",
-      "description": "Hide signature float window when text changed, require restart service on change.",
+      "description": "Hide signature float window when text changed on insert mode.",
       "default": false
     },
     "codeLens.enable": {

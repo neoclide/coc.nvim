@@ -548,7 +548,7 @@ function! coc#float#create_prompt_win(title, default, opts) abort
     inoremap <buffer><expr><C-e> pumvisible() ? "\<C-e>" : "\<End>"
     exe 'inoremap <silent><buffer> <esc> <C-r>=coc#float#close_i('.winid.')<CR><esc>'
     exe 'nnoremap <silent><buffer> <esc> :call coc#float#close('.winid.')<CR>'
-    exe 'inoremap <expr><nowait><buffer> <cr> "\<C-r>=coc#float#prompt_insert(getline(''.''))\<cr>\<esc>"'
+    exe 'inoremap <silent><expr><nowait><buffer> <cr> "\<C-r>=coc#float#prompt_insert(getline(''.''))\<cr>\<esc>"'
     call feedkeys('A', 'in')
   endif
   return [bufnr, winid]

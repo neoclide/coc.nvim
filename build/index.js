@@ -24026,7 +24026,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "8b967b0bbd" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "9eb7e5b2ae" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -45842,15 +45842,15 @@ class Collection {
         if (!Array.isArray(entries)) {
             let doc = workspace_1.default.getDocument(entries);
             let uri = doc ? doc.uri : entries;
-            diagnosticsPerFile.set(uri, diagnostics);
+            diagnosticsPerFile.set(uri, diagnostics || []);
         }
         else {
             for (let item of entries) {
                 let [uri, diagnostics] = item;
                 let doc = workspace_1.default.getDocument(uri);
                 uri = doc ? doc.uri : uri;
-                if (diagnostics === undefined) {
-                    // clear diagnostics if entry contains null
+                if (diagnostics == null) {
+                    // clear previous diagnostics if entry contains null
                     diagnostics = [];
                 }
                 else {
@@ -93929,6 +93929,7 @@ const colors_1 = tslib_1.__importDefault(__webpack_require__(684));
 const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(686));
 const refactor_1 = tslib_1.__importDefault(__webpack_require__(687));
 const search_1 = tslib_1.__importDefault(__webpack_require__(688));
+const signature_1 = tslib_1.__importDefault(__webpack_require__(689));
 const logger = __webpack_require__(64)('Handler');
 const pairs = new Map([
     ['<', '>'],
@@ -93953,9 +93954,8 @@ class Handler {
             this.getPreferences();
         });
         this.hoverFactory = new floatFactory_1.default(nvim);
+        this.signature = new signature_1.default(nvim);
         this.disposables.push(this.hoverFactory);
-        this.signatureFactory = new floatFactory_1.default(nvim);
-        this.disposables.push(this.signatureFactory);
         workspace_1.default.onWillSaveUntil(event => {
             let { languageId } = event.document;
             let config = workspace_1.default.getConfiguration('coc.preferences', event.document.uri);
@@ -93985,35 +93985,6 @@ class Handler {
             if (this.requestTokenSource) {
                 this.requestTokenSource.cancel();
             }
-        }, null, this.disposables);
-        events_1.default.on('CursorMovedI', async (bufnr, cursor) => {
-            if (!this.signaturePosition)
-                return;
-            let doc = workspace_1.default.getDocument(bufnr);
-            if (!doc)
-                return;
-            let { line, character } = this.signaturePosition;
-            if (cursor[0] - 1 == line) {
-                let currline = doc.getline(cursor[0] - 1);
-                let col = string_1.byteLength(currline.slice(0, character)) + 1;
-                if (cursor[1] >= col)
-                    return;
-            }
-            this.signatureFactory.close();
-        }, null, this.disposables);
-        events_1.default.on('InsertLeave', () => {
-            this.signatureFactory.close();
-        }, null, this.disposables);
-        events_1.default.on(['TextChangedI', 'TextChangedP'], async () => {
-            if (this.preferences.signatureHideOnChange) {
-                this.signatureFactory.close();
-            }
-        }, null, this.disposables);
-        let lastInsert;
-        events_1.default.on('InsertCharPre', async (character) => {
-            lastInsert = Date.now();
-            if (character == ')')
-                this.signatureFactory.close();
         }, null, this.disposables);
         events_1.default.on('Enter', async (bufnr) => {
             let { bracketEnterImprove } = this.preferences;
@@ -94055,38 +94026,27 @@ class Handler {
                 }
             }
         }, null, this.disposables);
-        let insertLeaveTs;
         let changedTs;
+        let lastInsert;
+        events_1.default.on('InsertCharPre', async () => {
+            lastInsert = Date.now();
+        }, null, this.disposables);
         events_1.default.on('TextChangedI', async (bufnr, info) => {
             changedTs = Date.now();
-            let curr = changedTs;
             if (!lastInsert || changedTs - lastInsert > 300)
                 return;
             lastInsert = null;
             let doc = workspace_1.default.getDocument(bufnr);
             if (!doc || doc.isCommandLine || !doc.attached)
                 return;
-            let { triggerSignatureHelp, formatOnType } = this.preferences;
-            // if (!triggerSignatureHelp && !formatOnType) return
             let pre = info.pre[info.pre.length - 1];
             if (!pre)
                 return;
-            if (formatOnType && !string_1.isWord(pre)) {
+            if (this.preferences.formatOnType && !string_1.isWord(pre)) {
                 await this.tryFormatOnType(pre, bufnr);
-            }
-            if (triggerSignatureHelp && languages_1.default.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
-                if (changedTs > curr || (insertLeaveTs && insertLeaveTs > curr))
-                    return;
-                try {
-                    await this.triggerSignatureHelp(doc, { line: info.lnum - 1, character: info.pre.length });
-                }
-                catch (e) {
-                    logger.error(`Error on signature help:`, e);
-                }
             }
         }, null, this.disposables);
         events_1.default.on('InsertLeave', async (bufnr) => {
-            insertLeaveTs = Date.now();
             let { formatOnInsertLeave, formatOnType } = this.preferences;
             if (!formatOnInsertLeave || !formatOnType)
                 return;
@@ -94872,194 +94832,11 @@ class Handler {
         if (to)
             await window_1.default.moveTo(to);
     }
-    async triggerSignatureHelp(doc, position) {
-        let { signatureHelpTarget } = this.preferences;
-        let part = doc.getline(position.line).slice(0, position.character);
-        if (part.endsWith(')')) {
-            this.signatureFactory.close();
-            return;
-        }
-        let signatureHelp = await this.withRequestToken('signature help', async (token) => {
-            let timer = setTimeout(() => {
-                if (!token.isCancellationRequested && this.requestTokenSource) {
-                    this.requestTokenSource.cancel();
-                }
-            }, 2000);
-            await synchronizeDocument(doc);
-            let res = await languages_1.default.getSignatureHelp(doc.textDocument, position, token);
-            clearTimeout(timer);
-            return res;
-        });
-        if (!signatureHelp || signatureHelp.signatures.length == 0) {
-            this.signatureFactory.close();
-            return false;
-        }
-        let { activeParameter, activeSignature, signatures } = signatureHelp;
-        if (activeSignature) {
-            // make active first
-            let [active] = signatures.splice(activeSignature, 1);
-            if (active)
-                signatures.unshift(active);
-        }
-        if (signatureHelpTarget == 'echo') {
-            let columns = workspace_1.default.env.columns;
-            signatures = signatures.slice(0, workspace_1.default.env.cmdheight);
-            let signatureList = [];
-            for (let signature of signatures) {
-                let parts = [];
-                let { label } = signature;
-                label = label.replace(/\n/g, ' ');
-                if (label.length >= columns - 16) {
-                    label = label.slice(0, columns - 16) + '...';
-                }
-                let nameIndex = label.indexOf('(');
-                if (nameIndex == -1) {
-                    parts = [{ text: label, type: 'Normal' }];
-                }
-                else {
-                    parts.push({
-                        text: label.slice(0, nameIndex),
-                        type: 'Label'
-                    });
-                    let after = label.slice(nameIndex);
-                    if (signatureList.length == 0 && activeParameter != null) {
-                        let active = signature.parameters[activeParameter];
-                        if (active) {
-                            let start;
-                            let end;
-                            if (typeof active.label === 'string') {
-                                let str = after.slice(0);
-                                let ms = str.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'));
-                                let idx = ms ? ms.index : str.indexOf(active.label);
-                                if (idx == -1) {
-                                    parts.push({ text: after, type: 'Normal' });
-                                }
-                                else {
-                                    start = idx;
-                                    end = idx + active.label.length;
-                                }
-                            }
-                            else {
-                                [start, end] = active.label;
-                                start = start - nameIndex;
-                                end = end - nameIndex;
-                            }
-                            if (start != null && end != null) {
-                                parts.push({ text: after.slice(0, start), type: 'Normal' });
-                                parts.push({ text: after.slice(start, end), type: 'MoreMsg' });
-                                parts.push({ text: after.slice(end), type: 'Normal' });
-                            }
-                        }
-                    }
-                    else {
-                        parts.push({
-                            text: after,
-                            type: 'Normal'
-                        });
-                    }
-                }
-                signatureList.push(parts);
-            }
-            this.nvim.callTimer('coc#util#echo_signatures', [signatureList], true);
-        }
-        else {
-            let offset = 0;
-            let paramDoc = null;
-            let docs = signatures.reduce((p, c, idx) => {
-                let activeIndexes = null;
-                let nameIndex = c.label.indexOf('(');
-                if (idx == 0 && activeParameter != null) {
-                    let active = c.parameters[activeParameter];
-                    if (active) {
-                        let after = c.label.slice(nameIndex == -1 ? 0 : nameIndex);
-                        paramDoc = active.documentation;
-                        if (typeof active.label === 'string') {
-                            let str = after.slice(0);
-                            let ms = str.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'));
-                            let index = ms ? ms.index : str.indexOf(active.label);
-                            if (index != -1) {
-                                activeIndexes = [
-                                    index + nameIndex,
-                                    index + active.label.length + nameIndex
-                                ];
-                            }
-                        }
-                        else {
-                            activeIndexes = active.label;
-                        }
-                    }
-                }
-                if (activeIndexes == null) {
-                    activeIndexes = [nameIndex + 1, nameIndex + 1];
-                }
-                if (offset == 0) {
-                    offset = activeIndexes[0] + 1;
-                }
-                p.push({
-                    content: c.label,
-                    filetype: doc.filetype,
-                    active: activeIndexes
-                });
-                if (paramDoc) {
-                    let content = typeof paramDoc === 'string' ? paramDoc : paramDoc.value;
-                    if (content.trim().length) {
-                        p.push({
-                            content,
-                            filetype: isMarkdown(c.documentation) ? 'markdown' : 'txt'
-                        });
-                    }
-                }
-                if (idx == 0 && c.documentation) {
-                    let { documentation } = c;
-                    let content = typeof documentation === 'string' ? documentation : documentation.value;
-                    if (content.trim().length) {
-                        p.push({
-                            content,
-                            filetype: isMarkdown(c.documentation) ? 'markdown' : 'txt'
-                        });
-                    }
-                }
-                return p;
-            }, []);
-            if (signatureHelpTarget == 'float') {
-                let session = manager_3.default.getSession(doc.bufnr);
-                if (session && session.isActive) {
-                    let { value } = session.placeholder;
-                    if (!value.includes('\n'))
-                        offset += value.length;
-                    this.signaturePosition = vscode_languageserver_protocol_1.Position.create(position.line, position.character - value.length);
-                }
-                else {
-                    this.signaturePosition = position;
-                }
-                let { signaturePreferAbove, signatureFloatMaxWidth, signatureMaxHeight } = this.preferences;
-                await this.signatureFactory.show(docs, {
-                    maxWidth: signatureFloatMaxWidth,
-                    maxHeight: signatureMaxHeight,
-                    preferTop: signaturePreferAbove,
-                    autoHide: false,
-                    offsetX: offset,
-                    modes: ['i', 'ic', 's']
-                });
-                // show float
-            }
-            else {
-                this.documentLines = docs.reduce((p, c) => {
-                    p.push('``` ' + c.filetype);
-                    p.push(...c.content.split(/\r?\n/));
-                    p.push('```');
-                    return p;
-                }, []);
-                this.nvim.command(`noswapfile pedit coc://document`, true);
-            }
-        }
-        return true;
-    }
     async showSignatureHelp() {
         let { doc, position } = await this.getCurrentState();
         if (!doc)
             return false;
-        return await this.triggerSignatureHelp(doc, position);
+        return await this.signature.triggerSignatureHelp(doc, position);
     }
     async findLocations(id, method, params, openCommand) {
         let { doc, position } = await this.getCurrentState();
@@ -95299,25 +95076,13 @@ class Handler {
     }
     getPreferences() {
         let config = workspace_1.default.getConfiguration('coc.preferences');
-        let signatureConfig = workspace_1.default.getConfiguration('signature');
         let hoverTarget = config.get('hoverTarget', 'float');
-        let signatureHelpTarget = signatureConfig.get('target', 'float');
         if (hoverTarget == 'float' && !workspace_1.default.floatSupported) {
             hoverTarget = 'preview';
-        }
-        if (signatureHelpTarget == 'float' && !workspace_1.default.floatSupported) {
-            signatureHelpTarget = 'echo';
         }
         this.labels = workspace_1.default.getConfiguration('suggest').get('completionItemKindLabels', {});
         this.preferences = {
             hoverTarget,
-            signatureHelpTarget,
-            signatureMaxHeight: signatureConfig.get('maxWindowHeight', 8),
-            triggerSignatureHelp: signatureConfig.get('enable', true),
-            triggerSignatureWait: Math.max(signatureConfig.get('triggerSignatureWait', 50), 50),
-            signaturePreferAbove: signatureConfig.get('preferShownAbove', true),
-            signatureFloatMaxWidth: signatureConfig.get('maxWindowWidth', 80),
-            signatureHideOnChange: signatureConfig.get('hideOnTextChange', false),
             formatOnType: config.get('formatOnType', false),
             formatOnTypeFiletypes: config.get('formatOnTypeFiletypes', []),
             formatOnInsertLeave: config.get('formatOnInsertLeave', false),
@@ -97083,6 +96848,302 @@ class Search {
 }
 exports.default = Search;
 //# sourceMappingURL=search.js.map
+
+/***/ }),
+/* 689 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(65);
+const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(254));
+const manager_1 = tslib_1.__importDefault(__webpack_require__(386));
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(291));
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const string_1 = __webpack_require__(288);
+const languages_1 = tslib_1.__importDefault(__webpack_require__(566));
+const util_1 = __webpack_require__(238);
+const logger = __webpack_require__(64)('handler-signature');
+class Signature {
+    constructor(nvim) {
+        this.nvim = nvim;
+        this.disposables = [];
+        this.signatureFactory = new floatFactory_1.default(nvim);
+        this.loadConfiguration();
+        this.disposables.push(this.signatureFactory);
+        workspace_1.default.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables);
+        events_1.default.on('CursorMovedI', async (bufnr, cursor) => {
+            // avoid close signature for valid position.
+            if (!this.signaturePosition)
+                return;
+            let doc = workspace_1.default.getDocument(bufnr);
+            if (!doc)
+                return;
+            let { line, character } = this.signaturePosition;
+            if (cursor[0] - 1 == line) {
+                let currline = doc.getline(cursor[0] - 1);
+                let col = string_1.byteLength(currline.slice(0, character)) + 1;
+                if (cursor[1] >= col)
+                    return;
+            }
+            this.signatureFactory.close();
+        }, null, this.disposables);
+        events_1.default.on(['InsertLeave', 'BufEnter'], () => {
+            var _a;
+            (_a = this.tokenSource) === null || _a === void 0 ? void 0 : _a.cancel();
+            this.signatureFactory.close();
+        }, null, this.disposables);
+        events_1.default.on(['TextChangedI', 'TextChangedP'], async () => {
+            if (this.config.hideOnChange) {
+                this.signatureFactory.close();
+            }
+        }, null, this.disposables);
+        let lastInsert;
+        events_1.default.on('InsertCharPre', async () => {
+            lastInsert = Date.now();
+        }, null, this.disposables);
+        events_1.default.on('TextChangedI', async (bufnr, info) => {
+            if (!this.config.trigger)
+                return;
+            if (!lastInsert || Date.now() - lastInsert > 300)
+                return;
+            lastInsert = null;
+            let doc = workspace_1.default.getDocument(bufnr);
+            if (!doc || doc.isCommandLine || !doc.attached)
+                return;
+            // if (!triggerSignatureHelp && !formatOnType) return
+            let pre = info.pre[info.pre.length - 1];
+            if (!pre)
+                return;
+            if (languages_1.default.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
+                await this.triggerSignatureHelp(doc, { line: info.lnum - 1, character: info.pre.length });
+            }
+        }, null, this.disposables);
+    }
+    loadConfiguration(e) {
+        if (!e || e.affectsConfiguration('signature')) {
+            let config = workspace_1.default.getConfiguration('signature');
+            let target = config.get('target', 'float');
+            if (target == 'float' && !workspace_1.default.floatSupported) {
+                target = 'echo';
+            }
+            this.config = {
+                target,
+                trigger: config.get('enable', true),
+                wait: Math.max(config.get('triggerSignatureWait', 100), 50),
+                maxWindowHeight: config.get('maxWindowHeight', 80),
+                maxWindowWidth: config.get('maxWindowWidth', 80),
+                preferAbove: config.get('preferShownAbove', true),
+                hideOnChange: config.get('hideOnTextChange', false),
+            };
+        }
+    }
+    async triggerSignatureHelp(doc, position) {
+        var _a;
+        (_a = this.tokenSource) === null || _a === void 0 ? void 0 : _a.cancel();
+        let tokenSource = this.tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
+        let token = tokenSource.token;
+        token.onCancellationRequested(() => {
+            tokenSource.dispose();
+            this.tokenSource = undefined;
+        }, null, this.disposables);
+        let { target } = this.config;
+        let timer = this.timer = setTimeout(() => {
+            tokenSource.cancel();
+        }, this.config.wait);
+        let { changedtick } = doc;
+        await doc.patchChange();
+        if (changedtick != doc.changedtick) {
+            await util_1.wait(30);
+        }
+        if (token.isCancellationRequested) {
+            return false;
+        }
+        let signatureHelp = await languages_1.default.getSignatureHelp(doc.textDocument, position, token);
+        clearTimeout(timer);
+        if (token.isCancellationRequested)
+            return false;
+        if (!signatureHelp || signatureHelp.signatures.length == 0) {
+            this.signatureFactory.close();
+            return false;
+        }
+        let { activeSignature, signatures } = signatureHelp;
+        if (activeSignature) {
+            // make active first
+            let [active] = signatures.splice(activeSignature, 1);
+            if (active)
+                signatures.unshift(active);
+        }
+        if (target == 'echo') {
+            this.echoSignature(signatureHelp);
+        }
+        else {
+            await this.showSignatureHelp(doc, position, signatureHelp);
+        }
+    }
+    async showSignatureHelp(doc, position, signatureHelp) {
+        let { signatures, activeParameter } = signatureHelp;
+        let offset = 0;
+        let paramDoc = null;
+        let docs = signatures.reduce((p, c, idx) => {
+            let activeIndexes = null;
+            let nameIndex = c.label.indexOf('(');
+            if (idx == 0 && activeParameter != null) {
+                let active = c.parameters[activeParameter];
+                if (active) {
+                    let after = c.label.slice(nameIndex == -1 ? 0 : nameIndex);
+                    paramDoc = active.documentation;
+                    if (typeof active.label === 'string') {
+                        let str = after.slice(0);
+                        let ms = str.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'));
+                        let index = ms ? ms.index : str.indexOf(active.label);
+                        if (index != -1) {
+                            activeIndexes = [
+                                index + nameIndex,
+                                index + active.label.length + nameIndex
+                            ];
+                        }
+                    }
+                    else {
+                        activeIndexes = active.label;
+                    }
+                }
+            }
+            if (activeIndexes == null) {
+                activeIndexes = [nameIndex + 1, nameIndex + 1];
+            }
+            if (offset == 0) {
+                offset = activeIndexes[0] + 1;
+            }
+            p.push({
+                content: c.label,
+                filetype: doc.filetype,
+                active: activeIndexes
+            });
+            if (paramDoc) {
+                let content = typeof paramDoc === 'string' ? paramDoc : paramDoc.value;
+                if (content.trim().length) {
+                    p.push({
+                        content,
+                        filetype: isMarkdown(c.documentation) ? 'markdown' : 'txt'
+                    });
+                }
+            }
+            if (idx == 0 && c.documentation) {
+                let { documentation } = c;
+                let content = typeof documentation === 'string' ? documentation : documentation.value;
+                if (content.trim().length) {
+                    p.push({
+                        content,
+                        filetype: isMarkdown(c.documentation) ? 'markdown' : 'txt'
+                    });
+                }
+            }
+            return p;
+        }, []);
+        let session = manager_1.default.getSession(doc.bufnr);
+        if (session && session.isActive) {
+            let { value } = session.placeholder;
+            if (!value.includes('\n'))
+                offset += value.length;
+            this.signaturePosition = vscode_languageserver_protocol_1.Position.create(position.line, position.character - value.length);
+        }
+        else {
+            this.signaturePosition = position;
+        }
+        let { preferAbove, maxWindowHeight, maxWindowWidth } = this.config;
+        await this.signatureFactory.show(docs, {
+            maxWidth: maxWindowWidth,
+            maxHeight: maxWindowHeight,
+            preferTop: preferAbove,
+            autoHide: false,
+            offsetX: offset,
+            modes: ['i', 'ic', 's']
+        });
+    }
+    echoSignature(signatureHelp) {
+        let { signatures, activeParameter } = signatureHelp;
+        let columns = workspace_1.default.env.columns;
+        signatures = signatures.slice(0, workspace_1.default.env.cmdheight);
+        let signatureList = [];
+        for (let signature of signatures) {
+            let parts = [];
+            let { label } = signature;
+            label = label.replace(/\n/g, ' ');
+            if (label.length >= columns - 16) {
+                label = label.slice(0, columns - 16) + '...';
+            }
+            let nameIndex = label.indexOf('(');
+            if (nameIndex == -1) {
+                parts = [{ text: label, type: 'Normal' }];
+            }
+            else {
+                parts.push({
+                    text: label.slice(0, nameIndex),
+                    type: 'Label'
+                });
+                let after = label.slice(nameIndex);
+                if (signatureList.length == 0 && activeParameter != null) {
+                    let active = signature.parameters[activeParameter];
+                    if (active) {
+                        let start;
+                        let end;
+                        if (typeof active.label === 'string') {
+                            let str = after.slice(0);
+                            let ms = str.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'));
+                            let idx = ms ? ms.index : str.indexOf(active.label);
+                            if (idx == -1) {
+                                parts.push({ text: after, type: 'Normal' });
+                            }
+                            else {
+                                start = idx;
+                                end = idx + active.label.length;
+                            }
+                        }
+                        else {
+                            [start, end] = active.label;
+                            start = start - nameIndex;
+                            end = end - nameIndex;
+                        }
+                        if (start != null && end != null) {
+                            parts.push({ text: after.slice(0, start), type: 'Normal' });
+                            parts.push({ text: after.slice(start, end), type: 'MoreMsg' });
+                            parts.push({ text: after.slice(end), type: 'Normal' });
+                        }
+                    }
+                }
+                else {
+                    parts.push({
+                        text: after,
+                        type: 'Normal'
+                    });
+                }
+            }
+            signatureList.push(parts);
+        }
+        this.nvim.callTimer('coc#util#echo_signatures', [signatureList], true);
+    }
+    dispose() {
+        util_1.disposeAll(this.disposables);
+        if (this.timer) {
+            clearTimeout(this.timer);
+        }
+        if (this.tokenSource) {
+            this.tokenSource.cancel();
+            this.tokenSource.dispose();
+        }
+    }
+}
+exports.default = Signature;
+function isMarkdown(content) {
+    if (vscode_languageserver_protocol_1.MarkupContent.is(content) && content.kind == vscode_languageserver_protocol_1.MarkupKind.Markdown) {
+        return true;
+    }
+    return false;
+}
+//# sourceMappingURL=signature.js.map
 
 /***/ })
 /******/ ]);
