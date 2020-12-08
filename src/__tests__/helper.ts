@@ -206,6 +206,10 @@ export class Helper extends EventEmitter {
     return res
   }
 
+  public async getWinLines(winid: number): Promise<string[]> {
+    return await this.nvim.eval(`getbufline(winbufnr(${winid}), 1, '$')`) as string[]
+  }
+
   public async getFloat(): Promise<Window> {
     let wins = await this.nvim.windows
     let floatWin: Window

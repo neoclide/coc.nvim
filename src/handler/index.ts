@@ -16,7 +16,7 @@ import { disposeAll, wait } from '../util'
 import { getSymbolKind } from '../util/convert'
 import { equals } from '../util/object'
 import { emptyRange, getChangedFromEdits, positionInRange, rangeInRange } from '../util/position'
-import { byteLength, isWord } from '../util/string'
+import { isWord } from '../util/string'
 import workspace from '../workspace'
 import window from '../window'
 import CodeLensManager from './codelens'
@@ -24,6 +24,7 @@ import Colors from './colors'
 import DocumentHighlighter from './documentHighlight'
 import Refactor from './refactor'
 import Search from './search'
+import Signature from './signature'
 const logger = require('../util/logger')('Handler')
 const pairs: Map<string, string> = new Map([
   ['<', '>'],
@@ -50,19 +51,7 @@ interface CommandItem {
   title: string
 }
 
-interface SignaturePart {
-  text: string
-  type: 'Label' | 'MoreMsg' | 'Normal'
-}
-
 interface Preferences {
-  signatureMaxHeight: number
-  signaturePreferAbove: boolean
-  signatureHideOnChange: boolean
-  signatureHelpTarget: string
-  signatureFloatMaxWidth: number
-  triggerSignatureHelp: boolean
-  triggerSignatureWait: number
   formatOnType: boolean
   formatOnTypeFiletypes: string[]
   formatOnInsertLeave: boolean
@@ -79,14 +68,13 @@ export default class Handler {
   private documentHighlighter: DocumentHighlighter
   private colors: Colors
   private hoverFactory: FloatFactory
-  private signatureFactory: FloatFactory
+  private signature: Signature
   private refactorMap: Map<number, Refactor> = new Map()
   private documentLines: string[] = []
   private codeLensManager: CodeLensManager
   private disposables: Disposable[] = []
   private labels: { [key: string]: string } = {}
   private selectionRange: SelectionRange = null
-  private signaturePosition: Position
   private requestStatusItem: StatusBarItem
   private requestTokenSource: CancellationTokenSource | undefined
   private requestTimer: NodeJS.Timer
@@ -100,9 +88,8 @@ export default class Handler {
       this.getPreferences()
     })
     this.hoverFactory = new FloatFactory(nvim)
+    this.signature = new Signature(nvim)
     this.disposables.push(this.hoverFactory)
-    this.signatureFactory = new FloatFactory(nvim)
-    this.disposables.push(this.signatureFactory)
     workspace.onWillSaveUntil(event => {
       let { languageId } = event.document
       let config = workspace.getConfiguration('coc.preferences', event.document.uri)
@@ -132,31 +119,6 @@ export default class Handler {
       if (this.requestTokenSource) {
         this.requestTokenSource.cancel()
       }
-    }, null, this.disposables)
-    events.on('CursorMovedI', async (bufnr, cursor) => {
-      if (!this.signaturePosition) return
-      let doc = workspace.getDocument(bufnr)
-      if (!doc) return
-      let { line, character } = this.signaturePosition
-      if (cursor[0] - 1 == line) {
-        let currline = doc.getline(cursor[0] - 1)
-        let col = byteLength(currline.slice(0, character)) + 1
-        if (cursor[1] >= col) return
-      }
-      this.signatureFactory.close()
-    }, null, this.disposables)
-    events.on('InsertLeave', () => {
-      this.signatureFactory.close()
-    }, null, this.disposables)
-    events.on(['TextChangedI', 'TextChangedP'], async () => {
-      if (this.preferences.signatureHideOnChange) {
-        this.signatureFactory.close()
-      }
-    }, null, this.disposables)
-    let lastInsert: number
-    events.on('InsertCharPre', async character => {
-      lastInsert = Date.now()
-      if (character == ')') this.signatureFactory.close()
     }, null, this.disposables)
     events.on('Enter', async bufnr => {
       let { bracketEnterImprove } = this.preferences
@@ -197,33 +159,24 @@ export default class Handler {
       }
     }, null, this.disposables)
 
-    let insertLeaveTs: number
     let changedTs: number
+    let lastInsert: number
+    events.on('InsertCharPre', async () => {
+      lastInsert = Date.now()
+    }, null, this.disposables)
     events.on('TextChangedI', async (bufnr, info) => {
       changedTs = Date.now()
-      let curr = changedTs
       if (!lastInsert || changedTs - lastInsert > 300) return
       lastInsert = null
       let doc = workspace.getDocument(bufnr)
       if (!doc || doc.isCommandLine || !doc.attached) return
-      let { triggerSignatureHelp, formatOnType } = this.preferences
-      // if (!triggerSignatureHelp && !formatOnType) return
       let pre = info.pre[info.pre.length - 1]
       if (!pre) return
-      if (formatOnType && !isWord(pre)) {
+      if (this.preferences.formatOnType && !isWord(pre)) {
         await this.tryFormatOnType(pre, bufnr)
-      }
-      if (triggerSignatureHelp && languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
-        if (changedTs > curr || (insertLeaveTs && insertLeaveTs > curr)) return
-        try {
-          await this.triggerSignatureHelp(doc, { line: info.lnum - 1, character: info.pre.length })
-        } catch (e) {
-          logger.error(`Error on signature help:`, e)
-        }
       }
     }, null, this.disposables)
     events.on('InsertLeave', async bufnr => {
-      insertLeaveTs = Date.now()
       let { formatOnInsertLeave, formatOnType } = this.preferences
       if (!formatOnInsertLeave || !formatOnType) return
       await this.tryFormatOnType('\n', bufnr, true)
@@ -965,184 +918,10 @@ export default class Handler {
     if (to) await window.moveTo(to)
   }
 
-  private async triggerSignatureHelp(doc: Document, position: Position): Promise<boolean> {
-    let { signatureHelpTarget } = this.preferences
-    let part = doc.getline(position.line).slice(0, position.character)
-    if (part.endsWith(')')) {
-      this.signatureFactory.close()
-      return
-    }
-    let signatureHelp = await this.withRequestToken('signature help', async token => {
-      let timer = setTimeout(() => {
-        if (!token.isCancellationRequested && this.requestTokenSource) {
-          this.requestTokenSource.cancel()
-        }
-      }, 2000)
-      await synchronizeDocument(doc)
-      let res = await languages.getSignatureHelp(doc.textDocument, position, token)
-      clearTimeout(timer)
-      return res
-    })
-    if (!signatureHelp || signatureHelp.signatures.length == 0) {
-      this.signatureFactory.close()
-      return false
-    }
-    let { activeParameter, activeSignature, signatures } = signatureHelp
-    if (activeSignature) {
-      // make active first
-      let [active] = signatures.splice(activeSignature, 1)
-      if (active) signatures.unshift(active)
-    }
-    if (signatureHelpTarget == 'echo') {
-      let columns = workspace.env.columns
-      signatures = signatures.slice(0, workspace.env.cmdheight)
-      let signatureList: SignaturePart[][] = []
-      for (let signature of signatures) {
-        let parts: SignaturePart[] = []
-        let { label } = signature
-        label = label.replace(/\n/g, ' ')
-        if (label.length >= columns - 16) {
-          label = label.slice(0, columns - 16) + '...'
-        }
-        let nameIndex = label.indexOf('(')
-        if (nameIndex == -1) {
-          parts = [{ text: label, type: 'Normal' }]
-        } else {
-          parts.push({
-            text: label.slice(0, nameIndex),
-            type: 'Label'
-          })
-          let after = label.slice(nameIndex)
-          if (signatureList.length == 0 && activeParameter != null) {
-            let active = signature.parameters[activeParameter]
-            if (active) {
-              let start: number
-              let end: number
-              if (typeof active.label === 'string') {
-                let str = after.slice(0)
-                let ms = str.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'))
-                let idx = ms ? ms.index : str.indexOf(active.label)
-                if (idx == -1) {
-                  parts.push({ text: after, type: 'Normal' })
-                } else {
-                  start = idx
-                  end = idx + active.label.length
-                }
-              } else {
-                [start, end] = active.label
-                start = start - nameIndex
-                end = end - nameIndex
-              }
-              if (start != null && end != null) {
-                parts.push({ text: after.slice(0, start), type: 'Normal' })
-                parts.push({ text: after.slice(start, end), type: 'MoreMsg' })
-                parts.push({ text: after.slice(end), type: 'Normal' })
-              }
-            }
-          } else {
-            parts.push({
-              text: after,
-              type: 'Normal'
-            })
-          }
-        }
-        signatureList.push(parts)
-      }
-      this.nvim.callTimer('coc#util#echo_signatures', [signatureList], true)
-    } else {
-      let offset = 0
-      let paramDoc: string | MarkupContent = null
-      let docs: Documentation[] = signatures.reduce((p: Documentation[], c, idx) => {
-        let activeIndexes: [number, number] = null
-        let nameIndex = c.label.indexOf('(')
-        if (idx == 0 && activeParameter != null) {
-          let active = c.parameters[activeParameter]
-          if (active) {
-            let after = c.label.slice(nameIndex == -1 ? 0 : nameIndex)
-            paramDoc = active.documentation
-            if (typeof active.label === 'string') {
-              let str = after.slice(0)
-              let ms = str.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'))
-              let index = ms ? ms.index : str.indexOf(active.label)
-              if (index != -1) {
-                activeIndexes = [
-                  index + nameIndex,
-                  index + active.label.length + nameIndex
-                ]
-              }
-            } else {
-              activeIndexes = active.label
-            }
-          }
-        }
-        if (activeIndexes == null) {
-          activeIndexes = [nameIndex + 1, nameIndex + 1]
-        }
-        if (offset == 0) {
-          offset = activeIndexes[0] + 1
-        }
-        p.push({
-          content: c.label,
-          filetype: doc.filetype,
-          active: activeIndexes
-        })
-        if (paramDoc) {
-          let content = typeof paramDoc === 'string' ? paramDoc : paramDoc.value
-          if (content.trim().length) {
-            p.push({
-              content,
-              filetype: isMarkdown(c.documentation) ? 'markdown' : 'txt'
-            })
-          }
-        }
-        if (idx == 0 && c.documentation) {
-          let { documentation } = c
-          let content = typeof documentation === 'string' ? documentation : documentation.value
-          if (content.trim().length) {
-            p.push({
-              content,
-              filetype: isMarkdown(c.documentation) ? 'markdown' : 'txt'
-            })
-          }
-        }
-        return p
-      }, [])
-      if (signatureHelpTarget == 'float') {
-        let session = snippetManager.getSession(doc.bufnr)
-        if (session && session.isActive) {
-          let { value } = session.placeholder
-          if (!value.includes('\n')) offset += value.length
-          this.signaturePosition = Position.create(position.line, position.character - value.length)
-        } else {
-          this.signaturePosition = position
-        }
-        let { signaturePreferAbove, signatureFloatMaxWidth, signatureMaxHeight } = this.preferences
-        await this.signatureFactory.show(docs, {
-          maxWidth: signatureFloatMaxWidth,
-          maxHeight: signatureMaxHeight,
-          preferTop: signaturePreferAbove,
-          autoHide: false,
-          offsetX: offset,
-          modes: ['i', 'ic', 's']
-        })
-        // show float
-      } else {
-        this.documentLines = docs.reduce((p, c) => {
-          p.push('``` ' + c.filetype)
-          p.push(...c.content.split(/\r?\n/))
-          p.push('```')
-          return p
-        }, [])
-        this.nvim.command(`noswapfile pedit coc://document`, true)
-      }
-    }
-    return true
-  }
-
   public async showSignatureHelp(): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
     if (!doc) return false
-    return await this.triggerSignatureHelp(doc, position)
+    return await this.signature.triggerSignatureHelp(doc, position)
   }
 
   public async findLocations(id: string, method: string, params: any, openCommand?: string | false): Promise<void> {
@@ -1366,25 +1145,13 @@ export default class Handler {
 
   private getPreferences(): void {
     let config = workspace.getConfiguration('coc.preferences')
-    let signatureConfig = workspace.getConfiguration('signature')
     let hoverTarget = config.get<string>('hoverTarget', 'float')
-    let signatureHelpTarget = signatureConfig.get<string>('target', 'float')
     if (hoverTarget == 'float' && !workspace.floatSupported) {
       hoverTarget = 'preview'
-    }
-    if (signatureHelpTarget == 'float' && !workspace.floatSupported) {
-      signatureHelpTarget = 'echo'
     }
     this.labels = workspace.getConfiguration('suggest').get<any>('completionItemKindLabels', {})
     this.preferences = {
       hoverTarget,
-      signatureHelpTarget,
-      signatureMaxHeight: signatureConfig.get<number>('maxWindowHeight', 8),
-      triggerSignatureHelp: signatureConfig.get<boolean>('enable', true),
-      triggerSignatureWait: Math.max(signatureConfig.get<number>('triggerSignatureWait', 50), 50),
-      signaturePreferAbove: signatureConfig.get<boolean>('preferShownAbove', true),
-      signatureFloatMaxWidth: signatureConfig.get<number>('maxWindowWidth', 80),
-      signatureHideOnChange: signatureConfig.get<boolean>('hideOnTextChange', false),
       formatOnType: config.get<boolean>('formatOnType', false),
       formatOnTypeFiletypes: config.get('formatOnTypeFiletypes', []),
       formatOnInsertLeave: config.get<boolean>('formatOnInsertLeave', false),
