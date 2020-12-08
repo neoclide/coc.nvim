@@ -20,21 +20,21 @@ export default class Collection implements DiagnosticCollection {
     this.name = owner
   }
 
-  public set(uri: string, diagnostics: Diagnostic[] | null): void
-  public set(entries: [string, Diagnostic[] | null][]): void
-  public set(entries: [string, Diagnostic[] | null][] | string, diagnostics?: Diagnostic[]): void {
+  public set(uri: string, diagnostics: Diagnostic[] | undefined): void
+  public set(entries: [string, Diagnostic[] | undefined][]): void
+  public set(entries: [string, Diagnostic[] | undefined][] | string, diagnostics?: Diagnostic[]): void {
     let diagnosticsPerFile: Map<string, Diagnostic[]> = new Map()
     if (!Array.isArray(entries)) {
       let doc = workspace.getDocument(entries)
       let uri = doc ? doc.uri : entries
-      diagnosticsPerFile.set(uri, diagnostics)
+      diagnosticsPerFile.set(uri, diagnostics || [])
     } else {
       for (let item of entries) {
         let [uri, diagnostics] = item
         let doc = workspace.getDocument(uri)
         uri = doc ? doc.uri : uri
-        if (diagnostics === undefined) {
-          // clear diagnostics if entry contains null
+        if (diagnostics == null) {
+          // clear previous diagnostics if entry contains null
           diagnostics = []
         } else {
           diagnostics = (diagnosticsPerFile.get(uri) || []).concat(diagnostics)
