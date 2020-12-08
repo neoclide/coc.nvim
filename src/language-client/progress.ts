@@ -6,7 +6,7 @@
 
 import { ClientCapabilities, WorkDoneProgressCreateParams, WorkDoneProgressCreateRequest } from 'vscode-languageserver-protocol'
 import { BaseLanguageClient, StaticFeature } from './client'
-import progressManager from './progressPart'
+import { ProgressPart } from './progressPart'
 // const logger = require('../util/logger')('language-client-progress')
 
 function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
@@ -17,7 +17,9 @@ function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
 }
 
 export class ProgressFeature implements StaticFeature {
-  constructor(private _client: BaseLanguageClient) { }
+  private activeParts: Set<ProgressPart> = new Set()
+  constructor(private _client: BaseLanguageClient) {
+  }
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
     ensure(capabilities, 'window')!.workDoneProgress = true
@@ -25,8 +27,19 @@ export class ProgressFeature implements StaticFeature {
 
   public initialize(): void {
     let client = this._client
-    client.onRequest(WorkDoneProgressCreateRequest.type, (params: WorkDoneProgressCreateParams) => {
-      progressManager.create(this._client, params.token)
-    })
+    const deleteHandler = (part: ProgressPart) => {
+      this.activeParts.delete(part)
+    }
+    const createHandler = (params: WorkDoneProgressCreateParams) => {
+      this.activeParts.add(new ProgressPart(this._client, params.token, deleteHandler))
+    }
+    client.onRequest(WorkDoneProgressCreateRequest.type, createHandler)
+  }
+
+  public dispose(): void {
+    for (const part of this.activeParts) {
+      part.done()
+    }
+    this.activeParts.clear()
   }
 }

@@ -21,7 +21,7 @@ import { ConfigurationWorkspaceMiddleware } from './configuration'
 import { DeclarationMiddleware } from './declaration'
 import { FoldingRangeProviderMiddleware } from './foldingRange'
 import { ImplementationMiddleware } from './implementation'
-import progressManager from './progressPart'
+import { ProgressPart } from './progressPart'
 import { SelectionRangeProviderMiddleware } from './selectionRange'
 import { TypeDefinitionMiddleware } from './typeDefinition'
 import { Delayer } from './utils/async'
@@ -861,6 +861,12 @@ export interface StaticFeature {
     capabilities: ServerCapabilities,
     documentSelector: DocumentSelector | undefined
   ): void
+
+  /**
+   * Called when the client is stopped to dispose this feature. Usually a feature
+   * unregisters listeners registerd hooked up with the VS Code extension host.
+   */
+  dispose(): void
 }
 
 export interface DynamicFeature<T> {
@@ -3559,12 +3565,10 @@ export abstract class BaseLanguageClient {
     this.fillInitializeParams(initParams)
     if (progressOnInitialization) {
       const token: ProgressToken = UUID.generateUuid()
-      // same as VSCode
       initParams.workDoneToken = token
-      const part = progressManager.create(connection, token)
-      part.begin({ kind: 'begin', title: `Starting LS ${this.id}` })
+      const part = new ProgressPart(connection, token)
       return this.doInitialize(connection, initParams).then((result) => {
-        part.done('finished')
+        part.done()
         return result
       }, (error) => {
         part.cancel()
@@ -3706,11 +3710,11 @@ export abstract class BaseLanguageClient {
       this._providers.forEach(provider => provider.dispose())
       this._providers = undefined
     }
+    for (let feature of this._features.values()) {
+      feature.dispose()
+    }
     if (this._syncedDocuments) {
       this._syncedDocuments.clear()
-    }
-    for (let handler of this._dynamicFeatures.values()) {
-      handler.dispose()
     }
     if (channel) {
       this.cleanUpChannel()

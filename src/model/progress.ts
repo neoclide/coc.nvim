@@ -24,9 +24,10 @@ export default class ProgressNotification<R> extends Notification {
     let shown = await super.show(Object.assign({ minWidth: preferences.minProgressWidth || 30, progress: 1 }, preferences))
     if (!shown) return undefined
     let { task } = this.option
+    let ts = Date.now()
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let total = 0
-    let res = await new Promise<R>((resolve, reject) => {
+    let res = await new Promise<R>(resolve => {
       tokenSource.token.onCancellationRequested(() => {
         this.dispose()
         resolve(undefined)
@@ -45,11 +46,21 @@ export default class ProgressNotification<R> extends Notification {
       }, tokenSource.token).then(res => {
         tokenSource.dispose()
         this.tokenSource = null
-        this.dispose()
+        let dt = Date.now() - ts
+        if (dt < 300) {
+          setTimeout(() => {
+            this.dispose()
+          }, 300 - dt)
+        } else {
+          this.dispose()
+        }
         resolve(res)
       }, err => {
+        logger.error(err)
+        tokenSource.dispose()
+        this.tokenSource = null
         this.dispose()
-        reject(err)
+        resolve(undefined)
       })
     })
     return res
