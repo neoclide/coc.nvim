@@ -1,14 +1,15 @@
-import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Command, Disposable, DocumentSelector, Range } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeActionContext, CodeActionKind, Command, Disposable, DocumentSelector, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CodeActionProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
+import { CodeAction } from '../types'
 import { intersect } from '../util/array'
 const logger = require('../util/logger')('codeActionManager')
 
 export default class CodeActionManager extends Manager<CodeActionProvider> implements Disposable {
 
-  public register(selector: DocumentSelector, provider: CodeActionProvider, clientId: string, codeActionKinds?: CodeActionKind[]): Disposable {
+  public register(selector: DocumentSelector, provider: CodeActionProvider, clientId: string | undefined, codeActionKinds?: CodeActionKind[]): Disposable {
     let item: ProviderItem<CodeActionProvider> = {
       id: uuid(),
       selector,
@@ -27,7 +28,7 @@ export default class CodeActionManager extends Manager<CodeActionProvider> imple
     range: Range,
     context: CodeActionContext,
     token: CancellationToken
-  ): Promise<Map<string, CodeAction[]> | null> {
+  ): Promise<CodeAction[]> {
     let providers = this.getProviders(document)
     if (!providers.length) return null
     if (context.only) {
@@ -39,16 +40,19 @@ export default class CodeActionManager extends Manager<CodeActionProvider> imple
         return true
       })
     }
-    let res: Map<string, CodeAction[]> = new Map()
+    let res: CodeAction[] = []
     await Promise.all(providers.map(item => {
       let { provider, clientId } = item
-      clientId = clientId || uuid()
       return Promise.resolve(provider.provideCodeActions(document, range, context, token)).then(actions => {
         if (!actions || actions.length == 0) return
-        let codeActions: CodeAction[] = res.get(clientId) || []
         for (let action of actions) {
           if (Command.is(action)) {
-            codeActions.push(CodeAction.create(action.title, action))
+            let codeAction: CodeAction = {
+              title: action.title,
+              command: action,
+              clientId
+            }
+            res.push(codeAction)
           } else {
             if (context.only) {
               if (!action.kind) continue
@@ -61,11 +65,10 @@ export default class CodeActionManager extends Manager<CodeActionProvider> imple
                 continue
               }
             }
-            let idx = codeActions.findIndex(o => o.title == action.title)
-            if (idx == -1) codeActions.push(action)
+            let idx = res.findIndex(o => o.title == action.title)
+            if (idx == -1) res.push(Object.assign({ clientId }, action))
           }
         }
-        res.set(clientId, codeActions)
       })
     }))
     return res

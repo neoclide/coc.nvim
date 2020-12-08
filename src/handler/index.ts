@@ -620,17 +620,10 @@ export default class Handler {
     let diagnostics = diagnosticManager.getDiagnosticsInRange(doc.textDocument, range)
     let context: CodeActionContext = { diagnostics }
     if (only && Array.isArray(only)) context.only = only
-    let codeActionsMap = await this.withRequestToken('code action', token => {
+    let codeActions = await this.withRequestToken('code action', token => {
       return languages.getCodeActions(doc.textDocument, range, context, token)
     })
-    if (!codeActionsMap) return []
-    let codeActions: CodeAction[] = []
-    for (let clientId of codeActionsMap.keys()) {
-      let actions = codeActionsMap.get(clientId)
-      for (let action of actions) {
-        codeActions.push({ clientId, ...action })
-      }
-    }
+    if (!codeActions || codeActions.length == 0) return []
     codeActions.sort((a, b) => {
       if (a.isPreferred && !b.isPreferred) {
         return -1
@@ -699,7 +692,7 @@ export default class Handler {
       if (commandManager.has(command.command)) {
         commandManager.execute(command)
       } else {
-        let clientId = (action as any).clientId
+        let clientId = action.clientId
         let service = services.getService(clientId)
         let params: ExecuteCommandParams = {
           command: command.command,

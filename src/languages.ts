@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, LocationLink, Position, Range, SelectionRange, SignatureHelp, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, LocationLink, Position, Range, SelectionRange, SignatureHelp, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
@@ -31,6 +31,7 @@ import * as complete from './util/complete'
 import { getChangedFromEdits, rangeOverlap } from './util/position'
 import { byteIndex, byteLength, byteSlice } from './util/string'
 import window from './window'
+import { CodeAction } from './types'
 import workspace from './workspace'
 const logger = require('./util/logger')('languages')
 
@@ -48,10 +49,6 @@ interface CompleteConfig {
   detailField: string
   invalidInsertCharacters: string[]
   floatEnable: boolean
-}
-
-function fixDocumentation(str: string): string {
-  return str.replace(/&nbsp;/g, ' ')
 }
 
 class Languages {
@@ -170,7 +167,7 @@ class Languages {
     }
   }
 
-  public registerCodeActionProvider(selector: DocumentSelector, provider: CodeActionProvider, clientId: string, codeActionKinds?: CodeActionKind[]): Disposable {
+  public registerCodeActionProvider(selector: DocumentSelector, provider: CodeActionProvider, clientId: string | undefined, codeActionKinds?: CodeActionKind[]): Disposable {
     return this.codeActionManager.register(selector, provider, clientId, codeActionKinds)
   }
 
@@ -330,7 +327,7 @@ class Languages {
     return await this.formatRangeManager.provideDocumentRangeFormattingEdits(document, range, options, token)
   }
 
-  public async getCodeActions(document: TextDocument, range: Range, context: CodeActionContext, token: CancellationToken): Promise<Map<string, CodeAction[]>> {
+  public async getCodeActions(document: TextDocument, range: Range, context: CodeActionContext, token: CancellationToken): Promise<CodeAction[]> {
     return await this.codeActionManager.provideCodeActions(document, range, context, token)
   }
 
@@ -538,12 +535,12 @@ class Languages {
             if (typeof documentation == 'string') {
               docs.push({
                 filetype: 'markdown',
-                content: fixDocumentation(documentation)
+                content: documentation
               })
             } else if (documentation.value) {
               docs.push({
                 filetype: documentation.kind == 'markdown' ? 'markdown' : 'txt',
-                content: fixDocumentation(documentation.value)
+                content: documentation.value
               })
             }
           }

@@ -8,7 +8,7 @@ export interface ProviderItem<T> {
   id: string
   selector: DocumentSelector
   provider: T
-  [index: string]: any
+  [key: string]: any
 }
 
 export default class Manager<T> {
