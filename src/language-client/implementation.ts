@@ -33,7 +33,7 @@ export class ImplementationFeature extends TextDocumentFeature<boolean | Impleme
   public fillClientCapabilities(capabilites: ClientCapabilities): void {
     const implementationSupport = ensure(ensure(capabilites, 'textDocument')!, 'implementation')!
     implementationSupport.dynamicRegistration = true
-    // implementationSupport.linkSupport = true
+    implementationSupport.linkSupport = true
   }
 
   public initialize(capabilities: ServerCapabilities, documentSelector: DocumentSelector): void {
@@ -49,11 +49,11 @@ export class ImplementationFeature extends TextDocumentFeature<boolean | Impleme
       provideImplementation: (document, position, token) => {
         const client = this._client
         const provideImplementation: ProvideImplementationSignature = (document, position, token) => client.sendRequest(ImplementationRequest.type, cv.asTextDocumentPositionParams(document, position), token).then(
-            res => res, error => {
-              client.logFailedRequest(ImplementationRequest.type, error)
-              return Promise.resolve(null)
-            }
-          )
+          res => res, error => {
+            client.logFailedRequest(ImplementationRequest.type, error)
+            return Promise.resolve(null)
+          }
+        )
         const middleware = client.clientOptions.middleware
         return middleware.provideImplementation
           ? middleware.provideImplementation(document, position, token, provideImplementation)

@@ -43,7 +43,7 @@ export class TypeDefinitionFeature extends TextDocumentFeature<boolean | TypeDef
   public fillClientCapabilities(capabilites: ClientCapabilities): void {
     const typeDefinitionSupport = ensure(ensure(capabilites, 'textDocument')!, 'typeDefinition')!
     typeDefinitionSupport.dynamicRegistration = true
-    // typeDefinitionSupport.linkSupport = true
+    typeDefinitionSupport.linkSupport = true
   }
 
   public initialize(capabilities: ServerCapabilities, documentSelector: DocumentSelector): void {
@@ -59,11 +59,11 @@ export class TypeDefinitionFeature extends TextDocumentFeature<boolean | TypeDef
       provideTypeDefinition: (document, position, token) => {
         const client = this._client
         const provideTypeDefinition: ProvideTypeDefinitionSignature = (document, position, token) => client.sendRequest(TypeDefinitionRequest.type, cv.asTextDocumentPositionParams(document, position), token).then(
-            res => res, error => {
-              client.logFailedRequest(TypeDefinitionRequest.type, error)
-              return Promise.resolve(null)
-            }
-          )
+          res => res, error => {
+            client.logFailedRequest(TypeDefinitionRequest.type, error)
+            return Promise.resolve(null)
+          }
+        )
         const middleware = client.clientOptions.middleware
         return middleware.provideTypeDefinition
           ? middleware.provideTypeDefinition(document, position, token, provideTypeDefinition)
