@@ -10,7 +10,7 @@ import commands from '../commands'
 import languages from '../languages'
 import FileWatcher from '../model/fileSystemWatcher'
 import { CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ProviderResult, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from '../provider'
-import { DiagnosticCollection, OutputChannel, TextDocumentWillSaveEvent, Thenable } from '../types'
+import { DiagnosticCollection, MessageItem, OutputChannel, TextDocumentWillSaveEvent, Thenable } from '../types'
 import { resolveRoot } from '../util/fs'
 import * as Is from '../util/is'
 import { omit } from '../util/lodash'
@@ -3453,46 +3453,61 @@ export abstract class BaseLanguageClient {
     this.resolveConnection()
       .then(connection => {
         connection.onLogMessage(message => {
+          let kind: string
           switch (message.type) {
             case MessageType.Error:
+              kind = 'error'
               this.error(message.message)
               break
             case MessageType.Warning:
+              kind = 'warning'
               this.warn(message.message)
               break
             case MessageType.Info:
+              kind = 'info'
               this.info(message.message)
               break
             default:
+              kind = 'log'
               this.outputChannel.appendLine(message.message)
+          }
+          if (global.hasOwnProperty('__TEST__')) {
+            console.log(`[${kind}] ${message.message}`)
+            return
           }
         })
         connection.onShowMessage(message => {
           switch (message.type) {
             case MessageType.Error:
-              window.showMessage(message.message, 'error')
+              window.showErrorMessage(message.message)
               break
             case MessageType.Warning:
-              window.showMessage(message.message, 'warning')
+              window.showWarningMessage(message.message)
               break
             case MessageType.Info:
-              window.showMessage(message.message)
+              window.showInformationMessage(message.message)
               break
             default:
-              window.showMessage(message.message)
+              window.showInformationMessage(message.message)
           }
         })
         connection.onRequest(ShowMessageRequest.type, params => {
-          if (!params.actions || params.actions.length == 0) {
-            let msgType = params.type == MessageType.Error
-              ? 'error' : params.type == MessageType.Warning ? 'warning' : 'more'
-            window.showMessage(params.message, msgType as any)
-            return Promise.resolve(null)
+          let messageFunc: <T extends MessageItem>(message: string, ...items: T[]) => Thenable<T>
+          switch (params.type) {
+            case MessageType.Error:
+              messageFunc = window.showErrorMessage.bind(window)
+              break
+            case MessageType.Warning:
+              messageFunc = window.showWarningMessage.bind(window)
+              break
+            case MessageType.Info:
+              messageFunc = window.showInformationMessage.bind(window)
+              break
+            default:
+              messageFunc = window.showInformationMessage.bind(window)
           }
-          let items = params.actions.map(o => typeof o === 'string' ? o : o.title)
-          return window.showQuickpick(items, params.message).then(idx => {
-            return params.actions[idx]
-          })
+          let actions = params.actions || []
+          return messageFunc(params.message, ...actions)
         })
         connection.onTelemetry(_data => {
           // ignored
