@@ -120,7 +120,7 @@ class Events {
         try {
           Promise.resolve(handler.apply(thisArg || null, args)).then(() => {
             if (timer) clearTimeout(timer)
-            resolve()
+            resolve(undefined)
           }, e => {
             if (timer) clearTimeout(timer)
             reject(e)

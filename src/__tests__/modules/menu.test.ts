@@ -106,7 +106,7 @@ describe('Menu', () => {
     let promise = new Promise(resolve => {
       menu.onDidClose(n => {
         selected = n
-        resolve()
+        resolve(undefined)
       })
     })
     await helper.wait(50)

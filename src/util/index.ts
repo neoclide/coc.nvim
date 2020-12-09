@@ -20,7 +20,7 @@ export function escapeSingleQuote(str: string): string {
 export function wait(ms: number): Promise<any> {
   return new Promise(resolve => {
     setTimeout(() => {
-      resolve()
+      resolve(undefined)
     }, ms)
   })
 }

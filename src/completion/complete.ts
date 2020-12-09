@@ -85,7 +85,7 @@ export default class Complete {
         let ft = setTimeout(() => {
           if (called) return
           empty = true
-          resolve()
+          resolve(undefined)
         }, FIRST_TIMEOUT)
         let onFinished = () => {
           if (called) return
@@ -101,7 +101,7 @@ export default class Complete {
           cancelled = true
           onFinished()
           logger.debug(`Source "${name}" cancelled`)
-          resolve()
+          resolve(undefined)
         })
         this.completing.add(name)
         Promise.resolve(source.doComplete(opt, tokenSource.token)).then(result => {
@@ -126,9 +126,9 @@ export default class Complete {
               }
             }
             if (empty) this._onDidComplete.fire()
-            resolve()
+            resolve(undefined)
           } else {
-            resolve()
+            resolve(undefined)
           }
         }, err => {
           this.completing.delete(name)

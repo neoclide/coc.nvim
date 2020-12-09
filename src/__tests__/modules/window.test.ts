@@ -272,7 +272,7 @@ describe('window notifications', () => {
         }, 100)
         token.onCancellationRequested(() => {
           clearInterval(interval)
-          resolve()
+          resolve(undefined)
         })
       })
     })
@@ -296,7 +296,7 @@ describe('window notifications', () => {
         }, 100)
         token.onCancellationRequested(() => {
           clearInterval(interval)
-          resolve()
+          resolve(undefined)
         })
       })
     })

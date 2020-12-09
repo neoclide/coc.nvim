@@ -1,4 +1,4 @@
-import { CompletionItem, CompletionItemKind, InsertTextFormat, Position } from 'vscode-languageserver-types'
+import { CompletionItem, TextEdit, CompletionItemKind, InsertTextFormat, Position } from 'vscode-languageserver-protocol'
 import { SnippetParser } from '../snippets/parser'
 import { CompleteOption } from '../types'
 import { byteSlice, characterIndex } from './string'
@@ -19,7 +19,7 @@ export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsert
   let newText: string
   if (data && typeof data.word === 'string') return data.word
   if (textEdit) {
-    let { range } = textEdit
+    let { range } = textEdit as TextEdit
     newText = textEdit.newText
     if (range && range.start.line == range.end.line) {
       let { line, col, colnr } = opt

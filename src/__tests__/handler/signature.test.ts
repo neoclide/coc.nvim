@@ -116,7 +116,7 @@ describe('signature help', () => {
         return new Promise(resolve => {
           token.onCancellationRequested(() => {
             clearTimeout(timer)
-            resolve()
+            resolve(undefined)
           })
           let timer = setTimeout(() => {
             resolve({

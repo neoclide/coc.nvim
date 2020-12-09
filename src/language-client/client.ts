@@ -426,6 +426,10 @@ export interface ProvideCodeActionsSignature {
   ): ProviderResult<(Command | CodeAction)[]>
 }
 
+export interface ResolveCodeActionSignature {
+  (this: void, item: CodeAction, token: CancellationToken): ProviderResult<CodeAction>
+}
+
 export interface ProvideCodeLensesSignature {
   (this: void, document: TextDocument, token: CancellationToken): ProviderResult<CodeLens[]>
 }
@@ -605,6 +609,12 @@ export interface _Middleware {
     token: CancellationToken,
     next: ProvideCodeActionsSignature
   ) => ProviderResult<(Command | CodeAction)[]>
+  resolveCodeAction?: (
+    this: void,
+    item: CodeAction,
+    token: CancellationToken,
+    next: ResolveCodeActionSignature
+  ) => ProviderResult<CodeAction>
   provideCodeLenses?: (
     this: void,
     document: TextDocument,
@@ -2270,8 +2280,6 @@ class DocumentSymbolFeature extends TextDocumentFeature<
 
 class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegistrationOptions, WorkspaceSymbolProvider
   > {
-  private documentSelector: DocumentSelector
-
   constructor(client: BaseLanguageClient) {
     super(client, WorkspaceSymbolRequest.type)
   }
@@ -2292,9 +2300,7 @@ class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegistratio
 
   public initialize(
     capabilities: ServerCapabilities,
-    documentSelector: DocumentSelector | undefined
   ): void {
-    this.documentSelector = documentSelector
     if (!capabilities.workspaceSymbolProvider) {
       return
     }

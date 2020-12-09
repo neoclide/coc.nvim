@@ -424,7 +424,7 @@ export interface DocumentRangeFormattingEditProvider {
  *
  * A code action can be any command that is [known](#commands.getCommands) to the system.
  */
-export interface CodeActionProvider {
+export interface CodeActionProvider<T extends CodeAction = CodeAction> {
   /**
    * Provide commands for the given document and range.
    *
@@ -442,6 +442,18 @@ export interface CodeActionProvider {
     context: CodeActionContext,
     token: CancellationToken
   ): ProviderResult<(Command | CodeAction)[]>
+
+  /**
+   * Given a code action fill in its [`edit`](#CodeAction.edit)-property. Changes to
+   * all other properties, like title, are ignored. A code action that has an edit
+   * will not be resolved.
+   *
+   * @param codeAction A code action.
+   * @param token A cancellation token.
+   * @return The resolved code action or a thenable that resolves to such. It is OK to return the given
+   * `item`. When no result is returned, the given `item` will be used.
+   */
+  resolveCodeAction?(codeAction: T, token: CancellationToken): ProviderResult<T>
 }
 
 /**

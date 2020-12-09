@@ -562,7 +562,7 @@ class Languages {
           let isSnippet = await this.applyTextEdit(item, opt)
           let { additionalTextEdits } = item
           if (additionalTextEdits && item.textEdit) {
-            let r = item.textEdit.range
+            let r = (item.textEdit as TextEdit).range
             additionalTextEdits = additionalTextEdits.filter(edit => {
               if (rangeOverlap(r, edit.range)) {
                 logger.error('Filtered overlap additionalTextEdit:', edit)
@@ -600,7 +600,7 @@ class Languages {
     let { line, bufnr, linenr } = option
     let doc = workspace.getDocument(bufnr)
     if (!doc) return false
-    let { range, newText } = textEdit
+    let { range, newText } = textEdit as TextEdit
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
     // replace inserted word
     let start = line.substr(0, range.start.character)
@@ -649,7 +649,7 @@ class Languages {
   private getStartColumn(line: string, items: CompletionItem[]): number | null {
     let first = items[0]
     if (!first.textEdit) return null
-    let { range, newText } = first.textEdit
+    let { range, newText } = first.textEdit as TextEdit
     let { character } = range.start
     if (newText.length < range.end.character - character) {
       return null
@@ -658,7 +658,7 @@ class Languages {
       let o = items[i]
       if (!o) break
       if (!o.textEdit) return null
-      if (o.textEdit.range.start.character !== character) return null
+      if ((o.textEdit as TextEdit).range.start.character !== character) return null
     }
     return byteIndex(line, character)
   }
