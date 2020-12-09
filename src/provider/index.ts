@@ -1,4 +1,4 @@
-import { SelectionRange, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DocumentHighlight, DocumentLink, DocumentSymbol, FoldingRange, FormattingOptions, Hover, Location, Position, Range, SignatureHelp, SymbolInformation, TextEdit, WorkspaceEdit, Event, DefinitionLink } from 'vscode-languageserver-protocol'
+import { SelectionRange, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DocumentHighlight, DocumentLink, DocumentSymbol, FoldingRange, FormattingOptions, Hover, Location, Position, Range, SignatureHelp, SymbolInformation, TextEdit, WorkspaceEdit, Event, DefinitionLink, SignatureHelpContext } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 
@@ -161,7 +161,8 @@ export interface SignatureHelpProvider {
   provideSignatureHelp(
     document: TextDocument,
     position: Position,
-    token: CancellationToken
+    token: CancellationToken,
+    context: SignatureHelpContext
   ): ProviderResult<SignatureHelp>
 }
 

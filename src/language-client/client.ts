@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 /* eslint-disable */
 import path from 'path'
-import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest, ApplyWorkspaceEditResponse, CancellationToken, ClientCapabilities, CodeAction, CodeActionContext, CodeActionKind, CodeActionOptions, CodeActionParams, CodeActionRegistrationOptions, CodeActionRequest, CodeLens, CodeLensOptions, CodeLensRegistrationOptions, CodeLensRequest, CodeLensResolveRequest, Command, CompletionContext, CompletionItem, CompletionItemKind, CompletionList, CompletionOptions, CompletionRegistrationOptions, CompletionRequest, CompletionResolveRequest, createProtocolConnection, DeclarationRequest, Definition, DefinitionOptions, DefinitionRegistrationOptions, DefinitionRequest, Diagnostic, DiagnosticSeverity, DiagnosticTag, DidChangeConfigurationNotification, DidChangeConfigurationParams, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeTextDocumentParams, DidChangeWatchedFilesNotification, DidChangeWatchedFilesParams, DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, DidSaveTextDocumentNotification, DidSaveTextDocumentParams, Disposable, DocumentColorRequest, DocumentFormattingOptions, DocumentFormattingParams, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightOptions, DocumentHighlightRegistrationOptions, DocumentHighlightRequest, DocumentLink, DocumentLinkOptions, DocumentLinkRegistrationOptions, DocumentLinkRequest, DocumentLinkResolveRequest, DocumentOnTypeFormattingOptions, DocumentOnTypeFormattingParams, DocumentOnTypeFormattingRegistrationOptions, DocumentOnTypeFormattingRequest, DocumentRangeFormattingOptions, DocumentRangeFormattingParams, DocumentRangeFormattingRegistrationOptions, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbol, DocumentSymbolOptions, DocumentSymbolRegistrationOptions, DocumentSymbolRequest, Emitter, ErrorCodes, Event, ExecuteCommandParams, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, ExitNotification, FailureHandlingKind, FileChangeType, FileEvent, FoldingRangeRequest, FormattingOptions, GenericNotificationHandler, GenericRequestHandler, Hover, HoverOptions, HoverRegistrationOptions, HoverRequest, ImplementationRequest, InitializedNotification, InitializeError, InitializeParams, InitializeRequest, InitializeResult, Location, Logger, LogMessageNotification, LogMessageParams, MarkupKind, Message, MessageReader, MessageType, MessageWriter, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, Position, PrepareRenameRequest, ProgressToken, ProgressType, Proposed, PublishDiagnosticsNotification, PublishDiagnosticsParams, Range, ReferenceOptions, ReferenceRegistrationOptions, ReferencesRequest, RegistrationParams, RegistrationRequest, RenameOptions, RenameParams, RenameRegistrationOptions, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, ResourceOperationKind, ResponseError, RPCMessageType, SelectionRangeRequest, ServerCapabilities, ShowMessageNotification, ShowMessageParams, ShowMessageRequest, ShutdownRequest, SignatureHelp, SignatureHelpOptions, SignatureHelpRegistrationOptions, SignatureHelpRequest, StaticRegistrationOptions, SymbolInformation, SymbolKind, SymbolTag, TelemetryEventNotification, TextDocument, TextDocumentChangeRegistrationOptions, TextDocumentEdit, TextDocumentPositionParams, TextDocumentRegistrationOptions, TextDocumentSaveRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, Trace, TraceFormat, TraceOptions, Tracer, TypeDefinitionRequest, UnregistrationParams, UnregistrationRequest, WatchKind, WillSaveTextDocumentNotification, WillSaveTextDocumentParams, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressOptions, WorkspaceEdit, WorkspaceFolder, WorkspaceSymbolRegistrationOptions, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
+import { ApplyWorkspaceEditParams, CompletionItemTag, ApplyWorkspaceEditRequest, ApplyWorkspaceEditResponse, CancellationToken, ClientCapabilities, CodeAction, CodeActionContext, CodeActionKind, CodeActionOptions, CodeActionParams, CodeActionRegistrationOptions, CodeActionRequest, CodeLens, CodeLensOptions, CodeLensRegistrationOptions, CodeLensRequest, CodeLensResolveRequest, Command, CompletionContext, CompletionItem, CompletionItemKind, CompletionList, CompletionOptions, CompletionRegistrationOptions, CompletionRequest, CompletionResolveRequest, createProtocolConnection, DeclarationRequest, Definition, DefinitionOptions, DefinitionRegistrationOptions, DefinitionRequest, Diagnostic, DiagnosticSeverity, DiagnosticTag, DidChangeConfigurationNotification, DidChangeConfigurationParams, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeTextDocumentParams, DidChangeWatchedFilesNotification, DidChangeWatchedFilesParams, DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, DidSaveTextDocumentNotification, DidSaveTextDocumentParams, Disposable, DocumentColorRequest, DocumentFormattingOptions, DocumentFormattingParams, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightOptions, DocumentHighlightRegistrationOptions, DocumentHighlightRequest, DocumentLink, DocumentLinkOptions, DocumentLinkRegistrationOptions, DocumentLinkRequest, DocumentLinkResolveRequest, DocumentOnTypeFormattingOptions, DocumentOnTypeFormattingParams, DocumentOnTypeFormattingRegistrationOptions, DocumentOnTypeFormattingRequest, DocumentRangeFormattingOptions, DocumentRangeFormattingParams, DocumentRangeFormattingRegistrationOptions, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbol, DocumentSymbolOptions, DocumentSymbolRegistrationOptions, DocumentSymbolRequest, Emitter, ErrorCodes, Event, ExecuteCommandParams, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, ExitNotification, FailureHandlingKind, FileChangeType, FileEvent, FoldingRangeRequest, FormattingOptions, GenericNotificationHandler, GenericRequestHandler, Hover, HoverOptions, HoverRegistrationOptions, HoverRequest, ImplementationRequest, InitializedNotification, InitializeError, InitializeParams, InitializeRequest, InitializeResult, Location, Logger, LogMessageNotification, LogMessageParams, MarkupKind, Message, MessageReader, MessageType, MessageWriter, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, Position, PrepareRenameRequest, ProgressToken, ProgressType, Proposed, PublishDiagnosticsNotification, PublishDiagnosticsParams, Range, ReferenceOptions, ReferenceRegistrationOptions, ReferencesRequest, RegistrationParams, RegistrationRequest, RenameOptions, RenameParams, RenameRegistrationOptions, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, ResourceOperationKind, ResponseError, RPCMessageType, SelectionRangeRequest, ServerCapabilities, ShowMessageNotification, ShowMessageParams, ShowMessageRequest, ShutdownRequest, SignatureHelp, SignatureHelpOptions, SignatureHelpRegistrationOptions, SignatureHelpRequest, StaticRegistrationOptions, SymbolInformation, SymbolKind, SymbolTag, TelemetryEventNotification, TextDocument, TextDocumentChangeRegistrationOptions, TextDocumentEdit, TextDocumentPositionParams, TextDocumentRegistrationOptions, TextDocumentSaveRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, Trace, TraceFormat, TraceOptions, Tracer, TypeDefinitionRequest, UnregistrationParams, UnregistrationRequest, WatchKind, WillSaveTextDocumentNotification, WillSaveTextDocumentParams, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressOptions, WorkspaceEdit, WorkspaceFolder, WorkspaceSymbolRegistrationOptions, WorkspaceSymbolRequest, SignatureHelpContext } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commands from '../commands'
 import languages from '../languages'
@@ -375,6 +375,7 @@ export interface ProvideSignatureHelpSignature {
     this: void,
     document: TextDocument,
     position: Position,
+    context: SignatureHelpContext,
     token: CancellationToken
   ): ProviderResult<SignatureHelp>
 }
@@ -558,6 +559,7 @@ export interface _Middleware {
     this: void,
     document: TextDocument,
     position: Position,
+    context: SignatureHelpContext,
     token: CancellationToken,
     next: ProvideSignatureHelpSignature
   ) => ProviderResult<SignatureHelp>
@@ -1749,7 +1751,7 @@ export abstract class TextDocumentFeature<
   public getProvider(textDocument: TextDocument): PR {
     for (const registration of this._registrations.values()) {
       let selector = registration.data.registerOptions.documentSelector
-      if (selector !== null && workspace.match(selector, textDocument)) {
+      if (selector !== null && workspace.match(selector, textDocument) > 0) {
         return registration.provider
       }
     }
@@ -1825,7 +1827,7 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
       documentationFormat: this._client.supporedMarkupKind,
       deprecatedSupport: true,
       preselectSupport: true,
-      // tagSupport: { valueSet: [CompletionItemTag.Deprecated] },
+      tagSupport: { valueSet: [CompletionItemTag.Deprecated] },
     }
     completion.completionItemKind = { valueSet: SupportedCompletionItemKinds }
   }
@@ -1972,13 +1974,15 @@ class SignatureHelpFeature extends TextDocumentFeature<
   public fillClientCapabilities(capabilites: ClientCapabilities): void {
     let config = ensure(ensure(capabilites, 'textDocument')!, 'signatureHelp')!
     config.dynamicRegistration = true
+    config.contextSupport = true
     // config.contextSupport = true // TODO context and meta support
     config.signatureInformation = {
       documentationFormat: this._client.supporedMarkupKind,
+      activeParameterSupport: true,
       parameterInformation: {
         labelOffsetSupport: true
       }
-    }
+    } as any
   }
 
   public initialize(
@@ -1999,12 +2003,12 @@ class SignatureHelpFeature extends TextDocumentFeature<
     options: SignatureHelpRegistrationOptions
   ): [Disposable, SignatureHelpProvider] {
     const provider: SignatureHelpProvider = {
-      provideSignatureHelp: (document, position, token) => {
+      provideSignatureHelp: (document, position, token, context) => {
         const client = this._client
-        const providerSignatureHelp: ProvideSignatureHelpSignature = (document, position, token) => {
+        const providerSignatureHelp: ProvideSignatureHelpSignature = (document, position, context, token) => {
           return client.sendRequest(
             SignatureHelpRequest.type,
-            cv.asTextDocumentPositionParams(document, position),
+            cv.asSignatureHelpParams(document, position, context),
             token
           ).then(res => res, error => {
             client.logFailedRequest(SignatureHelpRequest.type, error)
@@ -2015,8 +2019,8 @@ class SignatureHelpFeature extends TextDocumentFeature<
 
         const middleware = client.clientOptions.middleware!
         return middleware.provideSignatureHelp
-          ? middleware.provideSignatureHelp(document, position, token, providerSignatureHelp)
-          : providerSignatureHelp(document, position, token)
+          ? middleware.provideSignatureHelp(document, position, context, token, providerSignatureHelp)
+          : providerSignatureHelp(document, position, context, token)
       }
     }
 
@@ -2036,7 +2040,7 @@ class DefinitionFeature extends TextDocumentFeature<
   public fillClientCapabilities(capabilites: ClientCapabilities): void {
     let definitionSupport = ensure(ensure(capabilites, 'textDocument')!, 'definition')!
     definitionSupport.dynamicRegistration = true
-    // definitionSupport.linkSupport = true
+    definitionSupport.linkSupport = true
   }
 
   public initialize(

@@ -1,6 +1,6 @@
 import FloatFactory from '../model/floatFactory'
 import snippetManager from '../snippets/manager'
-import { CancellationTokenSource, Disposable, MarkupContent, MarkupKind, Position, SignatureHelp } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Disposable, MarkupContent, MarkupKind, Position, SignatureHelp, SignatureHelpTriggerKind } from 'vscode-languageserver-protocol'
 import { ConfigurationChangeEvent, Documentation } from '../types'
 import Document from '../model/document'
 import workspace from '../workspace'
@@ -74,7 +74,7 @@ export default class Signature {
       let pre = info.pre[info.pre.length - 1]
       if (!pre) return
       if (languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
-        await this.triggerSignatureHelp(doc, { line: info.lnum - 1, character: info.pre.length })
+        await this.triggerSignatureHelp(doc, { line: info.lnum - 1, character: info.pre.length }, false)
       }
     }, null, this.disposables)
   }
@@ -98,7 +98,7 @@ export default class Signature {
     }
   }
 
-  public async triggerSignatureHelp(doc: Document, position: Position): Promise<boolean> {
+  public async triggerSignatureHelp(doc: Document, position: Position, invoke = true): Promise<boolean> {
     this.tokenSource?.cancel()
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
@@ -118,7 +118,11 @@ export default class Signature {
     if (token.isCancellationRequested) {
       return false
     }
-    let signatureHelp = await languages.getSignatureHelp(doc.textDocument, position, token)
+    let signatureHelp = await languages.getSignatureHelp(doc.textDocument, position, token, {
+      // TODO set to true if it's placeholder jump, but can't delete by now.
+      isRetrigger: false,
+      triggerKind: invoke ? SignatureHelpTriggerKind.Invoked : SignatureHelpTriggerKind.TriggerCharacter
+    })
     clearTimeout(timer)
     if (token.isCancellationRequested) return false
     if (!signatureHelp || signatureHelp.signatures.length == 0) {

@@ -1,4 +1,4 @@
-import { CancellationToken, Disposable, DocumentSelector, Position, SignatureHelp } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, DocumentSelector, Position, SignatureHelp, SignatureHelpContext } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { SignatureHelpProvider } from './index'
 import Manager, { ProviderItem } from './manager'
@@ -30,11 +30,12 @@ export default class SignatureManager extends Manager<SignatureHelpProvider> imp
   public async provideSignatureHelp(
     document: TextDocument,
     position: Position,
-    token: CancellationToken
+    token: CancellationToken,
+    context: SignatureHelpContext
   ): Promise<SignatureHelp | null> {
     let item = this.getProvider(document)
     if (!item) return null
-    let res = await Promise.resolve(item.provider.provideSignatureHelp(document, position, token))
+    let res = await Promise.resolve(item.provider.provideSignatureHelp(document, position, token, context))
     if (res && res.signatures && res.signatures.length) return res
     return null
   }
