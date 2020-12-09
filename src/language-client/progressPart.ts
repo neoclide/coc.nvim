@@ -113,16 +113,15 @@ export class ProgressPart {
     if (message && this._progressTarget === 'statusline') {
       const statusBarItem = this.statusBarItem
       statusBarItem.text = `${this.title} ${message}`
-      setTimeout(() => {
-        this.cancel()
-      }, 300)
     } else {
       if (this._resolve) {
         this._resolve()
         this._resolve = undefined
         this._reject = undefined
       }
-      this.cancel()
     }
+    setTimeout(() => {
+      this.cancel()
+    }, 300)
   }
 }
