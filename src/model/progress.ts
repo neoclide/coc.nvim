@@ -1,8 +1,8 @@
 import { Neovim } from '@chemzqm/neovim'
 import Notification from './notification'
 import { NotificationPreferences, Progress } from '../types'
-import { CancellationToken, CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
-const logger = require('../util/logger')('model-progress')
+import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol'
+import events from '../events'
 
 export interface ProgressOptions<R> {
   title?: string
@@ -12,26 +12,33 @@ export interface ProgressOptions<R> {
 
 export default class ProgressNotification<R> extends Notification {
   private tokenSource: CancellationTokenSource
-  protected disposables: Disposable[] = []
   constructor(nvim: Neovim, private option: ProgressOptions<R>) {
     super(nvim, {
       content: '\n',
       close: option.cancellable == true,
       title: option.title
-    })
+    }, false)
+    events.on('BufWinLeave', bufnr => {
+      if (bufnr == this.bufnr) {
+        if (this.tokenSource) {
+          this.tokenSource.cancel()
+        }
+        this.dispose()
+      }
+    }, null, this.disposables)
   }
 
   public async show(preferences: Partial<NotificationPreferences>): Promise<R> {
-    let shown = await super.show(Object.assign({ minWidth: preferences.minProgressWidth || 30, progress: 1 }, preferences))
-    if (!shown) return undefined
     let { task } = this.option
-    let ts = Date.now()
     let tokenSource = this.tokenSource = new CancellationTokenSource()
+    this.disposables.push(tokenSource)
     let total = 0
-    let res = await new Promise<R>(resolve => {
+    let res = await new Promise<R>((resolve, reject) => {
       tokenSource.token.onCancellationRequested(() => {
-        this.dispose()
         resolve(undefined)
+      })
+      super.show(Object.assign({ minWidth: preferences.minProgressWidth || 30, progress: 1 }, preferences)).then(shown => {
+        if (!shown) reject(new Error('Failed to create float window'))
       })
       task({
         report: p => {
@@ -45,35 +52,26 @@ export default class ProgressNotification<R> extends Notification {
           this.nvim.call('setbufline', [this.bufnr, 2, text], true)
         }
       }, tokenSource.token).then(res => {
-        tokenSource.dispose()
-        this.tokenSource = null
-        let dt = Date.now() - ts
-        if (dt < 300) {
-          setTimeout(() => {
-            this.dispose()
-          }, 300 - dt)
-        } else {
+        if (this._disposed) return
+        setTimeout(() => {
           this.dispose()
-        }
+        }, 100)
         resolve(res)
       }, err => {
-        logger.error(err)
-        tokenSource.dispose()
-        this.tokenSource = null
+        if (this._disposed) return
         this.dispose()
-        resolve(undefined)
+        if (err instanceof Error) {
+          reject(err)
+        } else {
+          resolve(undefined)
+        }
       })
     })
     return res
   }
 
   public dispose(): void {
-    let { tokenSource } = this
-    if (tokenSource) {
-      this.tokenSource = undefined
-      tokenSource.cancel()
-      tokenSource.dispose()
-    }
     super.dispose()
+    this.tokenSource = undefined
   }
 }

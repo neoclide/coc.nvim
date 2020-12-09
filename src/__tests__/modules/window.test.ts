@@ -230,7 +230,9 @@ describe('window functions', () => {
     let res = await p
     expect(res).toBe('first')
   })
+})
 
+describe('window notifications', () => {
   it('should show notification with options', async () => {
     let res = await window.showNotification({
       content: 'my notification',
@@ -303,5 +305,18 @@ describe('window functions', () => {
     let res = await p
     expect(called).toBeLessThan(10)
     expect(res).toBe(undefined)
+  })
+
+  it('should cancel progress when window not shown', async () => {
+    let called = 0
+    let p = window.withProgress({ title: 'Process' }, () => {
+      called = called + 1
+      return Promise.resolve()
+    })
+    await p
+    await helper.wait(120)
+    let floats = await helper.getFloats()
+    expect(called).toBe(1)
+    expect(floats.length).toBe(0)
   })
 })

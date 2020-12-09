@@ -10,21 +10,23 @@ export default class Notification {
   protected disposables: Disposable[] = []
   protected bufnr: number
   protected _winid: number
-  private _disposed = false
-  constructor(protected nvim: Neovim, protected config: NotificationConfig) {
-    events.on('BufWinLeave', bufnr => {
-      if (bufnr == this.bufnr) {
-        this.dispose()
-        if (config.callback) config.callback(-1)
-      }
-    }, null, this.disposables)
-    events.on('FloatBtnClick', (bufnr, idx) => {
-      if (bufnr == this.bufnr) {
-        this.dispose()
-        let btns = config?.buttons.filter(o => o.disabled != true)
-        if (config.callback) config.callback(btns[idx].index)
-      }
-    }, null, this.disposables)
+  protected _disposed = false
+  constructor(protected nvim: Neovim, protected config: NotificationConfig, attachEvents = true) {
+    if (attachEvents) {
+      events.on('BufWinLeave', bufnr => {
+        if (bufnr == this.bufnr) {
+          this.dispose()
+          if (config.callback) config.callback(-1)
+        }
+      }, null, this.disposables)
+      events.on('FloatBtnClick', (bufnr, idx) => {
+        if (bufnr == this.bufnr) {
+          this.dispose()
+          let btns = config?.buttons.filter(o => o.disabled != true)
+          if (config.callback) config.callback(btns[idx].index)
+        }
+      }, null, this.disposables)
+    }
   }
 
   protected get lines(): string[] {
@@ -42,8 +44,13 @@ export default class Notification {
     if (timeout) opts.timeout = timeout
     let res = await nvim.call('coc#float#create_notification', [this.lines, opts]) as [number, number]
     if (!res) return false
-    this._winid = res[0]
-    this.bufnr = res[1]
+    if (this._disposed) {
+      this.nvim.call('coc#float#close', [res[0]], true)
+      if (isVim) this.nvim.command('redraw', true)
+    } else {
+      this._winid = res[0]
+      this.bufnr = res[1]
+    }
     return true
   }
 
