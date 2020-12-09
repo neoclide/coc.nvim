@@ -2,6 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import Notification from './notification'
 import { NotificationPreferences, Progress } from '../types'
 import { CancellationToken, CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
+const logger = require('../util/logger')('model-progress')
 
 export interface ProgressOptions<R> {
   title?: string
