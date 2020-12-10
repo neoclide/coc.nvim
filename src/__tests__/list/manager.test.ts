@@ -71,7 +71,7 @@ describe('list commands', () => {
   it('should not quit list with --no-quit', async () => {
     await manager.start(['--normal', '--no-quit', 'location'])
     await manager.session.ui.ready
-    let winnr = await nvim.eval('win_getid()')
+    let winnr = await nvim.eval('win_getid()') as number
     await manager.doAction()
     await helper.wait(100)
     let wins = await nvim.windows
