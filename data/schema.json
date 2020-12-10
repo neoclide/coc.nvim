@@ -792,7 +792,7 @@
       "default": "CocFloating",
       "description": "Highlight group of notification dialog."
     },
-    "notification,minProgressWidth": {
+    "notification.minProgressWidth": {
       "type": "number",
       "default": 30,
       "description": "Minimum width of progress notification."
@@ -804,6 +804,12 @@
       "items": {
         "type": "string"
       }
+    },
+    "workspace.progressTarget": {
+      "type": "string",
+      "default": "float",
+      "description": "Target to show workDoneProgress, default is floating window when possible.",
+      "enum": ["statusline", "float"]
     },
     "list.indicator": {
       "type": "string",
