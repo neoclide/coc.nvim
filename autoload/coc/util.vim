@@ -63,9 +63,7 @@ endfunction
 
 " get cursor position
 function! coc#util#cursor()
-  let pos = getcurpos()
-  let content = pos[2] == 1 ? '' : getline('.')[0: pos[2] - 2]
-  return [pos[1] - 1, strchars(content)]
+  return [line('.') - 1, strchars(strpart(getline('.'), 0, col('.') - 1))]
 endfunction
 
 function! coc#util#path_replace_patterns() abort

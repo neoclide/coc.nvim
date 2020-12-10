@@ -347,17 +347,16 @@ export class DiagnosticManager implements Disposable {
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
     if (!document) return
-    let offset = await window.getOffset()
-    if (offset == null) return
+    let curpos = await window.getCursorPosition()
     let ranges = this.getSortedRanges(document.uri, severity)
     if (ranges.length == 0) {
       window.showMessage('Empty diagnostics', 'warning')
       return
     }
-    let { textDocument } = document
     let pos: Position
     for (let i = ranges.length - 1; i >= 0; i--) {
-      if (textDocument.offsetAt(ranges[i].end) < offset) {
+      let end = ranges[i].end
+      if (comparePosition(end, curpos) < 0) {
         pos = ranges[i].start
         break
       } else if (i == 0) {
@@ -378,16 +377,16 @@ export class DiagnosticManager implements Disposable {
   public async jumpNext(severity?: string): Promise<void> {
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
-    let offset = await window.getOffset()
+    let curpos = await window.getCursorPosition()
     let ranges = this.getSortedRanges(document.uri, severity)
     if (ranges.length == 0) {
       window.showMessage('Empty diagnostics', 'warning')
       return
     }
-    let { textDocument } = document
     let pos: Position
     for (let i = 0; i <= ranges.length - 1; i++) {
-      if (textDocument.offsetAt(ranges[i].start) > offset) {
+      let start = ranges[i].start
+      if (comparePosition(start, curpos) > 0) {
         pos = ranges[i].start
         break
       } else if (i == ranges.length - 1) {

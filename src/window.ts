@@ -310,8 +310,9 @@ class Window {
    * @returns Cursor position.
    */
   public async getCursorPosition(): Promise<Position> {
-    let [line, character] = await this.nvim.call('coc#util#cursor')
-    return Position.create(line, character)
+    // vim can't count utf16
+    let [line, content] = await this.nvim.eval(`[line('.')-1, strpart(getline('.'), 0, col('.') - 1)]`) as [number, string]
+    return Position.create(line, content.length)
   }
 
   /**
