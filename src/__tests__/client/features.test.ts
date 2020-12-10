@@ -6,7 +6,7 @@ import { TextDocument, CancellationTokenSource, Color, DocumentSelector, Positio
 import helper from '../helper'
 import workspace from '../../workspace'
 import { ProtocolRequestType } from 'vscode-languageserver-protocol/lib/messages'
-import { CallHierarchyPrepareRequest } from 'vscode-languageserver-protocol/lib/protocol.callHierarchy.proposed'
+// import { CallHierarchyPrepareRequest } from 'vscode-languageserver-protocol/lib/protocol.callHierarchy.proposed'
 
 describe('Client integration', () => {
   let client!: LanguageClient
@@ -35,7 +35,7 @@ describe('Client integration', () => {
     assert.strictEqual(actual, expected)
   }
 
-  function isArray<T>(value: Array<T> | undefined | null, clazz: any, length: number = 1): asserts value is Array<T> {
+  function isArray<T>(value: Array<T> | undefined | null, clazz: any, length = 1): asserts value is Array<T> {
     assert.ok(Array.isArray(value), `value is array`)
     assert.strictEqual(value!.length, length, 'value has given length')
     if (clazz && typeof clazz.is === 'function') {
@@ -57,15 +57,15 @@ describe('Client integration', () => {
       provideTextDocumentContent: (_uri: URI) => {
         return [
           'REM @ECHO OFF',
-          'cd c:\source',
+          'cd c:\\source',
           'REM This is the location of the files that you want to sort',
-          'FOR %%f IN (*.doc *.txt) DO XCOPY c:\source\"%%f" c:\text /m /y',
+          'FOR %%f IN (*.doc *.txt) DO XCOPY c:\\source\\"%%f" c:\\text /m /y',
           'REM This moves any files with a .doc or',
-          'REM .txt extension from c:\source to c:\text',
+          'REM .txt extension from c:\\source to c:\\text',
           'REM %%f is a variable',
-          'FOR %%f IN (*.jpg *.png *.bmp) DO XCOPY C:\source\"%%f" c:\images /m /y',
+          'FOR %%f IN (*.jpg *.png *.bmp) DO XCOPY C:\\source\\"%%f" c:\\images /m /y',
           'REM This moves any files with a .jpg, .png,',
-          'REM or .bmp extension from c:\source to c:\images;;',
+          'REM or .bmp extension from c:\\source to c:\\images;;',
         ].join('\n')
       }
     })
@@ -163,7 +163,7 @@ describe('Client integration', () => {
         linkedEditingRangeProvider: false
       },
       customResults: {
-        'hello': 'world'
+        hello: 'world'
       }
     }
     assert.deepEqual(client.initializeResult, expected)
@@ -176,7 +176,7 @@ describe('Client integration', () => {
     assert.strictEqual(Location.is(result), true)
     uriEqual(result.uri, uri)
     rangeEqual(result.range, 0, 0, 0, 1)
-    let middlewareCalled: boolean = false
+    let middlewareCalled = false
     middleware.provideDefinition = (document, position, token, next) => {
       middlewareCalled = true
       return next(document, position, token)
@@ -193,7 +193,7 @@ describe('Client integration', () => {
     assert.ok(Hover.is(result))
     assert.strictEqual((result.contents as any).kind, 'plaintext')
     assert.strictEqual((result.contents as any).value, 'foo')
-    let middlewareCalled: boolean = false
+    let middlewareCalled = false
     middleware.provideHover = (document, position, token, next) => {
       middlewareCalled = true
       return next(document, position, token)
@@ -219,7 +219,7 @@ describe('Client integration', () => {
     isDefined(resolved)
     assert.strictEqual(resolved.detail, 'detail')
 
-    let middlewareCalled: number = 0
+    let middlewareCalled = 0
     middleware.provideCompletionItem = (document, position, context, token, next) => {
       middlewareCalled++
       return next(document, position, context, token)
@@ -259,7 +259,7 @@ describe('Client integration', () => {
     assert.strictEqual(parameter.label, 'label')
     assert.strictEqual(parameter.documentation, 'doc')
 
-    let middlewareCalled: boolean = false
+    let middlewareCalled = false
     middleware.provideSignatureHelp = (d, p, c, t, n) => {
       middlewareCalled = true
       return n(d, p, c, t)
@@ -289,7 +289,7 @@ describe('Client integration', () => {
       assert.strictEqual(location.uri.toString(), document.uri.toString())
     }
 
-    let middlewareCalled: boolean = false
+    let middlewareCalled = false
     middleware.provideReferences = (d, p, c, t, n) => {
       middlewareCalled = true
       return n(d, p, c, t)
@@ -312,7 +312,7 @@ describe('Client integration', () => {
     assert.strictEqual(highlight.kind, DocumentHighlightKind.Read)
     rangeEqual(highlight.range, 2, 2, 2, 2)
 
-    let middlewareCalled: boolean = false
+    let middlewareCalled = false
     middleware.provideDocumentHighlights = (d, p, t, n) => {
       middlewareCalled = true
       return n(d, p, t)
@@ -338,8 +338,8 @@ describe('Client integration', () => {
     // TODO resolveCodeAction not work yet, need next packages.
     //     const resolved = (await provider.resolveCodeAction(result[0], tokenSource.token))
     //     assert.strictEqual(resolved?.title, 'resolved')
-    // 
-    let middlewareCalled: boolean = false
+    //
+    let middlewareCalled = false
     middleware.provideCodeActions = (d, r, c, t, n) => {
       middlewareCalled = true
       return n(d, r, c, t)
@@ -378,13 +378,13 @@ describe('Client integration', () => {
 
     // Trigger multiple sample progress events.
     for (let i = 0; i < 2; i++) {
-      await new Promise<unknown>((resolve) => {
+      await new Promise<unknown>((resolve, reject) => {
         currentProgressResolver = resolve
         client.sendRequest(
           new ProtocolRequestType<any, null, never, any, any>('testing/sendSampleProgress'),
           {},
           tokenSource.token,
-        )
+        ).catch(reject)
       })
     }
 
@@ -392,7 +392,7 @@ describe('Client integration', () => {
 
     // Ensure all events were handled.
     assert.deepStrictEqual(
-      middlewareEvents.map((p) => p.kind),
+      middlewareEvents.map(p => p.kind),
       ['begin', 'report', 'end', 'begin', 'report', 'end'],
     )
   })
@@ -407,7 +407,7 @@ describe('Client integration', () => {
     assert.strictEqual(edit.newText, 'insert')
     rangeEqual(edit.range, 0, 0, 0, 0)
 
-    let middlewareCalled: boolean = true
+    let middlewareCalled = true
     middleware.provideDocumentFormattingEdits = (d, c, t, n) => {
       middlewareCalled = true
       return n(d, c, t)
@@ -427,7 +427,7 @@ describe('Client integration', () => {
     assert.strictEqual(edit.newText, '')
     rangeEqual(edit.range, 1, 1, 1, 2)
 
-    let middlewareCalled: boolean = true
+    let middlewareCalled = true
     middleware.provideDocumentRangeFormattingEdits = (d, r, c, t, n) => {
       middlewareCalled = true
       return n(d, r, c, t)
@@ -447,7 +447,7 @@ describe('Client integration', () => {
     assert.strictEqual(edit.newText, 'replace')
     rangeEqual(edit.range, 2, 2, 2, 3)
 
-    let middlewareCalled: boolean = true
+    let middlewareCalled = true
     middleware.provideOnTypeFormattingEdits = (d, p, s, c, t, n) => {
       middlewareCalled = true
       return n(d, p, s, c, t)
@@ -466,7 +466,7 @@ describe('Client integration', () => {
     rangeEqual(prepareResult, 1, 1, 1, 2)
     const renameResult = await provider.provideRenameEdits(document, position, 'newName', tokenSource.token)
     assert.ok(WorkspaceEdit.is(renameResult))
-    let middlewareCalled: number = 0
+    let middlewareCalled = 0
     middleware.prepareRename = (d, p, t, n) => {
       middlewareCalled++
       return n(d, p, t)
@@ -491,7 +491,7 @@ describe('Client integration', () => {
     const documentLink = result[0]
     rangeEqual(documentLink.range, 1, 1, 1, 2)
 
-    let middlewareCalled: number = 0
+    let middlewareCalled = 0
     middleware.provideDocumentLinks = (d, t, n) => {
       middlewareCalled++
       return n(d, t)
@@ -524,7 +524,7 @@ describe('Client integration', () => {
     rangeEqual(color.range, 1, 1, 1, 2)
     colorEqual(color.color, 1, 2, 3, 4)
 
-    let middlewareCalled: number = 0
+    let middlewareCalled = 0
     middleware.provideDocumentColors = (d, t, n) => {
       middlewareCalled++
       return n(d, t)
@@ -555,7 +555,7 @@ describe('Client integration', () => {
     uriEqual(result.uri, uri)
     rangeEqual(result.range, 1, 1, 1, 2)
 
-    let middlewareCalled: boolean = false
+    let middlewareCalled = false
     middleware.provideDeclaration = (document, position, token, next) => {
       middlewareCalled = true
       return next(document, position, token)
@@ -574,7 +574,7 @@ describe('Client integration', () => {
     const range = result[0]
     assert.strictEqual(range.startLine, 1)
     assert.strictEqual(range.endLine, 2)
-    let middlewareCalled: boolean = true
+    let middlewareCalled = true
     middleware.provideFoldingRanges = (d, c, t, n) => {
       middlewareCalled = true
       return n(d, c, t)
@@ -592,7 +592,7 @@ describe('Client integration', () => {
     uriEqual(result.uri, uri)
     rangeEqual(result.range, 2, 2, 3, 3)
 
-    let middlewareCalled: boolean = false
+    let middlewareCalled = false
     middleware.provideImplementation = (document, position, token, next) => {
       middlewareCalled = true
       return next(document, position, token)
@@ -610,7 +610,7 @@ describe('Client integration', () => {
     isArray(result, SelectionRange, 1)
     const range = result[0]
     rangeEqual(range.range, 1, 2, 3, 4)
-    let middlewareCalled: boolean = false
+    let middlewareCalled = false
     middleware.provideSelectionRanges = (d, p, t, n) => {
       middlewareCalled = true
       return n(d, p, t)
@@ -628,7 +628,7 @@ describe('Client integration', () => {
     uriEqual(result.uri, uri)
     rangeEqual(result.range, 2, 2, 3, 3)
 
-    let middlewareCalled: boolean = false
+    let middlewareCalled = false
     middleware.provideTypeDefinition = (document, position, token, next) => {
       middlewareCalled = true
       return next(document, position, token)
@@ -643,10 +643,10 @@ describe('Client integration', () => {
     // const provider = client.getFeature(CallHierarchyPrepareRequest.method).getProvider(document)
     // isDefined(provider)
     //     const result = (await provider.prepareCallHierarchy(document, position, tokenSource.token)) as CallHierarchyItem[]
-    // 
+    //
     //     isArray(result, CallHierarchyItem, 1)
     //     const item = result[0]
-    // 
+    //
     //     let middlewareCalled: boolean = false
     //     middleware.prepareCallHierarchy = (d, p, t, n) => {
     //       middlewareCalled = true
@@ -655,7 +655,7 @@ describe('Client integration', () => {
     //     await provider.prepareCallHierarchy(document, position, tokenSource.token)
     //     middleware.prepareCallHierarchy = undefined
     //     assert.strictEqual(middlewareCalled, true)
-    // 
+    //
     //     const incoming = (await provider.provideCallHierarchyIncomingCalls(item, tokenSource.token)) as CallHierarchyIncomingCall[]
     //     isArray(incoming, CallHierarchyIncomingCall, 1)
     //     middlewareCalled = false
@@ -666,7 +666,7 @@ describe('Client integration', () => {
     //     await provider.provideCallHierarchyIncomingCalls(item, tokenSource.token)
     //     middleware.provideCallHierarchyIncomingCalls = undefined
     //     assert.strictEqual(middlewareCalled, true)
-    // 
+    //
     //     const outgoing = (await provider.provideCallHierarchyOutgoingCalls(item, tokenSource.token)) as CallHierarchyOutgoingCall[]
     //     isArray(outgoing, CallHierarchyOutgoingCall, 1)
     //     middlewareCalled = false

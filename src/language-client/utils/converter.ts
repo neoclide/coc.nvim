@@ -102,7 +102,6 @@ export function asSignatureHelpParams(textDocument: TextDocument, position: Posi
   }
 }
 
-
 export function asTextDocumentIdentifier(textDocument: TextDocument): TextDocumentIdentifier {
   return {
     uri: textDocument.uri

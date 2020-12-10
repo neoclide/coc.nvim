@@ -51,7 +51,7 @@ export default class Notification {
       this._winid = res[0]
       this.bufnr = res[1]
     }
-    return true
+    return this._winid != undefined
   }
 
   public get winid(): number | undefined {

@@ -39,7 +39,7 @@ export default class ProgressNotification<R> extends Notification {
       })
       super.show(Object.assign({ minWidth: preferences.minProgressWidth || 30, progress: 1 }, preferences)).then(shown => {
         if (!shown) reject(new Error('Failed to create float window'))
-      })
+      }).catch(reject)
       task({
         report: p => {
           if (!this.bufnr) return
