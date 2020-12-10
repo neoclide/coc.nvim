@@ -24022,7 +24022,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "d7a9eeb225" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "c7c24f61f4" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -43345,21 +43345,21 @@ class Window {
         }
     }
     async showInformationMessage(message, ...items) {
-        if (!workspace_1.default.env.dialog)
+        if (!this.enableMessageDialog)
             return await this.showConfirm(message, items, 'Info');
         let texts = typeof items[0] === 'string' ? items : items.map(s => s.title);
         let idx = await this.createNotification('CocInfoFloat', message, texts);
         return idx == -1 ? undefined : items[idx];
     }
     async showWarningMessage(message, ...items) {
-        if (!workspace_1.default.env.dialog)
+        if (!this.enableMessageDialog)
             return await this.showConfirm(message, items, 'Warning');
         let texts = typeof items[0] === 'string' ? items : items.map(s => s.title);
         let idx = await this.createNotification('CocWarningFloat', message, texts);
         return idx == -1 ? undefined : items[idx];
     }
     async showErrorMessage(message, ...items) {
-        if (!workspace_1.default.env.dialog)
+        if (!this.enableMessageDialog)
             return await this.showConfirm(message, items, 'Error');
         let texts = typeof items[0] === 'string' ? items : items.map(s => s.title);
         let idx = await this.createNotification('CocErrorFloat', message, texts);
@@ -43462,6 +43462,12 @@ class Window {
             return true;
         this.showMessage('Dialog requires vim >= 8.2.0750 or neovim >= 0.4.0, please upgrade your vim', 'warning');
         return false;
+    }
+    get enableMessageDialog() {
+        if (!workspace_1.default.env.dialog)
+            return false;
+        let config = workspace_1.default.getConfiguration('coc.preferences');
+        return config.get('enableMessageDialog', false);
     }
     get messageLevel() {
         let config = workspace_1.default.getConfiguration('coc.preferences');
