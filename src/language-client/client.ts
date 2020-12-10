@@ -1994,7 +1994,6 @@ class SignatureHelpFeature extends TextDocumentFeature<
     let config = ensure(ensure(capabilites, 'textDocument')!, 'signatureHelp')!
     config.dynamicRegistration = true
     config.contextSupport = true
-    // config.contextSupport = true // TODO context and meta support
     config.signatureInformation = {
       documentationFormat: this._client.supporedMarkupKind,
       activeParameterSupport: true,
