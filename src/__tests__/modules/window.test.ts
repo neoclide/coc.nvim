@@ -2,6 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { Disposable, Range } from 'vscode-languageserver-protocol'
 import { disposeAll } from '../../util'
 import window from '../../window'
+import workspace from '../../workspace'
 import events from '../../events'
 import helper from '../helper'
 
@@ -11,6 +12,8 @@ let disposables: Disposable[] = []
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
+  let config = workspace.getConfiguration('coc.preferences')
+  config.update('enableMessageDialog', true)
 })
 
 afterAll(async () => {

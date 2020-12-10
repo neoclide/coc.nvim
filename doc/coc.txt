@@ -690,6 +690,10 @@ Built-in configurations:~
 	default: `true`
 
 							*coc-config-preferences*
+"coc.preferences.enableMessageDialog"~
+
+	Enable messages shown in notification dialog, default: `false`
+
 "coc.preferences.maxFileSize":~
 
 	Maximum file size in bytes that coc.nvim should handle, default: `'10MB'`

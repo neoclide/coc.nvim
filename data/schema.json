@@ -948,6 +948,11 @@
       "default": "<C-p>",
       "description": "Key used for jump to previous cursors position."
     },
+    "coc.preferences.enableMessageDialog": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable messages shown in notification dialog."
+    },
     "coc.preferences.maxFileSize": {
       "type": "string",
       "default": "10MB",

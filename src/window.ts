@@ -398,7 +398,7 @@ class Window {
   public async showInformationMessage(message: string, ...items: string[]): Promise<string | undefined>
   public async showInformationMessage<T extends MessageItem>(message: string, ...items: T[]): Promise<T | undefined>
   public async showInformationMessage<T extends MessageItem | string>(message: string, ...items: T[]): Promise<T | undefined> {
-    if (!workspace.env.dialog) return await this.showConfirm(message, items, 'Info') as any
+    if (!this.enableMessageDialog) return await this.showConfirm(message, items, 'Info') as any
     let texts = typeof items[0] === 'string' ? items : (items as any[]).map(s => s.title)
     let idx = await this.createNotification('CocInfoFloat', message, texts)
     return idx == -1 ? undefined : items[idx]
@@ -415,7 +415,7 @@ class Window {
   public async showWarningMessage(message: string, ...items: string[]): Promise<string | undefined>
   public async showWarningMessage<T extends MessageItem>(message: string, ...items: T[]): Promise<T | undefined>
   public async showWarningMessage<T extends MessageItem | string>(message: string, ...items: T[]): Promise<T | undefined> {
-    if (!workspace.env.dialog) return await this.showConfirm(message, items, 'Warning') as any
+    if (!this.enableMessageDialog) return await this.showConfirm(message, items, 'Warning') as any
     let texts = typeof items[0] === 'string' ? items : (items as any[]).map(s => s.title)
     let idx = await this.createNotification('CocWarningFloat', message, texts)
     return idx == -1 ? undefined : items[idx]
@@ -432,7 +432,7 @@ class Window {
   public async showErrorMessage(message: string, ...items: string[]): Promise<string | undefined>
   public async showErrorMessage<T extends MessageItem>(message: string, ...items: T[]): Promise<T | undefined>
   public async showErrorMessage<T extends MessageItem | string>(message: string, ...items: T[]): Promise<T | undefined> {
-    if (!workspace.env.dialog) return await this.showConfirm(message, items, 'Error') as any
+    if (!this.enableMessageDialog) return await this.showConfirm(message, items, 'Error') as any
     let texts = typeof items[0] === 'string' ? items : (items as any[]).map(s => s.title)
     let idx = await this.createNotification('CocErrorFloat', message, texts)
     return idx == -1 ? undefined : items[idx]
@@ -537,6 +537,12 @@ class Window {
     if (workspace.env.dialog) return true
     this.showMessage('Dialog requires vim >= 8.2.0750 or neovim >= 0.4.0, please upgrade your vim', 'warning')
     return false
+  }
+
+  private get enableMessageDialog(): boolean {
+    if (!workspace.env.dialog) return false
+    let config = workspace.getConfiguration('coc.preferences')
+    return config.get<boolean>('enableMessageDialog', false)
   }
 
   private get messageLevel(): MessageLevel {
