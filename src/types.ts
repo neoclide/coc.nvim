@@ -1256,7 +1256,7 @@ export interface ISource {
   shouldCommit?(item: VimCompleteItem, character: string): boolean
 }
 
-export type SourceConfig = Omit<ISource, 'shortcut' | 'priority' | 'triggerOnly' | 'triggerCharacters' | 'triggerPatterns' | 'enable' | 'filetypes' | 'disableSyntaxes'>
+export type SourceConfig = Omit<Partial<ISource>, 'shortcut' | 'priority' | 'triggerOnly' | 'triggerCharacters' | 'triggerPatterns' | 'enable' | 'filetypes' | 'disableSyntaxes'>
 // Config property of source
 // export interface SourceConfig extends ISource {
 // }
