@@ -24022,7 +24022,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "c7c24f61f4" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "23b52e23eb" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -24766,18 +24766,16 @@ class DiagnosticManager {
         let document = workspace_1.default.getDocument(buffer.id);
         if (!document)
             return;
-        let offset = await window_1.default.getOffset();
-        if (offset == null)
-            return;
+        let curpos = await window_1.default.getCursorPosition();
         let ranges = this.getSortedRanges(document.uri, severity);
         if (ranges.length == 0) {
             window_1.default.showMessage('Empty diagnostics', 'warning');
             return;
         }
-        let { textDocument } = document;
         let pos;
         for (let i = ranges.length - 1; i >= 0; i--) {
-            if (textDocument.offsetAt(ranges[i].end) < offset) {
+            let end = ranges[i].end;
+            if (position_1.comparePosition(end, curpos) < 0) {
                 pos = ranges[i].start;
                 break;
             }
@@ -24800,16 +24798,16 @@ class DiagnosticManager {
     async jumpNext(severity) {
         let buffer = await this.nvim.buffer;
         let document = workspace_1.default.getDocument(buffer.id);
-        let offset = await window_1.default.getOffset();
+        let curpos = await window_1.default.getCursorPosition();
         let ranges = this.getSortedRanges(document.uri, severity);
         if (ranges.length == 0) {
             window_1.default.showMessage('Empty diagnostics', 'warning');
             return;
         }
-        let { textDocument } = document;
         let pos;
         for (let i = 0; i <= ranges.length - 1; i++) {
-            if (textDocument.offsetAt(ranges[i].start) > offset) {
+            let start = ranges[i].start;
+            if (position_1.comparePosition(start, curpos) > 0) {
                 pos = ranges[i].start;
                 break;
             }
@@ -43280,8 +43278,9 @@ class Window {
      * @returns Cursor position.
      */
     async getCursorPosition() {
-        let [line, character] = await this.nvim.call('coc#util#cursor');
-        return vscode_languageserver_protocol_1.Position.create(line, character);
+        // vim can't count utf16
+        let [line, content] = await this.nvim.eval(`[line('.')-1, strpart(getline('.'), 0, col('.') - 1)]`);
+        return vscode_languageserver_protocol_1.Position.create(line, content.length);
     }
     /**
      * Move cursor to position.
@@ -78032,10 +78031,19 @@ class Manager {
             }
             else if (Array.isArray(def)) {
                 for (let d of def) {
-                    let { uri, range } = d;
-                    let idx = res.findIndex(l => l.uri == uri && l.range.start.line == range.start.line);
-                    if (idx == -1) {
-                        res.push(d);
+                    if (vscode_languageserver_protocol_1.Location.is(d)) {
+                        let { uri, range } = d;
+                        let idx = res.findIndex(l => l.uri == uri && l.range.start.line == range.start.line);
+                        if (idx == -1) {
+                            res.push(d);
+                        }
+                    }
+                    else if (vscode_languageserver_protocol_1.LocationLink.is(d)) {
+                        let { targetUri, targetSelectionRange } = d;
+                        let idx = res.findIndex(l => l.uri === targetUri && l.range.start.line === targetSelectionRange.start.line);
+                        if (idx === -1) {
+                            res.push(vscode_languageserver_protocol_1.Location.create(targetUri, targetSelectionRange));
+                        }
                     }
                 }
             }
@@ -81063,7 +81071,6 @@ class SignatureHelpFeature extends TextDocumentFeature {
         let config = ensure(ensure(capabilites, 'textDocument'), 'signatureHelp');
         config.dynamicRegistration = true;
         config.contextSupport = true;
-        // config.contextSupport = true // TODO context and meta support
         config.signatureInformation = {
             documentationFormat: this._client.supporedMarkupKind,
             activeParameterSupport: true,
