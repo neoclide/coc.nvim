@@ -1,4 +1,4 @@
-import { Definition, DocumentSelector, Location } from 'vscode-languageserver-protocol'
+import { Definition, DocumentSelector, Location, LocationLink } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import workspace from '../workspace'
 import window from '../window'
@@ -46,7 +46,7 @@ export default class Manager<T> {
     return items.sort((a, b) => workspace.match(b.selector, document) - workspace.match(a.selector, document))
   }
 
-  protected mergeDefinitions(arr: Definition[]): Location[] {
+  protected mergeDefinitions(arr: (Definition | LocationLink[])[]): Location[] {
     let res: Location[] = []
     for (let def of arr) {
       if (!def) continue
@@ -58,10 +58,18 @@ export default class Manager<T> {
         }
       } else if (Array.isArray(def)) {
         for (let d of def) {
-          let { uri, range } = d
-          let idx = res.findIndex(l => l.uri == uri && l.range.start.line == range.start.line)
-          if (idx == -1) {
-            res.push(d)
+          if (Location.is(d)) {
+            let { uri, range } = d
+            let idx = res.findIndex(l => l.uri == uri && l.range.start.line == range.start.line)
+            if (idx == -1) {
+              res.push(d)
+            }
+          } else if (LocationLink.is(d)) {
+            let { targetUri, targetSelectionRange } = d
+            let idx = res.findIndex(l => l.uri === targetUri && l.range.start.line === targetSelectionRange.start.line)
+            if (idx === -1) {
+              res.push(Location.create(targetUri, targetSelectionRange))
+            }
           }
         }
       } else {

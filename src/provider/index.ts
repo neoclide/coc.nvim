@@ -1,4 +1,4 @@
-import { SelectionRange, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DocumentHighlight, DocumentLink, DocumentSymbol, FoldingRange, FormattingOptions, Hover, Location, Position, Range, SignatureHelp, SymbolInformation, TextEdit, WorkspaceEdit, Event, DefinitionLink, SignatureHelpContext } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DefinitionLink, DocumentHighlight, DocumentLink, DocumentSymbol, Event, FoldingRange, FormattingOptions, Hover, Location, Position, Range, SelectionRange, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 
@@ -129,7 +129,7 @@ export interface DefinitionProvider {
     document: TextDocument,
     position: Position,
     token: CancellationToken
-  ): ProviderResult<Definition>
+  ): ProviderResult<Definition | DefinitionLink[]>
 }
 
 /**
@@ -184,7 +184,7 @@ export interface TypeDefinitionProvider {
     document: TextDocument,
     position: Position,
     token: CancellationToken
-  ): ProviderResult<Definition>
+  ): ProviderResult<Definition | DefinitionLink[]>
 }
 
 /**
@@ -283,7 +283,7 @@ export interface ImplementationProvider {
     document: TextDocument,
     position: Position,
     token: CancellationToken
-  ): ProviderResult<Definition>
+  ): ProviderResult<Definition | DefinitionLink[]>
 }
 
 /**

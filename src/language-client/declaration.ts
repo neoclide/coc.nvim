@@ -4,7 +4,7 @@
  * ------------------------------------------------------------------------------------------ */
 'use strict'
 
-import { CancellationToken, ClientCapabilities, Declaration, DeclarationOptions, DeclarationRegistrationOptions, DeclarationRequest, Disposable, DocumentSelector, Position, ServerCapabilities } from 'vscode-languageserver-protocol'
+import { CancellationToken, ClientCapabilities, Declaration, DeclarationLink, DeclarationOptions, DeclarationRegistrationOptions, DeclarationRequest, Disposable, DocumentSelector, Position, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { DeclarationProvider, ProviderResult } from '../provider'
@@ -19,11 +19,11 @@ function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
 }
 
 export interface ProvideDeclarationSignature {
-  (this: void, document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Declaration>
+  (this: void, document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Declaration | DeclarationLink[]>
 }
 
 export interface DeclarationMiddleware {
-  provideDeclaration?: (this: void, document: TextDocument, position: Position, token: CancellationToken, next: ProvideDeclarationSignature) => ProviderResult<Declaration>
+  provideDeclaration?: (this: void, document: TextDocument, position: Position, token: CancellationToken, next: ProvideDeclarationSignature) => ProviderResult<Declaration | DeclarationLink[]>
 }
 
 export class DeclarationFeature extends TextDocumentFeature<boolean | DeclarationOptions, DeclarationRegistrationOptions, DeclarationProvider> {
@@ -48,7 +48,7 @@ export class DeclarationFeature extends TextDocumentFeature<boolean | Declaratio
 
   protected registerLanguageProvider(options: DeclarationRegistrationOptions): [Disposable, DeclarationProvider] {
     const provider: DeclarationProvider = {
-      provideDeclaration: (document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Declaration> => {
+      provideDeclaration: (document: TextDocument, position: Position, token: CancellationToken) => {
         const client = this._client
         const provideDeclaration: ProvideDeclarationSignature = (document, position, token) => client.sendRequest(DeclarationRequest.type, asTextDocumentPositionParams(document, position), token).then(
           res => res, error => {

@@ -2,7 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { CancellationToken, ClientCapabilities, Definition, Disposable, DocumentSelector, Position, ServerCapabilities, TypeDefinitionOptions, TypeDefinitionRegistrationOptions, TypeDefinitionRequest } from 'vscode-languageserver-protocol'
+import { CancellationToken, ClientCapabilities, Definition, DefinitionLink, Disposable, DocumentSelector, Position, ServerCapabilities, TypeDefinitionOptions, TypeDefinitionRegistrationOptions, TypeDefinitionRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { ProviderResult, TypeDefinitionProvider } from '../provider'
@@ -22,7 +22,7 @@ export interface ProvideTypeDefinitionSignature {
     document: TextDocument,
     position: Position,
     token: CancellationToken
-  ): ProviderResult<Definition>
+  ): ProviderResult<Definition | DefinitionLink[]>
 }
 
 export interface TypeDefinitionMiddleware {
@@ -32,7 +32,7 @@ export interface TypeDefinitionMiddleware {
     position: Position,
     token: CancellationToken,
     next: ProvideTypeDefinitionSignature
-  ) => ProviderResult<Definition>
+  ) => ProviderResult<Definition | DefinitionLink[]>
 }
 
 export class TypeDefinitionFeature extends TextDocumentFeature<boolean | TypeDefinitionOptions, TypeDefinitionRegistrationOptions, TypeDefinitionProvider> {
