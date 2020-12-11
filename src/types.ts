@@ -773,44 +773,6 @@ export interface PopupProps {
   transparent?: boolean
 }
 
-export interface TextItem {
-  text: string
-  props?: PopupProps
-}
-
-export interface PopupOptions {
-  line?: number | string
-  col?: number | string
-  pos?: 'topleft' | 'topright' | 'botleft' | 'botright' | 'center'
-  // move float window when content overlap when it's false(default)
-  fixed?: boolean
-  // no overlap of popupmenu-completion, not implemented
-  flip?: boolean
-  maxheight?: number
-  minheight?: number
-  maxwidth?: number
-  minwidth?: number
-  // When out of range the last buffer line will at the top of the window.
-  firstline?: number
-  // not implemented
-  hidden?: boolean
-  // only -1 and 0 are supported
-  tab?: number
-  title?: string
-  wrap?: boolean
-  drag?: boolean
-  highlight?: string
-  padding?: [number, number, number, number]
-  border?: [number, number, number, number]
-  borderhighlight?: [string, string, string, string]
-  borderchars?: string[]
-  zindex?: number
-  time?: number
-  moved?: string | [number, number]
-  filter?: string
-  callback?: string
-}
-
 export interface PopupChangeEvent {
   completed_item: VimCompleteItem
   height: number
@@ -1226,13 +1188,13 @@ export interface ISource {
   shortcut?: string
   priority?: number
   sourceType?: SourceType
+  optionalFns?: string[]
   triggerCharacters?: string[]
   // should only be used when trigger match.
   triggerOnly?: boolean
   // regex to detect trigger completetion, ignored when triggerCharacters exists.
   triggerPatterns?: RegExp[]
   disableSyntaxes?: string[]
-  duplicate?: boolean
   isSnippet?: boolean
   filetypes?: string[]
   filepath?: string
@@ -1294,12 +1256,10 @@ export interface ISource {
   shouldCommit?(item: VimCompleteItem, character: string): boolean
 }
 
+export type SourceConfig = Omit<ISource, 'shortcut' | 'priority' | 'triggerOnly' | 'triggerCharacters' | 'triggerPatterns' | 'enable' | 'filetypes' | 'disableSyntaxes'>
 // Config property of source
-export interface SourceConfig extends ISource {
-  filepath?: string
-  optionalFns?: string[]
-  shortcut?: string
-}
+// export interface SourceConfig extends ISource {
+// }
 
 /**
  * A diagnostics collection is a container that manages a set of

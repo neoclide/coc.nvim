@@ -13,7 +13,7 @@ export default class Source implements ISource {
   protected readonly nvim: Neovim
   private _disabled = false
   private defaults: any
-  constructor(option: Partial<SourceConfig>) {
+  constructor(option: SourceConfig) {
     this.nvim = workspace.nvim
     // readonly properties
     this.name = option.name
