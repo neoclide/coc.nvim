@@ -24022,7 +24022,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "23b52e23eb" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "721f227aa0" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -81117,7 +81117,7 @@ class DefinitionFeature extends TextDocumentFeature {
     fillClientCapabilities(capabilites) {
         let definitionSupport = ensure(ensure(capabilites, 'textDocument'), 'definition');
         definitionSupport.dynamicRegistration = true;
-        definitionSupport.linkSupport = true;
+        // definitionSupport.linkSupport = true
     }
     initialize(capabilities, documentSelector) {
         const options = this.getRegistrationOptions(documentSelector, capabilities.definitionProvider);
@@ -83390,7 +83390,7 @@ class DeclarationFeature extends client_1.TextDocumentFeature {
     fillClientCapabilities(capabilites) {
         let declarationSupport = ensure(ensure(capabilites, 'textDocument'), 'declaration');
         declarationSupport.dynamicRegistration = true;
-        declarationSupport.linkSupport = true;
+        // declarationSupport.linkSupport = true
     }
     initialize(capabilities, documentSelector) {
         const [id, options] = this.getRegistration(documentSelector, capabilities.declarationProvider);
@@ -83513,7 +83513,7 @@ class ImplementationFeature extends client_1.TextDocumentFeature {
     fillClientCapabilities(capabilites) {
         const implementationSupport = ensure(ensure(capabilites, 'textDocument'), 'implementation');
         implementationSupport.dynamicRegistration = true;
-        implementationSupport.linkSupport = true;
+        // implementationSupport.linkSupport = true
     }
     initialize(capabilities, documentSelector) {
         const [id, options] = this.getRegistration(documentSelector, capabilities.implementationProvider);
@@ -83621,7 +83621,7 @@ class TypeDefinitionFeature extends client_1.TextDocumentFeature {
     fillClientCapabilities(capabilites) {
         const typeDefinitionSupport = ensure(ensure(capabilites, 'textDocument'), 'typeDefinition');
         typeDefinitionSupport.dynamicRegistration = true;
-        typeDefinitionSupport.linkSupport = true;
+        // typeDefinitionSupport.linkSupport = true
     }
     initialize(capabilities, documentSelector) {
         const [id, options] = this.getRegistration(documentSelector, capabilities.typeDefinitionProvider);
