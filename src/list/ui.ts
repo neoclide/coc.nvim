@@ -410,9 +410,9 @@ export default class ListUI {
 
   public restoreWindow(): void {
     if (this.newTab) return
-    let { window, height } = this
-    if (window && height) {
-      this.nvim.call('coc#list#restore', [window.id, height], true)
+    let { winid, height } = this
+    if (winid && height) {
+      this.nvim.call('coc#list#restore', [winid, height], true)
     }
   }
 

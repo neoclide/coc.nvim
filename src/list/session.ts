@@ -504,10 +504,11 @@ export default class ListSession {
   private async doItemAction(items: ListItem[], action: ListAction): Promise<void> {
     let { noQuit } = this.listOptions
     let { nvim } = this
-    let persist = this.winid && (action.persist === true || action.name == 'preview' || noQuit)
+    let persistAction = action.persist === true || action.name == 'preview'
+    let persist = this.winid && (persistAction || noQuit)
     try {
       if (persist) {
-        if (action.name != 'preview' && !action.persist) {
+        if (!persistAction) {
           nvim.pauseNotification()
           nvim.call('coc#prompt#stop_prompt', ['list'], true)
           nvim.call('win_gotoid', [this.context.window.id], true)
