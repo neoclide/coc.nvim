@@ -133,7 +133,7 @@ export default class Plugin extends EventEmitter {
       let [fn, repeat] = keymap
       let res = await Promise.resolve(fn())
       if (repeat) await nvim.command(`silent! call repeat#set("\\<Plug>(coc-${key})", -1)`)
-      return res || defaultReturn
+      return res ?? defaultReturn
     })
     this.addAction('registExtensions', async (...folders: string[]) => {
       for (let folder of folders) {
