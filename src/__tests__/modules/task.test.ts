@@ -79,16 +79,35 @@ describe('task test', () => {
     task.dispose()
   })
 
+  it('should receive stdout lines as expected', async () => {
+    let file = await createTmpFile('echo 3\necho ""\necho 4')
+    let task = workspace.createTask('ENV')
+    let lines: string[] = []
+    task.onStdout(arr => {
+      lines.push(...arr)
+    })
+    await task.start({
+      cmd: '/bin/sh',
+      args: [file]
+    })
+    await helper.wait(300)
+    expect(lines).toEqual(['3', '', '4'])
+    task.dispose()
+  })
+
+
   it('should emit stderr event', async () => {
-    let file = await createTmpFile('console.error("error")')
+    let file = await createTmpFile('console.error("start\\n\\nend");')
     let fn = jest.fn()
     let task = workspace.createTask('error')
-    task.onStderr(lines => {
-      expect(lines).toEqual(['error'])
+    let lines: string[] = []
+    task.onStderr(arr => {
+      lines.push(...arr)
       fn()
     })
     await task.start({ cmd: 'node', args: [file] })
     await helper.wait(300)
+    expect(lines).toEqual(['start', '', 'end'])
     task.dispose()
     expect(fn).toBeCalled()
   })
