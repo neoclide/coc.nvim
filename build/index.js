@@ -24022,7 +24022,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "a3062aa8ad" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "a6a5dafcaa" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -24461,6 +24461,7 @@ const window_1 = tslib_1.__importDefault(__webpack_require__(374));
 const buffer_1 = __webpack_require__(383);
 const collection_1 = tslib_1.__importDefault(__webpack_require__(385));
 const util_2 = __webpack_require__(384);
+const object_1 = __webpack_require__(249);
 const logger = __webpack_require__(64)('diagnostic-manager');
 class DiagnosticManager {
     constructor() {
@@ -24469,6 +24470,7 @@ class DiagnosticManager {
         this.lastMessage = '';
         this.collections = [];
         this.disposables = [];
+        this.aleDiagnosticsMap = new Map();
     }
     init() {
         this.setConfiguration();
@@ -24582,11 +24584,7 @@ class DiagnosticManager {
         }
         buf = new buffer_1.DiagnosticBuffer(bufnr, doc.uri, this.config);
         this.buffers.set(bufnr, buf);
-        if (this.enabled) {
-            let diagnostics = this.getDiagnostics(buf.uri);
-            if (diagnostics.length)
-                buf.forceRefresh(diagnostics);
-        }
+        this.refreshBuffer(buf.uri, true);
         buf.onDidRefresh(() => {
             if (['never', 'jump'].includes(this.config.enableMessage)) {
                 return;
@@ -24704,7 +24702,9 @@ class DiagnosticManager {
                 }
                 return true;
             });
-            res.push(...items);
+            items.forEach(item => {
+                res.push(Object.assign({ collection: collection.name }, item));
+            });
         }
         res.sort((a, b) => {
             if (a.severity == b.severity) {
@@ -24986,6 +24986,7 @@ class DiagnosticManager {
         let buf = this.buffers.get(bufnr);
         if (!buf)
             return;
+        this.aleDiagnosticsMap.delete(buf.uri);
         buf.clear();
         buf.dispose();
         this.buffers.delete(bufnr);
@@ -24999,6 +25000,7 @@ class DiagnosticManager {
         }
     }
     dispose() {
+        this.aleDiagnosticsMap.clear();
         for (let buf of this.buffers.values()) {
             buf.clear();
             buf.dispose();
@@ -25085,8 +25087,7 @@ class DiagnosticManager {
         this.enabled = !enabled;
         for (let buf of this.buffers.values()) {
             if (this.enabled) {
-                let diagnostics = this.getDiagnostics(buf.uri);
-                buf.forceRefresh(diagnostics);
+                this.refreshBuffer(buf.uri, true);
             }
             else {
                 buf.clear();
@@ -25095,34 +25096,36 @@ class DiagnosticManager {
     }
     refreshBuffer(uri, force = false) {
         let buf = Array.from(this.buffers.values()).find(o => o.uri == uri);
-        if (!buf)
+        if (!buf || !this.enabled)
             return false;
         let { displayByAle, refreshOnInsertMode } = this.config;
         if (!refreshOnInsertMode && workspace_1.default.insertMode)
             return false;
+        let diagnostics = this.getDiagnostics(uri);
         if (!displayByAle) {
-            let diagnostics = this.getDiagnostics(uri);
-            if (this.enabled) {
-                if (force) {
-                    buf.forceRefresh(diagnostics);
-                }
-                else {
-                    buf.refresh(diagnostics);
-                }
-                return true;
+            if (force) {
+                buf.forceRefresh(diagnostics);
             }
+            else {
+                buf.refresh(diagnostics);
+            }
+            return true;
         }
         else {
-            let { nvim } = this;
-            nvim.pauseNotification();
-            for (let collection of this.collections) {
-                let diagnostics = collection.get(uri);
-                const { level } = this.config;
-                if (level) {
-                    diagnostics = diagnostics.filter(o => o.severity && o.severity <= level);
-                }
+            let exists = this.aleDiagnosticsMap.get(uri) || [];
+            if (object_1.equals(diagnostics, exists))
+                return false;
+            this.aleDiagnosticsMap.set(uri, diagnostics);
+            let map = new Map();
+            diagnostics.forEach(o => {
+                let exists = map.get(o.collection) || [];
+                exists.push(o);
+                map.set(o.collection, exists);
+            });
+            this.nvim.pauseNotification();
+            for (let [collection, diagnostics] of map.entries()) {
                 let aleItems = diagnostics.map(o => {
-                    let { range } = o;
+                    let range = o.range || vscode_languageserver_protocol_1.Range.create(0, 0, 1, 0);
                     return {
                         text: o.message,
                         code: o.code,
@@ -25133,9 +25136,9 @@ class DiagnosticManager {
                         type: util_2.getSeverityType(o.severity)
                     };
                 });
-                nvim.call('ale#other_source#ShowResults', [buf.bufnr, collection.name, aleItems], true);
+                this.nvim.call('ale#other_source#ShowResults', [buf.bufnr, collection, aleItems], true);
             }
-            nvim.resumeNotification(false, true).logError();
+            this.nvim.resumeNotification(false, true).logError();
         }
         return false;
     }
@@ -45831,6 +45834,7 @@ const debounce_1 = tslib_1.__importDefault(__webpack_require__(240));
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(292));
 const util_1 = __webpack_require__(384);
+const object_1 = __webpack_require__(249);
 const logger = __webpack_require__(64)('diagnostic-buffer');
 const signGroup = 'Coc';
 /**
@@ -45843,6 +45847,7 @@ class DiagnosticBuffer {
         this.uri = uri;
         this.config = config;
         this._onDidRefresh = new vscode_languageserver_protocol_1.Emitter();
+        this.diagnostics = [];
         this.onDidRefresh = this._onDidRefresh.event;
         this.refresh = debounce_1.default((diagnostics) => {
             this._refresh(diagnostics).logError();
@@ -45856,27 +45861,26 @@ class DiagnosticBuffer {
         this._refresh(diagnostics).logError();
     }
     async _refresh(diagnostics) {
+        if (object_1.equals(this.diagnostics, diagnostics))
+            return;
         let { refreshOnInsertMode } = this.config;
         let { nvim } = this;
-        let arr = await nvim.eval(`[coc#util#check_refresh(${this.bufnr}),mode(),bufnr("%"),line("."),getloclist(bufwinid(${this.bufnr}),{'title':1})]`);
+        let arr = await nvim.eval(`[coc#util#check_refresh(${this.bufnr}),mode(),line("."),getloclist(bufwinid(${this.bufnr}),{'title':1})]`);
         if (arr[0] == 0)
             return;
         let mode = arr[1];
         if (!refreshOnInsertMode && mode.startsWith('i') && diagnostics.length)
             return;
-        let bufnr = arr[2];
-        let lnum = arr[3];
+        this.diagnostics = diagnostics;
+        let lnum = arr[2];
         nvim.pauseNotification();
         this.setDiagnosticInfo(diagnostics);
         this.addSigns(diagnostics);
         this.addHighlight(diagnostics);
-        this.updateLocationList(arr[4], diagnostics);
-        if (this.bufnr == bufnr) {
-            this.showVirtualText(diagnostics, lnum);
-        }
-        if (workspace_1.default.isVim) {
+        this.updateLocationList(arr[3], diagnostics);
+        this.showVirtualText(diagnostics, lnum);
+        if (workspace_1.default.isVim)
             this.nvim.command('redraw', true);
-        }
         let res = await this.nvim.resumeNotification();
         if (Array.isArray(res) && res[1])
             throw new Error(res[1]);
@@ -45936,10 +45940,9 @@ class DiagnosticBuffer {
         this.nvim.call('coc#util#do_autocmd', ['CocDiagnosticChange'], true);
     }
     showVirtualText(diagnostics, lnum) {
-        let { bufnr, config } = this;
+        let { buffer, config } = this;
         if (!config.virtualText)
             return;
-        let buffer = this.nvim.createBuffer(bufnr);
         let srcId = this.config.virtualTextSrcId;
         let prefix = this.config.virtualTextPrefix;
         if (this.config.virtualTextCurrentLineOnly) {
@@ -45967,7 +45970,6 @@ class DiagnosticBuffer {
         if (diagnostics.length == 0)
             return;
         // can't add highlight for old vim
-        let { nvim, bufnr } = this;
         // TODO support DiagnosticTag, fade unnecessary ranges.
         const highlights = new Map();
         for (let diagnostic of diagnostics) {
@@ -45976,16 +45978,17 @@ class DiagnosticBuffer {
             ranges.push(range);
             highlights.set(severity, ranges);
         }
-        let buffer = nvim.createBuffer(bufnr);
         for (let severity of [vscode_languageserver_protocol_1.DiagnosticSeverity.Hint, vscode_languageserver_protocol_1.DiagnosticSeverity.Information, vscode_languageserver_protocol_1.DiagnosticSeverity.Warning, vscode_languageserver_protocol_1.DiagnosticSeverity.Error]) {
             let ranges = highlights.get(severity) || [];
             let hlGroup = util_1.getNameFromSeverity(severity) + 'Highlight';
-            buffer.highlightRanges('diagnostic', hlGroup, ranges);
+            this.buffer.highlightRanges('diagnostic', hlGroup, ranges);
         }
     }
     clearHighlight() {
-        let buffer = this.nvim.createBuffer(this.bufnr);
-        buffer.clearNamespace('diagnostic');
+        this.buffer.clearNamespace('diagnostic');
+    }
+    get buffer() {
+        return this.nvim.createBuffer(this.bufnr);
     }
     /**
      * Used on buffer unload
@@ -45996,20 +45999,21 @@ class DiagnosticBuffer {
     clear() {
         this.refresh.clear();
         let { nvim } = this;
+        this.diagnostics = [];
         nvim.pauseNotification();
         this.clearHighlight();
         if (this.config.enableSign) {
             this.clearSigns();
         }
         if (this.config.virtualText) {
-            let buffer = nvim.createBuffer(this.bufnr);
-            buffer.clearNamespace(this.config.virtualTextSrcId);
+            this.buffer.clearNamespace(this.config.virtualTextSrcId);
         }
         this.setDiagnosticInfo([]);
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
         nvim.resumeNotification(false, true);
     }
     dispose() {
+        this.diagnostics = [];
         this.refresh.clear();
         this._onDidRefresh.dispose();
     }
@@ -82801,7 +82805,6 @@ class ProgressPart {
         this.disposables = [];
         this._cancelled = false;
         this.statusBarItem = window_1.default.createStatusBarItem(99, { progress: true });
-        this.disposables.push(this.statusBarItem);
         this.disposables.push(client.onProgress(vscode_languageserver_protocol_1.WorkDoneProgress.type, this.token, value => {
             switch (value.kind) {
                 case 'begin':
@@ -82848,8 +82851,9 @@ class ProgressPart {
         const statusBarItem = this.statusBarItem;
         statusBarItem.text = `${this.title} ${message || 'finished'}`;
         setTimeout(() => {
-            this.cancel();
-        }, 200);
+            statusBarItem.dispose();
+        }, 300);
+        this.cancel();
     }
 }
 exports.ProgressPart = ProgressPart;
@@ -88802,11 +88806,13 @@ class ListSession {
         this.history.add();
         let { winid } = this.ui;
         this.ui.reset();
-        await nvim.call('coc#list#hide', [this.window.id, this.savedHeight, winid]);
-        if (workspace_1.default.isVim) {
-            nvim.command('redraw', true);
-            // Needed for tabe action, don't know why.
-            await util_1.wait(10);
+        if (this.window && winid) {
+            await nvim.call('coc#list#hide', [this.window.id, this.savedHeight, winid]);
+            if (workspace_1.default.isVim) {
+                nvim.command('redraw', true);
+                // Needed for tabe action, don't know why.
+                await util_1.wait(10);
+            }
         }
         nvim.call('coc#prompt#stop_prompt', ['list'], true);
     }
