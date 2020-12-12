@@ -51,12 +51,13 @@ export class ListManager implements Disposable {
     }, 100), null, this.disposables)
     let timer: NodeJS.Timer
     events.on('WinEnter', winid => {
-      if (timer) clearTimeout(timer)
-      timer = setTimeout(() => {
-        let session = this.getSessionByWinid(winid)
-        if (session) this.prompt.start(session.listOptions)
-      }, 100)
+      let session = this.getSessionByWinid(winid)
+      if (session) this.prompt.start(session.listOptions)
     }, null, this.disposables)
+    events.on('WinLeave', winid => {
+      let session = this.getSessionByWinid(winid)
+      if (session) this.prompt.cancel()
+    })
     this.disposables.push(Disposable.create(() => {
       if (timer) clearTimeout(timer)
     }))
