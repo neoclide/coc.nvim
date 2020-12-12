@@ -3608,6 +3608,7 @@ export abstract class BaseLanguageClient {
       const token: ProgressToken = UUID.generateUuid()
       initParams.workDoneToken = token
       const part = new ProgressPart(connection, token)
+      part.begin({ title: `initializing ${this.id}`, kind: 'begin' })
       return this.doInitialize(connection, initParams).then((result) => {
         part.done()
         return result
