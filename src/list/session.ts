@@ -296,11 +296,13 @@ export default class ListSession {
     this.history.add()
     let { winid } = this.ui
     this.ui.reset()
-    await nvim.call('coc#list#hide', [this.window.id, this.savedHeight, winid])
-    if (workspace.isVim) {
-      nvim.command('redraw', true)
-      // Needed for tabe action, don't know why.
-      await wait(10)
+    if (this.window && winid) {
+      await nvim.call('coc#list#hide', [this.window.id, this.savedHeight, winid])
+      if (workspace.isVim) {
+        nvim.command('redraw', true)
+        // Needed for tabe action, don't know why.
+        await wait(10)
+      }
     }
     nvim.call('coc#prompt#stop_prompt', ['list'], true)
   }
