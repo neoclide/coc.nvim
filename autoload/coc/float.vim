@@ -521,7 +521,6 @@ function! coc#float#create_prompt_win(title, default, opts) abort
           \ })
     call term_setapi(bufnr, "Coc")
   endif
-  call coc#float#close_auto_hide_wins(a:winid)
   let res = coc#float#create_float_win(0, bufnr, {
         \ 'relative': 'cursor',
         \ 'row': lineIdx == 0 ? 1 : 0,
@@ -948,7 +947,7 @@ function! coc#float#prompt_confirm(title, cb) abort
     let width = coc#helper#min(maxWidth, strdisplaywidth(text))
     let maxHeight = &lines - &cmdheight - 1
     let height = coc#helper#min(maxHeight, float2nr(ceil(str2float(string(strdisplaywidth(text)))/width)))
-    call coc#float#close_auto_hide_wins(a:winid)
+    call coc#float#close_auto_hide_wins()
     let arr =  coc#float#create_float_win(0, s:prompt_win_bufnr, {
           \ 'col': &columns/2 - width/2 - 1,
           \ 'row': maxHeight/2 - height/2 - 1,
@@ -1183,7 +1182,7 @@ function! coc#float#create_dialog(lines, config) abort
     let opts['cursorline'] = 1
   endif
   let bufnr = coc#float#create_buf(0, a:lines)
-  call coc#float#close_auto_hide_wins(a:winid)
+  call coc#float#close_auto_hide_wins()
   let res =  coc#float#create_float_win(0, bufnr, opts)
   if empty(res)
     return
@@ -1257,7 +1256,7 @@ function! coc#float#create_menu(lines, config) abort
   endif
   let dimension = coc#float#get_config_cursor(a:lines, opts)
   call extend(opts, dimension)
-  call coc#float#close_auto_hide_wins(a:winid)
+  call coc#float#close_auto_hide_wins()
   let res = coc#float#create_float_win(0, s:prompt_win_bufnr, opts)
   if empty(res)
     return
