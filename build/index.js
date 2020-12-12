@@ -23707,7 +23707,7 @@ class Plugin extends events_1.EventEmitter {
             let res = await Promise.resolve(fn());
             if (repeat)
                 await nvim.command(`silent! call repeat#set("\\<Plug>(coc-${key})", -1)`);
-            return res || defaultReturn;
+            return res !== null && res !== void 0 ? res : defaultReturn;
         });
         this.addAction('registExtensions', async (...folders) => {
             for (let folder of folders) {
@@ -24022,7 +24022,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "a6a5dafcaa" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "f2afd214ba" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
