@@ -23,7 +23,6 @@ export class ProgressPart {
 
   public constructor(private client: ProgressContext, private token: ProgressToken, done?: (part: ProgressPart) => void) {
     this.statusBarItem = window.createStatusBarItem(99, { progress: true })
-    this.disposables.push(this.statusBarItem)
     this.disposables.push(client.onProgress(WorkDoneProgress.type, this.token, value => {
       switch (value.kind) {
         case 'begin':
@@ -68,7 +67,8 @@ export class ProgressPart {
     const statusBarItem = this.statusBarItem
     statusBarItem.text = `${this.title} ${message || 'finished'}`
     setTimeout(() => {
-      this.cancel()
-    }, 200)
+      statusBarItem.dispose()
+    }, 300)
+    this.cancel()
   }
 }
