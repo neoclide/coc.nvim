@@ -1,5 +1,5 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, MarkupKind, Position, Range, SelectionRange, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
@@ -12,19 +12,20 @@ import { TextDocumentContentProvider } from '../provider'
 import services from '../services'
 import snippetManager from '../snippets/manager'
 import { CodeAction, Documentation, StatusBarItem, TagDefinition } from '../types'
-import { disposeAll, wait } from '../util'
+import { disposeAll } from '../util'
 import { getSymbolKind } from '../util/convert'
 import { equals } from '../util/object'
 import { emptyRange, getChangedFromEdits, positionInRange, rangeInRange } from '../util/position'
 import { isWord } from '../util/string'
-import workspace from '../workspace'
 import window from '../window'
+import workspace from '../workspace'
 import CodeLensManager from './codelens'
 import Colors from './colors'
 import DocumentHighlighter from './documentHighlight'
 import Refactor from './refactor'
 import Search from './search'
 import Signature from './signature'
+import { addDocument, addDoucmentSymbol, getPreviousContainer, SymbolInfo, isDocumentSymbols, isMarkdown, sortDocumentSymbols, sortSymbolInformations, synchronizeDocument } from './helper'
 const logger = require('../util/logger')('Handler')
 const pairs: Map<string, string> = new Map([
   ['<', '>'],
@@ -34,18 +35,6 @@ const pairs: Map<string, string> = new Map([
   ['(', ')'],
 ])
 
-interface SymbolInfo {
-  filepath?: string
-  lnum: number
-  col: number
-  text: string
-  kind: string
-  level?: number
-  containerName?: string
-  range: Range
-  selectionRange?: Range
-}
-
 interface CommandItem {
   id: string
   title: string
@@ -54,6 +43,7 @@ interface CommandItem {
 interface Preferences {
   formatOnType: boolean
   formatOnTypeFiletypes: string[]
+  formatOnSaveFiletypes: string[]
   formatOnInsertLeave: boolean
   hoverTarget: string
   previewAutoClose: boolean
@@ -89,11 +79,9 @@ export default class Handler {
     })
     this.hoverFactory = new FloatFactory(nvim)
     this.signature = new Signature(nvim)
-    this.disposables.push(this.hoverFactory)
-    workspace.onWillSaveUntil(event => {
+    workspace.onWillSaveTextDocument(event => {
       let { languageId } = event.document
-      let config = workspace.getConfiguration('coc.preferences', event.document.uri)
-      let filetypes = config.get<string[]>('formatOnSaveFiletypes', [])
+      let filetypes = this.preferences.formatOnSaveFiletypes
       if (filetypes.includes(languageId) || filetypes.some(item => item === '*')) {
         let willSaveWaitUntil = async (): Promise<TextEdit[]> => {
           let options = await workspace.getFormatOptions(event.document.uri)
@@ -107,7 +95,7 @@ export default class Handler {
         }
         event.waitUntil(willSaveWaitUntil())
       }
-    }, null, 'languageserver')
+    }, null, this.disposables)
     events.on('BufUnload', async bufnr => {
       let refactor = this.refactorMap.get(bufnr)
       if (refactor) {
@@ -1145,10 +1133,11 @@ export default class Handler {
     this.labels = workspace.getConfiguration('suggest').get<any>('completionItemKindLabels', {})
     this.preferences = {
       hoverTarget,
+      bracketEnterImprove: config.get<boolean>('bracketEnterImprove', true),
       formatOnType: config.get<boolean>('formatOnType', false),
+      formatOnSaveFiletypes: config.get<string[]>('formatOnSaveFiletypes', []),
       formatOnTypeFiletypes: config.get('formatOnTypeFiletypes', []),
       formatOnInsertLeave: config.get<boolean>('formatOnInsertLeave', false),
-      bracketEnterImprove: config.get<boolean>('bracketEnterImprove', true),
       previewMaxHeight: config.get<number>('previewMaxHeight', 12),
       previewAutoClose: config.get<boolean>('previewAutoClose', false),
       floatActions: config.get<boolean>('floatActions', true),
@@ -1172,96 +1161,10 @@ export default class Handler {
   }
 
   public dispose(): void {
+    this.hoverFactory.dispose()
+    this.signature.dispose()
     this.colors.dispose()
+    this.documentHighlighter.dispose()
     disposeAll(this.disposables)
-  }
-}
-
-function getPreviousContainer(containerName: string, symbols: SymbolInfo[]): SymbolInfo {
-  if (!symbols.length) return null
-  let i = symbols.length - 1
-  let last = symbols[i]
-  if (last.text == containerName) {
-    return last
-  }
-  while (i >= 0) {
-    let sym = symbols[i]
-    if (sym.text == containerName) {
-      return sym
-    }
-    i--
-  }
-  return null
-}
-
-function sortDocumentSymbols(a: DocumentSymbol, b: DocumentSymbol): number {
-  let ra = a.selectionRange
-  let rb = b.selectionRange
-  if (ra.start.line < rb.start.line) {
-    return -1
-  }
-  if (ra.start.line > rb.start.line) {
-    return 1
-  }
-  return ra.start.character - rb.start.character
-}
-
-function addDoucmentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level: number): void {
-  let { name, selectionRange, kind, children, range } = sym
-  let { start } = selectionRange
-  res.push({
-    col: start.character + 1,
-    lnum: start.line + 1,
-    text: name,
-    level,
-    kind: getSymbolKind(kind),
-    range,
-    selectionRange
-  })
-  if (children && children.length) {
-    children.sort(sortDocumentSymbols)
-    for (let sym of children) {
-      addDoucmentSymbol(res, sym, level + 1)
-    }
-  }
-}
-
-function sortSymbolInformations(a: SymbolInformation, b: SymbolInformation): number {
-  let sa = a.location.range.start
-  let sb = b.location.range.start
-  let d = sa.line - sb.line
-  return d == 0 ? sa.character - sb.character : d
-
-}
-
-function isDocumentSymbol(a: DocumentSymbol | SymbolInformation): a is DocumentSymbol {
-  return a && !a.hasOwnProperty('location')
-}
-
-function isDocumentSymbols(a: DocumentSymbol[] | SymbolInformation[]): a is DocumentSymbol[] {
-  return isDocumentSymbol(a[0])
-}
-
-function isMarkdown(content: MarkupContent | string | undefined): boolean {
-  if (MarkupContent.is(content) && content.kind == MarkupKind.Markdown) {
-    return true
-  }
-  return false
-}
-
-function addDocument(docs: Documentation[], text: string, filetype: string, isPreview = false): void {
-  let content = text.trim()
-  if (!content.length) return
-  if (isPreview && filetype !== 'markdown') {
-    content = '``` ' + filetype + '\n' + content + '\n```'
-  }
-  docs.push({ content, filetype })
-}
-
-async function synchronizeDocument(doc: Document): Promise<void> {
-  let { changedtick } = doc
-  await doc.patchChange()
-  if (changedtick != doc.changedtick) {
-    await wait(50)
   }
 }
