@@ -21,6 +21,10 @@ export default class FormatManager extends Manager<DocumentFormattingEditProvide
     })
   }
 
+  public handles(doc: TextDocument): boolean {
+    return this.getProvider(doc) != null
+  }
+
   public async provideDocumentFormattingEdits(
     document: TextDocument,
     options: FormattingOptions,

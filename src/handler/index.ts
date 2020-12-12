@@ -83,7 +83,11 @@ export default class Handler {
       let { languageId } = event.document
       let filetypes = this.preferences.formatOnSaveFiletypes
       if (filetypes.includes(languageId) || filetypes.some(item => item === '*')) {
-        let willSaveWaitUntil = async (): Promise<TextEdit[]> => {
+        let willSaveWaitUntil = async (): Promise<TextEdit[] | undefined> => {
+          if (!languages.hasFormatProvider(event.document)) {
+            logger.warn(`Format provider not found for ${event.document.uri}`)
+            return undefined
+          }
           let options = await workspace.getFormatOptions(event.document.uri)
           let tokenSource = new CancellationTokenSource()
           let timer = setTimeout(() => {
@@ -1162,7 +1166,6 @@ export default class Handler {
 
   public dispose(): void {
     this.hoverFactory.dispose()
-    this.signature.dispose()
     this.colors.dispose()
     this.documentHighlighter.dispose()
     disposeAll(this.disposables)

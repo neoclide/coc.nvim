@@ -33,6 +33,9 @@
     "globals": {
       "__TEST__": true
     },
+    "projects": [
+      "<rootDir>"
+    ],
     "watchman": false,
     "clearMocks": true,
     "globalSetup": "./jest.js",

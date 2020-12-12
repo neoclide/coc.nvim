@@ -1374,7 +1374,7 @@ export interface TextDocumentWillSaveEvent {
    *
    * @param thenable A thenable that resolves to [pre-save-edits](#TextEdit).
    */
-  waitUntil?(thenable: Thenable<TextEdit[] | any>): void
+  waitUntil(thenable: Thenable<TextEdit[] | any>): void
 }
 
 export interface Thenable<T> {
@@ -1547,7 +1547,6 @@ export interface IWorkspace {
   onDidSaveTextDocument: Event<TextDocument>
   onDidChangeConfiguration: Event<ConfigurationChangeEvent>
   onDidWorkspaceInitialized: Event<void>
-  onWillSaveUntil(callback: (event: TextDocumentWillSaveEvent) => void, thisArg: any, clientId: string): Disposable
   findUp(filename: string | string[]): Promise<string | null>
   getDocument(uri: number | string): Document
   getFormatOptions(uri?: string): Promise<FormattingOptions>

@@ -11,8 +11,8 @@ import { TextDocumentContentProvider } from '../../provider'
 import { ConfigurationTarget } from '../../types'
 import { disposeAll } from '../../util'
 import { readFile } from '../../util/fs'
-import workspace from '../../workspace'
 import window from '../../window'
+import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
@@ -884,7 +884,7 @@ describe('workspace events', () => {
     let doc = await helper.createDocument()
     let filepath = URI.parse(doc.uri).fsPath
     let fn = jest.fn()
-    let disposable = workspace.onWillSaveUntil(event => {
+    let disposable = workspace.onWillSaveTextDocument(event => {
       let promise = new Promise<TextEdit[]>(resolve => {
         fn()
         let edit: TextEdit = {
@@ -894,7 +894,7 @@ describe('workspace events', () => {
         resolve([edit])
       })
       event.waitUntil(promise)
-    }, null, 'test')
+    })
     await helper.wait(100)
     await nvim.setLine('bar')
     await helper.wait(30)
@@ -904,6 +904,71 @@ describe('workspace events', () => {
     expect(content.startsWith('foobar')).toBe(true)
     disposable.dispose()
     expect(fn).toBeCalledTimes(1)
+    if (fs.existsSync(filepath)) {
+      fs.unlinkSync(filepath)
+    }
+  })
+
+  it('should not work for async waitUntil', async () => {
+    let doc = await helper.createDocument()
+    let filepath = URI.parse(doc.uri).fsPath
+    let disposable = workspace.onWillSaveTextDocument(event => {
+      setTimeout(() => {
+        let edit: TextEdit = {
+          newText: 'foo',
+          range: Range.create(0, 0, 0, 0)
+        }
+        event.waitUntil(Promise.resolve([edit]))
+      }, 30)
+    })
+    await nvim.setLine('bar')
+    await helper.wait(30)
+    await nvim.command('wa')
+    let content = doc.getDocumentContent()
+    expect(content).toMatch('bar')
+    disposable.dispose()
+    if (fs.existsSync(filepath)) {
+      fs.unlinkSync(filepath)
+    }
+  })
+
+  it('should only use first returned textEdits', async () => {
+    let doc = await helper.createDocument()
+    let filepath = URI.parse(doc.uri).fsPath
+    let disposables: Disposable[] = []
+    workspace.onWillSaveTextDocument(event => {
+      event.waitUntil(Promise.resolve(undefined))
+    }, null, disposables)
+    workspace.onWillSaveTextDocument(event => {
+      let promise = new Promise<TextEdit[]>(resolve => {
+        setTimeout(() => {
+          let edit: TextEdit = {
+            newText: 'foo',
+            range: Range.create(0, 0, 0, 0)
+          }
+          resolve([edit])
+        }, 10)
+      })
+      event.waitUntil(promise)
+    }, null, disposables)
+    workspace.onWillSaveTextDocument(event => {
+      let promise = new Promise<TextEdit[]>(resolve => {
+        setTimeout(() => {
+          let edit: TextEdit = {
+            newText: 'bar',
+            range: Range.create(0, 0, 0, 0)
+          }
+          resolve([edit])
+        }, 30)
+      })
+      event.waitUntil(promise)
+    }, null, disposables)
+    await nvim.setLine('bar')
+    await helper.wait(30)
+    await nvim.command('wa')
+    let content = doc.getDocumentContent()
+    expect(content).toMatch('foo')
+    disposeAll(disposables)
     if (fs.existsSync(filepath)) {
       fs.unlinkSync(filepath)
     }

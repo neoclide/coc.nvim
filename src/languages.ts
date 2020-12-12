@@ -139,6 +139,10 @@ class Languages {
     }
   }
 
+  public hasFormatProvider(doc: TextDocument): boolean {
+    return this.formatManager.handles(doc)
+  }
+
   public registerOnTypeFormattingEditProvider(
     selector: DocumentSelector,
     provider: OnTypeFormattingEditProvider,

@@ -31,7 +31,7 @@ describe('converter', () => {
   })
 
   it('should asWillSaveTextDocumentParams', () => {
-    let res = cv.asWillSaveTextDocumentParams({ document: createDocument(), reason: TextDocumentSaveReason.Manual })
+    let res = cv.asWillSaveTextDocumentParams({ document: createDocument(), reason: TextDocumentSaveReason.Manual, waitUntil: () => { } })
     expect(res.textDocument).toBeDefined()
     expect(res.reason).toBeDefined()
   })
