@@ -3752,7 +3752,11 @@ export abstract class BaseLanguageClient {
       this._providers = undefined
     }
     for (let feature of this._features.values()) {
-      feature.dispose()
+      if (typeof feature.dispose === 'function') {
+        feature.dispose()
+      } else {
+        logger.error(`Feature can't be disposed`, feature)
+      }
     }
     if (this._syncedDocuments) {
       this._syncedDocuments.clear()
