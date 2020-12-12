@@ -1,17 +1,17 @@
 import { Neovim } from '@chemzqm/neovim'
-import path from 'path'
 import fs from 'fs'
+import path from 'path'
 import readline from 'readline'
-import { CancellationToken, Position, Disposable, Location, Range } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Location, Position, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { ProviderResult } from '../provider'
-import { IList, ListAction, ListContext, ListItem, ListTask, LocationWithLine, WorkspaceConfiguration, ListArgument, PreiewOptions } from '../types'
+import { IList, ListAction, ListArgument, ListContext, ListItem, ListTask, LocationWithLine, PreiewOptions, WorkspaceConfiguration } from '../types'
 import { disposeAll } from '../util'
-import { readFileLines } from '../util/fs'
+import { readFile } from '../util/fs'
 import { comparePosition, emptyRange } from '../util/position'
 import workspace from '../workspace'
-import ListConfiguration from './configuration'
 import CommandTask, { CommandTaskOption } from './commandTask'
+import ListConfiguration from './configuration'
 const logger = require('../util/logger')('list-basic')
 
 interface ActionOptions {
@@ -218,10 +218,11 @@ export default abstract class BasicList implements IList, Disposable {
     let u = URI.parse(uri)
     let lines: string[] = []
     if (doc) {
-      lines = doc.getLines(0, range.end.line + 60)
+      lines = doc.getLines()
     } else if (u.scheme == 'file') {
       try {
-        lines = await readFileLines(u.fsPath, 0, range.end.line + 60)
+        let content = await readFile(u.fsPath, 'utf8')
+        lines = content.split(/\r?\n/)
       } catch (e) {
         [`Error on read file ${u.fsPath}`, e.message]
       }
