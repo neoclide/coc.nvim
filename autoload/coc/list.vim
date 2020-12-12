@@ -140,14 +140,15 @@ function! coc#list#scroll_preview(dir) abort
 endfunction
 
 function! coc#list#restore(winid, height)
-  let res = win_gotoid(a:winid)
-  if res == 0 | return | endif
-  if winnr('$') == 1
-    return
-  endif
-  execute 'resize '.a:height
-  if s:is_vim
-    redraw
+  if has('nvim')
+    if nvim_win_is_valid(a:winid)
+      call nvim_win_set_height(a:winid, a:height)
+    endif
+  else
+    if exists('win_execute')
+      call win_execute(a:winid, 'noa resize '.a:height, 'silent!')
+      redraw
+    endif
   endif
 endfunction
 
