@@ -243,6 +243,7 @@ export interface TaskOptions {
   args?: string[]
   cwd?: string
   pty?: boolean
+  env?: { [key: string]: string }
   detach?: boolean
 }
 

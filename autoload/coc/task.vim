@@ -3,7 +3,7 @@
 " Author: Qiming Zhao <chemzqm@gmail.com>
 " Licence: MIT licence
 " Version: 0.1
-" Last Modified:  April 08, 2019
+" Last Modified:  Dec 12, 2020
 " ============================================================================
 
 let s:is_vim = !has('nvim')
@@ -15,6 +15,7 @@ function! coc#task#start(id, opts)
   endif
   let cmd = [a:opts['cmd']] + get(a:opts, 'args', [])
   let cwd = get(a:opts, 'cwd', getcwd())
+  let env = get(a:opts, 'env', {})
   " cmd args cwd pty
   if s:is_vim
     let options = {
@@ -24,6 +25,7 @@ function! coc#task#start(id, opts)
           \ 'err_cb': {channel, message -> s:on_stderr(a:id, [message])},
           \ 'out_cb': {channel, message -> s:on_stdout(a:id, [message])},
           \ 'exit_cb': {channel, code -> s:on_exit(a:id, code)},
+          \ 'env': env,
           \}
     if has("patch-8.1.350")
       let options['noblock'] = 1
@@ -46,10 +48,22 @@ function! coc#task#start(id, opts)
           \ 'on_exit': {channel, code -> s:on_exit(a:id, code)},
           \ 'detach': get(a:opts, 'detach', 0),
           \}
+    let original = {}
+    if !empty(env) && exists('*setenv') && exists('*getenv')
+      for key in keys(env)
+        let original[key] = getenv(key)
+        call setenv(key, env[key])
+      endfor
+    endif
     if get(a:opts, 'pty', 0)
       let options['pty'] = 1
     endif
     let chan_id = jobstart(cmd, options)
+    if !empty(original)
+      for key in keys(original)
+        call setenv(key, original[key])
+      endfor
+    endif
     if chan_id <= 0
       echohl Error | echom 'Failed to start '.a:id.' task' | echohl None
       return v:false
