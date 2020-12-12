@@ -1,10 +1,11 @@
-import { NeovimClient as Neovim } from '@chemzqm/neovim'
+import { Neovim, Buffer } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { Diagnostic, DiagnosticSeverity, Emitter, Event, Range } from 'vscode-languageserver-protocol'
 import workspace from '../workspace'
 import { DiagnosticConfig } from './manager'
 import { getNameFromSeverity, getLocationListItem } from './util'
 import { LocationListItem } from '..'
+import { equals } from '../util/object'
 const logger = require('../util/logger')('diagnostic-buffer')
 const signGroup = 'Coc'
 
@@ -14,6 +15,7 @@ const signGroup = 'Coc'
  */
 export class DiagnosticBuffer {
   private readonly _onDidRefresh = new Emitter<void>()
+  private diagnostics: ReadonlyArray<Diagnostic> = []
   public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
   /**
    * Refresh diagnostics with debounce
@@ -38,25 +40,22 @@ export class DiagnosticBuffer {
   }
 
   private async _refresh(diagnostics: ReadonlyArray<Diagnostic>): Promise<void> {
+    if (equals(this.diagnostics, diagnostics)) return
     let { refreshOnInsertMode } = this.config
     let { nvim } = this
-    let arr = await nvim.eval(`[coc#util#check_refresh(${this.bufnr}),mode(),bufnr("%"),line("."),getloclist(bufwinid(${this.bufnr}),{'title':1})]`) as [number, string, number, number, { title: string }]
+    let arr = await nvim.eval(`[coc#util#check_refresh(${this.bufnr}),mode(),line("."),getloclist(bufwinid(${this.bufnr}),{'title':1})]`) as [number, string, number, { title: string }]
     if (arr[0] == 0) return
     let mode = arr[1]
     if (!refreshOnInsertMode && mode.startsWith('i') && diagnostics.length) return
-    let bufnr = arr[2]
-    let lnum = arr[3]
+    this.diagnostics = diagnostics
+    let lnum = arr[2]
     nvim.pauseNotification()
     this.setDiagnosticInfo(diagnostics)
     this.addSigns(diagnostics)
     this.addHighlight(diagnostics)
-    this.updateLocationList(arr[4], diagnostics)
-    if (this.bufnr == bufnr) {
-      this.showVirtualText(diagnostics, lnum)
-    }
-    if (workspace.isVim) {
-      this.nvim.command('redraw', true)
-    }
+    this.updateLocationList(arr[3], diagnostics)
+    this.showVirtualText(diagnostics, lnum)
+    if (workspace.isVim) this.nvim.command('redraw', true)
     let res = await this.nvim.resumeNotification()
     if (Array.isArray(res) && res[1]) throw new Error(res[1])
     this._onDidRefresh.fire(void 0)
@@ -117,9 +116,8 @@ export class DiagnosticBuffer {
   }
 
   public showVirtualText(diagnostics: ReadonlyArray<Diagnostic>, lnum: number): void {
-    let { bufnr, config } = this
+    let { buffer, config } = this
     if (!config.virtualText) return
-    let buffer = this.nvim.createBuffer(bufnr)
     let srcId = this.config.virtualTextSrcId
     let prefix = this.config.virtualTextPrefix
     if (this.config.virtualTextCurrentLineOnly) {
@@ -146,7 +144,6 @@ export class DiagnosticBuffer {
     this.clearHighlight()
     if (diagnostics.length == 0) return
     // can't add highlight for old vim
-    let { nvim, bufnr } = this
     // TODO support DiagnosticTag, fade unnecessary ranges.
     const highlights: Map<DiagnosticSeverity, Range[]> = new Map()
     for (let diagnostic of diagnostics) {
@@ -155,17 +152,19 @@ export class DiagnosticBuffer {
       ranges.push(range)
       highlights.set(severity, ranges)
     }
-    let buffer = nvim.createBuffer(bufnr)
     for (let severity of [DiagnosticSeverity.Hint, DiagnosticSeverity.Information, DiagnosticSeverity.Warning, DiagnosticSeverity.Error]) {
       let ranges = highlights.get(severity) || []
       let hlGroup = getNameFromSeverity(severity) + 'Highlight'
-      buffer.highlightRanges('diagnostic', hlGroup, ranges)
+      this.buffer.highlightRanges('diagnostic', hlGroup, ranges)
     }
   }
 
   private clearHighlight(): void {
-    let buffer = this.nvim.createBuffer(this.bufnr)
-    buffer.clearNamespace('diagnostic')
+    this.buffer.clearNamespace('diagnostic')
+  }
+
+  public get buffer(): Buffer {
+    return this.nvim.createBuffer(this.bufnr)
   }
 
   /**
@@ -177,14 +176,14 @@ export class DiagnosticBuffer {
   public clear(): void {
     this.refresh.clear()
     let { nvim } = this
+    this.diagnostics = []
     nvim.pauseNotification()
     this.clearHighlight()
     if (this.config.enableSign) {
       this.clearSigns()
     }
     if (this.config.virtualText) {
-      let buffer = nvim.createBuffer(this.bufnr)
-      buffer.clearNamespace(this.config.virtualTextSrcId)
+      this.buffer.clearNamespace(this.config.virtualTextSrcId)
     }
     this.setDiagnosticInfo([])
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -192,6 +191,7 @@ export class DiagnosticBuffer {
   }
 
   public dispose(): void {
+    this.diagnostics = []
     this.refresh.clear()
     this._onDidRefresh.dispose()
   }

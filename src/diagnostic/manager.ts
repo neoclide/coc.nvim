@@ -15,6 +15,7 @@ import window from '../window'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
 import { getSeverityName, getSeverityType, severityLevel, getLocationListItem } from './util'
+import { equals } from '../util/object'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
@@ -57,6 +58,7 @@ export class DiagnosticManager implements Disposable {
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
   private timer: NodeJS.Timer
+  private aleDiagnosticsMap: Map<string, ReadonlyArray<Diagnostic>> = new Map()
 
   public init(): void {
     this.setConfiguration()
@@ -165,10 +167,7 @@ export class DiagnosticManager implements Disposable {
     }
     buf = new DiagnosticBuffer(bufnr, doc.uri, this.config)
     this.buffers.set(bufnr, buf)
-    if (this.enabled) {
-      let diagnostics = this.getDiagnostics(buf.uri)
-      if (diagnostics.length) buf.forceRefresh(diagnostics)
-    }
+    this.refreshBuffer(buf.uri, true)
     buf.onDidRefresh(() => {
       if (['never', 'jump'].includes(this.config.enableMessage)) {
         return
@@ -265,14 +264,13 @@ export class DiagnosticManager implements Disposable {
   /**
    * Get readonly diagnostics for a buffer
    */
-  public getDiagnostics(uri: string): Diagnostic[] {
+  public getDiagnostics(uri: string): (Diagnostic & { collection: string })[] {
     let collections = this.getCollections(uri)
     let { level, showUnused, showDeprecated } = this.config
-    let res: Diagnostic[] = []
+    let res: (Diagnostic & { collection: string })[] = []
     for (let collection of collections) {
       let items = collection.get(uri)
       if (!items) continue
-
       items = items.filter(d => {
         if (level && level < DiagnosticSeverity.Hint && d.severity && d.severity > level) {
           return false
@@ -285,8 +283,9 @@ export class DiagnosticManager implements Disposable {
         }
         return true
       })
-
-      res.push(...items)
+      items.forEach(item => {
+        res.push(Object.assign({ collection: collection.name }, item))
+      })
     }
     res.sort((a, b) => {
       if (a.severity == b.severity) {
@@ -553,6 +552,7 @@ export class DiagnosticManager implements Disposable {
   private disposeBuffer(bufnr: number): void {
     let buf = this.buffers.get(bufnr)
     if (!buf) return
+    this.aleDiagnosticsMap.delete(buf.uri)
     buf.clear()
     buf.dispose()
     this.buffers.delete(bufnr)
@@ -568,6 +568,7 @@ export class DiagnosticManager implements Disposable {
   }
 
   public dispose(): void {
+    this.aleDiagnosticsMap.clear()
     for (let buf of this.buffers.values()) {
       buf.clear()
       buf.dispose()
@@ -659,8 +660,7 @@ export class DiagnosticManager implements Disposable {
     this.enabled = !enabled
     for (let buf of this.buffers.values()) {
       if (this.enabled) {
-        let diagnostics = this.getDiagnostics(buf.uri)
-        buf.forceRefresh(diagnostics)
+        this.refreshBuffer(buf.uri, true)
       } else {
         buf.clear()
       }
@@ -669,30 +669,31 @@ export class DiagnosticManager implements Disposable {
 
   public refreshBuffer(uri: string, force = false): boolean {
     let buf = Array.from(this.buffers.values()).find(o => o.uri == uri)
-    if (!buf) return false
+    if (!buf || !this.enabled) return false
     let { displayByAle, refreshOnInsertMode } = this.config
     if (!refreshOnInsertMode && workspace.insertMode) return false
+    let diagnostics = this.getDiagnostics(uri)
     if (!displayByAle) {
-      let diagnostics = this.getDiagnostics(uri)
-      if (this.enabled) {
-        if (force) {
-          buf.forceRefresh(diagnostics)
-        } else {
-          buf.refresh(diagnostics)
-        }
-        return true
+      if (force) {
+        buf.forceRefresh(diagnostics)
+      } else {
+        buf.refresh(diagnostics)
       }
+      return true
     } else {
-      let { nvim } = this
-      nvim.pauseNotification()
-      for (let collection of this.collections) {
-        let diagnostics = collection.get(uri)
-        const { level } = this.config
-        if (level) {
-          diagnostics = diagnostics.filter(o => o.severity && o.severity <= level)
-        }
+      let exists = this.aleDiagnosticsMap.get(uri) || []
+      if (equals(diagnostics, exists)) return false
+      this.aleDiagnosticsMap.set(uri, diagnostics)
+      let map: Map<string, Diagnostic[]> = new Map()
+      diagnostics.forEach(o => {
+        let exists = map.get(o.collection) || []
+        exists.push(o)
+        map.set(o.collection, exists)
+      })
+      this.nvim.pauseNotification()
+      for (let [collection, diagnostics] of map.entries()) {
         let aleItems = diagnostics.map(o => {
-          let { range } = o
+          let range = o.range || Range.create(0, 0, 1, 0)
           return {
             text: o.message,
             code: o.code,
@@ -703,9 +704,9 @@ export class DiagnosticManager implements Disposable {
             type: getSeverityType(o.severity)
           }
         })
-        nvim.call('ale#other_source#ShowResults', [buf.bufnr, collection.name, aleItems], true)
+        this.nvim.call('ale#other_source#ShowResults', [buf.bufnr, collection, aleItems], true)
       }
-      nvim.resumeNotification(false, true).logError()
+      this.nvim.resumeNotification(false, true).logError()
     }
     return false
   }
