@@ -16,6 +16,7 @@ import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
 import { getSeverityName, getSeverityType, severityLevel, getLocationListItem } from './util'
 import { equals } from '../util/object'
+import { distinct } from '../util/array'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
@@ -51,14 +52,14 @@ export interface DiagnosticConfig {
 
 export class DiagnosticManager implements Disposable {
   public config: DiagnosticConfig
-  public enabled = true
+  private enabled = true
   private readonly buffers: Map<number, DiagnosticBuffer> = new Map()
   private lastMessage = ''
   private floatFactory: FloatFactory
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
   private timer: NodeJS.Timer
-  private aleDiagnosticsMap: Map<string, ReadonlyArray<Diagnostic>> = new Map()
+  private aleDiagnosticsMap: Map<string, ReadonlyArray<Diagnostic & { collection: string }>> = new Map()
 
   public init(): void {
     this.setConfiguration()
@@ -476,7 +477,7 @@ export class DiagnosticManager implements Disposable {
    */
   public async echoMessage(truncate = false): Promise<void> {
     const config = this.config
-    if (!this.enabled) return
+    if (!this.enabled || config.displayByAle) return
     if (this.timer) clearTimeout(this.timer)
     let useFloat = config.messageTarget == 'float'
     let [bufnr, cursor, filetype, mode, disabled, isFloat] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),&filetype,mode(),get(b:,"coc_diagnostic_disable",0),get(w:,"float",0)]') as [number, [number, number], string, string, number, number]
@@ -628,9 +629,6 @@ export class DiagnosticManager implements Disposable {
       format: config.get<string>('format', '[%source%code] [%severity] %message'),
     }
     this.enabled = config.get<boolean>('enable', true)
-    if (this.config.displayByAle) {
-      this.enabled = false
-    }
     this.defineSigns()
   }
 
@@ -656,13 +654,26 @@ export class DiagnosticManager implements Disposable {
   }
 
   public toggleDiagnostic(): void {
-    let { enabled } = this
+    let { enabled, aleDiagnosticsMap, nvim } = this
     this.enabled = !enabled
     for (let buf of this.buffers.values()) {
       if (this.enabled) {
         this.refreshBuffer(buf.uri, true)
       } else {
-        buf.clear()
+        if (this.config.displayByAle) {
+          nvim.pauseNotification()
+          let diagnostics = aleDiagnosticsMap.get(buf.uri)
+          if (diagnostics && diagnostics.length) {
+            let collectionNames = distinct(diagnostics.map(o => o.collection))
+            for (let name of collectionNames) {
+              this.nvim.call('ale#other_source#ShowResults', [buf.bufnr, name, []], true)
+            }
+          }
+          // eslint-disable-next-line @typescript-eslint/no-floating-promises
+          nvim.resumeNotification(false, true)
+        } else {
+          buf.clear()
+        }
       }
     }
   }
@@ -706,7 +717,8 @@ export class DiagnosticManager implements Disposable {
         })
         this.nvim.call('ale#other_source#ShowResults', [buf.bufnr, collection, aleItems], true)
       }
-      this.nvim.resumeNotification(false, true).logError()
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      this.nvim.resumeNotification(false, true)
     }
     return false
   }
