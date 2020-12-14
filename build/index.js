@@ -24023,7 +24023,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "464bb069e2" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "437fdaadab" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -24463,6 +24463,7 @@ const buffer_1 = __webpack_require__(383);
 const collection_1 = tslib_1.__importDefault(__webpack_require__(385));
 const util_2 = __webpack_require__(384);
 const object_1 = __webpack_require__(249);
+const array_1 = __webpack_require__(363);
 const logger = __webpack_require__(64)('diagnostic-manager');
 class DiagnosticManager {
     constructor() {
@@ -24902,7 +24903,7 @@ class DiagnosticManager {
      */
     async echoMessage(truncate = false) {
         const config = this.config;
-        if (!this.enabled)
+        if (!this.enabled || config.displayByAle)
             return;
         if (this.timer)
             clearTimeout(this.timer);
@@ -25060,9 +25061,6 @@ class DiagnosticManager {
             format: config.get('format', '[%source%code] [%severity] %message'),
         };
         this.enabled = config.get('enable', true);
-        if (this.config.displayByAle) {
-            this.enabled = false;
-        }
         this.defineSigns();
     }
     getCollectionByName(name) {
@@ -25084,14 +25082,28 @@ class DiagnosticManager {
         buf.clear();
     }
     toggleDiagnostic() {
-        let { enabled } = this;
+        let { enabled, aleDiagnosticsMap, nvim } = this;
         this.enabled = !enabled;
         for (let buf of this.buffers.values()) {
             if (this.enabled) {
                 this.refreshBuffer(buf.uri, true);
             }
             else {
-                buf.clear();
+                if (this.config.displayByAle) {
+                    nvim.pauseNotification();
+                    let diagnostics = aleDiagnosticsMap.get(buf.uri);
+                    if (diagnostics && diagnostics.length) {
+                        let collectionNames = array_1.distinct(diagnostics.map(o => o.collection));
+                        for (let name of collectionNames) {
+                            this.nvim.call('ale#other_source#ShowResults', [buf.bufnr, name, []], true);
+                        }
+                    }
+                    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+                    nvim.resumeNotification(false, true);
+                }
+                else {
+                    buf.clear();
+                }
             }
         }
     }
@@ -25139,7 +25151,8 @@ class DiagnosticManager {
                 });
                 this.nvim.call('ale#other_source#ShowResults', [buf.bufnr, collection, aleItems], true);
             }
-            this.nvim.resumeNotification(false, true).logError();
+            // eslint-disable-next-line @typescript-eslint/no-floating-promises
+            this.nvim.resumeNotification(false, true);
         }
         return false;
     }
@@ -33245,10 +33258,7 @@ augroup end`;
         let doc = this.buffers.get(bufnr);
         if (!doc || !doc.attached)
             return;
-        let { dirty } = doc;
-        await doc.patchChange();
-        if (dirty)
-            await index_1.wait(30);
+        await doc.checkDocument();
         let firing = true;
         let thenables = [];
         let event = {
@@ -37496,7 +37506,7 @@ exports.default = Configurations;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ServiceStat = exports.DiagnosticKind = exports.ConfigurationTarget = exports.MessageLevel = exports.SourceType = exports.ExtensionType = exports.PatternType = void 0;
+exports.ServiceStat = exports.ConfigurationTarget = exports.MessageLevel = exports.SourceType = exports.ExtensionType = exports.PatternType = void 0;
 var PatternType;
 (function (PatternType) {
     PatternType[PatternType["Buffer"] = 0] = "Buffer";
@@ -37528,12 +37538,6 @@ var ConfigurationTarget;
     ConfigurationTarget[ConfigurationTarget["User"] = 1] = "User";
     ConfigurationTarget[ConfigurationTarget["Workspace"] = 2] = "Workspace";
 })(ConfigurationTarget = exports.ConfigurationTarget || (exports.ConfigurationTarget = {}));
-var DiagnosticKind;
-(function (DiagnosticKind) {
-    DiagnosticKind[DiagnosticKind["Syntax"] = 0] = "Syntax";
-    DiagnosticKind[DiagnosticKind["Semantic"] = 1] = "Semantic";
-    DiagnosticKind[DiagnosticKind["Suggestion"] = 2] = "Suggestion";
-})(DiagnosticKind = exports.DiagnosticKind || (exports.DiagnosticKind = {}));
 var ServiceStat;
 (function (ServiceStat) {
     ServiceStat[ServiceStat["Initial"] = 0] = "Initial";
@@ -41659,7 +41663,9 @@ class Document {
         this._changedtick = await buffer.changedtick;
         this.lines = await buffer.lines;
         this.fireContentChanges.clear();
-        this._fireContentChanges();
+        let changed = this._fireContentChanges();
+        if (changed)
+            await index_1.wait(30);
     }
     /**
      * Check if document changed after last synchronize
@@ -41696,10 +41702,12 @@ class Document {
                 contentChanges: changes
             });
             this._words = this.chars.matchKeywords(this.textDocument.getText());
+            return true;
         }
         catch (e) {
             logger.error(e.message);
         }
+        return false;
     }
     /**
      * Buffer number
@@ -77100,7 +77108,7 @@ module.exports = require("module");
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.executable = exports.isRunning = exports.runCommand = exports.wait = exports.concurrent = exports.disposeAll = exports.BasicList = exports.listManager = exports.extensions = exports.FileSystemWatcher = exports.Document = exports.diagnosticManager = exports.languages = exports.sources = exports.commands = exports.services = exports.events = exports.snippetManager = exports.window = exports.workspace = exports.ansiparse = exports.download = exports.fetch = exports.FloatFactory = exports.Emitter = exports.Event = exports.Disposable = exports.Uri = exports.Watchman = exports.Mru = exports.Highligher = exports.Window = exports.Buffer = exports.Neovim = void 0;
+exports.executable = exports.isRunning = exports.runCommand = exports.wait = exports.concurrent = exports.disposeAll = exports.BasicList = exports.listManager = exports.extensions = exports.FileSystemWatcher = exports.Document = exports.diagnosticManager = exports.languages = exports.sources = exports.commands = exports.services = exports.events = exports.snippetManager = exports.window = exports.workspace = exports.ansiparse = exports.download = exports.fetch = exports.FloatFactory = exports.Emitter = exports.Event = exports.Disposable = exports.Uri = exports.Watchman = exports.Mru = exports.Highligher = exports.Window = exports.Buffer = exports.NotificationType0 = exports.NotificationType = exports.RequestType0 = exports.RequestType = exports.ProgressType = exports.Neovim = void 0;
 const tslib_1 = __webpack_require__(65);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
 exports.commands = commands_1.default;
@@ -77152,8 +77160,14 @@ Object.defineProperty(exports, "Buffer", { enumerable: true, get: function () { 
 Object.defineProperty(exports, "Window", { enumerable: true, get: function () { return neovim_1.Window; } });
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
 Object.defineProperty(exports, "Disposable", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.Disposable; } });
+Object.defineProperty(exports, "RequestType", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.RequestType; } });
+Object.defineProperty(exports, "RequestType0", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.RequestType0; } });
+Object.defineProperty(exports, "NotificationType", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.NotificationType; } });
+Object.defineProperty(exports, "NotificationType0", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.NotificationType0; } });
 Object.defineProperty(exports, "Event", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.Event; } });
 Object.defineProperty(exports, "Emitter", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.Emitter; } });
+const vscode_jsonrpc_1 = __webpack_require__(212);
+Object.defineProperty(exports, "ProgressType", { enumerable: true, get: function () { return vscode_jsonrpc_1.ProgressType; } });
 tslib_1.__exportStar(__webpack_require__(342), exports);
 tslib_1.__exportStar(__webpack_require__(591), exports);
 tslib_1.__exportStar(__webpack_require__(666), exports);
@@ -94260,29 +94274,21 @@ const languages_1 = tslib_1.__importDefault(__webpack_require__(566));
 const manager_2 = tslib_1.__importDefault(__webpack_require__(607));
 const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(254));
 const services_1 = tslib_1.__importDefault(__webpack_require__(590));
-const manager_3 = tslib_1.__importDefault(__webpack_require__(386));
 const util_1 = __webpack_require__(238);
 const convert_1 = __webpack_require__(662);
 const object_1 = __webpack_require__(249);
 const position_1 = __webpack_require__(291);
-const string_1 = __webpack_require__(289);
 const window_1 = tslib_1.__importDefault(__webpack_require__(374));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(292));
 const codelens_1 = tslib_1.__importDefault(__webpack_require__(683));
 const colors_1 = tslib_1.__importDefault(__webpack_require__(684));
 const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(687));
+const helper_1 = __webpack_require__(685);
 const refactor_1 = tslib_1.__importDefault(__webpack_require__(688));
 const search_1 = tslib_1.__importDefault(__webpack_require__(689));
 const signature_1 = tslib_1.__importDefault(__webpack_require__(690));
-const helper_1 = __webpack_require__(685);
+const format_1 = tslib_1.__importDefault(__webpack_require__(691));
 const logger = __webpack_require__(64)('Handler');
-const pairs = new Map([
-    ['<', '>'],
-    ['>', '<'],
-    ['{', '}'],
-    ['[', ']'],
-    ['(', ')'],
-]);
 class Handler {
     constructor(nvim) {
         this.nvim = nvim;
@@ -94300,27 +94306,7 @@ class Handler {
         });
         this.hoverFactory = new floatFactory_1.default(nvim);
         this.signature = new signature_1.default(nvim);
-        workspace_1.default.onWillSaveTextDocument(event => {
-            let { languageId } = event.document;
-            let filetypes = this.preferences.formatOnSaveFiletypes;
-            if (filetypes.includes(languageId) || filetypes.some(item => item === '*')) {
-                let willSaveWaitUntil = async () => {
-                    if (!languages_1.default.hasFormatProvider(event.document)) {
-                        logger.warn(`Format provider not found for ${event.document.uri}`);
-                        return undefined;
-                    }
-                    let options = await workspace_1.default.getFormatOptions(event.document.uri);
-                    let tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
-                    let timer = setTimeout(() => {
-                        tokenSource.cancel();
-                    }, 1000);
-                    let textEdits = await languages_1.default.provideDocumentFormattingEdits(event.document, options, tokenSource.token);
-                    clearTimeout(timer);
-                    return textEdits;
-                };
-                event.waitUntil(willSaveWaitUntil());
-            }
-        }, null, this.disposables);
+        this.format = new format_1.default(nvim);
         events_1.default.on('BufUnload', async (bufnr) => {
             let refactor = this.refactorMap.get(bufnr);
             if (refactor) {
@@ -94332,72 +94318,6 @@ class Handler {
             if (this.requestTokenSource) {
                 this.requestTokenSource.cancel();
             }
-        }, null, this.disposables);
-        events_1.default.on('Enter', async (bufnr) => {
-            let { bracketEnterImprove } = this.preferences;
-            await this.tryFormatOnType('\n', bufnr);
-            if (bracketEnterImprove) {
-                let line = await nvim.call('line', '.') - 1;
-                let doc = workspace_1.default.getDocument(bufnr);
-                if (!doc)
-                    return;
-                await doc.checkDocument();
-                let pre = doc.getline(line - 1);
-                let curr = doc.getline(line);
-                let prevChar = pre[pre.length - 1];
-                if (prevChar && pairs.has(prevChar)) {
-                    let nextChar = curr.trim()[0];
-                    if (nextChar && pairs.get(prevChar) == nextChar) {
-                        let edits = [];
-                        let opts = await workspace_1.default.getFormatOptions(doc.uri);
-                        let space = opts.insertSpaces ? ' '.repeat(opts.tabSize) : '\t';
-                        let preIndent = pre.match(/^\s*/)[0];
-                        let currIndent = curr.match(/^\s*/)[0];
-                        let newText = '\n' + preIndent + space;
-                        let pos = vscode_languageserver_protocol_1.Position.create(line - 1, pre.length);
-                        // make sure indent of current line
-                        if (preIndent != currIndent) {
-                            let newText = doc.filetype == 'vim' ? '  \\ ' + preIndent : preIndent;
-                            edits.push({ range: vscode_languageserver_protocol_1.Range.create(vscode_languageserver_protocol_1.Position.create(line, 0), vscode_languageserver_protocol_1.Position.create(line, currIndent.length)), newText });
-                        }
-                        else if (doc.filetype == 'vim') {
-                            edits.push({ range: vscode_languageserver_protocol_1.Range.create(line, currIndent.length, line, currIndent.length), newText: '  \\ ' });
-                        }
-                        if (doc.filetype == 'vim') {
-                            newText = newText + '\\ ';
-                        }
-                        edits.push({ range: vscode_languageserver_protocol_1.Range.create(pos, pos), newText });
-                        await doc.applyEdits(edits);
-                        await window_1.default.moveTo(vscode_languageserver_protocol_1.Position.create(line, newText.length - 1));
-                    }
-                }
-            }
-        }, null, this.disposables);
-        let changedTs;
-        let lastInsert;
-        events_1.default.on('InsertCharPre', async () => {
-            lastInsert = Date.now();
-        }, null, this.disposables);
-        events_1.default.on('TextChangedI', async (bufnr, info) => {
-            changedTs = Date.now();
-            if (!lastInsert || changedTs - lastInsert > 300)
-                return;
-            lastInsert = null;
-            let doc = workspace_1.default.getDocument(bufnr);
-            if (!doc || doc.isCommandLine || !doc.attached)
-                return;
-            let pre = info.pre[info.pre.length - 1];
-            if (!pre)
-                return;
-            if (this.preferences.formatOnType && !string_1.isWord(pre)) {
-                await this.tryFormatOnType(pre, bufnr);
-            }
-        }, null, this.disposables);
-        events_1.default.on('InsertLeave', async (bufnr) => {
-            let { formatOnInsertLeave, formatOnType } = this.preferences;
-            if (!formatOnInsertLeave || !formatOnType)
-                return;
-            await this.tryFormatOnType('\n', bufnr, true);
         }, null, this.disposables);
         if (this.preferences.currentFunctionSymbolAutoUpdate) {
             events_1.default.on('CursorHold', () => {
@@ -94786,47 +94706,10 @@ class Handler {
         }
     }
     async documentFormatting() {
-        let { doc } = await this.getCurrentState();
-        if (doc == null)
-            return false;
-        await helper_1.synchronizeDocument(doc);
-        let options = await workspace_1.default.getFormatOptions(doc.uri);
-        let textEdits = await this.withRequestToken('format', token => {
-            return languages_1.default.provideDocumentFormattingEdits(doc.textDocument, options, token);
-        });
-        if (textEdits && textEdits.length > 0) {
-            await doc.applyEdits(textEdits);
-            return true;
-        }
-        return false;
+        return await this.format.documentFormat();
     }
     async documentRangeFormatting(mode) {
-        let { doc } = await this.getCurrentState();
-        if (doc == null)
-            return -1;
-        await helper_1.synchronizeDocument(doc);
-        let range;
-        if (mode) {
-            range = await workspace_1.default.getSelectedRange(mode, doc);
-            if (!range)
-                return -1;
-        }
-        else {
-            let [lnum, count, mode] = await this.nvim.eval("[v:lnum,v:count,mode()]");
-            // we can't handle
-            if (count == 0 || mode == 'i' || mode == 'R')
-                return -1;
-            range = vscode_languageserver_protocol_1.Range.create(lnum - 1, 0, lnum - 1 + count, 0);
-        }
-        let options = await workspace_1.default.getFormatOptions(doc.uri);
-        let textEdits = await this.withRequestToken('format', token => {
-            return languages_1.default.provideDocumentRangeFormattingEdits(doc.textDocument, range, options, token);
-        });
-        if (textEdits && textEdits.length > 0) {
-            await doc.applyEdits(textEdits);
-            return 0;
-        }
-        return -1;
+        return await this.format.documentRangeFormat(mode);
     }
     async getTagList() {
         let { doc, position } = await this.getCurrentState();
@@ -95118,60 +95001,6 @@ class Handler {
         if (selectRange)
             await workspace_1.default.selectRange(selectRange);
     }
-    async tryFormatOnType(ch, bufnr, insertLeave = false) {
-        if (!ch || string_1.isWord(ch) || !this.preferences.formatOnType)
-            return;
-        if (manager_3.default.getSession(bufnr) != null)
-            return;
-        let doc = workspace_1.default.getDocument(bufnr);
-        if (!doc || !doc.attached)
-            return;
-        const filetypes = this.preferences.formatOnTypeFiletypes;
-        if (filetypes.length && !filetypes.includes(doc.filetype)) {
-            // Only check formatOnTypeFiletypes when set, avoid breaking change
-            return;
-        }
-        if (!languages_1.default.hasOnTypeProvider(ch, doc.textDocument))
-            return;
-        let position = await window_1.default.getCursorPosition();
-        let origLine = doc.getline(position.line);
-        if (insertLeave && /^\s*$/.test(origLine)) {
-            return;
-        }
-        let pos = insertLeave ? { line: position.line, character: origLine.length } : position;
-        let { changedtick } = doc;
-        await helper_1.synchronizeDocument(doc);
-        if (doc.changedtick != changedtick)
-            return;
-        let tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
-        let disposable = doc.onDocumentChange(() => {
-            clearTimeout(timer);
-            disposable.dispose();
-            tokenSource.cancel();
-        });
-        let timer = setTimeout(() => {
-            disposable.dispose();
-            tokenSource.cancel();
-        }, 2000);
-        let edits;
-        try {
-            edits = await languages_1.default.provideDocumentOnTypeEdits(ch, doc.textDocument, pos, tokenSource.token);
-        }
-        catch (e) {
-            logger.error(`Error on format: ${e.message}`, e.stack);
-        }
-        if (!edits || !edits.length)
-            return;
-        if (tokenSource.token.isCancellationRequested)
-            return;
-        clearTimeout(timer);
-        disposable.dispose();
-        let changed = position_1.getChangedFromEdits(position, edits);
-        await doc.applyEdits(edits);
-        let to = changed ? vscode_languageserver_protocol_1.Position.create(position.line + changed.line, position.character + changed.character) : null;
-        if (to)
-            await window_1.default.moveTo(to);
-    }
     async showSignatureHelp() {
         let { doc, position } = await this.getCurrentState();
         if (!doc)
@@ -95423,11 +95252,6 @@ class Handler {
         this.labels = workspace_1.default.getConfiguration('suggest').get('completionItemKindLabels', {});
         this.preferences = {
             hoverTarget,
-            bracketEnterImprove: config.get('bracketEnterImprove', true),
-            formatOnType: config.get('formatOnType', false),
-            formatOnSaveFiletypes: config.get('formatOnSaveFiletypes', []),
-            formatOnTypeFiletypes: config.get('formatOnTypeFiletypes', []),
-            formatOnInsertLeave: config.get('formatOnInsertLeave', false),
             previewMaxHeight: config.get('previewMaxHeight', 12),
             previewAutoClose: config.get('previewAutoClose', false),
             floatActions: config.get('floatActions', true),
@@ -95447,6 +95271,7 @@ class Handler {
     dispose() {
         this.hoverFactory.dispose();
         this.colors.dispose();
+        this.format.dispose();
         this.documentHighlighter.dispose();
         util_1.disposeAll(this.disposables);
     }
@@ -97496,6 +97321,271 @@ function isMarkdown(content) {
     return false;
 }
 //# sourceMappingURL=signature.js.map
+
+/***/ }),
+/* 691 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(65);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(292));
+const window_1 = tslib_1.__importDefault(__webpack_require__(374));
+const events_1 = tslib_1.__importDefault(__webpack_require__(210));
+const languages_1 = tslib_1.__importDefault(__webpack_require__(566));
+const util_1 = __webpack_require__(238);
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(386));
+const helper_1 = __webpack_require__(685);
+const string_1 = __webpack_require__(289);
+const position_1 = __webpack_require__(291);
+const logger = __webpack_require__(64)('handler-format');
+const pairs = new Map([
+    ['<', '>'],
+    ['>', '<'],
+    ['{', '}'],
+    ['[', ']'],
+    ['(', ')'],
+]);
+class FormatHandler {
+    constructor(nvim) {
+        this.nvim = nvim;
+        this.disposables = [];
+        this.requestStatusItem = window_1.default.createStatusBarItem(0, { progress: true });
+        this.loadPreferences();
+        workspace_1.default.onDidChangeConfiguration(this.loadPreferences, this, this.disposables);
+        workspace_1.default.onWillSaveTextDocument(event => {
+            let { languageId } = event.document;
+            let filetypes = this.preferences.formatOnSaveFiletypes;
+            if (filetypes.includes(languageId) || filetypes.some(item => item === '*')) {
+                let willSaveWaitUntil = async () => {
+                    if (!languages_1.default.hasFormatProvider(event.document)) {
+                        logger.warn(`Format provider not found for ${event.document.uri}`);
+                        return undefined;
+                    }
+                    let options = await workspace_1.default.getFormatOptions(event.document.uri);
+                    let tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
+                    let timer = setTimeout(() => {
+                        tokenSource.cancel();
+                    }, 1000);
+                    let textEdits = await languages_1.default.provideDocumentFormattingEdits(event.document, options, tokenSource.token);
+                    clearTimeout(timer);
+                    return textEdits;
+                };
+                event.waitUntil(willSaveWaitUntil());
+            }
+        }, null, this.disposables);
+        events_1.default.on(['CursorMoved', 'CursorMovedI', 'InsertEnter', 'TextChangedI', 'TextChangedP', 'TextChanged'], () => {
+            if (this.requestTokenSource) {
+                this.requestTokenSource.cancel();
+                this.requestTokenSource = null;
+            }
+        }, null, this.disposables);
+        events_1.default.on('Enter', async (bufnr) => {
+            let { bracketEnterImprove } = this.preferences;
+            await this.tryFormatOnType('\n', bufnr);
+            if (bracketEnterImprove) {
+                let line = await nvim.call('line', '.') - 1;
+                let doc = workspace_1.default.getDocument(bufnr);
+                if (!doc)
+                    return;
+                let pre = doc.getline(line - 1);
+                let curr = doc.getline(line);
+                let prevChar = pre[pre.length - 1];
+                if (prevChar && pairs.has(prevChar)) {
+                    let nextChar = curr.trim()[0];
+                    if (nextChar && pairs.get(prevChar) == nextChar) {
+                        let edits = [];
+                        let opts = await workspace_1.default.getFormatOptions(doc.uri);
+                        let space = opts.insertSpaces ? ' '.repeat(opts.tabSize) : '\t';
+                        let preIndent = pre.match(/^\s*/)[0];
+                        let currIndent = curr.match(/^\s*/)[0];
+                        let newText = '\n' + preIndent + space;
+                        let pos = vscode_languageserver_protocol_1.Position.create(line - 1, pre.length);
+                        // make sure indent of current line
+                        if (preIndent != currIndent) {
+                            let newText = doc.filetype == 'vim' ? '  \\ ' + preIndent : preIndent;
+                            edits.push({ range: vscode_languageserver_protocol_1.Range.create(vscode_languageserver_protocol_1.Position.create(line, 0), vscode_languageserver_protocol_1.Position.create(line, currIndent.length)), newText });
+                        }
+                        else if (doc.filetype == 'vim') {
+                            edits.push({ range: vscode_languageserver_protocol_1.Range.create(line, currIndent.length, line, currIndent.length), newText: '  \\ ' });
+                        }
+                        if (doc.filetype == 'vim') {
+                            newText = newText + '\\ ';
+                        }
+                        edits.push({ range: vscode_languageserver_protocol_1.Range.create(pos, pos), newText });
+                        await doc.applyEdits(edits);
+                        await window_1.default.moveTo(vscode_languageserver_protocol_1.Position.create(line, newText.length - 1));
+                    }
+                }
+            }
+        }, null, this.disposables);
+        let changedTs;
+        let lastInsert;
+        events_1.default.on('InsertCharPre', async () => {
+            lastInsert = Date.now();
+        }, null, this.disposables);
+        events_1.default.on('TextChangedI', async (bufnr, info) => {
+            changedTs = Date.now();
+            if (!lastInsert || changedTs - lastInsert > 300)
+                return;
+            lastInsert = null;
+            let doc = workspace_1.default.getDocument(bufnr);
+            if (!doc || doc.isCommandLine || !doc.attached)
+                return;
+            let pre = info.pre[info.pre.length - 1];
+            if (!pre)
+                return;
+            if (this.preferences.formatOnType && !string_1.isWord(pre)) {
+                await this.tryFormatOnType(pre, bufnr);
+            }
+        }, null, this.disposables);
+        let leaveBufnr;
+        events_1.default.on('InsertLeave', async (bufnr) => {
+            let { formatOnInsertLeave, formatOnType } = this.preferences;
+            if (!formatOnInsertLeave || !formatOnType)
+                return;
+            leaveBufnr = bufnr;
+        }, null, this.disposables);
+        events_1.default.on('CursorMoved', async (bufnr) => {
+            if (leaveBufnr && leaveBufnr == bufnr) {
+                leaveBufnr = undefined;
+                await this.tryFormatOnType('\n', bufnr, true);
+            }
+        });
+    }
+    loadPreferences(e) {
+        if (!e || e.affectsConfiguration('coc.preferences')) {
+            let config = workspace_1.default.getConfiguration('coc.preferences');
+            this.preferences = {
+                formatOnType: config.get('formatOnType', false),
+                formatOnSaveFiletypes: config.get('formatOnSaveFiletypes', []),
+                formatOnTypeFiletypes: config.get('formatOnTypeFiletypes', []),
+                formatOnInsertLeave: config.get('formatOnInsertLeave', false),
+                bracketEnterImprove: config.get('bracketEnterImprove', true),
+            };
+        }
+    }
+    async withRequestToken(name, fn) {
+        if (this.requestTokenSource) {
+            this.requestTokenSource.cancel();
+            this.requestTokenSource.dispose();
+        }
+        let statusItem = this.requestStatusItem;
+        this.requestTokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
+        let { token } = this.requestTokenSource;
+        token.onCancellationRequested(() => {
+            statusItem.text = `${name} request canceled`;
+            statusItem.isProgress = false;
+            statusItem.hide();
+        });
+        statusItem.isProgress = true;
+        statusItem.text = `requesting ${name}`;
+        statusItem.show();
+        let res;
+        try {
+            res = await Promise.resolve(fn(token));
+        }
+        catch (e) {
+            window_1.default.showMessage(e.message, 'error');
+            logger.error(`Error on ${name}`, e);
+        }
+        if (this.requestTokenSource) {
+            this.requestTokenSource.dispose();
+            this.requestTokenSource = undefined;
+        }
+        if (token.isCancellationRequested)
+            return null;
+        statusItem.hide();
+        if (res == null) {
+            logger.warn(`${name} provider not found!`);
+        }
+        return res;
+    }
+    async tryFormatOnType(ch, bufnr, insertLeave = false) {
+        if (!ch || string_1.isWord(ch) || !this.preferences.formatOnType)
+            return;
+        if (manager_1.default.getSession(bufnr) != null)
+            return;
+        let doc = workspace_1.default.getDocument(bufnr);
+        if (!doc || !doc.attached || doc.isCommandLine)
+            return;
+        const filetypes = this.preferences.formatOnTypeFiletypes;
+        if (filetypes.length && !filetypes.includes(doc.filetype)) {
+            // Only check formatOnTypeFiletypes when set, avoid breaking change
+            return;
+        }
+        if (!languages_1.default.hasOnTypeProvider(ch, doc.textDocument))
+            return;
+        let position;
+        let edits = await this.withRequestToken('onTypeFormat ', async (token) => {
+            position = await window_1.default.getCursorPosition();
+            let origLine = doc.getline(position.line);
+            // not format for empty line.
+            if (insertLeave && /^\s*$/.test(origLine))
+                return;
+            let pos = insertLeave ? { line: position.line, character: origLine.length } : position;
+            await helper_1.synchronizeDocument(doc);
+            return await languages_1.default.provideDocumentOnTypeEdits(ch, doc.textDocument, pos, token);
+        });
+        if (!edits || !edits.length)
+            return;
+        let changed = position_1.getChangedFromEdits(position, edits);
+        await doc.applyEdits(edits);
+        let to = changed ? vscode_languageserver_protocol_1.Position.create(position.line + changed.line, position.character + changed.character) : null;
+        if (to)
+            await window_1.default.moveTo(to);
+    }
+    async documentFormat() {
+        let doc = await workspace_1.default.document;
+        if (!doc || !doc.attached)
+            return false;
+        await helper_1.synchronizeDocument(doc);
+        let options = await workspace_1.default.getFormatOptions(doc.uri);
+        let textEdits = await this.withRequestToken('format', token => {
+            return languages_1.default.provideDocumentFormattingEdits(doc.textDocument, options, token);
+        });
+        if (textEdits && textEdits.length > 0) {
+            await doc.applyEdits(textEdits);
+            return true;
+        }
+        return false;
+    }
+    async documentRangeFormat(mode) {
+        let doc = await workspace_1.default.document;
+        if (!doc || !doc.attached)
+            return -1;
+        await helper_1.synchronizeDocument(doc);
+        let range;
+        if (mode) {
+            range = await workspace_1.default.getSelectedRange(mode, doc);
+            if (!range)
+                return -1;
+        }
+        else {
+            let [lnum, count, mode] = await this.nvim.eval("[v:lnum,v:count,mode()]");
+            // we can't handle
+            if (count == 0 || mode == 'i' || mode == 'R')
+                return -1;
+            range = vscode_languageserver_protocol_1.Range.create(lnum - 1, 0, lnum - 1 + count, 0);
+        }
+        let options = await workspace_1.default.getFormatOptions(doc.uri);
+        let textEdits = await this.withRequestToken('format', token => {
+            return languages_1.default.provideDocumentRangeFormattingEdits(doc.textDocument, range, options, token);
+        });
+        if (textEdits && textEdits.length > 0) {
+            await doc.applyEdits(textEdits);
+            return 0;
+        }
+        return -1;
+    }
+    dispose() {
+        util_1.disposeAll(this.disposables);
+    }
+}
+exports.default = FormatHandler;
+//# sourceMappingURL=format.js.map
 
 /***/ })
 /******/ ]);
