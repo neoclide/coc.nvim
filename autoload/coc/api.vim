@@ -258,12 +258,27 @@ function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEn
   if end <= a:colStart
     return
   endif
-  let id = a:srcId == -1 ? 0 : s:prop_offset + a:srcId
+  let srcId = a:srcId
+  if srcId == 0
+    while v:true
+      let srcId = srcId + 1
+      if empty(prop_find({'id': s:prop_offset + srcId, 'lnum' : 1}))
+        break
+      endif
+    endwhile
+    " generate srcId
+  endif
+  let id = srcId == -1 ? 0 : s:prop_offset + srcId
   try
     call prop_add(a:line + 1, a:colStart + 1, {'length': end - a:colStart, 'bufnr': bufnr, 'type': type, 'id': id})
   catch /^Vim\%((\a\+)\)\=:E967/
     " ignore 967
   endtry
+  let g:i = srcId
+  if a:srcId == 0
+    " return generated srcId
+    return srcId
+  endif
 endfunction
 
 function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
@@ -279,7 +294,7 @@ function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
     try
       call prop_remove({'bufnr': bufnr, 'all': 1, 'id': s:prop_offset + a:srcId}, start, end)
     catch /^Vim\%((\a\+)\)\=:E968/
-      " ignore 967
+      " ignore 968
     endtry
   endif
 endfunction
