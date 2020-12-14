@@ -1,5 +1,5 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
@@ -10,30 +10,22 @@ import Document from '../model/document'
 import FloatFactory from '../model/floatFactory'
 import { TextDocumentContentProvider } from '../provider'
 import services from '../services'
-import snippetManager from '../snippets/manager'
 import { CodeAction, Documentation, StatusBarItem, TagDefinition } from '../types'
 import { disposeAll } from '../util'
 import { getSymbolKind } from '../util/convert'
 import { equals } from '../util/object'
-import { emptyRange, getChangedFromEdits, positionInRange, rangeInRange } from '../util/position'
-import { isWord } from '../util/string'
+import { emptyRange, positionInRange, rangeInRange } from '../util/position'
 import window from '../window'
 import workspace from '../workspace'
 import CodeLensManager from './codelens'
 import Colors from './colors'
 import DocumentHighlighter from './documentHighlight'
+import { addDocument, addDoucmentSymbol, getPreviousContainer, isDocumentSymbols, isMarkdown, sortDocumentSymbols, sortSymbolInformations, SymbolInfo, synchronizeDocument } from './helper'
 import Refactor from './refactor'
 import Search from './search'
 import Signature from './signature'
-import { addDocument, addDoucmentSymbol, getPreviousContainer, SymbolInfo, isDocumentSymbols, isMarkdown, sortDocumentSymbols, sortSymbolInformations, synchronizeDocument } from './helper'
+import Format from './format'
 const logger = require('../util/logger')('Handler')
-const pairs: Map<string, string> = new Map([
-  ['<', '>'],
-  ['>', '<'],
-  ['{', '}'],
-  ['[', ']'],
-  ['(', ')'],
-])
 
 interface CommandItem {
   id: string
@@ -41,14 +33,9 @@ interface CommandItem {
 }
 
 interface Preferences {
-  formatOnType: boolean
-  formatOnTypeFiletypes: string[]
-  formatOnSaveFiletypes: string[]
-  formatOnInsertLeave: boolean
   hoverTarget: string
   previewAutoClose: boolean
   previewMaxHeight: number
-  bracketEnterImprove: boolean
   floatActions: boolean
   currentFunctionSymbolAutoUpdate: boolean
 }
@@ -59,6 +46,7 @@ export default class Handler {
   private colors: Colors
   private hoverFactory: FloatFactory
   private signature: Signature
+  private format: Format
   private refactorMap: Map<number, Refactor> = new Map()
   private documentLines: string[] = []
   private codeLensManager: CodeLensManager
@@ -79,27 +67,7 @@ export default class Handler {
     })
     this.hoverFactory = new FloatFactory(nvim)
     this.signature = new Signature(nvim)
-    workspace.onWillSaveTextDocument(event => {
-      let { languageId } = event.document
-      let filetypes = this.preferences.formatOnSaveFiletypes
-      if (filetypes.includes(languageId) || filetypes.some(item => item === '*')) {
-        let willSaveWaitUntil = async (): Promise<TextEdit[] | undefined> => {
-          if (!languages.hasFormatProvider(event.document)) {
-            logger.warn(`Format provider not found for ${event.document.uri}`)
-            return undefined
-          }
-          let options = await workspace.getFormatOptions(event.document.uri)
-          let tokenSource = new CancellationTokenSource()
-          let timer = setTimeout(() => {
-            tokenSource.cancel()
-          }, 1000)
-          let textEdits = await languages.provideDocumentFormattingEdits(event.document, options, tokenSource.token)
-          clearTimeout(timer)
-          return textEdits
-        }
-        event.waitUntil(willSaveWaitUntil())
-      }
-    }, null, this.disposables)
+    this.format = new Format(nvim)
     events.on('BufUnload', async bufnr => {
       let refactor = this.refactorMap.get(bufnr)
       if (refactor) {
@@ -112,74 +80,11 @@ export default class Handler {
         this.requestTokenSource.cancel()
       }
     }, null, this.disposables)
-    events.on('Enter', async bufnr => {
-      let { bracketEnterImprove } = this.preferences
-      await this.tryFormatOnType('\n', bufnr)
-      if (bracketEnterImprove) {
-        let line = (await nvim.call('line', '.') as number) - 1
-        let doc = workspace.getDocument(bufnr)
-        if (!doc) return
-        await doc.checkDocument()
-        let pre = doc.getline(line - 1)
-        let curr = doc.getline(line)
-        let prevChar = pre[pre.length - 1]
-        if (prevChar && pairs.has(prevChar)) {
-          let nextChar = curr.trim()[0]
-          if (nextChar && pairs.get(prevChar) == nextChar) {
-            let edits: TextEdit[] = []
-            let opts = await workspace.getFormatOptions(doc.uri)
-            let space = opts.insertSpaces ? ' '.repeat(opts.tabSize) : '\t'
-            let preIndent = pre.match(/^\s*/)[0]
-            let currIndent = curr.match(/^\s*/)[0]
-            let newText = '\n' + preIndent + space
-            let pos: Position = Position.create(line - 1, pre.length)
-            // make sure indent of current line
-            if (preIndent != currIndent) {
-              let newText = doc.filetype == 'vim' ? '  \\ ' + preIndent : preIndent
-              edits.push({ range: Range.create(Position.create(line, 0), Position.create(line, currIndent.length)), newText })
-            } else if (doc.filetype == 'vim') {
-              edits.push({ range: Range.create(line, currIndent.length, line, currIndent.length), newText: '  \\ ' })
-            }
-            if (doc.filetype == 'vim') {
-              newText = newText + '\\ '
-            }
-            edits.push({ range: Range.create(pos, pos), newText })
-            await doc.applyEdits(edits)
-            await window.moveTo(Position.create(line, newText.length - 1))
-          }
-        }
-      }
-    }, null, this.disposables)
-
-    let changedTs: number
-    let lastInsert: number
-    events.on('InsertCharPre', async () => {
-      lastInsert = Date.now()
-    }, null, this.disposables)
-    events.on('TextChangedI', async (bufnr, info) => {
-      changedTs = Date.now()
-      if (!lastInsert || changedTs - lastInsert > 300) return
-      lastInsert = null
-      let doc = workspace.getDocument(bufnr)
-      if (!doc || doc.isCommandLine || !doc.attached) return
-      let pre = info.pre[info.pre.length - 1]
-      if (!pre) return
-      if (this.preferences.formatOnType && !isWord(pre)) {
-        await this.tryFormatOnType(pre, bufnr)
-      }
-    }, null, this.disposables)
-    events.on('InsertLeave', async bufnr => {
-      let { formatOnInsertLeave, formatOnType } = this.preferences
-      if (!formatOnInsertLeave || !formatOnType) return
-      await this.tryFormatOnType('\n', bufnr, true)
-    }, null, this.disposables)
-
     if (this.preferences.currentFunctionSymbolAutoUpdate) {
       events.on('CursorHold', () => {
         this.getCurrentFunctionSymbol().logError()
       }, null, this.disposables)
     }
-
     let provider: TextDocumentContentProvider = {
       onDidChange: null,
       provideTextDocumentContent: async () => {
@@ -536,43 +441,11 @@ export default class Handler {
   }
 
   public async documentFormatting(): Promise<boolean> {
-    let { doc } = await this.getCurrentState()
-    if (doc == null) return false
-    await synchronizeDocument(doc)
-    let options = await workspace.getFormatOptions(doc.uri)
-    let textEdits = await this.withRequestToken('format', token => {
-      return languages.provideDocumentFormattingEdits(doc.textDocument, options, token)
-    })
-    if (textEdits && textEdits.length > 0) {
-      await doc.applyEdits(textEdits)
-      return true
-    }
-    return false
+    return await this.format.documentFormat()
   }
 
   public async documentRangeFormatting(mode: string): Promise<number> {
-    let { doc } = await this.getCurrentState()
-    if (doc == null) return -1
-    await synchronizeDocument(doc)
-    let range: Range
-    if (mode) {
-      range = await workspace.getSelectedRange(mode, doc)
-      if (!range) return -1
-    } else {
-      let [lnum, count, mode] = await this.nvim.eval("[v:lnum,v:count,mode()]") as [number, number, string]
-      // we can't handle
-      if (count == 0 || mode == 'i' || mode == 'R') return -1
-      range = Range.create(lnum - 1, 0, lnum - 1 + count, 0)
-    }
-    let options = await workspace.getFormatOptions(doc.uri)
-    let textEdits = await this.withRequestToken('format', token => {
-      return languages.provideDocumentRangeFormattingEdits(doc.textDocument, range, options, token)
-    })
-    if (textEdits && textEdits.length > 0) {
-      await doc.applyEdits(textEdits)
-      return 0
-    }
-    return -1
+    return await this.format.documentRangeFormat(mode)
   }
 
   public async getTagList(): Promise<TagDefinition[] | null> {
@@ -857,52 +730,6 @@ export default class Handler {
     if (selectRange) await workspace.selectRange(selectRange)
   }
 
-  private async tryFormatOnType(ch: string, bufnr: number, insertLeave = false): Promise<void> {
-    if (!ch || isWord(ch) || !this.preferences.formatOnType) return
-    if (snippetManager.getSession(bufnr) != null) return
-    let doc = workspace.getDocument(bufnr)
-    if (!doc || !doc.attached) return
-    const filetypes = this.preferences.formatOnTypeFiletypes
-    if (filetypes.length && !filetypes.includes(doc.filetype)) {
-      // Only check formatOnTypeFiletypes when set, avoid breaking change
-      return
-    }
-    if (!languages.hasOnTypeProvider(ch, doc.textDocument)) return
-    let position = await window.getCursorPosition()
-    let origLine = doc.getline(position.line)
-    if (insertLeave && /^\s*$/.test(origLine)) {
-      return
-    }
-    let pos: Position = insertLeave ? { line: position.line, character: origLine.length } : position
-    let { changedtick } = doc
-    await synchronizeDocument(doc)
-    if (doc.changedtick != changedtick) return
-    let tokenSource = new CancellationTokenSource()
-    let disposable = doc.onDocumentChange(() => {
-      clearTimeout(timer)
-      disposable.dispose()
-      tokenSource.cancel()
-    })
-    let timer = setTimeout(() => {
-      disposable.dispose()
-      tokenSource.cancel()
-    }, 2000)
-    let edits: TextEdit[]
-    try {
-      edits = await languages.provideDocumentOnTypeEdits(ch, doc.textDocument, pos, tokenSource.token)
-    } catch (e) {
-      logger.error(`Error on format: ${e.message}`, e.stack)
-    }
-    if (!edits || !edits.length) return
-    if (tokenSource.token.isCancellationRequested) return
-    clearTimeout(timer)
-    disposable.dispose()
-    let changed = getChangedFromEdits(position, edits)
-    await doc.applyEdits(edits)
-    let to = changed ? Position.create(position.line + changed.line, position.character + changed.character) : null
-    if (to) await window.moveTo(to)
-  }
-
   public async showSignatureHelp(): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
     if (!doc) return false
@@ -1137,11 +964,6 @@ export default class Handler {
     this.labels = workspace.getConfiguration('suggest').get<any>('completionItemKindLabels', {})
     this.preferences = {
       hoverTarget,
-      bracketEnterImprove: config.get<boolean>('bracketEnterImprove', true),
-      formatOnType: config.get<boolean>('formatOnType', false),
-      formatOnSaveFiletypes: config.get<string[]>('formatOnSaveFiletypes', []),
-      formatOnTypeFiletypes: config.get('formatOnTypeFiletypes', []),
-      formatOnInsertLeave: config.get<boolean>('formatOnInsertLeave', false),
       previewMaxHeight: config.get<number>('previewMaxHeight', 12),
       previewAutoClose: config.get<boolean>('previewAutoClose', false),
       floatActions: config.get<boolean>('floatActions', true),
@@ -1167,6 +989,7 @@ export default class Handler {
   public dispose(): void {
     this.hoverFactory.dispose()
     this.colors.dispose()
+    this.format.dispose()
     this.documentHighlighter.dispose()
     disposeAll(this.disposables)
   }
