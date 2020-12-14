@@ -509,12 +509,6 @@ export interface CommandConfig {
   title?: string
 }
 
-export interface Fragment {
-  start: number
-  lines: string[]
-  filetype: string
-}
-
 export interface EditerState {
   document: TextDocument
   position: Position
@@ -762,16 +756,6 @@ export interface VimCompleteItem {
   detailShown?: number
   // saved line for apply TextEdit
   line?: string
-}
-
-export interface PopupProps {
-  col: number
-  length: number // or 0
-  type: string
-  end_lnum?: number
-  end_col?: number
-  id?: number
-  transparent?: boolean
 }
 
 export interface PopupChangeEvent {
