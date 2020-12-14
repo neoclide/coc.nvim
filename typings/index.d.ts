@@ -19,6 +19,10 @@ declare module 'coc.nvim' {
      */
     dispose(): void
   }
+
+  export namespace Disposable {
+    function create(func: () => void): Disposable
+  }
   /**
    * The declaration of a symbol representation as one or many [locations](#Location).
    */
@@ -4522,6 +4526,16 @@ declare module 'coc.nvim' {
      * Get position from lnum & col
      */
     getPosition(lnum: number, col: number): Position
+
+    /**
+     * Adjust col with new valid character before position.
+     */
+    fixStartcol(position: Position, valids: string[]): number
+
+    /**
+     * Get current content text.
+     */
+    getDocumentContent(): string
   }
 
   /**
@@ -5755,15 +5769,26 @@ declare module 'coc.nvim' {
     [index: string]: any
   } | void | null | undefined
 
+  export interface PropertyScheme {
+    type: string
+    default: any
+    description: string
+    enum?: string[]
+    items?: any
+    [key: string]: any
+  }
+
   export namespace extensions {
     /**
      * Fired on extension loaded, extension not activated yet.
      */
     export const onDidLoadExtension: Event<Extension<ExtensionApi>>
+
     /**
      * Fired on extension activated.
      */
     export const onDidActiveExtension: Event<Extension<ExtensionApi>>
+
     /**
      * Fired with extension id on extension unload.
      */
@@ -5773,18 +5798,26 @@ declare module 'coc.nvim' {
      * Get all loaded extensions, without disabled extensions, extension may not activated.
      */
     export const all: ReadonlyArray<Extension<ExtensionApi>>
+
     /**
      * Get state of specific extension.
      */
     export function getExtensionState(id: string): ExtensionState
+
     /**
      * Get state of all extensions, including disabled extensions.
      */
     export function getExtensionStates(): Promise<ExtensionInfo[]>
+
     /**
      * Check if extension is activated.
      */
     export function isActivated(id: string): boolean
+
+    /**
+     * Dynamic add custom json schemes without using package.json.
+     */
+    export function addSchemeProperty(key: string, def: PropertyScheme): void
   }
   // }}
 
@@ -6598,6 +6631,60 @@ declare module 'coc.nvim' {
     readonly numberOfParams: number
   }
 
+  /**
+   *
+   * An abstract implementation of a MessageType.
+   */
+  abstract class AbstractMessageType implements RPCMessageType {
+    get method(): string
+    get numberOfParams(): number
+    constructor(_method: string, _numberOfParams: number)
+  }
+
+  /**
+   * Classes to type request response pairs
+   *
+   * The type parameter RO will be removed in the next major version
+   * of the JSON RPC library since it is a LSP concept and doesn't
+   * belong here. For now it is tagged as default never.
+   */
+  export class RequestType0<R, E, RO = never> extends AbstractMessageType {
+    /**
+     * Clients must not use this property. It is here to ensure correct typing.
+     */
+    readonly _?: [R, E, RO, _EM]
+    constructor(method: string)
+  }
+
+  export class RequestType<P, R, E, RO = never> extends AbstractMessageType {
+    /**
+     * Clients must not use this property. It is here to ensure correct typing.
+     */
+    readonly _?: [P, R, E, RO, _EM]
+    constructor(method: string)
+  }
+
+  /**
+   * The type parameter RO will be removed in the next major version
+   * of the JSON RPC library since it is a LSP concept and doesn't
+   * belong here. For now it is tagged as default never.
+   */
+  export class NotificationType<P, RO = never> extends AbstractMessageType {
+    /**
+     * Clients must not use this property. It is here to ensure correct typing.
+     */
+    readonly _?: [P, RO, _EM]
+    constructor(method: string)
+  }
+
+  export class NotificationType0<RO = never> extends AbstractMessageType {
+    /**
+     * Clients must not use this property. It is here to ensure correct typing.
+     */
+    readonly _?: [RO, _EM]
+    constructor(method: string)
+  }
+
   export interface InitializeParams {
     /**
     * The process Id of the parent process that started
@@ -6770,7 +6857,15 @@ declare module 'coc.nvim' {
     port: number
   }
 
-  export type ServerOptions = Executable | {
+  export interface NodeModule {
+    module: string
+    transport?: Transport
+    args?: string[]
+    runtime?: string
+    options?: ForkOptions
+  }
+
+  export type ServerOptions = Executable | NodeModule | {
     run: Executable
     debug: Executable
   } | {
@@ -6811,21 +6906,28 @@ declare module 'coc.nvim' {
      * to services by `services.registLanguageClient`
      */
     constructor(name: string, serverOptions: ServerOptions, clientOptions: LanguageClientOptions, forceDebug?: boolean)
-
-    sendRequest<R, E, RO>(type: RPCMessageType, token?: CancellationToken): Promise<R>
-    sendRequest<P, R, E, RO>(type: RPCMessageType, params: P, token?: CancellationToken): Promise<R>
+    /**
+     * R => result
+     * E => Error result
+     */
+    sendRequest<R, E, RO>(type: RequestType0<R, E, RO>, token?: CancellationToken): Promise<R>
+    /**
+     * P => params
+     * R => result
+     * E => Error result
+     */
+    sendRequest<P, R, E, RO>(type: RequestType<P, R, E, RO>, params: P, token?: CancellationToken): Promise<R>
     sendRequest<R>(method: string, token?: CancellationToken): Promise<R>
     sendRequest<R>(method: string, param: any, token?: CancellationToken): Promise<R>
-    onRequest<R, E, RO>(type: RPCMessageType, handler: RequestHandler0<R, E>): void
-    onRequest<P, R, E, RO>(type: RPCMessageType, handler: RequestHandler<P, R, E>): void
+    onRequest<R, E, RO>(type: RequestType0<R, E, RO>, handler: RequestHandler0<R, E>): void
+    onRequest<P, R, E, RO>(type: RequestType<P, R, E, RO>, handler: RequestHandler<P, R, E>): void
     onRequest<R, E>(method: string, handler: (...params: any[]) => HandlerResult<R, E>): void
-    sendNotification<RO>(type: RPCMessageType): void
-    sendNotification<P, RO>(type: RPCMessageType, params?: P): void
+    sendNotification<RO>(type: NotificationType0<RO>): void
+    sendNotification<P, RO>(type: NotificationType<P, RO>, params?: P): void
     sendNotification(method: string): void
     sendNotification(method: string, params: any): void
-    onNotification(type: RPCMessageType, handler: () => void): void
-    onNotification<RO>(type: RPCMessageType, handler: () => void): void
-    onNotification<P, RO>(type: RPCMessageType, handler: (params: P) => void): void
+    onNotification<RO>(type: NotificationType0<RO>, handler: () => void): void
+    onNotification<P, RO>(type: NotificationType<P, RO>, handler: (params: P) => void): void
     onNotification(method: string, handler: (...params: any[]) => void): void
     onProgress<P>(type: ProgressType<any>, token: string | number, handler: (params: P) => void): Disposable
     sendProgress<P>(type: ProgressType<P>, token: string | number, value: P): void
