@@ -7,7 +7,7 @@ import events from '../events'
 import { ChangeInfo, DidChangeTextDocumentParams, Env } from '../types'
 import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
-import { disposeAll, getUri } from '../util/index'
+import { disposeAll, getUri, wait } from '../util/index'
 import { byteLength, byteSlice } from '../util/string'
 import { Chars } from './chars'
 const logger = require('../util/logger')('model-document')
@@ -228,7 +228,8 @@ export default class Document {
     this._changedtick = await buffer.changedtick
     this.lines = await buffer.lines
     this.fireContentChanges.clear()
-    this._fireContentChanges()
+    let changed = this._fireContentChanges()
+    if (changed) await wait(30)
   }
 
   /**
@@ -238,7 +239,7 @@ export default class Document {
     return this.content != this.getDocumentContent()
   }
 
-  private _fireContentChanges(): void {
+  private _fireContentChanges(): boolean {
     let { textDocument } = this
     let { cursor } = events
     try {
@@ -266,9 +267,11 @@ export default class Document {
         contentChanges: changes
       })
       this._words = this.chars.matchKeywords(this.textDocument.getText())
+      return true
     } catch (e) {
       logger.error(e.message)
     }
+    return false
   }
 
   /**

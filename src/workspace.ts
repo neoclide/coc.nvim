@@ -1441,9 +1441,7 @@ augroup end`
   private async onBufWritePre(bufnr: number): Promise<void> {
     let doc = this.buffers.get(bufnr)
     if (!doc || !doc.attached) return
-    let { dirty } = doc
-    await doc.patchChange()
-    if (dirty) await wait(30)
+    await doc.checkDocument()
     let firing = true
     let thenables: Thenable<TextEdit[] | any>[] = []
     let event: TextDocumentWillSaveEvent = {
