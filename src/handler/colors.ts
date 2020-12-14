@@ -3,11 +3,11 @@ import { CancellationTokenSource, ColorInformation, Disposable, Position } from 
 import events from '../events'
 import extensions from '../extensions'
 import languages from '../languages'
-import Document from '../model/document'
 import { disposeAll } from '../util'
-import workspace from '../workspace'
 import window from '../window'
-import Highlighter, { toHexString } from './highlighter'
+import workspace from '../workspace'
+import { toHexString } from './helper'
+import Highlighter from './highlighter'
 const logger = require('../util/logger')('colors')
 
 export default class Colors {
@@ -16,9 +16,6 @@ export default class Colors {
   private highlighters: Map<number, Highlighter> = new Map()
 
   constructor(private nvim: Neovim) {
-    if (workspace.isVim && !workspace.env.textprop) {
-      return
-    }
     workspace.documents.forEach(doc => {
       this.createHighlighter(doc.bufnr)
     })
@@ -151,8 +148,9 @@ export default class Colors {
   }
 
   private createHighlighter(bufnr: number): Highlighter {
+    if (workspace.isVim && !workspace.env.textprop) return null
     let doc = workspace.getDocument(bufnr)
-    if (!doc || !isValid(doc)) return null
+    if (!doc || !doc.attached) return null
     let obj = new Highlighter(this.nvim, bufnr)
     this.highlighters.set(bufnr, obj)
     return obj
@@ -174,11 +172,4 @@ export default class Colors {
     }
     return null
   }
-
-}
-
-function isValid(document: Document): boolean {
-  if (['help', 'terminal', 'quickfix'].includes(document.buftype)) return false
-  if (!document.attached) return false
-  return true
 }
