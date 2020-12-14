@@ -118,7 +118,7 @@ function! s:on_stderr(id, msgs)
       if msgs[0] == ''
         let msgs[0] = remain
       else
-        let msgs[0] = remain + msgs[0]
+        let msgs[0] = remain . msgs[0]
       endif
     endif
     let last = msgs[len(msgs) - 1]
@@ -146,7 +146,7 @@ function! s:on_stdout(id, msgs)
       if msgs[0] == ''
         let msgs[0] = remain
       else
-        let msgs[0] = remain + msgs[0]
+        let msgs[0] = remain . msgs[0]
       endif
     endif
     let last = msgs[len(msgs) - 1]

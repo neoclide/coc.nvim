@@ -24022,7 +24022,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f2afd214ba" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "0de7494ffe" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -94269,11 +94269,11 @@ const window_1 = tslib_1.__importDefault(__webpack_require__(374));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(292));
 const codelens_1 = tslib_1.__importDefault(__webpack_require__(683));
 const colors_1 = tslib_1.__importDefault(__webpack_require__(684));
-const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(686));
-const refactor_1 = tslib_1.__importDefault(__webpack_require__(687));
-const search_1 = tslib_1.__importDefault(__webpack_require__(688));
-const signature_1 = tslib_1.__importDefault(__webpack_require__(689));
-const helper_1 = __webpack_require__(690);
+const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(687));
+const refactor_1 = tslib_1.__importDefault(__webpack_require__(688));
+const search_1 = tslib_1.__importDefault(__webpack_require__(689));
+const signature_1 = tslib_1.__importDefault(__webpack_require__(690));
+const helper_1 = __webpack_require__(685);
 const logger = __webpack_require__(64)('Handler');
 const pairs = new Map([
     ['<', '>'],
@@ -95740,9 +95740,10 @@ const events_1 = tslib_1.__importDefault(__webpack_require__(210));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(391));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(566));
 const util_1 = __webpack_require__(238);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(292));
 const window_1 = tslib_1.__importDefault(__webpack_require__(374));
-const highlighter_1 = tslib_1.__importStar(__webpack_require__(685));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(292));
+const helper_1 = __webpack_require__(685);
+const highlighter_1 = tslib_1.__importDefault(__webpack_require__(686));
 const logger = __webpack_require__(64)('colors');
 class Colors {
     constructor(nvim) {
@@ -95750,9 +95751,6 @@ class Colors {
         this._enabled = true;
         this.disposables = [];
         this.highlighters = new Map();
-        if (workspace_1.default.isVim && !workspace_1.default.env.textprop) {
-            return;
-        }
         workspace_1.default.documents.forEach(doc => {
             this.createHighlighter(doc.bufnr);
         });
@@ -95836,7 +95834,7 @@ class Colors {
             window_1.default.showMessage('Failed to get color', 'warning');
             return;
         }
-        let hex = highlighter_1.toHexString({
+        let hex = helper_1.toHexString({
             red: (res[0] / 65535),
             green: (res[1] / 65535),
             blue: (res[2] / 65535),
@@ -95891,8 +95889,10 @@ class Colors {
         await highlighter.doHighlight();
     }
     createHighlighter(bufnr) {
+        if (workspace_1.default.isVim && !workspace_1.default.env.textprop)
+            return null;
         let doc = workspace_1.default.getDocument(bufnr);
-        if (!doc || !isValid(doc))
+        if (!doc || !doc.attached)
             return null;
         let obj = new highlighter_1.default(this.nvim, bufnr);
         this.highlighters.set(bufnr, obj);
@@ -95917,13 +95917,6 @@ class Colors {
     }
 }
 exports.default = Colors;
-function isValid(document) {
-    if (['help', 'terminal', 'quickfix'].includes(document.buftype))
-        return false;
-    if (!document.attached)
-        return false;
-    return true;
-}
 //# sourceMappingURL=colors.js.map
 
 /***/ }),
@@ -95933,16 +95926,146 @@ function isValid(document) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.toHexString = void 0;
+exports.isDark = exports.toHexColor = exports.toHexString = exports.synchronizeDocument = exports.addDocument = exports.isMarkdown = exports.isDocumentSymbols = exports.sortSymbolInformations = exports.addDoucmentSymbol = exports.sortDocumentSymbols = exports.getPreviousContainer = void 0;
+const vscode_languageserver_protocol_1 = __webpack_require__(211);
+const util_1 = __webpack_require__(238);
+const convert_1 = __webpack_require__(662);
+function getPreviousContainer(containerName, symbols) {
+    if (!symbols.length)
+        return null;
+    let i = symbols.length - 1;
+    let last = symbols[i];
+    if (last.text == containerName) {
+        return last;
+    }
+    while (i >= 0) {
+        let sym = symbols[i];
+        if (sym.text == containerName) {
+            return sym;
+        }
+        i--;
+    }
+    return null;
+}
+exports.getPreviousContainer = getPreviousContainer;
+function sortDocumentSymbols(a, b) {
+    let ra = a.selectionRange;
+    let rb = b.selectionRange;
+    if (ra.start.line < rb.start.line) {
+        return -1;
+    }
+    if (ra.start.line > rb.start.line) {
+        return 1;
+    }
+    return ra.start.character - rb.start.character;
+}
+exports.sortDocumentSymbols = sortDocumentSymbols;
+function addDoucmentSymbol(res, sym, level) {
+    let { name, selectionRange, kind, children, range } = sym;
+    let { start } = selectionRange;
+    res.push({
+        col: start.character + 1,
+        lnum: start.line + 1,
+        text: name,
+        level,
+        kind: convert_1.getSymbolKind(kind),
+        range,
+        selectionRange
+    });
+    if (children && children.length) {
+        children.sort(sortDocumentSymbols);
+        for (let sym of children) {
+            addDoucmentSymbol(res, sym, level + 1);
+        }
+    }
+}
+exports.addDoucmentSymbol = addDoucmentSymbol;
+function sortSymbolInformations(a, b) {
+    let sa = a.location.range.start;
+    let sb = b.location.range.start;
+    let d = sa.line - sb.line;
+    return d == 0 ? sa.character - sb.character : d;
+}
+exports.sortSymbolInformations = sortSymbolInformations;
+function isDocumentSymbol(a) {
+    return a && !a.hasOwnProperty('location');
+}
+function isDocumentSymbols(a) {
+    return isDocumentSymbol(a[0]);
+}
+exports.isDocumentSymbols = isDocumentSymbols;
+function isMarkdown(content) {
+    if (vscode_languageserver_protocol_1.MarkupContent.is(content) && content.kind == vscode_languageserver_protocol_1.MarkupKind.Markdown) {
+        return true;
+    }
+    return false;
+}
+exports.isMarkdown = isMarkdown;
+function addDocument(docs, text, filetype, isPreview = false) {
+    let content = text.trim();
+    if (!content.length)
+        return;
+    if (isPreview && filetype !== 'markdown') {
+        content = '``` ' + filetype + '\n' + content + '\n```';
+    }
+    docs.push({ content, filetype });
+}
+exports.addDocument = addDocument;
+async function synchronizeDocument(doc) {
+    let { changedtick } = doc;
+    await doc.patchChange();
+    if (changedtick != doc.changedtick) {
+        await util_1.wait(50);
+    }
+}
+exports.synchronizeDocument = synchronizeDocument;
+function toHexString(color) {
+    let c = toHexColor(color);
+    return `${pad(c.red.toString(16))}${pad(c.green.toString(16))}${pad(c.blue.toString(16))}`;
+}
+exports.toHexString = toHexString;
+function pad(str) {
+    return str.length == 1 ? `0${str}` : str;
+}
+function toHexColor(color) {
+    let { red, green, blue } = color;
+    return {
+        red: Math.round(red * 255),
+        green: Math.round(green * 255),
+        blue: Math.round(blue * 255)
+    };
+}
+exports.toHexColor = toHexColor;
+function isDark(color) {
+    // http://www.w3.org/TR/WCAG20/#relativeluminancedef
+    let rgb = [color.red, color.green, color.blue];
+    let lum = [];
+    for (let i = 0; i < rgb.length; i++) {
+        let chan = rgb[i];
+        lum[i] = (chan <= 0.03928) ? chan / 12.92 : Math.pow(((chan + 0.055) / 1.055), 2.4);
+    }
+    let luma = 0.2126 * lum[0] + 0.7152 * lum[1] + 0.0722 * lum[2];
+    return luma <= 0.5;
+}
+exports.isDark = isDark;
+//# sourceMappingURL=helper.js.map
+
+/***/ }),
+/* 686 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(65);
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(240));
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
-const util_1 = __webpack_require__(238);
+const languages_1 = tslib_1.__importDefault(__webpack_require__(566));
 const array_1 = __webpack_require__(363);
 const object_1 = __webpack_require__(249);
 const position_1 = __webpack_require__(291);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(292));
-const languages_1 = tslib_1.__importDefault(__webpack_require__(566));
+const helper_1 = __webpack_require__(685);
 const logger = __webpack_require__(64)('highlighter');
 const usedColors = new Set();
 class Highlighter {
@@ -95971,10 +96094,8 @@ class Highlighter {
         if (!doc)
             return;
         try {
-            this.cancel();
             this.tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
             let { token } = this.tokenSource;
-            await synchronizeDocument(doc);
             if (workspace_1.default.insertMode)
                 return;
             if (token.isCancellationRequested)
@@ -95983,7 +96104,6 @@ class Highlighter {
                 return;
             let { version } = doc;
             let colors;
-            usedColors.clear();
             colors = await languages_1.default.provideDocumentColors(doc.textDocument, token);
             colors = colors || [];
             if (token.isCancellationRequested)
@@ -96026,15 +96146,15 @@ class Highlighter {
         }
     }
     highlightColor(ranges, color) {
-        let { red, green, blue } = toHexColor(color);
-        let hlGroup = `BG${toHexString(color)}`;
+        let { red, green, blue } = helper_1.toHexColor(color);
+        let hlGroup = `BG${helper_1.toHexString(color)}`;
         this.buffer.highlightRanges('color', hlGroup, ranges);
     }
     defineColors(colors) {
         for (let color of colors) {
-            let hex = toHexString(color.color);
+            let hex = helper_1.toHexString(color.color);
             if (!usedColors.has(hex)) {
-                this.nvim.command(`hi BG${hex} guibg=#${hex} guifg=#${isDark(color.color) ? 'ffffff' : '000000'}`, true);
+                this.nvim.command(`hi BG${hex} guibg=#${hex} guifg=#${helper_1.isDark(color.color) ? 'ffffff' : '000000'}`, true);
                 usedColors.add(hex);
             }
         }
@@ -96043,7 +96163,7 @@ class Highlighter {
         let res = [];
         for (let info of infos) {
             let { color, range } = info;
-            let idx = res.findIndex(o => object_1.equals(toHexColor(o.color), toHexColor(color)));
+            let idx = res.findIndex(o => object_1.equals(helper_1.toHexColor(o.color), helper_1.toHexColor(color)));
             if (idx == -1) {
                 res.push({
                     color,
@@ -96081,44 +96201,10 @@ class Highlighter {
     }
 }
 exports.default = Highlighter;
-function toHexString(color) {
-    let c = toHexColor(color);
-    return `${pad(c.red.toString(16))}${pad(c.green.toString(16))}${pad(c.blue.toString(16))}`;
-}
-exports.toHexString = toHexString;
-function pad(str) {
-    return str.length == 1 ? `0${str}` : str;
-}
-function toHexColor(color) {
-    let { red, green, blue } = color;
-    return {
-        red: Math.round(red * 255),
-        green: Math.round(green * 255),
-        blue: Math.round(blue * 255)
-    };
-}
-function isDark(color) {
-    // http://www.w3.org/TR/WCAG20/#relativeluminancedef
-    let rgb = [color.red, color.green, color.blue];
-    let lum = [];
-    for (let i = 0; i < rgb.length; i++) {
-        let chan = rgb[i];
-        lum[i] = (chan <= 0.03928) ? chan / 12.92 : Math.pow(((chan + 0.055) / 1.055), 2.4);
-    }
-    let luma = 0.2126 * lum[0] + 0.7152 * lum[1] + 0.0722 * lum[2];
-    return luma <= 0.5;
-}
-async function synchronizeDocument(doc) {
-    let { changedtick } = doc;
-    await doc.patchChange();
-    if (changedtick != doc.changedtick) {
-        await util_1.wait(50);
-    }
-}
 //# sourceMappingURL=highlighter.js.map
 
 /***/ }),
-/* 686 */
+/* 687 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -96225,7 +96311,7 @@ exports.default = DocumentHighlighter;
 //# sourceMappingURL=documentHighlight.js.map
 
 /***/ }),
-/* 687 */
+/* 688 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -96907,7 +96993,7 @@ function emptyWorkspaceEdit(edit) {
 //# sourceMappingURL=refactor.js.map
 
 /***/ }),
-/* 688 */
+/* 689 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -97111,7 +97197,7 @@ exports.default = Search;
 //# sourceMappingURL=search.js.map
 
 /***/ }),
-/* 689 */
+/* 690 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -97409,108 +97495,6 @@ function isMarkdown(content) {
     return false;
 }
 //# sourceMappingURL=signature.js.map
-
-/***/ }),
-/* 690 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.synchronizeDocument = exports.addDocument = exports.isMarkdown = exports.isDocumentSymbols = exports.sortSymbolInformations = exports.addDoucmentSymbol = exports.sortDocumentSymbols = exports.getPreviousContainer = void 0;
-const vscode_languageserver_protocol_1 = __webpack_require__(211);
-const util_1 = __webpack_require__(238);
-const convert_1 = __webpack_require__(662);
-function getPreviousContainer(containerName, symbols) {
-    if (!symbols.length)
-        return null;
-    let i = symbols.length - 1;
-    let last = symbols[i];
-    if (last.text == containerName) {
-        return last;
-    }
-    while (i >= 0) {
-        let sym = symbols[i];
-        if (sym.text == containerName) {
-            return sym;
-        }
-        i--;
-    }
-    return null;
-}
-exports.getPreviousContainer = getPreviousContainer;
-function sortDocumentSymbols(a, b) {
-    let ra = a.selectionRange;
-    let rb = b.selectionRange;
-    if (ra.start.line < rb.start.line) {
-        return -1;
-    }
-    if (ra.start.line > rb.start.line) {
-        return 1;
-    }
-    return ra.start.character - rb.start.character;
-}
-exports.sortDocumentSymbols = sortDocumentSymbols;
-function addDoucmentSymbol(res, sym, level) {
-    let { name, selectionRange, kind, children, range } = sym;
-    let { start } = selectionRange;
-    res.push({
-        col: start.character + 1,
-        lnum: start.line + 1,
-        text: name,
-        level,
-        kind: convert_1.getSymbolKind(kind),
-        range,
-        selectionRange
-    });
-    if (children && children.length) {
-        children.sort(sortDocumentSymbols);
-        for (let sym of children) {
-            addDoucmentSymbol(res, sym, level + 1);
-        }
-    }
-}
-exports.addDoucmentSymbol = addDoucmentSymbol;
-function sortSymbolInformations(a, b) {
-    let sa = a.location.range.start;
-    let sb = b.location.range.start;
-    let d = sa.line - sb.line;
-    return d == 0 ? sa.character - sb.character : d;
-}
-exports.sortSymbolInformations = sortSymbolInformations;
-function isDocumentSymbol(a) {
-    return a && !a.hasOwnProperty('location');
-}
-function isDocumentSymbols(a) {
-    return isDocumentSymbol(a[0]);
-}
-exports.isDocumentSymbols = isDocumentSymbols;
-function isMarkdown(content) {
-    if (vscode_languageserver_protocol_1.MarkupContent.is(content) && content.kind == vscode_languageserver_protocol_1.MarkupKind.Markdown) {
-        return true;
-    }
-    return false;
-}
-exports.isMarkdown = isMarkdown;
-function addDocument(docs, text, filetype, isPreview = false) {
-    let content = text.trim();
-    if (!content.length)
-        return;
-    if (isPreview && filetype !== 'markdown') {
-        content = '``` ' + filetype + '\n' + content + '\n```';
-    }
-    docs.push({ content, filetype });
-}
-exports.addDocument = addDocument;
-async function synchronizeDocument(doc) {
-    let { changedtick } = doc;
-    await doc.patchChange();
-    if (changedtick != doc.changedtick) {
-        await util_1.wait(50);
-    }
-}
-exports.synchronizeDocument = synchronizeDocument;
-//# sourceMappingURL=helper.js.map
 
 /***/ })
 /******/ ]);
