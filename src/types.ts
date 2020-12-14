@@ -931,12 +931,6 @@ export enum ConfigurationTarget {
   Workspace
 }
 
-export enum DiagnosticKind {
-  Syntax,
-  Semantic,
-  Suggestion,
-}
-
 export enum ServiceStat {
   Initial,
   Starting,

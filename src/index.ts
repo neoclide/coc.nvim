@@ -22,11 +22,12 @@ import Watchman from './watchman'
 import { URI } from 'vscode-uri'
 import { Neovim, Buffer, Window } from '@chemzqm/neovim'
 import { Disposable, Event, Emitter } from 'vscode-languageserver-protocol'
+import { ProgressType } from 'vscode-jsonrpc'
 
 export * from './types'
 export * from './language-client'
 export * from './provider'
 
-export { Neovim, Buffer, Window, Highligher, Mru, Watchman, URI as Uri, Disposable, Event, Emitter, FloatFactory, fetch, download, ansiparse }
+export { Neovim, ProgressType, Buffer, Window, Highligher, Mru, Watchman, URI as Uri, Disposable, Event, Emitter, FloatFactory, fetch, download, ansiparse }
 export { workspace, window, snippetManager, events, services, commands, sources, languages, diagnosticManager, Document, FileSystemWatcher, extensions, listManager, BasicList }
 export { disposeAll, concurrent, wait, runCommand, isRunning, executable } from './util'
