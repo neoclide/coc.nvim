@@ -95,7 +95,6 @@ describe('task test', () => {
     task.dispose()
   })
 
-
   it('should emit stderr event', async () => {
     let file = await createTmpFile('console.error("start\\n\\nend");')
     let fn = jest.fn()
