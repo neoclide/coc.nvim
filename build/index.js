@@ -15397,9 +15397,7 @@ class Buffer extends Base_1.BaseApi {
      * @param {Range[]} ranges List of highlight ranges
      */
     highlightRanges(srcId, hlGroup, ranges) {
-        for (let range of ranges) {
-            this.client.call('coc#highlight#range', [this.id, srcId, hlGroup, range], true);
-        }
+        this.client.call('coc#highlight#ranges', [this.id, srcId, hlGroup, ranges], true);
     }
     /**
      * Clear namespace by id or name.
@@ -24023,7 +24021,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "437fdaadab" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "7e550643a5" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -31036,7 +31034,7 @@ module.exports = function () {
 /* 285 */
 /***/ (function(module) {
 
-module.exports = JSON.parse("{\"name\":\"cli-table\",\"description\":\"Pretty unicode tables for the CLI\",\"version\":\"0.3.4\",\"license\":\"MIT\",\"author\":\"Guillermo Rauch <guillermo@learnboost.com>\",\"contributors\":[\"Sonny Michaud <michaud.sonny@gmail.com> (http://github.com/sonnym)\",\"Gabriel Sambarino <gabriel.sambarino@gmail.com> (http://github.com/chrean)\"],\"repository\":{\"type\":\"git\",\"url\":\"https://github.com/Automattic/cli-table.git\"},\"keywords\":[\"cli\",\"colors\",\"table\"],\"dependencies\":{\"chalk\":\"^2.4.1\",\"string-width\":\"^4.2.0\"},\"devDependencies\":{\"@babel/core\":\"^7.12.9\",\"@babel/preset-env\":\"^7.12.7\",\"@babel/preset-typescript\":\"^7.12.7\",\"babel-jest\":\"^26.6.3\",\"expect\":\"^26.6.2\",\"expresso\":\"~0.9\",\"jest\":\"^26.6.3\",\"jest-mock\":\"^26.6.2\",\"publish-please\":\"^5.5.2\",\"ts-node\":\"^9.1.0\",\"typescript\":\"^4.1.2\"},\"main\":\"lib\",\"files\":[\"lib\"],\"scripts\":{\"test\":\"jest\",\"publish-please\":\"publish-please --access public\"},\"engines\":{\"node\":\">= 10.0.0\"}}");
+module.exports = {"name":"cli-table","description":"Pretty unicode tables for the CLI","version":"0.3.4","license":"MIT","author":"Guillermo Rauch <guillermo@learnboost.com>","contributors":["Sonny Michaud <michaud.sonny@gmail.com> (http://github.com/sonnym)","Gabriel Sambarino <gabriel.sambarino@gmail.com> (http://github.com/chrean)"],"repository":{"type":"git","url":"https://github.com/Automattic/cli-table.git"},"keywords":["cli","colors","table"],"dependencies":{"chalk":"^2.4.1","string-width":"^4.2.0"},"devDependencies":{"@babel/core":"^7.12.9","@babel/preset-env":"^7.12.7","@babel/preset-typescript":"^7.12.7","babel-jest":"^26.6.3","expect":"^26.6.2","expresso":"~0.9","jest":"^26.6.3","jest-mock":"^26.6.2","publish-please":"^5.5.2","ts-node":"^9.1.0","typescript":"^4.1.2"},"main":"lib","files":["lib"],"scripts":{"test":"jest","publish-please":"publish-please --access public"},"engines":{"node":">= 10.0.0"}};
 
 /***/ }),
 /* 286 */
@@ -31853,7 +31851,7 @@ const watchman_1 = tslib_1.__importDefault(__webpack_require__(370));
 const window_1 = tslib_1.__importDefault(__webpack_require__(374));
 const APIVERSION = 8;
 const logger = __webpack_require__(64)('workspace');
-let NAME_SPACE = 1080;
+let NAME_SPACE = 2000;
 const methods = [
     'showMessage',
     'runTerminalCommand',
@@ -42586,7 +42584,8 @@ function lastIndex(array, fn) {
     return i;
 }
 exports.lastIndex = lastIndex;
-exports.flatMap = (xs, f) => xs.reduce((x, y) => [...x, ...f(y)], []);
+const flatMap = (xs, f) => xs.reduce((x, y) => [...x, ...f(y)], []);
+exports.flatMap = flatMap;
 //# sourceMappingURL=array.js.map
 
 /***/ }),
@@ -45828,7 +45827,7 @@ exports.default = StatusLine;
 /* 382 */
 /***/ (function(module) {
 
-module.exports = JSON.parse("{\"name\":\"coc.nvim\",\"version\":\"0.0.79\",\"description\":\"LSP based intellisense engine for neovim & vim8.\",\"main\":\"./lib/index.js\",\"engines\":{\"node\":\">=8.10.0\"},\"scripts\":{\"clean\":\"rimraf lib build\",\"lint\":\"eslint . --ext .ts --quiet\",\"build\":\"tsc -p tsconfig.json\",\"watch\":\"tsc -p tsconfig.json --watch true --sourceMap\",\"test\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --detectOpenHandles --forceExit\",\"test-build\":\"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --coverage --forceExit\",\"prepare\":\"tsc -p tsconfig.json\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/neoclide/coc.nvim.git\"},\"keywords\":[\"complete\",\"neovim\"],\"author\":\"Qiming Zhao <chemzqm@gmail.com>\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/neoclide/coc.nvim/issues\"},\"homepage\":\"https://github.com/neoclide/coc.nvim#readme\",\"jest\":{\"globals\":{\"__TEST__\":true},\"projects\":[\"<rootDir>\"],\"watchman\":false,\"clearMocks\":true,\"globalSetup\":\"./jest.js\",\"testEnvironment\":\"node\",\"moduleFileExtensions\":[\"ts\",\"tsx\",\"json\",\"js\"],\"transform\":{\"^.+\\\\.tsx?$\":\"ts-jest\"},\"testRegex\":\"src/__tests__/.*\\\\.(test|spec)\\\\.ts$\",\"coverageDirectory\":\"./coverage/\"},\"devDependencies\":{\"@types/cli-table\":\"^0.3.0\",\"@types/debounce\":\"^3.0.0\",\"@types/fb-watchman\":\"^2.0.0\",\"@types/glob\":\"^7.1.3\",\"@types/jest\":\"^26.0.18\",\"@types/marked\":\"^1.2.1\",\"@types/minimatch\":\"^3.0.3\",\"@types/mkdirp\":\"^1.0.1\",\"@types/node\":\"^10.12.0\",\"@types/semver\":\"^7.3.4\",\"@types/tar\":\"^4.0.4\",\"@types/uuid\":\"^8.3.0\",\"@types/which\":\"^1.3.2\",\"@typescript-eslint/eslint-plugin\":\"^4.9.1\",\"@typescript-eslint/eslint-plugin-tslint\":\"^4.9.1\",\"@typescript-eslint/parser\":\"^4.9.1\",\"colors\":\"^1.4.0\",\"eslint\":\"^7.15.0\",\"eslint-plugin-jest\":\"^24.1.3\",\"eslint-plugin-jsdoc\":\"^30.7.8\",\"jest\":\"26.6.3\",\"ts-jest\":\"^26.4.4\",\"typescript\":\"^4.1.2\",\"vscode-languageserver\":\"next\"},\"dependencies\":{\"@chemzqm/neovim\":\"^5.2.11\",\"ansi-styles\":\"^5.0.0\",\"bser\":\"^2.1.1\",\"bytes\":\"^3.1.0\",\"cli-table\":\"^0.3.4\",\"clipboardy\":\"^2.3.0\",\"content-disposition\":\"^0.5.3\",\"debounce\":\"^1.2.0\",\"fast-diff\":\"^1.2.0\",\"fb-watchman\":\"^2.0.1\",\"follow-redirects\":\"^1.13.0\",\"fs-extra\":\"^9.0.1\",\"glob\":\"^7.1.6\",\"http-proxy-agent\":\"^4.0.1\",\"https-proxy-agent\":\"^5.0.0\",\"isuri\":\"^2.0.3\",\"jsonc-parser\":\"^2.3.1\",\"log4js\":\"^6.3.0\",\"marked\":\"^1.2.5\",\"minimatch\":\"^3.0.4\",\"promise.prototype.finally\":\"^3.1.2\",\"rc\":\"^1.2.8\",\"semver\":\"^7.3.2\",\"tar\":\"^6.0.5\",\"tslib\":\"^2.0.3\",\"unzipper\":\"^0.10.11\",\"uuid\":\"^7.0.3\",\"vscode-jsonrpc\":\"^5.0.1\",\"vscode-languageserver-protocol\":\"^3.15.3\",\"vscode-languageserver-textdocument\":\"^1.0.1\",\"vscode-languageserver-types\":\"^3.15.1\",\"vscode-uri\":\"^2.1.2\",\"which\":\"^2.0.2\"}}");
+module.exports = {"name":"coc.nvim","version":"0.0.79","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","engines":{"node":">=8.10.0"},"scripts":{"clean":"rimraf lib build","lint":"eslint . --ext .ts --quiet","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/jest/bin/jest.js --runInBand --coverage --forceExit","prepare":"tsc -p tsconfig.json"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"projects":["<rootDir>"],"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@types/cli-table":"^0.3.0","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/glob":"^7.1.3","@types/jest":"^26.0.18","@types/marked":"^1.2.1","@types/minimatch":"^3.0.3","@types/mkdirp":"^1.0.1","@types/node":"^10.12.0","@types/semver":"^7.3.4","@types/tar":"^4.0.4","@types/uuid":"^8.3.0","@types/which":"^1.3.2","@typescript-eslint/eslint-plugin":"^4.9.1","@typescript-eslint/eslint-plugin-tslint":"^4.9.1","@typescript-eslint/parser":"^4.9.1","colors":"^1.4.0","eslint":"^7.15.0","eslint-plugin-jest":"^24.1.3","eslint-plugin-jsdoc":"^30.7.8","jest":"26.6.3","ts-jest":"^26.4.4","typescript":"^4.1.2","vscode-languageserver":"next"},"dependencies":{"@chemzqm/neovim":"^5.2.12","ansi-styles":"^5.0.0","bser":"^2.1.1","bytes":"^3.1.0","cli-table":"^0.3.4","clipboardy":"^2.3.0","content-disposition":"^0.5.3","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.1","follow-redirects":"^1.13.0","fs-extra":"^9.0.1","glob":"^7.1.6","http-proxy-agent":"^4.0.1","https-proxy-agent":"^5.0.0","isuri":"^2.0.3","jsonc-parser":"^2.3.1","log4js":"^6.3.0","marked":"^1.2.5","minimatch":"^3.0.4","promise.prototype.finally":"^3.1.2","rc":"^1.2.8","semver":"^7.3.2","tar":"^6.0.5","tslib":"^2.0.3","unzipper":"^0.10.11","uuid":"^7.0.3","vscode-jsonrpc":"^5.0.1","vscode-languageserver-protocol":"^3.15.3","vscode-languageserver-textdocument":"^1.0.1","vscode-languageserver-types":"^3.15.1","vscode-uri":"^2.1.2","which":"^2.0.2"}};
 
 /***/ }),
 /* 383 */
@@ -77304,7 +77303,13 @@ class Languages {
         };
     }
     hasFormatProvider(doc) {
-        return this.formatManager.handles(doc);
+        if (this.formatManager.hasProvider(doc)) {
+            return true;
+        }
+        if (this.formatRangeManager.hasProvider(doc)) {
+            return true;
+        }
+        return false;
     }
     registerOnTypeFormattingEditProvider(selector, provider, triggerCharacters) {
         return this.onTypeFormatManager.register(selector, provider, triggerCharacters);
@@ -84100,7 +84105,7 @@ class ListManager {
             return;
         let { mode } = this.prompt;
         let now = Date.now();
-        if (ch == '<plug>' || now - this.plugTs < 2) {
+        if (ch == '<plug>' || (this.plugTs && now - this.plugTs < 20)) {
             this.plugTs = now;
             return;
         }
