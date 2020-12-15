@@ -12,27 +12,29 @@ if has('nvim-0.5.0')
 endif
 
 " highlight LSP range,
-" TODO don't know how to count UTF16 code point, should work most cases.
-function! coc#highlight#range(bufnr, key, hlGroup, range) abort
+function! coc#highlight#ranges(bufnr, key, hlGroup, ranges) abort
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
-  if !bufloaded(bufnr)
+  if !bufloaded(bufnr) || !exists('*getbufline')
     return
   endif
   let srcId = s:create_namespace(a:key)
-  let start = a:range['start']
-  let end = a:range['end']
-  for lnum in range(start['line'] + 1, end['line'] + 1)
-    let arr = getbufline(bufnr, lnum)
-    let line = empty(arr) ? '' : arr[0]
-    if empty(line)
-      continue
-    endif
-    let colStart = lnum == start['line'] + 1 ? strlen(strcharpart(line, 0, start['character'])) : 0
-    let colEnd = lnum == end['line'] + 1 ? strlen(strcharpart(line, 0, end['character'])) : -1
-    if colStart == colEnd
-      continue
-    endif
-    call coc#highlight#add_highlight(bufnr, srcId, a:hlGroup, lnum - 1, colStart, colEnd)
+  for range in a:ranges
+    let start = range['start']
+    let end = range['end']
+    for lnum in range(start['line'] + 1, end['line'] + 1)
+      let arr = getbufline(bufnr, lnum)
+      let line = empty(arr) ? '' : arr[0]
+      if empty(line)
+        continue
+      endif
+      " TODO don't know how to count UTF16 code point, should work most cases.
+      let colStart = lnum == start['line'] + 1 ? strlen(strcharpart(line, 0, start['character'])) : 0
+      let colEnd = lnum == end['line'] + 1 ? strlen(strcharpart(line, 0, end['character'])) : -1
+      if colStart == colEnd
+        continue
+      endif
+      call coc#highlight#add_highlight(bufnr, srcId, a:hlGroup, lnum - 1, colStart, colEnd)
+    endfor
   endfor
 endfunction
 
@@ -125,6 +127,7 @@ function! coc#highlight#highlight_lines(winid, blocks) abort
   endif
 endfunction
 
+" Copmpose hlGroups with foreground and background colors.
 function! coc#highlight#compose_hlgroup(fgGroup, bgGroup) abort
   let hlGroup = 'Fg'.a:fgGroup.'Bg'.a:bgGroup
   if a:fgGroup == a:bgGroup
