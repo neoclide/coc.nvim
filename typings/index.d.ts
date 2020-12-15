@@ -4870,6 +4870,11 @@ declare module 'coc.nvim' {
     export const onDidRuntimePathChange: Event<ReadonlyArray<string>>
 
     /**
+     * Create new namespace id by name.
+     */
+    export function createNameSpace(name: string): number
+
+    /**
      * Register autocmd on vim.
      *
      * Note: avoid request autocmd when possible since vim could be blocked
