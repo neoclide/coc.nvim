@@ -1,6 +1,6 @@
 {
   "name": "coc.nvim",
-  "version": "0.0.79-next.4",
+  "version": "0.0.79-next.14",
   "typeScriptVersion": "4.1.2",
   "types": "index.d.ts",
   "description": "LSP based intellisense engine for neovim & vim8.",
@@ -26,6 +26,10 @@
     "url": "https://github.com/neoclide/coc.nvim/issues"
   },
   "homepage": "https://github.com/neoclide/coc.nvim#readme",
+  "peerDependencies": {
+    "@types/node": "^10.12.0",
+    "typescript": "^4"
+  },
   "devDependencies": {},
   "dependencies": {}
 }

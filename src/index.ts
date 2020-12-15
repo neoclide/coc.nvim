@@ -17,7 +17,6 @@ import listManager from './list/manager'
 import snippetManager from './snippets/manager'
 import BasicList from './list/basic'
 import diagnosticManager from './diagnostic/manager'
-import { watchFile } from './util/index'
 import { ansiparse } from './util/ansiparse'
 import Watchman from './watchman'
 import { URI } from 'vscode-uri'
@@ -29,6 +28,6 @@ export * from './types'
 export * from './language-client'
 export * from './provider'
 
-export { Neovim, ProgressType, Position, Range, TextEdit, RequestType, RequestType0, NotificationType, NotificationType0, Buffer, Window, Highligher, Mru, Watchman, URI as Uri, Disposable, Event, Emitter, FloatFactory, fetch, download, ansiparse, watchFile }
+export { Neovim, ProgressType, Position, Range, TextEdit, RequestType, RequestType0, NotificationType, NotificationType0, Buffer, Window, Highligher, Mru, Watchman, URI as Uri, Disposable, Event, Emitter, FloatFactory, fetch, download, ansiparse }
 export { workspace, window, snippetManager, events, services, commands, sources, languages, diagnosticManager, Document, FileSystemWatcher, extensions, listManager, BasicList }
-export { disposeAll, concurrent, wait, runCommand, isRunning, executable } from './util'
+export { disposeAll, concurrent, watchFile, wait, runCommand, isRunning, executable } from './util'

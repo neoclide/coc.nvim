@@ -5,6 +5,9 @@ MIT License http://www.opensource.org/licenses/mit-license.php
 Author Qiming Zhao <chemzqm@gmail> (https://github.com/chemzqm)
 *******************************************************************/
 
+/// <reference types="node" />
+import cp from 'child_process'
+
 declare module 'coc.nvim' {
   // Language server protocol interfaces {{
   export interface Thenable<T> {
@@ -1187,6 +1190,23 @@ declare module 'coc.nvim' {
   }
 
   /**
+ * The Position namespace provides helper functions to work with
+ * [Position](#Position) literals.
+ */
+  export namespace Position {
+    /**
+     * Creates a new Position literal from the given line and character.
+     * @param line The position's line.
+     * @param character The position's character.
+     */
+    function create(line: number, character: number): Position
+    /**
+     * Checks whether the given liternal conforms to the [Position](#Position) interface.
+     */
+    function is(value: any): value is Position
+  }
+
+  /**
    * Represents a typed event.
    *
    * A function that represents an event to which you subscribe by calling it with
@@ -1267,6 +1287,31 @@ declare module 'coc.nvim' {
   }
 
   /**
+   * The Range namespace provides helper functions to work with
+   * [Range](#Range) literals.
+   */
+  export namespace Range {
+    /**
+     * Create a new Range liternal.
+     * @param start The range's start position.
+     * @param end The range's end position.
+     */
+    function create(start: Position, end: Position): Range
+    /**
+     * Create a new Range liternal.
+     * @param startLine The start line number.
+     * @param startCharacter The start character.
+     * @param endLine The end line number.
+     * @param endCharacter The end character.
+     */
+    function create(startLine: number, startCharacter: number, endLine: number, endCharacter: number): Range
+    /**
+     * Checks whether the given literal conforms to the [Range](#Range) interface.
+     */
+    function is(value: any): value is Range
+  }
+
+  /**
    * A text edit applicable to a text document.
    */
   export interface TextEdit {
@@ -1280,6 +1325,31 @@ declare module 'coc.nvim' {
      * empty string.
      */
     newText: string
+  }
+
+  /**
+   * The TextEdit namespace provides helper function to create replace,
+   * insert and delete edits more easily.
+   */
+  export namespace TextEdit {
+    /**
+     * Creates a replace text edit.
+     * @param range The range of text to be replaced.
+     * @param newText The new text.
+     */
+    function replace(range: Range, newText: string): TextEdit
+    /**
+     * Creates a insert text edit.
+     * @param position The position to insert the text at.
+     * @param newText The text to be inserted.
+     */
+    function insert(position: Position, newText: string): TextEdit
+    /**
+     * Creates a delete text edit.
+     * @param range The range of text to be deleted.
+     */
+    function del(range: Range): TextEdit
+    function is(value: any): value is TextEdit
   }
 
   /**
@@ -1780,7 +1850,7 @@ declare module 'coc.nvim' {
      * @param {VimValue | VimValue[]} args
      * @returns {Promise<any>}
      */
-    call(fname: string, args?: VimValue | VimValue[]): Promise<unknown>
+    call(fname: string, args?: VimValue | VimValue[]): Promise<any>
 
     /**
      * Call a vim function by notification.
@@ -2646,7 +2716,7 @@ declare module 'coc.nvim' {
   /**
    * Folding context (for future use)
    */
-  export interface FoldingContext { }
+  export interface FoldingContext {}
 
   /**
    * The folding range provider interface defines the contract between extensions and
@@ -3105,6 +3175,7 @@ declare module 'coc.nvim' {
     activated(): Promise<boolean>
 
     constructor(nvim: Neovim)
+
     /**
      * Show documentations in float window/popup around cursor.
      * Window and buffer are reused when possible.
@@ -3114,6 +3185,11 @@ declare module 'coc.nvim' {
      * @param config Configuration for floating window/popup.
      */
     show(docs: Documentation[], config?: FloatWinConfig): Promise<void>
+
+    /**
+     * Close float window.
+     */
+    close(): void
     dispose(): void
   }
 
@@ -3208,6 +3284,9 @@ declare module 'coc.nvim' {
      * Should align columns when true.
      */
     get alignColumns(): boolean
+    get hlGroup(): string
+    get previewHeight(): string
+    get splitRight(): boolean
     /**
      * Parse argument string array for argument object from `this.options`.
      * Could be used inside `this.loadItems()`
@@ -3399,6 +3478,14 @@ declare module 'coc.nvim' {
    * Check if command is executable.
    */
   export function executable(command: string): boolean
+
+  /**
+   * Watch single file for change, the filepath needs to be exists file.
+   *
+   * @param filepath Full path of file.
+   * @param onChange Handler on file change detected.
+   */
+  export function watchFile(filepath: string, onChange: () => void): Disposable
   // }}
 
   // commands module {{
@@ -4464,10 +4551,9 @@ declare module 'coc.nvim' {
      * Change individual lines.
      *
      * @param {[number, string][]} lines
-     * @param {boolean} sync Synchronize with change event when true.
      * @returns {void}
      */
-    changeLines(lines: [number, string][], sync?: boolean): void
+    changeLines(lines: [number, string][]): Promise<void>
 
     /**
      * Force document synchronize and emit change event when necessary.
@@ -4509,7 +4595,7 @@ declare module 'coc.nvim' {
     getline(line: number, current?: boolean): string
 
     /**
-     * Get lines, zero indexed, end exclude.
+     * Get range of current lines, zero indexed, end exclude.
      */
     getLines(start?: number, end?: number): string[]
 
@@ -4741,6 +4827,12 @@ declare module 'coc.nvim' {
 
   export namespace workspace {
     export const nvim: Neovim
+    /**
+     * Current buffer number, could be wrong since vim could not send autocmd as expected.
+     *
+     * @deprecated will be removed in the feature.
+     */
+    export const bufnr: number
     /**
      * Current document.
      */
@@ -6846,6 +6938,12 @@ declare module 'coc.nvim' {
     execArgv?: string[]
   }
 
+  export interface StreamInfo {
+    writer: NodeJS.WritableStream
+    reader: NodeJS.ReadableStream
+    detached?: boolean
+  }
+
   export enum TransportKind {
     stdio = 0,
     ipc = 1,
@@ -6860,10 +6958,41 @@ declare module 'coc.nvim' {
 
   export interface NodeModule {
     module: string
-    transport?: Transport
+    transport?: TransportKind | SocketTransport
     args?: string[]
     runtime?: string
     options?: ForkOptions
+  }
+
+  export interface ChildProcessInfo {
+    process: cp.ChildProcess
+    detached: boolean
+  }
+
+  export interface PartialMessageInfo {
+    readonly messageToken: number
+    readonly waitingTime: number
+  }
+
+  export interface MessageReader {
+    readonly onError: Event<Error>
+    readonly onClose: Event<void>
+    readonly onPartialMessage: Event<PartialMessageInfo>
+    listen(callback: (data: { jsonrpc: string }) => void): void
+    dispose(): void
+  }
+
+  export interface MessageWriter {
+    readonly onError: Event<[Error, { jsonrpc: string } | undefined, number | undefined]>
+    readonly onClose: Event<void>
+    write(msg: { jsonrpc: string }): void
+    dispose(): void
+  }
+
+  export interface MessageTransports {
+    reader: MessageReader
+    writer: MessageWriter
+    detached?: boolean
   }
 
   export type ServerOptions = Executable | NodeModule | {
@@ -6872,7 +7001,7 @@ declare module 'coc.nvim' {
   } | {
     run: NodeModule
     debug: NodeModule
-  }
+  } | (() => Promise<cp.ChildProcess | StreamInfo | MessageTransports | ChildProcessInfo>)
 
   export interface _EM {
     _$endMarker$_: number
