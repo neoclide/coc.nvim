@@ -797,7 +797,7 @@ function! coc#float#check_related() abort
     endif
     for id in popup_list()
       let target = getwinvar(id, 'target_winid', 0)
-      if target && !s:popup_visible(target)
+      if (target && !s:popup_visible(target)) || getwinvar(id, 'kind', '') == 'pum'
         call add(invalids, id)
       endif
     endfor
@@ -806,11 +806,13 @@ function! coc#float#check_related() abort
       let target = getwinvar(i, 'target_winid', 0)
       if target && !nvim_win_is_valid(target)
         call add(invalids, win_getid(i))
+      elseif getwinvar(i, 'kind', '') == 'pum'
+        call add(invalids, win_getid(i))
       endif
     endfor
   endif
   for id in invalids
-    call s:close_win(id)
+    call coc#float#close(id)
   endfor
 endfunction
 
@@ -908,6 +910,7 @@ function! coc#float#create_pum_float(winid, bufnr, lines, config) abort
     return v:null
   endif
   call coc#highlight#add_highlights(res[0], a:config['codes'], a:config['highlights'])
+  call setwinvar(res[0], 'kind', 'pum')
   redraw
   if has('nvim')
     call coc#float#nvim_scrollbar(res[0])
