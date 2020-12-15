@@ -296,7 +296,7 @@ export class ListManager implements Disposable {
     if (session != 'list') return
     let { mode } = this.prompt
     let now = Date.now()
-    if (ch == '<plug>' || now - this.plugTs < 2) {
+    if (ch == '<plug>' || (this.plugTs && now - this.plugTs < 20)) {
       this.plugTs = now
       return
     }
