@@ -140,7 +140,13 @@ class Languages {
   }
 
   public hasFormatProvider(doc: TextDocument): boolean {
-    return this.formatManager.handles(doc)
+    if (this.formatManager.hasProvider(doc)) {
+      return true
+    }
+    if (this.formatRangeManager.hasProvider(doc)) {
+      return true
+    }
+    return false
   }
 
   public registerOnTypeFormattingEditProvider(
