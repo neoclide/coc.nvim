@@ -10,7 +10,7 @@ interface Change {
   newText: string
 }
 
-export function diffLines(oldLines: string[], newLines: string[]): ChangedLines {
+export function diffLines(oldLines: ReadonlyArray<string>, newLines: string[]): ChangedLines {
   let start = 0
   let end = oldLines.length
   let oldLen = end

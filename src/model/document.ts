@@ -6,8 +6,8 @@ import { URI } from 'vscode-uri'
 import events from '../events'
 import { ChangeInfo, DidChangeTextDocumentParams, Env } from '../types'
 import { diffLines, getChange } from '../util/diff'
-import { isGitIgnored } from '../util/fs'
 import { disposeAll, getUri, wait } from '../util/index'
+import { equals } from '../util/object'
 import { byteLength, byteSlice } from '../util/string'
 import { Chars } from './chars'
 const logger = require('../util/logger')('model-document')
@@ -29,21 +29,22 @@ export interface BufferOption {
   lines: string[]
 }
 
-// wrapper class of TextDocument
+// getText, positionAt, offsetAt
 export default class Document {
   public buftype: string
   public isIgnored = false
   public chars: Chars
-  public textDocument: TextDocument
   public fireContentChanges: Function & { clear(): void }
   public fetchContent: Function & { clear(): void }
+  private _version = 1
   private ignoreChange = false
   private size = 0
   private nvim: Neovim
   private eol = true
   private variables: { [key: string]: any }
   // real current lines
-  private lines: string[] = []
+  private lines: ReadonlyArray<string> = []
+  private syncLines: ReadonlyArray<string> = []
   private _attached = false
   private _previewwindow = false
   private _winid = -1
@@ -56,10 +57,7 @@ export default class Document {
   private disposables: Disposable[] = []
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
   public readonly onDocumentDetach: Event<number> = this._onDocumentDetach.event
-  constructor(
-    public readonly buffer: Buffer,
-    private env: Env,
-    private maxFileSize: number | null) {
+  constructor(public readonly buffer: Buffer, private env: Env, private maxFileSize: number | null) {
     this.fireContentChanges = debounce(() => {
       this._fireContentChanges()
     }, 100)
@@ -68,6 +66,31 @@ export default class Document {
     }, 100)
   }
 
+  /**
+   * Synchronize content
+   */
+  public get content(): string {
+    return this.syncLines.join('\n') + (this.eol ? '\n' : '')
+  }
+
+  public get version(): number {
+    return this._version
+  }
+
+  /**
+   * Buffer number
+   */
+  public get bufnr(): number {
+    return this.buffer.id
+  }
+
+  public get filetype(): string {
+    return this._filetype
+  }
+
+  public get uri(): string {
+    return this._uri
+  }
   /**
    * Check if current document should be attached for changes.
    *
@@ -131,6 +154,8 @@ export default class Document {
 
   /**
    * Window ID when buffer create, could be -1 when no window associated.
+   *
+   * @deprecated could be wrong.
    */
   public get winid(): number {
     return this._winid
@@ -159,18 +184,17 @@ export default class Document {
     this.variables = opts.variables || {}
     this._changedtick = opts.changedtick
     this.eol = opts.eol == 1
-    let uri = this._uri = getUri(opts.fullpath, this.bufnr, buftype, this.env.isCygwin)
+    this._uri = getUri(opts.fullpath, this.bufnr, buftype, this.env.isCygwin)
     if (token.isCancellationRequested) return false
     if (this.shouldAttach) {
       this.lines = opts.lines
+      this.syncLines = this.lines
       let res = await this.attach()
       if (!res) return false
       this._attached = true
     }
     this._filetype = this.convertFiletype(opts.filetype)
-    this.textDocument = TextDocument.create(uri, this.filetype, 1, this.getDocumentContent())
     this.setIskeyword(opts.iskeyword)
-    this.gitCheck()
     if (token.isCancellationRequested) {
       this.detach()
       return false
@@ -194,9 +218,6 @@ export default class Document {
     this.buffer.listen('changedtick', (_buf: Buffer, tick: number) => {
       this._changedtick = tick
     }, this.disposables)
-    if (this.textDocument) {
-      this.fireContentChanges()
-    }
     return true
   }
 
@@ -236,25 +257,27 @@ export default class Document {
    * Check if document changed after last synchronize
    */
   public get dirty(): boolean {
-    return this.content != this.getDocumentContent()
+    if (this.lines === this.syncLines) return false
+    return !equals(this.lines, this.syncLines)
   }
 
   private _fireContentChanges(): boolean {
-    let { textDocument } = this
     let { cursor } = events
+    let { textDocument } = this
     try {
-      let content = this.getDocumentContent()
       let endOffset = null
+      // consider cursor position.
       if (cursor && cursor.bufnr == this.bufnr) {
         endOffset = this.getEndOffset(cursor.lnum, cursor.col, cursor.insert)
       }
+      let content = this.getDocumentContent()
       let change = getChange(textDocument.getText(), content, endOffset)
       if (change == null) return
-      this.createDocument()
-      let { version, uri } = this
       let start = textDocument.positionAt(change.start)
       let end = textDocument.positionAt(change.end)
       let original = textDocument.getText(Range.create(start, end))
+      this._version = this._version + 1
+      this.syncLines = this.lines
       let changes = [{
         range: { start, end },
         rangeLength: change.end - change.start,
@@ -263,44 +286,15 @@ export default class Document {
       this._onDocumentChange.fire({
         bufnr: this.bufnr,
         original,
-        textDocument: { version, uri },
+        textDocument: { version: this.version, uri: this.uri },
         contentChanges: changes
       })
-      this._words = this.chars.matchKeywords(this.textDocument.getText())
+      this._words = this.chars.matchKeywords(content)
       return true
     } catch (e) {
       logger.error(e.message)
     }
     return false
-  }
-
-  /**
-   * Buffer number
-   */
-  public get bufnr(): number {
-    return this.buffer.id
-  }
-
-  /**
-   * Content of textDocument.
-   */
-  public get content(): string {
-    return this.textDocument.getText()
-  }
-
-  /**
-   * Coverted filetype.
-   */
-  public get filetype(): string {
-    return this._filetype
-  }
-
-  public get uri(): string {
-    return this._uri
-  }
-
-  public get version(): number {
-    return this.textDocument ? this.textDocument.version : null
   }
 
   public async applyEdits(edits: TextEdit[]): Promise<void> {
@@ -311,7 +305,7 @@ export default class Document {
     edits.forEach(edit => {
       edit.newText = edit.newText.replace(/\r/g, '')
     })
-    let current = this.lines.join('\n') + (this.eol ? '\n' : '')
+    let current = this.getDocumentContent()
     let textDocument = TextDocument.create(this.uri, this.filetype, 1, current)
     // apply edits to current textDocument
     let applied = TextDocument.applyEdits(textDocument, edits)
@@ -336,13 +330,15 @@ export default class Document {
   public changeLines(lines: [number, string][], sync = true): void {
     let { nvim } = this
     let filtered: [number, string][] = []
+    let newLines = this.lines.slice()
     for (let [lnum, text] of lines) {
-      if (this.lines[lnum] != text) {
+      if (newLines[lnum] != text) {
         filtered.push([lnum, text])
-        this.lines[lnum] = text
+        newLines[lnum] = text
       }
     }
     if (!filtered.length) return
+    this.lines = newLines
     nvim.call('coc#util#change_lines', [this.bufnr, filtered], true)
     this.ignoreChange = true
     if (sync) this.forceSync()
@@ -429,28 +425,17 @@ export default class Document {
     return Range.create(position.line, start, position.line, end)
   }
 
-  private gitCheck(): void {
-    let { uri } = this
-    if (!uri.startsWith('file') || this.buftype != '') return
-    let filepath = URI.parse(uri).fsPath
-    isGitIgnored(filepath).then(isIgnored => {
-      this.isIgnored = isIgnored
-    }, () => {
-      this.isIgnored = false
-    })
+  /**
+   * Synchronized textDocument.
+   */
+  public get textDocument(): TextDocument {
+    let { version, filetype, uri } = this
+    return TextDocument.create(uri, filetype, version, this.content)
   }
 
-  private createDocument(changeCount = 1): void {
-    let { version, uri, filetype } = this
-    version = version + changeCount
-    this.textDocument = TextDocument.create(
-      uri,
-      filetype,
-      version,
-      this.getDocumentContent()
-    )
-  }
-
+  /**
+   * Used by vim for fetch new lines.
+   */
   private async _fetchContent(): Promise<void> {
     if (!this.env.isVim || !this._attached) return
     let { nvim, bufnr, changedtick } = this
@@ -471,10 +456,12 @@ export default class Document {
       if (currentLine) {
         let change = await this.nvim.call('coc#util#get_changeinfo', []) as ChangeInfo
         if (change.changedtick == this._changedtick) return
-        let { lines } = this
         let { lnum, line, changedtick } = change
+        let newLines = this.lines.slice()
         this._changedtick = changedtick
-        lines[lnum - 1] = line
+        if (newLines[lnum - 1] == line) return
+        newLines[lnum - 1] = line
+        this.lines = newLines
         this.forceSync()
       } else {
         this.fetchContent.clear()
@@ -491,8 +478,8 @@ export default class Document {
    */
   public getSymbolRanges(word: string): Range[] {
     this.forceSync()
-    let { textDocument } = this
     let res: Range[] = []
+    let { textDocument } = this
     let content = textDocument.getText()
     let str = ''
     for (let i = 0, l = content.length; i < l; i++) {
@@ -536,23 +523,11 @@ export default class Document {
   }
 
   /**
-   * Get cwd of this document.
-   *
-   * @deprecated won't work when buffer not in current tab.
-   */
-  public async getcwd(): Promise<string> {
-    let wid = await this.nvim.call('bufwinid', this.buffer.id)
-    if (wid == -1) return await this.nvim.call('getcwd')
-    return await this.nvim.call('getcwd', wid)
-  }
-
-  /**
    * Real current line
    */
   public getline(line: number, current = true): string {
     if (current) return this.lines[line] || ''
-    let lines = this.textDocument.getText().split(/\r?\n/)
-    return lines[line] || ''
+    return this.syncLines[line] || ''
   }
 
   /**
@@ -590,7 +565,7 @@ export default class Document {
 
   /**
    * Get end offset from cursor position.
-   * For normal mode, use offset -1 when possible
+   * For normal mode, use offset - 1 when possible
    */
   public getEndOffset(lnum: number, col: number, insert: boolean): number {
     let total = 0
@@ -621,11 +596,8 @@ export default class Document {
    * @internal
    */
   public setFiletype(filetype: string): void {
-    let { uri, version } = this
     this._filetype = this.convertFiletype(filetype)
-    version = version ? version + 1 : 1
-    let textDocument = TextDocument.create(uri, this.filetype, version, this.content)
-    this.textDocument = textDocument
+    this._version = this._version + 1
   }
 
   /**
@@ -642,7 +614,12 @@ export default class Document {
       }
     }
     let lines = this.lines.length > 30000 ? this.lines.slice(0, 30000) : this.lines
+    // TODO not parse words
     this._words = this.chars.matchKeywords(lines.join('\n'))
+  }
+
+  public get attached(): boolean {
+    return this._attached
   }
 
   /**
@@ -658,10 +635,6 @@ export default class Document {
     this.fireContentChanges.clear()
     this._onDocumentChange.dispose()
     this._onDocumentDetach.dispose()
-  }
-
-  public get attached(): boolean {
-    return this._attached
   }
 
   /**

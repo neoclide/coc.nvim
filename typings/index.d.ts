@@ -4406,10 +4406,6 @@ declare module 'coc.nvim' {
      */
     readonly buftype: string
     /**
-     * Is ignored by git ignore.
-     */
-    readonly isIgnored: boolean
-    /**
      * Text document that synchronized.
      */
     readonly textDocument: TextDocument
