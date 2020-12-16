@@ -593,11 +593,24 @@ function! coc#util#highlight_options()
         \}
 endfunction
 
+function! coc#util#set_lines(bufnr, replacement, start, end) abort
+  if !s:is_vim
+    call nvim_buf_set_lines(a:bufnr, a:start, a:end, 0, a:replacement)
+  else
+    call coc#api#notify('buf_set_lines', [a:bufnr, a:start, a:end, 0, a:replacement])
+  endif
+  return getbufvar(a:bufnr, 'changedtick')
+endfunction
+
 " used by vim
-function! coc#util#get_content(bufnr)
+function! coc#util#get_buf_lines(bufnr, changedtick)
   if !bufloaded(a:bufnr) | return '' | endif
+  let changedtick = getbufvar(a:bufnr, 'changedtick')
+  if changedtick == a:changedtick
+    return v:null
+  endif
   return {
-        \ 'content': join(getbufline(a:bufnr, 1, '$'), "\n"),
+        \ 'lines': getbufline(a:bufnr, 1, '$'),
         \ 'changedtick': getbufvar(a:bufnr, 'changedtick')
         \ }
 endfunction
@@ -842,7 +855,7 @@ function! coc#util#set_buf_var(bufnr, name, val) abort
 endfunction
 
 function! coc#util#change_lines(bufnr, list) abort
-  if !bufloaded(a:bufnr) | return | endif
+  if !bufloaded(a:bufnr) | return v:null | endif
   if exists('*setbufline')
     for [lnum, line] in a:list
       call setbufline(a:bufnr, lnum + 1, line)
@@ -859,6 +872,7 @@ function! coc#util#change_lines(bufnr, list) abort
     endfor
     exe 'noa buffer '.bufnr
   endif
+  return getbufvar(a:bufnr, 'changedtick')
 endfunction
 
 function! coc#util#unmap(bufnr, keys) abort

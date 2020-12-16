@@ -24021,7 +24021,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "7e550643a5" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "365c63e12f" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -41474,23 +41474,26 @@ const vscode_languageserver_textdocument_1 = __webpack_require__(346);
 const vscode_uri_1 = __webpack_require__(243);
 const events_1 = tslib_1.__importDefault(__webpack_require__(210));
 const diff_1 = __webpack_require__(360);
-const fs_1 = __webpack_require__(352);
 const index_1 = __webpack_require__(238);
+const object_1 = __webpack_require__(249);
 const string_1 = __webpack_require__(289);
 const chars_1 = __webpack_require__(361);
+const mutex_1 = __webpack_require__(290);
 const logger = __webpack_require__(64)('model-document');
-// wrapper class of TextDocument
+// getText, positionAt, offsetAt
 class Document {
     constructor(buffer, env, maxFileSize) {
         this.buffer = buffer;
         this.env = env;
         this.maxFileSize = maxFileSize;
         this.isIgnored = false;
-        this.ignoreChange = false;
+        this.mutex = new mutex_1.Mutex();
+        this._version = 1;
         this.size = 0;
         this.eol = true;
         // real current lines
         this.lines = [];
+        this.syncLines = [];
         this._attached = false;
         this._previewwindow = false;
         this._winid = -1;
@@ -41506,6 +41509,27 @@ class Document {
         this.fetchContent = debounce_1.default(() => {
             this._fetchContent().logError();
         }, 100);
+    }
+    /**
+     * Synchronize content
+     */
+    get content() {
+        return this.syncLines.join('\n') + (this.eol ? '\n' : '');
+    }
+    get version() {
+        return this._version;
+    }
+    /**
+     * Buffer number
+     */
+    get bufnr() {
+        return this.buffer.id;
+    }
+    get filetype() {
+        return this._filetype;
+    }
+    get uri() {
+        return this._uri;
     }
     /**
      * Check if current document should be attached for changes.
@@ -41568,6 +41592,8 @@ class Document {
     }
     /**
      * Window ID when buffer create, could be -1 when no window associated.
+     *
+     * @deprecated could be wrong.
      */
     get winid() {
         return this._winid;
@@ -41595,20 +41621,19 @@ class Document {
         this.variables = opts.variables || {};
         this._changedtick = opts.changedtick;
         this.eol = opts.eol == 1;
-        let uri = this._uri = index_1.getUri(opts.fullpath, this.bufnr, buftype, this.env.isCygwin);
+        this._uri = index_1.getUri(opts.fullpath, this.bufnr, buftype, this.env.isCygwin);
         if (token.isCancellationRequested)
             return false;
         if (this.shouldAttach) {
             this.lines = opts.lines;
+            this.syncLines = this.lines;
             let res = await this.attach();
             if (!res)
                 return false;
             this._attached = true;
         }
         this._filetype = this.convertFiletype(opts.filetype);
-        this.textDocument = vscode_languageserver_textdocument_1.TextDocument.create(uri, this.filetype, 1, this.getDocumentContent());
         this.setIskeyword(opts.iskeyword);
-        this.gitCheck();
         if (token.isCancellationRequested) {
             this.detach();
             return false;
@@ -41619,39 +41644,22 @@ class Document {
         let attached = await this.buffer.attach(true);
         if (!attached)
             return false;
-        let lastChange;
-        this.buffer.listen('lines', (...args) => {
-            // avoid neovim send same change multiple times after checktime
-            if (lastChange == args[1])
-                return;
-            lastChange = args[1];
-            this.onChange.apply(this, args);
-        }, this.disposables);
+        this.buffer.listen('lines', this.onChange.bind(this), this.disposables);
         this.buffer.listen('detach', async (buf) => {
             this._onDocumentDetach.fire(buf.id);
         }, this.disposables);
-        this.buffer.listen('changedtick', (_buf, tick) => {
-            this._changedtick = tick;
-        }, this.disposables);
-        if (this.textDocument) {
-            this.fireContentChanges();
-        }
         return true;
     }
-    onChange(buf, tick, firstline, lastline, linedata
-    // more:boolean
-    ) {
-        if (buf.id !== this.buffer.id || tick == null)
+    async onChange(buf, tick, firstline, lastline, linedata) {
+        if (buf.id !== this.bufnr || !this._attached || tick == null)
             return;
-        this._changedtick = tick;
-        if (this.ignoreChange) {
-            this.ignoreChange = false;
-            return;
+        let release = await this.mutex.acquire();
+        if (tick > this._changedtick) {
+            this._changedtick = tick;
+            this.lines = [...this.lines.slice(0, firstline), ...linedata, ...this.lines.slice(lastline)];
+            this.fireContentChanges();
         }
-        let lines = this.lines.slice(0, firstline);
-        lines = lines.concat(linedata, this.lines.slice(lastline));
-        this.lines = lines;
-        this.fireContentChanges();
+        release();
     }
     /**
      * Make sure current document synced correctly
@@ -41669,25 +41677,28 @@ class Document {
      * Check if document changed after last synchronize
      */
     get dirty() {
-        return this.content != this.getDocumentContent();
+        if (this.lines === this.syncLines)
+            return false;
+        return !object_1.equals(this.lines, this.syncLines);
     }
     _fireContentChanges() {
-        let { textDocument } = this;
         let { cursor } = events_1.default;
+        let { textDocument } = this;
         try {
-            let content = this.getDocumentContent();
             let endOffset = null;
+            // consider cursor position.
             if (cursor && cursor.bufnr == this.bufnr) {
                 endOffset = this.getEndOffset(cursor.lnum, cursor.col, cursor.insert);
             }
+            let content = this.getDocumentContent();
             let change = diff_1.getChange(textDocument.getText(), content, endOffset);
             if (change == null)
                 return;
-            this.createDocument();
-            let { version, uri } = this;
             let start = textDocument.positionAt(change.start);
             let end = textDocument.positionAt(change.end);
             let original = textDocument.getText(vscode_languageserver_protocol_1.Range.create(start, end));
+            this._version = this._version + 1;
+            this.syncLines = this.lines;
             let changes = [{
                     range: { start, end },
                     rangeLength: change.end - change.start,
@@ -41696,40 +41707,16 @@ class Document {
             this._onDocumentChange.fire({
                 bufnr: this.bufnr,
                 original,
-                textDocument: { version, uri },
+                textDocument: { version: this.version, uri: this.uri },
                 contentChanges: changes
             });
-            this._words = this.chars.matchKeywords(this.textDocument.getText());
+            this._words = this.chars.matchKeywords(content);
             return true;
         }
         catch (e) {
             logger.error(e.message);
         }
         return false;
-    }
-    /**
-     * Buffer number
-     */
-    get bufnr() {
-        return this.buffer.id;
-    }
-    /**
-     * Content of textDocument.
-     */
-    get content() {
-        return this.textDocument.getText();
-    }
-    /**
-     * Coverted filetype.
-     */
-    get filetype() {
-        return this._filetype;
-    }
-    get uri() {
-        return this._uri;
-    }
-    get version() {
-        return this.textDocument ? this.textDocument.version : null;
     }
     async applyEdits(edits) {
         if (!Array.isArray(arguments[0]) && Array.isArray(arguments[1])) {
@@ -41740,7 +41727,7 @@ class Document {
         edits.forEach(edit => {
             edit.newText = edit.newText.replace(/\r/g, '');
         });
-        let current = this.lines.join('\n') + (this.eol ? '\n' : '');
+        let current = this.getDocumentContent();
         let textDocument = vscode_languageserver_textdocument_1.TextDocument.create(this.uri, this.filetype, 1, current);
         // apply edits to current textDocument
         let applied = vscode_languageserver_textdocument_1.TextDocument.applyEdits(textDocument, edits);
@@ -41751,36 +41738,51 @@ class Document {
                 newLines = newLines.slice(0, -1);
             }
             let d = diff_1.diffLines(this.lines, newLines);
-            await this.buffer.setLines(d.replacement, {
-                start: d.start,
-                end: d.end,
-                strictIndexing: false
-            });
-            // can't wait vim sync buffer
-            this.lines = newLines;
-            this.forceSync();
+            let release = await this.mutex.acquire();
+            try {
+                this._changedtick = await this.nvim.call('coc#util#set_lines', [this.bufnr, d.replacement, d.start, d.end]);
+                // can't wait vim sync buffer
+                this.lines = newLines;
+                this.fireContentChanges.clear();
+                this._fireContentChanges();
+                release();
+            }
+            catch (e) {
+                logger.error('Error on applyEdits: ', e);
+                release();
+            }
         }
     }
-    changeLines(lines, sync = true) {
-        let { nvim } = this;
+    async changeLines(lines) {
         let filtered = [];
+        let newLines = this.lines.slice();
         for (let [lnum, text] of lines) {
-            if (this.lines[lnum] != text) {
+            if (newLines[lnum] != text) {
                 filtered.push([lnum, text]);
-                this.lines[lnum] = text;
+                newLines[lnum] = text;
             }
         }
         if (!filtered.length)
             return;
-        nvim.call('coc#util#change_lines', [this.bufnr, filtered], true);
-        this.ignoreChange = true;
-        if (sync)
-            this.forceSync();
+        let release = await this.mutex.acquire();
+        try {
+            this.lines = newLines;
+            let res = await this.nvim.call('coc#util#change_lines', [this.bufnr, filtered], true);
+            this._changedtick = res == null ? 0 : res;
+            this.fireContentChanges.clear();
+            this._fireContentChanges();
+            release();
+        }
+        catch (e) {
+            release();
+        }
     }
     /**
      * Force document synchronize and emit change event when necessary.
      */
     forceSync() {
+        if (this.mutex.busy)
+            return;
         this.fireContentChanges.clear();
         this._fireContentChanges();
     }
@@ -41856,36 +41858,25 @@ class Document {
         }
         return vscode_languageserver_protocol_1.Range.create(position.line, start, position.line, end);
     }
-    gitCheck() {
-        let { uri } = this;
-        if (!uri.startsWith('file') || this.buftype != '')
-            return;
-        let filepath = vscode_uri_1.URI.parse(uri).fsPath;
-        fs_1.isGitIgnored(filepath).then(isIgnored => {
-            this.isIgnored = isIgnored;
-        }, () => {
-            this.isIgnored = false;
-        });
+    /**
+     * Synchronized textDocument.
+     */
+    get textDocument() {
+        let { version, filetype, uri } = this;
+        return vscode_languageserver_textdocument_1.TextDocument.create(uri, filetype, version, this.content);
     }
-    createDocument(changeCount = 1) {
-        let { version, uri, filetype } = this;
-        version = version + changeCount;
-        this.textDocument = vscode_languageserver_textdocument_1.TextDocument.create(uri, filetype, version, this.getDocumentContent());
-    }
+    /**
+     * Used by vim for fetch new lines.
+     */
     async _fetchContent() {
         if (!this.env.isVim || !this._attached)
             return;
-        let { nvim, buffer } = this;
-        let { id } = buffer;
-        let o = (await nvim.call('coc#util#get_content', id));
-        if (!o)
+        let { nvim, bufnr, changedtick } = this;
+        let o = await nvim.call('coc#util#get_buf_lines', [bufnr, changedtick]);
+        if (!o || o.changedtick <= this._changedtick)
             return;
-        let { content, changedtick } = o;
-        if (this._changedtick == changedtick)
-            return;
-        this._changedtick = changedtick;
-        let newLines = content.split('\n');
-        this.lines = newLines;
+        this._changedtick = o.changedtick;
+        this.lines = o.lines;
         this.fireContentChanges.clear();
         this._fireContentChanges();
     }
@@ -41898,12 +41889,15 @@ class Document {
         if (this.env.isVim) {
             if (currentLine) {
                 let change = await this.nvim.call('coc#util#get_changeinfo', []);
-                if (change.changedtick == this._changedtick)
+                if (change.changedtick <= this._changedtick)
                     return;
-                let { lines } = this;
                 let { lnum, line, changedtick } = change;
+                let newLines = this.lines.slice();
                 this._changedtick = changedtick;
-                lines[lnum - 1] = line;
+                if (newLines[lnum - 1] == line)
+                    return;
+                newLines[lnum - 1] = line;
+                this.lines = newLines;
                 this.forceSync();
             }
             else {
@@ -41921,8 +41915,8 @@ class Document {
      */
     getSymbolRanges(word) {
         this.forceSync();
-        let { textDocument } = this;
         let res = [];
+        let { textDocument } = this;
         let content = textDocument.getText();
         let str = '';
         for (let i = 0, l = content.length; i < l; i++) {
@@ -41966,24 +41960,12 @@ class Document {
         return col;
     }
     /**
-     * Get cwd of this document.
-     *
-     * @deprecated won't work when buffer not in current tab.
-     */
-    async getcwd() {
-        let wid = await this.nvim.call('bufwinid', this.buffer.id);
-        if (wid == -1)
-            return await this.nvim.call('getcwd');
-        return await this.nvim.call('getcwd', wid);
-    }
-    /**
      * Real current line
      */
     getline(line, current = true) {
         if (current)
             return this.lines[line] || '';
-        let lines = this.textDocument.getText().split(/\r?\n/);
-        return lines[line] || '';
+        return this.syncLines[line] || '';
     }
     /**
      * Get lines, zero indexed, end exclude.
@@ -42017,7 +41999,7 @@ class Document {
     }
     /**
      * Get end offset from cursor position.
-     * For normal mode, use offset -1 when possible
+     * For normal mode, use offset - 1 when possible
      */
     getEndOffset(lnum, col, insert) {
         let total = 0;
@@ -42050,11 +42032,8 @@ class Document {
      * @internal
      */
     setFiletype(filetype) {
-        let { uri, version } = this;
         this._filetype = this.convertFiletype(filetype);
-        version = version ? version + 1 : 1;
-        let textDocument = vscode_languageserver_textdocument_1.TextDocument.create(uri, this.filetype, version, this.content);
-        this.textDocument = textDocument;
+        this._version = this._version + 1;
     }
     /**
      * Change iskeyword option of document
@@ -42070,7 +42049,11 @@ class Document {
             }
         }
         let lines = this.lines.length > 30000 ? this.lines.slice(0, 30000) : this.lines;
+        // TODO not parse words
         this._words = this.chars.matchKeywords(lines.join('\n'));
+    }
+    get attached() {
+        return this._attached;
     }
     /**
      * Detach document.
@@ -42085,9 +42068,6 @@ class Document {
         this.fireContentChanges.clear();
         this._onDocumentChange.dispose();
         this._onDocumentDetach.dispose();
-    }
-    get attached() {
-        return this._attached;
     }
     /**
      * Get localify bonus map.
@@ -47794,6 +47774,12 @@ class Completion {
     init() {
         this.config = this.getCompleteConfig();
         this.floating = new floating_1.default(workspace_1.default.nvim, workspace_1.default.env.isVim);
+        events_1.default.on(['InsertCharPre', 'MenuPopupChanged', 'TextChangedI', 'CursorMovedI', 'InsertLeave'], () => {
+            if (this.triggerTimer) {
+                clearTimeout(this.triggerTimer);
+                this.triggerTimer = null;
+            }
+        }, this, this.disposables);
         events_1.default.on('InsertCharPre', this.onInsertCharPre, this, this.disposables);
         events_1.default.on('InsertLeave', this.onInsertLeave, this, this.disposables);
         events_1.default.on('InsertEnter', this.onInsertEnter, this, this.disposables);
@@ -47877,7 +47863,7 @@ class Completion {
             enablePreview: getConfig('enablePreview', false),
             enablePreselect: getConfig('enablePreselect', false),
             maxPreviewWidth: getConfig('maxPreviewWidth', 80),
-            triggerCompletionWait: getConfig('triggerCompletionWait', 50),
+            triggerCompletionWait: getConfig('triggerCompletionWait', 100),
             labelMaxLength: getConfig('labelMaxLength', 200),
             triggerAfterInsertEnter: getConfig('triggerAfterInsertEnter', false),
             noselect: getConfig('noselect', true),
@@ -48004,9 +47990,6 @@ class Completion {
         }
         if (!arr.length)
             return;
-        if (option.triggerCharacter) {
-            await util_1.wait(this.config.triggerCompletionWait);
-        }
         await doc.patchChange();
         // document get changed, not complete
         if (doc.changedtick != option.changedtick)
@@ -48081,7 +48064,14 @@ class Completion {
         if (!this.activated) {
             if (!latestInsertChar)
                 return;
-            await this.triggerCompletion(doc, this.pretext);
+            let triggerSources = sources_1.default.getTriggerSources(pretext, doc.filetype);
+            if (triggerSources.length) {
+                await this.triggerCompletion(doc, this.pretext, false);
+                return;
+            }
+            this.triggerTimer = setTimeout(() => {
+                this.triggerCompletion(doc, pretext);
+            }, this.config.triggerCompletionWait);
             return;
         }
         // Ignore change with other buffer
@@ -77107,7 +77097,7 @@ module.exports = require("module");
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.executable = exports.isRunning = exports.runCommand = exports.wait = exports.concurrent = exports.disposeAll = exports.BasicList = exports.listManager = exports.extensions = exports.FileSystemWatcher = exports.Document = exports.diagnosticManager = exports.languages = exports.sources = exports.commands = exports.services = exports.events = exports.snippetManager = exports.window = exports.workspace = exports.ansiparse = exports.download = exports.fetch = exports.FloatFactory = exports.Emitter = exports.Event = exports.Disposable = exports.Uri = exports.Watchman = exports.Mru = exports.Highligher = exports.Window = exports.Buffer = exports.NotificationType0 = exports.NotificationType = exports.RequestType0 = exports.RequestType = exports.ProgressType = exports.Neovim = void 0;
+exports.executable = exports.isRunning = exports.runCommand = exports.wait = exports.concurrent = exports.disposeAll = exports.BasicList = exports.listManager = exports.extensions = exports.FileSystemWatcher = exports.Document = exports.diagnosticManager = exports.languages = exports.sources = exports.commands = exports.services = exports.events = exports.snippetManager = exports.window = exports.workspace = exports.ansiparse = exports.download = exports.fetch = exports.FloatFactory = exports.Emitter = exports.Event = exports.Disposable = exports.Uri = exports.Watchman = exports.Mru = exports.Highligher = exports.Window = exports.Buffer = exports.NotificationType0 = exports.NotificationType = exports.RequestType0 = exports.RequestType = exports.TextEdit = exports.Range = exports.Position = exports.ProgressType = exports.Neovim = void 0;
 const tslib_1 = __webpack_require__(65);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
 exports.commands = commands_1.default;
@@ -77159,6 +77149,9 @@ Object.defineProperty(exports, "Buffer", { enumerable: true, get: function () { 
 Object.defineProperty(exports, "Window", { enumerable: true, get: function () { return neovim_1.Window; } });
 const vscode_languageserver_protocol_1 = __webpack_require__(211);
 Object.defineProperty(exports, "Disposable", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.Disposable; } });
+Object.defineProperty(exports, "Position", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.Position; } });
+Object.defineProperty(exports, "Range", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.Range; } });
+Object.defineProperty(exports, "TextEdit", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.TextEdit; } });
 Object.defineProperty(exports, "RequestType", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.RequestType; } });
 Object.defineProperty(exports, "RequestType0", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.RequestType0; } });
 Object.defineProperty(exports, "NotificationType", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.NotificationType; } });
@@ -93703,7 +93696,7 @@ class CursorSession {
         }, true));
         this.doc.onDocumentChange(this.onChange, this, this.disposables);
     }
-    onChange(e) {
+    async onChange(e) {
         if (!this.activated || this.ranges.length == 0)
             return;
         if (this.changing)
@@ -93712,7 +93705,6 @@ class CursorSession {
         if (!('range' in change))
             return;
         let { text, range } = change;
-        logger.debug('change:', JSON.stringify(change, null, 2));
         let intersect = this.ranges.some(r => position_1.rangeIntersect(range, r.currRange));
         let begin = this.ranges[0].currRange.start;
         if (text.endsWith('\n') && position_1.comparePosition(begin, range.end) == 0) {
@@ -93731,16 +93723,16 @@ class CursorSession {
         // get range from edit
         let textRange = this.getTextRange(range, text);
         if (textRange) {
-            this.applySingleEdit(textRange, { range, newText: text });
+            await this.applySingleEdit(textRange, { range, newText: text }).logError();
         }
         else {
             this.applyComposedEdit(e.original, { range, newText: text });
-        }
-        if (this.activated) {
-            this.ranges.forEach(r => {
-                r.sync();
-            });
-            this.textDocument = this.doc.textDocument;
+            if (this.activated) {
+                this.ranges.forEach(r => {
+                    r.sync();
+                });
+                this.textDocument = this.doc.textDocument;
+            }
         }
     }
     doHighlights() {
@@ -93962,7 +93954,7 @@ class CursorSession {
             this.doHighlights();
         }
     }
-    applySingleEdit(textRange, edit) {
+    async applySingleEdit(textRange, edit) {
         // single range change, calculate & apply changes for all ranges
         let { range, newText } = edit;
         let { doc } = this;
@@ -93984,17 +93976,22 @@ class CursorSession {
         }
         let { nvim } = this;
         this.changing = true;
+        await doc.changeLines(arr);
+        if (this.activated) {
+            this.ranges.forEach(r => {
+                r.sync();
+            });
+            this.textDocument = this.doc.textDocument;
+        }
+        this.changing = false;
         // apply changes
         nvim.pauseNotification();
-        nvim.command('undojoin', true);
-        doc.changeLines(arr);
         let { cursor } = events_1.default;
         if (textRange.preCount > 0 && cursor.bufnr == doc.bufnr && textRange.line + 1 == cursor.lnum) {
             let changed = textRange.preCount * (newText.length - (range.end.character - range.start.character));
             nvim.call('cursor', [cursor.lnum, cursor.col + changed], true);
         }
         this.doHighlights();
-        this.changing = false;
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
         nvim.resumeNotification(false, true);
     }
