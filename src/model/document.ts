@@ -453,15 +453,11 @@ export default class Document {
 
   private async _fetchContent(): Promise<void> {
     if (!this.env.isVim || !this._attached) return
-    let { nvim, buffer } = this
-    let { id } = buffer
-    let o = (await nvim.call('coc#util#get_content', id))
+    let { nvim, bufnr, changedtick } = this
+    let o = await nvim.call('coc#util#get_buf_lines', [bufnr, changedtick])
     if (!o) return
-    let { content, changedtick } = o
-    if (this._changedtick == changedtick) return
-    this._changedtick = changedtick
-    let newLines: string[] = content.split('\n')
-    this.lines = newLines
+    this._changedtick = o.changedtick
+    this.lines = o.lines
     this.fireContentChanges.clear()
     this._fireContentChanges()
   }

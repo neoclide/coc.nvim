@@ -594,10 +594,14 @@ function! coc#util#highlight_options()
 endfunction
 
 " used by vim
-function! coc#util#get_content(bufnr)
+function! coc#util#get_buf_lines(bufnr, changedtick)
   if !bufloaded(a:bufnr) | return '' | endif
+  let changedtick = getbufvar(a:bufnr, 'changedtick')
+  if changedtick == a:changedtick
+    return v:null
+  endif
   return {
-        \ 'content': join(getbufline(a:bufnr, 1, '$'), "\n"),
+        \ 'lines': getbufline(a:bufnr, 1, '$'),
         \ 'changedtick': getbufvar(a:bufnr, 'changedtick')
         \ }
 endfunction
