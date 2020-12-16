@@ -23785,6 +23785,9 @@ class Plugin extends events_1.EventEmitter {
         this.addAction('startCompletion', async (option) => {
             await completion_1.default.startCompletion(option);
         });
+        this.addAction('stopCompletion', () => {
+            completion_1.default.stop();
+        });
         this.addAction('sourceStat', () => {
             return sources_1.default.sourceStats();
         });
@@ -24021,7 +24024,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "365c63e12f" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "0d65fc2d9b" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -41666,9 +41669,9 @@ class Document {
      */
     async checkDocument() {
         let { buffer } = this;
+        this.fireContentChanges.clear();
         this._changedtick = await buffer.changedtick;
         this.lines = await buffer.lines;
-        this.fireContentChanges.clear();
         let changed = this._fireContentChanges();
         if (changed)
             await index_1.wait(30);
@@ -41733,19 +41736,26 @@ class Document {
         let applied = vscode_languageserver_textdocument_1.TextDocument.applyEdits(textDocument, edits);
         // could be equal sometimes
         if (current !== applied) {
-            let newLines = applied.split('\n');
-            if (this.eol && newLines[newLines.length - 1] == '') {
-                newLines = newLines.slice(0, -1);
-            }
+            let newLines = (this.eol && applied.endsWith('\n') ? applied.slice(0, -1) : applied).split('\n');
             let d = diff_1.diffLines(this.lines, newLines);
             let release = await this.mutex.acquire();
             try {
-                this._changedtick = await this.nvim.call('coc#util#set_lines', [this.bufnr, d.replacement, d.start, d.end]);
+                let res = await this.nvim.call('coc#util#set_lines', [this.bufnr, d.replacement, d.start, d.end]);
+                this._changedtick = res.changedtick;
                 // can't wait vim sync buffer
                 this.lines = newLines;
+                // res.lines
                 this.fireContentChanges.clear();
                 this._fireContentChanges();
                 release();
+                // could be user type during applyEdits.
+                if (!object_1.equals(newLines, res.lines)) {
+                    process.nextTick(() => {
+                        this.lines = res.lines;
+                        this.fireContentChanges.clear();
+                        this._fireContentChanges();
+                    });
+                }
             }
             catch (e) {
                 logger.error('Error on applyEdits: ', e);
@@ -41766,11 +41776,20 @@ class Document {
             return;
         let release = await this.mutex.acquire();
         try {
-            this.lines = newLines;
-            let res = await this.nvim.call('coc#util#change_lines', [this.bufnr, filtered], true);
-            this._changedtick = res == null ? 0 : res;
-            this.fireContentChanges.clear();
-            this._fireContentChanges();
+            let res = await this.nvim.call('coc#util#change_lines', [this.bufnr, filtered]);
+            if (res != null) {
+                this.lines = newLines;
+                this._changedtick = res.changedtick;
+                this.fireContentChanges.clear();
+                this._fireContentChanges();
+                if (!object_1.equals(newLines, res.lines)) {
+                    process.nextTick(() => {
+                        this.lines = res.lines;
+                        this.fireContentChanges.clear();
+                        this._fireContentChanges();
+                    });
+                }
+            }
             release();
         }
         catch (e) {
@@ -41872,13 +41891,15 @@ class Document {
         if (!this.env.isVim || !this._attached)
             return;
         let { nvim, bufnr, changedtick } = this;
+        let release = await this.mutex.acquire();
         let o = await nvim.call('coc#util#get_buf_lines', [bufnr, changedtick]);
-        if (!o || o.changedtick <= this._changedtick)
-            return;
-        this._changedtick = o.changedtick;
-        this.lines = o.lines;
-        this.fireContentChanges.clear();
-        this._fireContentChanges();
+        if (o && o.changedtick >= this._changedtick) {
+            this._changedtick = o.changedtick;
+            this.lines = o.lines;
+            this.fireContentChanges.clear();
+            this._fireContentChanges();
+        }
+        release();
     }
     /**
      * Get and synchronize change
@@ -41889,7 +41910,7 @@ class Document {
         if (this.env.isVim) {
             if (currentLine) {
                 let change = await this.nvim.call('coc#util#get_changeinfo', []);
-                if (change.changedtick <= this._changedtick)
+                if (change.changedtick < this._changedtick)
                     return;
                 let { lnum, line, changedtick } = change;
                 let newLines = this.lines.slice();
@@ -48069,8 +48090,8 @@ class Completion {
                 await this.triggerCompletion(doc, this.pretext, false);
                 return;
             }
-            this.triggerTimer = setTimeout(() => {
-                this.triggerCompletion(doc, pretext);
+            this.triggerTimer = setTimeout(async () => {
+                await this.triggerCompletion(doc, pretext);
             }, this.config.triggerCompletionWait);
             return;
         }
@@ -93702,8 +93723,6 @@ class CursorSession {
         if (this.changing)
             return;
         let change = e.contentChanges[0];
-        if (!('range' in change))
-            return;
         let { text, range } = change;
         let intersect = this.ranges.some(r => position_1.rangeIntersect(range, r.currRange));
         let begin = this.ranges[0].currRange.start;
@@ -93723,7 +93742,7 @@ class CursorSession {
         // get range from edit
         let textRange = this.getTextRange(range, text);
         if (textRange) {
-            await this.applySingleEdit(textRange, { range, newText: text }).logError();
+            await this.applySingleEdit(textRange, { range, newText: text });
         }
         else {
             this.applyComposedEdit(e.original, { range, newText: text });
@@ -93977,13 +93996,13 @@ class CursorSession {
         let { nvim } = this;
         this.changing = true;
         await doc.changeLines(arr);
+        this.changing = false;
         if (this.activated) {
             this.ranges.forEach(r => {
                 r.sync();
             });
             this.textDocument = this.doc.textDocument;
         }
-        this.changing = false;
         // apply changes
         nvim.pauseNotification();
         let { cursor } = events_1.default;
@@ -96436,7 +96455,7 @@ class Refactor {
             let range = item ? item.ranges.find(o => o.lnum == lnum) : null;
             if (!range || object_1.equals(range.lines, change.lines)) {
                 removeList.push(i);
-                if (curr) {
+                if (curr && range) {
                     range.start = range.start + curr;
                     range.end = range.end + curr;
                 }
