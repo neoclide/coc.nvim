@@ -69,13 +69,12 @@ export default class CursorSession {
     this.doc.onDocumentChange(this.onChange, this, this.disposables)
   }
 
-  private onChange(e: DidChangeTextDocumentParams): void {
+  private async onChange(e: DidChangeTextDocumentParams): Promise<void> {
     if (!this.activated || this.ranges.length == 0) return
     if (this.changing) return
     let change = e.contentChanges[0]
     if (!('range' in change)) return
     let { text, range } = change
-    logger.debug('change:', JSON.stringify(change, null, 2))
     let intersect = this.ranges.some(r => rangeIntersect(range, r.currRange))
     let begin = this.ranges[0].currRange.start
     if (text.endsWith('\n') && comparePosition(begin, range.end) == 0) {
@@ -94,15 +93,15 @@ export default class CursorSession {
     // get range from edit
     let textRange = this.getTextRange(range, text)
     if (textRange) {
-      this.applySingleEdit(textRange, { range, newText: text })
+      await this.applySingleEdit(textRange, { range, newText: text }).logError()
     } else {
       this.applyComposedEdit(e.original, { range, newText: text })
-    }
-    if (this.activated) {
-      this.ranges.forEach(r => {
-        r.sync()
-      })
-      this.textDocument = this.doc.textDocument
+      if (this.activated) {
+        this.ranges.forEach(r => {
+          r.sync()
+        })
+        this.textDocument = this.doc.textDocument
+      }
     }
   }
 
@@ -316,7 +315,7 @@ export default class CursorSession {
     }
   }
 
-  private applySingleEdit(textRange: TextRange, edit: TextEdit): void {
+  private async applySingleEdit(textRange: TextRange, edit: TextEdit): Promise<void> {
     // single range change, calculate & apply changes for all ranges
     let { range, newText } = edit
     let { doc } = this
@@ -338,17 +337,22 @@ export default class CursorSession {
     }
     let { nvim } = this
     this.changing = true
+    await doc.changeLines(arr)
+    if (this.activated) {
+      this.ranges.forEach(r => {
+        r.sync()
+      })
+      this.textDocument = this.doc.textDocument
+    }
+    this.changing = false
     // apply changes
     nvim.pauseNotification()
-    nvim.command('undojoin', true)
-    doc.changeLines(arr)
     let { cursor } = events
     if (textRange.preCount > 0 && cursor.bufnr == doc.bufnr && textRange.line + 1 == cursor.lnum) {
       let changed = textRange.preCount * (newText.length - (range.end.character - range.start.character))
       nvim.call('cursor', [cursor.lnum, cursor.col + changed], true)
     }
     this.doHighlights()
-    this.changing = false
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     nvim.resumeNotification(false, true)
   }

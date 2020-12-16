@@ -10,6 +10,7 @@ import { disposeAll, getUri, wait } from '../util/index'
 import { equals } from '../util/object'
 import { byteLength, byteSlice } from '../util/string'
 import { Chars } from './chars'
+import { Mutex } from '../util/mutex'
 const logger = require('../util/logger')('model-document')
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
@@ -36,8 +37,8 @@ export default class Document {
   public chars: Chars
   public fireContentChanges: Function & { clear(): void }
   public fetchContent: Function & { clear(): void }
+  private mutex = new Mutex()
   private _version = 1
-  private ignoreChange = false
   private size = 0
   private nvim: Neovim
   private eol = true
@@ -205,40 +206,22 @@ export default class Document {
   private async attach(): Promise<boolean> {
     let attached = await this.buffer.attach(true)
     if (!attached) return false
-    let lastChange: number
-    this.buffer.listen('lines', (...args: any[]) => {
-      // avoid neovim send same change multiple times after checktime
-      if (lastChange == args[1]) return
-      lastChange = args[1]
-      this.onChange.apply(this, args)
-    }, this.disposables)
+    this.buffer.listen('lines', this.onChange.bind(this), this.disposables)
     this.buffer.listen('detach', async buf => {
       this._onDocumentDetach.fire(buf.id)
-    }, this.disposables)
-    this.buffer.listen('changedtick', (_buf: Buffer, tick: number) => {
-      this._changedtick = tick
     }, this.disposables)
     return true
   }
 
-  private onChange(
-    buf: Buffer,
-    tick: number,
-    firstline: number,
-    lastline: number,
-    linedata: string[]
-    // more:boolean
-  ): void {
-    if (buf.id !== this.buffer.id || tick == null) return
-    this._changedtick = tick
-    if (this.ignoreChange) {
-      this.ignoreChange = false
-      return
+  private async onChange(buf: Buffer, tick: number, firstline: number, lastline: number, linedata: string[]): Promise<void> {
+    if (buf.id !== this.bufnr || !this._attached || tick == null) return
+    let release = await this.mutex.acquire()
+    if (tick > this._changedtick) {
+      this._changedtick = tick
+      this.lines = [...this.lines.slice(0, firstline), ...linedata, ...this.lines.slice(lastline)]
+      this.fireContentChanges()
     }
-    let lines = this.lines.slice(0, firstline)
-    lines = lines.concat(linedata, this.lines.slice(lastline))
-    this.lines = lines
-    this.fireContentChanges()
+    release()
   }
 
   /**
@@ -316,19 +299,21 @@ export default class Document {
         newLines = newLines.slice(0, -1)
       }
       let d = diffLines(this.lines, newLines)
-      await this.buffer.setLines(d.replacement, {
-        start: d.start,
-        end: d.end,
-        strictIndexing: false
-      })
-      // can't wait vim sync buffer
-      this.lines = newLines
-      this.forceSync()
+      let release = await this.mutex.acquire()
+      try {
+        this._changedtick = await this.nvim.call('coc#util#set_lines', [this.bufnr, d.replacement, d.start, d.end])
+        // can't wait vim sync buffer
+        this.lines = newLines
+        this.forceSync()
+        release()
+      } catch (e) {
+        logger.error('Error on applyEdits: ', e)
+        release()
+      }
     }
   }
 
-  public changeLines(lines: [number, string][], sync = true): void {
-    let { nvim } = this
+  public async changeLines(lines: [number, string][], sync = true): Promise<void> {
     let filtered: [number, string][] = []
     let newLines = this.lines.slice()
     for (let [lnum, text] of lines) {
@@ -338,10 +323,16 @@ export default class Document {
       }
     }
     if (!filtered.length) return
-    this.lines = newLines
-    nvim.call('coc#util#change_lines', [this.bufnr, filtered], true)
-    this.ignoreChange = true
-    if (sync) this.forceSync()
+    let release = await this.mutex.acquire()
+    try {
+      this.lines = newLines
+      let res = await this.nvim.call('coc#util#change_lines', [this.bufnr, filtered], true)
+      this._changedtick = res == null ? 0 : res
+      if (sync) this.forceSync()
+      release()
+    } catch (e) {
+      release()
+    }
   }
 
   /**
@@ -440,7 +431,7 @@ export default class Document {
     if (!this.env.isVim || !this._attached) return
     let { nvim, bufnr, changedtick } = this
     let o = await nvim.call('coc#util#get_buf_lines', [bufnr, changedtick])
-    if (!o) return
+    if (!o || o.changedtick <= this._changedtick) return
     this._changedtick = o.changedtick
     this.lines = o.lines
     this.fireContentChanges.clear()
@@ -455,7 +446,7 @@ export default class Document {
     if (this.env.isVim) {
       if (currentLine) {
         let change = await this.nvim.call('coc#util#get_changeinfo', []) as ChangeInfo
-        if (change.changedtick == this._changedtick) return
+        if (change.changedtick <= this._changedtick) return
         let { lnum, line, changedtick } = change
         let newLines = this.lines.slice()
         this._changedtick = changedtick
