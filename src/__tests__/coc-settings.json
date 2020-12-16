@@ -1,4 +1,5 @@
 {
   "suggest.timeout": 5000,
+  "suggest.triggerCompletionWait": 10,
   "tslint.enable": false
 }

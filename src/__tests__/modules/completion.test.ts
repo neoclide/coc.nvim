@@ -597,42 +597,6 @@ describe('completion option', () => {
   })
 })
 
-describe('completion TextChangedI', () => {
-  it('should respect commitCharacter on TextChangedI', async () => {
-    let source: ISource = {
-      priority: 0,
-      enable: true,
-      name: 'slow',
-      sourceType: SourceType.Service,
-      triggerCharacters: ['.'],
-      doComplete: (opt: CompleteOption): Promise<CompleteResult> => {
-        if (opt.triggerCharacter == '.') {
-          return Promise.resolve({ items: [{ word: 'bar' }] })
-        }
-        return Promise.resolve({ items: [{ word: 'foo' }] })
-      },
-      shouldCommit: (_item, character) => character == '.'
-    }
-    sources.addSource(source)
-    await nvim.input('if')
-    await helper.pumvisible()
-    await helper.wait(100)
-    await nvim.input('.')
-    await helper.wait(100)
-    sources.removeSource(source)
-  })
-
-  it('should cancel completion when for same pretext', async () => {
-    await nvim.setLine('foo')
-    await nvim.input('of')
-    await helper.pumvisible()
-    await helper.wait(10)
-    await nvim.call('coc#_cancel', [])
-    await helper.wait(10)
-    expect(completion.isActivated).toBe(false)
-  })
-})
-
 describe('completion trigger', () => {
   it('should trigger completion on type trigger character', async () => {
     let source: ISource = {
@@ -722,5 +686,41 @@ describe('completion trigger', () => {
     await helper.waitPopup()
     let items = await helper.getItems()
     expect(items.length).toBeGreaterThan(2)
+  })
+})
+
+describe('completion TextChangedI', () => {
+  it('should respect commitCharacter on TextChangedI', async () => {
+    let source: ISource = {
+      priority: 0,
+      enable: true,
+      name: 'slow',
+      sourceType: SourceType.Service,
+      triggerCharacters: ['.'],
+      doComplete: (opt: CompleteOption): Promise<CompleteResult> => {
+        if (opt.triggerCharacter == '.') {
+          return Promise.resolve({ items: [{ word: 'bar' }] })
+        }
+        return Promise.resolve({ items: [{ word: 'foo' }] })
+      },
+      shouldCommit: (_item, character) => character == '.'
+    }
+    sources.addSource(source)
+    await nvim.input('if')
+    await helper.pumvisible()
+    await helper.wait(100)
+    await nvim.input('.')
+    await helper.wait(100)
+    sources.removeSource(source)
+  })
+
+  it('should cancel completion with same pretext', async () => {
+    await nvim.setLine('foo')
+    await nvim.input('of')
+    await helper.pumvisible()
+    await helper.wait(30)
+    await nvim.call('coc#_cancel', [])
+    await helper.wait(100)
+    expect(completion.isActivated).toBe(false)
   })
 })

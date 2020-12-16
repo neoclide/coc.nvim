@@ -216,9 +216,11 @@ export default class Document {
   private async onChange(buf: Buffer, tick: number, firstline: number, lastline: number, linedata: string[]): Promise<void> {
     if (buf.id !== this.bufnr || !this._attached || tick == null) return
     let release = await this.mutex.acquire()
-    this._changedtick = tick
-    this.lines = [...this.lines.slice(0, firstline), ...linedata, ...this.lines.slice(lastline)]
-    this.fireContentChanges()
+    if (tick > this._changedtick) {
+      this._changedtick = tick
+      this.lines = [...this.lines.slice(0, firstline), ...linedata, ...this.lines.slice(lastline)]
+      this.fireContentChanges()
+    }
     release()
   }
 
@@ -292,19 +294,26 @@ export default class Document {
     let applied = TextDocument.applyEdits(textDocument, edits)
     // could be equal sometimes
     if (current !== applied) {
-      let newLines = applied.split('\n')
-      if (this.eol && newLines[newLines.length - 1] == '') {
-        newLines = newLines.slice(0, -1)
-      }
+      let newLines = (this.eol && applied.endsWith('\n') ? applied.slice(0, -1) : applied).split('\n')
       let d = diffLines(this.lines, newLines)
       let release = await this.mutex.acquire()
       try {
-        this._changedtick = await this.nvim.call('coc#util#set_lines', [this.bufnr, d.replacement, d.start, d.end])
+        let res = await this.nvim.call('coc#util#set_lines', [this.bufnr, d.replacement, d.start, d.end])
+        this._changedtick = res.changedtick
         // can't wait vim sync buffer
         this.lines = newLines
+        // res.lines
         this.fireContentChanges.clear()
         this._fireContentChanges()
         release()
+        // could be user type during applyEdits.
+        if (!equals(newLines, res.lines)) {
+          process.nextTick(() => {
+            this.lines = res.lines
+            this.fireContentChanges.clear()
+            this._fireContentChanges()
+          })
+        }
       } catch (e) {
         logger.error('Error on applyEdits: ', e)
         release()
@@ -324,12 +333,19 @@ export default class Document {
     if (!filtered.length) return
     let release = await this.mutex.acquire()
     try {
-      this.lines = newLines
       let res = await this.nvim.call('coc#util#change_lines', [this.bufnr, filtered])
       if (res != null) {
-        this._changedtick = res
+        this.lines = newLines
+        this._changedtick = res.changedtick
         this.fireContentChanges.clear()
         this._fireContentChanges()
+        if (!equals(newLines, res.lines)) {
+          process.nextTick(() => {
+            this.lines = res.lines
+            this.fireContentChanges.clear()
+            this._fireContentChanges()
+          })
+        }
       }
       release()
     } catch (e) {

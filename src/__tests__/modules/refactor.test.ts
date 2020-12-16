@@ -211,11 +211,6 @@ describe('Refactor#saveRefactor', () => {
     expect(res).toBe(true)
     let content = fs.readFileSync(filename, 'utf8')
     expect(content).toBe('xyz\nde\n\nbar\nbar\n')
-    await nvim.command('normal! u')
-    res = await refactor.saveRefactor()
-    expect(res).toBe(true)
-    content = fs.readFileSync(filename, 'utf8')
-    expect(content).toBe('foo\n\nbar\n')
   })
 
   it('should not save when no change made', async () => {

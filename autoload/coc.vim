@@ -105,6 +105,7 @@ function! coc#_cancel()
     let g:coc#_context = {'start': 0, 'preselect': -1,'candidates': []}
     call feedkeys("\<Plug>CocRefresh", 'i')
   endif
+  call CocActionAsync('stopCompletion')
 endfunction
 
 function! coc#_select() abort

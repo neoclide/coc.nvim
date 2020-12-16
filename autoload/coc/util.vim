@@ -599,8 +599,37 @@ function! coc#util#set_lines(bufnr, replacement, start, end) abort
   else
     call coc#api#notify('buf_set_lines', [a:bufnr, a:start, a:end, 0, a:replacement])
   endif
-  return getbufvar(a:bufnr, 'changedtick')
+  return {
+        \ 'lines': getbufline(a:bufnr, 1, '$'),
+        \ 'changedtick': getbufvar(a:bufnr, 'changedtick')
+        \ }
 endfunction
+
+function! coc#util#change_lines(bufnr, list) abort
+  if !bufloaded(a:bufnr) | return v:null | endif
+  undojoin
+  if exists('*setbufline')
+    for [lnum, line] in a:list
+      call setbufline(a:bufnr, lnum + 1, line)
+    endfor
+  elseif a:bufnr == bufnr('%')
+    for [lnum, line] in a:list
+      call setline(lnum + 1, line)
+    endfor
+  else
+    let bufnr = bufnr('%')
+    exe 'noa buffer '.a:bufnr
+    for [lnum, line] in a:list
+      call setline(lnum + 1, line)
+    endfor
+    exe 'noa buffer '.bufnr
+  endif
+  return {
+        \ 'lines': getbufline(a:bufnr, 1, '$'),
+        \ 'changedtick': getbufvar(a:bufnr, 'changedtick')
+        \ }
+endfunction
+
 
 " used by vim
 function! coc#util#get_buf_lines(bufnr, changedtick)
@@ -852,27 +881,6 @@ endfunction
 function! coc#util#set_buf_var(bufnr, name, val) abort
   if !bufloaded(a:bufnr) | return | endif
   call setbufvar(a:bufnr, a:name, a:val)
-endfunction
-
-function! coc#util#change_lines(bufnr, list) abort
-  if !bufloaded(a:bufnr) | return v:null | endif
-  if exists('*setbufline')
-    for [lnum, line] in a:list
-      call setbufline(a:bufnr, lnum + 1, line)
-    endfor
-  elseif a:bufnr == bufnr('%')
-    for [lnum, line] in a:list
-      call setline(lnum + 1, line)
-    endfor
-  else
-    let bufnr = bufnr('%')
-    exe 'noa buffer '.a:bufnr
-    for [lnum, line] in a:list
-      call setline(lnum + 1, line)
-    endfor
-    exe 'noa buffer '.bufnr
-  endif
-  return getbufvar(a:bufnr, 'changedtick')
 endfunction
 
 function! coc#util#unmap(bufnr, keys) abort

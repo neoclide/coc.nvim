@@ -340,7 +340,7 @@ export default class Refactor {
       let range = item ? item.ranges.find(o => o.lnum == lnum) : null
       if (!range || equals(range.lines, change.lines)) {
         removeList.push(i)
-        if (curr) {
+        if (curr && range) {
           range.start = range.start + curr
           range.end = range.end + curr
         }
