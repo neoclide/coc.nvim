@@ -73,7 +73,6 @@ export default class CursorSession {
     if (!this.activated || this.ranges.length == 0) return
     if (this.changing) return
     let change = e.contentChanges[0]
-    if (!('range' in change)) return
     let { text, range } = change
     let intersect = this.ranges.some(r => rangeIntersect(range, r.currRange))
     let begin = this.ranges[0].currRange.start
@@ -93,7 +92,7 @@ export default class CursorSession {
     // get range from edit
     let textRange = this.getTextRange(range, text)
     if (textRange) {
-      await this.applySingleEdit(textRange, { range, newText: text }).logError()
+      await this.applySingleEdit(textRange, { range, newText: text })
     } else {
       this.applyComposedEdit(e.original, { range, newText: text })
       if (this.activated) {
@@ -338,13 +337,13 @@ export default class CursorSession {
     let { nvim } = this
     this.changing = true
     await doc.changeLines(arr)
+    this.changing = false
     if (this.activated) {
       this.ranges.forEach(r => {
         r.sync()
       })
       this.textDocument = this.doc.textDocument
     }
-    this.changing = false
     // apply changes
     nvim.pauseNotification()
     let { cursor } = events

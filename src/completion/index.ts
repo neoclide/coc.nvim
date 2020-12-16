@@ -317,8 +317,8 @@ export class Completion implements Disposable {
         await this.triggerCompletion(doc, this.pretext, false)
         return
       }
-      this.triggerTimer = setTimeout(() => {
-        this.triggerCompletion(doc, pretext)
+      this.triggerTimer = setTimeout(async () => {
+        await this.triggerCompletion(doc, pretext)
       }, this.config.triggerCompletionWait)
       return
     }
