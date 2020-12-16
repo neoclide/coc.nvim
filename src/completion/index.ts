@@ -21,6 +21,7 @@ export interface LastInsert {
 
 export class Completion implements Disposable {
   public config: CompleteConfig
+  private triggerTimer: NodeJS.Timer
   private floating: Floating
   private currItem: VimCompleteItem
   // current input string
@@ -39,6 +40,12 @@ export class Completion implements Disposable {
   public init(): void {
     this.config = this.getCompleteConfig()
     this.floating = new Floating(workspace.nvim, workspace.env.isVim)
+    events.on(['InsertCharPre', 'MenuPopupChanged', 'TextChangedI', 'CursorMovedI', 'InsertLeave'], () => {
+      if (this.triggerTimer) {
+        clearTimeout(this.triggerTimer)
+        this.triggerTimer = null
+      }
+    }, this, this.disposables)
     events.on('InsertCharPre', this.onInsertCharPre, this, this.disposables)
     events.on('InsertLeave', this.onInsertLeave, this, this.disposables)
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
@@ -123,7 +130,7 @@ export class Completion implements Disposable {
       enablePreview: getConfig<boolean>('enablePreview', false),
       enablePreselect: getConfig<boolean>('enablePreselect', false),
       maxPreviewWidth: getConfig<number>('maxPreviewWidth', 80),
-      triggerCompletionWait: getConfig<number>('triggerCompletionWait', 50),
+      triggerCompletionWait: getConfig<number>('triggerCompletionWait', 100),
       labelMaxLength: getConfig<number>('labelMaxLength', 200),
       triggerAfterInsertEnter: getConfig<boolean>('triggerAfterInsertEnter', false),
       noselect: getConfig<boolean>('noselect', true),
@@ -240,9 +247,6 @@ export class Completion implements Disposable {
       if (s) arr.push(s)
     }
     if (!arr.length) return
-    if (option.triggerCharacter) {
-      await wait(this.config.triggerCompletionWait)
-    }
     await doc.patchChange()
     // document get changed, not complete
     if (doc.changedtick != option.changedtick) return
@@ -308,7 +312,14 @@ export class Completion implements Disposable {
     // try trigger on character type
     if (!this.activated) {
       if (!latestInsertChar) return
-      await this.triggerCompletion(doc, this.pretext)
+      let triggerSources = sources.getTriggerSources(pretext, doc.filetype)
+      if (triggerSources.length) {
+        await this.triggerCompletion(doc, this.pretext, false)
+        return
+      }
+      this.triggerTimer = setTimeout(() => {
+        this.triggerCompletion(doc, pretext)
+      }, this.config.triggerCompletionWait)
       return
     }
     // Ignore change with other buffer

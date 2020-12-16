@@ -304,7 +304,8 @@ export default class Document {
         this._changedtick = await this.nvim.call('coc#util#set_lines', [this.bufnr, d.replacement, d.start, d.end])
         // can't wait vim sync buffer
         this.lines = newLines
-        this.forceSync()
+        this.fireContentChanges.clear()
+        this._fireContentChanges()
         release()
       } catch (e) {
         logger.error('Error on applyEdits: ', e)
@@ -313,7 +314,7 @@ export default class Document {
     }
   }
 
-  public async changeLines(lines: [number, string][], sync = true): Promise<void> {
+  public async changeLines(lines: [number, string][]): Promise<void> {
     let filtered: [number, string][] = []
     let newLines = this.lines.slice()
     for (let [lnum, text] of lines) {
@@ -328,7 +329,8 @@ export default class Document {
       this.lines = newLines
       let res = await this.nvim.call('coc#util#change_lines', [this.bufnr, filtered], true)
       this._changedtick = res == null ? 0 : res
-      if (sync) this.forceSync()
+      this.fireContentChanges.clear()
+      this._fireContentChanges()
       release()
     } catch (e) {
       release()
@@ -339,6 +341,7 @@ export default class Document {
    * Force document synchronize and emit change event when necessary.
    */
   public forceSync(): void {
+    if (this.mutex.busy) return
     this.fireContentChanges.clear()
     this._fireContentChanges()
   }
