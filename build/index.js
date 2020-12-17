@@ -23786,7 +23786,7 @@ class Plugin extends events_1.EventEmitter {
             await completion_1.default.startCompletion(option);
         });
         this.addAction('stopCompletion', () => {
-            completion_1.default.stop();
+            completion_1.default.stop(false);
         });
         this.addAction('sourceStat', () => {
             return sources_1.default.sourceStats();
@@ -24024,7 +24024,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "0d65fc2d9b" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "652a8a3381" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -24040,6 +24040,7 @@ class Plugin extends events_1.EventEmitter {
         extensions_1.default.dispose();
         manager_2.default.dispose();
         workspace_1.default.dispose();
+        window_1.default.dispose();
         sources_1.default.dispose();
         services_1.default.stopAll();
         services_1.default.dispose();
@@ -24110,13 +24111,8 @@ class CommandManager {
         this.register({
             id: 'editor.action.insertSnippet',
             execute: async (edit) => {
-                let doc = workspace_1.default.getDocument(workspace_1.default.bufnr);
-                if (!doc)
-                    return;
                 nvim.call('coc#_cancel', [], true);
-                if (doc.dirty)
-                    doc.forceSync();
-                await manager_2.default.insertSnippet(edit.newText, true, edit.range);
+                return await manager_2.default.insertSnippet(edit.newText, true, edit.range);
             }
         }, true);
         this.register({
@@ -44427,6 +44423,10 @@ class Window {
     get nvim() {
         return workspace_1.default.nvim;
     }
+    dispose() {
+        var _a;
+        (_a = this.statusLine) === null || _a === void 0 ? void 0 : _a.dispose();
+    }
     /**
      * Reveal message with message type.
      *
@@ -44439,7 +44439,7 @@ class Window {
         let { messageLevel } = this;
         let method = process.env.VIM_NODE_RPC == '1' ? 'callTimer' : 'call';
         if (global.hasOwnProperty('__TEST__'))
-            console.log(msg);
+            logger.info(msg);
         let hl = 'Error';
         let level = types_1.MessageLevel.Error;
         switch (messageType) {
@@ -47484,6 +47484,7 @@ class SnippetSession {
         }
         let position = range.start;
         const formatOptions = await workspace_1.default.getFormatOptions(this.document.uri);
+        await document.patchChange(true);
         const currentLine = document.getline(position.line);
         const currentIndent = currentLine.match(/^\s*/)[0];
         let inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions);
@@ -47497,7 +47498,6 @@ class SnippetSession {
             edit.newText = edit.newText + currentIndent;
             inserted = inserted + currentIndent;
         }
-        await document.patchChange();
         this.applying = true;
         await document.applyEdits([edit]);
         this.applying = false;
@@ -47906,7 +47906,7 @@ class Completion {
             await this._doComplete(option);
         }
         catch (e) {
-            this.stop();
+            this.stop(false);
             logger.error('Complete error:', e.stack);
         }
     }
@@ -48096,17 +48096,15 @@ class Completion {
             return;
         }
         // Ignore change with other buffer
-        if (!option)
+        if (!option || bufnr != option.bufnr)
             return;
-        if (bufnr != option.bufnr
-            || option.linenr != info.lnum
-            || option.col >= info.col - 1) {
+        if (option.linenr != info.lnum || option.col >= info.col - 1) {
             this.stop();
             return;
         }
         // Completion is canceled by <C-e>
         if (noChange && !latestInsertChar) {
-            this.stop();
+            this.stop(false);
             return;
         }
         // Check commit character
@@ -48173,7 +48171,7 @@ class Completion {
             return;
         let opt = Object.assign({}, this.option);
         let resolvedItem = this.getCompleteItem(item);
-        this.stop();
+        this.stop(false);
         if (!resolvedItem)
             return;
         let timestamp = this.insertCharTs;
@@ -48198,7 +48196,7 @@ class Completion {
     }
     async onInsertLeave() {
         this.insertLeaveTs = Date.now();
-        this.stop();
+        this.stop(false);
     }
     async onInsertEnter(bufnr) {
         if (!this.config.triggerAfterInsertEnter || this.config.autoTrigger !== 'always')
@@ -48304,10 +48302,11 @@ class Completion {
             this.resolveTokenSource = null;
         }
     }
-    stop() {
+    stop(hide = true) {
         let { nvim } = this;
         if (!this.activated)
             return;
+        this.cancelResolve();
         this.currItem = null;
         this.activated = false;
         if (this.complete) {
@@ -48315,6 +48314,9 @@ class Completion {
             this.complete = null;
         }
         nvim.pauseNotification();
+        if (hide) {
+            nvim.call('coc#_hide', [], true);
+        }
         this.floating.close();
         if (this.config.numberSelect) {
             nvim.call('coc#_unmap', [], true);
@@ -48323,7 +48325,7 @@ class Completion {
             this.nvim.command(`noa set completeopt=${workspace_1.default.completeOpt}`, true);
         }
         nvim.command(`let g:coc#_context['candidates'] = []`, true);
-        nvim.call('coc#_hide', [], true);
+        nvim.call('coc#_cancel', [], true);
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
         nvim.resumeNotification(false, true);
     }
@@ -77118,7 +77120,7 @@ module.exports = require("module");
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.executable = exports.isRunning = exports.runCommand = exports.wait = exports.concurrent = exports.disposeAll = exports.BasicList = exports.listManager = exports.extensions = exports.FileSystemWatcher = exports.Document = exports.diagnosticManager = exports.languages = exports.sources = exports.commands = exports.services = exports.events = exports.snippetManager = exports.window = exports.workspace = exports.ansiparse = exports.download = exports.fetch = exports.FloatFactory = exports.Emitter = exports.Event = exports.Disposable = exports.Uri = exports.Watchman = exports.Mru = exports.Highligher = exports.Window = exports.Buffer = exports.NotificationType0 = exports.NotificationType = exports.RequestType0 = exports.RequestType = exports.TextEdit = exports.Range = exports.Position = exports.ProgressType = exports.Neovim = void 0;
+exports.executable = exports.isRunning = exports.runCommand = exports.wait = exports.concurrent = exports.disposeAll = exports.BasicList = exports.listManager = exports.extensions = exports.FileSystemWatcher = exports.Document = exports.diagnosticManager = exports.languages = exports.sources = exports.commands = exports.services = exports.events = exports.snippetManager = exports.window = exports.workspace = exports.watchFile = exports.ansiparse = exports.download = exports.fetch = exports.FloatFactory = exports.Emitter = exports.Event = exports.Disposable = exports.Uri = exports.Watchman = exports.Mru = exports.Highligher = exports.Window = exports.Buffer = exports.NotificationType0 = exports.NotificationType = exports.RequestType0 = exports.RequestType = exports.TextEdit = exports.Range = exports.Position = exports.ProgressType = exports.Neovim = void 0;
 const tslib_1 = __webpack_require__(65);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
 exports.commands = commands_1.default;
@@ -77158,6 +77160,8 @@ const basic_1 = tslib_1.__importDefault(__webpack_require__(652));
 exports.BasicList = basic_1.default;
 const manager_3 = tslib_1.__importDefault(__webpack_require__(253));
 exports.diagnosticManager = manager_3.default;
+const index_1 = __webpack_require__(238);
+Object.defineProperty(exports, "watchFile", { enumerable: true, get: function () { return index_1.watchFile; } });
 const ansiparse_1 = __webpack_require__(288);
 Object.defineProperty(exports, "ansiparse", { enumerable: true, get: function () { return ansiparse_1.ansiparse; } });
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(370));
