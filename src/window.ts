@@ -20,10 +20,14 @@ const logger = require('./util/logger')('window')
 
 class Window {
   private mutex = new Mutex()
-  private statusLine: StatusLine
+  private statusLine: StatusLine | undefined
 
   public get nvim(): Neovim {
     return workspace.nvim
+  }
+
+  public dispose(): void {
+    this.statusLine?.dispose()
   }
 
   /**
@@ -250,7 +254,7 @@ class Window {
    */
   public createStatusBarItem(priority = 0, option: StatusItemOption = {}): StatusBarItem {
     if (!workspace.env) {
-      let fn = () => { }
+      let fn = () => {}
       return { text: '', show: fn, dispose: fn, hide: fn, priority: 0, isProgress: false }
     }
     if (!this.statusLine) {

@@ -467,6 +467,7 @@ export default class Plugin extends EventEmitter {
     extensions.dispose()
     listManager.dispose()
     workspace.dispose()
+    window.dispose()
     sources.dispose()
     services.stopAll()
     services.dispose()

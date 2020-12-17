@@ -32,19 +32,4 @@ describe('node client pauseNotification', () => {
     let res = await nvim.resumeNotification()
     expect(res).toEqual([['', buffer.id], null])
   })
-
-  it('should work with request during notification', async () => {
-    let bufnr = await nvim.eval('bufnr("%")')
-    nvim.pauseNotification()
-    nvim.call('setline', [1, 'foo'], true)
-    setTimeout(async () => {
-      nvim.call('append', [1, ['bar']], true)
-      await nvim.resumeNotification(false, true)
-    }, 200)
-    nvim.pauseNotification()
-    nvim.call('bufnr', ['%'], true)
-    let res = await nvim.resumeNotification()
-    expect(res).toEqual([[bufnr], null])
-    await helper.wait(400)
-  })
 })
