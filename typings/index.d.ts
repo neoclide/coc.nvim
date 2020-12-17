@@ -1368,6 +1368,18 @@ declare module 'coc.nvim' {
     readonly onCancellationRequested: Event<any>
   }
 
+  export namespace CancellationToken {
+    const None: CancellationToken
+    const Cancelled: CancellationToken
+    function is(value: any): value is CancellationToken
+  }
+
+  export class CancellationTokenSource {
+    get token(): CancellationToken
+    cancel(): void
+    dispose(): void
+  }
+
   /**
    * A simple text document. Not to be implemented. The document keeps the content
    * as string.
