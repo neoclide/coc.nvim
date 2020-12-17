@@ -38,6 +38,7 @@ export class SnippetSession {
     }
     let position = range.start
     const formatOptions = await workspace.getFormatOptions(this.document.uri)
+    await document.patchChange(true)
     const currentLine = document.getline(position.line)
     const currentIndent = currentLine.match(/^\s*/)[0]
     let inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions)
@@ -51,7 +52,6 @@ export class SnippetSession {
       edit.newText = edit.newText + currentIndent
       inserted = inserted + currentIndent
     }
-    await document.patchChange()
     this.applying = true
     await document.applyEdits([edit])
     this.applying = false
