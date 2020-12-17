@@ -24024,7 +24024,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "652a8a3381" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "e444c57756" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -77120,7 +77120,7 @@ module.exports = require("module");
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.executable = exports.isRunning = exports.runCommand = exports.wait = exports.concurrent = exports.disposeAll = exports.BasicList = exports.listManager = exports.extensions = exports.FileSystemWatcher = exports.Document = exports.diagnosticManager = exports.languages = exports.sources = exports.commands = exports.services = exports.events = exports.snippetManager = exports.window = exports.workspace = exports.watchFile = exports.ansiparse = exports.download = exports.fetch = exports.FloatFactory = exports.Emitter = exports.Event = exports.Disposable = exports.Uri = exports.Watchman = exports.Mru = exports.Highligher = exports.Window = exports.Buffer = exports.NotificationType0 = exports.NotificationType = exports.RequestType0 = exports.RequestType = exports.TextEdit = exports.Range = exports.Position = exports.ProgressType = exports.Neovim = void 0;
+exports.executable = exports.isRunning = exports.runCommand = exports.wait = exports.watchFile = exports.concurrent = exports.disposeAll = exports.BasicList = exports.listManager = exports.extensions = exports.FileSystemWatcher = exports.Document = exports.diagnosticManager = exports.languages = exports.sources = exports.commands = exports.services = exports.events = exports.snippetManager = exports.window = exports.workspace = exports.ansiparse = exports.download = exports.fetch = exports.FloatFactory = exports.Emitter = exports.Event = exports.Disposable = exports.Uri = exports.Watchman = exports.Mru = exports.Highligher = exports.Window = exports.Buffer = exports.NotificationType0 = exports.NotificationType = exports.RequestType0 = exports.RequestType = exports.TextEdit = exports.Range = exports.Position = exports.ProgressType = exports.CancellationToken = exports.CancellationTokenSource = exports.LocationLink = exports.Location = exports.InsertTextFormat = exports.CompletionItemKind = exports.DiagnosticSeverity = exports.Neovim = void 0;
 const tslib_1 = __webpack_require__(65);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
 exports.commands = commands_1.default;
@@ -77160,8 +77160,6 @@ const basic_1 = tslib_1.__importDefault(__webpack_require__(652));
 exports.BasicList = basic_1.default;
 const manager_3 = tslib_1.__importDefault(__webpack_require__(253));
 exports.diagnosticManager = manager_3.default;
-const index_1 = __webpack_require__(238);
-Object.defineProperty(exports, "watchFile", { enumerable: true, get: function () { return index_1.watchFile; } });
 const ansiparse_1 = __webpack_require__(288);
 Object.defineProperty(exports, "ansiparse", { enumerable: true, get: function () { return ansiparse_1.ansiparse; } });
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(370));
@@ -77182,7 +77180,14 @@ Object.defineProperty(exports, "RequestType0", { enumerable: true, get: function
 Object.defineProperty(exports, "NotificationType", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.NotificationType; } });
 Object.defineProperty(exports, "NotificationType0", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.NotificationType0; } });
 Object.defineProperty(exports, "Event", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.Event; } });
+Object.defineProperty(exports, "CancellationToken", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.CancellationToken; } });
+Object.defineProperty(exports, "CancellationTokenSource", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.CancellationTokenSource; } });
 Object.defineProperty(exports, "Emitter", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.Emitter; } });
+Object.defineProperty(exports, "DiagnosticSeverity", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.DiagnosticSeverity; } });
+Object.defineProperty(exports, "CompletionItemKind", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.CompletionItemKind; } });
+Object.defineProperty(exports, "InsertTextFormat", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.InsertTextFormat; } });
+Object.defineProperty(exports, "Location", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.Location; } });
+Object.defineProperty(exports, "LocationLink", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.LocationLink; } });
 const vscode_jsonrpc_1 = __webpack_require__(212);
 Object.defineProperty(exports, "ProgressType", { enumerable: true, get: function () { return vscode_jsonrpc_1.ProgressType; } });
 tslib_1.__exportStar(__webpack_require__(342), exports);
@@ -77191,6 +77196,7 @@ tslib_1.__exportStar(__webpack_require__(666), exports);
 var util_1 = __webpack_require__(238);
 Object.defineProperty(exports, "disposeAll", { enumerable: true, get: function () { return util_1.disposeAll; } });
 Object.defineProperty(exports, "concurrent", { enumerable: true, get: function () { return util_1.concurrent; } });
+Object.defineProperty(exports, "watchFile", { enumerable: true, get: function () { return util_1.watchFile; } });
 Object.defineProperty(exports, "wait", { enumerable: true, get: function () { return util_1.wait; } });
 Object.defineProperty(exports, "runCommand", { enumerable: true, get: function () { return util_1.runCommand; } });
 Object.defineProperty(exports, "isRunning", { enumerable: true, get: function () { return util_1.isRunning; } });
