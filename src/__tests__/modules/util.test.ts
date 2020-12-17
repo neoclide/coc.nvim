@@ -1,6 +1,8 @@
 import path from 'path'
 import { URI } from 'vscode-uri'
 import os from 'os'
+import fs from 'fs'
+import { wait, watchFile } from '../../util'
 import { isGitIgnored, findUp, resolveRoot, statAsync, parentDirs, isParentFolder } from '../../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
 import { score, positions } from '../../util/fzy'
@@ -8,40 +10,55 @@ import { score as matchScore } from '../../util/match'
 import { mixin } from '../../util/object'
 import { Mutex } from '../../util/mutex'
 import { indexOf } from '../../util/string'
-import helper from '../helper'
+import helper, { createTmpFile } from '../helper'
 import { ansiparse } from '../../util/ansiparse'
 import { concurrent } from '../../util'
 import { spawn } from 'child_process'
 import { terminate } from '../../util/processes'
 
+describe('watchFile', () => {
+  it('should watch file', async () => {
+    let filepath = await createTmpFile('my file')
+    let fn = jest.fn()
+    let disposable = watchFile(filepath, () => {
+      fn()
+    })
+    await wait(30)
+    fs.writeFileSync(filepath, 'new file', 'utf8')
+    await wait(200)
+    expect(fn).toBeCalled()
+    disposable.dispose()
+  })
+})
+
 describe('score test', () => {
-  test('should match schema', () => {
+  it('should match schema', () => {
     let uri = URI.file('/foo').toString()
     let s = matchScore([{ language: '*', scheme: 'file' }], uri, 'typescript')
     expect(s).toBe(5)
   })
 
-  test('fzy#score', async () => {
+  it('fzy#score', async () => {
     let a = score("amuser", "app/models/user.rb")
     let b = score("amuser", "app/models/customer.rb")
     expect(a).toBeGreaterThan(b)
   })
 
-  test('fzy#positions', async () => {
+  it('fzy#positions', async () => {
     let arr = positions("amuser", "app/models/user.rb")
     expect(arr).toEqual([0, 4, 11, 12, 13, 14])
   })
 })
 
 describe('parentDirs', () => {
-  test('get parentDirs', () => {
+  it('get parentDirs', () => {
     let dirs = parentDirs('/a/b/c')
     expect(dirs).toEqual(['/', '/a', '/a/b'])
   })
 })
 
 describe('isParentFolder', () => {
-  test('check parent folder', () => {
+  it('check parent folder', () => {
     expect(isParentFolder('/a', '/a/b')).toBe(true)
     expect(isParentFolder('/a/b', '/a/b/')).toBe(false)
     expect(isParentFolder('/a/b', '/a/b')).toBe(false)
@@ -50,14 +67,14 @@ describe('isParentFolder', () => {
 })
 
 describe('string test', () => {
-  test('should find index', () => {
+  it('should find index', () => {
     expect(indexOf('a,b,c', ',', 2)).toBe(3)
     expect(indexOf('a,b,c', ',', 1)).toBe(1)
   })
 })
 
 describe('concurrent', () => {
-  test('should run concurrent', async () => {
+  it('should run concurrent', async () => {
     let res: number[] = []
     let fn = (n: number): Promise<void> => {
       return new Promise(resolve => {
@@ -78,7 +95,7 @@ describe('concurrent', () => {
 })
 
 describe('fuzzy match test', () => {
-  test('should be fuzzy match', () => {
+  it('should be fuzzy match', () => {
     let needle = 'aBc'
     let codes = getCharCodes(needle)
     expect(fuzzyMatch(codes, 'abc')).toBeFalsy
@@ -89,7 +106,7 @@ describe('fuzzy match test', () => {
     expect(fuzzyMatch(codes, 'ABCz')).toBeTruthy
   })
 
-  test('should be fuzzy for character', () => {
+  it('should be fuzzy for character', () => {
     expect(fuzzyChar('a', 'a')).toBeTruthy
     expect(fuzzyChar('a', 'A')).toBeTruthy
     expect(fuzzyChar('z', 'z')).toBeTruthy
@@ -102,30 +119,30 @@ describe('fuzzy match test', () => {
 })
 
 describe('fs test', () => {
-  test('fs statAsync', async () => {
+  it('fs statAsync', async () => {
     let res = await statAsync(__filename)
     expect(res).toBeDefined
     expect(res.isFile()).toBe(true)
   })
 
-  test('fs statAsync #1', async () => {
+  it('fs statAsync #1', async () => {
     let res = await statAsync(path.join(__dirname, 'file_not_exist'))
     expect(res).toBeNull
   })
 
-  test('should be not ignored', async () => {
+  it('should be not ignored', async () => {
     let res = await isGitIgnored(__filename)
     expect(res).toBeFalsy
   })
 
-  test('should be ignored', async () => {
+  it('should be ignored', async () => {
     let res = await isGitIgnored(path.resolve(__dirname, '../lib/index.js.map'))
     expect(res).toBeTruthy
   })
 })
 
 describe('object test', () => {
-  test('mixin should recursive', () => {
+  it('mixin should recursive', () => {
     let res = mixin({ a: { b: 1 } }, { a: { c: 2 }, d: 3 })
     expect(res.a.b).toBe(1)
     expect(res.a.c).toBe(2)
@@ -134,39 +151,39 @@ describe('object test', () => {
 })
 
 describe('resolveRoot', () => {
-  test('resolve root consider root path', () => {
+  it('resolve root consider root path', () => {
     let res = resolveRoot(__dirname, ['.git'])
     expect(res).toMatch('coc.nvim')
   })
 
-  test('should resolve from parent folders', () => {
+  it('should resolve from parent folders', () => {
     let root = path.resolve(__dirname, '../extensions/snippet-sample')
     let res = resolveRoot(root, ['package.json'])
     expect(res.endsWith('coc.nvim')).toBe(true)
   })
 
-  test('should not resolve to home', () => {
+  it('should not resolve to home', () => {
     let res = resolveRoot(__dirname, ['.config'])
     expect(res != os.homedir()).toBeTruthy()
   })
 })
 
 describe('findUp', () => {
-  test('findUp by filename', () => {
+  it('findUp by filename', () => {
     let filepath = findUp('package.json', __dirname)
     expect(filepath).toMatch('coc.nvim')
     filepath = findUp('not_exists', __dirname)
     expect(filepath).toBeNull()
   })
 
-  test('findUp by filenames', async () => {
+  it('findUp by filenames', async () => {
     let filepath = findUp(['src'], __dirname)
     expect(filepath).toMatch('coc.nvim')
   })
 })
 
 describe('ansiparse', () => {
-  test('ansiparse #1', () => {
+  it('ansiparse #1', () => {
     let str = '\u001b[33mText\u001b[mnormal'
     let res = ansiparse(str)
     expect(res).toEqual([{
@@ -176,7 +193,7 @@ describe('ansiparse', () => {
     }])
   })
 
-  test('ansiparse #2', () => {
+  it('ansiparse #2', () => {
     let str = '\u001b[33m\u001b[mText'
     let res = ansiparse(str)
     expect(res).toEqual([
@@ -184,7 +201,7 @@ describe('ansiparse', () => {
       { text: 'Text' }])
   })
 
-  test('ansiparse #3', () => {
+  it('ansiparse #3', () => {
     let str = 'this.\u001b[0m\u001b[31m\u001b[1mhistory\u001b[0m.add()'
     let res = ansiparse(str)
     expect(res[1]).toEqual({
@@ -195,7 +212,7 @@ describe('ansiparse', () => {
 })
 
 describe('Mutex', () => {
-  test('mutex run in serial', async () => {
+  it('mutex run in serial', async () => {
     let lastTs: number
     let fn = () => new Promise<void>(resolve => {
       if (lastTs) {
@@ -215,7 +232,7 @@ describe('Mutex', () => {
     ])
   })
 
-  test('mutex run after job finish', async () => {
+  it('mutex run after job finish', async () => {
     let count = 0
     let fn = () => new Promise<void>(resolve => {
       count = count + 1
@@ -232,7 +249,7 @@ describe('Mutex', () => {
 })
 
 describe('terminate', () => {
-  test('should terminate process', async () => {
+  it('should terminate process', async () => {
     let cwd = process.cwd()
     let child = spawn('sleep', ['10'], { cwd, detached: true })
     let res = terminate(child, cwd)
