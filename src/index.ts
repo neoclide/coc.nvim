@@ -33,7 +33,12 @@ import {
   Event,
   CancellationToken,
   CancellationTokenSource,
-  Emitter
+  Emitter,
+  DiagnosticSeverity,
+  CompletionItemKind,
+  InsertTextFormat,
+  Location,
+  LocationLink,
 } from 'vscode-languageserver-protocol'
 import { ProgressType } from 'vscode-jsonrpc'
 
@@ -41,6 +46,6 @@ export * from './types'
 export * from './language-client'
 export * from './provider'
 
-export { Neovim, CancellationTokenSource, CancellationToken, ProgressType, Position, Range, TextEdit, RequestType, RequestType0, NotificationType, NotificationType0, Buffer, Window, Highligher, Mru, Watchman, URI as Uri, Disposable, Event, Emitter, FloatFactory, fetch, download, ansiparse }
+export { Neovim, DiagnosticSeverity, CompletionItemKind, InsertTextFormat, Location, LocationLink, CancellationTokenSource, CancellationToken, ProgressType, Position, Range, TextEdit, RequestType, RequestType0, NotificationType, NotificationType0, Buffer, Window, Highligher, Mru, Watchman, URI as Uri, Disposable, Event, Emitter, FloatFactory, fetch, download, ansiparse }
 export { workspace, window, snippetManager, events, services, commands, sources, languages, diagnosticManager, Document, FileSystemWatcher, extensions, listManager, BasicList }
 export { disposeAll, concurrent, watchFile, wait, runCommand, isRunning, executable } from './util'

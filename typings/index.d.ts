@@ -712,6 +712,25 @@ declare module 'coc.nvim' {
     targetSelectionRange: Range
   }
 
+  /**
+   * The LocationLink namespace provides helper functions to work with
+   * [LocationLink](#LocationLink) literals.
+   */
+  export namespace LocationLink {
+    /**
+     * Creates a LocationLink literal.
+     * @param targetUri The definition's uri.
+     * @param targetRange The full range of the definition.
+     * @param targetSelectionRange The span of the symbol definition at the target.
+     * @param originSelectionRange The span of the symbol being defined in the originating source file.
+    */
+    function create(targetUri: string, targetRange: Range, targetSelectionRange: Range, originSelectionRange?: Range): LocationLink
+    /**
+     * Checks whether the given literal conforms to the [LocationLink](#LocationLink) interface.
+     */
+    function is(value: any): value is LocationLink
+  }
+
   export type MarkupKind = 'plaintext' | 'markdown'
 
   /**
@@ -749,7 +768,61 @@ declare module 'coc.nvim' {
     value: string
   }
 
-  type InsertTextFormat = 1 | 2
+  /**
+   * The kind of a completion entry.
+   */
+  export namespace CompletionItemKind {
+    const Text: 1
+    const Method: 2
+    const Function: 3
+    const Constructor: 4
+    const Field: 5
+    const Variable: 6
+    const Class: 7
+    const Interface: 8
+    const Module: 9
+    const Property: 10
+    const Unit: 11
+    const Value: 12
+    const Enum: 13
+    const Keyword: 14
+    const Snippet: 15
+    const Color: 16
+    const File: 17
+    const Reference: 18
+    const Folder: 19
+    const EnumMember: 20
+    const Constant: 21
+    const Struct: 22
+    const Event: 23
+    const Operator: 24
+    const TypeParameter: 25
+  }
+
+  export type CompletionItemKind = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25
+
+  /**
+   * Defines whether the insert text in a completion item should be interpreted as
+   * plain text or a snippet.
+   */
+  export namespace InsertTextFormat {
+    /**
+     * The primary text to be inserted is treated as a plain string.
+     */
+    const PlainText: 1
+    /**
+     * The primary text to be inserted is treated as a snippet.
+     *
+     * A snippet can define tab stops and placeholders with `$1`, `$2`
+     * and `${3:foo}`. `$0` defines the final tab stop, it defaults to
+     * the end of the snippet. Placeholders with equal identifiers are linked,
+     * that is typing in one will update others too.
+     *
+     * See also: https://github.com/Microsoft/vscode/blob/master/src/vs/editor/contrib/snippet/common/snippet.md
+     */
+    const Snippet: 2
+  }
+  export type InsertTextFormat = 1 | 2
 
   /**
    * A completion item represents a text snippet that is
@@ -766,7 +839,7 @@ declare module 'coc.nvim' {
      * The kind of this completion item. Based of the kind
      * an icon is chosen by the editor.
      */
-    kind?: number
+    kind?: CompletionItemKind
     /**
      * Tags for this completion item.
      *
@@ -1075,6 +1148,52 @@ declare module 'coc.nvim' {
   }
 
   /**
+   * The diagnostic's severity.
+   */
+  export namespace DiagnosticSeverity {
+    /**
+     * Reports an error.
+     */
+    const Error: 1
+    /**
+     * Reports a warning.
+     */
+    const Warning: 2
+    /**
+     * Reports an information.
+     */
+    const Information: 3
+    /**
+     * Reports a hint.
+     */
+    const Hint: 4
+  }
+  export type DiagnosticSeverity = 1 | 2 | 3 | 4
+
+  /**
+   * The diagnostic tags.
+   *
+   * @since 3.15.0
+   */
+  export namespace DiagnosticTag {
+    /**
+     * Unused or unnecessary code.
+     *
+     * Clients are allowed to render diagnostics with this tag faded out instead of having
+     * an error squiggle.
+     */
+    const Unnecessary: 1
+    /**
+     * Deprecated or obsolete code.
+     *
+     * Clients are allowed to rendered diagnostics with this tag strike through.
+     */
+    const Deprecated: 2
+  }
+
+  export type DiagnosticTag = 1 | 2
+
+  /**
    * Represents a diagnostic, such as a compiler error or warning. Diagnostic objects
    * are only valid in the scope of a resource.
    */
@@ -1087,7 +1206,7 @@ declare module 'coc.nvim' {
      * The diagnostic's severity. Can be omitted. If omitted it is up to the
      * client to interpret diagnostics as error, warning, info or hint.
      */
-    severity?: number
+    severity?: DiagnosticSeverity
     /**
      * The diagnostic's code, which usually appear in the user interface.
      */
@@ -1105,7 +1224,7 @@ declare module 'coc.nvim' {
     /**
      * Additional metadata about the diagnostic.
      */
-    tags?: number[]
+    tags?: DiagnosticTag[]
     /**
      * An array of related diagnostic information, e.g. when symbol-names within
      * a scope collide all definitions can be marked via this property.
@@ -1260,6 +1379,23 @@ declare module 'coc.nvim' {
   export interface Location {
     uri: string
     range: Range
+  }
+
+  /**
+   * The Location namespace provides helper functions to work with
+   * [Location](#Location) literals.
+   */
+  export namespace Location {
+    /**
+     * Creates a Location literal.
+     * @param uri The location's uri.
+     * @param range The location's range.
+     */
+    function create(uri: string, range: Range): Location
+    /**
+     * Checks whether the given literal conforms to the [Location](#Location) interface.
+     */
+    function is(value: any): value is Location
   }
 
   /**
@@ -2970,7 +3106,7 @@ declare module 'coc.nvim' {
      * The list of kinds may be generic, such as `CodeActionKind.Refactor`, or the provider
      * may list our every specific kind they provide, such as `CodeActionKind.Refactor.Extract.append('function`)`
      */
-    readonly providedCodeActionKinds?: ReadonlyArray<string[]>
+    readonly providedCodeActionKinds?: ReadonlyArray<string>
   }
 
   /**
@@ -6136,10 +6272,24 @@ declare module 'coc.nvim' {
   // }}
 
   // snippetManager module {{
+  export interface SnippetSession {
+    isActive: boolean
+  }
+  export interface TextmateSnippet {
+    toString(): string
+  }
   /**
    * Manage snippet sessions.
    */
   export namespace snippetManager {
+    /**
+     * Get snippet session by bufnr.
+     */
+    export function getSession(bufnr: number): SnippetSession | undefined
+    /**
+     * Parse snippet string to TextmateSnippet.
+     */
+    export function resolveSnippet(body: string): Promise<TextmateSnippet>
     /**
      * Insert snippet at current buffer.
      *
