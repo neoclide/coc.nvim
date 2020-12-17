@@ -36,7 +36,7 @@ class Window {
     if (this.mutex.busy || !this.nvim) return
     let { messageLevel } = this
     let method = process.env.VIM_NODE_RPC == '1' ? 'callTimer' : 'call'
-    if (global.hasOwnProperty('__TEST__')) console.log(msg)
+    if (global.hasOwnProperty('__TEST__')) logger.info(msg)
     let hl = 'Error'
     let level = MessageLevel.Error
     switch (messageType) {
