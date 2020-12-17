@@ -496,7 +496,7 @@ describe('User mappings', () => {
     await manager.start(['location'])
     await helper.wait(100)
     await nvim.eval('feedkeys("\\<C-q>", "in")')
-    await helper.wait(30)
+    await helper.wait(100)
     expect(manager.isActivated).toBe(true)
     await manager.start(['location'])
     await helper.wait(100)

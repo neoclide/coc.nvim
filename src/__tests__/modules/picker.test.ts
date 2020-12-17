@@ -89,9 +89,9 @@ describe('Picker key mappings', () => {
     let fn = jest.fn()
     picker.onDidClose(fn)
     await nvim.input('<space>')
-    await helper.wait(50)
+    await helper.wait(100)
     await nvim.input('<cr>')
-    await helper.wait(50)
+    await helper.wait(100)
     expect(fn).toBeCalledWith([0])
   })
 

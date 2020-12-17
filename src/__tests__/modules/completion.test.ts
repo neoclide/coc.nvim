@@ -720,7 +720,9 @@ describe('completion TextChangedI', () => {
     await helper.pumvisible()
     await helper.wait(30)
     await nvim.call('coc#_cancel', [])
-    await helper.wait(100)
-    expect(completion.isActivated).toBe(false)
+    let line = await nvim.line
+    let visible = await nvim.call('pumvisible')
+    expect(line).toBe('f')
+    expect(visible).toBe(0)
   })
 })

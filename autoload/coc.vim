@@ -101,11 +101,11 @@ endfunction
 
 function! coc#_cancel()
   " hack for close pum
-  if pumvisible() && &paste != 1
+  if pumvisible()
     let g:coc#_context = {'start': 0, 'preselect': -1,'candidates': []}
     call feedkeys("\<Plug>CocRefresh", 'i')
+    call coc#rpc#notify('stopCompletion', [])
   endif
-  call CocActionAsync('stopCompletion')
 endfunction
 
 function! coc#_select() abort
