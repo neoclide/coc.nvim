@@ -1233,6 +1233,21 @@ declare module 'coc.nvim' {
   }
 
   /**
+   * The Diagnostic namespace provides helper functions to work with
+   * [Diagnostic](#Diagnostic) literals.
+   */
+  export namespace Diagnostic {
+    /**
+     * Creates a new Diagnostic literal.
+     */
+    function create(range: Range, message: string, severity?: DiagnosticSeverity, code?: number | string, source?: string, relatedInformation?: DiagnosticRelatedInformation[]): Diagnostic;
+    /**
+     * Checks whether the given literal conforms to the [Diagnostic](#Diagnostic) interface.
+     */
+    function is(value: any): value is Diagnostic;
+  }
+
+  /**
    * A code action represents a change that can be performed in code, e.g. to fix a problem or
    * to refactor code.
    *
