@@ -11593,6 +11593,9 @@ exports.default = (opts, requestApi = true) => {
                     if (!plugin.isReady) {
                         logger.warn(`Plugin not ready when received "${method}"`, args);
                     }
+                    else {
+                        logger.info('receive notification:', method, args);
+                    }
                     await plugin.ready;
                     await plugin.cocAction(method, ...args);
                 }
@@ -11604,6 +11607,9 @@ exports.default = (opts, requestApi = true) => {
         }
     });
     nvim.on('request', async (method, args, resp) => {
+        if (method != 'redraw') {
+            logger.info('receive request:', method, args);
+        }
         let timer = setTimeout(() => {
             logger.error('Request cost more than 3s', method, args);
         }, 3000);
@@ -16533,7 +16539,6 @@ class Events {
         return this._cursor;
     }
     async fire(event, args) {
-        logger.debug('Event:', event, args);
         let cbs = this.handlers.get(event);
         if (event == 'InsertEnter') {
             this.insertMode = true;
@@ -24024,7 +24029,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "20e879faa9" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "afb79f13df" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -77116,7 +77121,8 @@ module.exports = require("module");
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.executable = exports.isRunning = exports.runCommand = exports.wait = exports.watchFile = exports.concurrent = exports.disposeAll = exports.BasicList = exports.listManager = exports.extensions = exports.FileSystemWatcher = exports.Document = exports.diagnosticManager = exports.languages = exports.sources = exports.commands = exports.services = exports.events = exports.snippetManager = exports.window = exports.workspace = exports.ansiparse = exports.download = exports.fetch = exports.FloatFactory = exports.Emitter = exports.Event = exports.Disposable = exports.Uri = exports.Watchman = exports.Mru = exports.Highligher = exports.Window = exports.Buffer = exports.NotificationType0 = exports.NotificationType = exports.RequestType0 = exports.RequestType = exports.TextEdit = exports.Range = exports.Position = exports.ProgressType = exports.CancellationToken = exports.CancellationTokenSource = exports.LocationLink = exports.Location = exports.InsertTextFormat = exports.CompletionItemKind = exports.DiagnosticSeverity = exports.Neovim = void 0;
+exports.isRunning = exports.runCommand = exports.wait = exports.watchFile = exports.concurrent = exports.disposeAll = exports.BasicList = exports.listManager = exports.extensions = exports.FileSystemWatcher = exports.Document = exports.diagnosticManager = exports.languages = exports.sources = exports.commands = exports.services = exports.events = exports.snippetManager = exports.window = exports.workspace = exports.ansiparse = exports.download = exports.fetch = exports.FloatFactory = exports.Emitter = exports.Event = exports.Disposable = exports.Uri = exports.Watchman = exports.Mru = exports.Highligher = exports.Window = exports.Buffer = exports.NotificationType0 = exports.NotificationType = exports.RequestType0 = exports.RequestType = exports.TextEdit = exports.Range = exports.Position = exports.ProgressType = exports.CancellationToken = exports.CancellationTokenSource = exports.LocationLink = exports.Location = exports.InsertTextFormat = exports.CompletionItemKind = exports.DiagnosticSeverity = exports.Diagnostic = exports.Neovim = void 0;
+exports.executable = void 0;
 const tslib_1 = __webpack_require__(65);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(252));
 exports.commands = commands_1.default;
@@ -77179,6 +77185,7 @@ Object.defineProperty(exports, "Event", { enumerable: true, get: function () { r
 Object.defineProperty(exports, "CancellationToken", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.CancellationToken; } });
 Object.defineProperty(exports, "CancellationTokenSource", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.CancellationTokenSource; } });
 Object.defineProperty(exports, "Emitter", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.Emitter; } });
+Object.defineProperty(exports, "Diagnostic", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.Diagnostic; } });
 Object.defineProperty(exports, "DiagnosticSeverity", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.DiagnosticSeverity; } });
 Object.defineProperty(exports, "CompletionItemKind", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.CompletionItemKind; } });
 Object.defineProperty(exports, "InsertTextFormat", { enumerable: true, get: function () { return vscode_languageserver_protocol_1.InsertTextFormat; } });
