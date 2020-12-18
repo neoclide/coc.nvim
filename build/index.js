@@ -24024,7 +24024,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "bf592f8dfa" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "20e879faa9" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -97132,7 +97132,7 @@ class Signature {
             this.config = {
                 target,
                 trigger: config.get('enable', true),
-                wait: Math.max(config.get('triggerSignatureWait', 100), 50),
+                wait: Math.max(config.get('triggerSignatureWait', 500), 200),
                 maxWindowHeight: config.get('maxWindowHeight', 80),
                 maxWindowWidth: config.get('maxWindowWidth', 80),
                 preferAbove: config.get('preferShownAbove', true),
@@ -97162,7 +97162,7 @@ class Signature {
             return false;
         }
         let signatureHelp = await languages_1.default.getSignatureHelp(doc.textDocument, position, token, {
-            // TODO set to true if it's placeholder jump, but can't delete by now.
+            // TODO set to true if it's placeholder jump, but can't detect by now.
             isRetrigger: false,
             triggerKind: invoke ? vscode_languageserver_protocol_1.SignatureHelpTriggerKind.Invoked : vscode_languageserver_protocol_1.SignatureHelpTriggerKind.TriggerCharacter
         });
