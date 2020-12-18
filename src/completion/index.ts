@@ -296,7 +296,7 @@ export class Completion implements Disposable {
     // not handle when not triggered by character insert
     if (!hasInsert || !pretext) return
     if (sources.shouldTrigger(pretext, document.filetype)) {
-      await this.triggerCompletion(document, pretext, false)
+      await this.triggerCompletion(document, pretext)
     } else {
       await this.resumeCompletion()
     }
@@ -314,7 +314,7 @@ export class Completion implements Disposable {
       if (!latestInsertChar) return
       let triggerSources = sources.getTriggerSources(pretext, doc.filetype)
       if (triggerSources.length) {
-        await this.triggerCompletion(doc, this.pretext, false)
+        await this.triggerCompletion(doc, this.pretext)
         return
       }
       this.triggerTimer = setTimeout(async () => {
@@ -354,22 +354,20 @@ export class Completion implements Disposable {
     }
     // prefer trigger completion
     if (sources.shouldTrigger(pretext, doc.filetype)) {
-      await this.triggerCompletion(doc, pretext, false)
+      await this.triggerCompletion(doc, pretext)
     } else {
       await this.resumeCompletion()
     }
   }
 
-  private async triggerCompletion(doc: Document, pre: string, checkTrigger = true): Promise<void> {
+  private async triggerCompletion(doc: Document, pre: string): Promise<void> {
     if (!doc || !doc.attached) {
       logger.warn('Document not attached, suggest disabled.')
       return
     }
     // check trigger
-    if (checkTrigger) {
-      let shouldTrigger = this.shouldTrigger(doc, pre)
-      if (!shouldTrigger) return
-    }
+    let shouldTrigger = this.shouldTrigger(doc, pre)
+    if (!shouldTrigger) return
     if (doc.getVar('suggest_disable')) {
       logger.warn(`Suggest disabled by b:coc_suggest_disable`)
       return
