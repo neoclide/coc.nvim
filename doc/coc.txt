@@ -1406,14 +1406,6 @@ g:coc_node_path						*g:coc_node_path*
 
 	Note: you can use `~` as home directory.
 
-g:coc_force_bundle					*g:coc_force_bundle*
-
-	When lib folder with javascript code exists, coc.nvim would use
-	compiled javascript from lib folder, set this variable to `1` if you
-	want it use `build/index.js` created by webpack.
-
-	Default: 0
-
 g:coc_node_args						*g:coc_node_args*
 
 	Arguments passed to node when starting coc service from source code.
