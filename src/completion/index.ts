@@ -314,7 +314,7 @@ export class Completion implements Disposable {
       if (!latestInsertChar) return
       let triggerSources = sources.getTriggerSources(pretext, doc.filetype)
       if (triggerSources.length) {
-        await this.triggerCompletion(doc, this.pretext, false)
+        await this.triggerCompletion(doc, this.pretext)
         return
       }
       this.triggerTimer = setTimeout(async () => {
