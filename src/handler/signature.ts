@@ -89,7 +89,7 @@ export default class Signature {
       this.config = {
         target,
         trigger: config.get<boolean>('enable', true),
-        wait: Math.max(config.get<number>('triggerSignatureWait', 100), 50),
+        wait: Math.max(config.get<number>('triggerSignatureWait', 500), 200),
         maxWindowHeight: config.get<number>('maxWindowHeight', 80),
         maxWindowWidth: config.get<number>('maxWindowWidth', 80),
         preferAbove: config.get<boolean>('preferShownAbove', true),
@@ -119,7 +119,7 @@ export default class Signature {
       return false
     }
     let signatureHelp = await languages.getSignatureHelp(doc.textDocument, position, token, {
-      // TODO set to true if it's placeholder jump, but can't delete by now.
+      // TODO set to true if it's placeholder jump, but can't detect by now.
       isRetrigger: false,
       triggerKind: invoke ? SignatureHelpTriggerKind.Invoked : SignatureHelpTriggerKind.TriggerCharacter
     })

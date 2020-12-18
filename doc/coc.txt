@@ -473,7 +473,7 @@ Built-in configurations:~
 
 "signature.triggerSignatureWait":~
 
-	Delay for signature request trigger (milliseconds), default: `100`.
+	Timeout for signature request trigger (milliseconds), default: `500`.
 	Change to higher value for slow Language Servers.
 
 "signature.target":~

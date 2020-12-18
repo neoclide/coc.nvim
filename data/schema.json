@@ -660,9 +660,9 @@
     },
     "signature.triggerSignatureWait": {
       "type": "integer",
-      "default": 100,
-      "minimum": 50,
-      "maximum": 300,
+      "default": 500,
+      "minimum": 200,
+      "maximum": 1000,
       "description": "Timeout for trigger signature help, in miliseconds."
     },
     "signature.target": {
