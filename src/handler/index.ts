@@ -619,8 +619,8 @@ export default class Handler {
 
   public async highlight(): Promise<void> {
     let { doc, position, winid } = await this.getCurrentState()
-    if (!doc) return
-    await this.documentHighlighter.highlight(doc.bufnr, winid, position)
+    if (!doc || !doc.attached || doc.isCommandLine) return
+    await this.documentHighlighter.highlight(doc, winid, position)
   }
 
   public async getSymbolsRanges(): Promise<Range[]> {

@@ -32,16 +32,16 @@ export default class DocumentHighlighter {
     if (workspace.isVim) nvim.command('redraw', true)
   }
 
-  public async highlight(bufnr: number, winid: number, position: Position): Promise<void> {
+  public async highlight(doc: Document, winid: number, position: Position): Promise<void> {
     let { nvim } = this
-    let doc = workspace.getDocument(bufnr)
     this.cancel()
     let highlights = await this.getHighlights(doc, position)
-    if (!highlights || highlights.length == 0) {
+    let res = await nvim.eval(`[bufnr('%'),win_getid(),get(b:,'coc_cursors_activated',0)]`) as [number, number, number]
+    if (res[1] != winid) return
+    if (res[0] != doc.bufnr || res[2] || !highlights || highlights.length == 0) {
       this.clearHighlight(winid)
       return
     }
-    if (workspace.bufnr != bufnr) return
     let win = nvim.createWindow(winid)
     let groups: { [index: string]: Range[] } = {}
     for (let hl of highlights) {
