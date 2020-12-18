@@ -542,11 +542,6 @@
       "description": "Enable diagnostic refresh on insert mode, default false.",
       "default": false
     },
-    "diagnostic.refreshAfterSave": {
-      "type": "boolean",
-      "description": "Only refresh diagnostics after save, default false.",
-      "default": false
-    },
     "diagnostic.displayByAle": {
       "type": "boolean",
       "description": "Use Ale for display diagnostics in vim, will disable coc for display diagnostics, restart required on change.",
