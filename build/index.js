@@ -24024,7 +24024,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "e444c57756" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "bf592f8dfa" : undefined);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -24515,22 +24515,13 @@ class DiagnosticManager {
             if (!doc)
                 return;
             doc.forceSync();
-            let { refreshOnInsertMode, refreshAfterSave } = this.config;
-            if (!refreshOnInsertMode && !refreshAfterSave) {
+            if (!this.config.refreshOnInsertMode) {
                 this.refreshBuffer(doc.uri);
             }
         }, null, this.disposables);
         events_1.default.on('BufEnter', async () => {
             if (this.timer)
                 clearTimeout(this.timer);
-        }, null, this.disposables);
-        events_1.default.on('BufWritePost', async (bufnr) => {
-            let buf = this.buffers.get(bufnr);
-            if (!buf)
-                return;
-            if (!this.config.refreshAfterSave)
-                return;
-            this.refreshBuffer(buf.uri);
         }, null, this.disposables);
         workspace_1.default.onDidChangeConfiguration(e => {
             this.setConfiguration(e);
@@ -24630,17 +24621,12 @@ class DiagnosticManager {
      * Create collection by name
      */
     create(name) {
-        let collection = new collection_1.default(name);
+        let collection = this.getCollectionByName(name);
+        if (collection)
+            return collection;
+        collection = new collection_1.default(name);
         this.collections.push(collection);
-        // Used for refresh diagnostics on buferEnter when refreshAfterSave is true
-        // Note we can't make sure it work as expected when there're multiple sources
-        let createTime = Date.now();
-        let refreshed = false;
         collection.onDidDiagnosticsChange(uri => {
-            if (this.config.refreshAfterSave &&
-                (refreshed || Date.now() - createTime > 5000))
-                return;
-            refreshed = true;
             this.refreshBuffer(uri);
         });
         collection.onDidDiagnosticsClear(uris => {
@@ -25050,7 +25036,6 @@ class DiagnosticManager {
             warningSign: config.get('warningSign', '>>'),
             infoSign: config.get('infoSign', '>>'),
             hintSign: config.get('hintSign', '>>'),
-            refreshAfterSave: config.get('refreshAfterSave', false),
             refreshOnInsertMode: config.get('refreshOnInsertMode', false),
             filetypeMap: config.get('filetypeMap', {}),
             showUnused: config.get('showUnused', true),
@@ -25105,14 +25090,14 @@ class DiagnosticManager {
         }
     }
     refreshBuffer(uri, force = false) {
-        let buf = Array.from(this.buffers.values()).find(o => o.uri == uri);
-        if (!buf || !this.enabled)
+        if (!this.enabled)
             return false;
-        let { displayByAle, refreshOnInsertMode } = this.config;
-        if (!refreshOnInsertMode && workspace_1.default.insertMode)
-            return false;
+        let { displayByAle } = this.config;
         let diagnostics = this.getDiagnostics(uri);
         if (!displayByAle) {
+            let buf = Array.from(this.buffers.values()).find(o => o.uri == uri);
+            if (!buf)
+                return false;
             if (force) {
                 buf.forceRefresh(diagnostics);
             }
@@ -25122,16 +25107,28 @@ class DiagnosticManager {
             return true;
         }
         else {
+            let doc = workspace_1.default.getDocument(uri);
+            if (!doc)
+                return;
+            if (!this.config.refreshOnInsertMode && workspace_1.default.insertMode)
+                return false;
             let exists = this.aleDiagnosticsMap.get(uri) || [];
             if (object_1.equals(diagnostics, exists))
                 return false;
             this.aleDiagnosticsMap.set(uri, diagnostics);
             let map = new Map();
+            let collections = new Set(exists.map(o => o.collection));
             diagnostics.forEach(o => {
                 let exists = map.get(o.collection) || [];
                 exists.push(o);
                 map.set(o.collection, exists);
             });
+            // clear old collection.
+            for (let name of collections) {
+                if (!map.has(name)) {
+                    map.set(name, []);
+                }
+            }
             this.nvim.pauseNotification();
             for (let [collection, diagnostics] of map.entries()) {
                 let aleItems = diagnostics.map(o => {
@@ -25146,7 +25143,8 @@ class DiagnosticManager {
                         type: util_2.getSeverityType(o.severity)
                     };
                 });
-                this.nvim.call('ale#other_source#ShowResults', [buf.bufnr, collection, aleItems], true);
+                let method = global.hasOwnProperty('__TEST__') ? 'MockAleResults' : 'ale#other_source#ShowResults';
+                this.nvim.call(method, [doc.bufnr, collection, aleItems], true);
             }
             // eslint-disable-next-line @typescript-eslint/no-floating-promises
             this.nvim.resumeNotification(false, true);
@@ -48067,7 +48065,7 @@ class Completion {
         if (!hasInsert || !pretext)
             return;
         if (sources_1.default.shouldTrigger(pretext, document.filetype)) {
-            await this.triggerCompletion(document, pretext, false);
+            await this.triggerCompletion(document, pretext);
         }
         else {
             await this.resumeCompletion();
@@ -48087,7 +48085,7 @@ class Completion {
                 return;
             let triggerSources = sources_1.default.getTriggerSources(pretext, doc.filetype);
             if (triggerSources.length) {
-                await this.triggerCompletion(doc, this.pretext, false);
+                await this.triggerCompletion(doc, this.pretext);
                 return;
             }
             this.triggerTimer = setTimeout(async () => {
@@ -48128,23 +48126,21 @@ class Completion {
         }
         // prefer trigger completion
         if (sources_1.default.shouldTrigger(pretext, doc.filetype)) {
-            await this.triggerCompletion(doc, pretext, false);
+            await this.triggerCompletion(doc, pretext);
         }
         else {
             await this.resumeCompletion();
         }
     }
-    async triggerCompletion(doc, pre, checkTrigger = true) {
+    async triggerCompletion(doc, pre) {
         if (!doc || !doc.attached) {
             logger.warn('Document not attached, suggest disabled.');
             return;
         }
         // check trigger
-        if (checkTrigger) {
-            let shouldTrigger = this.shouldTrigger(doc, pre);
-            if (!shouldTrigger)
-                return;
-        }
+        let shouldTrigger = this.shouldTrigger(doc, pre);
+        if (!shouldTrigger)
+            return;
         if (doc.getVar('suggest_disable')) {
             logger.warn(`Suggest disabled by b:coc_suggest_disable`);
             return;

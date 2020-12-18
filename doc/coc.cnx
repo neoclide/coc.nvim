@@ -362,10 +362,6 @@ Built-in configurations:~
 
 	Refresh diagnostics when in insert mode, default: `false`
 
-"diagnostic.refreshAfterSave":~
-
-	Refresh diagnostics after file save only, default: `false`
-
 "diagnostic.displayByAle":~
 
 	Use ALE for displaying diagnostics. This will disable coc.nvim for
