@@ -61,6 +61,8 @@ export default (opts: Attach, requestApi = true): Plugin => {
         try {
           if (!plugin.isReady) {
             logger.warn(`Plugin not ready when received "${method}"`, args)
+          } else {
+            logger.info('receive notification:', method, args)
           }
           await plugin.ready
           await plugin.cocAction(method, ...args)
@@ -73,6 +75,9 @@ export default (opts: Attach, requestApi = true): Plugin => {
   })
 
   nvim.on('request', async (method: string, args, resp) => {
+    if (method != 'redraw') {
+      logger.info('receive request:', method, args)
+    }
     let timer = setTimeout(() => {
       logger.error('Request cost more than 3s', method, args)
     }, 3000)

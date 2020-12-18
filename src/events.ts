@@ -46,7 +46,6 @@ class Events {
   }
 
   public async fire(event: string, args: any[]): Promise<void> {
-    logger.debug('Event:', event, args)
     let cbs = this.handlers.get(event)
     if (event == 'InsertEnter') {
       this.insertMode = true
