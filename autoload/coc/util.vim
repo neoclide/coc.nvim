@@ -127,20 +127,11 @@ function! coc#util#job_command()
     echohl Error | echom '[coc.nvim] "'.node.'" is not executable, checkout https://nodejs.org/en/download/' | echohl None
     return
   endif
-  if filereadable(s:root.'/bin/server.js') && filereadable(s:root.'/src/index.ts') && !get(g:, 'coc_force_bundle', 0)
-    if !filereadable(s:root.'/lib/attach.js')
-      echohl Error | echom '[coc.nvim] javascript bundle not found, please compile typescript code.' | echohl None
-      return
-    endif
-    "use javascript from lib
-    return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/bin/server.js']
-  else
-    if !filereadable(s:root.'/build/index.js')
-      echohl Error | echom '[coc.nvim] build/index.js not found, reinstall coc.nvim to fix it.' | echohl None
-      return
-    endif
-    return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/build/index.js']
+  if !filereadable(s:root.'/build/index.js')
+    echohl Error | echom '[coc.nvim] build/index.js not found, please compile the code by webpack' | echohl None
+    return
   endif
+  return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/build/index.js']
 endfunction
 
 function! coc#util#echo_hover(msg)

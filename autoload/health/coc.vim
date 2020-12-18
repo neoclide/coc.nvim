@@ -41,20 +41,11 @@ function! s:checkEnvironment() abort
 endfunction
 
 function! s:checkCommand()
-  let file = s:root.'/bin/server.js'
+  let file = s:root.'/build/index.js'
   if filereadable(file)
-    if !filereadable(s:root.'/lib/attach.js')
-      call health#report_error('Javascript entry not found, run "yarn install --frozen-lockfile" in terminal to fix it.')
-    else
-      call health#report_ok('Javascript entry lib/attach.js found')
-    endif
+    call health#report_ok('Javascript bundle build/index.js found')
   else
-    let file = s:root.'/build/index.js'
-    if filereadable(file)
-      call health#report_ok('Javascript bundle build/index.js found')
-    else
-    call health#report_error('Javascript entry not found, reinstall coc.nvim to fix it.')
-    endif
+    call health#report_error('Javascript entry not found, please compile coc.nvim by webpack.')
   endif
 endfunction
 

@@ -401,17 +401,9 @@ function! s:ShowInfo()
       endif
     endif
     " check bundle
-    let file = s:root.'/bin/server.js'
-    if filereadable(file)
-      let file = s:root.'/lib/attach.js'
-      if !filereadable(file)
-        call add(lines, 'Error: javascript bundle not found, please compile the code of coc.nvim.')
-      endif
-    else
-      let file = s:root.'/build/index.js'
-      if !filereadable(file)
-        call add(lines, 'Error: javascript bundle not found, please remove coc.nvim folder and reinstall it.')
-      endif
+    let file = s:root.'/build/index.js'
+    if !filereadable(file)
+      call add(lines, 'Error: javascript bundle not found, please compile code of coc.nvim by webpack.')
     endif
     if !empty(lines)
       belowright vnew
