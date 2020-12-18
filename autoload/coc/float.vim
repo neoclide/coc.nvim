@@ -654,7 +654,11 @@ function! coc#float#scroll(forward, ...)
     return ''
   endif
   for winid in winids
-    call coc#float#scroll_win(winid, a:forward, amount)
+    if s:is_vim
+      call coc#float#scroll_win(winid, a:forward, amount)
+    else
+      call timer_start(0, { -> coc#float#scroll_win(winid, a:forward, amount)})
+    endif
   endfor
   return mode() =~ '^i' || mode() ==# 'v' ? "" : "\<Ignore>"
 endfunction
