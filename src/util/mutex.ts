@@ -34,13 +34,13 @@ export class Mutex {
   public use<T>(f: () => Promise<T>): Promise<T> {
     return this.acquire()
       .then(release => f()
-          .then(res => {
-            release()
-            return res
-          })
-          .catch(err => {
-            release()
-            throw err
-          }))
+        .then(res => {
+          release()
+          return res
+        })
+        .catch(err => {
+          release()
+          throw err
+        }))
   }
 }

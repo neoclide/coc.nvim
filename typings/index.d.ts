@@ -3503,6 +3503,21 @@ declare module 'coc.nvim' {
      */
     abstract loadItems(context: ListContext, token?: CancellationToken): Promise<ListItem[] | ListTask | null | undefined>
   }
+
+  export class Mutex {
+    /**
+     * Returns true when task is running.
+     */
+    get busy(): boolean
+    /**
+     * Resolved release function that must be called after task finish.
+     */
+    acquire(): Promise<() => void>
+    /**
+     * Captrue the async task function that ensures to be executed one by one.
+     */
+    use<T>(f: () => Promise<T>): Promise<T>
+  }
   // }}
 
   // functions {{
