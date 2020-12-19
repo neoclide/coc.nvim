@@ -5047,6 +5047,17 @@ declare module 'coc.nvim' {
     readonly [key: string]: any
   }
 
+  export interface BufferSyncItem {
+    /**
+     * Called on buffer unload.
+     */
+    dispose: () => void
+    /**
+     * Called on buffer change.
+     */
+    onChange?(e: DidChangeTextDocumentParams): void
+  }
+
   export namespace workspace {
     export const nvim: Neovim
     /**
@@ -5369,6 +5380,17 @@ declare module 'coc.nvim' {
      * Register local key-mapping.
      */
     export function registerLocalKeymap(mode: 'n' | 'v' | 's' | 'x', key: string, fn: () => ProviderResult<any>, notify?: boolean): Disposable
+
+    /**
+     * Register for buffer sync objects, created item should be disposable
+     * and provide optional `onChange` which called when document change.
+     *
+     * The document is always attached and not command line buffer.
+     * 
+     * @param create Called for each attached document and on document create.
+     * @returns Disposable
+     */
+    export function registerBufferSync<T extends BufferSyncItem>(create: (doc: Document) => T): Disposable
 
     /**
      * Create a FileSystemWatcher instance, when watchman not exists, the

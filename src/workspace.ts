@@ -20,6 +20,7 @@ import Mru from './model/mru'
 import Resolver from './model/resolver'
 import Task from './model/task'
 import TerminalModel from './model/terminal'
+import BufferSync, { SyncItem } from './model/bufferSync'
 import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, DocumentChange, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, OutputChannel, PatternType, QuickfixItem, Terminal, TerminalOptions, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { distinct } from './util/array'
@@ -1210,6 +1211,28 @@ export class Workspace implements IWorkspace {
    */
   public createTask(id: string): Task {
     return new Task(this.nvim, id)
+  }
+
+  public registerBufferSync<T extends SyncItem>(create: (doc: Document) => T): Disposable {
+    let disposables: Disposable[] = []
+    let bufferSync = new BufferSync(create)
+    disposables.push(bufferSync)
+    for (let doc of this.documents) {
+      bufferSync.create(doc)
+    }
+    this.onDidOpenTextDocument(e => {
+      let doc = this.getDocument(e.bufnr)
+      if (doc) bufferSync.create(doc)
+    }, null, disposables)
+    this.onDidChangeTextDocument(e => {
+      bufferSync.onChange(e)
+    }, null, disposables)
+    this.onDidCloseTextDocument(e => {
+      bufferSync.delete(e.bufnr)
+    }, null, disposables)
+    return Disposable.create(() => {
+      disposeAll(disposables)
+    })
   }
 
   public setupDynamicAutocmd(initialize = false): void {

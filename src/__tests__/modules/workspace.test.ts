@@ -1029,3 +1029,31 @@ describe('workspace textDocument content provider', () => {
     expect(lines).toEqual(['bar'])
   })
 })
+
+describe('workspace registerBufferSync', () => {
+  it('should regist', async () => {
+    await helper.createDocument()
+    let created = 0
+    let deleted = 0
+    let changed = 0
+    let disposable = workspace.registerBufferSync(() => {
+      created = created + 1
+      return {
+        dispose: () => {
+          deleted += 1
+        },
+        onChange: () => {
+          changed += 1
+        }
+      }
+    })
+    disposables.push(disposable)
+    let doc = await helper.createDocument()
+    expect(created).toBe(2)
+    await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
+    expect(changed).toBe(1)
+    await nvim.command('bd!')
+    await helper.wait(50)
+    expect(deleted).toBe(1)
+  })
+})
