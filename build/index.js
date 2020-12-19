@@ -23971,7 +23971,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "5a4d0212bf" : 0);
+        return workspace_1.default.version + ( true ? '-' + "fa5da5a2b9" : 0);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -24051,8 +24051,8 @@ class CommandManager {
         }, true);
         this.register({
             id: 'workbench.action.reloadWindow',
-            execute: () => {
-                nvim.command('CocRestart', true);
+            execute: async () => {
+                await nvim.command('edit');
             }
         }, true);
         this.register({
@@ -24071,7 +24071,7 @@ class CommandManager {
         this.register({
             id: 'editor.action.triggerSuggest',
             execute: async () => {
-                await util_1.wait(100);
+                await util_1.wait(60);
                 nvim.call('coc#start', [], true);
             }
         }, true);
@@ -24126,9 +24126,7 @@ class CommandManager {
         this.register({
             id: 'workspace.clearWatchman',
             execute: async () => {
-                if (global.hasOwnProperty('__TEST__'))
-                    return;
-                let res = await window_1.default.runTerminalCommand('watchmann watch-del-all');
+                let res = await window_1.default.runTerminalCommand('watchman watch-del-all');
                 if (res.success)
                     window_1.default.showMessage('Cleared watchman watching directories.');
             }
@@ -24412,6 +24410,8 @@ const logger = __webpack_require__(65)('diagnostic-manager');
 class DiagnosticManager {
     constructor() {
         this.enabled = true;
+        this._onDidRefresh = new vscode_languageserver_protocol_1.Emitter();
+        this.onDidRefresh = this._onDidRefresh.event;
         this.buffers = new Map();
         this.lastMessage = '';
         this.collections = [];
@@ -24522,7 +24522,8 @@ class DiagnosticManager {
         buf = new buffer_1.DiagnosticBuffer(bufnr, doc.uri, this.config);
         this.buffers.set(bufnr, buf);
         this.refreshBuffer(buf.uri, true);
-        buf.onDidRefresh(() => {
+        buf.onDidRefresh(diagnostics => {
+            this._onDidRefresh.fire({ diagnostics, uri: buf.uri, bufnr: buf.bufnr });
             if (['never', 'jump'].includes(this.config.enableMessage)) {
                 return;
             }
@@ -45800,7 +45801,7 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(291));
 const util_1 = __webpack_require__(383);
 const object_1 = __webpack_require__(249);
 const logger = __webpack_require__(65)('diagnostic-buffer');
-const signGroup = 'Coc';
+const signGroup = 'CocDiagnostic';
 /**
  * Manage buffer actions for diagnostics, including 'highlights', 'variable',
  * 'signs', 'location list' and 'virtual text'.
@@ -45848,7 +45849,7 @@ class DiagnosticBuffer {
         let res = await this.nvim.resumeNotification();
         if (Array.isArray(res) && res[1])
             throw new Error(res[1]);
-        this._onDidRefresh.fire(void 0);
+        this._onDidRefresh.fire(diagnostics);
     }
     updateLocationList(curr, diagnostics) {
         if (!this.config.locationlistUpdate)
