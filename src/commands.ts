@@ -52,8 +52,8 @@ export class CommandManager implements Disposable {
     }, true)
     this.register({
       id: 'workbench.action.reloadWindow',
-      execute: () => {
-        nvim.command('CocRestart', true)
+      execute: async () => {
+        await nvim.command('edit')
       }
     }, true)
     this.register({
@@ -126,8 +126,7 @@ export class CommandManager implements Disposable {
     this.register({
       id: 'workspace.clearWatchman',
       execute: async () => {
-        if (global.hasOwnProperty('__TEST__')) return
-        let res = await window.runTerminalCommand('watchmann watch-del-all')
+        let res = await window.runTerminalCommand('watchman watch-del-all')
         if (res.success) window.showMessage('Cleared watchman watching directories.')
       }
     }, false, 'run watch-del-all for watchman to free up memory.')
