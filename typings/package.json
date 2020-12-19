@@ -1,6 +1,6 @@
 {
   "name": "coc.nvim",
-  "version": "0.0.79-next.20",
+  "version": "0.0.79-next.21",
   "typeScriptVersion": "4.1.2",
   "types": "index.d.ts",
   "description": "LSP based intellisense engine for neovim & vim8.",

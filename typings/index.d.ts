@@ -3668,6 +3668,8 @@ declare module 'coc.nvim' {
 
     /**
      * Execute specified command.
+     *
+     * @deprecated use `executeCommand()` instead.
      */
     export function execute(command: { name: string, arguments?: any[] }): void
 
@@ -3707,6 +3709,63 @@ declare module 'coc.nvim' {
      * the command handler function doesn't return anything.
      */
     export function executeCommand(command: string, ...rest: any[]): Promise<any>
+
+    /**
+     * Open uri with external tool, use `open` on mac, use `xdg-open` on linux.
+     */
+    export function executeCommand(command: 'vscode.open', uri: string | Uri): Promise<void>
+
+    /**
+     * Reload current buffer by `:edit` command.
+     */
+    export function executeCommand(command: 'workbench.action.reloadWindow'): Promise<void>
+
+    /**
+     * Insert snippet at range of current buffer.
+     *
+     * @param edit Contains snippet text and range to replace.
+     */
+    export function executeCommand(command: 'editor.action.insertSnippet', edit: TextEdit): Promise<boolean>
+
+    /**
+     * Invoke specified code action.
+     */
+    export function executeCommand(command: 'editor.action.doCodeAction', action: CodeAction): Promise<void>
+
+    /**
+     * Trigger coc.nvim's completion at current cursor position.
+     */
+    export function executeCommand(command: 'editor.action.triggerSuggest'): Promise<void>
+
+    /**
+     * Trigger signature help at current cursor position.
+     */
+    export function executeCommand(command: 'editor.action.triggerParameterHints'): Promise<void>
+
+    /**
+     * Add ranges to cursors session for multiple cursors.
+     */
+    export function executeCommand(command: 'editor.action.addRanges', ranges: Range[]): Promise<void>
+
+    /**
+     * Restart coc.nvim service by `:CocRestart` command.
+     */
+    export function executeCommand(command: 'editor.action.restart'): Promise<void>
+
+    /**
+     * Show locations by location list or vim's quickfix list.
+     */
+    export function executeCommand(command: 'editor.action.showReferences', filepath: string | undefined, position: Position | undefined, locations: Location[]): Promise<void>
+
+    /**
+     * Invoke rename action at position of specified uri.
+     */
+    export function executeCommand(command: 'editor.action.rename', uri: string, position: Position): Promise<void>
+
+    /**
+     * Run format action for current buffer.
+     */
+    export function executeCommand(command: 'editor.action.format'): Promise<void>
   }
   // }}
 

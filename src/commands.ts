@@ -72,7 +72,7 @@ export class CommandManager implements Disposable {
     this.register({
       id: 'editor.action.triggerSuggest',
       execute: async () => {
-        await wait(100)
+        await wait(60)
         nvim.call('coc#start', [], true)
       }
     }, true)
