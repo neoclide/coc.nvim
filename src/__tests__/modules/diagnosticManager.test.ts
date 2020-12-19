@@ -51,14 +51,20 @@ async function createDocument(): Promise<Document> {
 describe('diagnostic manager', () => {
   it('should refresh on buffer create', async () => {
     let uri = URI.file(path.join(path.dirname(__dirname), 'doc')).toString()
+    let fn = jest.fn()
+    let disposable = manager.onDidRefresh(() => {
+      fn()
+    })
     let collection = manager.create('tmp')
     let diagnostic = createDiagnostic('My Error')
     collection.set(uri, [diagnostic])
     let doc = await helper.createDocument('doc')
     let val = await doc.buffer.getVar('coc_diagnostic_info') as any
+    expect(fn).toBeCalled()
     expect(val).toBeDefined()
     expect(val.error).toBe(1)
     collection.dispose()
+    disposable.dispose()
   })
 
   it('should get all diagnostics', async () => {

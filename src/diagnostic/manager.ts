@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import semver from 'semver'
-import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Disposable, Location, Position, Range } from 'vscode-languageserver-protocol'
+import { Diagnostic, DiagnosticSeverity, Event, Emitter, DiagnosticTag, Disposable, Location, Position, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import events from '../events'
@@ -49,9 +49,17 @@ export interface DiagnosticConfig {
   format?: string
 }
 
+interface DiagnosticEventParams {
+  bufnr: number
+  uri: string
+  diagnostics: ReadonlyArray<Diagnostic>
+}
+
 export class DiagnosticManager implements Disposable {
   public config: DiagnosticConfig
   private enabled = true
+  readonly _onDidRefresh = new Emitter<DiagnosticEventParams>()
+  public readonly onDidRefresh: Event<DiagnosticEventParams> = this._onDidRefresh.event
   private readonly buffers: Map<number, DiagnosticBuffer> = new Map()
   private lastMessage = ''
   private floatFactory: FloatFactory
@@ -160,7 +168,8 @@ export class DiagnosticManager implements Disposable {
     buf = new DiagnosticBuffer(bufnr, doc.uri, this.config)
     this.buffers.set(bufnr, buf)
     this.refreshBuffer(buf.uri, true)
-    buf.onDidRefresh(() => {
+    buf.onDidRefresh(diagnostics => {
+      this._onDidRefresh.fire({ diagnostics, uri: buf.uri, bufnr: buf.bufnr })
       if (['never', 'jump'].includes(this.config.enableMessage)) {
         return
       }

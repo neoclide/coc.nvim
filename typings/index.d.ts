@@ -1240,11 +1240,11 @@ declare module 'coc.nvim' {
     /**
      * Creates a new Diagnostic literal.
      */
-    function create(range: Range, message: string, severity?: DiagnosticSeverity, code?: number | string, source?: string, relatedInformation?: DiagnosticRelatedInformation[]): Diagnostic;
+    function create(range: Range, message: string, severity?: DiagnosticSeverity, code?: number | string, source?: string, relatedInformation?: DiagnosticRelatedInformation[]): Diagnostic
     /**
      * Checks whether the given literal conforms to the [Diagnostic](#Diagnostic) interface.
      */
-    function is(value: any): value is Diagnostic;
+    function is(value: any): value is Diagnostic
   }
 
   /**
@@ -6437,8 +6437,15 @@ declare module 'coc.nvim' {
     dispose(): void
   }
 
+  export interface DiagnosticEventParams {
+    bufnr: number
+    uri: string
+    diagnostics: ReadonlyArray<Diagnostic>
+  }
+
   export namespace diagnosticManager {
 
+    export const onDidRefresh: Event<DiagnosticEventParams>
     /**
      * Create collection by name
      */

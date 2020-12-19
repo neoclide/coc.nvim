@@ -7,16 +7,16 @@ import { getNameFromSeverity, getLocationListItem } from './util'
 import { LocationListItem } from '..'
 import { equals } from '../util/object'
 const logger = require('../util/logger')('diagnostic-buffer')
-const signGroup = 'Coc'
+const signGroup = 'CocDiagnostic'
 
 /**
  * Manage buffer actions for diagnostics, including 'highlights', 'variable',
  * 'signs', 'location list' and 'virtual text'.
  */
 export class DiagnosticBuffer {
-  private readonly _onDidRefresh = new Emitter<void>()
+  private readonly _onDidRefresh = new Emitter<ReadonlyArray<Diagnostic>>()
   private diagnostics: ReadonlyArray<Diagnostic> = []
-  public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
+  public readonly onDidRefresh: Event<ReadonlyArray<Diagnostic>> = this._onDidRefresh.event
   /**
    * Refresh diagnostics with debounce
    */
@@ -58,7 +58,7 @@ export class DiagnosticBuffer {
     if (workspace.isVim) this.nvim.command('redraw', true)
     let res = await this.nvim.resumeNotification()
     if (Array.isArray(res) && res[1]) throw new Error(res[1])
-    this._onDidRefresh.fire(void 0)
+    this._onDidRefresh.fire(diagnostics)
   }
 
   public updateLocationList(curr: { title: string }, diagnostics: ReadonlyArray<Diagnostic>): void {
