@@ -159,7 +159,7 @@ describe('resolveRoot', () => {
   it('should resolve from parent folders', () => {
     let root = path.resolve(__dirname, '../extensions/snippet-sample')
     let res = resolveRoot(root, ['package.json'])
-    expect(res.endsWith('coc.nvim')).toBe(true)
+    expect(res.endsWith('extensions')).toBe(true)
   })
 
   it('should not resolve to home', () => {

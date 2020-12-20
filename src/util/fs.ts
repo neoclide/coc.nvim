@@ -62,13 +62,15 @@ export function resolveRoot(folder: string, subs: string[], cwd?: string): strin
   if (isParentFolder(dir, home, true)) return null
   if (cwd && isParentFolder(cwd, dir, true) && inDirectory(cwd, subs)) return cwd
   let parts = dir.split(path.sep)
-  let curr: string[] = [parts.shift()]
-  for (let part of parts) {
-    curr.push(part)
-    let dir = curr.join(path.sep)
+  while (parts.length > 0) {
+    let dir = parts.join(path.sep)
+    if (dir == home) {
+        break
+    }
     if (dir != home && inDirectory(dir, subs)) {
       return dir
     }
+    parts.pop()
   }
   return null
 }
