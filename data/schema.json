@@ -25,6 +25,11 @@
           "default": false,
           "description": "Disable workspaceFolders feature for this languageserver."
         },
+        "workspaceFolderBottomUpResolution": {
+          "type": "boolean",
+          "default": false,
+          "description": "Find the workspace folder in the bottom-to-up manner."
+        },
         "disableSnippetCompletion": {
           "type": "boolean",
           "default": false,

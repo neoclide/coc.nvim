@@ -159,6 +159,12 @@ describe('resolveRoot', () => {
   it('should resolve from parent folders', () => {
     let root = path.resolve(__dirname, '../extensions/snippet-sample')
     let res = resolveRoot(root, ['package.json'])
+    expect(res.endsWith('coc.nvim')).toBe(true)
+  })
+
+  it('should resolve from parent folders with bottom-up method', () => {
+    let root = path.resolve(__dirname, '../extensions/snippet-sample')
+    let res = resolveRoot(root, ['package.json'], null, true)
     expect(res.endsWith('extensions')).toBe(true)
   })
 

@@ -1544,7 +1544,8 @@ augroup end`
     for (let patternType of types) {
       let patterns = this.getRootPatterns(document, patternType)
       if (patterns && patterns.length) {
-        let root = resolveRoot(dir, patterns, cwd)
+        let workspaceFolderBottomUpResolution = this.getIsWorkspaceFolderResolutionBottomUp(document.filetype)
+        let root = resolveRoot(dir, patterns, cwd, workspaceFolderBottomUpResolution)
         if (root) return root
       }
     }
@@ -1704,6 +1705,19 @@ augroup end`
     }
     patterns = patterns.concat(this.rootPatterns.get(filetype) || [])
     return patterns.length ? distinct(patterns) : null
+  }
+
+  private getIsWorkspaceFolderResolutionBottomUp(filetype: string): boolean {
+    let lspConfig = this.getConfiguration().get<{ key: LanguageServerConfig }>('languageserver', {} as any)
+    let workspaceFolderBottomUpResolution = false
+    for (let key of Object.keys(lspConfig)) {
+      let config: LanguageServerConfig = lspConfig[key]
+      let { filetypes } = config
+      if (filetypes && filetypes.includes(filetype)) {
+        workspaceFolderBottomUpResolution = !!config.workspaceFolderBottomUpResolution
+      }
+    }
+    return workspaceFolderBottomUpResolution
   }
 }
 
