@@ -157,8 +157,15 @@ function! coc#util#jump(cmd, filepath, ...) abort
   if (has('win32unix'))
     let path = substitute(a:filepath, '\v\\', '/', 'g')
   endif
-  let file = fnamemodify(path, ":~:.")
-  exe a:cmd.' '.fnameescape(file)
+  " Workaround for https://github.com/neoclide/coc-java/issues/82
+  if has('win32') && !has('win32unix') && path =~ "jdt://"
+    enew
+    call nvim_buf_set_name(0, path)
+    exe a:cmd.' %'
+  else
+    let file = fnamemodify(path, ":~:.")
+    exe a:cmd.' '.fnameescape(file)
+  endif
   if !empty(get(a:, 1, []))
     let line = getline(a:1[0] + 1)
     " TODO need to use utf16 here
