@@ -158,7 +158,7 @@ function! coc#util#jump(cmd, filepath, ...) abort
     let path = substitute(a:filepath, '\v\\', '/', 'g')
   endif
   " Workaround for https://github.com/neoclide/coc-java/issues/82
-  if has('win32') && !has('win32unix') && path =~ "jdt://"
+  if has('nvim') && has('win32') && !has('win32unix') && path =~ "jdt://"
     enew
     call nvim_buf_set_name(0, path)
     exe a:cmd.' %'
