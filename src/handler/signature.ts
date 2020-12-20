@@ -150,7 +150,7 @@ export default class Signature {
       let activeIndexes: [number, number] = null
       let nameIndex = c.label.indexOf('(')
       if (idx == 0 && activeParameter != null) {
-        let active = c.parameters[activeParameter]
+        let active = c.parameters?.[activeParameter]
         if (active) {
           let after = c.label.slice(nameIndex == -1 ? 0 : nameIndex)
           paramDoc = active.documentation
@@ -242,7 +242,7 @@ export default class Signature {
         })
         let after = label.slice(nameIndex)
         if (signatureList.length == 0 && activeParameter != null) {
-          let active = signature.parameters[activeParameter]
+          let active = signature.parameters?.[activeParameter]
           if (active) {
             let start: number
             let end: number
