@@ -1079,7 +1079,7 @@
     },
     "coc.preferences.promptInput": {
       "type": "boolean",
-      "description": "Use prompt buffer in float window for user input, works on neovim >= 0.4.0 only.",
+      "description": "Use prompt buffer in float window for user input.",
       "default": true
     },
     "coc.preferences.enableMarkdown": {
@@ -1214,3 +1214,4 @@
     }
   }
 }
+

@@ -23972,7 +23972,7 @@ class Plugin extends events_1.EventEmitter {
         });
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "c90a07eec8" : 0);
+        return workspace_1.default.version + ( true ? '-' + "7642d233d6" : 0);
     }
     hasAction(method) {
         return this.actions.has(method);
@@ -42429,7 +42429,7 @@ class LinesTextDoucment {
         return this.lines.join('\n') + (this.eol ? '\n' : '');
     }
     get lineCount() {
-        return this.lines.length;
+        return this.lines.length + (this.eol ? 1 : 0);
     }
     getText(range) {
         if (range) {
