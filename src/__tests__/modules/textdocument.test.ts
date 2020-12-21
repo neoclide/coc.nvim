@@ -8,7 +8,7 @@ function createTextDocument(lines: string[]): LinesTextDoucment {
 describe('LinesTextDoucment', () => {
   it('should get line count and content', async () => {
     let doc = createTextDocument(['a', 'b'])
-    expect(doc.lineCount).toBe(2)
+    expect(doc.lineCount).toBe(3)
     let content = doc.getText()
     expect(content).toBe('a\nb\n')
   })

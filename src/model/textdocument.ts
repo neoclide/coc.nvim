@@ -36,7 +36,7 @@ export class LinesTextDoucment implements TextDocument {
   }
 
   public get lineCount(): number {
-    return this.lines.length
+    return this.lines.length + (this.eol ? 1 : 0)
   }
 
   public getText(range?: Range): string {
