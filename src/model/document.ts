@@ -7,10 +7,11 @@ import events from '../events'
 import { ChangeInfo, DidChangeTextDocumentParams, Env } from '../types'
 import { diffLines, getChange } from '../util/diff'
 import { disposeAll, getUri, wait } from '../util/index'
+import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
 import { byteLength, byteSlice } from '../util/string'
 import { Chars } from './chars'
-import { Mutex } from '../util/mutex'
+import { LinesTextDoucment } from './textdocument'
 const logger = require('../util/logger')('model-document')
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
@@ -440,7 +441,7 @@ export default class Document {
    */
   public get textDocument(): TextDocument {
     let { version, filetype, uri } = this
-    return TextDocument.create(uri, filetype, version, this.content)
+    return new LinesTextDoucment(uri, filetype, version, this.syncLines, this.eol)
   }
 
   /**
