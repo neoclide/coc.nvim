@@ -78,7 +78,7 @@
     "jest": "26.6.3",
     "ts-jest": "^26.4.4",
     "typescript": "^4.1.2",
-    "vscode-languageserver": "next"
+    "vscode-languageserver": "7.0.0"
   },
   "dependencies": {
     "@chemzqm/neovim": "^5.2.12",
@@ -96,7 +96,7 @@
     "http-proxy-agent": "^4.0.1",
     "https-proxy-agent": "^5.0.0",
     "isuri": "^2.0.3",
-    "jsonc-parser": "^2.3.1",
+    "jsonc-parser": "^3.0.0",
     "log4js": "^6.3.0",
     "marked": "^1.2.5",
     "minimatch": "^3.0.4",
@@ -109,10 +109,10 @@
     "tslib": "^2.0.3",
     "unzip-stream": "^0.3.1",
     "uuid": "^7.0.3",
-    "vscode-jsonrpc": "^5.0.1",
-    "vscode-languageserver-protocol": "^3.15.3",
+    "vscode-jsonrpc": "^6.0.0",
+    "vscode-languageserver-protocol": "^3.16.0",
     "vscode-languageserver-textdocument": "^1.0.1",
-    "vscode-languageserver-types": "^3.15.1",
+    "vscode-languageserver-types": "^3.16.0",
     "vscode-uri": "^2.1.2",
     "which": "^2.0.2"
   }
