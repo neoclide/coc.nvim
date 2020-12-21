@@ -4,7 +4,7 @@
  * ------------------------------------------------------------------------------------------ */
 'use strict'
 
-import { CancellationToken, ClientCapabilities, DidChangeWorkspaceFoldersNotification, DidChangeWorkspaceFoldersParams, Disposable, InitializeParams, RPCMessageType, ServerCapabilities, WorkspaceFolder, WorkspaceFoldersChangeEvent, WorkspaceFoldersRequest } from 'vscode-languageserver-protocol'
+import { CancellationToken, ClientCapabilities, DidChangeWorkspaceFoldersNotification, DidChangeWorkspaceFoldersParams, Disposable, InitializeParams, RegistrationType, ServerCapabilities, WorkspaceFolder, WorkspaceFoldersChangeEvent, WorkspaceFoldersRequest } from 'vscode-languageserver-protocol'
 import workspace from '../workspace'
 import os from 'os'
 import { BaseLanguageClient, DynamicFeature, NextSignature, RegistrationData } from './client'
@@ -28,7 +28,7 @@ export interface WorkspaceFolderWorkspaceMiddleware {
   didChangeWorkspaceFolders?: NextSignature<WorkspaceFoldersChangeEvent, void>
 }
 
-export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
+export class WorkspaceFoldersFeature implements DynamicFeature<void> {
 
   private _listeners: Map<string, Disposable> = new Map<string, Disposable>()
   private _initialFolders: WorkspaceFolder[] | undefined
@@ -36,7 +36,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
   constructor(private _client: BaseLanguageClient) {
   }
 
-  public get messages(): RPCMessageType {
+  public get registrationType(): RegistrationType<void> {
     return DidChangeWorkspaceFoldersNotification.type
   }
 
@@ -104,7 +104,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
       id = UUID.generateUuid()
     }
     if (id) {
-      this.register(this.messages, {
+      this.register({
         id,
         registerOptions: undefined
       })
@@ -135,7 +135,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
     }
   }
 
-  public register(_message: RPCMessageType, data: RegistrationData<undefined>): void {
+  public register(data: RegistrationData<undefined>): void {
     let id = data.id
     let client = this._client
     let disposable = workspace.onDidChangeWorkspaceFolders(event => {

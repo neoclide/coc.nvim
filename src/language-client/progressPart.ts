@@ -4,7 +4,7 @@
  * ------------------------------------------------------------------------------------------ */
 'use strict'
 
-import { Disposable, NotificationHandler, NotificationType, ProgressToken, ProgressType, WorkDoneProgress, WorkDoneProgressBegin, WorkDoneProgressReport } from 'vscode-languageserver-protocol'
+import { Disposable, NotificationHandler, NotificationType, ProgressToken, ProgressType, ProtocolNotificationType, WorkDoneProgress, WorkDoneProgressBegin, WorkDoneProgressReport } from 'vscode-languageserver-protocol'
 import { StatusBarItem } from '../types'
 import { disposeAll } from '../util'
 import window from '../window'
@@ -12,7 +12,7 @@ const logger = require('../util/logger')('language-client-progressPart')
 
 export interface ProgressContext {
   onProgress<P>(type: ProgressType<P>, token: string | number, handler: NotificationHandler<P>): Disposable
-  sendNotification<P, RO>(type: NotificationType<P, RO>, params?: P): void
+  sendNotification<P, RO>(type: ProtocolNotificationType<P, RO>, params?: P): void
 }
 
 export class ProgressPart {

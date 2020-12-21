@@ -64,7 +64,7 @@ export class ColorProviderFeature extends TextDocumentFeature<
       return
     }
 
-    this.register(this.messages, { id, registerOptions: options })
+    this.register({ id, registerOptions: options })
   }
 
   protected registerLanguageProvider(

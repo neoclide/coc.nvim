@@ -1,6 +1,6 @@
 import { Duplex } from 'stream'
 import { ProgressType } from 'vscode-jsonrpc'
-import { createProtocolConnection, DocumentSymbolParams, DocumentSymbolRequest, InitializeParams, InitializeRequest, InitializeResult, ProtocolConnection, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol'
+import { createProtocolConnection, DocumentSymbolParams, DocumentSymbolRequest, InitializeParams, InitializeRequest, InitializeResult, ProtocolConnection, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol/node'
 import { SymbolInformation, SymbolKind } from 'vscode-languageserver-types'
 import { NullLogger } from '../../language-client/client'
 
