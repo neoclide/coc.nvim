@@ -817,8 +817,7 @@ Built-in configurations:~
 
 "coc.preferences.promptInput":~
 
-	Use prompt buffer in float window for user input, works on latest
-	neovim >= 0.4.0 only.
+	Use prompt buffer in float window for user input.
 	Default: `true`
 
 "coc.preferences.enableMarkdown":~
@@ -3063,9 +3062,11 @@ with optional buttons.
 
 							*coc-dialog-confirm*
 
-A confirm dialog is used for user to confirm an action. Confirm dialog uses
-filter feature on vim8 and |getchar()| on neoivm. The difference is you can
-operate vim on vim8, but not on neovim.
+A confirm dialog is used for user to confirm an action, normally created by
+`window.showPrompt()` Confirm dialog uses filter feature on vim8 and
+|getchar()| on neoivm.
+
+The difference is you can operate vim on vim8, but not on neovim.
 
 Supported key-mappings:
 
@@ -3077,7 +3078,9 @@ y,Y           - accept the action, return 1 for callback.
 
 							*coc-dialog-input*
 
-A input dialog request user input with optional default value.
+A input dialog request user input with optional default value, normally
+created by `window.requestInput`, when `"coc.preferences.promptInput"` is
+false, vim's commandline input prompt is used instead.
 
 Supported key-mappings:
 
@@ -3094,7 +3097,8 @@ And other insert mode key-mappings that your neovim provided.
 
 A menu dialog is shown aside current cursor position for pick a single item
 from list of items, |coc-codeaction| uses menu dialog by default when it's
-supported.
+supported, extensions could use `window.showMenuPicker` to create menu
+dialog.
 
 Supported key-mappings:
 
@@ -3113,7 +3117,8 @@ k <s-tab> <up> <C-p> - move to previous item.
 							*coc-dialog-picker*
 
 A picker dialog is used for multiple selection. On neovim, it's possible to
-toggle selection by mouse click inside the bracket.
+toggle selection by mouse click inside the bracket. Extensions could use
+`window.showPickerDialog` to create picker dialog.
 
 Supported key-mappings:
 
