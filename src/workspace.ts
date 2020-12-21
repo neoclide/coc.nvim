@@ -820,6 +820,9 @@ export class Workspace implements IWorkspace {
         let bufname = fixDriver(path.normalize(fsPath))
         await this.nvim.call('coc#util#jump', [jumpCommand, bufname, pos])
       } else {
+        if (os.platform() == 'win32') {
+          uri = uri.replace(/\/?/, '?')
+        }
         await this.nvim.call('coc#util#jump', [jumpCommand, uri, pos])
       }
     }

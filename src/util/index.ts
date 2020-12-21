@@ -27,7 +27,8 @@ export function wait(ms: number): Promise<any> {
 
 export function getUri(fullpath: string, id: number, buftype: string, isCygwin: boolean): string {
   if (!fullpath) return `untitled:${id}`
-  if (platform.isWindows && !isCygwin) fullpath = path.win32.normalize(fullpath)
+  // https://github.com/neoclide/coc-java/issues/82
+  if (platform.isWindows && !isCygwin && !fullpath.startsWith('jdt://')) fullpath = path.win32.normalize(fullpath)
   if (path.isAbsolute(fullpath)) return URI.file(fullpath).toString()
   if (isuri.isValid(fullpath)) return URI.parse(fullpath).toString()
   if (buftype != '') return `${buftype}:${id}`
