@@ -58,7 +58,7 @@ interface DiagnosticEventParams {
 export class DiagnosticManager implements Disposable {
   public config: DiagnosticConfig
   private enabled = true
-  readonly _onDidRefresh = new Emitter<DiagnosticEventParams>()
+  private readonly _onDidRefresh = new Emitter<DiagnosticEventParams>()
   public readonly onDidRefresh: Event<DiagnosticEventParams> = this._onDidRefresh.event
   private readonly buffers: Map<number, DiagnosticBuffer> = new Map()
   private lastMessage = ''

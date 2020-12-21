@@ -12,7 +12,7 @@ if (!semver.gte(version, '10.12.0')) {
   }
 }
 Object.defineProperty(console, 'log', {
-  value: function() {
+  value() {
     logger.info(...arguments)
   }
 })
