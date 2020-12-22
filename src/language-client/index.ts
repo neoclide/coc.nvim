@@ -19,6 +19,7 @@ import { TypeDefinitionFeature } from './typeDefinition'
 import { WorkspaceFoldersFeature } from './workspaceFolders'
 import { SelectionRangeFeature } from './selectionRange'
 import ChildProcess = cp.ChildProcess
+import { CallHierarchyFeature } from './callHierarchy'
 
 const logger = require('../util/logger')('language-client-index')
 
@@ -469,6 +470,7 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeature(new FoldingRangeFeature(this))
     this.registerFeature(new SelectionRangeFeature(this))
     this.registerFeature(new ProgressFeature(this))
+    this.registerFeature(new CallHierarchyFeature(this))
     if (!this.clientOptions.disableWorkspaceFolders) {
       this.registerFeature(new WorkspaceFoldersFeature(this))
     }
