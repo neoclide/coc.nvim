@@ -1,7 +1,8 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { CancellationToken, CancellationTokenSource, Color, ColorInformation, Disposable, Position, Range } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Color, ColorInformation, Position, Range } from 'vscode-languageserver-protocol'
 import languages from '../languages'
+import { SyncItem } from '../model/bufferSync'
 import { group } from '../util/array'
 import { equals } from '../util/object'
 import { positionInRange } from '../util/position'
@@ -14,20 +15,26 @@ export interface ColorRanges {
   ranges: Range[]
 }
 
-const usedColors: Set<string> = new Set()
-
-export default class Highlighter implements Disposable {
+export default class ColorBuffer implements SyncItem {
   private _colors: ColorInformation[] = []
   private tokenSource: CancellationTokenSource
   private version: number
   public highlight: Function & { clear(): void }
   // last highlight version
-  constructor(private nvim: Neovim, private bufnr: number) {
+  constructor(
+    private nvim: Neovim,
+    private bufnr: number,
+    private enabled: boolean,
+    private usedColors: Set<string>) {
     this.highlight = debounce(() => {
       this.doHighlight().catch(e => {
         logger.error('Error on color highlight:', e.stack)
       })
     }, 500)
+  }
+
+  public onChange(): void {
+    this.highlight()
   }
 
   public get buffer(): Buffer {
@@ -42,14 +49,21 @@ export default class Highlighter implements Disposable {
     return this._colors.length > 0
   }
 
+  public setState(enabled: boolean): void {
+    this.enabled = enabled
+    if (enabled) {
+      this.highlight()
+    } else {
+      this.clearHighlight()
+    }
+  }
+
   public async doHighlight(): Promise<void> {
     let doc = workspace.getDocument(this.bufnr)
-    if (!doc) return
+    if (!doc || !this.enabled) return
     try {
       this.tokenSource = new CancellationTokenSource()
       let { token } = this.tokenSource
-      if (workspace.insertMode) return
-      if (token.isCancellationRequested) return
       if (this.version && doc.version == this.version) return
       let { version } = doc
       let colors: ColorInformation[]
@@ -102,9 +116,9 @@ export default class Highlighter implements Disposable {
   private defineColors(colors: ColorInformation[]): void {
     for (let color of colors) {
       let hex = toHexString(color.color)
-      if (!usedColors.has(hex)) {
+      if (!this.usedColors.has(hex)) {
         this.nvim.command(`hi BG${hex} guibg=#${hex} guifg=#${isDark(color.color) ? 'ffffff' : '000000'}`, true)
-        usedColors.add(hex)
+        this.usedColors.add(hex)
       }
     }
   }
@@ -128,6 +142,7 @@ export default class Highlighter implements Disposable {
   }
 
   public clearHighlight(): void {
+    this.highlight.clear()
     this._colors = []
     this.version = null
     this.buffer.clearNamespace('color')
@@ -147,9 +162,6 @@ export default class Highlighter implements Disposable {
 
   public dispose(): void {
     this.highlight.clear()
-    if (this.tokenSource) {
-      this.tokenSource.dispose()
-      this.tokenSource = null
-    }
+    this.cancel()
   }
 }

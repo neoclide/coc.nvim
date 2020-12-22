@@ -8,21 +8,15 @@ import workspace from '../workspace'
 import Colors from './colors'
 const logger = require('../util/logger')('documentHighlight')
 
-export default class DocumentHighlighter {
+/**
+ * Highlights of symbol under cursor.
+ */
+export default class Highlights {
   private disposables: Disposable[] = []
   private tokenSource: CancellationTokenSource
   constructor(private nvim: Neovim, private colors: Colors) {
-    events.on('WinLeave', () => {
+    events.on(['WinLeave', 'BufWinEnter', 'CursorMoved', 'InsertEnter'], () => {
       this.cancel()
-    }, null, this.disposables)
-    events.on('BufWinEnter', () => {
-      this.cancel()
-    }, null, this.disposables)
-    events.on('CursorMoved', () => {
-      this.cancel()
-    }, null, this.disposables)
-    events.on('InsertEnter', () => {
-      this.clearHighlight()
     }, null, this.disposables)
   }
 

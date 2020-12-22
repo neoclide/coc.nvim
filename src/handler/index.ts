@@ -19,7 +19,7 @@ import window from '../window'
 import workspace from '../workspace'
 import CodeLensManager from './codelens'
 import Colors from './colors'
-import DocumentHighlighter from './documentHighlight'
+import Highlights from './highlights'
 import { addDocument, addDoucmentSymbol, getPreviousContainer, isDocumentSymbols, isMarkdown, sortDocumentSymbols, sortSymbolInformations, SymbolInfo, synchronizeDocument } from './helper'
 import Refactor from './refactor'
 import Search from './search'
@@ -42,7 +42,7 @@ interface Preferences {
 
 export default class Handler {
   private preferences: Preferences
-  private documentHighlighter: DocumentHighlighter
+  private documentHighlighter: Highlights
   private colors: Colors
   private hoverFactory: FloatFactory
   private signature: Signature
@@ -100,7 +100,15 @@ export default class Handler {
     this.disposables.push(workspace.registerTextDocumentContentProvider('coc', provider))
     this.codeLensManager = new CodeLensManager(nvim)
     this.colors = new Colors(nvim)
-    this.documentHighlighter = new DocumentHighlighter(nvim, this.colors)
+    this.documentHighlighter = new Highlights(nvim, this.colors)
+    this.disposables.push(commandManager.registerCommand('editor.action.pickColor', () => {
+      return this.colors.pickColor()
+    }))
+    commandManager.titles.set('editor.action.pickColor', 'pick color from system color picker when possible.')
+    this.disposables.push(commandManager.registerCommand('editor.action.colorPresentation', () => {
+      return this.colors.pickPresentation()
+    }))
+    commandManager.titles.set('editor.action.colorPresentation', 'change color presentation.')
     this.disposables.push(commandManager.registerCommand('editor.action.organizeImport', async (bufnr?: number) => {
       if (!bufnr) bufnr = await nvim.call('bufnr', '%')
       let doc = workspace.getDocument(bufnr)
