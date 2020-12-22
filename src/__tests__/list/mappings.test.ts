@@ -81,7 +81,7 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
-  await manager.reset()
+  manager.reset()
   await helper.reset()
   await helper.wait(100)
 })

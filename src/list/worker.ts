@@ -241,7 +241,7 @@ export default class Worker {
         try {
           let regex = new RegExp(c, flags)
           p.push(regex)
-        } catch (e) { }
+        } catch (e) {}
         return p
       }, [])
       for (let item of items) {
@@ -337,8 +337,6 @@ export default class Worker {
   }
 
   public dispose(): void {
-    this._onDidChangeLoading.dispose()
-    this._onDidChangeItems.dispose()
     this.stop()
   }
 }

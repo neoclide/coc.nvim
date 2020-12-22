@@ -556,6 +556,19 @@ export default class ListSession {
   }
 
   public dispose(): void {
+    if (!this.hidden) {
+      this.hidden = true
+      if (this.uiTokenSource) {
+        this.uiTokenSource.cancel()
+        this.uiTokenSource.dispose()
+        this.uiTokenSource = null
+      }
+      let { winid } = this.ui
+      this.ui.reset()
+      if (this.window && winid) {
+        this.nvim.call('coc#list#hide', [this.window.id, this.savedHeight, winid], true)
+      }
+    }
     if (this.interval) {
       clearInterval(this.interval)
     }

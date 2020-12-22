@@ -175,14 +175,14 @@ export class ListManager implements Disposable {
   /**
    * Clear all list sessions
    */
-  public async reset(): Promise<void> {
+  public reset(): void {
     this.prompt.cancel()
     this.lastSession = undefined
     for (let session of this.sessionsMap.values()) {
-      await session.hide()
       session.dispose()
     }
     this.sessionsMap.clear()
+    this.nvim.call('coc#prompt#stop_prompt', ['list'], true)
   }
 
   public switchMatcher(): void {
