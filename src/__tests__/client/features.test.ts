@@ -2,11 +2,10 @@ import * as assert from 'assert'
 import path from 'path'
 import { URI } from 'vscode-uri'
 import { LanguageClient, ServerOptions, TransportKind, Middleware, LanguageClientOptions } from '../../language-client/index'
-import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import helper from '../helper'
 import workspace from '../../workspace'
-// import { CallHierarchyPrepareRequest } from 'vscode-languageserver-protocol/lib/protocol.callHierarchy.proposed'
 
 describe('Client integration', () => {
   let client!: LanguageClient
@@ -639,43 +638,45 @@ describe('Client integration', () => {
   })
 
   test('Call Hierarchy', async () => {
-    // TODO not work yet.
-    // const provider = client.getFeature(CallHierarchyPrepareRequest.method).getProvider(document)
-    // isDefined(provider)
-    //     const result = (await provider.prepareCallHierarchy(document, position, tokenSource.token)) as CallHierarchyItem[]
-    //
-    //     isArray(result, CallHierarchyItem, 1)
-    //     const item = result[0]
-    //
-    //     let middlewareCalled: boolean = false
-    //     middleware.prepareCallHierarchy = (d, p, t, n) => {
-    //       middlewareCalled = true
-    //       return n(d, p, t)
-    //     }
-    //     await provider.prepareCallHierarchy(document, position, tokenSource.token)
-    //     middleware.prepareCallHierarchy = undefined
-    //     assert.strictEqual(middlewareCalled, true)
-    //
-    //     const incoming = (await provider.provideCallHierarchyIncomingCalls(item, tokenSource.token)) as CallHierarchyIncomingCall[]
-    //     isArray(incoming, CallHierarchyIncomingCall, 1)
-    //     middlewareCalled = false
-    //     middleware.provideCallHierarchyIncomingCalls = (i, t, n) => {
-    //       middlewareCalled = true
-    //       return n(i, t)
-    //     }
-    //     await provider.provideCallHierarchyIncomingCalls(item, tokenSource.token)
-    //     middleware.provideCallHierarchyIncomingCalls = undefined
-    //     assert.strictEqual(middlewareCalled, true)
-    //
-    //     const outgoing = (await provider.provideCallHierarchyOutgoingCalls(item, tokenSource.token)) as CallHierarchyOutgoingCall[]
-    //     isArray(outgoing, CallHierarchyOutgoingCall, 1)
-    //     middlewareCalled = false
-    //     middleware.provideCallHierarchyOutgoingCalls = (i, t, n) => {
-    //       middlewareCalled = true
-    //       return n(i, t)
-    //     }
-    //     await provider.provideCallHierarchyOutgoingCalls(item, tokenSource.token)
-    //     middleware.provideCallHierarchyOutgoingCalls = undefined
-    //     assert.strictEqual(middlewareCalled, true)
+    const provider = client.getFeature(CallHierarchyPrepareRequest.method).getProvider(document)
+    isDefined(provider)
+    const result = (await provider.prepareCallHierarchy(document, position, tokenSource.token)) as CallHierarchyItem[]
+
+    // TODO: 'CallHierarchyItem' only refers to a type, but is being used as a value here.
+    // isArray(result, CallHierarchyItem, 1)
+    const item = result[0]
+
+    let middlewareCalled = false
+    middleware.prepareCallHierarchy = (d, p, t, n) => {
+      middlewareCalled = true
+      return n(d, p, t)
+    }
+    await provider.prepareCallHierarchy(document, position, tokenSource.token)
+    middleware.prepareCallHierarchy = undefined
+    assert.strictEqual(middlewareCalled, true)
+
+    const incoming = (await provider.provideCallHierarchyIncomingCalls(item, tokenSource.token)) as CallHierarchyIncomingCall[]
+    // TODO
+    // isArray(incoming, CallHierarchyIncomingCall, 1)
+    middlewareCalled = false
+    middleware.provideCallHierarchyIncomingCalls = (i, t, n) => {
+      middlewareCalled = true
+      return n(i, t)
+    }
+    await provider.provideCallHierarchyIncomingCalls(item, tokenSource.token)
+    middleware.provideCallHierarchyIncomingCalls = undefined
+    assert.strictEqual(middlewareCalled, true)
+
+    const outgoing = (await provider.provideCallHierarchyOutgoingCalls(item, tokenSource.token)) as CallHierarchyOutgoingCall[]
+    // TODO
+    // isArray(outgoing, CallHierarchyOutgoingCall, 1)
+    middlewareCalled = false
+    middleware.provideCallHierarchyOutgoingCalls = (i, t, n) => {
+      middlewareCalled = true
+      return n(i, t)
+    }
+    await provider.provideCallHierarchyOutgoingCalls(item, tokenSource.token)
+    middleware.provideCallHierarchyOutgoingCalls = undefined
+    assert.strictEqual(middlewareCalled, true)
   })
 })
