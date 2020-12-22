@@ -25,6 +25,7 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
+  manager.reset()
   await helper.reset()
 })
 
@@ -249,6 +250,7 @@ describe('diagnostic manager', () => {
       expect(diagnostic.severity != DiagnosticSeverity.Hint).toBe(true)
       expect(diagnostic.severity != DiagnosticSeverity.Information).toBe(true)
     }
+    helper.updateConfiguration('diagnostic.level', 'hint')
   })
 
   it('should get empty diagnostic at end of line', async () => {
@@ -277,6 +279,7 @@ describe('diagnostic manager', () => {
     let file = await createTmpFile(content)
     await nvim.command(`source ${file}`)
     await createDocument()
+    await helper.wait(100)
     let items = await nvim.getVar('items') as any[]
     expect(Array.isArray(items)).toBe(true)
     expect(items.length).toBeGreaterThan(0)

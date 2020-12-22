@@ -934,7 +934,6 @@ export default class Handler {
       }
     }
     if (target == 'float') {
-      diagnosticManager.hideFloat()
       await this.hoverFactory.show(docs, { modes: ['n'] })
       return
     }

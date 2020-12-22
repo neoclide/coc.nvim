@@ -1,11 +1,10 @@
 import helper from '../helper'
 import { Neovim } from '@chemzqm/neovim'
 import { DiagnosticBuffer } from '../../diagnostic/buffer'
-import { DiagnosticConfig } from '../../diagnostic/manager'
 import { Range, DiagnosticSeverity, Diagnostic } from 'vscode-languageserver-types'
 
 let nvim: Neovim
-const config: DiagnosticConfig = {
+const config: any = {
   checkCurrentLine: false,
   locationlistUpdate: true,
   enableSign: true,
@@ -36,7 +35,9 @@ const config: DiagnosticConfig = {
 
 async function createDiagnosticBuffer(): Promise<DiagnosticBuffer> {
   let doc = await helper.createDocument()
-  return new DiagnosticBuffer(doc.bufnr, doc.uri, config)
+  return new DiagnosticBuffer(nvim, doc.bufnr, doc.uri, config, () => {
+    // noop
+  })
 }
 
 function createDiagnostic(msg: string, range?: Range, severity?: DiagnosticSeverity): Diagnostic {

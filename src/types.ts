@@ -23,6 +23,53 @@ export interface ParsedUrlQueryInput {
   [key: string]: unknown
 }
 
+export interface BufferSyncItem {
+  /**
+   * Called on buffer unload.
+   */
+  dispose: () => void
+  /**
+   * Called on buffer change.
+   */
+  onChange?(e: DidChangeTextDocumentParams): void
+}
+
+export interface DiagnosticConfig {
+  enableSign: boolean
+  locationlistUpdate: boolean
+  enableHighlightLineNumber: boolean
+  checkCurrentLine: boolean
+  enableMessage: string
+  displayByAle: boolean
+  signPriority: number
+  errorSign: string
+  warningSign: string
+  infoSign: string
+  hintSign: string
+  level: number
+  messageTarget: string
+  messageDelay: number
+  maxWindowHeight: number
+  maxWindowWidth: number
+  refreshOnInsertMode: boolean
+  virtualText: boolean
+  virtualTextCurrentLineOnly: boolean
+  virtualTextSrcId: number
+  virtualTextPrefix: string
+  virtualTextLines: number
+  virtualTextLineSeparator: string
+  filetypeMap: object
+  showUnused?: boolean
+  showDeprecated?: boolean
+  format?: string
+}
+
+export interface DiagnosticEventParams {
+  bufnr: number
+  uri: string
+  diagnostics: ReadonlyArray<Diagnostic>
+}
+
 /**
  * Value-object describing where and how progress should show.
  */
@@ -1519,8 +1566,8 @@ export interface IWorkspace {
   readonly configurations: Configurations
   textDocuments: TextDocument[]
   workspaceFolder: WorkspaceFolder
-  onDidOpenTextDocument: Event<TextDocument>
-  onDidCloseTextDocument: Event<TextDocument>
+  onDidOpenTextDocument: Event<TextDocument & { bufnr: number }>
+  onDidCloseTextDocument: Event<TextDocument & { bufnr: number }>
   onDidChangeTextDocument: Event<DidChangeTextDocumentParams>
   onWillSaveTextDocument: Event<TextDocumentWillSaveEvent>
   onDidSaveTextDocument: Event<TextDocument>

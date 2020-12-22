@@ -5073,6 +5073,22 @@ declare module 'coc.nvim' {
     onChange?(e: DidChangeTextDocumentParams): void
   }
 
+  export interface BufferSync<T extends BufferSyncItem> {
+    /**
+     * Current items.
+     */
+    readonly items: Iterable<T>
+    /**
+     * Get created item by uri
+     */
+    getItem(uri: string): T | undefined
+    /**
+     * Get created item by bufnr
+     */
+    getItem(bufnr: number): T | undefined
+    dispose: () => void
+  }
+
   export namespace workspace {
     export const nvim: Neovim
     /**
@@ -5405,7 +5421,7 @@ declare module 'coc.nvim' {
      * @param create Called for each attached document and on document create.
      * @returns Disposable
      */
-    export function registerBufferSync<T extends BufferSyncItem>(create: (doc: Document) => T): Disposable
+    export function registerBufferSync<T extends BufferSyncItem>(create: (doc: Document) => T | undefined): BufferSync<T>
 
     /**
      * Create a FileSystemWatcher instance, when watchman not exists, the

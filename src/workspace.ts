@@ -152,6 +152,10 @@ export class Workspace implements IWorkspace {
     events.on(['InsertLeave', 'CursorMoved'], () => {
       this._insertMode = false
     }, null, this.disposables)
+    events.on('InsertLeave', bufnr => {
+      let doc = this.getDocument(bufnr)
+      if (doc) doc.forceSync()
+    }, null, this.disposables)
     events.on('BufWinLeave', (_, winid) => {
       if (winid == -1) return
       this.nvim.call('coc#highlight#clear_match_group', [winid, '^Coc'], true)
@@ -1216,26 +1220,8 @@ export class Workspace implements IWorkspace {
     return new Task(this.nvim, id)
   }
 
-  public registerBufferSync<T extends SyncItem>(create: (doc: Document) => T): Disposable {
-    let disposables: Disposable[] = []
-    let bufferSync = new BufferSync(create)
-    disposables.push(bufferSync)
-    for (let doc of this.documents) {
-      bufferSync.create(doc)
-    }
-    this.onDidOpenTextDocument(e => {
-      let doc = this.getDocument(e.bufnr)
-      if (doc) bufferSync.create(doc)
-    }, null, disposables)
-    this.onDidChangeTextDocument(e => {
-      bufferSync.onChange(e)
-    }, null, disposables)
-    this.onDidCloseTextDocument(e => {
-      bufferSync.delete(e.bufnr)
-    }, null, disposables)
-    return Disposable.create(() => {
-      disposeAll(disposables)
-    })
+  public registerBufferSync<T extends SyncItem>(create: (doc: Document) => T): BufferSync<T> {
+    return new BufferSync(create, this)
   }
 
   public setupDynamicAutocmd(initialize = false): void {
