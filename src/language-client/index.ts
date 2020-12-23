@@ -472,7 +472,7 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeature(new SelectionRangeFeature(this))
     this.registerFeature(new ProgressFeature(this))
     this.registerFeature(new CallHierarchyFeature(this))
-    this.registerFeature(new SemanticTokensFeature(this))
+    // this.registerFeature(new SemanticTokensFeature(this))
     if (!this.clientOptions.disableWorkspaceFolders) {
       this.registerFeature(new WorkspaceFoldersFeature(this))
     }

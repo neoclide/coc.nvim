@@ -25,6 +25,8 @@ import SignatureManager from './provider/signatureManager'
 import TypeDefinitionManager from './provider/typeDefinitionManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
 import CallHierarchyManager from './provider/callHierarchyManager'
+import SemanticTokensManager from './provider/semanticTokensManager'
+import SemanticTokensRangeManager from './provider/semanticTokensRangeManager'
 import snippetManager from './snippets/manager'
 import sources from './sources'
 import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, Documentation, ISource, ProviderName, SourceType, VimCompleteItem } from './types'
@@ -77,6 +79,8 @@ class Languages {
   private codeLensManager = new CodeLensManager()
   private selectionRangeManager = new SelectionRangeManager()
   private callHierarchyManager = new CallHierarchyManager()
+  private semanticTokensManager = new SemanticTokensManager()
+  private semanticTokensRangeManager = new SemanticTokensRangeManager()
   private cancelTokenSource: CancellationTokenSource = new CancellationTokenSource()
   private completionItemKindMap: Map<CompletionItemKind, string>
 
@@ -269,11 +273,13 @@ class Languages {
   }
 
   public registerDocumentSemanticTokensProvider(selector: DocumentSelector, provider: DocumentSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
-    return null
+    // TODO
+    return this.semanticTokensManager.register(selector, provider)
   }
 
   public registerDocumentRangeSemanticTokensProvider(selector: DocumentSelector, provider: DocumentRangeSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
-    return null
+    // TODO
+    return this.semanticTokensRangeManager.register(selector, provider)
   }
 
   public shouldTriggerSignatureHelp(document: TextDocument, triggerCharacter: string): boolean {
