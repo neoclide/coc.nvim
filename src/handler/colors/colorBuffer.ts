@@ -8,7 +8,7 @@ import { equals } from '../../util/object'
 import { positionInRange } from '../../util/position'
 import workspace from '../../workspace'
 import { isDark, toHexColor, toHexString } from '../helper'
-const logger = require('../util/logger')('highlighter')
+const logger = require('../../util/logger')('colors-buffer')
 
 export interface ColorRanges {
   color: Color

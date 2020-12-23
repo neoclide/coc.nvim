@@ -49,7 +49,6 @@ export default class CodeLensManager extends Manager<CodeLensProvider> implement
     let { source } = codeLens as any
     let provider = this.poviderById(source)
     if (!provider || typeof provider.resolveCodeLens != 'function') {
-      console.error(`CodeLens Resolve not supported`)
       return codeLens
     }
     let res = await Promise.resolve(provider.resolveCodeLens(omit(codeLens, ['source']), token))

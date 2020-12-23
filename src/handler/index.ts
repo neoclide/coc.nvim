@@ -17,7 +17,7 @@ import { equals } from '../util/object'
 import { emptyRange, positionInRange, rangeInRange } from '../util/position'
 import window from '../window'
 import workspace from '../workspace'
-import CodeLensManager from './codelens'
+import CodeLens from './codelens/index'
 import Colors from './colors/index'
 import Highlights from './highlights'
 import { addDocument, addDoucmentSymbol, getPreviousContainer, isDocumentSymbols, isMarkdown, sortDocumentSymbols, sortSymbolInformations, SymbolInfo, synchronizeDocument } from './helper'
@@ -49,7 +49,7 @@ export default class Handler {
   private format: Format
   private refactorMap: Map<number, Refactor> = new Map()
   private documentLines: string[] = []
-  private codeLensManager: CodeLensManager
+  private codeLens: CodeLens
   private disposables: Disposable[] = []
   private labels: { [key: string]: string } = {}
   private selectionRange: SelectionRange = null
@@ -98,7 +98,7 @@ export default class Handler {
       }
     }
     this.disposables.push(workspace.registerTextDocumentContentProvider('coc', provider))
-    this.codeLensManager = new CodeLensManager(nvim)
+    this.codeLens = new CodeLens(nvim)
     this.colors = new Colors(nvim)
     this.documentHighlighter = new Highlights(nvim, this.colors)
     this.disposables.push(commandManager.registerCommand('editor.action.pickColor', () => {
@@ -584,7 +584,7 @@ export default class Handler {
   }
 
   public async doCodeLensAction(): Promise<void> {
-    await this.codeLensManager.doAction()
+    await this.codeLens.doAction()
   }
 
   public async fold(kind?: string): Promise<boolean> {
@@ -744,6 +744,9 @@ export default class Handler {
     return await this.signature.triggerSignatureHelp(doc, position)
   }
 
+  /**
+   * Send custom request for locations to services.
+   */
   public async findLocations(id: string, method: string, params: any, openCommand?: string | false): Promise<void> {
     let { doc, position } = await this.getCurrentState()
     if (!doc) return null

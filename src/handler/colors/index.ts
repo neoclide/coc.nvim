@@ -8,7 +8,7 @@ import workspace from '../../workspace'
 import { toHexString } from '../helper'
 import ColorBuffer from './colorBuffer'
 import BufferSync from '../../model/bufferSync'
-const logger = require('../util/logger')('colors')
+const logger = require('../../util/logger')('colors')
 
 export default class Colors {
   private _enabled = true

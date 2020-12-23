@@ -1220,7 +1220,7 @@ export class Workspace implements IWorkspace {
     return new Task(this.nvim, id)
   }
 
-  public registerBufferSync<T extends SyncItem>(create: (doc: Document) => T): BufferSync<T> {
+  public registerBufferSync<T extends SyncItem>(create: (doc: Document) => T | undefined): BufferSync<T> {
     return new BufferSync(create, this)
   }
 

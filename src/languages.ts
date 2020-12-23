@@ -375,8 +375,8 @@ class Languages {
     return await this.codeLensManager.provideCodeLenses(document, token)
   }
 
-  public async resolveCodeLens(codeLens: CodeLens): Promise<CodeLens> {
-    return await this.codeLensManager.resolveCodeLens(codeLens, this.token)
+  public async resolveCodeLens(codeLens: CodeLens, token: CancellationToken): Promise<CodeLens> {
+    return await this.codeLensManager.resolveCodeLens(codeLens, token)
   }
 
   public async provideDocumentOnTypeEdits(

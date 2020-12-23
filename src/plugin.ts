@@ -462,6 +462,10 @@ export default class Plugin extends EventEmitter {
     return await Promise.resolve(fn.apply(null, args))
   }
 
+  public getHandler(): any {
+    return this.handler
+  }
+
   public dispose(): void {
     this.removeAllListeners()
     extensions.dispose()
