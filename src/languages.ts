@@ -3,7 +3,7 @@ import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
-import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
+import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, DocumentSymbolProvider, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
 import CodeActionManager from './provider/codeActionmanager'
 import CodeLensManager from './provider/codeLensManager'
 import DeclarationManager from './provider/declarationManager'
@@ -34,6 +34,7 @@ import { byteIndex, byteLength, byteSlice } from './util/string'
 import window from './window'
 import { CodeAction } from './types'
 import workspace from './workspace'
+import { SemanticTokensLegend } from './semanticToken'
 const logger = require('./util/logger')('languages')
 
 export interface CompletionSource {
@@ -265,6 +266,14 @@ class Languages {
 
   public registerCallHierarchyProvider(selector: DocumentSelector, provider: CallHierarchyProvider): Disposable {
     return this.callHierarchyManager.register(selector, provider)
+  }
+
+  public registerDocumentSemanticTokensProvider(selector: DocumentSelector, provider: DocumentSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
+    return null
+  }
+
+  public registerDocumentRangeSemanticTokensProvider(selector: DocumentSelector, provider: DocumentRangeSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
+    return null
   }
 
   public shouldTriggerSignatureHelp(document: TextDocument, triggerCharacter: string): boolean {

@@ -20,6 +20,7 @@ import { WorkspaceFoldersFeature } from './workspaceFolders'
 import { SelectionRangeFeature } from './selectionRange'
 import ChildProcess = cp.ChildProcess
 import { CallHierarchyFeature } from './callHierarchy'
+import { SemanticTokensFeature } from './semanticTokens'
 
 const logger = require('../util/logger')('language-client-index')
 
@@ -471,6 +472,7 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeature(new SelectionRangeFeature(this))
     this.registerFeature(new ProgressFeature(this))
     this.registerFeature(new CallHierarchyFeature(this))
+    this.registerFeature(new SemanticTokensFeature(this))
     if (!this.clientOptions.disableWorkspaceFolders) {
       this.registerFeature(new WorkspaceFoldersFeature(this))
     }
@@ -541,11 +543,7 @@ export class SettingMonitor {
 // Exporting proposed protocol.
 export namespace ProposedFeatures {
   export function createAll(_client: BaseLanguageClient): (StaticFeature | DynamicFeature<any>)[] {
-    let result: (StaticFeature | DynamicFeature<any>)[] = [
-      // TODO
-      // new CallHierarchyFeature(client),
-      // new SemanticTokensFeature(client)
-    ]
+    let result: (StaticFeature | DynamicFeature<any>)[] = []
     return result
   }
 }
