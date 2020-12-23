@@ -23,8 +23,7 @@ export class DiagnosticBuffer implements BufferSyncItem {
   /**
    * Refresh diagnostics with debounce
    */
-  public refresh: Function & { clear(): void }
-
+  public refresh: ((diagnostics: ReadonlyArray<Diagnostic & { collection: string }>) => void) & { clear(): void }
   constructor(
     private readonly nvim: Neovim,
     public readonly bufnr: number,

@@ -52,9 +52,10 @@ export class DiagnosticManager implements Disposable {
       return buf
     })
 
-    events.on('CursorMoved', () => {
+    events.on('CursorMoved', bufnr => {
       if (this.config.enableMessage != 'always') return
       if (this.timer) clearTimeout(this.timer)
+      if (bufnr == this.floatFactory.bufnr) return
       this.timer = setTimeout(async () => {
         await this.echoMessage(true)
       }, this.config.messageDelay)
@@ -76,8 +77,7 @@ export class DiagnosticManager implements Disposable {
     }))
     events.on('InsertLeave', async bufnr => {
       if (!this.config.refreshOnInsertMode) {
-        let buf = this.buffers.getItem(bufnr)
-        if (buf && this.enabled) buf.refresh()
+        this.refreshBuffer(bufnr)
       }
     }, null, this.disposables)
     events.on('BufEnter', async () => {
@@ -569,11 +569,14 @@ export class DiagnosticManager implements Disposable {
     }
   }
 
-  public refreshBuffer(uri: string, force = false): boolean {
+  /**
+   * Refresh diagnostics by uri or bufnr
+   */
+  public refreshBuffer(uri: string | number, force = false): boolean {
     if (!this.enabled) return false
-    let diagnostics = this.getDiagnostics(uri)
     let buf = this.buffers.getItem(uri)
     if (!buf) return false
+    let diagnostics = this.getDiagnostics(buf.uri)
     if (force) {
       buf.forceRefresh(diagnostics)
     } else {
