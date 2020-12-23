@@ -1,13 +1,13 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, ColorInformation, Disposable, Position } from 'vscode-languageserver-protocol'
-import extensions from '../extensions'
-import languages from '../languages'
-import { disposeAll } from '../util'
-import window from '../window'
-import workspace from '../workspace'
-import { toHexString } from './helper'
+import extensions from '../../extensions'
+import languages from '../../languages'
+import { disposeAll } from '../../util'
+import window from '../../window'
+import workspace from '../../workspace'
+import { toHexString } from '../helper'
 import ColorBuffer from './colorBuffer'
-import BufferSync from '../model/bufferSync'
+import BufferSync from '../../model/bufferSync'
 const logger = require('../util/logger')('colors')
 
 export default class Colors {

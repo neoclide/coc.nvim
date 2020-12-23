@@ -18,7 +18,7 @@ import { emptyRange, positionInRange, rangeInRange } from '../util/position'
 import window from '../window'
 import workspace from '../workspace'
 import CodeLensManager from './codelens'
-import Colors from './colors'
+import Colors from './colors/index'
 import Highlights from './highlights'
 import { addDocument, addDoucmentSymbol, getPreviousContainer, isDocumentSymbols, isMarkdown, sortDocumentSymbols, sortSymbolInformations, SymbolInfo, synchronizeDocument } from './helper'
 import Refactor from './refactor'
@@ -80,11 +80,11 @@ export default class Handler {
         this.requestTokenSource.cancel()
       }
     }, null, this.disposables)
-    if (this.preferences.currentFunctionSymbolAutoUpdate) {
-      events.on('CursorHold', () => {
-        this.getCurrentFunctionSymbol().logError()
-      }, null, this.disposables)
-    }
+    events.on('CursorHold', async () => {
+      if (this.preferences.currentFunctionSymbolAutoUpdate) {
+        await this.getCurrentFunctionSymbol()
+      }
+    }, null, this.disposables)
     let provider: TextDocumentContentProvider = {
       onDidChange: null,
       provideTextDocumentContent: async () => {

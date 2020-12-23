@@ -1,13 +1,13 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { CancellationToken, CancellationTokenSource, Color, ColorInformation, Position, Range } from 'vscode-languageserver-protocol'
-import languages from '../languages'
-import { SyncItem } from '../model/bufferSync'
-import { group } from '../util/array'
-import { equals } from '../util/object'
-import { positionInRange } from '../util/position'
-import workspace from '../workspace'
-import { isDark, toHexColor, toHexString } from './helper'
+import languages from '../../languages'
+import { SyncItem } from '../../model/bufferSync'
+import { group } from '../../util/array'
+import { equals } from '../../util/object'
+import { positionInRange } from '../../util/position'
+import workspace from '../../workspace'
+import { isDark, toHexColor, toHexString } from '../helper'
 const logger = require('../util/logger')('highlighter')
 
 export interface ColorRanges {

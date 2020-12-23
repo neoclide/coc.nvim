@@ -40,9 +40,9 @@ async function createDiagnosticBuffer(): Promise<DiagnosticBuffer> {
   })
 }
 
-function createDiagnostic(msg: string, range?: Range, severity?: DiagnosticSeverity): Diagnostic {
+function createDiagnostic(msg: string, range?: Range, severity?: DiagnosticSeverity): Diagnostic & { collection: string } {
   range = range ? range : Range.create(0, 0, 0, 1)
-  return Diagnostic.create(range, msg, severity || DiagnosticSeverity.Error, 999, 'test')
+  return Object.assign(Diagnostic.create(range, msg, severity || DiagnosticSeverity.Error, 999, 'test'), { collection: 'test' })
 }
 
 let ns: number
