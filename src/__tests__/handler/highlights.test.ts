@@ -1,0 +1,109 @@
+import { Neovim } from '@chemzqm/neovim'
+import { Disposable, Position, Range } from 'vscode-languageserver-protocol'
+import Highlights from '../../handler/highlights'
+import languages from '../../languages'
+import { disposeAll } from '../../util'
+import helper from '../helper'
+
+let nvim: Neovim
+let disposables: Disposable[] = []
+let highlights: Highlights
+let ns: number
+
+beforeAll(async () => {
+  await helper.setup()
+  nvim = helper.nvim
+  ns = await nvim.createNamespace('coc-highlight')
+  highlights = helper.plugin.getHandler().documentHighlighter
+})
+
+afterAll(async () => {
+  await helper.shutdown()
+})
+
+afterEach(async () => {
+  await helper.reset()
+  disposeAll(disposables)
+  disposables = []
+})
+
+function registProvider(): void {
+  languages.registerDocumentHighlightProvider([{ language: '*' }], {
+    provideDocumentHighlights: async document => {
+      let word = await nvim.eval('expand("<cword>")')
+      // let word = document.get
+      let matches = Array.from((document.getText() as any).matchAll(/\w+/g)) as any[]
+      let filtered = matches.filter(o => o[0] == word)
+      return filtered.map(o => {
+        let start = document.positionAt(o.index)
+        let end = document.positionAt(o.index + o[0].length)
+        return {
+          range: Range.create(start, end)
+        }
+      })
+    }
+  })
+}
+
+describe('document highlights', () => {
+
+  it('should return null when highlights provide not exists', async () => {
+    let doc = await helper.createDocument()
+    let res = await highlights.getHighlights(doc, Position.create(0, 0))
+    expect(res).toBeNull()
+  })
+
+  it('should cancel request on CursorMoved', async () => {
+    let fn = jest.fn()
+    languages.registerDocumentHighlightProvider([{ language: '*' }], {
+      provideDocumentHighlights: (_document, _position, token) => {
+        return new Promise(resolve => {
+          token.onCancellationRequested(() => {
+            clearTimeout(timer)
+            fn()
+            resolve([])
+          })
+          let timer = setTimeout(() => {
+            resolve([{ range: Range.create(0, 0, 0, 3) }])
+          }, 3000)
+        })
+      }
+    })
+    await helper.edit()
+    await nvim.setLine('foo')
+    let p = highlights.highlight()
+    await helper.wait(50)
+    await nvim.call('cursor', [1, 2])
+    await p
+    expect(fn).toBeCalled()
+  })
+
+  it('should add highlights to symbols', async () => {
+    registProvider()
+    let doc = await helper.createDocument()
+    await nvim.setLine('foo bar foo')
+    await helper.doAction('highlight')
+    expect(highlights.hasHighlights(doc.bufnr)).toBe(true)
+  })
+
+  it('should return highlight ranges', async () => {
+    registProvider()
+    await helper.createDocument()
+    await nvim.setLine('foo bar foo')
+    let res = await helper.doAction('symbolRanges')
+    expect(res.length).toBe(2)
+  })
+
+  it('should return null when cursor not in word range', async () => {
+    languages.registerDocumentHighlightProvider([{ language: '*' }], {
+      provideDocumentHighlights: () => {
+        return [{ range: Range.create(0, 0, 0, 3) }]
+      }
+    })
+    let doc = await helper.createDocument()
+    await nvim.setLine('  oo')
+    await nvim.call('cursor', [1, 2])
+    let res = await highlights.getHighlights(doc, Position.create(0, 0))
+    expect(res).toBeNull()
+  })
+})

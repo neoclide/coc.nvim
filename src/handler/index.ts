@@ -93,7 +93,7 @@ export default class Handler {
     this.disposables.push(workspace.registerTextDocumentContentProvider('coc', provider))
     this.codeLens = new CodeLens(nvim)
     this.colors = new Colors(nvim)
-    this.documentHighlighter = new Highlights(nvim, this.colors)
+    this.documentHighlighter = new Highlights(nvim)
     this.disposables.push(commandManager.registerCommand('editor.action.pickColor', () => {
       return this.colors.pickColor()
     }))
@@ -551,14 +551,11 @@ export default class Handler {
   }
 
   public async highlight(): Promise<void> {
-    let { doc, position, winid } = await this.getCurrentState()
-    if (!doc || !doc.attached || doc.isCommandLine) return
-    await this.documentHighlighter.highlight(doc, winid, position)
+    await this.documentHighlighter.highlight()
   }
 
   public async getSymbolsRanges(): Promise<Range[]> {
     let { doc, position } = await this.getCurrentState()
-    if (!doc) return null
     let highlights = await this.documentHighlighter.getHighlights(doc, position)
     if (!highlights) return null
     return highlights.map(o => o.range)
