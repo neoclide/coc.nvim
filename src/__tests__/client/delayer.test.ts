@@ -24,6 +24,8 @@ test('Delayer', () => {
 
   return Promise.all(promises).then(() => {
     assert(!delayer.isTriggered())
+  }).finally(() => {
+    delayer.dispose()
   })
 })
 

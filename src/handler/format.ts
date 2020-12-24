@@ -111,12 +111,10 @@ export default class FormatHandler {
       if (!lastInsert || changedTs - lastInsert > 300) return
       lastInsert = null
       let doc = workspace.getDocument(bufnr)
-      if (!doc || doc.isCommandLine || !doc.attached) return
+      if (!doc) return
       let pre = info.pre[info.pre.length - 1]
-      if (!pre) return
-      if (this.preferences.formatOnType && !isWord(pre)) {
-        await this.tryFormatOnType(pre, bufnr)
-      }
+      if (!pre || !languages.hasProvider('onTypeEdit', doc.textDocument)) return
+      await this.tryFormatOnType(pre, bufnr)
     }, null, this.disposables)
     let lastEnterBufnr: number
     let lastEnterTs: number

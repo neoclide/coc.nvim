@@ -877,6 +877,7 @@ export default class Handler {
       clearTimeout(this.requestTimer)
       this.requestTimer = undefined
     }
+    this.signature.dispose()
     this.symbols.dispose()
     this.hoverFactory.dispose()
     this.colors.dispose()

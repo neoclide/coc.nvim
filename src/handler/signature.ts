@@ -105,7 +105,7 @@ export default class Signature {
     token.onCancellationRequested(() => {
       tokenSource.dispose()
       this.tokenSource = undefined
-    }, null, this.disposables)
+    })
     let { target } = this.config
     let timer = this.timer = setTimeout(() => {
       tokenSource.cancel()
