@@ -56,10 +56,23 @@ export async function isGitIgnored(fullpath: string): Promise<boolean> {
   return false
 }
 
-export function resolveRoot(folder: string, subs: string[], cwd?: string): string | null {
+export function resolveRoot(folder: string, rawsubs: string[], cwd?: string): string | null {
   let home = os.homedir()
   let dir = fixDriver(folder)
   if (isParentFolder(dir, home, true)) return null
+
+  let { subs, regexes } = filterPattern(rawsubs)
+
+  // priority regex
+  if (regexes.length != 0) {
+    for (let r of regexes) {
+      let matched = folder.match(r)
+      if (matched && matched.length != 0) {
+        return matched[0]
+      }
+    }
+  }
+
   if (cwd && isParentFolder(cwd, dir, true) && inDirectory(cwd, subs)) return cwd
   let parts = dir.split(path.sep)
   let curr: string[] = [parts.shift()]
@@ -71,6 +84,19 @@ export function resolveRoot(folder: string, subs: string[], cwd?: string): strin
     }
   }
   return null
+}
+
+function filterPattern(patterns: string[]): { subs: string[], regexes: string[] } {
+  let subs = []
+  let regexes = []
+  for (let p of patterns) {
+    if (p.startsWith('/') && p.endsWith('/')) {
+      regexes.push(p.slice(1, -1)) // '/.*hello/' -> '.*hello'
+      continue
+    }
+    subs.push(p)
+  }
+  return { subs, regexes }
 }
 
 export function inDirectory(dir: string, subs: string[]): boolean {
