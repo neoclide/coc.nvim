@@ -105,11 +105,7 @@ export default class Parser {
     return chars
   }
 
-  eof(): boolean {
-    return this._curr >= this._content.length
-  }
-
-  skipSpaces(): void {
+  private skipSpaces(): void {
     for (let i = this._curr; i < this.len; i++) {
       let ch = this._content[i]
       if (!ch || /\S/.test(ch)) {
