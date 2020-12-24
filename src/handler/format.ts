@@ -24,7 +24,6 @@ interface FormatPreferences {
   formatOnType: boolean
   formatOnTypeFiletypes: string[]
   formatOnSaveFiletypes: string[]
-  formatOnInsertLeave: boolean
   bracketEnterImprove: boolean
 }
 
@@ -119,17 +118,16 @@ export default class FormatHandler {
         await this.tryFormatOnType(pre, bufnr)
       }
     }, null, this.disposables)
-    let leaveBufnr: number
-    events.on('InsertLeave', async bufnr => {
-      let { formatOnInsertLeave, formatOnType } = this.preferences
-      if (!formatOnInsertLeave || !formatOnType) return
-      leaveBufnr = bufnr
-    }, null, this.disposables)
-    events.on('CursorMoved', async bufnr => {
-      if (leaveBufnr && leaveBufnr == bufnr) {
-        leaveBufnr = undefined
-        await this.tryFormatOnType('\n', bufnr, true)
-      }
+    let lastEnterBufnr: number
+    let lastEnterTs: number
+    events.on('InsertEnter', bufnr => {
+      lastEnterBufnr = bufnr
+      lastEnterTs = Date.now()
+    })
+    events.on('TextChangedI', async (bufnr, info) => {
+      if (!this.preferences.formatOnType && !/^\s*$/.test(info.pre)) return
+      if (lastEnterBufnr != bufnr || !lastEnterTs || Date.now() - lastEnterTs > 30) return
+      await this.tryFormatOnType('\n', bufnr, true)
     })
   }
 
@@ -140,7 +138,6 @@ export default class FormatHandler {
         formatOnType: config.get<boolean>('formatOnType', false),
         formatOnSaveFiletypes: config.get<string[]>('formatOnSaveFiletypes', []),
         formatOnTypeFiletypes: config.get('formatOnTypeFiletypes', []),
-        formatOnInsertLeave: config.get<boolean>('formatOnInsertLeave', false),
         bracketEnterImprove: config.get<boolean>('bracketEnterImprove', true),
       }
     }
@@ -181,7 +178,7 @@ export default class FormatHandler {
     return res
   }
 
-  private async tryFormatOnType(ch: string, bufnr: number, insertLeave = false): Promise<void> {
+  private async tryFormatOnType(ch: string, bufnr: number, newLine = false): Promise<void> {
     if (!ch || isWord(ch) || !this.preferences.formatOnType) return
     if (snippetManager.getSession(bufnr) != null) return
     let doc = workspace.getDocument(bufnr)
@@ -195,10 +192,10 @@ export default class FormatHandler {
     let position: Position
     let edits = await this.withRequestToken<TextEdit[]>('onTypeFormat ', async token => {
       position = await window.getCursorPosition()
-      let origLine = doc.getline(position.line)
+      let origLine = doc.getline(position.line - 1)
       // not format for empty line.
-      if (insertLeave && /^\s*$/.test(origLine)) return
-      let pos: Position = insertLeave ? { line: position.line, character: origLine.length } : position
+      if (newLine && /^\s*$/.test(origLine)) return
+      let pos: Position = newLine ? { line: position.line - 1, character: origLine.length } : position
       await synchronizeDocument(doc)
       return await languages.provideDocumentOnTypeEdits(ch, doc.textDocument, pos, token)
     })
@@ -206,7 +203,7 @@ export default class FormatHandler {
     let changed = getChangedFromEdits(position, edits)
     await doc.applyEdits(edits)
     let to = changed ? Position.create(position.line + changed.line, position.character + changed.character) : null
-    if (to) await window.moveTo(to)
+    if (to && !newLine) await window.moveTo(to)
   }
 
   public async documentFormat(): Promise<boolean> {
