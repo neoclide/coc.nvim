@@ -1,4 +1,4 @@
-import { Disposable } from 'vscode-languageserver-protocol'
+import { Disposable, DocumentSymbol } from 'vscode-languageserver-protocol'
 import { PopupChangeEvent, InsertChange, VimCompleteItem } from './types'
 import { disposeAll } from './util'
 import { equals } from './util/object'
@@ -22,7 +22,7 @@ export type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents | Wind
   | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged'
   | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized'
   | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar'
-  | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet'
+  | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'SymbolsUpdate'
 
 export type MoveEvents = 'CursorMoved' | 'CursorMovedI'
 
@@ -86,6 +86,7 @@ class Events {
   public on(event: MoveEvents, handler: (bufnr: number, cursor: [number, number]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: InsertChangeEvents, handler: (bufnr: number, info: InsertChange) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: WindowEvents, handler: (winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'SymbolsUpdate', handler: (bufnr: number, symbols: DocumentSymbol[]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'FloatBtnClick', handler: (bufnr: number, index: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TextChanged', handler: (bufnr: number, changedtick: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TaskExit', handler: (id: string, code: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

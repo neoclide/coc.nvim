@@ -12,19 +12,19 @@ import { TextDocumentContentProvider } from '../provider'
 import services from '../services'
 import { CodeAction, Documentation, StatusBarItem, TagDefinition } from '../types'
 import { disposeAll } from '../util'
-import { getSymbolKind } from '../util/convert'
 import { equals } from '../util/object'
-import { emptyRange, positionInRange, rangeInRange } from '../util/position'
+import { emptyRange, positionInRange } from '../util/position'
 import window from '../window'
 import workspace from '../workspace'
 import CodeLens from './codelens/index'
 import Colors from './colors/index'
+import Format from './format'
+import { addDocument, isMarkdown, SymbolInfo, synchronizeDocument } from './helper'
 import Highlights from './highlights'
-import { addDocument, addDoucmentSymbol, getPreviousContainer, isDocumentSymbols, isMarkdown, sortDocumentSymbols, sortSymbolInformations, SymbolInfo, synchronizeDocument } from './helper'
 import Refactor from './refactor'
 import Search from './search'
 import Signature from './signature'
-import Format from './format'
+import Symbols from './symbols'
 const logger = require('../util/logger')('Handler')
 
 interface CommandItem {
@@ -37,27 +37,24 @@ interface Preferences {
   previewAutoClose: boolean
   previewMaxHeight: number
   floatActions: boolean
-  currentFunctionSymbolAutoUpdate: boolean
 }
 
 export default class Handler {
   private preferences: Preferences
   private documentHighlighter: Highlights
   private colors: Colors
+  private symbols: Symbols
   private hoverFactory: FloatFactory
   private signature: Signature
   private format: Format
   private refactorMap: Map<number, Refactor> = new Map()
   private documentLines: string[] = []
   private codeLens: CodeLens
-  private disposables: Disposable[] = []
-  private labels: { [key: string]: string } = {}
   private selectionRange: SelectionRange = null
   private requestStatusItem: StatusBarItem
   private requestTokenSource: CancellationTokenSource | undefined
   private requestTimer: NodeJS.Timer
-  private symbolsTokenSources: Map<number, CancellationTokenSource> = new Map()
-  private cachedSymbols: Map<number, [number, SymbolInfo[]]> = new Map()
+  private disposables: Disposable[] = []
 
   constructor(private nvim: Neovim) {
     this.getPreferences()
@@ -68,6 +65,7 @@ export default class Handler {
     this.hoverFactory = new FloatFactory(nvim)
     this.signature = new Signature(nvim)
     this.format = new Format(nvim)
+    this.symbols = new Symbols(nvim)
     events.on('BufUnload', async bufnr => {
       let refactor = this.refactorMap.get(bufnr)
       if (refactor) {
@@ -78,11 +76,6 @@ export default class Handler {
     events.on(['CursorMoved', 'CursorMovedI', 'InsertEnter', 'InsertSnippet', 'InsertLeave'], () => {
       if (this.requestTokenSource) {
         this.requestTokenSource.cancel()
-      }
-    }, null, this.disposables)
-    events.on('CursorHold', async () => {
-      if (this.preferences.currentFunctionSymbolAutoUpdate) {
-        await this.getCurrentFunctionSymbol()
       }
     }, null, this.disposables)
     let provider: TextDocumentContentProvider = {
@@ -169,34 +162,18 @@ export default class Handler {
   }
 
   public async getCurrentFunctionSymbol(): Promise<string> {
-    let { doc, position } = await this.getCurrentState()
-    if (!doc) return ''
-    let symbols = await this.getDocumentSymbols(doc)
-    if (!symbols || symbols.length === 0) {
-      doc.buffer.setVar('coc_current_function', '', true)
-      this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true)
-      return ''
-    }
-    symbols = symbols.filter(s => [
-      'Class',
-      'Method',
-      'Function',
-      'Struct',
-    ].includes(s.kind))
-    let functionName = ''
-    for (let sym of symbols.reverse()) {
-      if (sym.range
-        && positionInRange(position, sym.range) == 0
-        && !sym.text.endsWith(') callback')) {
-        functionName = sym.text
-        let label = this.labels[sym.kind.toLowerCase()]
-        if (label) functionName = `${label} ${functionName}`
-        break
-      }
-    }
-    doc.buffer.setVar('coc_current_function', functionName, true)
-    this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true)
-    return functionName
+    return await this.symbols.getCurrentFunctionSymbol()
+  }
+
+  /*
+   * supportedSymbols must be string values of symbolKind
+   */
+  public async selectSymbolRange(inner: boolean, visualmode: string, supportedSymbols: string[]): Promise<void> {
+    return await this.symbols.selectSymbolRange(inner, visualmode, supportedSymbols)
+  }
+
+  public async getDocumentSymbols(bufnr: number): Promise<SymbolInfo[]> {
+    return await this.symbols.getDocumentSymbols(bufnr)
   }
 
   public async hasProvider(id: string): Promise<boolean> {
@@ -319,58 +296,6 @@ export default class Handler {
     if (definition == null) return false
     await this.handleLocations(definition, openCommand)
     return true
-  }
-
-  public async getDocumentSymbols(doc: Document | null): Promise<SymbolInfo[]> {
-    if (!doc || !doc.attached) return []
-    await synchronizeDocument(doc)
-    let cached = this.cachedSymbols.get(doc.bufnr)
-    if (cached && cached[0] == doc.version) {
-      return cached[1]
-    }
-    this.symbolsTokenSources.get(doc.bufnr)?.cancel()
-    let tokenSource = new CancellationTokenSource()
-    this.symbolsTokenSources.set(doc.bufnr, tokenSource)
-    let { version } = doc
-    let symbols = await languages.getDocumentSymbol(doc.textDocument, tokenSource.token)
-    this.symbolsTokenSources.delete(doc.bufnr)
-    if (!symbols || symbols.length == 0) return null
-    let level = 0
-    let res: SymbolInfo[] = []
-    let pre = null
-    if (isDocumentSymbols(symbols)) {
-      symbols.sort(sortDocumentSymbols)
-      symbols.forEach(s => addDoucmentSymbol(res, s, level))
-    } else {
-      symbols.sort(sortSymbolInformations)
-      for (let sym of symbols) {
-        let { name, kind, location, containerName } = sym
-        if (!containerName || !pre) {
-          level = 0
-        } else {
-          if (pre.containerName == containerName) {
-            level = pre.level || 0
-          } else {
-            let container = getPreviousContainer(containerName, res)
-            level = container ? container.level + 1 : 0
-          }
-        }
-        let { start } = location.range
-        let o: SymbolInfo = {
-          col: start.character + 1,
-          lnum: start.line + 1,
-          text: name,
-          level,
-          kind: getSymbolKind(kind),
-          range: location.range,
-          containerName
-        }
-        res.push(o)
-        pre = o
-      }
-    }
-    this.cachedSymbols.set(doc.bufnr, [version, res])
-    return res
   }
 
   public async getWordEdit(): Promise<WorkspaceEdit> {
@@ -694,50 +619,6 @@ export default class Handler {
     return res
   }
 
-  /*
-   * supportedSymbols must be string values of symbolKind
-   */
-  public async selectSymbolRange(inner: boolean, visualmode: string, supportedSymbols: string[]): Promise<void> {
-    let doc = await workspace.document
-    if (!doc || !doc.attached) return
-    let range: Range
-    if (visualmode) {
-      range = await workspace.getSelectedRange(visualmode, doc)
-    } else {
-      let pos = await window.getCursorPosition()
-      range = Range.create(pos, pos)
-    }
-    let symbols = await this.getDocumentSymbols(doc)
-    if (!symbols || symbols.length === 0) {
-      window.showMessage('No symbols found', 'warning')
-      return
-    }
-    let properties = symbols.filter(s => s.kind == 'Property')
-    symbols = symbols.filter(s => supportedSymbols.includes(s.kind))
-    let selectRange: Range
-    for (let sym of symbols.reverse()) {
-      if (sym.range && !equals(sym.range, range) && rangeInRange(range, sym.range)) {
-        selectRange = sym.range
-        break
-      }
-    }
-    if (!selectRange) {
-      for (let sym of properties) {
-        if (sym.range && !equals(sym.range, range) && rangeInRange(range, sym.range)) {
-          selectRange = sym.range
-          break
-        }
-      }
-    }
-    if (inner && selectRange) {
-      let { start, end } = selectRange
-      let line = doc.getline(start.line + 1)
-      let endLine = doc.getline(end.line - 1)
-      selectRange = Range.create(start.line + 1, line.match(/^\s*/)[0].length, end.line - 1, endLine.length)
-    }
-    if (selectRange) await workspace.selectRange(selectRange)
-  }
-
   public async showSignatureHelp(): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
     if (!doc) return false
@@ -971,13 +852,11 @@ export default class Handler {
     if (hoverTarget == 'float' && !workspace.floatSupported) {
       hoverTarget = 'preview'
     }
-    this.labels = workspace.getConfiguration('suggest').get<any>('completionItemKindLabels', {})
     this.preferences = {
       hoverTarget,
       previewMaxHeight: config.get<number>('previewMaxHeight', 12),
       previewAutoClose: config.get<boolean>('previewAutoClose', false),
-      floatActions: config.get<boolean>('floatActions', true),
-      currentFunctionSymbolAutoUpdate: config.get<boolean>('currentFunctionSymbolAutoUpdate', false),
+      floatActions: config.get<boolean>('floatActions', true)
     }
   }
 
@@ -997,6 +876,11 @@ export default class Handler {
   }
 
   public dispose(): void {
+    if (this.requestTimer) {
+      clearTimeout(this.requestTimer)
+      this.requestTimer = undefined
+    }
+    this.symbols.dispose()
     this.hoverFactory.dispose()
     this.colors.dispose()
     this.format.dispose()

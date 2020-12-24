@@ -1941,9 +1941,9 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Return the function string that current cursor in.
 
-"documentSymbols"					*coc-action-documentSymbols*
+"documentSymbols" [{bufnr}]				*coc-action-documentSymbols*
 
-	Get a list of symbols in the current document.
+	Get a list of symbols of current buffer or specific {bufnr}.
 
 "rename"						*coc-action-rename*
 

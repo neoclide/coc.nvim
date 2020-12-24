@@ -3847,12 +3847,20 @@ declare module 'coc.nvim' {
      * Attach handler to float button click.
      */
     export function on(event: 'FloatBtnClick', handler: (bufnr: number, index: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
+    /**
+     * Fired on vim's TextChanged event.
+     */
     export function on(event: 'TextChanged', handler: (bufnr: number, changedtick: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     export function on(event: 'TaskExit', handler: (id: string, code: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     export function on(event: 'TaskStderr' | 'TaskStdout', handler: (id: string, lines: string[]) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
+    /**
+     * Fired on vim's BufReadCmd event.
+     */
     export function on(event: 'BufReadCmd', handler: (scheme: string, fullpath: string) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
+    /**
+     * Fired on vim's VimResized event.
+     */
     export function on(event: 'VimResized', handler: (columns: number, lines: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
-    export function on(event: 'Command', handler: (name: string) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     export function on(event: 'MenuPopupChanged', handler: (event: PopupChangeEvent, cursorline: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     export function on(event: 'CompleteDone', handler: (item: VimCompleteItem) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     export function on(event: 'InsertCharPre', handler: (character: string) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
@@ -3862,6 +3870,7 @@ declare module 'coc.nvim' {
     export function on(event: 'OptionSet' | 'GlobalChange', handler: (option: string, oldVal: OptionValue, newVal: OptionValue) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     export function on(event: 'InputChar', handler: (session: string, character: string, mode: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     export function on(event: 'PromptInsert', handler: (value: string, bufnr: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
+    export function on(event: 'Command', handler: (name: string) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
   }
   // }}
 

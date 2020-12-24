@@ -266,9 +266,9 @@ export default class Plugin extends EventEmitter {
     this.addAction('showSignatureHelp', () => {
       return this.handler.showSignatureHelp()
     })
-    this.addAction('documentSymbols', async () => {
-      let doc = await workspace.document
-      return await this.handler.getDocumentSymbols(doc)
+    this.addAction('documentSymbols', async (bufnr?: number) => {
+      if (!bufnr) bufnr = await nvim.call('bufnr', ['%'])
+      return await this.handler.getDocumentSymbols(bufnr)
     })
     this.addAction('symbolRanges', () => {
       return this.handler.getSymbolsRanges()
