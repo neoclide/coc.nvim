@@ -1,18 +1,4 @@
-import { Range } from "vscode-languageserver-protocol"
-
-/**
- * A semantic tokens legend contains the needed information to decipher
- * the integer encoded representation of semantic tokens.
- */
-export class SemanticTokensLegend {
-  public readonly tokenTypes: string[]
-  public readonly tokenModifiers: string[]
-
-  constructor(tokenTypes: string[], tokenModifiers: string[] = []) {
-    this.tokenTypes = tokenTypes
-    this.tokenModifiers = tokenModifiers
-  }
-}
+import { Range, SemanticTokensEdit, SemanticTokensLegend } from "vscode-languageserver-protocol"
 
 function isStringArray(value: any): value is string[] {
   return Array.isArray(value) && (value as any[]).every(elem => typeof elem === 'string')
@@ -269,30 +255,3 @@ export class SemanticTokensEdits {
     this.edits = edits
   }
 }
-
-/**
- * Represents an edit to semantic tokens.
- *
- * @see [provideDocumentSemanticTokensEdits](#DocumentSemanticTokensProvider.provideDocumentSemanticTokensEdits) for an explanation of the format.
- */
-export class SemanticTokensEdit {
-  /**
-   * The start offset of the edit.
-   */
-  public readonly start: number
-  /**
-   * The count of elements to remove.
-   */
-  public readonly deleteCount: number
-  /**
-   * The elements to insert.
-   */
-  public readonly data?: Uint32Array
-
-  constructor(start: number, deleteCount: number, data?: Uint32Array) {
-    this.start = start
-    this.deleteCount = deleteCount
-    this.data = data
-  }
-}
-

@@ -1,7 +1,7 @@
 import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, DocumentSelector, Event, SemanticTokens } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { SemanticTokensEdits } from '../semanticToken'
+import { SemanticTokensEdits } from '../semanticTokens'
 import { DocumentSemanticTokensProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 

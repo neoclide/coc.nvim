@@ -1,7 +1,7 @@
 import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DefinitionLink, DocumentHighlight, DocumentLink, DocumentSymbol, Event, FoldingRange, FormattingOptions, Hover, Location, Position, Range, SelectionRange, SemanticTokens, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
-import { SemanticTokensEdits } from '../semanticToken'
+import { SemanticTokensEdits } from '../semanticTokens'
 
 /**
  * A provider result represents the values a provider, like the [`HoverProvider`](#HoverProvider),

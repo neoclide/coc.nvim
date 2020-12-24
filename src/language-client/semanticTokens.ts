@@ -10,7 +10,7 @@ import {
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { languages } from '..'
 import { DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, ProviderResult } from '../provider'
-import { SemanticTokensEdits } from '../semanticToken'
+import { SemanticTokensEdits } from '../semanticTokens'
 import * as cv from './utils/converter'
 import * as Is from '../util/is'
 import { BaseLanguageClient, Middleware, TextDocumentFeature } from './client'
@@ -157,12 +157,10 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
                 previousResultId
               }
               return client.sendRequest(SemanticTokensDeltaRequest.type, params, token).then(result => {
-                // if (SemanticTokens.is(result)) {
-                //   return client.protocol2CodeConverter.asSemanticTokens(result)
-                // } else {
-                //   return client.protocol2CodeConverter.asSemanticTokensEdits(result)
-                // }
-                return result
+                if (SemanticTokens.is(result)) {
+                  return result
+                }
+                return new SemanticTokensEdits(result.edits)
               }, (error: any) => {
                 client.logFailedRequest(SemanticTokensDeltaRequest.type, error)
                 return Promise.resolve(null)
