@@ -5,14 +5,17 @@ import languages from '../../languages'
 import commands from '../../commands'
 import CodeLens from '../../handler/codelens/index'
 import helper, { createTmpFile } from '../helper'
+import events from '../../events'
 
 let nvim: Neovim
 let codeLens: CodeLens
 let disposables: Disposable[] = []
+let srcId: number
 
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
+  srcId = await nvim.createNamespace('coc-codelens')
   codeLens = helper.plugin.getHandler().codeLens
   helper.updateConfiguration('codeLens.enable', true)
 })
@@ -53,8 +56,31 @@ describe('codeLenes featrue', () => {
     expect(codelens).toBeDefined()
     expect(codelens[0].command).toBeDefined()
     expect(codelens[1].command).toBeDefined()
-    let markers = await helper.getMarkers(doc.bufnr, codeLens.srcId)
+    let markers = await helper.getMarkers(doc.bufnr, srcId)
     expect(markers.length).toBe(2)
+  })
+
+  it('should refresh codeLens on CursorHold', async () => {
+    disposables.push(languages.registerCodeLensProvider([{ language: 'javascript' }], {
+      provideCodeLenses: document => {
+        let n = document.lineCount
+        let arr: any[] = []
+        for (let i = 0; i <= n - 2; i++) {
+          arr.push({
+            range: Range.create(i, 0, i, 1),
+            command: Command.create('save', '__save', i)
+          })
+        }
+        return arr
+      }
+    }))
+    let doc = await helper.createDocument('example.js')
+    await helper.wait(100)
+    let markers = await helper.getMarkers(doc.bufnr, srcId)
+    await nvim.call('setline', [1, ['a', 'b', 'c']])
+    await events.fire('CursorHold', [doc.bufnr])
+    markers = await helper.getMarkers(doc.bufnr, srcId)
+    expect(markers.length).toBe(3)
   })
 
   it('should cancel codeLenes request on document change', async () => {
@@ -135,7 +161,7 @@ describe('codeLenes featrue', () => {
     await nvim.call('setline', [1, ['a', 'b', 'c']])
     codeLens.checkProvider()
     await helper.wait(120)
-    await codeLens.doAction()
+    await helper.doAction('codeLensAction')
     expect(fn).toBeCalledWith(1, 2, 3)
   })
 
@@ -153,12 +179,12 @@ describe('codeLenes featrue', () => {
     codeLens.checkProvider()
     await helper.wait(100)
     helper.updateConfiguration('codeLens.enable', false)
-    await helper.wait(50)
-    let markers = await helper.getMarkers(buffer.id, codeLens.srcId)
+    await helper.wait(100)
+    let markers = await helper.getMarkers(buffer.id, srcId)
     expect(markers.length).toBe(0)
     helper.updateConfiguration('codeLens.enable', true)
-    await helper.wait(200)
-    markers = await helper.getMarkers(buffer.id, codeLens.srcId)
+    await helper.wait(500)
+    markers = await helper.getMarkers(buffer.id, srcId)
     expect(markers.length).toBeGreaterThan(0)
   })
 })

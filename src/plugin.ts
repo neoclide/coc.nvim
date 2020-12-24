@@ -19,6 +19,7 @@ import { Autocmd, OutputChannel, PatternType } from './types'
 import { CONFIG_FILE_NAME } from './util'
 import workspace from './workspace'
 import window from './window'
+import events from './events'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -422,6 +423,7 @@ export default class Plugin extends EventEmitter {
       nvim.setVar('coc_service_initialized', 1, true)
       nvim.call('coc#util#do_autocmd', ['CocNvimInit'], true)
       this._ready = true
+      await events.fire('ready', [])
       logger.info(`coc.nvim ${this.version} initialized with node: ${process.version} after ${Date.now() - s}ms`)
       this.emit('ready')
     } catch (e) {

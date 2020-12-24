@@ -49,6 +49,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
         await events.fire(method, args)
         break
       case 'CocAutocmd':
+        logger.debug('Notification autocmd:', ...args)
         await events.fire(args[0], args.slice(1))
         break
       default: {
@@ -83,6 +84,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
     }, 3000)
     try {
       if (method == 'CocAutocmd') {
+        logger.debug('Request autocmd:', ...args)
         await events.fire(args[0], args.slice(1))
         resp.send()
       } else {

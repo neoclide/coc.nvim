@@ -2,7 +2,6 @@ import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import BufferSync from '../../model/bufferSync'
-import services from '../../services'
 import { ConfigurationChangeEvent } from '../../types'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
@@ -13,35 +12,31 @@ const logger = require('../../util/logger')('codelens')
  * Show codeLens of document, works on neovim only.
  */
 export default class CodeLensManager {
-  public srcId: number
   private config: CodeLensConfig
   private disposables: Disposable[] = []
   public buffers: BufferSync<CodeLensBuffer>
   constructor(private nvim: Neovim) {
-    this.init().logError()
-  }
-
-  private async init(): Promise<void> {
-    let { nvim } = this
-    this.srcId = await nvim.createNamespace('coc-codelens')
     this.setConfiguration()
     workspace.onDidChangeConfiguration(e => {
       this.setConfiguration(e)
     }, null, this.disposables)
     this.buffers = workspace.registerBufferSync(doc => {
       if (doc.buftype != '') return undefined
-      return new CodeLensBuffer(nvim, doc.bufnr, this.srcId, this.config)
+      return new CodeLensBuffer(nvim, doc.bufnr, this.config)
     })
-    services.on('ready', () => {
+    events.on('ready', () => {
       this.checkProvider()
-    })
-    let resolveCodeLens = bufnr => {
+    }, null, this.disposables)
+    events.on('CursorMoved', bufnr => {
       let buf = this.buffers.getItem(bufnr)
       if (buf) buf.resolveCodeLens()
+    }, null, this.disposables)
+    // Refresh on CursorHold
+    let forceFetch = async bufnr => {
+      let buf = this.buffers.getItem(bufnr)
+      if (buf) await buf.forceFetch()
     }
-    events.on('CursorMoved', resolveCodeLens, null, this.disposables)
-    events.on('BufEnter', resolveCodeLens, null, this.disposables)
-    this.checkProvider()
+    events.on('CursorHold', forceFetch, this, this.disposables)
   }
 
   /**
@@ -62,7 +57,7 @@ export default class CodeLensManager {
     if (e && enable != this.config.enabled) {
       for (let buf of this.buffers.items) {
         if (enable) {
-          buf.fetchCodelenses()
+          buf.forceFetch().logError()
         } else {
           buf.clear()
         }

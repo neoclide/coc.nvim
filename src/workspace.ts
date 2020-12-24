@@ -152,10 +152,12 @@ export class Workspace implements IWorkspace {
     events.on(['InsertLeave', 'CursorMoved'], () => {
       this._insertMode = false
     }, null, this.disposables)
-    events.on('InsertLeave', bufnr => {
+    let forceSync = async bufnr => {
       let doc = this.getDocument(bufnr)
       if (doc) doc.forceSync()
-    }, null, this.disposables)
+    }
+    events.on('InsertLeave', forceSync, null, this.disposables)
+    events.on('CursorHold', forceSync, null, this.disposables)
     events.on('BufWinLeave', (_, winid) => {
       if (winid == -1) return
       this.nvim.call('coc#highlight#clear_match_group', [winid, '^Coc'], true)

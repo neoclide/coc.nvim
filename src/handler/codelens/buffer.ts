@@ -26,12 +26,12 @@ export default class CodeLensBuffer implements BufferSyncItem {
   private _disposed = false
   private codeLenses: CodeLensInfo
   private tokenSource: CancellationTokenSource
+  private srcId: number
   public fetchCodelenses: (() => void) & { clear(): void }
   public resolveCodeLens: (() => void) & { clear(): void }
   constructor(
     private nvim: Neovim,
     public readonly bufnr: number,
-    private srcId: number,
     private config: CodeLensConfig
   ) {
     this.fetchCodelenses = debounce(() => {
@@ -40,7 +40,12 @@ export default class CodeLensBuffer implements BufferSyncItem {
     this.resolveCodeLens = debounce(() => {
       this._resolveCodeLenses().logError()
     }, global.hasOwnProperty('__TEST__') ? 10 : 100)
-    this.fetchCodelenses()
+    this.forceFetch().logError()
+  }
+
+  public async forceFetch(): Promise<void> {
+    this.fetchCodelenses.clear()
+    await this._fetchCodeLenses()
   }
 
   private get textDocument(): TextDocument | undefined {
@@ -56,10 +61,15 @@ export default class CodeLensBuffer implements BufferSyncItem {
   private async _fetchCodeLenses(): Promise<void> {
     if (!this.config.enabled || !this.hasProvider) return
     let { textDocument } = this
+    let version = textDocument.version
+    if (this.codeLenses && version == this.codeLenses.version) {
+      let res = await this._resolveCodeLenses(true)
+      if (!res) this.clear()
+      return
+    }
     this.cancel()
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
-    let version = textDocument.version
     let codeLenses = await languages.getCodeLens(textDocument, token)
     this.tokenSource = undefined
     if (token.isCancellationRequested) return
@@ -94,6 +104,7 @@ export default class CodeLensBuffer implements BufferSyncItem {
     clearTimeout(timer)
     this.tokenSource = undefined
     if (token.isCancellationRequested || this._disposed) return false
+    this.srcId = await this.nvim.createNamespace('coc-codelens')
     this.nvim.pauseNotification()
     if (clear) this.clear()
     this.setVirtualText(codeLenses)
@@ -141,6 +152,7 @@ export default class CodeLensBuffer implements BufferSyncItem {
   }
 
   public clear(): void {
+    if (!this.srcId) return
     let buf = this.nvim.createBuffer(this.bufnr)
     buf.clearNamespace(this.srcId)
   }
@@ -202,9 +214,6 @@ export default class CodeLensBuffer implements BufferSyncItem {
     if (!this.config.enabled) return
     this.cancel()
     this.resolveCodeLens.clear()
-    if (this.codeLenses != null) {
-      this.fetchCodelenses()
-    }
   }
 
   public dispose(): void {
