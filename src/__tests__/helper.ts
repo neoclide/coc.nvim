@@ -91,6 +91,10 @@ export class Helper extends EventEmitter {
     await this.nvim.call('nvim_select_popupmenu_item', [idx, true, true, {}])
   }
 
+  public async doAction(method: string, ...args: any[]): Promise<any> {
+    return await this.plugin.cocAction(method, ...args)
+  }
+
   public async reset(): Promise<void> {
     let mode = await this.nvim.mode
     if (mode.mode != 'n' || mode.blocking) {

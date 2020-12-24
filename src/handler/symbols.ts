@@ -25,17 +25,17 @@ export default class Symbols {
       })
       return buf
     })
-    events.on('CursorHold', (bufnr: number) => {
-      this.getCurrentFunctionSymbol(bufnr).logError()
+    events.on('CursorHold', async (bufnr: number) => {
+      await this.getCurrentFunctionSymbol(bufnr)
     }, null, this.disposables)
   }
 
-  private get functionUpdate(): boolean {
+  public get functionUpdate(): boolean {
     let config = workspace.getConfiguration('coc.preferences')
     return config.get<boolean>('currentFunctionSymbolAutoUpdate', false)
   }
 
-  private get labels(): { [key: string]: string } {
+  public get labels(): { [key: string]: string } {
     return workspace.getConfiguration('suggest').get<any>('completionItemKindLabels', {})
   }
 
