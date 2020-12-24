@@ -14,7 +14,6 @@ let colors: Colors
 let disposables: Disposable[] = []
 beforeAll(async () => {
   await helper.setup()
-  await helper.wait(500)
   nvim = helper.nvim
   colors = (helper.plugin as any).handler.colors
 
@@ -25,15 +24,20 @@ beforeAll(async () => {
       _token: CancellationToken
     ): ColorPresentation[] => [ColorPresentation.create('red'), ColorPresentation.create('#ff0000')],
     provideDocumentColors: (
-      _document: TextDocument,
+      document: TextDocument,
       _token: CancellationToken
     ): ProviderResult<ColorInformation[]> => {
       if (state == 'empty') return []
       if (state == 'error') return Promise.reject(new Error('no color'))
-      return [{
-        range: Range.create(0, 0, 0, 7),
-        color: getColor(255, 255, 255)
-      }]
+      let matches = Array.from((document.getText() as any).matchAll(/#\w{6}/g)) as any
+      return matches.map(o => {
+        let start = document.positionAt(o.index)
+        let end = document.positionAt(o.index + o[0].length)
+        return {
+          range: Range.create(start, end),
+          color: getColor(255, 255, 255)
+        }
+      })
     }
   }))
 })
@@ -52,7 +56,6 @@ function getColor(r: number, g: number, b: number): Color {
 }
 
 describe('Colors', () => {
-
   it('should get hex string', () => {
     let color = getColor(255, 255, 255)
     let hex = toHexString(color)
@@ -86,9 +89,21 @@ describe('Colors', () => {
     state = 'normal'
   })
 
+  it('should highlight after document changed', async () => {
+    let doc = await helper.createDocument()
+    doc.forceSync()
+    await colors.doHighlight(doc.bufnr)
+    expect(colors.hasColor(doc.bufnr)).toBe(false)
+    await nvim.setLine('#ffffff #ff0000')
+    doc.forceSync()
+    await helper.wait(300)
+    expect(colors.hasColor(doc.bufnr)).toBe(true)
+  })
+
   it('should clearHighlight on clearHighlight', async () => {
     let doc = await helper.createDocument()
-    await nvim.setLine('#ffffff')
+    await nvim.setLine('#ffffff #ff0000')
+    doc.forceSync()
     await colors.doHighlight(doc.bufnr)
     expect(colors.hasColor(doc.bufnr)).toBe(true)
     colors.clearHighlight(doc.bufnr)
@@ -106,8 +121,9 @@ describe('Colors', () => {
   it('should pick presentations', async () => {
     let doc = await helper.createDocument()
     await nvim.setLine('#ffffff')
+    doc.forceSync()
     await colors.doHighlight(doc.bufnr)
-    let p = colors.pickPresentation()
+    let p = helper.doAction('colorPresentation')
     await helper.wait(100)
     await nvim.input('1<enter>')
     await p
@@ -119,8 +135,9 @@ describe('Colors', () => {
     await helper.mockFunction('coc#util#pick_color', [0, 0, 0])
     let doc = await helper.createDocument()
     await nvim.setLine('#ffffff')
+    doc.forceSync()
     await colors.doHighlight(doc.bufnr)
-    await colors.pickColor()
+    await helper.doAction('pickColor')
     let line = await nvim.getLine()
     expect(line).toBe('#000000')
   })
