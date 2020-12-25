@@ -334,10 +334,9 @@ describe('Client integration', () => {
     assert.strictEqual(action.command?.title, 'title')
     assert.strictEqual(action.command?.command, 'id')
 
-    // TODO resolveCodeAction not work yet, need next packages.
-    //     const resolved = (await provider.resolveCodeAction(result[0], tokenSource.token))
-    //     assert.strictEqual(resolved?.title, 'resolved')
-    //
+    const resolved = (await provider.resolveCodeAction(result[0], tokenSource.token))
+    assert.strictEqual(resolved?.title, 'resolved')
+
     let middlewareCalled = false
     middleware.provideCodeActions = (d, r, c, t, n) => {
       middlewareCalled = true
@@ -353,10 +352,10 @@ describe('Client integration', () => {
       middlewareCalled = true
       return n(c, t)
     }
-    // TODO resolveCodeAction not work yet, need next packages.
-    // await provider.resolveCodeAction!(result[0], tokenSource.token)
-    // middleware.resolveCodeAction = undefined
-    // assert.ok(middlewareCalled)
+
+    await provider.resolveCodeAction!(result[0], tokenSource.token)
+    middleware.resolveCodeAction = undefined
+    assert.ok(middlewareCalled)
   })
 
   test('Progress', async () => {
