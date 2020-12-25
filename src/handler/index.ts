@@ -425,6 +425,35 @@ export default class Handler {
     return await this.format.documentRangeFormat(doc, mode)
   }
 
+  /**
+   * getCallHierarchy
+   */
+  public async getCallHierarchy(): Promise<boolean> {
+    let { doc, position } = await this.getCurrentState()
+    if (doc == null) return false
+    if (!languages.hasProvider('callHierarchy', doc.textDocument)) {
+      window.showMessage(`CallHierarchy provider not found for current document`, 'warning')
+      return false
+    }
+    await synchronizeDocument(doc)
+    let statusItem = this.requestStatusItem
+    try {
+      let token = (new CancellationTokenSource()).token
+      let res = await languages.prepareCallHierarchy(doc.textDocument, position, token)
+      if (!res) {
+        statusItem.hide()
+        return false
+      }
+      // TODO: callHierarchy tree UI?
+      return true
+    } catch (e) {
+      statusItem.hide()
+      window.showMessage(`Error on rename: ${e.message}`, 'error')
+      logger.error(e)
+      return false
+    }
+  }
+
   public async getTagList(): Promise<TagDefinition[] | null> {
     let { doc, position } = await this.getCurrentState()
     let word = await this.nvim.call('expand', '<cword>')
