@@ -272,13 +272,11 @@ class Languages {
   }
 
   public registerDocumentSemanticTokensProvider(selector: DocumentSelector, provider: DocumentSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
-    // TODO
-    return this.semanticTokensManager.register(selector, provider)
+    return this.semanticTokensManager.register(selector, provider, legend)
   }
 
   public registerDocumentRangeSemanticTokensProvider(selector: DocumentSelector, provider: DocumentRangeSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
-    // TODO
-    return this.semanticTokensRangeManager.register(selector, provider)
+    return this.semanticTokensRangeManager.register(selector, provider, legend)
   }
 
   public shouldTriggerSignatureHelp(document: TextDocument, triggerCharacter: string): boolean {

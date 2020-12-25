@@ -1,12 +1,15 @@
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, Disposable, DocumentSelector, Range, SemanticTokens } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, DocumentSelector, Range, SemanticTokens, SemanticTokensLegend } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DocumentRangeSemanticTokensProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 
 export default class SemanticTokensRangeManager extends Manager<DocumentRangeSemanticTokensProvider> implements Disposable {
+  private _legend: SemanticTokensLegend
 
-  public register(selector: DocumentSelector, provider: DocumentRangeSemanticTokensProvider): Disposable {
+  public register(selector: DocumentSelector, provider: DocumentRangeSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
+    // TODO: SemantiTokens
+    this._legend = legend
     let item: ProviderItem<DocumentRangeSemanticTokensProvider> = {
       id: uuid(),
       selector,

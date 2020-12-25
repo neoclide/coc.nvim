@@ -685,6 +685,7 @@ export interface DocumentSemanticTokensProvider {
   /**
    * An optional event to signal that the semantic tokens from this provider have changed.
    */
+  // TODO: SemantiTokens
   onDidChangeSemanticTokens?: Event<void>;
 
   /* eslint-disable jsdoc/check-indentation */

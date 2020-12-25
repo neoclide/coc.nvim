@@ -1,13 +1,16 @@
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, Disposable, DocumentSelector, Event, SemanticTokens } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, DocumentSelector, SemanticTokens, SemanticTokensLegend } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { SemanticTokensEdits } from '../semanticTokens'
 import { DocumentSemanticTokensProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 
 export default class SemanticTokensManager extends Manager<DocumentSemanticTokensProvider> implements Disposable {
+  private _legend: SemanticTokensLegend
 
-  public register(selector: DocumentSelector, provider: DocumentSemanticTokensProvider): Disposable {
+  public register(selector: DocumentSelector, provider: DocumentSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
+    // TODO: SemantiTokens
+    this._legend = legend
     let item: ProviderItem<DocumentSemanticTokensProvider> = {
       id: uuid(),
       selector,
@@ -17,11 +20,6 @@ export default class SemanticTokensManager extends Manager<DocumentSemanticToken
     return Disposable.create(() => {
       this.providers.delete(item)
     })
-  }
-
-  public onDidChangeSemanticTokens(): Event<void> {
-    // TODO
-    return
   }
 
   public async provideDocumentSemanticTokens(document: TextDocument, token: CancellationToken): Promise<SemanticTokens> {
