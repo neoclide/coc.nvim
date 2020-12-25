@@ -2,7 +2,7 @@ import * as assert from 'assert'
 import path from 'path'
 import { URI } from 'vscode-uri'
 import { LanguageClient, ServerOptions, TransportKind, Middleware, LanguageClientOptions } from '../../language-client/index'
-import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, CallHierarchyOutgoingCallsRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import helper from '../helper'
 import workspace from '../../workspace'
@@ -641,6 +641,7 @@ describe('Client integration', () => {
     const provider = client.getFeature(CallHierarchyPrepareRequest.method).getProvider(document)
     isDefined(provider)
     const result = (await provider.prepareCallHierarchy(document, position, tokenSource.token)) as CallHierarchyItem[]
+    expect(result.length).toBe(1)
 
     // TODO: 'CallHierarchyItem' only refers to a type, but is being used as a value here.
     // isArray(result, CallHierarchyItem, 1)
@@ -656,6 +657,8 @@ describe('Client integration', () => {
     assert.strictEqual(middlewareCalled, true)
 
     const incoming = (await provider.provideCallHierarchyIncomingCalls(item, tokenSource.token)) as CallHierarchyIncomingCall[]
+    expect(incoming.length).toBe(1)
+    assert.deepEqual(incoming[0].from, item)
     // TODO
     // isArray(incoming, CallHierarchyIncomingCall, 1)
     middlewareCalled = false
@@ -668,6 +671,8 @@ describe('Client integration', () => {
     assert.strictEqual(middlewareCalled, true)
 
     const outgoing = (await provider.provideCallHierarchyOutgoingCalls(item, tokenSource.token)) as CallHierarchyOutgoingCall[]
+    expect(outgoing.length).toBe(1)
+    assert.deepEqual(outgoing[0].to, item)
     // TODO
     // isArray(outgoing, CallHierarchyOutgoingCall, 1)
     middlewareCalled = false
