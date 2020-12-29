@@ -13,7 +13,7 @@ require('esbuild').buildSync({
   entryPoints: ['src/main.ts'],
   bundle: true,
   sourcemap: process.env.NODE_ENV === 'development',
-  define: {REVISION: '"' + revision + '"'},
+  define: {REVISION: '"' + revision + '"', ESBUILD: 'true'},
   mainFields: ['module', 'main'],
   platform: 'node',
   target: 'node10.12',
