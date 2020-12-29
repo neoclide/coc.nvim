@@ -1541,11 +1541,13 @@ augroup end`
     let u = URI.parse(document.uri)
     let dir = path.dirname(u.fsPath)
     let { cwd } = this
+    let config = this.getConfiguration('workspace')
+    let bottomUpFileTypes = config.get<string[]>('workspaceFolderBottomUpFiletypes', [])
     for (let patternType of types) {
       let patterns = this.getRootPatterns(document, patternType)
       if (patterns && patterns.length) {
-        let workspaceFolderBottomUpResolution = this.getIsWorkspaceFolderResolutionBottomUp(document.filetype)
-        let root = resolveRoot(dir, patterns, cwd, workspaceFolderBottomUpResolution)
+        let isBottomUp = bottomUpFileTypes.includes(document.filetype)
+        let root = resolveRoot(dir, patterns, cwd, isBottomUp)
         if (root) return root
       }
     }
@@ -1705,19 +1707,6 @@ augroup end`
     }
     patterns = patterns.concat(this.rootPatterns.get(filetype) || [])
     return patterns.length ? distinct(patterns) : null
-  }
-
-  private getIsWorkspaceFolderResolutionBottomUp(filetype: string): boolean {
-    let lspConfig = this.getConfiguration().get<{ key: LanguageServerConfig }>('languageserver', {} as any)
-    let workspaceFolderBottomUpResolution = false
-    for (let key of Object.keys(lspConfig)) {
-      let config: LanguageServerConfig = lspConfig[key]
-      let { filetypes } = config
-      if (filetypes && filetypes.includes(filetype)) {
-        workspaceFolderBottomUpResolution = !!config.workspaceFolderBottomUpResolution
-      }
-    }
-    return workspaceFolderBottomUpResolution
   }
 }
 

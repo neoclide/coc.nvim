@@ -589,7 +589,6 @@ export interface LanguageServerConfig {
   disableDynamicRegister?: boolean
   disableCompletion?: boolean
   disableDiagnostics?: boolean
-  workspaceFolderBottomUpResolution?: boolean
   formatterPriority?: number
   filetypes: string[]
   additionalSchemes: string[]
