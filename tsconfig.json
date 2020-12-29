@@ -15,7 +15,7 @@
     "moduleResolution": "node",
     "experimentalDecorators": true,
     "lib": ["es2017", "es2018", "es2019"],
-    "declaration": true,
+    "declaration": false,
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "strictNullChecks": false,

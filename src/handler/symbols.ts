@@ -26,6 +26,7 @@ export default class Symbols {
       return buf
     })
     events.on('CursorHold', async (bufnr: number) => {
+      if (!this.functionUpdate || this.buffers.getItem(bufnr) == null) return
       await this.getCurrentFunctionSymbol(bufnr)
     }, null, this.disposables)
   }
