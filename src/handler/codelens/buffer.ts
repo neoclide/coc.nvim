@@ -162,7 +162,7 @@ export default class CodeLensBuffer implements BufferSyncItem {
   }
 
   public async doAction(line: number): Promise<void> {
-    let { codeLenses } = this.codeLenses
+    let { codeLenses } = this.codeLenses ?? {}
     if (!codeLenses || codeLenses.length == 0) {
       window.showMessage('No codeLenses available', 'warning')
       return
