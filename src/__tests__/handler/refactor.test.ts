@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import { URI } from 'vscode-uri'
-import Refactor, { FileItem } from '../../handler/refactor'
+import Refactor, { FileItem } from '../../handler/refactor/index'
 import helper, { createTmpFile } from '../helper'
 import { WorkspaceEdit, Range } from 'vscode-languageserver-types'
 
@@ -11,10 +11,10 @@ let refactor: Refactor
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
+  refactor = helper.plugin.getHandler().refactor
 })
 
 beforeEach(async () => {
-  refactor = new Refactor()
 })
 
 afterAll(async () => {
@@ -22,9 +22,7 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
-  if (refactor) {
-    refactor.dispose()
-  }
+  refactor.reset()
   await helper.reset()
 })
 
@@ -40,9 +38,11 @@ describe('create', () => {
       }]
     }
     let edit: WorkspaceEdit = { changes }
-    let refactor = await Refactor.createFromWorkspaceEdit(edit)
-    let shown = await refactor.valid()
+    let buf = await refactor.fromWorkspaceEdit(edit)
+    let shown = await buf.valid
     expect(shown).toBe(true)
+    let items = buf.fileItems
+    expect(items.length).toBe(1)
   })
 
   it('should create from locations', async () => {
@@ -54,9 +54,11 @@ describe('create', () => {
       uri,
       range: Range.create(1, 0, 1, 6),
     }]
-    let refactor = await Refactor.createFromLocations(locations)
-    let shown = await refactor.valid()
+    let buf = await refactor.fromLocations(locations)
+    let shown = await buf.valid
     expect(shown).toBe(true)
+    let items = buf.fileItems
+    expect(items.length).toBe(1)
   })
 })
 
@@ -64,11 +66,11 @@ describe('onChange', () => {
   it('should ignore when change after range', async () => {
     let doc = await helper.createDocument()
     await doc.buffer.append(['foo', 'bar'])
-    await Refactor.createFromLocations([{ uri: doc.uri, range: Range.create(0, 0, 0, 3) }])
+    await refactor.fromLocations([{ uri: doc.uri, range: Range.create(0, 0, 0, 3) }])
     let lines = await nvim.call('getline', [1, '$'])
     await doc.buffer.append(['def'])
     doc.forceSync()
-    await helper.wait(30)
+    await helper.wait(100)
     let newLines = await nvim.call('getline', [1, '$'])
     expect(lines).toEqual(newLines)
   })
@@ -78,11 +80,11 @@ describe('onChange', () => {
     await doc.buffer.append(['', '', '', '', 'foo', 'bar'])
     await helper.wait(50)
     doc.forceSync()
-    let refactor = await Refactor.createFromLocations([{ uri: doc.uri, range: Range.create(4, 0, 4, 3) }])
+    let buf = await refactor.fromLocations([{ uri: doc.uri, range: Range.create(4, 0, 4, 3) }])
     await doc.buffer.setLines(['def'], { start: 0, end: 0, strictIndexing: false })
     doc.forceSync()
-    await helper.wait(30)
-    let fileRange = refactor.getFileRange(4)
+    await helper.wait(100)
+    let fileRange = buf.getFileRange(4)
     expect(fileRange.start).toBe(2)
     expect(fileRange.end).toBe(8)
   })
@@ -92,12 +94,14 @@ describe('onChange', () => {
     await doc.buffer.append(['', '', '', '', 'foo', 'bar'])
     await helper.wait(50)
     doc.forceSync()
-    await Refactor.createFromLocations([{ uri: doc.uri, range: Range.create(4, 0, 4, 3) }])
+    let buf = await refactor.fromLocations([{ uri: doc.uri, range: Range.create(4, 0, 4, 3) }])
     await doc.buffer.setLines([], { start: 0, end: -1, strictIndexing: false })
     doc.forceSync()
-    await helper.wait(30)
+    await helper.wait(100)
     let lines = await nvim.call('getline', [1, '$'])
     expect(lines.length).toBe(3)
+    let items = buf.fileItems
+    expect(items.length).toBe(0)
   })
 
   it('should change when liens changed', async () => {
@@ -105,7 +109,7 @@ describe('onChange', () => {
     await doc.buffer.append(['', '', '', '', 'foo', 'bar'])
     await helper.wait(50)
     doc.forceSync()
-    await Refactor.createFromLocations([{ uri: doc.uri, range: Range.create(4, 0, 4, 3) }])
+    await refactor.fromLocations([{ uri: doc.uri, range: Range.create(4, 0, 4, 3) }])
     await doc.buffer.setLines(['def'], { start: 5, end: 6, strictIndexing: false })
     doc.forceSync()
     await helper.wait(30)
@@ -116,6 +120,7 @@ describe('onChange', () => {
 
 describe('refactor#getFileChanges', () => {
   it('should get changes #1', async () => {
+    await helper.createDocument()
     let lines = `
 Save current buffer to make changes
 \u3000
@@ -123,8 +128,8 @@ Save current buffer to make changes
 \u3000/a.ts
     })
   } `
-    let refactor = await Refactor.createFromLines(lines.split('\n'))
-    let changes = await refactor.getFileChanges()
+    let buf = await refactor.fromLines(lines.split('\n'))
+    let changes = await buf.getFileChanges()
     expect(changes).toEqual([{ lnum: 5, filepath: '/a.ts', lines: ['    })', '  } '] }])
   })
 
@@ -133,8 +138,8 @@ Save current buffer to make changes
 \u3000/a.ts
     })
   } `
-    let refactor = await Refactor.createFromLines(lines.split('\n'))
-    let changes = await refactor.getFileChanges()
+    let buf = await refactor.fromLines(lines.split('\n'))
+    let changes = await buf.getFileChanges()
     expect(changes).toEqual([{ lnum: 2, filepath: '/a.ts', lines: ['    })', '  } '] }])
   })
 
@@ -144,8 +149,8 @@ Save current buffer to make changes
     })
   }
 \u3000`
-    let refactor = await Refactor.createFromLines(lines.split('\n'))
-    let changes = await refactor.getFileChanges()
+    let buf = await refactor.fromLines(lines.split('\n'))
+    let changes = await buf.getFileChanges()
     expect(changes).toEqual([{ lnum: 2, filepath: '/a.ts', lines: ['    })', '  }'] }])
   })
 
@@ -156,8 +161,8 @@ foo
 \u3000/b.ts
 bar
 \u3000`
-    let refactor = await Refactor.createFromLines(lines.split('\n'))
-    let changes = await refactor.getFileChanges()
+    let buf = await refactor.fromLines(lines.split('\n'))
+    let changes = await buf.getFileChanges()
     expect(changes).toEqual([
       { filepath: '/a.ts', lnum: 2, lines: ['foo'] },
       { filepath: '/b.ts', lnum: 4, lines: ['bar'] }
@@ -167,26 +172,29 @@ bar
 
 describe('Refactor#createRefactorBuffer', () => {
   it('should create refactor buffer', async () => {
+    await helper.createDocument()
     let winid = await nvim.call('win_getid')
-    await refactor.createRefactorBuffer()
+    let buf = await refactor.createRefactorBuffer()
     let curr = await nvim.call('win_getid')
     expect(curr).toBeGreaterThan(winid)
-    expect(refactor.document).toBeDefined()
+    let valid = await buf.valid
+    expect(valid).toBe(true)
   })
 
   it('should jump to position by <CR>', async () => {
-    await refactor.createRefactorBuffer()
+    await helper.createDocument()
+    let buf = await refactor.createRefactorBuffer()
     let fileItem: FileItem = {
       filepath: __filename,
       ranges: [{ start: 10, end: 11 }, { start: 15, end: 20 }]
     }
-    await refactor.addFileItems([fileItem])
+    await buf.addFileItems([fileItem])
     await nvim.call('cursor', [5, 1])
-    await refactor.splitOpen()
+    await buf.splitOpen()
     let line = await nvim.eval('line(".")')
     let bufname = await nvim.eval('bufname("%")')
     expect(bufname).toMatch('refactor.test.ts')
-    expect(line).toBe(12)
+    expect(line).toBe(11)
   })
 })
 
@@ -197,8 +205,8 @@ describe('Refactor#saveRefactor', () => {
       filepath: filename,
       ranges: [{ start: 0, end: 1 }, { start: 2, end: 3 }]
     }
-    await refactor.createRefactorBuffer()
-    await refactor.addFileItems([fileItem])
+    let buf = await refactor.createRefactorBuffer()
+    await buf.addFileItems([fileItem])
     nvim.pauseNotification()
     nvim.call('setline', [5, ['xyz']], true)
     nvim.command('undojoin', true)
@@ -207,20 +215,20 @@ describe('Refactor#saveRefactor', () => {
     nvim.call('append', [8, ['bar']], true)
     await nvim.resumeNotification()
     await helper.wait(100)
-    let res = await refactor.saveRefactor()
+    let res = await refactor.save(buf.buffer.id)
     expect(res).toBe(true)
     let content = fs.readFileSync(filename, 'utf8')
     expect(content).toBe('xyz\nde\n\nbar\nbar\n')
   })
 
   it('should not save when no change made', async () => {
-    await refactor.createRefactorBuffer()
+    let buf = await refactor.createRefactorBuffer()
     let fileItem: FileItem = {
       filepath: __filename,
       ranges: [{ start: 10, end: 11 }, { start: 15, end: 20 }]
     }
-    await refactor.addFileItems([fileItem])
-    let res = await refactor.saveRefactor()
+    await buf.addFileItems([fileItem])
+    let res = await buf.save()
     expect(res).toBe(false)
   })
 
@@ -233,10 +241,10 @@ describe('Refactor#saveRefactor', () => {
       filepath: filename,
       ranges: [{ start: 0, end: 2 }]
     }
-    await refactor.createRefactorBuffer()
-    await refactor.addFileItems([fileItem])
+    let buf = await refactor.createRefactorBuffer()
+    await buf.addFileItems([fileItem])
     await nvim.call('setline', [5, 'changed'])
-    let res = await refactor.saveRefactor()
+    let res = await buf.save()
     expect(res).toBe(true)
     expect(fs.existsSync(filename)).toBe(true)
     let content = fs.readFileSync(filename, 'utf8')

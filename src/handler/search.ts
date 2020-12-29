@@ -9,7 +9,7 @@ import which from 'which'
 import Highlighter from '../model/highligher'
 import { ansiparse } from '../util/ansiparse'
 import window from '../window'
-import Refactor, { FileItem, FileRange } from './refactor'
+import RefactorBuffer, { FileItem, FileRange } from './refactor/buffer'
 const logger = require('../util/logger')('handler-search')
 
 const defaultArgs = ['--color', 'ansi', '--colors', 'path:fg:black', '--colors', 'line:fg:green', '--colors', 'match:fg:red', '--no-messages', '--heading', '-n']
@@ -106,15 +106,15 @@ export default class Search {
   constructor(private nvim: Neovim, private cmd = 'rg') {
   }
 
-  public run(args: string[], cwd: string, refactor: Refactor): Promise<void> {
+  public run(args: string[], cwd: string, refactorBuf: RefactorBuffer): Promise<void> {
     let { nvim, cmd } = this
-    let { afterContext, beforeContext } = refactor.config
+    let { afterContext, beforeContext } = refactorBuf.config
     let argList = ['-A', afterContext.toString(), '-B', beforeContext.toString()].concat(defaultArgs, args)
     argList.push('--', './')
     try {
       cmd = which.sync(cmd)
     } catch (e) {
-      window.showMessage('Please install ripgrep and make sure rg is in your $PATH', 'error')
+      window.showMessage(`Please install ripgrep and make sure ${this.cmd} is in your $PATH`, 'error')
       return Promise.reject(e)
     }
     this.task = new Task()
@@ -131,7 +131,7 @@ export default class Search {
       fileItems = []
       const release = await mutex.acquire()
       try {
-        await refactor.addFileItems(items)
+        await refactorBuf.addFileItems(items)
       } catch (e) {
         logger.error(e)
       }
@@ -158,9 +158,8 @@ export default class Search {
           release()
           this.task.removeAllListeners()
           this.task = null
-          let { document } = refactor
-          if (document) {
-            let buf = document.buffer
+          let buf = refactorBuf.buffer
+          if (buf) {
             nvim.pauseNotification()
             if (files == 0) {
               // eslint-disable-next-line @typescript-eslint/no-floating-promises

@@ -21,8 +21,7 @@ import Colors from './colors/index'
 import Format from './format'
 import { addDocument, isMarkdown, SymbolInfo, synchronizeDocument } from './helper'
 import Highlights from './highlights'
-import Refactor from './refactor'
-import Search from './search'
+import Refactor from './refactor/index'
 import Signature from './signature'
 import Symbols from './symbols'
 const logger = require('../util/logger')('Handler')
@@ -47,7 +46,7 @@ export default class Handler {
   private hoverFactory: FloatFactory
   private signature: Signature
   private format: Format
-  private refactorMap: Map<number, Refactor> = new Map()
+  private refactor: Refactor
   private documentLines: string[] = []
   private codeLens: CodeLens
   private selectionRange: SelectionRange = null
@@ -62,17 +61,11 @@ export default class Handler {
     workspace.onDidChangeConfiguration(() => {
       this.getPreferences()
     })
+    this.refactor = new Refactor()
     this.hoverFactory = new FloatFactory(nvim)
     this.signature = new Signature(nvim)
     this.format = new Format(nvim)
     this.symbols = new Symbols(nvim)
-    events.on('BufUnload', async bufnr => {
-      let refactor = this.refactorMap.get(bufnr)
-      if (refactor) {
-        refactor.dispose()
-        this.refactorMap.delete(bufnr)
-      }
-    }, null, this.disposables)
     events.on(['CursorMoved', 'CursorMovedI', 'InsertEnter', 'InsertSnippet', 'InsertLeave'], () => {
       if (this.requestTokenSource) {
         this.requestTokenSource.cancel()
@@ -777,26 +770,16 @@ export default class Handler {
       return edit
     })
     if (edit) {
-      let refactor = await Refactor.createFromWorkspaceEdit(edit, filetype)
-      if (!refactor || !refactor.buffer) return
-      this.refactorMap.set(refactor.buffer.id, refactor)
+      await this.refactor.fromWorkspaceEdit(edit, filetype)
     }
   }
 
   public async saveRefactor(bufnr: number): Promise<void> {
-    let refactor = this.refactorMap.get(bufnr)
-    if (refactor) {
-      await refactor.saveRefactor()
-    }
+    await this.refactor.save(bufnr)
   }
 
   public async search(args: string[]): Promise<void> {
-    let refactor = new Refactor()
-    await refactor.createRefactorBuffer()
-    if (!refactor.buffer) return
-    this.refactorMap.set(refactor.buffer.id, refactor)
-    let search = new Search(this.nvim)
-    search.run(args, workspace.cwd, refactor).logError()
+    await this.refactor.search(args)
   }
 
   private async previewHover(hovers: Hover[], target: string): Promise<void> {
@@ -877,6 +860,7 @@ export default class Handler {
       clearTimeout(this.requestTimer)
       this.requestTimer = undefined
     }
+    this.refactor.dispose()
     this.signature.dispose()
     this.symbols.dispose()
     this.hoverFactory.dispose()
