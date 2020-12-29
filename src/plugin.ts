@@ -22,6 +22,8 @@ import window from './window'
 import events from './events'
 const logger = require('./util/logger')('plugin')
 
+declare const REVISION
+
 export default class Plugin extends EventEmitter {
   private _ready = false
   private handler: Handler | undefined
@@ -451,7 +453,7 @@ export default class Plugin extends EventEmitter {
   }
 
   private get version(): string {
-    return workspace.version + (process.env.REVISION ? '-' + process.env.REVISION : '')
+    return workspace.version + (typeof REVISION === 'string' ? '-' + REVISION : '')
   }
 
   public hasAction(method: string): boolean {

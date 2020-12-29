@@ -8,9 +8,7 @@ import fs from 'fs'
 import { URI } from 'vscode-uri'
 import path from 'path'
 const logger = require('../util/logger')('configuration-util')
-declare let __webpack_require__: any
-const isWebpack = typeof __webpack_require__ === "function"
-const pluginRoot = isWebpack ? path.dirname(__dirname) : path.resolve(__dirname, '../..')
+const pluginRoot = path.dirname(__dirname)
 
 export type ShowError = (errors: ErrorItem[]) => void
 
