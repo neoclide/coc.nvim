@@ -31,36 +31,6 @@ function! coc#util#api_version() abort
   return s:vim_api_version
 endfunction
 
-function! coc#util#has_float()
-  echohl Error | echon 'coc#util#has_float is deprecated, use coc#float#has_float instead'  | echohl None
-  return coc#float#has_float()
-endfunction
-
-function! coc#util#float_hide()
-  echohl Error | echon 'coc#util#float_hide is deprecated, use coc#float#close_all instead' | echohl None
-  call coc#float#close_all()
-endfunction
-
-function! coc#util#float_jump()
-  echohl Error | echon 'coc#util#float_jump is deprecated, use coc#float#jump instead' | echohl None
-endfunction
-
-" close all float/popup window
-function! coc#util#close_floats() abort
-  echohl WarningMsg | echon 'coc#util#close_floats is deprecated, use coc#float#close_all instead'  | echohl None
-  call coc#float#close_all()
-endfunction
-
-function! coc#util#close_win(id)
-  echohl WarningMsg | echon 'coc#util#close_win is deprecated, use coc#float#close instead'  | echohl None
-  call coc#float#close(a:id)
-endfunction
-
-function! coc#util#float_scroll(forward)
-  echohl WarningMsg | echon 'coc#util#close_win is deprecated, use coc#float#scroll instead'  | echohl None
-  call coc#float#scroll(a:forward)
-endfunction
-
 " get cursor position
 function! coc#util#cursor()
   return [line('.') - 1, strchars(strpart(getline('.'), 0, col('.') - 1))]
