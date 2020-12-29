@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 const cp = require('child_process')
 let revision = ''
 try {

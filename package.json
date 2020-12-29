@@ -9,11 +9,11 @@
   "scripts": {
     "clean": "rimraf lib build",
     "lint": "eslint . --ext .ts --quiet",
-    "build": "./build.js",
+    "build": "node build.js",
     "watch": "node watch.js",
     "test": "node --trace-warnings node_modules/jest/bin/jest.js --runInBand --forceExit",
     "test-build": "node --trace-warnings node_modules/jest/bin/jest.js --runInBand --coverage --forceExit",
-    "prepare": "./build.js"
+    "prepare": "node build.js"
   },
   "repository": {
     "type": "git",
