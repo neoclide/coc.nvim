@@ -47,7 +47,7 @@ jobs:
       - if: matrix.os == 'ubuntu-20.04'
         name: yarn test on Ubuntu
         run: |
-          apt-get install ripgrep -y
+          sudo apt-get install ripgrep -y
           curl -LO https://github.com/neovim/neovim/releases/download/nightly/nvim-linux64.tar.gz
           tar xzf nvim-linux64.tar.gz
           export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-linux64/bin"
