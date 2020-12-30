@@ -10,6 +10,7 @@ try {
 require('esbuild').buildSync({
   entryPoints: ['src/main.ts'],
   bundle: true,
+  minify: process.env.NODE_ENV === 'production',
   sourcemap: process.env.NODE_ENV === 'development',
   define: {REVISION: '"' + revision + '"', ESBUILD: 'true'},
   mainFields: ['module', 'main'],
