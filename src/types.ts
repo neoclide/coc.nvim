@@ -1162,6 +1162,10 @@ export interface FetchOptions {
    */
   timeout?: number
   /**
+   * Always return buffer instead of parsed response.
+   */
+  buffer?: boolean
+  /**
    * - 'string' for text response content
    * - 'object' for json response content
    * - 'buffer' for response not text or json

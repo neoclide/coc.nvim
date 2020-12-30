@@ -26,6 +26,11 @@ describe('fetch', () => {
     expect(Array.isArray(res)).toBe(true)
   }, 10000)
 
+  it('should fetch buffer', async () => {
+    let res = await fetch('https://www.npmjs.com/', { buffer: true })
+    expect(Buffer.isBuffer(res)).toBe(true)
+  })
+
   it('should throw on request error', async () => {
     let err
     try {

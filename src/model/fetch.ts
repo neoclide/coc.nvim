@@ -108,7 +108,7 @@ export function resolveRequestOptions(url: string, options: FetchOptions = {}): 
     }, headers)
   }
   if (proxyOptions.proxyCA) {
-     opts.ca = fs.readFileSync(proxyOptions.proxyCA)
+    opts.ca = fs.readFileSync(proxyOptions.proxyCA)
   }
   if (dataType == 'object') {
     opts.headers['Content-Type'] = 'application/json'
@@ -121,6 +121,7 @@ export function resolveRequestOptions(url: string, options: FetchOptions = {}): 
   if (options.timeout) {
     opts.timeout = options.timeout
   }
+  if (options.buffer) opts.buffer = true
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return opts
 }

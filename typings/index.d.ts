@@ -3545,9 +3545,11 @@ declare module 'coc.nvim' {
      */
     timeout?: number
     /**
-     * - 'string' for text response content
-     * - 'object' for json response content
-     * - 'buffer' for response not text or json
+     * Always return buffer instead of parsed response.
+     */
+    buffer?: boolean
+    /**
+     * Data send to server.
      */
     data?: string | { [key: string]: any } | Buffer
     /**
