@@ -88,6 +88,7 @@
     "clipboardy": "^2.3.0",
     "content-disposition": "^0.5.3",
     "debounce": "^1.2.0",
+    "decompress-response": "^6.0.0",
     "fast-diff": "^1.2.0",
     "fb-watchman": "^2.0.1",
     "follow-redirects": "^1.13.0",

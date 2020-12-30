@@ -2,7 +2,6 @@ import { http, https } from 'follow-redirects'
 import { Readable } from 'stream'
 import { parse, UrlWithStringQuery } from 'url'
 import fs from 'fs'
-import zlib from 'zlib'
 import { objectLiteral } from '../util/is'
 import workspace from '../workspace'
 import { FetchOptions } from '../types'
@@ -10,6 +9,7 @@ import { stringify } from 'querystring'
 import createHttpProxyAgent, { HttpProxyAgent } from 'http-proxy-agent'
 import createHttpsProxyAgent, { HttpsProxyAgent } from 'https-proxy-agent'
 import { CancellationToken } from 'vscode-languageserver-protocol'
+import decompressResponse from 'decompress-response'
 const logger = require('../util/logger')('model-fetch')
 
 export type ResponseResult = string | Buffer | { [name: string]: any }
@@ -140,22 +140,13 @@ function request(url: string, data: any, opts: any, token?: CancellationToken): 
         let headers = res.headers || {}
         let chunks: Buffer[] = []
         let contentType: string = headers['content-type'] || ''
-        let contentEncoding: string = headers['content-encoding'] || ''
-        if (contentEncoding === 'gzip') {
-          const unzip = zlib.createGunzip()
-          readable = res.pipe(unzip)
-        } else if (contentEncoding === 'deflate') {
-          let inflate = zlib.createInflate()
-          res.pipe(inflate)
-          readable = inflate
-        }
+        readable = decompressResponse(res)
         readable.on('data', chunk => {
           chunks.push(chunk)
         })
         readable.on('end', () => {
           let buf = Buffer.concat(chunks)
-          if (contentType.startsWith('application/json')
-            || contentType.startsWith('text/')) {
+          if (!opts.buffer && (contentType.startsWith('application/json') || contentType.startsWith('text/'))) {
             let ms = contentType.match(/charset=(\S+)/)
             let encoding = ms ? ms[1] : 'utf8'
             let rawData = buf.toString(encoding as BufferEncoding)
