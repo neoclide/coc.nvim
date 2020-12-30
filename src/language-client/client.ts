@@ -4146,12 +4146,12 @@ export abstract class BaseLanguageClient {
     // diagnostics.dataSupport
     // diagnostics.codeDescriptionSupport
 
-    // TODO: capabilities
-    // const windowCapabilities = ensure(result, 'window')!;
-    // const showMessage = ensure(windowCapabilities, 'showMessage')!;
-    // showMessage.messageActionItem = { additionalPropertiesSupport: true };
-    // const showDocument = ensure(windowCapabilities, 'showDocument')!;
-    // showDocument.support = true;
+    // TODO: capabilities, disabled by default
+    const windowCapabilities = ensure(result, 'window')!
+    const showMessage = ensure(windowCapabilities, 'showMessage')!
+    showMessage.messageActionItem = { additionalPropertiesSupport: false }
+    const showDocument = ensure(windowCapabilities, 'showDocument')!
+    showDocument.support = false
 
     const generalCapabilities = ensure(result, 'general')!;
     generalCapabilities.regularExpressions = { engine: 'ECMAScript', version: 'ES2020' };
