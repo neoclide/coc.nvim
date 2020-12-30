@@ -1532,10 +1532,13 @@ augroup end`
     let u = URI.parse(document.uri)
     let dir = path.dirname(u.fsPath)
     let { cwd } = this
+    let config = this.getConfiguration('workspace')
+    let bottomUpFileTypes = config.get<string[]>('workspaceFolderBottomUpFiletypes', [])
     for (let patternType of types) {
       let patterns = this.getRootPatterns(document, patternType)
       if (patterns && patterns.length) {
-        let root = resolveRoot(dir, patterns, cwd)
+        let isBottomUp = bottomUpFileTypes.includes(document.filetype)
+        let root = resolveRoot(dir, patterns, cwd, isBottomUp)
         if (root) return root
       }
     }
