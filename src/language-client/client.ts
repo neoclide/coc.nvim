@@ -4153,9 +4153,9 @@ export abstract class BaseLanguageClient {
     // const showDocument = ensure(windowCapabilities, 'showDocument')!;
     // showDocument.support = true;
 
-    // const generalCapabilities = ensure(result, 'general')!;
-    // generalCapabilities.regularExpressions = { engine: 'ECMAScript', version: 'ES2020' };
-    // generalCapabilities.markdown = { parser: 'marked', version: '1.1.0'};
+    const generalCapabilities = ensure(result, 'general')!;
+    generalCapabilities.regularExpressions = { engine: 'ECMAScript', version: 'ES2020' };
+    generalCapabilities.markdown = { parser: 'marked', version: '1.1.0'};
 
     for (let feature of this._features) {
       feature.fillClientCapabilities(result)
