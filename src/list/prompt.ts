@@ -1,5 +1,4 @@
 import { Neovim } from '@chemzqm/neovim'
-import clipboardy from 'clipboardy'
 import { Emitter, Event } from 'vscode-languageserver-protocol'
 import { ListMode, ListOptions, Matcher } from '../types'
 import ListConfiguration from './configuration'
@@ -191,7 +190,7 @@ export default class Prompt {
   }
 
   public async paste(): Promise<void> {
-    let text = await clipboardy.read()
+    let text = await this.nvim.eval('@*') as string
     text = text.replace(/\n/g, '')
     if (!text) return
     this.addText(text)

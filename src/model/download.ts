@@ -3,12 +3,12 @@ import { v1 as uuidv1 } from 'uuid'
 import fs, { Stats } from 'fs-extra'
 import path from 'path'
 import tar from 'tar'
-import unzip from 'unzipper'
 import { DownloadOptions } from '../types'
 import { resolveRequestOptions } from './fetch'
 import { ServerResponse } from 'http'
 import contentDisposition from 'content-disposition'
 import { CancellationToken } from 'vscode-languageserver-protocol'
+import unzip from 'unzip-stream'
 const logger = require('../util/logger')('model-download')
 
 /**

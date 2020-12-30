@@ -1,5 +1,4 @@
 import { Neovim } from '@chemzqm/neovim'
-import clipboardy from 'clipboardy'
 import { CancellationToken } from 'vscode-jsonrpc'
 import BasicList from '../../list/basic'
 import manager from '../../list/manager'
@@ -588,22 +587,18 @@ describe('User mappings', () => {
     expect(manager.isActivated).toBe(true)
   })
 
-  it('should insert clipboard to prompt', async () => {
+  it('should insert clipboard register to prompt', async () => {
     helper.updateConfiguration('list.insertMappings', {
       '<C-r>': 'prompt:paste',
     })
     let text: string
-    clipboardy.write = async val => {
-      text = val
-    }
-    clipboardy.read = async () => text
-    await clipboardy.write('foo')
+    await nvim.command('let @* = "foobar"')
     await manager.start(['location'])
     await manager.session.ui.ready
     await nvim.eval(`feedkeys("\\<C-r>", "in")`)
     await helper.wait(200)
     let { input } = manager.prompt
-    expect(input).toMatch('foo')
+    expect(input).toMatch('foobar')
   })
 
   it('should insert text from default register to prompt', async () => {

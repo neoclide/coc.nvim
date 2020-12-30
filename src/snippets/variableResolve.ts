@@ -1,4 +1,3 @@
-import clipboardy from 'clipboardy'
 import path from 'path'
 import window from '../window'
 import { Variable, VariableResolver } from "./parser"
@@ -72,13 +71,7 @@ export class SnippetVariableResolver implements VariableResolver {
       return text
     }
     if (name == 'CLIPBOARD') {
-      let clipboard = ''
-      try {
-        clipboard = await clipboardy.read()
-      } catch (e) {
-        logger.error(`Error with clipboardy:`, e.message)
-      }
-      return clipboard
+      return await nvim.eval('@*') as string
     }
   }
 
