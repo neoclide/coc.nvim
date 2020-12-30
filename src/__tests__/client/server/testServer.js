@@ -252,7 +252,7 @@ connection.onDocumentLinkResolve((link) => {
 
 connection.onDocumentColor((_params) => {
   return [
-    ColorInformation.create(Range.create(1, 1, 1, 2), Color.create(1, 2, 3, 4))
+    ColorInformation.create(Range.create(1, 1, 1, 2), Color.create(1, 1, 1, 1))
   ]
 })
 

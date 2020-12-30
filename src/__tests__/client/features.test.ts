@@ -520,7 +520,7 @@ describe('Client integration', () => {
     const color = colors[0]
 
     rangeEqual(color.range, 1, 1, 1, 2)
-    colorEqual(color.color, 1, 2, 3, 4)
+    colorEqual(color.color, 1, 1, 1, 1)
 
     let middlewareCalled = 0
     middleware.provideDocumentColors = (d, t, n) => {
