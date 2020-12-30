@@ -2053,7 +2053,7 @@ declare module 'coc.nvim' {
     /**
      * Executes an ex-command by notification.
      */
-    command(arg: string, isNotify: true): Promise<void>
+    command(arg: string, isNotify: true): void
 
     /**
      * Runs a command and returns output.
