@@ -4,11 +4,9 @@ import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
 import { disposeAll } from '../util'
-import workspace from '../workspace'
 import window from '../window'
+import workspace from '../workspace'
 const logger = require('../util/logger')('documentHighlight')
-
-const namespaceKey = 'coc-highlight'
 
 /**
  * Highlights of symbol under cursor.
@@ -18,38 +16,32 @@ export default class Highlights {
   private tokenSource: CancellationTokenSource
   private highlights: Map<number, DocumentHighlight[]> = new Map()
   constructor(private nvim: Neovim) {
-    events.on(['WinLeave', 'TextChanged', 'CursorMoved', 'InsertEnter'], () => {
+    events.on(['TextChanged', 'TextChangedI', 'CursorMoved', 'CursorMovedI'], () => {
       this.cancel()
-    }, null, this.disposables)
-    events.on('BufUnload', bufnr => {
-      this.highlights.delete(bufnr)
+      this.clearHighlights()
     }, null, this.disposables)
   }
 
-  public clearHighlight(bufnr: number): void {
+  public clearHighlights(): void {
+    if (this.highlights.size == 0) return
     let { nvim } = workspace
-    let buf = nvim.createBuffer(bufnr)
-    buf.clearNamespace(namespaceKey)
-    if (workspace.isVim) nvim.command('redraw', true)
-    this.highlights.delete(bufnr)
+    for (let winid of this.highlights.keys()) {
+      let win = nvim.createWindow(winid)
+      win.clearMatchGroup('^CocHighlight')
+    }
+    this.highlights.clear()
   }
 
   public async highlight(): Promise<void> {
     let { nvim } = this
     this.cancel()
-    let [bufnr, cursors] = await nvim.eval(`[bufnr('%'),get(b:,'coc_cursors_activated',0)]`) as [number, number]
+    let [bufnr, winid, cursors] = await nvim.eval(`[bufnr('%'),win_getid(),get(b:,'coc_cursors_activated',0)]`) as [number, number, number]
     let doc = workspace.getDocument(bufnr)
     if (!doc || !doc.attached || !languages.hasProvider('documentHighlight', doc.textDocument)) return
-    if (cursors) {
-      this.clearHighlight(bufnr)
-      return
-    }
+    if (cursors) return
     let position = await window.getCursorPosition()
     let highlights = await this.getHighlights(doc, position)
-    if (!highlights) {
-      this.clearHighlight(bufnr)
-      return
-    }
+    if (!highlights) return
     let groups: { [index: string]: Range[] } = {}
     for (let hl of highlights) {
       if (!hl.range) continue
@@ -59,23 +51,23 @@ export default class Highlights {
       groups[hlGroup] = groups[hlGroup] || []
       groups[hlGroup].push(hl.range)
     }
-    let buffer = nvim.createBuffer(bufnr)
+    let win = nvim.createWindow(winid)
     nvim.pauseNotification()
-    buffer.clearNamespace(namespaceKey)
+    win.clearMatchGroup('^CocHighlight')
     for (let hlGroup of Object.keys(groups)) {
-      buffer.highlightRanges(namespaceKey, hlGroup, groups[hlGroup])
+      win.highlightRanges(hlGroup, groups[hlGroup], -1, true)
     }
     if (workspace.isVim) nvim.command('redraw', true)
     let res = this.nvim.resumeNotification()
     if (Array.isArray(res) && res[1] != null) {
       logger.error(`Error on highlight`, res[1][2])
     } else {
-      this.highlights.set(bufnr, highlights)
+      this.highlights.set(winid, highlights)
     }
   }
 
-  public hasHighlights(bufnr: number): boolean {
-    return this.highlights.get(bufnr) != null
+  public hasHighlights(winid: number): boolean {
+    return this.highlights.get(winid) != null
   }
 
   public async getHighlights(doc: Document | null, position: Position): Promise<DocumentHighlight[]> {
@@ -105,7 +97,8 @@ export default class Highlights {
   }
 
   public dispose(): void {
-    if (this.tokenSource) this.tokenSource.dispose()
+    this.highlights.clear()
+    this.cancel()
     disposeAll(this.disposables)
   }
 }

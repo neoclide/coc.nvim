@@ -8,12 +8,10 @@ import helper from '../helper'
 let nvim: Neovim
 let disposables: Disposable[] = []
 let highlights: Highlights
-let ns: number
 
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  ns = await nvim.createNamespace('coc-highlight')
   highlights = helper.plugin.getHandler().documentHighlighter
 })
 
@@ -28,7 +26,7 @@ afterEach(async () => {
 })
 
 function registProvider(): void {
-  languages.registerDocumentHighlightProvider([{ language: '*' }], {
+  disposables.push(languages.registerDocumentHighlightProvider([{ language: '*' }], {
     provideDocumentHighlights: async document => {
       let word = await nvim.eval('expand("<cword>")')
       // let word = document.get
@@ -42,7 +40,7 @@ function registProvider(): void {
         }
       })
     }
-  })
+  }))
 }
 
 describe('document highlights', () => {
@@ -80,10 +78,11 @@ describe('document highlights', () => {
 
   it('should add highlights to symbols', async () => {
     registProvider()
-    let doc = await helper.createDocument()
+    await helper.createDocument()
     await nvim.setLine('foo bar foo')
     await helper.doAction('highlight')
-    expect(highlights.hasHighlights(doc.bufnr)).toBe(true)
+    let winid = await nvim.call('win_getid') as number
+    expect(highlights.hasHighlights(winid)).toBe(true)
   })
 
   it('should return highlight ranges', async () => {
@@ -95,11 +94,11 @@ describe('document highlights', () => {
   })
 
   it('should return null when cursor not in word range', async () => {
-    languages.registerDocumentHighlightProvider([{ language: '*' }], {
+    disposables.push(languages.registerDocumentHighlightProvider([{ language: '*' }], {
       provideDocumentHighlights: () => {
         return [{ range: Range.create(0, 0, 0, 3) }]
       }
-    })
+    }))
     let doc = await helper.createDocument()
     await nvim.setLine('  oo')
     await nvim.call('cursor', [1, 2])
