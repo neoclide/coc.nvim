@@ -293,9 +293,9 @@ export class Extensions {
   }
 
   public async getExtensionStates(): Promise<ExtensionInfo[]> {
-    let globalStats = await this.globalExtensionStats()
     let localStats = await this.localExtensionStats([])
-    return globalStats.concat(localStats)
+    let globalStats = await this.globalExtensionStats()
+    return localStats.concat(globalStats.filter(o => localStats.find(s => s.id == o.id) == null))
   }
 
   public async getLockedList(): Promise<string[]> {
