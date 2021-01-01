@@ -3,6 +3,8 @@ import Document from '../model/document'
 import { Documentation } from '../types'
 import { wait } from '../util'
 import { getSymbolKind } from '../util/convert'
+import matchAll from 'string.prototype.matchall'
+matchAll.shim()
 
 export interface SymbolInfo {
   filepath?: string

@@ -9,7 +9,7 @@ try {
   // ignore
 }
 
-// remove the line using require.main
+// replace require.main with empty string
 let envPlugin = {
   name: 'env',
   setup(build) {
@@ -23,7 +23,7 @@ let envPlugin = {
     build.onLoad({filter: /^node_modules\/log4js\/lib\/appenders$/, namespace: 'env-ns'}, args => {
       let content = fs.readFileSync(path.join(args.path, 'index.js'), 'utf8')
       return {
-        contents: content.replace(/\n\s*\|\|\s*require\.main.*/, ''),
+        contents: content.replace(/require\.main/g, '""'),
         resolveDir: args.path
       }
     })
