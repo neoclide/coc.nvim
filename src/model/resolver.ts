@@ -1,7 +1,9 @@
 import path from 'path'
+import fs from 'fs'
 import { executable, runCommand } from '../util'
 import { statAsync } from '../util/fs'
 import { memorize } from '../util/decorator'
+import stripAnsi from 'strip-ansi'
 const logger = require('../util/logger')('model-resolver')
 
 export default class Resolver {
@@ -9,13 +11,20 @@ export default class Resolver {
   @memorize
   private get nodeFolder(): Promise<string> {
     if (!executable('npm')) return Promise.resolve('')
-    return runCommand('npm --loglevel silent root -g', {}, 3000).then(root => root.trim())
+    return runCommand('npm --loglevel silent root -g', {}, 3000).then(root => {
+      return stripAnsi(root).trim()
+    })
   }
 
   @memorize
   private get yarnFolder(): Promise<string> {
     if (!executable('yarnpkg')) return Promise.resolve('')
-    return runCommand('yarnpkg global dir', {}, 3000).then(root => path.join(root.trim(), 'node_modules'))
+    //path.join(root.trim(), 'node_modules')
+    return runCommand('yarnpkg global dir', {}, 3000).then(root => {
+      let folder = path.join(stripAnsi(root).trim(), 'node_modules')
+      let exists = fs.existsSync(folder)
+      return exists ? folder : undefined
+    })
   }
 
   public async resolveModule(mod: string): Promise<string> {
