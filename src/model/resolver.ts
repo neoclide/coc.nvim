@@ -19,11 +19,10 @@ export default class Resolver {
   @memorize
   private get yarnFolder(): Promise<string> {
     if (!executable('yarnpkg')) return Promise.resolve('')
-    //path.join(root.trim(), 'node_modules')
     return runCommand('yarnpkg global dir', {}, 3000).then(root => {
       let folder = path.join(stripAnsi(root).trim(), 'node_modules')
       let exists = fs.existsSync(folder)
-      return exists ? folder : undefined
+      return exists ? folder : ''
     })
   }
 
