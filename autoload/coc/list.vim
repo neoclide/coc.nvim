@@ -218,7 +218,7 @@ endfunction
 " config.maxHeight - (optional) max height of window, valid for 'below' & 'top' position.
 function! coc#list#preview(lines, config) abort
   if s:is_vim && !exists('*win_execute')
-    echoerr 'win_execute function required for preview, please upgrade your vim.'
+    throw 'win_execute function required for preview, please upgrade your vim.'
     return
   endif
   let name = fnamemodify(get(a:config, 'name', ''), ':.')

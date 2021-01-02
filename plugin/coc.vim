@@ -69,6 +69,9 @@ function! CocPopupCallback(bufnr, arglist) abort
 endfunction
 
 function! CocAction(name, ...) abort
+  if !get(g:, 'coc_service_initialized', 0)
+    throw 'coc.nvim not ready when invoke CocAction "'.a:name.'"'
+  endif
   return coc#rpc#request(a:name, a:000)
 endfunction
 
