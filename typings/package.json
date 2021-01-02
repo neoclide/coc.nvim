@@ -4,7 +4,6 @@
   "typeScriptVersion": "4.1.2",
   "types": "index.d.ts",
   "description": "LSP based intellisense engine for neovim & vim8.",
-  "main": "./lib/index.js",
   "engines": {
     "node": ">=8.10.0"
   },
@@ -33,4 +32,3 @@
   "devDependencies": {},
   "dependencies": {}
 }
-
