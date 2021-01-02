@@ -596,7 +596,7 @@ Built-in configurations:~
 
 "list.source.symbols.excludes":~
 
-	Patterns of mimimatch for filepath to execlude from symbols list,
+	Patterns of minimatch for filepath to execlude from symbols list,
 	default: `[]`
 
 "list.source.outline.ctagsFilestypes":~

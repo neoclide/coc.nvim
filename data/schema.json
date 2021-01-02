@@ -909,7 +909,7 @@
     "list.source.symbols.excludes": {
       "type": "array",
       "default": [],
-      "description": "Patterns of mimimatch for filepath to execlude from symbols list.",
+      "description": "Patterns of minimatch for filepath to execlude from symbols list.",
       "items": {
         "type": "string"
       }
