@@ -811,7 +811,7 @@ export default class Handler {
     }
     let lines = docs.reduce((p, c) => {
       let arr = c.content.split(/\r?\n/)
-      if (p.length > 0) p.push('---')
+      if (p.length > 0) p.push('')
       p.push(...arr)
       return p
     }, [])
