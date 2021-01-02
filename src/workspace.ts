@@ -925,10 +925,10 @@ export class Workspace implements IWorkspace {
         let uri = URI.file(oldPath).toString()
         let newUri = URI.file(newPath).toString()
         let doc = this.getDocument(uri)
-        let isCurrent = doc.bufnr == this.bufnr
-        let newDoc = this.getDocument(newUri)
-        if (newDoc) await this.nvim.command(`silent ${newDoc.bufnr}bwipeout!`)
         if (doc != null) {
+          let isCurrent = doc.bufnr == this.bufnr
+          let newDoc = this.getDocument(newUri)
+          if (newDoc) await this.nvim.command(`silent ${newDoc.bufnr}bwipeout!`)
           let content = doc.getDocumentContent()
           let encoding = await doc.buffer.getOption('fileencoding') as any
           await fs.writeFile(newPath, content, { encoding })
