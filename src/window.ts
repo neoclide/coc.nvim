@@ -456,7 +456,8 @@ class Window {
       this.showMessage(message, msgType)
       return undefined
     }
-    let choices = typeof items[0] === 'string' ? items.slice() : items.map(o => (o as MessageItem).title)
+    let titles: string[] = typeof items[0] === 'string' ? items.slice() as string[] : items.map(o => (o as MessageItem).title)
+    let choices = titles.map((s, i) => `${i + 1}${s}`)
     let res = await this.nvim.callAsync('coc#util#with_callback', ['confirm', [message, choices.join('\n'), 0, kind]])
     return items[res - 1]
   }
