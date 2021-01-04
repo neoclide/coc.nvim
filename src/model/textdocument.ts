@@ -1,4 +1,5 @@
-import { TextDocument, Position, Range } from 'vscode-languageserver-protocol'
+import { Position, Range } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 
 function computeLineOffsets(text: string, isAtLineStart: boolean, textOffset = 0): number[] {
   const result: number[] = isAtLineStart ? [textOffset] : []

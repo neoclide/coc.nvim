@@ -1,6 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { CancellationTokenSource, CodeLens, TextDocument } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
+import { CancellationTokenSource, CodeLens } from 'vscode-languageserver-protocol'
 import languages from '../../languages'
 import { BufferSyncItem } from '../../types'
 import window from '../../window'
