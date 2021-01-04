@@ -11,7 +11,7 @@ module.exports = {
   ],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
-    "project": "tsconfig.json",
+    "project": "./tsconfig.json",
     "sourceType": "module"
   },
   "plugins": [
@@ -160,7 +160,7 @@ module.exports = {
       "error"
     ],
     "no-unreachable": [
-      "error"
+      "warn"
     ],
     "no-unsafe-finally": "error",
     "no-unsafe-negation": [
