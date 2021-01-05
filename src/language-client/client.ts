@@ -3937,10 +3937,7 @@ export abstract class BaseLanguageClient {
 
   protected handleConnectionClosed() {
     // Check whether this is a normal shutdown in progress or the client stopped normally.
-    if (
-      this.state === ClientState.Stopping ||
-      this.state === ClientState.Stopped
-    ) {
+    if (this.state === ClientState.Stopped) {
       return
     }
     try {
@@ -3951,10 +3948,12 @@ export abstract class BaseLanguageClient {
       // Disposing a connection could fail if error cases.
     }
     let action = CloseAction.DoNotRestart
-    try {
-      action = this._clientOptions.errorHandler!.closed()
-    } catch (error) {
-      // Ignore errors coming from the error handler.
+    if (this.state !== ClientState.Stopping) {
+      try {
+        action = this._clientOptions.errorHandler!.closed();
+      } catch (error) {
+        // Ignore errors coming from the error handler.
+      }
     }
     this._connectionPromise = undefined
     this._resolvedConnection = undefined
@@ -4152,7 +4151,7 @@ export abstract class BaseLanguageClient {
 
     const generalCapabilities = ensure(result, 'general')!;
     generalCapabilities.regularExpressions = { engine: 'ECMAScript', version: 'ES2020' };
-    generalCapabilities.markdown = { parser: 'marked', version: '1.1.0'};
+    generalCapabilities.markdown = { parser: 'marked', version: '1.1.0' };
 
     for (let feature of this._features) {
       feature.fillClientCapabilities(result)
