@@ -2,7 +2,7 @@ import * as assert from 'assert'
 import path from 'path'
 import { URI } from 'vscode-uri'
 import { LanguageClient, ServerOptions, TransportKind, Middleware, LanguageClientOptions } from '../../language-client/index'
-import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, CallHierarchyOutgoingCallsRequest } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, SemanticTokensRegistrationType } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import helper from '../helper'
 import workspace from '../../workspace'
@@ -681,6 +681,46 @@ describe('Client integration', () => {
     }
     await provider.provideCallHierarchyOutgoingCalls(item, tokenSource.token)
     middleware.provideCallHierarchyOutgoingCalls = undefined
+    assert.strictEqual(middlewareCalled, true)
+  })
+
+  test('Semantic Tokens', async () => {
+    const provider = client.getFeature(SemanticTokensRegistrationType.method).getProvider(document)
+    const rangeProvider = provider?.range
+    isDefined(rangeProvider)
+    const rangeResult = await rangeProvider.provideDocumentRangeSemanticTokens(document, range, tokenSource.token)
+    assert.ok(rangeResult !== undefined)
+
+    let middlewareCalled = false
+    middleware.provideDocumentRangeSemanticTokens = (d, r, t, n) => {
+      middlewareCalled = true
+      return n(d, r, t)
+    }
+    await rangeProvider.provideDocumentRangeSemanticTokens(document, range, tokenSource.token)
+    middleware.provideDocumentRangeSemanticTokens = undefined
+    assert.strictEqual(middlewareCalled, true)
+
+    const fullProvider = provider?.full
+    isDefined(fullProvider)
+    const fullResult = await fullProvider.provideDocumentSemanticTokens(document, tokenSource.token)
+    assert.ok(fullResult !== undefined)
+
+    middlewareCalled = false
+    middleware.provideDocumentSemanticTokens = (d, t, n) => {
+      middlewareCalled = true
+      return n(d, t)
+    }
+    await fullProvider.provideDocumentSemanticTokens(document, tokenSource.token)
+    middleware.provideDocumentSemanticTokens = undefined
+    assert.strictEqual(middlewareCalled, true)
+
+    middlewareCalled = false
+    middleware.provideDocumentSemanticTokensEdits = (d, i, t, n) => {
+      middlewareCalled = true
+      return n(d, i, t)
+    }
+    await fullProvider.provideDocumentSemanticTokensEdits!(document, '2', tokenSource.token)
+    middleware.provideDocumentSemanticTokensEdits = undefined
     assert.strictEqual(middlewareCalled, true)
   })
 })
