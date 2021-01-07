@@ -448,7 +448,7 @@ export default class Handler {
       return true
     } catch (e) {
       statusItem.hide()
-      window.showMessage(`Error on rename: ${e.message}`, 'error')
+      window.showMessage(`Error on getCallHierarchy: ${e.message}`, 'error')
       logger.error(e)
       return false
     }
