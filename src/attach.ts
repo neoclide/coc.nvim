@@ -1,11 +1,9 @@
-import { attach, NeovimClient } from '@chemzqm/neovim'
+import { attach, Attach, NeovimClient } from '@chemzqm/neovim'
 import log4js from 'log4js'
-import { Attach } from '@chemzqm/neovim/lib/attach/attach'
 import events from './events'
 import Plugin from './plugin'
 import semver from 'semver'
 import { objectLiteral } from './util/is'
-import './util/extensions'
 import { URI } from 'vscode-uri'
 const logger = require('./util/logger')('attach')
 const isTest = global.hasOwnProperty('__TEST__')

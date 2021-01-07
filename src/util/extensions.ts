@@ -1,5 +1,3 @@
-const logger = require('./logger')('extensions')
-
 declare interface Promise<T> {
   /**
    * Catches task error and ignores them.
@@ -12,6 +10,6 @@ declare interface Promise<T> {
  */
 Promise.prototype.logError = function <T>(this: Promise<T>): void {
   this.catch(e => {
-    logger.error(e)
+    require('./logger')('extensions').error(e)
   })
 }

@@ -9,6 +9,41 @@ try {
   // ignore
 }
 
+let entryPlugin = {
+  name: 'entry',
+  setup(build) {
+    build.onResolve({filter: /^index.ts$/}, args => {
+      return {
+        path: args.path,
+        namespace: 'entry-ns'
+      }
+    })
+    build.onLoad({filter: /.*/, namespace: 'entry-ns'}, () => {
+      let contents = `
+let version = process.version.replace('v', '')
+let parts = version.split('.')
+function greatThanOrEqual(nums, major, minor) {
+  if (nums[0] > major) return true
+  if (nums[0] == major && nums[1] >= minor) return true
+  return false
+}
+let numbers = parts.map(function (s) {
+  return parseInt(s, 10)
+})
+if (!greatThanOrEqual(numbers, 10, 12)) {
+  console.error('node version ' + version + ' < 8.10.0, please upgrade nodejs, or use \`let g:coc_node_path = "/path/to/node"\` in your vimrc')
+  process.exit()
+}
+      require('./src/main')
+      `
+      return {
+        contents,
+        resolveDir: __dirname
+      }
+    })
+  }
+}
+
 // replace require.main with empty string
 let envPlugin = {
   name: 'env',
@@ -32,17 +67,16 @@ let envPlugin = {
 
 async function start() {
   await require('esbuild').build({
-    entryPoints: ['src/main.ts'],
+    entryPoints: ['index.ts'],
     bundle: true,
     minify: process.env.NODE_ENV === 'production',
     sourcemap: process.env.NODE_ENV === 'development',
     define: {REVISION: '"' + revision + '"', ESBUILD: 'true'},
     mainFields: ['module', 'main'],
-    format: 'iife',
     platform: 'node',
     target: 'node10.12',
     outfile: 'build/index.js',
-    plugins: [envPlugin]
+    plugins: [entryPlugin, envPlugin]
   })
 }
 
