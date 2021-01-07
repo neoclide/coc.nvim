@@ -2,6 +2,7 @@ import fs from 'fs'
 import log4js from 'log4js'
 import path from 'path'
 import os from 'os'
+import { mkdirpSync } from 'fs-extra'
 
 function getLogFile(): string {
   let file = process.env.NVIM_COC_LOG_FILE
@@ -15,11 +16,9 @@ function getLogFile(): string {
       // noop
     }
   }
-  dir = path.join(process.env.TMPDIR, `coc.nvim-${process.pid}`)
-  if (os.platform() == 'win32') {
-    dir = path.win32.normalize(dir)
-  }
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  let tmpdir = os.tmpdir()
+  dir = path.join(tmpdir, `coc.nvim-${process.pid}`)
+  if (!fs.existsSync(dir)) mkdirpSync(dir)
   return path.join(dir, `coc-nvim.log`)
 }
 
