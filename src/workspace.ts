@@ -930,8 +930,7 @@ export class Workspace implements IWorkspace {
           let newDoc = this.getDocument(newUri)
           if (newDoc) await this.nvim.command(`silent ${newDoc.bufnr}bwipeout!`)
           let content = doc.getDocumentContent()
-          let encoding = await doc.buffer.getOption('fileencoding') as any
-          await fs.writeFile(newPath, content, { encoding })
+          await fs.writeFile(newPath, content, 'utf8')
           // open renamed file
           if (!isCurrent) {
             await nvim.call('coc#util#open_files', [[newPath]])

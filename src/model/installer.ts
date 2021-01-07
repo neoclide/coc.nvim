@@ -182,7 +182,8 @@ export class Installer extends EventEmitter {
     if (this.url) return await this.getInfoFromUri()
     let registry = registryUrl()
     this.log(`Get info from ${registry}`)
-    let res = await fetch(registry + this.name, { timeout: 10000 }) as any
+    let buffer = await fetch(registry + this.name, { timeout: 10000, buffer: true })
+    let res = JSON.parse(buffer.toString())
     if (!this.version) this.version = res['dist-tags']['latest']
     let obj = res['versions'][this.version]
     if (!obj) throw new Error(`${this.def} doesn't exists in ${registry}.`)

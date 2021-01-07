@@ -1,14 +1,14 @@
+import contentDisposition from 'content-disposition'
 import { http, https } from 'follow-redirects'
-import { v1 as uuidv1 } from 'uuid'
 import fs, { Stats } from 'fs-extra'
+import { IncomingMessage } from 'http'
 import path from 'path'
 import tar from 'tar'
+import unzip from 'unzip-stream'
+import { v1 as uuidv1 } from 'uuid'
+import { CancellationToken } from 'vscode-languageserver-protocol'
 import { DownloadOptions } from '../types'
 import { resolveRequestOptions } from './fetch'
-import { ServerResponse } from 'http'
-import contentDisposition from 'content-disposition'
-import { CancellationToken } from 'vscode-languageserver-protocol'
-import unzip from 'unzip-stream'
 const logger = require('../util/logger')('model-download')
 
 /**
@@ -41,9 +41,9 @@ export default function download(url: string, options: DownloadOptions, token?: 
         req.destroy(new Error('request aborted'))
       })
     }
-    const req = mod.request(opts, (res: ServerResponse) => {
+    const req = mod.request(opts, (res: IncomingMessage) => {
       if ((res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 1223) {
-        let headers = (res as any).headers || {}
+        let headers = res.headers || {}
         let dispositionHeader = headers['content-disposition']
         if (!extname && dispositionHeader) {
           let disposition = contentDisposition.parse(dispositionHeader)

@@ -35,11 +35,7 @@ export default class FoldList extends BasicList {
       let dir = path.dirname(file)
       let stat = await statAsync(dir)
       if (!stat || !stat.isDirectory()) {
-        let success = await fs.mkdirp(dir)
-        if (!success) {
-          window.showMessage(`Error creating new directory ${dir}`, 'error')
-          return
-        }
+        fs.mkdirpSync(dir)
       }
       await workspace.createFile(file, { overwrite: false, ignoreIfExists: true })
       await this.jumpTo(URI.file(file).toString())

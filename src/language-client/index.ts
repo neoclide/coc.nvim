@@ -277,7 +277,7 @@ export class LanguageClient extends BaseLanguageClient {
     }
 
     function startedInDebugMode(): boolean {
-      let args: string[] = (process as any).execArgv
+      let args: string[] = process.execArgv
       if (args) {
         return args.some(
           arg =>
