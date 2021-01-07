@@ -98,7 +98,7 @@ function! coc#util#job_command()
     return
   endif
   if !filereadable(s:root.'/build/index.js')
-    echohl Error | echom '[coc.nvim] build/index.js not found, please compile the code by webpack' | echohl None
+    echohl Error | echom '[coc.nvim] build/index.js not found, please compile the code by esbuild.' | echohl None
     return
   endif
   return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/build/index.js']
