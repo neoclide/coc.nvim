@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, LocationLink, Position, Range, SelectionRange, SemanticTokensLegend, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, LocationLink, Position, Range, SelectionRange, SemanticTokens, SemanticTokensLegend, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
@@ -424,6 +424,10 @@ class Languages {
     return this.callHierarchyManager.provideCallHierarchyOutgoingCalls(item, token)
   }
 
+  public async provideDocumentSemanticTokens(document: TextDocument, token: CancellationToken): Promise<SemanticTokens> {
+    return this.semanticTokensManager.provideDocumentSemanticTokens(document, token)
+  }
+
   public hasProvider(id: ProviderName, document: TextDocument): boolean {
     switch (id) {
       case 'rename':
@@ -468,6 +472,8 @@ class Languages {
         return this.selectionRangeManager.hasProvider(document)
       case 'callHierarchy':
         return this.callHierarchyManager.hasProvider(document)
+      case 'semanticTokens':
+        return this.semanticTokensManager.hasProvider(document)
       default:
         throw new Error(`${id} not supported.`)
     }

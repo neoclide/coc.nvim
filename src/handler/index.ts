@@ -454,6 +454,36 @@ export default class Handler {
     }
   }
 
+  /**
+   * getSemanticTokens
+   */
+  public async getSemanticTokens(): Promise<boolean> {
+    let { doc } = await this.getCurrentState()
+    if (doc == null) return false
+    if (!languages.hasProvider('semanticTokens', doc.textDocument)) {
+      window.showMessage(`SemantiTokens provider not found for current document`, 'warning')
+      return false
+    }
+    await synchronizeDocument(doc)
+    let statusItem = this.requestStatusItem
+    try {
+      let token = (new CancellationTokenSource()).token
+      let res = await languages.provideDocumentSemanticTokens(doc.textDocument, token)
+      if (!res) {
+        statusItem.hide()
+        return false
+      }
+      // TODO: semanticTokens
+      logger.error('semanticTokens:', res)
+      return true
+    } catch (e) {
+      statusItem.hide()
+      window.showMessage(`Error on getSemanticTokens: ${e.message}`, 'error')
+      logger.error(e)
+      return false
+    }
+  }
+
   public async getTagList(): Promise<TagDefinition[] | null> {
     let { doc, position } = await this.getCurrentState()
     let word = await this.nvim.call('expand', '<cword>')
