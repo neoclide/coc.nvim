@@ -64,7 +64,7 @@ export class Extensions {
   private activated = false
   private installBuffer: InstallBuffer
   private disposables: Disposable[] = []
-  private outputChannel: OutputChannel | undefined
+  private _outputChannel: OutputChannel | undefined
   public ready = true
   public readonly onDidLoadExtension: Event<Extension<API>> = this._onDidLoadExtension.event
   public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
@@ -84,10 +84,15 @@ export class Extensions {
     this.db = new DB(filepath)
   }
 
+  private get outputChannel(): OutputChannel {
+    if (this._outputChannel) return this._outputChannel
+    this._outputChannel = window.createOutputChannel('extensions')
+    return this._outputChannel
+  }
+
   public async init(): Promise<void> {
     let extensionObj = this.db.fetch('extension') || {}
     let keys = Object.keys(extensionObj)
-    this.outputChannel = window.createOutputChannel('extensions')
     for (let key of keys) {
       if (extensionObj[key].disabled == true) {
         this.disabled.add(key)
@@ -682,7 +687,7 @@ export class Extensions {
     if (!activationEvents || Array.isArray(activationEvents) && activationEvents.includes('*')) {
       await this.activate(id).catch(e => {
         window.showMessage(`Error on activate extension ${id}: ${e.message}`)
-        logger.error(`Error on activate extension ${id}`, e)
+        this.outputChannel.appendLine(`Error on activate extension ${id}.\n${e.message}\n ${e.stack}`)
       })
       return
     }
@@ -690,9 +695,12 @@ export class Extensions {
     let active = (): Promise<void> => {
       disposeAll(disposables)
       return new Promise(resolve => {
-        if (!this.canActivate(id)) return resolve()
+        if (!this.canActivate(id)) {
+          this.outputChannel.appendLine(`Extension ${id} is disabled or not loaded.`)
+          return resolve()
+        }
         let timer = setTimeout(() => {
-          logger.warn(`Extension ${id} activate cost more than 1s`)
+          this.outputChannel.appendLine(`Extension ${id} activate cost more than 1s`)
           resolve()
         }, 1000)
         this.activate(id).then(() => {
@@ -701,7 +709,7 @@ export class Extensions {
         }, e => {
           clearTimeout(timer)
           window.showMessage(`Error on activate extension ${id}: ${e.message}`)
-          logger.error(`Error on activate extension ${id}`, e)
+          this.outputChannel.appendLine(`Error on activate extension ${id}:${e.message}\n ${e.stack}`)
           resolve()
         })
       })
@@ -717,17 +725,14 @@ export class Extensions {
         }
         workspace.onDidOpenTextDocument(document => {
           if (document.languageId == parts[1]) {
-            active().logError()
+            void active()
           }
         }, null, disposables)
       } else if (ev == 'onCommand') {
-        events.on('Command', command => {
+        events.on('Command', async command => {
           if (command == parts[1]) {
-            active().logError()
-            // wait for service ready
-            return new Promise(resolve => {
-              setTimeout(resolve, 500)
-            })
+            await active()
+            await wait(500)
           }
         }, null, disposables)
       } else if (ev == 'workspaceContains') {
@@ -754,7 +759,7 @@ export class Extensions {
         workspace.onDidOpenTextDocument(document => {
           let u = URI.parse(document.uri)
           if (u.scheme == parts[1]) {
-            active().logError()
+            void active()
           }
         }, null, disposables)
       } else {
