@@ -1,4 +1,5 @@
 import { debounce } from 'debounce'
+import { parse, ParseError } from 'jsonc-parser'
 import fs from 'fs-extra'
 import isuri from 'isuri'
 import path from 'path'
@@ -49,15 +50,6 @@ export interface ExtensionItem {
   isLocal: Readonly<boolean>
 }
 
-function loadJson(file: string): any {
-  try {
-    let content = fs.readFileSync(file, 'utf8')
-    return JSON.parse(content)
-  } catch (e) {
-    return null
-  }
-}
-
 // global local file native
 export class Extensions {
   private extensions: Map<string, ExtensionItem> = new Map()
@@ -93,11 +85,11 @@ export class Extensions {
   }
 
   public async init(): Promise<void> {
-    let data = loadJson(this.db.filepath) || {}
-    let keys = Object.keys(data.extension || {})
+    let extensionObj = this.db.fetch('extension') || {}
+    let keys = Object.keys(extensionObj)
     this.outputChannel = window.createOutputChannel('extensions')
     for (let key of keys) {
-      if (data.extension[key].disabled == true) {
+      if (extensionObj[key].disabled == true) {
         this.disabled.add(key)
       }
     }
@@ -665,7 +657,14 @@ export class Extensions {
     let { root } = this
     let jsonFile = path.join(root, 'package.json')
     if (!fs.existsSync(jsonFile)) return null
-    return loadJson(jsonFile)
+    let errors: ParseError[] = []
+    let content = fs.readFileSync(jsonFile, 'utf8')
+    let data = parse(content, errors, { allowTrailingComma: true })
+    if (errors && errors.length > 0) {
+      window.showMessage(`Error on parse ${jsonFile}`, 'error')
+      workspace.nvim.call('coc#util#open_file', ['edit', jsonFile], true)
+    }
+    return data
   }
 
   public get schemes(): { [key: string]: PropertyScheme } {
