@@ -441,7 +441,13 @@ export default class Handler {
       window.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning')
       return
     }
-    let idx = await window.showMenuPicker(codeActions.map(o => o.title), 'Choose action')
+
+    let idx = this.preferences.floatActions
+      ? await window.showMenuPicker(
+          codeActions.map(o => o.title),
+          "Choose action"
+        )
+      : await window.showQuickpick(codeActions.map(o => o.title))
     let action = codeActions[idx]
     if (action) await this.applyCodeAction(action)
   }
