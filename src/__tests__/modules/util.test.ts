@@ -168,6 +168,18 @@ describe('resolveRoot', () => {
     expect(res.endsWith('extensions')).toBe(true)
   })
 
+  it('should resolve to cwd', () => {
+    let root = path.resolve(__dirname, '../extensions/test/')
+    let res = resolveRoot(root, ['package.json'], root, false, true)
+    expect(res).toBe(root)
+  })
+
+  it('should resolve to root', () => {
+    let root = path.resolve(__dirname, '../extensions/test/')
+    let res = resolveRoot(root, ['package.json'], root, false, false)
+    expect(res).toBe(path.resolve(__dirname, '../../../'))
+  })
+
   it('should not resolve to home', () => {
     let res = resolveRoot(__dirname, ['.config'])
     expect(res != os.homedir()).toBeTruthy()

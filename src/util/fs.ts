@@ -56,11 +56,11 @@ export async function isGitIgnored(fullpath: string): Promise<boolean> {
   return false
 }
 
-export function resolveRoot(folder: string, subs: string[], cwd?: string, bottomup = false): string | null {
+export function resolveRoot(folder: string, subs: string[], cwd?: string, bottomup = false, checkCwd = true): string | null {
   let home = os.homedir()
   let dir = fixDriver(folder)
   if (isParentFolder(dir, home, true)) return null
-  if (cwd && isParentFolder(cwd, dir, true) && inDirectory(cwd, subs)) return cwd
+  if (checkCwd && cwd && isParentFolder(cwd, dir, true) && inDirectory(cwd, subs)) return cwd
   let parts = dir.split(path.sep)
   if (bottomup) {
     while (parts.length > 0) {
