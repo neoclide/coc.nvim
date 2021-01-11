@@ -177,7 +177,7 @@ describe('resolveRoot', () => {
   it('should resolve to root', () => {
     let root = path.resolve(__dirname, '../extensions/test/')
     let res = resolveRoot(root, ['package.json'], root, false, false)
-    expect(res).toBe(root)
+    expect(res).toBe(path.resolve(__dirname, '../../../'))
   })
 
   it('should not resolve to home', () => {
