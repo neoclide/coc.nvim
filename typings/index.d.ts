@@ -1263,7 +1263,7 @@ declare module 'coc.nvim' {
      *
      * Used to filter code actions.
      */
-    kind?: string
+    kind?: CodeActionKind
     /**
      * The diagnostics that this code action resolves.
      */
@@ -1292,6 +1292,88 @@ declare module 'coc.nvim' {
      * Id of client that provide codeAction.
      */
     clientId?: string
+  }
+
+  /**
+   * The kind of a code action.
+   *
+   * Kinds are a hierarchical list of identifiers separated by `.`, e.g. `"refactor.extract.function"`.
+   *
+   * The set of kinds is open and client needs to announce the kinds it supports to the server during
+   * initialization.
+   */
+  export type CodeActionKind = string
+  /**
+   * A set of predefined code action kinds
+   */
+  export namespace CodeActionKind {
+    /**
+     * Empty kind.
+     */
+    const Empty: CodeActionKind
+    /**
+     * Base kind for quickfix actions: 'quickfix'
+     */
+    const QuickFix: CodeActionKind
+    /**
+     * Base kind for refactoring actions: 'refactor'
+     */
+    const Refactor: CodeActionKind
+    /**
+     * Base kind for refactoring extraction actions: 'refactor.extract'
+     *
+     * Example extract actions:
+     *
+     * - Extract method
+     * - Extract function
+     * - Extract variable
+     * - Extract interface from class
+     * - ...
+     */
+    const RefactorExtract: CodeActionKind
+    /**
+     * Base kind for refactoring inline actions: 'refactor.inline'
+     *
+     * Example inline actions:
+     *
+     * - Inline function
+     * - Inline variable
+     * - Inline constant
+     * - ...
+     */
+    const RefactorInline: CodeActionKind
+    /**
+     * Base kind for refactoring rewrite actions: 'refactor.rewrite'
+     *
+     * Example rewrite actions:
+     *
+     * - Convert JavaScript function to class
+     * - Add or remove parameter
+     * - Encapsulate field
+     * - Make method static
+     * - Move method to base class
+     * - ...
+     */
+    const RefactorRewrite: CodeActionKind
+    /**
+     * Base kind for source actions: `source`
+     *
+     * Source code actions apply to the entire file.
+     */
+    const Source: CodeActionKind
+    /**
+     * Base kind for an organize imports source action: `source.organizeImports`
+     */
+    const SourceOrganizeImports: CodeActionKind
+    /**
+     * Base kind for auto-fix source actions: `source.fixAll`.
+     *
+     * Fix all actions automatically fix errors that have a clear fix that do not require user input.
+     * They should not suppress errors or perform unsafe fixes such as generating new types or classes.
+     *
+     * @since 3.15.0
+     */
+    const SourceFixAll: CodeActionKind
   }
 
   /**
