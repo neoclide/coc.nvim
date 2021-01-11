@@ -259,7 +259,7 @@ function! coc#list#preview(lines, config) abort
     let curr = win_getid()
     if change
       if original && win_id2win(original)
-        call win_gotoid(original)
+        noa call win_gotoid(original)
       else
         noa wincmd t
       endif
