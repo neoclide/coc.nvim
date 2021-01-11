@@ -1529,11 +1529,12 @@ augroup end`
     let { cwd } = this
     let config = this.getConfiguration('workspace')
     let bottomUpFileTypes = config.get<string[]>('workspaceFolderBottomUpFiletypes', [])
+    let checkCwd = config.get<boolean>('checkCwd', true)
     for (let patternType of types) {
       let patterns = this.getRootPatterns(document, patternType)
       if (patterns && patterns.length) {
         let isBottomUp = bottomUpFileTypes.includes(document.filetype)
-        let root = resolveRoot(dir, patterns, cwd, isBottomUp)
+        let root = resolveRoot(dir, patterns, cwd, isBottomUp, checkCwd)
         if (root) return root
       }
     }
