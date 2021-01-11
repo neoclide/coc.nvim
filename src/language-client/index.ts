@@ -433,6 +433,7 @@ export class LanguageClient extends BaseLanguageClient {
         let cmd = workspace.expand(json.command)
         let serverProcess = cp.spawn(cmd, args, options)
         serverProcess.on('error', e => {
+          this.error(e.message)
           logger.error(e)
         })
         if (!serverProcess || !serverProcess.pid) {
