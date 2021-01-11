@@ -2235,7 +2235,9 @@ COMMANDS						*coc-commands*
 	Note: the log would be cleared when coc.nvim started.
 
 	Use environment variable `NVIM_COC_LOG_LEVEL` to change log level
-	(default 'info').  Use shell command: >
+	(default 'info', could be 'all', 'trace', 'debug', 'info',
+	'warn', 'error', 'off').
+	Use shell command: >
 
 	export NVIM_COC_LOG_LEVEL=debug
 <
