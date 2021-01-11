@@ -800,7 +800,7 @@
         "type": "string"
       }
     },
-    "workspace.checkCwd": {
+    "workspace.workspaceFolderCheckCwd": {
       "type": "boolean",
       "default": true,
       "description": "Whether the cwd directory should be checked first when resolving the root directory"
