@@ -7,7 +7,7 @@ __pycache__
 .log
 build
 doc/tags
-doc/tags-cn
+typings/package.json
 node_modules
 publish.sh
 release.sh
