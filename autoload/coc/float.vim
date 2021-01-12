@@ -842,11 +842,11 @@ function! coc#float#get_config_cursor(lines, config) abort
   if vh <= 0
     return v:null
   endif
-  let maxWidth = coc#helper#min(get(a:config, 'maxWidth', 80), &columns - 1)
+  let maxWidth = coc#helper#min(get(a:config, 'maxWidth', &columns - 1), &columns - 1)
   if maxWidth < 3
     return v:null
   endif
-  let maxHeight = coc#helper#min(get(a:config, 'maxHeight', 80), vh)
+  let maxHeight = coc#helper#min(get(a:config, 'maxHeight', vh), vh)
   let ch = 0
   let width = coc#helper#min(40, strdisplaywidth(title)) + 3
   for line in a:lines
