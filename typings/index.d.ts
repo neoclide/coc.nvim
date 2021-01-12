@@ -106,6 +106,24 @@ declare module 'coc.nvim' {
     percentage?: number
   }
 
+  /**
+   * The file event type
+   */
+  export namespace FileChangeType {
+    /**
+     * The file got created.
+     */
+    const Created = 1
+    /**
+     * The file got changed.
+     */
+    const Changed = 2
+    /**
+     * The file got deleted.
+     */
+    const Deleted = 3
+  }
+
   export type FileChangeType = 1 | 2 | 3
 
   /**
@@ -310,6 +328,24 @@ declare module 'coc.nvim' {
    */
   export type DefinitionLink = LocationLink
 
+  /**
+   * How a signature help was triggered.
+   */
+  export namespace SignatureHelpTriggerKind {
+    /**
+    * Signature help was invoked manually by the user or by a command.
+    */
+    const Invoked: 1
+    /**
+    * Signature help was triggered by a trigger character.
+    */
+    const TriggerCharacter: 2
+    /**
+    * Signature help was triggered by the cursor moving or by the document content changing.
+    */
+    const ContentChange: 3
+  }
+
   export type SignatureHelpTriggerKind = 1 | 2 | 3
 
   /**
@@ -438,6 +474,38 @@ declare module 'coc.nvim' {
     kind?: string
   }
 
+  /**
+   * A symbol kind.
+   */
+  export namespace SymbolKind {
+    const File: 1
+    const Module: 2
+    const Namespace: 3
+    const Package: 4
+    const Class: 5
+    const Method: 6
+    const Property: 7
+    const Field: 8
+    const Constructor: 9
+    const Enum: 10
+    const Interface: 11
+    const Function: 12
+    const Variable: 13
+    const Constant: 14
+    const String: 15
+    const Number: 16
+    const Boolean: 17
+    const Array: 18
+    const Object: 19
+    const Key: 20
+    const Null: 21
+    const EnumMember: 22
+    const Struct: 23
+    const Event: 24
+    const Operator: 25
+    const TypeParameter: 26
+  }
+
   export type SymbolKind = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26
 
   /**
@@ -554,6 +622,25 @@ declare module 'coc.nvim' {
      * can omit computing them.
      */
     only?: string[]
+  }
+
+
+  /**
+   * A document highlight kind.
+   */
+  export namespace DocumentHighlightKind {
+    /**
+     * A textual occurrence.
+     */
+    const Text: 1
+    /**
+     * Read-access of a symbol, like reading a variable.
+     */
+    const Read: 2
+    /**
+     * Write-access of a symbol, like writing to a variable.
+     */
+    const Write: 3
   }
 
   export type DocumentHighlightKind = 1 | 2 | 3
@@ -954,13 +1041,35 @@ declare module 'coc.nvim' {
   }
 
   /**
+ * How a completion was triggered
+ */
+  export namespace CompletionTriggerKind {
+    /**
+     * Completion was triggered by typing an identifier (24x7 code
+     * complete), manual invocation (e.g Ctrl+Space) or via API.
+     */
+    const Invoked: 1
+    /**
+     * Completion was triggered by a trigger character specified by
+     * the `triggerCharacters` properties of the `CompletionRegistrationOptions`.
+     */
+    const TriggerCharacter: 2
+    /**
+     * Completion was re-triggered as current completion list is incomplete
+     */
+    const TriggerForIncompleteCompletions: 3
+  }
+
+  export type CompletionTriggerKind = 1 | 2 | 3
+
+  /**
    * Contains additional information about the context in which a completion request is triggered.
    */
   export interface CompletionContext {
     /**
      * How the completion was triggered.
      */
-    triggerKind: 1 | 2 | 3,
+    triggerKind: CompletionTriggerKind,
     /**
      * The trigger character (a single character) that has trigger code complete.
      * Is undefined if `triggerKind !== CompletionTriggerKind.TriggerCharacter`
@@ -1168,6 +1277,7 @@ declare module 'coc.nvim' {
      */
     const Hint: 4
   }
+
   export type DiagnosticSeverity = 1 | 2 | 3 | 4
 
   /**
