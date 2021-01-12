@@ -79,18 +79,12 @@ export default class FormatHandler {
             let edits: TextEdit[] = []
             let opts = await workspace.getFormatOptions(doc.uri)
             let space = opts.insertSpaces ? ' '.repeat(opts.tabSize) : '\t'
-            let preIndent = pre.match(/^\s*/)[0]
             let currIndent = curr.match(/^\s*/)[0]
-            let newText = '\n' + preIndent + space
+            let newText = '\n' + currIndent + space
             let pos: Position = Position.create(line - 1, pre.length)
             // make sure indent of current line
-            if (preIndent != currIndent) {
-              let newText = doc.filetype == 'vim' ? '  \\ ' + preIndent : preIndent
-              edits.push({ range: Range.create(Position.create(line, 0), Position.create(line, currIndent.length)), newText })
-            } else if (doc.filetype == 'vim') {
-              edits.push({ range: Range.create(line, currIndent.length, line, currIndent.length), newText: '  \\ ' })
-            }
             if (doc.filetype == 'vim') {
+              edits.push({ range: Range.create(line, currIndent.length, line, currIndent.length), newText: '  \\ ' })
               newText = newText + '\\ '
             }
             edits.push({ range: Range.create(pos, pos), newText })
