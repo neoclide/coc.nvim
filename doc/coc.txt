@@ -2881,6 +2881,7 @@ The mapping expression should be `command:arguments`, available commands:
 	'next'          - move cursor to next item.
 	'defaultaction' - do default action for selected items or current item.
 	'jumpback'      - stop prompt and jump back to original window.
+	'previewtoggle' - toggle preview window, requires preview action exists.
 	'previewup'     - scroll preview window up.
 	'previewdown'   - scroll preview window down.
 	'help'          - show help.

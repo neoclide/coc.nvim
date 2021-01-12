@@ -253,6 +253,8 @@ export default class Mappings {
           return
         case 'togglemode':
           return manager.toggleMode()
+        case 'previewtoggle':
+          return manager.togglePreview()
         case 'previewup':
           return this.scrollPreview('up')
         case 'previewdown':
