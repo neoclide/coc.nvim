@@ -800,6 +800,11 @@
         "type": "string"
       }
     },
+    "workspace.workspaceFolderCheckCwd": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the cwd directory should be checked first when resolving the root directory"
+    },
     "list.indicator": {
       "type": "string",
       "default": ">",
