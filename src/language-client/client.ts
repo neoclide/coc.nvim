@@ -2459,7 +2459,12 @@ class CodeActionFeature extends TextDocumentFeature<boolean | CodeActionOptions,
   }
 }
 
-class CodeLensFeature extends TextDocumentFeature<CodeLensOptions, CodeLensRegistrationOptions, CodeLensProvider> {
+interface CodeLensProviderData {
+  provider?: CodeLensProvider
+  onDidChangeCodeLensEmitter?: Emitter<void>
+}
+
+class CodeLensFeature extends TextDocumentFeature<CodeLensOptions, CodeLensRegistrationOptions, CodeLensProviderData> {
   constructor(client: BaseLanguageClient) {
     super(client, CodeLensRequest.type)
   }
@@ -2469,16 +2474,21 @@ class CodeLensFeature extends TextDocumentFeature<CodeLensOptions, CodeLensRegis
       ensure(capabilites, 'textDocument')!,
       'codeLens'
     )!.dynamicRegistration = true
-    // TODO: capabilities
-    // ensure(ensure(capabilites, 'workspace')!,
-    //   'codeLens'
-    // )!.refreshSupport = true
+    ensure(ensure(capabilites, 'workspace')!,
+      'codeLens'
+    )!.refreshSupport = true
   }
 
   public initialize(
     capabilities: ServerCapabilities,
     documentSelector: DocumentSelector
   ): void {
+    const client = this._client
+    client.onRequest(CodeLensRefreshRequest.type, async () => {
+      for (const provider of this.getAllProviders()) {
+        provider.onDidChangeCodeLensEmitter.fire()
+      }
+    })
     const options = this.getRegistrationOptions(documentSelector, capabilities.codeLensProvider)
     if (!options) {
       return
@@ -2491,7 +2501,7 @@ class CodeLensFeature extends TextDocumentFeature<CodeLensOptions, CodeLensRegis
 
   protected registerLanguageProvider(
     options: CodeLensRegistrationOptions
-  ): [Disposable, CodeLensProvider] {
+  ): [Disposable, CodeLensProviderData] {
     const provider: CodeLensProvider = {
       provideCodeLenses: (document, token) => {
         const client = this._client
@@ -2530,7 +2540,7 @@ class CodeLensFeature extends TextDocumentFeature<CodeLensOptions, CodeLensRegis
         : undefined
     }
 
-    return [languages.registerCodeLensProvider(options.documentSelector, provider), provider]
+    return [languages.registerCodeLensProvider(options.documentSelector, provider), { provider }]
   }
 }
 
