@@ -136,7 +136,7 @@ export class DiagnosticBuffer implements BufferSyncItem {
       let { range, severity } = diagnostic
       let line = range.start.line
       let name = getNameFromSeverity(severity)
-      nvim.call('sign_place', [0, signGroup, name, bufnr, { lnum: line + 1, priority: 14 - severity }], true)
+      nvim.call('sign_place', [0, signGroup, name, bufnr, { lnum: line + 1, priority: 14 - (severity || 0) }], true)
     }
   }
 
