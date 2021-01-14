@@ -115,6 +115,9 @@ function! coc#highlight#highlight_lines(winid, blocks) abort
       call s:execute(a:winid, 'syntax region '.hlGroup.' start=/\%'.start.'l/ end=/\%'.end.'l/')
     else
       let filetype = matchstr(filetype, '\v[^.]*')
+      if index(get(g:, 'coc_markdown_disabled_languages', []), filetype) != -1
+        continue
+      endif
       if index(defined, filetype) == -1
         call s:execute(a:winid, 'syntax include @'.toupper(filetype).' syntax/'.filetype.'.vim')
         if has('nvim')

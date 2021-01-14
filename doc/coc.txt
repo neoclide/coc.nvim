@@ -1523,6 +1523,13 @@ g:coc_prompt_win_width 					*g:coc_prompt_win_width*
 	Width of input prompt window on neovim >= 0.5.0.  Prompt buffer can't
 	work with vim8's popup yet.
 
+g:coc_markdown_disabled_languages  			*g:coc_markdown_disabled_languages*
+
+	Filetype list that should be disabled for highlight in markdown block, ex: >
+
+	let g:coc_markdown_disabled_languages = ['html']
+>
+
 g:coc_install_yarn_cmd 					*g:coc_install_yarn_cmd*
 
 	Yarn command used for |coc#util#install()| function.
