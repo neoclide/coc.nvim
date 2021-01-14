@@ -1859,9 +1859,11 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
       preselectSupport: true,
       tagSupport: { valueSet: [CompletionItemTag.Deprecated] },
       // TODO: capabilites
-      // insertReplaceSupport
-      // insertTextModeSupport
-      // resolveSupport
+      // insertReplaceSupport: true,
+      // resolveSupport: {
+      //   properties: ['documentation', 'detail', 'additionalTextEdits']
+      // },
+      // insertTextModeSupport: { valueSet: [InsertTextMode.asIs, InsertTextMode.adjustIndentation] }
     }
     completion.completionItemKind = { valueSet: SupportedCompletionItemKinds }
   }
@@ -2358,13 +2360,12 @@ class CodeActionFeature extends TextDocumentFeature<boolean | CodeActionOptions,
     const cap = ensure(ensure(capabilites, 'textDocument')!, 'codeAction')!
     cap.dynamicRegistration = true
     cap.isPreferredSupport = true
-    // TODO: capabilites
-    // cap.disabledSupport
-    // cap.dataSupport
+    cap.disabledSupport = true
+    cap.dataSupport = true
+    cap.honorsChangeAnnotations = false
     cap.resolveSupport = {
       properties: ['edit']
     }
-    // cap.honorsChangeAnnotations
     cap.codeActionLiteralSupport = {
       codeActionKind: {
         valueSet: [
@@ -4128,8 +4129,8 @@ export abstract class BaseLanguageClient {
     diagnostics.versionSupport = false
     diagnostics.tagSupport = { valueSet: [DiagnosticTag.Unnecessary, DiagnosticTag.Deprecated] }
     // TODO: capabilities
-    // diagnostics.dataSupport
-    // diagnostics.codeDescriptionSupport
+    // diagnostics.dataSupport = true
+    // diagnostics.codeDescriptionSupport = true
 
     // TODO: capabilities, disabled by default
     const windowCapabilities = ensure(result, 'window')!
@@ -4138,9 +4139,9 @@ export abstract class BaseLanguageClient {
     const showDocument = ensure(windowCapabilities, 'showDocument')!
     showDocument.support = false
 
-    const generalCapabilities = ensure(result, 'general')!;
-    generalCapabilities.regularExpressions = { engine: 'ECMAScript', version: 'ES2020' };
-    generalCapabilities.markdown = { parser: 'marked', version: '1.1.0' };
+    const generalCapabilities = ensure(result, 'general')!
+    generalCapabilities.regularExpressions = { engine: 'ECMAScript', version: 'ES2020' }
+    generalCapabilities.markdown = { parser: 'marked', version: '1.1.0' }
 
     for (let feature of this._features) {
       feature.fillClientCapabilities(result)
