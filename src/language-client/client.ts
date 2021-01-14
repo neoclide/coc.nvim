@@ -512,6 +512,12 @@ export interface _WorkspaceMiddleware {
 
 export type WorkspaceMiddleware = _WorkspaceMiddleware & ConfigurationWorkspaceMiddleware & WorkspaceFolderWorkspaceMiddleware
 
+// export interface _WindowMiddleware {
+//   showDocument?: (this: void, params: ShowDocumentParams, next: ShowDocumentRequest.HandlerSignature) => Promise<ShowDocumentResult>;
+// }
+
+// export type WindowMiddleware = _WindowMiddleware
+
 /**
  * The Middleware lets extensions intercept the request and notifications send and received
  * from the server
@@ -684,6 +690,7 @@ export interface _Middleware {
     next: ExecuteCommandSignature
   ) => ProviderResult<any>
   workspace?: WorkspaceMiddleware
+  // window?: WindowMiddleware
 }
 
 export type Middleware = _Middleware &
@@ -3574,6 +3581,37 @@ export abstract class BaseLanguageClient {
           let actions = params.actions || []
           return messageFunc(params.message, ...actions)
         })
+        // connection.onRequest(ShowDocumentRequest.type, async (params): Promise<ShowDocumentResult> => {
+        //   const showDocument = async (params: ShowDocumentParams): Promise<ShowDocumentResult> => {
+        //     const uri = this.protocol2CodeConverter.asUri(params.uri);
+        //     try {
+        //       if (params.external === true) {
+        //         const success = await Env.openExternal(uri);
+        //         return { success };
+        //       } else {
+        //         const options: TextDocumentShowOptions = {};
+        //         if (params.selection !== undefined) {
+        //           options.selection = this.protocol2CodeConverter.asRange(params.selection);
+        //         }
+        //         if (params.takeFocus === undefined || params.takeFocus === false) {
+        //           options.preserveFocus = true;
+        //         } else if (params.takeFocus === true) {
+        //           options.preserveFocus = false;
+        //         }
+        //         await Window.showTextDocument(uri, options);
+        //         return { success: true };
+        //       }
+        //     } catch (error) {
+        //       return { success: true };
+        //     }
+        //   };
+        //   const middleware = this._clientOptions.middleware.window?.showDocument;
+        //   if (middleware !== undefined)  {
+        //     return middleware(params, showDocument);
+        //   } else {
+        //     return showDocument(params);
+        //   }
+        // })
         connection.onTelemetry(_data => {
           // ignored
         })
