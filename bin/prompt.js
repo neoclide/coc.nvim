@@ -2,11 +2,10 @@
  * Used for prompt popup on vim
  */
 const readline = require("readline")
-readline.emitKeypressEvents(process.stdin)
-process.stdin.setRawMode(true)
 const rl = readline.createInterface({
   input: process.stdin,
-  output: process.stdout
+  output: process.stdout,
+  escapeCodeTimeout: 0
 })
 rl.setPrompt('')
 let value = process.argv[2]
