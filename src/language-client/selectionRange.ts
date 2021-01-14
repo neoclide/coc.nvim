@@ -55,8 +55,7 @@ export class SelectionRangeFeature extends TextDocumentFeature<boolean | Selecti
           return client.sendRequest(SelectionRangeRequest.type, requestParams, token).then(
             ranges => ranges,
             (error: any) => {
-              client.logFailedRequest(SelectionRangeRequest.type, error)
-              return Promise.resolve(null)
+              return client.handleFailedRequest(SelectionRangeRequest.type, error, null)
             }
           )
         }

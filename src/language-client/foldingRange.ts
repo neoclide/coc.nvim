@@ -74,8 +74,7 @@ export class FoldingRangeFeature extends TextDocumentFeature<
           }
           return client.sendRequest(FoldingRangeRequest.type, requestParams, token).then(
             res => res, (error: any) => {
-              client.logFailedRequest(FoldingRangeRequest.type, error)
-              return Promise.resolve(null)
+              return client.handleFailedRequest(FoldingRangeRequest.type, error, null)
             }
           )
         }
