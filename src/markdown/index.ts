@@ -140,13 +140,14 @@ export function parseMarkdown(content: string): DocumentInfo {
       }
       continue
     }
-    if (line.startsWith('```')) {
+    if (/\s*```\s*(\w+)?$/.test(line)) {
       let pre = lines[lines.length - 1]
       if (!inCodeBlock) {
         inCodeBlock = true
-        filetype = line.replace(/^```\s*/, '')
+        filetype = line.replace(/^\s*```\s*/, '')
         if (filetype == 'js') filetype = 'javascript'
         if (filetype == 'ts') filetype = 'typescript'
+        if (filetype == 'bash') filetype = 'sh'
         startLnum = currline
       } else {
         inCodeBlock = false
