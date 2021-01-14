@@ -592,6 +592,16 @@ Built-in configurations:~
 
 	Note: This is the filetype after mapping by `g:coc_filetype_map`.
 
+"workspace.bottomUpFiletypes":~
+
+	Filetypes that should have workspace folder should resolved from
+	base directory of file.
+
+"workspace.workspaceFolderCheckCwd":~
+
+	Whether the cwd directory should be checked first when resolving
+	workspace folder of current buffer.
+
 							*coc-config-list*
 "list.indicator":~
 

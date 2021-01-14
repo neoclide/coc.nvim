@@ -800,10 +800,18 @@
         "type": "string"
       }
     },
+    "workspace.bottomUpFiletypes": {
+      "type": "array",
+      "default": [],
+      "description": "Filetypes that should have workspace folder should resolved from base directory of file.",
+      "items": {
+        "type": "string"
+      }
+    },
     "workspace.workspaceFolderCheckCwd": {
       "type": "boolean",
       "default": true,
-      "description": "Whether the cwd directory should be checked first when resolving the root directory"
+      "description": "Whether the cwd directory should be checked first when resolving workspace folder."
     },
     "list.indicator": {
       "type": "string",
