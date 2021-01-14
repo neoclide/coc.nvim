@@ -41,9 +41,9 @@ export class FoldingRangeFeature extends TextDocumentFeature<
     super(client, FoldingRangeRequest.type)
   }
 
-  public fillClientCapabilities(capabilites: ClientCapabilities): void {
+  public fillClientCapabilities(capabilities: ClientCapabilities): void {
     let capability = ensure(
-      ensure(capabilites, 'textDocument')!,
+      ensure(capabilities, 'textDocument')!,
       'foldingRange'
     )!
     capability.dynamicRegistration = true
