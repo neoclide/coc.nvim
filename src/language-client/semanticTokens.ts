@@ -139,8 +139,7 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
             return client.sendRequest(SemanticTokensRequest.type, params, token).then(
               result => result,
               (error: any) => {
-                client.logFailedRequest(SemanticTokensRequest.type, error)
-                return Promise.resolve(null)
+                return client.handleFailedRequest(SemanticTokensRequest.type, error, null)
               })
           }
           return middleware.provideDocumentSemanticTokens
@@ -162,8 +161,7 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
                 }
                 return new SemanticTokensEdits(result.edits)
               }, (error: any) => {
-                client.logFailedRequest(SemanticTokensDeltaRequest.type, error)
-                return Promise.resolve(null)
+                return client.handleFailedRequest(SemanticTokensDeltaRequest.type, error, null)
               })
             }
             return middleware.provideDocumentSemanticTokensEdits
@@ -188,8 +186,7 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
             return client.sendRequest(SemanticTokensRangeRequest.type, params, token).then(
               result => result,
               (error: any) => {
-                client.logFailedRequest(SemanticTokensRangeRequest.type, error)
-                return Promise.resolve(null)
+                return client.handleFailedRequest(SemanticTokensRangeRequest.type, error, null)
               })
           }
           return middleware.provideDocumentRangeSemanticTokens

@@ -70,8 +70,7 @@ export class CallHierarchyFeature extends TextDocumentFeature<boolean | CallHier
           return client.sendRequest(CallHierarchyPrepareRequest.type, params, token).then(
             res => res,
             error => {
-              client.logFailedRequest(CallHierarchyPrepareRequest.type, error)
-              return Promise.resolve(null)
+              return client.handleFailedRequest(CallHierarchyPrepareRequest.type, error, null)
             }
           )
         }
@@ -88,8 +87,7 @@ export class CallHierarchyFeature extends TextDocumentFeature<boolean | CallHier
           return client.sendRequest(CallHierarchyIncomingCallsRequest.type, { item }, token).then(
             res => res,
             error => {
-              client.logFailedRequest(CallHierarchyIncomingCallsRequest.type, error)
-              return Promise.resolve(null)
+              return client.handleFailedRequest(CallHierarchyIncomingCallsRequest.type, error, null)
             }
           )
         }
@@ -106,8 +104,7 @@ export class CallHierarchyFeature extends TextDocumentFeature<boolean | CallHier
           return client.sendRequest(CallHierarchyOutgoingCallsRequest.type, { item }, token).then(
             res => res,
             error => {
-              client.logFailedRequest(CallHierarchyOutgoingCallsRequest.type, error)
-              return Promise.resolve(null)
+              return client.handleFailedRequest(CallHierarchyOutgoingCallsRequest.type, error, null)
             }
           )
         }
