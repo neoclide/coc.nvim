@@ -225,7 +225,7 @@ export interface ReferenceProvider {
 /**
  * Folding context (for future use)
  */
-export interface FoldingContext { }
+export interface FoldingContext {}
 
 /**
  * The folding range provider interface defines the contract between extensions and
@@ -688,18 +688,18 @@ export interface DocumentSemanticTokensProvider {
   // TODO: SemantiTokens
   onDidChangeSemanticTokens?: Event<void>;
 
-  /* eslint-disable jsdoc/check-indentation */
   /**
    * Tokens in a file are represented as an array of integers. The position of each token is expressed relative to
    * the token before it, because most tokens remain stable relative to each other when edits are made in a file.
    *
    * ---
    * In short, each token takes 5 integers to represent, so a specific token `i` in the file consists of the following array indices:
-   * *  - at index `5*i`   - `deltaLine`: token line number, relative to the previous token
-   *  - at index `5*i+1` - `deltaStart`: token start character, relative to the previous token (relative to 0 or the previous token's start if they are on the same line)
-   *  - at index `5*i+2` - `length`: the length of the token. A token cannot be multiline.
-   *  - at index `5*i+3` - `tokenType`: will be looked up in `SemanticTokensLegend.tokenTypes`. We currently ask that `tokenType` < 65536.
-   *  - at index `5*i+4` - `tokenModifiers`: each set bit will be looked up in `SemanticTokensLegend.tokenModifiers`
+   *
+   * - at index `5*i`   - `deltaLine`: token line number, relative to the previous token
+   * - at index `5*i+1` - `deltaStart`: token start character, relative to the previous token (relative to 0 or the previous token's start if they are on the same line)
+   * - at index `5*i+2` - `length`: the length of the token. A token cannot be multiline.
+   * - at index `5*i+3` - `tokenType`: will be looked up in `SemanticTokensLegend.tokenTypes`. We currently ask that `tokenType` < 65536.
+   * - at index `5*i+4` - `tokenModifiers`: each set bit will be looked up in `SemanticTokensLegend.tokenModifiers`
    *
    * ---
    * ### How to encode tokens
