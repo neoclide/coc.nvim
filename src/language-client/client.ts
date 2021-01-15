@@ -4296,35 +4296,15 @@ export abstract class BaseLanguageClient {
     return config.locale
   }
 
-  public logFailedRequest(type: MessageSignature, error: any): void {
-    // If we get a request cancel don't log anything.
-    if (
-      error instanceof ResponseError &&
-      error.code === LSPErrorCodes.RequestCancelled
-    ) {
-      // TODO: handle LSPErrorCodes.ContentModified
-      return
-    }
-    this.error(`Request ${type.method} failed.`, error)
-  }
-
   public handleFailedRequest<T>(type: MessageSignature, error: any, defaultValue: T): T {
     // If we get a request cancel or a content modified don't log anything.
     if (error instanceof ResponseError) {
       if (error.code === LSPErrorCodes.RequestCancelled) {
-        throw this.makeCancelError()
+        return
       } else if (error.code === LSPErrorCodes.ContentModified) {
         return defaultValue
       }
     }
     this.error(`Request ${type.method} failed.`, error)
-    throw error
-  }
-
-  private static Canceled = 'Canceled'
-  private makeCancelError(): Error {
-    const result = new Error(BaseLanguageClient.Canceled)
-    result.name = BaseLanguageClient.Canceled
-    return result
   }
 }
