@@ -1513,7 +1513,7 @@ augroup end`
     let textDocument: TextDocument & { bufnr: number } = Object.assign(doc.textDocument, { bufnr })
     this._onDidCloseDocument.fire(textDocument)
     doc.setFiletype(filetype)
-    this._onDidOpenDocument.fire(textDocument)
+    this._onDidOpenDocument.fire(Object.assign(doc.textDocument, { bufnr }))
   }
 
   private async checkBuffer(bufnr: number): Promise<void> {
