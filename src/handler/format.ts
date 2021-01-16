@@ -1,15 +1,16 @@
-import workspace from '../workspace'
-import window from '../window'
+import { Neovim } from '@chemzqm/neovim'
+import { CancellationToken, CancellationTokenSource, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import events from '../events'
 import languages from '../languages'
-import { Neovim } from '@chemzqm/neovim'
+import Document from '../model/document'
+import snippetManager from '../snippets/manager'
 import { ConfigurationChangeEvent, StatusBarItem } from '../types'
 import { disposeAll } from '../util'
-import { CancellationTokenSource, Disposable, Range, Position, TextEdit, CancellationToken } from 'vscode-languageserver-protocol'
-import snippetManager from '../snippets/manager'
-import { synchronizeDocument } from './helper'
-import { isWord } from '../util/string'
 import { getChangedFromEdits } from '../util/position'
+import { isWord } from '../util/string'
+import window from '../window'
+import workspace from '../workspace'
+import { synchronizeDocument } from './helper'
 const logger = require('../util/logger')('handler-format')
 
 const pairs: Map<string, string> = new Map([
@@ -198,9 +199,7 @@ export default class FormatHandler {
     if (to && !newLine) await window.moveTo(to)
   }
 
-  public async documentFormat(): Promise<boolean> {
-    let doc = await workspace.document
-    if (!doc || !doc.attached) return false
+  public async documentFormat(doc: Document): Promise<boolean> {
     await synchronizeDocument(doc)
     let options = await workspace.getFormatOptions(doc.uri)
     let textEdits = await this.withRequestToken('format', token => {
@@ -213,9 +212,7 @@ export default class FormatHandler {
     return false
   }
 
-  public async documentRangeFormat(mode: string): Promise<number> {
-    let doc = await workspace.document
-    if (!doc || !doc.attached) return -1
+  public async documentRangeFormat(doc: Document, mode: string): Promise<number> {
     await synchronizeDocument(doc)
     let range: Range
     if (mode) {

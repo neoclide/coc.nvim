@@ -405,7 +405,7 @@ class Languages {
       case 'foldingRange':
         return this.foldingRangeManager.hasProvider(document)
       case 'format':
-        return this.formatManager.hasProvider(document)
+        return this.formatManager.hasProvider(document) || this.formatRangeManager.hasProvider(document)
       case 'codeAction':
         return this.codeActionManager.hasProvider(document)
       case 'workspaceSymbols':

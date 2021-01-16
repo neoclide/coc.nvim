@@ -1,5 +1,6 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
@@ -10,7 +11,7 @@ import Document from '../model/document'
 import FloatFactory from '../model/floatFactory'
 import { TextDocumentContentProvider } from '../provider'
 import services from '../services'
-import { CodeAction, Documentation, StatusBarItem, TagDefinition } from '../types'
+import { CodeAction, Documentation, ProviderName, StatusBarItem, TagDefinition } from '../types'
 import { disposeAll } from '../util'
 import { equals } from '../util/object'
 import { emptyRange, positionInRange } from '../util/position'
@@ -66,6 +67,9 @@ export default class Handler {
     this.signature = new Signature(nvim)
     this.format = new Format(nvim)
     this.symbols = new Symbols(nvim)
+    this.codeLens = new CodeLens(nvim)
+    this.colors = new Colors(nvim)
+    this.documentHighlighter = new Highlights(nvim)
     events.on(['CursorMoved', 'CursorMovedI', 'InsertEnter', 'InsertSnippet', 'InsertLeave'], () => {
       if (this.requestTokenSource) {
         this.requestTokenSource.cancel()
@@ -84,31 +88,39 @@ export default class Handler {
       }
     }
     this.disposables.push(workspace.registerTextDocumentContentProvider('coc', provider))
-    this.codeLens = new CodeLens(nvim)
-    this.colors = new Colors(nvim)
-    this.documentHighlighter = new Highlights(nvim)
     this.disposables.push(commandManager.registerCommand('editor.action.pickColor', () => {
-      return this.colors.pickColor()
+      return this.pickColor()
     }))
     commandManager.titles.set('editor.action.pickColor', 'pick color from system color picker when possible.')
     this.disposables.push(commandManager.registerCommand('editor.action.colorPresentation', () => {
-      return this.colors.pickPresentation()
+      return this.pickPresentation()
     }))
     commandManager.titles.set('editor.action.colorPresentation', 'change color presentation.')
     this.disposables.push(commandManager.registerCommand('editor.action.organizeImport', async (bufnr?: number) => {
-      if (!bufnr) bufnr = await nvim.call('bufnr', '%')
-      let doc = workspace.getDocument(bufnr)
-      if (!doc || !doc.attached) return false
-      await synchronizeDocument(doc)
-      let actions = await this.getCodeActions(doc, undefined, [CodeActionKind.SourceOrganizeImports])
-      if (actions && actions.length) {
-        await this.applyCodeAction(actions[0])
-        return true
-      }
-      window.showMessage(`Organize import action not found.`, 'warning')
-      return false
+      await this.organizeImport(bufnr)
     }))
     commandManager.titles.set('editor.action.organizeImport', 'run organize import code action.')
+  }
+
+  public async organizeImport(bufnr?: number): Promise<void> {
+    if (!bufnr) bufnr = await this.nvim.call('bufnr', ['%'])
+    let doc = workspace.getDocument(bufnr)
+    if (!doc || !doc.attached) throw new Error(`buffer ${bufnr} not attached`)
+    await synchronizeDocument(doc)
+    let actions = await this.getCodeActions(doc, undefined, [CodeActionKind.SourceOrganizeImports])
+    if (actions && actions.length) {
+      await this.applyCodeAction(actions[0])
+      return
+    }
+    throw new Error('Organize import action not found.')
+  }
+
+  /**
+   * Throw error when provider not exists.
+   */
+  private checkProvier(id: ProviderName, document: TextDocument): void {
+    if (languages.hasProvider(id, document)) return
+    throw new Error(`${id} provider not found for current buffer, your language server don't support it.`)
   }
 
   private async withRequestToken<T>(name: string, fn: (token: CancellationToken) => Thenable<T>, checkEmpty?: boolean): Promise<T | null> {
@@ -145,9 +157,7 @@ export default class Handler {
     }
     if (token.isCancellationRequested) return null
     statusItem.hide()
-    if (res == null) {
-      logger.warn(`${name} provider not found!`)
-    } else if (checkEmpty && Array.isArray(res) && res.length == 0) {
+    if (checkEmpty && (!res || (Array.isArray(res) && res.length == 0))) {
       window.showMessage(`${name} not found`, 'warning')
       return null
     }
@@ -155,6 +165,8 @@ export default class Handler {
   }
 
   public async getCurrentFunctionSymbol(): Promise<string> {
+    let { doc } = await this.getCurrentState()
+    this.checkProvier('documentSymbol', doc.textDocument)
     return await this.symbols.getCurrentFunctionSymbol()
   }
 
@@ -162,10 +174,15 @@ export default class Handler {
    * supportedSymbols must be string values of symbolKind
    */
   public async selectSymbolRange(inner: boolean, visualmode: string, supportedSymbols: string[]): Promise<void> {
+    let { doc } = await this.getCurrentState()
+    this.checkProvier('documentSymbol', doc.textDocument)
     return await this.symbols.selectSymbolRange(inner, visualmode, supportedSymbols)
   }
 
   public async getDocumentSymbols(bufnr: number): Promise<SymbolInfo[]> {
+    let doc = workspace.getDocument(bufnr)
+    if (!doc || !doc.attached) throw new Error(`buffer ${bufnr} not attached`)
+    this.checkProvier('documentSymbol', doc.textDocument)
     return await this.symbols.getDocumentSymbols(bufnr)
   }
 
@@ -173,12 +190,12 @@ export default class Handler {
     let bufnr = await this.nvim.call('bufnr', '%')
     let doc = workspace.getDocument(bufnr)
     if (!doc) return false
-    return languages.hasProvider(id as any, doc.textDocument)
+    return languages.hasProvider(id as ProviderName, doc.textDocument)
   }
 
   public async onHover(hoverTarget?: string): Promise<boolean> {
     let { doc, position, winid } = await this.getCurrentState()
-    if (doc == null) return
+    this.checkProvier('hover', doc.textDocument)
     let target = hoverTarget ?? this.preferences.hoverTarget
     if (target == 'float') {
       this.hoverFactory.close()
@@ -207,9 +224,7 @@ export default class Handler {
   public async getHover(): Promise<string[]> {
     let result: string[] = []
     let { doc, position } = await this.getCurrentState()
-    if (!languages.hasProvider('hover', doc.textDocument)) {
-      return result
-    }
+    this.checkProvier('hover', doc.textDocument)
     await synchronizeDocument(doc)
     let tokenSource = new CancellationTokenSource()
     let hovers = await languages.getHover(doc.textDocument, position, tokenSource.token)
@@ -233,7 +248,7 @@ export default class Handler {
 
   public async gotoDefinition(openCommand?: string): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
-    if (doc == null) return false
+    this.checkProvier('definition', doc.textDocument)
     await synchronizeDocument(doc)
     let definition = await this.withRequestToken('definition', token => {
       return languages.getDefinition(doc.textDocument, position, token)
@@ -245,7 +260,7 @@ export default class Handler {
 
   public async gotoDeclaration(openCommand?: string): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
-    if (doc == null) return false
+    this.checkProvier('declaration', doc.textDocument)
     await synchronizeDocument(doc)
     let definition = await this.withRequestToken('declaration', token => {
       return languages.getDeclaration(doc.textDocument, position, token)
@@ -257,7 +272,7 @@ export default class Handler {
 
   public async gotoTypeDefinition(openCommand?: string): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
-    if (doc == null) return false
+    this.checkProvier('typeDefinition', doc.textDocument)
     await synchronizeDocument(doc)
     let definition = await this.withRequestToken('type definition', token => {
       return languages.getTypeDefinition(doc.textDocument, position, token)
@@ -269,7 +284,7 @@ export default class Handler {
 
   public async gotoImplementation(openCommand?: string): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
-    if (doc == null) return false
+    this.checkProvier('implementation', doc.textDocument)
     await synchronizeDocument(doc)
     let definition = await this.withRequestToken('implementation', token => {
       return languages.getImplementation(doc.textDocument, position, token)
@@ -281,7 +296,7 @@ export default class Handler {
 
   public async gotoReferences(openCommand?: string, includeDeclaration = true): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
-    if (doc == null) return false
+    this.checkProvier('reference', doc.textDocument)
     await synchronizeDocument(doc)
     let definition = await this.withRequestToken('references', token => {
       return languages.getReferences(doc.textDocument, { includeDeclaration }, position, token)
@@ -293,7 +308,6 @@ export default class Handler {
 
   public async getWordEdit(): Promise<WorkspaceEdit> {
     let { doc, position } = await this.getCurrentState()
-    if (doc == null) return null
     let range = doc.getWordRangeAtPosition(position)
     if (!range || emptyRange(range)) return null
     let curname = doc.textDocument.getText(range)
@@ -316,12 +330,7 @@ export default class Handler {
 
   public async rename(newName?: string): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
-    if (doc == null) return false
-    let { nvim } = this
-    if (!languages.hasProvider('rename', doc.textDocument)) {
-      window.showMessage(`Rename provider not found for current document`, 'warning')
-      return false
-    }
+    this.checkProvier('rename', doc.textDocument)
     await synchronizeDocument(doc)
     let statusItem = this.requestStatusItem
     try {
@@ -341,7 +350,7 @@ export default class Handler {
         } else if (res && typeof res.placeholder === 'string') {
           curname = res.placeholder
         } else {
-          curname = await nvim.eval('expand("<cword>")') as string
+          curname = await this.nvim.eval('expand("<cword>")') as string
         }
         newName = await window.requestInput('New name', curname)
       }
@@ -367,17 +376,21 @@ export default class Handler {
   }
 
   public async documentFormatting(): Promise<boolean> {
-    return await this.format.documentFormat()
+    let { doc } = await this.getCurrentState()
+    this.checkProvier('format', doc.textDocument)
+    return await this.format.documentFormat(doc)
   }
 
   public async documentRangeFormatting(mode: string): Promise<number> {
-    return await this.format.documentRangeFormat(mode)
+    let { doc } = await this.getCurrentState()
+    this.checkProvier('formatRange', doc.textDocument)
+    return await this.format.documentRangeFormat(doc, mode)
   }
 
   public async getTagList(): Promise<TagDefinition[] | null> {
     let { doc, position } = await this.getCurrentState()
     let word = await this.nvim.call('expand', '<cword>')
-    if (!word || doc == null) return null
+    if (!word) return null
     if (!languages.hasProvider('definition', doc.textDocument)) return null
     let tokenSource = new CancellationTokenSource()
     let definitions = await languages.getDefinition(doc.textDocument, position, tokenSource.token)
@@ -429,7 +442,6 @@ export default class Handler {
 
   public async doCodeAction(mode: string | null, only?: CodeActionKind[] | string): Promise<void> {
     let { doc } = await this.getCurrentState()
-    if (!doc) return
     let range: Range
     if (mode) range = await workspace.getSelectedRange(mode, doc)
     await synchronizeDocument(doc)
@@ -444,9 +456,9 @@ export default class Handler {
 
     let idx = this.preferences.floatActions
       ? await window.showMenuPicker(
-          codeActions.map(o => o.title),
-          "Choose action"
-        )
+        codeActions.map(o => o.title),
+        "Choose action"
+      )
       : await window.showQuickpick(codeActions.map(o => o.title))
     let action = codeActions[idx]
     if (action) await this.applyCodeAction(action)
@@ -454,13 +466,9 @@ export default class Handler {
 
   /**
    * Get current codeActions
-   *
-   * @public
-   * @returns {Promise<CodeAction[]>}
    */
   public async getCurrentCodeActions(mode?: string, only?: CodeActionKind[]): Promise<CodeAction[]> {
     let { doc } = await this.getCurrentState()
-    if (!doc) return []
     let range: Range
     if (mode) range = await workspace.getSelectedRange(mode, doc)
     return await this.getCodeActions(doc, range, only)
@@ -468,8 +476,6 @@ export default class Handler {
 
   /**
    * Invoke preferred quickfix at current position, return false when failed
-   *
-   * @returns {Promise<boolean>}
    */
   public async doQuickfix(): Promise<boolean> {
     let actions = await this.getCurrentCodeActions('n', [CodeActionKind.QuickFix])
@@ -513,7 +519,7 @@ export default class Handler {
 
   public async fold(kind?: string): Promise<boolean> {
     let { doc, winid } = await this.getCurrentState()
-    if (!doc) return false
+    this.checkProvier('foldingRange', doc.textDocument)
     await synchronizeDocument(doc)
     let win = this.nvim.createWindow(winid)
     let [foldmethod, foldlevel] = await this.nvim.eval('[&foldmethod,&foldlevel]') as [string, string]
@@ -529,12 +535,15 @@ export default class Handler {
     if (ranges.length) {
       ranges.sort((a, b) => b.startLine - a.startLine)
       this.nvim.pauseNotification()
+      this.nvim.command('normal! zE', true)
       for (let range of ranges) {
         let { startLine, endLine } = range
         let cmd = `${startLine + 1}, ${endLine + 1}fold`
         this.nvim.command(cmd, true)
       }
+      win.setOption('foldenable', true, true)
       win.setOption('foldlevel', foldlevel, true)
+      if (workspace.isVim) this.nvim.command('redraw', true)
       await this.nvim.resumeNotification()
       return true
     }
@@ -542,10 +551,14 @@ export default class Handler {
   }
 
   public async pickColor(): Promise<void> {
+    let { doc } = await this.getCurrentState()
+    this.checkProvier('documentColor', doc.textDocument)
     await this.colors.pickColor()
   }
 
   public async pickPresentation(): Promise<void> {
+    let { doc } = await this.getCurrentState()
+    this.checkProvier('documentColor', doc.textDocument)
     await this.colors.pickPresentation()
   }
 
@@ -555,6 +568,7 @@ export default class Handler {
 
   public async getSymbolsRanges(): Promise<Range[]> {
     let { doc, position } = await this.getCurrentState()
+    this.checkProvier('documentHighlight', doc.textDocument)
     let highlights = await this.documentHighlighter.getHighlights(doc, position)
     if (!highlights) return null
     return highlights.map(o => o.range)
@@ -562,7 +576,7 @@ export default class Handler {
 
   public async links(): Promise<DocumentLink[]> {
     let { doc } = await this.getCurrentState()
-    if (!doc) return []
+    this.checkProvier('documentLink', doc.textDocument)
     let links = await this.withRequestToken('links', token => {
       return languages.getDocumentLinks(doc.textDocument, token)
     })
@@ -581,6 +595,7 @@ export default class Handler {
 
   public async openLink(): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
+    this.checkProvier('documentLink', doc.textDocument)
     let links = await this.withRequestToken('links', token => {
       return languages.getDocumentLinks(doc.textDocument, token)
     })
@@ -617,7 +632,7 @@ export default class Handler {
 
   public async showSignatureHelp(): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
-    if (!doc) return false
+    this.checkProvier('signature', doc.textDocument)
     return await this.signature.triggerSignatureHelp(doc, position)
   }
 
@@ -626,7 +641,6 @@ export default class Handler {
    */
   public async findLocations(id: string, method: string, params: any, openCommand?: string | false): Promise<void> {
     let { doc, position } = await this.getCurrentState()
-    if (!doc) return null
     params = params || {}
     Object.assign(params, {
       textDocument: { uri: doc.uri },
@@ -671,6 +685,7 @@ export default class Handler {
 
   public async getSelectionRanges(): Promise<SelectionRange[] | null> {
     let { doc, position } = await this.getCurrentState()
+    this.checkProvier('selectionRange', doc.textDocument)
     await synchronizeDocument(doc)
     let selectionRanges: SelectionRange[] = await this.withRequestToken('selection ranges', token => {
       return languages.getSelectionRanges(doc.textDocument, [position], token)
@@ -682,7 +697,7 @@ export default class Handler {
   public async selectRange(visualmode: string, forward: boolean): Promise<void> {
     let { nvim } = this
     let { doc } = await this.getCurrentState()
-    if (!doc) return
+    this.checkProvier('selectionRange', doc.textDocument)
     let positions: Position[] = []
     if (!forward && (!this.selectionRange || !visualmode)) return
     if (visualmode) {
@@ -737,7 +752,6 @@ export default class Handler {
 
   public async codeActionRange(start: number, end: number, only?: string): Promise<void> {
     let { doc } = await this.getCurrentState()
-    if (!doc) return
     await synchronizeDocument(doc)
     let line = doc.getline(end - 1)
     let range = Range.create(start - 1, 0, end - 1, line.length)
@@ -755,11 +769,8 @@ export default class Handler {
    * Refactor of current symbol
    */
   public async doRefactor(): Promise<void> {
-    let [bufnr, cursor, filetype] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),&filetype]') as [number, [number, number], string]
-    let doc = workspace.getDocument(bufnr)
-    if (!doc || !doc.attached) return
+    let { doc, position } = await this.getCurrentState()
     await synchronizeDocument(doc)
-    let position = { line: cursor[0], character: cursor[1] }
     let edit = await this.withRequestToken<WorkspaceEdit>('refactor', async token => {
       let res = await languages.prepareRename(doc.textDocument, position, token)
       if (token.isCancellationRequested) return null
@@ -776,7 +787,7 @@ export default class Handler {
       return edit
     })
     if (edit) {
-      await this.refactor.fromWorkspaceEdit(edit, filetype)
+      await this.refactor.fromWorkspaceEdit(edit, doc.filetype)
     }
   }
 
@@ -854,8 +865,9 @@ export default class Handler {
     let { nvim } = this
     let [bufnr, [line, character], winid] = await nvim.eval("[bufnr('%'),coc#util#cursor(),win_getid()]") as [number, [number, number], number]
     let doc = workspace.getDocument(bufnr)
+    if (!doc || !doc.attached) throw new Error(`current buffer ${bufnr} not attached`)
     return {
-      doc: doc && doc.attached ? doc : null,
+      doc,
       position: Position.create(line, character),
       winid
     }

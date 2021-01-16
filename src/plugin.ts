@@ -308,7 +308,7 @@ export default class Plugin extends EventEmitter {
       return this.handler.doCodeAction(mode, only)
     })
     this.addAction('organizeImport', () => {
-      return this.handler.doCodeAction(null, [CodeActionKind.SourceOrganizeImports])
+      return this.handler.organizeImport()
     })
     this.addAction('fixAll', () => {
       return this.handler.doCodeAction(null, [CodeActionKind.SourceFixAll])
