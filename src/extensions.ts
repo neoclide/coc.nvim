@@ -809,19 +809,24 @@ export class Extensions {
     }
     Object.defineProperties(extension, {
       id: {
-        get: () => id
+        get: () => id,
+        enumerable: true
       },
       packageJSON: {
-        get: () => packageJSON
+        get: () => packageJSON,
+        enumerable: true
       },
       extensionPath: {
-        get: () => root
+        get: () => root,
+        enumerable: true
       },
       isActive: {
-        get: () => isActive
+        get: () => isActive,
+        enumerable: true
       },
       exports: {
-        get: () => exports
+        get: () => exports,
+        enumerable: true
       }
     })
 
