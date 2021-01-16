@@ -274,7 +274,7 @@ function! coc#list#preview(lines, config) abort
       execute 'noa '.mod.' sb +resize\ '.height.' '.bufnr
       let winid = win_getid()
     endif
-    noa call winrestview({"lnum": lnum ,"topline":max([1, lnum - 3])})
+    noa call winrestview({"lnum": lnum ,"topline":max([1, lnum - winheight(winid)/2])})
     call setwinvar(winid, '&signcolumn', 'no')
     call setwinvar(winid, '&number', 1)
     call setwinvar(winid, '&cursorline', 0)
@@ -293,7 +293,7 @@ function! coc#list#preview(lines, config) abort
         call nvim_win_set_height(winid, height)
       endif
     endif
-    call coc#compat#execute(winid, ['syntax clear', 'noa call winrestview({"lnum":'.lnum.',"topline":'.max([1, lnum - 3]).'})'])
+    call coc#compat#execute(winid, ['syntax clear', 'noa call winrestview({"lnum":'.lnum.',"topline":'.max([1, lnum - winheight(winid)/2]).'})'])
   endif
   if s:prefix.' '.name != bufname(bufnr)
     if s:is_vim
