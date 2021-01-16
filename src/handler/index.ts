@@ -632,7 +632,7 @@ export default class Handler {
 
   public async showSignatureHelp(): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
-    this.checkProvier('signature', doc.textDocument)
+    if (!languages.hasProvider('signature', doc.textDocument)) return false
     return await this.signature.triggerSignatureHelp(doc, position)
   }
 
