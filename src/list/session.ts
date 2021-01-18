@@ -304,7 +304,10 @@ export default class ListSession {
         await wait(10)
       }
     }
+    nvim.pauseNotification()
     nvim.call('coc#prompt#stop_prompt', ['list'], true)
+    nvim.call('coc#util#do_autocmd', ['CocListClose'], true)
+    await nvim.resumeNotification()
   }
 
   public toggleMode(): void {
