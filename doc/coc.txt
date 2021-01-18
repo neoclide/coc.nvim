@@ -2412,7 +2412,7 @@ CocUnderline						*CocUnderline*
 
   Default: `hi default CocUnderline cterm=underline gui=underline`
 
-  The highlight for undefined text.
+  The highlight for underlined text.
 
 CocBold							*CocBold*
 
