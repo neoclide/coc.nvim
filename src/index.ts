@@ -42,6 +42,7 @@ import {
   InsertTextFormat,
   Location,
   LocationLink,
+  MarkupKind,
   FileChangeType,
   SignatureHelpTriggerKind,
   SymbolKind,
@@ -55,6 +56,6 @@ export * from './types'
 export * from './language-client'
 export * from './provider'
 
-export { Neovim, DiagnosticTag, DocumentHighlightKind, SymbolKind, SignatureHelpTriggerKind, FileChangeType, CodeActionKind, Diagnostic, DiagnosticSeverity, CompletionItemKind, InsertTextFormat, Location, LocationLink, CancellationTokenSource, CancellationToken, ProgressType, Position, Range, TextEdit, RequestType, RequestType0, NotificationType, NotificationType0, Buffer, Window, Highligher, Mru, Watchman, URI as Uri, Disposable, Event, Emitter, FloatFactory, fetch, download, ansiparse }
+export { Neovim, MarkupKind, DiagnosticTag, DocumentHighlightKind, SymbolKind, SignatureHelpTriggerKind, FileChangeType, CodeActionKind, Diagnostic, DiagnosticSeverity, CompletionItemKind, InsertTextFormat, Location, LocationLink, CancellationTokenSource, CancellationToken, ProgressType, Position, Range, TextEdit, RequestType, RequestType0, NotificationType, NotificationType0, Buffer, Window, Highligher, Mru, Watchman, URI as Uri, Disposable, Event, Emitter, FloatFactory, fetch, download, ansiparse }
 export { workspace, window, CompletionTriggerKind, snippetManager, events, services, commands, sources, languages, diagnosticManager, Document, FileSystemWatcher, extensions, listManager, BasicList, Mutex }
 export { disposeAll, concurrent, watchFile, wait, runCommand, isRunning, executable } from './util'

@@ -1186,7 +1186,7 @@ export interface FetchOptions {
   password?: string
 }
 
-export interface DownloadOptions extends FetchOptions {
+export interface DownloadOptions extends Omit<FetchOptions, 'buffer'> {
   /**
    * Folder that contains downloaded file or extracted files by untar or unzip
    */

@@ -821,6 +821,23 @@ declare module 'coc.nvim' {
   export type MarkupKind = 'plaintext' | 'markdown'
 
   /**
+   * Describes the content type that a client supports in various
+   * result literals like `Hover`, `ParameterInfo` or `CompletionItem`.
+   *
+   * Please note that `MarkupKinds` must not start with a `$`. This kinds
+   * are reserved for internal usage.
+   */
+  export namespace MarkupKind {
+    /**
+     * Plain text is supported as a content format
+     */
+    const PlainText: 'plaintext'
+    /**
+     * Markdown is supported as a content format
+     */
+    const Markdown: 'markdown'
+  }
+  /**
    * A `MarkupContent` literal represents a string value which content is interpreted base on its
    * kind flag. Currently the protocol supports `plaintext` and `markdown` as markup kinds.
    *
@@ -3759,7 +3776,7 @@ declare module 'coc.nvim' {
     password?: string
   }
 
-  export interface DownloadOptions extends FetchOptions {
+  export interface DownloadOptions extends Omit<FetchOptions, 'buffer'> {
     /**
      * Folder that contains downloaded file or extracted files by untar or unzip
      */
