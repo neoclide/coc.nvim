@@ -1,5 +1,5 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CallHierarchyItem, CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import commandManager from '../commands'
@@ -428,26 +428,44 @@ export default class Handler {
   /**
    * getCallHierarchy
    */
-  public async getCallHierarchy(): Promise<boolean> {
-    let { doc, position } = await this.getCurrentState()
+  public async getCallHierarchy(method: 'incoming' | 'outgoing'): Promise<boolean> {
+    const { doc, position } = await this.getCurrentState()
     this.checkProvier('callHierarchy', doc.textDocument)
     await synchronizeDocument(doc)
-    let statusItem = this.requestStatusItem
-    try {
-      let token = (new CancellationTokenSource()).token
-      let res = await languages.prepareCallHierarchy(doc.textDocument, position, token)
-      if (!res) {
-        statusItem.hide()
-        return false
+    const res = await this.withRequestToken('Prepare Call hierarchy', token => {
+      return languages.prepareCallHierarchy(doc.textDocument, position, token)
+    }, false)
+    if (!res) return false
+
+    const calls: CallHierarchyItem[] = []
+    const item = Array.isArray(res) ? res[0] : res
+    if (method === 'incoming') {
+      const incomings = await this.withRequestToken('incoming calls', token => {
+        return languages.provideIncomingCalls(item, token)
+      }, true)
+      if (!incomings) return
+      for (const call of incomings) {
+        calls.push(call.from)
       }
-      // TODO: callHierarchy tree UI?
-      return true
-    } catch (e) {
-      statusItem.hide()
-      window.showMessage(`Error on getCallHierarchy: ${e.message}`, 'error')
-      logger.error(e)
-      return false
+    } else {
+      const outgoings = await this.withRequestToken('outgoing calls', token => {
+        return languages.provideOutgoingCalls(item, token)
+      }, true)
+      if (!outgoings) return
+      for (const call of outgoings) {
+        calls.push(call.to)
+      }
     }
+    if (!calls) return false
+
+    // TODO: callHierarchy tree UI?
+    const locations: Location[] = []
+    for (const call of calls) {
+      locations.push({ uri: call.uri, range: call.range })
+    }
+
+    await this.handleLocations(locations)
+    return true
   }
 
   /**

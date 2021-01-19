@@ -416,11 +416,11 @@ class Languages {
     return this.callHierarchyManager.prepareCallHierarchy(document, position, token)
   }
 
-  public async provideCallsTo(item: CallHierarchyItem, token: CancellationToken): Promise<CallHierarchyIncomingCall[]> {
+  public async provideIncomingCalls(item: CallHierarchyItem, token: CancellationToken): Promise<CallHierarchyIncomingCall[]> {
     return this.callHierarchyManager.provideCallHierarchyIncomingCalls(item, token)
   }
 
-  public async provideCallsFrom(item: CallHierarchyItem, token: CancellationToken): Promise<CallHierarchyOutgoingCall[]> {
+  public async provideOutgoingCalls(item: CallHierarchyItem, token: CancellationToken): Promise<CallHierarchyOutgoingCall[]> {
     return this.callHierarchyManager.provideCallHierarchyOutgoingCalls(item, token)
   }
 

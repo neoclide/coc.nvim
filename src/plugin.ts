@@ -406,8 +406,11 @@ export default class Plugin extends EventEmitter {
     workspace.onDidChangeWorkspaceFolders(() => {
       nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
     })
-    this.addAction('callHierarchy', () => {
-      return this.handler.getCallHierarchy()
+    this.addAction('incomingCalls', () => {
+      return this.handler.getCallHierarchy('incoming')
+    })
+    this.addAction('outgoingCalls', () => {
+      return this.handler.getCallHierarchy('outgoing')
     })
     this.addAction('semanticTokens', () => {
       return this.handler.getSemanticTokens()
