@@ -22,6 +22,7 @@ import Colors from './colors/index'
 import Format from './format'
 import { addDocument, isMarkdown, SymbolInfo, synchronizeDocument } from './helper'
 import Highlights from './highlights'
+import SemanticHighlights from './semanticHighlights'
 import Refactor from './refactor/index'
 import Signature from './signature'
 import Symbols from './symbols'
@@ -42,6 +43,7 @@ interface Preferences {
 export default class Handler {
   private preferences: Preferences
   private documentHighlighter: Highlights
+  private semanticHighlighter: SemanticHighlights
   private colors: Colors
   private symbols: Symbols
   private hoverFactory: FloatFactory
@@ -70,6 +72,7 @@ export default class Handler {
     this.codeLens = new CodeLens(nvim)
     this.colors = new Colors(nvim)
     this.documentHighlighter = new Highlights(nvim)
+    this.semanticHighlighter = new SemanticHighlights(nvim)
     events.on(['CursorMoved', 'CursorMovedI', 'InsertEnter', 'InsertSnippet', 'InsertLeave'], () => {
       if (this.requestTokenSource) {
         this.requestTokenSource.cancel()
@@ -468,32 +471,6 @@ export default class Handler {
     return true
   }
 
-  /**
-   * getSemanticTokens
-   */
-  public async getSemanticTokens(): Promise<boolean> {
-    let { doc } = await this.getCurrentState()
-    this.checkProvier('semanticTokens', doc.textDocument)
-    await synchronizeDocument(doc)
-    let statusItem = this.requestStatusItem
-    try {
-      let token = (new CancellationTokenSource()).token
-      let res = await languages.provideDocumentSemanticTokens(doc.textDocument, token)
-      if (!res) {
-        statusItem.hide()
-        return false
-      }
-      // TODO: semanticTokens
-      logger.error('semanticTokens:', res)
-      return true
-    } catch (e) {
-      statusItem.hide()
-      window.showMessage(`Error on getSemanticTokens: ${e.message}`, 'error')
-      logger.error(e)
-      return false
-    }
-  }
-
   public async getTagList(): Promise<TagDefinition[] | null> {
     let { doc, position } = await this.getCurrentState()
     let word = await this.nvim.call('expand', '<cword>')
@@ -675,6 +652,10 @@ export default class Handler {
 
   public async highlight(): Promise<void> {
     await this.documentHighlighter.highlight()
+  }
+
+  public async semanticHighlights(): Promise<void> {
+    await this.semanticHighlighter.highlight()
   }
 
   public async getSymbolsRanges(): Promise<Range[]> {
