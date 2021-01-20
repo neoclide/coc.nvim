@@ -1,7 +1,6 @@
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, Disposable, DocumentSelector, SemanticTokens, SemanticTokensLegend } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, DocumentSelector, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { SemanticTokensEdits } from '../semanticTokens'
 import { DocumentSemanticTokensProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 
@@ -34,7 +33,7 @@ export default class SemanticTokensManager extends Manager<DocumentSemanticToken
     return await Promise.resolve(provider.provideDocumentSemanticTokens(document, token))
   }
 
-  public async provideDocumentSemanticTokensEdits(document: TextDocument, previousResultId: string, token: CancellationToken): Promise<SemanticTokens | SemanticTokensEdits> {
+  public async provideDocumentSemanticTokensEdits(document: TextDocument, previousResultId: string, token: CancellationToken): Promise<SemanticTokens | SemanticTokensDelta> {
     let item = this.getProvider(document)
     if (!item) return null
     let { provider } = item

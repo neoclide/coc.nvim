@@ -5,12 +5,11 @@
 'use strict'
 
 import {
-  CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Emitter, Range, SemanticTokenModifiers, SemanticTokens, SemanticTokensDeltaParams, SemanticTokensDeltaRequest, SemanticTokensOptions, SemanticTokensParams, SemanticTokensRangeParams, SemanticTokensRangeRequest, SemanticTokensRefreshRequest, SemanticTokensRegistrationOptions, SemanticTokensRegistrationType, SemanticTokensRequest, SemanticTokenTypes, ServerCapabilities, TokenFormat
+  CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Emitter, Range, SemanticTokenModifiers, SemanticTokens, SemanticTokensDelta, SemanticTokensDeltaParams, SemanticTokensDeltaRequest, SemanticTokensOptions, SemanticTokensParams, SemanticTokensRangeParams, SemanticTokensRangeRequest, SemanticTokensRefreshRequest, SemanticTokensRegistrationOptions, SemanticTokensRegistrationType, SemanticTokensRequest, SemanticTokenTypes, ServerCapabilities, TokenFormat
 } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { languages } from '..'
 import { DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, ProviderResult } from '../provider'
-import { SemanticTokensEdits } from '../semanticTokens'
 import * as cv from './utils/converter'
 import * as Is from '../util/is'
 import { BaseLanguageClient, Middleware, TextDocumentFeature } from './client'
@@ -27,7 +26,7 @@ export interface DocumentSemanticsTokensSignature {
 }
 
 export interface DocumentSemanticsTokensEditsSignature {
-  (this: void, document: TextDocument, previousResultId: string, token: CancellationToken): ProviderResult<SemanticTokensEdits | SemanticTokens>
+  (this: void, document: TextDocument, previousResultId: string, token: CancellationToken): ProviderResult<SemanticTokens | SemanticTokensDelta>
 }
 
 export interface DocumentRangeSemanticTokensSignature {
@@ -41,7 +40,7 @@ export interface DocumentRangeSemanticTokensSignature {
  */
 export interface SemanticTokensMiddleware {
   provideDocumentSemanticTokens?: (this: void, document: TextDocument, token: CancellationToken, next: DocumentSemanticsTokensSignature) => ProviderResult<SemanticTokens>;
-  provideDocumentSemanticTokensEdits?: (this: void, document: TextDocument, previousResultId: string, token: CancellationToken, next: DocumentSemanticsTokensEditsSignature) => ProviderResult<SemanticTokensEdits | SemanticTokens>;
+  provideDocumentSemanticTokensEdits?: (this: void, document: TextDocument, previousResultId: string, token: CancellationToken, next: DocumentSemanticsTokensEditsSignature) => ProviderResult<SemanticTokens | SemanticTokensDelta>;
   provideDocumentRangeSemanticTokens?: (this: void, document: TextDocument, range: Range, token: CancellationToken, next: DocumentRangeSemanticTokensSignature) => ProviderResult<SemanticTokens>;
 }
 
@@ -136,11 +135,9 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
             const params: SemanticTokensParams = {
               textDocument: cv.asTextDocumentIdentifier(document)
             }
-            return client.sendRequest(SemanticTokensRequest.type, params, token).then(
-              result => result,
-              (error: any) => {
-                return client.handleFailedRequest(SemanticTokensRequest.type, error, null)
-              })
+            return client.sendRequest(SemanticTokensRequest.type, params, token).then(result => result, (error: any) => {
+              return client.handleFailedRequest(SemanticTokensRequest.type, error, null)
+            })
           }
           return middleware.provideDocumentSemanticTokens
             ? middleware.provideDocumentSemanticTokens(document, token, provideDocumentSemanticTokens)
@@ -155,12 +152,7 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
                 textDocument: cv.asTextDocumentIdentifier(document),
                 previousResultId
               }
-              return client.sendRequest(SemanticTokensDeltaRequest.type, params, token).then(result => {
-                if (SemanticTokens.is(result)) {
-                  return result
-                }
-                return new SemanticTokensEdits(result.edits)
-              }, (error: any) => {
+              return client.sendRequest(SemanticTokensDeltaRequest.type, params, token).then(result => result, (error: any) => {
                 return client.handleFailedRequest(SemanticTokensDeltaRequest.type, error, null)
               })
             }

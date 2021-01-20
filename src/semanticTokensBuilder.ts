@@ -1,4 +1,4 @@
-import { Range, SemanticTokensEdit, SemanticTokensLegend } from "vscode-languageserver-protocol"
+import { Range, SemanticTokens, SemanticTokensLegend } from "vscode-languageserver-protocol"
 
 function isStringArray(value: any): value is string[] {
   return Array.isArray(value) && (value as any[]).every(elem => typeof elem === 'string')
@@ -151,7 +151,7 @@ export class SemanticTokensBuilder {
     this._prevChar = char
   }
 
-  private static _sortAndDeltaEncode(data: number[]): Uint32Array {
+  private static _sortAndDeltaEncode(data: number[]): number[] {
     let pos: number[] = []
     const tokenCount = (data.length / 5) | 0
     for (let i = 0; i < tokenCount; i++) {
@@ -167,7 +167,7 @@ export class SemanticTokensBuilder {
       }
       return aLine - bLine
     })
-    const result = new Uint32Array(data.length)
+    const result = new Array<number>(data.length)
     let prevLine = 0
     let prevChar = 0
     for (let i = 0; i < tokenCount; i++) {
@@ -200,58 +200,8 @@ export class SemanticTokensBuilder {
    */
   public build(resultId?: string): SemanticTokens {
     if (!this._dataIsSortedAndDeltaEncoded) {
-      return new SemanticTokens(SemanticTokensBuilder._sortAndDeltaEncode(this._data), resultId)
+      return { data: SemanticTokensBuilder._sortAndDeltaEncode(this._data), resultId }
     }
-    return new SemanticTokens(new Uint32Array(this._data), resultId)
-  }
-}
-
-/**
- * Represents semantic tokens, either in a range or in an entire document.
- *
- * @see [provideDocumentSemanticTokens](#DocumentSemanticTokensProvider.provideDocumentSemanticTokens) for an explanation of the format.
- * @see [SemanticTokensBuilder](#SemanticTokensBuilder) for a helper to create an instance.
- */
-export class SemanticTokens {
-  /**
-   * The result id of the tokens.
-   *
-   * This is the id that will be passed to `DocumentSemanticTokensProvider.provideDocumentSemanticTokensEdits` (if implemented).
-   */
-  public readonly resultId?: string
-  /**
-   * The actual tokens data.
-   *
-   * @see [provideDocumentSemanticTokens](#DocumentSemanticTokensProvider.provideDocumentSemanticTokens) for an explanation of the format.
-   */
-  public readonly data: Uint32Array
-
-  constructor(data: Uint32Array, resultId?: string) {
-    this.resultId = resultId
-    this.data = data
-  }
-}
-
-/**
- * Represents edits to semantic tokens.
- *
- * @see [provideDocumentSemanticTokensEdits](#DocumentSemanticTokensProvider.provideDocumentSemanticTokensEdits) for an explanation of the format.
- */
-export class SemanticTokensEdits {
-  /**
-   * The result id of the tokens.
-   *
-   * This is the id that will be passed to `DocumentSemanticTokensProvider.provideDocumentSemanticTokensEdits` (if implemented).
-   */
-  public readonly resultId?: string
-  /**
-   * The edits to the tokens data.
-   * All edits refer to the initial data state.
-   */
-  public readonly edits: SemanticTokensEdit[]
-
-  constructor(edits: SemanticTokensEdit[], resultId?: string) {
-    this.resultId = resultId
-    this.edits = edits
+    return { data: this._data, resultId }
   }
 }
