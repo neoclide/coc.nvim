@@ -61,6 +61,8 @@ export default class SemanticHighlights {
 
   public async getHighlights(doc: Document): Promise<Highlight[]> {
     try {
+      this.cancel()
+      if (!doc || !doc.attached) return
       const relatives = await this.getRelativeHighlights(doc)
       let res: Highlight[] = []
       let currentLine = 0
@@ -93,11 +95,11 @@ export default class SemanticHighlights {
       this.tokenSource = new CancellationTokenSource()
       doc.forceSync()
       const { token } = this.tokenSource
+      const legend = languages.getLegend()
       const tokens = await languages.provideDocumentSemanticTokens(doc.textDocument, token)
       this.tokenSource = null
       if (token.isCancellationRequested) return null
 
-      const legend = languages.getLegend()
       const res: RelativeHighlight[] = []
       for (let i = 0; i < tokens.data.length; i += 5) {
         const deltaLine = tokens.data[i]
