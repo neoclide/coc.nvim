@@ -9,7 +9,6 @@ export default class SemanticTokensManager extends Manager<DocumentSemanticToken
   private _legend: SemanticTokensLegend
 
   public register(selector: DocumentSelector, provider: DocumentSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
-    // TODO: SemantiTokens
     this._legend = legend
     let item: ProviderItem<DocumentSemanticTokensProvider> = {
       id: uuid(),
@@ -20,6 +19,10 @@ export default class SemanticTokensManager extends Manager<DocumentSemanticToken
     return Disposable.create(() => {
       this.providers.delete(item)
     })
+  }
+
+  public get legend(): SemanticTokensLegend {
+    return this._legend
   }
 
   public async provideDocumentSemanticTokens(document: TextDocument, token: CancellationToken): Promise<SemanticTokens> {

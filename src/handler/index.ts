@@ -22,7 +22,7 @@ import Colors from './colors/index'
 import Format from './format'
 import { addDocument, isMarkdown, SymbolInfo, synchronizeDocument } from './helper'
 import Highlights from './highlights'
-import SemanticHighlights from './semanticHighlights'
+import SemanticHighlights, { Highlight } from './semanticHighlights'
 import Refactor from './refactor/index'
 import Signature from './signature'
 import Symbols from './symbols'
@@ -655,7 +655,19 @@ export default class Handler {
   }
 
   public async semanticHighlights(): Promise<void> {
-    await this.semanticHighlighter.highlight()
+    let { doc } = await this.getCurrentState()
+    this.checkProvier('semanticTokens', doc.textDocument)
+    await synchronizeDocument(doc)
+
+    await this.semanticHighlighter.highlight(doc)
+  }
+
+  public async getSemanticHighlights(): Promise<Highlight[]> {
+    const { doc } = await this.getCurrentState()
+    this.checkProvier('semanticTokens', doc.textDocument)
+
+    await synchronizeDocument(doc)
+    return await this.semanticHighlighter.getHighlights(doc)
   }
 
   public async getSymbolsRanges(): Promise<Range[]> {
@@ -984,6 +996,7 @@ export default class Handler {
     this.colors.dispose()
     this.format.dispose()
     this.documentHighlighter.dispose()
+    this.semanticHighlighter.dispose()
     disposeAll(this.disposables)
   }
 }
