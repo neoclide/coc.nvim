@@ -22,10 +22,11 @@ import Colors from './colors/index'
 import Format from './format'
 import { addDocument, isMarkdown, SymbolInfo, synchronizeDocument } from './helper'
 import Highlights from './highlights'
-import SemanticHighlights, { Highlight } from './semanticHighlights'
+import SemanticTokensHighlights from './semanticTokensHighlights/index'
 import Refactor from './refactor/index'
 import Signature from './signature'
 import Symbols from './symbols'
+import { Highlight } from './semanticTokensHighlights/buffer'
 const logger = require('../util/logger')('Handler')
 
 interface CommandItem {
@@ -43,7 +44,7 @@ interface Preferences {
 export default class Handler {
   private preferences: Preferences
   private documentHighlighter: Highlights
-  private semanticHighlighter: SemanticHighlights
+  private semanticHighlighter: SemanticTokensHighlights
   private colors: Colors
   private symbols: Symbols
   private hoverFactory: FloatFactory
@@ -72,7 +73,7 @@ export default class Handler {
     this.codeLens = new CodeLens(nvim)
     this.colors = new Colors(nvim)
     this.documentHighlighter = new Highlights(nvim)
-    this.semanticHighlighter = new SemanticHighlights(nvim)
+    this.semanticHighlighter = new SemanticTokensHighlights(nvim)
     events.on(['CursorMoved', 'CursorMovedI', 'InsertEnter', 'InsertSnippet', 'InsertLeave'], () => {
       if (this.requestTokenSource) {
         this.requestTokenSource.cancel()
@@ -659,7 +660,7 @@ export default class Handler {
     this.checkProvier('semanticTokens', doc.textDocument)
     await synchronizeDocument(doc)
 
-    await this.semanticHighlighter.highlight(doc)
+    await this.semanticHighlighter.doHighlight(doc.bufnr)
   }
 
   public async getSemanticHighlights(): Promise<Highlight[]> {
@@ -667,7 +668,7 @@ export default class Handler {
     this.checkProvier('semanticTokens', doc.textDocument)
 
     await synchronizeDocument(doc)
-    return await this.semanticHighlighter.getHighlights(doc)
+    return await this.semanticHighlighter.getHighlights(doc.bufnr)
   }
 
   public async getSymbolsRanges(): Promise<Range[]> {
