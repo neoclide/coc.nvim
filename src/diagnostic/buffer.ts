@@ -1,10 +1,9 @@
-import { Neovim, Buffer } from '@chemzqm/neovim'
+import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-protocol'
-import workspace from '../workspace'
-import { getNameFromSeverity, getLocationListItem, getSeverityType } from './util'
 import { BufferSyncItem, DiagnosticConfig, LocationListItem } from '../types'
 import { equals } from '../util/object'
+import { getLocationListItem, getNameFromSeverity, getSeverityType } from './util'
 const logger = require('../util/logger')('diagnostic-buffer')
 const signGroup = 'CocDiagnostic'
 
@@ -110,7 +109,7 @@ export class DiagnosticBuffer implements BufferSyncItem {
       this.addHighlight(diagnostics)
       this.updateLocationList(arr[3], diagnostics)
       this.showVirtualText(diagnostics, lnum)
-      if (workspace.isVim) this.nvim.command('redraw', true)
+      this.nvim.command('redraw', true)
       let res = await this.nvim.resumeNotification()
       if (Array.isArray(res) && res[1]) throw new Error(res[1])
     }
@@ -196,10 +195,8 @@ export class DiagnosticBuffer implements BufferSyncItem {
   }
 
   public addHighlight(diagnostics: ReadonlyArray<Diagnostic>): void {
-    if (workspace.isVim && !workspace.env.textprop) return
     this.clearHighlight()
     if (diagnostics.length == 0) return
-    // can't add highlight for old vim
     // TODO support DiagnosticTag, fade unnecessary ranges.
     const highlights: Map<DiagnosticSeverity, Range[]> = new Map()
     for (let diagnostic of diagnostics) {
