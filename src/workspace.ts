@@ -32,6 +32,7 @@ import { getChangedFromEdits } from './util/position'
 import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
 import window from './window'
+import { version as VERSION } from '../package.json'
 
 const APIVERSION = 8
 const logger = require('./util/logger')('workspace')
@@ -106,8 +107,7 @@ export class Workspace implements IWorkspace {
   public readonly configurations: Configurations
 
   constructor() {
-    let json = require('../package.json')
-    this.version = json.version
+    this.version = VERSION
     this.configurations = this.createConfigurations()
     let cwd = process.cwd()
     if (cwd != os.homedir() && inDirectory(cwd, ['.vim'])) {

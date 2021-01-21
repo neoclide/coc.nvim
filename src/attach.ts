@@ -5,6 +5,8 @@ import Plugin from './plugin'
 import semver from 'semver'
 import { objectLiteral } from './util/is'
 import { URI } from 'vscode-uri'
+import { version as VERSION } from '../package.json'
+
 const logger = require('./util/logger')('attach')
 const isTest = global.hasOwnProperty('__TEST__')
 
@@ -104,8 +106,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
     clientReady = true
     // Used for test client on vim side
     if (isTest) nvim.command(`let g:coc_node_channel_id = ${channelId}`, true)
-    let json = require('../package.json')
-    let { major, minor, patch } = semver.parse(json.version)
+    let { major, minor, patch } = semver.parse(VERSION)
     nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {})
     let entered = await nvim.getVvar('vim_did_enter')
     if (entered && !initialized) {
