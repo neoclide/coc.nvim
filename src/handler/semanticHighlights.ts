@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Disposable, Range } from 'vscode-languageserver-protocol'
 import languages from '../languages'
 import Document from '../model/document'
 import { disposeAll } from '../util'
@@ -38,25 +38,51 @@ export default class SemanticHighlights {
   constructor(private nvim: Neovim) {}
 
   public async highlight(doc: Document): Promise<void> {
+    if (workspace.isVim && !workspace.env.textprop) return
+
     this.cancel()
     if (!doc || !doc.attached) return
-    const support = await this.vimCheckFeatures()
-    if (!support) return
+    const { nvim } = this
+    const [winid, cursors] = await nvim.eval(`[win_getid(),get(b:,'coc_cursors_activated',0)]`) as [number, number]
+    if (cursors) return
 
     const curr = await this.getHighlights(doc)
     if (!curr) return
 
-    const prev = await this.vimGetCurrentHighlights(doc)
-    const highlightChanges = this.calculateHighlightUpdates(prev, curr)
-    logger.debug(
-      `calculating highlight changes finished: updates ${JSON.stringify(
-        Object.fromEntries(highlightChanges)
-      )}`
-    )
+    const groups: { [index: string]: Range[] } = {}
+    for (const h of curr) {
+      const range = Range.create(h.line, h.startCharacter, h.line, h.endCharacter)
+      groups[h.group] = groups[h.group] || []
+      groups[h.group].push(range)
+    }
+
+    const win = nvim.createWindow(winid)
+    nvim.pauseNotification()
+    win.clearMatchGroup(`^${SEMANTIC_HIGHLIGHTS_HLGROUP_PREFIX}`)
+    for (const hlGroup of Object.keys(groups)) {
+      win.highlightRanges(hlGroup, groups[hlGroup], -1, true)
+    }
+    if (workspace.isVim) nvim.command('redraw', true)
+
+    const res = nvim.resumeNotification()
+    if (Array.isArray(res) && res[1] != null) {
+      logger.error(`Error on Semantic highlight`, res[1][2])
+    } else {
+      this.highlightedBuffers.add(winid)
+    }
+
+    // TODO
+    // const prev = await this.vimGetCurrentHighlights(doc)
+    // const highlightChanges = this.calculateHighlightUpdates(prev, curr)
+    // logger.debug(
+    //   `calculating highlight changes finished: updates ${JSON.stringify(
+    //     Object.fromEntries(highlightChanges)
+    //   )}`
+    // )
 
     // record, clear, and add highlights
-    await this.updateHighlights(doc, highlightChanges)
-    this.highlightedBuffers.add(doc.bufnr)
+    // await this.updateHighlights(doc, highlightChanges)
+    // this.highlightedBuffers.add(doc.bufnr)
   }
 
   public async getHighlights(doc: Document): Promise<Highlight[]> {
@@ -196,9 +222,10 @@ export default class SemanticHighlights {
 
   public clearHighlights(): void {
     if (this.highlightedBuffers.size == 0) return
-    for (const bufnr of this.highlightedBuffers) {
-      const doc = workspace.getDocument(bufnr)
-      void this.vimClearHighlights(doc)
+    const { nvim } = workspace
+    for (const winid of this.highlightedBuffers) {
+      const win = nvim.createWindow(winid)
+      win.clearMatchGroup(`^${SEMANTIC_HIGHLIGHTS_HLGROUP_PREFIX}`)
     }
     this.highlightedBuffers.clear()
   }
@@ -223,16 +250,6 @@ export default class SemanticHighlights {
     ])
 
     if (workspace.isVim) this.nvim.command("redraw", true)
-  }
-
-  private async vimCheckFeatures(): Promise<boolean> {
-    if (workspace.isVim) {
-      return await this.nvim.call("has", ["textprop"])
-    } else if (workspace.isNvim) {
-      return await this.nvim.call("exists", ["*nvim_buf_add_highlight"])
-    } else {
-      return false
-    }
   }
 
   private async vimClearHighlights(doc: Document): Promise<void> {
