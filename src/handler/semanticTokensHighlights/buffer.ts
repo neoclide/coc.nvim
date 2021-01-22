@@ -46,7 +46,6 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public onChange(): void {
-    this.cancel()
     this.highlight()
   }
 
