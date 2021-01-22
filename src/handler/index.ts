@@ -657,15 +657,15 @@ export default class Handler {
 
   public async semanticHighlights(): Promise<void> {
     let { doc } = await this.getCurrentState()
-    this.checkProvier('semanticTokens', doc.textDocument)
-    await synchronizeDocument(doc)
+    if (!languages.hasProvider('semanticTokens', doc.textDocument)) return
 
+    await synchronizeDocument(doc)
     await this.semanticHighlighter.doHighlight(doc.bufnr)
   }
 
   public async getSemanticHighlights(): Promise<Highlight[]> {
     const { doc } = await this.getCurrentState()
-    this.checkProvier('semanticTokens', doc.textDocument)
+    if (!languages.hasProvider('semanticTokens', doc.textDocument)) return
 
     await synchronizeDocument(doc)
     return await this.semanticHighlighter.getHighlights(doc.bufnr)
