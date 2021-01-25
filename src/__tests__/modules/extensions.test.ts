@@ -60,6 +60,16 @@ describe('extensions', () => {
     expect(exists).toBe(false)
   })
 
+  it('should parse extension info', () => {
+    const installer = extensions.installer
+    const scoped = installer('@yaegassy/coc-intelephense').info
+    expect(scoped.name).toBe('@yaegassy/coc-intelephense')
+
+    const scopedVer = installer('@yaegassy/coc-intelephense@0.2.1').info
+    expect(scopedVer.name).toBe('@yaegassy/coc-intelephense')
+    expect(scopedVer.version).toBe('0.2.1')
+  })
+
   it('should get all extensions', () => {
     let list = extensions.all
     expect(Array.isArray(list)).toBe(true)
