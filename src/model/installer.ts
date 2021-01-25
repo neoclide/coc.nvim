@@ -63,6 +63,10 @@ export class Installer extends EventEmitter {
     }
   }
 
+  public get info() {
+    return { name: this.name, version: this.version }
+  }
+
   public async install(): Promise<string> {
     this.log(`Using npm from: ${this.npm}`)
     let info = await this.getInfo()

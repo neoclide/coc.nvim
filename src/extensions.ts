@@ -204,6 +204,10 @@ export class Extensions {
     }
   }
 
+  public get installer() {
+    return createInstallerFactory(this.npm, this.modulesFolder)
+  }
+
   /**
    * Install extensions, can be called without initialize.
    */
