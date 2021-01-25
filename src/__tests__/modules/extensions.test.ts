@@ -50,12 +50,43 @@ describe('extensions', () => {
     expect(exists).toBe(false)
   })
 
+  it('should install/uninstall npm extension with version', async () => {
+    await extensions.installExtensions(['coc-json@1.3.0'])
+    let folder = path.join(__dirname, '../extensions/coc-json')
+    let exists = fs.existsSync(folder)
+    expect(exists).toBe(true)
+    await helper.wait(200)
+    await extensions.uninstallExtension(['coc-json'])
+    exists = fs.existsSync(folder)
+    expect(exists).toBe(false)
+  })
+
   it('should install/uninstall extension by url', async () => {
     await extensions.installExtensions(['https://github.com/hollowtree/vscode-vue-snippets'])
     let folder = path.join(__dirname, '../extensions/vue-snippets')
     let exists = fs.existsSync(folder)
     expect(exists).toBe(true)
     await extensions.uninstallExtension(['vue-snippets'])
+    exists = fs.existsSync(folder)
+    expect(exists).toBe(false)
+  })
+
+  it('should install/uninstall scoped extension', async () => {
+    await extensions.installExtensions(['@yaegassy/coc-intelephense'])
+    let folder = path.join(__dirname, '../extensions/@yaegassy/coc-intelephense')
+    let exists = fs.existsSync(folder)
+    expect(exists).toBe(true)
+    await extensions.uninstallExtension(['@yaegassy/coc-intelephense'])
+    exists = fs.existsSync(folder)
+    expect(exists).toBe(false)
+  })
+
+  it('should install/uninstall scoped extension with version', async () => {
+    await extensions.installExtensions(['@yaegassy/coc-intelephense@0.2.1'])
+    let folder = path.join(__dirname, '../extensions/@yaegassy/coc-intelephense')
+    let exists = fs.existsSync(folder)
+    expect(exists).toBe(true)
+    await extensions.uninstallExtension(['@yaegassy/coc-intelephense'])
     exists = fs.existsSync(folder)
     expect(exists).toBe(false)
   })

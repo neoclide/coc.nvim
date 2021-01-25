@@ -40,12 +40,25 @@ export class Installer extends EventEmitter {
     if (/^https?:/.test(def)) {
       this.url = def
     } else {
-      if (def.includes('@')) {
-        let [name, version] = def.split('@', 2)
-        this.name = name
-        this.version = version
+      if (def.startsWith('@')) {
+        // @author/package
+        const idx = def.indexOf('@', 1)
+        if (idx > 1) {
+          // @author/package@1.0.0
+          this.name = def.substring(0, idx)
+          this.version = def.substring(idx + 1)
+        } else {
+          this.name = def
+        }
       } else {
-        this.name = def
+        if (def.includes('@')) {
+          // name@1.0.0
+          let [name, version] = def.split('@', 2)
+          this.name = name
+          this.version = version
+        } else {
+          this.name = def
+        }
       }
     }
   }
@@ -105,7 +118,7 @@ export class Installer extends EventEmitter {
         return
       }
     }
-    let tmpFolder = await fs.mkdtemp(path.join(os.tmpdir(), `${info.name}-`))
+    let tmpFolder = await fs.mkdtemp(path.join(os.tmpdir(), `${info.name.replace('/', '-')}-`))
     let url = info['dist.tarball']
     this.log(`Downloading from ${url}`)
     await download(url, { dest: tmpFolder, onProgress: p => this.log(`Download progress ${p}%`, true), extract: 'untar' })
