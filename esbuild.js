@@ -51,7 +51,7 @@ let envPlugin = {
     build.onResolve({filter: /\/appenders/}, args => {
       let fullpath = path.join(args.resolveDir, args.path)
       return {
-        path: path.relative(__dirname, fullpath),
+        path: path.relative(__dirname, fullpath).replace(/\\/g, '/'),
         namespace: 'env-ns'
       }
     })
