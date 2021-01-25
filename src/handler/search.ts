@@ -138,7 +138,7 @@ export default class Search {
       release()
     }
     return new Promise((resolve, reject) => {
-      let interval = setInterval(addFileItems, 100)
+      let interval = setInterval(addFileItems, 300)
       this.task.on('item', async (fileItem: FileItem) => {
         files++
         matches = matches + fileItem.ranges.reduce((p, r) => p + r.highlights.length, 0)

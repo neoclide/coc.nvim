@@ -1,14 +1,13 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable, Emitter, Event, Location, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
-import { ConfigurationChangeEvent } from '../../types'
-import workspace from '../../workspace'
-import window from '../../window'
-import { disposeAll } from '../../util'
-import RefactorBuffer, { RefactorConfig, FileItem, RefactorBufferOpts, FileRange, SEPARATOR } from './buffer'
-import BufferSync from '../../model/bufferSync'
-import { getFileLineCount } from '../../util/fs'
-import Search from '../search'
 import { URI } from 'vscode-uri'
+import { ConfigurationChangeEvent } from '../../types'
+import { disposeAll } from '../../util'
+import { getFileLineCount } from '../../util/fs'
+import window from '../../window'
+import workspace from '../../workspace'
+import Search from '../search'
+import RefactorBuffer, { FileItem, FileRange, RefactorConfig, SEPARATOR } from './buffer'
 const logger = require('../../util/logger')('handler-refactor')
 
 const name = '__coc_refactor__'
@@ -20,8 +19,7 @@ export default class Refactor {
   private nvim: Neovim
   private srcId: number
   private timer: NodeJS.Timer
-  private buffers: BufferSync<RefactorBuffer>
-  private optionsMap: Map<number, RefactorBufferOpts> = new Map()
+  private buffers: Map<number, RefactorBuffer> = new Map()
   public config: RefactorConfig
   private disposables: Disposable[] = []
   private readonly _onCreate = new Emitter<number>()
@@ -33,12 +31,14 @@ export default class Refactor {
     }
     this.setConfiguration()
     workspace.onDidChangeConfiguration(this.setConfiguration, this, this.disposables)
-    this.buffers = new BufferSync(doc => {
-      if (!/__coc_refactor__\d+$/.test(doc.uri)) return undefined
-      let { bufnr } = doc
-      this._onCreate.fire(bufnr)
-      return new RefactorBuffer(bufnr, this.srcId, this.nvim, this.config, this.optionsMap.get(doc.bufnr))
-    }, workspace)
+    workspace.onDidCloseTextDocument(e => {
+      let buf = this.buffers.get(e.bufnr)
+      if (buf) this.buffers.delete(e.bufnr)
+    }, null, this.disposables)
+    workspace.onDidChangeTextDocument(e => {
+      let buf = this.buffers.get(e.bufnr)
+      if (buf) buf.onChange(e)
+    }, null, this.disposables)
   }
 
   private setConfiguration(e?: ConfigurationChangeEvent): void {
@@ -52,28 +52,8 @@ export default class Refactor {
     })
   }
 
-  private async ensureBuffer(bufnr: number): Promise<RefactorBuffer> {
-    let buf = this.getBuffer(bufnr)
-    if (buf) return buf
-    return new Promise((resolve, reject) => {
-      let timer = this.timer = setTimeout(() => {
-        reject(new Error('Document create timeout after 2s.'))
-      }, 2000)
-      this.onCreate(e => {
-        if (e == bufnr) {
-          clearTimeout(timer)
-          this.timer = null
-          // need wait
-          setImmediate(() => {
-            resolve(this.buffers.getItem(bufnr))
-          })
-        }
-      })
-    })
-  }
-
   public getBuffer(bufnr: number): RefactorBuffer {
-    return this.buffers.getItem(bufnr)
+    return this.buffers.get(bufnr)
   }
 
   /**
@@ -113,8 +93,11 @@ export default class Refactor {
       return
     }
     let [bufnr, win] = await nvim.eval('[bufnr("%"),win_getid()]') as [number, number]
-    this.optionsMap.set(bufnr, { fromWinid, winid: win, cwd })
-    return await this.ensureBuffer(bufnr)
+    let opts = { fromWinid, winid: win, cwd }
+    await workspace.document
+    let buf = new RefactorBuffer(bufnr, this.srcId, this.nvim, this.config, opts)
+    this.buffers.set(bufnr, buf)
+    return buf
   }
 
   /**
@@ -194,7 +177,7 @@ export default class Refactor {
   }
 
   public async save(bufnr: number): Promise<boolean> {
-    let buf = this.buffers.getItem(bufnr)
+    let buf = this.buffers.get(bufnr)
     if (buf) return await buf.save()
   }
 
@@ -208,17 +191,21 @@ export default class Refactor {
     if (this.timer) {
       clearTimeout(this.timer)
     }
-    this.optionsMap.clear()
-    this.buffers.reset()
+    for (let buf of this.buffers.values()) {
+      buf.dispose()
+    }
+    this.buffers.clear()
   }
 
   public dispose(): void {
     if (this.timer) {
       clearTimeout(this.timer)
     }
-    this.optionsMap.clear()
     this._onCreate.dispose()
-    this.buffers.dispose()
+    for (let buf of this.buffers.values()) {
+      buf.dispose()
+    }
+    this.buffers.clear()
     disposeAll(this.disposables)
   }
 }

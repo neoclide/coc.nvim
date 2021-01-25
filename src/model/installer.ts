@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events'
 import { spawn } from 'child_process'
+import { parse, ParseError } from 'jsonc-parser'
 import readline from 'readline'
 import fs from 'fs-extra'
 import os from 'os'
@@ -170,7 +171,11 @@ export class Installer extends EventEmitter {
       await p
     }
     let jsonFile = path.resolve(this.root, global.hasOwnProperty('__TEST__') ? '' : '..', 'package.json')
-    let obj = JSON.parse(fs.readFileSync(jsonFile, 'utf8'))
+    let errors: ParseError[] = []
+    let obj = parse(fs.readFileSync(jsonFile, 'utf8'), errors, { allowTrailingComma: true })
+    if (errors && errors.length > 0) {
+      throw new Error(`Error on load ${jsonFile}`)
+    }
     obj.dependencies = obj.dependencies || {}
     if (this.url) {
       obj.dependencies[info.name] = this.url
