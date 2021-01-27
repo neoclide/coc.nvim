@@ -46,6 +46,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public onChange(): void {
+    this.cancel()
     this.highlight()
   }
 
@@ -98,7 +99,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   private async vimGetCurrentHighlights(doc: Document): Promise<Highlight[]> {
-    return await this.nvim.call("coc#semantic_highlight#get_highlights", [doc.bufnr])
+    return await this.nvim.call("coc#highlight#get_highlights", [doc.bufnr, 'semanticTokens'])
   }
 
   private calculateHighlightUpdates(prev: Highlight[], curr: Highlight[]): Highlight[] {
