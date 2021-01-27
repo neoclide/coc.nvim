@@ -68,9 +68,10 @@ export default class SemanticTokensBuffer implements SyncItem {
     if (this.version && doc.version == this.version) return
 
     try {
-      // TODO: diff
-      const highlights = await this.getHighlights(doc)
-      if (!highlights) return
+      const curr = await this.getHighlights(doc)
+      if (!curr) return
+      const prev = await this.vimGetCurrentHighlights(doc)
+      const highlights = this.calculateHighlightUpdates(prev, curr)
       if (equals(this._highlights, highlights)) return
       this._highlights = highlights
 
@@ -94,6 +95,76 @@ export default class SemanticTokensBuffer implements SyncItem {
     } catch (e) {
       logger.error('Error on semanticTokens highlight:', e)
     }
+  }
+
+  private async vimGetCurrentHighlights(doc: Document): Promise<Highlight[]> {
+    return await this.nvim.call("coc#semantic_highlight#get_highlights", [doc.bufnr])
+  }
+
+  private calculateHighlightUpdates(prev: Highlight[], curr: Highlight[]): Highlight[] {
+    const stringCompare = Intl.Collator("en").compare
+    function compare(a: Highlight, b: Highlight): number {
+      return (
+        a.line - b.line ||
+        a.startCharacter - b.startCharacter ||
+        a.endCharacter - b.endCharacter ||
+        stringCompare(a.group, b.group)
+      )
+    }
+
+    prev = prev.slice().sort(compare)
+    curr = curr.slice().sort(compare)
+
+    const prevByLine: Map<number, Highlight[]> = new Map()
+    for (const hl of prev) {
+      if (!prevByLine.has(hl.line)) prevByLine.set(hl.line, [])
+      prevByLine.get(hl.line).push(hl)
+    }
+
+    const currByLine: Map<number, Highlight[]> = new Map()
+    for (const hl of curr) {
+      if (!currByLine.has(hl.line)) currByLine.set(hl.line, [])
+      currByLine.get(hl.line).push(hl)
+    }
+
+    const lastLine = Math.max(
+      (prev[prev.length - 1] || { line: 0 }).line,
+      (curr[curr.length - 1] || { line: 0 }).line
+    )
+    const lineNumbersToUpdate: Set<number> = new Set()
+    for (let i = 0; i <= lastLine; i++) {
+      const ph = prevByLine.has(i)
+      const ch = currByLine.has(i)
+      if (ph !== ch) {
+        lineNumbersToUpdate.add(i)
+        continue
+      } else if (!ph && !ch) {
+        continue
+      }
+
+      const pp = prevByLine.get(i)
+      const cc = currByLine.get(i)
+
+      if (pp.length !== cc.length) {
+        lineNumbersToUpdate.add(i)
+        continue
+      }
+
+      for (let j = 0; j < pp.length; j++) {
+        if (compare(pp[j], cc[j]) !== 0) {
+          lineNumbersToUpdate.add(i)
+          continue
+        }
+      }
+    }
+
+    let res: Highlight[] = []
+    // const res: Map<number, Highlight[]> = new Map()
+    for (const line of lineNumbersToUpdate) {
+      // res.set(line, currByLine.get(line) || [])
+      res = res.concat(currByLine.get(line) || [])
+    }
+    return res
   }
 
   public async getHighlights(doc: Document): Promise<Highlight[]> {
