@@ -50,7 +50,7 @@ export class ImplementationFeature extends TextDocumentFeature<boolean | Impleme
         const client = this._client
         const provideImplementation: ProvideImplementationSignature = (document, position, token) => client.sendRequest(ImplementationRequest.type, cv.asTextDocumentPositionParams(document, position), token).then(
           res => res, error => {
-            return client.handleFailedRequest(ImplementationRequest.type, error, null)
+            return client.handleFailedRequest(ImplementationRequest.type, token, error, null)
           }
         )
         const middleware = client.clientOptions.middleware

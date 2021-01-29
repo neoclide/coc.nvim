@@ -5,7 +5,8 @@
 'use strict'
 
 import {
-  CallHierarchyClientCapabilities, CallHierarchyIncomingCall, CallHierarchyIncomingCallsRequest, CallHierarchyItem, CallHierarchyOptions, CallHierarchyOutgoingCall, CallHierarchyOutgoingCallsRequest, CallHierarchyPrepareRequest, CallHierarchyRegistrationOptions, CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, ServerCapabilities } from 'vscode-languageserver-protocol'
+  CallHierarchyClientCapabilities, CallHierarchyIncomingCall, CallHierarchyIncomingCallsRequest, CallHierarchyItem, CallHierarchyOptions, CallHierarchyOutgoingCall, CallHierarchyOutgoingCallsRequest, CallHierarchyPrepareRequest, CallHierarchyRegistrationOptions, CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, ServerCapabilities
+} from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { CallHierarchyProvider, ProviderResult } from '../provider'
@@ -70,7 +71,7 @@ export class CallHierarchyFeature extends TextDocumentFeature<boolean | CallHier
           return client.sendRequest(CallHierarchyPrepareRequest.type, params, token).then(
             res => res,
             error => {
-              return client.handleFailedRequest(CallHierarchyPrepareRequest.type, error, null)
+              return client.handleFailedRequest(CallHierarchyPrepareRequest.type, token, error, null)
             }
           )
         }
@@ -87,7 +88,7 @@ export class CallHierarchyFeature extends TextDocumentFeature<boolean | CallHier
           return client.sendRequest(CallHierarchyIncomingCallsRequest.type, { item }, token).then(
             res => res,
             error => {
-              return client.handleFailedRequest(CallHierarchyIncomingCallsRequest.type, error, null)
+              return client.handleFailedRequest(CallHierarchyIncomingCallsRequest.type, token, error, null)
             }
           )
         }
@@ -104,7 +105,7 @@ export class CallHierarchyFeature extends TextDocumentFeature<boolean | CallHier
           return client.sendRequest(CallHierarchyOutgoingCallsRequest.type, { item }, token).then(
             res => res,
             error => {
-              return client.handleFailedRequest(CallHierarchyOutgoingCallsRequest.type, error, null)
+              return client.handleFailedRequest(CallHierarchyOutgoingCallsRequest.type, token, error, null)
             }
           )
         }

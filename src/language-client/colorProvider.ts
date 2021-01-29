@@ -82,7 +82,7 @@ export class ColorProviderFeature extends TextDocumentFeature<
           return client.sendRequest(ColorPresentationRequest.type, requestParams, token).then(
             res => res,
             (error: any) => {
-              return client.handleFailedRequest(ColorPresentationRequest.type, error, null)
+              return client.handleFailedRequest(ColorPresentationRequest.type, token, error, null)
             }
           )
         }
@@ -100,7 +100,7 @@ export class ColorProviderFeature extends TextDocumentFeature<
           return client.sendRequest(DocumentColorRequest.type, requestParams, token).then(
             res => res,
             (error: any) => {
-              return client.handleFailedRequest(ColorPresentationRequest.type, error, null)
+              return client.handleFailedRequest(ColorPresentationRequest.type, token, error, null)
             }
           )
         }

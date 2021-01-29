@@ -60,7 +60,7 @@ export class TypeDefinitionFeature extends TextDocumentFeature<boolean | TypeDef
         const client = this._client
         const provideTypeDefinition: ProvideTypeDefinitionSignature = (document, position, token) => client.sendRequest(TypeDefinitionRequest.type, cv.asTextDocumentPositionParams(document, position), token).then(
           res => res, error => {
-            return client.handleFailedRequest(TypeDefinitionRequest.type, error, null)
+            return client.handleFailedRequest(TypeDefinitionRequest.type, token, error, null)
           }
         )
         const middleware = client.clientOptions.middleware
