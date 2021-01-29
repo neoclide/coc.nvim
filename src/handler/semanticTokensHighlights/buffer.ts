@@ -4,7 +4,6 @@ import { CancellationTokenSource, Range } from 'vscode-languageserver-protocol'
 import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
-import { equals } from '../../util/object'
 import workspace from '../../workspace'
 const logger = require('../../util/logger')('semanticTokens-buffer')
 
@@ -30,7 +29,6 @@ export interface Highlight {
 }
 
 export default class SemanticTokensBuffer implements SyncItem {
-  private _highlights: Highlight[] = []
   private tokenSource: CancellationTokenSource
   private version: number
   public highlight: Function & { clear(): void }
@@ -69,12 +67,17 @@ export default class SemanticTokensBuffer implements SyncItem {
     if (this.version && doc.version == this.version) return
 
     try {
+      const { nvim } = this
+      const srcId = await nvim.createNamespace('coc-semanticTokens')
+
       const curr = await this.getHighlights(doc)
       if (!curr) return
       const prev = await this.vimGetCurrentHighlights(doc)
-      const highlights = this.calculateHighlightUpdates(prev, curr)
-      if (equals(this._highlights, highlights)) return
-      this._highlights = highlights
+      const { highlights, lines } = this.calculateHighlightUpdates(prev, curr)
+      for (const ln of lines) {
+        this.buffer.clearHighlight({ srcId, lineStart: ln })
+      }
+      if (!highlights) return
 
       const groups: { [index: string]: Range[] } = {}
       for (const h of highlights) {
@@ -83,11 +86,9 @@ export default class SemanticTokensBuffer implements SyncItem {
         groups[h.group].push(range)
       }
 
-      const { nvim } = this
       nvim.pauseNotification()
-      this.buffer.clearNamespace('semanticTokens')
       for (const hlGroup of Object.keys(groups)) {
-        this.buffer.highlightRanges('semanticTokens', hlGroup, groups[hlGroup])
+        this.buffer.highlightRanges(srcId, hlGroup, groups[hlGroup])
       }
 
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -102,7 +103,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     return await this.nvim.call("coc#highlight#get_highlights", [doc.bufnr, 'semanticTokens'])
   }
 
-  private calculateHighlightUpdates(prev: Highlight[], curr: Highlight[]): Highlight[] {
+  private calculateHighlightUpdates(prev: Highlight[], curr: Highlight[]): { highlights: Highlight[], lines: Set<number> } {
     const stringCompare = Intl.Collator("en").compare
     function compare(a: Highlight, b: Highlight): number {
       return (
@@ -159,13 +160,11 @@ export default class SemanticTokensBuffer implements SyncItem {
       }
     }
 
-    let res: Highlight[] = []
-    // const res: Map<number, Highlight[]> = new Map()
+    let highlights: Highlight[] = []
     for (const line of lineNumbersToUpdate) {
-      // res.set(line, currByLine.get(line) || [])
-      res = res.concat(currByLine.get(line) || [])
+      highlights = highlights.concat(currByLine.get(line) || [])
     }
-    return res
+    return { highlights, lines: lineNumbersToUpdate }
   }
 
   public async getHighlights(doc: Document): Promise<Highlight[]> {
@@ -222,7 +221,6 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
   public clearHighlight(): void {
     this.highlight.clear()
-    this._highlights = []
     this.version = null
     this.buffer.clearNamespace('semanticTokens')
   }
