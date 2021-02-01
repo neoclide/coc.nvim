@@ -31,6 +31,7 @@ export interface Highlight {
 export default class SemanticTokensBuffer implements SyncItem {
   private tokenSource: CancellationTokenSource
   private version: number
+  private namespace = 'semanticTokens'
   public highlight: Function & { clear(): void }
   constructor(
     private nvim: Neovim,
@@ -68,14 +69,13 @@ export default class SemanticTokensBuffer implements SyncItem {
 
     try {
       const { nvim } = this
-      const srcId = await nvim.createNamespace('coc-semanticTokens')
 
       const curr = await this.getHighlights(doc)
       if (!curr || curr.length === 0) return
       const prev = await this.vimGetCurrentHighlights(doc)
       const { highlights, lines } = this.calculateHighlightUpdates(prev, curr)
       for (const ln of lines) {
-        this.buffer.clearHighlight({ srcId, lineStart: ln, lineEnd: ln + 1 })
+        this.buffer.clearNamespace(this.namespace, ln, ln +1)
       }
       if (!highlights) return
 
@@ -88,7 +88,7 @@ export default class SemanticTokensBuffer implements SyncItem {
 
       nvim.pauseNotification()
       for (const hlGroup of Object.keys(groups)) {
-        this.buffer.highlightRanges(srcId, hlGroup, groups[hlGroup])
+        this.buffer.highlightRanges(this.namespace, hlGroup, groups[hlGroup])
       }
 
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -100,7 +100,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   private async vimGetCurrentHighlights(doc: Document): Promise<Highlight[]> {
-    return await this.nvim.call("coc#highlight#get_highlights", [doc.bufnr, 'semanticTokens'])
+    return await this.nvim.call("coc#highlight#get_highlights", [doc.bufnr, this.namespace])
   }
 
   private calculateHighlightUpdates(prev: Highlight[], curr: Highlight[]): { highlights: Highlight[], lines: Set<number> } {
@@ -222,7 +222,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   public clearHighlight(): void {
     this.highlight.clear()
     this.version = null
-    this.buffer.clearNamespace('semanticTokens')
+    this.buffer.clearNamespace(this.namespace)
   }
 
   public cancel(): void {
