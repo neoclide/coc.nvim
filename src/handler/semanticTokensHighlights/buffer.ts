@@ -71,11 +71,11 @@ export default class SemanticTokensBuffer implements SyncItem {
       const srcId = await nvim.createNamespace('coc-semanticTokens')
 
       const curr = await this.getHighlights(doc)
-      if (!curr) return
+      if (!curr || curr.length === 0) return
       const prev = await this.vimGetCurrentHighlights(doc)
       const { highlights, lines } = this.calculateHighlightUpdates(prev, curr)
       for (const ln of lines) {
-        this.buffer.clearHighlight({ srcId, lineStart: ln })
+        this.buffer.clearHighlight({ srcId, lineStart: ln, lineEnd: ln + 1 })
       }
       if (!highlights) return
 
