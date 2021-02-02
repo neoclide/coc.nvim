@@ -75,7 +75,7 @@ export default class SemanticTokensBuffer implements SyncItem {
       const prev = await this.vimGetCurrentHighlights(doc)
       const { highlights, lines } = this.calculateHighlightUpdates(prev, curr)
       for (const ln of lines) {
-        this.buffer.clearNamespace(this.namespace, ln, ln +1)
+        this.buffer.clearNamespace(this.namespace, ln, ln + 1)
       }
       if (!highlights) return
 
