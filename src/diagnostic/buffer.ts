@@ -182,7 +182,7 @@ export class DiagnosticBuffer implements BufferSyncItem {
       })
     }
     buffer.clearNamespace(srcId)
-    for (let diagnostic of diagnostics) {
+    for (let diagnostic of [...diagnostics].reverse()) {
       let { line } = diagnostic.range.start
       let highlight = getNameFromSeverity(diagnostic.severity) + 'VirtualText'
       let msg = diagnostic.message.split(/\n/)
