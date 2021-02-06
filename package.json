@@ -71,7 +71,7 @@
     "bser": "^2.1.1",
     "chokidar": "^3.4.3",
     "colors": "^1.4.0",
-    "esbuild": "^0.8.26",
+    "esbuild": "^0.8.39",
     "eslint": "^7.15.0",
     "eslint-plugin-jest": "^24.1.3",
     "eslint-plugin-jsdoc": "^30.7.13",
