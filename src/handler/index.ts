@@ -448,6 +448,10 @@ export default class Handler {
     let codeActions = await this.getCodeActions(doc, range, Array.isArray(only) ? only : null)
     if (only && typeof only == 'string') {
       codeActions = codeActions.filter(o => o.title == only || (o.command && o.command.title == only))
+      if (codeActions.length == 1) {
+        await this.applyCodeAction(codeActions[0])
+        return
+      }
     }
     if (!codeActions || codeActions.length == 0) {
       window.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning')
