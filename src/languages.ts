@@ -734,8 +734,7 @@ class Languages {
       }
     }
     if (item.preselect) obj.preselect = true
-    item.data = item.data || {}
-    if (item.data.optional) obj.abbr = obj.abbr + '?'
+    if (item.data?.optional) obj.abbr = obj.abbr + '?'
     return obj
   }
 }
