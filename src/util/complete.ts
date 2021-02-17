@@ -25,7 +25,7 @@ export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsert
       let { line, col, colnr } = opt
       let character = characterIndex(line, col)
       if (range.start.character > character) {
-        let before = line.slice(character - range.start.character)
+        let before = line.slice(character, range.start.character)
         newText = before + newText
       } else {
         let start = line.slice(range.start.character, character)
