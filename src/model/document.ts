@@ -291,6 +291,8 @@ export default class Document {
     let textDocument = TextDocument.create(this.uri, this.filetype, 1, current)
     // apply edits to current textDocument
     let applied = TextDocument.applyEdits(textDocument, edits)
+    // avoid \r\n on Windows platform
+    applied = applied.replace(/\r\n/g, '\n')
     // could be equal sometimes
     if (current !== applied) {
       let newLines = (this.eol && applied.endsWith('\n') ? applied.slice(0, -1) : applied).split('\n')
