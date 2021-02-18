@@ -9,6 +9,7 @@ import { diffLines, getChange } from '../util/diff'
 import { disposeAll, getUri, wait } from '../util/index'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
+import { isWindows } from '../util/platform'
 import { byteLength, byteSlice } from '../util/string'
 import { Chars } from './chars'
 import { LinesTextDoucment } from './textdocument'
@@ -291,6 +292,10 @@ export default class Document {
     let textDocument = TextDocument.create(this.uri, this.filetype, 1, current)
     // apply edits to current textDocument
     let applied = TextDocument.applyEdits(textDocument, edits)
+    if (isWindows) {
+      // avoid \r\n on Windows platform
+      applied = applied.replace(/\r\n/g, '\n')
+    }
     // could be equal sometimes
     if (current !== applied) {
       let newLines = (this.eol && applied.endsWith('\n') ? applied.slice(0, -1) : applied).split('\n')
