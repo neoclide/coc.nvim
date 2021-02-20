@@ -56,14 +56,14 @@ export default class CodeActionManager extends Manager<CodeActionProvider> imple
           } else {
             if (context.only) {
               if (!action.kind) continue
-              let { only } = context
-              if (intersect(only, [CodeActionKind.Source, CodeActionKind.Refactor])) {
-                if (!only.includes(action.kind.split('.', 2)[0])) {
-                  continue
+              let found = false
+              for (let only of context.only) {
+                if (action.kind.startsWith(only)) {
+                  found = true
+                  break
                 }
-              } else if (!context.only.includes(action.kind)) {
-                continue
               }
+              if (!found) continue
             }
             let idx = res.findIndex(o => o.title == action.title)
             if (idx == -1) res.push(Object.assign({ clientId }, action))
