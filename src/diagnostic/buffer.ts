@@ -1,8 +1,9 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-protocol'
+import { Diagnostic, DiagnosticSeverity, Position, Range } from 'vscode-languageserver-protocol'
 import { BufferSyncItem, DiagnosticConfig, LocationListItem } from '../types'
 import { equals } from '../util/object'
+import { lineInRange, positionInRange } from '../util/position'
 import { getLocationListItem, getNameFromSeverity, getSeverityType } from './util'
 const logger = require('../util/logger')('diagnostic-buffer')
 const signGroup = 'CocDiagnostic'
@@ -249,6 +250,20 @@ export class DiagnosticBuffer implements BufferSyncItem {
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       nvim.resumeNotification(false, true)
     }
+  }
+
+  /**
+   * Get diagnostics at cursor position.
+   */
+  public getDiagnosticsAt(pos: Position, checkCurrentLine: boolean): Diagnostic[] {
+    let diagnostics = this.diagnostics.slice()
+    if (checkCurrentLine) {
+      diagnostics = diagnostics.filter(o => lineInRange(pos.line, o.range))
+    } else {
+      diagnostics = diagnostics.filter(o => positionInRange(pos, o.range) == 0)
+    }
+    diagnostics.sort((a, b) => a.severity - b.severity)
+    return diagnostics
   }
 
   public dispose(): void {

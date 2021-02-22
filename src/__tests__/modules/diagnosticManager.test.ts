@@ -261,6 +261,7 @@ describe('diagnostic manager', () => {
     let diagnostic = Diagnostic.create(Range.create(0, 3, 1, 0), 'error', DiagnosticSeverity.Error)
     let collection = manager.create('empty')
     collection.set(doc.uri, [diagnostic])
+    manager.refreshBuffer(doc.bufnr, true)
     let diagnostics = await manager.getCurrentDiagnostics()
     expect(diagnostics.length).toBeGreaterThanOrEqual(1)
     expect(diagnostics[0].message).toBe('error')

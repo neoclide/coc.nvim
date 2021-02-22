@@ -9,7 +9,7 @@ import BufferSync from '../model/bufferSync'
 import FloatFactory from '../model/floatFactory'
 import { ConfigurationChangeEvent, DiagnosticConfig, DiagnosticEventParams, DiagnosticItem, Documentation, LocationListItem } from '../types'
 import { disposeAll } from '../util'
-import { comparePosition, lineInRange, positionInRange, rangeIntersect } from '../util/position'
+import { comparePosition, rangeIntersect } from '../util/position'
 import window from '../window'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
@@ -261,8 +261,6 @@ export class DiagnosticManager implements Disposable {
       lines.push(...message.split(/\r?\n/))
       lines.push('')
     }
-    lines = lines.slice(0, -1)
-    // let content = lines.join('\n').trim()
     nvim.call('coc#util#preview_info', [lines, 'txt'], true)
   }
 
@@ -379,18 +377,10 @@ export class DiagnosticManager implements Disposable {
   }
 
   private getDiagnosticsAt(bufnr: number, cursor: [number, number]): Diagnostic[] {
-    let pos = Position.create(cursor[0], cursor[1])
     let buffer = this.buffers.getItem(bufnr)
     if (!buffer) return []
-    let diagnostics = this.getDiagnostics(buffer.uri)
-    let { checkCurrentLine } = this.config
-    if (checkCurrentLine) {
-      diagnostics = diagnostics.filter(o => lineInRange(pos.line, o.range))
-    } else {
-      diagnostics = diagnostics.filter(o => positionInRange(pos, o.range) == 0)
-    }
-    diagnostics.sort((a, b) => a.severity - b.severity)
-    return diagnostics
+    let pos = Position.create(cursor[0], cursor[1])
+    return buffer.getDiagnosticsAt(pos, this.config.checkCurrentLine)
   }
 
   public async getCurrentDiagnostics(): Promise<Diagnostic[]> {
