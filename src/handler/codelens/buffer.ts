@@ -63,7 +63,8 @@ export default class CodeLensBuffer implements BufferSyncItem {
     if (!this.config.enabled || !this.hasProvider) return
     let { textDocument } = this
     let version = textDocument.version
-    if (this.codeLenses && version == this.codeLenses.version) {
+    // refetch codeLens since empty codeLens could means error response.
+    if (this.codeLenses && this.codeLenses.codeLenses.length > 0 && version == this.codeLenses.version) {
       let res = await this._resolveCodeLenses(true)
       if (!res) this.clear()
       return
@@ -74,9 +75,9 @@ export default class CodeLensBuffer implements BufferSyncItem {
     let codeLenses = await languages.getCodeLens(textDocument, token)
     this.tokenSource = undefined
     if (token.isCancellationRequested) return
+    this.resolveCodeLens.clear()
     if (Array.isArray(codeLenses)) {
       this.codeLenses = { version, codeLenses }
-      this.resolveCodeLens.clear()
       let res = await this._resolveCodeLenses(true)
       if (!res) this.clear()
     }
