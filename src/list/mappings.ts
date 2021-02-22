@@ -321,11 +321,11 @@ export default class Mappings {
     await this.manager.feedkeys(key)
   }
 
-  private async scrollPreview(dir: 'up' | 'down'): Promise<void> {
+  private scrollPreview(dir: 'up' | 'down'): void {
     let { nvim } = this
     nvim.pauseNotification()
-    nvim.call('coc#util#scroll_preview', [dir], true)
+    nvim.call('coc#list#scroll_preview', [dir], true)
     nvim.command('redraw', true)
-    await nvim.resumeNotification()
+    void nvim.resumeNotification(false, true)
   }
 }
