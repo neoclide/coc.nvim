@@ -88,6 +88,7 @@ function! s:start() dict
     else
       let $NODE_NO_WARNINGS = 1
       let $COC_NO_WARNINGS = disable_warning
+      let $TMPDIR = tmpdir
     endif
     let chan_id = jobstart(self.command, {
           \ 'rpc': 1,
