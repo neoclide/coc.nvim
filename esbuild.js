@@ -9,42 +9,6 @@ try {
   // ignore
 }
 
-let entryPlugin = {
-  name: 'entry',
-  setup(build) {
-    build.onResolve({filter: /^index.ts$/}, args => {
-      return {
-        path: args.path,
-        namespace: 'entry-ns'
-      }
-    })
-    build.onLoad({filter: /.*/, namespace: 'entry-ns'}, () => {
-      let contents = `
-let version = process.version.replace('v', '')
-let parts = version.split('.')
-function greatThanOrEqual(nums, major, minor) {
-  if (nums[0] > major) return true
-  if (nums[0] == major && nums[1] >= minor) return true
-  return false
-}
-let numbers = parts.map(function (s) {
-  return parseInt(s, 10)
-})
-if (!greatThanOrEqual(numbers, 10, 12)) {
-  console.error('node version ' + version + ' < 8.10.0, please upgrade nodejs, or use \`let g:coc_node_path = "/path/to/node"\` in your vimrc')
-  process.exit()
-}
-      require('./src/main')
-      `
-      return {
-        contents,
-        resolveDir: __dirname
-      }
-    })
-  }
-}
-
-// replace require.main with empty string
 let envPlugin = {
   name: 'env',
   setup(build) {
@@ -67,7 +31,7 @@ let envPlugin = {
 
 async function start(watch) {
   await require('esbuild').build({
-    entryPoints: ['index.ts'],
+    entryPoints: ['src/main.ts'],
     bundle: true,
     watch,
     minify: process.env.NODE_ENV === 'production',
@@ -77,22 +41,22 @@ async function start(watch) {
     platform: 'node',
     target: 'node10.12',
     outfile: 'build/index.js',
-    plugins: [entryPlugin, envPlugin]
+    plugins: [envPlugin]
   })
 }
 
 let watch = false
 if (process.argv.length > 2 && process.argv[2] === '--watch') {
-  console.log('watching...');
+  console.log('watching...')
   watch = {
     onRebuild(error) {
       if (error) {
-        console.error('watch build failed:', error);
+        console.error('watch build failed:', error)
       } else {
-        console.log('watch build succeeded');
+        console.log('watch build succeeded')
       }
     },
-  };
+  }
 }
 
 start(watch).catch(e => {
