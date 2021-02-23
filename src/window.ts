@@ -15,6 +15,7 @@ import StatusLine from './model/status'
 import { DialogConfig, DialogPreferences, MessageItem, MessageLevel, MsgTypes, NotificationConfig, NotificationPreferences, OpenTerminalOption, OutputChannel, Progress, ProgressOptions, QuickPickItem, ScreenPosition, StatusBarItem, StatusItemOption, TerminalResult } from './types'
 import { CONFIG_FILE_NAME, disposeAll } from './util'
 import { Mutex } from './util/mutex'
+import { isWindows } from './util/platform'
 import workspace from './workspace'
 const logger = require('./util/logger')('window')
 
@@ -200,7 +201,7 @@ class Window {
   public async requestInput(title: string, defaultValue?: string): Promise<string> {
     let { nvim } = this
     const preferences = workspace.getConfiguration('coc.preferences')
-    if (workspace.env.dialog && preferences.get<boolean>('promptInput', true)) {
+    if (workspace.env.dialog && preferences.get<boolean>('promptInput', true) && !isWindows) {
       let release = await this.mutex.acquire()
       let preferences = this.dialogPreference
       try {
