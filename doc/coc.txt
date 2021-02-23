@@ -791,7 +791,8 @@ Built-in configurations:~
 "coc.preferences.bracketEnterImprove":~
 
 	Improve handling of pressing enter inside brackets (`<> {} [] ()`) by
-	adding a new empty line below and moving the cursor to it.
+	create a new empty line in the middle, the indent is calculated by vim,
+	checkout |indentexpr| for details.
 
 	Works with |coc#on_enter()|, default: `true`
 

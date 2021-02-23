@@ -82,16 +82,18 @@ export default class FormatHandler {
             let opts = await workspace.getFormatOptions(doc.uri)
             let space = opts.insertSpaces ? ' '.repeat(opts.tabSize) : '\t'
             let currIndent = curr.match(/^\s*/)[0]
-            let newText = '\n' + currIndent + space
             let pos: Position = Position.create(line - 1, pre.length)
             // make sure indent of current line
             if (doc.filetype == 'vim') {
+              let newText = '\n' + currIndent + space
               edits.push({ range: Range.create(line, currIndent.length, line, currIndent.length), newText: '  \\ ' })
               newText = newText + '\\ '
+              edits.push({ range: Range.create(pos, pos), newText })
+              await doc.applyEdits(edits)
+              await window.moveTo(Position.create(line, newText.length - 1))
+            } else {
+              await nvim.eval(`feedkeys("\\<Esc>O", 'in')`)
             }
-            edits.push({ range: Range.create(pos, pos), newText })
-            await doc.applyEdits(edits)
-            await window.moveTo(Position.create(line, newText.length - 1))
           }
         }
       }
