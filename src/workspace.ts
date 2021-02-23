@@ -1103,7 +1103,7 @@ export class Workspace implements IWorkspace {
           let { buffer } = doc
           let tokenSource = new CancellationTokenSource()
           let content = await Promise.resolve(provider.provideTextDocumentContent(uri, tokenSource.token))
-          await buffer.setLines(content.split('\n'), {
+          await buffer.setLines(content.split(/\r?\n/), {
             start: 0,
             end: -1,
             strictIndexing: false
@@ -1270,7 +1270,7 @@ augroup end`
     let tokenSource = new CancellationTokenSource()
     let content = await Promise.resolve(provider.provideTextDocumentContent(URI.parse(uri), tokenSource.token))
     let buf = await this.nvim.buffer
-    await buf.setLines(content.split('\n'), {
+    await buf.setLines(content.split(/\r?\n/), {
       start: 0,
       end: -1,
       strictIndexing: false
