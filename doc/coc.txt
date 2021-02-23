@@ -1957,6 +1957,21 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Get a list of symbols of current buffer or specific {bufnr}.
 
+"ensureDocument" 					*coc-action-ensureDocument*
+
+	Ensure current document is attached to coc.nvim, should be used when
+	you need invoke action of current document just after document
+	created.
+
+	Return `v:false` when the document can't be attached, the document
+	won't be attached for one of these reasons:
+
+	1. The 'buftype' option is neither <empty> nor acwrite.
+	2. Buffer variable `b:coc_enabled` is set to `0`.
+	3. Size of buffer bigger than `coc.preferences.maxFileSize`
+	configuration.
+	4. The buffer is used for command line window.
+
 "rename"						*coc-action-rename*
 
 	Rename the symbol under the cursor position, user will be prompted for

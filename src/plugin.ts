@@ -273,6 +273,10 @@ export default class Plugin extends EventEmitter {
       if (!bufnr) bufnr = await nvim.call('bufnr', ['%'])
       return await this.handler.getDocumentSymbols(bufnr)
     })
+    this.addAction('ensureDocument', async () => {
+      let doc = await workspace.document
+      return doc && doc.attached
+    })
     this.addAction('symbolRanges', () => {
       return this.handler.getSymbolsRanges()
     })
