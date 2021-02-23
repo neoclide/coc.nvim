@@ -19,7 +19,7 @@ import { disposeAll, wait, concurrent, watchFile } from './util'
 import { distinct, splitArray } from './util/array'
 import './util/extensions'
 import { createExtension, ExtensionExport } from './util/factory'
-import { inDirectory, readFile } from './util/fs'
+import { inDirectory, readFile, statAsync } from './util/fs'
 import { objectLiteral } from './util/is'
 import Watchman from './watchman'
 import workspace from './workspace'
@@ -498,11 +498,26 @@ export class Extensions {
    */
   public async loadExtensionFile(filepath: string): Promise<void> {
     let filename = path.basename(filepath)
-    let name = 'single-' + path.basename(filepath, '.js')
+    let basename = path.basename(filepath, '.js')
+    let name = 'single-' + basename
     if (this.isDisabled(name)) return
     let root = path.dirname(filepath)
     let packageJSON = {
       name, main: filename, engines: { coc: '^0.0.79' }
+    }
+    let confpath = path.join(root, basename + '.json')
+    let stat = await statAsync(confpath)
+    if (stat && stat.isFile()) {
+      let content = await readFile(confpath, 'utf8')
+      let obj = JSON.parse(content)
+      if (obj) {
+        let attrs = ['activationEvents', 'contributes']
+        for (const attr of attrs) {
+          if (obj[attr]) {
+            packageJSON[attr] = obj[attr]
+          }
+        }
+      }
     }
     await this.unloadExtension(name)
     this.createExtension(root, packageJSON, ExtensionType.SingleFile)
