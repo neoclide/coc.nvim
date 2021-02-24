@@ -30,7 +30,7 @@ export default class DefinitionManager extends Manager<DefinitionProvider> imple
       let { provider } = item
       return Promise.resolve(provider.provideDefinition(document, position, token))
     }))
-    return this.mergeDefinitions(arr)
+    return this.toLocations(arr)
   }
 
   public dispose(): void {

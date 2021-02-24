@@ -30,7 +30,7 @@ export default class ReferenceManager extends Manager<ReferenceProvider> impleme
       let { provider } = item
       return Promise.resolve(provider.provideReferences(document, position, context, token))
     }))
-    return this.mergeDefinitions(arr)
+    return this.toLocations(arr)
   }
 
   public dispose(): void {
