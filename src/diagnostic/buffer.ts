@@ -8,6 +8,11 @@ import { getLocationListItem, getNameFromSeverity, getSeverityType } from './uti
 const logger = require('../util/logger')('diagnostic-buffer')
 const signGroup = 'CocDiagnostic'
 
+const ErrorSymbol = Symbol('CocError')
+const WarningSymbol = Symbol('CocWarning')
+const InformationSymbol = Symbol('CocInformation')
+const HintSymbol = Symbol('CocHint')
+
 /**
  * Manage diagnostics of buffer, including:
  *
@@ -132,10 +137,18 @@ export class DiagnosticBuffer implements BufferSyncItem {
     if (!this.config.enableSign) return
     this.clearSigns()
     let { nvim, bufnr } = this
+    let signsMap: Map<number, Symbol[]> = new Map()
     for (let diagnostic of diagnostics) {
       let { range, severity } = diagnostic
       let line = range.start.line
       let name = getNameFromSeverity(severity)
+      let exists = signsMap.get(line) || []
+      let s = getSymbol(severity)
+      if (exists.includes(s)) {
+        continue
+      }
+      exists.push(s)
+      signsMap.set(line, exists)
       nvim.call('sign_place', [0, signGroup, name, bufnr, { lnum: line + 1, priority: 14 - (severity || 0) }], true)
     }
   }
@@ -278,4 +291,17 @@ function getCollections(diagnostics: ReadonlyArray<Diagnostic & { collection: st
     res.add(o.collection)
   })
   return res
+}
+
+function getSymbol(severity: DiagnosticSeverity): Symbol {
+  if (severity == DiagnosticSeverity.Error) {
+    return ErrorSymbol
+  }
+  if (severity == DiagnosticSeverity.Warning) {
+    return WarningSymbol
+  }
+  if (severity == DiagnosticSeverity.Information) {
+    return InformationSymbol
+  }
+  return HintSymbol
 }
