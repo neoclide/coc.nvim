@@ -622,11 +622,15 @@ export class Workspace implements IWorkspace {
    */
   public async getSelectedRange(mode: string, document: Document): Promise<Range | null> {
     let { nvim } = this
-    if (mode == 'n') {
+    if (mode === 'line') {
       let line = await nvim.call('line', ['.'])
       let content = document.getline(line - 1)
       if (!content.length) return null
       return Range.create(line - 1, 0, line - 1, content.length)
+    }
+    if (mode === 'cursor') {
+      let [line, character] = await nvim.eval("coc#util#cursor()") as [number, number]
+      return Range.create(line, character, line, character)
     }
     if (!['v', 'V', 'char', 'line', '\x16'].includes(mode)) {
       throw new Error(`Mode '${mode}' not supported`)

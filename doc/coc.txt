@@ -1,6 +1,6 @@
 *coc-nvim.txt*				LSP support for Vim & Neovim.
 
-Version: 0.0.79
+Version: 0.0.80
 Author: Qiming Zhao <chemzqm at gmail.com>
 License: MIT license
 
@@ -17,7 +17,7 @@ Interface					|coc-interface|
   Functions						|coc-functions|
   Commands						|coc-commands|
   Autocmds						|coc-autocmds|
-  Highlights					|coc-highlights|
+  Highlights						|coc-highlights|
 List						|coc-list|
   List command					|coc-list-command|
   List command options 				|coc-list-options|
@@ -1124,11 +1124,16 @@ normal mode, `v_` works for visual mode.
 
 <Plug>(coc-codeaction)					*n_coc-codeaction*
 
-	Get and run code action(s) for current file.
+	Get and run code action(s) for current file, use |coc-codeaction-cursor|
+	for same beharior as VSCode.
 
 <Plug>(coc-codeaction-line)				*n_coc-codeaction-line*
 
 	Get and run code action(s) for current line.
+
+<Plug>(coc-codeaction-cursor)				*n_coc-codeaction-cursor*
+
+	Get and run code action(s) using empty range at current cursor.
 
 <Plug>(coc-codeaction-selected)				*n_coc-codeaction-selected*
 							*v_coc-codeaction-selected*
@@ -2010,8 +2015,8 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Prompt for a code action and do it.
 
-	{mode} should be result of visualmode(), when used in visualmode,
-	could be empty string or v:null for none visualmode.
+	{mode} could be `line` or `cursor` or result of |visualmode()|,
+	current buffer range is used when it's empty string.
 
 	{only} can be title of a codeAction or list of CodeActionKind.
 
