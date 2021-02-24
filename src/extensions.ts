@@ -733,6 +733,7 @@ export class Extensions {
           }
         }, null, disposables)
       } else if (ev == 'onCommand') {
+        commandManager.onCommandList.push(parts[1])
         events.on('Command', async command => {
           if (command == parts[1]) {
             await active()
