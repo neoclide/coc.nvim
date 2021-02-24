@@ -29,7 +29,7 @@ export default class ImplementationManager extends Manager<ImplementationProvide
       let { provider } = item
       return Promise.resolve(provider.provideImplementation(document, position, token))
     }))
-    return this.mergeDefinitions(arr)
+    return this.toLocations(arr)
   }
 
   public dispose(): void {

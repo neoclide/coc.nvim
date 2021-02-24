@@ -29,7 +29,7 @@ export default class TypeDefinitionManager extends Manager<TypeDefinitionProvide
       let { provider } = item
       return Promise.resolve(provider.provideTypeDefinition(document, position, token))
     }))
-    return this.mergeDefinitions(arr)
+    return this.toLocations(arr)
   }
 
   public dispose(): void {
