@@ -46,30 +46,19 @@ export default class Manager<T> {
     return items.sort((a, b) => workspace.match(b.selector, document) - workspace.match(a.selector, document))
   }
 
-  protected mergeDefinitions(arr: (Definition | LocationLink[])[]): Location[] {
+  protected toLocations(arr: (Definition | LocationLink[])[]): Location[] {
     let res: Location[] = []
     for (let def of arr) {
       if (!def) continue
       if (Location.is(def)) {
-        let { uri, range } = def
-        let idx = res.findIndex(l => l.uri == uri && l.range.start.line == range.start.line)
-        if (idx == -1) {
-          res.push(def)
-        }
+        res.push(def)
       } else if (Array.isArray(def)) {
         for (let d of def) {
           if (Location.is(d)) {
-            let { uri, range } = d
-            let idx = res.findIndex(l => l.uri == uri && l.range.start.line == range.start.line)
-            if (idx == -1) {
-              res.push(d)
-            }
+            res.push(d)
           } else if (LocationLink.is(d)) {
             let { targetUri, targetSelectionRange } = d
-            let idx = res.findIndex(l => l.uri === targetUri && l.range.start.line === targetSelectionRange.start.line)
-            if (idx === -1) {
-              res.push(Location.create(targetUri, targetSelectionRange))
-            }
+            res.push(Location.create(targetUri, targetSelectionRange))
           }
         }
       } else {
