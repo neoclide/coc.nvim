@@ -837,6 +837,11 @@ Built-in configurations:~
 	Not open split window with update status when performing auto update.
 
 						*coc-config-cursors*
+
+"coc.preferences.willSaveHandlerTimeout"~
+
+	Will save handler timeout, default: `500`
+
 "cursors.cancelKey":~
 
 	Key used for cancel cursors session, default: `<esc>`
