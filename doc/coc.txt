@@ -2632,7 +2632,9 @@ CocMenuSel						*CocMenuSel*
 
   Default: `hi default link CocMenuSel PmenuSel`
 
-  The highlight used for selected menu item, works on neovim only.
+  The highlight used for current menu item in menu dialog,
+  works on neovim only since vim doesn't support change highlight
+  group of cursorline inside popup.
 
 CocListMode						*CocListMode*
 
