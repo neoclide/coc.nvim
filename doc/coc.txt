@@ -879,7 +879,7 @@ Built-in configurations:~
 	- "env": Environment variables for child process.
 
 	- "settings": Settings for languageserver, received on server
-	  initialiation.
+	  initialization.
 
 	- "trace.server": Trace level of communication between server and
 	  client that showed with output channel.
