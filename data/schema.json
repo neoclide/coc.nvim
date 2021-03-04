@@ -456,7 +456,7 @@
       "type": "string",
       "description": "Default sorting behavior for suggested completion items.",
       "default": "length",
-      "enum": ["length", "alphabetical"]
+      "enum": ["length", "alphabetical", "none"]
     },
     "suggest.completionItemKindLabels": {
       "type": "object",
