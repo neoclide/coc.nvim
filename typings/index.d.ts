@@ -1092,6 +1092,8 @@ declare module 'coc.nvim' {
      * Is undefined if `triggerKind !== CompletionTriggerKind.TriggerCharacter`
      */
     triggerCharacter?: string
+
+    option?: CompleteOption
   }
 
   /**
