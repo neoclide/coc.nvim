@@ -253,6 +253,8 @@ export default class Complete {
       }
       // Default sort method
       switch (this.config.defaultSortMethod) {
+        case 'none':
+          return 0
         case 'alphabetical':
           return a.filterText.localeCompare(b.filterText)
         case 'length':
