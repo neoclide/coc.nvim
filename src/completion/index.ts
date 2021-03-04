@@ -451,7 +451,6 @@ export class Completion implements Disposable {
   }
 
   public shouldTrigger(document: Document, pre: string): boolean {
-    if (pre.length == 0 || /\s/.test(pre[pre.length - 1])) return false
     let autoTrigger = this.config.autoTrigger
     if (autoTrigger == 'none') return false
     if (sources.shouldTrigger(pre, document.filetype)) return true
