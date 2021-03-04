@@ -2992,6 +2992,7 @@ class ExecuteCommandFeature
       }
       return client.sendRequest(ExecuteCommandRequest.type, params).then(undefined, (error) => {
         client.logFailedRequest(ExecuteCommandRequest.type, error)
+        throw error
       })
     }
     if (data.registerOptions.commands) {
