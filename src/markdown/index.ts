@@ -140,7 +140,7 @@ export function parseMarkdown(content: string): DocumentInfo {
       }
       continue
     }
-    if (/\s*```\s*(\w+)?$/.test(line)) {
+    if (/\s*```\s*([A-Za-z0-9_,]+)?$/.test(line)) {
       let pre = lines[lines.length - 1]
       if (!inCodeBlock) {
         inCodeBlock = true
