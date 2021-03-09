@@ -115,7 +115,7 @@ function! coc#highlight#highlight_lines(winid, blocks) abort
       call s:execute(a:winid, 'syntax region '.hlGroup.' start=/\%'.start.'l/ end=/\%'.end.'l/')
     else
       let filetype = matchstr(filetype, '\v^\w+')
-      if empty(filetype) || index(get(g:, 'coc_markdown_disabled_languages', []), filetype) != -1
+      if empty(filetype) || filetype == 'txt' || index(get(g:, 'coc_markdown_disabled_languages', []), filetype) != -1
         continue
       endif
       if index(defined, filetype) == -1
