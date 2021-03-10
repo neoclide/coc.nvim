@@ -40,6 +40,7 @@ class CommandItem implements Disposable, Command {
 export class CommandManager implements Disposable {
   private readonly commands = new Map<string, CommandItem>()
   public titles = new Map<string, string>()
+  public onCommandList: string[] = []
   private mru: Mru
 
   public init(nvim: Neovim, plugin: Plugin): void {
@@ -345,14 +346,8 @@ export class CommandManager implements Disposable {
    */
   public executeCommand(command: string, ...rest: any[]): Promise<any> {
     let cmd = this.commands.get(command)
-    if (!cmd) {
-      window.showMessage(`Command: ${command} not found`, 'error')
-      return
-    }
-    return Promise.resolve(cmd.execute.apply(cmd, rest)).catch(e => {
-      window.showMessage(`Command error: ${e.message}`, 'error')
-      logger.error(e.stack)
-    })
+    if (!cmd) throw new Error(`Command: ${command} not found`)
+    return Promise.resolve(cmd.execute.apply(cmd, rest))
   }
 
   public async addRecent(cmd: string): Promise<void> {

@@ -18,7 +18,7 @@ export default class BufferChannel implements OutputChannel {
   private _append(value: string): void {
     let { nvim } = this
     let idx = this.lines.length - 1
-    let newlines = value.split('\n')
+    let newlines = value.split(/\r?\n/)
     let lastline = this.lines[idx] + newlines[0]
     this.lines[idx] = lastline
     let append = newlines.slice(1)

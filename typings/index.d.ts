@@ -159,6 +159,21 @@ declare module 'coc.nvim' {
     uri: string
   }
 
+  /**
+   * A parameter literal used in requests to pass a text document and a position inside that
+   * document.
+   */
+  export interface TextDocumentPositionParams {
+    /**
+     * The text document.
+     */
+    textDocument: TextDocumentIdentifier;
+    /**
+     * The position inside the text document.
+     */
+    position: Position;
+  }
+
   export interface WorkspaceFolder {
     /**
      * The associated URI for this workspace folder.
@@ -1092,6 +1107,8 @@ declare module 'coc.nvim' {
      * Is undefined if `triggerKind !== CompletionTriggerKind.TriggerCharacter`
      */
     triggerCharacter?: string
+
+    option?: CompleteOption
   }
 
   /**

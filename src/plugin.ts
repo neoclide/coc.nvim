@@ -171,7 +171,7 @@ export default class Plugin extends EventEmitter {
       channel.appendLine('## versions')
       channel.appendLine('')
       let out = await this.nvim.call('execute', ['version']) as string
-      let first = out.trim().split('\n', 2)[0].replace(/\(.*\)/, '').trim()
+      let first = out.trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, '').trim()
       channel.appendLine('vim version: ' + first + `${workspace.isVim ? ' ' + workspace.env.version : ''}`)
       channel.appendLine('node version: ' + process.version)
       channel.appendLine('coc.nvim version: ' + this.version)
@@ -272,6 +272,10 @@ export default class Plugin extends EventEmitter {
     this.addAction('documentSymbols', async (bufnr?: number) => {
       if (!bufnr) bufnr = await nvim.call('bufnr', ['%'])
       return await this.handler.getDocumentSymbols(bufnr)
+    })
+    this.addAction('ensureDocument', async () => {
+      let doc = await workspace.document
+      return doc && doc.attached
     })
     this.addAction('symbolRanges', () => {
       return this.handler.getSymbolsRanges()

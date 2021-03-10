@@ -482,7 +482,7 @@ export default class Handler {
    * Invoke preferred quickfix at current position, return false when failed
    */
   public async doQuickfix(): Promise<boolean> {
-    let actions = await this.getCurrentCodeActions('n', [CodeActionKind.QuickFix])
+    let actions = await this.getCurrentCodeActions('line', [CodeActionKind.QuickFix])
     if (!actions || actions.length == 0) {
       window.showMessage('No quickfix action available', 'warning')
       return false

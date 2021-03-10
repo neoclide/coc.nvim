@@ -1,6 +1,6 @@
 *coc-nvim.txt*				LSP support for Vim & Neovim.
 
-Version: 0.0.79
+Version: 0.0.80
 Author: Qiming Zhao <chemzqm at gmail.com>
 License: MIT license
 
@@ -17,7 +17,7 @@ Interface					|coc-interface|
   Functions						|coc-functions|
   Commands						|coc-commands|
   Autocmds						|coc-autocmds|
-  Highlights					|coc-highlights|
+  Highlights						|coc-highlights|
 List						|coc-list|
   List command					|coc-list-command|
   List command options 				|coc-list-options|
@@ -791,7 +791,8 @@ Built-in configurations:~
 "coc.preferences.bracketEnterImprove":~
 
 	Improve handling of pressing enter inside brackets (`<> {} [] ()`) by
-	adding a new empty line below and moving the cursor to it.
+	create a new empty line in the middle, the indent is calculated by vim,
+	checkout |indentexpr| for details.
 
 	Works with |coc#on_enter()|, default: `true`
 
@@ -836,6 +837,11 @@ Built-in configurations:~
 	Not open split window with update status when performing auto update.
 
 						*coc-config-cursors*
+
+"coc.preferences.willSaveHandlerTimeout"~
+
+	Will save handler timeout, default: `500`
+
 "cursors.cancelKey":~
 
 	Key used for cancel cursors session, default: `<esc>`
@@ -878,7 +884,7 @@ Built-in configurations:~
 	- "env": Environment variables for child process.
 
 	- "settings": Settings for languageserver, received on server
-	  initialiation.
+	  initialization.
 
 	- "trace.server": Trace level of communication between server and
 	  client that showed with output channel.
@@ -1123,11 +1129,16 @@ normal mode, `v_` works for visual mode.
 
 <Plug>(coc-codeaction)					*n_coc-codeaction*
 
-	Get and run code action(s) for current file.
+	Get and run code action(s) for current file, use |coc-codeaction-cursor|
+	for same beharior as VSCode.
 
 <Plug>(coc-codeaction-line)				*n_coc-codeaction-line*
 
 	Get and run code action(s) for current line.
+
+<Plug>(coc-codeaction-cursor)				*n_coc-codeaction-cursor*
+
+	Get and run code action(s) using empty range at current cursor.
 
 <Plug>(coc-codeaction-selected)				*n_coc-codeaction-selected*
 							*v_coc-codeaction-selected*
@@ -1957,6 +1968,21 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Get a list of symbols of current buffer or specific {bufnr}.
 
+"ensureDocument" 					*coc-action-ensureDocument*
+
+	Ensure current document is attached to coc.nvim, should be used when
+	you need invoke action of current document just after document
+	created.
+
+	Return `v:false` when the document can't be attached, the document
+	won't be attached for one of these reasons:
+
+	1. The 'buftype' option is neither <empty> nor acwrite.
+	2. Buffer variable `b:coc_enabled` is set to `0`.
+	3. Size of buffer bigger than `coc.preferences.maxFileSize`
+	configuration.
+	4. The buffer is used for command line window.
+
 "rename"						*coc-action-rename*
 
 	Rename the symbol under the cursor position, user will be prompted for
@@ -1994,8 +2020,8 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Prompt for a code action and do it.
 
-	{mode} should be result of visualmode(), when used in visualmode,
-	could be empty string or v:null for none visualmode.
+	{mode} could be `line` or `cursor` or result of |visualmode()|,
+	current buffer range is used when it's empty string.
 
 	{only} can be title of a codeAction or list of CodeActionKind.
 
@@ -2611,7 +2637,9 @@ CocMenuSel						*CocMenuSel*
 
   Default: `hi default link CocMenuSel PmenuSel`
 
-  The highlight used for selected menu item, works on neovim only.
+  The highlight used for current menu item in menu dialog,
+  works on neovim only since vim doesn't support change highlight
+  group of cursorline inside popup.
 
 CocListMode						*CocListMode*
 

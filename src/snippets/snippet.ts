@@ -221,7 +221,7 @@ export class CocSnippet {
         index = p.index
       }
       const value = p.toString()
-      const lines = value.split('\n')
+      const lines = value.split(/\r?\n/)
       let res: CocSnippetPlaceholder = {
         range: Range.create(start, {
           line: start.line + lines.length - 1,

@@ -127,7 +127,7 @@ export default class Outline extends LocationList {
     }
     content = content.trim()
     if (!content) return []
-    let lines = content.split('\n')
+    let lines = content.split(/\r?\n/)
     let items: ListItem[] = []
     for (let line of lines) {
       let parts = line.split('\t')

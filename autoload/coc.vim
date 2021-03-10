@@ -35,14 +35,7 @@ function! coc#refresh() abort
 endfunction
 
 function! coc#on_enter()
-  if !coc#rpc#ready()
-    return ''
-  endif
-  if s:is_vim
-    call coc#rpc#notify('CocAutocmd', ['Enter', bufnr('%')])
-  else
-    call coc#rpc#request('CocAutocmd', ['Enter', bufnr('%')])
-  endif
+  call coc#rpc#notify('CocAutocmd', ['Enter', bufnr('%')])
   return ''
 endfunction
 

@@ -583,7 +583,9 @@ class Languages {
           }
           await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, isSnippet)
           if (isSnippet) await snippetManager.selectCurrentPlaceholder()
-          if (item.command) commands.execute(item.command)
+          if (item.command && commands.has(item.command.command)) {
+            commands.execute(item.command)
+          }
         } catch (e) {
           logger.error('Error on CompleteDone:', e)
         }
@@ -622,7 +624,7 @@ class Languages {
       // can't select, since additionalTextEdits would break selection
       return await snippetManager.insertSnippet(newText, false, r)
     }
-    let newLines = `${start}${newText}${end}`.split('\n')
+    let newLines = `${start}${newText}${end}`.split(/\r?\n/)
     if (newLines.length == 1) {
       await nvim.call('coc#util#setline', [linenr, newLines[0]])
       await window.moveTo(Position.create(linenr - 1, (start + newText).length))
@@ -693,7 +695,7 @@ class Languages {
     if (prefix) {
       if (!obj.filterText.startsWith(prefix)) {
         if (item.textEdit && item.textEdit.newText.startsWith(prefix)) {
-          obj.filterText = item.textEdit.newText.split(/\n/)[0]
+          obj.filterText = item.textEdit.newText.split(/\r?\n/)[0]
         } else {
           obj.filterText = `${prefix}${obj.filterText}`
         }

@@ -456,7 +456,7 @@
       "type": "string",
       "description": "Default sorting behavior for suggested completion items.",
       "default": "length",
-      "enum": ["length", "alphabetical"]
+      "enum": ["length", "alphabetical", "none"]
     },
     "suggest.completionItemKindLabels": {
       "type": "object",
@@ -1099,6 +1099,13 @@
       "type": "boolean",
       "description": "Not open split window with update status when performing auto update.",
       "default": true
+    },
+    "coc.preferences.willSaveHandlerTimeout": {
+      "type": "integer",
+      "default": 500,
+      "minimum": 200,
+      "maximum": 5000,
+      "description": "Will save handler timeout"
     },
     "coc.source.around.enable": {
       "type": "boolean",

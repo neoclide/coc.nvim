@@ -622,11 +622,15 @@ export class Workspace implements IWorkspace {
    */
   public async getSelectedRange(mode: string, document: Document): Promise<Range | null> {
     let { nvim } = this
-    if (mode == 'n') {
+    if (mode === 'line') {
       let line = await nvim.call('line', ['.'])
       let content = document.getline(line - 1)
       if (!content.length) return null
       return Range.create(line - 1, 0, line - 1, content.length)
+    }
+    if (mode === 'cursor') {
+      let [line, character] = await nvim.eval("coc#util#cursor()") as [number, number]
+      return Range.create(line, character, line, character)
     }
     if (!['v', 'V', 'char', 'line', '\x16'].includes(mode)) {
       throw new Error(`Mode '${mode}' not supported`)
@@ -1103,7 +1107,7 @@ export class Workspace implements IWorkspace {
           let { buffer } = doc
           let tokenSource = new CancellationTokenSource()
           let content = await Promise.resolve(provider.provideTextDocumentContent(uri, tokenSource.token))
-          await buffer.setLines(content.split('\n'), {
+          await buffer.setLines(content.split(/\r?\n/), {
             start: 0,
             end: -1,
             strictIndexing: false
@@ -1270,7 +1274,7 @@ augroup end`
     let tokenSource = new CancellationTokenSource()
     let content = await Promise.resolve(provider.provideTextDocumentContent(URI.parse(uri), tokenSource.token))
     let buf = await this.nvim.buffer
-    await buf.setLines(content.split('\n'), {
+    await buf.setLines(content.split(/\r?\n/), {
       start: 0,
       end: -1,
       strictIndexing: false
@@ -1470,10 +1474,12 @@ augroup end`
     let total = thenables.length
     if (total) {
       let promise = new Promise<TextEdit[] | undefined>(resolve => {
+        const preferences = this.getConfiguration('coc.preferences')
+        const willSaveHandlerTimeout = preferences.get<number>('willSaveHandlerTimeout', 500)
         let timer = setTimeout(() => {
           window.showMessage('Will save handler timeout after 0.5s', 'warning')
           resolve(undefined)
-        }, 500)
+        }, willSaveHandlerTimeout)
         let i = 0
         let called = false
         for (let p of thenables) {

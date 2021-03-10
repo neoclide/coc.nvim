@@ -91,6 +91,10 @@ possible to avoid conflict with your other plugins.
 `:verbose imap <tab>` to make sure that your keymap has taken effect.
 
 ```vim
+" Set internal encoding of vim, not needed on neovim, since coc.nvim using some
+" unicode characters in the file autoload/float.vim
+set encoding=utf-8
+
 " TextEdit might fail if hidden is not set.
 set hidden
 
