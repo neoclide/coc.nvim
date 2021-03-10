@@ -1474,10 +1474,12 @@ augroup end`
     let total = thenables.length
     if (total) {
       let promise = new Promise<TextEdit[] | undefined>(resolve => {
+        const preferences = this.getConfiguration('coc.preferences')
+        const willSaveHandlerTimeout = preferences.get<number>('willSaveHandlerTimeout', 500)
         let timer = setTimeout(() => {
           window.showMessage('Will save handler timeout after 0.5s', 'warning')
           resolve(undefined)
-        }, 500)
+        }, willSaveHandlerTimeout)
         let i = 0
         let called = false
         for (let p of thenables) {
