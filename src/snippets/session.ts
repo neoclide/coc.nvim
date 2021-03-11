@@ -42,11 +42,8 @@ export class SnippetSession {
     const currentLine = document.getline(position.line)
     const currentIndent = currentLine.match(/^\s*/)[0]
     let inserted = ''
-    if (insertTextMode) {
-      if (insertTextMode === InsertTextMode.asIs) {
-        inserted = snippetString
-      }
-      // TODO: InsertTextMode.adjustIndentation ?
+    if (insertTextMode === InsertTextMode.asIs) {
+      inserted = snippetString
     } else {
       inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions)
     }

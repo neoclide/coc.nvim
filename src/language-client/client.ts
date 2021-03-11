@@ -1865,13 +1865,12 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
       deprecatedSupport: true,
       preselectSupport: true,
       tagSupport: { valueSet: [CompletionItemTag.Deprecated] },
-      insertTextModeSupport: { valueSet: [InsertTextMode.asIs] }
+      insertTextModeSupport: { valueSet: [InsertTextMode.asIs, InsertTextMode.adjustIndentation] }
       // TODO: capabilities
       // insertReplaceSupport: true,
       // resolveSupport: {
       //   properties: ['documentation', 'detail', 'additionalTextEdits']
       // },
-      // insertTextModeSupport: { valueSet: [InsertTextMode.asIs, InsertTextMode.adjustIndentation] }
     }
     completion.completionItemKind = { valueSet: SupportedCompletionItemKinds }
   }
