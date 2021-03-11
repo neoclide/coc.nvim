@@ -675,7 +675,7 @@ class Languages {
       let endCharacter = currline.length - end.length
       let r = Range.create(linenr - 1, range.start.character, linenr - 1, endCharacter)
       // can't select, since additionalTextEdits would break selection
-      return await snippetManager.insertSnippet(newText, false, r)
+      return await snippetManager.insertSnippet(newText, false, r, item.insertTextMode)
     }
     let newLines = `${start}${newText}${end}`.split(/\r?\n/)
     if (newLines.length == 1) {
