@@ -33,7 +33,13 @@ function! coc#float#close_all() abort
   endif
   let winids = coc#float#get_float_win_list()
   for id in winids
-    call coc#float#close(id)
+    try
+      if nvim_win_get_var(id, 'float')
+        call coc#float#close(id)
+      endif
+    catch /E5555:/
+      " ignore
+    endtry
   endfor
 endfunction
 
