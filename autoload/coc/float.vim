@@ -27,14 +27,10 @@ function! coc#float#has_float() abort
 endfunction
 
 function! coc#float#close_all() abort
-  if !has('nvim') && exists('*popup_clear')
-    call popup_clear()
-    return
-  endif
   let winids = coc#float#get_float_win_list()
   for id in winids
     try
-      if nvim_win_get_var(id, 'float')
+      if getwinvar(id, 'float')
         call coc#float#close(id)
       endif
     catch /E5555:/
