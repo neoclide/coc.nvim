@@ -842,6 +842,12 @@ Built-in configurations:~
 
 	Will save handler timeout, default: `500`
 
+"coc.preferences.useTmuxTerminal"
+
+	Use tmux when creating a terminal. Will default to using a terminal
+	buffer when not running within tmux. CocTerminalOpen will not trigger
+	when a tmux pane is created.
+
 "cursors.cancelKey":~
 
 	Key used for cancel cursors session, default: `<esc>`

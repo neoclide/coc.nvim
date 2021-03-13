@@ -1107,6 +1107,11 @@
       "maximum": 5000,
       "description": "Will save handler timeout"
     },
+    "coc.preferences.useTmuxTerminal": {
+        "type": "boolean",
+        "default": false,
+        "description": "Use tmux when creating a terminal. Will default to using a terminal buffer when not running within tmux. CocTerminalOpen will not trigger when a tmux pane is created."
+    },
     "coc.source.around.enable": {
       "type": "boolean",
       "default": true

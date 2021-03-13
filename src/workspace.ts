@@ -20,6 +20,7 @@ import Mru from './model/mru'
 import Resolver from './model/resolver'
 import Task from './model/task'
 import TerminalModel from './model/terminal'
+import TmuxTerminalModel from './model/tmuxterm'
 import BufferSync, { SyncItem } from './model/bufferSync'
 import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, DocumentChange, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, OutputChannel, PatternType, QuickfixItem, Terminal, TerminalOptions, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
@@ -1081,9 +1082,17 @@ export class Workspace implements IWorkspace {
     let cmd = opts.shellPath
     let args = opts.shellArgs
     if (!cmd) cmd = await this.nvim.getOption('shell') as string
-    let terminal = new TerminalModel(cmd, args || [], this.nvim, opts.name)
+    let terminal = null
+    const preferences = this.getConfiguration('coc.preferences')
+    if (preferences.get<boolean>("useTmuxTerminal") && process.env.TMUX) {
+      terminal = new TmuxTerminalModel(cmd, args || [], this.nvim, opts.name)
+    } else {
+      terminal = new TerminalModel(cmd, args || [], this.nvim, opts.name)
+    }
     await terminal.start(opts.cwd || this.cwd, opts.env)
-    this.terminals.set(terminal.bufnr, terminal)
+    if (terminal.bufnr !== null) {
+      this.terminals.set(terminal.bufnr, terminal)
+    }
     this._onDidOpenTerminal.fire(terminal)
     return terminal
   }
