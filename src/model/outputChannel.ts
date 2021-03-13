@@ -10,7 +10,7 @@ export default class BufferChannel implements OutputChannel {
   private disposables: Disposable[] = []
   constructor(public name: string, private nvim: Neovim) {
   }
-  
+
   public get disposed(): boolean {
     return this._disposed
   }
