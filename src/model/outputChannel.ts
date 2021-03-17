@@ -8,7 +8,7 @@ export default class BufferChannel implements OutputChannel {
   private _disposed = false
   private lines: string[] = ['']
   private disposables: Disposable[] = []
-  constructor(public name: string, private nvim: Neovim) {
+  constructor(public name: string, private nvim: Neovim, private onDispose?: () => void) {
   }
 
   public get content(): string {
@@ -82,6 +82,7 @@ export default class BufferChannel implements OutputChannel {
 
   public dispose(): void {
     if (this._disposed) return
+    if (this.onDispose) this.onDispose()
     this._disposed = true
     this.hide()
     this.lines = []
