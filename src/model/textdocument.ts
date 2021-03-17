@@ -20,7 +20,7 @@ function computeLineOffsets(text: string, isAtLineStart: boolean, textOffset = 0
  *
  * Created for save memory since we could reuse readonly lines.
  */
-export class LinesTextDoucment implements TextDocument {
+export class LinesTextDocument implements TextDocument {
   private _lineOffsets: number[] | undefined
   constructor(
     public readonly uri: string,
