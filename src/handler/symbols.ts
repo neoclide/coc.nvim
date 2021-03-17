@@ -10,7 +10,7 @@ import { equals } from '../util/object'
 import { positionInRange, rangeInRange } from '../util/position'
 import window from '../window'
 import workspace from '../workspace'
-import { addDoucmentSymbol, getPreviousContainer, isDocumentSymbols, sortDocumentSymbols, sortSymbolInformations, SymbolInfo } from './helper'
+import { addDocumentSymbol, getPreviousContainer, isDocumentSymbols, sortDocumentSymbols, sortSymbolInformations, SymbolInfo } from './helper'
 
 export default class Symbols {
   private buffers: BufferSync<SymbolsBuffer>
@@ -178,7 +178,7 @@ class SymbolsBuffer implements SyncItem {
     let pre = null
     if (isDocumentSymbols(symbols)) {
       symbols.sort(sortDocumentSymbols)
-      symbols.forEach(s => addDoucmentSymbol(res, s, level))
+      symbols.forEach(s => addDocumentSymbol(res, s, level))
     } else {
       symbols.sort(sortSymbolInformations)
       for (let sym of symbols) {

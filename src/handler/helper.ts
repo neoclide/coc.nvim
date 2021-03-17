@@ -48,7 +48,7 @@ export function sortDocumentSymbols(a: DocumentSymbol, b: DocumentSymbol): numbe
   return ra.start.character - rb.start.character
 }
 
-export function addDoucmentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level: number): void {
+export function addDocumentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level: number): void {
   let { name, selectionRange, kind, children, range } = sym
   let { start } = selectionRange
   res.push({
@@ -63,7 +63,7 @@ export function addDoucmentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level:
   if (children && children.length) {
     children.sort(sortDocumentSymbols)
     for (let sym of children) {
-      addDoucmentSymbol(res, sym, level + 1)
+      addDocumentSymbol(res, sym, level + 1)
     }
   }
 }

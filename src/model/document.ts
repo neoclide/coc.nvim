@@ -12,7 +12,7 @@ import { equals } from '../util/object'
 import { isWindows } from '../util/platform'
 import { byteLength, byteSlice } from '../util/string'
 import { Chars } from './chars'
-import { LinesTextDoucment } from './textdocument'
+import { LinesTextDocument } from './textdocument'
 const logger = require('../util/logger')('model-document')
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
@@ -444,7 +444,7 @@ export default class Document {
    */
   public get textDocument(): TextDocument {
     let { version, filetype, uri } = this
-    return new LinesTextDoucment(uri, filetype, version, this.syncLines, this.eol)
+    return new LinesTextDocument(uri, filetype, version, this.syncLines, this.eol)
   }
 
   /**

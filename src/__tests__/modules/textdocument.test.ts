@@ -1,11 +1,11 @@
 import { Position, Range } from 'vscode-languageserver-protocol'
-import { LinesTextDoucment } from '../../model/textdocument'
+import { LinesTextDocument } from '../../model/textdocument'
 
-function createTextDocument(lines: string[]): LinesTextDoucment {
-  return new LinesTextDoucment('file://a', 'txt', 1, lines, true)
+function createTextDocument(lines: string[]): LinesTextDocument {
+  return new LinesTextDocument('file://a', 'txt', 1, lines, true)
 }
 
-describe('LinesTextDoucment', () => {
+describe('LinesTextDocument', () => {
   it('should get line count and content', async () => {
     let doc = createTextDocument(['a', 'b'])
     expect(doc.lineCount).toBe(3)
