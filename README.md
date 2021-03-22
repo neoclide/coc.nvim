@@ -17,7 +17,7 @@
 
 _True snippet and additional text editing support_
 
-![qingzhou](https://alfs.chigua.cn/dianyou/data/platform/default/20210322/react.jpg)
+<a href="https://www.zhipin.com/job_detail/b872ed13edf92a701nZz2967ElFW.html" target="_blank"><img src="https://alfs.chigua.cn/dianyou/data/platform/default/20210322/react.jpg"></a>
 
 ## Why?
 
