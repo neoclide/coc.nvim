@@ -727,6 +727,25 @@
       "default": 3,
       "description": "Print num lines of trailing context after each match."
     },
+    "hover.target": {
+      "type": "string",
+      "description": "Target to show hover information, default is floating window when possible.",
+      "enum": ["preview", "echo", "float"]
+    },
+    "hover.floatMaxWidth": {
+      "type": "number",
+      "default": 80,
+      "description": "Maximum width of hover float window, not bigger than 80."
+    },
+    "hover.floatMaxHeight": {
+      "type": "number",
+      "description": "Maximum width of hover float window, not bigger than 80."
+    },
+    "hover.autoHide": {
+      "type": "boolean",
+      "default": true,
+      "description": "Automatically hide hover float window on CursorMove or InsertEnter."
+    },
     "dialog.maxHeight": {
       "type": "number",
       "default": 20,
@@ -986,11 +1005,6 @@
       "type": "string",
       "default": "SNIP",
       "description": "Text shown in statusline to indicate snippet session is activated."
-    },
-    "coc.preferences.hoverTarget": {
-      "type": "string",
-      "description": "Target to show hover information, default is floating window when possible.",
-      "enum": ["preview", "echo", "float"]
     },
     "coc.preferences.colorSupport": {
       "type": "boolean",

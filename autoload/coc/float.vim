@@ -846,7 +846,7 @@ function! coc#float#get_config_cursor(lines, config) abort
   if vh <= 0
     return v:null
   endif
-  let maxWidth = coc#helper#min(get(a:config, 'maxWidth', &columns - 1), &columns - 1)
+  let maxWidth = coc#helper#min(get(a:config, 'maxWidth', &columns - 1), &columns - 1, 80)
   if maxWidth < 3
     return v:null
   endif

@@ -8,7 +8,7 @@ import events from '../events'
 import languages from '../languages'
 import listManager from '../list/manager'
 import Document from '../model/document'
-import FloatFactory from '../model/floatFactory'
+import FloatFactory, { FloatWinConfig } from '../model/floatFactory'
 import { TextDocumentContentProvider } from '../provider'
 import services from '../services'
 import { CodeAction, Documentation, ProviderName, StatusBarItem, TagDefinition } from '../types'
@@ -196,10 +196,7 @@ export default class Handler {
   public async onHover(hoverTarget?: string): Promise<boolean> {
     let { doc, position, winid } = await this.getCurrentState()
     this.checkProvier('hover', doc.textDocument)
-    let target = hoverTarget ?? this.preferences.hoverTarget
-    if (target == 'float') {
-      this.hoverFactory.close()
-    }
+    this.hoverFactory.close()
     await synchronizeDocument(doc)
     let hovers = await this.withRequestToken<Hover[]>('hover', token => {
       return languages.getHover(doc.textDocument, position, token)
@@ -212,9 +209,9 @@ export default class Handler {
       setTimeout(() => {
         if (ids.length) win.clearMatches(ids)
         if (workspace.isVim) this.nvim.command('redraw', true)
-      }, 1000)
+      }, 500)
     }
-    await this.previewHover(hovers, target)
+    await this.previewHover(hovers, hoverTarget)
     return true
   }
 
@@ -803,8 +800,13 @@ export default class Handler {
     await this.refactor.search(args)
   }
 
-  private async previewHover(hovers: Hover[], target: string): Promise<void> {
+  private async previewHover(hovers: Hover[], target?: string): Promise<void> {
     let docs: Documentation[] = []
+    let hoverPreference = workspace.getConfiguration('hover')
+    if (!target) {
+      target = this.preferences.hoverTarget || hoverPreference.get('target', 'float')
+      if (target == 'float' && !workspace.floatSupported) target = 'preview'
+    }
     let isPreview = target === 'preview'
     for (let hover of hovers) {
       let { contents } = hover
@@ -827,7 +829,11 @@ export default class Handler {
       }
     }
     if (target == 'float') {
-      await this.hoverFactory.show(docs, { modes: ['n'] })
+      let opts: FloatWinConfig = { modes: ['n'] }
+      opts.maxWidth = hoverPreference.get('floatMaxWidth', undefined)
+      opts.maxHeight = hoverPreference.get('floatMaxHeight', undefined)
+      opts.autoHide = hoverPreference.get('autoHide', true)
+      await this.hoverFactory.show(docs, opts)
       return
     }
     let lines = docs.reduce((p, c) => {
@@ -849,10 +855,7 @@ export default class Handler {
 
   private getPreferences(): void {
     let config = workspace.getConfiguration('coc.preferences')
-    let hoverTarget = config.get<string>('hoverTarget', 'float')
-    if (hoverTarget == 'float' && !workspace.floatSupported) {
-      hoverTarget = 'preview'
-    }
+    let hoverTarget = config.get<string>('hoverTarget', undefined)
     this.preferences = {
       hoverTarget,
       previewMaxHeight: config.get<number>('previewMaxHeight', 12),
