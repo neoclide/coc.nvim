@@ -514,6 +514,26 @@ Built-in configurations:~
 
 	Print num lines of trailing context after each match, default: `3`
 
+							*coc-config-hover*
+"hover.target":~
+
+	Target to show hover information, default is floating window when possible.
+
+	Valid options: ["preview", "echo", "float"]
+
+"hover.floatMaxWidth":~
+
+	Maximum width of hover float window, not bigger than 80.
+
+"hover.floatMaxHeight":~
+
+	Maximum height fo hover float window.
+
+"hover.autoHide":~
+
+	Automatically hide hover float window on CursorMove or InsertEnter,
+	default `true`.
+
 							*coc-config-dialog*
 "dialog.maxWidth": ~
 
@@ -726,12 +746,6 @@ Built-in configurations:~
 	Check |coc-status| for statusline integration.
 
 	Default: `"SNIP"`
-
-"coc.preferences.hoverTarget":~
-
-	Target to show hover information, default is floating window when possible.
-
-	Valid options: ["preview", "echo", "float"]
 
 "coc.preferences.previewAutoClose":~
 
