@@ -17,6 +17,8 @@
 
 _True snippet and additional text editing support_
 
+![qingzhou](https://alfs.chigua.cn/dianyou/data/platform/default/20210322/react.jpg)
+
 ## Why?
 
 - 🚀 **Fast**: [instant increment completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources), increment buffer sync using buffer update events.
