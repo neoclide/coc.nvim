@@ -1,6 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import events from '../../events'
+import workspace from '../../workspace'
 import sources from '../../sources'
 import { ISource, SourceType } from '../../types'
 import helper from '../helper'
@@ -53,7 +54,7 @@ describe('sources', () => {
 
   it('should disable source by coc_sources_disable_map', async () => {
     await nvim.command('let g:coc_sources_disable_map = {"python": ["around", "buffer"]}')
-    let res = sources.getNormalSources('python')
+    let res = sources.getNormalSources('python', 'file:///t.py')
     await nvim.command('let g:coc_sources_disable_map = {}')
     expect(res.find(o => o.name == 'around')).toBeUndefined()
     expect(res.find(o => o.name == 'buffer')).toBeUndefined()
@@ -134,5 +135,58 @@ describe('sources#createSource', () => {
     await helper.wait(10)
     await nvim.input('@')
     await helper.visible('foo@gmail.com')
+  })
+})
+
+describe('sources#getTriggerSources()', () => {
+  it('should filter by filetypes', async () => {
+    let source: ISource = {
+      name: 'test',
+      enable: true,
+      priority: 0,
+      filetypes: ['javascript'],
+      sourceType: SourceType.Service,
+      triggerCharacters: ['#'],
+      doComplete: () => Promise.resolve({ items: [] })
+    }
+    let disposable = sources.addSource(source)
+    let res = sources.getTriggerSources('#', 'javascript', 'file:///tmp.js')
+    expect(res.find(o => o.name == 'test')).toBeDefined()
+    disposable.dispose()
+  })
+
+  it('should filter by documentSelector', async () => {
+    let source: ISource = {
+      name: 'test',
+      enable: true,
+      priority: 0,
+      documentSelector: [{ language: 'javascript' }],
+      sourceType: SourceType.Service,
+      triggerCharacters: ['#'],
+      doComplete: () => Promise.resolve({ items: [] })
+    }
+    let disposable = sources.addSource(source)
+    let res = sources.getTriggerSources('#', 'javascript', 'file:///tmp.js')
+    expect(res.find(o => o.name == 'test')).toBeDefined()
+    disposable.dispose()
+  })
+
+  it('should filter by disabledSources', async () => {
+    workspace.env.disabledSources = {
+      javascript: ['test']
+    }
+    let source: ISource = {
+      name: 'test',
+      enable: true,
+      priority: 0,
+      documentSelector: [{ language: 'javascript' }],
+      sourceType: SourceType.Service,
+      triggerCharacters: ['#'],
+      doComplete: () => Promise.resolve({ items: [] })
+    }
+    let disposable = sources.addSource(source)
+    let res = sources.getTriggerSources('#', 'javascript', 'file:///tmp.js')
+    expect(res.find(o => o.name == 'test')).toBeUndefined()
+    disposable.dispose()
   })
 })

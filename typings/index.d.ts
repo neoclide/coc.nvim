@@ -167,11 +167,11 @@ declare module 'coc.nvim' {
     /**
      * The text document.
      */
-    textDocument: TextDocumentIdentifier;
+    textDocument: TextDocumentIdentifier
     /**
      * The position inside the text document.
      */
-    position: Position;
+    position: Position
   }
 
   export interface WorkspaceFolder {
@@ -4142,14 +4142,14 @@ declare module 'coc.nvim' {
      *
      * @param name Name of completion source.
      * @param shortcut Shortcut used in completion menu.
-     * @param languageIds Language ids of created completion source.
+     * @param selector Document selector of created completion source.
      * @param provider A completion provider.
      * @param triggerCharacters Trigger completion when the user types one of the characters.
      * @param priority Higher priority would shown first.
      * @param allCommitCharacters Commit characters of completion source.
      * @return A [disposable](#Disposable) that unregisters this provider when being disposed.
      */
-    export function registerCompletionItemProvider(name: string, shortcut: string, languageIds: string | string[] | null, provider: CompletionItemProvider, triggerCharacters?: string[], priority?: number, allCommitCharacters?: string[]): Disposable
+    export function registerCompletionItemProvider(name: string, shortcut: string, selector: DocumentSelector | null, provider: CompletionItemProvider, triggerCharacters?: string[], priority?: number, allCommitCharacters?: string[]): Disposable
 
     /**
      * Register a code action provider.
@@ -4542,7 +4542,14 @@ declare module 'coc.nvim' {
      * Identifier name
      */
     name: string
+    /**
+     * @deprecated use documentSelector instead.
+     */
     filetypes?: string[]
+    /**
+     * Filters of document.
+     */
+    documentSelector?: DocumentSelector
     enable?: boolean
     shortcut?: string
     priority?: number

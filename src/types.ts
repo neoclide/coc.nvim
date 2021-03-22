@@ -1226,7 +1226,10 @@ export interface ISource {
   triggerPatterns?: RegExp[]
   disableSyntaxes?: string[]
   isSnippet?: boolean
+  // @deprecated, use documentSelector instead.
   filetypes?: string[]
+  // enhanced filter than filetypes
+  documentSelector?: DocumentSelector
   filepath?: string
   // should the first character always match
   firstMatch?: boolean

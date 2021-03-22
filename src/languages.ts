@@ -160,19 +160,19 @@ class Languages {
   public registerCompletionItemProvider(
     name: string,
     shortcut: string,
-    languageIds: string | string[] | null,
+    selector: DocumentSelector | null,
     provider: CompletionItemProvider,
     triggerCharacters: string[] = [],
     priority?: number,
     allCommitCharacters?: string[]
   ): Disposable {
-    languageIds = typeof languageIds == 'string' ? [languageIds] : languageIds
-    let source = this.createCompleteSource(name, shortcut, provider, languageIds, triggerCharacters, allCommitCharacters || [], priority)
+    selector = typeof selector == 'string' ? [selector] : selector
+    let source = this.createCompleteSource(name, shortcut, provider, selector, triggerCharacters, allCommitCharacters || [], priority)
     sources.addSource(source)
     logger.debug('created service source', name)
     return {
       dispose: () => {
-        sources.removeSource(source)
+        sources.removeSource(name)
       }
     }
   }
@@ -451,7 +451,7 @@ class Languages {
     name: string,
     shortcut: string,
     provider: CompletionItemProvider,
-    languageIds: string[] | null,
+    selector: DocumentSelector,
     triggerCharacters: string[],
     allCommitCharacters: string[],
     priority?: number | undefined
@@ -469,7 +469,7 @@ class Languages {
       shortcut,
       enable: true,
       sourceType: SourceType.Service,
-      filetypes: languageIds,
+      documentSelector: selector,
       triggerCharacters: triggerCharacters || [],
       toggle: () => {
         source.enable = !source.enable

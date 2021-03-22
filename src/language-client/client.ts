@@ -17,6 +17,7 @@ import * as Is from '../util/is'
 import { omit } from '../util/lodash'
 import window from '../window'
 import workspace from '../workspace'
+import sources from '../sources'
 import { ColorProviderMiddleware } from './colorProvider'
 import { ConfigurationWorkspaceMiddleware } from './configuration'
 import { DeclarationMiddleware } from './declaration'
@@ -1871,7 +1872,6 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
     let triggerCharacters = options.triggerCharacters || []
     let allCommitCharacters = options.allCommitCharacters || []
     let priority = (options as any).priority as number
-    this.index = this.index + 1
     const provider: CompletionItemProvider = {
       provideCompletionItems: (document: TextDocument, position: Position, token: CancellationToken, context: CompletionContext): ProviderResult<CompletionList | CompletionItem[]> => {
         const client = this._client
@@ -1912,16 +1912,18 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
         }
         : undefined
     }
-
-    const languageIds = cv.asLanguageIds(options.documentSelector!)
+    // index is needed since one language server could create many sources.
+    let name = this._client.id + (this.index ? '-' + this.index : '')
+    sources.removeSource(name)
     const disposable = languages.registerCompletionItemProvider(
-      this._client.id + '-' + this.index,
+      name,
       'LS',
-      languageIds,
+      options.documentSelector || this._client.clientOptions.documentSelector,
       provider,
       triggerCharacters,
       priority,
       allCommitCharacters)
+    this.index = this.index + 1
     return [disposable, provider]
   }
 }

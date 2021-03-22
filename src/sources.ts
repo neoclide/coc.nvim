@@ -9,8 +9,9 @@ import extensions from './extensions'
 import Source from './model/source'
 import VimSource from './model/source-vim'
 import { CompleteOption, ISource, SourceStat, SourceType, VimCompleteItem, SourceConfig } from './types'
-import { disposeAll } from './util'
+import { disposeAll, getUri } from './util'
 import { statAsync } from './util/fs'
+import { score } from './util/match'
 import workspace from './workspace'
 import window from './window'
 import { byteSlice } from './util/string'
@@ -214,8 +215,9 @@ export class Sources {
     let { filetype } = opt
     let pre = byteSlice(opt.line, 0, opt.colnr - 1)
     let isTriggered = opt.input == '' && !!opt.triggerCharacter
-    if (isTriggered) return this.getTriggerSources(pre, filetype)
-    return this.getNormalSources(opt.filetype)
+    let uri = getUri(opt.filepath, opt.bufnr, '', workspace.env.isCygwin)
+    if (isTriggered) return this.getTriggerSources(pre, filetype, uri)
+    return this.getNormalSources(opt.filetype, uri)
   }
 
   /**
@@ -224,10 +226,13 @@ export class Sources {
    * @param {string} filetype
    * @returns {ISource[]}
    */
-  public getNormalSources(filetype: string): ISource[] {
+  public getNormalSources(filetype: string, uri: string): ISource[] {
     return this.sources.filter(source => {
-      let { filetypes, triggerOnly, enable } = source
+      let { filetypes, triggerOnly, documentSelector, enable } = source
       if (!enable || triggerOnly || (filetypes && !filetypes.includes(filetype))) {
+        return false
+      }
+      if (documentSelector && score(documentSelector, uri, filetype) == 0) {
         return false
       }
       if (this.disabledByLanguageId(source, filetype)) {
@@ -249,17 +254,20 @@ export class Sources {
     return false
   }
 
-  public shouldTrigger(pre: string, languageId: string): boolean {
-    let sources = this.getTriggerSources(pre, languageId)
+  public shouldTrigger(pre: string, languageId: string, uri: string): boolean {
+    let sources = this.getTriggerSources(pre, languageId, uri)
     return sources.length > 0
   }
 
-  public getTriggerSources(pre: string, languageId: string): ISource[] {
+  public getTriggerSources(pre: string, languageId: string, uri: string): ISource[] {
     let character = pre.length ? pre[pre.length - 1] : ''
     if (!character) return []
     return this.sources.filter(source => {
-      let { filetypes, enable } = source
+      let { filetypes, enable, documentSelector } = source
       if (!enable || (filetypes && !filetypes.includes(languageId))) {
+        return false
+      }
+      if (documentSelector && score(documentSelector, uri, languageId) == 0) {
         return false
       }
       if (this.disabledByLanguageId(source, languageId)) return false
@@ -270,7 +278,7 @@ export class Sources {
   public addSource(source: ISource): Disposable {
     let { name } = source
     if (this.names.includes(name)) {
-      window.showMessage(`Source "${name}" recreated`, 'warning')
+      logger.warn(`Recreate source ${name}`)
     }
     this.sourceMap.set(name, source)
     return Disposable.create(() => {
@@ -280,9 +288,7 @@ export class Sources {
 
   public removeSource(source: ISource | string): void {
     let name = typeof source == 'string' ? source : source.name
-    if (source == this.sourceMap.get(name)) {
-      this.sourceMap.delete(name)
-    }
+    this.sourceMap.delete(name)
   }
 
   public async refresh(name?: string): Promise<void> {

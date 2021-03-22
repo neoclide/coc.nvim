@@ -295,7 +295,7 @@ export class Completion implements Disposable {
     }
     // not handle when not triggered by character insert
     if (!hasInsert || !pretext) return
-    if (sources.shouldTrigger(pretext, document.filetype)) {
+    if (sources.shouldTrigger(pretext, document.filetype, document.uri)) {
       await this.triggerCompletion(document, pretext)
     } else {
       await this.resumeCompletion()
@@ -312,7 +312,7 @@ export class Completion implements Disposable {
     // try trigger on character type
     if (!this.activated) {
       if (!latestInsertChar) return
-      let triggerSources = sources.getTriggerSources(pretext, doc.filetype)
+      let triggerSources = sources.getTriggerSources(pretext, doc.filetype, doc.uri)
       if (triggerSources.length) {
         await this.triggerCompletion(doc, this.pretext)
         return
@@ -353,7 +353,7 @@ export class Completion implements Disposable {
       }
     }
     // prefer trigger completion
-    if (sources.shouldTrigger(pretext, doc.filetype)) {
+    if (sources.shouldTrigger(pretext, doc.filetype, doc.uri)) {
       await this.triggerCompletion(doc, pretext)
     } else {
       await this.resumeCompletion()
@@ -450,16 +450,16 @@ export class Completion implements Disposable {
     return latestInsert.character
   }
 
-  public shouldTrigger(document: Document, pre: string): boolean {
+  public shouldTrigger(doc: Document, pre: string): boolean {
     let autoTrigger = this.config.autoTrigger
     if (autoTrigger == 'none') return false
-    if (sources.shouldTrigger(pre, document.filetype)) return true
+    if (sources.shouldTrigger(pre, doc.filetype, doc.uri)) return true
     if (autoTrigger !== 'always' || this.isActivated) return false
     let last = pre.slice(-1)
-    if (last && (document.isWord(pre.slice(-1)) || last.codePointAt(0) > 255)) {
+    if (last && (doc.isWord(pre.slice(-1)) || last.codePointAt(0) > 255)) {
       let minLength = this.config.minTriggerInputLength
       if (minLength == 1) return true
-      let input = this.getInput(document, pre)
+      let input = this.getInput(doc, pre)
       return input.length >= minLength
     }
     return false

@@ -23,5 +23,5 @@
     "plugins": []
   },
   "include": ["src"],
-  "exclude": ["typings", "build"]
+  "exclude": ["typings", "build", "node_modules"]
 }
