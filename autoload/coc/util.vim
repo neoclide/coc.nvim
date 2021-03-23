@@ -914,7 +914,7 @@ endfunction
 function! coc#util#set_buf_lines(bufnr, lines) abort
   let res = setbufline(a:bufnr, 1, a:lines)
   if res == 0
-    call deletebufline(a:bufnr, len(a:lines) + 1, '$')
+    silent call deletebufline(a:bufnr, len(a:lines) + 1, '$')
   endif
 endfunction
 

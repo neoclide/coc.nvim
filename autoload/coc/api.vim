@@ -374,7 +374,7 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
       if delCount
         let start = startLnum + len(replacement)
         "8.1.0039
-        call deletebufline(a:bufnr, start, start + delCount - 1)
+        silent call deletebufline(a:bufnr, start, start + delCount - 1)
       endif
     endif
   endif

@@ -846,7 +846,7 @@ function! coc#float#get_config_cursor(lines, config) abort
   if vh <= 0
     return v:null
   endif
-  let maxWidth = coc#helper#min(get(a:config, 'maxWidth', &columns - 1), &columns - 1, 80)
+  let maxWidth = coc#helper#min(get(a:config, 'maxWidth', &columns - 1), &columns - 1)
   if maxWidth < 3
     return v:null
   endif
@@ -1242,8 +1242,8 @@ function! coc#float#create_buf(bufnr, ...) abort
     if has('nvim')
       call nvim_buf_set_lines(bufnr, 0, -1, v:false, lines)
     else
-      call deletebufline(bufnr, 1, '$')
-      call setbufline(bufnr, 1, lines)
+      silent call deletebufline(bufnr, 1, '$')
+      silent call setbufline(bufnr, 1, lines)
     endif
   endif
   return bufnr
