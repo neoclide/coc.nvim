@@ -1242,8 +1242,8 @@ function! coc#float#create_buf(bufnr, ...) abort
     if has('nvim')
       call nvim_buf_set_lines(bufnr, 0, -1, v:false, lines)
     else
-      call deletebufline(bufnr, 1, '$')
-      call setbufline(bufnr, 1, lines)
+      silent call deletebufline(bufnr, 1, '$')
+      silent call setbufline(bufnr, 1, lines)
     endif
   endif
   return bufnr
