@@ -830,7 +830,7 @@ export default class Handler {
     }
     if (target == 'float') {
       let opts: FloatWinConfig = { modes: ['n'] }
-      opts.maxWidth = hoverPreference.get('floatMaxWidth', undefined)
+      opts.maxWidth = hoverPreference.get('floatMaxWidth', 80)
       opts.maxHeight = hoverPreference.get('floatMaxHeight', undefined)
       opts.autoHide = hoverPreference.get('autoHide', true)
       await this.hoverFactory.show(docs, opts)
