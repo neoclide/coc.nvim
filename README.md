@@ -17,8 +17,6 @@
 
 _True snippet and additional text editing support_
 
-<a href="https://www.zhipin.com/job_detail/b872ed13edf92a701nZz2967ElFW.html" target="_blank"><img src="https://alfs.chigua.cn/dianyou/data/platform/default/20210322/react.jpg"></a>
-
 ## Why?
 
 - 🚀 **Fast**: [instant increment completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources), increment buffer sync using buffer update events.
