@@ -265,7 +265,7 @@ function! coc#util#preview_info(info, filetype, ...) abort
   setl nobuflisted
   setl nospell
   exe 'setl filetype='.a:filetype
-  setl conceallevel=2
+  setl conceallevel=0
   setl nofoldenable
   for command in a:000
     execute command
