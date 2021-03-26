@@ -168,7 +168,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
   call setwinvar(winid, '&colorcolumn', 0)
   call setwinvar(winid, '&wrap', 1)
   call setwinvar(winid, '&linebreak', 1)
-  call setwinvar(winid, '&conceallevel', 2)
+  call setwinvar(winid, '&conceallevel', 0)
   let g:coc_last_float_win = winid
   call coc#util#do_autocmd('CocOpenFloat')
   return [winid, bufnr]
