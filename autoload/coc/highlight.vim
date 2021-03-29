@@ -175,7 +175,7 @@ function! coc#highlight#match_ranges(winid, bufnr, ranges, hlGroup, priority) ab
   endif
   let ids = []
   for range in a:ranges
-    let list = []
+    let pos = []
     let start = range['start']
     let end = range['end']
     for lnum in range(start['line'] + 1, end['line'] + 1)
@@ -189,12 +189,25 @@ function! coc#highlight#match_ranges(winid, bufnr, ranges, hlGroup, priority) ab
       if colStart == colEnd
         continue
       endif
-      call add(list, [lnum, colStart, colEnd - colStart])
+      call add(pos, [lnum, colStart, colEnd - colStart])
     endfor
-    if !empty(list)
+    if !empty(pos)
       let opts = s:clear_match_by_window ? {'window': a:winid} : {}
-      let id = matchaddpos(a:hlGroup, list, a:priority, -1, opts)
-      call add(ids, id)
+      let i = 1
+      let l = []
+      for p in pos
+        call add(l, p)
+        if i % 8 == 0
+          let id = matchaddpos(a:hlGroup, l, a:priority, -1, opts)
+          call add(ids, id)
+          let l = []
+        endif
+        let i += 1
+      endfor
+      if !empty(l)
+        let id = matchaddpos(a:hlGroup, l, a:priority, -1, opts)
+        call add(ids, id)
+      endif
     endif
   endfor
   if !s:clear_match_by_window
