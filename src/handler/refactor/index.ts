@@ -33,7 +33,10 @@ export default class Refactor {
     workspace.onDidChangeConfiguration(this.setConfiguration, this, this.disposables)
     workspace.onDidCloseTextDocument(e => {
       let buf = this.buffers.get(e.bufnr)
-      if (buf) this.buffers.delete(e.bufnr)
+      if (buf) {
+        buf.dispose()
+        this.buffers.delete(e.bufnr)
+      }
     }, null, this.disposables)
     workspace.onDidChangeTextDocument(e => {
       let buf = this.buffers.get(e.bufnr)
