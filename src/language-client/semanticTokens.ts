@@ -13,6 +13,7 @@ import { DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, Pr
 import * as cv from './utils/converter'
 import * as Is from '../util/is'
 import { BaseLanguageClient, Middleware, TextDocumentFeature } from './client'
+const logger = require('../util/logger')('languageclient-semanticTokens')
 
 function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
   if (target[key] === void 0) {

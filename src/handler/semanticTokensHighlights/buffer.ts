@@ -1,6 +1,6 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { CancellationTokenSource, Range } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Range, SemanticTokens, SemanticTokensDelta, uinteger } from 'vscode-languageserver-protocol'
 import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
@@ -28,10 +28,18 @@ export interface Highlight {
   endCharacter: number // 0-indexed
 }
 
+class SemanticTokensPreviousResult {
+  constructor(
+    public readonly resultId: string | undefined,
+    public readonly tokens?: uinteger[],
+  ) { }
+}
+
 export default class SemanticTokensBuffer implements SyncItem {
   private tokenSource: CancellationTokenSource
   private version: number
   private namespace = 'semanticTokens'
+  private previousResults: Map<number, SemanticTokensPreviousResult> = new Map()
   public highlight: Function & { clear(): void }
   constructor(
     private nvim: Neovim,
@@ -173,18 +181,38 @@ export default class SemanticTokensBuffer implements SyncItem {
     const { token } = this.tokenSource
     const { version } = doc
     const legend = languages.getLegend()
-    const tokens = await languages.provideDocumentSemanticTokens(doc.textDocument, token)
+    const previousResult = this.previousResults.get(this.bufnr)
+    let result: SemanticTokens | SemanticTokensDelta
+    if (previousResult?.resultId) {
+      result = await languages.provideDocumentSemanticTokensEdits(doc.textDocument, previousResult.resultId, token)
+    } else {
+      result = await languages.provideDocumentSemanticTokens(doc.textDocument, token)
+    }
     this.tokenSource = null
     if (token.isCancellationRequested) return []
-    if (!tokens) return []
+    if (!result) return []
     this.version = version
 
+    let tokens: uinteger[] = []
+    if (SemanticTokens.is(result)) {
+      tokens = result.data
+    } else if (result.edits.length) {
+      tokens = previousResult.tokens
+      result.edits.forEach(e => {
+        if (e.deleteCount > 0) {
+          tokens.splice(e.start, e.deleteCount)
+        } else {
+          tokens.splice(e.start, 0, ...e.data)
+        }
+      })
+    }
+    this.previousResults.set(this.bufnr, new SemanticTokensPreviousResult(result.resultId, tokens))
     const relatives: RelativeHighlight[] = []
-    for (let i = 0; i < tokens.data.length; i += 5) {
-      const deltaLine = tokens.data[i]
-      const deltaStartCharacter = tokens.data[i + 1]
-      const length = tokens.data[i + 2]
-      const tokenType = tokens.data[i + 3]
+    for (let i = 0; i < tokens.length; i += 5) {
+      const deltaLine = tokens[i]
+      const deltaStartCharacter = tokens[i + 1]
+      const length = tokens[i + 2]
+      const tokenType = tokens[i + 3]
       // TODO: support tokenModifiers
       // const tokenModifiers = highlights.data[i + 4];
 
