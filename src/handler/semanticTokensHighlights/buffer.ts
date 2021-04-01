@@ -181,9 +181,10 @@ export default class SemanticTokensBuffer implements SyncItem {
     const { token } = this.tokenSource
     const { version } = doc
     const legend = languages.getLegend()
+    const hasEditProvider = languages.hasEditProvider()
     const previousResult = this.previousResults.get(this.bufnr)
     let result: SemanticTokens | SemanticTokensDelta
-    if (previousResult?.resultId) {
+    if (hasEditProvider && previousResult?.resultId) {
       result = await languages.provideDocumentSemanticTokensEdits(doc.textDocument, previousResult.resultId, token)
     } else {
       result = await languages.provideDocumentSemanticTokens(doc.textDocument, token)

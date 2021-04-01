@@ -3,9 +3,11 @@ import { CancellationToken, Disposable, DocumentSelector, SemanticTokens, Semant
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DocumentSemanticTokensProvider } from './index'
 import Manager, { ProviderItem } from './manager'
+const logger = require('../util/logger')('semanticTokensManager')
 
 export default class SemanticTokensManager extends Manager<DocumentSemanticTokensProvider> implements Disposable {
   private _legend: SemanticTokensLegend
+  private _hasEditProvider = true
 
   public register(selector: DocumentSelector, provider: DocumentSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
     this._legend = legend
@@ -24,11 +26,15 @@ export default class SemanticTokensManager extends Manager<DocumentSemanticToken
     return this._legend
   }
 
+  public get hasEditProvider(): boolean {
+    return this._hasEditProvider
+  }
+
   public async provideDocumentSemanticTokens(document: TextDocument, token: CancellationToken): Promise<SemanticTokens> {
     let item = this.getProvider(document)
     if (!item) return null
     let { provider } = item
-    if (provider.provideDocumentSemanticTokens === null) return null
+    if (!provider.provideDocumentSemanticTokens) return null
 
     return await Promise.resolve(provider.provideDocumentSemanticTokens(document, token))
   }
@@ -37,7 +43,10 @@ export default class SemanticTokensManager extends Manager<DocumentSemanticToken
     let item = this.getProvider(document)
     if (!item) return null
     let { provider } = item
-    if (provider.provideDocumentSemanticTokensEdits === null) return null
+    if (!provider.provideDocumentSemanticTokensEdits) {
+      this._hasEditProvider = false
+      return null
+    }
 
     return await Promise.resolve(provider.provideDocumentSemanticTokensEdits(document, previousResultId, token))
   }
