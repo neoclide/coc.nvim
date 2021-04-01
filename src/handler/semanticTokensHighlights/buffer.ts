@@ -49,7 +49,7 @@ export default class SemanticTokensBuffer implements SyncItem {
       this.doHighlight().catch(e => {
         logger.error('Error on semanticTokens highlight:', e.stack)
       })
-    }, global.hasOwnProperty('__TEST__') ? 10 : 1000)
+    }, global.hasOwnProperty('__TEST__') ? 10 : 5000)
   }
 
   public onChange(): void {
@@ -207,9 +207,6 @@ export default class SemanticTokensBuffer implements SyncItem {
         }
       })
     }
-    let a = 0
-    tokens.forEach(e => a = a + e)
-      logger.error('===coc a:', a)
     this.previousResults.set(this.bufnr, new SemanticTokensPreviousResult(result.resultId, tokens))
     const relatives: RelativeHighlight[] = []
     for (let i = 0; i < tokens.length; i += 5) {
