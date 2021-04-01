@@ -205,7 +205,7 @@ class Languages {
   }
 
   public registerDocumentSymbolProvider(selector: DocumentSelector, provider: DocumentSymbolProvider, metadata?: DocumentSymbolProviderMetadata): Disposable {
-    return this.documentSymbolManager.register(selector, provider, metadata.label)
+    return this.documentSymbolManager.register(selector, provider, metadata?.label)
   }
 
   public registerFoldingRangeProvider(selector: DocumentSelector, provider: FoldingRangeProvider): Disposable {
