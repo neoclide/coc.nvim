@@ -11,7 +11,7 @@ import commands from '../commands'
 import languages from '../languages'
 import FileWatcher from '../model/fileSystemWatcher'
 import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ProviderResult, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from '../provider'
-import { DiagnosticCollection, MessageItem, OutputChannel, TextDocumentWillSaveEvent, Thenable } from '../types'
+import { DiagnosticCollection, DocumentSymbolProviderMetadata, MessageItem, OutputChannel, TextDocumentWillSaveEvent, Thenable } from '../types'
 import { resolveRoot } from '../util/fs'
 import * as Is from '../util/is'
 import { omit } from '../util/lodash'
@@ -2264,7 +2264,7 @@ class DocumentSymbolFeature extends TextDocumentFeature<
   }
 
   protected registerLanguageProvider(
-    options: TextDocumentRegistrationOptions
+    options: DocumentSymbolRegistrationOptions
   ): [Disposable, DocumentSymbolProvider] {
     const provider: DocumentSymbolProvider = {
       provideDocumentSymbols: (document, token) => {
@@ -2301,7 +2301,8 @@ class DocumentSymbolFeature extends TextDocumentFeature<
           : _provideDocumentSymbols(document, token)
       }
     }
-    return [languages.registerDocumentSymbolProvider(options.documentSelector!, provider), provider]
+    const metadata: DocumentSymbolProviderMetadata | undefined = options.label ? { label: options.label } : undefined
+    return [languages.registerDocumentSymbolProvider(options.documentSelector!, provider, metadata), provider]
   }
 }
 

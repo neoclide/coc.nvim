@@ -1602,3 +1602,10 @@ export interface IWorkspace {
   runCommand(cmd: string, cwd?: string, timeout?: number): Promise<string>
   dispose(): void
 }
+
+export interface DocumentSymbolProviderMetadata {
+  /**
+   * A human-readable string that is shown when multiple outlines trees show for one document.
+   */
+  label?: string
+}

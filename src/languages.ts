@@ -29,7 +29,7 @@ import SemanticTokensManager from './provider/semanticTokensManager'
 import SemanticTokensRangeManager from './provider/semanticTokensRangeManager'
 import snippetManager from './snippets/manager'
 import sources from './sources'
-import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, Documentation, ISource, ProviderName, SourceType, VimCompleteItem } from './types'
+import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, Documentation, DocumentSymbolProviderMetadata, ISource, ProviderName, SourceType, VimCompleteItem } from './types'
 import * as complete from './util/complete'
 import { getChangedFromEdits, rangeOverlap } from './util/position'
 import { byteIndex, byteLength, byteSlice } from './util/string'
@@ -204,8 +204,8 @@ class Languages {
     return this.signatureManager.register(selector, provider, triggerCharacters)
   }
 
-  public registerDocumentSymbolProvider(selector: DocumentSelector, provider: DocumentSymbolProvider): Disposable {
-    return this.documentSymbolManager.register(selector, provider)
+  public registerDocumentSymbolProvider(selector: DocumentSelector, provider: DocumentSymbolProvider, metadata?: DocumentSymbolProviderMetadata): Disposable {
+    return this.documentSymbolManager.register(selector, provider, metadata.label)
   }
 
   public registerFoldingRangeProvider(selector: DocumentSelector, provider: FoldingRangeProvider): Disposable {

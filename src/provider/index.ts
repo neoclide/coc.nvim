@@ -251,6 +251,9 @@ export interface FoldingRangeProvider {
  * the [go to symbol](https://code.visualstudio.com/docs/editor/editingevolved#_go-to-symbol)-feature.
  */
 export interface DocumentSymbolProvider {
+
+  displayName?: string
+
   /**
    * Provide symbol information for the given document.
    *
@@ -690,7 +693,7 @@ export interface DocumentSemanticTokensProvider {
    * An optional event to signal that the semantic tokens from this provider have changed.
    */
   // TODO: SemantiTokens
-  onDidChangeSemanticTokens?: Event<void>;
+  onDidChangeSemanticTokens?: Event<void>
 
   /**
    * Tokens in a file are represented as an array of integers. The position of each token is expressed relative to
@@ -752,7 +755,7 @@ export interface DocumentSemanticTokensProvider {
    * *NOTE*: When doing edits, it is possible that multiple edits occur until VS Code decides to invoke the semantic tokens provider.
    * *NOTE*: If the provider cannot temporarily compute semantic tokens, it can indicate this by throwing an error with the message 'Busy'.
    */
-  provideDocumentSemanticTokens(document: TextDocument, token: CancellationToken): ProviderResult<SemanticTokens>;
+  provideDocumentSemanticTokens(document: TextDocument, token: CancellationToken): ProviderResult<SemanticTokens>
 
   /**
    * Instead of always returning all the tokens in a file, it is possible for a `DocumentSemanticTokensProvider` to implement
@@ -783,7 +786,7 @@ export interface DocumentSemanticTokensProvider {
    * *NOTE*: If the provider cannot compute `SemanticTokensEdits`, it can "give up" and return all the tokens in the document again.
    * *NOTE*: All edits in `SemanticTokensEdits` contain indices in the old integers array, so they all refer to the previous result state.
    */
-  provideDocumentSemanticTokensEdits?(document: TextDocument, previousResultId: string, token: CancellationToken): ProviderResult<SemanticTokens | SemanticTokensDelta>;
+  provideDocumentSemanticTokensEdits?(document: TextDocument, previousResultId: string, token: CancellationToken): ProviderResult<SemanticTokens | SemanticTokensDelta>
 }
 
 /**
@@ -794,5 +797,5 @@ export interface DocumentRangeSemanticTokensProvider {
   /**
    * @see [provideDocumentSemanticTokens](#DocumentSemanticTokensProvider.provideDocumentSemanticTokens).
    */
-  provideDocumentRangeSemanticTokens(document: TextDocument, range: Range, token: CancellationToken): ProviderResult<SemanticTokens>;
+  provideDocumentRangeSemanticTokens(document: TextDocument, range: Range, token: CancellationToken): ProviderResult<SemanticTokens>
 }
