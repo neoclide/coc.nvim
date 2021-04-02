@@ -2384,8 +2384,8 @@ AUTOCMD							*coc-autocmds*
 
 	For example, to disable auto preview of location list, use:
 >
-	let g:coc_enable_locationlist = 0 autocmd User CocLocationsChange
-	CocList --normal location
+	let g:coc_enable_locationlist = 0
+	autocmd User CocLocationsChange CocList --normal location
 <
 						*CocNvimInit*
 :autocmd User CocNvimInit {command}
