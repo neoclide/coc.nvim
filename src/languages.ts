@@ -446,6 +446,10 @@ class Languages {
     return this.semanticTokensManager.provideDocumentSemanticTokensEdits(document, previousResultId, token)
   }
 
+  public async provideLinkedEdits(document: TextDocument, position: Position, token: CancellationToken): Promise<TextEdit[]> {
+    return this.linkedEditingManager.provideLinkedEdits('abc', document, position, token)
+  }
+
   public hasProvider(id: ProviderName, document: TextDocument): boolean {
     switch (id) {
       case 'rename':
@@ -492,6 +496,8 @@ class Languages {
         return this.callHierarchyManager.hasProvider(document)
       case 'semanticTokens':
         return this.semanticTokensManager.hasProvider(document)
+      case 'linkedEditing':
+        return this.linkedEditingManager.hasProvider(document)
       default:
         throw new Error(`${id} not supported.`)
     }

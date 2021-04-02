@@ -17,7 +17,7 @@ export type ProviderName = 'rename' | 'onTypeEdit' | 'documentLink' | 'documentC
   | 'foldingRange' | 'format' | 'codeAction' | 'workspaceSymbols' | 'formatRange'
   | 'hover' | 'signature' | 'documentSymbol' | 'documentHighlight' | 'definition'
   | 'declaration' | 'typeDefinition' | 'reference' | 'implementation'
-  | 'codeLens' | 'selectionRange' | 'callHierarchy' | 'semanticTokens'
+  | 'codeLens' | 'selectionRange' | 'callHierarchy' | 'semanticTokens' | 'linkedEditing'
 
 export interface ParsedUrlQueryInput {
   [key: string]: unknown

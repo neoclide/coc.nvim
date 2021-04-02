@@ -9,6 +9,7 @@ import languages from '../languages'
 import { LinkedEditingRangeProvider, ProviderResult } from '../provider'
 import { BaseLanguageClient, TextDocumentFeature } from './client'
 import * as cv from './utils/converter'
+const logger = require('../util/logger')('languageclient-linkedEditingRange')
 
 function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
   if (target[key] === void 0) {
