@@ -21,6 +21,7 @@ import { SelectionRangeFeature } from './selectionRange'
 import ChildProcess = cp.ChildProcess
 import { CallHierarchyFeature } from './callHierarchy'
 import { SemanticTokensFeature } from './semanticTokens'
+import { LinkedEditingFeature } from './linkedEditingRange'
 
 const logger = require('../util/logger')('language-client-index')
 
@@ -473,6 +474,7 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeature(new ProgressFeature(this))
     this.registerFeature(new CallHierarchyFeature(this))
     this.registerFeature(new SemanticTokensFeature(this))
+    this.registerFeature(new LinkedEditingFeature(this))
     if (!this.clientOptions.disableWorkspaceFolders) {
       this.registerFeature(new WorkspaceFoldersFeature(this))
     }
