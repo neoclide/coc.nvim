@@ -602,7 +602,7 @@ export default class Handler {
     })
     if (!links || links.length == 0) return false
     for (let link of links) {
-      if (positionInRange(position, link.range)) {
+      if (positionInRange(position, link.range) == 0) {
         let { target } = link
         if (!target) {
           link = await languages.resolveDocumentLink(link)
