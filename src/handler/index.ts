@@ -11,7 +11,7 @@ import Document from '../model/document'
 import FloatFactory, { FloatWinConfig } from '../model/floatFactory'
 import { TextDocumentContentProvider } from '../provider'
 import services from '../services'
-import { CodeAction, Documentation, InsertChange, ProviderName, StatusBarItem, TagDefinition } from '../types'
+import { CodeAction, Documentation, ProviderName, StatusBarItem, TagDefinition } from '../types'
 import { disposeAll } from '../util'
 import { equals } from '../util/object'
 import { emptyRange, positionInRange } from '../util/position'
@@ -74,7 +74,6 @@ export default class Handler {
     this.colors = new Colors(nvim)
     this.documentHighlighter = new Highlights(nvim)
     this.semanticHighlighter = new SemanticTokensHighlights(nvim)
-    events.on('TextChangedI', this.doLinkedEditing.bind(this), null, this.disposables)
     events.on(['CursorMoved', 'CursorMovedI', 'InsertEnter', 'InsertSnippet', 'InsertLeave'], () => {
       if (this.requestTokenSource) {
         this.requestTokenSource.cancel()
@@ -984,15 +983,6 @@ export default class Handler {
       position: Position.create(line, character),
       winid
     }
-  }
-
-  private async doLinkedEditing(bufnr: number, info: InsertChange): Promise<void> {
-    let { doc, position } = await this.getCurrentState()
-    if (!languages.hasProvider('linkedEditing', doc.textDocument)) return
-
-    const token = (new CancellationTokenSource()).token
-    const edits = await languages.provideLinkedEdits(doc.textDocument, position, token)
-    // await doc.applyEdits(edits)
   }
 
   public dispose(): void {
