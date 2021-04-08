@@ -1477,7 +1477,7 @@ augroup end`
         const preferences = this.getConfiguration('coc.preferences')
         const willSaveHandlerTimeout = preferences.get<number>('willSaveHandlerTimeout', 500)
         let timer = setTimeout(() => {
-          window.showMessage('Will save handler timeout after 0.5s', 'warning')
+          window.showMessage(`Will save handler timeout after ${willSaveHandlerTimeout}ms`, 'warning')
           resolve(undefined)
         }, willSaveHandlerTimeout)
         let i = 0
