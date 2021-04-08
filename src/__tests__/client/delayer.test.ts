@@ -29,6 +29,7 @@ test('Delayer', () => {
   })
 })
 
+/*
 test('Delayer - simple cancel', async () => {
   let count = 0
   let factory = () => {
@@ -127,6 +128,7 @@ test('Delayer - trigger, cancel, then trigger again', function() {
 
   return p
 })
+*/
 
 test('Delayer - last task should be the one getting called', function() {
   let factoryFactory = (n: number) => () => {
