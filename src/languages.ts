@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, LinkedEditingRanges, Location, LocationLink, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertReplaceEdit, InsertTextFormat, LinkedEditingRanges, Location, LocationLink, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
@@ -636,9 +636,10 @@ class Languages {
           let isSnippet = await this.applyTextEdit(item, vimItem.word, opt)
           let { additionalTextEdits } = item
           if (additionalTextEdits && item.textEdit) {
-            let r = (item.textEdit as TextEdit).range
+            let r = InsertReplaceEdit.is(item.textEdit) ? item.textEdit.replace : item.textEdit.range
             additionalTextEdits = additionalTextEdits.filter(edit => {
-              if (rangeOverlap(r, edit.range)) {
+              let er = InsertReplaceEdit.is(edit) ? edit.replace : edit.range
+              if (rangeOverlap(r, er)) {
                 logger.error('Filtered overlap additionalTextEdit:', edit)
                 return false
               }
@@ -676,7 +677,8 @@ class Languages {
     let { line, bufnr, linenr } = option
     let doc = workspace.getDocument(bufnr)
     if (!doc) return false
-    let { range, newText } = textEdit as TextEdit
+    let newText = textEdit.newText
+    let range = InsertReplaceEdit.is(textEdit) ? textEdit.replace : textEdit.range
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
     // replace inserted word
     let start = line.substr(0, range.start.character)
@@ -730,7 +732,8 @@ class Languages {
   private getStartColumn(line: string, items: CompletionItem[]): number | null {
     let first = items[0]
     if (!first.textEdit) return null
-    let { range, newText } = first.textEdit as TextEdit
+    let { newText } = first.textEdit
+    let range = InsertReplaceEdit.is(first.textEdit) ? first.textEdit.replace : first.textEdit.range
     let { character } = range.start
     if (newText.length < range.end.character - character) {
       return null
@@ -739,7 +742,9 @@ class Languages {
       let o = items[i]
       if (!o) break
       if (!o.textEdit) return null
-      if ((o.textEdit as TextEdit).range.start.character !== character) return null
+      if (InsertReplaceEdit.is(o.textEdit)) return null
+      let r = InsertReplaceEdit.is(o.textEdit) ? o.textEdit.replace : o.textEdit.range
+      if (r.start.character !== character) return null
     }
     return byteIndex(line, character)
   }

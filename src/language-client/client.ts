@@ -1866,10 +1866,10 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
       documentationFormat: this._client.supporedMarkupKind,
       deprecatedSupport: true,
       preselectSupport: true,
+      insertReplaceSupport: true,
       tagSupport: { valueSet: [CompletionItemTag.Deprecated] },
       insertTextModeSupport: { valueSet: [InsertTextMode.asIs, InsertTextMode.adjustIndentation] }
       // TODO: capabilities
-      // insertReplaceSupport: true,
       // resolveSupport: {
       //   properties: ['documentation', 'detail', 'additionalTextEdits']
       // },
