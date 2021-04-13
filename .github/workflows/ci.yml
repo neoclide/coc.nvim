@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-latest]
         node-version: [10, 14]
 
     env:
@@ -44,7 +44,7 @@ jobs:
           export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-osx64/bin"
           nvim --version
           yarn test
-      - if: matrix.os == 'ubuntu-20.04'
+      - if: matrix.os == 'ubuntu-latest'
         name: yarn test on Ubuntu
         run: |
           sudo apt-get install ripgrep -y
