@@ -4316,4 +4316,13 @@ export abstract class BaseLanguageClient {
     }
     this.error(`Request ${type.method} failed.`, error)
   }
+
+  public logFailedRequest(type: any, error: any): void {
+    // If we get a request cancel don't log anything.
+    if (error instanceof ResponseError && error.code === LSPErrorCodes.RequestCancelled) {
+      // TODO: handle LSPErrorCodes.ContentModified
+      return
+    }
+    this.error(`Request ${type.method} failed.`, error)
+  }
 }
