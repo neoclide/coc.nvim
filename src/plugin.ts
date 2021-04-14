@@ -416,25 +416,22 @@ export default class Plugin extends EventEmitter {
     this.addAction('semanticHighlight', () => {
       return this.handler.semanticHighlights()
     })
-    this.addAction("showSemanticHighlightInfo", async () => {
+    this.addAction('showSemanticHighlightInfo', async () => {
       const highlights = await this.handler.getSemanticHighlights()
       if (!highlights) {
-        await window.showWarningMessage("Failed to fetch semantic highlights")
+        window.showMessage('Failed to fetch semantic highlights', 'warning')
         return
       }
 
       if (!this.semanticChannel) {
-        this.semanticChannel = window.createOutputChannel("semanticHighlightInfo")
+        this.semanticChannel = window.createOutputChannel('semanticHighlightInfo')
       } else {
         this.semanticChannel.clear()
       }
       const channel = this.semanticChannel
-      channel.appendLine("## Semantic highlighting for the buffer")
-      channel.appendLine("")
-      channel.appendLine(`The number of semantic tokens: ${highlights.length}`)
-      channel.appendLine("")
-      channel.appendLine("List of all semantic highlight groups:")
-      channel.appendLine("")
+      channel.appendLine('## Semantic highlighting for the buffer\n')
+      channel.appendLine(`The number of semantic tokens: ${highlights.length}\n`)
+      channel.appendLine('List of all semantic highlight groups:\n')
 
       const groups = [...new Set(highlights.map(({ group }) => group))]
       for (const group of groups) {
