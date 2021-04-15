@@ -255,6 +255,14 @@ export default class Handler {
     return true
   }
 
+  public async definitions(): Promise<Location[]> {
+    const { doc, position } = await this.getCurrentState()
+    if (!languages.hasProvider('reference', doc.textDocument)) return []
+    await synchronizeDocument(doc)
+    const tokenSource = new CancellationTokenSource()
+    return languages.getDefinition(doc.textDocument, position, tokenSource.token)
+  }
+
   public async gotoDeclaration(openCommand?: string): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
     this.checkProvier('declaration', doc.textDocument)
@@ -301,6 +309,14 @@ export default class Handler {
     if (definition == null) return false
     await this.handleLocations(definition, openCommand)
     return true
+  }
+
+  public async references(): Promise<Location[]> {
+    const { doc, position } = await this.getCurrentState()
+    if (!languages.hasProvider('reference', doc.textDocument)) return []
+    await synchronizeDocument(doc)
+    const tokenSource = new CancellationTokenSource()
+    return languages.getReferences(doc.textDocument, { includeDeclaration: true }, position, tokenSource.token)
   }
 
   public async getWordEdit(): Promise<WorkspaceEdit> {
