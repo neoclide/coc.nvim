@@ -2,6 +2,7 @@ import { Definition, DocumentSelector, Location, LocationLink } from 'vscode-lan
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import workspace from '../workspace'
 import window from '../window'
+import { equals } from '../util/object'
 const logger = require('../util/logger')('provider-manager')
 
 export interface ProviderItem<T> {
@@ -51,14 +52,14 @@ export default class Manager<T> {
     for (let def of arr) {
       if (!def) continue
       if (Location.is(def)) {
-        res.push(def)
+        addLocation(res, def)
       } else if (Array.isArray(def)) {
         for (let d of def) {
           if (Location.is(d)) {
-            res.push(d)
+            addLocation(res, d)
           } else if (LocationLink.is(d)) {
             let { targetUri, targetSelectionRange } = d
-            res.push(Location.create(targetUri, targetSelectionRange))
+            addLocation(res, Location.create(targetUri, targetSelectionRange))
           }
         }
       } else {
@@ -67,4 +68,13 @@ export default class Manager<T> {
     }
     return res
   }
+}
+
+/**
+ * Add location with unique ranges
+ */
+function addLocation(arr: Location[], location: Location): void {
+  let { range } = location
+  if (arr.find(o => equals(o.range, range)) != null) return
+  arr.push(location)
 }
