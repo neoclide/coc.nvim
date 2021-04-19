@@ -5,8 +5,14 @@ import { BufferSyncItem, DiagnosticConfig, LocationListItem } from '../types'
 import { equals } from '../util/object'
 import { lineInRange, positionInRange } from '../util/position'
 import { getLocationListItem, getNameFromSeverity, getSeverityType } from './util'
+const isVim = process.env.VIM_NODE_RPC == '1'
 const logger = require('../util/logger')('diagnostic-buffer')
 const signGroup = 'CocDiagnostic'
+
+export enum DiagnosticState {
+  Enabled,
+  Disabled
+}
 
 const ErrorSymbol = Symbol('CocError')
 const WarningSymbol = Symbol('CocWarning')
@@ -25,6 +31,7 @@ const HintSymbol = Symbol('CocHint')
 export class DiagnosticBuffer implements BufferSyncItem {
   private diagnostics: ReadonlyArray<Diagnostic & { collection: string }> = []
   private _disposed = false
+  private _state = DiagnosticState.Enabled
   /**
    * Refresh diagnostics with debounce
    */
@@ -47,6 +54,14 @@ export class DiagnosticBuffer implements BufferSyncItem {
 
   public onChange(): void {
     this.refresh.clear()
+  }
+
+  public changeState(state: DiagnosticState): void {
+    this._state = state
+  }
+
+  public get enabled(): boolean {
+    return this._state == DiagnosticState.Enabled
   }
 
   /**
@@ -100,6 +115,7 @@ export class DiagnosticBuffer implements BufferSyncItem {
     if (equals(this.diagnostics, diagnostics)) return
     let { refreshOnInsertMode } = this.config
     let { nvim } = this
+    if (this._state == DiagnosticState.Disabled) return
     let arr = await nvim.eval(`[coc#util#check_refresh(${this.bufnr}),mode(),line("."),getloclist(bufwinid(${this.bufnr}),{'title':1})]`) as [number, string, number, { title: string }]
     if (arr[0] == 0 || this._disposed) return
     let mode = arr[1]
@@ -115,7 +131,7 @@ export class DiagnosticBuffer implements BufferSyncItem {
       this.addHighlight(diagnostics)
       this.updateLocationList(arr[3], diagnostics)
       this.showVirtualText(diagnostics, lnum)
-      this.nvim.command('redraw', true)
+      if (isVim) this.nvim.command('redraw', true)
       let res = await this.nvim.resumeNotification()
       if (Array.isArray(res) && res[1]) throw new Error(res[1])
     }

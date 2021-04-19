@@ -12,7 +12,7 @@ import { disposeAll } from '../util'
 import { comparePosition, rangeIntersect } from '../util/position'
 import window from '../window'
 import workspace from '../workspace'
-import { DiagnosticBuffer } from './buffer'
+import { DiagnosticBuffer, DiagnosticState } from './buffer'
 import DiagnosticCollection from './collection'
 import { getLocationListItem, getSeverityName, severityLevel } from './util'
 const logger = require('../util/logger')('diagnostic-manager')
@@ -555,6 +555,21 @@ export class DiagnosticManager implements Disposable {
         buf.forceRefresh(diagnostics)
       } else {
         buf.clear()
+      }
+    }
+  }
+
+  public toggleDiagnosticBuffer(bufnr: number): void {
+    if (!this.enabled) return
+    let buf = this.buffers.getItem(bufnr)
+    if (buf) {
+      if (buf.enabled) {
+        buf.changeState(DiagnosticState.Disabled)
+        buf.clear()
+      } else {
+        buf.changeState(DiagnosticState.Enabled)
+        let diagnostics = this.getDiagnostics(buf.uri)
+        buf.forceRefresh(diagnostics)
       }
     }
   }

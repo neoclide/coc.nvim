@@ -291,4 +291,22 @@ describe('diagnostic manager', () => {
     expect(items).toEqual([])
     config.update('displayByAle', false)
   })
+
+  it('should toggle diagnostics for buffer', async () => {
+    let doc = await createDocument()
+    // required to wait refresh finish
+    await helper.wait(50)
+    manager.toggleDiagnosticBuffer(doc.bufnr)
+    await helper.wait(50)
+    let buf = nvim.createBuffer(doc.bufnr)
+    let res = await buf.getVar('coc_diagnostic_info') as any
+    expect(res.error).toBe(0)
+    expect(res.information).toBe(0)
+    expect(res.hint).toBe(0)
+    expect(res.warning).toBe(0)
+    manager.toggleDiagnosticBuffer(doc.bufnr)
+    await helper.wait(50)
+    res = await buf.getVar('coc_diagnostic_info') as any
+    expect(res.error).toBe(2)
+  })
 })
