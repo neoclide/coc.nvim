@@ -527,7 +527,7 @@ Built-in configurations:~
 
 "hover.floatMaxHeight":~
 
-	Maximum height fo hover float window.
+	Maximum height of hover float window.
 
 "hover.autoHide":~
 

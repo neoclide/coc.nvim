@@ -17,6 +17,7 @@ function! coc#highlight#ranges(bufnr, key, hlGroup, ranges) abort
   if !bufloaded(bufnr) || !exists('*getbufline')
     return
   endif
+  let synmaxcol = min([getbufvar(a:bufnr, '&synmaxcol', 1000), 1000])
   let srcId = s:create_namespace(a:key)
   for range in a:ranges
     let start = range['start']
@@ -25,6 +26,9 @@ function! coc#highlight#ranges(bufnr, key, hlGroup, ranges) abort
       let arr = getbufline(bufnr, lnum)
       let line = empty(arr) ? '' : arr[0]
       if empty(line)
+        continue
+      endif
+      if start['character'] > synmaxcol || end['character'] > synmaxcol
         continue
       endif
       " TODO don't know how to count UTF16 code point, should work most cases.
