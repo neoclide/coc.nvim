@@ -89,7 +89,7 @@ And run: >
 
 For other plugin managers, use code from the release branch.
 
-Or use Vim's built-in plugin ecosystem like: >
+Or use Vim's native package management: >
 
   #!/bin/sh
   # for vim8
