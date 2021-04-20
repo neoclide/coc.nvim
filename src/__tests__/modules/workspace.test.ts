@@ -94,22 +94,6 @@ describe('workspace applyEdits', () => {
     expect(line).toBe('bar')
   })
 
-  it('should merge TextEdits of same document', async () => {
-    let doc = await helper.createDocument()
-    await doc.applyEdits([TextEdit.insert({ line: 0, character: 0 }, 'x = x')])
-    let versioned = VersionedTextDocumentIdentifier.create(doc.uri, doc.version)
-    let workspaceEdit: WorkspaceEdit = {
-      documentChanges: [
-        TextDocumentEdit.create(versioned, [{ range: Range.create(0, 0, 0, 1), newText: 'foo' }]),
-        TextDocumentEdit.create(versioned, [{ range: Range.create(0, 4, 0, 5), newText: 'foo' }]),
-      ]
-    }
-    let res = await workspace.applyEdit(workspaceEdit)
-    expect(res).toBe(true)
-    let line = await nvim.getLine()
-    expect(line).toBe('foo = foo')
-  })
-
   it('should not apply TextEdit if version miss match', async () => {
     let doc = await helper.createDocument()
     let versioned = VersionedTextDocumentIdentifier.create(doc.uri, 10)

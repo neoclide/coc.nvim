@@ -497,24 +497,15 @@ export class Workspace implements IWorkspace {
           }
         }
         let changedMap: Map<string, string> = new Map()
-        // let changes: Map<string, TextEdit[]> = new Map()
-        let textEdits: TextEdit[] = []
-        for (let i = 0; i < documentChanges.length; i++) {
-          let change = documentChanges[i]
+        for (const change of documentChanges) {
           if (TextDocumentEdit.is(change)) {
             let { textDocument, edits } = change
-            let next = documentChanges[i + 1]
-            textEdits.push(...edits)
-            if (next && TextDocumentEdit.is(next) && equals((next).textDocument, textDocument)) {
-              continue
-            }
             let doc = await this.loadFile(textDocument.uri)
-            if (textDocument.uri == uri) currEdits = textEdits
-            await doc.applyEdits(textEdits)
-            for (let edit of textEdits) {
+            if (textDocument.uri == uri) currEdits = edits
+            await doc.applyEdits(edits)
+            for (let edit of edits) {
               locations.push({ uri: doc.uri, range: edit.range })
             }
-            textEdits = []
           } else if (CreateFile.is(change)) {
             let file = URI.parse(change.uri).fsPath
             await this.createFile(file, change.options)
