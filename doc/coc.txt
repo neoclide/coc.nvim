@@ -51,22 +51,22 @@ Changelog					|coc-changelog|
 INTRODUCTION						*coc-introduction*
 
 Coc.nvim enhances your (Neo)Vim to match the user experience provided by VSCode
-through rich plugin ecosystem and Language Server Protocol support.
+through a rich plugin ecosystem and Language Server Protocol support.
 
-Some of the features include:~
+Some of its key features include:~
 
 - APIs that are compatible with both Vim8 and Neovim.
 - Loading VSCode-like extensions.
-- Configuring coc.nvim and its extensions by using JSON configuration file.
-- Configuring Language Servers that implement Language Server Protocol (LSP).
+- Configuring coc.nvim and its extensions with a JSON configuration file.
+- Configuring Language Servers that have implemented Language Server Protocol (LSP).
 
 It's designed to have a good integration with other Vim plugins as much as
 possible.
 
-Note: This plugin doesn't comes with any support for specific language, you
-have to install extensions or configure languageserver for LSP features.
+Note: This plugin doesn't come with any support for any specific language. You
+will need to either install coc extensions or configure a languageserver for LSP features.
 
-Note: This plugin doesn't change your key-mappings, you have to configure them
+Note: This plugin doesn't change your key-mappings, you will need to configure them
 yourself.
 
 ==============================================================================
