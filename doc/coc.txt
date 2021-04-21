@@ -51,23 +51,23 @@ Changelog					|coc-changelog|
 INTRODUCTION						*coc-introduction*
 
 Coc.nvim enhances your (Neo)Vim to match the user experience provided by VSCode
-through a rich plugin ecosystem and Language Server Protocol support.
+through a rich plugin (or extension) ecosystem and Language Server Protocol support.
 
 Some of its key features include:~
 
-- APIs that are compatible with both Vim8 and Neovim.
+- APIs compatible with both Vim8 and Neovim.
 - Loading VSCode-like extensions.
 - Configuring coc.nvim and its extensions with a JSON configuration file.
 - Configuring Language Servers that have implemented Language Server Protocol (LSP).
 
-It's designed to have a good integration with other Vim plugins as much as
-possible.
+It's designed to have a as good as possible integration with other Vim plugins.
 
 Note: This plugin doesn't come with any support for any specific language. You
-will need to either install coc extensions or configure a languageserver for LSP features.
+will need to either install a coc extension or set up a languageserver for LSP
+features.
 
-Note: This plugin doesn't change your key-mappings, you will need to configure them
-yourself.
+Note: This plugin doesn't change any of your existing key-mappings. You will
+need to create mappings for coc.nvim yourself.
 
 ==============================================================================
 REQUIREMENTS						*coc-requirements*
@@ -84,13 +84,17 @@ your `init.vim` or `.vimrc`: >
 
   Plug 'neoclide/coc.nvim'
 
+<
+
 And run: >
 
   :PlugInstall
 
+<
+
 For other plugin managers, use code from the release branch.
 
-Or use Vim's built-in plugin ecosystem like: >
+You can also use Vim's native package management: >
 
   #!/bin/sh
   # for vim8
@@ -102,24 +106,35 @@ Or use Vim's built-in plugin ecosystem like: >
   cd ~/.local/share/nvim/site/pack/coc/start
   curl --fail -L https://github.com/neoclide/coc.nvim/archive/release.tar.gz|tar xzfv -
 
+<
+
 ==============================================================================
 CONFIGURATION						*coc-configuration*
 
-Configurations of coc.nvim are stored in file names `coc-settings.json` that
-can be opened using |:CocConfig| for user configuration file or
-|:CocLocalConfig| for local configuration file.
+Configurations of coc.nvim are stored in a file named `coc-settings.json`. You
+can open it using |:CocConfig|. This will create a user-level configuration
+file in your 'runtimepath'. To create a configuration file only for your
+current working directory, use |:CocLocalConfig|.
 
-The location of global configuration can be configured by `g:coc_config_home`.
+If you would like the global configuration file to be placed in a different
+location, set `g:coc_config_home` in your `.vimrc` or `init.vim`: >
 
-Configure |b:coc_root_patterns| for project root resolve.
+	let g:coc_config_home = '/path/you/prefered/'
 
-To enable JSON completion and validation support of the settings file, install
-the `coc-json` extension by command:
+<
+
+When createing a local configuration file, use |b:coc_root_patterns| to
+resolve the root directory of a project.
+
+Since the configuration files are all in JSON format, you may want to enable
+JSON completion and validation support for them. Consider installing the
+`coc-json` extension by command: >
 
 	CocInstall coc-json
+<
 
-Check out https://github.com/neoclide/coc.nvim/wiki/Using-the-configuration-file
-for more details.
+For more details, check
+https://github.com/neoclide/coc.nvim/wiki/Using-the-configuration-file
 
 Built-in configurations:~
 
