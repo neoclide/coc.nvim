@@ -111,21 +111,30 @@ You can also use Vim's native package management: >
 ==============================================================================
 CONFIGURATION						*coc-configuration*
 
-Configurations of coc.nvim are stored in file names `coc-settings.json` that
-can be opened using |:CocConfig| for user configuration file or
-|:CocLocalConfig| for local configuration file.
+Configurations of coc.nvim are stored in a file named `coc-settings.json`. You
+can open it using |:CocConfig|. This will create a user-level configuration
+file in your 'runtimepath'. To create a configuration file only for your
+current working directory, use |:CocLocalConfig|.
 
-The location of global configuration can be configured by `g:coc_config_home`.
+If you would like the global configuration file to be placed in a different
+location, set `g:coc_config_home` in your `.vimrc` or `init.vim`: >
 
-Configure |b:coc_root_patterns| for project root resolve.
+	let g:coc_config_home = '/path/you/prefered/'
 
-To enable JSON completion and validation support of the settings file, install
-the `coc-json` extension by command:
+<
+
+When createing a local configuration file, use |b:coc_root_patterns| to
+resolve the root directory of a project.
+
+Since the configuration files are all in JSON format, you may want to enable
+JSON completion and validation support for them. Consider installing the
+`coc-json` extension by command: >
 
 	CocInstall coc-json
+<
 
-Check out https://github.com/neoclide/coc.nvim/wiki/Using-the-configuration-file
-for more details.
+For more details, check
+https://github.com/neoclide/coc.nvim/wiki/Using-the-configuration-file
 
 Built-in configurations:~
 
