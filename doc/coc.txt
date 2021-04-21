@@ -63,10 +63,11 @@ Some of its key features include:~
 It's designed to have a as good as possible integration with other Vim plugins.
 
 Note: This plugin doesn't come with any support for any specific language. You
-will need to either install coc extensions or set up a languageserver for LSP features.
+will need to either install a coc extension or set up a languageserver for LSP
+features.
 
-Note: This plugin doesn't change your key-mappings; you will need to configure them
-yourself.
+Note: This plugin doesn't change any of your existing key-mappings. You will
+need to create mappings for coc.nvim yourself.
 
 ==============================================================================
 REQUIREMENTS						*coc-requirements*
