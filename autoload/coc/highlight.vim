@@ -327,10 +327,12 @@ function! s:create_namespace(key) abort
   if type(a:key) == 0
     return a:key
   endif
-  if has('nvim')
-    return nvim_create_namespace('coc-'.a:key)
+  if has_key(s:namespace_map, a:key)
+    return s:namespace_map[a:key]
   endif
-  if !has_key(s:namespace_map, a:key)
+  if has('nvim')
+    let s:namespace_map[a:key] = nvim_create_namespace('coc-'.a:key)
+  else
     let s:namespace_map[a:key] = s:ns_id
     let s:ns_id = s:ns_id + 1
   endif
