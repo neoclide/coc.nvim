@@ -54,7 +54,7 @@ Coc.nvim enhances your (Neo)Vim to match the user experience provided by
 VSCode through a rich plugin (or extension) ecosystem and support for Language
 Server Protocol.
 
-Some of the its key features include:~
+Some of its key features include:~
 
 - APIs compatible with both Vim8 and Neovim.
 - Loading VSCode-like extensions.
@@ -94,7 +94,7 @@ And run: >
 
 For other plugin managers, use code from the release branch.
 
-You can also use Vim's native package mangement: >
+You can also use Vim's native package management: >
 
   #!/bin/sh
   # for vim8
@@ -111,15 +111,15 @@ You can also use Vim's native package mangement: >
 ==============================================================================
 CONFIGURATION						*coc-configuration*
 
-Configurations of coc.nvim are stored in a file named `coc-settings.json`. You
-can open it using |:cocconfig|. This will create a user-level (or global)
+The configurations of coc.nvim are stored in a file named `coc-settings.json`. You
+can open it using |:CocConfig|. This will create a user-level (or global)
 configuration file in your 'runtimepath'. To create a configuration file only
-for your curent working directory, use |:coclocalconfig|. 
+for your curent working directory, use |:CocLocalConfig|. 
 
 The global configuration file can be created in another directory by setting
 `g:coc_config_home` in your `.vimrc` or `init.vim`: >
 
-	let g:coc_config_home = '/path/you/prefer/'
+	let g:coc_config_home = '/path/you/prefer'
 
 <
 
