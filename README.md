@@ -307,6 +307,13 @@ Try these steps when you have problem with coc.nvim.
 <a href="https://opencollective.com/cocnvim/backer/15/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/15/avatar.svg?requireActive=false"></a>
 <a href="https://opencollective.com/cocnvim/backer/16/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/16/avatar.svg?requireActive=false"></a>
 <a href="https://opencollective.com/cocnvim/backer/17/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/17/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/18/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/18/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/19/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/19/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/20/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/20/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/21/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/21/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/22/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/22/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/23/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/23/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/24/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/24/avatar.svg?requireActive=false"></a>
 
 <a href="https://opencollective.com/cocnvim#backer" target="_blank"><img src="https://images.opencollective.com/static/images/become_backer.svg"></a>
 
