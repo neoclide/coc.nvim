@@ -22,7 +22,7 @@ import Task from './model/task'
 import TerminalModel from './model/terminal'
 import BufferSync, { SyncItem } from './model/bufferSync'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, DocumentChange, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, OutputChannel, PatternType, QuickfixItem, Terminal, TerminalOptions, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, DocumentChange, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, OutputChannel, PatternType, QuickfixItem, Terminal, TerminalOptions, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { distinct } from './util/array'
 import { findUp, fixDriver, inDirectory, isFile, isParentFolder, readFileLine, renameAsync, resolveRoot, statAsync } from './util/fs'
 import { CONFIG_FILE_NAME, disposeAll, getKeymapModifier, platform, runCommand, wait } from './util/index'
@@ -104,6 +104,20 @@ export class Workspace implements IWorkspace {
   public readonly onDidWorkspaceInitialized: Event<void> = this._onDidWorkspaceInitialized.event
   public readonly onDidRuntimePathChange: Event<string[]> = this._onDidRuntimePathChange.event
   public readonly configurations: Configurations
+
+  private _onDidCreateFiles = new Emitter<FileCreateEvent>()
+  private _onDidRenameFiles = new Emitter<FileRenameEvent>()
+  private _onDidDeleteFiles = new Emitter<FileDeleteEvent>()
+  private _onWillCreateFiles = new Emitter<FileWillCreateEvent>()
+  private _onWillRenameFiles = new Emitter<FileWillRenameEvent>()
+  private _onWillDeleteFiles = new Emitter<FileWillDeleteEvent>()
+
+  public readonly onDidCreateFiles: Event<FileCreateEvent> = this._onDidCreateFiles.event
+  public readonly onDidRenameFiles: Event<FileRenameEvent> = this._onDidRenameFiles.event
+  public readonly onDidDeleteFiles: Event<FileDeleteEvent> = this._onDidDeleteFiles.event
+  public readonly onWillCreateFiles: Event<FileWillCreateEvent> = this._onWillCreateFiles.event
+  public readonly onWillRenameFiles: Event<FileWillRenameEvent> = this._onWillRenameFiles.event
+  public readonly onWillDeleteFiles: Event<FileWillDeleteEvent> = this._onWillDeleteFiles.event
 
   constructor() {
     this.version = VERSION
@@ -1573,6 +1587,18 @@ augroup end`
       }
       fs.renameSync(oldPath, newPath)
     }
+    this._onWillRenameFiles.fire({
+      files: [{ newUri: URI.parse(newPath), oldUri: URI.parse(oldPath) }],
+      waitUntil: async thenable => {
+        const edit = await Promise.resolve(thenable)
+        if (edit && WorkspaceEdit.is(edit)) {
+          await this.applyEdit(edit)
+        }
+      }
+    })
+    this._onDidRenameFiles.fire({
+      files: [{ newUri: URI.parse(newPath), oldUri: URI.parse(oldPath) }],
+    })
     let filepath = isParentFolder(cwd, newPath) ? path.relative(cwd, newPath) : newPath
     let view = await nvim.call('winsaveview')
     nvim.pauseNotification()

@@ -930,6 +930,162 @@ export interface RenameEvent {
   newUri: URI
 }
 
+export enum FileType {
+  /**
+   * The file type is unknown.
+   */
+  Unknown = 0,
+  /**
+   * A regular file.
+   */
+  File = 1,
+  /**
+   * A directory.
+   */
+  Directory = 2,
+  /**
+   * A symbolic link to a file.
+   */
+  SymbolicLink = 64
+}
+/**
+ * An event that is fired when files are going to be renamed.
+ *
+ * To make modifications to the workspace before the files are renamed,
+ * call the [`waitUntil](#FileWillCreateEvent.waitUntil)-function with a
+ * thenable that resolves to a [workspace edit](#WorkspaceEdit).
+ */
+export interface FileWillRenameEvent {
+
+  /**
+   * The files that are going to be renamed.
+   */
+  readonly files: ReadonlyArray<{ oldUri: URI, newUri: URI }>;
+
+  /**
+   * Allows to pause the event and to apply a [workspace edit](#WorkspaceEdit).
+   *
+   * *Note:* This function can only be called during event dispatch and not
+   * in an asynchronous manner:
+   *
+   * ```ts
+   * workspace.onWillCreateFiles(event => {
+   * 	// async, will *throw* an error
+   * 	setTimeout(() => event.waitUntil(promise));
+   *
+   * 	// sync, OK
+   * 	event.waitUntil(promise);
+   * })
+   * ```
+   *
+   * @param thenable A thenable that delays saving.
+   */
+  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void;
+}
+
+/**
+ * An event that is fired after files are renamed.
+ */
+export interface FileRenameEvent {
+
+  /**
+   * The files that got renamed.
+   */
+  readonly files: ReadonlyArray<{ oldUri: URI, newUri: URI }>
+}
+
+/**
+ * An event that is fired when files are going to be created.
+ *
+ * To make modifications to the workspace before the files are created,
+ * call the [`waitUntil](#FileWillCreateEvent.waitUntil)-function with a
+ * thenable that resolves to a [workspace edit](#WorkspaceEdit).
+ */
+export interface FileWillCreateEvent {
+
+  /**
+   * The files that are going to be created.
+   */
+  readonly files: ReadonlyArray<URI>;
+
+  /**
+   * Allows to pause the event and to apply a [workspace edit](#WorkspaceEdit).
+   *
+   * *Note:* This function can only be called during event dispatch and not
+   * in an asynchronous manner:
+   *
+   * ```ts
+   * workspace.onWillCreateFiles(event => {
+   *     // async, will *throw* an error
+   *     setTimeout(() => event.waitUntil(promise));
+   *
+   *     // sync, OK
+   *     event.waitUntil(promise);
+   * })
+   * ```
+   *
+   * @param thenable A thenable that delays saving.
+   */
+  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void;
+}
+
+/**
+ * An event that is fired after files are created.
+ */
+export interface FileCreateEvent {
+
+  /**
+   * The files that got created.
+   */
+  readonly files: ReadonlyArray<URI>
+}
+
+/**
+ * An event that is fired when files are going to be deleted.
+ *
+ * To make modifications to the workspace before the files are deleted,
+ * call the [`waitUntil](#FileWillCreateEvent.waitUntil)-function with a
+ * thenable that resolves to a [workspace edit](#WorkspaceEdit).
+ */
+export interface FileWillDeleteEvent {
+
+  /**
+   * The files that are going to be deleted.
+   */
+  readonly files: ReadonlyArray<URI>;
+
+  /**
+   * Allows to pause the event and to apply a [workspace edit](#WorkspaceEdit).
+   *
+   * *Note:* This function can only be called during event dispatch and not
+   * in an asynchronous manner:
+   *
+   * ```ts
+   * workspace.onWillCreateFiles(event => {
+   *     // async, will *throw* an error
+   *     setTimeout(() => event.waitUntil(promise));
+   *
+   *     // sync, OK
+   *     event.waitUntil(promise);
+   * })
+   * ```
+   *
+   * @param thenable A thenable that delays saving.
+   */
+  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void;
+}
+
+/**
+ * An event that is fired after files are deleted.
+ */
+export interface FileDeleteEvent {
+
+  /**
+   * The files that got deleted.
+   */
+  readonly files: ReadonlyArray<URI>
+}
+
 export interface OpenTerminalOption {
   /**
    * Cwd of terminal, default to result of |getcwd()|

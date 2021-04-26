@@ -22,6 +22,7 @@ import ChildProcess = cp.ChildProcess
 import { CallHierarchyFeature } from './callHierarchy'
 import { SemanticTokensFeature } from './semanticTokens'
 import { LinkedEditingFeature } from './linkedEditingRange'
+import { DidCreateFilesFeature, DidDeleteFilesFeature, DidRenameFilesFeature, WillCreateFilesFeature, WillDeleteFilesFeature, WillRenameFilesFeature } from './fileOperations'
 
 const logger = require('../util/logger')('language-client-index')
 
@@ -556,6 +557,12 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeature(new CallHierarchyFeature(this))
     this.registerFeature(new SemanticTokensFeature(this))
     this.registerFeature(new LinkedEditingFeature(this))
+    this.registerFeature(new DidCreateFilesFeature(this))
+    this.registerFeature(new DidRenameFilesFeature(this))
+    this.registerFeature(new DidDeleteFilesFeature(this))
+    this.registerFeature(new WillCreateFilesFeature(this))
+    this.registerFeature(new WillRenameFilesFeature(this))
+    this.registerFeature(new WillDeleteFilesFeature(this))
     if (!this.clientOptions.disableWorkspaceFolders) {
       this.registerFeature(new WorkspaceFoldersFeature(this))
     }
