@@ -2002,7 +2002,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	Rename the symbol under the cursor position, user will be prompted for
 	a new name.
 
-	Note: coc.nvim support rename for disk files, but your language server
+	Note: coc.nvim supports rename for disk files, but your language server
 	may not.
 
 "selectionRanges"					*coc-action-selectionRanges*
