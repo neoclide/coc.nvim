@@ -719,7 +719,7 @@ describe('Client integration', () => {
     '/my/created-dynamic/file.txt',
     '/my/created-dynamic/file.js',
     '/my/created-dynamic/folder/',
-  ].map((p) => URI.file(p))
+  ].map(p => URI.file(p))
 
   const renameFiles = [
     ['/my/file.txt', '/my-new/file.txt'],
@@ -747,14 +747,14 @@ describe('Client integration', () => {
     '/my/deleted-dynamic/file.txt',
     '/my/deleted-dynamic/file.js',
     '/my/deleted-dynamic/folder/',
-  ].map((p) => URI.file(p))
+  ].map(p => URI.file(p))
 
   test('File Operations - Will Create Files', async () => {
     const feature = client.getFeature(WillCreateFilesRequest.method)
     isDefined(feature)
 
     const sendCreateRequest = () => new Promise<WorkspaceEdit>(async (resolve, reject) => {
-      feature.send({ files: createFiles, waitUntil: resolve })
+      void feature.send({ files: createFiles, waitUntil: resolve })
       // If feature.send didn't call waitUntil synchronously then something went wrong.
       reject(new Error('Feature unexpectedly did not call waitUntil synchronously'))
     })
@@ -777,7 +777,7 @@ describe('Client integration', () => {
     middleware.workspace = middleware.workspace || {}
     middleware.workspace.willCreateFiles = (event, next) => next({
       ...event,
-      files: event.files.filter((f) => !f.path.endsWith('/')),
+      files: event.files.filter(f => !f.path.endsWith('/')),
     })
 
     // Ensure we get the same results minus the folders that the middleware removed.
@@ -815,7 +815,7 @@ describe('Client integration', () => {
     // Add middleware that strips out any folders.
     middleware.workspace = middleware.workspace || {}
     middleware.workspace.didCreateFiles = (event, next) => next({
-      files: event.files.filter((f) => !f.path.endsWith('/')),
+      files: event.files.filter(f => !f.path.endsWith('/')),
     })
 
     // Ensure we get the same results minus the folders that the middleware removed.
@@ -838,7 +838,7 @@ describe('Client integration', () => {
     isDefined(feature)
 
     const sendRenameRequest = () => new Promise<WorkspaceEdit>(async (resolve, reject) => {
-      feature.send({ files: renameFiles, waitUntil: resolve })
+      void feature.send({ files: renameFiles, waitUntil: resolve })
       // If feature.send didn't call waitUntil synchronously then something went wrong.
       reject(new Error('Feature unexpectedly did not call waitUntil synchronously'))
     })
@@ -861,7 +861,7 @@ describe('Client integration', () => {
     middleware.workspace = middleware.workspace || {}
     middleware.workspace.willRenameFiles = (event, next) => next({
       ...event,
-      files: event.files.filter((f) => !f.oldUri.path.endsWith('/')),
+      files: event.files.filter(f => !f.oldUri.path.endsWith('/')),
     })
 
     // Ensure we get the same results minus the folders that the middleware removed.
@@ -899,7 +899,7 @@ describe('Client integration', () => {
     // Add middleware that strips out any folders.
     middleware.workspace = middleware.workspace || {}
     middleware.workspace.didRenameFiles = (event, next) => next({
-      files: event.files.filter((f) => !f.oldUri.path.endsWith('/')),
+      files: event.files.filter(f => !f.oldUri.path.endsWith('/')),
     })
 
     // Ensure we get the same results minus the folders that the middleware removed.
@@ -922,7 +922,7 @@ describe('Client integration', () => {
     isDefined(feature)
 
     const sendDeleteRequest = () => new Promise<WorkspaceEdit>(async (resolve, reject) => {
-      feature.send({ files: deleteFiles, waitUntil: resolve })
+      void feature.send({ files: deleteFiles, waitUntil: resolve })
       // If feature.send didn't call waitUntil synchronously then something went wrong.
       reject(new Error('Feature unexpectedly did not call waitUntil synchronously'))
     })
@@ -945,7 +945,7 @@ describe('Client integration', () => {
     middleware.workspace = middleware.workspace || {}
     middleware.workspace.willDeleteFiles = (event, next) => next({
       ...event,
-      files: event.files.filter((f) => !f.path.endsWith('/')),
+      files: event.files.filter(f => !f.path.endsWith('/')),
     })
 
     // Ensure we get the same results minus the folders that the middleware removed.
@@ -983,7 +983,7 @@ describe('Client integration', () => {
     // Add middleware that strips out any folders.
     middleware.workspace = middleware.workspace || {}
     middleware.workspace.didDeleteFiles = (event, next) => next({
-      files: event.files.filter((f) => !f.path.endsWith('/')),
+      files: event.files.filter(f => !f.path.endsWith('/')),
     })
 
     // Ensure we get the same results minus the folders that the middleware removed.
