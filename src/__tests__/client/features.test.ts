@@ -2,7 +2,7 @@ import * as assert from 'assert'
 import path from 'path'
 import { URI } from 'vscode-uri'
 import { LanguageClient, ServerOptions, TransportKind, Middleware, LanguageClientOptions } from '../../language-client/index'
-import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, SemanticTokensRegistrationType, LinkedEditingRangeRequest } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, SemanticTokensRegistrationType, LinkedEditingRangeRequest, WillCreateFilesRequest, DidCreateFilesNotification, WillRenameFilesRequest, DidRenameFilesNotification, WillDeleteFilesRequest, DidDeleteFilesNotification, TextDocumentEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import helper from '../helper'
 import workspace from '../../workspace'
@@ -141,22 +141,22 @@ describe('Client integration', () => {
         },
         workspace: {
           fileOperations: {
-            didCreate: { patterns: [{ glob: '**/created-static/**{/,/*.txt}' }] },
+            didCreate: { filters: [{ scheme: 'file', pattern: { glob: '**/created-static/**{/,/*.txt}' } }] },
             didRename: {
-              patterns: [
-                { glob: '**/renamed-static/**/', matches: 'folder' },
-                { glob: '**/renamed-static/**/*.txt', matches: 'file' }
+              filters: [
+                { scheme: 'file', pattern: { glob: '**/renamed-static/**/', matches: 'folder' } },
+                { scheme: 'file', pattern: { glob: '**/renamed-static/**/*.txt', matches: 'file' } }
               ]
             },
-            didDelete: { patterns: [{ glob: '**/deleted-static/**{/,/*.txt}' }] },
-            willCreate: { patterns: [{ glob: '**/created-static/**{/,/*.txt}' }] },
+            didDelete: { filters: [{ scheme: 'file', pattern: { glob: '**/deleted-static/**{/,/*.txt}' } }] },
+            willCreate: { filters: [{ scheme: 'file', pattern: { glob: '**/created-static/**{/,/*.txt}' } }] },
             willRename: {
-              patterns: [
-                { glob: '**/renamed-static/**/', matches: 'folder' },
-                { glob: '**/renamed-static/**/*.txt', matches: 'file' }
+              filters: [
+                { scheme: 'file', pattern: { glob: '**/renamed-static/**/', matches: 'folder' } },
+                { scheme: 'file', pattern: { glob: '**/renamed-static/**/*.txt', matches: 'file' } }
               ]
             },
-            willDelete: { patterns: [{ glob: '**/deleted-static/**{/,/*.txt}' }] },
+            willDelete: { filters: [ {scheme: 'file', pattern: { glob: '**/deleted-static/**{/,/*.txt}' } }] },
           },
         },
         linkedEditingRangeProvider: true
@@ -682,6 +682,323 @@ describe('Client integration', () => {
     await provider.provideCallHierarchyOutgoingCalls(item, tokenSource.token)
     middleware.provideCallHierarchyOutgoingCalls = undefined
     assert.strictEqual(middlewareCalled, true)
+  })
+
+  const referenceFileUri = URI.parse('/dummy-edit')
+  function ensureReferenceEdit(edits: WorkspaceEdit, type: string, expectedLines: string[]) {
+    // // Ensure the edits are as expected.
+    assert.strictEqual(edits.documentChanges?.length, 1)
+    const edit = edits.documentChanges[0] as TextDocumentEdit
+    assert.strictEqual(edit.edits.length, 1)
+    assert.strictEqual(edit.textDocument.uri, referenceFileUri.path)
+    assert.strictEqual(edit.edits[0].newText.trim(), `${type}:\n${expectedLines.join('\n')}`.trim())
+  }
+  async function ensureNotificationReceived(type: string, params: any) {
+    const result = await client.sendRequest(
+      new ProtocolRequestType<any, any, never, any, any>('testing/lastFileOperationRequest'),
+      {},
+      tokenSource.token,
+    )
+    assert.strictEqual(result.type, type)
+    assert.deepEqual(result.params, params)
+    assert.deepEqual(result, {
+      type,
+      params
+    })
+  }
+
+  const createFiles = [
+    '/my/file.txt',
+    '/my/file.js',
+    '/my/folder/',
+    // Static registration for tests is [operation]-static and *.txt
+    '/my/created-static/file.txt',
+    '/my/created-static/file.js',
+    '/my/created-static/folder/',
+    // Dynamic registration for tests is [operation]-dynamic and *.js
+    '/my/created-dynamic/file.txt',
+    '/my/created-dynamic/file.js',
+    '/my/created-dynamic/folder/',
+  ].map((p) => URI.file(p))
+
+  const renameFiles = [
+    ['/my/file.txt', '/my-new/file.txt'],
+    ['/my/file.js', '/my-new/file.js'],
+    ['/my/folder/', '/my-new/folder/'],
+    // Static registration for tests is [operation]-static and *.txt
+    ['/my/renamed-static/file.txt', '/my-new/renamed-static/file.txt'],
+    ['/my/renamed-static/file.js', '/my-new/renamed-static/file.js'],
+    ['/my/renamed-static/folder/', '/my-new/renamed-static/folder/'],
+    // Dynamic registration for tests is [operation]-dynamic and *.js
+    ['/my/renamed-dynamic/file.txt', '/my-new/renamed-dynamic/file.txt'],
+    ['/my/renamed-dynamic/file.js', '/my-new/renamed-dynamic/file.js'],
+    ['/my/renamed-dynamic/folder/', '/my-new/renamed-dynamic/folder/'],
+  ].map(([o, n]) => ({ oldUri: URI.file(o), newUri: URI.file(n) }))
+
+  const deleteFiles = [
+    '/my/file.txt',
+    '/my/file.js',
+    '/my/folder/',
+    // Static registration for tests is [operation]-static and *.txt
+    '/my/deleted-static/file.txt',
+    '/my/deleted-static/file.js',
+    '/my/deleted-static/folder/',
+    // Dynamic registration for tests is [operation]-dynamic and *.js
+    '/my/deleted-dynamic/file.txt',
+    '/my/deleted-dynamic/file.js',
+    '/my/deleted-dynamic/folder/',
+  ].map((p) => URI.file(p))
+
+  test('File Operations - Will Create Files', async () => {
+    const feature = client.getFeature(WillCreateFilesRequest.method)
+    isDefined(feature)
+
+    const sendCreateRequest = () => new Promise<WorkspaceEdit>(async (resolve, reject) => {
+      feature.send({ files: createFiles, waitUntil: resolve })
+      // If feature.send didn't call waitUntil synchronously then something went wrong.
+      reject(new Error('Feature unexpectedly did not call waitUntil synchronously'))
+    })
+
+    // Send the event and ensure the server responds with an edit referencing the
+    // correct files.
+    let edits = await sendCreateRequest()
+    ensureReferenceEdit(
+      edits,
+      'WILL CREATE',
+      [
+        'file:///my/created-static/file.txt',
+        'file:///my/created-static/folder/',
+        'file:///my/created-dynamic/file.js',
+        'file:///my/created-dynamic/folder/',
+      ],
+    )
+
+    // Add middleware that strips out any folders.
+    middleware.workspace = middleware.workspace || {}
+    middleware.workspace.willCreateFiles = (event, next) => next({
+      ...event,
+      files: event.files.filter((f) => !f.path.endsWith('/')),
+    })
+
+    // Ensure we get the same results minus the folders that the middleware removed.
+    edits = await sendCreateRequest()
+    ensureReferenceEdit(
+      edits,
+      'WILL CREATE',
+      [
+        'file:///my/created-static/file.txt',
+        'file:///my/created-dynamic/file.js',
+      ],
+    )
+
+    middleware.workspace.willCreateFiles = undefined
+  })
+
+  test('File Operations - Did Create Files', async () => {
+    const feature = client.getFeature(DidCreateFilesNotification.method)
+    isDefined(feature)
+
+    // Send the event and ensure the server reports the notification was sent.
+    await feature.send({ files: createFiles })
+    await ensureNotificationReceived(
+      'create',
+      {
+        files: [
+          { uri: 'file:///my/created-static/file.txt' },
+          { uri: 'file:///my/created-static/folder/' },
+          { uri: 'file:///my/created-dynamic/file.js' },
+          { uri: 'file:///my/created-dynamic/folder/' },
+        ],
+      },
+    )
+
+    // Add middleware that strips out any folders.
+    middleware.workspace = middleware.workspace || {}
+    middleware.workspace.didCreateFiles = (event, next) => next({
+      files: event.files.filter((f) => !f.path.endsWith('/')),
+    })
+
+    // Ensure we get the same results minus the folders that the middleware removed.
+    await feature.send({ files: createFiles })
+    await ensureNotificationReceived(
+      'create',
+      {
+        files: [
+          { uri: 'file:///my/created-static/file.txt' },
+          { uri: 'file:///my/created-dynamic/file.js' },
+        ],
+      },
+    )
+
+    middleware.workspace.didCreateFiles = undefined
+  })
+
+  test('File Operations - Will Rename Files', async () => {
+    const feature = client.getFeature(WillRenameFilesRequest.method)
+    isDefined(feature)
+
+    const sendRenameRequest = () => new Promise<WorkspaceEdit>(async (resolve, reject) => {
+      feature.send({ files: renameFiles, waitUntil: resolve })
+      // If feature.send didn't call waitUntil synchronously then something went wrong.
+      reject(new Error('Feature unexpectedly did not call waitUntil synchronously'))
+    })
+
+    // Send the event and ensure the server responds with an edit referencing the
+    // correct files.
+    let edits = await sendRenameRequest()
+    ensureReferenceEdit(
+      edits,
+      'WILL RENAME',
+      [
+        'file:///my/renamed-static/file.txt -> file:///my-new/renamed-static/file.txt',
+        'file:///my/renamed-static/folder/ -> file:///my-new/renamed-static/folder/',
+        'file:///my/renamed-dynamic/file.js -> file:///my-new/renamed-dynamic/file.js',
+        'file:///my/renamed-dynamic/folder/ -> file:///my-new/renamed-dynamic/folder/',
+      ],
+    )
+
+    // Add middleware that strips out any folders.
+    middleware.workspace = middleware.workspace || {}
+    middleware.workspace.willRenameFiles = (event, next) => next({
+      ...event,
+      files: event.files.filter((f) => !f.oldUri.path.endsWith('/')),
+    })
+
+    // Ensure we get the same results minus the folders that the middleware removed.
+    edits = await sendRenameRequest()
+    ensureReferenceEdit(
+      edits,
+      'WILL RENAME',
+      [
+        'file:///my/renamed-static/file.txt -> file:///my-new/renamed-static/file.txt',
+        'file:///my/renamed-dynamic/file.js -> file:///my-new/renamed-dynamic/file.js',
+      ],
+    )
+
+    middleware.workspace.willRenameFiles = undefined
+  })
+
+  test('File Operations - Did Rename Files', async () => {
+    const feature = client.getFeature(DidRenameFilesNotification.method)
+    isDefined(feature)
+
+    // Send the event and ensure the server reports the notification was sent.
+    await feature.send({ files: renameFiles })
+    await ensureNotificationReceived(
+      'rename',
+      {
+        files: [
+          { oldUri: 'file:///my/renamed-static/file.txt', newUri: 'file:///my-new/renamed-static/file.txt' },
+          { oldUri: 'file:///my/renamed-static/folder/', newUri: 'file:///my-new/renamed-static/folder/' },
+          { oldUri: 'file:///my/renamed-dynamic/file.js', newUri: 'file:///my-new/renamed-dynamic/file.js' },
+          { oldUri: 'file:///my/renamed-dynamic/folder/', newUri: 'file:///my-new/renamed-dynamic/folder/' },
+        ],
+      },
+    )
+
+    // Add middleware that strips out any folders.
+    middleware.workspace = middleware.workspace || {}
+    middleware.workspace.didRenameFiles = (event, next) => next({
+      files: event.files.filter((f) => !f.oldUri.path.endsWith('/')),
+    })
+
+    // Ensure we get the same results minus the folders that the middleware removed.
+    await feature.send({ files: renameFiles })
+    await ensureNotificationReceived(
+      'rename',
+      {
+        files: [
+          { oldUri: 'file:///my/renamed-static/file.txt', newUri: 'file:///my-new/renamed-static/file.txt' },
+          { oldUri: 'file:///my/renamed-dynamic/file.js', newUri: 'file:///my-new/renamed-dynamic/file.js' },
+        ],
+      },
+    )
+
+    middleware.workspace.didRenameFiles = undefined
+  })
+
+  test('File Operations - Will Delete Files', async () => {
+    const feature = client.getFeature(WillDeleteFilesRequest.method)
+    isDefined(feature)
+
+    const sendDeleteRequest = () => new Promise<WorkspaceEdit>(async (resolve, reject) => {
+      feature.send({ files: deleteFiles, waitUntil: resolve })
+      // If feature.send didn't call waitUntil synchronously then something went wrong.
+      reject(new Error('Feature unexpectedly did not call waitUntil synchronously'))
+    })
+
+    // Send the event and ensure the server responds with an edit referencing the
+    // correct files.
+    let edits = await sendDeleteRequest()
+    ensureReferenceEdit(
+      edits,
+      'WILL DELETE',
+      [
+        'file:///my/deleted-static/file.txt',
+        'file:///my/deleted-static/folder/',
+        'file:///my/deleted-dynamic/file.js',
+        'file:///my/deleted-dynamic/folder/',
+      ],
+    )
+
+    // Add middleware that strips out any folders.
+    middleware.workspace = middleware.workspace || {}
+    middleware.workspace.willDeleteFiles = (event, next) => next({
+      ...event,
+      files: event.files.filter((f) => !f.path.endsWith('/')),
+    })
+
+    // Ensure we get the same results minus the folders that the middleware removed.
+    edits = await sendDeleteRequest()
+    ensureReferenceEdit(
+      edits,
+      'WILL DELETE',
+      [
+        'file:///my/deleted-static/file.txt',
+        'file:///my/deleted-dynamic/file.js',
+      ],
+    )
+
+    middleware.workspace.willDeleteFiles = undefined
+  })
+
+  test('File Operations - Did Delete Files', async () => {
+    const feature = client.getFeature(DidDeleteFilesNotification.method)
+    isDefined(feature)
+
+    // Send the event and ensure the server reports the notification was sent.
+    await feature.send({ files: deleteFiles })
+    await ensureNotificationReceived(
+      'delete',
+      {
+        files: [
+          { uri: 'file:///my/deleted-static/file.txt' },
+          { uri: 'file:///my/deleted-static/folder/' },
+          { uri: 'file:///my/deleted-dynamic/file.js' },
+          { uri: 'file:///my/deleted-dynamic/folder/' },
+        ],
+      },
+    )
+
+    // Add middleware that strips out any folders.
+    middleware.workspace = middleware.workspace || {}
+    middleware.workspace.didDeleteFiles = (event, next) => next({
+      files: event.files.filter((f) => !f.path.endsWith('/')),
+    })
+
+    // Ensure we get the same results minus the folders that the middleware removed.
+    await feature.send({ files: deleteFiles })
+    await ensureNotificationReceived(
+      'delete',
+      {
+        files: [
+          { uri: 'file:///my/deleted-static/file.txt' },
+          { uri: 'file:///my/deleted-dynamic/file.js' },
+        ],
+      },
+    )
+
+    middleware.workspace.didDeleteFiles = undefined
   })
 
   test('Semantic Tokens', async () => {
