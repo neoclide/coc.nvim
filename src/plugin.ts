@@ -255,11 +255,20 @@ export default class Plugin extends EventEmitter {
     this.addAction('jumpDeclaration', openCommand => {
       return this.handler.gotoDeclaration(openCommand)
     })
+    this.addAction('declarations', () => {
+      return this.handler.declarations()
+    })
     this.addAction('jumpImplementation', openCommand => {
       return this.handler.gotoImplementation(openCommand)
     })
+    this.addAction('implementations', () => {
+      return this.handler.implementations()
+    })
     this.addAction('jumpTypeDefinition', openCommand => {
       return this.handler.gotoTypeDefinition(openCommand)
+    })
+    this.addAction('typeDefinitions', () => {
+      return this.handler.typeDefinitions()
     })
     this.addAction('jumpReferences', openCommand => {
       return this.handler.gotoReferences(openCommand)
