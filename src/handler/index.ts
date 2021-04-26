@@ -120,7 +120,7 @@ export default class Handler {
    */
   private checkProvier(id: ProviderName, document: TextDocument): void {
     if (languages.hasProvider(id, document)) return
-    throw new Error(`${id} provider not found for current buffer, your language server don't support it.`)
+    throw new Error(`${id} provider not found for current buffer, your language server doesn't support it.`)
   }
 
   private async withRequestToken<T>(name: string, fn: (token: CancellationToken) => Thenable<T>, checkEmpty?: boolean): Promise<T | null> {
