@@ -141,7 +141,6 @@ export function parseMarkdown(content: string): DocumentInfo {
       continue
     }
     if (/\s*```\s*([A-Za-z0-9_,]+)?$/.test(line)) {
-      let pre = lines[lines.length - 1]
       if (!inCodeBlock) {
         inCodeBlock = true
         filetype = line.replace(/^\s*```\s*/, '')
@@ -156,10 +155,6 @@ export function parseMarkdown(content: string): DocumentInfo {
           startLine: startLnum,
           endLine: currline
         })
-      }
-      if (pre && pre.length) {
-        lines.push('')
-        currline++
       }
       continue
     }
