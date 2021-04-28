@@ -72,7 +72,7 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   public async doHighlight(): Promise<void> {
     const legend = languages.getLegend()
-    if (!legend.tokenTypes.length) return
+    if (!legend?.tokenTypes.length) return
     let doc = workspace.getDocument(this.bufnr)
     if (!doc || !this.enabled) return
     if (this.version && doc.version == this.version) return
