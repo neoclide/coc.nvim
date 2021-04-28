@@ -71,6 +71,8 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public async doHighlight(): Promise<void> {
+    const legend = languages.getLegend()
+    if (!legend.tokenTypes.length) return
     let doc = workspace.getDocument(this.bufnr)
     if (!doc || !this.enabled) return
     if (this.version && doc.version == this.version) return
@@ -79,13 +81,13 @@ export default class SemanticTokensBuffer implements SyncItem {
       const { nvim } = this
 
       const curr = await this.getHighlights(doc)
-      if (!curr || curr.length === 0) return
+      if (!curr.length) return
       const prev = await this.vimGetCurrentHighlights(doc)
       const { highlights, lines } = this.calculateHighlightUpdates(prev, curr)
       for (const ln of lines) {
         this.buffer.clearNamespace(this.namespace, ln, ln + 1)
       }
-      if (!highlights) return
+      if (!highlights.length) return
 
       const groups: { [index: string]: Range[] } = {}
       for (const h of highlights) {
@@ -180,7 +182,6 @@ export default class SemanticTokensBuffer implements SyncItem {
     this.tokenSource = new CancellationTokenSource()
     const { token } = this.tokenSource
     const { version } = doc
-    const legend = languages.getLegend()
     const hasEditProvider = languages.hasEditProvider()
     const previousResult = this.previousResults.get(this.bufnr)
     let result: SemanticTokens | SemanticTokensDelta
@@ -209,13 +210,13 @@ export default class SemanticTokensBuffer implements SyncItem {
     }
     this.previousResults.set(this.bufnr, new SemanticTokensPreviousResult(result.resultId, tokens))
     const relatives: RelativeHighlight[] = []
+    const legend = languages.getLegend()
     for (let i = 0; i < tokens.length; i += 5) {
       const deltaLine = tokens[i]
       const deltaStartCharacter = tokens[i + 1]
       const length = tokens[i + 2]
       const tokenType = tokens[i + 3]
-      // TODO: support tokenModifiers
-      // const tokenModifiers = highlights.data[i + 4];
+      // const tokenModifiers = legend.tokenModifiers.filter((_, m) => tokens[i + 4] & (1 << m))
 
       const group = SEMANTIC_HIGHLIGHTS_HLGROUP_PREFIX + legend.tokenTypes[tokenType]
       relatives.push({
@@ -236,10 +237,7 @@ export default class SemanticTokensBuffer implements SyncItem {
       length
     } of relatives) {
       const line = currentLine + deltaLine
-      const startCharacter =
-        deltaLine == 0
-          ? currentCharacter + deltaStartCharacter
-          : deltaStartCharacter
+      const startCharacter = deltaLine === 0 ? currentCharacter + deltaStartCharacter : deltaStartCharacter
       const endCharacter = startCharacter + length
       currentLine = line
       currentCharacter = startCharacter

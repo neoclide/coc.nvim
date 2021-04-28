@@ -8,7 +8,6 @@ export default class SemanticTokensRangeManager extends Manager<DocumentRangeSem
   private _legend: SemanticTokensLegend
 
   public register(selector: DocumentSelector, provider: DocumentRangeSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
-    // TODO: SemantiTokens
     this._legend = legend
     let item: ProviderItem<DocumentRangeSemanticTokensProvider> = {
       id: uuid(),
