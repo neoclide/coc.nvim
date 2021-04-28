@@ -182,7 +182,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     this.tokenSource = new CancellationTokenSource()
     const { token } = this.tokenSource
     const { version } = doc
-    const hasEditProvider = languages.hasEditProvider()
+    const hasEditProvider = languages.hasEditProvider(doc.textDocument)
     const previousResult = this.previousResults.get(this.bufnr)
     let result: SemanticTokens | SemanticTokensDelta
     if (hasEditProvider && previousResult?.resultId) {
