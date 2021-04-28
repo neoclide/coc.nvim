@@ -642,10 +642,6 @@ describe('Client integration', () => {
     const result = (await provider.prepareCallHierarchy(document, position, tokenSource.token)) as CallHierarchyItem[]
     expect(result.length).toBe(1)
 
-    // TODO: 'CallHierarchyItem' only refers to a type, but is being used as a value here.
-    // isArray(result, CallHierarchyItem, 1)
-    const item = result[0]
-
     let middlewareCalled = false
     middleware.prepareCallHierarchy = (d, p, t, n) => {
       middlewareCalled = true
@@ -655,11 +651,10 @@ describe('Client integration', () => {
     middleware.prepareCallHierarchy = undefined
     assert.strictEqual(middlewareCalled, true)
 
+    const item = result[0]
     const incoming = (await provider.provideCallHierarchyIncomingCalls(item, tokenSource.token)) as CallHierarchyIncomingCall[]
     expect(incoming.length).toBe(1)
     assert.deepEqual(incoming[0].from, item)
-    // TODO
-    // isArray(incoming, CallHierarchyIncomingCall, 1)
     middlewareCalled = false
     middleware.provideCallHierarchyIncomingCalls = (i, t, n) => {
       middlewareCalled = true
@@ -672,8 +667,6 @@ describe('Client integration', () => {
     const outgoing = (await provider.provideCallHierarchyOutgoingCalls(item, tokenSource.token)) as CallHierarchyOutgoingCall[]
     expect(outgoing.length).toBe(1)
     assert.deepEqual(outgoing[0].to, item)
-    // TODO
-    // isArray(outgoing, CallHierarchyOutgoingCall, 1)
     middlewareCalled = false
     middleware.provideCallHierarchyOutgoingCalls = (i, t, n) => {
       middlewareCalled = true
