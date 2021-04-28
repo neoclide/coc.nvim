@@ -1869,11 +1869,8 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
       preselectSupport: true,
       insertReplaceSupport: true,
       tagSupport: { valueSet: [CompletionItemTag.Deprecated] },
+      resolveSupport: { properties: ['documentation', 'detail', 'additionalTextEdits'] },
       insertTextModeSupport: { valueSet: [InsertTextMode.asIs, InsertTextMode.adjustIndentation] }
-      // TODO: capabilities
-      // resolveSupport: {
-      //   properties: ['documentation', 'detail', 'additionalTextEdits']
-      // },
     }
     completion.completionItemKind = { valueSet: SupportedCompletionItemKinds }
   }
