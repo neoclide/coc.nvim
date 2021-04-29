@@ -403,6 +403,7 @@ export default class Handler {
         return false
       }
       await workspace.applyEdit(edit)
+      if (workspace.isVim) this.nvim.command('redraw', true)
       return true
     } catch (e) {
       statusItem.hide()
