@@ -4286,24 +4286,10 @@ export abstract class BaseLanguageClient {
   }
 
   private getLocale(): string {
-    // TODO: use vim :language or coc.preferences config?
-    interface NLS_CONFIG {
-      locale: string
-    }
-    const envValue = process.env['VSCODE_NLS_CONFIG']
-    if (envValue === undefined) {
-      return 'en'
-    }
+    const lang = process.env.LANG
+    if (!lang) return 'en'
 
-    let config: NLS_CONFIG | undefined = undefined
-    try {
-      config = JSON.parse(envValue)
-    } catch (err) {
-    }
-    if (config === undefined || typeof config.locale !== 'string') {
-      return 'en'
-    }
-    return config.locale
+    return lang.split('.')[0]
   }
 
   public handleFailedRequest<T>(type: MessageSignature, token: CancellationToken | undefined, error: any, defaultValue: T): T {
