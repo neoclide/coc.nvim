@@ -120,7 +120,7 @@ export default class Handler {
    */
   private checkProvier(id: ProviderName, document: TextDocument): void {
     if (languages.hasProvider(id, document)) return
-    throw new Error(`${id} provider not found for current buffer, your language server don't support it.`)
+    throw new Error(`${id} provider not found for current buffer, your language server doesn't support it.`)
   }
 
   private async withRequestToken<T>(name: string, fn: (token: CancellationToken) => Thenable<T>, checkEmpty?: boolean): Promise<T | null> {
@@ -275,6 +275,14 @@ export default class Handler {
     return true
   }
 
+  public async declarations(): Promise<Location | Location[] | LocationLink[]> {
+    const { doc, position } = await this.getCurrentState()
+    if (!languages.hasProvider('declaration', doc.textDocument)) return []
+    await synchronizeDocument(doc)
+    const tokenSource = new CancellationTokenSource()
+    return languages.getDeclaration(doc.textDocument, position, tokenSource.token)
+  }
+
   public async gotoTypeDefinition(openCommand?: string): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
     this.checkProvier('typeDefinition', doc.textDocument)
@@ -287,6 +295,14 @@ export default class Handler {
     return true
   }
 
+  public async typeDefinitions(): Promise<Location[]> {
+    const { doc, position } = await this.getCurrentState()
+    if (!languages.hasProvider('typeDefinition', doc.textDocument)) return []
+    await synchronizeDocument(doc)
+    const tokenSource = new CancellationTokenSource()
+    return languages.getTypeDefinition(doc.textDocument, position, tokenSource.token)
+  }
+
   public async gotoImplementation(openCommand?: string): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
     this.checkProvier('implementation', doc.textDocument)
@@ -297,6 +313,14 @@ export default class Handler {
     if (definition == null) return false
     await this.handleLocations(definition, openCommand)
     return true
+  }
+
+  public async implementations(): Promise<Location[]> {
+    const { doc, position } = await this.getCurrentState()
+    if (!languages.hasProvider('implementation', doc.textDocument)) return []
+    await synchronizeDocument(doc)
+    const tokenSource = new CancellationTokenSource()
+    return languages.getImplementation(doc.textDocument, position, tokenSource.token)
   }
 
   public async gotoReferences(openCommand?: string, includeDeclaration = true): Promise<boolean> {
@@ -379,6 +403,7 @@ export default class Handler {
         return false
       }
       await workspace.applyEdit(edit)
+      if (workspace.isVim) this.nvim.command('redraw', true)
       return true
     } catch (e) {
       statusItem.hide()

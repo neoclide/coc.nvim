@@ -696,8 +696,6 @@ class Languages {
       if (!obj.filterText.startsWith(prefix)) {
         if (item.textEdit && item.textEdit.newText.startsWith(prefix)) {
           obj.filterText = item.textEdit.newText.split(/\r?\n/)[0]
-        } else {
-          obj.filterText = `${prefix}${obj.filterText}`
         }
       }
       if (!item.textEdit && !obj.word.startsWith(prefix)) {
