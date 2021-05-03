@@ -30,9 +30,7 @@ function! coc#float#close_all() abort
   let winids = coc#float#get_float_win_list()
   for id in winids
     try
-      if getwinvar(id, 'float')
-        call coc#float#close(id)
-      endif
+      call coc#float#close(id)
     catch /E5555:/
       " ignore
     endtry
@@ -600,11 +598,12 @@ function! coc#float#get_float_win() abort
   return 0
 endfunction
 
+" Returns a list of floating/popup windows created by coc.nvim.
 function! coc#float#get_float_win_list() abort
+  let res = []
   if s:is_vim && exists('*popup_list')
-    return filter(popup_list(), 'popup_getpos(v:val)["visible"]')
+    call extend(res, filter(popup_list(), 'popup_getpos(v:val)["visible"]'))
   elseif has('nvim') && exists('*nvim_win_get_config')
-    let res = []
     for i in range(1, winnr('$'))
       let id = win_getid(i)
       let config = nvim_win_get_config(id)
@@ -613,9 +612,9 @@ function! coc#float#get_float_win_list() abort
         call add(res, id)
       endif
     endfor
-    return res
   endif
-  return []
+  call filter(res, 'getwinvar(v:val, "float", 0)')
+  return res
 endfunction
 
 " Check if a float window is scrollable
