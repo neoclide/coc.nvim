@@ -233,6 +233,15 @@ describe('window functions', () => {
     let res = await p
     expect(res).toBe('first')
   })
+
+  it('should not consider other floating windows', async () => {
+    await nvim.call(
+      'nvim_open_win', [0, false, {relative: 'win', row: 1, col: 1, width: 1, height: 1}])
+    let ids = await nvim.call('coc#float#get_float_win_list')
+    expect(ids.length).toBe(0)
+    let hasFloat = await nvim.call('coc#float#has_float')
+    expect(hasFloat).toBe(0)
+  })
 })
 
 describe('window notifications', () => {
