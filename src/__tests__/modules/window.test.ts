@@ -235,12 +235,15 @@ describe('window functions', () => {
   })
 
   it('should not consider other floating windows', async () => {
-    await nvim.call(
+    let floatId = await nvim.call(
       'nvim_open_win', [0, false, {relative: 'win', row: 1, col: 1, width: 1, height: 1}])
-    let ids = await nvim.call('coc#float#get_float_win_list')
-    expect(ids.length).toBe(0)
-    let hasFloat = await nvim.call('coc#float#has_float')
-    expect(hasFloat).toBe(0)
+    let cocIds = await nvim.call('coc#float#get_float_win_list')
+    expect(cocIds.length).toBe(0)
+    let hasCocFloat = await nvim.call('coc#float#has_float')
+    expect(hasCocFloat).toBe(0)
+    await nvim.call('coc#float#close_all')
+    let floatValid = await nvim.call('nvim_win_is_valid', floatId)
+    expect(floatValid).toBe(true)
   })
 })
 
