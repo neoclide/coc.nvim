@@ -60,6 +60,16 @@ describe('extensions', () => {
     expect(exists).toBe(false)
   })
 
+  it('should install/uninstall extension by url with branch', async () => {
+    await extensions.installExtensions(['https://github.com/sdras/vue-vscode-snippets@main'])
+    let folder = path.join(__dirname, '../extensions/vue-vscode-snippets')
+    let exists = fs.existsSync(folder)
+    expect(exists).toBe(true)
+    await extensions.uninstallExtension(['vue-vscode-snippets'])
+    exists = fs.existsSync(folder)
+    expect(exists).toBe(false)
+  })
+
   it('should parse extension info', () => {
     const installer = extensions.installer
     const scoped = installer('@yaegassy/coc-intelephense').info
