@@ -90,7 +90,7 @@ doesn't change your key-mappings or Vim options. This is done as much as
 possible to avoid conflict with your other plugins.
 
 **❗️Important**: Some Vim plugins could change key mappings. Please use
-`:verbose imap <tab>` to make sure that your keymap has taken effect.
+command like`:verbose imap <tab>` to make sure that your keymap has taken effect.
 
 ```vim
 " Set internal encoding of vim, not needed on neovim, since coc.nvim using some
@@ -116,7 +116,7 @@ set shortmess+=c
 
 " Always show the signcolumn, otherwise it would shift the text each time
 " diagnostics appear/become resolved.
-if has("patch-8.1.1564")
+if has("nvim-0.5.0") || has("patch-8.1.1564")
   " Recently vim can merge signcolumn and number column into one
   set signcolumn=number
 else

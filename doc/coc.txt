@@ -1746,12 +1746,15 @@ coc#util#install()  					*coc#util#install()*
 	Install dependencies and compile source code, not needed unless
 	you need compile typescript code.
 
-coc#float#close_all() 					*coc#float#close_all()*
+coc#float#has_float([{all}]) 				*coc#float#has_float()*
 
-	Close all float windows/popups.
+	Check if float window/popup exists, check coc.nvim's float
+	window/popup by default.
 
-	Note: Popup/float windows created by other plugins will also be
-	cleared.
+coc#float#close_all([{all}])				*coc#float#close_all()*
+
+	Close all float windows/popups created by coc.nvim, set {all} to `1`
+	for all float window/popups.
 
 coc#float#close({winid}) 				*coc#float#close()*
 
@@ -1759,7 +1762,9 @@ coc#float#close({winid}) 				*coc#float#close()*
 
 coc#float#has_scroll() 					*coc#float#has_scroll()*
 
-	Return `1` when there is scrollable float window or popup.
+	Return `1` when there is scrollable float window/popup created by
+	coc.nvim.
+
 	Example key-mappings:
 >
 	if has('nvim-0.4.0') || has('patch-8.2.0750')
