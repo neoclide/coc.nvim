@@ -905,7 +905,13 @@ export class Extensions {
 
   // extension must exists as folder and in package.json
   public filterGlobalExtensions(names: string[]): string[] {
-    names = names.map(s => s.replace(/@.*$/, ''))
+    names = names.map(s => {
+      // coc-json@1.0.0 ==> coc.json
+      // @yaegassy/coc-nginx ==> @yaegassy/coc-nginx
+      // @yaegassy/coc-nginx@0.1.1 ==> @yaegassy/coc-nginx
+      let idx = s.lastIndexOf('@')
+      return idx > 1 ? s.substring(0, idx) : s
+    })
     let filtered = names.filter(name => !this.disabled.has(name))
     filtered = filtered.filter(name => !this.extensions.has(name))
     let json = this.loadJson()
