@@ -485,6 +485,8 @@ export default class Document {
         await this._fetchContent()
       }
     } else {
+      // changedtick from buffer events could be not latest. #3003
+      this._changedtick = await this.buffer.getVar('changedtick') as number
       // we have latest lines aftet TextChange on neovim
       this.forceSync()
     }
