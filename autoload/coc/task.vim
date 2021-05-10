@@ -5,6 +5,7 @@
 " Version: 0.1
 " Last Modified:  Dec 12, 2020
 " ============================================================================
+scriptencoding utf-8
 
 let s:is_vim = !has('nvim')
 let s:running_task = {}

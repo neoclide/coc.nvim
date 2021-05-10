@@ -1,3 +1,4 @@
+scriptencoding utf-8
 " Related to float window create
 let s:is_vim = !has('nvim')
 let s:root = expand('<sfile>:h:h:h')

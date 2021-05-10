@@ -1,3 +1,4 @@
+scriptencoding utf-8
 " Helper methods for viml
 
 " insert inserted to line at position, use ... when result is too long

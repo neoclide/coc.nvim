@@ -1,3 +1,4 @@
+scriptencoding utf-8
 let s:root = expand('<sfile>:h:h:h')
 
 function! s:checkEnvironment() abort

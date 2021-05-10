@@ -5,6 +5,7 @@
 " Last Modified:  Nov 11, 2020
 " ============================================================================
 if has('nvim') | finish | endif
+scriptencoding utf-8
 let s:funcs = {}
 let s:prop_offset = get(g:, 'coc_text_prop_offset', 1000)
 let s:namespace_id = 1

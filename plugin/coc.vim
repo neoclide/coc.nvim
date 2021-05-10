@@ -1,3 +1,4 @@
+scriptencoding utf-8
 if exists('g:did_coc_loaded') || v:version < 800
   finish
 endif
