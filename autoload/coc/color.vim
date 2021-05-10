@@ -1,3 +1,4 @@
+scriptencoding utf-8
 " Returns an approximate grey index for the given grey level
 fun! s:grey_number(x)
   if &t_Co == 88

@@ -1,3 +1,4 @@
+scriptencoding utf-8
 let s:is_vim = !has('nvim')
 let s:prefix = '[List Preview]'
 " filetype detect could be slow.

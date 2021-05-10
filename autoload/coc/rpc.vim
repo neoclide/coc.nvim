@@ -1,3 +1,4 @@
+scriptencoding utf-8
 let s:is_win = has("win32") || has("win64")
 let s:client = v:null
 let s:name = 'coc'
