@@ -123,7 +123,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     endif
   else
     let config = s:convert_config_nvim(a:config)
-    let winid = nvim_open_win(bufnr, 0, config)
+    noa let winid = nvim_open_win(bufnr, 0, config)
     if winid == 0
       return []
     endif
@@ -228,7 +228,7 @@ function! coc#float#nvim_border_win(config, winid, border, title, hasbtn, hlgrou
     call nvim_win_set_config(winid, opt)
     call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup)
   else
-    let winid = nvim_open_win(bufnr, 0, opt)
+    noa let winid = nvim_open_win(bufnr, 0, opt)
     if winid
       call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup)
       call setwinvar(winid, 'target_winid', a:winid)
@@ -254,7 +254,7 @@ function! coc#float#nvim_close_btn(config, winid, border, hlgroup, related) abor
     call nvim_win_set_config(winid, config)
   else
     let bufnr = coc#float#create_buf(0, ['X'])
-    let winid = nvim_open_win(bufnr, 0, config)
+    noa let winid = nvim_open_win(bufnr, 0, config)
     if winid
       call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup)
       call setwinvar(winid, 'target_winid', a:winid)
@@ -281,7 +281,7 @@ function! coc#float#nvim_right_pad(config, winid, hlgroup, related) abort
     noa call nvim_win_close(winid, 1)
   endif
   let bufnr = coc#float#create_buf(0, repeat([''], a:config['height']))
-  let winid = nvim_open_win(bufnr, 0, config)
+  noa let winid = nvim_open_win(bufnr, 0, config)
   if winid
     " neovim'bug: the content shown in window could be wired.
     call setwinvar(winid, '&foldcolumn', 1)
@@ -311,7 +311,7 @@ function! coc#float#nvim_buttons(config, winid, buttons, borderbottom, pad, hlgr
     call nvim_win_set_config(winid, config)
   else
     let bufnr = s:create_btns_buffer(0, width, a:buttons, a:borderbottom)
-    let winid = nvim_open_win(bufnr, 0, config)
+    noa let winid = nvim_open_win(bufnr, 0, config)
     if winid
       call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup)
       call setwinvar(winid, 'target_winid', a:winid)
@@ -376,7 +376,7 @@ function! coc#float#nvim_scrollbar(winid) abort
   if id
     call nvim_win_set_config(id, opts)
   else
-    let id = nvim_open_win(sbuf, 0 , opts)
+    noa let id = nvim_open_win(sbuf, 0 , opts)
     if id == 0
       return
     endif
