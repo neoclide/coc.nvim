@@ -25,7 +25,7 @@ export default class SemanticTokensManager extends Manager<DocumentSemanticToken
     return this._legend
   }
 
-  public hasEditProvider(document: TextDocument): boolean {
+  public hasSemanticTokensEdits(document: TextDocument): boolean {
     let item = this.getProvider(document)
     if (!item) return false
 

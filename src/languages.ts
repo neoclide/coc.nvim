@@ -434,8 +434,8 @@ class Languages {
     return this.semanticTokensManager.legend
   }
 
-  public hasEditProvider(document: TextDocument): boolean {
-    return this.semanticTokensManager.hasEditProvider(document)
+  public hasSemanticTokensEdits(document: TextDocument): boolean {
+    return this.semanticTokensManager.hasSemanticTokensEdits(document)
   }
 
   public async provideDocumentSemanticTokens(document: TextDocument, token: CancellationToken): Promise<SemanticTokens> {
