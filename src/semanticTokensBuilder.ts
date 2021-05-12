@@ -51,7 +51,7 @@ export class SemanticTokensBuilder {
    * @param tokenType The encoded token type.
    * @param tokenModifiers The encoded token modifiers.
    */
-  public push(line: number, char: number, length: number, tokenType: number, tokenModifiers?: number): void;
+  public push(line: number, char: number, length: number, tokenType: number, tokenModifiers?: number): void
   /**
    * Add another token. Use only when providing a legend.
    *
@@ -59,7 +59,7 @@ export class SemanticTokensBuilder {
    * @param tokenType The token type.
    * @param tokenModifiers The token modifiers.
    */
-  public push(range: Range, tokenType: string, tokenModifiers?: string[]): void;
+  public push(range: Range, tokenType: string, tokenModifiers?: string[]): void
   public push(arg0: any, arg1: any, arg2: any, arg3?: any, arg4?: any): void {
     if (typeof arg0 === 'number' && typeof arg1 === 'number' && typeof arg2 === 'number' && typeof arg3 === 'number' && (typeof arg4 === 'number' || typeof arg4 === 'undefined')) {
       if (typeof arg4 === 'undefined') {

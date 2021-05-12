@@ -31,7 +31,7 @@ export interface DocumentSemanticsTokensEditsSignature {
 }
 
 export interface DocumentRangeSemanticTokensSignature {
-  (this: void, document: TextDocument, range: Range, token: CancellationToken): ProviderResult<SemanticTokens>;
+  (this: void, document: TextDocument, range: Range, token: CancellationToken): ProviderResult<SemanticTokens>
 }
 
 /**
@@ -40,15 +40,15 @@ export interface DocumentRangeSemanticTokensSignature {
  * @since 3.16.0
  */
 export interface SemanticTokensMiddleware {
-  provideDocumentSemanticTokens?: (this: void, document: TextDocument, token: CancellationToken, next: DocumentSemanticsTokensSignature) => ProviderResult<SemanticTokens>;
-  provideDocumentSemanticTokensEdits?: (this: void, document: TextDocument, previousResultId: string, token: CancellationToken, next: DocumentSemanticsTokensEditsSignature) => ProviderResult<SemanticTokens | SemanticTokensDelta>;
-  provideDocumentRangeSemanticTokens?: (this: void, document: TextDocument, range: Range, token: CancellationToken, next: DocumentRangeSemanticTokensSignature) => ProviderResult<SemanticTokens>;
+  provideDocumentSemanticTokens?: (this: void, document: TextDocument, token: CancellationToken, next: DocumentSemanticsTokensSignature) => ProviderResult<SemanticTokens>
+  provideDocumentSemanticTokensEdits?: (this: void, document: TextDocument, previousResultId: string, token: CancellationToken, next: DocumentSemanticsTokensEditsSignature) => ProviderResult<SemanticTokens | SemanticTokensDelta>
+  provideDocumentRangeSemanticTokens?: (this: void, document: TextDocument, range: Range, token: CancellationToken, next: DocumentRangeSemanticTokensSignature) => ProviderResult<SemanticTokens>
 }
 
 export interface SemanticTokensProviders {
-  range?: DocumentRangeSemanticTokensProvider;
-  full?: DocumentSemanticTokensProvider;
-  onDidChangeSemanticTokensEmitter: Emitter<void>;
+  range?: DocumentRangeSemanticTokensProvider
+  full?: DocumentSemanticTokensProvider
+  onDidChangeSemanticTokensEmitter: Emitter<void>
 }
 
 export class SemanticTokensFeature extends TextDocumentFeature<boolean | SemanticTokensOptions, SemanticTokensRegistrationOptions, SemanticTokensProviders> {
