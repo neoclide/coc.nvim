@@ -1,7 +1,7 @@
 import helper from '../helper'
 import { Neovim } from '@chemzqm/neovim'
 import { DiagnosticBuffer } from '../../diagnostic/buffer'
-import { Range, DiagnosticSeverity, Diagnostic } from 'vscode-languageserver-types'
+import { Range, DiagnosticSeverity, Diagnostic, DiagnosticTag } from 'vscode-languageserver-types'
 
 let nvim: Neovim
 const config: any = {
@@ -40,9 +40,9 @@ async function createDiagnosticBuffer(): Promise<DiagnosticBuffer> {
   })
 }
 
-function createDiagnostic(msg: string, range?: Range, severity?: DiagnosticSeverity): Diagnostic & { collection: string } {
+function createDiagnostic(msg: string, range?: Range, severity?: DiagnosticSeverity, tags?: DiagnosticTag[]): Diagnostic & { collection: string } {
   range = range ? range : Range.create(0, 0, 0, 1)
-  return Object.assign(Diagnostic.create(range, msg, severity || DiagnosticSeverity.Error, 999, 'test'), { collection: 'test' })
+  return Object.assign(Diagnostic.create(range, msg, severity || DiagnosticSeverity.Error, 999, 'test'), { collection: 'test', tags })
 }
 
 let ns: number
@@ -97,6 +97,18 @@ describe('diagnostic buffer', () => {
     let diagnostic = createDiagnostic('foo')
     let buf = await createDiagnosticBuffer()
     await nvim.setLine('abc')
+    nvim.pauseNotification()
+    buf.addHighlight([diagnostic])
+    await nvim.resumeNotification()
+    let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, {}]) as [number, number, number][]
+    expect(res.length).toBe(1)
+  })
+
+  it('should add deprecated highlight', async () => {
+    let diagnostic = createDiagnostic('foo', Range.create(0, 0, 0, 1), DiagnosticSeverity.Information, [DiagnosticTag.Deprecated])
+    console.log(diagnostic)
+    let buf = await createDiagnosticBuffer()
+    await nvim.setLine('foo')
     nvim.pauseNotification()
     buf.addHighlight([diagnostic])
     await nvim.resumeNotification()
