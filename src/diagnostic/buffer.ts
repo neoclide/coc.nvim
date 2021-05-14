@@ -17,7 +17,7 @@ export enum DiagnosticState {
 export enum DiagnosticHighlight {
   Error = 'CocErrorHighlight',
   Warning = 'CocWarningHighlight',
-  Information = 'CocInfoFloat',
+  Information = 'CocInfoHighlight',
   Hint = 'CocHintFloat',
   Deprecated = 'CocStrikeThrough',
   Unused = 'CocFadeOut'
