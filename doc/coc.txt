@@ -2206,7 +2206,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	Get workspace symbols from {input} and optional {bufnr} (use current
 	bufnr when empty).
 
-"toggleDiagnosticBuffer" [{bufnr}]		 *coc-action-toggleDiagnosticBuffer*
+"diagnosticToggleBuffer" [{bufnr}]		 *coc-action-diagnosticToggleBuffer*
 
 	Toggle diagnostics for specific buffer, current buffer is used when
 	{bufnr} not provided.
