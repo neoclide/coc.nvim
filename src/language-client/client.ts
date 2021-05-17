@@ -27,6 +27,7 @@ import { ProgressPart } from './progressPart'
 import { SelectionRangeProviderMiddleware } from './selectionRange'
 import { TypeDefinitionMiddleware } from './typeDefinition'
 import { Delayer } from './utils/async'
+import os from 'os'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 import { WorkspaceFolderWorkspaceMiddleware } from './workspaceFolders'
@@ -3582,8 +3583,8 @@ export abstract class BaseLanguageClient {
     }
     if (required && !resolved) return null
     let rootPath = resolved || workspace.rootPath || workspace.cwd
-    if (ignoredRootPaths && ignoredRootPaths.indexOf(rootPath) !== -1) {
-      window.showMessage(`Ignored rootPath ${rootPath} of client "${this._id}"`, 'warning')
+    if (rootPath === os.homedir() || (ignoredRootPaths && ignoredRootPaths.includes(rootPath))) {
+      this.warn(`Ignored rootPath ${rootPath} of client "${this._id}"`)
       return null
     }
     return rootPath

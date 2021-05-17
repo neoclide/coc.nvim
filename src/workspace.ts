@@ -27,7 +27,6 @@ import { distinct } from './util/array'
 import { findUp, fixDriver, inDirectory, isFile, isParentFolder, readFileLine, renameAsync, resolveRoot, statAsync } from './util/fs'
 import { CONFIG_FILE_NAME, disposeAll, getKeymapModifier, platform, runCommand, wait } from './util/index'
 import { score } from './util/match'
-import { equals } from './util/object'
 import { getChangedFromEdits } from './util/position'
 import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
@@ -139,7 +138,7 @@ export class Workspace implements IWorkspace {
     let preferences = this.getConfiguration('coc.preferences')
     let maxFileSize = preferences.get<string>('maxFileSize', '10MB')
     this.maxFileSize = bytes.parse(maxFileSize)
-    if (this._env.workspaceFolders) {
+    if (this._env.workspaceFolders && Array.isArray(this._env.workspaceFolders)) {
       this._workspaceFolders = this._env.workspaceFolders.map(f => ({
         uri: URI.file(f).toString(),
         name: path.dirname(f)
