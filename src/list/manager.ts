@@ -394,6 +394,16 @@ export class ListManager implements Disposable {
       window.showMessage(`list "${name}" recreated.`)
     }
     this.listMap.set(name, list)
+    let config = workspace.getConfiguration(`list.source.${name}`)
+    let defaultAction = config.get<string>('defaultAction')
+    if (defaultAction && list.actions.find(o => o.name == defaultAction)) {
+      list.defaultAction = defaultAction
+    }
+    extensions.addSchemeProperty(`list.source.${name}.defaultAction`, {
+      type: 'string',
+      default: null,
+      description: `Default default action of "${name}" list.`
+    })
     extensions.addSchemeProperty(`list.source.${name}.defaultOptions`, {
       type: 'array',
       default: list.interactive ? ['--interactive'] : [],
