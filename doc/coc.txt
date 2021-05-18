@@ -2206,7 +2206,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	Get workspace symbols from {input} and optional {bufnr} (use current
 	bufnr when empty).
 
-"toggleDiagnosticBuffer" [{bufnr}]		 *coc-action-toggleDiagnosticBuffer*
+"diagnosticToggleBuffer" [{bufnr}]		 *coc-action-diagnosticToggleBuffer*
 
 	Toggle diagnostics for specific buffer, current buffer is used when
 	{bufnr} not provided.
@@ -2847,7 +2847,16 @@ list.
 For configuration of a specified list, use section that starts with:
 `list.source.{name}`, where `{name}` is the name of list.
 
-Configure default options:~
+Change default action:~
+
+If you want to use `tabe` as default action of symbols list, you can use:
+>
+	// change default action of symbols
+	"list.source.symbols.defaultAction": "tabe"
+<
+in your coc-settings.json
+
+Change default options:~
 
 Use `list.source.{name}.defaultOptions` setting like: >
 
@@ -2855,12 +2864,12 @@ Use `list.source.{name}.defaultOptions` setting like: >
 	"list.source.symbols.defaultOptions": ["--interactive", "--number-select"],
 <
 Note: some list like symbols only work in interactive mode, you must
-include `--interactive` to `defaultOptions`.
+include `--interactive` in `defaultOptions`.
 
 Note: default options will not be used when there're options passed
 with |:CocList| command.
 
-Config default arguments:~
+Change default arguments:~
 
 Use `list.source.{name}.defaultArgs` setting like: >
 
