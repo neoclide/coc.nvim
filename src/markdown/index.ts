@@ -3,6 +3,7 @@ import Renderer from './renderer'
 import { parseAnsiHighlights } from '../util/ansiparse'
 import { Documentation } from '../types'
 import { byteLength } from '../util/string'
+import workspace from '../workspace'
 export const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
 const logger = require('../util/logger')('markdown-index')
 
@@ -140,6 +141,14 @@ export function parseMarkdown(content: string): DocumentInfo {
       }
       continue
     }
+
+    const exclude = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
+    if (exclude) {
+      line = line.replace(/!\[.*?\]\(.*?\)/, '')
+      // eslint-disable-next-line no-control-regex
+      if (!line.replace(/\u001b\[(?:\d{1,3})(?:;\d{1,3})*m/g, '').trim().length) continue
+    }
+
     if (/\s*```\s*([A-Za-z0-9_,]+)?$/.test(line)) {
       if (!inCodeBlock) {
         inCodeBlock = true
