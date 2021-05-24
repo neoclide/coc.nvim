@@ -462,6 +462,7 @@ export class Workspace implements IWorkspace {
     for (let doc of this.buffers.values()) {
       if (!doc) continue
       if (doc.uri === uri) return doc
+      if (path.resolve(doc.uri) === path.resolve(uri)) return doc
       if (caseInsensitive && doc.uri.toLowerCase() === uri.toLowerCase()) return doc
     }
     return null
