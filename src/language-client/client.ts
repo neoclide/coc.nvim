@@ -3570,7 +3570,7 @@ export abstract class BaseLanguageClient {
     return this._connectionPromise
   }
 
-  private resolveRootPath(): string | null {
+  private resolveRootPath(): string | null | false {
     if (this._clientOptions.workspaceFolder) {
       return URI.parse(this._clientOptions.workspaceFolder.uri).fsPath
     }
@@ -3586,7 +3586,7 @@ export abstract class BaseLanguageClient {
         resolved = resolveRoot(dir, rootPatterns, workspace.cwd)
       }
     }
-    if (required && !resolved) return null
+    if (required && !resolved) return false
     let rootPath = resolved || workspace.rootPath || workspace.cwd
     if (rootPath === os.homedir() || (ignoredRootPaths && ignoredRootPaths.includes(rootPath))) {
       this.warn(`Ignored rootPath ${rootPath} of client "${this._id}"`)
@@ -3599,6 +3599,10 @@ export abstract class BaseLanguageClient {
     this.refreshTrace(connection, false)
     let { initializationOptions, progressOnInitialization } = this._clientOptions
     let rootPath = this.resolveRootPath()
+    if (rootPath === false) {
+      console.warn(`required root pattern not found, server not started.`)
+      return
+    }
     let initParams: any = {
       processId: process.pid,
       rootPath: rootPath ? rootPath : null,
