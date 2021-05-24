@@ -3105,9 +3105,14 @@ export abstract class BaseLanguageClient {
     } else {
       this._outputChannel = undefined
     }
+    let disableSnippetCompletion = false
+    let suggest = workspace.getConfiguration('suggest')
+    if (suggest.get<boolean>('snippetsSupport', true) === false || clientOptions.disableSnippetCompletion) {
+      disableSnippetCompletion = true
+    }
     this._clientOptions = {
       disableWorkspaceFolders: clientOptions.disableWorkspaceFolders,
-      disableSnippetCompletion: clientOptions.disableSnippetCompletion,
+      disableSnippetCompletion,
       disableDynamicRegister: clientOptions.disableDynamicRegister,
       disableDiagnostics: clientOptions.disableDiagnostics,
       disableCompletion: clientOptions.disableCompletion,
@@ -3594,7 +3599,6 @@ export abstract class BaseLanguageClient {
     this.refreshTrace(connection, false)
     let { initializationOptions, progressOnInitialization } = this._clientOptions
     let rootPath = this.resolveRootPath()
-    if (!rootPath) return
     let initParams: any = {
       processId: process.pid,
       rootPath: rootPath ? rootPath : null,

@@ -207,6 +207,16 @@ Built-in configurations:~
 	Confirm completion instead of jump to next placeholder when completion
 	activates, default: `false`
 
+"suggest.snippetsSupport":~
+
+	Enable snippets expands expand on confirm completion. When set to
+	`false` coc.nvim would set language client option:
+	`CompletionClientCapabilities.completionItem.snippetSupport` to
+	`false` as well.
+
+	Note: the language server may still send completion items with
+	snippets when falsy.
+
 "suggest.fixInsertedWord":~
 
 	Inserted word replaces the next one, default: `true`
@@ -816,10 +826,6 @@ Built-in configurations:~
 
 	Note: takes effect when `coc.preferences.formatOnType` set `true`.
 	Note: This is the filetype after mapping by `g:coc_filetype_map`.
-
-"coc.preferences.snippets.enable":~
-
-	Enables snippets support, default: `true`
 
 "coc.preferences.listOfWorkspaceEdit":~
 

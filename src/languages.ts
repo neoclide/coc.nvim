@@ -42,6 +42,7 @@ export interface CompletionSource {
 }
 
 interface CompleteConfig {
+  snippetsSupport: boolean
   defaultKindText: string
   priority: number
   echodocSupport: boolean
@@ -132,6 +133,7 @@ class Languages {
       defaultKindText: labels['default'] || '',
       priority: suggest.get<number>('languageSourcePriority', 99),
       echodocSupport: suggest.get<boolean>('echodocSupport', false),
+      snippetsSupport: suggest.get<boolean>('snippetsSupport', true),
       detailField: suggest.get<string>('detailField', 'preview'),
       detailMaxLength: suggest.get<number>('detailMaxLength', 100),
       floatEnable: suggest.get<boolean>('floatEnable', true),
@@ -569,7 +571,7 @@ class Languages {
         }
         if (vimItem.line) Object.assign(opt, { line: vimItem.line })
         try {
-          let isSnippet = await this.applyTextEdit(item, opt)
+          let isSnippet = await this.applyTextEdit(item, vimItem.word, opt)
           let { additionalTextEdits } = item
           if (additionalTextEdits && item.textEdit) {
             let r = (item.textEdit as TextEdit).range
@@ -605,7 +607,7 @@ class Languages {
     return this.cancelTokenSource.token
   }
 
-  private async applyTextEdit(item: CompletionItem, option: CompleteOption): Promise<boolean> {
+  private async applyTextEdit(item: CompletionItem, word: string, option: CompleteOption): Promise<boolean> {
     let { nvim } = this
     let { textEdit } = item
     if (!textEdit) return false
@@ -617,6 +619,11 @@ class Languages {
     // replace inserted word
     let start = line.substr(0, range.start.character)
     let end = line.substr(range.end.character)
+    if (isSnippet && this.completeConfig.snippetsSupport === false) {
+      // could be wrong, but maybe best we can do.
+      isSnippet = false
+      newText = word
+    }
     if (isSnippet) {
       let currline = doc.getline(linenr - 1)
       let endCharacter = currline.length - end.length
