@@ -2,6 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { Mutex } from '../util/mutex'
 import { ChildProcess, spawn } from 'child_process'
 import { EventEmitter } from 'events'
+import os from 'os'
 import path from 'path'
 import readline from 'readline'
 import { Range } from 'vscode-languageserver-types'
@@ -110,7 +111,10 @@ export default class Search {
     let { nvim, cmd } = this
     let { afterContext, beforeContext } = refactorBuf.config
     let argList = ['-A', afterContext.toString(), '-B', beforeContext.toString()].concat(defaultArgs, args)
-    argList.push('--', './')
+    if (os.platform() == 'win32') {
+      let p = getPathFromArgs(args)
+      argList.push('--', p ? `./${p}` : './')
+    }
     try {
       cmd = which.sync(cmd)
     } catch (e) {
@@ -190,4 +194,13 @@ export default class Search {
       })
     })
   }
+}
+
+// used on windows only since it requires `-- [path]` at the end
+function getPathFromArgs(args: string[]): string | undefined {
+  if (args.length < 2) return undefined
+  let len = args.length
+  if (args[len - 1].startsWith('-')) return undefined
+  if (['-e', '-f'].includes(args[len - 2])) return undefined
+  return args[len - 1]
 }
