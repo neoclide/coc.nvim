@@ -458,6 +458,11 @@
       "default": "length",
       "enum": ["length", "alphabetical", "none"]
     },
+    "suggest.snippetsSupport": {
+      "type": "boolean",
+      "description": "Set to false to disable snippets support of completion.",
+      "default": true
+    },
     "suggest.completionItemKindLabels": {
       "type": "object",
       "default": {},
@@ -1088,11 +1093,6 @@
       "minimum": 200,
       "maximum": 5000,
       "description": "Highlight timeout for buffer in floating window."
-    },
-    "coc.preferences.snippets.enable": {
-      "type": "boolean",
-      "description": "Set to false to disable snippets support.",
-      "default": true
     },
     "coc.preferences.floatActions": {
       "type": "boolean",
