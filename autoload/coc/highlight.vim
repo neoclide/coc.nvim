@@ -136,7 +136,7 @@ function! coc#highlight#highlight_lines(winid, blocks) abort
         endif
         call add(defined, filetype)
       endif
-      call s:execute(a:winid, 'syntax region CodeBlock'.region_id.' start=/\%'.start.'l/ end=/\%'.end.'l/ contains=@'.toupper(filetype))
+      call s:execute(a:winid, 'syntax region CodeBlock'.region_id.' start=/\%'.start.'l/ end=/\%'.end.'l/ contains=@'.toupper(filetype).' keepend')
       let region_id = region_id + 1
     endif
   endfor
