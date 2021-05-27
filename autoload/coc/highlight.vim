@@ -18,7 +18,11 @@ function! coc#highlight#ranges(bufnr, key, hlGroup, ranges) abort
   if !bufloaded(bufnr) || !exists('*getbufline')
     return
   endif
-  let synmaxcol = min([getbufvar(a:bufnr, '&synmaxcol', 1000), 1000])
+  let synmaxcol = getbufvar(a:bufnr, '&synmaxcol', 1000)
+  if synmaxcol == 0
+    let synmaxcol = 1000
+  endif
+  let synmaxcol = min([synmaxcol, 1000])
   let srcId = s:create_namespace(a:key)
   for range in a:ranges
     let start = range['start']
