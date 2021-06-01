@@ -2321,7 +2321,7 @@ COMMANDS						*coc-commands*
 
 	let $NVIM_COC_LOG_LEVEL='debug'
 <
-	to the beggining of your `.vimrc`
+	to the beginning of your `.vimrc`
 
 :CocInfo						*:CocInfo*
 
