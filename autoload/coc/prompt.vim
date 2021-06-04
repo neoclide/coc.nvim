@@ -22,6 +22,7 @@ let s:char_map = {
       \ "\<PageUp>":'<PageUp>' ,
       \ "\<PageDown>":'<PageDown>' ,
       \ "\<FocusGained>":'<FocusGained>' ,
+      \ "\<FocusLost>":'<FocusLost>' ,
       \ "\<ScrollWheelUp>": '<ScrollWheelUp>',
       \ "\<ScrollWheelDown>": '<ScrollWheelDown>',
       \ "\<LeftMouse>": '<LeftMouse>',
