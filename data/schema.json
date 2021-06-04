@@ -1058,9 +1058,11 @@
       "default": null
     },
     "coc.preferences.jumpCommand": {
-      "type": "string",
-      "description": "Command used for location jump, like goto definition, goto references etc.",
-      "enum": ["edit", "split", "vsplit", "tabe", "drop", "tab drop", "pedit"],
+      "anyOf": [
+        {"type": "string", "enum": ["edit", "split", "vsplit", "tabe", "drop", "tab drop", "pedit"]},
+        {"type": "string", "minimum": 1}
+      ],
+      "description": "Command used for location jump, like goto definition, goto references etc. Can be also a custom command that gives file as an argument.",
       "default": "edit"
     },
     "coc.preferences.messageLevel": {

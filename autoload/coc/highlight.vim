@@ -18,7 +18,11 @@ function! coc#highlight#ranges(bufnr, key, hlGroup, ranges) abort
   if !bufloaded(bufnr) || !exists('*getbufline')
     return
   endif
-  let synmaxcol = min([getbufvar(a:bufnr, '&synmaxcol', 1000), 1000])
+  let synmaxcol = getbufvar(a:bufnr, '&synmaxcol', 1000)
+  if synmaxcol == 0
+    let synmaxcol = 1000
+  endif
+  let synmaxcol = min([synmaxcol, 1000])
   let srcId = s:create_namespace(a:key)
   for range in a:ranges
     let start = range['start']
@@ -132,7 +136,7 @@ function! coc#highlight#highlight_lines(winid, blocks) abort
         endif
         call add(defined, filetype)
       endif
-      call s:execute(a:winid, 'syntax region CodeBlock'.region_id.' start=/\%'.start.'l/ end=/\%'.end.'l/ contains=@'.toupper(filetype))
+      call s:execute(a:winid, 'syntax region CodeBlock'.region_id.' start=/\%'.start.'l/ end=/\%'.end.'l/ contains=@'.toupper(filetype).' keepend')
       let region_id = region_id + 1
     endif
   endfor

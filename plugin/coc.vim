@@ -171,6 +171,19 @@ function! s:OpenConfig()
   execute 'edit '.home.'/coc-settings.json'
 endfunction
 
+function! s:get_color(item, fallback) abort
+  let t = type(a:item)
+  if t == 1
+    return a:item
+  endif
+  if t == 4
+    let item = get(a:item, 'gui', {})
+    let color = get(item, &background, a:fallback)
+    return type(color) == 1 ? color : a:fallback
+  endif
+  return a:fallback
+endfunction
+
 function! s:AddAnsiGroups() abort
   let color_map = {}
   let colors = ['#282828', '#cc241d', '#98971a', '#d79921', '#458588', '#b16286', '#689d6a', '#a89984', '#928374']
@@ -178,26 +191,26 @@ function! s:AddAnsiGroups() abort
   for i in range(0, len(names) - 1)
     let name = names[i]
     if exists('g:terminal_ansi_colors')
-      let color_map[name] = get(g:terminal_ansi_colors, i, colors[i])
+      let color_map[name] = s:get_color(get(g:terminal_ansi_colors, i, colors[i]), colors[i])
     else
       let color_map[name] = get(g:, 'terminal_color_'.i, colors[i])
     endif
   endfor
-  for name in keys(color_map)
-    let foreground = toupper(name[0]).name[1:]
-    let foregroundColor = color_map[name]
-    for key in keys(color_map)
-      let background = toupper(key[0]).key[1:]
-      let backgroundColor = color_map[key]
-      exe 'hi default CocList'.foreground.background.' guifg='.foregroundColor.' guibg='.backgroundColor
-    endfor
-    try
+  try
+    for name in keys(color_map)
+      let foreground = toupper(name[0]).name[1:]
+      let foregroundColor = color_map[name]
+      for key in keys(color_map)
+        let background = toupper(key[0]).key[1:]
+        let backgroundColor = color_map[key]
+        exe 'hi default CocList'.foreground.background.' guifg='.foregroundColor.' guibg='.backgroundColor
+      endfor
       exe 'hi default CocListFg'.foreground. ' guifg='.foregroundColor. ' ctermfg='.foreground
       exe 'hi default CocListBg'.foreground. ' guibg='.foregroundColor. ' ctermbg='.foreground
-    catch /.*/
-      " ignore invalid color
-    endtry
-  endfor
+    endfor
+  catch /.*/
+    " ignore invalid color
+  endtry
 endfunction
 
 function! s:CursorRangeFromSelected(type, ...) abort
