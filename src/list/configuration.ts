@@ -18,6 +18,7 @@ export const validKeys = [
   '<end>',
   '<cr>',
   '<FocusGained>',
+  '<FocusLost>',
   '<ScrollWheelUp>',
   '<ScrollWheelDown>',
   '<LeftMouse>',

@@ -1905,7 +1905,7 @@ declare module 'coc.nvim' {
 
   export interface BufferHighlight {
     /**
-     * Name of the highlight group to use 
+     * Name of the highlight group to use
      */
     hlGroup?: string
     /**
@@ -2469,7 +2469,7 @@ declare module 'coc.nvim' {
     /**
      * Gets a list of buffer-local |mapping| definitions.
      *
-     * @return Array of maparg()-like dictionaries describing mappings. 
+     * @return Array of maparg()-like dictionaries describing mappings.
      * The "buffer" key holds the associated buffer handle.
      */
     getKeymap(mode: string): Promise<object[]>
@@ -4018,7 +4018,7 @@ declare module 'coc.nvim' {
   type BufEvents = 'BufHidden' | 'BufEnter' | 'BufWritePost'
     | 'CursorHold' | 'InsertLeave' | 'TermOpen' | 'TermClose' | 'InsertEnter'
     | 'BufCreate' | 'BufUnload' | 'BufWritePre' | 'CursorHoldI' | 'Enter'
-  type EmptyEvents = 'FocusGained' | 'InsertSnippet'
+  type EmptyEvents = 'FocusGained' | 'FocusLost' | 'InsertSnippet'
   type InsertChangeEvents = 'TextChangedP' | 'TextChangedI'
   type TaskEvents = 'TaskExit' | 'TaskStderr' | 'TaskStdout'
   type WindowEvents = 'WinLeave' | 'WinEnter'
@@ -5661,7 +5661,7 @@ declare module 'coc.nvim' {
      * and provide optional `onChange` which called when document change.
      *
      * The document is always attached and not command line buffer.
-     * 
+     *
      * @param create Called for each attached document and on document create.
      * @returns Disposable
      */
