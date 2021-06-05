@@ -1111,6 +1111,11 @@
       "description": "Tell the language server that markdown text format is supported, note that markdown text may not rendered as expected.",
       "default": true
     },
+    "coc.preferences.excludeImageLinksInMarkdownDocument": {
+      "type": "boolean",
+      "description": "Exclude image links from document markdown text",
+      "default": true
+    },
     "coc.preferences.silentAutoupdate": {
       "type": "boolean",
       "description": "Not open split window with update status when performing auto update.",
