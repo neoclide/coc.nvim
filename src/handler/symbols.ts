@@ -121,7 +121,11 @@ export default class Symbols {
       let endLine = doc.getline(end.line - 1)
       selectRange = Range.create(start.line + 1, line.match(/^\s*/)[0].length, end.line - 1, endLine.length)
     }
-    if (selectRange) await workspace.selectRange(selectRange)
+    if (selectRange) {
+      await workspace.selectRange(selectRange)
+    } else if (['v', 'V', '\x16'].includes(visualmode)) {
+      await this.nvim.command('normal! gv')
+    }
   }
 
   public dispose(): void {
