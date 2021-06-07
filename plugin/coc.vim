@@ -351,7 +351,11 @@ function! s:Hi() abort
   hi default CocUnderline     cterm=underline gui=underline
   hi default CocBold          term=bold cterm=bold gui=bold
   hi default CocItalic        term=italic cterm=italic gui=italic
-  hi default CocStrikeThrough guifg=#989898 ctermfg=gray  cterm=strikethrough gui=strikethrough
+  if s:is_vim || has('nvim-0.4.0')
+    hi default CocStrikeThrough guifg=#989898 ctermfg=gray  cterm=strikethrough gui=strikethrough
+  else
+    hi default CocStrikeThrough guifg=#989898 ctermfg=gray
+  endif
   hi default CocFadeOut       guifg=#928374 ctermfg=245
   hi default CocMarkdownLink  ctermfg=Blue    guifg=#15aabf guibg=NONE
   hi default link CocMarkdownCode     markdownCode
