@@ -29,6 +29,10 @@ export default class Symbols {
       if (!this.functionUpdate || this.buffers.getItem(bufnr) == null) return
       await this.getCurrentFunctionSymbol(bufnr)
     }, null, this.disposables)
+    events.on('InsertEnter', (bufnr: number) => {
+      let buf = this.buffers.getItem(bufnr)
+      if (buf) buf.cancel()
+    }, null, this.disposables)
   }
 
   public get functionUpdate(): boolean {
