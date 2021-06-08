@@ -3,6 +3,7 @@ import Renderer from './renderer'
 import { parseAnsiHighlights } from '../util/ansiparse'
 import { Documentation } from '../types'
 import { byteLength } from '../util/string'
+import stripAnsi from 'strip-ansi'
 export const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
 const logger = require('../util/logger')('markdown-index')
 
@@ -135,7 +136,10 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
   if (links.length) {
     parsed = parsed + '\n\n' + links.join('\n')
   }
-  for (let line of parsed.replace(/\s*$/, '').split(/\n/)) {
+  parsed = parsed.replace(/\s*$/, '')
+  let parsedLines = parsed.split(/\n/)
+  for (let i = 0; i < parsedLines.length; i++) {
+    let line = parsedLines[i]
     if (!line.length) {
       let pre = lines[lines.length - 1]
       if (pre && pre.length) {
@@ -144,15 +148,17 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
       }
       continue
     }
-
-    if (opts.excludeImages) {
-      line = line.replace(/!\[.*?\]\(.*?\)/, '')
-      // eslint-disable-next-line no-control-regex
-      if (!line.replace(/\u001b\[(?:\d{1,3})(?:;\d{1,3})*m/g, '').trim().length) continue
+    if (opts.excludeImages && line.indexOf('![') !== -1) {
+      line = line.replace(/\s*!\[.*?\]\(.*?\)/g, '')
+      if (!stripAnsi(line).trim().length) continue
     }
-
     if (/\s*```\s*([A-Za-z0-9_,]+)?$/.test(line)) {
       if (!inCodeBlock) {
+        let pre = parsedLines[i - 1]
+        if (pre && /^\s*```\s*/.test(pre)) {
+          lines.push('')
+          currline++
+        }
         inCodeBlock = true
         filetype = line.replace(/^\s*```\s*/, '')
         if (filetype == 'js') filetype = 'javascript'

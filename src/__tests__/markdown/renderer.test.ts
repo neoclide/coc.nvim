@@ -105,4 +105,15 @@ describe('Renderer of marked', () => {
       ''
     ])
   })
+
+  it('should renderer table', async () => {
+    let text = `
+| Syntax      | Description |
+| ----------- | ----------- |
+| Header      | Title       |
+| Paragraph   | Text        |
+`
+    let res = marked(text)
+    expect(res).toContain('Syntax')
+  })
 })

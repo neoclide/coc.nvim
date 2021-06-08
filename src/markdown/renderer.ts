@@ -157,11 +157,6 @@ function section(text) {
   return text + '\n\n'
 }
 
-function hr(inputHrStr, length) {
-  length = length || process.stdout.columns
-  return new Array(length).join(inputHrStr)
-}
-
 function undoColon(str) {
   return str.replace(COLON_REPLACER_REGEXP, ':')
 }
