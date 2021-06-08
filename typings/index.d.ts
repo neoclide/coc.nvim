@@ -3528,6 +3528,7 @@ declare module 'coc.nvim' {
     highlight?: string
     borderhighlight?: string
     modes?: string[]
+    excludeImages?: boolean
   }
 
   export interface Documentation {

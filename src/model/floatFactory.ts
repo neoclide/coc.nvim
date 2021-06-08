@@ -37,6 +37,7 @@ export interface FloatWinConfig {
   highlight?: string
   borderhighlight?: string
   modes?: string[]
+  excludeImages?: boolean
 }
 
 export interface ViewportConfig {

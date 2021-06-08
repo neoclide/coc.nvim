@@ -874,6 +874,7 @@ export default class Handler {
       opts.maxWidth = hoverPreference.get('floatMaxWidth', 80)
       opts.maxHeight = hoverPreference.get('floatMaxHeight', undefined)
       opts.autoHide = hoverPreference.get('autoHide', true)
+      opts.excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument', true)
       await this.hoverFactory.show(docs, opts)
       return
     }

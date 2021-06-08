@@ -3,13 +3,16 @@ import Renderer from './renderer'
 import { parseAnsiHighlights } from '../util/ansiparse'
 import { Documentation } from '../types'
 import { byteLength } from '../util/string'
-import workspace from '../workspace'
 export const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
 const logger = require('../util/logger')('markdown-index')
 
 marked.setOptions({
   renderer: new Renderer()
 })
+
+export interface MarkdownParseOptions {
+  excludeImages?: boolean
+}
 
 export interface HighlightItem {
   lnum: number // 0 based
@@ -34,7 +37,7 @@ export interface DocumentInfo {
   codes: CodeBlock[]
 }
 
-export function parseDocuments(docs: Documentation[]): DocumentInfo {
+export function parseDocuments(docs: Documentation[], opts: MarkdownParseOptions = {}): DocumentInfo {
   let lines: string[] = []
   let highlights: HighlightItem[] = []
   let codes: CodeBlock[] = []
@@ -43,7 +46,7 @@ export function parseDocuments(docs: Documentation[]): DocumentInfo {
     let currline = lines.length
     let { content, filetype } = doc
     if (filetype == 'markdown') {
-      let info = parseMarkdown(content)
+      let info = parseMarkdown(content, opts)
       codes.push(...info.codes.map(o => {
         o.startLine = o.startLine + currline
         o.endLine = o.endLine + currline
@@ -119,7 +122,7 @@ export function getHighlightItems(content: string, currline: number, active: [nu
 /**
  * Parse markdown for lines, highlights & codes
  */
-export function parseMarkdown(content: string): DocumentInfo {
+export function parseMarkdown(content: string, opts: MarkdownParseOptions): DocumentInfo {
   let lines: string[] = []
   let highlights: HighlightItem[] = []
   let codes: CodeBlock[] = []
@@ -142,8 +145,7 @@ export function parseMarkdown(content: string): DocumentInfo {
       continue
     }
 
-    const exclude = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
-    if (exclude) {
+    if (opts.excludeImages) {
       line = line.replace(/!\[.*?\]\(.*?\)/, '')
       // eslint-disable-next-line no-control-regex
       if (!line.replace(/\u001b\[(?:\d{1,3})(?:;\d{1,3})*m/g, '').trim().length) continue
