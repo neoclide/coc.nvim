@@ -41,6 +41,17 @@ async function start(watch) {
     platform: 'node',
     target: 'node10.12',
     outfile: 'build/index.js',
+    banner: {
+      js: `(function () {
+  var v = process.version
+  var parts = v.slice(1).split('.')
+  var major = parseInt(parts[0], 10)
+  var minor = parseInt(parts[1], 10)
+  if (major < 10 || (major == 10 && minor < 12)) {
+    throw new Error('coc.nvim requires node >= v10.12.0, current version: ' + v)
+  }
+})(); `
+    },
     plugins: [envPlugin]
   })
 }
