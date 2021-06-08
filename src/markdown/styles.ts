@@ -16,6 +16,10 @@ export function underline(str: string): string {
   return `${style.underline.open}${str}${style.underline.close}`
 }
 
+export function strikethrough(str: string): string {
+  return `${style.strikethrough.open}${str}${style.strikethrough.close}`
+}
+
 export function italic(str: string): string {
   return `${style.italic.open}${str}${style.italic.close}`
 }

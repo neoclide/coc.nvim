@@ -32,7 +32,7 @@ let defaultOptions = {
   strong: styles.bold,
   em: styles.italic,
   codespan: styles.yellow,
-  del: styles.underline,
+  del: styles.strikethrough,
   link: styles.underline,
   href: styles.underline,
   text: identity,

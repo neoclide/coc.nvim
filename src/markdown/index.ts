@@ -6,10 +6,6 @@ import { byteLength } from '../util/string'
 export const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
 const logger = require('../util/logger')('markdown-index')
 
-marked.setOptions({
-  renderer: new Renderer()
-})
-
 export interface MarkdownParseOptions {
   excludeImages?: boolean
 }
@@ -79,7 +75,7 @@ export function parseDocuments(docs: Documentation[], opts: MarkdownParseOptions
 }
 
 /**
- * Get highlight items from offset range
+ * Get 'CocUnderline' highlights from offset range
  */
 export function getHighlightItems(content: string, currline: number, active: [number, number]): HighlightItem[] {
   let res: HighlightItem[] = []
@@ -123,6 +119,10 @@ export function getHighlightItems(content: string, currline: number, active: [nu
  * Parse markdown for lines, highlights & codes
  */
 export function parseMarkdown(content: string, opts: MarkdownParseOptions): DocumentInfo {
+  marked.setOptions({
+    renderer: new Renderer(),
+    gfm: true
+  })
   let lines: string[] = []
   let highlights: HighlightItem[] = []
   let codes: CodeBlock[] = []
