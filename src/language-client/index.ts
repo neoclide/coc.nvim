@@ -282,10 +282,6 @@ export class LanguageClient extends BaseLanguageClient {
       }
       let result: any = Object.create(null)
       Object.keys(process.env).forEach(key => result[key] = process.env[key])
-      if (fork) {
-        result['ELECTRON_RUN_AS_NODE'] = '1'
-        result['ELECTRON_NO_ASAR'] = '1'
-      }
       if (env) {
         Object.keys(env).forEach(key => result[key] = env[key])
       }
