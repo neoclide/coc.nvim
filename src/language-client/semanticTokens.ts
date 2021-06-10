@@ -129,6 +129,7 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
     const documentProvider: DocumentSemanticTokensProvider | undefined = fullProvider
       ? {
         onDidChangeSemanticTokens: eventEmitter.event,
+        legend: options.legend,
         provideDocumentSemanticTokens: (document, token) => {
           const client = this._client
           const middleware = client.clientOptions.middleware! as Middleware & SemanticTokensMiddleware
@@ -168,6 +169,7 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
     const hasRangeProvider: boolean = options.range === true
     const rangeProvider: DocumentRangeSemanticTokensProvider | undefined = hasRangeProvider
       ? {
+        legend: options.legend,
         provideDocumentRangeSemanticTokens: (document: TextDocument, range: Range, token: CancellationToken) => {
           const client = this._client
           const middleware = client.clientOptions.middleware! as Middleware & SemanticTokensMiddleware
