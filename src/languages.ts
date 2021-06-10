@@ -446,6 +446,10 @@ class Languages {
     return this.semanticTokensManager.provideDocumentSemanticTokensEdits(document, previousResultId, token)
   }
 
+  public async provideDocumentRangeSemanticTokens(document: TextDocument, range: Range, token: CancellationToken): Promise<SemanticTokens> {
+    return this.semanticTokensRangeManager.provideDocumentRangeSemanticTokens(document, range, token)
+  }
+
   public hasLinkedEditing(document: TextDocument): boolean {
     return this.linkedEditingManager.hasProvider(document)
   }

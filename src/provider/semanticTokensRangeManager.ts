@@ -3,6 +3,7 @@ import { CancellationToken, Disposable, DocumentSelector, Range, SemanticTokens,
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DocumentRangeSemanticTokensProvider } from './index'
 import Manager, { ProviderItem } from './manager'
+const logger = require('../util/logger')('semanticTokensRangeManager')
 
 export default class SemanticTokensRangeManager extends Manager<DocumentRangeSemanticTokensProvider> implements Disposable {
   private _legend: SemanticTokensLegend
@@ -24,7 +25,7 @@ export default class SemanticTokensRangeManager extends Manager<DocumentRangeSem
     let item = this.getProvider(document)
     if (!item) return null
     let { provider } = item
-  if (provider.provideDocumentRangeSemanticTokens === null) return null
+    if (provider.provideDocumentRangeSemanticTokens === null) return null
 
     return await Promise.resolve(provider.provideDocumentRangeSemanticTokens(document, range, token))
   }
