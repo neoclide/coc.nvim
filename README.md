@@ -26,7 +26,7 @@ _True snippet and additional text editing support_
 
 ## Quick Start
 
-Install [nodejs](https://nodejs.org/en/download/) >= 10.12:
+Install [nodejs](https://nodejs.org/en/download/) >= 12.12:
 
 ```sh
 curl -sL install-node.now.sh/lts | bash
