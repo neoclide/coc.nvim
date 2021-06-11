@@ -70,7 +70,7 @@ export default class SemanticTokensHighlights {
     let highlighter = this.highlighters.getItem(bufnr)
     if (!highlighter) return []
     const doc = workspace.getDocument(bufnr)
-    return await highlighter.getHighlights(doc)
+    return await highlighter.getHighlights(doc, true)
   }
 
   public dispose(): void {

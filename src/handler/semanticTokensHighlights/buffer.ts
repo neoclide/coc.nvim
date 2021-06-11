@@ -175,7 +175,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     return { highlights, lines: lineNumbersToUpdate }
   }
 
-  public async getHighlights(doc: Document): Promise<Highlight[]> {
+  public async getHighlights(doc: Document, forceFull?: boolean): Promise<Highlight[]> {
     const legend = languages.getLegend(doc.textDocument)
     if (!legend) return []
 
@@ -184,7 +184,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     const { token } = this.tokenSource
     const { version } = doc
     const hasEditProvider = languages.hasSemanticTokensEdits(doc.textDocument)
-    const previousResult = this.previousResults.get(this.bufnr)
+    const previousResult = forceFull ? null : this.previousResults.get(this.bufnr)
     let result: SemanticTokens | SemanticTokensDelta
     if (hasEditProvider && previousResult?.resultId) {
       result = await languages.provideDocumentSemanticTokensEdits(doc.textDocument, previousResult.resultId, token)
