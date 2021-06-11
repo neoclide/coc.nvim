@@ -6,13 +6,11 @@ import Manager, { ProviderItem } from './manager'
 const logger = require('../util/logger')('semanticTokensManager')
 
 export default class SemanticTokensManager extends Manager<DocumentSemanticTokensProvider> implements Disposable {
-  private _legend: SemanticTokensLegend
-
   public register(selector: DocumentSelector, provider: DocumentSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
-    this._legend = legend
     let item: ProviderItem<DocumentSemanticTokensProvider> = {
       id: uuid(),
       selector,
+      legend,
       provider
     }
     this.providers.add(item)
@@ -21,8 +19,11 @@ export default class SemanticTokensManager extends Manager<DocumentSemanticToken
     })
   }
 
-  public get legend(): SemanticTokensLegend {
-    return this._legend
+  public getLegend(document: TextDocument): SemanticTokensLegend {
+    const item = this.getProvider(document)
+    if (!item) return
+
+    return item.provider.legend || item.legend
   }
 
   public hasSemanticTokensEdits(document: TextDocument): boolean {

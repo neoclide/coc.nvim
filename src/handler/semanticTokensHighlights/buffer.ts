@@ -71,8 +71,6 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public async doHighlight(): Promise<void> {
-    const legend = languages.getLegend()
-    if (!legend?.tokenTypes.length) return
     let doc = workspace.getDocument(this.bufnr)
     if (!doc || !this.enabled) return
     if (this.version && doc.version == this.version) return
@@ -178,6 +176,9 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public async getHighlights(doc: Document): Promise<Highlight[]> {
+    const legend = languages.getLegend(doc.textDocument)
+    if (!legend) return []
+
     this.cancel()
     this.tokenSource = new CancellationTokenSource()
     const { token } = this.tokenSource
@@ -210,7 +211,6 @@ export default class SemanticTokensBuffer implements SyncItem {
     }
     this.previousResults.set(this.bufnr, new SemanticTokensPreviousResult(result.resultId, tokens))
     const relatives: RelativeHighlight[] = []
-    const legend = languages.getLegend()
     for (let i = 0; i < tokens.length; i += 5) {
       const deltaLine = tokens[i]
       const deltaStartCharacter = tokens[i + 1]

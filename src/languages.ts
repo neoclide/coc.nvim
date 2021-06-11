@@ -430,8 +430,8 @@ class Languages {
     return this.callHierarchyManager.provideCallHierarchyOutgoingCalls(item, token)
   }
 
-  public getLegend(): SemanticTokensLegend {
-    return this.semanticTokensManager.legend
+  public getLegend(document: TextDocument): SemanticTokensLegend {
+    return this.semanticTokensManager.getLegend(document)
   }
 
   public hasSemanticTokensEdits(document: TextDocument): boolean {
