@@ -137,6 +137,8 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     " no left border
     if s:empty_border(get(a:config, 'border', [])) || a:config['border'][3] == 0
       call setwinvar(winid, '&foldcolumn', 1)
+    else
+      call setwinvar(winid, '&foldcolumn', 0)
     endif
     call nvim_win_set_cursor(winid, [1, 0])
     call coc#float#nvim_create_related(winid, config, a:config)
