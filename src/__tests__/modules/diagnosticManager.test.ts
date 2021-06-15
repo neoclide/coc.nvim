@@ -106,8 +106,29 @@ describe('diagnostic manager', () => {
     expect(info).toBeDefined()
   })
 
+  it('should adjust diagnostic range after document', async () => {
+    let doc = await helper.createDocument()
+    await nvim.call('setline', [1, 'foo'])
+    let collection = manager.create('test')
+    collection.set(doc.uri, [createDiagnostic('foo', Range.create(1, 0, 1, 1))])
+    let diagnostics = manager.getDiagnostics(doc.uri)
+    expect(diagnostics.length).toBe(1)
+    let o = diagnostics[0]
+    expect(o.range).toEqual({
+      start: {
+        line: 0,
+        character: 2
+      },
+      end: {
+        line: 0,
+        character: 3
+      }
+    })
+  })
+
   it('should get sorted ranges of document', async () => {
     let doc = await helper.createDocument()
+    await nvim.call('setline', [1, ['a', 'b', 'c']])
     let collection = manager.create('test')
     let diagnostics: Diagnostic[] = []
     diagnostics.push(createDiagnostic('x', Range.create(0, 0, 0, 1)))

@@ -45,10 +45,12 @@ export default class Collection implements DiagnosticCollection {
     }
     for (let item of diagnosticsPerFile) {
       let [uri, diagnostics] = item
+      let doc = workspace.getDocument(uri)
       uri = URI.parse(uri).toString()
       diagnostics.forEach(o => {
+        // should be message for the file, but we need range
         o.range = o.range || Range.create(0, 0, 1, 0)
-        o.message = o.message || 'Empty error message'
+        o.message = o.message || 'Undefined error message'
         if (emptyRange(o.range)) {
           o.range.end = {
             line: o.range.end.line,
@@ -56,15 +58,20 @@ export default class Collection implements DiagnosticCollection {
           }
         }
         let { start, end } = o.range
-        // fix empty diagnostic at the and of line
-        if (end.character == 0 && end.line - start.line == 1 && start.character > 0) {
-          // add last character when start character is end
-          let doc = workspace.getDocument(uri)
-          if (doc) {
+        if (doc) {
+          // fix empty diagnostic at the and of line
+          if (end.character == 0 && end.line - start.line == 1 && start.character > 0) {
+            // add last character when start character is end
             let line = doc.getline(start.line)
             if (start.character == line.length) {
               o.range.start.character = start.character - 1
             }
+          }
+          // fix diagnostic pass last line, since vim not showing last line like VSCode.
+          if (start.line != 0 && start.line >= doc.lineCount) {
+            let lastline = doc.getline(doc.lineCount - 1)
+            let endCharacter = lastline.length == 0 ? 1 : lastline.length
+            o.range = Range.create(doc.lineCount - 1, endCharacter - 1, doc.lineCount - 1, endCharacter)
           }
         }
         o.source = o.source || this.name
