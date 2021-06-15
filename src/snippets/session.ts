@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { FormattingOptions } from 'jsonc-parser'
-import { Emitter, Event, Range, TextDocumentContentChangeEvent, TextEdit } from 'vscode-languageserver-protocol'
+import { Emitter, Event, InsertTextMode, Range, TextDocumentContentChangeEvent, TextEdit } from 'vscode-languageserver-protocol'
 import completion from '../completion'
 import Document from '../model/document'
 import { comparePosition, positionInRange, rangeInRange } from '../util/position'
@@ -28,7 +28,7 @@ export class SnippetSession {
     this.preferComplete = config.get<boolean>('preferCompleteThanJumpPlaceholder', suggest.get('preferCompleteThanJumpPlaceholder', false))
   }
 
-  public async start(snippetString: string, select = true, range?: Range): Promise<boolean> {
+  public async start(snippetString: string, select = true, range?: Range, insertTextMode?: InsertTextMode): Promise<boolean> {
     const { document } = this
     if (!document || !document.attached) return false
     events.fire('InsertSnippet', []).logError()
@@ -41,7 +41,12 @@ export class SnippetSession {
     await document.patchChange(true)
     const currentLine = document.getline(position.line)
     const currentIndent = currentLine.match(/^\s*/)[0]
-    let inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions)
+    let inserted = ''
+    if (insertTextMode === InsertTextMode.asIs) {
+      inserted = snippetString
+    } else {
+      inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions)
+    }
     const resolver = new SnippetVariableResolver()
     const snippet = new CocSnippet(inserted, position, resolver)
     await snippet.init()

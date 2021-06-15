@@ -1016,6 +1016,11 @@
       "description": "Enable color highlight if language server support it.",
       "default": true
     },
+    "coc.preferences.semanticTokensHighlights": {
+      "type": "boolean",
+      "description": "Enable semanticTokens highlight if language server support it.",
+      "default": true
+    },
     "coc.preferences.previewAutoClose": {
       "type": "boolean",
       "description": "Auto close preview window on cursor move.",

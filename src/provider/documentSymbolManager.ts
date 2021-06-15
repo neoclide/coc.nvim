@@ -6,9 +6,10 @@ import { v4 as uuid } from 'uuid'
 
 export default class DocumentSymbolManager extends Manager<DocumentSymbolProvider> implements Disposable {
 
-  public register(selector: DocumentSelector, provider: DocumentSymbolProvider): Disposable {
+  public register(selector: DocumentSelector, provider: DocumentSymbolProvider, displayName?: string): Disposable {
     let item: ProviderItem<DocumentSymbolProvider> = {
       id: uuid(),
+      displayName,
       selector,
       provider
     }

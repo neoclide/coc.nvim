@@ -12,6 +12,46 @@ if has('nvim-0.5.0')
   endtry
 endif
 
+function! coc#highlight#get_highlights(bufnr, key) abort
+  let l:res = []
+
+  if s:is_vim
+    let l:lines = len(getbufline(a:bufnr, 1, '$'))
+    for l:line in range(l:lines)
+      let l:list = prop_list(l:line + 1, {"bufnr": a:bufnr})
+      for l:prop in l:list
+        if l:prop["start"] == 0 || l:prop["end"] == 0
+          " multi line tokens are not supported; simply ignore it
+          continue
+        endif
+
+        let l:group = l:prop["type"]
+        let l:start = l:prop["col"] - 1
+        let l:end = l:start + l:prop["length"]
+        call add(l:res, {
+              \   "group": l:group,
+              \   "line": l:line,
+              \   "startCharacter": l:start,
+              \   "endCharacter": l:end
+              \ })
+      endfor
+    endfor
+  else
+    let srcId = s:create_namespace(a:key)
+    let l:marks = nvim_buf_get_extmarks(a:bufnr, srcId, 0, -1, {"details": v:true})
+    for [_, l:line, l:start, l:details] in l:marks
+      call add(l:res, {
+            \   "group": l:details["hl_group"],
+            \   "line": l:line,
+            \   "startCharacter": l:start,
+            \   "endCharacter": l:details["end_col"]
+            \ })
+    endfor
+  endif
+
+  return l:res
+endfunction
+
 " highlight LSP range,
 function! coc#highlight#ranges(bufnr, key, hlGroup, ranges) abort
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr

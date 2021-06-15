@@ -30,8 +30,8 @@ export class SelectionRangeFeature extends TextDocumentFeature<boolean | Selecti
     super(client, SelectionRangeRequest.type)
   }
 
-  public fillClientCapabilities(capabilites: ClientCapabilities & SelectionRangeClientCapabilities): void {
-    let capability = ensure(ensure(capabilites, 'textDocument')!, 'selectionRange')!
+  public fillClientCapabilities(capabilities: ClientCapabilities & SelectionRangeClientCapabilities): void {
+    let capability = ensure(ensure(capabilities, 'textDocument')!, 'selectionRange')!
     capability.dynamicRegistration = true
   }
 
@@ -40,7 +40,7 @@ export class SelectionRangeFeature extends TextDocumentFeature<boolean | Selecti
     if (!id || !options) {
       return
     }
-    this.register(this.messages, { id, registerOptions: options })
+    this.register({ id, registerOptions: options })
   }
 
   protected registerLanguageProvider(options: SelectionRangeRegistrationOptions): [Disposable, SelectionRangeProvider] {
@@ -55,8 +55,7 @@ export class SelectionRangeFeature extends TextDocumentFeature<boolean | Selecti
           return client.sendRequest(SelectionRangeRequest.type, requestParams, token).then(
             ranges => ranges,
             (error: any) => {
-              client.logFailedRequest(SelectionRangeRequest.type, error)
-              return Promise.resolve(null)
+              return client.handleFailedRequest(SelectionRangeRequest.type, token, error, null)
             }
           )
         }

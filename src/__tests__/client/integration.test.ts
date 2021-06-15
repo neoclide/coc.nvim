@@ -29,10 +29,9 @@ async function testLanguageServer(serverOptions: lsclient.ServerOptions): Promis
     initializationOptions: {}
   }
   let client = new lsclient.LanguageClient('css', 'Test Language Server', serverOptions, clientOptions)
-  let disposable = client.start()
+  client.start()
   await client.onReady()
   expect(client.initializeResult).toBeDefined()
-  disposable.dispose()
 }
 
 describe('Client integration', () => {

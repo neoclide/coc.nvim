@@ -1,95 +1,87 @@
-/* eslint-disable */
-import { Disposable } from 'vscode-languageserver-protocol'
+/* --------------------------------------------------------------------------------------------
+  * Copyright (c) Microsoft Corporation. All rights reserved.
+  * Licensed under the MIT License. See License.txt in the project root for license information.
+  * ------------------------------------------------------------------------------------------ */
 
-export interface Task<T> {
+import { RAL } from 'vscode-languageserver-protocol'
+
+export interface ITask<T> {
   (): T
 }
 
-/**
- * A helper to delay execution of a task that is being requested often.
- *
- * Following the throttler, now imagine the mail man wants to optimize the number of
- * trips proactively. The trip itself can be long, so he decides not to make the trip
- * as soon as a letter is submitted. Instead he waits a while, in case more
- * letters are submitted. After said waiting period, if no letters were submitted, he
- * decides to make the trip. Imagine that N more letters were submitted after the first
- * one, all within a short period of time between each other. Even though N+1
- * submissions occurred, only 1 delivery was made.
- *
- * The delayer offers this behavior via the trigger() method, into which both the task
- * to be executed and the waiting period (delay) must be passed in as arguments. Following
- * the example:
- *
- * 		const delayer = new Delayer(WAITING_PERIOD)
- * 		const letters = []
- *
- * 		function letterReceived(l) {
- * 			letters.push(l)
- * 			delayer.trigger(() => { return makeTheTrip(); })
- * 		}
- */
-export class Delayer<T> implements Disposable {
+export class Delayer<T> {
 
-  private timeout: any
-  private completionPromise: Thenable<any> | null
-  private doResolve: ((value?: any | Thenable<any>) => void) | null
-  private doReject: (err: any) => void
-  private task: Task<T | Thenable<T>> | null
+  public defaultDelay: number
+  private timeout: RAL.TimeoutHandle | undefined
+  private completionPromise: Promise<T> | undefined
+  private onSuccess: ((value: T | Promise<T> | undefined) => void) | undefined
+  private task: ITask<T> | undefined
 
-  constructor(public defaultDelay: number) {
-    this.timeout = null
-    this.completionPromise = null
-    this.doResolve = null
-    this.task = null
+  constructor(defaultDelay: number) {
+    this.defaultDelay = defaultDelay
+    this.timeout = undefined
+    this.completionPromise = undefined
+    this.onSuccess = undefined
+    this.task = undefined
   }
 
-  trigger(task: Task<T | Thenable<T>>, delay: number = this.defaultDelay): Thenable<T> {
+  public trigger(task: ITask<T>, delay: number = this.defaultDelay): Promise<T> {
     this.task = task
-    this.cancelTimeout()
+    if (delay >= 0) {
+      this.cancelTimeout()
+    }
 
     if (!this.completionPromise) {
-      this.completionPromise = new Promise((c, e) => {
-        this.doResolve = c
-        this.doReject = e
+      this.completionPromise = new Promise<T | undefined>(resolve => {
+        this.onSuccess = resolve
       }).then(() => {
-        this.completionPromise = null
-        this.doResolve = null
-        const task = this.task!
-        this.task = null
-
-        return task()
+        this.completionPromise = undefined
+        this.onSuccess = undefined
+        let result = this.task!()
+        this.task = undefined
+        return result
       })
     }
 
-    this.timeout = setTimeout(() => {
-      this.timeout = null
-      this.doResolve!(null)
-    }, delay)
+    if (delay >= 0 || this.timeout === void 0) {
+      this.timeout = RAL().timer.setTimeout(() => {
+        this.timeout = undefined
+        this.onSuccess!(undefined)
+      }, delay >= 0 ? delay : this.defaultDelay)
+    }
 
     return this.completionPromise
   }
 
-  isTriggered(): boolean {
-    return this.timeout !== null
+  public forceDelivery(): T | undefined {
+    if (!this.completionPromise) {
+      return undefined
+    }
+    this.cancelTimeout()
+    let result: T = this.task!()
+    this.completionPromise = undefined
+    this.onSuccess = undefined
+    this.task = undefined
+    return result
   }
 
-  cancel(): void {
-    this.cancelTimeout()
+  public isTriggered(): boolean {
+    return this.timeout !== void 0
+  }
 
-    if (this.completionPromise) {
-      this.doReject(new Error('Canceled'))
-      this.completionPromise = null
-    }
+  public cancel(): void {
+    this.cancelTimeout()
+    this.completionPromise = undefined
+  }
+
+  public dispose(): void {
+    this.cancelTimeout()
   }
 
   private cancelTimeout(): void {
-    if (this.timeout !== null) {
-      clearTimeout(this.timeout)
-      this.timeout = null
+    if (this.timeout !== void 0) {
+      RAL().timer.clearTimeout(this.timeout)
+      this.timeout = undefined
     }
-  }
-
-  dispose(): void {
-    this.cancelTimeout()
   }
 }

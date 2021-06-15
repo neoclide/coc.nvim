@@ -1,9 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, LocationLink, Position, Range, SelectionRange, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertReplaceEdit, InsertTextFormat, LinkedEditingRanges, Location, LocationLink, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
-import { CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
+import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, DocumentSymbolProvider, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
 import CodeActionManager from './provider/codeActionmanager'
 import CodeLensManager from './provider/codeLensManager'
 import DeclarationManager from './provider/declarationManager'
@@ -24,9 +24,13 @@ import RenameManager from './provider/renameManager'
 import SignatureManager from './provider/signatureManager'
 import TypeDefinitionManager from './provider/typeDefinitionManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
+import CallHierarchyManager from './provider/callHierarchyManager'
+import SemanticTokensManager from './provider/semanticTokensManager'
+import SemanticTokensRangeManager from './provider/semanticTokensRangeManager'
+import LinkedEditingRangeManager from './provider/linkedEditingRangeManager'
 import snippetManager from './snippets/manager'
 import sources from './sources'
-import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, Documentation, ISource, ProviderName, SourceType, VimCompleteItem } from './types'
+import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, Documentation, DocumentSymbolProviderMetadata, ISource, ProviderName, SourceType, VimCompleteItem } from './types'
 import * as complete from './util/complete'
 import { getChangedFromEdits, rangeOverlap } from './util/position'
 import { byteIndex, byteLength, byteSlice } from './util/string'
@@ -74,6 +78,10 @@ class Languages {
   private implementationManager = new ImplementationManager()
   private codeLensManager = new CodeLensManager()
   private selectionRangeManager = new SelectionRangeManager()
+  private callHierarchyManager = new CallHierarchyManager()
+  private semanticTokensManager = new SemanticTokensManager()
+  private semanticTokensRangeManager = new SemanticTokensRangeManager()
+  private linkedEditingManager = new LinkedEditingRangeManager()
   private cancelTokenSource: CancellationTokenSource = new CancellationTokenSource()
   private completionItemKindMap: Map<CompletionItemKind, string>
 
@@ -198,8 +206,8 @@ class Languages {
     return this.signatureManager.register(selector, provider, triggerCharacters)
   }
 
-  public registerDocumentSymbolProvider(selector: DocumentSelector, provider: DocumentSymbolProvider): Disposable {
-    return this.documentSymbolManager.register(selector, provider)
+  public registerDocumentSymbolProvider(selector: DocumentSelector, provider: DocumentSymbolProvider, metadata?: DocumentSymbolProviderMetadata): Disposable {
+    return this.documentSymbolManager.register(selector, provider, metadata?.label)
   }
 
   public registerFoldingRangeProvider(selector: DocumentSelector, provider: FoldingRangeProvider): Disposable {
@@ -259,6 +267,22 @@ class Languages {
 
   public registerDocumentRangeFormatProvider(selector: DocumentSelector, provider: DocumentRangeFormattingEditProvider, priority = 0): Disposable {
     return this.formatRangeManager.register(selector, provider, priority)
+  }
+
+  public registerCallHierarchyProvider(selector: DocumentSelector, provider: CallHierarchyProvider): Disposable {
+    return this.callHierarchyManager.register(selector, provider)
+  }
+
+  public registerDocumentSemanticTokensProvider(selector: DocumentSelector, provider: DocumentSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
+    return this.semanticTokensManager.register(selector, provider, legend)
+  }
+
+  public registerDocumentRangeSemanticTokensProvider(selector: DocumentSelector, provider: DocumentRangeSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
+    return this.semanticTokensRangeManager.register(selector, provider, legend)
+  }
+
+  public registerLinkedEditingRangeProvider(selector: DocumentSelector, provider: LinkedEditingRangeProvider): Disposable {
+    return this.linkedEditingManager.register(selector, provider)
   }
 
   public shouldTriggerSignatureHelp(document: TextDocument, triggerCharacter: string): boolean {
@@ -394,6 +418,46 @@ class Languages {
     return this.onTypeFormatManager.getProvider(document, character) != null
   }
 
+  public async prepareCallHierarchy(document: TextDocument, position: Position, token: CancellationToken): Promise<CallHierarchyItem | CallHierarchyItem[]> {
+    return this.callHierarchyManager.prepareCallHierarchy(document, position, token)
+  }
+
+  public async provideIncomingCalls(item: CallHierarchyItem, token: CancellationToken): Promise<CallHierarchyIncomingCall[]> {
+    return this.callHierarchyManager.provideCallHierarchyIncomingCalls(item, token)
+  }
+
+  public async provideOutgoingCalls(item: CallHierarchyItem, token: CancellationToken): Promise<CallHierarchyOutgoingCall[]> {
+    return this.callHierarchyManager.provideCallHierarchyOutgoingCalls(item, token)
+  }
+
+  public getLegend(document: TextDocument): SemanticTokensLegend {
+    return this.semanticTokensManager.getLegend(document)
+  }
+
+  public hasSemanticTokensEdits(document: TextDocument): boolean {
+    return this.semanticTokensManager.hasSemanticTokensEdits(document)
+  }
+
+  public async provideDocumentSemanticTokens(document: TextDocument, token: CancellationToken): Promise<SemanticTokens> {
+    return this.semanticTokensManager.provideDocumentSemanticTokens(document, token)
+  }
+
+  public async provideDocumentSemanticTokensEdits(document: TextDocument, previousResultId: string, token: CancellationToken): Promise<SemanticTokens | SemanticTokensDelta> {
+    return this.semanticTokensManager.provideDocumentSemanticTokensEdits(document, previousResultId, token)
+  }
+
+  public async provideDocumentRangeSemanticTokens(document: TextDocument, range: Range, token: CancellationToken): Promise<SemanticTokens> {
+    return this.semanticTokensRangeManager.provideDocumentRangeSemanticTokens(document, range, token)
+  }
+
+  public hasLinkedEditing(document: TextDocument): boolean {
+    return this.linkedEditingManager.hasProvider(document)
+  }
+
+  public async provideLinkedEdits(document: TextDocument, position: Position, token: CancellationToken): Promise<LinkedEditingRanges> {
+    return this.linkedEditingManager.provideLinkedEditingRanges(document, position, token)
+  }
+
   public hasProvider(id: ProviderName, document: TextDocument): boolean {
     switch (id) {
       case 'rename':
@@ -436,6 +500,12 @@ class Languages {
         return this.codeLensManager.hasProvider(document)
       case 'selectionRange':
         return this.selectionRangeManager.hasProvider(document)
+      case 'callHierarchy':
+        return this.callHierarchyManager.hasProvider(document)
+      case 'semanticTokens':
+        return this.semanticTokensManager.hasProvider(document)
+      case 'linkedEditing':
+        return this.linkedEditingManager.hasProvider(document)
       default:
         throw new Error(`${id} not supported.`)
     }
@@ -574,9 +644,10 @@ class Languages {
           let isSnippet = await this.applyTextEdit(item, vimItem.word, opt)
           let { additionalTextEdits } = item
           if (additionalTextEdits && item.textEdit) {
-            let r = (item.textEdit as TextEdit).range
+            let r = InsertReplaceEdit.is(item.textEdit) ? item.textEdit.replace : item.textEdit.range
             additionalTextEdits = additionalTextEdits.filter(edit => {
-              if (rangeOverlap(r, edit.range)) {
+              let er = InsertReplaceEdit.is(edit) ? edit.replace : edit.range
+              if (rangeOverlap(r, er)) {
                 logger.error('Filtered overlap additionalTextEdit:', edit)
                 return false
               }
@@ -614,7 +685,8 @@ class Languages {
     let { line, bufnr, linenr } = option
     let doc = workspace.getDocument(bufnr)
     if (!doc) return false
-    let { range, newText } = textEdit as TextEdit
+    let newText = textEdit.newText
+    let range = InsertReplaceEdit.is(textEdit) ? textEdit.replace : textEdit.range
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
     // replace inserted word
     let start = line.substr(0, range.start.character)
@@ -629,7 +701,7 @@ class Languages {
       let endCharacter = currline.length - end.length
       let r = Range.create(linenr - 1, range.start.character, linenr - 1, endCharacter)
       // can't select, since additionalTextEdits would break selection
-      return await snippetManager.insertSnippet(newText, false, r)
+      return await snippetManager.insertSnippet(newText, false, r, item.insertTextMode)
     }
     let newLines = `${start}${newText}${end}`.split(/\r?\n/)
     if (newLines.length == 1) {
@@ -668,7 +740,8 @@ class Languages {
   private getStartColumn(line: string, items: CompletionItem[]): number | null {
     let first = items[0]
     if (!first.textEdit) return null
-    let { range, newText } = first.textEdit as TextEdit
+    let { newText } = first.textEdit
+    let range = InsertReplaceEdit.is(first.textEdit) ? first.textEdit.replace : first.textEdit.range
     let { character } = range.start
     if (newText.length < range.end.character - character) {
       return null
@@ -677,7 +750,9 @@ class Languages {
       let o = items[i]
       if (!o) break
       if (!o.textEdit) return null
-      if ((o.textEdit as TextEdit).range.start.character !== character) return null
+      if (InsertReplaceEdit.is(o.textEdit)) return null
+      let r = InsertReplaceEdit.is(o.textEdit) ? o.textEdit.replace : o.textEdit.range
+      if (r.start.character !== character) return null
     }
     return byteIndex(line, character)
   }

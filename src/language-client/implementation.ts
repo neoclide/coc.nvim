@@ -30,8 +30,8 @@ export class ImplementationFeature extends TextDocumentFeature<boolean | Impleme
     super(client, ImplementationRequest.type)
   }
 
-  public fillClientCapabilities(capabilites: ClientCapabilities): void {
-    const implementationSupport = ensure(ensure(capabilites, 'textDocument')!, 'implementation')!
+  public fillClientCapabilities(capabilities: ClientCapabilities): void {
+    const implementationSupport = ensure(ensure(capabilities, 'textDocument')!, 'implementation')!
     implementationSupport.dynamicRegistration = true
     // implementationSupport.linkSupport = true
   }
@@ -41,7 +41,7 @@ export class ImplementationFeature extends TextDocumentFeature<boolean | Impleme
     if (!id || !options) {
       return
     }
-    this.register(this.messages, { id, registerOptions: options })
+    this.register({ id, registerOptions: options })
   }
 
   protected registerLanguageProvider(options: ImplementationRegistrationOptions): [Disposable, ImplementationProvider] {
@@ -50,8 +50,7 @@ export class ImplementationFeature extends TextDocumentFeature<boolean | Impleme
         const client = this._client
         const provideImplementation: ProvideImplementationSignature = (document, position, token) => client.sendRequest(ImplementationRequest.type, cv.asTextDocumentPositionParams(document, position), token).then(
           res => res, error => {
-            client.logFailedRequest(ImplementationRequest.type, error)
-            return Promise.resolve(null)
+            return client.handleFailedRequest(ImplementationRequest.type, token, error, null)
           }
         )
         const middleware = client.clientOptions.middleware
