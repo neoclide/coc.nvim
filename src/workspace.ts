@@ -1018,7 +1018,7 @@ export class Workspace implements IWorkspace {
   }
 
   /**
-   * Resovle module from yarn or npm.
+   * Resolve module from yarn or npm.
    */
   public async resolveModule(name: string): Promise<string> {
     return await this.resolver.resolveModule(name)

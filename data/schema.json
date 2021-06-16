@@ -432,7 +432,7 @@
     },
     "suggest.keepCompleteopt": {
       "type": "boolean",
-      "description": "When enabled, completeopt is not overriden, auto completion will be disabled if completeopt doesn't have noinsert and noselect.",
+      "description": "When enabled, completeopt is not overridden, auto completion will be disabled if completeopt doesn't have noinsert and noselect.",
       "default": false
     },
     "suggest.lowPrioritySourceLimit": {

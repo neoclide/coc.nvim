@@ -1014,7 +1014,7 @@ declare module 'coc.nvim' {
     insertText?: string
     /**
      * The format of the insert text. The format applies to both the `insertText` property
-     * and the `newText` property of a provided `textEdit`. If ommitted defaults to
+     * and the `newText` property of a provided `textEdit`. If omitted defaults to
      * `InsertTextFormat.PlainText`.
      */
     insertTextFormat?: InsertTextFormat
@@ -2026,7 +2026,7 @@ declare module 'coc.nvim' {
     createTabpage(id: number): Tabpage
 
     /**
-     * Stop send subsquent notifications.
+     * Stop send subsequent notifications.
      */
     pauseNotification(): void
 
@@ -2926,7 +2926,7 @@ declare module 'coc.nvim' {
    * Providers can delay the computation of the [`detail`](#CompletionItem.detail)
    * and [`documentation`](#CompletionItem.documentation) properties by implementing the
    * [`resolveCompletionItem`](#CompletionItemProvider.resolveCompletionItem)-function. However, properties that
-   * are needed for the inital sorting and filtering, like `sortText`, `filterText`, `insertText`, and `range`, must
+   * are needed for the initial sorting and filtering, like `sortText`, `filterText`, `insertText`, and `range`, must
    * not be changed during resolve.
    *
    * Providers are asked for completions either explicitly by a user gesture or -depending on the configuration-
@@ -3835,7 +3835,7 @@ declare module 'coc.nvim' {
      */
     defaultAction: string
     /**
-     * Registed actions.
+     * Registered actions.
      */
     readonly actions: ListAction[]
     /**
@@ -4736,7 +4736,7 @@ declare module 'coc.nvim' {
      */
     triggerOnly?: boolean
     triggerCharacters?: string[]
-    // regex to detect trigger completetion, ignored when triggerCharacters exists.
+    // regex to detect trigger completion, ignored when triggerCharacters exists.
     triggerPatterns?: RegExp[]
     disableSyntaxes?: string[]
     filepath?: string
@@ -4763,7 +4763,7 @@ declare module 'coc.nvim' {
     shouldComplete?(opt: CompleteOption): Promise<boolean>
 
     /**
-     * Run completetion
+     * Run completion
      *
      * @public
      * @param {CompleteOption} opt
@@ -4796,7 +4796,7 @@ declare module 'coc.nvim' {
 
   export namespace sources {
     /**
-     * Names of registed sources.
+     * Names of registered sources.
      */
     export const names: ReadonlyArray<string>
     export const sources: ReadonlyArray<ISource>
@@ -5195,7 +5195,7 @@ declare module 'coc.nvim' {
      */
     readonly content: string
     /**
-     * Coverted filetype.
+     * Converted filetype.
      */
     readonly filetype: string
     readonly uri: string
@@ -5787,7 +5787,7 @@ declare module 'coc.nvim' {
     export function openResource(uri: string): Promise<void>
 
     /**
-     * Resovle full path of module from yarn or npm global directory.
+     * Resolve full path of module from yarn or npm global directory.
      */
     export function resolveModule(name: string): Promise<string>
 
@@ -6268,7 +6268,7 @@ declare module 'coc.nvim' {
      * Get current cursor character offset in document,
      * length of line break would always be 1.
      *
-     * @returns Charactor offset.
+     * @returns Character offset.
      */
     export function getOffset(): Promise<number>
 
@@ -6809,7 +6809,7 @@ declare module 'coc.nvim' {
 
   export namespace listManager {
     /**
-     * Registed list names set.
+     * Registered list names set.
      */
     export const names: ReadonlyArray<string>
     /**
@@ -7368,7 +7368,7 @@ declare module 'coc.nvim' {
     revealOutputChannelOn?: RevealOutputChannelOn
     /**
      * The encoding use to read stdout and stderr. Defaults
-     * to 'utf8' if ommitted.
+     * to 'utf8' if omitted.
      */
     stdioEncoding?: string
     initializationOptions?: any | (() => any)
@@ -7418,7 +7418,7 @@ declare module 'coc.nvim' {
     fillClientCapabilities(capabilities: any): void
     /**
      * Initialize the feature. This method is called on a feature instance
-     * when the client has successfully received the initalize request from
+     * when the client has successfully received the initialize request from
      * the server and before the client sends the initialized notification
      * to the server.
      *
@@ -7429,7 +7429,7 @@ declare module 'coc.nvim' {
     initialize(capabilities: any, documentSelector: DocumentSelector | undefined): void
     /**
      * Called when the client is stopped to dispose this feature. Usually a feature
-     * unregisters listeners registerd hooked up with the VS Code extension host.
+     * unregisters listeners registered hooked up with the VS Code extension host.
      */
     dispose(): void
   }
@@ -7596,7 +7596,7 @@ declare module 'coc.nvim' {
     fillClientCapabilities(capabilities: any): void
     /**
      * Initialize the feature. This method is called on a feature instance
-     * when the client has successfully received the initalize request from
+     * when the client has successfully received the initialize request from
      * the server and before the client sends the initialized notification
      * to the server.
      *
@@ -7620,7 +7620,7 @@ declare module 'coc.nvim' {
     unregister(id: string): void
     /**
      * Called when the client is stopped to dispose this feature. Usually a feature
-     * unregisters listeners registerd hooked up with the VS Code extension host.
+     * unregisters listeners registered hooked up with the VS Code extension host.
      */
     dispose(): void
   }
@@ -7824,7 +7824,7 @@ declare module 'coc.nvim' {
     stop(): Promise<void>
 
     /**
-     * Start language server, not needed when registed to services by `services.registLanguageClient`
+     * Start language server, not needed when registered to services by `services.registLanguageClient`
      */
     start(): Disposable
     /**

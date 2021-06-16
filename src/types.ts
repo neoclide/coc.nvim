@@ -1378,7 +1378,7 @@ export interface ISource {
   triggerCharacters?: string[]
   // should only be used when trigger match.
   triggerOnly?: boolean
-  // regex to detect trigger completetion, ignored when triggerCharacters exists.
+  // regex to detect trigger completion, ignored when triggerCharacters exists.
   triggerPatterns?: RegExp[]
   disableSyntaxes?: string[]
   isSnippet?: boolean
@@ -1416,7 +1416,7 @@ export interface ISource {
    */
   shouldComplete?(opt: CompleteOption): Promise<boolean>
   /**
-   * Do completetion
+   * Do completion
    *
    * @public
    * @param {CompleteOption} opt

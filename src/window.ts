@@ -334,7 +334,7 @@ class Window {
    * Get current cursor character offset in document,
    * length of line break would always be 1.
    *
-   * @returns Charactor offset.
+   * @returns Character offset.
    */
   public async getOffset(): Promise<number> {
     return await this.nvim.call('coc#util#get_offset') as number
