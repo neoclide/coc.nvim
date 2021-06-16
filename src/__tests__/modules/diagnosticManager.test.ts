@@ -289,6 +289,21 @@ describe('diagnostic manager', () => {
     collection.dispose()
   })
 
+  it('should get diagnostic next to end of line', async () => {
+    let doc = await helper.createDocument()
+    await nvim.setLine('foo')
+    doc.forceSync()
+    await nvim.command('normal! $')
+    let diagnostic = Diagnostic.create(Range.create(0, 3, 0, 4), 'error', DiagnosticSeverity.Error)
+    let collection = manager.create('empty')
+    collection.set(doc.uri, [diagnostic])
+    manager.refreshBuffer(doc.bufnr, true)
+    let diagnostics = await manager.getCurrentDiagnostics()
+    expect(diagnostics.length).toBeGreaterThanOrEqual(1)
+    expect(diagnostics[0].message).toBe('error')
+    collection.dispose()
+  })
+
   it('should send ale diagnostic items', async () => {
     let config = workspace.getConfiguration('diagnostic')
     config.update('displayByAle', true)

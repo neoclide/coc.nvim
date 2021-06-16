@@ -245,9 +245,9 @@ export class DiagnosticManager implements Disposable {
    * Show diagnostics under curosr in preview window
    */
   public async preview(): Promise<void> {
-    let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number]]
+    let [bufnr, cursor, atEnd] = await this.nvim.eval(`[bufnr("%"),coc#util#cursor(),col('.')==col('$')-1]`) as [number, [number, number], number]
     let { nvim } = this
-    let diagnostics = this.getDiagnosticsAt(bufnr, cursor)
+    let diagnostics = this.getDiagnosticsAt(bufnr, cursor, atEnd == 1)
     if (diagnostics.length == 0) {
       nvim.command('pclose', true)
       window.showMessage(`Empty diagnostics`, 'warning')
@@ -376,16 +376,20 @@ export class DiagnosticManager implements Disposable {
     return res
   }
 
-  private getDiagnosticsAt(bufnr: number, cursor: [number, number]): Diagnostic[] {
+  private getDiagnosticsAt(bufnr: number, cursor: [number, number], atEnd = false): Diagnostic[] {
     let buffer = this.buffers.getItem(bufnr)
     if (!buffer) return []
     let pos = Position.create(cursor[0], cursor[1])
-    return buffer.getDiagnosticsAt(pos, this.config.checkCurrentLine)
+    let res = buffer.getDiagnosticsAt(pos, this.config.checkCurrentLine)
+    if (!res.length && atEnd && !this.config.checkCurrentLine) {
+      return this.getDiagnosticsAt(bufnr, [cursor[0], cursor[1] + 1])
+    }
+    return res
   }
 
   public async getCurrentDiagnostics(): Promise<Diagnostic[]> {
-    let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number]]
-    return this.getDiagnosticsAt(bufnr, cursor)
+    let [bufnr, cursor, atEnd] = await this.nvim.eval(`[bufnr("%"),coc#util#cursor(),col('.')==col('$')-1]`) as [number, [number, number], number]
+    return this.getDiagnosticsAt(bufnr, cursor, atEnd == 1)
   }
 
   /**
@@ -396,9 +400,10 @@ export class DiagnosticManager implements Disposable {
     if (!this.enabled || config.displayByAle) return
     if (this.timer) clearTimeout(this.timer)
     let useFloat = config.messageTarget == 'float'
-    let [bufnr, cursor, filetype, mode] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),&filetype,mode()]') as [number, [number, number], string, string]
+    // echo
+    let [bufnr, cursor, filetype, mode, atEnd] = await this.nvim.eval(`[bufnr("%"),coc#util#cursor(),&filetype,mode(),col('.')==col('$')-1]`) as [number, [number, number], string, string, number]
     if (mode != 'n') return
-    let diagnostics = this.getDiagnosticsAt(bufnr, cursor)
+    let diagnostics = this.getDiagnosticsAt(bufnr, cursor, atEnd == 1)
     if (diagnostics.length == 0) {
       if (useFloat) {
         this.floatFactory.close()
