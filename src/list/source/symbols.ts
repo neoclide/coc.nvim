@@ -33,7 +33,7 @@ export default class Symbols extends LocationList {
     }
     let symbols = await languages.getWorkspaceSymbols(input, token)
     if (!symbols) {
-      throw new Error('No workspace symbols provider registed')
+      throw new Error('No workspace symbols provider registered')
     }
     let config = this.getConfig()
     let excludes = config.get<string[]>('excludes', [])

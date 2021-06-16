@@ -46,7 +46,7 @@ export default class Colors {
   }
 
   public async pickPresentation(): Promise<void> {
-    let info = await this.currentColorInfomation()
+    let info = await this.currentColorInformation()
     if (!info) return window.showMessage('Color not found at current position', 'warning')
     let document = await workspace.document
     let tokenSource = new CancellationTokenSource()
@@ -64,7 +64,7 @@ export default class Colors {
   }
 
   public async pickColor(): Promise<void> {
-    let info = await this.currentColorInfomation()
+    let info = await this.currentColorInformation()
     if (!info) return window.showMessage('Color not found at current position', 'warning')
     let { color } = info
     let colorArr = [(color.red * 255).toFixed(0), (color.green * 255).toFixed(0), (color.blue * 255).toFixed(0)]
@@ -106,10 +106,10 @@ export default class Colors {
     return highlighter.hasColor()
   }
 
-  public hasColorAtPostion(bufnr: number, position: Position): boolean {
+  public hasColorAtPosition(bufnr: number, position: Position): boolean {
     let highlighter = this.highlighters.getItem(bufnr)
     if (!highlighter) return false
-    return highlighter.hasColorAtPostion(position)
+    return highlighter.hasColorAtPosition(position)
   }
 
   public highlightAll(): void {
@@ -124,7 +124,7 @@ export default class Colors {
     await highlighter.doHighlight()
   }
 
-  private async currentColorInfomation(): Promise<ColorInformation | null> {
+  private async currentColorInformation(): Promise<ColorInformation | null> {
     let bufnr = await this.nvim.call('bufnr', '%')
     let highlighter = this.highlighters.getItem(bufnr)
     if (!highlighter) return null

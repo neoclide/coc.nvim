@@ -45,7 +45,7 @@ export type ProviderResult<T> =
  * Providers can delay the computation of the [`detail`](#CompletionItem.detail)
  * and [`documentation`](#CompletionItem.documentation) properties by implementing the
  * [`resolveCompletionItem`](#CompletionItemProvider.resolveCompletionItem)-function. However, properties that
- * are needed for the inital sorting and filtering, like `sortText`, `filterText`, `insertText`, and `range`, must
+ * are needed for the initial sorting and filtering, like `sortText`, `filterText`, `insertText`, and `range`, must
  * not be changed during resolve.
  *
  * Providers are asked for completions either explicitly by a user gesture or -depending on the configuration-

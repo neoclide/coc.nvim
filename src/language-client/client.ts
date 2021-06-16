@@ -881,7 +881,7 @@ export interface StaticFeature {
 
   /**
    * Initialize the feature. This method is called on a feature instance
-   * when the client has successfully received the initalize request from
+   * when the client has successfully received the initialize request from
    * the server and before the client sends the initialized notification
    * to the server.
    *
@@ -896,7 +896,7 @@ export interface StaticFeature {
 
   /**
    * Called when the client is stopped to dispose this feature. Usually a feature
-   * unregisters listeners registerd hooked up with the VS Code extension host.
+   * unregisters listeners registered hooked up with the VS Code extension host.
    */
   dispose(): void
 }
@@ -953,7 +953,7 @@ export interface DynamicFeature<RO> {
 
   /**
    * Called when the client is stopped to dispose this feature. Usually a feature
-   * unregisters listeners registerd hooked up with the VS Code extension host.
+   * unregisters listeners registered hooked up with the VS Code extension host.
    */
   dispose(): void
 }

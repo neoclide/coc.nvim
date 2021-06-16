@@ -149,7 +149,7 @@ export default class ColorBuffer implements SyncItem {
     this.buffer.clearNamespace('color')
   }
 
-  public hasColorAtPostion(position: Position): boolean {
+  public hasColorAtPosition(position: Position): boolean {
     let { colors } = this
     return colors.some(o => positionInRange(position, o.range) == 0)
   }

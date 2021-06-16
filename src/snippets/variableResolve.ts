@@ -37,7 +37,7 @@ export class SnippetVariableResolver implements VariableResolver {
     })
   }
 
-  private async resovleValue(name: string): Promise<string | undefined> {
+  private async resolveValue(name: string): Promise<string | undefined> {
     let { nvim } = window
     if (['TM_FILENAME', 'TM_FILENAME_BASE', 'TM_DIRECTORY', 'TM_FILEPATH'].includes(name)) {
       let filepath = await nvim.eval('expand("%:p")') as string
@@ -80,7 +80,7 @@ export class SnippetVariableResolver implements VariableResolver {
     let resolved = this._variableToValue[name]
     if (resolved != null) return resolved.toString()
     // resolve value from vim
-    let value = await this.resovleValue(name)
+    let value = await this.resolveValue(name)
     if (value) return value
     // use default value when resolved is undefined
     if (variable.children && variable.children.length) {
