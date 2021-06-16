@@ -1,7 +1,6 @@
 import { Diagnostic, Emitter, Event, Range } from 'vscode-languageserver-protocol'
 import { DiagnosticCollection } from '../types'
 import { URI } from 'vscode-uri'
-import { emptyRange } from '../util/position'
 import workspace from '../workspace'
 const logger = require('../util/logger')('diagnostic-collection')
 
@@ -51,12 +50,6 @@ export default class Collection implements DiagnosticCollection {
         // should be message for the file, but we need range
         o.range = o.range || Range.create(0, 0, 1, 0)
         o.message = o.message || 'Undefined error message'
-        if (emptyRange(o.range)) {
-          o.range.end = {
-            line: o.range.end.line,
-            character: o.range.end.character + 1
-          }
-        }
         let { start, end } = o.range
         if (doc) {
           // fix empty diagnostic at the and of line
