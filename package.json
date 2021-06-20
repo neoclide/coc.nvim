@@ -100,7 +100,6 @@
     "log4js": "^6.3.0",
     "marked": "^1.2.5",
     "minimatch": "^3.0.4",
-    "promise.prototype.finally": "^3.1.2",
     "rc": "^1.2.8",
     "semver": "^7.3.2",
     "string.prototype.matchall": "^4.0.3",
