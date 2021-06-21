@@ -344,7 +344,7 @@ function! coc#float#nvim_scrollbar(winid) abort
     return
   endif
   let config = nvim_win_get_config(a:winid)
-  let [row, column] = nvim_win_get_position(a:winid)
+  let [row, column] = [config.row, config.col]
   let width = nvim_win_get_width(a:winid)
   let height = nvim_win_get_height(a:winid)
   let bufnr = winbufnr(a:winid)
