@@ -1,4 +1,3 @@
-const promiseFinally = require('promise.prototype.finally')
 require('./util/extensions')
 
 Object.defineProperty(console, 'log', {
@@ -6,7 +5,6 @@ Object.defineProperty(console, 'log', {
     logger.info(...arguments)
   }
 })
-promiseFinally.shim()
 const logger = require('./util/logger')('server')
 const attach = require('./attach').default
 
