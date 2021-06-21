@@ -202,8 +202,7 @@ export default class Picker {
       buf.addHighlight({ hlGroup: 'Comment', line: pos[0], srcId: 1, colStart: pos[1], colEnd: -1 })
     }
     nvim.command('redraw', true)
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    nvim.resumeNotification(false, true)
+    await nvim.resumeNotification()
     nvim.call('coc#prompt#start_prompt', ['picker'], true)
     return res[0]
   }
