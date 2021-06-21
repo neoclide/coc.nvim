@@ -106,26 +106,6 @@ describe('diagnostic manager', () => {
     expect(info).toBeDefined()
   })
 
-  it('should adjust diagnostic range after document', async () => {
-    let doc = await helper.createDocument()
-    await nvim.call('setline', [1, 'foo'])
-    let collection = manager.create('test')
-    collection.set(doc.uri, [createDiagnostic('foo', Range.create(1, 0, 1, 1))])
-    let diagnostics = manager.getDiagnostics(doc.uri)
-    expect(diagnostics.length).toBe(1)
-    let o = diagnostics[0]
-    expect(o.range).toEqual({
-      start: {
-        line: 0,
-        character: 2
-      },
-      end: {
-        line: 0,
-        character: 3
-      }
-    })
-  })
-
   it('should get sorted ranges of document', async () => {
     let doc = await helper.createDocument()
     await nvim.call('setline', [1, ['a', 'b', 'c']])
@@ -295,6 +275,36 @@ describe('diagnostic manager', () => {
     doc.forceSync()
     await nvim.command('normal! $')
     let diagnostic = Diagnostic.create(Range.create(0, 3, 0, 4), 'error', DiagnosticSeverity.Error)
+    let collection = manager.create('empty')
+    collection.set(doc.uri, [diagnostic])
+    manager.refreshBuffer(doc.bufnr, true)
+    let diagnostics = await manager.getCurrentDiagnostics()
+    expect(diagnostics.length).toBeGreaterThanOrEqual(1)
+    expect(diagnostics[0].message).toBe('error')
+    collection.dispose()
+  })
+
+  it('should get diagnostic with empty range at end of line', async () => {
+    let doc = await helper.createDocument()
+    await nvim.setLine('foo')
+    doc.forceSync()
+    await nvim.command('normal! $')
+    let diagnostic = Diagnostic.create(Range.create(0, 3, 1, 0), 'error', DiagnosticSeverity.Error)
+    let collection = manager.create('empty')
+    collection.set(doc.uri, [diagnostic])
+    manager.refreshBuffer(doc.bufnr, true)
+    let diagnostics = await manager.getCurrentDiagnostics()
+    expect(diagnostics.length).toBeGreaterThanOrEqual(1)
+    expect(diagnostics[0].message).toBe('error')
+    collection.dispose()
+  })
+
+  it('should get diagnostic pass end of the buffer lines', async () => {
+    let doc = await helper.createDocument()
+    await nvim.setLine('foo')
+    doc.forceSync()
+    await nvim.command('normal! ^')
+    let diagnostic = Diagnostic.create(Range.create(1, 0, 1, 0), 'error', DiagnosticSeverity.Error)
     let collection = manager.create('empty')
     collection.set(doc.uri, [diagnostic])
     manager.refreshBuffer(doc.bufnr, true)

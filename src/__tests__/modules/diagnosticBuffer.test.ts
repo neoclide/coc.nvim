@@ -106,7 +106,6 @@ describe('diagnostic buffer', () => {
 
   it('should add deprecated highlight', async () => {
     let diagnostic = createDiagnostic('foo', Range.create(0, 0, 0, 1), DiagnosticSeverity.Information, [DiagnosticTag.Deprecated])
-    console.log(diagnostic)
     let buf = await createDiagnosticBuffer()
     await nvim.setLine('foo')
     nvim.pauseNotification()
