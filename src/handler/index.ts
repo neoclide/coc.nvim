@@ -600,6 +600,20 @@ export default class Handler {
         }
       }
     }
+    if (action.data !== undefined) {
+      return this.resolveCodeAction(action).then(resolved => {
+        if (resolved && resolved.data === undefined) { // Code action was resolved
+          return this.applyCodeAction(resolved)
+        }
+      })
+    }
+  }
+
+  public async resolveCodeAction(action: CodeAction): Promise<CodeAction | null> {
+     let { doc } = await this.getCurrentState()
+     return this.withRequestToken('codeaction resolve', token => {
+      return languages.resolveCodeAction(doc.textDocument, action, token)
+     }, true)
   }
 
   public async doCodeLensAction(): Promise<void> {

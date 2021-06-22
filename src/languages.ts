@@ -367,6 +367,10 @@ class Languages {
     return await this.codeActionManager.provideCodeActions(document, range, context, token)
   }
 
+  public async resolveCodeAction(document: TextDocument, action: CodeAction, token: CancellationToken): Promise<CodeAction | null> {
+    return this.codeActionManager.resolveCodeAction(document, action, token)
+  }
+
   public async getDocumentHighLight(document: TextDocument, position: Position, token: CancellationToken): Promise<DocumentHighlight[]> {
     return await this.documentHighlightManager.provideDocumentHighlights(document, position, token)
   }

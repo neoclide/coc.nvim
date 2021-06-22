@@ -23,6 +23,22 @@ export default class CodeActionManager extends Manager<CodeActionProvider> imple
     })
   }
 
+  public async resolveCodeAction(document: TextDocument, action: CodeAction, token: CancellationToken): Promise<CodeAction | null> {
+    if (action.data == null) { // Code action does't need resolution
+      return action
+    }
+    const provider = this.getProviders(document).map(p => p.provider).find(p => typeof p.resolveCodeAction === 'function')
+    if (provider !== undefined) {
+      const resolved: CodeAction = await provider.resolveCodeAction(action, token)
+      if (resolved.clientId !== action.clientId) {
+        resolved.clientId = action.clientId
+      }
+      return resolved
+    } else {
+      return null
+    }
+  }
+
   public async provideCodeActions(
     document: TextDocument,
     range: Range,
