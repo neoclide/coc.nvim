@@ -74,7 +74,7 @@ REQUIREMENTS						*coc-requirements*
 
 Neovim >= 0.3.2 or Vim >= 8.0.1453.
 
-NodeJS https://nodejs.org/ >= 10.12.0
+NodeJS https://nodejs.org/ >= 12.12.0
 
 ==============================================================================
 INSTALLATION						*coc-installation*
@@ -243,7 +243,7 @@ Built-in configurations:~
 "suggest.triggerCompletionWait":~
 
 	Delay between typing the trigger character and completion start which
-	initiates server synchronization, default: `50`
+	initiates server synchronization, default: `100`
 
 "suggest.echodocSupport":~
 
@@ -1176,7 +1176,7 @@ normal mode, `v_` works for visual mode.
 
 <Plug>(coc-fix-current)					*n_coc-fix-current*
 
-	Try first quickfix action for diagnostics on the current line.
+	Try first quickfix action for diagnostics of current line.
 
 <Plug>(coc-float-hide)					*n_coc-float-hide*
 
@@ -1435,7 +1435,7 @@ g:coc_node_path						*g:coc_node_path*
 
 	Path to node executable to start coc service. ex: >
 
-	let g:coc_node_path = '/usr/local/opt/node@10/bin/node'
+	let g:coc_node_path = '/usr/local/opt/node@12/bin/node'
 <
 	Use this when coc has problems with your system node,
 

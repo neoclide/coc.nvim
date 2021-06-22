@@ -432,7 +432,7 @@
     },
     "suggest.keepCompleteopt": {
       "type": "boolean",
-      "description": "When enabled, completeopt is not overriden, auto completion will be disabled if completeopt doesn't have noinsert and noselect.",
+      "description": "When enabled, completeopt is not overridden, auto completion will be disabled if completeopt doesn't have noinsert and noselect.",
       "default": false
     },
     "suggest.lowPrioritySourceLimit": {
@@ -1014,6 +1014,11 @@
     "coc.preferences.colorSupport": {
       "type": "boolean",
       "description": "Enable color highlight if language server support it.",
+      "default": true
+    },
+    "coc.preferences.semanticTokensHighlights": {
+      "type": "boolean",
+      "description": "Enable semanticTokens highlight if language server support it.",
       "default": true
     },
     "coc.preferences.previewAutoClose": {

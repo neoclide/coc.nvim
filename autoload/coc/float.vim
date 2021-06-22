@@ -137,6 +137,8 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     " no left border
     if s:empty_border(get(a:config, 'border', [])) || a:config['border'][3] == 0
       call setwinvar(winid, '&foldcolumn', 1)
+    else
+      call setwinvar(winid, '&foldcolumn', 0)
     endif
     call nvim_win_set_cursor(winid, [1, 0])
     call coc#float#nvim_create_related(winid, config, a:config)
@@ -342,7 +344,7 @@ function! coc#float#nvim_scrollbar(winid) abort
     return
   endif
   let config = nvim_win_get_config(a:winid)
-  let [row, column] = nvim_win_get_position(a:winid)
+  let [row, column] = [config.row, config.col]
   let width = nvim_win_get_width(a:winid)
   let height = nvim_win_get_height(a:winid)
   let bufnr = winbufnr(a:winid)
