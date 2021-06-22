@@ -1,3 +1,4 @@
+scriptencoding utf-8
 let s:is_vim = !has('nvim')
 let s:activated = 0
 let s:session_names = []
@@ -20,7 +21,8 @@ let s:char_map = {
       \ "\<cr>": '<cr>',
       \ "\<PageUp>":'<PageUp>' ,
       \ "\<PageDown>":'<PageDown>' ,
-      \ "\<FocusGained>":'<FocusGained>' ,
+      \ "\<FocusGained>":'<FocusGained>',
+      \ "\<FocusLost>":'<FocusLost>',
       \ "\<ScrollWheelUp>": '<ScrollWheelUp>',
       \ "\<ScrollWheelDown>": '<ScrollWheelDown>',
       \ "\<LeftMouse>": '<LeftMouse>',

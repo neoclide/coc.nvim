@@ -17,8 +17,6 @@
 
 _True snippet and additional text editing support_
 
-<a href="https://www.zhipin.com/job_detail/b872ed13edf92a701nZz2967ElFW.html" target="_blank"><img src="https://alfs.chigua.cn/dianyou/data/platform/default/20210322/react.jpg"></a>
-
 ## Why?
 
 - 🚀 **Fast**: [instant increment completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources), increment buffer sync using buffer update events.
@@ -28,7 +26,7 @@ _True snippet and additional text editing support_
 
 ## Quick Start
 
-Install [nodejs](https://nodejs.org/en/download/) >= 10.12:
+Install [nodejs](https://nodejs.org/en/download/) >= 12.12:
 
 ```sh
 curl -sL install-node.now.sh/lts | bash
@@ -90,7 +88,7 @@ doesn't change your key-mappings or Vim options. This is done as much as
 possible to avoid conflict with your other plugins.
 
 **❗️Important**: Some Vim plugins could change key mappings. Please use
-`:verbose imap <tab>` to make sure that your keymap has taken effect.
+command like`:verbose imap <tab>` to make sure that your keymap has taken effect.
 
 ```vim
 " Set internal encoding of vim, not needed on neovim, since coc.nvim using some
@@ -116,7 +114,7 @@ set shortmess+=c
 
 " Always show the signcolumn, otherwise it would shift the text each time
 " diagnostics appear/become resolved.
-if has("patch-8.1.1564")
+if has("nvim-0.5.0") || has("patch-8.1.1564")
   " Recently vim can merge signcolumn and number column into one
   set signcolumn=number
 else
@@ -314,8 +312,17 @@ Try these steps when you have problem with coc.nvim.
 <a href="https://opencollective.com/cocnvim/backer/22/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/22/avatar.svg?requireActive=false"></a>
 <a href="https://opencollective.com/cocnvim/backer/23/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/23/avatar.svg?requireActive=false"></a>
 <a href="https://opencollective.com/cocnvim/backer/24/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/24/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/25/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/25/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/26/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/26/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/27/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/27/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/28/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/28/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/29/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/29/avatar.svg?requireActive=false"></a>
 
 <a href="https://opencollective.com/cocnvim#backer" target="_blank"><img src="https://images.opencollective.com/static/images/become_backer.svg"></a>
+
+## Support the project
+
+Buy cloud service from [www.vultr.com](https://www.vultr.com/?ref=8890170-6G)
 
 ## License
 

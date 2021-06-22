@@ -1,3 +1,4 @@
+scriptencoding utf-8
 let s:is_vim = !has('nvim')
 
 " first window id for bufnr
@@ -84,7 +85,7 @@ function! coc#compat#matchaddgroups(winid, groups) abort
   endif
 endfunction
 
-" remove keymap for specfic buffer
+" remove keymap for specific buffer
 function! coc#compat#buf_del_keymap(bufnr, mode, lhs) abort
   if !bufloaded(a:bufnr)
     return

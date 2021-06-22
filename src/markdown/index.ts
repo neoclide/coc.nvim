@@ -3,12 +3,13 @@ import Renderer from './renderer'
 import { parseAnsiHighlights } from '../util/ansiparse'
 import { Documentation } from '../types'
 import { byteLength } from '../util/string'
+import stripAnsi from 'strip-ansi'
 export const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
 const logger = require('../util/logger')('markdown-index')
 
-marked.setOptions({
-  renderer: new Renderer()
-})
+export interface MarkdownParseOptions {
+  excludeImages?: boolean
+}
 
 export interface HighlightItem {
   lnum: number // 0 based
@@ -33,7 +34,7 @@ export interface DocumentInfo {
   codes: CodeBlock[]
 }
 
-export function parseDocuments(docs: Documentation[]): DocumentInfo {
+export function parseDocuments(docs: Documentation[], opts: MarkdownParseOptions = {}): DocumentInfo {
   let lines: string[] = []
   let highlights: HighlightItem[] = []
   let codes: CodeBlock[] = []
@@ -42,7 +43,7 @@ export function parseDocuments(docs: Documentation[]): DocumentInfo {
     let currline = lines.length
     let { content, filetype } = doc
     if (filetype == 'markdown') {
-      let info = parseMarkdown(content)
+      let info = parseMarkdown(content, opts)
       codes.push(...info.codes.map(o => {
         o.startLine = o.startLine + currline
         o.endLine = o.endLine + currline
@@ -75,7 +76,7 @@ export function parseDocuments(docs: Documentation[]): DocumentInfo {
 }
 
 /**
- * Get highlight items from offset range
+ * Get 'CocUnderline' highlights from offset range
  */
 export function getHighlightItems(content: string, currline: number, active: [number, number]): HighlightItem[] {
   let res: HighlightItem[] = []
@@ -118,7 +119,11 @@ export function getHighlightItems(content: string, currline: number, active: [nu
 /**
  * Parse markdown for lines, highlights & codes
  */
-export function parseMarkdown(content: string): DocumentInfo {
+export function parseMarkdown(content: string, opts: MarkdownParseOptions): DocumentInfo {
+  marked.setOptions({
+    renderer: new Renderer(),
+    gfm: true
+  })
   let lines: string[] = []
   let highlights: HighlightItem[] = []
   let codes: CodeBlock[] = []
@@ -131,7 +136,10 @@ export function parseMarkdown(content: string): DocumentInfo {
   if (links.length) {
     parsed = parsed + '\n\n' + links.join('\n')
   }
-  for (let line of parsed.replace(/\s*$/, '').split(/\n/)) {
+  parsed = parsed.replace(/\s*$/, '')
+  let parsedLines = parsed.split(/\n/)
+  for (let i = 0; i < parsedLines.length; i++) {
+    let line = parsedLines[i]
     if (!line.length) {
       let pre = lines[lines.length - 1]
       if (pre && pre.length) {
@@ -140,8 +148,17 @@ export function parseMarkdown(content: string): DocumentInfo {
       }
       continue
     }
+    if (opts.excludeImages && line.indexOf('![') !== -1) {
+      line = line.replace(/\s*!\[.*?\]\(.*?\)/g, '')
+      if (!stripAnsi(line).trim().length) continue
+    }
     if (/\s*```\s*([A-Za-z0-9_,]+)?$/.test(line)) {
       if (!inCodeBlock) {
+        let pre = parsedLines[i - 1]
+        if (pre && /^\s*```\s*/.test(pre)) {
+          lines.push('')
+          currline++
+        }
         inCodeBlock = true
         filetype = line.replace(/^\s*```\s*/, '')
         if (filetype == 'js') filetype = 'javascript'

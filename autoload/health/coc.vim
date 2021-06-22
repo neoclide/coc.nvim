@@ -1,3 +1,4 @@
+scriptencoding utf-8
 let s:root = expand('<sfile>:h:h:h')
 
 function! s:checkEnvironment() abort
@@ -20,12 +21,9 @@ function! s:checkEnvironment() abort
   if empty(ms)
     let valid = 0
     call health#report_error('Unable to detect version of node, make sure your node executable is http://nodejs.org/')
-  elseif str2nr(ms[1]) < 8 || (str2nr(ms[1]) == 8 && str2nr(ms[2]) < 10)
+  elseif str2nr(ms[1]) < 12 || (str2nr(ms[1]) == 12 && str2nr(ms[2]) < 12)
     let valid = 0
-    call health#report_error('Node.js version '.output.' < 8.10.0, please upgrade node.js')
-  elseif str2nr(ms[1]) < 10 || (str2nr(ms[1]) == 10 && str2nr(ms[2]) < 12)
-    let valid = 0
-    call health#report_warn('Node.js version '.trim(output).' < 10.12.0, please upgrade node.js')
+    call health#report_warn('Node.js version '.trim(output).' < 12.12.0, please upgrade node.js')
   endif
   if valid
     call health#report_ok('Environment check passed')

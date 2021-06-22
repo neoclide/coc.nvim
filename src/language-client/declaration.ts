@@ -32,8 +32,8 @@ export class DeclarationFeature extends TextDocumentFeature<boolean | Declaratio
     super(client, DeclarationRequest.type)
   }
 
-  public fillClientCapabilities(capabilites: ClientCapabilities): void {
-    let declarationSupport = ensure(ensure(capabilites, 'textDocument')!, 'declaration')!
+  public fillClientCapabilities(capabilities: ClientCapabilities): void {
+    let declarationSupport = ensure(ensure(capabilities, 'textDocument')!, 'declaration')!
     declarationSupport.dynamicRegistration = true
     // declarationSupport.linkSupport = true
   }
@@ -43,7 +43,7 @@ export class DeclarationFeature extends TextDocumentFeature<boolean | Declaratio
     if (!id || !options) {
       return
     }
-    this.register(this.messages, { id, registerOptions: options })
+    this.register({ id, registerOptions: options })
   }
 
   protected registerLanguageProvider(options: DeclarationRegistrationOptions): [Disposable, DeclarationProvider] {
@@ -52,8 +52,7 @@ export class DeclarationFeature extends TextDocumentFeature<boolean | Declaratio
         const client = this._client
         const provideDeclaration: ProvideDeclarationSignature = (document, position, token) => client.sendRequest(DeclarationRequest.type, asTextDocumentPositionParams(document, position), token).then(
           res => res, error => {
-            client.logFailedRequest(DeclarationRequest.type, error)
-            return Promise.resolve(null)
+            return client.handleFailedRequest(DeclarationRequest.type, token, error, null)
           }
         )
         const middleware = client.clientOptions.middleware

@@ -32,7 +32,7 @@ let defaultOptions = {
   strong: styles.bold,
   em: styles.italic,
   codespan: styles.yellow,
-  del: styles.underline,
+  del: styles.strikethrough,
   link: styles.underline,
   href: styles.underline,
   text: identity,
@@ -155,11 +155,6 @@ function list(body, ordered, indent) {
 
 function section(text) {
   return text + '\n\n'
-}
-
-function hr(inputHrStr, length) {
-  length = length || process.stdout.columns
-  return new Array(length).join(inputHrStr)
 }
 
 function undoColon(str) {

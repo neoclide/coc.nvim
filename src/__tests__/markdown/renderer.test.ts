@@ -1,5 +1,6 @@
 import marked from 'marked'
 import Renderer from '../../markdown/renderer'
+import * as styles from '../../markdown/styles'
 import { parseAnsiHighlights, AnsiResult } from '../../util/ansiparse'
 
 marked.setOptions({
@@ -11,6 +12,16 @@ function parse(text: string): AnsiResult {
   let res = parseAnsiHighlights(m.split(/\n/)[0], true)
   return res
 }
+
+describe('styles', () => {
+  it('should add styles', async () => {
+    let keys = ['gray', 'magenta', 'bold', 'underline', 'italic', 'strikethrough', 'yellow', 'green', 'blue']
+    for (let key of keys) {
+      let res = styles[key]('text')
+      expect(res).toContain('text')
+    }
+  })
+})
 
 describe('Renderer of marked', () => {
   it('should create bold highlights', async () => {
@@ -93,5 +104,16 @@ describe('Renderer of marked', () => {
       '```',
       ''
     ])
+  })
+
+  it('should renderer table', async () => {
+    let text = `
+| Syntax      | Description |
+| ----------- | ----------- |
+| Header      | Title       |
+| Paragraph   | Text        |
+`
+    let res = marked(text)
+    expect(res).toContain('Syntax')
   })
 })

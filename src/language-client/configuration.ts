@@ -53,11 +53,11 @@ export class ConfigurationFeature implements StaticFeature {
       }
       let index = section.lastIndexOf('.')
       if (index === -1) {
-        result = workspace.getConfiguration(undefined, resource).get<any>(section, {})
+        result = toJSONObject(workspace.getConfiguration(undefined, resource).get(section))
       } else {
         let config = workspace.getConfiguration(section.substr(0, index), resource)
         if (config) {
-          result = config.get(section.substr(index + 1))
+          result = toJSONObject(config.get(section.substr(index + 1)))
         }
       }
     } else {

@@ -210,13 +210,15 @@ export default class Signature {
       this.signaturePosition = position
     }
     let { preferAbove, maxWindowHeight, maxWindowWidth } = this.config
+    const excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
     await this.signatureFactory.show(docs, {
       maxWidth: maxWindowWidth,
       maxHeight: maxWindowHeight,
       preferTop: preferAbove,
       autoHide: false,
       offsetX: offset,
-      modes: ['i', 'ic', 's']
+      modes: ['i', 'ic', 's'],
+      excludeImages
     })
   }
 

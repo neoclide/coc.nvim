@@ -74,7 +74,7 @@ REQUIREMENTS						*coc-requirements*
 
 Neovim >= 0.3.2 or Vim >= 8.0.1453.
 
-NodeJS https://nodejs.org/ >= 10.12.0
+NodeJS https://nodejs.org/ >= 12.12.0
 
 ==============================================================================
 INSTALLATION						*coc-installation*
@@ -223,6 +223,16 @@ Built-in configurations:~
 	Confirm completion instead of jump to next placeholder when completion
 	activates, default: `false`
 
+"suggest.snippetsSupport":~
+
+	Enable snippets expands expand on confirm completion. When set to
+	`false` coc.nvim would set language client option:
+	`CompletionClientCapabilities.completionItem.snippetSupport` to
+	`false` as well.
+
+	Note: the language server may still send completion items with
+	snippets when falsy.
+
 "suggest.fixInsertedWord":~
 
 	Inserted word replaces the next one, default: `true`
@@ -249,7 +259,7 @@ Built-in configurations:~
 "suggest.triggerCompletionWait":~
 
 	Delay between typing the trigger character and completion start which
-	initiates server synchronization, default: `50`
+	initiates server synchronization, default: `100`
 
 "suggest.echodocSupport":~
 
@@ -833,10 +843,6 @@ Built-in configurations:~
 	Note: takes effect when `coc.preferences.formatOnType` set `true`.
 	Note: This is the filetype after mapping by `g:coc_filetype_map`.
 
-"coc.preferences.snippets.enable":~
-
-	Enables snippets support, default: `true`
-
 "coc.preferences.listOfWorkspaceEdit":~
 
 	List should contains changed locations after workspace edit, default
@@ -1186,7 +1192,7 @@ normal mode, `v_` works for visual mode.
 
 <Plug>(coc-fix-current)					*n_coc-fix-current*
 
-	Try first quickfix action for diagnostics on the current line.
+	Try first quickfix action for diagnostics of current line.
 
 <Plug>(coc-float-hide)					*n_coc-float-hide*
 
@@ -1445,7 +1451,7 @@ g:coc_node_path						*g:coc_node_path*
 
 	Path to node executable to start coc service. ex: >
 
-	let g:coc_node_path = '/usr/local/opt/node@10/bin/node'
+	let g:coc_node_path = '/usr/local/opt/node@12/bin/node'
 <
 	Use this when coc has problems with your system node,
 
@@ -1762,12 +1768,15 @@ coc#util#install()  					*coc#util#install()*
 	Install dependencies and compile source code, not needed unless
 	you need compile typescript code.
 
-coc#float#close_all() 					*coc#float#close_all()*
+coc#float#has_float([{all}]) 				*coc#float#has_float()*
 
-	Close all float windows/popups.
+	Check if float window/popup exists, check coc.nvim's float
+	window/popup by default.
 
-	Note: Popup/float windows created by other plugins will also be
-	cleared.
+coc#float#close_all([{all}])				*coc#float#close_all()*
+
+	Close all float windows/popups created by coc.nvim, set {all} to `1`
+	for all float window/popups.
 
 coc#float#close({winid}) 				*coc#float#close()*
 
@@ -1775,7 +1784,9 @@ coc#float#close({winid}) 				*coc#float#close()*
 
 coc#float#has_scroll() 					*coc#float#has_scroll()*
 
-	Return `1` when there is scrollable float window or popup.
+	Return `1` when there is scrollable float window/popup created by
+	coc.nvim.
+
 	Example key-mappings:
 >
 	if has('nvim-0.4.0') || has('patch-8.2.0750')
@@ -2217,7 +2228,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	Get workspace symbols from {input} and optional {bufnr} (use current
 	bufnr when empty).
 
-"toggleDiagnosticBuffer" [{bufnr}]		 *coc-action-toggleDiagnosticBuffer*
+"diagnosticToggleBuffer" [{bufnr}]		 *coc-action-diagnosticToggleBuffer*
 
 	Toggle diagnostics for specific buffer, current buffer is used when
 	{bufnr} not provided.
@@ -2326,7 +2337,7 @@ COMMANDS						*coc-commands*
 
 	let $NVIM_COC_LOG_LEVEL='debug'
 <
-	to the beggining of your `.vimrc`
+	to the beginning of your `.vimrc`
 
 :CocInfo						*:CocInfo*
 
@@ -2476,115 +2487,129 @@ CocUnderline						*CocUnderline*
 
   Default: `hi default CocUnderline cterm=underline gui=underline`
 
-  The highlight for underlined text.
+  Used for underlined text.
+
+CocFadeOut						*CocFadeOut*
+
+  Default: `hi default CocFadeOut       guifg=#928374 ctermfg=245`
+
+  Used for highlight unnecessary code.
+
+CocStrikeThrough 					*CocStrikeThrough*
+
+  Default: `hi default CocStrikeThrough guifg=#989898 ctermfg=gray`
+			`\ cterm=strikethrough gui=strikethrough`
+
+  Used for strikethrough text, like usage of deprecated API.
+  Default color is used since strikethrough may not work.
 
 CocBold							*CocBold*
 
   Default: `hi default CocBold term=bold cterm=bold gui=bold`
 
-  The highlight for bold text.
+  Used for bold text.
 
 CocItalic						*CocItalic*
 
   Default: `hi default CocItalic term=italic cterm=italic gui=italic`
 
-  The highlight for italic text.
+  Used for italic text.
 
 CocMarkdownCode						*CocMarkdownCode*
 
   Default: `hi default link CocMarkdownCode     markdownCode`
 
-  The highlight for markdown code in floating window/popup.
+  Used for markdown code in floating window/popup.
 
 CocMarkdownHeader					*CocMarkdownHeader*
 
   Default: `hi default link CocMarkdownHeader   markdownH1`
 
-  The highlight for markdown header in floating window/popup.
+  Used for markdown header in floating window/popup.
 
 CocMarkdownLink						*CocMarkdownLink*
 
   Default: `hi default CocMarkdownLink ctermfg=Blue guifg=#15aabf guibg=NONE`
 
-  The highlight for markdown link text in floating window/popup.
+  Used for markdown link text in floating window/popup.
 
 CocErrorSign						*CocErrorSign*
 
   Default: `hi CocErrorSign  ctermfg=Red guifg=#ff0000`
 
-  The highlight used for error signs.
+  Used for error signs.
 
 CocWarningSign						*CocWarningSign*
 
   Default: `hi CocWarningSign  ctermfg=Brown guifg=#ff922b`
 
-  The highlight used for warning signs.
+  Used for warning signs.
 
 CocInfoSign						*CocInfoSign*
 
   Default: `hi CocInfoSign  ctermfg=Yellow guifg=#fab005`
 
-  The highlight used for information signs.
+  Used for information signs.
 
 CocHintSign						*CocHintSign*
 
   Default: `hi CocHintSign  ctermfg=Blue guifg=#15aabf`
 
-  The highlight used for hint signs.
+  Used for hint signs.
 
 CocErrorVirtualText					*CocErrorVirtualText*
 
   Default: `hi default link CocErrorVirtualText  CocErrorSign`
 
-  The highlight used for error signs.
+  Used for error signs.
 
 CocWarningVirtualText					*CocWarningVirtualText*
 
   Default: `hi default link CocWarningVirtualText CocWarningSign`
 
-  The highlight used for warning signs.
+  Used for warning signs.
 
 CocInfoVirtualText					*CocInfoVirtualText*
 
   Default: `hi default link CocInfoVirtualText CocInfoSign`
 
-  The highlight used for information signs.
+  Used for information signs.
 
 CocHintVirtualText					*CocHintVirtualText*
 
   Default: `hi default link CocHintVirtualText CocHintSign`
 
-  The highlight used for hint signs.
+  Used for hint signs.
 
 CocErrorHighlight					*CocErrorHighlight*
 
   Default: `hi default link CocErrorHighlight   CocUnderline`
 
-  The highlight used for error text.
+  Used for error text.
 
 CocWarningHighlight					*CocWarningHighlight*
 
   Default: `hi default link CocWarningHighlight   CocUnderline`
 
-  The highlight used for warning text.
+  Used for warning text.
 
 CocInfoHighlight					*CocInfoHighlight*
 
   Default: `hi default link CocInfoHighlight   CocUnderline`
 
-  The highlight used for information text.
+  Used for information text.
 
 CocHintHighlight					*CocHintHighlight*
 
   Default: `hi default link CocHintHighlight   CocUnderline`
 
-  The highlight used for hint text.
+  Used for hint text.
 
 CocHighlightText					*CocHighlightText*
 
   Default `hi default link CursorColumn`
 
-  The highlight used for document highlight feature. Normally used for
+  Used for document highlight feature. Normally used for
   highlighting same symbols in the buffer at the current cursor position.
 
 CocHighlightRead					*CocHighlightRead*
@@ -2639,43 +2664,43 @@ CocErrorFloat						*CocErrorFloat*
 
   Default: `hi default link CocErrorFloat CocErrorSign`
 
-  The highlight used for floating windows/popups with errors.
+  Used for floating windows/popups with errors.
 
 CocWarningFloat						*CocWarningFloat*
 
   Default: `hi default link CocWarningFloat CocWarningSign`
 
-  Highlight group of warnings in floating windows/popups.
+  Used for warnings in floating windows/popups.
 
 CocInfoFloat						*CocInfoFloat*
 
   Default: `hi default link CocInfoFloat CocInfoSign`
 
-  Highlight group of infos in floating windows/popups.
+  Used for infos in floating windows/popups.
 
 CocHintFloat						*CocHintFloat*
 
   Default: `hi default link CocHintFloat CocHintSign`
 
-  Highlight group of hints in floating windows/popups.
+  Used for hints in floating windows/popups.
 
 CocCursorRange						*CocCursorRange*
 
   Default: `hi default link CocCursorRange Search`
 
-  The highlight used for cursor ranges.
+  Used for cursor ranges.
 
 CocHoverRange						*CocHoverRange*
 
   Default: `hi default link CocHoverRange Search`
 
-  The highlight used for current hover range.
+  Used for current hover range.
 
 CocMenuSel						*CocMenuSel*
 
   Default: `hi default link CocMenuSel PmenuSel`
 
-  The highlight used for current menu item in menu dialog,
+  Used for current menu item in menu dialog,
   works on neovim only since vim doesn't support change highlight
   group of cursorline inside popup.
 
@@ -2683,13 +2708,13 @@ CocListMode						*CocListMode*
 
   Default: `hi default link CocListMode ModeMsg`
 
-  The highlight used for mode in statusline of CocList.
+  Used for mode in statusline of CocList.
 
 CocListPath						*CocListPath*
 
   Default: `hi default link CocListPath Comment`
 
-  The highlight used for current cwd in statusline of CocList.
+  Used for current cwd in statusline of CocList.
 
 ==============================================================================
 LIST SUPPORT						*coc-list*
@@ -2844,7 +2869,16 @@ list.
 For configuration of a specified list, use section that starts with:
 `list.source.{name}`, where `{name}` is the name of list.
 
-Configure default options:~
+Change default action:~
+
+If you want to use `tabe` as default action of symbols list, you can use:
+>
+	// change default action of symbols
+	"list.source.symbols.defaultAction": "tabe"
+<
+in your coc-settings.json
+
+Change default options:~
 
 Use `list.source.{name}.defaultOptions` setting like: >
 
@@ -2852,12 +2886,12 @@ Use `list.source.{name}.defaultOptions` setting like: >
 	"list.source.symbols.defaultOptions": ["--interactive", "--number-select"],
 <
 Note: some list like symbols only work in interactive mode, you must
-include `--interactive` to `defaultOptions`.
+include `--interactive` in `defaultOptions`.
 
 Note: default options will not be used when there're options passed
 with |:CocList| command.
 
-Config default arguments:~
+Change default arguments:~
 
 Use `list.source.{name}.defaultArgs` setting like: >
 

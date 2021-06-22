@@ -1,3 +1,4 @@
+scriptencoding utf-8
 let s:is_vim = !has('nvim')
 let s:clear_match_by_window = has('nvim-0.5.0') || has('patch-8.1.1084')
 let s:namespace_map = {}
@@ -11,13 +12,57 @@ if has('nvim-0.5.0')
   endtry
 endif
 
+function! coc#highlight#get_highlights(bufnr, key) abort
+  let l:res = []
+
+  if s:is_vim
+    let l:lines = len(getbufline(a:bufnr, 1, '$'))
+    for l:line in range(l:lines)
+      let l:list = prop_list(l:line + 1, {"bufnr": a:bufnr})
+      for l:prop in l:list
+        if l:prop["start"] == 0 || l:prop["end"] == 0
+          " multi line tokens are not supported; simply ignore it
+          continue
+        endif
+
+        let l:group = l:prop["type"]
+        let l:start = l:prop["col"] - 1
+        let l:end = l:start + l:prop["length"]
+        call add(l:res, {
+              \   "group": l:group,
+              \   "line": l:line,
+              \   "startCharacter": l:start,
+              \   "endCharacter": l:end
+              \ })
+      endfor
+    endfor
+  else
+    let srcId = s:create_namespace(a:key)
+    let l:marks = nvim_buf_get_extmarks(a:bufnr, srcId, 0, -1, {"details": v:true})
+    for [_, l:line, l:start, l:details] in l:marks
+      call add(l:res, {
+            \   "group": l:details["hl_group"],
+            \   "line": l:line,
+            \   "startCharacter": l:start,
+            \   "endCharacter": l:details["end_col"]
+            \ })
+    endfor
+  endif
+
+  return l:res
+endfunction
+
 " highlight LSP range,
 function! coc#highlight#ranges(bufnr, key, hlGroup, ranges) abort
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
   if !bufloaded(bufnr) || !exists('*getbufline')
     return
   endif
-  let synmaxcol = min([getbufvar(a:bufnr, '&synmaxcol', 1000), 1000])
+  let synmaxcol = getbufvar(a:bufnr, '&synmaxcol', 1000)
+  if synmaxcol == 0
+    let synmaxcol = 1000
+  endif
+  let synmaxcol = min([synmaxcol, 1000])
   let srcId = s:create_namespace(a:key)
   for range in a:ranges
     let start = range['start']
@@ -131,7 +176,7 @@ function! coc#highlight#highlight_lines(winid, blocks) abort
         endif
         call add(defined, filetype)
       endif
-      call s:execute(a:winid, 'syntax region CodeBlock'.region_id.' start=/\%'.start.'l/ end=/\%'.end.'l/ contains=@'.toupper(filetype))
+      call s:execute(a:winid, 'syntax region CodeBlock'.region_id.' start=/\%'.start.'l/ end=/\%'.end.'l/ contains=@'.toupper(filetype).' keepend')
       let region_id = region_id + 1
     endif
   endfor

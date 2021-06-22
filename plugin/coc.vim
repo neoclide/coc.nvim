@@ -1,3 +1,4 @@
+scriptencoding utf-8
 if exists('g:did_coc_loaded') || v:version < 800
   finish
 endif
@@ -170,6 +171,19 @@ function! s:OpenConfig()
   execute 'edit '.home.'/coc-settings.json'
 endfunction
 
+function! s:get_color(item, fallback) abort
+  let t = type(a:item)
+  if t == 1
+    return a:item
+  endif
+  if t == 4
+    let item = get(a:item, 'gui', {})
+    let color = get(item, &background, a:fallback)
+    return type(color) == 1 ? color : a:fallback
+  endif
+  return a:fallback
+endfunction
+
 function! s:AddAnsiGroups() abort
   let color_map = {}
   let colors = ['#282828', '#cc241d', '#98971a', '#d79921', '#458588', '#b16286', '#689d6a', '#a89984', '#928374']
@@ -177,26 +191,26 @@ function! s:AddAnsiGroups() abort
   for i in range(0, len(names) - 1)
     let name = names[i]
     if exists('g:terminal_ansi_colors')
-      let color_map[name] = get(g:terminal_ansi_colors, i, colors[i])
+      let color_map[name] = s:get_color(get(g:terminal_ansi_colors, i, colors[i]), colors[i])
     else
       let color_map[name] = get(g:, 'terminal_color_'.i, colors[i])
     endif
   endfor
-  for name in keys(color_map)
-    let foreground = toupper(name[0]).name[1:]
-    let foregroundColor = color_map[name]
-    for key in keys(color_map)
-      let background = toupper(key[0]).key[1:]
-      let backgroundColor = color_map[key]
-      exe 'hi default CocList'.foreground.background.' guifg='.foregroundColor.' guibg='.backgroundColor
-    endfor
-    try
+  try
+    for name in keys(color_map)
+      let foreground = toupper(name[0]).name[1:]
+      let foregroundColor = color_map[name]
+      for key in keys(color_map)
+        let background = toupper(key[0]).key[1:]
+        let backgroundColor = color_map[key]
+        exe 'hi default CocList'.foreground.background.' guifg='.foregroundColor.' guibg='.backgroundColor
+      endfor
       exe 'hi default CocListFg'.foreground. ' guifg='.foregroundColor. ' ctermfg='.foreground
       exe 'hi default CocListBg'.foreground. ' guibg='.foregroundColor. ' ctermbg='.foreground
-    catch /.*/
-      " ignore invalid color
-    endtry
-  endfor
+    endfor
+  catch /.*/
+    " ignore invalid color
+  endtry
 endfunction
 
 function! s:CursorRangeFromSelected(type, ...) abort
@@ -312,6 +326,7 @@ function! s:Enable(initialize)
     autocmd BufUnload           * call s:Autocmd('BufUnload', +expand('<abuf>'))
     autocmd BufWritePre         * call s:SyncAutocmd('BufWritePre', +expand('<abuf>'))
     autocmd FocusGained         * if mode() !~# '^c' | call s:Autocmd('FocusGained') | endif
+    autocmd FocusLost           * call s:Autocmd('FocusLost')
     autocmd VimResized          * call s:Autocmd('VimResized', &columns, &lines)
     autocmd VimLeavePre         * let g:coc_vim_leaving = 1
     autocmd BufReadCmd,FileReadCmd,SourceCmd list://* call coc#list#setup(expand('<amatch>'))
@@ -327,16 +342,22 @@ function! s:Enable(initialize)
 endfunction
 
 function! s:Hi() abort
-  hi default CocErrorSign    ctermfg=Red     guifg=#ff0000 guibg=NONE
-  hi default CocWarningSign  ctermfg=Brown   guifg=#ff922b guibg=NONE
-  hi default CocInfoSign     ctermfg=Yellow  guifg=#fab005 guibg=NONE
-  hi default CocHintSign     ctermfg=Blue    guifg=#15aabf guibg=NONE
-  hi default CocSelectedText ctermfg=Red     guifg=#fb4934 guibg=NONE
-  hi default CocCodeLens     ctermfg=Gray    guifg=#999999 guibg=NONE
-  hi default CocUnderline    cterm=underline gui=underline
-  hi default CocBold         term=bold cterm=bold gui=bold
-  hi default CocItalic       term=italic cterm=italic gui=italic
-  hi default CocMarkdownLink ctermfg=Blue    guifg=#15aabf guibg=NONE
+  hi default CocErrorSign     ctermfg=Red     guifg=#ff0000 guibg=NONE
+  hi default CocWarningSign   ctermfg=Brown   guifg=#ff922b guibg=NONE
+  hi default CocInfoSign      ctermfg=Yellow  guifg=#fab005 guibg=NONE
+  hi default CocHintSign      ctermfg=Blue    guifg=#15aabf guibg=NONE
+  hi default CocSelectedText  ctermfg=Red     guifg=#fb4934 guibg=NONE
+  hi default CocCodeLens      ctermfg=Gray    guifg=#999999 guibg=NONE
+  hi default CocUnderline     cterm=underline gui=underline
+  hi default CocBold          term=bold cterm=bold gui=bold
+  hi default CocItalic        term=italic cterm=italic gui=italic
+  if s:is_vim || has('nvim-0.4.0')
+    hi default CocStrikeThrough guifg=#989898 ctermfg=gray  cterm=strikethrough gui=strikethrough
+  else
+    hi default CocStrikeThrough guifg=#989898 ctermfg=gray
+  endif
+  hi default CocFadeOut       guifg=#928374 ctermfg=245
+  hi default CocMarkdownLink  ctermfg=Blue    guifg=#15aabf guibg=NONE
   hi default link CocMarkdownCode     markdownCode
   hi default link CocMarkdownHeader   markdownH1
   hi default link CocMenuSel          PmenuSel
@@ -398,8 +419,8 @@ function! s:ShowInfo()
     else
       let output = trim(system(node . ' --version'))
       let ms = matchlist(output, 'v\(\d\+\).\(\d\+\).\(\d\+\)')
-      if empty(ms) || str2nr(ms[1]) < 10 || (str2nr(ms[1]) == 10 && str2nr(ms[2]) < 12)
-        call add(lines, 'Error: Node version '.output.' < 10.12.0, please upgrade node.js')
+      if empty(ms) || str2nr(ms[1]) < 12 || (str2nr(ms[1]) == 12 && str2nr(ms[2]) < 12)
+        call add(lines, 'Error: Node version '.output.' < 12.12.0, please upgrade node.js')
       endif
     endif
     " check bundle

@@ -25,6 +25,7 @@ export interface CodeLensConfig {
  */
 export default class CodeLensBuffer implements BufferSyncItem {
   private _disposed = false
+  private _fetching = false
   private codeLenses: CodeLensInfo
   private tokenSource: CancellationTokenSource
   private srcId: number
@@ -40,7 +41,7 @@ export default class CodeLensBuffer implements BufferSyncItem {
     }, global.hasOwnProperty('__TEST__') ? 10 : 100)
     this.resolveCodeLens = debounce(() => {
       this._resolveCodeLenses().logError()
-    }, global.hasOwnProperty('__TEST__') ? 10 : 100)
+    }, global.hasOwnProperty('__TEST__') ? 10 : 200)
     this.forceFetch().logError()
   }
 
@@ -60,11 +61,10 @@ export default class CodeLensBuffer implements BufferSyncItem {
   }
 
   private async _fetchCodeLenses(): Promise<void> {
-    if (!this.config.enabled || !this.hasProvider) return
+    if (!this.config.enabled || !this.hasProvider || this._fetching) return
     let { textDocument } = this
     let version = textDocument.version
-    // refetch codeLens since empty codeLens could means error response.
-    if (this.codeLenses && this.codeLenses.codeLenses.length > 0 && version == this.codeLenses.version) {
+    if (this.codeLenses?.codeLenses && version == this.codeLenses.version) {
       let res = await this._resolveCodeLenses(true)
       if (!res) this.clear()
       return
@@ -72,7 +72,14 @@ export default class CodeLensBuffer implements BufferSyncItem {
     this.cancel()
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
-    let codeLenses = await languages.getCodeLens(textDocument, token)
+    this._fetching = true
+    let codeLenses: CodeLens[]
+    try {
+      codeLenses = await languages.getCodeLens(textDocument, token)
+    } catch (e) {
+      logger.error(`Error on fetch codeLens: ${e.message}`)
+    }
+    this._fetching = false
     this.tokenSource = undefined
     if (token.isCancellationRequested) return
     this.resolveCodeLens.clear()

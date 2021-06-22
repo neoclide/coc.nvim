@@ -227,13 +227,20 @@ export class Installer extends EventEmitter {
       throw new Error(`"${url}" is not supported, coc.nvim support github.com only`)
     }
     url = url.replace(/\/$/, '')
-    let fileUrl = url.replace('github.com', 'raw.githubusercontent.com') + '/master/package.json'
+    let branch = 'master'
+    if (url.includes('@')) {
+      // https://github.com/sdras/vue-vscode-snippets@main
+      let idx = url.indexOf('@')
+      branch = url.substr(idx + 1)
+      url = url.substring(0, idx)
+    }
+    let fileUrl = url.replace('github.com', 'raw.githubusercontent.com') + `/${branch}/package.json`
     this.log(`Get info from ${fileUrl}`)
     let content = await fetch(fileUrl, { timeout: 10000 })
     let obj = typeof content == 'string' ? JSON.parse(content) : content
     this.name = obj.name
     return {
-      'dist.tarball': `${url}/archive/master.tar.gz`,
+      'dist.tarball': `${url}/archive/${branch}.tar.gz`,
       'engines.coc': obj['engines'] ? obj['engines']['coc'] : null,
       name: obj.name,
       version: obj.version

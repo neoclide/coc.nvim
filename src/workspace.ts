@@ -22,12 +22,11 @@ import Task from './model/task'
 import TerminalModel from './model/terminal'
 import BufferSync, { SyncItem } from './model/bufferSync'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, DocumentChange, EditerState, Env, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, OutputChannel, PatternType, QuickfixItem, Terminal, TerminalOptions, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, DocumentChange, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, OutputChannel, PatternType, QuickfixItem, Terminal, TerminalOptions, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { distinct } from './util/array'
 import { findUp, fixDriver, inDirectory, isFile, isParentFolder, readFileLine, renameAsync, resolveRoot, statAsync } from './util/fs'
 import { CONFIG_FILE_NAME, disposeAll, getKeymapModifier, platform, runCommand, wait } from './util/index'
 import { score } from './util/match'
-import { equals } from './util/object'
 import { getChangedFromEdits } from './util/position'
 import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
@@ -106,6 +105,20 @@ export class Workspace implements IWorkspace {
   public readonly onDidRuntimePathChange: Event<string[]> = this._onDidRuntimePathChange.event
   public readonly configurations: Configurations
 
+  private _onDidCreateFiles = new Emitter<FileCreateEvent>()
+  private _onDidRenameFiles = new Emitter<FileRenameEvent>()
+  private _onDidDeleteFiles = new Emitter<FileDeleteEvent>()
+  private _onWillCreateFiles = new Emitter<FileWillCreateEvent>()
+  private _onWillRenameFiles = new Emitter<FileWillRenameEvent>()
+  private _onWillDeleteFiles = new Emitter<FileWillDeleteEvent>()
+
+  public readonly onDidCreateFiles: Event<FileCreateEvent> = this._onDidCreateFiles.event
+  public readonly onDidRenameFiles: Event<FileRenameEvent> = this._onDidRenameFiles.event
+  public readonly onDidDeleteFiles: Event<FileDeleteEvent> = this._onDidDeleteFiles.event
+  public readonly onWillCreateFiles: Event<FileWillCreateEvent> = this._onWillCreateFiles.event
+  public readonly onWillRenameFiles: Event<FileWillRenameEvent> = this._onWillRenameFiles.event
+  public readonly onWillDeleteFiles: Event<FileWillDeleteEvent> = this._onWillDeleteFiles.event
+
   constructor() {
     this.version = VERSION
     this.configurations = this.createConfigurations()
@@ -139,7 +152,7 @@ export class Workspace implements IWorkspace {
     let preferences = this.getConfiguration('coc.preferences')
     let maxFileSize = preferences.get<string>('maxFileSize', '10MB')
     this.maxFileSize = bytes.parse(maxFileSize)
-    if (this._env.workspaceFolders) {
+    if (this._env.workspaceFolders && Array.isArray(this._env.workspaceFolders)) {
       this._workspaceFolders = this._env.workspaceFolders.map(f => ({
         uri: URI.file(f).toString(),
         name: path.dirname(f)
@@ -463,6 +476,7 @@ export class Workspace implements IWorkspace {
     for (let doc of this.buffers.values()) {
       if (!doc) continue
       if (doc.uri === uri) return doc
+      if (path.resolve(doc.uri) === path.resolve(uri)) return doc
       if (caseInsensitive && doc.uri.toLowerCase() === uri.toLowerCase()) return doc
     }
     return null
@@ -617,7 +631,7 @@ export class Workspace implements IWorkspace {
       let line = await nvim.call('line', ['.'])
       let content = document.getline(line - 1)
       if (!content.length) return null
-      return Range.create(line - 1, 0, line - 1, content.length)
+      return Range.create(line - 1, 0, line, 0)
     }
     if (mode === 'cursor') {
       let [line, character] = await nvim.eval("coc#util#cursor()") as [number, number]
@@ -642,12 +656,12 @@ export class Workspace implements IWorkspace {
   public async selectRange(range: Range): Promise<void> {
     let { nvim } = this
     let { start, end } = range
-    let [bufnr, ve, selection] = await nvim.eval(`[bufnr('%'), &virtualedit, &selection, mode()]`) as [number, string, string, string]
-    let document = this.getDocument(bufnr)
-    if (!document) return
-    let line = document.getline(start.line)
+    let [bufnr, ve, selection] = await nvim.eval(`[bufnr('%'), &virtualedit, &selection]`) as [number, string, string]
+    let doc = this.getDocument(bufnr)
+    if (!doc || !doc.attached) return
+    let line = doc.getline(start.line)
     let col = line ? byteLength(line.slice(0, start.character)) : 0
-    let endLine = document.getline(end.line)
+    let endLine = doc.getline(end.line)
     let endCol = endLine ? byteLength(endLine.slice(0, end.character)) : 0
     let move_cmd = ''
     let resetVirtualEdit = false
@@ -1004,7 +1018,7 @@ export class Workspace implements IWorkspace {
   }
 
   /**
-   * Resovle module from yarn or npm.
+   * Resolve module from yarn or npm.
    */
   public async resolveModule(name: string): Promise<string> {
     return await this.resolver.resolveModule(name)
@@ -1573,6 +1587,18 @@ augroup end`
       }
       fs.renameSync(oldPath, newPath)
     }
+    this._onWillRenameFiles.fire({
+      files: [{ newUri: URI.parse(newPath), oldUri: URI.parse(oldPath) }],
+      waitUntil: async thenable => {
+        const edit = await Promise.resolve(thenable)
+        if (edit && WorkspaceEdit.is(edit)) {
+          await this.applyEdit(edit)
+        }
+      }
+    })
+    this._onDidRenameFiles.fire({
+      files: [{ newUri: URI.parse(newPath), oldUri: URI.parse(oldPath) }],
+    })
     let filepath = isParentFolder(cwd, newPath) ? path.relative(cwd, newPath) : newPath
     let view = await nvim.call('winsaveview')
     nvim.pauseNotification()

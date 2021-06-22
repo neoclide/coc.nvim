@@ -12,6 +12,13 @@ const {
   ColorInformation, Color, ColorPresentation, FoldingRange, SelectionRange, SymbolKind, ProtocolRequestType, WorkDoneProgress,
   WorkDoneProgressCreateRequest} = require('vscode-languageserver')
 
+const {
+  DidCreateFilesNotification,
+  DidRenameFilesNotification,
+  DidDeleteFilesNotification,
+  WillCreateFilesRequest, WillRenameFilesRequest, WillDeleteFilesRequest
+} = require('vscode-languageserver-protocol')
+
 let connection = createConnection()
 
 console.log = connection.console.log.bind(connection.console)
@@ -40,7 +47,7 @@ connection.onInitialize(params => {
   assert.equal(valueSet[0], 1)
   assert.equal(valueSet[valueSet.length - 1], CompletionItemKind.TypeParameter)
   assert.deepEqual(params.capabilities.workspace.workspaceEdit.resourceOperations, [ResourceOperationKind.Create, ResourceOperationKind.Rename, ResourceOperationKind.Delete])
-  // assert.equal(params.capabilities.workspace.fileOperations.willCreate, true)
+  assert.equal(params.capabilities.workspace.fileOperations.willCreate, true)
 
   let capabilities = {
     textDocumentSync: TextDocumentSyncKind.Full,
@@ -88,62 +95,62 @@ connection.onInitialize(params => {
       fileOperations: {
         // Static reg is folders + .txt files with operation kind in the path
         didCreate: {
-          patterns: [{glob: '**/created-static/**{/,/*.txt}'}]
+          filters: [{ scheme: 'file', pattern: { glob: '**/created-static/**{/,/*.txt}' }}]
         },
         didRename: {
-          patterns: [
-            {glob: '**/renamed-static/**/', matches: 'folder'},
-            {glob: '**/renamed-static/**/*.txt', matches: 'file'}
+          filters: [
+            { scheme: 'file', pattern: { glob: '**/renamed-static/**/', matches: 'folder' } },
+            { scheme: 'file', pattern: { glob: '**/renamed-static/**/*.txt', matches: 'file' } }
           ]
         },
         didDelete: {
-          patterns: [{glob: '**/deleted-static/**{/,/*.txt}'}]
+          filters: [{ scheme: 'file', pattern: { glob: '**/deleted-static/**{/,/*.txt}' } }]
         },
         willCreate: {
-          patterns: [{glob: '**/created-static/**{/,/*.txt}'}]
+          filters: [{ scheme: 'file', pattern: { glob: '**/created-static/**{/,/*.txt}' } }]
         },
         willRename: {
-          patterns: [
-            {glob: '**/renamed-static/**/', matches: 'folder'},
-            {glob: '**/renamed-static/**/*.txt', matches: 'file'}
+          filters: [
+            { scheme: 'file', pattern: { glob: '**/renamed-static/**/', matches: 'folder' } },
+            { scheme: 'file', pattern: { glob: '**/renamed-static/**/*.txt', matches: 'file' } }
           ]
         },
         willDelete: {
-          patterns: [{glob: '**/deleted-static/**{/,/*.txt}'}]
+          filters: [{ scheme: 'file', pattern: { glob: '**/deleted-static/**{/,/*.txt}' } }]
         },
       },
     },
-    linkedEditingRangeProvider: false
+    linkedEditingRangeProvider: true
   }
   return {capabilities, customResults: {hello: 'world'}}
 })
 
 connection.onInitialized(() => {
   // Dynamic reg is folders + .js files with operation kind in the path
-  // connection.client.register(DidCreateFilesNotification.type, {
-  //   patterns: [{glob: '**/created-dynamic/**{/,/*.js}'}]
-  // })
-  // connection.client.register(DidRenameFilesNotification.type, {
-  //   patterns: [
-  //     {glob: '**/renamed-dynamic/**/', matches: 'folder'},
-  //     {glob: '**/renamed-dynamic/**/*.js', matches: 'file'}
-  //   ]
-  // })
-  // connection.client.register(DidDeleteFilesNotification.type, {
-  //   patterns: [{glob: '**/deleted-dynamic/**{/,/*.js}'}]
-  // })
-  // connection.client.register(WillCreateFilesRequest.type, {
-  //   patterns: [{glob: '**/created-dynamic/**{/,/*.js}'}]
-  // })
-  // connection.client.register(WillRenameFilesRequest.type, {
-  //   patterns: [
-  //     {glob: '**/renamed-dynamic/**/', matches: 'folder'},
-  //     {glob: '**/renamed-dynamic/**/*.js', matches: 'file'}
-  //   ]
-  // })
-  // connection.client.register(WillDeleteFilesRequest.type, {
-  //   patterns: [{glob: '**/deleted-dynamic/**{/,/*.js}'}]
-  // })
+  connection.client.register(DidCreateFilesNotification.type, {
+    filters: [{ scheme: 'file', pattern: { glob: '**/created-dynamic/**{/,/*.js}' } }]
+  });
+  connection.client.register(DidRenameFilesNotification.type, {
+    filters: [
+      { scheme: 'file', pattern: { glob: '**/renamed-dynamic/**/', matches: 'folder' } },
+      { scheme: 'file', pattern: { glob: '**/renamed-dynamic/**/*.js', matches: 'file' } }
+    ]
+  });
+  connection.client.register(DidDeleteFilesNotification.type, {
+    filters: [{ scheme: 'file', pattern: { glob: '**/deleted-dynamic/**{/,/*.js}' } }]
+  });
+  connection.client.register(WillCreateFilesRequest.type, {
+    filters: [{ scheme: 'file', pattern: { glob: '**/created-dynamic/**{/,/*.js}' } }]
+  });
+  connection.client.register(WillRenameFilesRequest.type, {
+    filters: [
+      { scheme: 'file', pattern: { glob: '**/renamed-dynamic/**/', matches: 'folder' } },
+      { scheme: 'file', pattern: { glob: '**/renamed-dynamic/**/*.js', matches: 'file' } }
+    ]
+  });
+  connection.client.register(WillDeleteFilesRequest.type, {
+    filters: [{ scheme: 'file', pattern: { glob: '**/deleted-dynamic/**{/,/*.js}' } }]
+  });
 })
 
 connection.onDeclaration((params) => {
@@ -252,7 +259,7 @@ connection.onDocumentLinkResolve((link) => {
 
 connection.onDocumentColor((_params) => {
   return [
-    ColorInformation.create(Range.create(1, 1, 1, 2), Color.create(1, 2, 3, 4))
+    ColorInformation.create(Range.create(1, 1, 1, 2), Color.create(1, 1, 1, 1))
   ]
 })
 
@@ -292,42 +299,42 @@ connection.onRequest(
   },
 )
 
-// connection.workspace.onWillCreateFiles((params) => {
-//   const createdFilenames = params.files.map((f) => `${f.uri}`).join('\n')
-//   return {
-//     documentChanges: [{
-//       textDocument: {uri: '/dummy-edit', version: null},
-//       edits: [
-//         TextEdit.insert(Position.create(0, 0), `WILL CREATE:\n${createdFilenames}`),
-//       ]
-//     }],
-//   }
-// })
-// 
-// connection.workspace.onWillRenameFiles((params) => {
-//   const renamedFilenames = params.files.map((f) => `${f.oldUri} -> ${f.newUri}`).join('\n')
-//   return {
-//     documentChanges: [{
-//       textDocument: {uri: '/dummy-edit', version: null},
-//       edits: [
-//         TextEdit.insert(Position.create(0, 0), `WILL RENAME:\n${renamedFilenames}`),
-//       ]
-//     }],
-//   }
-// })
-// 
-// connection.workspace.onWillDeleteFiles((params) => {
-//   const deletedFilenames = params.files.map((f) => `${f.uri}`).join('\n')
-//   return {
-//     documentChanges: [{
-//       textDocument: {uri: '/dummy-edit', version: null},
-//       edits: [
-//         TextEdit.insert(Position.create(0, 0), `WILL DELETE:\n${deletedFilenames}`),
-//       ]
-//     }],
-//   }
-// })
-// 
+connection.workspace.onWillCreateFiles((params) => {
+  const createdFilenames = params.files.map((f) => `${f.uri}`).join('\n')
+  return {
+    documentChanges: [{
+      textDocument: {uri: '/dummy-edit', version: null},
+      edits: [
+        TextEdit.insert(Position.create(0, 0), `WILL CREATE:\n${createdFilenames}`),
+      ]
+    }],
+  }
+})
+
+connection.workspace.onWillRenameFiles((params) => {
+  const renamedFilenames = params.files.map((f) => `${f.oldUri} -> ${f.newUri}`).join('\n')
+  return {
+    documentChanges: [{
+      textDocument: {uri: '/dummy-edit', version: null},
+      edits: [
+        TextEdit.insert(Position.create(0, 0), `WILL RENAME:\n${renamedFilenames}`),
+      ]
+    }],
+  }
+})
+
+connection.workspace.onWillDeleteFiles((params) => {
+  const deletedFilenames = params.files.map((f) => `${f.uri}`).join('\n')
+  return {
+    documentChanges: [{
+      textDocument: {uri: '/dummy-edit', version: null},
+      edits: [
+        TextEdit.insert(Position.create(0, 0), `WILL DELETE:\n${deletedFilenames}`),
+      ]
+    }],
+  }
+})
+
 connection.onTypeDefinition((params) => {
   assert.equal(params.position.line, 1)
   assert.equal(params.position.character, 1)

@@ -1,4 +1,4 @@
-import { Disposable, Range } from 'vscode-languageserver-protocol'
+import { Disposable, InsertTextMode, Range } from 'vscode-languageserver-protocol'
 import events from '../events'
 import * as types from '../types'
 import workspace from '../workspace'
@@ -54,7 +54,7 @@ export class SnippetManager implements types.SnippetManager {
   /**
    * Insert snippet at current cursor position
    */
-  public async insertSnippet(snippet: string, select = true, range?: Range): Promise<boolean> {
+  public async insertSnippet(snippet: string, select = true, range?: Range, insertTextMode?: InsertTextMode): Promise<boolean> {
     let { bufnr } = workspace
     let session = this.getSession(bufnr)
     if (!session) {
@@ -67,7 +67,7 @@ export class SnippetManager implements types.SnippetManager {
         }
       })
     }
-    let isActive = await session.start(snippet, select, range)
+    let isActive = await session.start(snippet, select, range, insertTextMode)
     if (isActive) this.statusItem.show()
     return isActive
   }

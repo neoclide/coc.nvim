@@ -1,3 +1,4 @@
+scriptencoding utf-8
 let g:coc#_context = {'start': 0, 'preselect': -1,'candidates': []}
 let g:coc_user_config = get(g:, 'coc_user_config', {})
 let g:coc_global_extensions = get(g:, 'coc_global_extensions', [])
@@ -49,11 +50,12 @@ endfunction
 function! coc#_complete() abort
   let items = get(g:coc#_context, 'candidates', [])
   let preselect = get(g:coc#_context, 'preselect', -1)
-  call complete(
-        \ g:coc#_context.start + 1,
-        \ items)
+  let startcol = g:coc#_context.start + 1
   if s:select_api && len(items) && preselect != -1
+    noa call complete(startcol, items)
     call nvim_select_popupmenu_item(preselect, v:false, v:false, {})
+  else
+    call complete(startcol, items)
   endif
   return ''
 endfunction

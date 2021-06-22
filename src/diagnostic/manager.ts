@@ -245,11 +245,9 @@ export class DiagnosticManager implements Disposable {
    * Show diagnostics under curosr in preview window
    */
   public async preview(): Promise<void> {
-    let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number]]
-    let { nvim } = this
-    let diagnostics = this.getDiagnosticsAt(bufnr, cursor)
+    let diagnostics = await this.getCurrentDiagnostics()
     if (diagnostics.length == 0) {
-      nvim.command('pclose', true)
+      this.nvim.command('pclose', true)
       window.showMessage(`Empty diagnostics`, 'warning')
       return
     }
@@ -261,7 +259,7 @@ export class DiagnosticManager implements Disposable {
       lines.push(...message.split(/\r?\n/))
       lines.push('')
     }
-    nvim.call('coc#util#preview_info', [lines, 'txt'], true)
+    this.nvim.call('coc#util#preview_info', [lines, 'txt'], true)
   }
 
   /**
@@ -376,29 +374,43 @@ export class DiagnosticManager implements Disposable {
     return res
   }
 
-  private getDiagnosticsAt(bufnr: number, cursor: [number, number]): Diagnostic[] {
+  private getDiagnosticsAt(bufnr: number, cursor: [number, number], atEnd = false, lastline = false): Diagnostic[] {
     let buffer = this.buffers.getItem(bufnr)
     if (!buffer) return []
     let pos = Position.create(cursor[0], cursor[1])
-    return buffer.getDiagnosticsAt(pos, this.config.checkCurrentLine)
+    let res = buffer.getDiagnosticsAt(pos, this.config.checkCurrentLine)
+    if (this.config.checkCurrentLine || res.length) return res
+    // check next character when cursor at end of line.
+    if (atEnd) {
+      pos = Position.create(cursor[0], cursor[1] + 1)
+      res = buffer.getDiagnosticsAt(pos, false)
+      if (res.length) return res
+    }
+    // check next line when cursor at the beginning of last line.
+    if (lastline && cursor[1] == 0) {
+      pos = Position.create(cursor[0] + 1, 0)
+      res = buffer.getDiagnosticsAt(pos, false)
+    }
+    return res
   }
 
   public async getCurrentDiagnostics(): Promise<Diagnostic[]> {
-    let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number]]
-    return this.getDiagnosticsAt(bufnr, cursor)
+    let [bufnr, cursor, eol, lastline] = await this.nvim.eval(`[bufnr("%"),coc#util#cursor(),col('.')==col('$')-1,line('.')==line('$')]`) as [number, [number, number], number, number]
+    return this.getDiagnosticsAt(bufnr, cursor, eol == 1, lastline == 1)
   }
 
   /**
-   * Echo diagnostic message of currrent position
+   * Echo diagnostic message under cursor.
    */
   public async echoMessage(truncate = false): Promise<void> {
     const config = this.config
     if (!this.enabled || config.displayByAle) return
     if (this.timer) clearTimeout(this.timer)
     let useFloat = config.messageTarget == 'float'
-    let [bufnr, cursor, filetype, mode] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),&filetype,mode()]') as [number, [number, number], string, string]
+    // echo
+    let [filetype, mode] = await this.nvim.eval(`[&filetype,mode()]`) as [string, string]
     if (mode != 'n') return
-    let diagnostics = this.getDiagnosticsAt(bufnr, cursor)
+    let diagnostics = await this.getCurrentDiagnostics()
     if (diagnostics.length == 0) {
       if (useFloat) {
         this.floatFactory.close()

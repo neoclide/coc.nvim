@@ -4,7 +4,7 @@
  * ------------------------------------------------------------------------------------------ */
 'use strict'
 
-import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, FoldingRange, FoldingRangeOptions, FoldingRangeRegistrationOptions, FoldingRangeRequest, FoldingRangeRequestParam, ServerCapabilities } from 'vscode-languageserver-protocol'
+import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, FoldingRange, FoldingRangeOptions, FoldingRangeParams, FoldingRangeRegistrationOptions, FoldingRangeRequest, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { FoldingContext, FoldingRangeProvider, ProviderResult } from '../provider'
@@ -41,9 +41,9 @@ export class FoldingRangeFeature extends TextDocumentFeature<
     super(client, FoldingRangeRequest.type)
   }
 
-  public fillClientCapabilities(capabilites: ClientCapabilities): void {
+  public fillClientCapabilities(capabilities: ClientCapabilities): void {
     let capability = ensure(
-      ensure(capabilites, 'textDocument')!,
+      ensure(capabilities, 'textDocument')!,
       'foldingRange'
     )!
     capability.dynamicRegistration = true
@@ -59,7 +59,7 @@ export class FoldingRangeFeature extends TextDocumentFeature<
     if (!id || !options) {
       return
     }
-    this.register(this.messages, { id, registerOptions: options })
+    this.register({ id, registerOptions: options })
   }
 
   protected registerLanguageProvider(
@@ -69,13 +69,12 @@ export class FoldingRangeFeature extends TextDocumentFeature<
       provideFoldingRanges: (document, context, token) => {
         const client = this._client
         const provideFoldingRanges: ProvideFoldingRangeSignature = (document, _, token) => {
-          const requestParams: FoldingRangeRequestParam = {
+          const requestParams: FoldingRangeParams = {
             textDocument: { uri: document.uri }
           }
           return client.sendRequest(FoldingRangeRequest.type, requestParams, token).then(
             res => res, (error: any) => {
-              client.logFailedRequest(FoldingRangeRequest.type, error)
-              return Promise.resolve(null)
+              return client.handleFailedRequest(FoldingRangeRequest.type, token, error, null)
             }
           )
         }

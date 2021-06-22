@@ -28,6 +28,7 @@ export default class Plugin extends EventEmitter {
   private _ready = false
   private handler: Handler | undefined
   private infoChannel: OutputChannel
+  private semanticChannel: OutputChannel
   private cursors: Cursors
   private actions: Map<string, Function> = new Map()
 
@@ -405,6 +406,39 @@ export default class Plugin extends EventEmitter {
     this.addAction('codeActionRange', (start, end, only) => this.handler.codeActionRange(start, end, only))
     workspace.onDidChangeWorkspaceFolders(() => {
       nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
+    })
+    this.addAction('incomingCalls', () => {
+      return this.handler.getCallHierarchy('incoming')
+    })
+    this.addAction('outgoingCalls', () => {
+      return this.handler.getCallHierarchy('outgoing')
+    })
+    this.addAction('semanticHighlight', () => {
+      return this.handler.semanticHighlights()
+    })
+    this.addAction('showSemanticHighlightInfo', async () => {
+      const highlights = await this.handler.getSemanticHighlights()
+      if (!highlights) {
+        window.showMessage('Failed to fetch semantic highlights', 'warning')
+        return
+      }
+
+      if (!this.semanticChannel) {
+        this.semanticChannel = window.createOutputChannel('semanticHighlightInfo')
+      } else {
+        this.semanticChannel.clear()
+      }
+      const channel = this.semanticChannel
+      channel.appendLine('## Semantic highlighting for the buffer\n')
+      channel.appendLine(`The number of semantic tokens: ${highlights.length}\n`)
+      channel.appendLine('List of all semantic highlight groups:\n')
+
+      const groups = [...new Set(highlights.map(({ group }) => group))]
+      for (const group of groups) {
+        channel.appendLine(`- ${group}`)
+      }
+
+      channel.show()
     })
     commandManager.init(nvim, this)
   }

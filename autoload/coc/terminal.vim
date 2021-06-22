@@ -1,3 +1,4 @@
+scriptencoding utf-8
 let s:is_vim = !has('nvim')
 let s:channel_map = {}
 let s:is_win = has('win32') || has('win64')

@@ -4,10 +4,12 @@
  * ------------------------------------------------------------------------------------------ */
 'use strict'
 
-import { CancellationToken, ClientCapabilities, DidChangeWorkspaceFoldersNotification, DidChangeWorkspaceFoldersParams, Disposable, InitializeParams, RPCMessageType, ServerCapabilities, WorkspaceFolder, WorkspaceFoldersChangeEvent, WorkspaceFoldersRequest } from 'vscode-languageserver-protocol'
+import { CancellationToken, ClientCapabilities, DidChangeWorkspaceFoldersNotification, DidChangeWorkspaceFoldersParams, Disposable, InitializeParams, RegistrationType, ServerCapabilities, WorkspaceFolder, WorkspaceFoldersChangeEvent, WorkspaceFoldersRequest } from 'vscode-languageserver-protocol'
 import workspace from '../workspace'
+import os from 'os'
 import { BaseLanguageClient, DynamicFeature, NextSignature, RegistrationData } from './client'
 import * as UUID from './utils/uuid'
+import { URI } from 'vscode-uri'
 const logger = require('../util/logger')('language-client-workspaceFolder')
 
 function access<T, K extends keyof T>(target: T | undefined, key: K): T[K] | undefined {
@@ -17,7 +19,7 @@ function access<T, K extends keyof T>(target: T | undefined, key: K): T[K] | und
   return target[key]
 }
 
-function arrayDiff<T>(left: T[], right: T[]): T[] {
+function arrayDiff<T>(left: ReadonlyArray<T>, right: ReadonlyArray<T>): T[] {
   return left.filter(element => !right.includes(element))
 }
 
@@ -26,16 +28,31 @@ export interface WorkspaceFolderWorkspaceMiddleware {
   didChangeWorkspaceFolders?: NextSignature<WorkspaceFoldersChangeEvent, void>
 }
 
-export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
+export class WorkspaceFoldersFeature implements DynamicFeature<void> {
 
   private _listeners: Map<string, Disposable> = new Map<string, Disposable>()
-  private _initialFolders: WorkspaceFolder[] | undefined
+  private _initialFolders: ReadonlyArray<WorkspaceFolder> | undefined
 
   constructor(private _client: BaseLanguageClient) {
   }
 
-  public get messages(): RPCMessageType {
+  public get registrationType(): RegistrationType<void> {
     return DidChangeWorkspaceFoldersNotification.type
+  }
+
+  private getValidWorkspaceFolders(): WorkspaceFolder[] | undefined {
+    let { workspaceFolders } = workspace
+    if (!workspaceFolders || workspaceFolders.length == 0) return undefined
+    let home = os.homedir()
+    let { ignoredRootPaths } = this._client.clientOptions
+    if (!Array.isArray(ignoredRootPaths)) {
+      ignoredRootPaths = []
+    }
+    let arr = workspaceFolders.filter(o => {
+      let fsPath = URI.parse(o.uri).fsPath
+      return fsPath != home && !ignoredRootPaths.includes(fsPath)
+    })
+    return arr.length ? arr : undefined
   }
 
   private asProtocol(workspaceFolder: WorkspaceFolder): WorkspaceFolder
@@ -48,15 +65,14 @@ export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
   }
 
   public fillInitializeParams(params: InitializeParams): void {
-    const folders = workspace.workspaceFolders
+    const folders = this.getValidWorkspaceFolders()
     this._initialFolders = folders
-
-    if (folders === void 0) {
+    if (folders == null) {
       params.workspaceFolders = null
     } else {
       params.workspaceFolders = folders.map(folder => this.asProtocol(folder))
     }
-    params.workspaceFolders = workspace.workspaceFolders
+    // params.workspaceFolders = workspace.workspaceFolders
   }
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
@@ -68,19 +84,19 @@ export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
     let client = this._client
     client.onRequest(WorkspaceFoldersRequest.type, (token: CancellationToken) => {
       let workspaceFolders: WorkspaceFoldersRequest.HandlerSignature = () => {
-        let folders = workspace.workspaceFolders
+        let folders = this.getValidWorkspaceFolders()
         if (folders === void 0) {
           return null
         }
         let result: WorkspaceFolder[] = folders.map(folder => this.asProtocol(folder))
         return result
       }
-      let middleware = client.clientOptions.middleware.workspace
+      const middleware = client.clientOptions.middleware.workspace
       return middleware && middleware.workspaceFolders
         ? middleware.workspaceFolders(token, workspaceFolders)
         : workspaceFolders(token)
     })
-    let value = access(access(access(capabilities, 'workspace'), 'workspaceFolders'), 'changeNotifications')
+    const value = access(access(access(capabilities, 'workspace'), 'workspaceFolders'), 'changeNotifications')
     let id: string | undefined
     if (typeof value === 'string') {
       id = value
@@ -88,7 +104,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
       id = UUID.generateUuid()
     }
     if (id) {
-      this.register(this.messages, {
+      this.register({
         id,
         registerOptions: undefined
       })
@@ -105,7 +121,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
     this._client.sendNotification(DidChangeWorkspaceFoldersNotification.type, params)
   }
 
-  protected sendInitialEvent(currentWorkspaceFolders: WorkspaceFolder[] | undefined): void {
+  protected sendInitialEvent(currentWorkspaceFolders: ReadonlyArray<WorkspaceFolder> | undefined): void {
     if (this._initialFolders && currentWorkspaceFolders) {
       const removed: WorkspaceFolder[] = arrayDiff(this._initialFolders, currentWorkspaceFolders)
       const added: WorkspaceFolder[] = arrayDiff(currentWorkspaceFolders, this._initialFolders)
@@ -119,7 +135,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
     }
   }
 
-  public register(_message: RPCMessageType, data: RegistrationData<undefined>): void {
+  public register(data: RegistrationData<undefined>): void {
     let id = data.id
     let client = this._client
     let disposable = workspace.onDidChangeWorkspaceFolders(event => {
@@ -132,7 +148,8 @@ export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
         : didChangeWorkspaceFolders(event)
     })
     this._listeners.set(id, disposable)
-    this.sendInitialEvent(workspace.workspaceFolders)
+    let workspaceFolders = this.getValidWorkspaceFolders()
+    this.sendInitialEvent(workspaceFolders)
   }
 
   public unregister(id: string): void {

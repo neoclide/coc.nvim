@@ -1,6 +1,6 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { Diagnostic, DiagnosticSeverity, Position, Range } from 'vscode-languageserver-protocol'
+import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Position, Range } from 'vscode-languageserver-protocol'
 import { BufferSyncItem, DiagnosticConfig, LocationListItem } from '../types'
 import { equals } from '../util/object'
 import { lineInRange, positionInRange } from '../util/position'
@@ -12,6 +12,15 @@ const signGroup = 'CocDiagnostic'
 export enum DiagnosticState {
   Enabled,
   Disabled
+}
+
+export enum DiagnosticHighlight {
+  Error = 'CocErrorHighlight',
+  Warning = 'CocWarningHighlight',
+  Information = 'CocInfoHighlight',
+  Hint = 'CocHintFloat',
+  Deprecated = 'CocStrikeThrough',
+  Unused = 'CocFadeOut'
 }
 
 const ErrorSymbol = Symbol('CocError')
@@ -227,18 +236,17 @@ export class DiagnosticBuffer implements BufferSyncItem {
   public addHighlight(diagnostics: ReadonlyArray<Diagnostic>): void {
     this.clearHighlight()
     if (diagnostics.length == 0) return
-    // TODO support DiagnosticTag, fade unnecessary ranges.
-    const highlights: Map<DiagnosticSeverity, Range[]> = new Map()
+    const highlights: Map<DiagnosticHighlight, Range[]> = new Map()
     for (let diagnostic of diagnostics) {
-      let { range, severity } = diagnostic
-      let ranges = highlights.get(severity) || []
+      let { range } = diagnostic
+      let hi = getHighlightGroup(diagnostic)
+      let ranges = highlights.get(hi) || []
       ranges.push(range)
-      highlights.set(severity, ranges)
+      highlights.set(hi, ranges)
     }
-    for (let severity of [DiagnosticSeverity.Hint, DiagnosticSeverity.Information, DiagnosticSeverity.Warning, DiagnosticSeverity.Error]) {
-      let ranges = highlights.get(severity) || []
-      let hlGroup = getNameFromSeverity(severity) + 'Highlight'
-      this.buffer.highlightRanges('diagnostic', hlGroup, ranges)
+    for (let hlGroup of highlights.keys()) {
+      let ranges = highlights.get(hlGroup) || []
+      if (ranges.length) this.buffer.highlightRanges('diagnostic', hlGroup, ranges)
     }
   }
 
@@ -298,6 +306,28 @@ export class DiagnosticBuffer implements BufferSyncItem {
   public dispose(): void {
     this._disposed = true
     this.clear()
+  }
+}
+
+function getHighlightGroup(diagnostic: Diagnostic): DiagnosticHighlight {
+  let tags = diagnostic.tags || []
+  if (tags.includes(DiagnosticTag.Deprecated)) {
+    return DiagnosticHighlight.Deprecated
+  }
+  if (tags.includes(DiagnosticTag.Unnecessary)) {
+    return DiagnosticHighlight.Unused
+  }
+  switch (diagnostic.severity) {
+    case DiagnosticSeverity.Error:
+      return DiagnosticHighlight.Error
+    case DiagnosticSeverity.Warning:
+      return DiagnosticHighlight.Warning
+    case DiagnosticSeverity.Information:
+      return DiagnosticHighlight.Information
+    case DiagnosticSeverity.Hint:
+      return DiagnosticHighlight.Hint
+    default:
+      return DiagnosticHighlight.Error
   }
 }
 

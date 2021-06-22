@@ -1014,7 +1014,7 @@ declare module 'coc.nvim' {
     insertText?: string
     /**
      * The format of the insert text. The format applies to both the `insertText` property
-     * and the `newText` property of a provided `textEdit`. If ommitted defaults to
+     * and the `newText` property of a provided `textEdit`. If omitted defaults to
      * `InsertTextFormat.PlainText`.
      */
     insertTextFormat?: InsertTextFormat
@@ -1905,7 +1905,7 @@ declare module 'coc.nvim' {
 
   export interface BufferHighlight {
     /**
-     * Name of the highlight group to use 
+     * Name of the highlight group to use
      */
     hlGroup?: string
     /**
@@ -2026,7 +2026,7 @@ declare module 'coc.nvim' {
     createTabpage(id: number): Tabpage
 
     /**
-     * Stop send subsquent notifications.
+     * Stop send subsequent notifications.
      */
     pauseNotification(): void
 
@@ -2469,7 +2469,7 @@ declare module 'coc.nvim' {
     /**
      * Gets a list of buffer-local |mapping| definitions.
      *
-     * @return Array of maparg()-like dictionaries describing mappings. 
+     * @return Array of maparg()-like dictionaries describing mappings.
      * The "buffer" key holds the associated buffer handle.
      */
     getKeymap(mode: string): Promise<object[]>
@@ -2926,7 +2926,7 @@ declare module 'coc.nvim' {
    * Providers can delay the computation of the [`detail`](#CompletionItem.detail)
    * and [`documentation`](#CompletionItem.documentation) properties by implementing the
    * [`resolveCompletionItem`](#CompletionItemProvider.resolveCompletionItem)-function. However, properties that
-   * are needed for the inital sorting and filtering, like `sortText`, `filterText`, `insertText`, and `range`, must
+   * are needed for the initial sorting and filtering, like `sortText`, `filterText`, `insertText`, and `range`, must
    * not be changed during resolve.
    *
    * Providers are asked for completions either explicitly by a user gesture or -depending on the configuration-
@@ -3511,6 +3511,182 @@ declare module 'coc.nvim' {
      */
     provideSelectionRanges(document: TextDocument, positions: Position[], token: CancellationToken): ProviderResult<SelectionRange[]>
   }
+
+  /**
+   * The call hierarchy provider interface describes the contract between extensions
+   * and the call hierarchy feature which allows to browse calls and caller of function,
+   * methods, constructor etc.
+   */
+  export interface CallHierarchyProvider {
+
+    /**
+     * Bootstraps call hierarchy by returning the item that is denoted by the given document
+     * and position. This item will be used as entry into the call graph. Providers should
+     * return `undefined` or `null` when there is no item at the given location.
+     *
+     * @param document The document in which the command was invoked.
+     * @param position The position at which the command was invoked.
+     * @param token A cancellation token.
+     * @returns A call hierarchy item or a thenable that resolves to such. The lack of a result can be
+     * signaled by returning `undefined` or `null`.
+     */
+    prepareCallHierarchy(document: TextDocument, position: Position, token: CancellationToken): ProviderResult<CallHierarchyItem | CallHierarchyItem[]>
+
+    /**
+     * Provide all incoming calls for an item, e.g all callers for a method. In graph terms this describes directed
+     * and annotated edges inside the call graph, e.g the given item is the starting node and the result is the nodes
+     * that can be reached.
+     *
+     * @param item The hierarchy item for which incoming calls should be computed.
+     * @param token A cancellation token.
+     * @returns A set of incoming calls or a thenable that resolves to such. The lack of a result can be
+     * signaled by returning `undefined` or `null`.
+     */
+    provideCallHierarchyIncomingCalls(item: CallHierarchyItem, token: CancellationToken): ProviderResult<CallHierarchyIncomingCall[]>
+
+    /**
+     * Provide all outgoing calls for an item, e.g call calls to functions, methods, or constructors from the given item. In
+     * graph terms this describes directed and annotated edges inside the call graph, e.g the given item is the starting
+     * node and the result is the nodes that can be reached.
+     *
+     * @param item The hierarchy item for which outgoing calls should be computed.
+     * @param token A cancellation token.
+     * @returns A set of outgoing calls or a thenable that resolves to such. The lack of a result can be
+     * signaled by returning `undefined` or `null`.
+     */
+    provideCallHierarchyOutgoingCalls(item: CallHierarchyItem, token: CancellationToken): ProviderResult<CallHierarchyOutgoingCall[]>
+  }
+
+  /**
+   * The document semantic tokens provider interface defines the contract between extensions and
+   * semantic tokens.
+   */
+  export interface DocumentSemanticTokensProvider {
+    /**
+     * An optional event to signal that the semantic tokens from this provider have changed.
+     */
+    // TODO: SemantiTokens
+    onDidChangeSemanticTokens?: Event<void>
+
+    /**
+     * Tokens in a file are represented as an array of integers. The position of each token is expressed relative to
+     * the token before it, because most tokens remain stable relative to each other when edits are made in a file.
+     *
+     * ---
+     * In short, each token takes 5 integers to represent, so a specific token `i` in the file consists of the following array indices:
+     *
+     * - at index `5*i`   - `deltaLine`: token line number, relative to the previous token
+     * - at index `5*i+1` - `deltaStart`: token start character, relative to the previous token (relative to 0 or the previous token's start if they are on the same line)
+     * - at index `5*i+2` - `length`: the length of the token. A token cannot be multiline.
+     * - at index `5*i+3` - `tokenType`: will be looked up in `SemanticTokensLegend.tokenTypes`. We currently ask that `tokenType` < 65536.
+     * - at index `5*i+4` - `tokenModifiers`: each set bit will be looked up in `SemanticTokensLegend.tokenModifiers`
+     *
+     * ---
+     * ### How to encode tokens
+     *
+     * Here is an example for encoding a file with 3 tokens in a uint32 array:
+     * ```
+     *    { line: 2, startChar:  5, length: 3, tokenType: "property",  tokenModifiers: ["private", "static"] },
+     *    { line: 2, startChar: 10, length: 4, tokenType: "type",      tokenModifiers: [] },
+     *    { line: 5, startChar:  2, length: 7, tokenType: "class",     tokenModifiers: [] }
+     * ```
+     *
+     * 1. First of all, a legend must be devised. This legend must be provided up-front and capture all possible token types.
+     * For this example, we will choose the following legend which must be passed in when registering the provider:
+     * ```
+     *    tokenTypes: ['property', 'type', 'class'],
+     *    tokenModifiers: ['private', 'static']
+     * ```
+     *
+     * 2. The first transformation step is to encode `tokenType` and `tokenModifiers` as integers using the legend. Token types are looked
+     * up by index, so a `tokenType` value of `1` means `tokenTypes[1]`. Multiple token modifiers can be set by using bit flags,
+     * so a `tokenModifier` value of `3` is first viewed as binary `0b00000011`, which means `[tokenModifiers[0], tokenModifiers[1]]` because
+     * bits 0 and 1 are set. Using this legend, the tokens now are:
+     * ```
+     *    { line: 2, startChar:  5, length: 3, tokenType: 0, tokenModifiers: 3 },
+     *    { line: 2, startChar: 10, length: 4, tokenType: 1, tokenModifiers: 0 },
+     *    { line: 5, startChar:  2, length: 7, tokenType: 2, tokenModifiers: 0 }
+     * ```
+     *
+     * 3. The next step is to represent each token relative to the previous token in the file. In this case, the second token
+     * is on the same line as the first token, so the `startChar` of the second token is made relative to the `startChar`
+     * of the first token, so it will be `10 - 5`. The third token is on a different line than the second token, so the
+     * `startChar` of the third token will not be altered:
+     * ```
+     *    { deltaLine: 2, deltaStartChar: 5, length: 3, tokenType: 0, tokenModifiers: 3 },
+     *    { deltaLine: 0, deltaStartChar: 5, length: 4, tokenType: 1, tokenModifiers: 0 },
+     *    { deltaLine: 3, deltaStartChar: 2, length: 7, tokenType: 2, tokenModifiers: 0 }
+     * ```
+     *
+     * 4. Finally, the last step is to inline each of the 5 fields for a token in a single array, which is a memory friendly representation:
+     * ```
+     *    // 1st token,  2nd token,  3rd token
+     *    [  2,5,3,0,3,  0,5,4,1,0,  3,2,7,2,0 ]
+     * ```
+     *
+     * @see [SemanticTokensBuilder](#SemanticTokensBuilder) for a helper to encode tokens as integers.
+     * *NOTE*: When doing edits, it is possible that multiple edits occur until VS Code decides to invoke the semantic tokens provider.
+     * *NOTE*: If the provider cannot temporarily compute semantic tokens, it can indicate this by throwing an error with the message 'Busy'.
+     */
+    provideDocumentSemanticTokens(document: TextDocument, token: CancellationToken): ProviderResult<SemanticTokens>
+
+    /**
+     * Instead of always returning all the tokens in a file, it is possible for a `DocumentSemanticTokensProvider` to implement
+     * this method (`provideDocumentSemanticTokensEdits`) and then return incremental updates to the previously provided semantic tokens.
+     *
+     * ---
+     * ### How tokens change when the document changes
+     *
+     * Suppose that `provideDocumentSemanticTokens` has previously returned the following semantic tokens:
+     * ```
+     *    // 1st token,  2nd token,  3rd token
+     *    [  2,5,3,0,3,  0,5,4,1,0,  3,2,7,2,0 ]
+     * ```
+     *
+     * Also suppose that after some edits, the new semantic tokens in a file are:
+     * ```
+     *    // 1st token,  2nd token,  3rd token
+     *    [  3,5,3,0,3,  0,5,4,1,0,  3,2,7,2,0 ]
+     * ```
+     * It is possible to express these new tokens in terms of an edit applied to the previous tokens:
+     * ```
+     *    [  2,5,3,0,3,  0,5,4,1,0,  3,2,7,2,0 ] // old tokens
+     *    [  3,5,3,0,3,  0,5,4,1,0,  3,2,7,2,0 ] // new tokens
+     *
+     *    edit: { start:  0, deleteCount: 1, data: [3] } // replace integer at offset 0 with 3
+     * ```
+     *
+     * *NOTE*: If the provider cannot compute `SemanticTokensEdits`, it can "give up" and return all the tokens in the document again.
+     * *NOTE*: All edits in `SemanticTokensEdits` contain indices in the old integers array, so they all refer to the previous result state.
+     */
+    provideDocumentSemanticTokensEdits?(document: TextDocument, previousResultId: string, token: CancellationToken): ProviderResult<SemanticTokens | SemanticTokensDelta>
+  }
+
+  /**
+   * The document range semantic tokens provider interface defines the contract between extensions and
+   * semantic tokens.
+   */
+  export interface DocumentRangeSemanticTokensProvider {
+    /**
+     * @see [provideDocumentSemanticTokens](#DocumentSemanticTokensProvider.provideDocumentSemanticTokens).
+     */
+    provideDocumentRangeSemanticTokens(document: TextDocument, range: Range, token: CancellationToken): ProviderResult<SemanticTokens>
+  }
+
+  export interface LinkedEditingRangeProvider {
+    /**
+     * For a given position in a document, returns the range of the symbol at the position and all ranges
+     * that have the same content. A change to one of the ranges can be applied to all other ranges if the new content
+     * is valid. An optional word pattern can be returned with the result to describe valid contents.
+     * If no result-specific word pattern is provided, the word pattern from the language configuration is used.
+     *
+     * @param document The document in which the provider was invoked.
+     * @param position The position at which the provider was invoked.
+     * @param token A cancellation token.
+     * @return A list of ranges that can be edited together
+     */
+    provideLinkedEditingRanges(document: TextDocument, position: Position, token: CancellationToken): ProviderResult<LinkedEditingRanges>
+  }
   // }}
 
   // Classes {{
@@ -3528,6 +3704,7 @@ declare module 'coc.nvim' {
     highlight?: string
     borderhighlight?: string
     modes?: string[]
+    excludeImages?: boolean
   }
 
   export interface Documentation {
@@ -3658,7 +3835,7 @@ declare module 'coc.nvim' {
      */
     defaultAction: string
     /**
-     * Registed actions.
+     * Registered actions.
      */
     readonly actions: ListAction[]
     /**
@@ -4018,7 +4195,7 @@ declare module 'coc.nvim' {
   type BufEvents = 'BufHidden' | 'BufEnter' | 'BufWritePost'
     | 'CursorHold' | 'InsertLeave' | 'TermOpen' | 'TermClose' | 'InsertEnter'
     | 'BufCreate' | 'BufUnload' | 'BufWritePre' | 'CursorHoldI' | 'Enter'
-  type EmptyEvents = 'FocusGained' | 'InsertSnippet'
+  type EmptyEvents = 'FocusGained' | 'FocusLost' | 'InsertSnippet'
   type InsertChangeEvents = 'TextChangedP' | 'TextChangedI'
   type TaskEvents = 'TaskExit' | 'TaskStderr' | 'TaskStdout'
   type WindowEvents = 'WinLeave' | 'WinEnter'
@@ -4559,7 +4736,7 @@ declare module 'coc.nvim' {
      */
     triggerOnly?: boolean
     triggerCharacters?: string[]
-    // regex to detect trigger completetion, ignored when triggerCharacters exists.
+    // regex to detect trigger completion, ignored when triggerCharacters exists.
     triggerPatterns?: RegExp[]
     disableSyntaxes?: string[]
     filepath?: string
@@ -4586,7 +4763,7 @@ declare module 'coc.nvim' {
     shouldComplete?(opt: CompleteOption): Promise<boolean>
 
     /**
-     * Run completetion
+     * Run completion
      *
      * @public
      * @param {CompleteOption} opt
@@ -4619,7 +4796,7 @@ declare module 'coc.nvim' {
 
   export namespace sources {
     /**
-     * Names of registed sources.
+     * Names of registered sources.
      */
     export const names: ReadonlyArray<string>
     export const sources: ReadonlyArray<ISource>
@@ -5018,7 +5195,7 @@ declare module 'coc.nvim' {
      */
     readonly content: string
     /**
-     * Coverted filetype.
+     * Converted filetype.
      */
     readonly filetype: string
     readonly uri: string
@@ -5610,7 +5787,7 @@ declare module 'coc.nvim' {
     export function openResource(uri: string): Promise<void>
 
     /**
-     * Resovle full path of module from yarn or npm global directory.
+     * Resolve full path of module from yarn or npm global directory.
      */
     export function resolveModule(name: string): Promise<string>
 
@@ -5661,7 +5838,7 @@ declare module 'coc.nvim' {
      * and provide optional `onChange` which called when document change.
      *
      * The document is always attached and not command line buffer.
-     * 
+     *
      * @param create Called for each attached document and on document create.
      * @returns Disposable
      */
@@ -6091,7 +6268,7 @@ declare module 'coc.nvim' {
      * Get current cursor character offset in document,
      * length of line break would always be 1.
      *
-     * @returns Charactor offset.
+     * @returns Character offset.
      */
     export function getOffset(): Promise<number>
 
@@ -6632,7 +6809,7 @@ declare module 'coc.nvim' {
 
   export namespace listManager {
     /**
-     * Registed list names set.
+     * Registered list names set.
      */
     export const names: ReadonlyArray<string>
     /**
@@ -7191,7 +7368,7 @@ declare module 'coc.nvim' {
     revealOutputChannelOn?: RevealOutputChannelOn
     /**
      * The encoding use to read stdout and stderr. Defaults
-     * to 'utf8' if ommitted.
+     * to 'utf8' if omitted.
      */
     stdioEncoding?: string
     initializationOptions?: any | (() => any)
@@ -7241,7 +7418,7 @@ declare module 'coc.nvim' {
     fillClientCapabilities(capabilities: any): void
     /**
      * Initialize the feature. This method is called on a feature instance
-     * when the client has successfully received the initalize request from
+     * when the client has successfully received the initialize request from
      * the server and before the client sends the initialized notification
      * to the server.
      *
@@ -7252,7 +7429,7 @@ declare module 'coc.nvim' {
     initialize(capabilities: any, documentSelector: DocumentSelector | undefined): void
     /**
      * Called when the client is stopped to dispose this feature. Usually a feature
-     * unregisters listeners registerd hooked up with the VS Code extension host.
+     * unregisters listeners registered hooked up with the VS Code extension host.
      */
     dispose(): void
   }
@@ -7419,7 +7596,7 @@ declare module 'coc.nvim' {
     fillClientCapabilities(capabilities: any): void
     /**
      * Initialize the feature. This method is called on a feature instance
-     * when the client has successfully received the initalize request from
+     * when the client has successfully received the initialize request from
      * the server and before the client sends the initialized notification
      * to the server.
      *
@@ -7443,7 +7620,7 @@ declare module 'coc.nvim' {
     unregister(id: string): void
     /**
      * Called when the client is stopped to dispose this feature. Usually a feature
-     * unregisters listeners registerd hooked up with the VS Code extension host.
+     * unregisters listeners registered hooked up with the VS Code extension host.
      */
     dispose(): void
   }
@@ -7647,7 +7824,7 @@ declare module 'coc.nvim' {
     stop(): Promise<void>
 
     /**
-     * Start language server, not needed when registed to services by `services.registLanguageClient`
+     * Start language server, not needed when registered to services by `services.registLanguageClient`
      */
     start(): Disposable
     /**

@@ -29,6 +29,10 @@ export default class Symbols {
       if (!this.functionUpdate || this.buffers.getItem(bufnr) == null) return
       await this.getCurrentFunctionSymbol(bufnr)
     }, null, this.disposables)
+    events.on('InsertEnter', (bufnr: number) => {
+      let buf = this.buffers.getItem(bufnr)
+      if (buf) buf.cancel()
+    }, null, this.disposables)
   }
 
   public get functionUpdate(): boolean {
@@ -121,7 +125,11 @@ export default class Symbols {
       let endLine = doc.getline(end.line - 1)
       selectRange = Range.create(start.line + 1, line.match(/^\s*/)[0].length, end.line - 1, endLine.length)
     }
-    if (selectRange) await workspace.selectRange(selectRange)
+    if (selectRange) {
+      await workspace.selectRange(selectRange)
+    } else if (['v', 'V', '\x16'].includes(visualmode)) {
+      await this.nvim.command('normal! gv')
+    }
   }
 
   public dispose(): void {

@@ -19,11 +19,17 @@ export default class CodeLensManager {
     this.setConfiguration()
     workspace.onDidChangeConfiguration(e => {
       this.setConfiguration(e)
-    }, null, this.disposables)
+    })
     this.buffers = workspace.registerBufferSync(doc => {
       if (doc.buftype != '') return undefined
       return new CodeLensBuffer(nvim, doc.bufnr, this.config)
     })
+    if (this.config.enabled) {
+      this.listen()
+    }
+  }
+
+  private listen(): void {
     events.on('ready', () => {
       this.checkProvider()
     }, null, this.disposables)
@@ -32,11 +38,11 @@ export default class CodeLensManager {
       if (buf) buf.resolveCodeLens()
     }, null, this.disposables)
     // Refresh on CursorHold
-    let forceFetch = async bufnr => {
-      let buf = this.buffers.getItem(bufnr)
-      if (buf) await buf.forceFetch()
-    }
-    events.on('CursorHold', forceFetch, this, this.disposables)
+    events.on('CursorHold', async () => {
+      for (let buf of this.buffers.items) {
+        await buf.forceFetch()
+      }
+    }, this, this.disposables)
   }
 
   /**
@@ -55,6 +61,11 @@ export default class CodeLensManager {
     let config = workspace.getConfiguration('codeLens')
     let enable: boolean = this.nvim.hasFunction('nvim_buf_set_virtual_text') && config.get<boolean>('enable', false)
     if (e && enable != this.config.enabled) {
+      if (enable) {
+        this.listen()
+      } else {
+        disposeAll(this.disposables)
+      }
       for (let buf of this.buffers.items) {
         if (enable) {
           buf.forceFetch().logError()
@@ -71,9 +82,7 @@ export default class CodeLensManager {
   }
 
   public async doAction(): Promise<void> {
-    let { nvim } = this
-    let bufnr = await nvim.call('bufnr', '%')
-    let line = (await nvim.call('line', '.') as number) - 1
+    let [bufnr, line] = await this.nvim.eval(`[bufnr("%"),line(".")-1]`) as [number, number]
     let buf = this.buffers.getItem(bufnr)
     await buf?.doAction(line)
   }

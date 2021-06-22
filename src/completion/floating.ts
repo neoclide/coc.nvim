@@ -14,6 +14,7 @@ interface Bounding {
 
 export interface FloatingConfig {
   maxPreviewWidth: number
+  excludeImages: boolean
 }
 
 export default class Floating {
@@ -28,7 +29,7 @@ export default class Floating {
   public async show(docs: Documentation[], bounding: PumBounding, config: FloatingConfig, token: CancellationToken): Promise<void> {
     let { nvim } = this
     docs = docs.filter(o => o.content.trim().length > 0)
-    let { lines, codes, highlights } = parseDocuments(docs)
+    let { lines, codes, highlights } = parseDocuments(docs, {excludeImages: config.excludeImages})
     if (lines.length == 0) {
       this.close()
       return

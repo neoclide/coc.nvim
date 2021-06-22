@@ -903,11 +903,15 @@ export class Extensions {
     }
   }
 
-  // extension must exists as folder and in package.json
+  /**
+   * Filter out global extensions that needs install
+   */
   public filterGlobalExtensions(names: string[]): string[] {
-    names = names.map(s => s.replace(/@.*$/, ''))
-    let filtered = names.filter(name => !this.disabled.has(name))
-    filtered = filtered.filter(name => !this.extensions.has(name))
+    let map: Map<string, string> = new Map()
+    names.forEach(def => {
+      let name = this.getExtensionName(def)
+      if (name) map.set(name, def)
+    })
     let json = this.loadJson()
     let urls: string[] = []
     let exists: string[] = []
@@ -923,11 +927,26 @@ export class Extensions {
         }
       }
     }
-    filtered = filtered.filter(str => {
-      if (/^https?:/.test(str)) return !urls.some(url => url.startsWith(str))
-      return !exists.includes(str)
-    })
-    return filtered
+    for (let name of map.keys()) {
+      if (this.disabled.has(name) || this.extensions.has(name)) {
+        map.delete(name)
+        continue
+      }
+      if ((/^https?:/.test(name) && urls.some(url => url.startsWith(name)))
+        || exists.includes(name)) {
+        map.delete(name)
+      }
+    }
+    return Array.from(map.values())
+  }
+
+  /**
+   * Name of extension
+   */
+  private getExtensionName(def: string): string {
+    if (/^https?:/.test(def)) return def
+    if (!def.includes('@')) return def
+    return def.replace(/@[\d.]+$/, '')
   }
 
   private get modulesFolder(): string {

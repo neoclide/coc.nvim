@@ -1,5 +1,5 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CallHierarchyItem, CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import commandManager from '../commands'
@@ -22,9 +22,11 @@ import Colors from './colors/index'
 import Format from './format'
 import { addDocument, isMarkdown, SymbolInfo, synchronizeDocument } from './helper'
 import Highlights from './highlights'
+import SemanticTokensHighlights from './semanticTokensHighlights/index'
 import Refactor from './refactor/index'
 import Signature from './signature'
 import Symbols from './symbols'
+import { Highlight } from './semanticTokensHighlights/buffer'
 const logger = require('../util/logger')('Handler')
 
 interface CommandItem {
@@ -42,6 +44,7 @@ interface Preferences {
 export default class Handler {
   private preferences: Preferences
   private documentHighlighter: Highlights
+  private semanticHighlighter: SemanticTokensHighlights
   private colors: Colors
   private symbols: Symbols
   private hoverFactory: FloatFactory
@@ -70,6 +73,7 @@ export default class Handler {
     this.codeLens = new CodeLens(nvim)
     this.colors = new Colors(nvim)
     this.documentHighlighter = new Highlights(nvim)
+    this.semanticHighlighter = new SemanticTokensHighlights(nvim)
     events.on(['CursorMoved', 'CursorMovedI', 'InsertEnter', 'InsertSnippet', 'InsertLeave'], () => {
       if (this.requestTokenSource) {
         this.requestTokenSource.cancel()
@@ -425,6 +429,49 @@ export default class Handler {
     return await this.format.documentRangeFormat(doc, mode)
   }
 
+  /**
+   * getCallHierarchy
+   */
+  public async getCallHierarchy(method: 'incoming' | 'outgoing'): Promise<boolean> {
+    const { doc, position } = await this.getCurrentState()
+    this.checkProvier('callHierarchy', doc.textDocument)
+    await synchronizeDocument(doc)
+    const res = await this.withRequestToken('Prepare Call hierarchy', token => {
+      return languages.prepareCallHierarchy(doc.textDocument, position, token)
+    }, false)
+    if (!res) return false
+
+    const calls: CallHierarchyItem[] = []
+    const item = Array.isArray(res) ? res[0] : res
+    if (method === 'incoming') {
+      const incomings = await this.withRequestToken('incoming calls', token => {
+        return languages.provideIncomingCalls(item, token)
+      }, true)
+      if (!incomings) return
+      for (const call of incomings) {
+        calls.push(call.from)
+      }
+    } else {
+      const outgoings = await this.withRequestToken('outgoing calls', token => {
+        return languages.provideOutgoingCalls(item, token)
+      }, true)
+      if (!outgoings) return
+      for (const call of outgoings) {
+        calls.push(call.to)
+      }
+    }
+    if (!calls) return false
+
+    // TODO: callHierarchy tree UI?
+    const locations: Location[] = []
+    for (const call of calls) {
+      locations.push({ uri: call.uri, range: call.range })
+    }
+
+    await this.handleLocations(locations)
+    return true
+  }
+
   public async getTagList(): Promise<TagDefinition[] | null> {
     let { doc, position } = await this.getCurrentState()
     let word = await this.nvim.call('expand', '<cword>')
@@ -606,6 +653,22 @@ export default class Handler {
 
   public async highlight(): Promise<void> {
     await this.documentHighlighter.highlight()
+  }
+
+  public async semanticHighlights(): Promise<void> {
+    let { doc } = await this.getCurrentState()
+    if (!languages.hasProvider('semanticTokens', doc.textDocument)) return
+
+    await synchronizeDocument(doc)
+    await this.semanticHighlighter.doHighlight(doc.bufnr)
+  }
+
+  public async getSemanticHighlights(): Promise<Highlight[]> {
+    const { doc } = await this.getCurrentState()
+    if (!languages.hasProvider('semanticTokens', doc.textDocument)) return
+
+    await synchronizeDocument(doc)
+    return await this.semanticHighlighter.getHighlights(doc.bufnr)
   }
 
   public async getSymbolsRanges(): Promise<Range[]> {
@@ -874,6 +937,7 @@ export default class Handler {
       opts.maxWidth = hoverPreference.get('floatMaxWidth', 80)
       opts.maxHeight = hoverPreference.get('floatMaxHeight', undefined)
       opts.autoHide = hoverPreference.get('autoHide', true)
+      opts.excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument', true)
       await this.hoverFactory.show(docs, opts)
       return
     }
@@ -933,6 +997,7 @@ export default class Handler {
     this.colors.dispose()
     this.format.dispose()
     this.documentHighlighter.dispose()
+    this.semanticHighlighter.dispose()
     disposeAll(this.disposables)
   }
 }

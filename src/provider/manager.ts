@@ -71,10 +71,10 @@ export default class Manager<T> {
 }
 
 /**
- * Add location with unique ranges
+ * Add unique location
  */
 function addLocation(arr: Location[], location: Location): void {
-  let { range } = location
-  if (arr.find(o => equals(o.range, range)) != null) return
+  let { range, uri } = location
+  if (arr.find(o => o.uri == uri && equals(o.range, range)) != null) return
   arr.push(location)
 }

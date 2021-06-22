@@ -48,9 +48,9 @@ export class ColorProviderFeature extends TextDocumentFeature<
     super(client, DocumentColorRequest.type)
   }
 
-  public fillClientCapabilities(capabilites: ClientCapabilities): void {
+  public fillClientCapabilities(capabilities: ClientCapabilities): void {
     ensure(
-      ensure(capabilites, 'textDocument')!,
+      ensure(capabilities, 'textDocument')!,
       'colorProvider'
     )!.dynamicRegistration = true
   }
@@ -64,7 +64,7 @@ export class ColorProviderFeature extends TextDocumentFeature<
       return
     }
 
-    this.register(this.messages, { id, registerOptions: options })
+    this.register({ id, registerOptions: options })
   }
 
   protected registerLanguageProvider(
@@ -82,8 +82,7 @@ export class ColorProviderFeature extends TextDocumentFeature<
           return client.sendRequest(ColorPresentationRequest.type, requestParams, token).then(
             res => res,
             (error: any) => {
-              client.logFailedRequest(ColorPresentationRequest.type, error)
-              return Promise.resolve(null)
+              return client.handleFailedRequest(ColorPresentationRequest.type, token, error, null)
             }
           )
         }
@@ -101,8 +100,7 @@ export class ColorProviderFeature extends TextDocumentFeature<
           return client.sendRequest(DocumentColorRequest.type, requestParams, token).then(
             res => res,
             (error: any) => {
-              client.logFailedRequest(ColorPresentationRequest.type, error)
-              return Promise.resolve(null)
+              return client.handleFailedRequest(ColorPresentationRequest.type, token, error, null)
             }
           )
         }

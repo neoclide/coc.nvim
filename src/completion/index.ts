@@ -36,9 +36,11 @@ export class Completion implements Disposable {
   private changedTick = 0
   private insertCharTs = 0
   private insertLeaveTs = 0
+  private excludeImages: boolean
 
   public init(): void {
     this.config = this.getCompleteConfig()
+    this.excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
     this.floating = new Floating(workspace.nvim, workspace.env.isVim)
     events.on(['InsertCharPre', 'MenuPopupChanged', 'TextChangedI', 'CursorMovedI', 'InsertLeave'], () => {
       if (this.triggerTimer) {
@@ -490,7 +492,7 @@ export class Completion implements Disposable {
       this.floating.close()
     } else {
       if (this.config.floatEnable) {
-        await this.floating.show(docs, bounding, { maxPreviewWidth: this.config.maxPreviewWidth }, token)
+        await this.floating.show(docs, bounding, { maxPreviewWidth: this.config.maxPreviewWidth, excludeImages: this.excludeImages }, token)
       }
       if (!this.isActivated) {
         this.floating.close()
