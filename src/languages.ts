@@ -367,7 +367,7 @@ class Languages {
     return await this.codeActionManager.provideCodeActions(document, range, context, token)
   }
 
-  public async resolveCodeAction(document: TextDocument, action: CodeAction, token: CancellationToken): Promise<CodeAction | null> {
+  public async resolveCodeAction(document: TextDocument, action: CodeAction, token: CancellationToken): Promise<CodeAction> {
     return this.codeActionManager.resolveCodeAction(document, action, token)
   }
 
