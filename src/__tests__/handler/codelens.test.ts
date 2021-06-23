@@ -166,6 +166,48 @@ describe('codeLenes featrue', () => {
     expect(fn).toBeCalledWith(1, 2, 3)
   })
 
+  it('should refresh for failed codeLens request', async () => {
+    let called = 0
+    let fn = jest.fn()
+    disposables.push(commands.registerCommand('__save', (...args) => {
+      fn(...args)
+    }))
+    disposables.push(commands.registerCommand('__foo', (...args) => {
+      fn(...args)
+    }))
+    disposables.push(languages.registerCodeLensProvider([{ language: '*' }], {
+      provideCodeLenses: () => {
+        called++
+        if (called == 0) {
+          return null
+        }
+        return [{
+          range: Range.create(0, 0, 0, 1),
+          command: Command.create('foo', '__foo')
+        }]
+      }
+    }))
+    disposables.push(languages.registerCodeLensProvider([{ language: '*' }], {
+      provideCodeLenses: () => {
+        return [{
+          range: Range.create(0, 0, 0, 1),
+          command: Command.create('save', '__save')
+        }]
+      }
+    }))
+    let doc = await helper.createDocument('example.js')
+    await nvim.call('setline', [1, ['a', 'b', 'c']])
+    codeLens.checkProvider()
+    await helper.wait(120)
+    let markers = await helper.getMarkers(doc.buffer.id, srcId)
+    expect(markers.length).toBeGreaterThan(0)
+    let codeLensBuffer = codeLens.buffers.getItem(doc.buffer.id)
+    await codeLensBuffer.forceFetch()
+    let curr = codeLensBuffer.currentCodeLens()
+    expect(curr.length).toBeGreaterThan(1)
+    expect(called).toBe(2)
+  })
+
   it('should refresh on configuration change', async () => {
     disposables.push(languages.registerCodeLensProvider([{ language: '*' }], {
       provideCodeLenses: () => {

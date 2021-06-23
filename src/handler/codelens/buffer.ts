@@ -46,6 +46,10 @@ export default class CodeLensBuffer implements BufferSyncItem {
     this.forceFetch().logError()
   }
 
+  public currentCodeLens(): CodeLens[] {
+    return this.codeLenses?.codeLenses
+  }
+
   public async forceFetch(): Promise<void> {
     this.fetchCodelenses.clear()
     await this._fetchCodeLenses()
