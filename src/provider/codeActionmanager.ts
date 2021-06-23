@@ -30,7 +30,7 @@ export default class CodeActionManager extends Manager<CodeActionProvider> imple
     const provider = this.getProviders(document).map(p => p.provider).find(p => typeof p.resolveCodeAction === 'function')
     if (provider !== undefined) {
       const resolved: CodeAction = await provider.resolveCodeAction(action, token)
-      if (resolved.clientId !== action.clientId) { // If resolved action hasn't required clientId presented in original action
+      if (resolved.clientId !== action.clientId) { // If resolved action hasn't `clientId` in original action
         resolved.clientId = action.clientId
       }
       return resolved
