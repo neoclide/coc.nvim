@@ -12,6 +12,7 @@ const logger = require('../../util/logger')('codelens-buffer')
 export interface CodeLensInfo {
   codeLenses: CodeLens[]
   version: number
+  hasError: boolean
 }
 
 export interface CodeLensConfig {
@@ -64,7 +65,8 @@ export default class CodeLensBuffer implements BufferSyncItem {
     if (!this.config.enabled || !this.hasProvider || this._fetching) return
     let { textDocument } = this
     let version = textDocument.version
-    if (this.codeLenses?.codeLenses && version == this.codeLenses.version) {
+    let curr = this.codeLenses || {} as any
+    if (curr.codeLenses && !curr.hasError && version == this.codeLenses.version) {
       let res = await this._resolveCodeLenses(true)
       if (!res) this.clear()
       return
@@ -73,18 +75,14 @@ export default class CodeLensBuffer implements BufferSyncItem {
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
     this._fetching = true
-    let codeLenses: CodeLens[]
-    try {
-      codeLenses = await languages.getCodeLens(textDocument, token)
-    } catch (e) {
-      logger.error(`Error on fetch codeLens: ${e.message}`)
-    }
+    let codeLenses = await languages.getCodeLens(textDocument, token)
     this._fetching = false
     this.tokenSource = undefined
     if (token.isCancellationRequested) return
     this.resolveCodeLens.clear()
     if (Array.isArray(codeLenses)) {
-      this.codeLenses = { version, codeLenses }
+      let hasError = codeLenses.some(o => o == null)
+      this.codeLenses = { version, codeLenses: codeLenses.filter(o => o != null), hasError }
       let res = await this._resolveCodeLenses(true)
       if (!res) this.clear()
     }

@@ -397,7 +397,7 @@ class Languages {
     return await this.documentColorManager.provideColorPresentations(color, document, token)
   }
 
-  public async getCodeLens(document: TextDocument, token: CancellationToken): Promise<CodeLens[]> {
+  public async getCodeLens(document: TextDocument, token: CancellationToken): Promise<(CodeLens | null)[]> {
     return await this.codeLensManager.provideCodeLenses(document, token)
   }
 

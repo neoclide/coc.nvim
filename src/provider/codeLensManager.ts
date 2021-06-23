@@ -34,9 +34,10 @@ export default class CodeLensManager extends Manager<CodeLensProvider> implement
             (item as any).source = id
           }
         }
-        return res || []
+        return res
       })
     }))
+    if (arr.some(o => o == null)) return null
     return [].concat(...arr)
   }
 
