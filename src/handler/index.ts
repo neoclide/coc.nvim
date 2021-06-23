@@ -578,6 +578,13 @@ export default class Handler {
   }
 
   public async applyCodeAction(action: CodeAction): Promise<void> {
+    if (action.data !== undefined) {
+      return this.resolveCodeAction(action).then(resolved => {
+        if (resolved && resolved.data === undefined) { // Code action was resolved
+          return this.applyCodeAction(resolved)
+        }
+      })
+    }
     let { command, edit } = action
     if (edit) await workspace.applyEdit(edit)
     if (command) {
@@ -599,13 +606,6 @@ export default class Handler {
             })
         }
       }
-    }
-    if (action.data !== undefined) {
-      return this.resolveCodeAction(action).then(resolved => {
-        if (resolved && resolved.data === undefined) { // Code action was resolved
-          return this.applyCodeAction(resolved)
-        }
-      })
     }
   }
 
