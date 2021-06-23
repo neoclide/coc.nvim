@@ -37,7 +37,6 @@ export default class CodeLensManager extends Manager<CodeLensProvider> implement
         return res
       })
     }))
-    if (arr.some(o => o == null)) return null
     return [].concat(...arr)
   }
 
@@ -48,7 +47,7 @@ export default class CodeLensManager extends Manager<CodeLensProvider> implement
     // no need to resolve
     if (codeLens.command) return codeLens
     let { source } = codeLens as any
-    let provider = this.poviderById(source)
+    let provider = this.getProviderById(source)
     if (!provider || typeof provider.resolveCodeLens != 'function') {
       return codeLens
     }

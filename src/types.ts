@@ -1,6 +1,6 @@
 import { Neovim, Window, Buffer } from '@chemzqm/neovim'
 import log4js from 'log4js'
-import { CancellationToken, CompletionTriggerKind, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Diagnostic, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFile, RenameFileOptions, SymbolKind, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { CancellationToken, CompletionTriggerKind, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Diagnostic, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFile, RenameFileOptions, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import Configurations from './configuration'
@@ -8,7 +8,6 @@ import { LanguageClient } from './language-client'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import { ProviderResult, TextDocumentContentProvider } from './provider'
-import * as protocol from 'vscode-languageserver-protocol'
 
 export type MsgTypes = 'error' | 'warning' | 'more'
 export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
@@ -21,6 +20,11 @@ export type ProviderName = 'rename' | 'onTypeEdit' | 'documentLink' | 'documentC
 
 export interface ParsedUrlQueryInput {
   [key: string]: unknown
+}
+
+export interface HandlerDelegate {
+  withRequestToken: (name: string, fn: (token: CancellationToken) => Thenable<any>, checkEmpty?: boolean) => Promise<any>
+  getCurrentState: () => Promise<{ doc: Document, position: Position, winid: number }>
 }
 
 export interface BufferSyncItem {
@@ -238,10 +242,6 @@ export interface QuickPickItem {
 }
 
 export type DocumentChange = TextDocumentEdit | CreateFile | RenameFile | DeleteFile
-
-export interface CodeAction extends protocol.CodeAction {
-  clientId?: string
-}
 
 /**
  * An event describing a change to a text document.
@@ -960,7 +960,7 @@ export interface FileWillRenameEvent {
   /**
    * The files that are going to be renamed.
    */
-  readonly files: ReadonlyArray<{ oldUri: URI, newUri: URI }>;
+  readonly files: ReadonlyArray<{ oldUri: URI, newUri: URI }>
 
   /**
    * Allows to pause the event and to apply a [workspace edit](#WorkspaceEdit).
@@ -980,7 +980,7 @@ export interface FileWillRenameEvent {
    *
    * @param thenable A thenable that delays saving.
    */
-  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void;
+  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
 }
 
 /**
@@ -1006,7 +1006,7 @@ export interface FileWillCreateEvent {
   /**
    * The files that are going to be created.
    */
-  readonly files: ReadonlyArray<URI>;
+  readonly files: ReadonlyArray<URI>
 
   /**
    * Allows to pause the event and to apply a [workspace edit](#WorkspaceEdit).
@@ -1026,7 +1026,7 @@ export interface FileWillCreateEvent {
    *
    * @param thenable A thenable that delays saving.
    */
-  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void;
+  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
 }
 
 /**
@@ -1052,7 +1052,7 @@ export interface FileWillDeleteEvent {
   /**
    * The files that are going to be deleted.
    */
-  readonly files: ReadonlyArray<URI>;
+  readonly files: ReadonlyArray<URI>
 
   /**
    * Allows to pause the event and to apply a [workspace edit](#WorkspaceEdit).
@@ -1072,7 +1072,7 @@ export interface FileWillDeleteEvent {
    *
    * @param thenable A thenable that delays saving.
    */
-  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void;
+  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
 }
 
 /**

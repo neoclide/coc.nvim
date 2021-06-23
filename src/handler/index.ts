@@ -1,9 +1,8 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CallHierarchyItem, CancellationToken, CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CallHierarchyItem, CancellationToken, CancellationTokenSource, Definition, Disposable, DocumentLink, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import commandManager from '../commands'
-import diagnosticManager from '../diagnostic/manager'
 import events from '../events'
 import languages from '../languages'
 import listManager from '../list/manager'
@@ -11,22 +10,23 @@ import Document from '../model/document'
 import FloatFactory, { FloatWinConfig } from '../model/floatFactory'
 import { TextDocumentContentProvider } from '../provider'
 import services from '../services'
-import { CodeAction, Documentation, ProviderName, StatusBarItem, TagDefinition } from '../types'
+import { Documentation, ProviderName, StatusBarItem, TagDefinition } from '../types'
 import { disposeAll } from '../util'
 import { equals } from '../util/object'
 import { emptyRange, positionInRange } from '../util/position'
 import window from '../window'
 import workspace from '../workspace'
+import CodeActions from './codeActions'
 import CodeLens from './codelens/index'
 import Colors from './colors/index'
 import Format from './format'
 import { addDocument, isMarkdown, SymbolInfo, synchronizeDocument } from './helper'
 import Highlights from './highlights'
-import SemanticTokensHighlights from './semanticTokensHighlights/index'
 import Refactor from './refactor/index'
+import { Highlight } from './semanticTokensHighlights/buffer'
+import SemanticTokensHighlights from './semanticTokensHighlights/index'
 import Signature from './signature'
 import Symbols from './symbols'
-import { Highlight } from './semanticTokensHighlights/buffer'
 const logger = require('../util/logger')('Handler')
 
 interface CommandItem {
@@ -53,6 +53,7 @@ export default class Handler {
   private refactor: Refactor
   private documentLines: string[] = []
   private codeLens: CodeLens
+  public readonly codeActions: CodeActions
   private selectionRange: SelectionRange = null
   private requestStatusItem: StatusBarItem
   private requestTokenSource: CancellationTokenSource | undefined
@@ -65,6 +66,7 @@ export default class Handler {
     workspace.onDidChangeConfiguration(() => {
       this.getPreferences()
     })
+    this.codeActions = new CodeActions(nvim, this)
     this.refactor = new Refactor()
     this.hoverFactory = new FloatFactory(nvim)
     this.signature = new Signature(nvim)
@@ -100,23 +102,7 @@ export default class Handler {
       return this.pickPresentation()
     }))
     commandManager.titles.set('editor.action.colorPresentation', 'change color presentation.')
-    this.disposables.push(commandManager.registerCommand('editor.action.organizeImport', async (bufnr?: number) => {
-      await this.organizeImport(bufnr)
-    }))
     commandManager.titles.set('editor.action.organizeImport', 'run organize import code action.')
-  }
-
-  public async organizeImport(bufnr?: number): Promise<void> {
-    if (!bufnr) bufnr = await this.nvim.call('bufnr', ['%'])
-    let doc = workspace.getDocument(bufnr)
-    if (!doc || !doc.attached) throw new Error(`buffer ${bufnr} not attached`)
-    await synchronizeDocument(doc)
-    let actions = await this.getCodeActions(doc, undefined, [CodeActionKind.SourceOrganizeImports])
-    if (actions && actions.length) {
-      await this.applyCodeAction(actions[0])
-      return
-    }
-    throw new Error('Organize import action not found.')
   }
 
   /**
@@ -127,7 +113,7 @@ export default class Handler {
     throw new Error(`${id} provider not found for current buffer, your language server doesn't support it.`)
   }
 
-  private async withRequestToken<T>(name: string, fn: (token: CancellationToken) => Thenable<T>, checkEmpty?: boolean): Promise<T | null> {
+  public async withRequestToken<T>(name: string, fn: (token: CancellationToken) => Thenable<T>, checkEmpty?: boolean): Promise<T | null> {
     if (this.requestTokenSource) {
       this.requestTokenSource.cancel()
       this.requestTokenSource.dispose()
@@ -503,105 +489,6 @@ export default class Handler {
       await listManager.start(['commands'])
     }
   }
-
-  public async getCodeActions(doc: Document, range?: Range, only?: CodeActionKind[]): Promise<CodeAction[]> {
-    range = range || Range.create(0, 0, doc.lineCount, 0)
-    let diagnostics = diagnosticManager.getDiagnosticsInRange(doc.textDocument, range)
-    let context: CodeActionContext = { diagnostics }
-    if (only && Array.isArray(only)) context.only = only
-    let codeActions = await this.withRequestToken('code action', token => {
-      return languages.getCodeActions(doc.textDocument, range, context, token)
-    })
-    if (!codeActions || codeActions.length == 0) return []
-    codeActions.sort((a, b) => {
-      if (a.isPreferred && !b.isPreferred) {
-        return -1
-      }
-      if (b.isPreferred && !a.isPreferred) {
-        return 1
-      }
-      return 0
-    })
-    return codeActions
-  }
-
-  public async doCodeAction(mode: string | null, only?: CodeActionKind[] | string): Promise<void> {
-    let { doc } = await this.getCurrentState()
-    let range: Range
-    if (mode) range = await workspace.getSelectedRange(mode, doc)
-    await synchronizeDocument(doc)
-    let codeActions = await this.getCodeActions(doc, range, Array.isArray(only) ? only : null)
-    if (only && typeof only == 'string') {
-      codeActions = codeActions.filter(o => o.title == only || (o.command && o.command.title == only))
-      if (codeActions.length == 1) {
-        await this.applyCodeAction(codeActions[0])
-        return
-      }
-    }
-    if (!codeActions || codeActions.length == 0) {
-      window.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning')
-      return
-    }
-
-    let idx = this.preferences.floatActions
-      ? await window.showMenuPicker(
-        codeActions.map(o => o.title),
-        "Choose action"
-      )
-      : await window.showQuickpick(codeActions.map(o => o.title))
-    let action = codeActions[idx]
-    if (action) await this.applyCodeAction(action)
-  }
-
-  /**
-   * Get current codeActions
-   */
-  public async getCurrentCodeActions(mode?: string, only?: CodeActionKind[]): Promise<CodeAction[]> {
-    let { doc } = await this.getCurrentState()
-    let range: Range
-    if (mode) range = await workspace.getSelectedRange(mode, doc)
-    return await this.getCodeActions(doc, range, only)
-  }
-
-  /**
-   * Invoke preferred quickfix at current position, return false when failed
-   */
-  public async doQuickfix(): Promise<boolean> {
-    let actions = await this.getCurrentCodeActions('line', [CodeActionKind.QuickFix])
-    if (!actions || actions.length == 0) {
-      window.showMessage('No quickfix action available', 'warning')
-      return false
-    }
-    await this.applyCodeAction(actions[0])
-    await this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-fix-current)", -1)`)
-    return true
-  }
-
-  public async applyCodeAction(action: CodeAction): Promise<void> {
-    let { command, edit } = action
-    if (edit) await workspace.applyEdit(edit)
-    if (command) {
-      if (commandManager.has(command.command)) {
-        commandManager.execute(command)
-      } else {
-        let clientId = action.clientId
-        let service = services.getService(clientId)
-        let params: ExecuteCommandParams = {
-          command: command.command,
-          arguments: command.arguments
-        }
-        if (service.client) {
-          let { client } = service
-          client
-            .sendRequest(ExecuteCommandRequest.type, params)
-            .then(undefined, error => {
-              window.showMessage(`Execute '${command.command} error: ${error}'`, 'error')
-            })
-        }
-      }
-    }
-  }
-
   public async doCodeLensAction(): Promise<void> {
     await this.codeLens.doAction()
   }
@@ -855,21 +742,6 @@ export default class Handler {
     await workspace.selectRange(selectionRange.range)
   }
 
-  public async codeActionRange(start: number, end: number, only?: string): Promise<void> {
-    let { doc } = await this.getCurrentState()
-    await synchronizeDocument(doc)
-    let line = doc.getline(end - 1)
-    let range = Range.create(start - 1, 0, end - 1, line.length)
-    let codeActions = await this.getCodeActions(doc, range, only ? [only] : null)
-    if (!codeActions || codeActions.length == 0) {
-      window.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning')
-      return
-    }
-    let idx = await window.showMenuPicker(codeActions.map(o => o.title), 'Choose action')
-    let action = codeActions[idx]
-    if (action) await this.applyCodeAction(action)
-  }
-
   /**
    * Refactor of current symbol
    */
@@ -969,7 +841,7 @@ export default class Handler {
     }
   }
 
-  private async getCurrentState(): Promise<{
+  public async getCurrentState(): Promise<{
     doc: Document
     position: Position
     winid: number
@@ -990,6 +862,7 @@ export default class Handler {
       clearTimeout(this.requestTimer)
       this.requestTimer = undefined
     }
+    this.codeActions.dispose()
     this.refactor.dispose()
     this.signature.dispose()
     this.symbols.dispose()

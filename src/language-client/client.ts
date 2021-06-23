@@ -2360,6 +2360,7 @@ class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegistratio
 }
 
 class CodeActionFeature extends TextDocumentFeature<boolean | CodeActionOptions, CodeActionRegistrationOptions, CodeActionProvider> {
+  private disposables: Disposable[] = []
   constructor(client: BaseLanguageClient) {
     super(client, CodeActionRequest.type)
   }
@@ -2408,6 +2409,26 @@ class CodeActionFeature extends TextDocumentFeature<boolean | CodeActionOptions,
   protected registerLanguageProvider(
     options: CodeActionRegistrationOptions
   ): [Disposable, CodeActionProvider] {
+    const registCommand = (id: string) => {
+      if (commands.has(id)) return
+      const client = this._client
+      const executeCommand: ExecuteCommandSignature = (command: string, args: any[]): any => {
+        const params: ExecuteCommandParams = {
+          command,
+          arguments: args
+        }
+        return client.sendRequest(ExecuteCommandRequest.type, params).then(undefined, (error) => {
+          client.handleFailedRequest(ExecuteCommandRequest.type, undefined, error, undefined)
+          throw error
+        })
+      }
+      const middleware = client.clientOptions.middleware!
+      this.disposables.push(commands.registerCommand(id, (...args: any[]) => {
+        return middleware.executeCommand
+          ? middleware.executeCommand(id, args, executeCommand)
+          : executeCommand(id, args)
+      }, null, true))
+    }
     const provider: CodeActionProvider = {
       provideCodeActions: (document, range, context, token) => {
         const client = this._client
@@ -2424,6 +2445,11 @@ class CodeActionFeature extends TextDocumentFeature<boolean | CodeActionOptions,
               if (values === null) {
                 return undefined
               }
+              // some server may not registered commands to client.
+              values.forEach(val => {
+                let cmd = Command.is(val) ? val.command : val.command?.command
+                if (cmd && !commands.has(cmd)) registCommand(cmd)
+              })
               return values
             },
             (error) => {
@@ -2454,8 +2480,15 @@ class CodeActionFeature extends TextDocumentFeature<boolean | CodeActionOptions,
         }
         : undefined
     }
-
     return [languages.registerCodeActionProvider(options.documentSelector, provider, this._client.id, options.codeActionKinds), provider]
+  }
+
+  public dispose(): void {
+    this.disposables.forEach(o => {
+      o.dispose()
+    })
+    this.disposables = []
+    super.dispose()
   }
 }
 

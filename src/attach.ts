@@ -68,7 +68,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
           await plugin.ready
           await plugin.cocAction(method, ...args)
         } catch (e) {
-          console.error(`Error on notification "${method}": ${e.message || e.toString()}`)
+          console.error(`Error on "${method}": ${e.message || e.toString()}`)
           logger.error(`Notification error:`, method, args, e)
         }
       }

@@ -2195,8 +2195,9 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 "doQuickfix"						*coc-action-doQuickfix*
 
-	Do the first quickfix action for the current line.
-	Return `v:false` when no quickfix action found.
+	Do the first preferred quickfix action on current line.
+
+	Throw error when no quickfix action found.
 
 "addRanges" {ranges}					*coc-action-addRanges*
 

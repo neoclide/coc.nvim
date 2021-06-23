@@ -2,7 +2,7 @@ import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
 import path from 'path'
 import fs from 'fs'
-import { CancellationTokenSource, CodeActionKind } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, CodeAction, CodeActionKind } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commandManager from './commands'
 import completion from './completion'
@@ -329,22 +329,32 @@ export default class Plugin extends EventEmitter {
       return services.toggle(name)
     })
     this.addAction('codeAction', (mode, only) => {
-      return this.handler.doCodeAction(mode, only)
+      return this.handler.codeActions.doCodeAction(mode, only)
     })
     this.addAction('organizeImport', () => {
-      return this.handler.organizeImport()
+      return this.handler.codeActions.organizeImport()
     })
     this.addAction('fixAll', () => {
-      return this.handler.doCodeAction(null, [CodeActionKind.SourceFixAll])
+      return this.handler.codeActions.doCodeAction(null, [CodeActionKind.SourceFixAll])
     })
+    // save actions send to vim, for provider resolve
+    let codeActions: CodeAction[] = []
     this.addAction('doCodeAction', codeAction => {
-      return this.handler.applyCodeAction(codeAction)
+      if (codeAction.index == null) {
+        throw new Error(`index should exists with codeAction`)
+      }
+      let action = codeActions[codeAction.index]
+      if (!action) throw new Error(`invalid codeAction index: ${codeAction.index}`)
+      return this.handler.codeActions.applyCodeAction(action)
     })
-    this.addAction('codeActions', (mode, only) => {
-      return this.handler.getCurrentCodeActions(mode, only)
+    this.addAction('codeActions', async (mode, only) => {
+      codeActions = await this.handler.codeActions.getCurrentCodeActions(mode, only)
+      // save index for retreive
+      return codeActions.map((o, idx) => Object.assign({ index: idx }, o))
     })
-    this.addAction('quickfixes', mode => {
-      return this.handler.getCurrentCodeActions(mode, [CodeActionKind.QuickFix])
+    this.addAction('quickfixes', async mode => {
+      codeActions = await this.handler.codeActions.getCurrentCodeActions(mode, [CodeActionKind.QuickFix])
+      return codeActions.map((o, idx) => Object.assign({ index: idx }, o))
     })
     this.addAction('codeLensAction', () => {
       return this.handler.doCodeLensAction()
@@ -353,7 +363,7 @@ export default class Plugin extends EventEmitter {
       return this.handler.runCommand(...args)
     })
     this.addAction('doQuickfix', () => {
-      return this.handler.doQuickfix()
+      return this.handler.codeActions.doQuickfix()
     })
     this.addAction('refactor', () => {
       return this.handler.doRefactor()
@@ -403,7 +413,7 @@ export default class Plugin extends EventEmitter {
     this.addAction('selectCurrentPlaceholder', (triggerAutocmd?: boolean) => {
       return snippetManager.selectCurrentPlaceholder(!!triggerAutocmd)
     })
-    this.addAction('codeActionRange', (start, end, only) => this.handler.codeActionRange(start, end, only))
+    this.addAction('codeActionRange', (start, end, only) => this.handler.codeActions.codeActionRange(start, end, only))
     workspace.onDidChangeWorkspaceFolders(() => {
       nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
     })
@@ -422,7 +432,6 @@ export default class Plugin extends EventEmitter {
         window.showMessage('Failed to fetch semantic highlights', 'warning')
         return
       }
-
       if (!this.semanticChannel) {
         this.semanticChannel = window.createOutputChannel('semanticHighlightInfo')
       } else {
@@ -432,12 +441,10 @@ export default class Plugin extends EventEmitter {
       channel.appendLine('## Semantic highlighting for the buffer\n')
       channel.appendLine(`The number of semantic tokens: ${highlights.length}\n`)
       channel.appendLine('List of all semantic highlight groups:\n')
-
       const groups = [...new Set(highlights.map(({ group }) => group))]
       for (const group of groups) {
         channel.appendLine(`- ${group}`)
       }
-
       channel.show()
     })
     commandManager.init(nvim, this)

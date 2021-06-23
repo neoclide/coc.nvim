@@ -1,13 +1,13 @@
-import { CancellationToken, CodeActionContext, CodeActionKind, Command, Disposable, DocumentSelector, Range } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Command, Disposable, DocumentSelector, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CodeActionProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
-import { CodeAction } from '../types'
-import { intersect } from '../util/array'
 const logger = require('../util/logger')('codeActionManager')
 
 export default class CodeActionManager extends Manager<CodeActionProvider> implements Disposable {
+  // action to provider uuid
+  private providerMap: WeakMap<CodeAction, string> = new WeakMap()
 
   public register(selector: DocumentSelector, provider: CodeActionProvider, clientId: string | undefined, codeActionKinds?: CodeActionKind[]): Disposable {
     let item: ProviderItem<CodeActionProvider> = {
@@ -42,17 +42,17 @@ export default class CodeActionManager extends Manager<CodeActionProvider> imple
     }
     let res: CodeAction[] = []
     await Promise.all(providers.map(item => {
-      let { provider, clientId } = item
+      let { provider, id } = item
       return Promise.resolve(provider.provideCodeActions(document, range, context, token)).then(actions => {
         if (!actions || actions.length == 0) return
         for (let action of actions) {
           if (Command.is(action)) {
             let codeAction: CodeAction = {
               title: action.title,
-              command: action,
-              clientId
+              command: action
             }
             res.push(codeAction)
+            this.providerMap.set(codeAction, id)
           } else {
             if (context.only) {
               if (!action.kind) continue
@@ -66,12 +66,30 @@ export default class CodeActionManager extends Manager<CodeActionProvider> imple
               if (!found) continue
             }
             let idx = res.findIndex(o => o.title == action.title)
-            if (idx == -1) res.push(Object.assign({ clientId }, action))
+            if (idx == -1) {
+              this.providerMap.set(action, id)
+              res.push(action)
+            }
           }
         }
       })
     }))
     return res
+  }
+
+  public async resolveCodeAction(codeAction: CodeAction, token: CancellationToken): Promise<CodeAction> {
+    // no need to resolve
+    if (codeAction.edit != null) return codeAction
+    let id = this.providerMap.get(codeAction)
+    if (!id) throw new Error(`provider id not found from codeAction`)
+    let provider = this.getProviderById(id)
+    if (!provider || typeof provider.resolveCodeAction !== 'function') {
+      return codeAction
+    }
+    let resolved = await Promise.resolve(provider.resolveCodeAction(codeAction, token))
+    // save the map to support resolveClientId
+    if (resolved) this.providerMap.set(resolved, id)
+    return resolved || codeAction
   }
 
   public dispose(): void {
