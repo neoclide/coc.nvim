@@ -165,6 +165,7 @@ describe('diagnostic manager', () => {
       [{ location, message: 'test' }])
     let collection = manager.create('positions')
     collection.set(doc.uri, [diagnostic])
+    await helper.wait(100)
     await nvim.call('cursor', [1, 1])
     await helper.wait(200)
     await manager.jumpRelated()
