@@ -1,7 +1,6 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import diagnosticManager from '../diagnostic/manager'
-import { CodeAction, CodeActionContext, Range, CodeActionKind, Disposable } from 'vscode-languageserver-protocol'
-import { disposeAll } from '../util'
+import { CodeAction, CodeActionContext, Range, CodeActionKind } from 'vscode-languageserver-protocol'
 import commandManager from '../commands'
 import workspace from '../workspace'
 import Document from '../model/document'
@@ -9,18 +8,17 @@ import window from '../window'
 import { HandlerDelegate } from '../types'
 import languages from '../languages'
 import { synchronizeDocument } from './helper'
-const logger = require('../util/logger')('codelens')
+const logger = require('../util/logger')('handler-codeActions')
 
 /**
  * Handle codeActions related methods.
  */
 export default class CodeActions {
-  private disposables: Disposable[] = []
   constructor(
     private nvim: Neovim,
     private handler: HandlerDelegate
   ) {
-    this.disposables.push(commandManager.registerCommand('editor.action.organizeImport', async (bufnr?: number) => {
+    handler.addDisposable(commandManager.registerCommand('editor.action.organizeImport', async (bufnr?: number) => {
       await this.organizeImport(bufnr)
     }))
   }
@@ -153,9 +151,5 @@ export default class CodeActions {
         throw new Error(`Command not registered: ${command.command}`)
       }
     }
-  }
-
-  public dispose(): void {
-    disposeAll(this.disposables)
   }
 }

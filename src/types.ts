@@ -13,7 +13,7 @@ export type MsgTypes = 'error' | 'warning' | 'more'
 export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
 
 export type ProviderName = 'rename' | 'onTypeEdit' | 'documentLink' | 'documentColor'
-  | 'foldingRange' | 'format' | 'codeAction' | 'workspaceSymbols' | 'formatRange'
+  | 'foldingRange' | 'format' | 'codeAction' | 'workspaceSymbols' | 'formatRange' | 'formatOnType'
   | 'hover' | 'signature' | 'documentSymbol' | 'documentHighlight' | 'definition'
   | 'declaration' | 'typeDefinition' | 'reference' | 'implementation'
   | 'codeLens' | 'selectionRange' | 'callHierarchy' | 'semanticTokens' | 'linkedEditing'
@@ -25,6 +25,7 @@ export interface ParsedUrlQueryInput {
 export interface HandlerDelegate {
   withRequestToken: (name: string, fn: (token: CancellationToken) => Thenable<any>, checkEmpty?: boolean) => Promise<any>
   getCurrentState: () => Promise<{ doc: Document, position: Position, winid: number }>
+  addDisposable: (disposable: Disposable) => void
 }
 
 export interface BufferSyncItem {

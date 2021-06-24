@@ -4,7 +4,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
 import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, DocumentSymbolProvider, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
-import CodeActionManager from './provider/codeActionmanager'
+import CodeActionManager from './provider/codeActionManager'
 import CodeLensManager from './provider/codeLensManager'
 import DeclarationManager from './provider/declarationManager'
 import DefinitionManager from './provider/definitionManager'
@@ -417,7 +417,7 @@ class Languages {
     return this.onTypeFormatManager.onCharacterType(character, document, position, token)
   }
 
-  public hasOnTypeProvider(character: string, document: TextDocument): boolean {
+  public canFormatOnType(character: string, document: TextDocument): boolean {
     return this.onTypeFormatManager.getProvider(document, character) != null
   }
 
@@ -463,6 +463,8 @@ class Languages {
 
   public hasProvider(id: ProviderName, document: TextDocument): boolean {
     switch (id) {
+      case 'formatOnType':
+        return this.onTypeFormatManager.hasProvider(document)
       case 'rename':
         return this.renameManager.hasProvider(document)
       case 'onTypeEdit':

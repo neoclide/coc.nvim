@@ -49,11 +49,11 @@ export default class Handler {
   private symbols: Symbols
   private hoverFactory: FloatFactory
   private signature: Signature
-  private format: Format
-  private refactor: Refactor
   private documentLines: string[] = []
   private codeLens: CodeLens
+  public readonly refactor: Refactor
   public readonly codeActions: CodeActions
+  public readonly format: Format
   private selectionRange: SelectionRange = null
   private requestStatusItem: StatusBarItem
   private requestTokenSource: CancellationTokenSource | undefined
@@ -67,10 +67,10 @@ export default class Handler {
       this.getPreferences()
     })
     this.codeActions = new CodeActions(nvim, this)
-    this.refactor = new Refactor()
+    this.format = new Format(nvim, this)
+    this.refactor = new Refactor(nvim, this)
     this.hoverFactory = new FloatFactory(nvim)
     this.signature = new Signature(nvim)
-    this.format = new Format(nvim)
     this.symbols = new Symbols(nvim)
     this.codeLens = new CodeLens(nvim)
     this.colors = new Colors(nvim)
@@ -403,18 +403,6 @@ export default class Handler {
     }
   }
 
-  public async documentFormatting(): Promise<boolean> {
-    let { doc } = await this.getCurrentState()
-    this.checkProvier('format', doc.textDocument)
-    return await this.format.documentFormat(doc)
-  }
-
-  public async documentRangeFormatting(mode: string): Promise<number> {
-    let { doc } = await this.getCurrentState()
-    this.checkProvier('formatRange', doc.textDocument)
-    return await this.format.documentRangeFormat(doc, mode)
-  }
-
   /**
    * getCallHierarchy
    */
@@ -742,40 +730,6 @@ export default class Handler {
     await workspace.selectRange(selectionRange.range)
   }
 
-  /**
-   * Refactor of current symbol
-   */
-  public async doRefactor(): Promise<void> {
-    let { doc, position } = await this.getCurrentState()
-    await synchronizeDocument(doc)
-    let edit = await this.withRequestToken<WorkspaceEdit>('refactor', async token => {
-      let res = await languages.prepareRename(doc.textDocument, position, token)
-      if (token.isCancellationRequested) return null
-      if (res === false) {
-        window.showMessage('Invalid position', 'warning')
-        return null
-      }
-      let edit = await languages.provideRenameEdits(doc.textDocument, position, 'NewName', token)
-      if (token.isCancellationRequested) return null
-      if (!edit) {
-        window.showMessage('Empty workspaceEdit from language server', 'warning')
-        return null
-      }
-      return edit
-    })
-    if (edit) {
-      await this.refactor.fromWorkspaceEdit(edit, doc.filetype)
-    }
-  }
-
-  public async saveRefactor(bufnr: number): Promise<void> {
-    await this.refactor.save(bufnr)
-  }
-
-  public async search(args: string[]): Promise<void> {
-    await this.refactor.search(args)
-  }
-
   private async previewHover(hovers: Hover[], target?: string): Promise<void> {
     let docs: Documentation[] = []
     let hoverPreference = workspace.getConfiguration('hover')
@@ -857,18 +811,20 @@ export default class Handler {
     }
   }
 
+  public addDisposable(disposable: Disposable): void {
+    this.disposables.push(disposable)
+  }
+
   public dispose(): void {
     if (this.requestTimer) {
       clearTimeout(this.requestTimer)
       this.requestTimer = undefined
     }
-    this.codeActions.dispose()
     this.refactor.dispose()
     this.signature.dispose()
     this.symbols.dispose()
     this.hoverFactory.dispose()
     this.colors.dispose()
-    this.format.dispose()
     this.documentHighlighter.dispose()
     this.semanticHighlighter.dispose()
     disposeAll(this.disposables)

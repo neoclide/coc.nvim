@@ -44,7 +44,7 @@ export default class Plugin extends EventEmitter {
     this.addAction('listNames', () => listManager.names)
     this.addAction('listDescriptions', () => listManager.descriptions)
     this.addAction('listLoadItems', async (name: string) => await listManager.loadItems(name))
-    this.addAction('search', (...args: string[]) => this.handler.search(args))
+    this.addAction('search', (...args: string[]) => this.handler.refactor.search(args))
     this.addAction('cursorsSelect', (bufnr: number, kind: string, mode: string) => this.cursors.select(bufnr, kind, mode))
     this.addAction('fillDiagnostics', (bufnr: number) => diagnosticManager.setLocationlist(bufnr))
     this.addAction('getConfig', async key => {
@@ -65,7 +65,7 @@ export default class Plugin extends EventEmitter {
       await extensions.installExtensions(list)
     })
     this.addAction('saveRefactor', async (bufnr: number) => {
-      await this.handler.saveRefactor(bufnr)
+      await this.handler.refactor.save(bufnr)
     })
     this.addAction('updateExtensions', async (sync?: boolean) => {
       await extensions.updateExtensions(sync)
@@ -314,10 +314,10 @@ export default class Plugin extends EventEmitter {
       return await languages.getWorkspaceSymbols(input, tokenSource.token)
     })
     this.addAction('formatSelected', mode => {
-      return this.handler.documentRangeFormatting(mode)
+      return this.handler.format.formatCurrentRange(mode)
     })
     this.addAction('format', () => {
-      return this.handler.documentFormatting()
+      return this.handler.format.formatCurrentBuffer()
     })
     this.addAction('commands', () => {
       return this.handler.getCommands()
@@ -366,7 +366,7 @@ export default class Plugin extends EventEmitter {
       return this.handler.codeActions.doQuickfix()
     })
     this.addAction('refactor', () => {
-      return this.handler.doRefactor()
+      return this.handler.refactor.doRefactor()
     })
     this.addAction('repeatCommand', () => {
       return commandManager.repeatCommand()

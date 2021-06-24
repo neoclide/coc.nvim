@@ -1,11 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
 import snippetManager from '../snippets/manager'
-import { ConfigurationChangeEvent, StatusBarItem } from '../types'
-import { disposeAll } from '../util'
+import { ConfigurationChangeEvent, HandlerDelegate } from '../types'
 import { getChangedFromEdits } from '../util/position'
 import { isWord } from '../util/string'
 import window from '../window'
@@ -30,17 +29,17 @@ interface FormatPreferences {
 
 export default class FormatHandler {
   private preferences: FormatPreferences
-  private disposables: Disposable[] = []
-  private requestStatusItem: StatusBarItem
-  private requestTokenSource: CancellationTokenSource | undefined
-  constructor(private nvim: Neovim) {
-    this.requestStatusItem = window.createStatusBarItem(0, { progress: true })
+  private warnedBuffers: Set<number> = new Set()
+  constructor(
+    private nvim: Neovim,
+    private handler: HandlerDelegate
+  ) {
     this.loadPreferences()
-    workspace.onDidChangeConfiguration(this.loadPreferences, this, this.disposables)
-    workspace.onWillSaveTextDocument(event => {
+    handler.addDisposable(workspace.onDidChangeConfiguration(this.loadPreferences, this))
+    handler.addDisposable(workspace.onWillSaveTextDocument(event => {
       let { languageId } = event.document
       let filetypes = this.preferences.formatOnSaveFiletypes
-      if (filetypes.includes(languageId) || filetypes.some(item => item === '*')) {
+      if (filetypes.includes(languageId) || filetypes.includes('*')) {
         let willSaveWaitUntil = async (): Promise<TextEdit[] | undefined> => {
           if (!languages.hasFormatProvider(event.document)) {
             logger.warn(`Format provider not found for ${event.document.uri}`)
@@ -49,22 +48,20 @@ export default class FormatHandler {
           let options = await workspace.getFormatOptions(event.document.uri)
           let tokenSource = new CancellationTokenSource()
           let timer = setTimeout(() => {
+            logger.warn(`Onsave format ${event.document.uri} timeout after 1s`)
             tokenSource.cancel()
           }, 1000)
           let textEdits = await languages.provideDocumentFormattingEdits(event.document, options, tokenSource.token)
           clearTimeout(timer)
+          if (!textEdits && !tokenSource.token.isCancellationRequested) {
+            logger.want(`Onsave format ${event.document.uri} get undefined result.`)
+          }
           return textEdits
         }
         event.waitUntil(willSaveWaitUntil())
       }
-    }, null, this.disposables)
-    events.on(['CursorMoved', 'CursorMovedI', 'InsertEnter', 'TextChangedI', 'TextChangedP', 'TextChanged'], () => {
-      if (this.requestTokenSource) {
-        this.requestTokenSource.cancel()
-        this.requestTokenSource = null
-      }
-    }, null, this.disposables)
-    events.on('Enter', async bufnr => {
+    }))
+    handler.addDisposable(events.on('Enter', async bufnr => {
       let { bracketEnterImprove } = this.preferences
       await this.tryFormatOnType('\n', bufnr)
       if (bracketEnterImprove) {
@@ -97,14 +94,14 @@ export default class FormatHandler {
           }
         }
       }
-    }, null, this.disposables)
+    }))
 
     let changedTs: number
     let lastInsert: number
-    events.on('InsertCharPre', async () => {
+    handler.addDisposable(events.on('InsertCharPre', async () => {
       lastInsert = Date.now()
-    }, null, this.disposables)
-    events.on('TextChangedI', async (bufnr, info) => {
+    }))
+    handler.addDisposable(events.on('TextChangedI', async (bufnr, info) => {
       changedTs = Date.now()
       if (!lastInsert || changedTs - lastInsert > 300) return
       lastInsert = null
@@ -113,18 +110,18 @@ export default class FormatHandler {
       let pre = info.pre[info.pre.length - 1]
       if (!pre || !languages.hasProvider('onTypeEdit', doc.textDocument)) return
       await this.tryFormatOnType(pre, bufnr)
-    }, null, this.disposables)
+    }))
     let lastEnterBufnr: number
     let lastEnterTs: number
-    events.on('InsertEnter', bufnr => {
+    handler.addDisposable(events.on('InsertEnter', bufnr => {
       lastEnterBufnr = bufnr
       lastEnterTs = Date.now()
-    })
-    events.on('TextChangedI', async (bufnr, info) => {
+    }))
+    handler.addDisposable(events.on('TextChangedI', async (bufnr, info) => {
       if (!this.preferences.formatOnType && !/^\s*$/.test(info.pre)) return
       if (lastEnterBufnr != bufnr || !lastEnterTs || Date.now() - lastEnterTs > 30) return
       await this.tryFormatOnType('\n', bufnr, true)
-    })
+    }))
   }
 
   private loadPreferences(e?: ConfigurationChangeEvent): void {
@@ -139,54 +136,24 @@ export default class FormatHandler {
     }
   }
 
-  private async withRequestToken<T>(name: string, fn: (token: CancellationToken) => Thenable<T>): Promise<T | null> {
-    if (this.requestTokenSource) {
-      this.requestTokenSource.cancel()
-      this.requestTokenSource.dispose()
-    }
-    let statusItem = this.requestStatusItem
-    this.requestTokenSource = new CancellationTokenSource()
-    let { token } = this.requestTokenSource
-    token.onCancellationRequested(() => {
-      statusItem.text = `${name} request canceled`
-      statusItem.isProgress = false
-      statusItem.hide()
-    })
-    statusItem.isProgress = true
-    statusItem.text = `requesting ${name}`
-    statusItem.show()
-    let res: T
-    try {
-      res = await Promise.resolve(fn(token))
-    } catch (e) {
-      window.showMessage(e.message, 'error')
-      logger.error(`Error on ${name}`, e)
-    }
-    if (this.requestTokenSource) {
-      this.requestTokenSource.dispose()
-      this.requestTokenSource = undefined
-    }
-    if (token.isCancellationRequested) return null
-    statusItem.hide()
-    if (res == null) {
-      logger.warn(`${name} provider not found!`)
-    }
-    return res
-  }
-
   private async tryFormatOnType(ch: string, bufnr: number, newLine = false): Promise<void> {
     if (!ch || isWord(ch) || !this.preferences.formatOnType) return
     if (snippetManager.getSession(bufnr) != null) return
     let doc = workspace.getDocument(bufnr)
     if (!doc || !doc.attached || doc.isCommandLine) return
     const filetypes = this.preferences.formatOnTypeFiletypes
-    if (filetypes.length && !filetypes.includes(doc.filetype)) {
+    if (filetypes.length && !filetypes.includes(doc.filetype) && !filetypes.includes('*')) {
       // Only check formatOnTypeFiletypes when set, avoid breaking change
       return
     }
-    if (!languages.hasOnTypeProvider(ch, doc.textDocument)) return
+    if (!this.warnedBuffers.has(doc.bufnr) && !languages.hasProvider('formatOnType', doc.textDocument)) {
+      logger.warn(`Format on type provider not found for buffer: ${doc.bufnr}`)
+      this.warnedBuffers.add(doc.bufnr)
+      return
+    }
+    if (!languages.canFormatOnType(ch, doc.textDocument)) return
     let position: Position
-    let edits = await this.withRequestToken<TextEdit[]>('onTypeFormat ', async token => {
+    let edits = await this.handler.withRequestToken('Format on type', async token => {
       position = await window.getCursorPosition()
       let origLine = doc.getline(position.line - 1)
       // not format for empty line.
@@ -202,10 +169,23 @@ export default class FormatHandler {
     if (to && !newLine) await window.moveTo(to)
   }
 
+  public async formatCurrentBuffer(): Promise<boolean> {
+    let { doc } = await this.handler.getCurrentState()
+    return await this.documentFormat(doc)
+  }
+
+  public async formatCurrentRange(mode: string): Promise<number> {
+    let { doc } = await this.handler.getCurrentState()
+    return await this.documentRangeFormat(doc, mode)
+  }
+
   public async documentFormat(doc: Document): Promise<boolean> {
     await synchronizeDocument(doc)
+    if (!languages.hasFormatProvider(doc.textDocument)) {
+      throw new Error(`Format provider not found for buffer: ${doc.bufnr}`)
+    }
     let options = await workspace.getFormatOptions(doc.uri)
-    let textEdits = await this.withRequestToken('format', token => {
+    let textEdits = await this.handler.withRequestToken('format', token => {
       return languages.provideDocumentFormattingEdits(doc.textDocument, options, token)
     })
     if (textEdits && textEdits.length > 0) {
@@ -217,6 +197,9 @@ export default class FormatHandler {
 
   public async documentRangeFormat(doc: Document, mode: string): Promise<number> {
     await synchronizeDocument(doc)
+    if (!languages.hasProvider('formatRange', doc.textDocument)) {
+      throw new Error(`Format range provider not found for buffer: ${doc.bufnr}`)
+    }
     let range: Range
     if (mode) {
       range = await workspace.getSelectedRange(mode, doc)
@@ -228,7 +211,7 @@ export default class FormatHandler {
       range = Range.create(lnum - 1, 0, lnum - 1 + count, 0)
     }
     let options = await workspace.getFormatOptions(doc.uri)
-    let textEdits = await this.withRequestToken('format', token => {
+    let textEdits = await this.handler.withRequestToken('Format range', token => {
       return languages.provideDocumentRangeFormattingEdits(doc.textDocument, range, options, token)
     })
     if (textEdits && textEdits.length > 0) {
@@ -236,9 +219,5 @@ export default class FormatHandler {
       return 0
     }
     return -1
-  }
-
-  public dispose() {
-    disposeAll(this.disposables)
   }
 }
