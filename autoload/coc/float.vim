@@ -344,7 +344,13 @@ function! coc#float#nvim_scrollbar(winid) abort
     return
   endif
   let config = nvim_win_get_config(a:winid)
-  let [row, column] = [config.row, config.col]
+  let [row, column] = nvim_win_get_position(a:winid)
+  let relative = 'editor'
+  if row == 0 && column == 0
+    " fix bad value when ext_multigrid is enabled. https://github.com/neovim/neovim/issues/11935
+    let [row, column] = [config.row, config.col]
+    let relative = config.relative
+  endif
   let width = nvim_win_get_width(a:winid)
   let height = nvim_win_get_height(a:winid)
   let bufnr = winbufnr(a:winid)
@@ -370,7 +376,7 @@ function! coc#float#nvim_scrollbar(winid) abort
   let opts = {
         \ 'row': move_down ? row + 1 : row,
         \ 'col': column + width,
-        \ 'relative': 'editor',
+        \ 'relative': relative,
         \ 'width': 1,
         \ 'height': height,
         \ 'focusable': v:false,
