@@ -111,10 +111,8 @@ export default class Search {
     let { nvim, cmd } = this
     let { afterContext, beforeContext } = refactorBuf.config
     let argList = ['-A', afterContext.toString(), '-B', beforeContext.toString()].concat(defaultArgs, args)
-    if (os.platform() == 'win32') {
-      let p = getPathFromArgs(args)
-      argList.push('--', p ? `./${p}` : './')
-    }
+    let p = getPathFromArgs(args)
+    argList.push('--', p ? `./${p}` : './')
     try {
       cmd = which.sync(cmd)
     } catch (e) {
