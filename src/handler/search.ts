@@ -2,11 +2,9 @@ import { Neovim } from '@chemzqm/neovim'
 import { Mutex } from '../util/mutex'
 import { ChildProcess, spawn } from 'child_process'
 import { EventEmitter } from 'events'
-import os from 'os'
 import path from 'path'
 import readline from 'readline'
 import { Range } from 'vscode-languageserver-types'
-import which from 'which'
 import Highlighter from '../model/highligher'
 import { ansiparse } from '../util/ansiparse'
 import window from '../window'
@@ -112,13 +110,8 @@ export default class Search {
     let { afterContext, beforeContext } = refactorBuf.config
     let argList = ['-A', afterContext.toString(), '-B', beforeContext.toString()].concat(defaultArgs, args)
     let p = getPathFromArgs(args)
-    argList.push('--', p ? `./${p}` : './')
-    try {
-      cmd = which.sync(cmd)
-    } catch (e) {
-      window.showMessage(`Please install ripgrep and make sure ${this.cmd} is in your $PATH`, 'error')
-      return Promise.reject(e)
-    }
+    if (p) argList.pop()
+    argList.push('--', p ? path.isAbsolute(p) ? p : `./${p.replace(/^\.\//, '')}` : './')
     this.task = new Task()
     this.task.start(cmd, argList, cwd)
     let mutex: Mutex = new Mutex()
@@ -194,11 +187,11 @@ export default class Search {
   }
 }
 
-// used on windows only since it requires `-- [path]` at the end
+// rg requires `-- [path]` at the end
 function getPathFromArgs(args: string[]): string | undefined {
   if (args.length < 2) return undefined
   let len = args.length
   if (args[len - 1].startsWith('-')) return undefined
-  if (['-e', '-f'].includes(args[len - 2])) return undefined
+  if (args[len - 2].startsWith('-')) return undefined
   return args[len - 1]
 }
