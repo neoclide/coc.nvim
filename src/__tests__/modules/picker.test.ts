@@ -130,4 +130,23 @@ describe('Picker key mappings', () => {
     let lines = await nvim.call('getbufline', [picker.buffer.id, 1])
     expect(lines[0]).toMatch('[x]')
   })
+
+  it('should scroll forward & backward', async () => {
+    let items = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'].map(s => {
+      return { label: s }
+    })
+    picker = new Picker(nvim, { title: 'title', items })
+    let winid = await picker.show({ maxHeight: 3 })
+    expect(winid).toBeDefined()
+    await nvim.input('<C-f>')
+    await helper.wait(50)
+    await nvim.command('setl scrolloff=0')
+    await nvim.call('win_gotoid', [winid])
+    await nvim.command('normal! h')
+    let res = await nvim.call('getline', ['.'])
+    expect(res).toMatch('c')
+    await nvim.input('<C-b>')
+    await helper.wait(100)
+    res = await nvim.call('getline', ['.'])
+  })
 })
