@@ -264,9 +264,9 @@ export class DiagnosticBuffer implements BufferSyncItem {
   public clear(): void {
     this.refresh.clear()
     let { nvim } = this
+    this.diagnostics = []
     if (this.displayByAle) {
       let collections = getCollections(this.diagnostics)
-      this.diagnostics = []
       if (collections.size > 0) {
         for (let collection of collections) {
           let method = global.hasOwnProperty('__TEST__') ? 'MockAleResults' : 'ale#other_source#ShowResults'
@@ -274,7 +274,6 @@ export class DiagnosticBuffer implements BufferSyncItem {
         }
       }
     } else {
-      this.diagnostics = []
       nvim.pauseNotification()
       this.clearHighlight()
       if (this.config.enableSign) {
@@ -283,7 +282,7 @@ export class DiagnosticBuffer implements BufferSyncItem {
       if (this.config.virtualText) {
         this.buffer.clearNamespace(this.config.virtualTextSrcId)
       }
-      this.setDiagnosticInfo([])
+      nvim.call('setbufvar', [this.bufnr, 'coc_diagnostic_info', null], true)
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       nvim.resumeNotification(false, true)
     }
