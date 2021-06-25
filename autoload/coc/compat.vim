@@ -63,6 +63,24 @@ function! coc#compat#matchaddpos(group, pos, priority, winid) abort
   endif
 endfunction
 
+function! coc#compat#buf_del_var(bufnr, name) abort
+  if !bufloaded(a:bufnr)
+    return
+  endif
+  if exists('*nvim_buf_del_var')
+    silent! call nvim_buf_del_var(a:bufnr, a:name)
+  else
+    if bufnr == bufnr('%')
+      execute 'unlet! b:'.a:name
+    elseif exists('*win_execute')
+      let winid = coc#compat#buf_win_id(a:bufnr)
+      if winid != -1
+        call win_execute(winid, 'unlet! b:'.a:name)
+      endif
+    endif
+  endif
+endfunction
+
 " hlGroup, pos, priority
 function! coc#compat#matchaddgroups(winid, groups) abort
   " add by winid
