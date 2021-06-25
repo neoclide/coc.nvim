@@ -3,6 +3,7 @@ import debounce from 'debounce'
 import { CancellationTokenSource, Disposable, DocumentSymbol, Emitter, Event, Range, TextDocument } from 'vscode-languageserver-protocol'
 import events from '../events'
 import languages from '../languages'
+import { HandlerDelegate } from '../types'
 import BufferSync, { SyncItem } from '../model/bufferSync'
 import { getSymbolKind } from '../util/convert'
 import { disposeAll } from '../util/index'
@@ -16,7 +17,10 @@ export default class Symbols {
   private buffers: BufferSync<SymbolsBuffer>
   private disposables: Disposable[] = []
 
-  constructor(private nvim: Neovim) {
+  constructor(
+    private nvim: Neovim,
+    private handler: HandlerDelegate
+  ) {
     this.buffers = workspace.registerBufferSync(doc => {
       if (doc.buftype != '') return undefined
       let buf = new SymbolsBuffer(doc.bufnr)
@@ -51,6 +55,9 @@ export default class Symbols {
 
   public async getCurrentFunctionSymbol(bufnr?: number): Promise<string> {
     if (!bufnr) bufnr = await this.nvim.call('bufnr', ['%'])
+    let doc = workspace.getDocument(bufnr)
+    if (!doc || !doc.attached) return
+    if (!languages.hasProvider('documentSymbol', doc.textDocument)) return
     let position = await window.getCursorPosition()
     let symbols = await this.getDocumentSymbols(bufnr)
     let buffer = this.nvim.createBuffer(bufnr)
@@ -87,9 +94,8 @@ export default class Symbols {
    * supportedSymbols must be string values of symbolKind
    */
   public async selectSymbolRange(inner: boolean, visualmode: string, supportedSymbols: string[]): Promise<void> {
-    let bufnr = await this.nvim.call('bufnr', ['%'])
-    let doc = workspace.getDocument(bufnr)
-    if (!doc || !doc.attached) return
+    let { doc } = await this.handler.getCurrentState()
+    this.handler.checkProvier('documentSymbol', doc.textDocument)
     let range: Range
     if (visualmode) {
       range = await workspace.getSelectedRange(visualmode, doc)
@@ -97,26 +103,17 @@ export default class Symbols {
       let pos = await window.getCursorPosition()
       range = Range.create(pos, pos)
     }
-    let symbols = await this.getDocumentSymbols(bufnr)
+    let symbols = await this.getDocumentSymbols(doc.bufnr)
     if (!symbols || symbols.length === 0) {
       window.showMessage('No symbols found', 'warning')
       return
     }
-    let properties = symbols.filter(s => s.kind == 'Property')
     symbols = symbols.filter(s => supportedSymbols.includes(s.kind))
     let selectRange: Range
     for (let sym of symbols.reverse()) {
       if (sym.range && !equals(sym.range, range) && rangeInRange(range, sym.range)) {
         selectRange = sym.range
         break
-      }
-    }
-    if (!selectRange) {
-      for (let sym of properties) {
-        if (sym.range && !equals(sym.range, range) && rangeInRange(range, sym.range)) {
-          selectRange = sym.range
-          break
-        }
       }
     }
     if (inner && selectRange) {

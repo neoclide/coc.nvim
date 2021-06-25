@@ -75,7 +75,7 @@ export default class Plugin extends EventEmitter {
       await this.ready
       await listManager.start(args)
     })
-    this.addAction('selectSymbolRange', (inner: boolean, visualmode: string, supportedSymbols: string[]) => this.handler.selectSymbolRange(inner, visualmode, supportedSymbols))
+    this.addAction('selectSymbolRange', (inner: boolean, visualmode: string, supportedSymbols: string[]) => this.handler.symbols.selectSymbolRange(inner, visualmode, supportedSymbols))
     this.addAction('listResume', (name?: string) => listManager.resume(name))
     this.addAction('listCancel', () => listManager.cancel(true))
     this.addAction('listPrev', (name?: string) => listManager.previous(name))
@@ -293,8 +293,11 @@ export default class Plugin extends EventEmitter {
       return this.handler.showSignatureHelp()
     })
     this.addAction('documentSymbols', async (bufnr?: number) => {
-      if (!bufnr) bufnr = await nvim.call('bufnr', ['%'])
-      return await this.handler.getDocumentSymbols(bufnr)
+      if (!bufnr) {
+        let doc = await workspace.document
+        bufnr = doc.bufnr
+      }
+      return await this.handler.symbols.getDocumentSymbols(bufnr)
     })
     this.addAction('ensureDocument', async () => {
       let doc = await workspace.document
@@ -399,7 +402,7 @@ export default class Plugin extends EventEmitter {
       return extensions.uninstallExtension(args)
     })
     this.addAction('getCurrentFunctionSymbol', () => {
-      return this.handler.getCurrentFunctionSymbol()
+      return this.handler.symbols.getCurrentFunctionSymbol()
     })
     this.addAction('getWordEdit', () => {
       return this.handler.getWordEdit()

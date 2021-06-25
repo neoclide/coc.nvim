@@ -1,5 +1,5 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { Disposable, SymbolInformation, SymbolKind, Range } from 'vscode-languageserver-protocol'
 import Symbols from '../../handler/symbols'
 import languages from '../../languages'
 import workspace from '../../workspace'
@@ -49,7 +49,7 @@ describe('Parser', () => {
   })
 })
 
-describe('symbols featrue', () => {
+describe('symbols handler', () => {
 
   async function createBuffer(code: string): Promise<Buffer> {
     let buf = await nvim.buffer
@@ -60,89 +60,178 @@ describe('symbols featrue', () => {
     return buf
   }
 
-  it('should get configuration', async () => {
-    let functionUpdate = symbols.functionUpdate
-    expect(functionUpdate).toBe(false)
-    helper.updateConfiguration('coc.preferences.currentFunctionSymbolAutoUpdate', true)
-    functionUpdate = symbols.functionUpdate
-    expect(functionUpdate).toBe(true)
-    helper.updateConfiguration('coc.preferences.currentFunctionSymbolAutoUpdate', false)
+  describe('configuration', () => {
+    afterEach(() => {
+      helper.updateConfiguration('coc.preferences.currentFunctionSymbolAutoUpdate', false)
+      helper.updateConfiguration('coc.preferences.currentFunctionSymbolAutoUpdate', false)
+    })
+
+    it('should get configuration', async () => {
+      let functionUpdate = symbols.functionUpdate
+      expect(functionUpdate).toBe(false)
+      helper.updateConfiguration('coc.preferences.currentFunctionSymbolAutoUpdate', true)
+      functionUpdate = symbols.functionUpdate
+      expect(functionUpdate).toBe(true)
+    })
+
+    it('should update symbols automatically', async () => {
+      helper.updateConfiguration('coc.preferences.currentFunctionSymbolAutoUpdate', true)
+      let code = `class myClass {
+      fun1() {
+      }
+    }`
+      let buf = await createBuffer(code)
+      let fn = jest.fn()
+      events.on('SymbolsUpdate', (bufnr, symbols) => {
+        if (bufnr == buf.id) fn(symbols)
+      }, null, disposables)
+      await nvim.call('cursor', [2, 8])
+      await events.fire('CursorHold', [buf.id])
+      let val = await buf.getVar('coc_current_function')
+      expect(val).toBe('fun1')
+      await nvim.call('cursor', [1, 8])
+      await events.fire('CursorHold', [buf.id])
+      val = await buf.getVar('coc_current_function')
+      expect(val).toBe('myClass')
+      expect(fn).toBeCalled()
+    })
   })
 
-  it('should get symbols of current buffer', async () => {
-    let code = `class myClass {
+  describe('documentSymbols', () => {
+    it('should get symbols of current buffer', async () => {
+      let code = `class myClass {
       fun1() { }
     }`
-    await createBuffer(code)
-    let res = await helper.plugin.cocAction('documentSymbols')
-    expect(res.length).toBe(2)
-  })
+      await createBuffer(code)
+      let res = await helper.plugin.cocAction('documentSymbols')
+      expect(res.length).toBe(2)
+    })
 
-  it('should get current function symbols', async () => {
-    let code = `class myClass {
+    it('should get current function symbols', async () => {
+      let code = `class myClass {
+      fun1() {
+      }
+    }
+    `
+      await createBuffer(code)
+      await nvim.call('cursor', [3, 0])
+      let res = await helper.doAction('getCurrentFunctionSymbol')
+      expect(res).toBe('fun1')
+      await nvim.command('normal! G')
+      res = await helper.doAction('getCurrentFunctionSymbol')
+      expect(res).toBe('')
+    })
+
+    it('should reset coc_current_function when symbols not exists', async () => {
+      let code = `class myClass {
       fun1() {
       }
     }`
-    await createBuffer(code)
-    await nvim.call('cursor', [3, 0])
-    let res = await helper.doAction('getCurrentFunctionSymbol')
-    expect(res).toBe('fun1')
+      await createBuffer(code)
+      await nvim.call('cursor', [3, 0])
+      let res = await helper.doAction('getCurrentFunctionSymbol')
+      expect(res).toBe('fun1')
+      await nvim.command('normal! ggdG')
+      res = await symbols.getCurrentFunctionSymbol()
+      expect(res).toBe('')
+    })
+
+    it('should support SymbolInformation', async () => {
+      disposables.push(languages.registerDocumentSymbolProvider(['*'], {
+        provideDocumentSymbols: () => {
+          return [
+            SymbolInformation.create('root', SymbolKind.Function, Range.create(0, 0, 0, 10)),
+            SymbolInformation.create('child', SymbolKind.Function, Range.create(0, 0, 0, 10), '', 'root')
+          ]
+        }
+      }))
+      let doc = await helper.createDocument()
+      let res = await symbols.getDocumentSymbols(doc.bufnr)
+      expect(res.length).toBe(2)
+      expect(res[0].text).toBe('root')
+      expect(res[1].text).toBe('child')
+    })
   })
 
-  it('should select symbol range at cursor position', async () => {
-    let code = `class myClass {
+  describe('selectSymbolRange', () => {
+    it('should show warning when no symbols exists', async () => {
+      disposables.push(languages.registerDocumentSymbolProvider(['*'], {
+        provideDocumentSymbols: () => {
+          return []
+        }
+      }))
+      await helper.createDocument()
+      await nvim.call('cursor', [3, 0])
+      await symbols.selectSymbolRange(false, '', ['Function'])
+      let msg = await helper.getCmdline()
+      expect(msg).toMatch(/No symbols found/)
+    })
+
+    it('should select symbol range at cursor position', async () => {
+      let code = `class myClass {
       fun1() {
       }
     }`
-    let buf = await createBuffer(code)
-    await nvim.call('cursor', [3, 0])
-    await helper.doAction('selectSymbolRange', false, '', ['Function', 'Method'])
-    let mode = await nvim.mode
-    expect(mode.mode).toBe('v')
-    let doc = workspace.getDocument(buf.id)
-    await nvim.input('<esc>')
-    let res = await workspace.getSelectedRange('v', doc)
-    expect(res).toEqual({ start: { line: 1, character: 6 }, end: { line: 2, character: 6 } })
-  })
+      let buf = await createBuffer(code)
+      await nvim.call('cursor', [3, 0])
+      await helper.doAction('selectSymbolRange', false, '', ['Function', 'Method'])
+      let mode = await nvim.mode
+      expect(mode.mode).toBe('v')
+      let doc = workspace.getDocument(buf.id)
+      await nvim.input('<esc>')
+      let res = await workspace.getSelectedRange('v', doc)
+      expect(res).toEqual({ start: { line: 1, character: 6 }, end: { line: 2, character: 6 } })
+    })
 
-  it('should select symbol range from select range', async () => {
-    let code = `class myClass {
+    it('should select inner range', async () => {
+      let code = `class myClass {
+      fun1() {
+        let foo;
+      }
+}`
+      let buf = await createBuffer(code)
+      await nvim.call('cursor', [3, 3])
+      await symbols.selectSymbolRange(true, '', ['Method'])
+      let mode = await nvim.mode
+      expect(mode.mode).toBe('v')
+      let doc = workspace.getDocument(buf.id)
+      await nvim.input('<esc>')
+      let res = await workspace.getSelectedRange('v', doc)
+      expect(res).toEqual({
+        start: { line: 2, character: 8 }, end: { line: 2, character: 16 }
+      })
+    })
+
+    it('should reset visualmode when selection not found', async () => {
+      let code = `class myClass {}`
+      await createBuffer(code)
+      await nvim.call('cursor', [1, 1])
+      await nvim.command('normal! gg0v$')
+      let mode = await nvim.mode
+      expect(mode.mode).toBe('v')
+      await nvim.input('<esc>')
+      await symbols.selectSymbolRange(true, 'v', ['Method'])
+      mode = await nvim.mode
+      expect(mode.mode).toBe('v')
+    })
+
+    it('should select symbol range from select range', async () => {
+      let code = `class myClass {
       fun1() {
       }
     }`
-    let buf = await createBuffer(code)
-    await nvim.call('cursor', [2, 8])
-    await nvim.command('normal! viw')
-    await nvim.input('<esc>')
-    await helper.doAction('selectSymbolRange', false, 'v', ['Class'])
-    let mode = await nvim.mode
-    expect(mode.mode).toBe('v')
-    let doc = workspace.getDocument(buf.id)
-    await nvim.input('<esc>')
-    let res = await workspace.getSelectedRange('v', doc)
-    expect(res).toEqual({ start: { line: 0, character: 0 }, end: { line: 3, character: 4 } })
-  })
+      let buf = await createBuffer(code)
+      await nvim.call('cursor', [2, 8])
+      await nvim.command('normal! viw')
+      await nvim.input('<esc>')
+      await helper.doAction('selectSymbolRange', false, 'v', ['Class'])
+      let mode = await nvim.mode
+      expect(mode.mode).toBe('v')
+      let doc = workspace.getDocument(buf.id)
+      await nvim.input('<esc>')
+      let res = await workspace.getSelectedRange('v', doc)
+      expect(res).toEqual({ start: { line: 0, character: 0 }, end: { line: 3, character: 4 } })
+    })
 
-  it('should update symbols automatically', async () => {
-    helper.updateConfiguration('coc.preferences.currentFunctionSymbolAutoUpdate', true)
-    let code = `class myClass {
-      fun1() {
-      }
-    }`
-    let buf = await createBuffer(code)
-    let fn = jest.fn()
-    events.on('SymbolsUpdate', (bufnr, symbols) => {
-      if (bufnr == buf.id) fn(symbols)
-    }, null, disposables)
-    await nvim.call('cursor', [2, 8])
-    await events.fire('CursorHold', [buf.id])
-    let val = await buf.getVar('coc_current_function')
-    expect(val).toBe('fun1')
-    await nvim.call('cursor', [1, 8])
-    await events.fire('CursorHold', [buf.id])
-    val = await buf.getVar('coc_current_function')
-    expect(val).toBe('myClass')
-    expect(fn).toBeCalled()
-    helper.updateConfiguration('coc.preferences.currentFunctionSymbolAutoUpdate', false)
   })
 })

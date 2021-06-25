@@ -20,7 +20,7 @@ import CodeActions from './codeActions'
 import CodeLens from './codelens/index'
 import Colors from './colors/index'
 import Format from './format'
-import { addDocument, isMarkdown, SymbolInfo, synchronizeDocument } from './helper'
+import { addDocument, isMarkdown, synchronizeDocument } from './helper'
 import Highlights from './highlights'
 import Refactor from './refactor/index'
 import { Highlight } from './semanticTokensHighlights/buffer'
@@ -46,11 +46,11 @@ export default class Handler {
   private documentHighlighter: Highlights
   private semanticHighlighter: SemanticTokensHighlights
   private colors: Colors
-  private symbols: Symbols
   private hoverFactory: FloatFactory
   private signature: Signature
   private documentLines: string[] = []
   private codeLens: CodeLens
+  public readonly symbols: Symbols
   public readonly refactor: Refactor
   public readonly codeActions: CodeActions
   public readonly format: Format
@@ -69,9 +69,9 @@ export default class Handler {
     this.codeActions = new CodeActions(nvim, this)
     this.format = new Format(nvim, this)
     this.refactor = new Refactor(nvim, this)
+    this.symbols = new Symbols(nvim, this)
     this.hoverFactory = new FloatFactory(nvim)
     this.signature = new Signature(nvim)
-    this.symbols = new Symbols(nvim)
     this.codeLens = new CodeLens(nvim)
     this.colors = new Colors(nvim)
     this.documentHighlighter = new Highlights(nvim)
@@ -152,28 +152,6 @@ export default class Handler {
       return null
     }
     return res
-  }
-
-  public async getCurrentFunctionSymbol(): Promise<string> {
-    let { doc } = await this.getCurrentState()
-    this.checkProvier('documentSymbol', doc.textDocument)
-    return await this.symbols.getCurrentFunctionSymbol()
-  }
-
-  /*
-   * supportedSymbols must be string values of symbolKind
-   */
-  public async selectSymbolRange(inner: boolean, visualmode: string, supportedSymbols: string[]): Promise<void> {
-    let { doc } = await this.getCurrentState()
-    this.checkProvier('documentSymbol', doc.textDocument)
-    return await this.symbols.selectSymbolRange(inner, visualmode, supportedSymbols)
-  }
-
-  public async getDocumentSymbols(bufnr: number): Promise<SymbolInfo[]> {
-    let doc = workspace.getDocument(bufnr)
-    if (!doc || !doc.attached) throw new Error(`buffer ${bufnr} not attached`)
-    this.checkProvier('documentSymbol', doc.textDocument)
-    return await this.symbols.getDocumentSymbols(bufnr)
   }
 
   public async hasProvider(id: string): Promise<boolean> {

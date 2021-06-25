@@ -286,10 +286,6 @@ export default class Signature {
     if (this.timer) {
       clearTimeout(this.timer)
     }
-    if (this.tokenSource) {
-      this.tokenSource.cancel()
-      this.tokenSource.dispose()
-    }
   }
 }
 
