@@ -118,10 +118,10 @@ endfunction
 function! coc#status()
   let info = get(b:, 'coc_diagnostic_info', {})
   let msgs = []
-  if get(info, 'error', 0)
+  if !empty(info) && get(info, 'error', 0)
     call add(msgs, s:error_sign . info['error'])
   endif
-  if get(info, 'warning', 0)
+  if !empty(info) && get(info, 'warning', 0)
     call add(msgs, s:warning_sign . info['warning'])
   endif
   return s:trim(join(msgs, ' ') . ' ' . get(g:, 'coc_status', ''))

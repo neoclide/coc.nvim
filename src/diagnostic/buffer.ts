@@ -282,7 +282,7 @@ export class DiagnosticBuffer implements BufferSyncItem {
       if (this.config.virtualText) {
         this.buffer.clearNamespace(this.config.virtualTextSrcId)
       }
-      nvim.call('setbufvar', [this.bufnr, 'coc_diagnostic_info', null], true)
+      nvim.call('coc#compat#buf_del_var', [this.bufnr, 'coc_diagnostic_info'], true)
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       nvim.resumeNotification(false, true)
     }

@@ -493,7 +493,7 @@ function! coc#float#create_cursor_float(winid, bufnr, lines, config) abort
   return [currbuf, pos, winid, bufnr]
 endfunction
 
-" Create float window for input, neovim only since vim doesn't support focus
+" Create float window for input
 function! coc#float#create_prompt_win(title, default, opts) abort
   call coc#float#close_auto_hide_wins()
   " Calculate col
