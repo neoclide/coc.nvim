@@ -225,6 +225,9 @@ export default class Plugin extends EventEmitter {
     this.addAction('toggleSource', name => {
       sources.toggleSource(name)
     })
+    this.addAction('diagnosticRefresh', async (bufnr?: number) => {
+      diagnosticManager.refresh(bufnr)
+    })
     this.addAction('diagnosticInfo', async () => {
       await diagnosticManager.echoMessage()
     })

@@ -76,9 +76,8 @@ export class DiagnosticManager implements Disposable {
       fn.clear()
     }))
     events.on('InsertLeave', async bufnr => {
-      if (!this.config.refreshOnInsertMode) {
-        this.refreshBuffer(bufnr)
-      }
+      if (this.config.refreshOnInsertMode) return
+      this.refreshBuffer(bufnr)
     }, null, this.disposables)
     events.on('BufEnter', async () => {
       if (this.timer) clearTimeout(this.timer)
@@ -520,6 +519,7 @@ export class DiagnosticManager implements Disposable {
     this.config = {
       messageTarget,
       enableHighlightLineNumber,
+      autoRefresh: config.get<boolean>('autoRefresh', false),
       virtualTextSrcId: workspace.createNameSpace('diagnostic-virtualText'),
       checkCurrentLine: config.get<boolean>('checkCurrentLine', false),
       enableSign: workspace.env.sign && config.get<boolean>('enableSign', true),
@@ -590,7 +590,7 @@ export class DiagnosticManager implements Disposable {
    * Refresh diagnostics by uri or bufnr
    */
   public refreshBuffer(uri: string | number, force = false): boolean {
-    if (!this.enabled) return false
+    if (!this.enabled || !this.config.autoRefresh) return false
     let buf = this.buffers.getItem(uri)
     if (!buf) return false
     let diagnostics = this.getDiagnostics(buf.uri)
@@ -600,6 +600,21 @@ export class DiagnosticManager implements Disposable {
       buf.refresh(diagnostics)
     }
     return true
+  }
+
+  public refresh(bufnr?: number): void {
+    if (!bufnr) {
+      for (let item of this.buffers.items) {
+        let diagnostics = this.getDiagnostics(item.uri)
+        item.forceRefresh(diagnostics)
+      }
+    } else {
+      let item = this.buffers.getItem(bufnr)
+      if (item) {
+        let diagnostics = this.getDiagnostics(item.uri)
+        item.forceRefresh(diagnostics)
+      }
+    }
   }
 }
 

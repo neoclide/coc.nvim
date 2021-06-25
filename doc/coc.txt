@@ -339,6 +339,12 @@ Built-in configurations:~
 
 	Display diagnostics, default: `true`
 
+"diagnostic.autoRefresh":~
+
+	Enable automatically refresh diagnostics, use
+	|coc-action-diagnosticRefresh| action to refresh diagnostics when it's
+	disabled.
+
 "diagnostic.enableSign":~
 
 	Enable signs for diagnostics, default: `true`
@@ -2220,6 +2226,13 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Note: this will only affect diagnostics shown in the UI, list of all
 	diagnostics won't change.
+
+"diagnosticRefresh" [{bufnr}] 			*coc-action-diagnosticRefresh*
+
+	Force refresh diagnostics for special buffer with {bufnr} or all buffers
+	when {bufnr} not exists, returns `v:null` before diagnostics are shown.
+
+	Useful when `diagnostic.autoRefresh` is `false`.
 
 ------------------------------------------------------------------------------
 COMMANDS						*coc-commands*

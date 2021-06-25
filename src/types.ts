@@ -40,6 +40,7 @@ export interface BufferSyncItem {
 }
 
 export interface DiagnosticConfig {
+  autoRefresh: boolean
   enableSign: boolean
   locationlistUpdate: boolean
   enableHighlightLineNumber: boolean
