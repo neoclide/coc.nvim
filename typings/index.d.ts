@@ -1,5 +1,4 @@
 // vim: set sw=2 ts=2 sts=2 et foldmarker={{,}} foldmethod=marker foldlevel=0 nofen:
-
 /******************************************************************
 MIT License http://www.opensource.org/licenses/mit-license.php
 Author Qiming Zhao <chemzqm@gmail> (https://github.com/chemzqm)
@@ -1821,6 +1820,148 @@ declare module 'coc.nvim' {
      */
     readonly lineCount: number
   }
+
+  /**
+  * @since 3.16.0
+  */
+  export interface SemanticTokens {
+    /**
+    * An optional result id. If provided and clients support delta updating
+    * the client will include the result id in the next semantic token request.
+    * A server can then instead of computing all semantic tokens again simply
+    * send a delta.
+    */
+    resultId?: string
+    /**
+    * The actual tokens.
+    */
+    data: number[]
+  }
+
+  /**
+   * @since 3.16.0
+   */
+  export interface SemanticTokensEdit {
+    /**
+     * The start offset of the edit.
+     */
+    start: number
+    /**
+     * The count of elements to remove.
+     */
+    deleteCount: number
+    /**
+     * The elements to insert.
+     */
+    data?: number[]
+  }
+
+  /**
+   * @since 3.16.0
+   */
+  export interface SemanticTokensDelta {
+    readonly resultId?: string
+    /**
+     * The semantic token edits to transform a previous result into a new result.
+     */
+    edits: SemanticTokensEdit[]
+  }
+
+  /**
+  * The result of a linked editing range request.
+  *
+  * @since 3.16.0
+  */
+  export interface LinkedEditingRanges {
+    /**
+    * A list of ranges that can be edited together. The ranges must have
+    * identical length and contain identical text content. The ranges cannot overlap.
+    */
+    ranges: Range[]
+    /**
+    * An optional word pattern (regular expression) that describes valid contents for
+    * the given ranges. If no pattern is provided, the client configuration's word
+    * pattern will be used.
+    */
+    wordPattern?: string
+  }
+
+  /**
+   * Represents programming constructs like functions or constructors in the context
+   * of call hierarchy.
+   *
+   * @since 3.16.0
+   */
+  export interface CallHierarchyItem {
+    /**
+     * The name of this item.
+     */
+    name: string
+    /**
+     * The kind of this item.
+     */
+    kind: SymbolKind
+    /**
+     * Tags for this item.
+     */
+    tags?: number[]
+    /**
+     * More detail for this item, e.g. the signature of a function.
+     */
+    detail?: string
+    /**
+     * The resource identifier of this item.
+     */
+    uri: string
+    /**
+     * The range enclosing this symbol not including leading/trailing whitespace but everything else, e.g. comments and code.
+     */
+    range: Range
+    /**
+     * The range that should be selected and revealed when this symbol is being picked, e.g. the name of a function.
+     * Must be contained by the [`range`](#CallHierarchyItem.range).
+     */
+    selectionRange: Range
+    /**
+     * A data entry field that is preserved between a call hierarchy prepare and
+     * incoming calls or outgoing calls requests.
+     */
+    data?: unknown
+  }
+
+  /**
+  * Represents an incoming call, e.g. a caller of a method or constructor.
+  *
+  * @since 3.16.0
+  */
+  export interface CallHierarchyIncomingCall {
+    /**
+    * The item that makes the call.
+    */
+    from: CallHierarchyItem
+    /**
+    * The ranges at which the calls appear. This is relative to the caller
+    * denoted by [`this.from`](#CallHierarchyIncomingCall.from).
+    */
+    fromRanges: Range[]
+  }
+  /**
+  * Represents an outgoing call, e.g. calling a getter from a method or a method from a constructor etc.
+  *
+  * @since 3.16.0
+  */
+  export interface CallHierarchyOutgoingCall {
+    /**
+    * The item that is called.
+    */
+    to: CallHierarchyItem
+    /**
+    * The range at which this item is called. This is the range relative to the caller, e.g the item
+    * passed to [`provideCallHierarchyOutgoingCalls`](#CallHierarchyItemProvider.provideCallHierarchyOutgoingCalls)
+    * and not [`this.to`](#CallHierarchyOutgoingCall.to).
+    */
+    fromRanges: Range[]
+  }
   // }}
 
   // nvim interfaces {{
@@ -2766,11 +2907,11 @@ declare module 'coc.nvim' {
      * of UNC paths. See the below sample of a file-uri with an authority (UNC path).
      *
      * ```ts
-          const u = URI.parse('file://server/c$/folder/file.txt')
-          u.authority === 'server'
-          u.path === '/shares/c$/file.txt'
-          u.fsPath === '\\server\c$\folder\file.txt'
-      ```
+            const u = URI.parse('file://server/c$/folder/file.txt')
+            u.authority === 'server'
+            u.path === '/shares/c$/file.txt'
+            u.fsPath === '\\server\c$\folder\file.txt'
+        ```
      *
      * Using `URI#path` to read a file (using fs-apis) would not be enough because parts of the path,
      * namely the server name, would be missing. Therefore `URI#fsPath` exists - it's sugar to ease working
@@ -2800,15 +2941,15 @@ declare module 'coc.nvim' {
      * `URI.parse('file://' + path)` because the path might contain characters that are
      * interpreted (# and ?). See the following sample:
      * ```ts
-      const good = URI.file('/coding/c#/project1');
-      good.scheme === 'file';
-      good.path === '/coding/c#/project1';
-      good.fragment === '';
-      const bad = URI.parse('file://' + '/coding/c#/project1');
-      bad.scheme === 'file';
-      bad.path === '/coding/c'; // path is now broken
-      bad.fragment === '/project1';
-      ```
+        const good = URI.file('/coding/c#/project1');
+        good.scheme === 'file';
+        good.path === '/coding/c#/project1';
+        good.fragment === '';
+        const bad = URI.parse('file://' + '/coding/c#/project1');
+        bad.scheme === 'file';
+        bad.path === '/coding/c'; // path is now broken
+        bad.fragment === '/project1';
+        ```
      *
      * @param path A file system path (see `URI#fsPath`)
      */
@@ -7497,9 +7638,9 @@ declare module 'coc.nvim' {
 
   export interface InitializeParams {
     /**
-    * The process Id of the parent process that started
-    * the server.
-    */
+     * The process Id of the parent process that started
+     * the server.
+     */
     processId: number | null
     /**
      * Information about the client
