@@ -67,14 +67,21 @@ Note: This plugin doesn't come with any support for any specific language. You
 will need to install a coc extension or set up a languageserver for LSP features.
 
 Note: This plugin doesn't change any of your existing key-mappings. You will
-need to creat your own mappings for coc.nvim yourself.
+need to create key-mappings by yourself.
+
+Note: automatic completion plugins can't play nicely together, you can disable
+automatic completion of coc.nvim by use `"suggest.autoTrigger": "none"` (or
+`"suggest.autoTrigger": "trigger"`) in your settings file.
 
 ==============================================================================
 REQUIREMENTS						*coc-requirements*
 
 Neovim >= 0.3.2 or Vim >= 8.0.1453.
 
-NodeJS https://nodejs.org/ >= 12.12.0
+NodeJS https://nodejs.org/ >= 12.12.0.
+
+Yarn https://yarnpkg.com/ required to build coc.nvim from typescript source
+code.
 
 ==============================================================================
 INSTALLATION						*coc-installation*
@@ -83,16 +90,12 @@ If you're using [vim-plug](https://github.com/junegunn/vim-plug), add this to
 your `init.vim` or `.vimrc`: >
 
   Plug 'neoclide/coc.nvim'
-
 <
-
 And run: >
 
   :PlugInstall
 
-<
-
-For other plugin managers, use code from the release branch.
+For other plugin managers, make sure to use code from the release branch.
 
 You can also use Vim's native package management: >
 
@@ -106,34 +109,30 @@ You can also use Vim's native package management: >
   cd ~/.local/share/nvim/site/pack/coc/start
   curl --fail -L https://github.com/neoclide/coc.nvim/archive/release.tar.gz|tar xzfv -
 
-<
-
 ==============================================================================
 CONFIGURATION						*coc-configuration*
 
-The configurations of coc.nvim are stored in a file named `coc-settings.json`. You
-can open it using |:CocConfig|. This will create a user-level (or global)
-configuration file in your 'runtimepath'. To create a configuration file only
-for your curent working directory, use |:CocLocalConfig|. 
+The configurations of coc.nvim are stored in a file named `coc-settings.json`.
+You can open it using |:CocConfig|. This will create/open a global settings
+files in folder returned by |coc#util#get_config_home()|
+
+To create a configuration file used by project only, use |:CocLocalConfig| to
+create/open `.vim/coc-settings.json` inside current workspace folder.
 
 The global configuration file can be created in another directory by setting
 `g:coc_config_home` in your `.vimrc` or `init.vim`: >
 
 	let g:coc_config_home = '/path/you/prefer'
 
-<
+When creating a local configuration file, it's possible to use
+|b:coc_root_patterns| for resolve the root directory from the filepath of
+opend buffer.
 
-When creating a local configuration file, use |b:coc_root_patterns| to resolve
-the root directory of a project.
-
-
-Since the configuration files are all in JSON format, you may want to enable
-JSON completion and validation support for them. Consider installing the
-`coc-json` extension: >
+Since the configuration files are all in JSON format, it's suggested to enable
+JSON completion and validation by install the `coc-json` extension: >
 
 	:CocInstall coc-json
 <
-
 Check https://github.com/neoclide/coc.nvim/wiki/Using-the-configuration-file
 for more details.
 
@@ -1085,13 +1084,17 @@ INTERFACE						*coc-interface*
 
 ------------------------------------------------------------------------------
 
-Coc doesn't come with a default global keymap, you need to configure the
-mappings yourself.
-
 Key mappings						*coc-key-mappings*
+
+Note: Use |:verbose| command to check key-mappings taking effect.
 
 Note: Mappings that start with `i_` works for insert mode `n_` works for
 normal mode, `v_` works for visual mode.
+
+Note: Use 'noremap' with <Plug> will make the key-mapping not work at all.
+
+Note: Key-mappings are provided for convenient, use |CocActionAsync()| or
+|CocAction()| for more options.
 
 <Plug>(coc-diagnostic-info)				*n_coc-diagnostic-info*
 
@@ -1275,6 +1278,10 @@ normal mode, `v_` works for visual mode.
 
 ------------------------------------------------------------------------------
 VARIABLES						*coc-variables*
+
+------------------------------------------------------------------------------
+
+User defined variables:
 
 b:coc_enabled						*b:coc_enabled*
 
@@ -1573,16 +1580,14 @@ g:coc_border_joinchars 					*g:coc_border_joinchars*
 
 g:coc_prompt_win_width 					*g:coc_prompt_win_width*
 
-	Width of input prompt window on neovim >= 0.5.0.  Prompt buffer can't
-	work with vim8's popup yet.
+	Width of input prompt window, default `32`.
 
-g:coc_markdown_disabled_languages  			*g:coc_markdown_disabled_languages*
+g:coc_markdown_disabled_languages  		*g:coc_markdown_disabled_languages*
 
 	Filetype list that should be disabled for highlight in markdown block, ex: >
 
 	let g:coc_markdown_disabled_languages = ['html']
 >
-
 g:coc_install_yarn_cmd 					*g:coc_install_yarn_cmd*
 
 	Yarn command used for |coc#util#install()| function.
@@ -1725,12 +1730,6 @@ coc#_select_confirm()					*coc#_select_confirm()*
 	autocmd should exists or only <C-n> and <C-p> should be used to select
 	a completion item.
 
-
-health#coc#check()					*health#coc#check()*
-
-	Neovim only, run health check, triggered by ':checkhealth'
-	command.
-
 coc#util#api_version() 					 *coc#util#api_version()*
 
 	Get coc.nvim's vim api version number, start from `1`.
@@ -1753,7 +1752,7 @@ coc#util#extension_root()				*coc#util#extension_root()*
 
 coc#util#rebuild()					*coc#util#rebuild()*
 
-	Rebuild coc extensions.
+	Run `npm rebuild` for all coc extensions.
 
 coc#util#root_patterns()				*coc#util#root_patterns()*
 
@@ -1771,8 +1770,9 @@ coc#util#get_config({key})				*coc#util#get_config()*
 
 coc#util#install()  					*coc#util#install()*
 
-	Install dependencies and compile source code, not needed unless
-	you need compile typescript code.
+	Install dependencies and compile source code of coc.nvim.
+
+	Deprecated, use release branch of coc.nvim is recommended.
 
 coc#float#has_float([{all}]) 				*coc#float#has_float()*
 
@@ -1878,6 +1878,8 @@ CocAction({action}, [...{args}])			*CocAction()*
 
 	Run {action} of coc with optional extra {args}.
 
+	Checkout |coc-action| for available actions.
+
 							*CocActionAsync()*
 
 CocActionAsync({action}, [...{args}, [{callback}]])
@@ -1886,6 +1888,8 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	Optional callback is called with `error` as the first argument and
 	`response` as the second argument.
+
+	Checkout |coc-action| for available actions.
 
 CocHasProvider({feature})				*CocHasProvider()*
 
@@ -2878,7 +2882,7 @@ Use `coc-settings.json` for configuration of lists.
 The general configuration of list starts with 'list.'.
 
 Checkout |coc-config-list| or type `list.` in your settings file to get completion
-list.
+list (requires coc-json installed).
 
 For configuration of a specified list, use section that starts with:
 `list.source.{name}`, where `{name}` is the name of list.
@@ -3180,8 +3184,8 @@ See |coc-config-dialog| for available configurations.
 
 							*coc-dialog-basic*
 
-A basic dialog is create by 'window.showDialog' api, which is just some texts
-with optional buttons.
+A basic dialog is create by javascript api `window.showDialog` , which is just
+some texts with optional buttons.
 
 ------------------------------------------------------------------------------
 
