@@ -515,6 +515,11 @@
       "description": "Set to false to disable diagnostic display",
       "default": true
     },
+    "diagnostic.autoRefresh": {
+      "type": "boolean",
+      "description": "Enable automatically refresh diagnostics, use diagnosticRefresh action when it's disabled.",
+      "default": true
+    },
     "diagnostic.level": {
       "type": "string",
       "description": "Used for filter diagnostics by diagnostic severity.",
@@ -1064,8 +1069,19 @@
     },
     "coc.preferences.jumpCommand": {
       "anyOf": [
-        {"type": "string", "enum": ["edit", "split", "vsplit", "tabe", "drop", "tab drop", "pedit"]},
-        {"type": "string", "minimum": 1}
+        {
+          "type": "string",
+          "enum": [
+            "edit",
+            "split",
+            "vsplit",
+            "tabe",
+            "drop",
+            "tab drop",
+            "pedit"
+          ]
+        },
+        { "type": "string", "minimum": 1 }
       ],
       "description": "Command used for location jump, like goto definition, goto references etc. Can be also a custom command that gives file as an argument.",
       "default": "edit"

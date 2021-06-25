@@ -339,6 +339,12 @@ Built-in configurations:~
 
 	Display diagnostics, default: `true`
 
+"diagnostic.autoRefresh":~
+
+	Enable automatically refresh diagnostics, use
+	|coc-action-diagnosticRefresh| action to refresh diagnostics when it's
+	disabled.
+
 "diagnostic.enableSign":~
 
 	Enable signs for diagnostics, default: `true`
@@ -2195,8 +2201,9 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 "doQuickfix"						*coc-action-doQuickfix*
 
-	Do the first quickfix action for the current line.
-	Return `v:false` when no quickfix action found.
+	Do the first preferred quickfix action on current line.
+
+	Throw error when no quickfix action found.
 
 "addRanges" {ranges}					*coc-action-addRanges*
 
@@ -2219,6 +2226,13 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Note: this will only affect diagnostics shown in the UI, list of all
 	diagnostics won't change.
+
+"diagnosticRefresh" [{bufnr}] 			*coc-action-diagnosticRefresh*
+
+	Force refresh diagnostics for special buffer with {bufnr} or all buffers
+	when {bufnr} not exists, returns `v:null` before diagnostics are shown.
+
+	Useful when `diagnostic.autoRefresh` is `false`.
 
 ------------------------------------------------------------------------------
 COMMANDS						*coc-commands*
