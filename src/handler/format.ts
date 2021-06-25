@@ -29,7 +29,6 @@ interface FormatPreferences {
 
 export default class FormatHandler {
   private preferences: FormatPreferences
-  private warnedBuffers: Set<number> = new Set()
   constructor(
     private nvim: Neovim,
     private handler: HandlerDelegate
@@ -48,9 +47,9 @@ export default class FormatHandler {
           let options = await workspace.getFormatOptions(event.document.uri)
           let tokenSource = new CancellationTokenSource()
           let timer = setTimeout(() => {
-            logger.warn(`Onsave format ${event.document.uri} timeout after 1s`)
+            logger.warn(`Onsave format ${event.document.uri} timeout after 0.5s`)
             tokenSource.cancel()
-          }, 1000)
+          }, 500)
           let textEdits = await languages.provideDocumentFormattingEdits(event.document, options, tokenSource.token)
           clearTimeout(timer)
           if (!textEdits && !tokenSource.token.isCancellationRequested) {
@@ -146,9 +145,8 @@ export default class FormatHandler {
       // Only check formatOnTypeFiletypes when set, avoid breaking change
       return
     }
-    if (!this.warnedBuffers.has(doc.bufnr) && !languages.hasProvider('formatOnType', doc.textDocument)) {
+    if (!languages.hasProvider('formatOnType', doc.textDocument)) {
       logger.warn(`Format on type provider not found for buffer: ${doc.bufnr}`)
-      this.warnedBuffers.add(doc.bufnr)
       return
     }
     if (!languages.canFormatOnType(ch, doc.textDocument)) return
@@ -195,11 +193,9 @@ export default class FormatHandler {
     return false
   }
 
-  public async documentRangeFormat(doc: Document, mode: string): Promise<number> {
+  public async documentRangeFormat(doc: Document, mode?: string): Promise<number> {
+    this.handler.checkProvier('formatRange', doc.textDocument)
     await synchronizeDocument(doc)
-    if (!languages.hasProvider('formatRange', doc.textDocument)) {
-      throw new Error(`Format range provider not found for buffer: ${doc.bufnr}`)
-    }
     let range: Range
     if (mode) {
       range = await workspace.getSelectedRange(mode, doc)
