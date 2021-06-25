@@ -53,5 +53,27 @@ describe('search', () => {
       err = e
     }
     expect(err).toBeDefined()
+    let msg = await helper.getCmdline()
+    expect(msg).toMatch(/Error on command "rrg"/)
+  })
+
+  it('should show empty result when no result found', async () => {
+    await helper.doAction('search', ['should found ' + ' no result'])
+    let bufnr = await nvim.call('bufnr', ['%'])
+    let buf = refactor.getBuffer(bufnr)
+    expect(buf).toBeDefined()
+    let buffer = await nvim.buffer
+    let lines = await buffer.lines
+    expect(lines[1]).toMatch(/No match found/)
+  })
+
+  it('should use corrent search folder for rg', async () => {
+    let search = new Search(nvim, 'rg')
+    await helper.createDocument()
+    let buf = await refactor.createRefactorBuffer()
+    await search.run(['-w', 'createRefactorBuffer', 'src/__tests__'], cwd, buf)
+    let buffer = await nvim.buffer
+    let lines = await buffer.lines
+    expect(lines[1].startsWith('Files: ')).toBe(true)
   })
 })

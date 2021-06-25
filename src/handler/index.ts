@@ -108,7 +108,7 @@ export default class Handler {
   /**
    * Throw error when provider not exists.
    */
-  private checkProvier(id: ProviderName, document: TextDocument): void {
+  public checkProvier(id: ProviderName, document: TextDocument): void {
     if (languages.hasProvider(id, document)) return
     throw new Error(`${id} provider not found for current buffer, your language server doesn't support it.`)
   }

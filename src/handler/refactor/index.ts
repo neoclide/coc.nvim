@@ -47,6 +47,17 @@ export default class Refactor {
     }, null, this.disposables)
   }
 
+  private setConfiguration(e?: ConfigurationChangeEvent): void {
+    if (e && !e.affectsConfiguration('refactor')) return
+    let config = workspace.getConfiguration('refactor')
+    this.config = Object.assign(this.config || {}, {
+      afterContext: config.get('afterContext', 3),
+      beforeContext: config.get('beforeContext', 3),
+      openCommand: config.get('openCommand', 'edit'),
+      saveToFile: config.get('saveToFile', true)
+    })
+  }
+
   /**
    * Refactor of current symbol
    */
@@ -59,36 +70,15 @@ export default class Refactor {
     let edit = await this.handler.withRequestToken('refactor', async token => {
       let res = await languages.prepareRename(doc.textDocument, position, token)
       if (token.isCancellationRequested) return null
-      if (res === false) {
-        window.showMessage('Invalid position', 'warning')
-        return null
-      }
+      if (res === false) throw new Error(`Provider returns null on prepare, unable to rename at current position`)
       let edit = await languages.provideRenameEdits(doc.textDocument, position, 'NewName', token)
       if (token.isCancellationRequested) return null
-      if (!edit) {
-        window.showMessage('Empty workspaceEdit from language server', 'warning')
-        return null
-      }
+      if (!edit) throw new Error('Provider returns null for rename edits.')
       return edit
     })
     if (edit) {
       await this.fromWorkspaceEdit(edit, doc.filetype)
     }
-  }
-
-  private setConfiguration(e?: ConfigurationChangeEvent): void {
-    if (e && !e.affectsConfiguration('refactor')) return
-    let config = workspace.getConfiguration('refactor')
-    this.config = Object.assign(this.config || {}, {
-      afterContext: config.get('afterContext', 3),
-      beforeContext: config.get('beforeContext', 3),
-      openCommand: config.get('openCommand', 'edit'),
-      saveToFile: config.get('saveToFile', true)
-    })
-  }
-
-  public getBuffer(bufnr: number): RefactorBuffer {
-    return this.buffers.get(bufnr)
   }
 
   /**
@@ -100,6 +90,15 @@ export default class Refactor {
     let cwd = await this.nvim.call('getcwd', [])
     let search = new Search(this.nvim)
     await search.run(args, cwd, buf)
+  }
+
+  public async save(bufnr: number): Promise<boolean> {
+    let buf = this.buffers.get(bufnr)
+    if (buf) return await buf.save()
+  }
+
+  public getBuffer(bufnr: number): RefactorBuffer {
+    return this.buffers.get(bufnr)
   }
 
   /**
@@ -209,11 +208,6 @@ export default class Refactor {
     let buf = await this.createRefactorBuffer(filetype)
     await buf.addFileItems(items)
     return buf
-  }
-
-  public async save(bufnr: number): Promise<boolean> {
-    let buf = this.buffers.get(bufnr)
-    if (buf) return await buf.save()
   }
 
   private async getLineCount(uri: string): Promise<number> {

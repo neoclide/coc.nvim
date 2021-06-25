@@ -23,6 +23,7 @@ export interface ParsedUrlQueryInput {
 }
 
 export interface HandlerDelegate {
+  checkProvier: (id: ProviderName, document: TextDocument) => void
   withRequestToken: (name: string, fn: (token: CancellationToken) => Thenable<any>, checkEmpty?: boolean) => Promise<any>
   getCurrentState: () => Promise<{ doc: Document, position: Position, winid: number }>
   addDisposable: (disposable: Disposable) => void
