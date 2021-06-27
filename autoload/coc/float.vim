@@ -8,6 +8,9 @@ let s:borderjoinchars = get(g:, 'coc_border_joinchars', ['┬', '┤', '┴', '�
 let s:prompt_win_width = get(g:, 'coc_prompt_win_width', 32)
 let s:prompt_win_bufnr = 0
 let s:float_supported = exists('*nvim_open_win') || has('patch-8.1.1719')
+let s:popup_list_api = exists('*popup_list')
+" Popup ids, used when popup_list not exists
+let s:popup_list = []
 " winvar: border array of numbers,  button boolean
 
 " Check visible float/popup exists.
@@ -115,6 +118,9 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
       let opts['border'] = a:config['border']
     endif
     let winid = popup_create(bufnr, opts)
+    if !s:popup_list_api
+      call add(s:popup_list, winid)
+    endif
     if winid == 0
       return []
     endif
@@ -476,8 +482,7 @@ function! coc#float#create_cursor_float(winid, bufnr, lines, config) abort
   endif
   let width = dimension['width']
   let lines = map(a:lines, {_, s -> s =~# '^—' ? repeat('—', width) : s})
-  let config = extend({'lines': lines, 'relative': 'cursor'}, a:config)
-  let config = extend(config, dimension)
+  let config = extend(extend({'lines': lines, 'relative': 'cursor'}, a:config), dimension)
   call coc#float#close_auto_hide_wins(a:winid)
   let res = coc#float#create_float_win(a:winid, a:bufnr, config)
   if empty(res)
@@ -583,11 +588,9 @@ function! coc#float#get_float_win() abort
         endif
       endif
     endfor
-  elseif exists('*popup_list')
-    let arr = filter(popup_list(), 'popup_getpos(v:val)["visible"]')
-    if !empty(arr)
-      return arr[0]
-    endif
+  else
+    let ids = s:popup_list_api ?  popup_list() : s:popup_list
+    return get(filter(ids, 's:popup_visible(v:val)'), 0, 0)
   endif
   return 0
 endfunction
@@ -595,8 +598,11 @@ endfunction
 function! coc#float#get_float_win_list(...) abort
   let res = []
   let all = get(a:, 1, 0)
-  if s:is_vim && exists('*popup_list')
-    return filter(popup_list(), 'popup_getpos(v:val)["visible"]'.(all ? '' : '&& getwinvar(v:val, "float", 0)'))
+  if s:is_vim
+    if s:popup_list_api
+      return filter(popup_list(), 'popup_getpos(v:val)["visible"]'.(all ? '' : '&& getwinvar(v:val, "float", 0)'))
+    endif
+    return filter(s:popup_list, 's:popup_visible(v:val)')
   elseif has('nvim') && exists('*nvim_win_get_config')
     let res = []
     for i in range(1, winnr('$'))
@@ -801,6 +807,9 @@ function! coc#float#check_related() abort
       call add(invalids, id)
     endif
   endfor
+  if !s:popup_list_api
+    let s:popup_list = filter(ids, "index(invalids, v:val) == -1")
+  endif
   for id in invalids
     call coc#float#close(id)
   endfor
@@ -1058,6 +1067,9 @@ function! coc#float#vim_buttons(winid, config) abort
           \ }, options)
     call extend(options, config)
     let winid = popup_create(bufnr, options)
+    if !s:popup_list_api
+      call add(s:popup_list, winid)
+    endif
   endif
   if winid != 0
     if !empty(borderhighlight)
