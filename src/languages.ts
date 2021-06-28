@@ -598,13 +598,26 @@ class Languages {
         }
       },
       onCompleteResolve: async (item: VimCompleteItem, token: CancellationToken): Promise<void> => {
-        let resolving = completeItems[item.index]
-        if (!resolving) return
-        if (hasResolve && !resolvedIndexes.has(item.index)) {
-          let resolved = await Promise.resolve(provider.resolveCompletionItem(resolving, token))
-          if (token.isCancellationRequested) return
-          resolvedIndexes.add(item.index)
-          if (resolved) Object.assign(resolving, resolved)
+        let { index } = item
+        let resolving = completeItems[index]
+        if (!resolving || resolvedIndexes.has(index)) return
+        if (hasResolve) {
+          token.onCancellationRequested(() => {
+            resolvedIndexes.delete(index)
+          })
+          resolvedIndexes.add(index)
+          try {
+            let resolved = await Promise.resolve(provider.resolveCompletionItem(Object.assign({}, resolving), token))
+            if (token.isCancellationRequested) return
+            if (resolved) {
+              Object.assign(resolving, resolved)
+            } else {
+              resolvedIndexes.delete(index)
+            }
+          } catch (e) {
+            resolvedIndexes.delete(index)
+            logger.error(`Error on complete resolve: ${e.message}`, e.stack)
+          }
         }
         if (item.documentation == null) {
           let { documentation, detail } = resolving

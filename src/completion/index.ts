@@ -401,7 +401,9 @@ export class Completion implements Disposable {
     let timestamp = this.insertCharTs
     let insertLeaveTs = this.insertLeaveTs
     try {
-      await sources.doCompleteResolve(resolvedItem, (new CancellationTokenSource()).token)
+      let source = new CancellationTokenSource()
+      await sources.doCompleteResolve(resolvedItem, source.token)
+      source.dispose()
       this.addRecent(resolvedItem.word, document.bufnr)
       // Wait possible TextChangedI
       await wait(50)
@@ -469,6 +471,7 @@ export class Completion implements Disposable {
 
   public async onPumChange(ev: PopupChangeEvent): Promise<void> {
     if (!this.activated) return
+    this.cancelResolve()
     let { completed_item, col, row, height, width, scrollbar } = ev
     let bounding: PumBounding = { col, row, height, width, scrollbar }
     let resolvedItem = this.getCompleteItem(completed_item)
@@ -479,15 +482,17 @@ export class Completion implements Disposable {
     let source = this.resolveTokenSource = new CancellationTokenSource()
     let { token } = source
     await sources.doCompleteResolve(resolvedItem, token)
-    this.resolveTokenSource = null
-    if (token.isCancellationRequested) return
+    if (this.resolveTokenSource == source) {
+      this.resolveTokenSource = null
+    }
+    source.dispose()
+    if (token.isCancellationRequested || !this.isActivated) return
     let docs = resolvedItem.documentation
     if (!docs && resolvedItem.info) {
       let { info } = resolvedItem
       let isText = /^[\w-\s.,\t]+$/.test(info)
       docs = [{ filetype: isText ? 'txt' : this.document.filetype, content: info }]
     }
-    if (!this.isActivated) return
     if (!docs || docs.length == 0) {
       this.floating.close()
     } else {
@@ -581,6 +586,7 @@ export class Completion implements Disposable {
   }
 
   public dispose(): void {
+    this.resolveTokenSource = null
     disposeAll(this.disposables)
   }
 }
