@@ -1391,6 +1391,9 @@ g:coc_global_extensions					*g:coc_global_extensions*
 >
 	let g:coc_global_extensions = ['coc-json', 'coc-git']
 <
+	Note: coc.nvim would try to install extensions that not installed in
+	this list after initialization.
+
 g:coc_uri_prefix_replace_patterns			*g:coc_uri_prefix_replace_patterns*
 
 	This map defines URI prefix replacements. This is useful in the case
