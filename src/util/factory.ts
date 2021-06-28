@@ -99,7 +99,7 @@ function createSandbox(filename: string, logger: Logger): ISandbox {
         logger.debug.apply(logger, args)
       },
       log: (...args: any[]) => {
-        logger.debug.apply(logger, args)
+        logger.info.apply(logger, args)
       },
       error: (...args: any[]) => {
         logger.error.apply(logger, args)
