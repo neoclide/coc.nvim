@@ -9,7 +9,7 @@ let s:prompt_win_width = get(g:, 'coc_prompt_win_width', 32)
 let s:prompt_win_bufnr = 0
 let s:float_supported = exists('*nvim_open_win') || has('patch-8.1.1719')
 let s:popup_list_api = exists('*popup_list')
-" Popup ids, used when popup_list not exists
+" Popup ids, used when popup_list() not exists
 let s:popup_list = []
 " winvar: border array of numbers,  button boolean
 
@@ -488,6 +488,7 @@ function! coc#float#create_cursor_float(winid, bufnr, lines, config) abort
   if empty(res)
     return v:null
   endif
+  let alignTop = dimension['row'] < 0
   let winid = res[0]
   let bufnr = res[1]
   call coc#highlight#add_highlights(winid, get(a:config, 'codes', []), get(a:config, 'highlights', []))
@@ -495,7 +496,7 @@ function! coc#float#create_cursor_float(winid, bufnr, lines, config) abort
   if has('nvim')
     call coc#float#nvim_scrollbar(winid)
   endif
-  return [currbuf, pos, winid, bufnr]
+  return [currbuf, pos, winid, bufnr, alignTop]
 endfunction
 
 " Create float window for input

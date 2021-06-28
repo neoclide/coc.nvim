@@ -181,27 +181,22 @@ export default class FloatFactory implements Disposable {
     if (this.autoHide) config.autohide = 1
     let arr = await this.nvim.call('coc#float#create_cursor_float', [this.winid, this._bufnr, lines, config])
     if (isVim) this.nvim.command('redraw', true)
+    this.onCursorMoved.clear()
+    this.tokenSource = null
     if (!arr || arr.length == 0) {
       this.winid = null
       return
     }
-    let [targetBufnr, cursor, winid, bufnr] = arr as [number, [number, number], number, number]
+    let [targetBufnr, cursor, winid, bufnr, alignTop] = arr as [number, [number, number], number, number, number]
     this.winid = winid
     if (token.isCancellationRequested) {
       this.close()
       return
     }
-    let pos = await this.nvim.call('coc#float#cursor_relative', [winid]) as {
-      row: number
-      col: number
-    }
-    if (pos) this.alignTop = pos.row < 0
+    this.alignTop = alignTop == 1
     this._bufnr = bufnr
-    this.tokenSource.dispose()
-    this.tokenSource = null
     this.targetBufnr = targetBufnr
     this.cursor = cursor
-    this.onCursorMoved.clear()
   }
 
   /**
@@ -228,10 +223,6 @@ export default class FloatFactory implements Disposable {
     }
   }
 
-  public dispose(): void {
-    disposeAll(this.disposables)
-  }
-
   public get bufnr(): number {
     return this._bufnr
   }
@@ -247,5 +238,9 @@ export default class FloatFactory implements Disposable {
   public async activated(): Promise<boolean> {
     if (!this.winid) return false
     return await this.nvim.call('coc#float#valid', [this.winid]) != 0
+  }
+
+  public dispose(): void {
+    disposeAll(this.disposables)
   }
 }
