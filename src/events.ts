@@ -65,7 +65,7 @@ class Events {
         col: args[1][1],
         insert: event == 'CursorMovedI'
       }
-      // not handle CursorMoved when it's not moved at all
+      // Avoid CursorMoved event when it's not moved at all
       if (this._cursor && equals(this._cursor, cursor)) return
       this._cursor = cursor
     }
@@ -73,10 +73,8 @@ class Events {
       try {
         await Promise.all(cbs.map(fn => fn(args)))
       } catch (e) {
-        if (e.message && e.message.indexOf('transport disconnected') == -1) {
-          console.error(`Error on ${event}: ${e.message}${e.stack ? '\n' + e.stack : ''} `)
-        }
-        logger.error(`Handler Error on ${event}`, e.stack)
+        if (e.message && e.message.indexOf('transport disconnected') == -1) return
+        logger.error(`Error on event: ${event}`, e.stack)
       }
     }
   }
