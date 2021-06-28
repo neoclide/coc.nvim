@@ -78,8 +78,8 @@ describe('Picker key mappings', () => {
     let fn = jest.fn()
     picker.onDidClose(fn)
     await nvim.input('<C-c>')
-    await helper.wait(50)
-    expect(fn).toBeCalledWith(undefined)
+    await helper.wait(100)
+    expect(fn).toBeCalledTimes(1)
   })
 
   it('should confirm by <CR>', async () => {
