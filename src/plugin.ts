@@ -444,13 +444,21 @@ export default class Plugin extends EventEmitter {
         this.semanticChannel.clear()
       }
       const channel = this.semanticChannel
-      channel.appendLine('## Semantic highlighting for the buffer\n')
-      channel.appendLine(`The number of semantic tokens: ${highlights.length}\n`)
+      channel.appendLine('## Semantic highlighting for current buffer\n')
+      channel.appendLine(`The number of semantic tokens: ${highlights.length}`)
       channel.appendLine('List of all semantic highlight groups:\n')
       const groups = [...new Set(highlights.map(({ group }) => group))]
       for (const group of groups) {
         channel.appendLine(`- ${group}`)
       }
+
+      const doc = await workspace.document
+      const legend = languages.getLegend(doc.textDocument)
+      channel.appendLine('\n## type tokens that current Language Server supported:\n')
+      for (const t of legend.tokenTypes) {
+        channel.appendLine(`- CocSem_${t}`)
+      }
+
       channel.show()
     })
     commandManager.init(nvim, this)
