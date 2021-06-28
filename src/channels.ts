@@ -1,12 +1,25 @@
 import { Neovim } from '@chemzqm/neovim'
 import { URI } from 'vscode-uri'
 import BufferChannel from './model/outputChannel'
+import { Disposable } from 'vscode-languageserver-protocol'
 import { TextDocumentContentProvider } from './provider'
+import events from './events'
 import { OutputChannel } from './types'
-
-const outputChannels: Map<string, OutputChannel> = new Map()
+const logger = require('./util/logger')('channels')
 
 export class Channels {
+  private outputChannels: Map<string, BufferChannel> = new Map()
+  private bufnrs: Map<number, string> = new Map()
+  private disposable: Disposable
+  constructor() {
+    this.disposable = events.on('BufUnload', bufnr => {
+      let name = this.bufnrs.get(bufnr)
+      if (name) {
+        let channel = this.outputChannels.get(name)
+        if (channel) channel.created = false
+      }
+    })
+  }
 
   /**
    * Get text document provider
@@ -18,10 +31,15 @@ export class Channels {
         let channel = this.get(uri.path.slice(1))
         if (!channel) return ''
         nvim.pauseNotification()
+        nvim.call('bufnr', ['%'], true)
         nvim.command('setlocal nospell nofoldenable nowrap noswapfile', true)
         nvim.command('setlocal buftype=nofile bufhidden=hide', true)
         nvim.command('setfiletype log', true)
-        await nvim.resumeNotification()
+        let res = await nvim.resumeNotification()
+        if (!res[1]) {
+          this.bufnrs.set(res[0][0], channel.name)
+          channel.created = true
+        }
         return channel.content
       }
     }
@@ -29,34 +47,35 @@ export class Channels {
   }
 
   public get names(): string[] {
-    return Array.from(outputChannels.keys())
+    return Array.from(this.outputChannels.keys())
   }
 
-  public get(channelName: string): OutputChannel | null {
-    return outputChannels.get(channelName)
+  public get(channelName: string): BufferChannel | null {
+    return this.outputChannels.get(channelName)
   }
 
   public create(name: string, nvim: Neovim): OutputChannel | null {
-    if (outputChannels.has(name)) return outputChannels.get(name)
+    if (this.outputChannels.has(name)) return this.outputChannels.get(name)
     if (!/^[\w\s-.]+$/.test(name)) throw new Error(`Invalid channel name "${name}", only word characters and white space allowed.`)
     let channel = new BufferChannel(name, nvim, () => {
-      outputChannels.delete(name)
+      this.outputChannels.delete(name)
     })
-    outputChannels.set(name, channel)
+    this.outputChannels.set(name, channel)
     return channel
   }
 
   public show(name: string, preserveFocus?: boolean): void {
-    let channel = outputChannels.get(name)
+    let channel = this.outputChannels.get(name)
     if (!channel) return
     channel.show(preserveFocus)
   }
 
   public dispose(): void {
-    for (let channel of outputChannels.values()) {
+    this.disposable.dispose()
+    for (let channel of this.outputChannels.values()) {
       channel.dispose()
     }
-    outputChannels.clear()
+    this.outputChannels.clear()
   }
 }
 

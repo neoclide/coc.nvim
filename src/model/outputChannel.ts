@@ -5,9 +5,10 @@ import { disposeAll } from '../util'
 const logger = require('../util/logger')('outpubChannel')
 
 export default class BufferChannel implements OutputChannel {
-  private _disposed = false
   private lines: string[] = ['']
   private disposables: Disposable[] = []
+  private _disposed = false
+  public created = false
   constructor(public name: string, private nvim: Neovim, private onDispose?: () => void) {
   }
 
@@ -23,6 +24,7 @@ export default class BufferChannel implements OutputChannel {
     this.lines[idx] = lastline
     let append = newlines.slice(1)
     this.lines = this.lines.concat(append)
+    if (!this.created) return
     nvim.pauseNotification()
     nvim.call('setbufline', [this.bufname, '$', lastline], true)
     if (append.length) {
@@ -46,6 +48,7 @@ export default class BufferChannel implements OutputChannel {
     if (!this.validate()) return
     let { nvim } = this
     this.lines = keep ? this.lines.slice(-keep) : []
+    if (!this.created) return
     nvim.pauseNotification()
     nvim.call('deletebufline', [this.bufname, 1, '$'], true)
     if (this.lines.length) {
@@ -56,6 +59,7 @@ export default class BufferChannel implements OutputChannel {
   }
 
   public hide(): void {
+    this.created = false
     this.nvim.command(`exe 'silent! bd! '.fnameescape('${this.bufname}')`, true)
   }
 
@@ -73,15 +77,14 @@ export default class BufferChannel implements OutputChannel {
     nvim.command('redraw', true)
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     nvim.resumeNotification(false, true)
+    this.created = true
   }
 
   private validate(): boolean {
-    if (this._disposed) return false
-    return true
+    return !this._disposed
   }
 
   public dispose(): void {
-    if (this._disposed) return
     if (this.onDispose) this.onDispose()
     this._disposed = true
     this.hide()

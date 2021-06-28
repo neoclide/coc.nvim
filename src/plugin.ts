@@ -541,7 +541,11 @@ export default class Plugin extends EventEmitter {
   public async cocAction(method: string, ...args: any[]): Promise<any> {
     let fn = this.actions.get(method)
     if (!fn) throw new Error(`Action "${method}" not exists`)
-    return await Promise.resolve(fn.apply(null, args))
+    let ts = Date.now()
+    let res = await Promise.resolve(fn.apply(null, args))
+    let dt = Date.now() - ts
+    if (dt > 500) logger.warn(`Slow action "${method}" cost ${dt}ms`)
+    return res
   }
 
   public getHandler(): any {

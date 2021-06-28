@@ -223,6 +223,11 @@ export default class FloatFactory implements Disposable {
     }
   }
 
+  public checkRetrigger(bufnr: number): boolean {
+    if (this.winid && this.targetBufnr == bufnr) return true
+    return false
+  }
+
   public get bufnr(): number {
     return this._bufnr
   }
