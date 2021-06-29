@@ -1,7 +1,7 @@
 import FloatFactory from '../model/floatFactory'
 import snippetManager from '../snippets/manager'
 import { CancellationTokenSource, Disposable, MarkupContent, MarkupKind, Position, SignatureHelp, SignatureHelpTriggerKind } from 'vscode-languageserver-protocol'
-import { ConfigurationChangeEvent, Documentation } from '../types'
+import { ConfigurationChangeEvent, HandlerDelegate, Documentation } from '../types'
 import Document from '../model/document'
 import workspace from '../workspace'
 import { Neovim } from '@chemzqm/neovim'
@@ -9,7 +9,6 @@ import events from '../events'
 import { byteLength } from '../util/string'
 import languages from '../languages'
 import { disposeAll, wait } from '../util'
-import { HandlerDelegate } from '..'
 const logger = require('../util/logger')('handler-signature')
 
 interface SignatureConfig {

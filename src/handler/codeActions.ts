@@ -21,6 +21,7 @@ export default class CodeActions {
     handler.addDisposable(commandManager.registerCommand('editor.action.organizeImport', async (bufnr?: number) => {
       await this.organizeImport(bufnr)
     }))
+    commandManager.titles.set('editor.action.organizeImport', 'run organize import code action.')
   }
 
   public async codeActionRange(start: number, end: number, only?: string): Promise<void> {

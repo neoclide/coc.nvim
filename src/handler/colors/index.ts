@@ -8,6 +8,8 @@ import workspace from '../../workspace'
 import { toHexString } from '../helper'
 import ColorBuffer from './colorBuffer'
 import BufferSync from '../../model/bufferSync'
+import { HandlerDelegate } from '../../types'
+import commandManager from '../../commands'
 const logger = require('../../util/logger')('colors')
 
 export default class Colors {
@@ -15,7 +17,7 @@ export default class Colors {
   private disposables: Disposable[] = []
   private highlighters: BufferSync<ColorBuffer>
 
-  constructor(private nvim: Neovim) {
+  constructor(private nvim: Neovim, private handler: HandlerDelegate) {
     let config = workspace.getConfiguration('coc.preferences')
     this._enabled = config.get<boolean>('colorSupport', true)
     if (workspace.isVim && !workspace.env.textprop) {
@@ -43,10 +45,20 @@ export default class Colors {
         }
       }
     }, null, this.disposables)
+    this.disposables.push(commandManager.registerCommand('editor.action.pickColor', () => {
+      return this.pickColor()
+    }))
+    commandManager.titles.set('editor.action.pickColor', 'pick color from system color picker when possible.')
+    this.disposables.push(commandManager.registerCommand('editor.action.colorPresentation', () => {
+      return this.pickPresentation()
+    }))
+    commandManager.titles.set('editor.action.colorPresentation', 'change color presentation.')
   }
 
   public async pickPresentation(): Promise<void> {
-    let info = await this.currentColorInformation()
+    let { doc } = await this.handler.getCurrentState()
+    this.handler.checkProvier('documentColor', doc.textDocument)
+    let info = await this.getColorInformation(doc.bufnr)
     if (!info) return window.showMessage('Color not found at current position', 'warning')
     let document = await workspace.document
     let tokenSource = new CancellationTokenSource()
@@ -64,7 +76,9 @@ export default class Colors {
   }
 
   public async pickColor(): Promise<void> {
-    let info = await this.currentColorInformation()
+    let { doc } = await this.handler.getCurrentState()
+    this.handler.checkProvier('documentColor', doc.textDocument)
+    let info = await this.getColorInformation(doc.bufnr)
     if (!info) return window.showMessage('Color not found at current position', 'warning')
     let { color } = info
     let colorArr = [(color.red * 255).toFixed(0), (color.green * 255).toFixed(0), (color.blue * 255).toFixed(0)]
@@ -124,8 +138,7 @@ export default class Colors {
     await highlighter.doHighlight()
   }
 
-  private async currentColorInformation(): Promise<ColorInformation | null> {
-    let bufnr = await this.nvim.call('bufnr', '%')
+  private async getColorInformation(bufnr: number): Promise<ColorInformation | null> {
     let highlighter = this.highlighters.getItem(bufnr)
     if (!highlighter) return null
     let position = await window.getCursorPosition()

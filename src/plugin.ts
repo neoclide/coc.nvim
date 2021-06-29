@@ -199,10 +199,10 @@ export default class Plugin extends EventEmitter {
       return this.handler.openLink()
     })
     this.addAction('pickColor', () => {
-      return this.handler.pickColor()
+      return this.handler.colors.pickColor()
     })
     this.addAction('colorPresentation', () => {
-      return this.handler.pickPresentation()
+      return this.handler.colors.pickPresentation()
     })
     this.addAction('highlight', async () => {
       await this.handler.highlight()

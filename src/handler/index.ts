@@ -45,10 +45,10 @@ export default class Handler {
   private preferences: Preferences
   private documentHighlighter: Highlights
   private semanticHighlighter: SemanticTokensHighlights
-  private colors: Colors
   private hoverFactory: FloatFactory
   private documentLines: string[] = []
   private codeLens: CodeLens
+  public readonly colors: Colors
   public readonly signature: Signature
   public readonly symbols: Symbols
   public readonly refactor: Refactor
@@ -73,7 +73,7 @@ export default class Handler {
     this.signature = new Signature(nvim, this)
     this.hoverFactory = new FloatFactory(nvim)
     this.codeLens = new CodeLens(nvim)
-    this.colors = new Colors(nvim)
+    this.colors = new Colors(nvim, this)
     this.documentHighlighter = new Highlights(nvim)
     this.semanticHighlighter = new SemanticTokensHighlights(nvim)
     events.on(['CursorMoved', 'CursorMovedI', 'InsertEnter', 'InsertSnippet', 'InsertLeave'], () => {
@@ -94,15 +94,6 @@ export default class Handler {
       }
     }
     this.disposables.push(workspace.registerTextDocumentContentProvider('coc', provider))
-    this.disposables.push(commandManager.registerCommand('editor.action.pickColor', () => {
-      return this.pickColor()
-    }))
-    commandManager.titles.set('editor.action.pickColor', 'pick color from system color picker when possible.')
-    this.disposables.push(commandManager.registerCommand('editor.action.colorPresentation', () => {
-      return this.pickPresentation()
-    }))
-    commandManager.titles.set('editor.action.colorPresentation', 'change color presentation.')
-    commandManager.titles.set('editor.action.organizeImport', 'run organize import code action.')
   }
 
   /**
@@ -490,18 +481,6 @@ export default class Handler {
       return true
     }
     return false
-  }
-
-  public async pickColor(): Promise<void> {
-    let { doc } = await this.getCurrentState()
-    this.checkProvier('documentColor', doc.textDocument)
-    await this.colors.pickColor()
-  }
-
-  public async pickPresentation(): Promise<void> {
-    let { doc } = await this.getCurrentState()
-    this.checkProvier('documentColor', doc.textDocument)
-    await this.colors.pickPresentation()
   }
 
   public async highlight(): Promise<void> {
