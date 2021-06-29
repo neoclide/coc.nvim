@@ -508,7 +508,12 @@ export default class Handler {
     await this.documentHighlighter.highlight()
   }
 
+  public semanticHighlightEnabled(): boolean {
+    return this.semanticHighlighter.enabled
+  }
+
   public async semanticHighlights(): Promise<void> {
+    if (!this.semanticHighlighter.enabled) return
     let { doc } = await this.getCurrentState()
     if (!languages.hasProvider('semanticTokens', doc.textDocument)) return
 
@@ -517,6 +522,7 @@ export default class Handler {
   }
 
   public async getSemanticHighlights(): Promise<Highlight[]> {
+    if (!this.semanticHighlighter.enabled) return
     const { doc } = await this.getCurrentState()
     if (!languages.hasProvider('semanticTokens', doc.textDocument)) return
 

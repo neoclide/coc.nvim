@@ -433,10 +433,12 @@ export default class Plugin extends EventEmitter {
       return this.handler.semanticHighlights()
     })
     this.addAction('showSemanticHighlightInfo', async () => {
+      if (!this.handler.semanticHighlightEnabled()) {
+        return window.showMessage(`SemanticTokens Highlighting for current buffer is disabled`, 'warning')
+      }
       const highlights = await this.handler.getSemanticHighlights()
       if (!highlights) {
-        window.showMessage('Failed to fetch semantic highlights', 'warning')
-        return
+        return window.showMessage('Failed to fetch semantic highlights', 'warning')
       }
       if (!this.semanticChannel) {
         this.semanticChannel = window.createOutputChannel('semanticHighlightInfo')
