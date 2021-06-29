@@ -56,7 +56,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
         let exists = plugin.hasAction(method)
         if (!exists) {
           if (global.hasOwnProperty('__TEST__')) return
-          console.error(`action "${method}" not registered`)
+          console.error(`action "${method}" not exists`)
           return
         }
         try {
