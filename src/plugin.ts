@@ -214,7 +214,7 @@ export default class Plugin extends EventEmitter {
       await completion.startCompletion(option)
     })
     this.addAction('stopCompletion', () => {
-      completion.stop(false)
+      completion.stop()
     })
     this.addAction('sourceStat', () => {
       return sources.sourceStats()

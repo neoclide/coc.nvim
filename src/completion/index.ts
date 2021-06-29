@@ -162,7 +162,7 @@ export class Completion implements Disposable {
     try {
       await this._doComplete(option)
     } catch (e) {
-      this.stop(false)
+      this.stop()
       logger.error('Complete error:', e.stack)
     }
   }
@@ -340,7 +340,7 @@ export class Completion implements Disposable {
     }
     // Completion is canceled by <C-e>
     if (noChange && !latestInsertChar) {
-      this.stop(false)
+      this.stop()
       return
     }
     // Check commit character
@@ -404,7 +404,7 @@ export class Completion implements Disposable {
     if (!isActivated || !document || !item.hasOwnProperty('word')) return
     let opt = Object.assign({}, this.option)
     let resolvedItem = this.getCompleteItem(item)
-    this.stop(false)
+    this.stop()
     if (!resolvedItem) return
     let timestamp = this.insertCharTs
     let insertLeaveTs = this.insertLeaveTs
@@ -428,7 +428,7 @@ export class Completion implements Disposable {
 
   private async onInsertLeave(): Promise<void> {
     this.insertLeaveTs = Date.now()
-    this.stop(false)
+    this.stop()
   }
 
   private async onInsertEnter(bufnr: number): Promise<void> {
@@ -534,7 +534,7 @@ export class Completion implements Disposable {
     }
   }
 
-  public stop(hide = true): void {
+  public stop(): void {
     let { nvim } = this
     if (!this.activated) return
     this.cancelResolve()
@@ -546,17 +546,14 @@ export class Completion implements Disposable {
       this.complete = null
     }
     nvim.pauseNotification()
-    if (hide) {
-      nvim.call('coc#_hide', [], true)
-    }
     if (this.config.numberSelect) {
       nvim.call('coc#_unmap', [], true)
     }
     if (!this.config.keepCompleteopt) {
-      this.nvim.command(`noa set completeopt=${workspace.completeOpt}`, true)
+      nvim.command(`noa set completeopt=${workspace.completeOpt}`, true)
     }
-    nvim.command(`let g:coc#_context['candidates'] = []`, true)
-    nvim.call('coc#_cancel', [], true)
+    nvim.command(`let g:coc#_context = {'start': 0, 'preselect': -1,'candidates': []}`, true)
+    nvim.command(`if pumvisible() | call feedkeys("\\<Plug>CocRefresh", 'i') | endif`, true)
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     nvim.resumeNotification(false, true)
   }
