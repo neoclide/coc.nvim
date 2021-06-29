@@ -314,7 +314,7 @@ export class Completion implements Disposable {
     if (info.pre.match(/^\s*/)[0] !== option.line.match(/^\s*/)[0]) {
       // Can't handle indent change
       logger.warn('Complete stopped by indent change.')
-      this.stop()
+      this.stop(false)
       return
     }
     // not handle when not triggered by character insert
@@ -354,7 +354,7 @@ export class Completion implements Disposable {
     }
     // Completion is canceled by <C-e>
     if (noChange && !latestInsertChar) {
-      this.stop()
+      this.stop(false)
       return
     }
     // Check commit character
@@ -438,7 +438,7 @@ export class Completion implements Disposable {
 
   private async onInsertLeave(): Promise<void> {
     this.insertLeaveTs = Date.now()
-    this.stop()
+    this.stop(false)
   }
 
   private async onInsertEnter(bufnr: number): Promise<void> {
@@ -545,7 +545,7 @@ export class Completion implements Disposable {
     }
   }
 
-  public stop(): void {
+  public stop(hide = true): void {
     let { nvim } = this
     if (!this.activated) return
     this.cancelResolve()
@@ -556,6 +556,9 @@ export class Completion implements Disposable {
       this.complete = null
     }
     nvim.pauseNotification()
+    if (hide) {
+      nvim.call('coc#_hide', [], true)
+    }
     if (this.config.numberSelect) {
       nvim.call('coc#_unmap', [], true)
     }
@@ -563,7 +566,6 @@ export class Completion implements Disposable {
       nvim.command(`noa set completeopt=${workspace.completeOpt}`, true)
     }
     nvim.command(`let g:coc#_context = {'start': 0, 'preselect': -1,'candidates': []}`, true)
-    nvim.command(`if pumvisible() | call feedkeys("\\<Plug>CocRefresh", 'i') | endif`, true)
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     nvim.resumeNotification(false, true)
   }
