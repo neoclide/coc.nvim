@@ -9,6 +9,7 @@ import events from '../events'
 import { byteLength } from '../util/string'
 import languages from '../languages'
 import { disposeAll, wait } from '../util'
+import { HandlerDelegate } from '..'
 const logger = require('../util/logger')('handler-signature')
 
 interface SignatureConfig {
@@ -33,7 +34,7 @@ export default class Signature {
   private signaturePosition: Position
   private disposables: Disposable[] = []
   private tokenSource: CancellationTokenSource | undefined
-  constructor(private nvim: Neovim) {
+  constructor(private nvim: Neovim, private handler: HandlerDelegate) {
     this.signatureFactory = new FloatFactory(nvim)
     this.loadConfiguration()
     this.disposables.push(this.signatureFactory)
@@ -74,7 +75,7 @@ export default class Signature {
       let pre = info.pre[info.pre.length - 1]
       if (!pre) return
       if (languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
-        await this.triggerSignatureHelp(doc, { line: info.lnum - 1, character: info.pre.length }, false)
+        await this._triggerSignatureHelp(doc, { line: info.lnum - 1, character: info.pre.length }, false)
       }
     }, null, this.disposables)
   }
@@ -98,7 +99,13 @@ export default class Signature {
     }
   }
 
-  public async triggerSignatureHelp(doc: Document, position: Position, invoke = true): Promise<boolean> {
+  public async triggerSignatureHelp(): Promise<boolean> {
+    let { doc, position } = await this.handler.getCurrentState()
+    if (!languages.hasProvider('signature', doc.textDocument)) return false
+    return await this._triggerSignatureHelp(doc, position)
+  }
+
+  private async _triggerSignatureHelp(doc: Document, position: Position, invoke = true): Promise<boolean> {
     this.tokenSource?.cancel()
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
@@ -119,8 +126,7 @@ export default class Signature {
       return false
     }
     let signatureHelp = await languages.getSignatureHelp(doc.textDocument, position, token, {
-      // TODO set to true if it's placeholder jump, but can't detect by now.
-      isRetrigger: false,
+      isRetrigger: this.signatureFactory.checkRetrigger(doc.bufnr),
       triggerKind: invoke ? SignatureHelpTriggerKind.Invoked : SignatureHelpTriggerKind.TriggerCharacter
     })
     clearTimeout(timer)
@@ -140,6 +146,7 @@ export default class Signature {
     } else {
       await this.showSignatureHelp(doc, position, signatureHelp)
     }
+    return true
   }
 
   private async showSignatureHelp(doc: Document, position: Position, signatureHelp: SignatureHelp): Promise<void> {

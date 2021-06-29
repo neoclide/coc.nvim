@@ -23,135 +23,268 @@ afterEach(async () => {
   disposables = []
 })
 
-describe('signature help', () => {
-  it('should show signature by api', async () => {
-    disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
-      provideSignatureHelp: (_doc, _position) => {
-        return {
-          signatures: [SignatureInformation.create('foo()', 'my signature', ParameterInformation.create('p1'), ParameterInformation.create('p2'))],
-          activeParameter: null,
-          activeSignature: null
+describe('signatureHelp', () => {
+
+  describe('triggerSignatureHelp', () => {
+    it('should show signature by api', async () => {
+      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
+        provideSignatureHelp: (_doc, _position) => {
+          return {
+            signatures: [SignatureInformation.create('foo()', 'my signature')],
+            activeParameter: null,
+            activeSignature: null
+          }
         }
-      }
-    }, []))
-    await helper.createDocument()
-    await nvim.input('foo')
-    await nvim.call('CocAction', 'showSignatureHelp')
-    let win = await helper.getFloat()
-    expect(win).toBeDefined()
-    let lines = await helper.getWinLines(win.id)
-    expect(lines[2]).toMatch('my signature')
+      }, []))
+      await helper.createDocument()
+      await nvim.input('foo')
+      await nvim.call('CocAction', 'showSignatureHelp')
+      let win = await helper.getFloat()
+      expect(win).toBeDefined()
+      let lines = await helper.getWinLines(win.id)
+      expect(lines[2]).toMatch('my signature')
+    })
+
+    it('should show signature help with param label as string', async () => {
+      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
+        provideSignatureHelp: (_doc, _position) => {
+          return {
+            signatures: [
+              SignatureInformation.create('foo()', 'my signature'),
+              SignatureInformation.create('foo(a, b)', 'my signature', ParameterInformation.create('a', 'description')),
+            ],
+            activeParameter: 0,
+            activeSignature: 1
+          }
+        }
+      }, []))
+      await helper.createDocument()
+      await nvim.input('foo')
+      await nvim.call('CocAction', 'showSignatureHelp')
+      let win = await helper.getFloat()
+      expect(win).toBeDefined()
+      let lines = await helper.getWinLines(win.id)
+      expect(lines.join('\n')).toMatch(/description/)
+    })
   })
 
-  it('should trigger signature help', async () => {
-    disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
-      provideSignatureHelp: (_doc, _position) => {
-        return {
-          signatures: [SignatureInformation.create('foo()', 'my signature')],
-          activeParameter: null,
-          activeSignature: null
+  describe('events', () => {
+    it('should trigger signature help', async () => {
+      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
+        provideSignatureHelp: (_doc, _position) => {
+          return {
+            signatures: [SignatureInformation.create('foo(x, y)', 'my signature')],
+            activeParameter: 0,
+            activeSignature: 0
+          }
         }
-      }
-    }, ['(', ',']))
-    await helper.createDocument()
-    await nvim.input('foo')
-    await nvim.input('(')
-    await helper.wait(100)
-    let win = await helper.getFloat()
-    expect(win).toBeDefined()
-    let lines = await helper.getWinLines(win.id)
-    expect(lines[2]).toMatch('my signature')
+      }, ['(', ',']))
+      await helper.createDocument()
+      await nvim.input('foo')
+      await nvim.input('(')
+      await helper.wait(100)
+      let win = await helper.getFloat()
+      expect(win).toBeDefined()
+      let lines = await helper.getWinLines(win.id)
+      expect(lines[2]).toMatch('my signature')
+    })
+
+    it('should cancel trigger on InsertLeave', async () => {
+      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
+        provideSignatureHelp: async (_doc, _position, token) => {
+          await helper.wait(1000)
+          if (token.isCancellationRequested) return undefined
+          return {
+            signatures: [SignatureInformation.create('foo()', 'my signature')],
+            activeParameter: null,
+            activeSignature: null
+          }
+        }
+      }, ['(', ',']))
+      await helper.createDocument()
+      await nvim.input('foo')
+      let p = nvim.call('CocAction', 'showSignatureHelp')
+      await helper.wait(10)
+      await nvim.command('stopinsert')
+      await nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
+      let res = await p
+      expect(res).toBe(false)
+    })
+
+    it('should not close signature on type', async () => {
+      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
+        provideSignatureHelp: (_doc, _position) => {
+          return {
+            signatures: [SignatureInformation.create('foo()', 'my signature')],
+            activeParameter: null,
+            activeSignature: null
+          }
+        }
+      }, ['(', ',']))
+      await helper.createDocument()
+      await nvim.input('foo(')
+      await helper.wait(100)
+      await nvim.input('bar')
+      await helper.wait(100)
+      let win = await helper.getFloat()
+      expect(win).toBeDefined()
+      let lines = await helper.getWinLines(win.id)
+      expect(lines[2]).toMatch('my signature')
+    })
   })
 
-  it('should not close signature on type', async () => {
-    disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
-      provideSignatureHelp: (_doc, _position) => {
-        return {
-          signatures: [SignatureInformation.create('foo()', 'my signature')],
-          activeParameter: null,
-          activeSignature: null
+  describe('float window', () => {
+    it('should align signature window to top', async () => {
+      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
+        provideSignatureHelp: (_doc, _position) => {
+          return {
+            signatures: [SignatureInformation.create('foo()', 'my signature')],
+            activeParameter: null,
+            activeSignature: null
+          }
         }
-      }
-    }, ['(', ',']))
-    await helper.createDocument()
-    await nvim.input('foo(')
-    await helper.wait(100)
-    await nvim.input('bar')
-    await helper.wait(100)
-    let win = await helper.getFloat()
-    expect(win).toBeDefined()
-    let lines = await helper.getWinLines(win.id)
-    expect(lines[2]).toMatch('my signature')
+      }, ['(', ',']))
+      await helper.createDocument()
+      let buf = await nvim.buffer
+      await buf.setLines(['', '', '', '', ''], { start: 0, end: -1, strictIndexing: true })
+      await nvim.call('cursor', [5, 1])
+      await nvim.input('foo(')
+      await helper.wait(100)
+      let win = await helper.getFloat()
+      expect(win).toBeDefined()
+      let lines = await helper.getWinLines(win.id)
+      expect(lines[2]).toMatch('my signature')
+      let res = await nvim.call('coc#float#cursor_relative', [win.id]) as any
+      expect(res.row).toBeLessThan(0)
+    })
+
+    it('should show parameter docs', async () => {
+      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
+        provideSignatureHelp: (_doc, _position) => {
+          return {
+            signatures: [SignatureInformation.create('foo(a, b)', 'my signature',
+              ParameterInformation.create('a', 'foo'),
+              ParameterInformation.create([7, 8], 'bar'))],
+            activeParameter: 1,
+            activeSignature: null
+          }
+        }
+      }, ['(', ',']))
+      await helper.createDocument()
+      let buf = await nvim.buffer
+      await buf.setLines(['', '', '', '', ''], { start: 0, end: -1, strictIndexing: true })
+      await nvim.call('cursor', [5, 1])
+      await nvim.input('foo(a,')
+      await helper.wait(100)
+      let win = await helper.getFloat()
+      expect(win).toBeDefined()
+      let lines = await helper.getWinLines(win.id)
+      expect(lines.join('\n')).toMatch('bar')
+    })
   })
 
-  it('should align signature window to top', async () => {
-    disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
-      provideSignatureHelp: (_doc, _position) => {
-        return {
-          signatures: [SignatureInformation.create('foo()', 'my signature')],
-          activeParameter: null,
-          activeSignature: null
-        }
-      }
-    }, ['(', ',']))
-    await helper.createDocument()
-    let buf = await nvim.buffer
-    await buf.setLines(['', '', '', '', ''], { start: 0, end: -1, strictIndexing: true })
-    await nvim.call('cursor', [5, 1])
-    await nvim.input('foo(')
-    await helper.wait(100)
-    let win = await helper.getFloat()
-    expect(win).toBeDefined()
-    let lines = await helper.getWinLines(win.id)
-    expect(lines[2]).toMatch('my signature')
-    let res = await nvim.call('coc#float#cursor_relative', [win.id]) as any
-    expect(res.row).toBeLessThan(0)
-  })
-
-  it('should cancel signature on timeout', async () => {
+  describe('configurations', () => {
     let { configurations } = workspace
-    configurations.updateUserConfig({ 'signature.triggerSignatureWait': 50 })
-    disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
-      provideSignatureHelp: (_doc, _position, token) => {
-        return new Promise(resolve => {
-          token.onCancellationRequested(() => {
-            clearTimeout(timer)
-            resolve(undefined)
-          })
-          let timer = setTimeout(() => {
-            resolve({
-              signatures: [SignatureInformation.create('foo()', 'my signature')],
-              activeParameter: null,
-              activeSignature: null
+    afterEach(() => {
+      configurations.updateUserConfig({
+        'signature.target': 'float',
+        'signature.hideOnTextChange': false,
+        'signature.enable': true,
+        'signature.triggerSignatureWait': 500
+      })
+    })
+
+    it('should cancel signature on timeout', async () => {
+      configurations.updateUserConfig({ 'signature.triggerSignatureWait': 50 })
+      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
+        provideSignatureHelp: (_doc, _position, token) => {
+          return new Promise(resolve => {
+            token.onCancellationRequested(() => {
+              clearTimeout(timer)
+              resolve(undefined)
             })
-          }, 200)
-        })
-      }
-    }, ['(', ',']))
-    await helper.createDocument()
-    await nvim.call('CocAction', 'showSignatureHelp')
-    let win = await helper.getFloat()
-    expect(win).toBeUndefined()
-    configurations.updateUserConfig({ 'signature.triggerSignatureWait': 100 })
-  })
-
-  it('should echo signature help', async () => {
-    let { configurations } = workspace
-    configurations.updateUserConfig({ 'signature.target': 'echo' })
-    disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
-      provideSignatureHelp: (_doc, _position) => {
-        return {
-          signatures: [SignatureInformation.create('foo()', 'my signature', ParameterInformation.create('p1'), ParameterInformation.create('p2'))],
-          activeParameter: null,
-          activeSignature: null
+            let timer = setTimeout(() => {
+              resolve({
+                signatures: [SignatureInformation.create('foo()', 'my signature')],
+                activeParameter: null,
+                activeSignature: null
+              })
+            }, 200)
+          })
         }
-      }
-    }, []))
-    await helper.createDocument()
-    await nvim.input('foo')
-    await nvim.call('CocAction', 'showSignatureHelp')
-    let line = await helper.getCmdline()
-    expect(line).toMatch('foo()')
-    configurations.updateUserConfig({ 'signature.target': 'float' })
+      }, ['(', ',']))
+      await helper.createDocument()
+      await nvim.call('CocAction', 'showSignatureHelp')
+      let win = await helper.getFloat()
+      expect(win).toBeUndefined()
+      configurations.updateUserConfig({ 'signature.triggerSignatureWait': 100 })
+    })
+
+    it('should hide signature window on text change', async () => {
+      configurations.updateUserConfig({ 'signature.hideOnTextChange': true })
+      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
+        provideSignatureHelp: (_doc, _position) => {
+          return {
+            signatures: [SignatureInformation.create('foo()', 'my signature')],
+            activeParameter: null,
+            activeSignature: null
+          }
+        }
+      }, ['(', ',']))
+      await helper.createDocument()
+      await nvim.input('foo')
+      await nvim.input('(')
+      await helper.wait(100)
+      let win = await helper.getFloat()
+      await nvim.input('x')
+      await helper.wait(100)
+      let res = await nvim.call('coc#float#valid', [win.id])
+      expect(res).toBe(0)
+    })
+
+    it('should disable signature help trigger', async () => {
+      configurations.updateUserConfig({ 'signature.enable': false })
+      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
+        provideSignatureHelp: (_doc, _position) => {
+          return {
+            signatures: [SignatureInformation.create('foo()', 'my signature')],
+            activeParameter: null,
+            activeSignature: null
+          }
+        }
+      }, ['(', ',']))
+      await helper.createDocument()
+      await nvim.input('foo')
+      await nvim.input('(')
+      await helper.wait(100)
+      let win = await helper.getFloat()
+      expect(win).toBeUndefined()
+    })
+
+    it('should echo signature help', async () => {
+      let idx = 0
+      configurations.updateUserConfig({ 'signature.target': 'echo' })
+      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
+        provideSignatureHelp: (_doc, _position) => {
+          return {
+            signatures: [SignatureInformation.create('foo(a, b)', 'my signature',
+              ParameterInformation.create('a', 'foo'),
+              ParameterInformation.create([7, 8], 'bar'))],
+            activeParameter: idx,
+            activeSignature: null
+          }
+        }
+      }, []))
+      await helper.createDocument()
+      await nvim.input('foo(')
+      await nvim.call('CocAction', 'showSignatureHelp')
+      let line = await helper.getCmdline()
+      expect(line).toMatch('foo(a, b)')
+      await nvim.input('a,')
+      idx = 1
+      await nvim.call('CocAction', 'showSignatureHelp')
+      line = await helper.getCmdline()
+      expect(line).toMatch('foo(a, b)')
+    })
   })
 })

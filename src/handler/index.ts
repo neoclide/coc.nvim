@@ -47,9 +47,9 @@ export default class Handler {
   private semanticHighlighter: SemanticTokensHighlights
   private colors: Colors
   private hoverFactory: FloatFactory
-  private signature: Signature
   private documentLines: string[] = []
   private codeLens: CodeLens
+  public readonly signature: Signature
   public readonly symbols: Symbols
   public readonly refactor: Refactor
   public readonly codeActions: CodeActions
@@ -70,8 +70,8 @@ export default class Handler {
     this.format = new Format(nvim, this)
     this.refactor = new Refactor(nvim, this)
     this.symbols = new Symbols(nvim, this)
+    this.signature = new Signature(nvim, this)
     this.hoverFactory = new FloatFactory(nvim)
-    this.signature = new Signature(nvim)
     this.codeLens = new CodeLens(nvim)
     this.colors = new Colors(nvim)
     this.documentHighlighter = new Highlights(nvim)
@@ -586,12 +586,6 @@ export default class Handler {
       })
     }
     return res
-  }
-
-  public async showSignatureHelp(): Promise<boolean> {
-    let { doc, position } = await this.getCurrentState()
-    if (!languages.hasProvider('signature', doc.textDocument)) return false
-    return await this.signature.triggerSignatureHelp(doc, position)
   }
 
   /**

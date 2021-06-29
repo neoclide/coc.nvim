@@ -290,7 +290,7 @@ export default class Plugin extends EventEmitter {
       return this.handler.getHover()
     })
     this.addAction('showSignatureHelp', () => {
-      return this.handler.showSignatureHelp()
+      return this.handler.signature.triggerSignatureHelp()
     })
     this.addAction('documentSymbols', async (bufnr?: number) => {
       if (!bufnr) {
