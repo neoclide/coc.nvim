@@ -533,6 +533,7 @@ class Languages {
     allCommitCharacters: string[],
     priority?: number | undefined
   ): ISource {
+    let filetype: string
     // track them for resolve
     let completeItems: CompletionItem[] = []
     // line used for TextEdit
@@ -553,6 +554,7 @@ class Languages {
       },
       doComplete: async (opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> => {
         let { triggerCharacter, bufnr } = opt
+        filetype = opt.filetype
         resolvedIndexes = new Set()
         let isTrigger = triggerCharacters && triggerCharacters.includes(triggerCharacter)
         let triggerKind: CompletionTriggerKind = CompletionTriggerKind.Invoked
@@ -627,7 +629,6 @@ class Languages {
             detail = detail.replace(/\n\s*/g, ' ')
             if (detail.length) {
               let isText = /^[\w-\s.,\t]+$/.test(detail)
-              let filetype = isText ? 'txt' : await workspace.nvim.eval('&filetype') as string
               docs.push({ filetype: isText ? 'txt' : filetype, content: detail })
             }
           }
