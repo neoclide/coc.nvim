@@ -203,18 +203,6 @@ export class Workspace implements IWorkspace {
       }
       this._env.runtimepath = newValue
     }, this.disposables)
-    this.watchOption('completeopt', async (_, newValue) => {
-      this.env.completeOpt = newValue
-      if (!this._attached) return
-      if (this.insertMode) {
-        let suggest = this.getConfiguration('suggest')
-        if (suggest.get<string>('autoTrigger') == 'always') {
-          let content = await this.nvim.call('execute', ['verbose set completeopt']) as string
-          let lines = content.split(/\r?\n/)
-          console.error(`Some plugin change completeopt on insert mode: ${lines[lines.length - 1].trim()}!`)
-        }
-      }
-    }, this.disposables)
     this.watchGlobal('coc_sources_disable_map', async (_, newValue) => {
       this.env.disabledSources = newValue
     })

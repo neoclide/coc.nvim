@@ -46,6 +46,15 @@ export class Completion implements Disposable {
         this.config = this.getCompleteConfig()
       }
     }, null, this.disposables)
+    workspace.watchOption('completeopt', async (_, newValue) => {
+      workspace.env.completeOpt = newValue
+      if (!this.isActivated) return
+      if (this.config.autoTrigger === 'always') {
+        let content = await this.nvim.call('execute', ['verbose set completeopt']) as string
+        let lines = content.split(/\r?\n/)
+        console.error(`Some plugin change completeopt during completion: ${lines[lines.length - 1].trim()}!`)
+      }
+    }, this.disposables)
     this.excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
     this.floating = new Floating(workspace.nvim, workspace.env.isVim)
     events.on(['InsertCharPre', 'MenuPopupChanged', 'TextChangedI', 'CursorMovedI', 'InsertLeave'], () => {
