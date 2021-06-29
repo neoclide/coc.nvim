@@ -809,7 +809,7 @@ export interface VimCompleteItem {
 }
 
 export interface PopupChangeEvent {
-  completed_item: VimCompleteItem
+  completed_item: VimCompleteItem | {}
   height: number
   width: number
   row: number

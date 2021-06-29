@@ -1,5 +1,10 @@
+import { VimCompleteItem } from '../types'
 /* eslint-disable id-blacklist */
 const hasOwnProperty = Object.prototype.hasOwnProperty
+
+export function vimCompleteItem(value: any): value is VimCompleteItem {
+  return value && typeof value.word === 'string'
+}
 
 export function boolean(value: any): value is boolean {
   return typeof value === 'boolean'

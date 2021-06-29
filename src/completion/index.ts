@@ -5,6 +5,7 @@ import Document from '../model/document'
 import sources from '../sources'
 import { CompleteConfig, CompleteOption, ISource, PopupChangeEvent, PumBounding, RecentScore, VimCompleteItem, InsertChange } from '../types'
 import { disposeAll, wait } from '../util'
+import * as Is from '../util/is'
 import workspace from '../workspace'
 import Complete from './complete'
 import Floating from './floating'
@@ -21,9 +22,9 @@ export interface LastInsert {
 
 export class Completion implements Disposable {
   public config: CompleteConfig
+  private popupEvent: PopupChangeEvent
   private triggerTimer: NodeJS.Timer
   private floating: Floating
-  private selectedItem: VimCompleteItem
   // current input string
   private activated = false
   private input: string
@@ -65,8 +66,8 @@ export class Completion implements Disposable {
       }
     })
     events.on('CompleteDone', async item => {
+      this.popupEvent = null
       if (!this.activated) return
-      this.selectedItem = null
       fn.clear()
       this.cancelResolve()
       this.floating.close()
@@ -75,12 +76,10 @@ export class Completion implements Disposable {
     this.cancelResolve()
     events.on('MenuPopupChanged', ev => {
       if (!this.activated || this.isCommandLine) return
-      let { completed_item } = ev
-      let item = typeof completed_item.word === 'string' ? completed_item : null
-      if (equals(item, this.selectedItem)) return
+      if (equals(this.popupEvent, ev)) return
       this.cancelResolve()
-      this.selectedItem = item
-      fn(ev)
+      this.popupEvent = ev
+      fn()
     }, this, this.disposables)
   }
 
@@ -91,6 +90,12 @@ export class Completion implements Disposable {
   public get option(): CompleteOption {
     if (!this.complete) return null
     return this.complete.option
+  }
+
+  private get selectedItem(): VimCompleteItem | null {
+    if (!this.popupEvent) return null
+    let { completed_item } = this.popupEvent
+    return Is.vimCompleteItem(completed_item) ? completed_item : null
   }
 
   private get isCommandLine(): boolean {
@@ -401,29 +406,25 @@ export class Completion implements Disposable {
 
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
     let { document, isActivated } = this
-    if (!isActivated || !document || !item.hasOwnProperty('word')) return
+    if (!isActivated || !document || !Is.vimCompleteItem(item)) return
     let opt = Object.assign({}, this.option)
     let resolvedItem = this.getCompleteItem(item)
     this.stop()
     if (!resolvedItem) return
     let timestamp = this.insertCharTs
     let insertLeaveTs = this.insertLeaveTs
-    try {
-      let source = new CancellationTokenSource()
-      await sources.doCompleteResolve(resolvedItem, source.token)
-      source.dispose()
-      this.addRecent(resolvedItem.word, document.bufnr)
-      // Wait possible TextChangedI
-      await wait(50)
-      if (this.insertCharTs != timestamp
-        || this.insertLeaveTs != insertLeaveTs) return
-      let [visible, lnum, pre] = await this.nvim.eval(`[pumvisible(),line('.'),strpart(getline('.'), 0, col('.') - 1)]`) as [number, number, string]
-      if (visible || lnum != opt.linenr || this.activated || !pre.endsWith(resolvedItem.word)) return
-      await document.patchChange()
-      await sources.doCompleteDone(resolvedItem, opt)
-    } catch (e) {
-      logger.error(`error on complete done`, e.stack)
-    }
+    let source = new CancellationTokenSource()
+    await sources.doCompleteResolve(resolvedItem, source.token)
+    source.dispose()
+    this.addRecent(resolvedItem.word, document.bufnr)
+    // Wait possible TextChangedI
+    await wait(50)
+    if (this.insertCharTs != timestamp
+      || this.insertLeaveTs != insertLeaveTs) return
+    let [visible, lnum, pre] = await this.nvim.eval(`[pumvisible(),line('.'),strpart(getline('.'), 0, col('.') - 1)]`) as [number, number, string]
+    if (visible || lnum != opt.linenr || this.activated || !pre.endsWith(resolvedItem.word)) return
+    await document.patchChange()
+    await sources.doCompleteDone(resolvedItem, opt)
   }
 
   private async onInsertLeave(): Promise<void> {
@@ -477,10 +478,11 @@ export class Completion implements Disposable {
     return false
   }
 
-  private async onPumChange(ev: PopupChangeEvent): Promise<void> {
-    let { completed_item, col, row, height, width, scrollbar } = ev
+  private async onPumChange(): Promise<void> {
+    if (!this.popupEvent) return
+    let { col, row, height, width, scrollbar } = this.popupEvent
     let bounding: PumBounding = { col, row, height, width, scrollbar }
-    let resolvedItem = this.getCompleteItem(completed_item)
+    let resolvedItem = this.getCompleteItem(this.selectedItem)
     if (!resolvedItem) {
       this.floating.close()
       return
@@ -539,7 +541,6 @@ export class Completion implements Disposable {
     if (!this.activated) return
     this.cancelResolve()
     this.floating.close()
-    this.selectedItem = null
     this.activated = false
     if (this.complete) {
       this.complete.dispose()
@@ -587,8 +588,8 @@ export class Completion implements Disposable {
     return `noinsert,menuone${preview}`
   }
 
-  private getCompleteItem(item: VimCompleteItem): VimCompleteItem | null {
-    if (!this.complete || item == null || typeof item.word !== 'string') return null
+  private getCompleteItem(item: VimCompleteItem | {} | null): VimCompleteItem | null {
+    if (!this.complete || !Is.vimCompleteItem(item)) return null
     return this.complete.resolveCompletionItem(item)
   }
 
