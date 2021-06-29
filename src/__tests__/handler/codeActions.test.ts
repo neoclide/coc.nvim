@@ -68,6 +68,46 @@ describe('handler codeActions', () => {
       let lines = await doc.buffer.lines
       expect(lines).toEqual(['bar', 'foo'])
     })
+
+    it('should register editor.action.organizeImport command', async () => {
+      let doc = await helper.createDocument()
+      await doc.buffer.setLines(['foo', 'bar'], { start: 0, end: -1, strictIndexing: false })
+      let edits: TextEdit[] = []
+      edits.push(TextEdit.replace(Range.create(0, 0, 0, 3), 'bar'))
+      edits.push(TextEdit.replace(Range.create(1, 0, 1, 3), 'foo'))
+      let edit = { changes: { [doc.uri]: edits } }
+      let action = CodeAction.create('organize import', edit, CodeActionKind.SourceOrganizeImports)
+      currActions = [action, CodeAction.create('another action')]
+      await commands.executeCommand('editor.action.organizeImport')
+      let lines = await doc.buffer.lines
+      expect(lines).toEqual(['bar', 'foo'])
+    })
+  })
+
+  describe('codeActionRange', () => {
+    it('should show warning when no action available', async () => {
+      await helper.createDocument()
+      currActions = []
+      await handler.codeActionRange(1, 2, CodeActionKind.QuickFix)
+      let line = await helper.getCmdline()
+      expect(line).toMatch(/No quickfix code action/)
+    })
+
+    it('should apply choosen action', async () => {
+      let doc = await helper.createDocument()
+      let edits: TextEdit[] = []
+      edits.push(TextEdit.insert(Position.create(0, 0), 'bar'))
+      let edit = { changes: { [doc.uri]: edits } }
+      let action = CodeAction.create('code fix', edit, CodeActionKind.QuickFix)
+      currActions = [action]
+      let p = handler.codeActionRange(1, 2, CodeActionKind.QuickFix)
+      await helper.wait(50)
+      await nvim.input('<CR>')
+      await p
+      let buf = nvim.createBuffer(doc.bufnr)
+      let lines = await buf.lines
+      expect(lines[0]).toBe('bar')
+    })
   })
 
   describe('getCodeActions', () => {
