@@ -321,17 +321,20 @@ describe('signatureHelp', () => {
       expect(win).toBeUndefined()
     })
 
-    it('should echo signature help', async () => {
+    it('should echo simple signature help', async () => {
       let idx = 0
+      let activeSignature = null
       configurations.updateUserConfig({ 'signature.target': 'echo' })
       disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
         provideSignatureHelp: (_doc, _position) => {
           return {
             signatures: [SignatureInformation.create('foo(a, b)', 'my signature',
               ParameterInformation.create('a', 'foo'),
-              ParameterInformation.create([7, 8], 'bar'))],
+              ParameterInformation.create([7, 8], 'bar')),
+            SignatureInformation.create('a'.repeat(workspace.env.columns + 10))
+            ],
             activeParameter: idx,
-            activeSignature: null
+            activeSignature
           }
         }
       }, []))
@@ -339,12 +342,16 @@ describe('signatureHelp', () => {
       await nvim.input('foo(')
       await signature.triggerSignatureHelp()
       let line = await helper.getCmdline()
-      expect(line).toMatch('foo(a, b)')
+      expect(line).toMatch('(a, b)')
       await nvim.input('a,')
       idx = 1
       await signature.triggerSignatureHelp()
       line = await helper.getCmdline()
       expect(line).toMatch('foo(a, b)')
+      activeSignature = 1
+      await signature.triggerSignatureHelp()
+      line = await helper.getCmdline()
+      expect(line).toMatch('aaaaaa')
     })
   })
 })
