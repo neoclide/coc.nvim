@@ -204,8 +204,8 @@ export default class Plugin extends EventEmitter {
     this.addAction('colorPresentation', () => {
       return this.handler.colors.pickPresentation()
     })
-    this.addAction('highlight', async () => {
-      await this.handler.highlight()
+    this.addAction('highlight', () => {
+      return this.handler.documentHighlighter.highlight()
     })
     this.addAction('fold', (kind?: string) => {
       return this.handler.fold(kind)
@@ -304,7 +304,7 @@ export default class Plugin extends EventEmitter {
       return doc && doc.attached
     })
     this.addAction('symbolRanges', () => {
-      return this.handler.getSymbolsRanges()
+      return this.handler.documentHighlighter.getSymbolsRanges()
     })
     this.addAction('selectionRanges', () => {
       return this.handler.getSelectionRanges()

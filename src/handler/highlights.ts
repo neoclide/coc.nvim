@@ -3,20 +3,21 @@ import { CancellationTokenSource, Disposable, DocumentHighlight, DocumentHighlig
 import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
+import { HandlerDelegate, CurrentState } from '../types'
 import { disposeAll } from '../util'
-import window from '../window'
 import workspace from '../workspace'
 const logger = require('../util/logger')('documentHighlight')
 
 /**
- * Highlights of symbol under cursor.
+ * Highlight same symbols.
+ * Highlights are added to window by matchaddpos.
  */
 export default class Highlights {
   private disposables: Disposable[] = []
   private tokenSource: CancellationTokenSource
   private highlights: Map<number, DocumentHighlight[]> = new Map()
-  constructor(private nvim: Neovim) {
-    events.on(['TextChanged', 'TextChangedI', 'CursorMoved', 'CursorMovedI'], () => {
+  constructor(private nvim: Neovim, private handler: HandlerDelegate) {
+    events.on(['CursorMoved', 'CursorMovedI'], () => {
       this.cancel()
       this.clearHighlights()
     }, null, this.disposables)
@@ -24,9 +25,8 @@ export default class Highlights {
 
   public clearHighlights(): void {
     if (this.highlights.size == 0) return
-    let { nvim } = workspace
     for (let winid of this.highlights.keys()) {
-      let win = nvim.createWindow(winid)
+      let win = this.nvim.createWindow(winid)
       win.clearMatchGroup('^CocHighlight')
     }
     this.highlights.clear()
@@ -35,11 +35,16 @@ export default class Highlights {
   public async highlight(): Promise<void> {
     let { nvim } = this
     this.cancel()
-    let [bufnr, winid, cursors] = await nvim.eval(`[bufnr('%'),win_getid(),get(b:,'coc_cursors_activated',0)]`) as [number, number, number]
-    let doc = workspace.getDocument(bufnr)
-    if (!doc || !doc.attached || !languages.hasProvider('documentHighlight', doc.textDocument)) return
+    let state: CurrentState
+    try {
+      state = await this.handler.getCurrentState()
+      this.handler.checkProvier('documentHighlight', state.doc.textDocument)
+    } catch (e) {
+      return
+    }
+    let { doc, winid, position } = state
+    let cursors = await nvim.eval(`get(b:,'coc_cursors_activated',0)`) as number
     if (cursors) return
-    let position = await window.getCursorPosition()
     let highlights = await this.getHighlights(doc, position)
     if (!highlights) return
     let groups: { [index: string]: Range[] } = {}
@@ -58,34 +63,37 @@ export default class Highlights {
       win.highlightRanges(hlGroup, groups[hlGroup], -1, true)
     }
     if (workspace.isVim) nvim.command('redraw', true)
-    let res = this.nvim.resumeNotification()
-    if (Array.isArray(res) && res[1] != null) {
-      logger.error(`Error on highlight`, res[1][2])
-    } else {
-      this.highlights.set(winid, highlights)
-    }
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    nvim.resumeNotification(false, true)
+    this.highlights.set(winid, highlights)
+  }
+
+  public async getSymbolsRanges(): Promise<Range[]> {
+    let { doc, position } = await this.handler.getCurrentState()
+    this.handler.checkProvier('documentHighlight', doc.textDocument)
+    let highlights = await this.getHighlights(doc, position)
+    if (!highlights) return null
+    return highlights.map(o => o.range)
   }
 
   public hasHighlights(winid: number): boolean {
     return this.highlights.get(winid) != null
   }
 
-  public async getHighlights(doc: Document | null, position: Position): Promise<DocumentHighlight[]> {
-    if (!doc || !doc.attached || doc.isCommandLine) return null
+  public async getHighlights(doc: Document, position: Position): Promise<DocumentHighlight[]> {
     let line = doc.getline(position.line)
     let ch = line[position.character]
     if (!ch || !doc.isWord(ch)) return null
-    try {
-      this.tokenSource = new CancellationTokenSource()
-      doc.forceSync()
-      let { token } = this.tokenSource
-      let highlights = await languages.getDocumentHighLight(doc.textDocument, position, token)
+    this.tokenSource = new CancellationTokenSource()
+    doc.forceSync()
+    let source = this.tokenSource
+    let highlights = await languages.getDocumentHighLight(doc.textDocument, position, source.token)
+    if (source == this.tokenSource) {
+      source.dispose()
       this.tokenSource = null
-      if (token.isCancellationRequested) return null
-      return highlights
-    } catch (_e) {
-      return null
     }
+    if (source.token.isCancellationRequested) return null
+    return highlights
   }
 
   private cancel(): void {

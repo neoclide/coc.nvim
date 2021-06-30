@@ -105,4 +105,18 @@ describe('document highlights', () => {
     let res = await highlights.getHighlights(doc, Position.create(0, 0))
     expect(res).toBeNull()
   })
+
+  it('should not throw when document is not valid', async () => {
+    disposeAll(disposables)
+    await helper.createDocument()
+    await nvim.setLine('  oo')
+    await nvim.call('cursor', [1, 2])
+    let err
+    try {
+      await highlights.highlight()
+    } catch (e) {
+      err = e
+    }
+    expect(err).toBeUndefined()
+  })
 })

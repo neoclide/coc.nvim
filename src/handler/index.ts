@@ -41,18 +41,18 @@ interface Preferences {
 }
 
 export default class Handler {
-  private preferences: Preferences
-  private documentHighlighter: Highlights
-  private semanticHighlighter: SemanticTokensHighlights
-  private hoverFactory: FloatFactory
-  private documentLines: string[] = []
-  private codeLens: CodeLens
+  public readonly documentHighlighter: Highlights
   public readonly colors: Colors
   public readonly signature: Signature
   public readonly symbols: Symbols
   public readonly refactor: Refactor
   public readonly codeActions: CodeActions
   public readonly format: Format
+  private semanticHighlighter: SemanticTokensHighlights
+  private preferences: Preferences
+  private hoverFactory: FloatFactory
+  private documentLines: string[] = []
+  private codeLens: CodeLens
   private selectionRange: SelectionRange = null
   private requestStatusItem: StatusBarItem
   private requestTokenSource: CancellationTokenSource | undefined
@@ -73,8 +73,19 @@ export default class Handler {
     this.hoverFactory = new FloatFactory(nvim)
     this.codeLens = new CodeLens(nvim)
     this.colors = new Colors(nvim, this)
-    this.documentHighlighter = new Highlights(nvim)
+    this.documentHighlighter = new Highlights(nvim, this)
     this.semanticHighlighter = new SemanticTokensHighlights(nvim)
+    this.disposables.push({
+      dispose: () => {
+        this.refactor.dispose()
+        this.signature.dispose()
+        this.symbols.dispose()
+        this.hoverFactory.dispose()
+        this.colors.dispose()
+        this.documentHighlighter.dispose()
+        this.semanticHighlighter.dispose()
+      }
+    })
     events.on(['CursorMoved', 'CursorMovedI', 'InsertEnter', 'InsertSnippet', 'InsertLeave'], () => {
       if (this.requestTokenSource) {
         this.requestTokenSource.cancel()
@@ -482,10 +493,6 @@ export default class Handler {
     return false
   }
 
-  public async highlight(): Promise<void> {
-    await this.documentHighlighter.highlight()
-  }
-
   public async semanticHighlights(): Promise<void> {
     let { doc } = await this.getCurrentState()
     if (!languages.hasProvider('semanticTokens', doc.textDocument)) return
@@ -500,14 +507,6 @@ export default class Handler {
 
     await synchronizeDocument(doc)
     return await this.semanticHighlighter.getHighlights(doc.bufnr)
-  }
-
-  public async getSymbolsRanges(): Promise<Range[]> {
-    let { doc, position } = await this.getCurrentState()
-    this.checkProvier('documentHighlight', doc.textDocument)
-    let highlights = await this.documentHighlighter.getHighlights(doc, position)
-    if (!highlights) return null
-    return highlights.map(o => o.range)
   }
 
   public async links(): Promise<DocumentLink[]> {
@@ -767,13 +766,6 @@ export default class Handler {
       clearTimeout(this.requestTimer)
       this.requestTimer = undefined
     }
-    this.refactor.dispose()
-    this.signature.dispose()
-    this.symbols.dispose()
-    this.hoverFactory.dispose()
-    this.colors.dispose()
-    this.documentHighlighter.dispose()
-    this.semanticHighlighter.dispose()
     disposeAll(this.disposables)
   }
 }
