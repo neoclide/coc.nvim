@@ -167,6 +167,30 @@ describe('signatureHelp', () => {
       let lines = await helper.getWinLines(win.id)
       expect(lines[2]).toMatch('my signature')
     })
+
+    it('should close signature float when empty signatures returned', async () => {
+      let empty = false
+      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
+        provideSignatureHelp: (_doc, _position) => {
+          if (empty) return undefined
+          return {
+            signatures: [SignatureInformation.create('foo()', 'my signature')],
+            activeParameter: null,
+            activeSignature: null
+          }
+        }
+      }, ['(', ',']))
+      await helper.createDocument()
+      await nvim.input('foo(')
+      await helper.wait(100)
+      let win = await helper.getFloat()
+      expect(win).toBeDefined()
+      empty = true
+      await signature.triggerSignatureHelp()
+      await helper.wait(50)
+      let res = await nvim.call('coc#float#valid', [win.id])
+      expect(res).toBe(0)
+    })
   })
 
   describe('float window', () => {

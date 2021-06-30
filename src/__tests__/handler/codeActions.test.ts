@@ -11,13 +11,20 @@ import helper from '../helper'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
-let handler: ActionsHandler
+let codeActions: ActionsHandler
 let currActions: CodeAction[]
 let resolvedAction: CodeAction
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  handler = (helper.plugin as any).handler.codeActions
+  codeActions = (helper.plugin as any).handler.codeActions
+})
+
+afterAll(async () => {
+  await helper.shutdown()
+})
+
+beforeEach(async () => {
   disposables.push(languages.registerCodeActionProvider([{ language: '*' }], {
     provideCodeActions: (
       _document: TextDocument,
@@ -32,12 +39,8 @@ beforeAll(async () => {
   }, undefined))
 })
 
-afterAll(async () => {
-  disposeAll(disposables)
-  await helper.shutdown()
-})
-
 afterEach(async () => {
+  disposeAll(disposables)
   await helper.reset()
 })
 
@@ -48,7 +51,7 @@ describe('handler codeActions', () => {
       await helper.createDocument()
       let err
       try {
-        await handler.organizeImport()
+        await codeActions.organizeImport()
       } catch (e) {
         err = e
       }
@@ -64,7 +67,7 @@ describe('handler codeActions', () => {
       let edit = { changes: { [doc.uri]: edits } }
       let action = CodeAction.create('organize import', edit, CodeActionKind.SourceOrganizeImports)
       currActions = [action, CodeAction.create('another action')]
-      await handler.organizeImport()
+      await codeActions.organizeImport()
       let lines = await doc.buffer.lines
       expect(lines).toEqual(['bar', 'foo'])
     })
@@ -88,7 +91,7 @@ describe('handler codeActions', () => {
     it('should show warning when no action available', async () => {
       await helper.createDocument()
       currActions = []
-      await handler.codeActionRange(1, 2, CodeActionKind.QuickFix)
+      await codeActions.codeActionRange(1, 2, CodeActionKind.QuickFix)
       let line = await helper.getCmdline()
       expect(line).toMatch(/No quickfix code action/)
     })
@@ -100,7 +103,7 @@ describe('handler codeActions', () => {
       let edit = { changes: { [doc.uri]: edits } }
       let action = CodeAction.create('code fix', edit, CodeActionKind.QuickFix)
       currActions = [action]
-      let p = handler.codeActionRange(1, 2, CodeActionKind.QuickFix)
+      let p = codeActions.codeActionRange(1, 2, CodeActionKind.QuickFix)
       await helper.wait(50)
       await nvim.input('<CR>')
       await p
@@ -114,7 +117,7 @@ describe('handler codeActions', () => {
     it('should get empty actions', async () => {
       currActions = []
       let doc = await helper.createDocument()
-      let res = await handler.getCodeActions(doc)
+      let res = await codeActions.getCodeActions(doc)
       expect(res.length).toBe(0)
     })
 
@@ -127,7 +130,7 @@ describe('handler codeActions', () => {
       action.disabled = { reason: 'disabled' }
       currActions.push(action)
       let doc = await helper.createDocument()
-      let res = await handler.getCodeActions(doc)
+      let res = await codeActions.getCodeActions(doc)
       expect(res.length).toBe(0)
     })
 
@@ -137,7 +140,7 @@ describe('handler codeActions', () => {
       let action = CodeAction.create('curr action', CodeActionKind.Empty)
       currActions = [action]
       let range: Range
-      let disposable = languages.registerCodeActionProvider([{ language: '*' }], {
+      disposables.push(languages.registerCodeActionProvider([{ language: '*' }], {
         provideCodeActions: (
           _document: TextDocument,
           r: Range,
@@ -146,16 +149,10 @@ describe('handler codeActions', () => {
           range = r
           return [CodeAction.create('a'), CodeAction.create('b'), CodeAction.create('c')]
         },
-      }, undefined)
-      try {
-        let res = await handler.getCodeActions(doc)
-        expect(range).toEqual(Range.create(0, 0, 3, 0))
-        expect(res.length).toBe(4)
-        disposable.dispose()
-      } catch (e) {
-        disposable.dispose()
-        throw e
-      }
+      }, undefined))
+      let res = await codeActions.getCodeActions(doc)
+      expect(range).toEqual(Range.create(0, 0, 3, 0))
+      expect(res.length).toBe(4)
     })
 
     it('should filter actions by range', async () => {
@@ -163,7 +160,7 @@ describe('handler codeActions', () => {
       await doc.buffer.setLines(['', '', ''], { start: 0, end: -1, strictIndexing: false })
       currActions = []
       let range: Range
-      let disposable = languages.registerCodeActionProvider([{ language: '*' }], {
+      disposables.push(languages.registerCodeActionProvider([{ language: '*' }], {
         provideCodeActions: (
           _document: TextDocument,
           r: Range,
@@ -173,33 +170,26 @@ describe('handler codeActions', () => {
           if (rangeInRange(r, Range.create(0, 0, 1, 0))) return [CodeAction.create('a')]
           return [CodeAction.create('a'), CodeAction.create('b'), CodeAction.create('c')]
         },
-      }, undefined)
-      try {
-        let res = await handler.getCodeActions(doc, Range.create(0, 0, 0, 0))
-        expect(range).toEqual(Range.create(0, 0, 0, 0))
-        expect(res.length).toBe(1)
-        disposable.dispose()
-      } catch (e) {
-        disposable.dispose()
-        throw e
-      }
+      }, undefined))
+      let res = await codeActions.getCodeActions(doc, Range.create(0, 0, 0, 0))
+      expect(range).toEqual(Range.create(0, 0, 0, 0))
+      expect(res.length).toBe(1)
     })
 
     it('should filter actions by kind prefix', async () => {
       let doc = await helper.createDocument()
       let action = CodeAction.create('my action', CodeActionKind.SourceFixAll)
       currActions = [action]
-      let res = await handler.getCodeActions(doc, undefined, [CodeActionKind.Source])
+      let res = await codeActions.getCodeActions(doc, undefined, [CodeActionKind.Source])
       expect(res.length).toBe(1)
       expect(res[0].kind).toBe(CodeActionKind.SourceFixAll)
     })
   })
 
   describe('getCurrentCodeActions', () => {
-    let disposable: Disposable
     let range: Range
     beforeEach(() => {
-      disposable = languages.registerCodeActionProvider([{ language: '*' }], {
+      disposables.push(languages.registerCodeActionProvider([{ language: '*' }], {
         provideCodeActions: (
           _document: TextDocument,
           r: Range,
@@ -208,17 +198,13 @@ describe('handler codeActions', () => {
           range = r
           return [CodeAction.create('a'), CodeAction.create('b'), CodeAction.create('c')]
         },
-      }, undefined)
-    })
-
-    afterEach(() => {
-      disposable.dispose()
+      }, undefined))
     })
 
     it('should get codeActions by line', async () => {
       currActions = []
       await helper.createDocument()
-      let res = await handler.getCurrentCodeActions('line')
+      let res = await codeActions.getCurrentCodeActions('line')
       expect(range).toEqual(Range.create(0, 0, 1, 0))
       expect(res.length).toBe(3)
     })
@@ -226,7 +212,7 @@ describe('handler codeActions', () => {
     it('should get codeActions by cursor', async () => {
       currActions = []
       await helper.createDocument()
-      let res = await handler.getCurrentCodeActions('cursor')
+      let res = await codeActions.getCurrentCodeActions('cursor')
       expect(range).toEqual(Range.create(0, 0, 0, 0))
       expect(res.length).toBe(3)
     })
@@ -237,7 +223,7 @@ describe('handler codeActions', () => {
       await nvim.setLine('foo')
       await nvim.command('normal! 0v$')
       await nvim.input('<esc>')
-      let res = await handler.getCurrentCodeActions('v')
+      let res = await codeActions.getCurrentCodeActions('v')
       expect(range).toEqual(Range.create(0, 0, 0, 4))
       expect(res.length).toBe(3)
     })
@@ -249,7 +235,7 @@ describe('handler codeActions', () => {
       await helper.createDocument()
       let err
       try {
-        await handler.doCodeAction(undefined)
+        await codeActions.doCodeAction(undefined)
       } catch (e) {
         err = e
       }
@@ -263,7 +249,7 @@ describe('handler codeActions', () => {
       let edit = { changes: { [doc.uri]: edits } }
       let action = CodeAction.create('code fix', edit, CodeActionKind.QuickFix)
       currActions = [action]
-      await handler.doCodeAction(undefined, 'code fix')
+      await codeActions.doCodeAction(undefined, 'code fix')
       let lines = await doc.buffer.lines
       expect(lines).toEqual(['bar'])
     })
@@ -275,7 +261,7 @@ describe('handler codeActions', () => {
       let edit = { changes: { [doc.uri]: edits } }
       let action = CodeAction.create('code fix', edit, CodeActionKind.QuickFix)
       currActions = [action]
-      await handler.doCodeAction(undefined, [CodeActionKind.QuickFix])
+      await codeActions.doCodeAction(undefined, [CodeActionKind.QuickFix])
       let lines = await doc.buffer.lines
       expect(lines).toEqual(['bar'])
     })
@@ -287,7 +273,7 @@ describe('handler codeActions', () => {
       let edit = { changes: { [doc.uri]: edits } }
       let action = CodeAction.create('code fix', edit, CodeActionKind.QuickFix)
       currActions = [action, CodeAction.create('foo')]
-      let promise = handler.doCodeAction(undefined)
+      let promise = codeActions.doCodeAction(null)
       await helper.wait(50)
       let ids = await nvim.call('coc#float#get_float_win_list') as number[]
       expect(ids.length).toBeGreaterThan(0)
@@ -295,6 +281,26 @@ describe('handler codeActions', () => {
       await promise
       let lines = await doc.buffer.lines
       expect(lines).toEqual(['bar'])
+    })
+
+    it('should choose code actions by range', async () => {
+      let range: Range
+      disposables.push(languages.registerCodeActionProvider([{ language: '*' }], {
+        provideCodeActions: (
+          _document: TextDocument,
+          r: Range,
+          _context: CodeActionContext, _token: CancellationToken
+        ) => {
+          range = r
+          return [CodeAction.create('my title'), CodeAction.create('b'), CodeAction.create('c')]
+        },
+      }, undefined))
+      await helper.createDocument()
+      await nvim.setLine('abc')
+      await nvim.command('normal! 0v$')
+      await nvim.input('<esc>')
+      await codeActions.doCodeAction('v', 'my title')
+      expect(range).toEqual({ start: { line: 0, character: 0 }, end: { line: 0, character: 4 } })
     })
   })
 
@@ -304,7 +310,7 @@ describe('handler codeActions', () => {
       currActions = []
       await helper.createDocument()
       try {
-        await handler.doQuickfix()
+        await codeActions.doQuickfix()
       } catch (e) {
         err = e
       }
@@ -318,8 +324,8 @@ describe('handler codeActions', () => {
       let edit = { changes: { [doc.uri]: edits } }
       let action = CodeAction.create('code fix', edit, CodeActionKind.QuickFix)
       action.isPreferred = true
-      currActions = [CodeAction.create('foo', CodeActionKind.QuickFix), action]
-      await handler.doQuickfix()
+      currActions = [CodeAction.create('foo', CodeActionKind.QuickFix), action, CodeAction.create('bar')]
+      await codeActions.doQuickfix()
       let lines = await doc.buffer.lines
       expect(lines).toEqual(['bar'])
     })
@@ -335,8 +341,8 @@ describe('handler codeActions', () => {
       action.isPreferred = true
       currActions = [action]
       resolvedAction = Object.assign({ edit }, action)
-      let arr = await handler.getCurrentCodeActions('line', [CodeActionKind.QuickFix])
-      await handler.applyCodeAction(arr[0])
+      let arr = await codeActions.getCurrentCodeActions('line', [CodeActionKind.QuickFix])
+      await codeActions.applyCodeAction(arr[0])
       let lines = await doc.buffer.lines
       expect(lines).toEqual(['bar'])
     })
@@ -346,7 +352,7 @@ describe('handler codeActions', () => {
       action.disabled = { reason: 'disabled' }
       let err
       try {
-        await handler.applyCodeAction(action)
+        await codeActions.applyCodeAction(action)
       } catch (e) {
         err = e
       }
@@ -355,10 +361,10 @@ describe('handler codeActions', () => {
 
     it('should invoke registered command after apply edit', async () => {
       let called
-      let disposable = commands.registerCommand('test.execute', async (s: string) => {
+      disposables.push(commands.registerCommand('test.execute', async (s: string) => {
         called = s
         await nvim.command(s)
-      })
+      }))
       let doc = await helper.createDocument()
       let edits: TextEdit[] = []
       edits.push(TextEdit.insert(Position.create(0, 0), 'bar'))
@@ -370,12 +376,11 @@ describe('handler codeActions', () => {
         edit,
         command: Command.create('run vim command', 'test.execute', 'normal! $')
       }, action)
-      let arr = await handler.getCurrentCodeActions('line', [CodeActionKind.QuickFix])
-      await handler.applyCodeAction(arr[0])
+      let arr = await codeActions.getCurrentCodeActions('line', [CodeActionKind.QuickFix])
+      await codeActions.applyCodeAction(arr[0])
       let lines = await doc.buffer.lines
       expect(lines).toEqual(['bar'])
       expect(called).toBe('normal! $')
-      disposable.dispose()
     })
   })
 })

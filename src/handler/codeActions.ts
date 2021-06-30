@@ -40,9 +40,8 @@ export default class CodeActions {
   }
 
   public async organizeImport(bufnr?: number): Promise<void> {
-    if (!bufnr) bufnr = await this.nvim.call('bufnr', ['%'])
-    let doc = workspace.getDocument(bufnr)
-    if (!doc || !doc.attached) throw new Error(`buffer ${bufnr} not attached`)
+    let { doc } = await this.handler.getCurrentState()
+    if (bufnr && doc.bufnr != bufnr) return
     await synchronizeDocument(doc)
     let actions = await this.getCodeActions(doc, undefined, [CodeActionKind.SourceOrganizeImports])
     if (actions && actions.length) {
@@ -87,19 +86,17 @@ export default class CodeActions {
     if (mode) range = await workspace.getSelectedRange(mode, doc)
     await synchronizeDocument(doc)
     let codeActions = await this.getCodeActions(doc, range, Array.isArray(only) ? only : null)
-    if (only) {
-      if (typeof only == 'string') {
-        codeActions = codeActions.filter(o => o.title == only || (o.command && o.command.title == only))
-      } else if (Array.isArray(only)) {
-        codeActions = codeActions.filter(o => only.some(k => o.kind && o.kind.startsWith(k)))
-      }
-      if (codeActions.length == 1) {
-        await this.applyCodeAction(codeActions[0])
-        return
-      }
+    if (typeof only == 'string') {
+      codeActions = codeActions.filter(o => o.title == only || (o.command && o.command.title == only))
+    } else if (Array.isArray(only)) {
+      codeActions = codeActions.filter(o => only.some(k => o.kind && o.kind.startsWith(k)))
     }
     if (!codeActions || codeActions.length == 0) {
       window.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning')
+      return
+    }
+    if (only && codeActions.length == 1) {
+      await this.applyCodeAction(codeActions[0])
       return
     }
     let idx = this.floatActions
@@ -142,15 +139,7 @@ export default class CodeActions {
       return languages.resolveCodeAction(action, token)
     })
     let { edit, command } = action
-    if (edit) {
-      await workspace.applyEdit(edit)
-    }
-    if (command) {
-      if (commandManager.has(command.command)) {
-        commandManager.execute(command)
-      } else {
-        throw new Error(`Command not registered: ${command.command}`)
-      }
-    }
+    if (edit) await workspace.applyEdit(edit)
+    if (command) commandManager.execute(command)
   }
 }

@@ -8,7 +8,7 @@ import { ConfigurationChangeEvent, Documentation, HandlerDelegate } from '../typ
 import { disposeAll } from '../util'
 import { byteLength } from '../util/string'
 import workspace from '../workspace'
-import { synchronizeDocument } from './helper'
+import { isMarkdown, synchronizeDocument } from './helper'
 const logger = require('../util/logger')('handler-signature')
 
 interface SignatureConfig {
@@ -289,11 +289,4 @@ export default class Signature {
       clearTimeout(this.timer)
     }
   }
-}
-
-function isMarkdown(content: MarkupContent | string | undefined): boolean {
-  if (MarkupContent.is(content) && content.kind == MarkupKind.Markdown) {
-    return true
-  }
-  return false
 }
