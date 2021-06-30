@@ -1,14 +1,14 @@
-import FloatFactory from '../model/floatFactory'
-import snippetManager from '../snippets/manager'
-import { CancellationTokenSource, Disposable, MarkupContent, MarkupKind, Position, SignatureHelp, SignatureHelpTriggerKind } from 'vscode-languageserver-protocol'
-import { ConfigurationChangeEvent, HandlerDelegate, Documentation } from '../types'
-import Document from '../model/document'
-import workspace from '../workspace'
 import { Neovim } from '@chemzqm/neovim'
+import { CancellationTokenSource, Disposable, MarkupContent, MarkupKind, Position, SignatureHelp, SignatureHelpTriggerKind } from 'vscode-languageserver-protocol'
 import events from '../events'
-import { byteLength } from '../util/string'
 import languages from '../languages'
-import { disposeAll, wait } from '../util'
+import Document from '../model/document'
+import FloatFactory from '../model/floatFactory'
+import { ConfigurationChangeEvent, Documentation, HandlerDelegate } from '../types'
+import { disposeAll } from '../util'
+import { byteLength } from '../util/string'
+import workspace from '../workspace'
+import { synchronizeDocument } from './helper'
 const logger = require('../util/logger')('handler-signature')
 
 interface SignatureConfig {
@@ -53,7 +53,6 @@ export default class Signature {
     }, null, this.disposables)
     events.on(['InsertLeave', 'BufEnter'], () => {
       this.tokenSource?.cancel()
-      this.signatureFactory.close()
     }, null, this.disposables)
     events.on(['TextChangedI', 'TextChangedP'], async () => {
       if (this.config.hideOnChange) {
@@ -73,9 +72,8 @@ export default class Signature {
       // if (!triggerSignatureHelp && !formatOnType) return
       let pre = info.pre[info.pre.length - 1]
       if (!pre) return
-      if (languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
-        await this._triggerSignatureHelp(doc, { line: info.lnum - 1, character: info.pre.length }, false)
-      }
+      if (!languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) return
+      await this._triggerSignatureHelp(doc, { line: info.lnum - 1, character: info.pre.length }, false)
     }, null, this.disposables)
   }
 
@@ -99,12 +97,24 @@ export default class Signature {
   }
 
   public async triggerSignatureHelp(): Promise<boolean> {
-    let { doc, position } = await this.handler.getCurrentState()
+    let { doc, position, mode } = await this.handler.getCurrentState()
     if (!languages.hasProvider('signature', doc.textDocument)) return false
-    return await this._triggerSignatureHelp(doc, position)
+    let offset = 0
+    let character = position.character
+    if (mode == 's') {
+      let placeholder = await this.nvim.getVar('coc_last_placeholder') as any
+      if (placeholder) {
+        let { start, end, bufnr } = placeholder
+        if (bufnr == doc.bufnr && start.line == end.line && start.line == position.line) {
+          position = Position.create(start.line, start.character)
+          offset = character - position.character
+        }
+      }
+    }
+    return await this._triggerSignatureHelp(doc, position, true, offset)
   }
 
-  private async _triggerSignatureHelp(doc: Document, position: Position, invoke = true): Promise<boolean> {
+  private async _triggerSignatureHelp(doc: Document, position: Position, invoke = true, offset = 0): Promise<boolean> {
     this.tokenSource?.cancel()
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
@@ -116,14 +126,7 @@ export default class Signature {
     let timer = this.timer = setTimeout(() => {
       tokenSource.cancel()
     }, this.config.wait)
-    let { changedtick } = doc
-    await doc.patchChange()
-    if (changedtick != doc.changedtick) {
-      await wait(30)
-    }
-    if (token.isCancellationRequested) {
-      return false
-    }
+    await synchronizeDocument(doc)
     let signatureHelp = await languages.getSignatureHelp(doc.textDocument, position, token, {
       isRetrigger: this.signatureFactory.checkRetrigger(doc.bufnr),
       triggerKind: invoke ? SignatureHelpTriggerKind.Invoked : SignatureHelpTriggerKind.TriggerCharacter
@@ -143,15 +146,15 @@ export default class Signature {
     if (target == 'echo') {
       this.echoSignature(signatureHelp)
     } else {
-      await this.showSignatureHelp(doc, position, signatureHelp)
+      await this.showSignatureHelp(doc, position, signatureHelp, offset)
     }
     return true
   }
 
-  private async showSignatureHelp(doc: Document, position: Position, signatureHelp: SignatureHelp): Promise<void> {
+  private async showSignatureHelp(doc: Document, position: Position, signatureHelp: SignatureHelp, offset: number): Promise<void> {
     let { signatures, activeParameter } = signatureHelp
-    let offset = 0
     let paramDoc: string | MarkupContent = null
+    let startOffset = offset
     let docs: Documentation[] = signatures.reduce((p: Documentation[], c, idx) => {
       let activeIndexes: [number, number] = null
       let nameIndex = c.label.indexOf('(')
@@ -178,8 +181,8 @@ export default class Signature {
       if (activeIndexes == null) {
         activeIndexes = [nameIndex + 1, nameIndex + 1]
       }
-      if (offset == 0) {
-        offset = activeIndexes[0] + 1
+      if (offset == startOffset) {
+        offset = offset + activeIndexes[0] + 1
       }
       p.push({
         content: c.label,
@@ -207,14 +210,7 @@ export default class Signature {
       }
       return p
     }, [])
-    let session = snippetManager.getSession(doc.bufnr)
-    if (session && session.isActive) {
-      let { value } = session.placeholder
-      if (!value.includes('\n')) offset += value.length
-      this.signaturePosition = Position.create(position.line, position.character - value.length)
-    } else {
-      this.signaturePosition = position
-    }
+    this.signaturePosition = position
     let { preferAbove, maxWindowHeight, maxWindowWidth } = this.config
     const excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
     await this.signatureFactory.show(docs, {

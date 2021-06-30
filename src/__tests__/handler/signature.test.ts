@@ -1,16 +1,19 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, ParameterInformation, SignatureInformation } from 'vscode-languageserver-protocol'
+import { Disposable, Position, ParameterInformation, SignatureInformation } from 'vscode-languageserver-protocol'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
+import Signature from '../../handler/signature'
 import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
+let signature: Signature
 let disposables: Disposable[] = []
 
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
+  signature = helper.plugin.getHandler().signature
 })
 
 afterAll(async () => {
@@ -38,7 +41,7 @@ describe('signatureHelp', () => {
       }, []))
       await helper.createDocument()
       await nvim.input('foo')
-      await nvim.call('CocAction', 'showSignatureHelp')
+      await signature.triggerSignatureHelp()
       let win = await helper.getFloat()
       expect(win).toBeDefined()
       let lines = await helper.getWinLines(win.id)
@@ -60,11 +63,44 @@ describe('signatureHelp', () => {
       }, []))
       await helper.createDocument()
       await nvim.input('foo')
-      await nvim.call('CocAction', 'showSignatureHelp')
+      await signature.triggerSignatureHelp()
       let win = await helper.getFloat()
       expect(win).toBeDefined()
       let lines = await helper.getWinLines(win.id)
       expect(lines.join('\n')).toMatch(/description/)
+    })
+
+    it('should consider coc_last_placeholder on select mode', async () => {
+      let pos: Position
+      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
+        provideSignatureHelp: (_doc, position) => {
+          pos = position
+          return {
+            signatures: [
+              SignatureInformation.create('foo(a, b)', 'my signature', ParameterInformation.create('a', 'description')),
+            ],
+            activeParameter: 1,
+            activeSignature: null
+          }
+        }
+      }, []))
+      let doc = await helper.createDocument()
+      let line = await nvim.call('line', ['.'])
+      await nvim.setLine('  fn(abc, def)')
+      await nvim.command('normal! 0fave')
+      await nvim.input('<C-g>')
+      let placeholder = {
+        bufnr: doc.bufnr,
+        start: Position.create(line - 1, 5),
+        end: Position.create(line - 1, 8)
+      }
+      await nvim.setVar('coc_last_placeholder', placeholder)
+      let m = await nvim.mode
+      expect(m.mode).toBe('s')
+      await signature.triggerSignatureHelp()
+      let win = await helper.getFloat()
+      expect(win).toBeDefined()
+      expect(pos).toEqual(Position.create(0, 5))
     })
   })
 
@@ -103,7 +139,7 @@ describe('signatureHelp', () => {
       }, ['(', ',']))
       await helper.createDocument()
       await nvim.input('foo')
-      let p = nvim.call('CocAction', 'showSignatureHelp')
+      let p = signature.triggerSignatureHelp()
       await helper.wait(10)
       await nvim.command('stopinsert')
       await nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
@@ -214,7 +250,7 @@ describe('signatureHelp', () => {
         }
       }, ['(', ',']))
       await helper.createDocument()
-      await nvim.call('CocAction', 'showSignatureHelp')
+      await signature.triggerSignatureHelp()
       let win = await helper.getFloat()
       expect(win).toBeUndefined()
       configurations.updateUserConfig({ 'signature.triggerSignatureWait': 100 })
@@ -277,12 +313,12 @@ describe('signatureHelp', () => {
       }, []))
       await helper.createDocument()
       await nvim.input('foo(')
-      await nvim.call('CocAction', 'showSignatureHelp')
+      await signature.triggerSignatureHelp()
       let line = await helper.getCmdline()
       expect(line).toMatch('foo(a, b)')
       await nvim.input('a,')
       idx = 1
-      await nvim.call('CocAction', 'showSignatureHelp')
+      await signature.triggerSignatureHelp()
       line = await helper.getCmdline()
       expect(line).toMatch('foo(a, b)')
     })

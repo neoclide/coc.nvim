@@ -190,9 +190,10 @@ export class SnippetSession {
     let endLine = document.getline(end.line)
     let endCol = endLine ? byteLength(endLine.slice(0, end.character)) : 0
     nvim.setVar('coc_last_placeholder', {
+      bufnr: document.bufnr,
       current_text: value,
-      start: { line: start.line, col },
-      end: { line: end.line, col: endCol }
+      start: { line: start.line, col, character: start.character },
+      end: { line: end.line, col: endCol, character: end.character }
     }, true)
     let [ve, selection, pumvisible, mode] = await nvim.eval('[&virtualedit, &selection, pumvisible(), mode()]') as [string, string, number, string]
     let move_cmd = ''

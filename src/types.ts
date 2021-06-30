@@ -22,10 +22,18 @@ export interface ParsedUrlQueryInput {
   [key: string]: unknown
 }
 
+export interface CurrentState {
+  doc: Document
+  winid: number
+  position: Position
+  // :h mode()
+  mode: string
+}
+
 export interface HandlerDelegate {
   checkProvier: (id: ProviderName, document: TextDocument) => void
   withRequestToken: (name: string, fn: (token: CancellationToken) => Thenable<any>, checkEmpty?: boolean) => Promise<any>
-  getCurrentState: () => Promise<{ doc: Document, position: Position, winid: number }>
+  getCurrentState: () => Promise<CurrentState>
   addDisposable: (disposable: Disposable) => void
 }
 

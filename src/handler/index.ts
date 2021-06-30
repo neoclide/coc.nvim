@@ -6,11 +6,10 @@ import commandManager from '../commands'
 import events from '../events'
 import languages from '../languages'
 import listManager from '../list/manager'
-import Document from '../model/document'
 import FloatFactory, { FloatWinConfig } from '../model/floatFactory'
 import { TextDocumentContentProvider } from '../provider'
 import services from '../services'
-import { Documentation, ProviderName, StatusBarItem, TagDefinition } from '../types'
+import { CurrentState, Documentation, ProviderName, StatusBarItem, TagDefinition } from '../types'
 import { disposeAll } from '../util'
 import { equals } from '../util/object'
 import { emptyRange, positionInRange } from '../util/position'
@@ -746,17 +745,14 @@ export default class Handler {
     }
   }
 
-  public async getCurrentState(): Promise<{
-    doc: Document
-    position: Position
-    winid: number
-  }> {
+  public async getCurrentState(): Promise<CurrentState> {
     let { nvim } = this
-    let [bufnr, [line, character], winid] = await nvim.eval("[bufnr('%'),coc#util#cursor(),win_getid()]") as [number, [number, number], number]
+    let [bufnr, [line, character], winid, mode] = await nvim.eval("[bufnr('%'),coc#util#cursor(),win_getid(),mode()]") as [number, [number, number], number, string]
     let doc = workspace.getDocument(bufnr)
     if (!doc || !doc.attached) throw new Error(`current buffer ${bufnr} not attached`)
     return {
       doc,
+      mode,
       position: Position.create(line, character),
       winid
     }
