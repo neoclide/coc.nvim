@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import Refactor from '../../handler/refactor'
-import Search from '../../handler/search'
+import Search, { getPathFromArgs } from '../../handler/search'
 import helper from '../helper'
 import path from 'path'
 
@@ -25,15 +25,37 @@ afterEach(async () => {
   await helper.reset()
 })
 
+describe('getPathFromArgs', () => {
+  it('should get undefined path', async () => {
+    let res = getPathFromArgs(['a'])
+    expect(res).toBeUndefined()
+    res = getPathFromArgs(['a', 'b', '-c'])
+    expect(res).toBeUndefined()
+    res = getPathFromArgs(['a', '-b', 'c'])
+    expect(res).toBeUndefined()
+  })
+})
+
 describe('search', () => {
 
   it('should open refactor window', async () => {
     let search = new Search(nvim, cmd)
     let buf = await refactor.createRefactorBuffer()
     await search.run([], cwd, buf)
+    await helper.wait(50)
     let fileItems = buf.fileItems
     expect(fileItems.length).toBe(2)
     expect(fileItems[0].ranges.length).toBe(2)
+  })
+
+  it('should abort task', async () => {
+    let search = new Search(nvim, cmd)
+    let buf = await refactor.createRefactorBuffer()
+    let p = search.run(['--sleep', '1000'], cwd, buf)
+    search.abort()
+    await p
+    let fileItems = buf.fileItems
+    expect(fileItems.length).toBe(0)
   })
 
   it('should work with CocAction search', async () => {

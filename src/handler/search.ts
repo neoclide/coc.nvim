@@ -185,10 +185,14 @@ export default class Search {
       })
     })
   }
+
+  public abort(): void {
+    this.task?.dispose()
+  }
 }
 
 // rg requires `-- [path]` at the end
-function getPathFromArgs(args: string[]): string | undefined {
+export function getPathFromArgs(args: string[]): string | undefined {
   if (args.length < 2) return undefined
   let len = args.length
   if (args[len - 1].startsWith('-')) return undefined

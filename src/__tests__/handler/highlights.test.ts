@@ -2,6 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { Disposable, Position, Range } from 'vscode-languageserver-protocol'
 import Highlights from '../../handler/highlights'
 import languages from '../../languages'
+import workspace from '../../workspace'
 import { disposeAll } from '../../util'
 import helper from '../helper'
 
@@ -106,7 +107,21 @@ describe('document highlights', () => {
     expect(res).toBeNull()
   })
 
-  it('should not throw when document is not valid', async () => {
+  it('should not throw when document is command line', async () => {
+    await nvim.call('feedkeys', ['q:', 'in'])
+    let doc = await workspace.document
+    expect(doc.isCommandLine).toBe(true)
+    let err
+    try {
+      await highlights.highlight()
+    } catch (e) {
+      err = e
+    }
+    await nvim.input('<C-c>')
+    expect(err).toBeUndefined()
+  })
+
+  it('should not throw when provide not found', async () => {
     disposeAll(disposables)
     await helper.createDocument()
     await nvim.setLine('  oo')

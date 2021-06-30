@@ -27,4 +27,12 @@ let content = `\x1b[30mmodules/cursors.test.ts\x1b[m
 \x1b[32m46\x1b[m-    expect(res).toEqual({ line: 0, character: 3 })
 `
 
-process.stdout.write(content)
+let idx = process.argv.findIndex(s => s == '--sleep')
+if (idx !== -1) {
+  let ms = process.argv[idx + 1]
+  setTimeout(() => {
+    process.stdout.write(content)
+  }, ms)
+} else {
+  process.stdout.write(content)
+}
