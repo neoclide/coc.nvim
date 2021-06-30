@@ -366,7 +366,6 @@ export class LanguageClient extends BaseLanguageClient {
           execOptions.cwd = serverWorkingDir
           execOptions.env = getEnvironment(options.env, false)
           const runtime = this._getRuntimePath(node.runtime, serverWorkingDir)
-          logger.error('--coc runtime:', runtime)
           let pipeName: string | undefined
           if (transport === TransportKind.ipc) {
             // exec options not correctly typed in lib
@@ -532,7 +531,6 @@ export class LanguageClient extends BaseLanguageClient {
       return undefined
     }
     let folder = folders[0]
-    logger.error('--coc _mainGetRootPath:', folder)
     return folder.uri
   }
 
