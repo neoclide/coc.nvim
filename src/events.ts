@@ -35,14 +35,25 @@ export interface CursorPosition {
   insert: boolean
 }
 
+export interface LatestInsert {
+  bufnr: number
+  character: string
+  timestamp: number
+}
+
 class Events {
 
   private handlers: Map<string, Function[]> = new Map()
   private _cursor: CursorPosition
+  private _latestInsert: LatestInsert
   private insertMode = false
 
   public get cursor(): CursorPosition {
     return this._cursor
+  }
+
+  public get latestInsert(): LatestInsert | undefined {
+    return this._latestInsert ? Object.assign({}, this._latestInsert) : undefined
   }
 
   public async fire(event: string, args: any[]): Promise<void> {
@@ -57,6 +68,9 @@ class Events {
     } else if (this.insertMode && (event == 'CursorHold' || event == 'CursorMoved')) {
       this.insertMode = false
       await this.fire('InsertLeave', [args[0]])
+    }
+    if (event == 'InsertCharPre') {
+      this._latestInsert = { bufnr: args[1], character: args[0], timestamp: Date.now() }
     }
     if (event == 'CursorMoved' || event == 'CursorMovedI') {
       let cursor = {
@@ -94,7 +108,7 @@ class Events {
   public on(event: 'Command', handler: (name: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'MenuPopupChanged', handler: (event: PopupChangeEvent, cursorline: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'CompleteDone', handler: (item: VimCompleteItem) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: 'InsertCharPre', handler: (character: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'InsertCharPre', handler: (character: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'FileType', handler: (filetype: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'BufWinEnter' | 'BufWinLeave', handler: (bufnr: number, winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'DirChanged', handler: (cwd: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

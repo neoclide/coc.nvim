@@ -247,6 +247,7 @@ describe('document recreate', () => {
       expect(content).toBe('}\n')
     })
   })
+
   it('should synchronize after force edit', async () => {
     await assertDocument(async doc => {
       let fsPath = URI.parse(doc.uri).fsPath
@@ -258,6 +259,31 @@ describe('document recreate', () => {
       let content = doc.getDocumentContent()
       expect(content).toBe('}\n')
     })
+  })
+
+  it('should consider latest insert character for change range', async () => {
+    let doc = await helper.createDocument()
+    await nvim.setLine('foo{}')
+    await nvim.input('A')
+    await helper.wait(30)
+    doc.forceSync()
+    let change: any
+    let disposable = doc.onDocumentChange(e => {
+      change = e.contentChanges[0]
+    })
+    await nvim.command(`call feedkeys("{}${'\\<C-G>U\\<Left>'}", 'in')`)
+    let line = await nvim.line
+    expect(line).toBe('foo{}{}')
+    doc.forceSync()
+    expect(change).toEqual({
+      range: {
+        start: { line: 0, character: 5 },
+        end: { line: 0, character: 5 }
+      },
+      rangeLength: 0,
+      text: '{}'
+    })
+    disposable.dispose()
   })
 })
 

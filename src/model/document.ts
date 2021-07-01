@@ -10,7 +10,7 @@ import { disposeAll, getUri, wait } from '../util/index'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
 import { isWindows } from '../util/platform'
-import { byteLength, byteSlice } from '../util/string'
+import { byteLength, byteSlice, characterIndex } from '../util/string'
 import { Chars } from './chars'
 import { LinesTextDocument } from './textdocument'
 const logger = require('../util/logger')('model-document')
@@ -248,13 +248,23 @@ export default class Document {
   }
 
   private _fireContentChanges(): boolean {
-    let { cursor } = events
+    let { cursor, latestInsert } = events
     let { textDocument } = this
     try {
       let endOffset = null
       // consider cursor position.
       if (cursor && cursor.bufnr == this.bufnr) {
         endOffset = this.getEndOffset(cursor.lnum, cursor.col, cursor.insert)
+        // FIXME there could be multiple characters inserted after cursor, but can't handle for now.
+        if (latestInsert && latestInsert.bufnr == this.bufnr && Date.now() - latestInsert.timestamp < 200) {
+          let line = this.getline(cursor.lnum - 1, true)
+          let idx = characterIndex(line, cursor.col - 1)
+          let next = line[idx]
+          // latest insert character is next character, caused by extension like coc-pairs
+          if (next != line[idx - 1] && next == latestInsert.character) {
+            endOffset = endOffset - 1
+          }
+        }
       }
       let content = this.getDocumentContent()
       let change = getChange(textDocument.getText(), content, endOffset)
