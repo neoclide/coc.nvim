@@ -1,15 +1,13 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CallHierarchyItem, CancellationToken, CancellationTokenSource, Definition, Disposable, DocumentLink, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CallHierarchyItem, CancellationToken, CancellationTokenSource, Definition, Disposable, DocumentLink, Location, LocationLink, MarkupContent, Position, Range, SelectionRange, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import commandManager from '../commands'
 import events from '../events'
 import languages from '../languages'
 import listManager from '../list/manager'
-import FloatFactory, { FloatWinConfig } from '../model/floatFactory'
-import { TextDocumentContentProvider } from '../provider'
 import services from '../services'
-import { CurrentState, Documentation, ProviderName, StatusBarItem, TagDefinition } from '../types'
+import { CurrentState, ProviderName, StatusBarItem, TagDefinition } from '../types'
 import { disposeAll } from '../util'
 import { equals } from '../util/object'
 import { emptyRange, positionInRange } from '../util/position'
@@ -19,8 +17,9 @@ import CodeActions from './codeActions'
 import CodeLens from './codelens/index'
 import Colors from './colors/index'
 import Format from './format'
-import { addDocument, isMarkdown, synchronizeDocument } from './helper'
+import { synchronizeDocument } from './helper'
 import Highlights from './highlights'
+import HoverHandler from './hover'
 import Refactor from './refactor/index'
 import { Highlight } from './semanticTokensHighlights/buffer'
 import SemanticTokensHighlights from './semanticTokensHighlights/index'
@@ -33,13 +32,6 @@ interface CommandItem {
   title: string
 }
 
-interface Preferences {
-  hoverTarget: string
-  previewAutoClose: boolean
-  previewMaxHeight: number
-  floatActions: boolean
-}
-
 export default class Handler {
   public readonly documentHighlighter: Highlights
   public readonly colors: Colors
@@ -48,11 +40,9 @@ export default class Handler {
   public readonly refactor: Refactor
   public readonly codeActions: CodeActions
   public readonly format: Format
+  public readonly hover: HoverHandler
+  public readonly codeLens: CodeLens
   private semanticHighlighter: SemanticTokensHighlights
-  private preferences: Preferences
-  private hoverFactory: FloatFactory
-  private documentLines: string[] = []
-  private codeLens: CodeLens
   private selectionRange: SelectionRange = null
   private requestStatusItem: StatusBarItem
   private requestTokenSource: CancellationTokenSource | undefined
@@ -60,19 +50,15 @@ export default class Handler {
   private disposables: Disposable[] = []
 
   constructor(private nvim: Neovim) {
-    this.getPreferences()
     this.requestStatusItem = window.createStatusBarItem(0, { progress: true })
-    workspace.onDidChangeConfiguration(() => {
-      this.getPreferences()
-    })
     this.codeActions = new CodeActions(nvim, this)
     this.format = new Format(nvim, this)
     this.refactor = new Refactor(nvim, this)
     this.symbols = new Symbols(nvim, this)
     this.signature = new Signature(nvim, this)
-    this.hoverFactory = new FloatFactory(nvim)
     this.codeLens = new CodeLens(nvim)
     this.colors = new Colors(nvim, this)
+    this.hover = new HoverHandler(nvim, this)
     this.documentHighlighter = new Highlights(nvim, this)
     this.semanticHighlighter = new SemanticTokensHighlights(nvim)
     this.disposables.push({
@@ -80,7 +66,7 @@ export default class Handler {
         this.refactor.dispose()
         this.signature.dispose()
         this.symbols.dispose()
-        this.hoverFactory.dispose()
+        this.hover.dispose()
         this.colors.dispose()
         this.documentHighlighter.dispose()
         this.semanticHighlighter.dispose()
@@ -89,21 +75,9 @@ export default class Handler {
     events.on(['CursorMoved', 'CursorMovedI', 'InsertEnter', 'InsertSnippet', 'InsertLeave'], () => {
       if (this.requestTokenSource) {
         this.requestTokenSource.cancel()
+        this.requestTokenSource = null
       }
     }, null, this.disposables)
-    let provider: TextDocumentContentProvider = {
-      onDidChange: null,
-      provideTextDocumentContent: async () => {
-        nvim.pauseNotification()
-        nvim.command('setlocal conceallevel=2 nospell nofoldenable wrap', true)
-        nvim.command('setlocal bufhidden=wipe nobuflisted', true)
-        nvim.command('setfiletype markdown', true)
-        nvim.command(`if winnr('j') != winnr('k') | exe "normal! z${Math.min(this.documentLines.length, this.preferences.previewMaxHeight)}\\<cr> | endif"`, true)
-        await nvim.resumeNotification()
-        return this.documentLines.join('\n')
-      }
-    }
-    this.disposables.push(workspace.registerTextDocumentContentProvider('coc', provider))
   }
 
   /**
@@ -160,56 +134,6 @@ export default class Handler {
     let doc = workspace.getDocument(bufnr)
     if (!doc) return false
     return languages.hasProvider(id as ProviderName, doc.textDocument)
-  }
-
-  public async onHover(hoverTarget?: string): Promise<boolean> {
-    let { doc, position, winid } = await this.getCurrentState()
-    this.checkProvier('hover', doc.textDocument)
-    this.hoverFactory.close()
-    await synchronizeDocument(doc)
-    let hovers = await this.withRequestToken<Hover[]>('hover', token => {
-      return languages.getHover(doc.textDocument, position, token)
-    }, true)
-    if (hovers == null) return false
-    let hover = hovers.find(o => Range.is(o.range))
-    if (hover?.range) {
-      let win = this.nvim.createWindow(winid)
-      let ids = await win.highlightRanges('CocHoverRange', [hover.range], 99) as number[]
-      setTimeout(() => {
-        if (ids.length) win.clearMatches(ids)
-        if (workspace.isVim) this.nvim.command('redraw', true)
-      }, 500)
-    }
-    await this.previewHover(hovers, hoverTarget)
-    return true
-  }
-
-  /**
-   * Get hover text array
-   */
-  public async getHover(): Promise<string[]> {
-    let result: string[] = []
-    let { doc, position } = await this.getCurrentState()
-    this.checkProvier('hover', doc.textDocument)
-    await synchronizeDocument(doc)
-    let tokenSource = new CancellationTokenSource()
-    let hovers = await languages.getHover(doc.textDocument, position, tokenSource.token)
-    if (Array.isArray(hovers)) {
-      for (let h of hovers) {
-        let { contents } = h
-        if (Array.isArray(contents)) {
-          contents.forEach(c => {
-            result.push(typeof c === 'string' ? c : c.value)
-          })
-        } else if (MarkupContent.is(contents)) {
-          result.push(contents.value)
-        } else {
-          result.push(typeof contents === 'string' ? contents : contents.value)
-        }
-      }
-    }
-    result = result.filter(s => s != null && s.length > 0)
-    return result
   }
 
   public async gotoDefinition(openCommand?: string): Promise<boolean> {
@@ -456,9 +380,6 @@ export default class Handler {
       await listManager.start(['commands'])
     }
   }
-  public async doCodeLensAction(): Promise<void> {
-    await this.codeLens.doAction()
-  }
 
   public async fold(kind?: string): Promise<boolean> {
     let { doc, winid } = await this.getCurrentState()
@@ -677,71 +598,6 @@ export default class Handler {
     if (!selectionRange) return
     this.selectionRange = selectionRanges[0]
     await workspace.selectRange(selectionRange.range)
-  }
-
-  private async previewHover(hovers: Hover[], target?: string): Promise<void> {
-    let docs: Documentation[] = []
-    let hoverPreference = workspace.getConfiguration('hover')
-    if (!target) {
-      target = this.preferences.hoverTarget || hoverPreference.get('target', 'float')
-      if (target == 'float' && !workspace.floatSupported) target = 'preview'
-    }
-    let isPreview = target === 'preview'
-    for (let hover of hovers) {
-      let { contents } = hover
-      if (Array.isArray(contents)) {
-        for (let item of contents) {
-          if (typeof item === 'string') {
-            addDocument(docs, item, 'markdown', isPreview)
-          } else {
-            addDocument(docs, item.value, item.language, isPreview)
-          }
-        }
-      } else if (MarkedString.is(contents)) {
-        if (typeof contents == 'string') {
-          addDocument(docs, contents, 'markdown', isPreview)
-        } else {
-          addDocument(docs, contents.value, contents.language, isPreview)
-        }
-      } else if (MarkupContent.is(contents)) {
-        addDocument(docs, contents.value, isMarkdown(contents) ? 'markdown' : 'txt', isPreview)
-      }
-    }
-    if (target == 'float') {
-      let opts: FloatWinConfig = { modes: ['n'] }
-      opts.maxWidth = hoverPreference.get('floatMaxWidth', 80)
-      opts.maxHeight = hoverPreference.get('floatMaxHeight', undefined)
-      opts.autoHide = hoverPreference.get('autoHide', true)
-      opts.excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument', true)
-      await this.hoverFactory.show(docs, opts)
-      return
-    }
-    let lines = docs.reduce((p, c) => {
-      let arr = c.content.split(/\r?\n/)
-      if (p.length > 0) p.push('')
-      p.push(...arr)
-      return p
-    }, [])
-    if (target == 'echo') {
-      const msg = lines.join('\n').trim()
-      if (msg.length) {
-        await this.nvim.call('coc#util#echo_hover', msg)
-      }
-    } else {
-      this.documentLines = lines
-      await this.nvim.command(`noswapfile pedit coc://document`)
-    }
-  }
-
-  private getPreferences(): void {
-    let config = workspace.getConfiguration('coc.preferences')
-    let hoverTarget = config.get<string>('hoverTarget', undefined)
-    this.preferences = {
-      hoverTarget,
-      previewMaxHeight: config.get<number>('previewMaxHeight', 12),
-      previewAutoClose: config.get<boolean>('previewAutoClose', false),
-      floatActions: config.get<boolean>('floatActions', true)
-    }
   }
 
   public async getCurrentState(): Promise<CurrentState> {

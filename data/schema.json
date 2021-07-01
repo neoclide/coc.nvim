@@ -742,6 +742,11 @@
       "description": "Target to show hover information, default is floating window when possible.",
       "enum": ["preview", "echo", "float"]
     },
+    "hover.previewMaxHeight": {
+      "type": "number",
+      "default": 12,
+      "description": "Max height of preview window for hover."
+    },
     "hover.floatMaxWidth": {
       "type": "number",
       "default": 80,
@@ -1025,16 +1030,6 @@
       "type": "boolean",
       "description": "Enable semanticTokens highlight if language server support it.",
       "default": true
-    },
-    "coc.preferences.previewAutoClose": {
-      "type": "boolean",
-      "description": "Auto close preview window on cursor move.",
-      "default": true
-    },
-    "coc.preferences.previewMaxHeight": {
-      "type": "number",
-      "default": 12,
-      "description": "Max height of preview window for hover."
     },
     "coc.preferences.currentFunctionSymbolAutoUpdate": {
       "type": "boolean",

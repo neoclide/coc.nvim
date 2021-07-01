@@ -552,6 +552,10 @@ Built-in configurations:~
 
 	Valid options: ["preview", "echo", "float"]
 
+"hover.previewMaxHeight":~
+
+	Max height of preview window for hover, default: `12`
+
 "hover.floatMaxWidth":~
 
 	Maximum width of hover float window, not bigger than 80.
@@ -777,14 +781,6 @@ Built-in configurations:~
 	Check |coc-status| for statusline integration.
 
 	Default: `"SNIP"`
-
-"coc.preferences.previewAutoClose":~
-
-	Auto close preview window of hover upon cursor move, default: `true`
-
-"coc.preferences.previewMaxHeight":~
-
-	Max height of preview window for hover, default: `12`
 
 "coc.preferences.colorSupport":~
 

@@ -284,10 +284,10 @@ export default class Plugin extends EventEmitter {
       return this.handler.gotoReferences(openCommand, false)
     })
     this.addAction('doHover', hoverTarget => {
-      return this.handler.onHover(hoverTarget)
+      return this.handler.hover.onHover(hoverTarget)
     })
     this.addAction('getHover', () => {
-      return this.handler.getHover()
+      return this.handler.hover.getHover()
     })
     this.addAction('showSignatureHelp', () => {
       return this.handler.signature.triggerSignatureHelp()
@@ -363,7 +363,7 @@ export default class Plugin extends EventEmitter {
       return codeActions.map((o, idx) => Object.assign({ index: idx }, o))
     })
     this.addAction('codeLensAction', () => {
-      return this.handler.doCodeLensAction()
+      return this.handler.codeLens.doAction()
     })
     this.addAction('runCommand', (...args: any[]) => {
       return this.handler.runCommand(...args)
