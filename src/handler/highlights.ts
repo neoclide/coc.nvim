@@ -3,7 +3,7 @@ import { CancellationTokenSource, Disposable, DocumentHighlight, DocumentHighlig
 import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
-import { HandlerDelegate, CurrentState } from '../types'
+import { HandlerDelegate } from '../types'
 import { disposeAll } from '../util'
 import workspace from '../workspace'
 const logger = require('../util/logger')('documentHighlight')
@@ -35,17 +35,11 @@ export default class Highlights {
   public async highlight(): Promise<void> {
     let { nvim } = this
     this.cancel()
-    let state: CurrentState
-    try {
-      state = await this.handler.getCurrentState()
-      this.handler.checkProvier('documentHighlight', state.doc.textDocument)
-    } catch (e) {
-      return
-    }
-    let { doc, winid, position } = state
-    let cursors = await nvim.eval(`get(b:,'coc_cursors_activated',0)`) as number
-    if (cursors) return
-    let highlights = await this.getHighlights(doc, position)
+    let [bufnr, winid, pos, cursors] = await nvim.eval(`[bufnr("%"),win_getid(),coc#util#cursor(),get(b:,'coc_cursors_activated',0)]`) as [number, number, [number, number], number]
+    let doc = workspace.getDocument(bufnr)
+    if (!doc || !doc.attached || cursors) return
+    if (!languages.hasProvider('documentHighlight', doc.textDocument)) return
+    let highlights = await this.getHighlights(doc, Position.create(pos[0], pos[1]))
     if (!highlights) return
     let groups: { [index: string]: Range[] } = {}
     for (let hl of highlights) {

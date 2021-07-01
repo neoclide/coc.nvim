@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Position, Range } from 'vscode-languageserver-protocol'
+import { Disposable, DocumentHighlightKind, Position, Range } from 'vscode-languageserver-protocol'
 import Highlights from '../../handler/highlights'
 import languages from '../../languages'
 import workspace from '../../workspace'
@@ -33,11 +33,12 @@ function registProvider(): void {
       // let word = document.get
       let matches = Array.from((document.getText() as any).matchAll(/\w+/g)) as any[]
       let filtered = matches.filter(o => o[0] == word)
-      return filtered.map(o => {
+      return filtered.map((o, i) => {
         let start = document.positionAt(o.index)
         let end = document.positionAt(o.index + o[0].length)
         return {
-          range: Range.create(start, end)
+          range: Range.create(start, end),
+          kind: i % 2 == 0 ? DocumentHighlightKind.Read : DocumentHighlightKind.Write
         }
       })
     }
@@ -121,7 +122,7 @@ describe('document highlights', () => {
     expect(err).toBeUndefined()
   })
 
-  it('should not throw when provide not found', async () => {
+  it('should not throw when provider not found', async () => {
     disposeAll(disposables)
     await helper.createDocument()
     await nvim.setLine('  oo')
