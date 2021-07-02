@@ -5,13 +5,18 @@ import { CancellationTokenSource, Disposable, Hover, MarkedString, MarkupContent
 import { disposeAll } from '../util'
 import { TextDocumentContentProvider } from '../provider'
 import workspace from '../workspace'
-import { addDocument, isMarkdown, synchronizeDocument } from './helper'
+import { isMarkdown } from './helper'
 import languages from '../languages'
-const logger = require('../util/logger')('handler-signature')
+const logger = require('../util/logger')('handler-hover')
+
+export type HoverTarget = 'float' | 'preview' | 'echo'
 
 interface HoverConfig {
-  target: string
+  target: HoverTarget
   previewMaxHeight: number
+  floatMaxWidth: number
+  floatMaxHeight: number | undefined
+  autoHide: boolean
 }
 
 export default class HoverHandler {
@@ -19,6 +24,7 @@ export default class HoverHandler {
   private disposables: Disposable[] = []
   private documentLines: string[] = []
   private config: HoverConfig
+  private timer: NodeJS.Timeout
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
     this.loadConfiguration()
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
@@ -42,32 +48,32 @@ export default class HoverHandler {
   private loadConfiguration(e?: ConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('hover')) {
       let config = workspace.getConfiguration('hover')
-      let target = config.get<string>('target', 'float')
-      if (target == 'float' && !workspace.floatSupported) {
-        target = 'preview'
-      }
+      let target = config.get<HoverTarget>('target', 'float')
       this.config = {
-        target,
+        autoHide: config.get('autoHide', true),
+        floatMaxHeight: config.get('floatMaxHeight', undefined),
+        floatMaxWidth: config.get('floatMaxWidth', 80),
+        target: target == 'float' && !workspace.floatSupported ? 'preview' : target,
         previewMaxHeight: config.get<number>('previewMaxHeight', 12)
       }
     }
   }
 
-  public async onHover(hoverTarget?: string): Promise<boolean> {
+  public async onHover(hoverTarget?: HoverTarget): Promise<boolean> {
     let { doc, position, winid } = await this.handler.getCurrentState()
     this.handler.checkProvier('hover', doc.textDocument)
     this.hoverFactory.close()
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     let hovers = await this.handler.withRequestToken('hover', token => {
       return languages.getHover(doc.textDocument, position, token)
     }, true)
-    if (hovers == null) return false
+    if (hovers == null || !hovers.length) return false
     let hover = hovers.find(o => Range.is(o.range))
     if (hover?.range) {
       let win = this.nvim.createWindow(winid)
-      let ids = await win.highlightRanges('CocHoverRange', [hover.range], 99) as number[]
-      setTimeout(() => {
-        if (ids.length) win.clearMatches(ids)
+      win.highlightRanges('CocHoverRange', [hover.range], 99, true)
+      this.timer = setTimeout(() => {
+        win.clearMatchGroup('CocHoverRange')
         if (workspace.isVim) this.nvim.command('redraw', true)
       }, 500)
     }
@@ -77,7 +83,6 @@ export default class HoverHandler {
 
   private async previewHover(hovers: Hover[], target?: string): Promise<void> {
     let docs: Documentation[] = []
-    let hoverPreference = workspace.getConfiguration('hover')
     target = target || this.config.target
     let isPreview = target === 'preview'
     for (let hover of hovers) {
@@ -101,10 +106,12 @@ export default class HoverHandler {
       }
     }
     if (target == 'float') {
-      let opts: FloatWinConfig = { modes: ['n'] }
-      opts.maxWidth = hoverPreference.get('floatMaxWidth', 80)
-      opts.maxHeight = hoverPreference.get('floatMaxHeight', undefined)
-      opts.autoHide = hoverPreference.get('autoHide', true)
+      let opts: FloatWinConfig = {
+        modes: ['n'],
+        maxWidth: this.config.floatMaxWidth,
+        maxHeight: this.config.floatMaxHeight,
+        autoHide: this.config.autoHide
+      }
       opts.excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument', true)
       await this.hoverFactory.show(docs, opts)
       return
@@ -117,9 +124,7 @@ export default class HoverHandler {
     }, [])
     if (target == 'echo') {
       const msg = lines.join('\n').trim()
-      if (msg.length) {
-        await this.nvim.call('coc#util#echo_hover', msg)
-      }
+      await this.nvim.call('coc#util#echo_hover', [msg])
     } else {
       this.documentLines = lines
       await this.nvim.command(`noswapfile pedit coc://document`)
@@ -133,7 +138,7 @@ export default class HoverHandler {
     let result: string[] = []
     let { doc, position } = await this.handler.getCurrentState()
     this.handler.checkProvier('hover', doc.textDocument)
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     let tokenSource = new CancellationTokenSource()
     let hovers = await languages.getHover(doc.textDocument, position, tokenSource.token)
     if (Array.isArray(hovers)) {
@@ -155,6 +160,19 @@ export default class HoverHandler {
   }
 
   public dispose(): void {
+    if (this.timer) {
+      clearTimeout(this.timer)
+    }
     disposeAll(this.disposables)
   }
+}
+
+function addDocument(docs: Documentation[], text: string, filetype: string, isPreview = false): void {
+  let content = text.trim()
+  if (!content.length)
+    return
+  if (isPreview && filetype !== 'markdown') {
+    content = '``` ' + filetype + '\n' + content + '\n```'
+  }
+  docs.push({ content, filetype })
 }

@@ -20,7 +20,9 @@ import { CONFIG_FILE_NAME } from './util'
 import workspace from './workspace'
 import window from './window'
 import events from './events'
+import matchAll from 'string.prototype.matchall'
 const logger = require('./util/logger')('plugin')
+matchAll.shim()
 
 declare const REVISION
 

@@ -1,5 +1,5 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CallHierarchyItem, CancellationToken, CancellationTokenSource, Definition, Disposable, DocumentLink, Location, LocationLink, MarkupContent, Position, Range, SelectionRange, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CallHierarchyItem, CancellationToken, CancellationTokenSource, Definition, Disposable, DocumentLink, Location, LocationLink, Position, Range, SelectionRange, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import commandManager from '../commands'
@@ -17,7 +17,6 @@ import CodeActions from './codeActions'
 import CodeLens from './codelens/index'
 import Colors from './colors/index'
 import Format from './format'
-import { synchronizeDocument } from './helper'
 import Highlights from './highlights'
 import HoverHandler from './hover'
 import Refactor from './refactor/index'
@@ -139,7 +138,7 @@ export default class Handler {
   public async gotoDefinition(openCommand?: string): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
     this.checkProvier('definition', doc.textDocument)
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     let definition = await this.withRequestToken('definition', token => {
       return languages.getDefinition(doc.textDocument, position, token)
     }, true)
@@ -151,7 +150,7 @@ export default class Handler {
   public async definitions(): Promise<Location[]> {
     const { doc, position } = await this.getCurrentState()
     if (!languages.hasProvider('reference', doc.textDocument)) return []
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     const tokenSource = new CancellationTokenSource()
     return languages.getDefinition(doc.textDocument, position, tokenSource.token)
   }
@@ -159,7 +158,7 @@ export default class Handler {
   public async gotoDeclaration(openCommand?: string): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
     this.checkProvier('declaration', doc.textDocument)
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     let definition = await this.withRequestToken('declaration', token => {
       return languages.getDeclaration(doc.textDocument, position, token)
     }, true)
@@ -171,7 +170,7 @@ export default class Handler {
   public async declarations(): Promise<Location | Location[] | LocationLink[]> {
     const { doc, position } = await this.getCurrentState()
     if (!languages.hasProvider('declaration', doc.textDocument)) return []
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     const tokenSource = new CancellationTokenSource()
     return languages.getDeclaration(doc.textDocument, position, tokenSource.token)
   }
@@ -179,7 +178,7 @@ export default class Handler {
   public async gotoTypeDefinition(openCommand?: string): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
     this.checkProvier('typeDefinition', doc.textDocument)
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     let definition = await this.withRequestToken('type definition', token => {
       return languages.getTypeDefinition(doc.textDocument, position, token)
     }, true)
@@ -191,7 +190,7 @@ export default class Handler {
   public async typeDefinitions(): Promise<Location[]> {
     const { doc, position } = await this.getCurrentState()
     if (!languages.hasProvider('typeDefinition', doc.textDocument)) return []
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     const tokenSource = new CancellationTokenSource()
     return languages.getTypeDefinition(doc.textDocument, position, tokenSource.token)
   }
@@ -199,7 +198,7 @@ export default class Handler {
   public async gotoImplementation(openCommand?: string): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
     this.checkProvier('implementation', doc.textDocument)
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     let definition = await this.withRequestToken('implementation', token => {
       return languages.getImplementation(doc.textDocument, position, token)
     }, true)
@@ -211,7 +210,7 @@ export default class Handler {
   public async implementations(): Promise<Location[]> {
     const { doc, position } = await this.getCurrentState()
     if (!languages.hasProvider('implementation', doc.textDocument)) return []
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     const tokenSource = new CancellationTokenSource()
     return languages.getImplementation(doc.textDocument, position, tokenSource.token)
   }
@@ -219,7 +218,7 @@ export default class Handler {
   public async gotoReferences(openCommand?: string, includeDeclaration = true): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
     this.checkProvier('reference', doc.textDocument)
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     let definition = await this.withRequestToken('references', token => {
       return languages.getReferences(doc.textDocument, { includeDeclaration }, position, token)
     }, true)
@@ -231,7 +230,7 @@ export default class Handler {
   public async references(): Promise<Location[]> {
     const { doc, position } = await this.getCurrentState()
     if (!languages.hasProvider('reference', doc.textDocument)) return []
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     const tokenSource = new CancellationTokenSource()
     return languages.getReferences(doc.textDocument, { includeDeclaration: true }, position, tokenSource.token)
   }
@@ -242,7 +241,7 @@ export default class Handler {
     if (!range || emptyRange(range)) return null
     let curname = doc.textDocument.getText(range)
     if (languages.hasProvider('rename', doc.textDocument)) {
-      await synchronizeDocument(doc)
+      await doc.synchronize()
       let requestTokenSource = new CancellationTokenSource()
       let res = await languages.prepareRename(doc.textDocument, position, requestTokenSource.token)
       if (res === false) return null
@@ -261,7 +260,7 @@ export default class Handler {
   public async rename(newName?: string): Promise<boolean> {
     let { doc, position } = await this.getCurrentState()
     this.checkProvier('rename', doc.textDocument)
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     let statusItem = this.requestStatusItem
     try {
       let token = (new CancellationTokenSource()).token
@@ -312,7 +311,7 @@ export default class Handler {
   public async getCallHierarchy(method: 'incoming' | 'outgoing'): Promise<boolean> {
     const { doc, position } = await this.getCurrentState()
     this.checkProvier('callHierarchy', doc.textDocument)
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     const res = await this.withRequestToken('Prepare Call hierarchy', token => {
       return languages.prepareCallHierarchy(doc.textDocument, position, token)
     }, false)
@@ -384,7 +383,7 @@ export default class Handler {
   public async fold(kind?: string): Promise<boolean> {
     let { doc, winid } = await this.getCurrentState()
     this.checkProvier('foldingRange', doc.textDocument)
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     let win = this.nvim.createWindow(winid)
     let [foldmethod, foldlevel] = await this.nvim.eval('[&foldmethod,&foldlevel]') as [string, string]
     if (foldmethod != 'manual') {
@@ -418,7 +417,7 @@ export default class Handler {
     let { doc } = await this.getCurrentState()
     if (!languages.hasProvider('semanticTokens', doc.textDocument)) return
 
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     await this.semanticHighlighter.doHighlight(doc.bufnr)
   }
 
@@ -426,7 +425,7 @@ export default class Handler {
     const { doc } = await this.getCurrentState()
     if (!languages.hasProvider('semanticTokens', doc.textDocument)) return
 
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     return await this.semanticHighlighter.getHighlights(doc.bufnr)
   }
 
@@ -536,7 +535,7 @@ export default class Handler {
   public async getSelectionRanges(): Promise<SelectionRange[] | null> {
     let { doc, position } = await this.getCurrentState()
     this.checkProvier('selectionRange', doc.textDocument)
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     let selectionRanges: SelectionRange[] = await this.withRequestToken('selection ranges', token => {
       return languages.getSelectionRanges(doc.textDocument, [position], token)
     })
@@ -571,7 +570,7 @@ export default class Handler {
       }
       return
     }
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     let selectionRanges: SelectionRange[] = await this.withRequestToken('selection ranges', token => {
       return languages.getSelectionRanges(doc.textDocument, positions, token)
     })

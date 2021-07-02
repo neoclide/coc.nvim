@@ -9,7 +9,6 @@ import { getChangedFromEdits } from '../util/position'
 import { isWord } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
-import { synchronizeDocument } from './helper'
 const logger = require('../util/logger')('handler-format')
 
 const pairs: Map<string, string> = new Map([
@@ -157,7 +156,7 @@ export default class FormatHandler {
       // not format for empty line.
       if (newLine && /^\s*$/.test(origLine)) return
       let pos: Position = newLine ? { line: position.line - 1, character: origLine.length } : position
-      await synchronizeDocument(doc)
+      await doc.synchronize()
       return await languages.provideDocumentOnTypeEdits(ch, doc.textDocument, pos, token)
     })
     if (!edits || !edits.length) return
@@ -178,7 +177,7 @@ export default class FormatHandler {
   }
 
   public async documentFormat(doc: Document): Promise<boolean> {
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     if (!languages.hasFormatProvider(doc.textDocument)) {
       throw new Error(`Format provider not found for buffer: ${doc.bufnr}`)
     }
@@ -195,7 +194,7 @@ export default class FormatHandler {
 
   public async documentRangeFormat(doc: Document, mode?: string): Promise<number> {
     this.handler.checkProvier('formatRange', doc.textDocument)
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     let range: Range
     if (mode) {
       range = await workspace.getSelectedRange(mode, doc)

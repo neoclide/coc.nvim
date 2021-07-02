@@ -7,7 +7,6 @@ import { disposeAll } from '../../util'
 import { getFileLineCount } from '../../util/fs'
 import window from '../../window'
 import workspace from '../../workspace'
-import { synchronizeDocument } from '../helper'
 import Search from '../search'
 import RefactorBuffer, { FileItem, FileRange, RefactorConfig, SEPARATOR } from './buffer'
 const logger = require('../../util/logger')('handler-refactor')
@@ -66,7 +65,7 @@ export default class Refactor {
     if (!languages.hasProvider('rename', doc.textDocument)) {
       throw new Error(`Rename provider not found for current buffer`)
     }
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     let edit = await this.handler.withRequestToken('refactor', async token => {
       let res = await languages.prepareRename(doc.textDocument, position, token)
       if (token.isCancellationRequested) return null

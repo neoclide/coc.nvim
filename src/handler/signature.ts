@@ -8,7 +8,7 @@ import { ConfigurationChangeEvent, Documentation, HandlerDelegate } from '../typ
 import { disposeAll } from '../util'
 import { byteLength } from '../util/string'
 import workspace from '../workspace'
-import { isMarkdown, synchronizeDocument } from './helper'
+import { isMarkdown } from './helper'
 const logger = require('../util/logger')('handler-signature')
 
 interface SignatureConfig {
@@ -126,7 +126,7 @@ export default class Signature {
     let timer = this.timer = setTimeout(() => {
       tokenSource.cancel()
     }, this.config.wait)
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     let signatureHelp = await languages.getSignatureHelp(doc.textDocument, position, token, {
       isRetrigger: this.signatureFactory.checkRetrigger(doc.bufnr),
       triggerKind: invoke ? SignatureHelpTriggerKind.Invoked : SignatureHelpTriggerKind.TriggerCharacter

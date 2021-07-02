@@ -7,7 +7,6 @@ import Document from '../model/document'
 import window from '../window'
 import { HandlerDelegate } from '../types'
 import languages from '../languages'
-import { synchronizeDocument } from './helper'
 const logger = require('../util/logger')('handler-codeActions')
 
 /**
@@ -26,7 +25,7 @@ export default class CodeActions {
 
   public async codeActionRange(start: number, end: number, only?: string): Promise<void> {
     let { doc } = await this.handler.getCurrentState()
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     let line = doc.getline(end - 1)
     let range = Range.create(start - 1, 0, end - 1, line.length)
     let codeActions = await this.getCodeActions(doc, range, only ? [only] : null)
@@ -42,7 +41,7 @@ export default class CodeActions {
   public async organizeImport(bufnr?: number): Promise<void> {
     let { doc } = await this.handler.getCurrentState()
     if (bufnr && doc.bufnr != bufnr) return
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     let actions = await this.getCodeActions(doc, undefined, [CodeActionKind.SourceOrganizeImports])
     if (actions && actions.length) {
       await this.applyCodeAction(actions[0])
@@ -84,7 +83,7 @@ export default class CodeActions {
     let { doc } = await this.handler.getCurrentState()
     let range: Range
     if (mode) range = await workspace.getSelectedRange(mode, doc)
-    await synchronizeDocument(doc)
+    await doc.synchronize()
     let codeActions = await this.getCodeActions(doc, range, Array.isArray(only) ? only : null)
     if (typeof only == 'string') {
       codeActions = codeActions.filter(o => o.title == only || (o.command && o.command.title == only))

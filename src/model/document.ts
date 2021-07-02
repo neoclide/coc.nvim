@@ -667,6 +667,17 @@ export default class Document {
   }
 
   /**
+   * Synchronize latest document content
+   */
+  public async synchronize(): Promise<void> {
+    let { changedtick } = this
+    await this.patchChange()
+    if (changedtick != this.changedtick) {
+      await wait(50)
+    }
+  }
+
+  /**
    * Get localify bonus map.
    *
    * @internal
