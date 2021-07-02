@@ -18,9 +18,9 @@ export enum DiagnosticHighlight {
   Error = 'CocErrorHighlight',
   Warning = 'CocWarningHighlight',
   Information = 'CocInfoHighlight',
-  Hint = 'CocHintFloat',
-  Deprecated = 'CocStrikeThrough',
-  Unused = 'CocFadeOut'
+  Hint = 'CocHintHighlight',
+  Deprecated = 'CocDeprecatedHighlight',
+  Unused = 'CocUnusedHighlight'
 }
 
 const ErrorSymbol = Symbol('CocError')

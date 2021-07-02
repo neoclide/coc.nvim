@@ -369,6 +369,8 @@ function! s:Hi() abort
   hi default link CocWarningHighlight CocUnderline
   hi default link CocInfoHighlight    CocUnderline
   hi default link CocHintHighlight    CocUnderline
+  hi default link CocDeprecatedHighlight CocStrikeThrough
+  hi default link CocUnusedHighlight     CocFadeOut
   hi default link CocListMode ModeMsg
   hi default link CocListPath Comment
   hi default link CocHighlightText  CursorColumn
