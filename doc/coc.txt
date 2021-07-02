@@ -2510,7 +2510,7 @@ CocFadeOut						*CocFadeOut*
 
   Default: `hi default CocFadeOut       guifg=#928374 ctermfg=245`
 
-  Used for highlight unnecessary code.
+  Used for faded out text, such as for highlighting unnecessary code.
 
 CocStrikeThrough 					*CocStrikeThrough*
 
@@ -2621,6 +2621,18 @@ CocHintHighlight					*CocHintHighlight*
   Default: `hi default link CocHintHighlight   CocUnderline`
 
   Used for hint text.
+
+CocDeprecatedHighlight					*CocDeprecatedHighlight*
+
+  Default: `hi default link CocDeprecatedHighlight   CocStrikeThrough`
+
+  Used for usages of deprecated API.
+
+CocUnusedHighlight					*CocUnusedHighlight*
+
+  Default: `hi default link CocUnusedHighlight   CocFadeOut`
+
+  Used for unnecessary code.
 
 CocHighlightText					*CocHighlightText*
 
