@@ -32,7 +32,7 @@ export interface CurrentState {
 
 export interface HandlerDelegate {
   checkProvier: (id: ProviderName, document: TextDocument) => void
-  withRequestToken: (name: string, fn: (token: CancellationToken) => Thenable<any>, checkEmpty?: boolean) => Promise<any>
+  withRequestToken: <T> (name: string, fn: (token: CancellationToken) => Thenable<T>, checkEmpty?: boolean) => Promise<T>
   getCurrentState: () => Promise<CurrentState>
   addDisposable: (disposable: Disposable) => void
 }

@@ -41,7 +41,7 @@ export default class Plugin extends EventEmitter {
     })
     this.cursors = new Cursors(nvim)
     this.addAction('hasProvider', (id: string) => this.handler.hasProvider(id))
-    this.addAction('getTagList', async () => await this.handler.getTagList())
+    this.addAction('getTagList', async () => await this.handler.locations.getTagList())
     this.addAction('hasSelected', () => completion.hasSelected())
     this.addAction('listNames', () => listManager.names)
     this.addAction('listDescriptions', () => listManager.descriptions)
@@ -192,7 +192,7 @@ export default class Plugin extends EventEmitter {
       channel.show()
     })
     this.addAction('findLocations', (id: string, method: string, params: any, openCommand?: string | false) => {
-      return this.handler.findLocations(id, method, params, openCommand)
+      return this.handler.locations.findLocations(id, method, params, openCommand)
     })
     this.addAction('links', () => {
       return this.handler.links()
@@ -253,37 +253,37 @@ export default class Plugin extends EventEmitter {
       return diagnosticManager.getDiagnosticList()
     })
     this.addAction('jumpDefinition', openCommand => {
-      return this.handler.gotoDefinition(openCommand)
+      return this.handler.locations.gotoDefinition(openCommand)
     })
     this.addAction('definitions', () => {
-      return this.handler.definitions()
+      return this.handler.locations.definitions()
     })
     this.addAction('jumpDeclaration', openCommand => {
-      return this.handler.gotoDeclaration(openCommand)
+      return this.handler.locations.gotoDeclaration(openCommand)
     })
     this.addAction('declarations', () => {
-      return this.handler.declarations()
+      return this.handler.locations.declarations()
     })
     this.addAction('jumpImplementation', openCommand => {
-      return this.handler.gotoImplementation(openCommand)
+      return this.handler.locations.gotoImplementation(openCommand)
     })
     this.addAction('implementations', () => {
-      return this.handler.implementations()
+      return this.handler.locations.implementations()
     })
     this.addAction('jumpTypeDefinition', openCommand => {
-      return this.handler.gotoTypeDefinition(openCommand)
+      return this.handler.locations.gotoTypeDefinition(openCommand)
     })
     this.addAction('typeDefinitions', () => {
-      return this.handler.typeDefinitions()
+      return this.handler.locations.typeDefinitions()
     })
     this.addAction('jumpReferences', openCommand => {
-      return this.handler.gotoReferences(openCommand)
+      return this.handler.locations.gotoReferences(openCommand)
     })
     this.addAction('references', () => {
-      return this.handler.references()
+      return this.handler.locations.references()
     })
     this.addAction('jumpUsed', openCommand => {
-      return this.handler.gotoReferences(openCommand, false)
+      return this.handler.locations.gotoReferences(openCommand, false)
     })
     this.addAction('doHover', hoverTarget => {
       return this.handler.hover.onHover(hoverTarget)

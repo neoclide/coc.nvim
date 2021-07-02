@@ -1,13 +1,11 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CallHierarchyItem, CancellationToken, CancellationTokenSource, Definition, Disposable, DocumentLink, Location, LocationLink, Position, Range, SelectionRange, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CallHierarchyItem, CancellationToken, CancellationTokenSource, Disposable, DocumentLink, Location, Position, Range, SelectionRange, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { URI } from 'vscode-uri'
 import commandManager from '../commands'
 import events from '../events'
 import languages from '../languages'
 import listManager from '../list/manager'
-import services from '../services'
-import { CurrentState, ProviderName, StatusBarItem, TagDefinition } from '../types'
+import { CurrentState, ProviderName, StatusBarItem } from '../types'
 import { disposeAll } from '../util'
 import { equals } from '../util/object'
 import { emptyRange, positionInRange } from '../util/position'
@@ -19,6 +17,7 @@ import Colors from './colors/index'
 import Format from './format'
 import Highlights from './highlights'
 import HoverHandler from './hover'
+import Locations from './locations'
 import Refactor from './refactor/index'
 import { Highlight } from './semanticTokensHighlights/buffer'
 import SemanticTokensHighlights from './semanticTokensHighlights/index'
@@ -35,6 +34,7 @@ export default class Handler {
   public readonly documentHighlighter: Highlights
   public readonly colors: Colors
   public readonly signature: Signature
+  public readonly locations: Locations
   public readonly symbols: Symbols
   public readonly refactor: Refactor
   public readonly codeActions: CodeActions
@@ -52,6 +52,7 @@ export default class Handler {
     this.requestStatusItem = window.createStatusBarItem(0, { progress: true })
     this.codeActions = new CodeActions(nvim, this)
     this.format = new Format(nvim, this)
+    this.locations = new Locations(nvim, this)
     this.refactor = new Refactor(nvim, this)
     this.symbols = new Symbols(nvim, this)
     this.signature = new Signature(nvim, this)
@@ -66,6 +67,7 @@ export default class Handler {
         this.signature.dispose()
         this.symbols.dispose()
         this.hover.dispose()
+        this.locations.dispose()
         this.colors.dispose()
         this.documentHighlighter.dispose()
         this.semanticHighlighter.dispose()
@@ -83,8 +85,9 @@ export default class Handler {
    * Throw error when provider not exists.
    */
   public checkProvier(id: ProviderName, document: TextDocument): void {
-    if (languages.hasProvider(id, document)) return
-    throw new Error(`${id} provider not found for current buffer, your language server doesn't support it.`)
+    if (!languages.hasProvider(id, document)) {
+      throw new Error(`${id} provider not found for current buffer, your language server doesn't support it.`)
+    }
   }
 
   public async withRequestToken<T>(name: string, fn: (token: CancellationToken) => Thenable<T>, checkEmpty?: boolean): Promise<T | null> {
@@ -133,106 +136,6 @@ export default class Handler {
     let doc = workspace.getDocument(bufnr)
     if (!doc) return false
     return languages.hasProvider(id as ProviderName, doc.textDocument)
-  }
-
-  public async gotoDefinition(openCommand?: string): Promise<boolean> {
-    let { doc, position } = await this.getCurrentState()
-    this.checkProvier('definition', doc.textDocument)
-    await doc.synchronize()
-    let definition = await this.withRequestToken('definition', token => {
-      return languages.getDefinition(doc.textDocument, position, token)
-    }, true)
-    if (definition == null) return false
-    await this.handleLocations(definition, openCommand)
-    return true
-  }
-
-  public async definitions(): Promise<Location[]> {
-    const { doc, position } = await this.getCurrentState()
-    if (!languages.hasProvider('reference', doc.textDocument)) return []
-    await doc.synchronize()
-    const tokenSource = new CancellationTokenSource()
-    return languages.getDefinition(doc.textDocument, position, tokenSource.token)
-  }
-
-  public async gotoDeclaration(openCommand?: string): Promise<boolean> {
-    let { doc, position } = await this.getCurrentState()
-    this.checkProvier('declaration', doc.textDocument)
-    await doc.synchronize()
-    let definition = await this.withRequestToken('declaration', token => {
-      return languages.getDeclaration(doc.textDocument, position, token)
-    }, true)
-    if (definition == null) return false
-    await this.handleLocations(definition, openCommand)
-    return true
-  }
-
-  public async declarations(): Promise<Location | Location[] | LocationLink[]> {
-    const { doc, position } = await this.getCurrentState()
-    if (!languages.hasProvider('declaration', doc.textDocument)) return []
-    await doc.synchronize()
-    const tokenSource = new CancellationTokenSource()
-    return languages.getDeclaration(doc.textDocument, position, tokenSource.token)
-  }
-
-  public async gotoTypeDefinition(openCommand?: string): Promise<boolean> {
-    let { doc, position } = await this.getCurrentState()
-    this.checkProvier('typeDefinition', doc.textDocument)
-    await doc.synchronize()
-    let definition = await this.withRequestToken('type definition', token => {
-      return languages.getTypeDefinition(doc.textDocument, position, token)
-    }, true)
-    if (definition == null) return false
-    await this.handleLocations(definition, openCommand)
-    return true
-  }
-
-  public async typeDefinitions(): Promise<Location[]> {
-    const { doc, position } = await this.getCurrentState()
-    if (!languages.hasProvider('typeDefinition', doc.textDocument)) return []
-    await doc.synchronize()
-    const tokenSource = new CancellationTokenSource()
-    return languages.getTypeDefinition(doc.textDocument, position, tokenSource.token)
-  }
-
-  public async gotoImplementation(openCommand?: string): Promise<boolean> {
-    let { doc, position } = await this.getCurrentState()
-    this.checkProvier('implementation', doc.textDocument)
-    await doc.synchronize()
-    let definition = await this.withRequestToken('implementation', token => {
-      return languages.getImplementation(doc.textDocument, position, token)
-    }, true)
-    if (definition == null) return false
-    await this.handleLocations(definition, openCommand)
-    return true
-  }
-
-  public async implementations(): Promise<Location[]> {
-    const { doc, position } = await this.getCurrentState()
-    if (!languages.hasProvider('implementation', doc.textDocument)) return []
-    await doc.synchronize()
-    const tokenSource = new CancellationTokenSource()
-    return languages.getImplementation(doc.textDocument, position, tokenSource.token)
-  }
-
-  public async gotoReferences(openCommand?: string, includeDeclaration = true): Promise<boolean> {
-    let { doc, position } = await this.getCurrentState()
-    this.checkProvier('reference', doc.textDocument)
-    await doc.synchronize()
-    let definition = await this.withRequestToken('references', token => {
-      return languages.getReferences(doc.textDocument, { includeDeclaration }, position, token)
-    }, true)
-    if (definition == null) return false
-    await this.handleLocations(definition, openCommand)
-    return true
-  }
-
-  public async references(): Promise<Location[]> {
-    const { doc, position } = await this.getCurrentState()
-    if (!languages.hasProvider('reference', doc.textDocument)) return []
-    await doc.synchronize()
-    const tokenSource = new CancellationTokenSource()
-    return languages.getReferences(doc.textDocument, { includeDeclaration: true }, position, tokenSource.token)
   }
 
   public async getWordEdit(): Promise<WorkspaceEdit> {
@@ -343,28 +246,8 @@ export default class Handler {
     for (const call of calls) {
       locations.push({ uri: call.uri, range: call.range })
     }
-
-    await this.handleLocations(locations)
+    await workspace.showLocations(locations)
     return true
-  }
-
-  public async getTagList(): Promise<TagDefinition[] | null> {
-    let { doc, position } = await this.getCurrentState()
-    let word = await this.nvim.call('expand', '<cword>')
-    if (!word) return null
-    if (!languages.hasProvider('definition', doc.textDocument)) return null
-    let tokenSource = new CancellationTokenSource()
-    let definitions = await languages.getDefinition(doc.textDocument, position, tokenSource.token)
-    if (!definitions || !definitions.length) return null
-    return definitions.map(location => {
-      let parsedURI = URI.parse(location.uri)
-      const filename = parsedURI.scheme == 'file' ? parsedURI.fsPath : parsedURI.toString()
-      return {
-        name: word,
-        cmd: `keepjumps ${location.range.start.line + 1} | normal ${location.range.start.character + 1}|`,
-        filename,
-      }
-    })
   }
 
   public async runCommand(id?: string, ...args: any[]): Promise<any> {
@@ -483,53 +366,6 @@ export default class Handler {
       })
     }
     return res
-  }
-
-  /**
-   * Send custom request for locations to services.
-   */
-  public async findLocations(id: string, method: string, params: any, openCommand?: string | false): Promise<void> {
-    let { doc, position } = await this.getCurrentState()
-    params = params || {}
-    Object.assign(params, {
-      textDocument: { uri: doc.uri },
-      position
-    })
-    let res: any = await services.sendRequest(id, method, params)
-    res = res || []
-    let locations: Location[] = []
-    if (Array.isArray(res)) {
-      locations = res as Location[]
-    } else if (res.hasOwnProperty('location') && res.hasOwnProperty('children')) {
-      let getLocation = (item: any): void => {
-        locations.push(item.location as Location)
-        if (item.children && item.children.length) {
-          for (let loc of item.children) {
-            getLocation(loc)
-          }
-        }
-      }
-      getLocation(res)
-    }
-    await this.handleLocations(locations, openCommand)
-  }
-
-  public async handleLocations(definition: Definition | LocationLink[], openCommand?: string | false): Promise<void> {
-    if (!definition) return
-    let locations: Location[] = Array.isArray(definition) ? definition as Location[] : [definition]
-    let len = locations.length
-    if (len == 0) return
-    if (len == 1 && openCommand !== false) {
-      let location = definition[0] as Location
-      if (LocationLink.is(definition[0])) {
-        let link = definition[0]
-        location = Location.create(link.targetUri, link.targetRange)
-      }
-      let { uri, range } = location
-      await workspace.jumpTo(uri, range.start, openCommand)
-    } else {
-      await workspace.showLocations(definition as Location[])
-    }
   }
 
   public async getSelectionRanges(): Promise<SelectionRange[] | null> {
