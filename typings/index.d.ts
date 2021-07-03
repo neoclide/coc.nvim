@@ -7720,7 +7720,7 @@ declare module 'coc.nvim' {
     dispose(): void
   }
 
-  export class ParameterStructures {
+  class ParameterStructures {
     private readonly kind
     /**
      * The parameter structure is automatically inferred on the number of parameters
@@ -7852,7 +7852,7 @@ declare module 'coc.nvim' {
      */
     workDoneToken?: ProgressToken
   }
-  export class RegistrationType<RO> {
+  class RegistrationType<RO> {
     /**
      * Clients must not use this property. It is here to ensure correct typing.
      */
