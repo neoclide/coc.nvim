@@ -1,5 +1,5 @@
 import { CancellationToken } from 'vscode-languageserver-protocol'
-import { CompleteOption, CompleteResult, VimCompleteItem } from '../types'
+import { CompleteOption, CompleteResult, ExtendedCompleteItem } from '../types'
 import { fuzzyChar } from '../util/fuzzy'
 import { byteSlice } from '../util/string'
 import workspace from '../workspace'
@@ -35,7 +35,7 @@ export default class VimSource extends Source {
     await this.callOptinalFunc('refresh', [])
   }
 
-  public async onCompleteDone(item: VimCompleteItem, opt: CompleteOption): Promise<void> {
+  public async onCompleteDone(item: ExtendedCompleteItem, opt: CompleteOption): Promise<void> {
     await super.onCompleteDone(item, opt)
     if (!this.optionalFns.includes('on_complete')) return
     await this.callOptinalFunc('on_complete', [item])
@@ -72,7 +72,7 @@ export default class VimSource extends Source {
         })
       }
     }
-    let items: VimCompleteItem[] = await this.nvim.callAsync('coc#util#do_complete', [this.name, opt])
+    let items: ExtendedCompleteItem[] = await this.nvim.callAsync('coc#util#do_complete', [this.name, opt])
     if (!items || items.length == 0 || token.isCancellationRequested) return null
     if (this.firstMatch && input.length) {
       let ch = input[0]

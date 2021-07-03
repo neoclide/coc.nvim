@@ -7,9 +7,24 @@ import tar from 'tar'
 import unzip from 'unzip-stream'
 import { v1 as uuidv1 } from 'uuid'
 import { CancellationToken } from 'vscode-languageserver-protocol'
-import { DownloadOptions } from '../types'
-import { resolveRequestOptions } from './fetch'
+import { resolveRequestOptions, FetchOptions } from './fetch'
 const logger = require('../util/logger')('model-download')
+
+export interface DownloadOptions extends Omit<FetchOptions, 'buffer'> {
+  /**
+   * Folder that contains downloaded file or extracted files by untar or unzip
+   */
+  dest: string
+  /**
+   * Remove the specified number of leading path elements for *untar* only, default to `1`.
+   */
+  strip?: number
+  /**
+   * If true, use untar for `.tar.gz` filename
+   */
+  extract?: boolean | 'untar' | 'unzip'
+  onProgress?: (percent: string) => void
+}
 
 /**
  * Download file from url, with optional untar/unzip support.

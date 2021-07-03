@@ -1,14 +1,14 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
-import events from '../events'
+import events, { PopupChangeEvent, InsertChange } from '../events'
 import Document from '../model/document'
 import sources from '../sources'
-import { CompleteConfig, CompleteOption, ISource, PopupChangeEvent, PumBounding, RecentScore, VimCompleteItem, InsertChange } from '../types'
+import { CompleteOption, ISource, RecentScore, VimCompleteItem, ExtendedCompleteItem } from '../types'
 import { disposeAll, wait } from '../util'
 import * as Is from '../util/is'
 import workspace from '../workspace'
-import Complete from './complete'
-import Floating from './floating'
+import Complete, { CompleteConfig } from './complete'
+import Floating, { PumBounding } from './floating'
 import debounce from 'debounce'
 import { byteSlice } from '../util/string'
 import { equals } from '../util/object'
@@ -216,7 +216,7 @@ export class Completion implements Disposable {
     return false
   }
 
-  private async showCompletion(col: number, items: VimCompleteItem[]): Promise<void> {
+  private async showCompletion(col: number, items: ExtendedCompleteItem[]): Promise<void> {
     let { nvim, document, option } = this
     let { numberSelect, disableKind, labelMaxLength, disableMenuShortcut, disableMenu } = this.config
     let preselect = this.config.enablePreselect ? items.findIndex(o => o.preselect) : -1
@@ -599,7 +599,7 @@ export class Completion implements Disposable {
     return `noinsert,menuone${preview}`
   }
 
-  private getCompleteItem(item: VimCompleteItem | {} | null): VimCompleteItem | null {
+  private getCompleteItem(item: VimCompleteItem | {} | null): ExtendedCompleteItem | null {
     if (!this.complete || !Is.vimCompleteItem(item)) return null
     return this.complete.resolveCompletionItem(item)
   }

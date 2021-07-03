@@ -5,7 +5,7 @@
 'use strict'
 
 import { Disposable, NotificationHandler, ProgressToken, ProgressType, ProtocolNotificationType, WorkDoneProgress, WorkDoneProgressBegin, WorkDoneProgressReport } from 'vscode-languageserver-protocol'
-import { StatusBarItem } from '../types'
+import { StatusBarItem } from '../model/status'
 import { disposeAll } from '../util'
 import window from '../window'
 const logger = require('../util/logger')('language-client-progressPart')

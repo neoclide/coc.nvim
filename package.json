@@ -4,7 +4,7 @@
   "description": "LSP based intellisense engine for neovim & vim8.",
   "main": "./lib/index.js",
   "engines": {
-    "node": ">=8.10.0"
+    "node": ">=12.12.0"
   },
   "scripts": {
     "clean": "rimraf lib build",

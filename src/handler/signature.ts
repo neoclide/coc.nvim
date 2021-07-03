@@ -1,10 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Disposable, MarkupContent, MarkupKind, Position, SignatureHelp, SignatureHelpTriggerKind } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Disposable, MarkupContent, Position, SignatureHelp, SignatureHelpTriggerKind } from 'vscode-languageserver-protocol'
 import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
 import FloatFactory from '../model/floatFactory'
-import { ConfigurationChangeEvent, Documentation, HandlerDelegate } from '../types'
+import { ConfigurationChangeEvent, HandlerDelegate } from '../types'
 import { disposeAll } from '../util'
 import { byteLength } from '../util/string'
 import workspace from '../workspace'
@@ -155,7 +155,7 @@ export default class Signature {
     let { signatures, activeParameter } = signatureHelp
     let paramDoc: string | MarkupContent = null
     let startOffset = offset
-    let docs: Documentation[] = signatures.reduce((p: Documentation[], c, idx) => {
+    let docs = signatures.reduce((p, c, idx) => {
       let activeIndexes: [number, number] = null
       let nameIndex = c.label.indexOf('(')
       if (idx == 0 && activeParameter != null) {

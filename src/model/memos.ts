@@ -1,8 +1,17 @@
 import fs from 'fs'
-import { Memento } from '../types'
 import { readFile, statAsync } from '../util/fs'
 import { deepClone } from '../util/object'
 const logger = require('../util/logger')('model-memos')
+
+/**
+ * A memento represents a storage utility. It can store and retrieve
+ * values.
+ */
+export interface Memento {
+  get<T>(key: string): T | undefined
+  get<T>(key: string, defaultValue: T): T
+  update(key: string, value: any): Promise<void>
+}
 
 export default class Memos {
   constructor(private filepath: string) {

@@ -6,10 +6,11 @@ import path from 'path'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import which from 'which'
-import { MapMode } from '../types'
 import * as platform from './platform'
 export { platform }
 const logger = require('./logger')('util-index')
+
+export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o'
 
 export const CONFIG_FILE_NAME = 'coc-settings.json'
 

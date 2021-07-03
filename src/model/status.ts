@@ -1,10 +1,22 @@
 import { Disposable } from 'vscode-languageserver-protocol'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { StatusBarItem } from '../types'
 import { v1 as uuidv1 } from 'uuid'
 const logger = require('../util/logger')('model-status')
 
 export const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+
+export interface StatusBarItem {
+  /**
+   * The priority of this item. Higher value means the item should
+   * be shown more to the left.
+   */
+  readonly priority: number
+  isProgress: boolean
+  text: string
+  show(): void
+  hide(): void
+  dispose(): void
+}
 
 export default class StatusLine implements Disposable {
   private items: Map<string, StatusBarItem> = new Map()

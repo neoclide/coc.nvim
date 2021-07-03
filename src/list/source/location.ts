@@ -1,13 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Location, Range } from 'vscode-languageserver-types'
 import path from 'path'
-import { ListContext, ListItem, QuickfixItem } from '../../types'
+import { ListContext, ListItem, QuickfixItem, AnsiHighlight } from '../../types'
 import BasicList from '../basic'
 import workspace from '../../workspace'
 import { URI } from 'vscode-uri'
 import { isParentFolder } from '../../util/fs'
 import { CancellationToken } from 'vscode-languageserver-protocol'
-import { AnsiHighlight } from '../..'
 import { byteLength } from '../../util/string'
 const logger = require('../../util/logger')('list-location')
 
@@ -42,7 +41,7 @@ export default class LocationList extends BasicList {
         loc.col = loc.col || loc.range.start.character + 1
       }
     })
-    let bufnr = await this.nvim.call('bufnr', '%')
+    let bufnr = context.buffer.id
     let ignoreFilepath = locs.every(o => o.bufnr && bufnr && o.bufnr == bufnr)
     let items: ListItem[] = locs.map(loc => {
       let filename = ignoreFilepath ? '' : loc.filename

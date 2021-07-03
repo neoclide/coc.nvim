@@ -1,8 +1,8 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
-import { DialogPreferences } from '..'
 import events from '../events'
 import { disposeAll } from '../util'
+import { DialogPreferences } from './dialog'
 import Popup from './popup'
 const logger = require('../util/logger')('model-menu')
 

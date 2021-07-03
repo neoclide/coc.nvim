@@ -1,11 +1,16 @@
 import marked from 'marked'
 import Renderer from './renderer'
 import { parseAnsiHighlights } from '../util/ansiparse'
-import { Documentation } from '../types'
 import { byteLength } from '../util/string'
 import stripAnsi from 'strip-ansi'
 export const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
 const logger = require('../util/logger')('markdown-index')
+
+export interface Documentation {
+  filetype: string
+  content: string
+  active?: [number, number]
+}
 
 export interface MarkdownParseOptions {
   excludeImages?: boolean

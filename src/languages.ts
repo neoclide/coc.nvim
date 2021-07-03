@@ -30,7 +30,8 @@ import SemanticTokensRangeManager from './provider/semanticTokensRangeManager'
 import LinkedEditingRangeManager from './provider/linkedEditingRangeManager'
 import snippetManager from './snippets/manager'
 import sources from './sources'
-import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, Documentation, DocumentSymbolProviderMetadata, ISource, ProviderName, SourceType, VimCompleteItem } from './types'
+import { CompleteOption, CompleteResult, ISource, SourceType, ExtendedCompleteItem } from './types'
+import DiagnosticCollection from './diagnostic/collection'
 import * as complete from './util/complete'
 import { getChangedFromEdits, rangeOverlap } from './util/position'
 import { byteIndex, byteLength, byteSlice } from './util/string'
@@ -53,6 +54,13 @@ interface CompleteConfig {
   detailField: string
   invalidInsertCharacters: string[]
   floatEnable: boolean
+}
+
+export interface DocumentSymbolProviderMetadata {
+  /**
+   * A human-readable string that is shown when multiple outlines trees show for one document.
+   */
+  label?: string
 }
 
 class Languages {
@@ -461,7 +469,7 @@ class Languages {
     return this.linkedEditingManager.provideLinkedEditingRanges(document, position, token)
   }
 
-  public hasProvider(id: ProviderName, document: TextDocument): boolean {
+  public hasProvider(id: string, document: TextDocument): boolean {
     switch (id) {
       case 'formatOnType':
         return this.onTypeFormatManager.hasProvider(document)
@@ -512,7 +520,7 @@ class Languages {
       case 'linkedEditing':
         return this.linkedEditingManager.hasProvider(document)
       default:
-        throw new Error(`${id} not supported.`)
+        throw new Error(`Invalid provider name: ${id}`)
     }
   }
 
@@ -565,7 +573,7 @@ class Languages {
         }
         if (token.isCancellationRequested) return null
         let position = complete.getPosition(opt)
-        let context: CompletionContext = { triggerKind, option: opt }
+        let context: any = { triggerKind, option: opt }
         if (isTrigger) context.triggerCharacter = triggerCharacter
         let result
         try {
@@ -588,7 +596,7 @@ class Languages {
           }
           option.col = startcol
         }
-        let items: VimCompleteItem[] = completeItems.map((o, index) => {
+        let items: ExtendedCompleteItem[] = completeItems.map((o, index) => {
           let item = this.convertVimCompleteItem(o, shortcut, option, prefix)
           item.index = index
           return item
@@ -599,7 +607,7 @@ class Languages {
           items
         }
       },
-      onCompleteResolve: async (item: VimCompleteItem, token: CancellationToken): Promise<void> => {
+      onCompleteResolve: async (item: ExtendedCompleteItem, token: CancellationToken): Promise<void> => {
         let { index } = item
         let resolving = completeItems[index]
         if (!resolving || resolvedIndexes.has(index)) return
@@ -624,7 +632,7 @@ class Languages {
         if (item.documentation == null) {
           let { documentation, detail } = resolving
           if (!documentation && !detail) return
-          let docs: Documentation[] = []
+          let docs = []
           if (detail && !item.detailShown && detail != item.word) {
             detail = detail.replace(/\n\s*/g, ' ')
             if (detail.length) {
@@ -648,7 +656,7 @@ class Languages {
           item.documentation = docs
         }
       },
-      onCompleteDone: async (vimItem: VimCompleteItem, opt: CompleteOption): Promise<void> => {
+      onCompleteDone: async (vimItem: ExtendedCompleteItem, opt: CompleteOption): Promise<void> => {
         let item = completeItems[vimItem.index]
         if (!item) return
         let line = opt.linenr - 1
@@ -682,7 +690,7 @@ class Languages {
           logger.error('Error on CompleteDone:', e)
         }
       },
-      shouldCommit: (item: VimCompleteItem, character: string): boolean => {
+      shouldCommit: (item: ExtendedCompleteItem, character: string): boolean => {
         let completeItem = completeItems[item.index]
         if (!completeItem) return false
         let commitCharacters = completeItem.commitCharacters || allCommitCharacters
@@ -776,13 +784,13 @@ class Languages {
     return byteIndex(line, character)
   }
 
-  private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption, prefix: string): VimCompleteItem {
+  private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption, prefix: string): ExtendedCompleteItem {
     let { echodocSupport, detailMaxLength, invalidInsertCharacters } = this.completeConfig
     let { detailField } = this
     let hasAdditionalEdit = item.additionalTextEdits && item.additionalTextEdits.length > 0
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet || hasAdditionalEdit
     let label = item.label.trim()
-    let obj: VimCompleteItem = {
+    let obj: ExtendedCompleteItem = {
       word: complete.getWord(item, opt, invalidInsertCharacters),
       abbr: label,
       menu: `[${shortcut}]`,

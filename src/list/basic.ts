@@ -5,7 +5,7 @@ import readline from 'readline'
 import { CancellationToken, Disposable, Location, Position, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { ProviderResult } from '../provider'
-import { IList, ListAction, ListArgument, ListContext, ListItem, ListTask, LocationWithLine, PreiewOptions, WorkspaceConfiguration } from '../types'
+import { IList, ListAction, ListArgument, ListContext, ListItem, ListTask, LocationWithLine, WorkspaceConfiguration } from '../types'
 import { disposeAll } from '../util'
 import { readFile } from '../util/fs'
 import { comparePosition, emptyRange } from '../util/position'
@@ -36,6 +36,15 @@ interface PreviewConfig {
   filetype?: string
   range?: Range
   scheme?: string
+}
+
+export interface PreviewOptions {
+  bufname?: string
+  filetype: string
+  lines: string[]
+  lnum?: number
+  range?: Range
+  sketch?: boolean
 }
 
 export default abstract class BasicList implements IList, Disposable {
@@ -243,7 +252,7 @@ export default abstract class BasicList implements IList, Disposable {
     if (workspace.isVim) nvim.command('redraw', true)
   }
 
-  public async preview(options: PreiewOptions, context: ListContext): Promise<void> {
+  public async preview(options: PreviewOptions, context: ListContext): Promise<void> {
     let { nvim } = this
     let { bufname, filetype, range, lines, lnum } = options
     let config: PreviewConfig = {

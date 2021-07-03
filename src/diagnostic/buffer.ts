@@ -1,7 +1,7 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Position, Range } from 'vscode-languageserver-protocol'
-import { BufferSyncItem, DiagnosticConfig, LocationListItem } from '../types'
+import { BufferSyncItem, LocationListItem } from '../types'
 import { equals } from '../util/object'
 import { lineInRange, positionInRange } from '../util/position'
 import { getLocationListItem, getNameFromSeverity, getSeverityType } from './util'
@@ -21,6 +21,37 @@ export enum DiagnosticHighlight {
   Hint = 'CocHintHighlight',
   Deprecated = 'CocDeprecatedHighlight',
   Unused = 'CocUnusedHighlight'
+}
+
+export interface DiagnosticConfig {
+  autoRefresh: boolean
+  enableSign: boolean
+  locationlistUpdate: boolean
+  enableHighlightLineNumber: boolean
+  checkCurrentLine: boolean
+  enableMessage: string
+  displayByAle: boolean
+  signPriority: number
+  errorSign: string
+  warningSign: string
+  infoSign: string
+  hintSign: string
+  level: number
+  messageTarget: string
+  messageDelay: number
+  maxWindowHeight: number
+  maxWindowWidth: number
+  refreshOnInsertMode: boolean
+  virtualText: boolean
+  virtualTextCurrentLineOnly: boolean
+  virtualTextSrcId: number
+  virtualTextPrefix: string
+  virtualTextLines: number
+  virtualTextLineSeparator: string
+  filetypeMap: object
+  showUnused?: boolean
+  showDeprecated?: boolean
+  format?: string
 }
 
 const ErrorSymbol = Symbol('CocError')

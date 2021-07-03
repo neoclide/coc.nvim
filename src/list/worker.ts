@@ -1,7 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Emitter, Event } from 'vscode-languageserver-protocol'
-import { ListItemWithHighlights } from '..'
-import { IList, ListContext, ListHighlights, ListItem, ListItemsEvent, ListOptions, ListTask } from '../types'
+import { IList, ListContext, ListHighlights, ListItem, ListItemsEvent, ListItemWithHighlights, ListOptions, ListTask } from '../types'
 import { parseAnsiHighlights } from '../util/ansiparse'
 import { patchLine } from '../util/diff'
 import { hasMatch, positions, score } from '../util/fzy'

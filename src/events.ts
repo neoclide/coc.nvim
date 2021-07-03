@@ -1,10 +1,27 @@
 import { Disposable, DocumentSymbol } from 'vscode-languageserver-protocol'
-import { PopupChangeEvent, InsertChange, VimCompleteItem } from './types'
 import { disposeAll } from './util'
+import { VimCompleteItem } from './types'
 import { equals } from './util/object'
 const logger = require('./util/logger')('events')
 
 export type Result = void | Promise<void>
+
+export interface PopupChangeEvent {
+  completed_item: VimCompleteItem | {}
+  height: number
+  width: number
+  row: number
+  col: number
+  size: number
+  scrollbar: boolean
+}
+
+export interface InsertChange {
+  lnum: number
+  col: number
+  pre: string
+  changedtick: number
+}
 
 export type BufEvents = 'BufHidden' | 'BufEnter' | 'BufWritePost'
   | 'CursorHold' | 'InsertLeave' | 'TermOpen' | 'TermClose' | 'InsertEnter'

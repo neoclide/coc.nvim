@@ -1,6 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
-import { ConfigurationChangeEvent, Documentation, HandlerDelegate } from '../types'
+import { ConfigurationChangeEvent, HandlerDelegate } from '../types'
 import FloatFactory, { FloatWinConfig } from '../model/floatFactory'
+import { Documentation } from '../markdown'
 import { CancellationTokenSource, Disposable, Hover, MarkedString, MarkupContent, Range } from 'vscode-languageserver-protocol'
 import { disposeAll } from '../util'
 import { TextDocumentContentProvider } from '../provider'

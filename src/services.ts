@@ -2,10 +2,10 @@ import { SpawnOptions } from 'child_process'
 import { EventEmitter } from 'events'
 import fs from 'fs'
 import net from 'net'
-import { CancellationToken, CancellationTokenSource, Disposable, DocumentSelector, Emitter } from 'vscode-languageserver-protocol'
+import { CancellationToken, Event, CancellationTokenSource, Disposable, DocumentSelector, Emitter } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Executable, ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, State, Transport, TransportKind } from './language-client'
-import { IServiceProvider, LanguageServerConfig, ServiceStat } from './types'
+import { ServiceStat } from './types'
 import { disposeAll, wait } from './util'
 import workspace from './workspace'
 import window from './window'
@@ -15,6 +15,39 @@ interface ServiceInfo {
   id: string
   state: string
   languageIds: string[]
+}
+
+export interface LanguageServerConfig {
+  module?: string
+  command?: string
+  transport?: string
+  transportPort?: number
+  disableWorkspaceFolders?: boolean
+  disableSnippetCompletion?: boolean
+  disableDynamicRegister?: boolean
+  disableCompletion?: boolean
+  disableDiagnostics?: boolean
+  formatterPriority?: number
+  filetypes: string[]
+  additionalSchemes: string[]
+  enable?: boolean
+  args?: string[]
+  cwd?: string
+  env?: any
+  // socket port
+  port?: number
+  host?: string
+  detached?: boolean
+  shell?: boolean
+  execArgv?: string[]
+  rootPatterns?: string[]
+  ignoredRootPaths?: string[]
+  initializationOptions?: any
+  progressOnInitialization?: boolean
+  revealOutputChannelOn?: string
+  configSection?: string
+  stdioEncoding?: string
+  runtime?: string
 }
 
 export function getStateName(state: ServiceStat): string {
@@ -34,6 +67,21 @@ export function getStateName(state: ServiceStat): string {
     default:
       return 'unknown'
   }
+}
+
+export interface IServiceProvider {
+  // unique service id
+  id: string
+  name: string
+  client?: LanguageClient
+  selector: DocumentSelector
+  // current state
+  state: ServiceStat
+  start(): Promise<void>
+  dispose(): void
+  stop(): Promise<void> | void
+  restart(): Promise<void> | void
+  onServiceReady: Event<void>
 }
 
 export class ServiceManager extends EventEmitter implements Disposable {

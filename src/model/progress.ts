@@ -1,6 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import Notification from './notification'
-import { NotificationPreferences, Progress } from '../types'
+import Notification, { NotificationPreferences } from './notification'
 import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol'
 import events from '../events'
 
@@ -8,6 +7,20 @@ export interface ProgressOptions<R> {
   title?: string
   cancellable?: boolean
   task: (progress: Progress<{ message?: string; increment?: number }>, token: CancellationToken) => Thenable<R>
+}
+
+/**
+ * Defines a generalized way of reporting progress updates.
+ */
+export interface Progress<T> {
+
+  /**
+   * Report a progress update.
+   *
+   * @param value A progress item, like a message and/or an
+   * report on how much work finished
+   */
+  report(value: T): void
 }
 
 export default class ProgressNotification<R> extends Notification {

@@ -1,6 +1,6 @@
 import { Disposable, InsertTextMode, Range } from 'vscode-languageserver-protocol'
 import events from '../events'
-import * as types from '../types'
+import { StatusBarItem } from '../model/status'
 import workspace from '../workspace'
 import window from '../window'
 import * as Snippets from "./parser"
@@ -8,13 +8,13 @@ import { SnippetSession } from './session'
 import { SnippetVariableResolver } from './variableResolve'
 const logger = require('../util/logger')('snippets-manager')
 
-export class SnippetManager implements types.SnippetManager {
+export class SnippetManager {
   private sessionMap: Map<number, SnippetSession> = new Map()
   private disposables: Disposable[] = []
-  private statusItem: types.StatusBarItem
+  private statusItem: StatusBarItem
 
   constructor() {
-    workspace.onDidChangeTextDocument(async (e: types.DidChangeTextDocumentParams) => {
+    workspace.onDidChangeTextDocument(async e => {
       let session = this.getSession(e.bufnr)
       if (session) {
         await session.synchronizeUpdatedPlaceholders(e.contentChanges[0])

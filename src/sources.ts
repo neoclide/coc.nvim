@@ -8,7 +8,7 @@ import events from './events'
 import extensions from './extensions'
 import Source from './model/source'
 import VimSource from './model/source-vim'
-import { CompleteOption, ISource, SourceStat, SourceType, VimCompleteItem, SourceConfig } from './types'
+import { CompleteOption, ISource, SourceStat, SourceType, ExtendedCompleteItem, SourceConfig } from './types'
 import { disposeAll, getUri } from './util'
 import { statAsync } from './util/fs'
 import { score } from './util/match'
@@ -183,7 +183,7 @@ export class Sources {
     return this.sourceMap.get(name) || null
   }
 
-  public async doCompleteResolve(item: VimCompleteItem, token: CancellationToken): Promise<void> {
+  public async doCompleteResolve(item: ExtendedCompleteItem, token: CancellationToken): Promise<void> {
     let source = this.getSource(item.source)
     if (source && typeof source.onCompleteResolve == 'function') {
       try {
@@ -194,7 +194,7 @@ export class Sources {
     }
   }
 
-  public async doCompleteDone(item: VimCompleteItem, opt: CompleteOption): Promise<void> {
+  public async doCompleteDone(item: ExtendedCompleteItem, opt: CompleteOption): Promise<void> {
     let data = JSON.parse(item.user_data)
     let source = this.getSource(data.source)
     if (source && typeof source.onCompleteDone === 'function') {
@@ -202,7 +202,7 @@ export class Sources {
     }
   }
 
-  public shouldCommit(item: VimCompleteItem, commitCharacter: string): boolean {
+  public shouldCommit(item: ExtendedCompleteItem, commitCharacter: string): boolean {
     if (!item || !item.source) return false
     let source = this.getSource(item.source)
     if (source && source.sourceType == SourceType.Service && typeof source.shouldCommit === 'function') {

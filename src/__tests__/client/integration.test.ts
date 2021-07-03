@@ -8,7 +8,7 @@
 import helper from '../helper'
 import * as assert from 'assert'
 import * as lsclient from '../../language-client'
-import * as path from 'path'
+import path from 'path'
 
 beforeAll(async () => {
   await helper.setup()

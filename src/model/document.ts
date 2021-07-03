@@ -4,7 +4,7 @@ import { CancellationToken, Disposable, Emitter, Event, Position, Range, TextEdi
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import events from '../events'
-import { ChangeInfo, DidChangeTextDocumentParams, Env } from '../types'
+import { DidChangeTextDocumentParams } from '../types'
 import { diffLines, getChange } from '../util/diff'
 import { disposeAll, getUri, wait } from '../util/index'
 import { Mutex } from '../util/mutex'
@@ -16,6 +16,18 @@ import { LinesTextDocument } from './textdocument'
 const logger = require('../util/logger')('model-document')
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
+
+export interface Env {
+  readonly filetypeMap: { [index: string]: string }
+  readonly isVim: boolean
+  readonly isCygwin: boolean
+}
+
+export interface ChangeInfo {
+  lnum: number
+  line: string
+  changedtick: number
+}
 
 export interface BufferOption {
   eol: number

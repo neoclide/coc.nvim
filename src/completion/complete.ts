@@ -1,11 +1,47 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Emitter, Event, Position } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
-import { CompleteConfig, CompleteOption, CompleteResult, ISource, RecentScore, VimCompleteItem } from '../types'
+import { CompleteOption, VimCompleteItem, CompleteResult, ExtendedCompleteItem, ISource, RecentScore } from '../types'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { byteSlice, characterIndex } from '../util/string'
 import { matchScore } from './match'
 const logger = require('../util/logger')('completion-complete')
+
+export interface CompleteConfig {
+  disableKind: boolean
+  disableMenu: boolean
+  disableMenuShortcut: boolean
+  enablePreview: boolean
+  enablePreselect: boolean
+  labelMaxLength: number
+  floatEnable: boolean
+  maxPreviewWidth: number
+  autoTrigger: string
+  previewIsKeyword: string
+  triggerCompletionWait: number
+  minTriggerInputLength: number
+  triggerAfterInsertEnter: boolean
+  acceptSuggestionOnCommitCharacter: boolean
+  noselect: boolean
+  keepCompleteopt: boolean
+  numberSelect: boolean
+  maxItemCount: number
+  timeout: number
+  snippetIndicator: string
+  fixInsertedWord: boolean
+  localityBonus: boolean
+  highPrioritySourceLimit: number
+  lowPrioritySourceLimit: number
+  removeDuplicateItems: boolean
+  defaultSortMethod: string
+  asciiCharactersOnly: boolean
+}
+
+export interface Documentation {
+  filetype: string
+  content: string
+  active?: [number, number]
+}
 
 export type Callback = () => void
 
@@ -142,7 +178,7 @@ export default class Complete {
     }
   }
 
-  public async completeInComplete(resumeInput: string): Promise<VimCompleteItem[]> {
+  public async completeInComplete(resumeInput: string): Promise<ExtendedCompleteItem[]> {
     let { results, document } = this
     let remains = results.filter(res => !res.isIncomplete)
     remains.forEach(res => {
@@ -163,7 +199,7 @@ export default class Complete {
     return this.filterResults(resumeInput, Math.floor(Date.now() / 1000))
   }
 
-  public filterResults(input: string, cid = 0): VimCompleteItem[] {
+  public filterResults(input: string, cid = 0): ExtendedCompleteItem[] {
     let { results } = this
     results.sort((a, b) => {
       if (a.source == 'tabnine') return 1
@@ -175,7 +211,7 @@ export default class Complete {
     let { snippetIndicator, removeDuplicateItems, fixInsertedWord, asciiCharactersOnly } = this.config
     let followPart = (!fixInsertedWord || cid == 0) ? '' : this.getFollowPart()
     if (results.length == 0) return []
-    let arr: VimCompleteItem[] = []
+    let arr: ExtendedCompleteItem[] = []
     let codes = getCharCodes(input)
     let words: Set<string> = new Set()
     for (let i = 0, l = results.length; i < l; i++) {
@@ -265,7 +301,7 @@ export default class Complete {
     return this.limitCompleteItems(arr.slice(0, this.config.maxItemCount))
   }
 
-  private limitCompleteItems(items: VimCompleteItem[]): VimCompleteItem[] {
+  private limitCompleteItems(items: ExtendedCompleteItem[]): ExtendedCompleteItem[] {
     let { highPrioritySourceLimit, lowPrioritySourceLimit } = this.config
     if (!highPrioritySourceLimit && !lowPrioritySourceLimit) return items
     let counts: Map<string, number> = new Map()
@@ -294,7 +330,7 @@ export default class Complete {
     return false
   }
 
-  public async doComplete(): Promise<VimCompleteItem[]> {
+  public async doComplete(): Promise<ExtendedCompleteItem[]> {
     let opts = this.option
     let { line, colnr, linenr, col } = this.option
     if (this.config.localityBonus) {
@@ -317,7 +353,7 @@ export default class Complete {
     return this.filterResults(opts.input, Math.floor(Date.now() / 1000))
   }
 
-  public resolveCompletionItem(item: VimCompleteItem): VimCompleteItem | null {
+  public resolveCompletionItem(item: VimCompleteItem): ExtendedCompleteItem | null {
     let { results } = this
     if (!results) return null
     try {

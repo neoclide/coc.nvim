@@ -3054,11 +3054,14 @@ declare module 'coc.nvim' {
     | null
     | Thenable<T | undefined | null>
 
+  /**
+   * Supported provider names.
+   */
   export type ProviderName = 'rename' | 'onTypeEdit' | 'documentLink' | 'documentColor'
-    | 'foldingRange' | 'format' | 'codeAction' | 'workspaceSymbols' | 'formatRange'
+    | 'foldingRange' | 'format' | 'codeAction' | 'workspaceSymbols' | 'formatRange' | 'formatOnType'
     | 'hover' | 'signature' | 'documentSymbol' | 'documentHighlight' | 'definition'
     | 'declaration' | 'typeDefinition' | 'reference' | 'implementation'
-    | 'codeLens' | 'selectionRange'
+    | 'codeLens' | 'selectionRange' | 'callHierarchy' | 'semanticTokens' | 'linkedEditing'
 
   /**
    * The completion item provider interface defines the contract between extensions and
@@ -4421,6 +4424,13 @@ declare module 'coc.nvim' {
   // }}
 
   // languages module {{
+  export interface DocumentSymbolProviderMetadata {
+    /**
+    * A human-readable string that is shown when multiple outlines trees show for one document.
+    */
+    label?: string
+  }
+
   export namespace languages {
     /**
      * Create a diagnostics collection.
@@ -4533,9 +4543,10 @@ declare module 'coc.nvim' {
      *
      * @param selector A selector that defines the documents this provider is applicable to.
      * @param provider A document symbol provider.
+     * @param metadata Optional meta data.
      * @return A [disposable](#Disposable) that unregisters this provider when being disposed.
      */
-    export function registerDocumentSymbolProvider(selector: DocumentSelector, provider: DocumentSymbolProvider): Disposable
+    export function registerDocumentSymbolProvider(selector: DocumentSelector, provider: DocumentSymbolProvider, metadata?: DocumentSymbolProviderMetadata): Disposable
 
     /**
      * Register a folding range provider.
@@ -7847,10 +7858,25 @@ declare module 'coc.nvim' {
     dispose(): void
   }
 
+  export class NullLogger {
+    constructor()
+    error(message: string): void
+    warn(message: string): void
+    info(message: string): void
+    log(message: string): void
+  }
+
   export interface MessageTransports {
     reader: MessageReader
     writer: MessageWriter
     detached?: boolean
+  }
+
+  export namespace MessageTransports {
+    /**
+    * Checks whether the given value conforms to the [MessageTransports](#MessageTransports) interface.
+    */
+    function is(value: any): value is MessageTransports
   }
 
   export type ServerOptions = Executable | NodeModule | {

@@ -1,6 +1,6 @@
 import path from 'path'
 import diagnosticManager from '../../diagnostic/manager'
-import { DiagnosticItem, ListContext, ListItem } from '../../types'
+import { ListContext, ListItem } from '../../types'
 import LocationList from './location'
 import { isParentFolder } from '../../util/fs'
 import { formatListItems, formatPath, PathFormatting, UnformattedListItem } from '../formatting'
@@ -12,7 +12,7 @@ export default class DiagnosticsList extends LocationList {
   public name = 'diagnostics'
 
   public async loadItems(context: ListContext): Promise<ListItem[]> {
-    let list: DiagnosticItem[] = diagnosticManager.getDiagnosticList()
+    let list = diagnosticManager.getDiagnosticList()
     let { cwd } = context
 
     const shouldIncludeCode = this.getConfig().get<boolean>('includeCode', true)

@@ -1,10 +1,47 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
-import { NotificationConfig, NotificationPreferences } from '../types'
 import { disposeAll } from '../util'
+import { DialogButton } from './dialog'
 const isVim = process.env.VIM_NODE_RPC == '1'
 const logger = require('../util/logger')('model-notification')
+
+export interface NotificationPreferences {
+  top: number
+  right: number
+  maxWidth: number
+  maxHeight: number
+  highlight: string
+  minProgressWidth: number
+}
+
+export interface NotificationConfig {
+  content: string
+  /**
+   * Optional title text.
+   */
+  title?: string
+  /**
+   * Timeout in miliseconds to dismiss notification.
+   */
+  timeout?: number
+  /**
+   * show close button, default to true when not specified.
+   */
+  close?: boolean
+  /**
+   * highlight groups for border, default to `"dialog.borderhighlight"` or 'CocFlating'
+   */
+  borderhighlight?: string
+  /**
+   * Buttons as bottom of dialog.
+   */
+  buttons?: DialogButton[]
+  /**
+   * index is -1 for window close without button click
+   */
+  callback?: (index: number) => void
+}
 
 export default class Notification {
   protected disposables: Disposable[] = []

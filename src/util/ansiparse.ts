@@ -1,5 +1,13 @@
-import { AnsiItem, AnsiHighlight } from '../types'
 import { byteLength, upperFirst } from './string'
+
+export interface AnsiItem {
+  foreground?: string
+  background?: string
+  bold?: boolean
+  italic?: boolean
+  underline?: boolean
+  text: string
+}
 
 const foregroundColors = {
   30: 'black',
@@ -28,6 +36,11 @@ const styles = {
   1: 'bold',
   3: 'italic',
   4: 'underline'
+}
+
+export interface AnsiHighlight {
+  span: [number, number]
+  hlGroup: string
 }
 
 export interface AnsiResult {

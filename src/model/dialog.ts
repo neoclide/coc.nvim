@@ -1,9 +1,58 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
-import { DialogConfig, DialogPreferences } from '../types'
 import { disposeAll } from '../util'
 const logger = require('../util/logger')('model-dialog')
+
+export interface DialogButton {
+  /**
+   * Use by callback, should >= 0
+   */
+  index: number
+  text: string
+  /**
+   * Not shown when true
+   */
+  disabled?: boolean
+}
+
+export interface DialogPreferences {
+  maxWidth?: number
+  maxHeight?: number
+  floatHighlight?: string
+  floatBorderHighlight?: string
+  pickerButtons?: boolean
+  pickerButtonShortcut?: boolean
+  confirmKey?: string
+}
+
+export interface DialogConfig {
+  content: string
+  /**
+   * Optional title text.
+   */
+  title?: string
+  /**
+   * show close button, default to true when not specified.
+   */
+  close?: boolean
+  /**
+   * highlight group for dialog window, default to `"dialog.floatHighlight"` or 'CocFlating'
+   */
+  highlight?: string
+  /**
+   * highlight groups for border, default to `"dialog.borderhighlight"` or 'CocFlating'
+   */
+  borderhighlight?: string
+  /**
+   * Buttons as bottom of dialog.
+   */
+  buttons?: DialogButton[]
+  /**
+   * index is -1 for window close without button click
+   */
+  callback?: (index: number) => void
+}
 
 export default class Dialog {
   private disposables: Disposable[] = []

@@ -11,11 +11,12 @@ import commands from '../commands'
 import languages from '../languages'
 import FileWatcher from '../model/fileSystemWatcher'
 import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ProviderResult, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from '../provider'
-import { DiagnosticCollection, DocumentSymbolProviderMetadata, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, MessageItem, OutputChannel, TextDocumentWillSaveEvent, Thenable } from '../types'
+import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, OutputChannel, TextDocumentWillSaveEvent, Thenable } from '../types'
 import { resolveRoot } from '../util/fs'
 import * as Is from '../util/is'
 import { omit } from '../util/lodash'
-import window from '../window'
+import DiagnosticCollection from '../diagnostic/collection'
+import window, { MessageItem } from '../window'
 import workspace from '../workspace'
 import sources from '../sources'
 import { CallHierarchyMiddleware } from './callHierarchy'
@@ -2301,7 +2302,7 @@ class DocumentSymbolFeature extends TextDocumentFeature<
           : _provideDocumentSymbols(document, token)
       }
     }
-    const metadata: DocumentSymbolProviderMetadata | undefined = options.label ? { label: options.label } : undefined
+    const metadata = options.label ? { label: options.label } : undefined
     return [languages.registerDocumentSymbolProvider(options.documentSelector!, provider, metadata), provider]
   }
 }

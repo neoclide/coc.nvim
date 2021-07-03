@@ -7,15 +7,33 @@ import { URI } from 'vscode-uri'
 import events from '../events'
 import BufferSync from '../model/bufferSync'
 import FloatFactory from '../model/floatFactory'
-import { ConfigurationChangeEvent, DiagnosticConfig, DiagnosticEventParams, DiagnosticItem, Documentation, LocationListItem } from '../types'
+import { ConfigurationChangeEvent, LocationListItem } from '../types'
 import { disposeAll } from '../util'
 import { comparePosition, rangeIntersect } from '../util/position'
 import window from '../window'
 import workspace from '../workspace'
-import { DiagnosticBuffer, DiagnosticState } from './buffer'
+import { DiagnosticBuffer, DiagnosticState, DiagnosticConfig } from './buffer'
 import DiagnosticCollection from './collection'
 import { getLocationListItem, getSeverityName, severityLevel } from './util'
 const logger = require('../util/logger')('diagnostic-manager')
+
+export interface DiagnosticEventParams {
+  bufnr: number
+  uri: string
+  diagnostics: ReadonlyArray<Diagnostic>
+}
+
+export interface DiagnosticItem {
+  file: string
+  lnum: number
+  col: number
+  source: string
+  code: string | number
+  message: string
+  severity: string
+  level: number
+  location: Location
+}
 
 export class DiagnosticManager implements Disposable {
   public config: DiagnosticConfig
@@ -422,7 +440,7 @@ export class DiagnosticManager implements Disposable {
       return
     }
     if (truncate && workspace.insertMode) return
-    let docs: Documentation[] = []
+    let docs = []
     let ft = ''
     if (Object.keys(config.filetypeMap).length > 0) {
       const defaultFiletype = config.filetypeMap['default'] || ''

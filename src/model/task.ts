@@ -1,8 +1,16 @@
 import { Neovim } from '@chemzqm/neovim'
 import events from '../events'
-import { TaskOptions } from '../types'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { disposeAll } from '../util'
+
+export interface TaskOptions {
+  cmd: string
+  args?: string[]
+  cwd?: string
+  pty?: boolean
+  env?: { [key: string]: string }
+  detach?: boolean
+}
 
 /**
  * Controls long running task started by vim.

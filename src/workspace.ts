@@ -19,19 +19,35 @@ import FileSystemWatcher from './model/fileSystemWatcher'
 import Mru from './model/mru'
 import Resolver from './model/resolver'
 import Task from './model/task'
-import TerminalModel from './model/terminal'
+import TerminalModel, { TerminalOptions } from './model/terminal'
 import BufferSync, { SyncItem } from './model/bufferSync'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, DocumentChange, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, IWorkspace, KeymapOption, LanguageServerConfig, MapMode, OutputChannel, PatternType, QuickfixItem, Terminal, TerminalOptions, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, DocumentChange, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, IWorkspace, OutputChannel, PatternType, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { distinct } from './util/array'
 import { findUp, fixDriver, inDirectory, isFile, isParentFolder, readFileLine, renameAsync, resolveRoot, statAsync } from './util/fs'
-import { CONFIG_FILE_NAME, disposeAll, getKeymapModifier, platform, runCommand, wait } from './util/index'
+import { CONFIG_FILE_NAME, disposeAll, getKeymapModifier, platform, runCommand, wait, MapMode } from './util/index'
 import { score } from './util/match'
 import { getChangedFromEdits } from './util/position'
 import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
 import window from './window'
 import { version as VERSION } from '../package.json'
+
+export interface KeymapOption {
+  sync: boolean
+  cancel: boolean
+  silent: boolean
+  repeat: boolean
+}
+
+export interface Autocmd {
+  pattern?: string
+  event: string | string[]
+  arglist?: string[]
+  request?: boolean
+  thisArg?: any
+  callback: Function
+}
 
 const APIVERSION = 8
 const logger = require('./util/logger')('workspace')
@@ -71,7 +87,7 @@ export class Workspace implements IWorkspace {
   private buffers: Map<number, Document> = new Map()
   private autocmdMaxId = 0
   private autocmds: Map<number, Autocmd> = new Map()
-  private terminals: Map<number, Terminal> = new Map()
+  private terminals: Map<number, TerminalModel> = new Map()
   private creatingSources: Map<number, CancellationTokenSource> = new Map()
   private schemeProviderMap: Map<string, TextDocumentContentProvider> = new Map()
   private namespaceMap: Map<string, number> = new Map()
@@ -88,12 +104,12 @@ export class Workspace implements IWorkspace {
   private _onDidChangeWorkspaceFolders = new Emitter<WorkspaceFoldersChangeEvent>()
   private _onDidChangeConfiguration = new Emitter<ConfigurationChangeEvent>()
   private _onDidWorkspaceInitialized = new Emitter<void>()
-  private _onDidOpenTerminal = new Emitter<Terminal>()
-  private _onDidCloseTerminal = new Emitter<Terminal>()
+  private _onDidOpenTerminal = new Emitter<TerminalModel>()
+  private _onDidCloseTerminal = new Emitter<TerminalModel>()
   private _onDidRuntimePathChange = new Emitter<string[]>()
 
-  public readonly onDidCloseTerminal: Event<Terminal> = this._onDidCloseTerminal.event
-  public readonly onDidOpenTerminal: Event<Terminal> = this._onDidOpenTerminal.event
+  public readonly onDidCloseTerminal: Event<TerminalModel> = this._onDidCloseTerminal.event
+  public readonly onDidOpenTerminal: Event<TerminalModel> = this._onDidOpenTerminal.event
   public readonly onDidChangeWorkspaceFolders: Event<WorkspaceFoldersChangeEvent> = this._onDidChangeWorkspaceFolders.event
   public readonly onDidOpenTextDocument: Event<TextDocument & { bufnr: number }> = this._onDidOpenDocument.event
   public readonly onDidCloseTextDocument: Event<TextDocument & { bufnr: number }> = this._onDidCloseDocument.event
@@ -1070,7 +1086,7 @@ export class Workspace implements IWorkspace {
     return filepath
   }
 
-  public async createTerminal(opts: TerminalOptions): Promise<Terminal> {
+  public async createTerminal(opts: TerminalOptions): Promise<TerminalModel> {
     let cmd = opts.shellPath
     let args = opts.shellArgs
     if (!cmd) cmd = await this.nvim.getOption('shell') as string
@@ -1694,12 +1710,12 @@ augroup end`
   }
 
   private getServerRootPatterns(filetype: string): string[] {
-    let lspConfig = this.getConfiguration().get<{ key: LanguageServerConfig }>('languageserver', {} as any)
+    let lspConfig = this.getConfiguration().get<{ [key: string]: unknown }>('languageserver', {})
     let patterns: string[] = []
     for (let key of Object.keys(lspConfig)) {
-      let config: LanguageServerConfig = lspConfig[key]
+      let config: any = lspConfig[key]
       let { filetypes, rootPatterns } = config
-      if (filetypes && rootPatterns && filetypes.includes(filetype)) {
+      if (Array.isArray(filetypes) && rootPatterns && filetypes.includes(filetype)) {
         patterns.push(...rootPatterns)
       }
     }

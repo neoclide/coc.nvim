@@ -4,7 +4,6 @@ import { parse, UrlWithStringQuery } from 'url'
 import fs from 'fs'
 import { objectLiteral } from '../util/is'
 import workspace from '../workspace'
-import { FetchOptions } from '../types'
 import { stringify } from 'querystring'
 import createHttpProxyAgent, { HttpProxyAgent } from 'http-proxy-agent'
 import createHttpsProxyAgent, { HttpsProxyAgent } from 'https-proxy-agent'
@@ -19,6 +18,40 @@ export interface ProxyOptions {
   strictSSL?: boolean
   proxyAuthorization?: string | null
   proxyCA?: string | null
+}
+
+export interface FetchOptions {
+  /**
+   * Default to 'GET'
+   */
+  method?: string
+  /**
+   * Default no timeout
+   */
+  timeout?: number
+  /**
+   * Always return buffer instead of parsed response.
+   */
+  buffer?: boolean
+  /**
+   * - 'string' for text response content
+   * - 'object' for json response content
+   * - 'buffer' for response not text or json
+   */
+  data?: string | { [key: string]: any } | Buffer
+  /**
+   * Plain object added as query of url
+   */
+  query?: { [key: string]: unknown }
+  headers?: any
+  /**
+   * User for http basic auth, should use with password
+   */
+  user?: string
+  /**
+   * Password for http basic auth, should use with user
+   */
+  password?: string
 }
 
 function getSystemProxyURI(endpoint: UrlWithStringQuery): string {

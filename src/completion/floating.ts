@@ -1,8 +1,15 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken } from 'vscode-jsonrpc'
-import { parseDocuments } from '../markdown'
-import { Documentation, PumBounding } from '../types'
+import { parseDocuments, Documentation } from '../markdown'
 const logger = require('../util/logger')('floating')
+
+export interface PumBounding {
+  readonly height: number
+  readonly width: number
+  readonly row: number
+  readonly col: number
+  readonly scrollbar: boolean
+}
 
 interface Bounding {
   row: number
@@ -29,7 +36,7 @@ export default class Floating {
   public async show(docs: Documentation[], bounding: PumBounding, config: FloatingConfig, token: CancellationToken): Promise<void> {
     let { nvim } = this
     docs = docs.filter(o => o.content.trim().length > 0)
-    let { lines, codes, highlights } = parseDocuments(docs, {excludeImages: config.excludeImages})
+    let { lines, codes, highlights } = parseDocuments(docs, { excludeImages: config.excludeImages })
     if (lines.length == 0) {
       this.close()
       return

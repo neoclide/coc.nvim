@@ -15,7 +15,7 @@ import listManager from './list/manager'
 import services from './services'
 import snippetManager from './snippets/manager'
 import sources from './sources'
-import { Autocmd, OutputChannel, PatternType } from './types'
+import { OutputChannel, PatternType } from './types'
 import { CONFIG_FILE_NAME } from './util'
 import workspace from './workspace'
 import window from './window'
@@ -92,7 +92,7 @@ export default class Plugin extends EventEmitter {
       return services.registNotification(id, method)
     })
     this.addAction('doAutocmd', async (id: number, ...args: []) => {
-      let autocmd = (workspace as any).autocmds.get(id) as Autocmd
+      let autocmd = (workspace as any).autocmds.get(id) as any
       if (autocmd) {
         try {
           await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args))

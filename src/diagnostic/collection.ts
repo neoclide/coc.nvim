@@ -1,10 +1,9 @@
 import { Diagnostic, Emitter, Event, Range } from 'vscode-languageserver-protocol'
-import { DiagnosticCollection } from '../types'
 import { URI } from 'vscode-uri'
 import workspace from '../workspace'
 const logger = require('../util/logger')('diagnostic-collection')
 
-export default class Collection implements DiagnosticCollection {
+export default class DiagnosticCollection {
   private diagnosticsMap: Map<string, Diagnostic[]> = new Map()
   private _onDispose = new Emitter<void>()
   private _onDidDiagnosticsChange = new Emitter<string>()

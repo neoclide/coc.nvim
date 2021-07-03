@@ -5,7 +5,8 @@ import commandManager from '../commands'
 import events from '../events'
 import languages from '../languages'
 import listManager from '../list/manager'
-import { CurrentState, ProviderName, StatusBarItem } from '../types'
+import { ProviderName } from '../types'
+import { StatusBarItem } from '../model/status'
 import { disposeAll } from '../util'
 import { equals } from '../util/object'
 import { emptyRange, positionInRange } from '../util/position'
@@ -23,11 +24,20 @@ import { Highlight } from './semanticTokensHighlights/buffer'
 import SemanticTokensHighlights from './semanticTokensHighlights/index'
 import Signature from './signature'
 import Symbols from './symbols'
+import Document from '../model/document'
 const logger = require('../util/logger')('Handler')
 
 interface CommandItem {
   id: string
   title: string
+}
+
+export interface CurrentState {
+  doc: Document
+  winid: number
+  position: Position
+  // :h mode()
+  mode: string
 }
 
 export default class Handler {

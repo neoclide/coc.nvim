@@ -1,10 +1,9 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
-import { DialogPreferences } from '..'
 import events from '../events'
-import { QuickPickItem } from '../types'
 import { disposeAll } from '../util'
 import { byteLength } from '../util/string'
+import { DialogPreferences } from './dialog'
 import Popup from './popup'
 const logger = require('../util/logger')('model-dialog')
 const isVim = process.env.VIM_NODE_RPC == '1'
@@ -12,6 +11,28 @@ const isVim = process.env.VIM_NODE_RPC == '1'
 interface PickerConfig {
   title: string
   items: QuickPickItem[]
+}
+
+/**
+ * Represents an item that can be selected from
+ * a list of items.
+ */
+export interface QuickPickItem {
+
+  /**
+   * A human-readable string which is rendered prominent
+   */
+  label: string
+
+  /**
+   * A human-readable string which is rendered less prominent in the same line
+   */
+  description?: string
+
+  /**
+   * Optional flag indicating if this item is picked initially.
+   */
+  picked?: boolean
 }
 
 /**

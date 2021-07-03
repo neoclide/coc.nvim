@@ -3,10 +3,14 @@ import { URI } from 'vscode-uri'
 import Watchman, { FileChange } from '../watchman'
 import minimatch from 'minimatch'
 import path from 'path'
-import { RenameEvent } from '../types'
 import { disposeAll } from '../util'
 import { splitArray } from '../util/array'
 const logger = require('../util/logger')('filesystem-watcher')
+
+export interface RenameEvent {
+  oldUri: URI
+  newUri: URI
+}
 
 export default class FileSystemWatcher implements Disposable {
 

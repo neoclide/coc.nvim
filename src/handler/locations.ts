@@ -1,12 +1,17 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, Definition, Location, LocationLink, Position, TextDocument } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-import { ProviderName } from '..'
 import languages from '../languages'
 import services from '../services'
-import { HandlerDelegate, TagDefinition } from '../types'
+import { HandlerDelegate, ProviderName } from '../types'
 import workspace from '../workspace'
 const logger = require('../util/logger')('handler-hover')
+
+export interface TagDefinition {
+  name: string
+  cmd: string
+  filename: string
+}
 
 export type RequestFunc<T> = (doc: TextDocument, position: Position, token: CancellationToken) => Thenable<T>
 

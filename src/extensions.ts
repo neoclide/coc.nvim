@@ -14,7 +14,6 @@ import FloatFactory from './model/floatFactory'
 import InstallBuffer from './model/installBuffer'
 import { createInstallerFactory } from './model/installer'
 import Memos from './model/memos'
-import { Documentation, Extension, ExtensionContext, ExtensionInfo, ExtensionState, ExtensionType } from './types'
 import { disposeAll, wait, concurrent, watchFile } from './util'
 import { distinct, splitArray } from './util/array'
 import './util/extensions'
@@ -31,6 +30,15 @@ const logger = createLogger('extensions')
 
 export type API = { [index: string]: any } | void | null | undefined
 
+export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
+
+export enum ExtensionType {
+  Global,
+  Local,
+  SingleFile,
+  Internal
+}
+
 export interface PropertyScheme {
   type: string
   default: any
@@ -38,6 +46,15 @@ export interface PropertyScheme {
   enum?: string[]
   items?: any
   [key: string]: any
+}
+
+export interface Extension<T> {
+  readonly id: string
+  readonly extensionPath: string
+  readonly isActive: boolean
+  readonly packageJSON: any
+  readonly exports: T
+  activate(): Promise<T>
 }
 
 export interface ExtensionItem {
@@ -48,6 +65,28 @@ export interface ExtensionItem {
   filepath?: string
   directory?: string
   isLocal: Readonly<boolean>
+}
+
+export interface ExtensionJson {
+  name: string
+  main?: string
+  engines: {
+    [key: string]: string
+  }
+  version?: string
+  [key: string]: any
+}
+
+export interface ExtensionInfo {
+  id: string
+  version: string
+  description: string
+  root: string
+  exotic: boolean
+  uri?: string
+  state: ExtensionState
+  isLocal: boolean
+  packageJSON: Readonly<ExtensionJson>
 }
 
 // global local file native
@@ -141,7 +180,7 @@ export class Extensions {
       if (this.installBuffer && bufnr == this.installBuffer.bufnr) {
         let lnum = await workspace.nvim.call('line', ['.'])
         let msgs = this.installBuffer.getMessages(lnum - 1)
-        let docs: Documentation[] = msgs && msgs.length ? [{ content: msgs.join('\n'), filetype: 'txt' }] : []
+        let docs = msgs && msgs.length ? [{ content: msgs.join('\n'), filetype: 'txt' }] : []
         await floatFactory.show(docs, { modes: ['n'] })
       }
     }, 500))
@@ -798,7 +837,7 @@ export class Extensions {
     let extension: any = {
       activate: async (): Promise<API> => {
         if (isActive) return exports as API
-        let context: ExtensionContext = {
+        let context = {
           subscriptions,
           extensionPath: root,
           globalState: this.memos.createMemento(`${id}|global`),

@@ -1,15 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import fs from 'fs'
 import { Logger } from 'log4js'
-import * as path from 'path'
+import path from 'path'
 import * as vm from 'vm'
-import { ExtensionContext } from '../types'
 import { defaults } from './lodash'
 const createLogger = require('./logger')
 const logger = createLogger('util-factoroy')
 
 export interface ExtensionExport {
-  activate: (context: ExtensionContext) => any
+  activate: (context: unknown) => any
   deactivate: () => any | null
 }
 

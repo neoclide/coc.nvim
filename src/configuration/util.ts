@@ -1,7 +1,7 @@
 import { Location, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { parse, ParseError } from 'jsonc-parser'
-import { IConfigurationModel, ErrorItem } from '../types'
+import { IConfigurationModel } from '../types'
 import { emptyObject, objectLiteral } from '../util/is'
 import { equals } from '../util/object'
 import fs from 'fs'
@@ -9,6 +9,11 @@ import { URI } from 'vscode-uri'
 import path, { dirname, resolve } from 'path'
 const logger = require('../util/logger')('configuration-util')
 declare const ESBUILD
+
+export interface ErrorItem {
+  location: Location
+  message: string
+}
 
 const pluginRoot = typeof ESBUILD === 'undefined' ? resolve(__dirname, '../..') : dirname(__dirname)
 
