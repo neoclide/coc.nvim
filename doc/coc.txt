@@ -1596,6 +1596,10 @@ g:coc_install_yarn_cmd 					*g:coc_install_yarn_cmd*
 Some variables are provided by coc.nvim so you can use them in your
 statusline. See |coc-status| for detail.
 
+g:coc_service_initialized 			 *g:coc_service_initialized*
+
+	Is `1` when coc.nvim initialized, used with autocmd |CocNvimInit|.
+
 b:coc_diagnostic_info					*b:coc_diagnostic_info*
 
 	Diagnostic information of current buffer, the format would look like:

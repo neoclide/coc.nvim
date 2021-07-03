@@ -41,7 +41,7 @@ export default class Plugin extends EventEmitter {
     })
     this.cursors = new Cursors(nvim)
     this.addAction('hasProvider', (id: string) => this.handler.hasProvider(id))
-    this.addAction('getTagList', async () => await this.handler.locations.getTagList())
+    this.addAction('getTagList', () => this.handler.locations.getTagList())
     this.addAction('hasSelected', () => completion.hasSelected())
     this.addAction('listNames', () => listManager.names)
     this.addAction('listDescriptions', () => listManager.descriptions)
