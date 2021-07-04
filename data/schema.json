@@ -1218,7 +1218,7 @@
     },
     "coc.source.file.triggerCharacters": {
       "type": "array",
-      "default": ["/"],
+      "default": ["/", "\\"],
       "items": {
         "type": "string"
       }

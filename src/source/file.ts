@@ -9,7 +9,7 @@ import { statAsync } from '../util/fs'
 import { byteSlice } from '../util/string'
 import workspace from '../workspace'
 const logger = require('../util/logger')('source-file')
-const pathRe = /(?:\.{0,2}|~|\$HOME|([\w]+)|)\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/
+const pathRe = /(?:\.{0,2}|~|\$HOME|([\w]+)|[a-zA-Z]:|)(\/|\\)(?:[\w.@()-]+(\/|\\))*(?:[\w.@()-])*$/
 
 interface PathOption {
   pathstr: string
@@ -46,7 +46,7 @@ export default class File extends Source {
     let ms = part.match(pathRe)
     if (ms && ms.length) {
       const pathstr = workspace.expand(ms[0])
-      let input = ms[0].match(/[^/]*$/)[0]
+      let input = ms[0].match(/[^/\\]*$/)[0]
       return { pathstr, part: ms[1], startcol: colnr - input.length - 1, input }
     }
     return null
