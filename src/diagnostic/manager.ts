@@ -66,7 +66,7 @@ export class DiagnosticManager implements Disposable {
           this.echoMessage(true).logError()
         })
       let diagnostics = this.getDiagnostics(doc.uri)
-      if (this.enabled) buf.forceRefresh(diagnostics)
+      if (this.enabled && diagnostics.length) buf.forceRefresh(diagnostics)
       return buf
     })
 
