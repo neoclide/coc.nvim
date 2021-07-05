@@ -3,15 +3,15 @@ import debounce from 'debounce'
 import { CancellationTokenSource, Disposable, DocumentSymbol, Emitter, Event, Range, SymbolInformation, TextDocument } from 'vscode-languageserver-protocol'
 import events from '../events'
 import languages from '../languages'
-import { HandlerDelegate } from '../types'
 import BufferSync, { SyncItem } from '../model/bufferSync'
+import { HandlerDelegate } from '../types'
 import { getSymbolKind } from '../util/convert'
 import { disposeAll } from '../util/index'
 import { equals } from '../util/object'
 import { positionInRange, rangeInRange } from '../util/position'
 import window from '../window'
 import workspace from '../workspace'
-import { addDocumentSymbol, getPreviousContainer, isDocumentSymbols, sortDocumentSymbols, sortSymbolInformations, SymbolInfo } from './helper'
+import { addDocumentSymbol, isDocumentSymbols, sortDocumentSymbols, sortSymbolInformations, SymbolInfo } from './helper'
 
 export default class Symbols {
   private buffers: BufferSync<SymbolsBuffer>
@@ -49,8 +49,15 @@ export default class Symbols {
   }
 
   public async getWorkspaceSymbols(input: string): Promise<SymbolInformation[]> {
+    this.handler.checkProvier('workspaceSymbols', null)
     let tokenSource = new CancellationTokenSource()
     return await languages.getWorkspaceSymbols(input, tokenSource.token)
+  }
+
+  public async resolveWorkspaceSymbol(symbolInfo: SymbolInformation): Promise<SymbolInformation> {
+    if (symbolInfo.location?.uri) return symbolInfo
+    let tokenSource = new CancellationTokenSource()
+    return await languages.resolveWorkspaceSymbol(symbolInfo, tokenSource.token)
   }
 
   public async getDocumentSymbols(bufnr: number): Promise<SymbolInfo[]> {
@@ -185,36 +192,24 @@ class SymbolsBuffer implements SyncItem {
     if (symbols == null || token.isCancellationRequested) return
     let level = 0
     let res: SymbolInfo[] = []
-    let pre = null
     if (isDocumentSymbols(symbols)) {
       symbols.sort(sortDocumentSymbols)
       symbols.forEach(s => addDocumentSymbol(res, s, level))
     } else {
       symbols.sort(sortSymbolInformations)
       for (let sym of symbols) {
-        let { name, kind, location, containerName } = sym
-        if (!containerName || !pre) {
-          level = 0
-        } else {
-          if (pre.containerName == containerName) {
-            level = pre.level || 0
-          } else {
-            let container = getPreviousContainer(containerName, res)
-            level = container ? container.level + 1 : 0
-          }
-        }
+        let { name, kind, location } = sym
         let { start } = location.range
         let o: SymbolInfo = {
           col: start.character + 1,
           lnum: start.line + 1,
           text: name,
-          level,
+          level: 0,
           kind: getSymbolKind(kind),
           range: location.range,
-          containerName
+          containerName: sym.containerName
         }
         res.push(o)
-        pre = o
       }
     }
     this.version = version

@@ -15,8 +15,9 @@ export default class DiagnosticsList extends LocationList {
     let list = diagnosticManager.getDiagnosticList()
     let { cwd } = context
 
-    const shouldIncludeCode = this.getConfig().get<boolean>('includeCode', true)
-    const pathFormat = this.getConfig().get<PathFormatting>('pathFormat', "full")
+    const config = this.getConfig()
+    const shouldIncludeCode = config.get<boolean>('includeCode', true)
+    const pathFormat = config.get<PathFormatting>('pathFormat', "full")
 
     const unformatted: UnformattedListItem[] = list.map(item => {
       const file = isParentFolder(cwd, item.file) ? path.relative(cwd, item.file) : item.file

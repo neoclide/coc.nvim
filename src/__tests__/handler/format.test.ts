@@ -56,6 +56,16 @@ describe('format handler', () => {
   })
 
   describe('formatOnSave', () => {
+    it('should not throw when provider not found', async () => {
+      helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', ['javascript'])
+      let filepath = await createTmpFile('')
+      await helper.edit(filepath)
+      await nvim.command('setf javascript')
+      await nvim.setLine('foo')
+      await nvim.command('silent w')
+      await helper.wait(100)
+    })
+
     it('should invoke format on save', async () => {
       helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', ['text'])
       disposables.push(languages.registerDocumentFormatProvider(['text'], {

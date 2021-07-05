@@ -13,7 +13,6 @@ export function formatListItems(align: boolean, list: UnformattedListItem[]): Li
   }
 
   let processedList: ListItem[] = []
-
   if (align) {
     const maxWidths = Array(Math.min(...list.map(item => item.label.length))).fill(0)
     for (let item of list) {
@@ -29,7 +28,7 @@ export function formatListItems(align: boolean, list: UnformattedListItem[]): Li
           .join("\t")
       }))
   } else {
-    processedList = list.map(item => ({...item, label: item.label.join("\t")}))
+    processedList = list.map(item => ({ ...item, label: item.label.join("\t") }))
   }
   return processedList
 }

@@ -111,6 +111,8 @@ describe('symbols handler', () => {
       let code = `class myClass {
       fun1() {
       }
+      fun2() {
+      }
     }
     `
       await createBuffer(code)
@@ -232,6 +234,56 @@ describe('symbols handler', () => {
       let res = await workspace.getSelectedRange('v', doc)
       expect(res).toEqual({ start: { line: 0, character: 0 }, end: { line: 3, character: 4 } })
     })
+  })
 
+  describe('cancel', () => {
+    it('should cancel symbols request on insert', async () => {
+      let cancelled = false
+      disposables.push(languages.registerDocumentSymbolProvider([{ language: 'text' }], {
+        provideDocumentSymbols: (_doc, token) => {
+          return new Promise(s => {
+            token.onCancellationRequested(() => {
+              if (timer) clearTimeout(timer)
+              cancelled = true
+              s(undefined)
+            })
+            let timer = setTimeout(() => {
+              s(undefined)
+            }, 3000)
+          })
+        }
+      }))
+      let doc = await helper.createDocument('t.txt')
+      let p = symbols.getDocumentSymbols(doc.bufnr)
+      setTimeout(async () => {
+        await nvim.input('i')
+      }, 500)
+      await p
+      expect(cancelled).toBe(true)
+    })
+  })
+
+  describe('workspaceSymbols', () => {
+    it('should get workspace symbols', async () => {
+      disposables.push(languages.registerWorkspaceSymbolProvider({
+        provideWorkspaceSymbols: (_query, _token) => {
+          return [SymbolInformation.create('far', SymbolKind.Class, Range.create(0, 0, 0, 0))]
+        },
+        resolveWorkspaceSymbol: sym => {
+          let res = Object.assign({}, sym)
+          res.location.uri = 'test:///foo'
+          return res
+        }
+      }))
+      disposables.push(languages.registerWorkspaceSymbolProvider({
+        provideWorkspaceSymbols: (_query, _token) => {
+          return [SymbolInformation.create('bar', SymbolKind.Function, Range.create(0, 0, 0, 0))]
+        }
+      }))
+      let res = await symbols.getWorkspaceSymbols('a')
+      expect(res.length).toBe(2)
+      let resolved = await symbols.resolveWorkspaceSymbol(res[0])
+      expect(resolved?.location?.uri).toBe('test:///foo')
+    })
   })
 })

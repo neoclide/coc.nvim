@@ -16,6 +16,11 @@ let s:dir = expand('<sfile>:h')
 let s:root = expand('<sfile>:h:h:h')
 let g:coc_node_env = 'test'
 
+let g:coc_vim_commands = [{
+  \ "id": "config",
+  \ "cmd": "CocConfig"
+  \ }]
+
 autocmd BufNewFile,BufRead *.ts  set filetype=typescript
 
 execute 'set runtimepath+='.s:root

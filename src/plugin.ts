@@ -3,7 +3,7 @@ import { EventEmitter } from 'events'
 import fs from 'fs'
 import path from 'path'
 import matchAll from 'string.prototype.matchall'
-import { CodeAction, CodeActionKind } from 'vscode-languageserver-protocol'
+import { CallHierarchyItem, CodeAction, CodeActionKind } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commandManager from './commands'
 import completion from './completion'
@@ -219,6 +219,7 @@ export default class Plugin extends EventEmitter {
     this.addAction('rangeSelect', (visualmode, forward) => this.handler.selectionRange.selectRange(visualmode, forward))
     this.addAction('rename', newName => this.handler.rename.rename(newName))
     this.addAction('getWorkspaceSymbols', input => this.handler.symbols.getWorkspaceSymbols(input))
+    this.addAction('resolveWorkspaceSymbol', symbolInfo => this.handler.symbols.resolveWorkspaceSymbol(symbolInfo))
     this.addAction('formatSelected', mode => this.handler.format.formatCurrentRange(mode))
     this.addAction('format', () => this.handler.format.formatCurrentBuffer())
     this.addAction('commands', () => this.handler.commands.getCommands())
@@ -268,8 +269,8 @@ export default class Plugin extends EventEmitter {
     this.addAction('currentWorkspacePath', () => workspace.rootPath)
     this.addAction('selectCurrentPlaceholder', triggerAutocmd => snippetManager.selectCurrentPlaceholder(!!triggerAutocmd))
     this.addAction('codeActionRange', (start, end, only) => this.handler.codeActions.codeActionRange(start, end, only))
-    this.addAction('incomingCalls', () => this.handler.callHierarchy.showLocations('incoming'))
-    this.addAction('outgoingCalls', () => this.handler.callHierarchy.showLocations('outgoing'))
+    this.addAction('incomingCalls', (item?: CallHierarchyItem) => this.handler.callHierarchy.getIncoming(item))
+    this.addAction('outgoingCalls', (item?: CallHierarchyItem) => this.handler.callHierarchy.getOutgoing(item))
     this.addAction('semanticHighlight', () => this.handler.semanticHighlighter.highlightCurrent())
     this.addAction('showSemanticHighlightInfo', () => this.handler.semanticHighlighter.showHiglightInfo())
     commandManager.init(nvim, this)

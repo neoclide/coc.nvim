@@ -2237,10 +2237,13 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	Get workspaceEdit of current word, language server used when possible,
 	extract word from current buffer as fallback.
 
-"getWorkspaceSymbols" {input} [{bufnr}]		*coc-action-getWorkspaceSymbols*
+"getWorkspaceSymbols" {input}			*coc-action-getWorkspaceSymbols*
 
-	Get workspace symbols from {input} and optional {bufnr} (use current
-	bufnr when empty).
+	Get workspace symbols from {input}.
+
+"resolveWorkspaceSymbol" {symbol} 		 *coc-action-resolveWorkspaceSymbol*
+
+	Resolve location for workspace {symbol}.
 
 "diagnosticToggleBuffer" [{bufnr}]		 *coc-action-diagnosticToggleBuffer*
 
@@ -2256,6 +2259,16 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	when {bufnr} not exists, returns `v:null` before diagnostics are shown.
 
 	Useful when `diagnostic.autoRefresh` is `false`.
+
+"incomingCalls" [{CallHierarchyItem}] 		*coc-action-incomingCalls*
+
+	Retrieve incoming calls from {CallHierarchyItem} or current position
+	when not provided.
+
+"outgoingCalls" [{CallHierarchyItem}] 		*coc-action-outgoingCalls*
+
+	Retrieve outgoing calls from {CallHierarchyItem} or current position
+	when not provided.
 
 ------------------------------------------------------------------------------
 COMMANDS						*coc-commands*

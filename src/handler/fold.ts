@@ -17,28 +17,21 @@ export default class FoldHandler {
     let ranges = await this.handler.withRequestToken('foldingrange', token => {
       return languages.provideFoldingRanges(doc.textDocument, {}, token)
     }, true)
-    if (!ranges) return false
+    if (!ranges || !ranges.length) return false
     if (kind) ranges = ranges.filter(o => o.kind == kind)
-    if (ranges.length) {
-      ranges.sort((a, b) => b.startLine - a.startLine)
-      this.nvim.pauseNotification()
-      win.setOption('foldmethod', 'manual', true)
-      this.nvim.command('normal! zE', true)
-      for (let range of ranges) {
-        let { startLine, endLine } = range
-        let cmd = `${startLine + 1}, ${endLine + 1}fold`
-        this.nvim.command(cmd, true)
-      }
-      win.setOption('foldenable', true, true)
-      win.setOption('foldlevel', foldlevel, true)
-      if (workspace.isVim) this.nvim.command('redraw', true)
-      await this.nvim.resumeNotification()
-      return true
+    ranges.sort((a, b) => b.startLine - a.startLine)
+    this.nvim.pauseNotification()
+    win.setOption('foldmethod', 'manual', true)
+    this.nvim.command('normal! zE', true)
+    for (let range of ranges) {
+      let { startLine, endLine } = range
+      let cmd = `${startLine + 1}, ${endLine + 1}fold`
+      this.nvim.command(cmd, true)
     }
-    return false
-  }
-
-  public foldComments(): Promise<boolean> {
-    return this.fold('comment')
+    win.setOption('foldenable', true, true)
+    win.setOption('foldlevel', foldlevel, true)
+    if (workspace.isVim) this.nvim.command('redraw', true)
+    await this.nvim.resumeNotification()
+    return true
   }
 }

@@ -1,5 +1,6 @@
 import { DocumentSymbol, MarkupContent, MarkupKind, Range, SymbolInformation } from 'vscode-languageserver-protocol'
 import { getSymbolKind } from '../util/convert'
+import { comparePosition } from '../util/position'
 
 export interface SymbolInfo {
   filepath?: string
@@ -13,34 +14,10 @@ export interface SymbolInfo {
   selectionRange?: Range
 }
 
-export function getPreviousContainer(containerName: string, symbols: SymbolInfo[]): SymbolInfo {
-  if (!symbols.length)
-    return null
-  let i = symbols.length - 1
-  let last = symbols[i]
-  if (last.text == containerName) {
-    return last
-  }
-  while (i >= 0) {
-    let sym = symbols[i]
-    if (sym.text == containerName) {
-      return sym
-    }
-    i--
-  }
-  return null
-}
-
 export function sortDocumentSymbols(a: DocumentSymbol, b: DocumentSymbol): number {
   let ra = a.selectionRange
   let rb = b.selectionRange
-  if (ra.start.line < rb.start.line) {
-    return -1
-  }
-  if (ra.start.line > rb.start.line) {
-    return 1
-  }
-  return ra.start.character - rb.start.character
+  return comparePosition(ra.start, rb.start)
 }
 
 export function addDocumentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level: number): void {

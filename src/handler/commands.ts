@@ -4,6 +4,7 @@ import events from '../events'
 import { Env } from '../types'
 import listManager from '../list/manager'
 const logger = require('../util/logger')('handler-commands')
+const isVim = process.env.VIM_NODE_RPC == '1'
 
 interface CommandItem {
   id: string
@@ -21,9 +22,7 @@ export default class Commands {
     let id = `vim.${cmd.id}`
     commandManager.registerCommand(id, () => {
       this.nvim.command(cmd.cmd, true)
-      if (this.env.isVim) {
-        this.nvim.command('redraw', true)
-      }
+      if (isVim) this.nvim.command('redraw', true)
     })
     if (cmd.title) commandManager.titles.set(id, cmd.title)
   }
@@ -38,6 +37,7 @@ export default class Commands {
 
   public async runCommand(id?: string, ...args: any[]): Promise<any> {
     if (id) {
+      // needed to load onCommand extensions
       await events.fire('Command', [id])
       let res = await commandManager.executeCommand(id, ...args)
       if (args.length == 0) {
@@ -49,7 +49,7 @@ export default class Commands {
     }
   }
 
-  public async getCommands(): Promise<CommandItem[]> {
+  public getCommands(): CommandItem[] {
     let list = commandManager.commandList
     let res: CommandItem[] = []
     let { titles } = commandManager

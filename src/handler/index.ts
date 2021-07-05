@@ -23,7 +23,6 @@ import Refactor from './refactor/index'
 import Rename from './rename'
 import SelectionRange from './selectionRange'
 import CallHierarchy from './callHierarchy'
-import { Highlight } from './semanticTokensHighlights/buffer'
 import SemanticTokensHighlights from './semanticTokensHighlights/index'
 import Signature from './signature'
 import Symbols from './symbols'
@@ -174,7 +173,6 @@ export default class Handler {
   public dispose(): void {
     if (this.requestTimer) {
       clearTimeout(this.requestTimer)
-      this.requestTimer = undefined
     }
     disposeAll(this.disposables)
   }

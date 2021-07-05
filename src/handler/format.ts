@@ -46,13 +46,13 @@ export default class FormatHandler {
           let options = await workspace.getFormatOptions(event.document.uri)
           let tokenSource = new CancellationTokenSource()
           let timer = setTimeout(() => {
-            logger.warn(`Onsave format ${event.document.uri} timeout after 0.5s`)
+            logger.warn(`Format on save ${event.document.uri} timeout after 0.5s`)
             tokenSource.cancel()
           }, 500)
           let textEdits = await languages.provideDocumentFormattingEdits(event.document, options, tokenSource.token)
           clearTimeout(timer)
           if (!textEdits && !tokenSource.token.isCancellationRequested) {
-            logger.want(`Onsave format ${event.document.uri} get undefined result.`)
+            logger.want(`Format on save ${event.document.uri} get undefined result.`)
           }
           return textEdits
         }
