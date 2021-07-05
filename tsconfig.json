@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "outDir": "lib",
+    "noEmit": true,
     "sourceMap": true,
     "importHelpers": true,
     "allowUnreachableCode": false,
