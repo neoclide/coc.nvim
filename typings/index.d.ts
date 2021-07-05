@@ -1822,6 +1822,20 @@ declare module 'coc.nvim' {
   }
 
   /**
+   * @since 3.16.0
+   */
+  export interface SemanticTokensLegend {
+    /**
+     * The token types a server uses.
+     */
+    tokenTypes: string[]
+    /**
+     * The token modifiers a server uses.
+     */
+    tokenModifiers: string[]
+  }
+
+  /**
   * @since 3.16.0
   */
   export interface SemanticTokens {
@@ -4685,7 +4699,7 @@ declare module 'coc.nvim' {
      * Register a rename provider.
      *
      * Multiple providers can be registered for a language. In that case providers are sorted
-     * by their [score](#languages.match) and asked in sequence. The first provider producing a result
+     * by their [score](#workspace.match) and asked in sequence. The first provider producing a result
      * defines the result of the whole operation.
      *
      * @param selector A selector that defines the documents this provider is applicable to.
@@ -4735,6 +4749,60 @@ declare module 'coc.nvim' {
      * @return A [disposable](#Disposable) that unregisters this provider when being disposed.
      */
     export function registerDocumentRangeFormatProvider(selector: DocumentSelector, provider: DocumentRangeFormattingEditProvider, priority?: number): Disposable
+
+    /**
+     * Register a call hierarchy provider.
+     *
+     * @param selector A selector that defines the documents this provider is applicable to.
+     * @param provider A call hierarchy provider.
+     * @return A {@link Disposable} that unregisters this provider when being disposed.
+     */
+    export function registerCallHierarchyProvider(selector: DocumentSelector, provider: CallHierarchyProvider): Disposable
+
+    /**
+     * Register a semantic tokens provider for a whole document.
+     *
+     * Multiple providers can be registered for a language. In that case providers are sorted
+     * by their {@link languages.match score} and the best-matching provider is used. Failure
+     * of the selected provider will cause a failure of the whole operation.
+     *
+     * @param selector A selector that defines the documents this provider is applicable to.
+     * @param provider A document semantic tokens provider.
+     * @return A {@link Disposable} that unregisters this provider when being disposed.
+     */
+    export function registerDocumentSemanticTokensProvider(selector: DocumentSelector, provider: DocumentSemanticTokensProvider, legend: SemanticTokensLegend): Disposable
+
+    /**
+     * Register a semantic tokens provider for a document range.
+     *
+     * *Note:* If a document has both a `DocumentSemanticTokensProvider` and a `DocumentRangeSemanticTokensProvider`,
+     * the range provider will be invoked only initially, for the time in which the full document provider takes
+     * to resolve the first request. Once the full document provider resolves the first request, the semantic tokens
+     * provided via the range provider will be discarded and from that point forward, only the document provider
+     * will be used.
+     *
+     * Multiple providers can be registered for a language. In that case providers are sorted
+     * by their {@link languages.match score} and the best-matching provider is used. Failure
+     * of the selected provider will cause a failure of the whole operation.
+     *
+     * @param selector A selector that defines the documents this provider is applicable to.
+     * @param provider A document range semantic tokens provider.
+     * @return A {@link Disposable} that unregisters this provider when being disposed.
+     */
+    export function registerDocumentRangeSemanticTokensProvider(selector: DocumentSelector, provider: DocumentRangeSemanticTokensProvider, legend: SemanticTokensLegend): Disposable
+
+    /**
+     * Register a linked editing range provider.
+     *
+     * Multiple providers can be registered for a language. In that case providers are sorted
+     * by their {@link languages.match score} and the best-matching provider that has a result is used. Failure
+     * of the selected provider will cause a failure of the whole operation.
+     *
+     * @param selector A selector that defines the documents this provider is applicable to.
+     * @param provider A linked editing range provider.
+     * @return A {@link Disposable} that unregisters this provider when being disposed.
+     */
+    export function registerLinkedEditingRangeProvider(selector: DocumentSelector, provider: LinkedEditingRangeProvider): Disposable
   }
   // }}
 
@@ -7573,7 +7641,7 @@ declare module 'coc.nvim' {
        * external program is started or the file is not a text
        * file.
     */
-    selection?: Range;
+    selection?: Range
   }
   /**
    * The result of an show document request.
@@ -7584,7 +7652,7 @@ declare module 'coc.nvim' {
     /**
      * A boolean indicating if the show was successful.
     */
-    success: boolean;
+    success: boolean
   }
 
   export interface _WindowMiddleware {
@@ -7798,7 +7866,7 @@ declare module 'coc.nvim' {
     /**
      * Clients must not use this property. It is here to ensure correct typing.
      */
-    readonly _: [P, _EM] | undefined;
+    readonly _: [P, _EM] | undefined
     constructor(method: string)
   }
 
@@ -7867,9 +7935,9 @@ declare module 'coc.nvim' {
     /**
      * Clients must not use this property. It is here to ensure correct typing.
      */
-    readonly ____: [RO, _EM] | undefined;
-    readonly method: string;
-    constructor(method: string);
+    readonly ____: [RO, _EM] | undefined
+    readonly method: string
+    constructor(method: string)
   }
   /**
    * The result returned from an initialize request.
