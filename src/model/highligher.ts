@@ -11,15 +11,18 @@ export interface HighlightItem {
   hlGroup: string
 }
 
+export interface TextItem {
+  text: string
+  hlGroup?: string
+}
+
+const srcId = -1
 /**
  * Build highlights, with lines and highlights
  */
 export default class Highlighter {
   private lines: string[] = []
   private highlights: HighlightItem[] = []
-
-  constructor(private srcId = -1) {
-  }
 
   public addLine(line: string, hlGroup?: string): void {
     if (line.includes('\n')) {
@@ -59,6 +62,16 @@ export default class Highlighter {
     this.lines.push(...lines)
   }
 
+  /**
+   * Add texts to new Lines
+   */
+  public addTexts(items: TextItem[]): void {
+    this.addLines('')
+    for (let item of items) {
+      this.addText(item.text, item.hlGroup)
+    }
+  }
+
   public addText(text: string, hlGroup?: string): void {
     let { lines } = this
     let pre = lines[lines.length - 1] || ''
@@ -91,13 +104,14 @@ export default class Highlighter {
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     buffer.setLines(this.lines, { start, end, strictIndexing: false }, true)
     for (let item of this.highlights) {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       buffer.addHighlight({
         hlGroup: item.hlGroup,
         colStart: item.colStart,
         colEnd: item.colEnd == null ? -1 : item.colEnd,
         line: start + item.line,
-        srcId: this.srcId
-      }).logError()
+        srcId
+      })
     }
   }
 }
