@@ -152,7 +152,6 @@ export class DiagnosticBuffer implements BufferSyncItem {
   }
 
   private async _refresh(diagnostics: ReadonlyArray<Diagnostic & { collection: string }>): Promise<void> {
-    if (equals(this.diagnostics, diagnostics)) return
     let { refreshOnInsertMode } = this.config
     let { nvim } = this
     if (this._state == DiagnosticState.Disabled) return
