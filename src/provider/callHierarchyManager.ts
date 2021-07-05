@@ -24,7 +24,6 @@ export default class CallHierarchyManager extends Manager<CallHierarchyProvider>
     if (!item) return null
     let { provider } = item
     if (provider.prepareCallHierarchy === null) return null
-
     return await Promise.resolve(provider.prepareCallHierarchy(document, position, token))
   }
 

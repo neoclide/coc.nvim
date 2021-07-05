@@ -3,7 +3,6 @@ import debounce from 'debounce'
 import { CancellationTokenSource, Range, SemanticTokens, SemanticTokensDelta, uinteger } from 'vscode-languageserver-protocol'
 import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
-import Document from '../../model/document'
 import workspace from '../../workspace'
 const logger = require('../../util/logger')('semanticTokens-buffer')
 
@@ -32,7 +31,7 @@ class SemanticTokensPreviousResult {
   constructor(
     public readonly resultId: string | undefined,
     public readonly tokens?: uinteger[],
-  ) { }
+  ) {}
 }
 
 export default class SemanticTokensBuffer implements SyncItem {
@@ -43,13 +42,14 @@ export default class SemanticTokensBuffer implements SyncItem {
   public highlight: Function & { clear(): void }
   constructor(
     private nvim: Neovim,
-    private bufnr: number,
+    public readonly bufnr: number,
     private enabled: boolean) {
     this.highlight = debounce(() => {
       this.doHighlight().catch(e => {
         logger.error('Error on semanticTokens highlight:', e.stack)
       })
     }, global.hasOwnProperty('__TEST__') ? 10 : 5000)
+    this.highlight()
   }
 
   public onChange(): void {
@@ -74,41 +74,32 @@ export default class SemanticTokensBuffer implements SyncItem {
     let doc = workspace.getDocument(this.bufnr)
     if (!doc || !this.enabled) return
     if (this.version && doc.version == this.version) return
-
-    try {
-      const { nvim } = this
-
-      const curr = await this.getHighlights(doc)
-      if (!curr.length) return
-      const prev = await this.vimGetCurrentHighlights(doc)
-      const { highlights, lines } = this.calculateHighlightUpdates(prev, curr)
-      for (const ln of lines) {
-        this.buffer.clearNamespace(this.namespace, ln, ln + 1)
-      }
-      if (!highlights.length) return
-
-      const groups: { [index: string]: Range[] } = {}
-      for (const h of highlights) {
-        const range = Range.create(h.line, h.startCharacter, h.line, h.endCharacter)
-        groups[h.group] = groups[h.group] || []
-        groups[h.group].push(range)
-      }
-
-      nvim.pauseNotification()
-      for (const hlGroup of Object.keys(groups)) {
-        this.buffer.highlightRanges(this.namespace, hlGroup, groups[hlGroup])
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      nvim.resumeNotification(false, true)
-      if (workspace.isVim) nvim.command('redraw', true)
-    } catch (e) {
-      logger.error('Error on semanticTokens highlight:', e)
+    const { nvim } = this
+    const curr = await this.getHighlights()
+    if (!curr.length) return
+    const prev = await this.vimGetCurrentHighlights()
+    const { highlights, lines } = this.calculateHighlightUpdates(prev, curr)
+    for (const ln of lines) {
+      this.buffer.clearNamespace(this.namespace, ln, ln + 1)
     }
+    if (!highlights.length) return
+    const groups: { [index: string]: Range[] } = {}
+    for (const h of highlights) {
+      const range = Range.create(h.line, h.startCharacter, h.line, h.endCharacter)
+      groups[h.group] = groups[h.group] || []
+      groups[h.group].push(range)
+    }
+    nvim.pauseNotification()
+    for (const hlGroup of Object.keys(groups)) {
+      this.buffer.highlightRanges(this.namespace, hlGroup, groups[hlGroup])
+    }
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    nvim.resumeNotification(false, true)
+    if (workspace.isVim) nvim.command('redraw', true)
   }
 
-  private async vimGetCurrentHighlights(doc: Document): Promise<Highlight[]> {
-    return await this.nvim.call("coc#highlight#get_highlights", [doc.bufnr, this.namespace])
+  private async vimGetCurrentHighlights(): Promise<Highlight[]> {
+    return await this.nvim.call("coc#highlight#get_highlights", [this.bufnr, this.namespace])
   }
 
   private calculateHighlightUpdates(prev: Highlight[], curr: Highlight[]): { highlights: Highlight[], lines: Set<number> } {
@@ -175,10 +166,11 @@ export default class SemanticTokensBuffer implements SyncItem {
     return { highlights, lines: lineNumbersToUpdate }
   }
 
-  public async getHighlights(doc: Document, forceFull?: boolean): Promise<Highlight[]> {
+  public async getHighlights(forceFull?: boolean): Promise<Highlight[]> {
+    let doc = workspace.getDocument(this.bufnr)
+    if (!doc) return []
     const legend = languages.getLegend(doc.textDocument)
     if (!legend) return []
-
     this.cancel()
     this.tokenSource = new CancellationTokenSource()
     const { token } = this.tokenSource
@@ -243,9 +235,9 @@ export default class SemanticTokensBuffer implements SyncItem {
       currentCharacter = startCharacter
       res.push({ group, line, startCharacter, endCharacter })
     }
-
     return res
   }
+
   public clearHighlight(): void {
     this.highlight.clear()
     this.version = null

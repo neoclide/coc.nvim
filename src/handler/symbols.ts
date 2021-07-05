@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { CancellationTokenSource, Disposable, DocumentSymbol, Emitter, Event, Range, TextDocument } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Disposable, DocumentSymbol, Emitter, Event, Range, SymbolInformation, TextDocument } from 'vscode-languageserver-protocol'
 import events from '../events'
 import languages from '../languages'
 import { HandlerDelegate } from '../types'
@@ -46,6 +46,11 @@ export default class Symbols {
 
   public get labels(): { [key: string]: string } {
     return workspace.getConfiguration('suggest').get<any>('completionItemKindLabels', {})
+  }
+
+  public async getWorkspaceSymbols(input: string): Promise<SymbolInformation[]> {
+    let tokenSource = new CancellationTokenSource()
+    return await languages.getWorkspaceSymbols(input, tokenSource.token)
   }
 
   public async getDocumentSymbols(bufnr: number): Promise<SymbolInfo[]> {

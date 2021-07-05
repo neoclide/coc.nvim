@@ -441,7 +441,7 @@ class Languages {
     return this.callHierarchyManager.provideCallHierarchyOutgoingCalls(item, token)
   }
 
-  public getLegend(document: TextDocument): SemanticTokensLegend {
+  public getLegend(document: TextDocument): SemanticTokensLegend | undefined {
     return this.semanticTokensManager.getLegend(document)
   }
 
@@ -516,7 +516,7 @@ class Languages {
       case 'callHierarchy':
         return this.callHierarchyManager.hasProvider(document)
       case 'semanticTokens':
-        return this.semanticTokensManager.hasProvider(document)
+        return this.semanticTokensManager.hasProvider(document) || this.semanticTokensRangeManager.hasProvider(document)
       case 'linkedEditing':
         return this.linkedEditingManager.hasProvider(document)
       default:

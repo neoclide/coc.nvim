@@ -169,6 +169,7 @@ function! s:OpenConfig()
     end
   endif
   execute 'edit '.home.'/coc-settings.json'
+  call coc#rpc#notify('checkJsonExtension', [])
 endfunction
 
 function! s:get_color(item, fallback) abort

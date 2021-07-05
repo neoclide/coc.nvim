@@ -77,18 +77,26 @@ export class SnippetManager {
     if (session) return await session.selectCurrentPlaceholder(triggerAutocmd)
   }
 
-  public async nextPlaceholder(): Promise<void> {
+  public async nextPlaceholder(): Promise<string> {
     let { session } = this
-    if (session) return await session.nextPlaceholder()
-    workspace.nvim.call('coc#snippet#disable', [], true)
-    this.statusItem.hide()
+    if (session) {
+      await session.nextPlaceholder()
+    } else {
+      workspace.nvim.call('coc#snippet#disable', [], true)
+      this.statusItem.hide()
+    }
+    return ''
   }
 
-  public async previousPlaceholder(): Promise<void> {
+  public async previousPlaceholder(): Promise<string> {
     let { session } = this
-    if (session) return await session.previousPlaceholder()
-    workspace.nvim.call('coc#snippet#disable', [], true)
-    this.statusItem.hide()
+    if (session) {
+      await session.previousPlaceholder()
+    } else {
+      workspace.nvim.call('coc#snippet#disable', [], true)
+      this.statusItem.hide()
+    }
+    return ''
   }
 
   public cancel(): void {
