@@ -31,6 +31,7 @@ describe('Commands', () => {
   describe('addVimCommand', () => {
     it('should register global vim commands', async () => {
       await commandManager.executeCommand('vim.config')
+      await helper.wait(50)
       let bufname = await nvim.call('bufname', ['%'])
       expect(bufname).toMatch('coc-settings.json')
       let list = commands.getCommandList()

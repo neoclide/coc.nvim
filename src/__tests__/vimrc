@@ -18,7 +18,7 @@ let g:coc_node_env = 'test'
 
 let g:coc_vim_commands = [{
   \ "id": "config",
-  \ "cmd": "CocConfig"
+  \ "cmd": "edit coc-settings.json"
   \ }]
 
 autocmd BufNewFile,BufRead *.ts  set filetype=typescript
