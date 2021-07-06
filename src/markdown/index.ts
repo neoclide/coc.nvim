@@ -3,6 +3,7 @@ import Renderer from './renderer'
 import { parseAnsiHighlights } from '../util/ansiparse'
 import { byteLength } from '../util/string'
 import stripAnsi from 'strip-ansi'
+import { HighlightItem } from '../types'
 export const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
 const logger = require('../util/logger')('markdown-index')
 
@@ -14,13 +15,6 @@ export interface Documentation {
 
 export interface MarkdownParseOptions {
   excludeImages?: boolean
-}
-
-export interface HighlightItem {
-  lnum: number // 0 based
-  hlGroup: string
-  colStart: number // 0 based
-  colEnd: number
 }
 
 export interface CodeBlock {

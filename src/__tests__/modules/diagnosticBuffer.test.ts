@@ -99,7 +99,7 @@ describe('diagnostic buffer', () => {
     let buf = await createDiagnosticBuffer()
     await nvim.setLine('abc')
     nvim.pauseNotification()
-    buf.addHighlight([diagnostic])
+    buf.updateHighlights([diagnostic])
     await nvim.resumeNotification()
     let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, {}]) as [number, number, number][]
     expect(res.length).toBe(1)
@@ -110,7 +110,7 @@ describe('diagnostic buffer', () => {
     let buf = await createDiagnosticBuffer()
     await nvim.setLine('foo')
     nvim.pauseNotification()
-    buf.addHighlight([diagnostic])
+    buf.updateHighlights([diagnostic])
     await nvim.resumeNotification()
     let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, {}]) as [number, number, number][]
     expect(res.length).toBe(1)

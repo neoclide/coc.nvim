@@ -37,6 +37,10 @@ export default (opts: Attach, requestApi = true): Plugin => {
         }
         break
       }
+      case 'Log': {
+        logger.debug(...args)
+        break
+      }
       case 'TaskExit':
       case 'TaskStderr':
       case 'TaskStdout':

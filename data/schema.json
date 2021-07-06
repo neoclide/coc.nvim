@@ -515,6 +515,11 @@
       "description": "Set to false to disable diagnostic display",
       "default": true
     },
+    "diagnostic.highlighLimit": {
+      "type": "number",
+      "description": "Limit count for highlighted diagnostics, too many diagnostic highlights could make vim stop responsing",
+      "default": 1000
+    },
     "diagnostic.autoRefresh": {
       "type": "boolean",
       "description": "Enable automatically refresh diagnostics, use diagnosticRefresh action when it's disabled.",

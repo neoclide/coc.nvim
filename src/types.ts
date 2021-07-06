@@ -35,6 +35,13 @@ export interface HandlerDelegate {
   addDisposable: (disposable: Disposable) => void
 }
 
+export interface HighlightItem {
+  lnum: number // 0 based
+  hlGroup: string
+  colStart: number // 0 based
+  colEnd: number
+}
+
 export interface BufferSyncItem {
   /**
    * Called on buffer unload.
@@ -74,6 +81,7 @@ export interface Env {
   readonly progpath: string
   readonly dialog: boolean
   readonly textprop: boolean
+  readonly updateHighlight: boolean
   readonly vimCommands: CommandConfig[]
 }
 

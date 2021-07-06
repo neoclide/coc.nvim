@@ -1,6 +1,19 @@
 scriptencoding utf-8
 " Helper methods for viml
 
+function! coc#helper#get_charactor(line, col) abort
+  return strchars(strpart(a:line, 0, a:col - 1))
+endfunction
+
+function! coc#helper#obj_equal(one, two) abort
+  for key in keys(a:one)
+    if a:one[key] != a:two[key]
+      return 0
+    endif
+  endfor
+  return 1
+endfunction
+
 " insert inserted to line at position, use ... when result is too long
 " line should only contains character has strwidth equals 1
 function! coc#helper#str_compose(line, position, inserted) abort

@@ -537,6 +537,7 @@ export class DiagnosticManager implements Disposable {
     this.config = {
       messageTarget,
       enableHighlightLineNumber,
+      highlighLimit: config.get<number>('highlighLimit', 1000),
       autoRefresh: config.get<boolean>('autoRefresh', false),
       virtualTextSrcId: workspace.createNameSpace('diagnostic-virtualText'),
       checkCurrentLine: config.get<boolean>('checkCurrentLine', false),

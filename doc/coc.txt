@@ -354,6 +354,13 @@ Built-in configurations:~
 
 	Display diagnostics, default: `true`
 
+"diagnostic.highlighLimit":~
+
+	Limit count for highlighted diagnostics, too many diagnostic
+	highlights could make vim stop responsing.
+
+	default: `1000`
+
 "diagnostic.autoRefresh":~
 
 	Enable automatically refresh diagnostics, use
