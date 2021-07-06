@@ -71,6 +71,7 @@ export default class Handler {
     this.hover = new HoverHandler(nvim, this)
     this.locations = new Locations(nvim, this)
     this.signature = new Signature(nvim, this)
+    this.rename = new Rename(nvim, this)
     this.codeActions = new CodeActions(nvim, this)
     this.commands = new Commands(nvim, workspace.env)
     this.callHierarchy = new CallHierarchy(nvim, this)
