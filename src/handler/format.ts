@@ -59,41 +59,17 @@ export default class FormatHandler {
         event.waitUntil(willSaveWaitUntil())
       }
     }))
+    let enterTs: number
+    let enterBufnr: number
     handler.addDisposable(events.on('Enter', async bufnr => {
-      let { bracketEnterImprove } = this.preferences
-      await this.tryFormatOnType('\n', bufnr)
-      if (bracketEnterImprove) {
-        let line = (await nvim.call('line', '.') as number) - 1
-        let doc = workspace.getDocument(bufnr)
-        if (!doc) return
-        await doc.patchChange()
-        let pre = doc.getline(line - 1)
-        let curr = doc.getline(line)
-        let prevChar = pre[pre.length - 1]
-        if (prevChar && pairs.has(prevChar)) {
-          let nextChar = curr.trim()[0]
-          if (nextChar && pairs.get(prevChar) == nextChar) {
-            let edits: TextEdit[] = []
-            let opts = await workspace.getFormatOptions(doc.uri)
-            let space = opts.insertSpaces ? ' '.repeat(opts.tabSize) : '\t'
-            let currIndent = curr.match(/^\s*/)[0]
-            let pos: Position = Position.create(line - 1, pre.length)
-            // make sure indent of current line
-            if (doc.filetype == 'vim') {
-              let newText = '\n' + currIndent + space
-              edits.push({ range: Range.create(line, currIndent.length, line, currIndent.length), newText: '  \\ ' })
-              newText = newText + '\\ '
-              edits.push({ range: Range.create(pos, pos), newText })
-              await doc.applyEdits(edits)
-              await window.moveTo(Position.create(line, newText.length - 1))
-            } else {
-              await nvim.eval(`feedkeys("\\<Esc>O", 'in')`)
-            }
-          }
-        }
+      enterTs = Date.now()
+      enterBufnr = bufnr
+    }))
+    handler.addDisposable(events.on('CursorMovedI', async bufnr => {
+      if (bufnr == enterBufnr && Date.now() - enterTs < 100) {
+        await this.handleEnter(bufnr)
       }
     }))
-
     let changedTs: number
     let lastInsert: number
     handler.addDisposable(events.on('InsertCharPre', async () => {
@@ -104,7 +80,7 @@ export default class FormatHandler {
       if (!lastInsert || changedTs - lastInsert > 300) return
       lastInsert = null
       let doc = workspace.getDocument(bufnr)
-      if (!doc) return
+      if (!doc || !doc.attached) return
       let pre = info.pre[info.pre.length - 1]
       if (!pre || !languages.hasProvider('onTypeEdit', doc.textDocument)) return
       await this.tryFormatOnType(pre, bufnr)
@@ -190,6 +166,42 @@ export default class FormatHandler {
       return true
     }
     return false
+  }
+
+  private async handleEnter(bufnr: number): Promise<void> {
+    let { nvim } = this
+    let { bracketEnterImprove } = this.preferences
+    await this.tryFormatOnType('\n', bufnr)
+    if (bracketEnterImprove) {
+      let line = (await nvim.call('line', '.') as number) - 1
+      let doc = workspace.getDocument(bufnr)
+      if (!doc) return
+      await doc.patchChange()
+      let pre = doc.getline(line - 1)
+      let curr = doc.getline(line)
+      let prevChar = pre[pre.length - 1]
+      if (prevChar && pairs.has(prevChar)) {
+        let nextChar = curr.trim()[0]
+        if (nextChar && pairs.get(prevChar) == nextChar) {
+          let edits: TextEdit[] = []
+          let opts = await workspace.getFormatOptions(doc.uri)
+          let space = opts.insertSpaces ? ' '.repeat(opts.tabSize) : '\t'
+          let currIndent = curr.match(/^\s*/)[0]
+          let pos: Position = Position.create(line - 1, pre.length)
+          // make sure indent of current line
+          if (doc.filetype == 'vim') {
+            let newText = '\n' + currIndent + space
+            edits.push({ range: Range.create(line, currIndent.length, line, currIndent.length), newText: '  \\ ' })
+            newText = newText + '\\ '
+            edits.push({ range: Range.create(pos, pos), newText })
+            await doc.applyEdits(edits)
+            await window.moveTo(Position.create(line, newText.length - 1))
+          } else {
+            await nvim.eval(`feedkeys("\\<Esc>O", 'in')`)
+          }
+        }
+      }
+    }
   }
 
   public async documentRangeFormat(doc: Document, mode?: string): Promise<number> {

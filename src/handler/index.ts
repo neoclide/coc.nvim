@@ -61,6 +61,12 @@ export default class Handler {
 
   constructor(private nvim: Neovim) {
     this.requestStatusItem = window.createStatusBarItem(0, { progress: true })
+    events.on(['CursorMoved', 'CursorMovedI', 'InsertEnter', 'InsertSnippet', 'InsertLeave'], () => {
+      if (this.requestTokenSource) {
+        this.requestTokenSource.cancel()
+        this.requestTokenSource = null
+      }
+    }, null, this.disposables)
     this.fold = new Fold(nvim, this)
     this.links = new Links(nvim, this)
     this.codeLens = new CodeLens(nvim)
@@ -89,12 +95,6 @@ export default class Handler {
         this.semanticHighlighter.dispose()
       }
     })
-    events.on(['CursorMoved', 'CursorMovedI', 'InsertEnter', 'InsertSnippet', 'InsertLeave'], () => {
-      if (this.requestTokenSource) {
-        this.requestTokenSource.cancel()
-        this.requestTokenSource = null
-      }
-    }, null, this.disposables)
   }
 
   public async getCurrentState(): Promise<CurrentState> {
