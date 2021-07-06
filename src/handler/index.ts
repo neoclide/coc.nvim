@@ -85,6 +85,7 @@ export default class Handler {
     this.semanticHighlighter = new SemanticTokensHighlights(nvim, this)
     this.disposables.push({
       dispose: () => {
+        this.codeLens.dispose()
         this.refactor.dispose()
         this.signature.dispose()
         this.symbols.dispose()
