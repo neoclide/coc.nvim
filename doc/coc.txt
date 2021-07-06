@@ -1349,6 +1349,13 @@ g:coc_disable_uncaught_error 				 *g:coc_disable_uncaught_error*
 
 	Default: 0
 
+g:coc_text_prop_offset 					 *g:coc_text_prop_offset*
+
+	Start |textprop| id offset of highlight namespaces on vim, change to
+	other value to avoid conflict.
+
+	Default: 1000
+
 g:coc_channel_timeout					*g:coc_channel_timeout*
 
 	Channel timeout in seconds for request to node client.
