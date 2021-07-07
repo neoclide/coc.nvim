@@ -5,9 +5,10 @@ import BufferSync from '../../model/bufferSync'
 import { disposeAll } from '../../util'
 import { ConfigurationChangeEvent, HandlerDelegate } from '../../types'
 import workspace from '../../workspace'
-import SemanticTokensBuffer, { Highlight } from './buffer'
+import SemanticTokensBuffer from './buffer'
 import Highlighter from '../../model/highligher'
 import languages from '../../languages'
+import { HighlightItem } from '../../types'
 const logger = require('../../util/logger')('semanticTokens')
 const headGroup = 'Statement'
 
@@ -93,31 +94,28 @@ export default class SemanticTokensHighlights {
     highlighter.addLine('')
     highlighter.addLine('Semantic highlight groups used by current buffer', headGroup)
     highlighter.addLine('')
-    const groups = [...new Set(highlights.map(({ group }) => group))]
-    for (const group of groups) {
-      highlighter.addTexts([{ text: '-', hlGroup: 'Comment' },
-      { text: ' ' },
-      { text: group, hlGroup: group }])
+    const groups = [...new Set(highlights.map(({ hlGroup }) => hlGroup))]
+    for (const hlGroup of groups) {
+      highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: hlGroup, hlGroup }])
+      highlighter.addLine('')
     }
-    highlighter.addLine('')
     highlighter.addLine('Tokens types that current Language Server supported:', headGroup)
+    highlighter.addLine('')
     const legend = languages.getLegend(doc.textDocument)
     if (legend?.tokenTypes.length) {
       for (const t of legend.tokenTypes) {
-        highlighter.addTexts([{ text: '-', hlGroup: 'Comment' },
-        { text: ' ' },
-        { text: `CocSem_${t}`, hlGroup: `CocSem_${t}` }])
+        highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: `CocSem_${t}`, hlGroup: `CocSem_${t}` }])
+        highlighter.addLine('')
       }
     } else {
       highlighter.addLine('No token types supported', 'Comment')
     }
-    highlighter.addLine('')
     highlighter.addLine('Tokens modifiers that current Language Server supported:', headGroup)
+    highlighter.addLine('')
     if (legend?.tokenModifiers.length) {
       for (const t of legend.tokenModifiers) {
-        highlighter.addTexts([{ text: '-', hlGroup: 'Comment' },
-        { text: ' ' },
-        { text: `CocSem_${t}`, hlGroup: `CocSem_${t}` }])
+        highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: `CocSem_${t}`, hlGroup: `CocSem_${t}` }])
+        highlighter.addLine('')
       }
     } else {
       highlighter.addLine('No token modifiers supported', 'Comment')
@@ -134,7 +132,7 @@ export default class SemanticTokensHighlights {
     await highlighter.doHighlight()
   }
 
-  public async getHighlights(bufnr: number): Promise<Highlight[]> {
+  public async getHighlights(bufnr: number): Promise<HighlightItem[]> {
     let highlighter = this.highlighters.getItem(bufnr)
     if (!highlighter) return []
     return await highlighter.getHighlights(true)
