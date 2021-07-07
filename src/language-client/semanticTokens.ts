@@ -168,7 +168,6 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
     const hasRangeProvider: boolean = options.range === true
     const rangeProvider: DocumentRangeSemanticTokensProvider | undefined = hasRangeProvider
       ? {
-        legend: options.legend,
         provideDocumentRangeSemanticTokens: (document: TextDocument, range: Range, token: CancellationToken) => {
           const client = this._client
           const middleware = client.clientOptions.middleware! as Middleware & SemanticTokensMiddleware
