@@ -137,6 +137,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     let hlgroup = get(a:config, 'highlight', 'CocFloating')
     call setwinvar(winid, '&winhl', 'Normal:'.hlgroup.',NormalNC:'.hlgroup.',FoldColumn:'.hlgroup)
     call setwinvar(winid, '&signcolumn', 'no')
+    call setwinvar(winid, '&foldenable', 0)
     " cursorline highlight not work on old neovim
     call setwinvar(winid, '&cursorline', 0)
     call setwinvar(winid, 'border', get(a:config, 'border', []))
@@ -277,6 +278,7 @@ endfunction
 " Create padding window by config of current window & border config
 function! coc#float#nvim_right_pad(config, winid, hlgroup, related) abort
   let winid = coc#float#get_related(a:winid, 'pad')
+  let bufnr = 0
   let config = {
         \ 'relative': a:config['relative'],
         \ 'width': 1,
@@ -286,15 +288,22 @@ function! coc#float#nvim_right_pad(config, winid, hlgroup, related) abort
         \ 'focusable': v:false,
         \ 'style': 'minimal',
         \ }
-  if winid
+  if winid && nvim_win_is_valid(winid)
+    let bufnr = nvim_win_get_buf(winid)
     noa call nvim_win_close(winid, 1)
   endif
-  let bufnr = coc#float#create_buf(0, repeat([''], a:config['height']))
+  let bufnr = coc#float#create_buf(bufnr, repeat([''], a:config['height']))
   noa let winid = nvim_open_win(bufnr, 0, config)
   if winid
-    " neovim'bug: the content shown in window could be wired.
-    call setwinvar(winid, '&foldcolumn', 1)
-    call setwinvar(winid, '&winhl', 'FoldColumn:'.a:hlgroup)
+    " minimal not work
+    if !has('nvim-0.4.3')
+      call setwinvar(winid, '&colorcolumn', 0)
+      call setwinvar(winid, '&number', 0)
+      call setwinvar(winid, '&relativenumber', 0)
+      call setwinvar(winid, '&foldcolumn', 0)
+      call setwinvar(winid, '&signcolumn', 0)
+    endif
+    call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup)
     call setwinvar(winid, 'target_winid', a:winid)
     call setwinvar(winid, 'kind', 'pad')
     call add(a:related, winid)

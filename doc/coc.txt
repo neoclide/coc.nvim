@@ -354,6 +354,13 @@ Built-in configurations:~
 
 	Display diagnostics, default: `true`
 
+"diagnostic.highlighLimit":~
+
+	Limit count for highlighted diagnostics, too many diagnostic
+	highlights could make vim stop responsing.
+
+	default: `1000`
+
 "diagnostic.autoRefresh":~
 
 	Enable automatically refresh diagnostics, use
@@ -551,6 +558,10 @@ Built-in configurations:~
 	Target to show hover information, default is floating window when possible.
 
 	Valid options: ["preview", "echo", "float"]
+
+"hover.previewMaxHeight":~
+
+	Max height of preview window for hover, default: `12`
 
 "hover.floatMaxWidth":~
 
@@ -777,14 +788,6 @@ Built-in configurations:~
 	Check |coc-status| for statusline integration.
 
 	Default: `"SNIP"`
-
-"coc.preferences.previewAutoClose":~
-
-	Auto close preview window of hover upon cursor move, default: `true`
-
-"coc.preferences.previewMaxHeight":~
-
-	Max height of preview window for hover, default: `12`
 
 "coc.preferences.colorSupport":~
 
@@ -1353,6 +1356,13 @@ g:coc_disable_uncaught_error 				 *g:coc_disable_uncaught_error*
 
 	Default: 0
 
+g:coc_text_prop_offset 					 *g:coc_text_prop_offset*
+
+	Start |textprop| id offset of highlight namespaces on vim, change to
+	other value to avoid conflict.
+
+	Default: 1000
+
 g:coc_channel_timeout					*g:coc_channel_timeout*
 
 	Channel timeout in seconds for request to node client.
@@ -1599,6 +1609,10 @@ g:coc_install_yarn_cmd 					*g:coc_install_yarn_cmd*
 
 Some variables are provided by coc.nvim so you can use them in your
 statusline. See |coc-status| for detail.
+
+g:coc_service_initialized 			 *g:coc_service_initialized*
+
+	Is `1` when coc.nvim initialized, used with autocmd |CocNvimInit|.
 
 b:coc_diagnostic_info					*b:coc_diagnostic_info*
 
@@ -2237,10 +2251,13 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	Get workspaceEdit of current word, language server used when possible,
 	extract word from current buffer as fallback.
 
-"getWorkspaceSymbols" {input} [{bufnr}]		*coc-action-getWorkspaceSymbols*
+"getWorkspaceSymbols" {input}			*coc-action-getWorkspaceSymbols*
 
-	Get workspace symbols from {input} and optional {bufnr} (use current
-	bufnr when empty).
+	Get workspace symbols from {input}.
+
+"resolveWorkspaceSymbol" {symbol} 		 *coc-action-resolveWorkspaceSymbol*
+
+	Resolve location for workspace {symbol}.
 
 "diagnosticToggleBuffer" [{bufnr}]		 *coc-action-diagnosticToggleBuffer*
 
@@ -2256,6 +2273,16 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	when {bufnr} not exists, returns `v:null` before diagnostics are shown.
 
 	Useful when `diagnostic.autoRefresh` is `false`.
+
+"incomingCalls" [{CallHierarchyItem}] 		*coc-action-incomingCalls*
+
+	Retrieve incoming calls from {CallHierarchyItem} or current position
+	when not provided.
+
+"outgoingCalls" [{CallHierarchyItem}] 		*coc-action-outgoingCalls*
+
+	Retrieve outgoing calls from {CallHierarchyItem} or current position
+	when not provided.
 
 ------------------------------------------------------------------------------
 COMMANDS						*coc-commands*
@@ -2514,7 +2541,7 @@ CocFadeOut						*CocFadeOut*
 
   Default: `hi default CocFadeOut       guifg=#928374 ctermfg=245`
 
-  Used for highlight unnecessary code.
+  Used for faded out text, such as for highlighting unnecessary code.
 
 CocStrikeThrough 					*CocStrikeThrough*
 
@@ -2625,6 +2652,18 @@ CocHintHighlight					*CocHintHighlight*
   Default: `hi default link CocHintHighlight   CocUnderline`
 
   Used for hint text.
+
+CocDeprecatedHighlight					*CocDeprecatedHighlight*
+
+  Default: `hi default link CocDeprecatedHighlight   CocStrikeThrough`
+
+  Used for usages of deprecated API.
+
+CocUnusedHighlight					*CocUnusedHighlight*
+
+  Default: `hi default link CocUnusedHighlight   CocFadeOut`
+
+  Used for unnecessary code.
 
 CocHighlightText					*CocHighlightText*
 

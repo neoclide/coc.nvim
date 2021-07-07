@@ -16,6 +16,13 @@ function! s:buf_line_count(bufnr) abort
   if bufnr('%') == a:bufnr
     return line('$')
   endif
+  if exists('*getbufinfo')
+    let info = getbufinfo(a:bufnr)
+    if empty(info)
+      return 0
+    endif
+    return info[0]['linecount']
+  endif
   if exists('*getbufline')
     let lines = getbufline(a:bufnr, 1, '$')
     return len(lines)
@@ -275,7 +282,6 @@ function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEn
   catch /^Vim\%((\a\+)\)\=:E967/
     " ignore 967
   endtry
-  let g:i = srcId
   if a:srcId == 0
     " return generated srcId
     return srcId

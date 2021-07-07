@@ -3,7 +3,7 @@ let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:clear_match_by_id = has('nvim-0.5.0') || has('patch-8.1.1084')
-let s:vim_api_version = 8
+let s:vim_api_version = 9
 
 let s:activate = ""
 let s:quit = ""
@@ -547,6 +547,7 @@ function! coc#util#vim_info()
         \ 'locationlist': get(g:,'coc_enable_locationlist', 1),
         \ 'progpath': v:progpath,
         \ 'guicursor': &guicursor,
+        \ 'updateHighlight': has('nvim-0.5.0') || exists('*prop_list') ? v:true : v:false,
         \ 'vimCommands': get(g:, 'coc_vim_commands', []),
         \ 'sign': exists('*sign_place') && exists('*sign_unplace'),
         \ 'textprop': has('textprop') && has('patch-8.1.1719') && !has('nvim') ? v:true : v:false,

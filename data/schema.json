@@ -515,6 +515,11 @@
       "description": "Set to false to disable diagnostic display",
       "default": true
     },
+    "diagnostic.highlighLimit": {
+      "type": "number",
+      "description": "Limit count for highlighted diagnostics, too many diagnostic highlights could make vim stop responsing",
+      "default": 1000
+    },
     "diagnostic.autoRefresh": {
       "type": "boolean",
       "description": "Enable automatically refresh diagnostics, use diagnosticRefresh action when it's disabled.",
@@ -741,6 +746,11 @@
       "type": "string",
       "description": "Target to show hover information, default is floating window when possible.",
       "enum": ["preview", "echo", "float"]
+    },
+    "hover.previewMaxHeight": {
+      "type": "number",
+      "default": 12,
+      "description": "Max height of preview window for hover."
     },
     "hover.floatMaxWidth": {
       "type": "number",
@@ -1026,16 +1036,6 @@
       "description": "Enable semanticTokens highlight if language server support it.",
       "default": true
     },
-    "coc.preferences.previewAutoClose": {
-      "type": "boolean",
-      "description": "Auto close preview window on cursor move.",
-      "default": true
-    },
-    "coc.preferences.previewMaxHeight": {
-      "type": "number",
-      "default": 12,
-      "description": "Max height of preview window for hover."
-    },
     "coc.preferences.currentFunctionSymbolAutoUpdate": {
       "type": "boolean",
       "description": "Automatically update the value of b:coc_current_function on CursorHold event",
@@ -1223,7 +1223,7 @@
     },
     "coc.source.file.triggerCharacters": {
       "type": "array",
-      "default": ["/"],
+      "default": ["/", "\\"],
       "items": {
         "type": "string"
       }
