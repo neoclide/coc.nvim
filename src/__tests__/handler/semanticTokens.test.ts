@@ -104,7 +104,6 @@ beforeEach(async () => {
   }
 
   disposables.push(languages.registerDocumentSemanticTokensProvider([{ language: 'rust' }], {
-    legend,
     provideDocumentSemanticTokens: () => {
       return {
         resultId: '1',

@@ -695,8 +695,6 @@ export interface DocumentSemanticTokensProvider {
   // TODO: SemantiTokens
   onDidChangeSemanticTokens?: Event<void>
 
-  legend: SemanticTokensLegend
-
   /**
    * Tokens in a file are represented as an array of integers. The position of each token is expressed relative to
    * the token before it, because most tokens remain stable relative to each other when edits are made in a file.

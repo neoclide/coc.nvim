@@ -6,15 +6,23 @@ import Manager, { ProviderItem } from './manager'
 const logger = require('../util/logger')('semanticTokensManager')
 
 export default class SemanticTokensManager extends Manager<DocumentSemanticTokensProvider> {
+  private resolvedProvider: Map<string, string> = new Map()
+
   public register(selector: DocumentSelector, provider: DocumentSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
+    let id = uuid()
     let item: ProviderItem<DocumentSemanticTokensProvider> = {
-      id: uuid(),
+      id,
       selector,
       legend,
       provider
     }
     this.providers.add(item)
     return Disposable.create(() => {
+      for (let [uri, providerId] of this.resolvedProvider.entries()) {
+        if (providerId == id) {
+          this.resolvedProvider.delete(uri)
+        }
+      }
       this.providers.delete(item)
     })
   }
@@ -22,28 +30,32 @@ export default class SemanticTokensManager extends Manager<DocumentSemanticToken
   public getLegend(document: TextDocument): SemanticTokensLegend {
     const item = this.getProvider(document)
     if (!item) return
-    return item.provider.legend || item.legend
+    // save matched provider
+    this.resolvedProvider.set(document.uri, item.id)
+    return item.legend
+  }
+
+  protected resolveProvider(document: TextDocument): DocumentSemanticTokensProvider {
+    let id = this.resolvedProvider.get(document.uri)
+    if (id) return this.getProviderById(id)
+    return this.getProvider(document)?.provider
   }
 
   public hasSemanticTokensEdits(document: TextDocument): boolean {
-    let item = this.getProvider(document)
-    if (!item) return false
-    return (typeof item.provider.provideDocumentSemanticTokensEdits === 'function')
+    let provider = this.resolveProvider(document)
+    if (!provider) return false
+    return (typeof provider.provideDocumentSemanticTokensEdits === 'function')
   }
 
   public async provideDocumentSemanticTokens(document: TextDocument, token: CancellationToken): Promise<SemanticTokens> {
-    let item = this.getProvider(document)
-    if (!item) return null
-    let { provider } = item
-    if (!provider.provideDocumentSemanticTokens) return null
+    let provider = this.resolveProvider(document)
+    if (!provider || typeof provider.provideDocumentSemanticTokens !== 'function') return null
     return await Promise.resolve(provider.provideDocumentSemanticTokens(document, token))
   }
 
   public async provideDocumentSemanticTokensEdits(document: TextDocument, previousResultId: string, token: CancellationToken): Promise<SemanticTokens | SemanticTokensDelta> {
-    let item = this.getProvider(document)
-    if (!item) return null
-    let { provider } = item
-    if (!provider.provideDocumentSemanticTokensEdits) return null
+    let provider = this.resolveProvider(document)
+    if (!provider || typeof provider.provideDocumentSemanticTokensEdits !== 'function') return null
     return await Promise.resolve(provider.provideDocumentSemanticTokensEdits(document, previousResultId, token))
   }
 }

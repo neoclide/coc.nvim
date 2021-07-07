@@ -5,7 +5,7 @@
 'use strict'
 
 import {
-  CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Emitter, Range, SemanticTokenModifiers, SemanticTokens, SemanticTokensDelta, SemanticTokensDeltaParams, SemanticTokensDeltaRequest, SemanticTokensOptions, SemanticTokensParams, SemanticTokensRangeParams, SemanticTokensRangeRequest, SemanticTokensRefreshRequest, SemanticTokensRegistrationOptions, SemanticTokensRegistrationType, SemanticTokensRequest, SemanticTokenTypes, ServerCapabilities, TokenFormat
+  CancellationToken, SemanticTokensClientCapabilities, ClientCapabilities, Disposable, DocumentSelector, Emitter, Range, SemanticTokenModifiers, SemanticTokens, SemanticTokensDelta, SemanticTokensDeltaParams, SemanticTokensDeltaRequest, SemanticTokensOptions, SemanticTokensParams, SemanticTokensRangeParams, SemanticTokensRangeRequest, SemanticTokensRefreshRequest, SemanticTokensRegistrationOptions, SemanticTokensRegistrationType, SemanticTokensRequest, SemanticTokenTypes, ServerCapabilities, TokenFormat
 } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
@@ -129,7 +129,6 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
     const documentProvider: DocumentSemanticTokensProvider | undefined = fullProvider
       ? {
         onDidChangeSemanticTokens: eventEmitter.event,
-        legend: options.legend,
         provideDocumentSemanticTokens: (document, token) => {
           const client = this._client
           const middleware = client.clientOptions.middleware! as Middleware & SemanticTokensMiddleware
