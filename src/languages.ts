@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertReplaceEdit, InsertTextFormat, LinkedEditingRanges, Location, LocationLink, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, Emitter, Event, FoldingRange, FormattingOptions, Hover, InsertReplaceEdit, InsertTextFormat, LinkedEditingRanges, Location, LocationLink, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
@@ -64,6 +64,8 @@ export interface DocumentSymbolProviderMetadata {
 }
 
 class Languages {
+  private _onDidSemanticTokensRefresh = new Emitter<DocumentSelector>()
+  public readonly onDidSemanticTokensRefresh: Event<DocumentSelector> = this._onDidSemanticTokensRefresh.event
   private completeConfig: CompleteConfig
   private onTypeFormatManager = new OnTypeFormatManager()
   private documentLinkManager = new DocumentLinkManager()
@@ -281,7 +283,9 @@ class Languages {
   }
 
   public registerDocumentSemanticTokensProvider(selector: DocumentSelector, provider: DocumentSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
-    return this.semanticTokensManager.register(selector, provider, legend)
+    return this.semanticTokensManager.register(selector, provider, legend, () => {
+      this._onDidSemanticTokensRefresh.fire(selector)
+    })
   }
 
   public registerDocumentRangeSemanticTokensProvider(selector: DocumentSelector, provider: DocumentRangeSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {

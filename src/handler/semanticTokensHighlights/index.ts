@@ -25,6 +25,14 @@ export default class SemanticTokensHighlights {
       this.highlightAll()
     }, null, this.disposables)
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
+    languages.onDidSemanticTokensRefresh(async selector => {
+      for (let item of this.highlighters.items) {
+        let doc = workspace.getDocument(item.bufnr)
+        if (doc && workspace.match(selector, doc.textDocument)) {
+          await item.doHighlight()
+        }
+      }
+    }, null, this.disposables)
   }
 
   private loadConfiguration(e?: ConfigurationChangeEvent): void {

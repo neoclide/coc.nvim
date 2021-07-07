@@ -8,7 +8,7 @@ const logger = require('../util/logger')('semanticTokensManager')
 export default class SemanticTokensManager extends Manager<DocumentSemanticTokensProvider> {
   private resolvedProvider: Map<string, string> = new Map()
 
-  public register(selector: DocumentSelector, provider: DocumentSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
+  public register(selector: DocumentSelector, provider: DocumentSemanticTokensProvider, legend: SemanticTokensLegend, onChange: () => void): Disposable {
     let id = uuid()
     let item: ProviderItem<DocumentSemanticTokensProvider> = {
       id,
@@ -17,7 +17,11 @@ export default class SemanticTokensManager extends Manager<DocumentSemanticToken
       provider
     }
     this.providers.add(item)
+    let disposable = provider.onDidChangeSemanticTokens(() => {
+      onChange()
+    })
     return Disposable.create(() => {
+      disposable.dispose()
       for (let [uri, providerId] of this.resolvedProvider.entries()) {
         if (providerId == id) {
           this.resolvedProvider.delete(uri)
