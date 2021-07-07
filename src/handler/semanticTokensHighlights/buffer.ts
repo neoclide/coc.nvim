@@ -6,7 +6,7 @@ import { SyncItem } from '../../model/bufferSync'
 import workspace from '../../workspace'
 const logger = require('../../util/logger')('semanticTokens-buffer')
 
-const SEMANTIC_HIGHLIGHTS_HLGROUP_PREFIX = 'CocSem_'
+const SEMANTIC_HLGROUP_PREFIX = 'CocSem_'
 /**
  * Relative highlight
  */
@@ -209,8 +209,7 @@ export default class SemanticTokensBuffer implements SyncItem {
       const length = tokens[i + 2]
       const tokenType = tokens[i + 3]
       // const tokenModifiers = legend.tokenModifiers.filter((_, m) => tokens[i + 4] & (1 << m))
-
-      const group = SEMANTIC_HIGHLIGHTS_HLGROUP_PREFIX + legend.tokenTypes[tokenType]
+      const group = SEMANTIC_HLGROUP_PREFIX + legend.tokenTypes[tokenType]
       relatives.push({
         group,
         deltaLine,

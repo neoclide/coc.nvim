@@ -282,7 +282,6 @@ function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEn
   catch /^Vim\%((\a\+)\)\=:E967/
     " ignore 967
   endtry
-  let g:i = srcId
   if a:srcId == 0
     " return generated srcId
     return srcId

@@ -3,8 +3,7 @@ import debounce from 'debounce'
 import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Position, Range } from 'vscode-languageserver-protocol'
 import { BufferSyncItem, HighlightItem, LocationListItem } from '../types'
 import { equals } from '../util/object'
-import { emptyRange, lineInRange, positionInRange } from '../util/position'
-import { byteIndex } from '../util/string'
+import { lineInRange, positionInRange } from '../util/position'
 import workspace from '../workspace'
 import { getLocationListItem, getNameFromSeverity, getSeverityType } from './util'
 const isVim = process.env.VIM_NODE_RPC == '1'
@@ -273,55 +272,21 @@ export class DiagnosticBuffer implements BufferSyncItem {
   }
 
   public updateHighlights(diagnostics: ReadonlyArray<Diagnostic>): void {
-    if (workspace.env.updateHighlight) {
-      // Use update to avoid update unnecessary highlights, improve vim performance.
-      let items = this.getHighlightItems(diagnostics)
-      this.nvim.call('coc#highlight#update_highlights', [this.bufnr, highlightNamespace, items], true)
-      return
-    }
-    this.clearHighlight()
-    if (diagnostics.length == 0) return
-    const highlights: Map<DiagnosticHighlight, Range[]> = new Map()
-    for (let diagnostic of diagnostics.slice(0, this.config.highlighLimit)) {
-      let { range } = diagnostic
-      let hi = getHighlightGroup(diagnostic)
-      let ranges = highlights.get(hi) || []
-      ranges.push(range)
-      highlights.set(hi, ranges)
-    }
-    for (let hlGroup of highlights.keys()) {
-      let ranges = highlights.get(hlGroup) || []
-      if (ranges.length) this.buffer.highlightRanges(highlightNamespace, hlGroup, ranges)
-    }
+    let items = this.getHighlightItems(diagnostics)
+    this.nvim.call('coc#highlight#update_highlights', [this.bufnr, highlightNamespace, items], true)
   }
 
   private getHighlightItems(diagnostics: ReadonlyArray<Diagnostic>): HighlightItem[] {
-    let res: HighlightItem[] = []
     let doc = workspace.getDocument(this.bufnr)
     if (!doc) return []
+    let res: HighlightItem[] = []
     for (let diagnostic of diagnostics.slice(0, this.config.highlighLimit)) {
       let { range } = diagnostic
-      if (emptyRange(range)) continue
-      let { start, end } = range
-      let hi = getHighlightGroup(diagnostic)
-      for (let line = start.line; line <= end.line; line++) {
-        const content = doc.getline(line)
-        if (start.line == end.line) {
-          res.push({
-            hlGroup: hi,
-            lnum: line,
-            colStart: byteIndex(content, start.character),
-            colEnd: byteIndex(content, end.character)
-          })
-        } else {
-          let colStart = line == start.line ? byteIndex(content, start.character) : 0
-          let colEnd = line == end.line ? byteIndex(content, end.character) : global.Buffer.byteLength(content)
-          if (colStart == colEnd) continue
-          res.push({ hlGroup: hi, lnum: line, colStart, colEnd })
-        }
-      }
+      if (!range) continue
+      let hlGroup = getHighlightGroup(diagnostic)
+      doc.addHighlights(res, hlGroup, range)
     }
-    // need sort since highlight may cross lines.
+    // needed for iteration performance and since diagnostic highlight may cross lines.
     res.sort((a, b) => {
       if (a.lnum != b.lnum) return a.lnum - b.lnum
       return a.colStart - b.colStart

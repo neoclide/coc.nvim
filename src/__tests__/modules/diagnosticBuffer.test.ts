@@ -2,6 +2,7 @@ import helper from '../helper'
 import { Neovim } from '@chemzqm/neovim'
 import { DiagnosticBuffer } from '../../diagnostic/buffer'
 import { Range, DiagnosticSeverity, Diagnostic, DiagnosticTag } from 'vscode-languageserver-types'
+import workspace from '../../workspace'
 
 let nvim: Neovim
 const config: any = {
@@ -97,7 +98,9 @@ describe('diagnostic buffer', () => {
   it('should add highlight neovim', async () => {
     let diagnostic = createDiagnostic('foo')
     let buf = await createDiagnosticBuffer()
+    let doc = workspace.getDocument(buf.bufnr)
     await nvim.setLine('abc')
+    await doc.patchChange(true)
     nvim.pauseNotification()
     buf.updateHighlights([diagnostic])
     await nvim.resumeNotification()
@@ -108,7 +111,9 @@ describe('diagnostic buffer', () => {
   it('should add deprecated highlight', async () => {
     let diagnostic = createDiagnostic('foo', Range.create(0, 0, 0, 1), DiagnosticSeverity.Information, [DiagnosticTag.Deprecated])
     let buf = await createDiagnosticBuffer()
+    let doc = workspace.getDocument(buf.bufnr)
     await nvim.setLine('foo')
+    await doc.patchChange(true)
     nvim.pauseNotification()
     buf.updateHighlights([diagnostic])
     await nvim.resumeNotification()

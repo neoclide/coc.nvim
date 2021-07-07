@@ -4,13 +4,14 @@ import { CancellationToken, Disposable, Emitter, Event, Position, Range, TextEdi
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import events from '../events'
-import { DidChangeTextDocumentParams } from '../types'
+import { DidChangeTextDocumentParams, HighlightItem } from '../types'
 import { diffLines, getChange } from '../util/diff'
 import { disposeAll, getUri, wait } from '../util/index'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
 import { isWindows } from '../util/platform'
-import { byteLength, byteSlice, characterIndex } from '../util/string'
+import { emptyRange } from '../util/position'
+import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
 import { Chars } from './chars'
 import { LinesTextDocument } from './textdocument'
 const logger = require('../util/logger')('model-document')
@@ -561,6 +562,22 @@ export default class Document {
       col = col - byteLength(c)
     }
     return col
+  }
+
+  /**
+   * Add vim highlight items from highlight group and range.
+   * Synchronized lines are used for calculate cols.
+   */
+  public addHighlights(items: HighlightItem[], hlGroup: string, range: Range): void {
+    let { start, end } = range
+    if (emptyRange(range)) return
+    for (let line = start.line; line <= end.line; line++) {
+      const text = this.getline(line, false)
+      let colStart = line == start.line ? byteIndex(text, start.character) : 0
+      let colEnd = line == end.line ? byteIndex(text, end.character) : global.Buffer.byteLength(text)
+      if (colStart >= colEnd) continue
+      items.push({ hlGroup, lnum: line, colStart, colEnd })
+    }
   }
 
   /**
