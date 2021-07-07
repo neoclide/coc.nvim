@@ -158,7 +158,7 @@ describe('semanticTokens', () => {
       const doc = await workspace.document
       const highlights = await highlighter.getHighlights(doc.bufnr)
       expect(highlights.length).toBe(11)
-      expect(highlights[0].group).toBe('CocSem_keyword')
+      expect(highlights[0].hlGroup).toBe('CocSem_keyword')
     })
 
     it('should doHighlight', async () => {
@@ -166,7 +166,7 @@ describe('semanticTokens', () => {
       await nvim.call('CocAction', 'semanticHighlight')
       const highlights = await nvim.call("coc#highlight#get_highlights", [doc.bufnr, 'semanticTokens'])
       expect(highlights.length).toBe(11)
-      expect(highlights[0].group).toBe('CocSem_keyword')
+      expect(highlights[0].hlGroup).toBe('CocSem_keyword')
     })
 
     it('should clear highlights', async () => {
