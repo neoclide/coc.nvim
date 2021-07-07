@@ -168,11 +168,11 @@ export class Extensions {
     }, null, this.disposables)
   }
 
-  public async activateExtensions(): Promise<void> {
+  public activateExtensions(): void {
     this.activated = true
     for (let item of this.extensions.values()) {
       let { id, packageJSON } = item.extension
-      await this.setupActiveEvents(id, packageJSON)
+      this.setupActiveEvents(id, packageJSON).logError()
     }
     // make sure workspace.env exists
     let floatFactory = new FloatFactory(workspace.nvim)

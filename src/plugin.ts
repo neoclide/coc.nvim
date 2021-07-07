@@ -41,6 +41,7 @@ export default class Plugin extends EventEmitter {
       nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
     })
     this.cursors = new Cursors(nvim)
+    commandManager.init(nvim, this)
     this.addAction('checkJsonExtension', () => {
       if (extensions.has('coc-json')) return
       window.showMessage(`Run :CocInstall coc-json for json intellisense`, 'more')
@@ -273,7 +274,6 @@ export default class Plugin extends EventEmitter {
     this.addAction('outgoingCalls', (item?: CallHierarchyItem) => this.handler.callHierarchy.getOutgoing(item))
     this.addAction('semanticHighlight', () => this.handler.semanticHighlighter.highlightCurrent())
     this.addAction('showSemanticHighlightInfo', () => this.handler.semanticHighlighter.showHiglightInfo())
-    commandManager.init(nvim, this)
   }
 
   private addAction(key: string, fn: Function): void {
@@ -294,15 +294,17 @@ export default class Plugin extends EventEmitter {
       completion.init()
       diagnosticManager.init()
       listManager.init(nvim)
-      nvim.setVar('coc_workspace_initialized', 1, true)
-      nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
       sources.init()
       this.handler = new Handler(nvim)
       services.init()
-      await extensions.activateExtensions()
+      extensions.activateExtensions()
       workspace.setupDynamicAutocmd(true)
+      nvim.pauseNotification()
+      nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
       nvim.setVar('coc_service_initialized', 1, true)
       nvim.call('coc#util#do_autocmd', ['CocNvimInit'], true)
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      nvim.resumeNotification(false, true)
       this._ready = true
       await events.fire('ready', [])
       logger.info(`coc.nvim ${this.version} initialized with node: ${process.version} after ${Date.now() - s}ms`)
