@@ -53,11 +53,15 @@ function! coc#task#start(id, opts)
           \ 'detach': get(a:opts, 'detach', 0),
           \}
     let original = {}
-    if !empty(env) && exists('*setenv') && exists('*getenv')
-      for key in keys(env)
-        let original[key] = getenv(key)
-        call setenv(key, env[key])
-      endfor
+    if !empty(env)
+      if has('nvim-0.5.0')
+        let options['env'] = env
+      elseif exists('*setenv') && exists('*getenv')
+        for key in keys(env)
+          let original[key] = getenv(key)
+          call setenv(key, env[key])
+        endfor
+      endif
     endif
     if get(a:opts, 'pty', 0)
       let options['pty'] = 1

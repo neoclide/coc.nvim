@@ -1540,12 +1540,12 @@ g:WorkspaceFolders					*g:WorkspaceFolders*
 g:node_client_debug					*g:node_client_debug*
 
 	Enable debug mode of node client for check rpc messages between vim
-	and coc.nvim, use command: >
+	and coc.nvim.  Use environment variable $NODE_CLIENT_LOG_FILE to set
+	the log file or get the log file after coc.nvim started.
+	To open the log file, use command: >
 
 	:call coc#client#open_log()
 <
-	to open the log file.
-
 	Default: `0`
 
 g:coc_config_home					*g:coc_config_home*

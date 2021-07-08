@@ -148,10 +148,10 @@ function! coc#highlight#get_highlights(bufnr, key) abort
         endif
         let text = lines[line - 1]
         call add(res, {
-              \   'group': s:prop_type_hlgroup(prop['type']),
-              \   'line': line - 1,
-              \   'startCharacter': coc#helper#get_charactor(text, prop['col']),
-              \   'endCharacter': coc#helper#get_charactor(text, prop['col'] + prop['length'])
+              \   'hlGroup': s:prop_type_hlgroup(prop['type']),
+              \   'lnum': line - 1,
+              \   'colStart': coc#helper#get_charactor(text, prop['col']),
+              \   'colEnd': coc#helper#get_charactor(text, prop['col'] + prop['length'])
               \ })
       endfor
     endfor
@@ -166,10 +166,10 @@ function! coc#highlight#get_highlights(bufnr, key) abort
         continue
       endif
       call add(res, {
-            \   'group': details['hl_group'],
-            \   "line": line,
-            \   'startCharacter': coc#helper#get_charactor(text, start_col + 1),
-            \   'endCharacter': delta == 1 ? strchars(text) : coc#helper#get_charactor(text, details['end_col'] + 1)
+            \   'hlGroup': details['hl_group'],
+            \   "lnum": line,
+            \   'colStart': coc#helper#get_charactor(text, start_col + 1),
+            \   'colEnd': delta == 1 ? strchars(text) : coc#helper#get_charactor(text, details['end_col'] + 1)
             \ })
     endfor
   else
