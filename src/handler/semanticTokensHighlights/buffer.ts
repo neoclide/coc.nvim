@@ -3,6 +3,7 @@ import debounce from 'debounce'
 import { CancellationTokenSource, Range, SemanticTokens, SemanticTokensDelta, uinteger } from 'vscode-languageserver-protocol'
 import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
+import { HighlightItem } from '../../types'
 import workspace from '../../workspace'
 const logger = require('../../util/logger')('semanticTokens-buffer')
 
@@ -15,16 +16,6 @@ interface RelativeHighlight {
   deltaLine: number
   deltaStartCharacter: number
   length: number
-}
-
-/**
- * highlight
- */
-export interface Highlight {
-  group: string
-  line: number // 0-indexed
-  startCharacter: number // 0-indexed
-  endCharacter: number // 0-indexed
 }
 
 class SemanticTokensPreviousResult {
@@ -77,7 +68,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     const { nvim } = this
     const curr = await this.getHighlights()
     if (!curr.length) return
-    const prev = await this.vimGetCurrentHighlights()
+    const prev = (await nvim.call('coc#highlight#get_highlights', [this.buffer, this.namespace])) as HighlightItem[]
     const { highlights, lines } = this.calculateHighlightUpdates(prev, curr)
     for (const ln of lines) {
       this.buffer.clearNamespace(this.namespace, ln, ln + 1)
@@ -85,9 +76,9 @@ export default class SemanticTokensBuffer implements SyncItem {
     if (!highlights.length) return
     const groups: { [index: string]: Range[] } = {}
     for (const h of highlights) {
-      const range = Range.create(h.line, h.startCharacter, h.line, h.endCharacter)
-      groups[h.group] = groups[h.group] || []
-      groups[h.group].push(range)
+      const range = Range.create(h.lnum, h.colStart, h.lnum, h.colEnd)
+      groups[h.hlGroup] = groups[h.hlGroup] || []
+      groups[h.hlGroup].push(range)
     }
     nvim.pauseNotification()
     for (const hlGroup of Object.keys(groups)) {
@@ -98,39 +89,35 @@ export default class SemanticTokensBuffer implements SyncItem {
     if (workspace.isVim) nvim.command('redraw', true)
   }
 
-  private async vimGetCurrentHighlights(): Promise<Highlight[]> {
-    return await this.nvim.call("coc#highlight#get_highlights", [this.bufnr, this.namespace])
-  }
-
-  private calculateHighlightUpdates(prev: Highlight[], curr: Highlight[]): { highlights: Highlight[], lines: Set<number> } {
+  private calculateHighlightUpdates(prev: HighlightItem[], curr: HighlightItem[]): { highlights: HighlightItem[], lines: Set<number> } {
     const stringCompare = Intl.Collator("en").compare
-    function compare(a: Highlight, b: Highlight): number {
+    function compare(a: HighlightItem, b: HighlightItem): number {
       return (
-        a.line - b.line ||
-        a.startCharacter - b.startCharacter ||
-        a.endCharacter - b.endCharacter ||
-        stringCompare(a.group, b.group)
+        a.lnum - b.lnum ||
+        a.colStart - b.colStart ||
+        a.colEnd - b.colEnd ||
+        stringCompare(a.hlGroup, b.hlGroup)
       )
     }
 
     prev = prev.slice().sort(compare)
     curr = curr.slice().sort(compare)
 
-    const prevByLine: Map<number, Highlight[]> = new Map()
+    const prevByLine: Map<number, HighlightItem[]> = new Map()
     for (const hl of prev) {
-      if (!prevByLine.has(hl.line)) prevByLine.set(hl.line, [])
-      prevByLine.get(hl.line).push(hl)
+      if (!prevByLine.has(hl.lnum)) prevByLine.set(hl.lnum, [])
+      prevByLine.get(hl.lnum).push(hl)
     }
 
-    const currByLine: Map<number, Highlight[]> = new Map()
+    const currByLine: Map<number, HighlightItem[]> = new Map()
     for (const hl of curr) {
-      if (!currByLine.has(hl.line)) currByLine.set(hl.line, [])
-      currByLine.get(hl.line).push(hl)
+      if (!currByLine.has(hl.lnum)) currByLine.set(hl.lnum, [])
+      currByLine.get(hl.lnum).push(hl)
     }
 
     const lastLine = Math.max(
-      (prev[prev.length - 1] || { line: 0 }).line,
-      (curr[curr.length - 1] || { line: 0 }).line
+      (prev[prev.length - 1] || { lnum: 0 }).lnum,
+      (curr[curr.length - 1] || { lnum: 0 }).lnum
     )
     const lineNumbersToUpdate: Set<number> = new Set()
     for (let i = 0; i <= lastLine; i++) {
@@ -159,14 +146,14 @@ export default class SemanticTokensBuffer implements SyncItem {
       }
     }
 
-    let highlights: Highlight[] = []
+    let highlights: HighlightItem[] = []
     for (const line of lineNumbersToUpdate) {
       highlights = highlights.concat(currByLine.get(line) || [])
     }
     return { highlights, lines: lineNumbersToUpdate }
   }
 
-  public async getHighlights(forceFull?: boolean): Promise<Highlight[]> {
+  public async getHighlights(forceFull?: boolean): Promise<HighlightItem[]> {
     let doc = workspace.getDocument(this.bufnr)
     if (!doc) return []
     const legend = languages.getLegend(doc.textDocument)
@@ -218,7 +205,7 @@ export default class SemanticTokensBuffer implements SyncItem {
       })
     }
 
-    const res: Highlight[] = []
+    const res: HighlightItem[] = []
     let currentLine = 0
     let currentCharacter = 0
     for (const {
@@ -227,12 +214,17 @@ export default class SemanticTokensBuffer implements SyncItem {
       deltaStartCharacter,
       length
     } of relatives) {
-      const line = currentLine + deltaLine
-      const startCharacter = deltaLine === 0 ? currentCharacter + deltaStartCharacter : deltaStartCharacter
-      const endCharacter = startCharacter + length
-      currentLine = line
-      currentCharacter = startCharacter
-      res.push({ group, line, startCharacter, endCharacter })
+      const lnum = currentLine + deltaLine
+      const colStart = deltaLine === 0 ? currentCharacter + deltaStartCharacter : deltaStartCharacter
+      const colEnd = colStart + length
+      currentLine = lnum
+      currentCharacter = colStart
+      res.push({
+        hlGroup: group,
+        lnum,
+        colStart,
+        colEnd
+      })
     }
     return res
   }
