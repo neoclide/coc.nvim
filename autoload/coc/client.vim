@@ -56,7 +56,6 @@ function! s:start() dict
             \ 'VIM_NODE_RPC': '1',
             \ 'COC_NVIM': '1',
             \ 'COC_CHANNEL_TIMEOUT': timeout,
-            \ 'COC_NO_WARNINGS': disable_warning,
             \ 'TMPDIR': tmpdir,
           \ }
           \}
@@ -74,28 +73,26 @@ function! s:start() dict
     let self['channel'] = job_getchannel(job)
   else
     let original = {'tmpdir': $TMPDIR}
+    let opts = {
+          \ 'rpc': 1,
+          \ 'on_stderr': {channel, msgs -> s:on_stderr(self.name, msgs)},
+          \ 'on_exit': {channel, code -> s:on_exit(self.name, code)},
+          \ }
     " env option not work on neovim
     if exists('*setenv')
       let original = {
             \ 'NODE_NO_WARNINGS': getenv('NODE_NO_WARNINGS'),
             \ 'COC_CHANNEL_TIMEOUT': getenv('COC_CHANNEL_TIMEOUT'),
-            \ 'COC_NO_WARNINGS': getenv('COC_NO_WARNINGS'),
             \ 'TMPDIR': getenv('TMPDIR'),
             \ }
       call setenv('NODE_NO_WARNINGS', '1')
       call setenv('COC_CHANNEL_TIMEOUT', timeout)
-      call setenv('COC_NO_WARNINGS', disable_warning)
       call setenv('TMPDIR', tmpdir)
     else
       let $NODE_NO_WARNINGS = 1
-      let $COC_NO_WARNINGS = disable_warning
       let $TMPDIR = tmpdir
     endif
-    let chan_id = jobstart(self.command, {
-          \ 'rpc': 1,
-          \ 'on_stderr': {channel, msgs -> s:on_stderr(self.name, msgs)},
-          \ 'on_exit': {channel, code -> s:on_exit(self.name, code)},
-          \})
+    let chan_id = jobstart(self.command, opts)
     if exists('*setenv')
       for key in keys(original)
         call setenv(key, original[key])
