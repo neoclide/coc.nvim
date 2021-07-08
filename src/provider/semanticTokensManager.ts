@@ -17,11 +17,14 @@ export default class SemanticTokensManager extends Manager<DocumentSemanticToken
       provider
     }
     this.providers.add(item)
-    let disposable = provider.onDidChangeSemanticTokens(() => {
-      onChange()
-    })
+    let disposable: Disposable | undefined
+    if (typeof provider.onDidChangeSemanticTokens === 'function') {
+      disposable = provider.onDidChangeSemanticTokens(() => {
+        onChange()
+      })
+    }
     return Disposable.create(() => {
-      disposable.dispose()
+      disposable?.dispose()
       for (let [uri, providerId] of this.resolvedProvider.entries()) {
         if (providerId == id) {
           this.resolvedProvider.delete(uri)
