@@ -398,28 +398,30 @@ function! s:Hi() abort
   endif
   call s:AddAnsiGroups()
 
-  hi default link CocSem_namespace Identifier
-  hi default link CocSem_type Type
-  hi default link CocSem_class Structure
-  hi default link CocSem_enum Type
-  hi default link CocSem_interface Type
-  hi default link CocSem_struct Structure
-  hi default link CocSem_typeParameter Type
-  hi default link CocSem_parameter Identifier
-  hi default link CocSem_variable Identifier
-  hi default link CocSem_property Identifier
-  hi default link CocSem_enumMember Constant
-  hi default link CocSem_event Identifier
-  hi default link CocSem_function Function
-  hi default link CocSem_method Function
-  hi default link CocSem_macro Macro
-  hi default link CocSem_keyword Keyword
-  hi default link CocSem_modifier StorageClass
-  hi default link CocSem_comment Comment
-  hi default link CocSem_string String
-  hi default link CocSem_number Number
-  hi default link CocSem_regexp Normal
-  hi default link CocSem_operator Operator
+  if get(g:, 'coc_default_semantic_highlight_groups', 1) == 1
+    hi default link CocSem_namespace Identifier
+    hi default link CocSem_type Type
+    hi default link CocSem_class Structure
+    hi default link CocSem_enum Type
+    hi default link CocSem_interface Type
+    hi default link CocSem_struct Structure
+    hi default link CocSem_typeParameter Type
+    hi default link CocSem_parameter Identifier
+    hi default link CocSem_variable Identifier
+    hi default link CocSem_property Identifier
+    hi default link CocSem_enumMember Constant
+    hi default link CocSem_event Identifier
+    hi default link CocSem_function Function
+    hi default link CocSem_method Function
+    hi default link CocSem_macro Macro
+    hi default link CocSem_keyword Keyword
+    hi default link CocSem_modifier StorageClass
+    hi default link CocSem_comment Comment
+    hi default link CocSem_string String
+    hi default link CocSem_number Number
+    hi default link CocSem_regexp Normal
+    hi default link CocSem_operator Operator
+  endif
 endfunction
 
 function! s:FormatFromSelected(type)
