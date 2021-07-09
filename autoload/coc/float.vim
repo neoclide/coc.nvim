@@ -543,7 +543,7 @@ function! coc#float#create_prompt_win(title, default, opts) abort
         \ 'border': [1,1,1,1],
         \ 'prompt': 1,
         \ 'title': a:title,
-        \ 'lines': [a:default],
+        \ 'lines': s:is_vim ? v:null : [a:default],
         \ 'highlight': get(a:opts, 'highlight', 'CocFloating'),
         \ 'borderhighlight': [get(a:opts, 'borderhighlight', 'CocFloating')],
         \ })
@@ -562,8 +562,6 @@ function! coc#float#create_prompt_win(title, default, opts) abort
     exe 'nnoremap <silent><buffer> <esc> :call coc#float#close('.winid.')<CR>'
     exe 'inoremap <silent><expr><nowait><buffer> <cr> "\<C-r>=coc#float#prompt_insert(getline(''.''))\<cr>\<esc>"'
     call feedkeys('A', 'in')
-  else
-    call setbufvar(bufnr, '&termwinkey', '<C-\>')
   endif
   return [bufnr, winid]
 endfunction
