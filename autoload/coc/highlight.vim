@@ -74,13 +74,17 @@ endfunction
 
 " Update highlights by check exists highlights.
 function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
-  if !bufloaded(a:bufnr)
+  let bufnr = a:bufnr
+  if a:bufnr == 0
+    let bufnr = bufnr('%')
+  endif
+  if !bufloaded(bufnr)
     return
   endif
   let start = get(a:, 1, 0)
   let end = get(a:, 2, -1)
   if empty(a:highlights)
-    call coc#highlight#clear_highlight(a:bufnr, a:key, start, end)
+    call coc#highlight#clear_highlight(bufnr, a:key, start, end)
     return
   endif
   let total = len(a:highlights)
@@ -89,7 +93,7 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
   let ns = coc#highlight#create_namespace(a:key)
   let currIndex = 0
   if has('nvim-0.5.0') || exists('*prop_list')
-    let current = coc#highlight#get(a:bufnr, a:key, start, end)
+    let current = coc#highlight#get(bufnr, a:key, start, end)
     for lnum in sort(map(keys(current), 'str2nr(v:val)'), {a, b -> a - b})
       let items = current[lnum]
       let indexes = []
@@ -115,19 +119,19 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
         let exists = exists + indexes
       else
         if has('nvim')
-          call nvim_buf_clear_namespace(a:bufnr, ns, lnum, lnum + 1)
+          call nvim_buf_clear_namespace(bufnr, ns, lnum, lnum + 1)
         else
-          call coc#api#call('buf_clear_namespace', [a:bufnr, ns, lnum, lnum + 1])
+          call coc#api#call('buf_clear_namespace', [bufnr, ns, lnum, lnum + 1])
         endif
       endif
     endfor
   else
-    call coc#highlight#clear_highlight(a:bufnr, a:key, start, end)
+    call coc#highlight#clear_highlight(bufnr, a:key, start, end)
   endif
   for i in range(0, total - 1)
     if index(exists, i) == -1
       let hi = a:highlights[i]
-      call coc#highlight#add_highlight(a:bufnr, ns, hi['hlGroup'], hi['lnum'], hi['colStart'], hi['colEnd'])
+      call coc#highlight#add_highlight(bufnr, ns, hi['hlGroup'], hi['lnum'], hi['colStart'], hi['colEnd'])
     endif
   endfor
 endfunction

@@ -989,6 +989,51 @@
       "default": "<C-p>",
       "description": "Key used for jump to previous cursors position."
     },
+    "tree.titleHighlight": {
+      "type": "string",
+      "default": "Title",
+      "description": "Highlight group for title of tree."
+    },
+    "tree.closedIcon": {
+      "type": "string",
+      "default": "+",
+      "description": "Closed icon of tree view."
+    },
+    "tree.openedIcon": {
+      "type": "string",
+      "default": "-",
+      "description": "Opend icon of tree view."
+    },
+    "tree.openCloseHighlight": {
+      "type": "string",
+      "default": "MoreMsg",
+      "description": "Highlight group for opened icon and closed icon."
+    },
+    "tree.key.toggleSelection": {
+      "type": "string",
+      "default": "<space>",
+      "description": "Trigger key to select/unselect item, only works when the tree support many selection."
+    },
+    "tree.key.toggle": {
+      "type": "string",
+      "default": "t",
+      "description": "Trigger key to toggle expand state of tree node, does nothing with leaf node."
+    },
+    "tree.key.collapseAll": {
+      "type": "string",
+      "default": "M",
+      "description": "Trigger key to collapse all tree node."
+    },
+    "tree.key.invoke": {
+      "type": "string",
+      "default": "<cr>",
+      "description": "Trigger key to invoke default command of current node or selection."
+    },
+    "tree.key.close": {
+      "type": "string",
+      "default": "<esc>",
+      "description": "Trigger key to dispose the tree and close tree window."
+    },
     "coc.preferences.enableMessageDialog": {
       "type": "boolean",
       "default": false,

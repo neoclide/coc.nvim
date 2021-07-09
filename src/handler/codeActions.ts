@@ -139,6 +139,6 @@ export default class CodeActions {
     })
     let { edit, command } = action
     if (edit) await workspace.applyEdit(edit)
-    if (command) commandManager.execute(command)
+    if (command) await commandManager.execute(command)
   }
 }
