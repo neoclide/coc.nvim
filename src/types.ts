@@ -35,10 +35,20 @@ export interface HandlerDelegate {
   addDisposable: (disposable: Disposable) => void
 }
 
+/**
+ * Represent a highlight that not cross lines
+ * all zero based.
+ */
 export interface HighlightItem {
-  lnum: number // 0 based
+  lnum: number
   hlGroup: string
-  colStart: number // 0 based
+  /**
+   * 0 based start column.
+   */
+  colStart: number
+  /**
+   * 0 based end column.
+   */
   colEnd: number
 }
 

@@ -1,22 +1,13 @@
 import { Buffer } from '@chemzqm/neovim'
 import { parseAnsiHighlights } from '../util/ansiparse'
 import { byteLength } from '../util/string'
-
-export interface HighlightItem {
-  // all zero indexed
-  line: number
-  colStart: number
-  // default to -1
-  colEnd?: number
-  hlGroup: string
-}
+import { HighlightItem } from '../types'
 
 export interface TextItem {
   text: string
   hlGroup?: string
 }
 
-const srcId = -1
 /**
  * Build highlights, with lines and highlights
  */
@@ -33,7 +24,7 @@ export default class Highlighter {
     }
     if (hlGroup) {
       this.highlights.push({
-        line: this.lines.length,
+        lnum: this.lines.length,
         colStart: line.match(/^\s*/)[0].length,
         colEnd: byteLength(line),
         hlGroup
@@ -45,7 +36,7 @@ export default class Highlighter {
         let { span, hlGroup } = hl
         if (span[0] != span[1]) {
           this.highlights.push({
-            line: this.lines.length,
+            lnum: this.lines.length,
             colStart: span[0],
             colEnd: span[1],
             hlGroup
@@ -78,7 +69,7 @@ export default class Highlighter {
     if (hlGroup) {
       let colStart = byteLength(pre)
       this.highlights.push({
-        line: lines.length ? lines.length - 1 : 0,
+        lnum: lines.length ? lines.length - 1 : 0,
         colStart,
         colEnd: colStart + byteLength(text),
         hlGroup
@@ -109,8 +100,8 @@ export default class Highlighter {
         hlGroup: item.hlGroup,
         colStart: item.colStart,
         colEnd: item.colEnd == null ? -1 : item.colEnd,
-        line: start + item.line,
-        srcId
+        line: start + item.lnum,
+        srcId: -1
       })
     }
   }
