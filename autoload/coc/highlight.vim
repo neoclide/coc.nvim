@@ -36,6 +36,7 @@ function! coc#highlight#get(bufnr, key, start, end) abort
       endif
       let lines = getbufline(a:bufnr, row + 1)
       if empty(lines)
+        " It's possible that markers exceeded last line.
         continue
       endif
       let text = lines[0]
@@ -158,7 +159,12 @@ function! coc#highlight#get_highlights(bufnr, key) abort
   elseif has('nvim-0.5.0')
     let markers = nvim_buf_get_extmarks(a:bufnr, ns, 0, -1, {'details': v:true})
     let lines = getbufline(a:bufnr, 1, '$')
+    let total = len(lines)
     for [_, line, start_col, details] in markers
+      if line >= total
+        " Could be markers exceed end of line
+        continue
+      endif
       let text = lines[line]
       let delta = details['end_row'] - line
       if delta > 1 || (delta == 1 && details['end_col'] != 0)
