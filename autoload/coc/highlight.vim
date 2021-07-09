@@ -167,7 +167,7 @@ function! coc#highlight#get_highlights(bufnr, key) abort
       endif
       call add(res, {
             \   'hlGroup': details['hl_group'],
-            \   "lnum": line,
+            \   'lnum': line,
             \   'colStart': coc#helper#get_charactor(text, start_col + 1),
             \   'colEnd': delta == 1 ? strchars(text) : coc#helper#get_charactor(text, details['end_col'] + 1)
             \ })
