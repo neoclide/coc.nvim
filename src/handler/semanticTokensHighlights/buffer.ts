@@ -25,10 +25,11 @@ class SemanticTokensPreviousResult {
   ) {}
 }
 
+const NAMESPACE = 'semanticTokens'
+
 export default class SemanticTokensBuffer implements SyncItem {
   private tokenSource: CancellationTokenSource
   private version: number
-  private namespace = 'semanticTokens'
   private previousResults: Map<number, SemanticTokensPreviousResult> = new Map()
   public highlight: Function & { clear(): void }
   constructor(
@@ -68,10 +69,17 @@ export default class SemanticTokensBuffer implements SyncItem {
     const { nvim } = this
     const curr = await this.getHighlights()
     if (!curr.length) return
-    const prev = (await nvim.call('coc#highlight#get_highlights', [this.buffer, this.namespace])) as HighlightItem[]
+    let prev: HighlightItem[]
+    if (workspace.env.updateHighlight) {
+      prev = (await nvim.call('coc#highlight#get_highlights', [this.buffer, NAMESPACE])) as HighlightItem[]
+    }
     const { highlights, lines } = this.calculateHighlightUpdates(prev, curr)
-    for (const ln of lines) {
-      this.buffer.clearNamespace(this.namespace, ln, ln + 1)
+    if (!prev) {
+      this.buffer.clearNamespace(NAMESPACE, 0, -1)
+    } else {
+      for (const ln of lines) {
+        this.buffer.clearNamespace(NAMESPACE, ln, ln + 1)
+      }
     }
     if (!highlights.length) return
     const groups: { [index: string]: Range[] } = {}
@@ -82,7 +90,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     }
     nvim.pauseNotification()
     for (const hlGroup of Object.keys(groups)) {
-      this.buffer.highlightRanges(this.namespace, hlGroup, groups[hlGroup])
+      this.buffer.highlightRanges(NAMESPACE, hlGroup, groups[hlGroup])
     }
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     nvim.resumeNotification(false, true)
@@ -232,7 +240,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   public clearHighlight(): void {
     this.highlight.clear()
     this.version = null
-    this.buffer.clearNamespace(this.namespace)
+    this.buffer.clearNamespace(NAMESPACE)
   }
 
   public cancel(): void {
