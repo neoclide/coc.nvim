@@ -69,7 +69,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     const { nvim } = this
     const curr = await this.getHighlights()
     if (!curr.length) return
-    let prev: HighlightItem[]
+    let prev: HighlightItem[] = []
     if (workspace.env.updateHighlight) {
       prev = (await nvim.call('coc#highlight#get_highlights', [this.buffer, NAMESPACE])) as HighlightItem[]
     }
