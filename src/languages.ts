@@ -283,12 +283,14 @@ class Languages {
   }
 
   public registerDocumentSemanticTokensProvider(selector: DocumentSelector, provider: DocumentSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
+    this._onDidSemanticTokensRefresh.fire(selector)
     return this.semanticTokensManager.register(selector, provider, legend, () => {
       this._onDidSemanticTokensRefresh.fire(selector)
     })
   }
 
   public registerDocumentRangeSemanticTokensProvider(selector: DocumentSelector, provider: DocumentRangeSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
+    this._onDidSemanticTokensRefresh.fire(selector)
     return this.semanticTokensRangeManager.register(selector, provider, legend)
   }
 
@@ -445,7 +447,8 @@ class Languages {
     return this.callHierarchyManager.provideCallHierarchyOutgoingCalls(item, token)
   }
 
-  public getLegend(document: TextDocument): SemanticTokensLegend | undefined {
+  public getLegend(document: TextDocument, range?: boolean): SemanticTokensLegend | undefined {
+    if (range) return this.semanticTokensRangeManager.getLegend(document)
     return this.semanticTokensManager.getLegend(document)
   }
 
@@ -520,7 +523,7 @@ class Languages {
       case 'callHierarchy':
         return this.callHierarchyManager.hasProvider(document)
       case 'semanticTokens':
-        return this.semanticTokensManager.hasProvider(document) || this.semanticTokensRangeManager.hasProvider(document)
+        return this.semanticTokensManager.hasProvider(document)
       case 'linkedEditing':
         return this.linkedEditingManager.hasProvider(document)
       default:

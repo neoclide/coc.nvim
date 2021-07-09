@@ -3,6 +3,7 @@ import debounce from 'debounce'
 import { CancellationTokenSource, Range, SemanticTokens, SemanticTokensDelta, uinteger } from 'vscode-languageserver-protocol'
 import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
+import Document from '../../model/document'
 import { HighlightItem } from '../../types'
 import workspace from '../../workspace'
 const logger = require('../../util/logger')('semanticTokens-buffer')
@@ -18,29 +19,32 @@ interface RelativeHighlight {
   length: number
 }
 
-class SemanticTokensPreviousResult {
-  constructor(
-    public readonly resultId: string | undefined,
-    public readonly tokens?: uinteger[],
-  ) {}
+export interface SemanticTokensConfig {
+  enabled: boolean
 }
 
-const NAMESPACE = 'semanticTokens'
+interface SemanticTokensPreviousResult {
+  readonly version: number
+  readonly resultId: string | undefined,
+  readonly tokens?: uinteger[],
+}
+
+export const NAMESPACE = 'semanticTokens'
 
 export default class SemanticTokensBuffer implements SyncItem {
   private tokenSource: CancellationTokenSource
-  private version: number
-  private previousResults: Map<number, SemanticTokensPreviousResult> = new Map()
+  private _highlights: HighlightItem[]
+  private previousResults: SemanticTokensPreviousResult
   public highlight: Function & { clear(): void }
   constructor(
     private nvim: Neovim,
     public readonly bufnr: number,
-    private enabled: boolean) {
+    private readonly config: SemanticTokensConfig) {
     this.highlight = debounce(() => {
       this.doHighlight().catch(e => {
         logger.error('Error on semanticTokens highlight:', e.stack)
       })
-    }, global.hasOwnProperty('__TEST__') ? 10 : 5000)
+    }, global.hasOwnProperty('__TEST__') ? 10 : 2000)
     this.highlight()
   }
 
@@ -49,33 +53,72 @@ export default class SemanticTokensBuffer implements SyncItem {
     this.highlight()
   }
 
-  public get buffer(): Buffer {
+  public async forceHighlight(): Promise<void> {
+    this.cancel()
+    this.highlight.clear()
+    await this.doHighlight()
+  }
+
+  /**
+   * Get current highlight items
+   */
+  public get highlights(): ReadonlyArray<HighlightItem> {
+    return this._highlights
+  }
+
+  public get enabled(): boolean {
+    if (!this.config.enabled) return false
+    let doc = workspace.getDocument(this.bufnr)
+    if (!doc || !doc.attached) return false
+    return languages.hasProvider('semanticTokens', doc.textDocument)
+  }
+
+  public get previousVersion(): number | undefined {
+    if (!this.previousResults) return undefined
+    return this.previousResults.version
+  }
+
+  private get buffer(): Buffer {
     return this.nvim.createBuffer(this.bufnr)
   }
 
+  public checkState(): void {
+    if (!this.config.enabled) throw new Error('SemanticTokens highlights disabled by configuration')
+    let doc = workspace.getDocument(this.bufnr)
+    if (!doc || !doc.attached) throw new Error('Document not attached')
+    if (!languages.hasProvider('semanticTokens', doc.textDocument)) throw new Error('SemanticTokens provider not found, your languageserver may not support it')
+  }
+
   public setState(enabled: boolean): void {
-    this.enabled = enabled
     if (enabled) {
       this.highlight()
     } else {
+      this.highlight.clear()
       this.clearHighlight()
     }
   }
 
-  public async doHighlight(): Promise<void> {
+  private async doHighlight(): Promise<void> {
+    if (!this.enabled) return
     let doc = workspace.getDocument(this.bufnr)
-    if (!doc || !this.enabled) return
-    if (this.version && doc.version == this.version) return
     const { nvim } = this
-    const curr = await this.getHighlights()
-    if (!curr.length) return
+    let winid = await nvim.call('bufwinid', [this.bufnr])
+    // not visible on current tab
+    if (winid == -1) return
+    const curr = await this.requestHighlights(doc)
+    // request cancelled or can't work
+    if (!curr) return
+    if (!curr.length) {
+      this.clearHighlight()
+      return
+    }
     let prev: HighlightItem[] = []
     if (workspace.env.updateHighlight) {
       prev = (await nvim.call('coc#highlight#get_highlights', [this.bufnr, NAMESPACE])) as HighlightItem[]
     }
     const { highlights, lines } = this.calculateHighlightUpdates(prev, curr)
     nvim.pauseNotification()
-    if (!prev) {
+    if (!workspace.env.updateHighlight) {
       this.buffer.clearNamespace(NAMESPACE, 0, -1)
     } else {
       for (const ln of lines) {
@@ -162,27 +205,27 @@ export default class SemanticTokensBuffer implements SyncItem {
     return { highlights, lines: lineNumbersToUpdate }
   }
 
-  public async getHighlights(forceFull?: boolean): Promise<HighlightItem[]> {
-    let doc = workspace.getDocument(this.bufnr)
-    if (!doc) return []
+  /**
+   * Request highlights from provider, return undefined when can't request or request cancelled
+   * TODO use range provider as well
+   */
+  private async requestHighlights(doc: Document, forceFull?: boolean): Promise<HighlightItem[] | undefined> {
     const legend = languages.getLegend(doc.textDocument)
-    if (!legend) return []
+    if (!legend) return undefined
     this.cancel()
     this.tokenSource = new CancellationTokenSource()
     const { token } = this.tokenSource
-    const { version } = doc
     const hasEditProvider = languages.hasSemanticTokensEdits(doc.textDocument)
-    const previousResult = forceFull ? null : this.previousResults.get(this.bufnr)
+    const previousResult = forceFull ? null : this.previousResults
     let result: SemanticTokens | SemanticTokensDelta
+    let version = doc.textDocument.version
     if (hasEditProvider && previousResult?.resultId) {
       result = await languages.provideDocumentSemanticTokensEdits(doc.textDocument, previousResult.resultId, token)
     } else {
       result = await languages.provideDocumentSemanticTokens(doc.textDocument, token)
     }
     this.tokenSource = null
-    if (token.isCancellationRequested) return []
-    if (!result) return []
-    this.version = version
+    if (token.isCancellationRequested || !result) return undefined
 
     let tokens: uinteger[] = []
     if (SemanticTokens.is(result)) {
@@ -197,7 +240,7 @@ export default class SemanticTokensBuffer implements SyncItem {
         }
       })
     }
-    this.previousResults.set(this.bufnr, new SemanticTokensPreviousResult(result.resultId, tokens))
+    this.previousResults = { resultId: result.resultId, tokens, version }
     const relatives: RelativeHighlight[] = []
     for (let i = 0; i < tokens.length; i += 5) {
       const deltaLine = tokens[i]
@@ -235,12 +278,11 @@ export default class SemanticTokensBuffer implements SyncItem {
         colEnd
       })
     }
+    this._highlights = res
     return res
   }
 
   public clearHighlight(): void {
-    this.highlight.clear()
-    this.version = null
     this.buffer.clearNamespace(NAMESPACE)
   }
 
@@ -253,6 +295,7 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   public dispose(): void {
     this.highlight.clear()
+    this.previousResults = undefined
     this.cancel()
   }
 }

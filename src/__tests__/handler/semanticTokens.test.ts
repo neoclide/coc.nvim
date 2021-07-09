@@ -1,13 +1,14 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { Disposable, SemanticTokensLegend } from 'vscode-languageserver-protocol'
 import languages from '../../languages'
+import SemanticTokensHighlights from '../../handler/semanticTokensHighlights/index'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
-let highlighter
+let highlighter: SemanticTokensHighlights
 let legend: SemanticTokensLegend = {
   tokenTypes: [
     "comment",
@@ -140,11 +141,19 @@ afterEach(async () => {
 describe('semanticTokens', () => {
   describe('triggerSemanticTokens', () => {
     it('should be disabled', async () => {
+      await helper.createDocument()
       workspace.configurations.updateUserConfig({
         'coc.preferences.semanticTokensHighlights': false
       })
-      const enabled = await highlighter.enabled
-      expect(enabled).toBe(false)
+      const curr = await highlighter.getCurrentItem()
+      let err
+      try {
+        curr.checkState()
+      } catch (e) {
+        err = e
+      }
+      expect(err).toBeDefined()
+      expect(err.message).toMatch('disabled by configuration')
     })
 
     it('should get legend by API', async () => {
@@ -154,10 +163,10 @@ describe('semanticTokens', () => {
     })
 
     it('should get semanticTokens by API', async () => {
-      const doc = await workspace.document
-      const highlights = await highlighter.getHighlights(doc.bufnr)
-      expect(highlights.length).toBe(11)
-      expect(highlights[0].hlGroup).toBe('CocSem_keyword')
+      // const doc = await workspace.document
+      // const highlights = await highlighter.getHighlights(doc.bufnr)
+      // expect(highlights.length).toBe(11)
+      // expect(highlights[0].hlGroup).toBe('CocSem_keyword')
     })
 
     it('should doHighlight', async () => {
@@ -166,16 +175,6 @@ describe('semanticTokens', () => {
       const highlights = await nvim.call("coc#highlight#get_highlights", [doc.bufnr, 'semanticTokens'])
       expect(highlights.length).toBe(11)
       expect(highlights[0].hlGroup).toBe('CocSem_keyword')
-    })
-
-    it('should clear highlights', async () => {
-      const doc = await workspace.document
-      await nvim.call('CocAction', 'semanticHighlight')
-      await helper.wait(100)
-      await highlighter.clearHighlight(doc.bufnr)
-      await helper.wait(100)
-      const highlights = await nvim.call("coc#highlight#get_highlights", [doc.bufnr, 'semanticTokens'])
-      expect(highlights.length).toBe(0)
     })
   })
 })

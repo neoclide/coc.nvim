@@ -1,31 +1,74 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
-import extensions from '../../extensions'
-import BufferSync from '../../model/bufferSync'
-import { disposeAll } from '../../util'
-import { ConfigurationChangeEvent, HandlerDelegate } from '../../types'
-import workspace from '../../workspace'
-import SemanticTokensBuffer from './buffer'
-import Highlighter from '../../model/highligher'
+import commands from '../../commands'
+import events from '../../events'
 import languages from '../../languages'
-import { HighlightItem } from '../../types'
+import BufferSync from '../../model/bufferSync'
+import Highlighter from '../../model/highligher'
+import { ConfigurationChangeEvent, HandlerDelegate } from '../../types'
+import { disposeAll } from '../../util'
+import window from '../../window'
+import workspace from '../../workspace'
+import SemanticTokensBuffer, { NAMESPACE, SemanticTokensConfig } from './buffer'
 const logger = require('../../util/logger')('semanticTokens')
 const headGroup = 'Statement'
 
 export default class SemanticTokensHighlights {
-  private _enabled = true
+  // shared with buffers
+  private config: SemanticTokensConfig
   private disposables: Disposable[] = []
   private highlighters: BufferSync<SemanticTokensBuffer>
 
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
     this.loadConfiguration()
-    this.highlighters = workspace.registerBufferSync(doc => {
-      return new SemanticTokensBuffer(this.nvim, doc.bufnr, this._enabled)
-    })
-    extensions.onDidActiveExtension(() => {
-      this.highlightAll()
-    }, null, this.disposables)
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
+    commands.register({
+      id: 'semanticTokens.checkCurrent',
+      execute: async () => {
+        try {
+          let item = await this.getCurrentItem()
+          item.checkState()
+        } catch (e) {
+          window.showMessage(e.message, 'error')
+          return
+        }
+        window.showMessage('Semantic tokens provider found for current buffer', 'more')
+      }
+    }, false, 'check semantic tokens provider for current buffer')
+    commands.register({
+      id: 'semanticTokens.clearCurrent',
+      execute: async () => {
+        let buf = await nvim.buffer
+        buf.clearNamespace(NAMESPACE, 0, -1)
+      }
+    }, false, 'clear semantic tokens highlights of current buffer')
+    commands.register({
+      id: 'semanticTokens.clearAll',
+      execute: async () => {
+        let bufs = await nvim.buffers
+        for (let buf of bufs) {
+          buf.clearNamespace(NAMESPACE, 0, -1)
+        }
+      }
+    }, false, 'clear semantic tokens highlights of all buffers')
+    this.disposables.push({
+      dispose: () => {
+        commands.unregister('semanticTokens.checkCurrentBuffer')
+      }
+    })
+    // may need update highlights for buffer that becomes visible
+    events.on('BufEnter', bufnr => {
+      let item = this.highlighters.getItem(bufnr)
+      if (!item) return
+      let doc = workspace.getDocument(bufnr)
+      if (!doc || doc.textDocument.version == item.previousVersion) return
+      item.forceHighlight().catch(e => {
+        logger.error(`Error on semantic highlighters:`, e)
+      })
+    }, null, this.disposables)
+    this.highlighters = workspace.registerBufferSync(doc => {
+      return new SemanticTokensBuffer(this.nvim, doc.bufnr, this.config)
+    })
     languages.onDidSemanticTokensRefresh(selector => {
       for (let item of this.highlighters.items) {
         let doc = workspace.getDocument(item.bufnr)
@@ -38,58 +81,55 @@ export default class SemanticTokensHighlights {
 
   private loadConfiguration(e?: ConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('coc.preferences')) {
-      if (workspace.isVim && !workspace.env.textprop) {
-        this._enabled = false
-        return
-      }
+      // let con = this.config || {}
       let config = workspace.getConfiguration('coc.preferences')
       let enabled = config.get<boolean>('semanticTokensHighlights', true)
-      if (enabled != this._enabled) {
-        this._enabled = enabled
+      if (workspace.isVim && !workspace.env.textprop) {
+        enabled = false
+      }
+      if (this.config && enabled != this.config.enabled) {
         if (this.highlighters) {
           for (let buf of this.highlighters.items) {
             buf.setState(enabled)
           }
         }
       }
+      if (!this.config) {
+        this.config = { enabled }
+      } else {
+        this.config.enabled = enabled
+      }
     }
   }
 
-  public get enabled(): boolean {
-    return this._enabled
+  public async getCurrentItem(): Promise<SemanticTokensBuffer> {
+    let buf = await this.nvim.buffer
+    let highlighter = this.highlighters.getItem(buf.id)
+    if (!highlighter) throw new Error('current buffer not attached')
+    return highlighter
   }
 
-  public clearHighlight(bufnr: number): void {
-    let highlighter = this.highlighters.getItem(bufnr)
-    if (!highlighter) return
-    highlighter.clearHighlight()
-  }
-
-  public highlightAll(): void {
-    for (let buf of this.highlighters.items) {
-      buf.highlight()
-    }
-  }
-
+  /**
+   * Force highlight of current buffer
+   */
   public async highlightCurrent(): Promise<void> {
-    let { doc } = await this.handler.getCurrentState()
-    this.handler.checkProvier('semanticTokens', doc.textDocument)
-    await doc.synchronize()
-    await this.doHighlight(doc.bufnr)
+    let highlighter = await this.getCurrentItem()
+    highlighter.checkState()
+    await highlighter.forceHighlight()
   }
 
   /**
    * Show semantic highlight info in temporarily buffer
    */
   public async showHiglightInfo(): Promise<void> {
-    if (!this.enabled) throw new Error('Semantic highlights is disabled.')
-    let { doc } = await this.handler.getCurrentState()
-    this.handler.checkProvier('semanticTokens', doc.textDocument)
-    let highlights = (await this.getHighlights(doc.bufnr)) || []
+    if (!this.config.enabled) throw new Error('Semantic highlights is disabled by configuration.')
+    let item = await this.getCurrentItem()
+    item.checkState()
+    let highlights = item.highlights || []
     let highlighter = new Highlighter()
     let { nvim } = this
     nvim.pauseNotification()
-    nvim.command(`vs +setl\\ buftype=nofile __coc_semantic_highlights_${doc.bufnr}__`, true)
+    nvim.command(`vs +setl\\ buftype=nofile __coc_semantic_highlights_${item.bufnr}__`, true)
     nvim.command(`setl bufhidden=wipe noswapfile nobuflisted wrap undolevels=-1`, true)
     nvim.call('bufnr', ['%'], true)
     let res = await nvim.resumeNotification()
@@ -109,6 +149,7 @@ export default class SemanticTokensHighlights {
     }
     highlighter.addLine('Tokens types that current Language Server supported:', headGroup)
     highlighter.addLine('')
+    let doc = workspace.getDocument(item.bufnr)
     const legend = languages.getLegend(doc.textDocument)
     if (legend?.tokenTypes.length) {
       for (const t of legend.tokenTypes) {
@@ -132,18 +173,6 @@ export default class SemanticTokensHighlights {
     highlighter.render(nvim.createBuffer(bufnr))
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     nvim.resumeNotification(false, true)
-  }
-
-  private async doHighlight(bufnr: number): Promise<void> {
-    let highlighter = this.highlighters.getItem(bufnr)
-    if (!highlighter) return
-    await highlighter.doHighlight()
-  }
-
-  public async getHighlights(bufnr: number): Promise<HighlightItem[]> {
-    let highlighter = this.highlighters.getItem(bufnr)
-    if (!highlighter) return []
-    return await highlighter.getHighlights(true)
   }
 
   public dispose(): void {
