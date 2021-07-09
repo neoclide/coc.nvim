@@ -952,6 +952,17 @@ function! coc#util#get_offset() abort
   return offset
 endfunction
 
+" Get single window by window variable
+function! coc#util#get_win(key, val) abort
+  for i in range(1, winnr('$'))
+    let res = getwinvar(i, a:key)
+    if res == a:val
+      return win_getid(i)
+    endif
+  endfor
+  return -1
+endfunction
+
 " Make sure window exists
 function! coc#util#win_gotoid(winid) abort
   noa let res = win_gotoid(a:winid)

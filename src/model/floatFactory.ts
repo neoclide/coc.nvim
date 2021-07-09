@@ -39,12 +39,6 @@ export interface FloatWinConfig {
   excludeImages?: boolean
 }
 
-export interface ViewportConfig {
-  lines: number
-  columns: number
-  cmdheight: number
-}
-
 /**
  * Float window/popup factory for create float/popup around current cursor.
  */

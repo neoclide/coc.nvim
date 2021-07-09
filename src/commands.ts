@@ -284,11 +284,11 @@ export class CommandManager implements Disposable {
     this.commands.clear()
   }
 
-  public execute(command: language.Command): void {
+  public execute(command: language.Command): Promise<any> {
     let args = [command.command]
     let arr = command.arguments
     if (arr) args.push(...arr)
-    this.executeCommand.apply(this, args)
+    return this.executeCommand.apply(this, args)
   }
 
   public register<T extends Command>(command: T, internal = false, description?: string): T {

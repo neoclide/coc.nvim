@@ -691,7 +691,7 @@ class Languages {
           await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, isSnippet)
           if (isSnippet) await snippetManager.selectCurrentPlaceholder()
           if (item.command && commands.has(item.command.command)) {
-            commands.execute(item.command)
+            await commands.execute(item.command)
           }
         } catch (e) {
           logger.error('Error on CompleteDone:', e)

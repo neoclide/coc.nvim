@@ -205,11 +205,11 @@ export default class CodeLensBuffer implements BufferSyncItem {
     if (commands.length == 0) {
       window.showMessage('CodeLenses command not found', 'warning')
     } else if (commands.length == 1) {
-      commandManager.execute(commands[0])
+      await commandManager.execute(commands[0])
     } else {
       let res = await window.showMenuPicker(commands.map(c => c.title))
       if (res == -1) return
-      commandManager.execute(commands[res])
+      await commandManager.execute(commands[res])
     }
   }
 

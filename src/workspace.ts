@@ -1186,25 +1186,24 @@ export class Workspace implements IWorkspace {
 
   public registerLocalKeymap(mode: 'n' | 'v' | 's' | 'x', key: string, fn: Function, notify = false): Disposable {
     let id = uuid()
-    let { nvim } = this
+    let { nvim, bufnr } = this
     this.keymaps.set(id, [fn, false])
-    let buf = this.nvim.createBuffer(this.bufnr)
     let method = notify ? 'notify' : 'request'
     let modify = getKeymapModifier(mode)
     // neoivm's bug '<' can't be used.
     let escaped = key.startsWith('<') && key.endsWith('>') ? `{${key.slice(1, -1)}}` : key
     if (this.isNvim && !global.hasOwnProperty('__TEST__')) {
-      buf.notify('nvim_buf_set_keymap', [mode, key, `:${modify}call coc#rpc#${method}('doKeymap', ['${id}', '', '${escaped}'])<CR>`, {
+      nvim.call('nvim_buf_set_keymap', [0, mode, key, `:${modify}call coc#rpc#${method}('doKeymap', ['${id}', '', '${escaped}'])<CR>`, {
         silent: true,
         nowait: true
-      }])
+      }], true)
     } else {
       let cmd = `${mode}noremap <silent><nowait><buffer> ${key} :${modify}call coc#rpc#${method}('doKeymap', ['${id}', '', '${escaped}'])<CR>`
       nvim.command(cmd, true)
     }
     return Disposable.create(() => {
       this.keymaps.delete(id)
-      nvim.call('coc#compat#buf_del_keymap', [buf.id, mode, key], true)
+      nvim.call('coc#compat#buf_del_keymap', [bufnr, mode, key], true)
     })
   }
 
