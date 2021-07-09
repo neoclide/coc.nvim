@@ -74,6 +74,7 @@ export default class SemanticTokensBuffer implements SyncItem {
       prev = (await nvim.call('coc#highlight#get_highlights', [this.bufnr, NAMESPACE])) as HighlightItem[]
     }
     const { highlights, lines } = this.calculateHighlightUpdates(prev, curr)
+    nvim.pauseNotification()
     if (!prev) {
       this.buffer.clearNamespace(NAMESPACE, 0, -1)
     } else {
@@ -81,14 +82,14 @@ export default class SemanticTokensBuffer implements SyncItem {
         this.buffer.clearNamespace(NAMESPACE, ln, ln + 1)
       }
     }
-    if (!highlights.length) return
     const groups: { [index: string]: Range[] } = {}
-    for (const h of highlights) {
-      const range = Range.create(h.lnum, h.colStart, h.lnum, h.colEnd)
-      groups[h.hlGroup] = groups[h.hlGroup] || []
-      groups[h.hlGroup].push(range)
+    if (highlights.length) {
+      for (const h of highlights) {
+        const range = Range.create(h.lnum, h.colStart, h.lnum, h.colEnd)
+        groups[h.hlGroup] = groups[h.hlGroup] || []
+        groups[h.hlGroup].push(range)
+      }
     }
-    nvim.pauseNotification()
     for (const hlGroup of Object.keys(groups)) {
       this.buffer.highlightRanges(NAMESPACE, hlGroup, groups[hlGroup])
     }
