@@ -161,11 +161,11 @@ function! coc#highlight#get_highlights(bufnr, key) abort
     let lines = getbufline(a:bufnr, 1, '$')
     let total = len(lines)
     for [_, line, start_col, details] in markers
-      let text = lines[line]
       if line >= total
         " Could be markers exceed end of line
         continue
       endif
+      let text = lines[line]
       let delta = details['end_row'] - line
       if delta > 1 || (delta == 1 && details['end_col'] != 0)
         " can't handle, single line only
