@@ -284,7 +284,8 @@ class Languages {
 
   public registerDocumentSemanticTokensProvider(selector: DocumentSelector, provider: DocumentSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
     return this.semanticTokensManager.register(selector, provider, legend, () => {
-      this._onDidSemanticTokensRefresh.fire(selector)
+      // TODO: disable #3201
+      // this._onDidSemanticTokensRefresh.fire(selector)
     })
   }
 
