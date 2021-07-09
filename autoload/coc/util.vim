@@ -338,13 +338,16 @@ endfunction
 function! coc#util#get_complete_option()
   let pos = getcurpos()
   let line = getline(pos[1])
-  let input = matchstr(strpart(line, 0, pos[2] - 1), '\k*$')
+  let before = strpart(line, 0, pos[2] - 1)
+  let char = len(before) != 0 ? nr2char(strgetchar(before, strchars(before) - 1)) : ''
+  let input = matchstr(before, '\k*$')
   let col = pos[2] - strlen(input)
   let synname = synIDattr(synID(pos[1], col, 1), 'name')
   return {
         \ 'word': matchstr(strpart(line, col - 1), '^\k\+'),
         \ 'input': empty(input) ? '' : input,
         \ 'line': line,
+        \ 'triggerCharacter': char,
         \ 'filetype': &filetype,
         \ 'filepath': expand('%:p'),
         \ 'bufnr': bufnr('%'),

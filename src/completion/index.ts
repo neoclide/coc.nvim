@@ -407,7 +407,11 @@ export class Completion implements Disposable {
       return
     }
     if (pre.length) {
-      option.triggerCharacter = pre.slice(-1)
+      let triggerCharacter = pre.slice(-1)
+      if (triggerCharacter !== option.triggerCharacter) {
+        logger.warn(`Got unexpected triggerCharacter: '${option.triggerCharacter}', using '${triggerCharacter}' instead`)
+        option.triggerCharacter = triggerCharacter
+      }
     }
     logger.debug('trigger completion with', option)
     await this.startCompletion(option)
