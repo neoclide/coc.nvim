@@ -39,10 +39,10 @@ export default class CodeLensBuffer implements BufferSyncItem {
   ) {
     this.fetchCodelenses = debounce(() => {
       this._fetchCodeLenses().logError()
-    }, global.hasOwnProperty('__TEST__') ? 10 : 100)
+    }, global.__TEST__ ? 10 : 100)
     this.resolveCodeLens = debounce(() => {
       this._resolveCodeLenses().logError()
-    }, global.hasOwnProperty('__TEST__') ? 10 : 200)
+    }, global.__TEST__ ? 10 : 200)
     this.forceFetch().logError()
   }
 

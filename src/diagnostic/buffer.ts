@@ -144,7 +144,7 @@ export class DiagnosticBuffer implements BufferSyncItem {
           type: getSeverityType(o.severity)
         }
       })
-      let method = global.hasOwnProperty('__TEST__') ? 'MockAleResults' : 'ale#other_source#ShowResults'
+      let method = global.__TEST__ ? 'MockAleResults' : 'ale#other_source#ShowResults'
       this.nvim.call(method, [this.bufnr, collection, aleItems], true)
     }
     this.nvim.resumeNotification().then(res => {

@@ -8,11 +8,10 @@ import { URI } from 'vscode-uri'
 import { version as VERSION } from '../package.json'
 
 const logger = require('./util/logger')('attach')
-const isTest = global.hasOwnProperty('__TEST__')
 
 export default (opts: Attach, requestApi = true): Plugin => {
   const nvim: NeovimClient = attach(opts, log4js.getLogger('node-client'), requestApi)
-  if (!global.hasOwnProperty('__TEST__')) {
+  if (!global.__TEST__) {
     nvim.call('coc#util#path_replace_patterns').then(prefixes => {
       if (objectLiteral(prefixes)) {
         const old_uri = URI.file
@@ -59,7 +58,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
       default: {
         let exists = plugin.hasAction(method)
         if (!exists) {
-          if (global.hasOwnProperty('__TEST__')) return
+          if (global.__TEST__) return
           console.error(`action "${method}" not exists`)
           return
         }
@@ -114,7 +113,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
   nvim.channelId.then(async channelId => {
     clientReady = true
     // Used for test client on vim side
-    if (isTest) nvim.command(`let g:coc_node_channel_id = ${channelId}`, true)
+    if (global.__TEST__) nvim.command(`let g:coc_node_channel_id = ${channelId}`, true)
     let { major, minor, patch } = semver.parse(VERSION)
     nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {})
     let entered = await nvim.getVvar('vim_did_enter')

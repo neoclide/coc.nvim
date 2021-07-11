@@ -170,7 +170,7 @@ export class Installer extends EventEmitter {
       })
       await p
     }
-    let jsonFile = path.resolve(this.root, global.hasOwnProperty('__TEST__') ? '' : '..', 'package.json')
+    let jsonFile = path.resolve(this.root, global.__TEST__ ? '' : '..', 'package.json')
     let errors: ParseError[] = []
     let obj = parse(fs.readFileSync(jsonFile, 'utf8'), errors, { allowTrailingComma: true })
     if (errors && errors.length > 0) {

@@ -3588,7 +3588,7 @@ export abstract class BaseLanguageClient {
               kind = 'log'
               this.outputChannel.appendLine(message.message)
           }
-          if (global.hasOwnProperty('__TEST__')) {
+          if (global.__TEST__) {
             console.log(`[${kind}] ${message.message}`)
             return
           }

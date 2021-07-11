@@ -59,7 +59,7 @@ export default class ColorBuffer implements SyncItem {
       this.doHighlight().catch(e => {
         logger.error('Error on color highlight:', e.stack)
       })
-    }, global.hasOwnProperty('__TEST__') ? 10 : 500)
+    }, global.__TEST__ ? 10 : 500)
   }
 
   public onChange(): void {
