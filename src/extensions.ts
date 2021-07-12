@@ -846,7 +846,6 @@ export class Extensions {
           storagePath: path.join(this.root, `${id}-data`),
           logger: createLogger(id)
         }
-        isActive = true
         if (!ext) {
           try {
             let isEmpty = !(packageJSON.engines || {}).hasOwnProperty('coc')
@@ -863,6 +862,7 @@ export class Extensions {
           isActive = false
           logger.error(`Error on active extension ${id}: ${e.stack}`, e)
         }
+        isActive = true
         return exports as API
       }
     }
