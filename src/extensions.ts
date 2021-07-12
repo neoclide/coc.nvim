@@ -830,13 +830,24 @@ export class Extensions {
   private createExtension(root: string, packageJSON: any, type: ExtensionType): void {
     let id = packageJSON.name
     let isActive = false
+    let isPending = false
     let exports = null
     let filename = path.join(root, packageJSON.main || 'index.js')
     let ext: ExtensionExport
     let subscriptions: Disposable[] = []
+    let queueActivates: Array<(api?: API) => void>
     let extension: any = {
       activate: async (): Promise<API> => {
         if (isActive) return exports as API
+        if (isPending) {
+          return new Promise<API>(res => {
+            if (!queueActivates) {
+              queueActivates = []
+            }
+            queueActivates.push(res)
+          })
+        }
+        isPending = true
         let context = {
           subscriptions,
           extensionPath: root,
@@ -863,6 +874,11 @@ export class Extensions {
           logger.error(`Error on active extension ${id}: ${e.stack}`, e)
         }
         isActive = true
+        if (queueActivates) {
+          queueActivates.forEach(res => res(exports as API))
+          queueActivates = undefined
+        }
+        isPending = false
         return exports as API
       }
     }
