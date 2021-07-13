@@ -159,7 +159,7 @@ class SymbolsBuffer implements SyncItem {
   constructor(public readonly bufnr: number) {
     this.fetchSymbols = debounce(() => {
       this._fetchSymbols().logError()
-    }, global.hasOwnProperty('__TEST__') ? 10 : 500)
+    }, global.__TEST__ ? 10 : 500)
   }
 
   public async getSymbols(): Promise<SymbolInfo[]> {

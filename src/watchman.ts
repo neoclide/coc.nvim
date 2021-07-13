@@ -113,7 +113,7 @@ export default class Watchman {
       root = path.join(watch, relative_path)
     }
     let { subscribe } = await this.command(['subscribe', watch, uid, sub])
-    if (global.hasOwnProperty('__TEST__')) (global as any).subscribe = subscribe
+    if (global.__TEST__) (global as any).subscribe = subscribe
     this.appendOutput(`subscribing "${globPattern}" in ${root}`)
     this.client.on('subscription', resp => {
       if (!resp || resp.subscription != uid) return

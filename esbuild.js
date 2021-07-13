@@ -36,7 +36,11 @@ async function start(watch) {
     watch,
     minify: process.env.NODE_ENV === 'production',
     sourcemap: process.env.NODE_ENV === 'development',
-    define: {REVISION: '"' + revision + '"', ESBUILD: 'true'},
+    define: {
+      REVISION: '"' + revision + '"',
+      ESBUILD: 'true',
+      'global.__TEST__': false
+    },
     mainFields: ['module', 'main'],
     platform: 'node',
     target: 'node12.12',

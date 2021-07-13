@@ -44,7 +44,7 @@ export default class SemanticTokensBuffer implements SyncItem {
       this.doHighlight().catch(e => {
         logger.error('Error on semanticTokens highlight:', e.stack)
       })
-    }, global.hasOwnProperty('__TEST__') ? 10 : 2000)
+    }, global.__TEST__ ? 10 : 2000)
     this.highlight()
   }
 

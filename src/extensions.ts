@@ -110,7 +110,7 @@ export class Extensions {
   public readonly onDidUnloadExtension: Event<string> = this._onDidUnloadExtension.event
 
   constructor() {
-    let folder = global.hasOwnProperty('__TEST__') ? path.join(__dirname, '__tests__') : process.env.COC_DATA_HOME
+    let folder = global.__TEST__ ? path.join(__dirname, '__tests__') : process.env.COC_DATA_HOME
     let root = this.root = path.join(folder, 'extensions')
     if (!fs.existsSync(root)) {
       fs.mkdirpSync(root)
@@ -184,7 +184,7 @@ export class Extensions {
         await floatFactory.show(docs, { modes: ['n'] })
       }
     }, 500))
-    if (global.hasOwnProperty('__TEST__')) return
+    if (global.__TEST__) return
     // check extensions need watch & install
     this.checkExtensions().logError()
     let config = workspace.getConfiguration('coc.preferences')
@@ -989,7 +989,7 @@ export class Extensions {
   }
 
   private get modulesFolder(): string {
-    return path.join(this.root, global.hasOwnProperty('__TEST__') ? '' : 'node_modules')
+    return path.join(this.root, global.__TEST__ ? '' : 'node_modules')
   }
 
   private canActivate(id: string): boolean {

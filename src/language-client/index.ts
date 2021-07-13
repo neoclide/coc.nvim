@@ -253,8 +253,8 @@ export class LanguageClient extends BaseLanguageClient {
   }
 
   private checkProcessDied(childProcess: ChildProcess | undefined): void {
-    if (!childProcess || global.hasOwnProperty('__TEST__')) return
-    if (global.hasOwnProperty('__TEST__')) {
+    if (!childProcess || global.__TEST__) return
+    if (global.__TEST__) {
       process.kill(childProcess.pid, 0)
       return
     }

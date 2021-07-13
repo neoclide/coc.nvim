@@ -438,7 +438,7 @@ export class Workspace implements IWorkspace {
    * doesn't fail when watchman not found.
    */
   public createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher {
-    let watchmanPath = global.hasOwnProperty('__TEST__') ? null : this.getWatchmanPath()
+    let watchmanPath = global.__TEST__ ? null : this.getWatchmanPath()
     let channel: OutputChannel = watchmanPath ? window.createOutputChannel('watchman') : null
     let promise = watchmanPath ? Watchman.createClient(watchmanPath, this.root, channel) : Promise.resolve(null)
     let watcher = new FileSystemWatcher(
@@ -499,7 +499,7 @@ export class Workspace implements IWorkspace {
     let locations: Location[] = []
     let changeCount = 0
     const preferences = this.getConfiguration('coc.preferences')
-    let promptUser = !global.hasOwnProperty('__TEST__') && preferences.get<boolean>('promptWorkspaceEdit', true)
+    let promptUser = !global.__TEST__ && preferences.get<boolean>('promptWorkspaceEdit', true)
     let listTarget = preferences.get<string>('listOfWorkspaceEdit', 'quickfix')
     try {
       if (documentChanges && documentChanges.length) {
@@ -1193,7 +1193,7 @@ export class Workspace implements IWorkspace {
     let modify = getKeymapModifier(mode)
     // neoivm's bug '<' can't be used.
     let escaped = key.startsWith('<') && key.endsWith('>') ? `{${key.slice(1, -1)}}` : key
-    if (this.isNvim && !global.hasOwnProperty('__TEST__')) {
+    if (this.isNvim && !global.__TEST__) {
       buf.notify('nvim_buf_set_keymap', [mode, key, `:${modify}call coc#rpc#${method}('doKeymap', ['${id}', '', '${escaped}'])<CR>`, {
         silent: true,
         nowait: true
@@ -1213,7 +1213,7 @@ export class Workspace implements IWorkspace {
    */
   public createDatabase(name: string): DB {
     let root: string
-    if (global.hasOwnProperty('__TEST__')) {
+    if (global.__TEST__) {
       root = path.join(os.tmpdir(), `coc-${process.pid}`)
       fs.mkdirpSync(root)
     } else {
