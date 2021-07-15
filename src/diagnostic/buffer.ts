@@ -10,6 +10,8 @@ const isVim = process.env.VIM_NODE_RPC == '1'
 const logger = require('../util/logger')('diagnostic-buffer')
 const signGroup = 'CocDiagnostic'
 const highlightNamespace = 'diagnostic'
+// higher priority first
+const hlGroups = ['CocErrorHighlight', 'CocWarningHighlight', 'CocInfoHighlight', 'CocHintHighlight', 'CocDeprecatedHighlight', 'CocUnusedHighlight']
 
 export enum DiagnosticState {
   Enabled,
@@ -289,7 +291,8 @@ export class DiagnosticBuffer implements BufferSyncItem {
     // needed for iteration performance and since diagnostic highlight may cross lines.
     res.sort((a, b) => {
       if (a.lnum != b.lnum) return a.lnum - b.lnum
-      return a.colStart - b.colStart
+      if (a.colStart != b.colStart) return a.colStart - b.colStart
+      return hlGroups.indexOf(b.hlGroup) - hlGroups.indexOf(a.hlGroup)
     })
     return res
   }
