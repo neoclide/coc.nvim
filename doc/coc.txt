@@ -2784,7 +2784,7 @@ CocSem_*						*CocSem*
   Basic defaults are provided for the "standard" token kinds, but any kind
   supported by the server can be highlighted by creating the highlight group.
 
-  Default (disable by setting `g:coc_default_semantic_highlight_groups = 0`):
+  Default (enabled by setting `g:coc_default_semantic_highlight_groups = 1`):
   `hi default link CocSem_namespace Identifier`
   `hi default link CocSem_type Type`
   `hi default link CocSem_class Structure`

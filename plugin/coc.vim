@@ -396,7 +396,7 @@ function! s:Hi() abort
   endif
   call s:AddAnsiGroups()
 
-  if get(g:, 'coc_default_semantic_highlight_groups', 1) == 1
+  if get(g:, 'coc_default_semantic_highlight_groups', 0) == 1
     hi default link CocSem_namespace Identifier
     hi default link CocSem_type Type
     hi default link CocSem_class Structure
