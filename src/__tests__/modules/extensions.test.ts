@@ -100,6 +100,7 @@ describe('extensions', () => {
 
   it('should reload extension', async () => {
     await extensions.reloadExtension('test')
+    await helper.wait(100)
     let stat = extensions.getExtensionState('test')
     expect(stat).toBe('activated')
   })

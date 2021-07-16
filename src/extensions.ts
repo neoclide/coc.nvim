@@ -834,6 +834,7 @@ export class Extensions {
     let filename = path.join(root, packageJSON.main || 'index.js')
     let ext: ExtensionExport
     let subscriptions: Disposable[] = []
+    let exports: any
     let extension: any = {
       activate: (): Promise<API> => {
         if (result) return result
@@ -859,6 +860,7 @@ export class Extensions {
           try {
             Promise.resolve(ext.activate(context)).then(res => {
               isActive = true
+              exports = res
               resolve(res)
             }, e => {
               logger.error(`Error on active extension ${id}: ${e.message}`, e)
@@ -890,7 +892,10 @@ export class Extensions {
         enumerable: true
       },
       exports: {
-        get: () => exports,
+        get: () => {
+          if (!isActive) throw new Error(`Invalid access to exports, extension "${id}" not activated`)
+          return exports
+        },
         enumerable: true
       }
     })
@@ -905,6 +910,7 @@ export class Extensions {
       deactivate: () => {
         if (!isActive) return
         result = undefined
+        exports = undefined
         isActive = false
         disposeAll(subscriptions)
         subscriptions.splice(0, subscriptions.length)
