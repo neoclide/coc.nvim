@@ -528,16 +528,16 @@ nnoremap <silent> <Plug>(coc-refactor)              :<C-u>call       CocActionAs
 inoremap <silent>                          <Plug>CocRefresh <C-r>=coc#_complete()<CR>
 
 nnoremap <silent> <Plug>(coc-cursors-operator) :<C-u>set operatorfunc=<SID>CursorRangeFromSelected<CR>g@
-vnoremap <silent> <Plug>(coc-cursors-range)    :<C-u>call coc#rpc#request('cursorsSelect', [bufnr('%'), 'range', visualmode()])<CR>
-nnoremap <silent> <Plug>(coc-cursors-word)     :<C-u>call coc#rpc#request('cursorsSelect', [bufnr('%'), 'word', 'n'])<CR>
-nnoremap <silent> <Plug>(coc-cursors-position) :<C-u>call coc#rpc#request('cursorsSelect', [bufnr('%'), 'position', 'n'])<CR>
+vnoremap <silent> <Plug>(coc-cursors-range)    :<C-u>call CocAction('cursorsSelect', bufnr('%'), 'range', visualmode())<CR>
+nnoremap <silent> <Plug>(coc-cursors-word)     :<C-u>call CocAction('cursorsSelect', bufnr('%'), 'word', 'n')<CR>
+nnoremap <silent> <Plug>(coc-cursors-position) :<C-u>call CocAction('cursorsSelect', bufnr('%'), 'position', 'n')<CR>
 
-vnoremap <silent> <Plug>(coc-funcobj-i)        :<C-U>call coc#rpc#request('selectSymbolRange', [v:true, visualmode(), ['Method', 'Function']])<CR>
-vnoremap <silent> <Plug>(coc-funcobj-a)        :<C-U>call coc#rpc#request('selectSymbolRange', [v:false, visualmode(), ['Method', 'Function']])<CR>
-onoremap <silent> <Plug>(coc-funcobj-i)        :<C-U>call coc#rpc#request('selectSymbolRange', [v:true, '', ['Method', 'Function']])<CR>
-onoremap <silent> <Plug>(coc-funcobj-a)        :<C-U>call coc#rpc#request('selectSymbolRange', [v:false, '', ['Method', 'Function']])<CR>
+vnoremap <silent> <Plug>(coc-funcobj-i)        :<C-U>call CocAction('selectSymbolRange', v:true, visualmode(), ['Method', 'Function'])<CR>
+vnoremap <silent> <Plug>(coc-funcobj-a)        :<C-U>call CocAction('selectSymbolRange', v:false, visualmode(), ['Method', 'Function'])<CR>
+onoremap <silent> <Plug>(coc-funcobj-i)        :<C-U>call CocAction('selectSymbolRange', v:true, '', ['Method', 'Function'])<CR>
+onoremap <silent> <Plug>(coc-funcobj-a)        :<C-U>call CocAction('selectSymbolRange', v:false, '', ['Method', 'Function'])<CR>
 
-vnoremap <silent> <Plug>(coc-classobj-i)       :<C-U>call coc#rpc#request('selectSymbolRange', [v:true, visualmode(), ['Interface', 'Struct', 'Class']])<CR>
-vnoremap <silent> <Plug>(coc-classobj-a)       :<C-U>call coc#rpc#request('selectSymbolRange', [v:false, visualmode(), ['Interface', 'Struct', 'Class']])<CR>
-onoremap <silent> <Plug>(coc-classobj-i)       :<C-U>call coc#rpc#request('selectSymbolRange', [v:true, '', ['Interface', 'Struct', 'Class']])<CR>
-onoremap <silent> <Plug>(coc-classobj-a)       :<C-U>call coc#rpc#request('selectSymbolRange', [v:false, '', ['Interface', 'Struct', 'Class']])<CR>
+vnoremap <silent> <Plug>(coc-classobj-i)       :<C-U>call CocAction('selectSymbolRange', v:true, visualmode(), ['Interface', 'Struct', 'Class'])<CR>
+vnoremap <silent> <Plug>(coc-classobj-a)       :<C-U>call CocAction('selectSymbolRange', v:false, visualmode(), ['Interface', 'Struct', 'Class'])<CR>
+onoremap <silent> <Plug>(coc-classobj-i)       :<C-U>call CocAction('selectSymbolRange', v:true, '', ['Interface', 'Struct', 'Class'])<CR>
+onoremap <silent> <Plug>(coc-classobj-a)       :<C-U>call CocAction('selectSymbolRange', v:false, '', ['Interface', 'Struct', 'Class'])<CR>

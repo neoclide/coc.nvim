@@ -1089,69 +1089,62 @@ INTERFACE						*coc-interface*
 
 Key mappings						*coc-key-mappings*
 
-Note: Use |:verbose| command to check key-mappings taking effect.
+Unlike some vim plugins, coc.nvim doesn't create user global key-mappings by
+default.  However, there're some cases that local key-mappings are enabled for
+current buffer.
 
-Note: Mappings that start with `i_` works for insert mode `n_` works for
-normal mode, `v_` works for visual mode.
+	Snippet jump key-mappings when snippet is activated:
+	|g:coc_snippet_prev| and |g:coc_snippet_next|.
+
+	Cursor jump and cancel key-mappings when cursors is activated
+	|coc-config-cursors|.
+
+	Dialog key-mappings for confirm and cancel dialog window
+	|coc-config-dialog|.
+
+	Key-mappings for |CocList| buffer: |coc-list-mappings|.
+
+Note: Use |:verbose| command to check key-mappings that taking effect.
 
 Note: Use 'noremap' with <Plug> will make the key-mapping not work at all.
 
 Note: Key-mappings are provided for convenient, use |CocActionAsync()| or
 |CocAction()| for more options.
 
-<Plug>(coc-diagnostic-info)				*n_coc-diagnostic-info*
+Normal mode key-mappings:~
 
-	Show diagnostic message of current position by invoke |coc-action-diagnosticInfo|
+*<plug>(coc-diagnostic-info)* Show diagnostic message of current position by
+invoke |coc-action-diagnosticInfo|
 
-<Plug>(coc-diagnostic-next)				*n_coc-diagnostic-next*
+*<plug>(coc-diagnostic-next)* Jump to next diagnostic position.
 
-	Jump to next diagnostic position.
+*<plug>(coc-diagnostic-prev)* Jump to previous diagnostic position.
 
-<Plug>(coc-diagnostic-prev)				*n_coc-diagnostic-prev*
+*<plug>(coc-diagnostic-next-error)* Jump to next diagnostic error position.
 
-	Jump to previous diagnostic position.
+*<plug>(coc-diagnostic-prev-error)* Jump to previous diagnostic error position.
 
-<Plug>(coc-diagnostic-next-error)			*n_coc-diagnostic-next-error*
+*<plug>(coc-definition)* Jump to definition(s) of current symbol by invoke
+|coc-action-jumpDefinition|
 
-	Jump to next diagnostic error position.
+*<plug>(coc-declaration)* Jump to declaration(s) of current symbol by invoke
+||coc-action-jumpDeclaration||
 
-<Plug>(coc-diagnostic-prev-error)			*n_coc-diagnostic-prev-error*
+*<plug>(coc-implementation)* Jump to implementation(s) of current symbol by
+invoke ||coc-action-jumpImplementation||
 
-	Jump to previous diagnostic error position.
+*<plug>(coc-type-definition)* Jump to type definition(s) of current symbol by
+invoke ||coc-action-jumpTypeDefinition||
 
-<Plug>(coc-definition)					*n_coc-definition*
+*<plug>(coc-references)* Jump to references of current symbol by invoke
+|coc-action-jumpReferences|
 
-	Jump to definition(s) of current symbol by invoke
-	|coc-action-jumpDefinition|
+*<plug>(coc-references-used)* Jump to references of current symbol exclude
+declarations.
 
-<Plug>(coc-declaration)					*n_coc-declaration*
+*<plug>(coc-format-selected)*
 
-	Jump to declaration(s) of current symbol by invoke
-	||coc-action-jumpDeclaration||
-
-<Plug>(coc-implementation)				*n_coc-implementation*
-
-	Jump to implementation(s) of current symbol by invoke
-	||coc-action-jumpImplementation||
-
-<Plug>(coc-type-definition)				*n_coc-type-definition*
-
-	Jump to type definition(s) of current symbol by invoke
-	||coc-action-jumpTypeDefinition||
-
-<Plug>(coc-references)					*n_coc-references*
-
-	Jump to references of current symbol by invoke
-	|coc-action-jumpReferences|
-
-<Plug>(coc-references-used)				*n_coc-references-used*
-
-	Jump to references of current symbol exclude declarations.
-
-<Plug>(coc-format-selected)				*n_coc-format-selected*
-							*v_coc-format-selected*
-
-	Format selected range, would work in both visual mode and normal mode,
+	Format selected range, works on both |visual-mode| and |normal-mode|,
 	when used in normal mode, the selection works on the motion object.
 
 	For example: >
@@ -1162,129 +1155,122 @@ Note: Key-mappings are provided for convenient, use |CocActionAsync()| or
 	makes `<leader>p` format the visually selected range, and you can use
 	`<leader>pap` to format a paragraph.
 
-<Plug>(coc-format)					*n_coc-format*
+*<plug>(coc-format)*
 
 	Format the whole buffer by invoke |coc-action-format|, normally you
 	would like to use a command like: >
 
 	command! -nargs=0 Format :call CocAction('format')
 <
-	to format the current buffer.
+	to format current buffer.
 
-<Plug>(coc-rename)					*n_coc-rename*
+*<plug>(coc-rename)* Rename symbol under cursor to a new word by invoke
+|coc-action-rename|
 
-	Rename symbol under cursor to a new word by invoke |coc-action-rename|
+*<plug>(coc-refactor)* Open refactor window for refactor of current symbol by
+invoke |coc-action-refactor|
 
-<Plug>(coc-codeaction)					*n_coc-codeaction*
+*<plug>(coc-command-repeat)* Repeat latest |CocCommand|.
 
-	Get and run code action(s) for current file, use |coc-codeaction-cursor|
-	for same beharior as VSCode.
+*<plug>(coc-codeaction)* Get and run code action(s) for current file, use
+|coc-codeaction-cursor| for same beharior as VSCode.
 
-<Plug>(coc-codeaction-line)				*n_coc-codeaction-line*
+*<plug>(coc-codeaction-line)* Get and run code action(s) for current line.
 
-	Get and run code action(s) for current line.
+*<plug>(coc-codeaction-cursor)* Get and run code action(s) using empty range
+at current cursor.
 
-<Plug>(coc-codeaction-cursor)				*n_coc-codeaction-cursor*
+*<plug>(Coc-codeaction-selected)* Get and run code action(s) with the selected
+region.  Works on both |visual-mode| and |normal-mode|.
 
-	Get and run code action(s) using empty range at current cursor.
+*<plug>(coc-openlink)* Open link under cursor.
 
-<Plug>(coc-codeaction-selected)				*n_coc-codeaction-selected*
-							*v_coc-codeaction-selected*
+*<plug>(coc-codelens-action)* Do command from codeLens of current line.
 
-	Get and run code action(s) with the selected region.
-	Works with both normal and visual mode.
+*<plug>(coc-fix-current)* Try first quickfix action for diagnostics of current
+line.
 
-<Plug>(coc-openlink)					*n_coc-openlink*
+*<plug>(coc-float-hide)* Hide all float windows/popups created by coc.nvim.
 
-	Open link under cursor.
+*<plug>(coc-float-jump)* Jump to first float window (neovim only), use
+|CTRL-W_p| for jump to previous window.
 
-<Plug>(coc-codelens-action)				*n_coc-codelens-action*
-
-	Do command from codeLens of current line.
-
-<Plug>(coc-fix-current)					*n_coc-fix-current*
-
-	Try first quickfix action for diagnostics of current line.
-
-<Plug>(coc-float-hide)					*n_coc-float-hide*
-
-	Hide all float windows.
-
-<Plug>(coc-float-jump)					*n_coc-float-jump*
-
-	Jump to first float window, works on neovim only since vim's popup
-	doesn't have support for focus.
-
-<Plug>(coc-refactor)					*n_coc-refactor*
-
-	Open refactor window for refactor of current symbol.
-
-<Plug>(coc-range-select)				*n_coc-range-select*
-<Plug>(coc-range-select)				*v_coc-range-select*
+*<plug>(coc-range-select)*
 
 	Select next selection range.
+	Works on both |visual-mode| and |normal-mode|.
 
-	Note: requires selection ranges feature of language server, like:
-	coc-tsserver, coc-python
+	Note: requires selection ranges feature of language server.
 
-<Plug>(coc-range-select-backward)			*v_coc-range-select-backward*
+*<plug>(coc-funcobj-i)*
+
+	Select inside function. Recommend mapping:
+	Works on both |visual-mode| and |normal-mode|.
+  >
+	xmap if <Plug>(coc-funcobj-i)
+	omap if <Plug>(coc-funcobj-i)
+<
+	Note: Requires 'textDocument.documentSymbol' support from the language
+	server.
+
+*<Plug>(coc-funcobj-a)*
+			
+	Select around function.  Works on both |visual-mode| and
+	|normal-mode|.  Recommended mapping:
+>
+	xmap af <Plug>(coc-funcobj-a)
+	omap af <Plug>(coc-funcobj-a)
+<
+	Note: Requires 'textDocument.documentSymbol' support from the language
+	server.
+
+*<Plug>(coc-classobj-i)*
+
+	Select inside class/struct/interface.  Works on both |visual-mode| and
+	|normal-mode|.  Recommended mapping:
+>
+	xmap ic <Plug>(coc-classobj-i)
+	omap ic <Plug>(coc-classobj-i)
+<
+	Note: Requires 'textDocument.documentSymbol' support from the language
+	server.
+
+*<plug>(coc-classobj-a)*
+
+	Select around class/struct/interface.  Works on both |visual-mode| and
+	|normal-mode|.  Recommended mapping:
+>
+	xmap ac <Plug>(coc-classobj-a)
+	omap ac <Plug>(coc-classobj-a)
+<
+	Note: Requires 'textDocument.documentSymbol' support from the language
+	server.
+
+
+*<plug>(coc-cursors-operator)* Add text to cursors session by motion object.
+
+*<Plug>(coc-cursors-word)* Add current word to cursors session.
+
+*<Plug>(coc-cursors-position)* Add current position as empty range to cursors
+session.
+
+Visual mode key-mappings:~
+
+*<plug>(coc-range-select-backward)*
 
 	Select previous selection range.
 
 	Note: requires selection ranges feature of language server, like:
 	coc-tsserver, coc-python
 
-<Plug>(coc-funcobj-i)					*n_coc-funcobj-i*
-							*v_coc-funcobj-i*
-
-      Select inside function. Recommend mapping:
-
-      xmap if <Plug>(coc-funcobj-i)
-      omap if <Plug>(coc-funcobj-i)
-
-      Note: Requires 'textDocument.documentSymbol' support from the language
-      server.
-
-<Plug>(coc-funcobj-a)					*n_coc-funcobj-a*
-							*v_coc-funcobj-a*
-
-	Select around function. Recommended mapping:
-
-	xmap af <Plug>(coc-funcobj-a)
-	omap af <Plug>(coc-funcobj-a)
-
-	Note: Requires 'textDocument.documentSymbol' support from the language
-	server.
-
-<Plug>(coc-classobj-i)					*n_coc-classobj-i*
-							*v_coc-classobj-i*
-
-	Select inside class/struct/interface. Recommended mapping:
-
-	xmap ic <Plug>(coc-classobj-i)
-	omap ic <Plug>(coc-classobj-i)
-
-	Note: Requires 'textDocument.documentSymbol' support from the language
-	server.
-
-
-<Plug>(coc-classobj-a)					*n_coc-classobj-a*
-							*v_coc-classobj-a*
-
-	Select around class/struct/interface. Recommended mapping:
-
-	xmap ac <Plug>(coc-classobj-a)
-	omap ac <Plug>(coc-classobj-a)
-
-	Note: Requires 'textDocument.documentSymbol' support from the language
-	server.
+*<plug>(coc-cursors-range)* Add selection to cursors session.
 
 ------------------------------------------------------------------------------
 VARIABLES						*coc-variables*
 
 ------------------------------------------------------------------------------
 
-User defined variables:
+User defined variables:~
 
 b:coc_enabled						*b:coc_enabled*
 
