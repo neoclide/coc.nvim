@@ -26,7 +26,6 @@ import CallHierarchy from './callHierarchy'
 import SemanticTokensHighlights from './semanticTokensHighlights/index'
 import Signature from './signature'
 import Symbols from './symbols'
-import SelectionRangeHandler from './selectionRange'
 const logger = require('../util/logger')('Handler')
 
 export interface CurrentState {
@@ -84,7 +83,7 @@ export default class Handler {
     this.callHierarchy = new CallHierarchy(nvim, this)
     this.documentHighlighter = new Highlights(nvim, this)
     this.semanticHighlighter = new SemanticTokensHighlights(nvim, this)
-    this.selectionRange = new SelectionRangeHandler(nvim, this);
+    this.selectionRange = new SelectionRange(nvim, this);
     this.disposables.push({
       dispose: () => {
         this.codeLens.dispose()
