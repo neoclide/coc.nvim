@@ -82,7 +82,7 @@ endfunction
 
 function s:inspect_type(v) abort
   let types = ['Number', 'String', 'Funcref', 'List', 'Dictionary', 'Float', 'Boolean', 'Null']
-  return get(types, type(a:v), 'Unknown('.a:v.')')
+  return get(types, type(a:v), 'Unknown')
 endfunction
 
 function! s:funcs.call_atomic(calls)
@@ -93,7 +93,7 @@ function! s:funcs.call_atomic(calls)
     try
       call add(res, call(s:funcs[name], arglist))
     catch /.*/
-      return [res, [i, s:inspect_type(v:exception), v:exception]]
+      return [res, [i, "VimException(".s:inspect_type(v:exception).")", v:exception]]
     endtry
   endfor
   return [res, v:null]
