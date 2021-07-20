@@ -83,7 +83,7 @@ export default class Handler {
     this.callHierarchy = new CallHierarchy(nvim, this)
     this.documentHighlighter = new Highlights(nvim, this)
     this.semanticHighlighter = new SemanticTokensHighlights(nvim, this)
-    this.selectionRange = new SelectionRange(nvim, this);
+    this.selectionRange = new SelectionRange(nvim, this)
     this.disposables.push({
       dispose: () => {
         this.codeLens.dispose()
