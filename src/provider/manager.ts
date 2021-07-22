@@ -47,7 +47,7 @@ export default class Manager<T> {
     return items.sort((a, b) => workspace.match(b.selector, document) - workspace.match(a.selector, document))
   }
 
-  protected toLocations(arr: (Definition | LocationLink[])[]): Location[] {
+  protected toLocations(arr: (Definition | LocationLink[] | null)[]): Location[] {
     let res: Location[] = []
     for (let def of arr) {
       if (!def) continue
@@ -58,8 +58,8 @@ export default class Manager<T> {
           if (Location.is(d)) {
             addLocation(res, d)
           } else if (LocationLink.is(d)) {
-            let { targetUri, targetSelectionRange } = d
-            addLocation(res, Location.create(targetUri, targetSelectionRange))
+            let { targetUri, targetSelectionRange, targetRange } = d
+            addLocation(res, Location.create(targetUri, targetSelectionRange || targetRange))
           }
         }
       } else {
