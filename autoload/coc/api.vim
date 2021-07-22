@@ -80,14 +80,20 @@ function! s:funcs.list_wins() abort
   return map(getwininfo(), 'v:val["winid"]')
 endfunction
 
+function s:inspect_type(v) abort
+  let types = ['Number', 'String', 'Funcref', 'List', 'Dictionary', 'Float', 'Boolean', 'Null']
+  return get(types, type(a:v), 'Unknown')
+endfunction
+
 function! s:funcs.call_atomic(calls)
   let res = []
-  for [key, arglist] in a:calls
+  for i in range(len(a:calls))
+    let [key, arglist] = a:calls[i]
     let name = key[5:]
     try
       call add(res, call(s:funcs[name], arglist))
     catch /.*/
-      return [res, v:exception]
+      return [res, [i, "VimException(".s:inspect_type(v:exception).")", v:exception]]
     endtry
   endfor
   return [res, v:null]
