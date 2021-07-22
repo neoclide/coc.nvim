@@ -1,6 +1,6 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { Disposable, SymbolInformation, SymbolKind, Range } from 'vscode-languageserver-protocol'
-import Symbols from '../../handler/symbols'
+import Symbols from '../../handler/symbols/index'
 import languages from '../../languages'
 import workspace from '../../workspace'
 import events from '../../events'

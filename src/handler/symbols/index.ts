@@ -1,17 +1,16 @@
 import { Neovim } from '@chemzqm/neovim'
-import debounce from 'debounce'
-import { CancellationTokenSource, Disposable, DocumentSymbol, Emitter, Event, Range, SymbolInformation, TextDocument } from 'vscode-languageserver-protocol'
-import events from '../events'
-import languages from '../languages'
-import BufferSync, { SyncItem } from '../model/bufferSync'
-import { HandlerDelegate } from '../types'
-import { getSymbolKind } from '../util/convert'
-import { disposeAll } from '../util/index'
-import { equals } from '../util/object'
-import { positionInRange, rangeInRange } from '../util/position'
-import window from '../window'
-import workspace from '../workspace'
-import { addDocumentSymbol, isDocumentSymbols, sortDocumentSymbols, sortSymbolInformations, SymbolInfo } from './helper'
+import { CancellationTokenSource, Disposable, Range, SymbolInformation } from 'vscode-languageserver-protocol'
+import events from '../../events'
+import languages from '../../languages'
+import BufferSync from '../../model/bufferSync'
+import { HandlerDelegate } from '../../types'
+import { disposeAll } from '../../util/index'
+import { equals } from '../../util/object'
+import { positionInRange, rangeInRange } from '../../util/position'
+import window from '../../window'
+import workspace from '../../workspace'
+import SymbolsBuffer from './buffer'
+import { convertSymbols, SymbolInfo } from './util'
 
 export default class Symbols {
   private buffers: BufferSync<SymbolsBuffer>
@@ -30,7 +29,7 @@ export default class Symbols {
       return buf
     })
     events.on('CursorHold', async (bufnr: number) => {
-      if (!this.functionUpdate || this.buffers.getItem(bufnr) == null) return
+      if (!this.functionUpdate || !this.buffers.getItem(bufnr)) return
       await this.getCurrentFunctionSymbol(bufnr)
     }, null, this.disposables)
     events.on('InsertEnter', (bufnr: number) => {
@@ -60,9 +59,11 @@ export default class Symbols {
     return await languages.resolveWorkspaceSymbol(symbolInfo, tokenSource.token)
   }
 
-  public async getDocumentSymbols(bufnr: number): Promise<SymbolInfo[]> {
+  public async getDocumentSymbols(bufnr: number): Promise<SymbolInfo[] | undefined> {
     let buf = this.buffers.getItem(bufnr)
-    return buf?.getSymbols()
+    if (!buf) return
+    let res = await buf.getSymbols()
+    return res ? convertSymbols(res) : undefined
   }
 
   public async getCurrentFunctionSymbol(bufnr?: number): Promise<string> {
@@ -143,98 +144,6 @@ export default class Symbols {
 
   public dispose(): void {
     this.buffers.dispose()
-    disposeAll(this.disposables)
-  }
-}
-
-class SymbolsBuffer implements SyncItem {
-  private disposables: Disposable[] = []
-  public fetchSymbols: (() => void) & { clear(): void }
-  private version: number
-  public autoUpdate = false
-  private symbols: SymbolInfo[] = []
-  private tokenSource: CancellationTokenSource
-  private readonly _onDidUpdate = new Emitter<DocumentSymbol[]>()
-  public readonly onDidUpdate: Event<DocumentSymbol[]> = this._onDidUpdate.event
-  constructor(public readonly bufnr: number) {
-    this.fetchSymbols = debounce(() => {
-      this._fetchSymbols().logError()
-    }, global.hasOwnProperty('__TEST__') ? 10 : 500)
-  }
-
-  public async getSymbols(): Promise<SymbolInfo[]> {
-    let doc = workspace.getDocument(this.bufnr)
-    if (!doc) return []
-    doc.forceSync()
-    this.autoUpdate = true
-    if (doc.version == this.version) return this.symbols
-    this.cancel()
-    await this._fetchSymbols()
-    return this.symbols
-  }
-
-  public onChange(): void {
-    this.cancel()
-  }
-
-  private get textDocument(): TextDocument | undefined {
-    return workspace.getDocument(this.bufnr)?.textDocument
-  }
-
-  private async _fetchSymbols(): Promise<void> {
-    let { textDocument } = this
-    if (!textDocument || textDocument.version == this.version) return
-    let { version } = textDocument
-    let tokenSource = this.tokenSource = new CancellationTokenSource()
-    let { token } = tokenSource
-    let symbols = await languages.getDocumentSymbol(textDocument, token)
-    this.tokenSource = undefined
-    if (symbols == null || token.isCancellationRequested) return
-    let level = 0
-    let res: SymbolInfo[] = []
-    if (isDocumentSymbols(symbols)) {
-      symbols.sort(sortDocumentSymbols)
-      symbols.forEach(s => addDocumentSymbol(res, s, level))
-    } else {
-      symbols.sort(sortSymbolInformations)
-      for (let sym of symbols) {
-        let { name, kind, location } = sym
-        let { start } = location.range
-        let o: SymbolInfo = {
-          col: start.character + 1,
-          lnum: start.line + 1,
-          text: name,
-          level: 0,
-          kind: getSymbolKind(kind),
-          range: location.range,
-          containerName: sym.containerName
-        }
-        res.push(o)
-      }
-    }
-    this.version = version
-    this.symbols = res
-    if (isDocumentSymbols(symbols)) {
-      this._onDidUpdate.fire(symbols)
-    } else {
-      this._onDidUpdate.fire(symbols.map(o => {
-        return DocumentSymbol.create(o.name, '', o.kind, o.location.range, o.location.range)
-      }))
-    }
-  }
-
-  public cancel(): void {
-    this.fetchSymbols.clear()
-    if (this.tokenSource) {
-      this.tokenSource.cancel()
-      this.tokenSource = null
-    }
-  }
-
-  public dispose(): void {
-    this.cancel()
-    this.symbols = undefined
-    this._onDidUpdate.dispose()
     disposeAll(this.disposables)
   }
 }

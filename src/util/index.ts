@@ -3,7 +3,7 @@ import debounce from 'debounce'
 import fs from 'fs'
 import isuri from 'isuri'
 import path from 'path'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { Disposable, MarkupContent, MarkupKind } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import which from 'which'
 import * as platform from './platform'
@@ -13,6 +13,13 @@ const logger = require('./logger')('util-index')
 export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o'
 
 export const CONFIG_FILE_NAME = 'coc-settings.json'
+
+export function isMarkdown(content: MarkupContent | string | undefined): boolean {
+  if (MarkupContent.is(content) && content.kind == MarkupKind.Markdown) {
+    return true
+  }
+  return false
+}
 
 export function escapeSingleQuote(str: string): string {
   return str.replace(/'/g, "''")

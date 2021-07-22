@@ -1,6 +1,6 @@
-import { DocumentSymbol, MarkupContent, MarkupKind, Range, SymbolInformation } from 'vscode-languageserver-protocol'
-import { getSymbolKind } from '../util/convert'
-import { comparePosition } from '../util/position'
+import { DocumentSymbol, Range, SymbolInformation } from 'vscode-languageserver-protocol'
+import { getSymbolKind } from '../../util/convert'
+import { comparePosition } from '../../util/position'
 
 export interface SymbolInfo {
   filepath?: string
@@ -14,6 +14,14 @@ export interface SymbolInfo {
   selectionRange?: Range
 }
 
+export function convertSymbols(symbols: DocumentSymbol[]): SymbolInfo[] {
+  let res: SymbolInfo[] = []
+  let arr = symbols.slice()
+  arr.sort(sortDocumentSymbols)
+  arr.forEach(s => addDocumentSymbol(res, s, 0))
+  return res
+}
+
 export function sortDocumentSymbols(a: DocumentSymbol, b: DocumentSymbol): number {
   let ra = a.selectionRange
   let rb = b.selectionRange
@@ -22,7 +30,7 @@ export function sortDocumentSymbols(a: DocumentSymbol, b: DocumentSymbol): numbe
 
 export function addDocumentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level: number): void {
   let { name, selectionRange, kind, children, range } = sym
-  let { start } = selectionRange
+  let { start } = selectionRange || range
   res.push({
     col: start.character + 1,
     lnum: start.line + 1,
@@ -40,25 +48,10 @@ export function addDocumentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level:
   }
 }
 
-export function sortSymbolInformations(a: SymbolInformation, b: SymbolInformation): number {
-  let sa = a.location.range.start
-  let sb = b.location.range.start
-  let d = sa.line - sb.line
-  return d == 0 ? sa.character - sb.character : d
-
-}
-
 function isDocumentSymbol(a: DocumentSymbol | SymbolInformation): a is DocumentSymbol {
   return a && !a.hasOwnProperty('location')
 }
 
 export function isDocumentSymbols(a: DocumentSymbol[] | SymbolInformation[]): a is DocumentSymbol[] {
   return isDocumentSymbol(a[0])
-}
-
-export function isMarkdown(content: MarkupContent | string | undefined): boolean {
-  if (MarkupContent.is(content) && content.kind == MarkupKind.Markdown) {
-    return true
-  }
-  return false
 }

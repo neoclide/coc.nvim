@@ -3,10 +3,9 @@ import { ConfigurationChangeEvent, HandlerDelegate } from '../types'
 import FloatFactory, { FloatWinConfig } from '../model/floatFactory'
 import { Documentation } from '../markdown'
 import { CancellationTokenSource, Disposable, Hover, MarkedString, MarkupContent, Range } from 'vscode-languageserver-protocol'
-import { disposeAll } from '../util'
+import { disposeAll, isMarkdown } from '../util'
 import { TextDocumentContentProvider } from '../provider'
 import workspace from '../workspace'
-import { isMarkdown } from './helper'
 import languages from '../languages'
 const logger = require('../util/logger')('handler-hover')
 

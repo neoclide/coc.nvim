@@ -5,10 +5,9 @@ import languages from '../languages'
 import Document from '../model/document'
 import FloatFactory from '../model/floatFactory'
 import { ConfigurationChangeEvent, HandlerDelegate } from '../types'
-import { disposeAll } from '../util'
+import { disposeAll, isMarkdown } from '../util'
 import { byteLength } from '../util/string'
 import workspace from '../workspace'
-import { isMarkdown } from './helper'
 const logger = require('../util/logger')('handler-signature')
 
 interface SignatureConfig {
