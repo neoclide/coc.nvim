@@ -3168,7 +3168,7 @@ declare module 'coc.nvim' {
       document: TextDocument,
       position: Position,
       token: CancellationToken
-    ): ProviderResult<Definition>
+    ): ProviderResult<Definition | DefinitionLink[]>
   }
 
   /**
@@ -3180,7 +3180,11 @@ declare module 'coc.nvim' {
     /**
      * Provide the declaration of the symbol at the given position and document.
      */
-    provideDeclaration(document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Definition | DefinitionLink[]>
+    provideDeclaration(
+      document: TextDocument,
+      position: Position,
+      token: CancellationToken
+    ): ProviderResult<Definition | DefinitionLink[]>
   }
 
   /**
@@ -3223,7 +3227,7 @@ declare module 'coc.nvim' {
       document: TextDocument,
       position: Position,
       token: CancellationToken
-    ): ProviderResult<Definition>
+    ): ProviderResult<Definition | DefinitionLink[]>
   }
 
   /**
@@ -3322,7 +3326,7 @@ declare module 'coc.nvim' {
       document: TextDocument,
       position: Position,
       token: CancellationToken
-    ): ProviderResult<Definition>
+    ): ProviderResult<Definition | DefinitionLink[]>
   }
 
   /**
