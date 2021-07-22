@@ -25,7 +25,7 @@ import SelectionRange from './selectionRange'
 import CallHierarchy from './callHierarchy'
 import SemanticTokensHighlights from './semanticTokensHighlights/index'
 import Signature from './signature'
-import Symbols from './symbols'
+import Symbols from './symbols/index'
 const logger = require('../util/logger')('Handler')
 
 export interface CurrentState {
