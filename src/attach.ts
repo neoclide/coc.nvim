@@ -9,6 +9,10 @@ import { version as VERSION } from '../package.json'
 
 const logger = require('./util/logger')('attach')
 const isTest = global.hasOwnProperty('__TEST__')
+/**
+ * Request actions that not need plugin ready
+ */
+const ACTIONS_NO_WAIT = ['installExtensions', 'updateExtensions']
 
 export default (opts: Attach, requestApi = true): Plugin => {
   const nvim: NeovimClient = attach(opts, log4js.getLogger('node-client'), requestApi)
@@ -94,7 +98,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
         await events.fire(args[0], args.slice(1))
         resp.send(undefined)
       } else {
-        if (!plugin.isReady) {
+        if (!plugin.isReady && !ACTIONS_NO_WAIT.includes(method)) {
           logger.warn(`Plugin not ready on request "${method}"`, args)
           resp.send('Plugin not ready', true)
           return
