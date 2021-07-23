@@ -5299,9 +5299,8 @@ declare module 'coc.nvim' {
     reveal(element: T, options?: { select?: boolean, focus?: boolean, expand?: boolean | number }): Thenable<void>
 
     /**
-     * Create tree view in new window, does nothing when it's visible.
+     * Create tree view in new window.
      *
-     * **NOTE:**
      * **NOTE:** TreeView with same viewId in current tab would be disposed.
      *
      * @param splitCommand The command to open TreeView window, default to 'belowright 30vs'
@@ -6758,6 +6757,15 @@ declare module 'coc.nvim' {
      * @returns A new output channel.
      */
     export function createOutputChannel(name: string): OutputChannel
+
+    /**
+     * Create a {@link TreeView} instance, call `show()` method to render.
+     *
+     * @param viewId Id of the view, used as title of TreeView when title not exists.
+     * @param options Options for creating the {@link TreeView}
+     * @returns a {@link TreeView}.
+     */
+    export function createTreeView<T>(viewId: string, options: TreeViewOptions<T>): TreeView<T>
 
     /**
      * Reveal buffer of output channel.

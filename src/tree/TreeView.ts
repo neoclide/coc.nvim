@@ -563,7 +563,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       if (typeof expand === 'number' && expand > 1) {
         let curr = Math.min(expand, 2)
         let nodes = await Promise.resolve(this.provider.getChildren(element))
-        while (nodes.length > 0) {
+        while (nodes?.length > 0) {
           let arr: T[] = []
           for (let n of nodes) {
             let item = await this.getTreeItem(n)
@@ -615,7 +615,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       this.addHeadLines(lines, highlights)
       let level = 0
       let lnum = lines.length
-      for (let node of nodes) {
+      for (let node of nodes || []) {
         let n = await this.appendTreeNode(node, level, lnum, renderedItems, highlights)
         lnum += n
       }
