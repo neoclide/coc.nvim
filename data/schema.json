@@ -1002,7 +1002,7 @@
     "tree.key.toggleSelection": {
       "type": "string",
       "default": "<space>",
-      "description": "Trigger key to select/unselect item, only works when the tree support many selection."
+      "description": "Trigger key to select/unselect item"
     },
     "tree.key.toggle": {
       "type": "string",

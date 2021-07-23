@@ -377,6 +377,35 @@ function! s:Hi() abort
   " Tree view highlights
   hi default link CocTreeTitle Title
   hi default link CocTreeOpenClose CocBold
+  hi default link CocTreeSelected CursorLine
+  " Symbol highlights
+  hi default link CocSymbolFile Statement
+  hi default link CocSymbolModule Statement
+  hi default link CocSymbolNamespace Statement
+  hi default link CocSymbolPackage Statement
+  hi default link CocSymbolClass Statement
+  hi default link CocSymbolMethod Function
+  hi default link CocSymbolProperty Keyword
+  hi default link CocSymbolField Normal
+  hi default link CocSymbolConstructor Function
+  hi default link CocSymbolEnum Normal
+  hi default link CocSymbolInterface Normal
+  hi default link CocSymbolFunction Function
+  hi default link CocSymbolVariable Normal
+  hi default link CocSymbolConstant Constant
+  hi default link CocSymbolString String
+  hi default link CocSymbolNumber Number
+  hi default link CocSymbolBoolean Boolean
+  hi default link CocSymbolArray Normal
+  hi default link CocSymbolObject Normal
+  hi default link CocSymbolKey Keyword
+  hi default link CocSymbolNull Type
+  hi default link CocSymbolEnumMember Normal
+  hi default link CocSymbolStruct Keyword
+  hi default link CocSymbolEvent Keyword
+  hi default link CocSymbolOperator Operator
+  hi default link CocSymbolTypeParameter Operator
+  hi default link CocSymbolDefault Normal
 
   if has('nvim')
     hi default link CocFloating NormalFloat
@@ -385,6 +414,9 @@ function! s:Hi() abort
   endif
   if !exists('*sign_getdefined') || empty(sign_getdefined('CocCurrentLine'))
     sign define CocCurrentLine linehl=CocMenuSel
+  endif
+  if !exists('*sign_getdefined') || empty(sign_getdefined('CocTreeSelected'))
+    sign define CocTreeSelected linehl=CocTreeSelected
   endif
   if has('nvim-0.5.0')
     hi default CocCursorTransparent gui=strikethrough blend=100

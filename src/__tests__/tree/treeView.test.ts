@@ -133,28 +133,25 @@ describe('TreeView', () => {
   })
 
   describe('configuration', () => {
-    afterEach(() => {
+    afterAll(() => {
       let { configurations } = workspace
       configurations.updateUserConfig({
-        'tree.openCloseHighlight': 'MoreMsg',
-        'tree.titleHighlight': 'Title',
+        'tree.openedIcon': '-',
+        'tree.closedIcon': '+',
       })
     })
 
-    it('should render with new highlights', async () => {
+    it('should change open close icon', async () => {
       createTreeView(defaultDef)
       await treeView.show()
       await helper.wait(50)
       let { configurations } = workspace
       configurations.updateUserConfig({
-        'tree.openCloseHighlight': 'CocBold',
-        'tree.titleHighlight': 'CocUnderline',
+        'tree.openedIcon': '',
+        'tree.closedIcon': '',
       })
       await helper.wait(50)
-      let bufnr = await nvim.eval(`bufnr('%')`)
-      let res = await nvim.call('coc#highlight#get', [bufnr, 'tree', 0, 2])
-      expect(res[0][0].hlGroup).toBe('CocUnderline')
-      expect(res[1][0].hlGroup).toBe('CocBold')
+      await checkLines(['test', ' a', ' b', '  g'])
     })
   })
 
@@ -276,7 +273,7 @@ describe('TreeView', () => {
       expect(signs[0]).toEqual({
         lnum: 2,
         id: 3001,
-        name: 'CocCurrentLine',
+        name: 'CocTreeSelected',
         priority: 10,
         group: 'CocTree'
       })
@@ -284,6 +281,43 @@ describe('TreeView', () => {
   })
 
   describe('key-mappings', () => {
+    it('should toggle selection by <space>', async () => {
+      createTreeView(defaultDef)
+      await treeView.show()
+      await helper.wait(50)
+      let selection: TreeNode[]
+      treeView.onDidChangeSelection(e => {
+        selection = e.selection
+      })
+      await nvim.command('exe 1')
+      await nvim.input('<space>')
+      await helper.wait(10)
+      await nvim.command('exe 2')
+      await nvim.input('<space>')
+      await helper.wait(50)
+      expect(selection.length).toBe(1)
+      await nvim.command('exe 3')
+      await nvim.input('<space>')
+      await helper.wait(50)
+      let buf = await nvim.buffer
+      let res = await nvim.call('sign_getplaced', [buf.id, { group: 'CocTree' }])
+      let signs = res[0].signs
+      expect(treeView.selection.length).toBe(1)
+      expect(signs.length).toBe(1)
+      expect(signs[0]).toEqual({
+        lnum: 3,
+        id: 3002,
+        name: 'CocTreeSelected',
+        priority: 10,
+        group: 'CocTree'
+      })
+      await nvim.input('<space>')
+      await helper.wait(50)
+      res = await nvim.call('sign_getplaced', [buf.id, { group: 'CocTree' }])
+      signs = res[0].signs
+      expect(signs.length).toBe(0)
+    })
+
     it('should close tree view by <esc>', async () => {
       createTreeView(defaultDef)
       await treeView.show()
