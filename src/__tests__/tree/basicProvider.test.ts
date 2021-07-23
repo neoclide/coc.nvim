@@ -8,12 +8,18 @@ let disposables: Disposable[] = []
 
 type NodeDef = [string, NodeDef[]?]
 
+interface CustomNode extends TreeNode {
+  kind?: string
+  x?: number
+  y?: number
+}
+
 afterEach(async () => {
   disposeAll(disposables)
   disposables = []
 })
 
-function createNode(label: string, children?: TreeNode[], key?: string, tooltip?: string): TreeNode {
+function createNode(label: string, children?: TreeNode[], key?: string, tooltip?: string): CustomNode {
   let res: TreeNode = { label }
   if (children) res.children = children
   if (tooltip) res.tooltip = tooltip
@@ -163,7 +169,7 @@ describe('BasicDataProvider', () => {
     })
 
     it('should resolve icon', async () => {
-      let provider = new BasicDataProvider({
+      let provider = new BasicDataProvider<CustomNode>({
         provideData: () => {
           let node = createNode('a', [], undefined, 'tip')
           node.kind = 'function'
@@ -403,7 +409,7 @@ describe('BasicDataProvider', () => {
         ['e', [['f']]]
       ]
       let nodes = createNodes(defs)
-      let provider = new BasicDataProvider({
+      let provider = new BasicDataProvider<CustomNode>({
         provideData: () => {
           return nodes
         }
