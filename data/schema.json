@@ -1034,11 +1034,21 @@
       "default": true,
       "description": "Reveal item in outline tree on cursor hold."
     },
+    "outline.keepWindow": {
+      "type": "boolean",
+      "default": true,
+      "description": "Jump back to original window after outline is shown."
+    },
     "outline.sortBy": {
       "type": "string",
       "default": "category",
       "description": "Sort method for symbols.",
       "enum": ["position", "name", "category"]
+    },
+    "outline.expandLevel": {
+      "type": "number",
+      "default": 1,
+      "description": "Expand level of tree nodes."
     },
     "coc.preferences.enableMessageDialog": {
       "type": "boolean",

@@ -10,11 +10,13 @@ import { positionInRange, rangeInRange } from '../../util/position'
 import window from '../../window'
 import workspace from '../../workspace'
 import SymbolsBuffer from './buffer'
+import Outline from './outline'
 import { convertSymbols, SymbolInfo } from './util'
 
 export default class Symbols {
   private buffers: BufferSync<SymbolsBuffer>
   private disposables: Disposable[] = []
+  private outline: Outline
 
   constructor(
     private nvim: Neovim,
@@ -22,12 +24,9 @@ export default class Symbols {
   ) {
     this.buffers = workspace.registerBufferSync(doc => {
       if (doc.buftype != '') return undefined
-      let buf = new SymbolsBuffer(doc.bufnr)
-      buf.onDidUpdate(async symbols => {
-        await events.fire('SymbolsUpdate', [buf.bufnr, symbols])
-      })
-      return buf
+      return new SymbolsBuffer(doc.bufnr)
     })
+    this.outline = new Outline(nvim, this.buffers)
     events.on('CursorHold', async (bufnr: number) => {
       if (!this.functionUpdate || !this.buffers.getItem(bufnr)) return
       await this.getCurrentFunctionSymbol(bufnr)
@@ -142,7 +141,16 @@ export default class Symbols {
     }
   }
 
+  public async showOutline(): Promise<void> {
+    await this.outline.show()
+  }
+
+  public async hideOutline(): Promise<void> {
+    await this.outline.hide()
+  }
+
   public dispose(): void {
+    this.outline.dispose()
     this.buffers.dispose()
     disposeAll(this.disposables)
   }

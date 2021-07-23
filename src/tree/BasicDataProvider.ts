@@ -16,6 +16,8 @@ export interface TreeNode {
 
 export interface ProviderOptions<T> {
   provideData: () => ProviderResult<T[]>
+  expandLevel?: number
+  onDispose?: () => void
   handleClick?: (item: T) => ProviderResult<void>
   resolveIcon?: (item: T) => TreeItemIcon | undefined
   resolveItem?: (item: TreeItem, element: T, token: CancellationToken) => ProviderResult<TreeItem>
@@ -60,16 +62,18 @@ export default class BasicDataProvider<T extends TreeNode> implements TreeDataPr
     this.disposables.push(commandsManager.registerCommand(this.invokeCommand, async (node: T) => {
       if (typeof opts.handleClick === 'function') {
         await opts.handleClick(node)
+      } else {
+        console.error('Handler not found')
       }
     }, null, true))
   }
 
-  private iterate(node: T, parentNode: T | undefined, fn: (node: T, parentNode?: T) => void | boolean): void | boolean {
-    let res = fn(node, parentNode)
+  private iterate(node: T, parentNode: T | undefined, level: number, fn: (node: T, parentNode: T | undefined, level: number) => void | boolean): void | boolean {
+    let res = fn(node, parentNode, level)
     if (res === false) return false
     if (Array.isArray(node.children)) {
       for (let element of node.children) {
-        let res = this.iterate(element, node, fn)
+        let res = this.iterate(element, node, level + 1, fn)
         if (res === false) return false
       }
     }
@@ -150,7 +154,19 @@ export default class BasicDataProvider<T extends TreeNode> implements TreeDataPr
 
   public getTreeItem(node: T): TreeItem {
     let label: string | TreeItemLabel = node.label
-    let item = node.children?.length ? new TreeItem(label, TreeItemCollapsibleState.Collapsed) : new TreeItem(label)
+    let { expandLevel } = this.opts
+    let item: TreeItem
+    if (!node.children?.length) {
+      item = new TreeItem(label)
+    } else {
+      if (expandLevel && expandLevel > 0) {
+        let level = this.getLevel(node)
+        let state = level && level <= expandLevel ? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed
+        item = new TreeItem(label, state)
+      } else {
+        item = new TreeItem(label, TreeItemCollapsibleState.Collapsed)
+      }
+    }
     if (node.tooltip) item.tooltip = node.tooltip
     if (isIcon(node.icon)) {
       item.icon = node.icon
@@ -177,7 +193,7 @@ export default class BasicDataProvider<T extends TreeNode> implements TreeDataPr
     if (!this.data) return undefined
     let find: T
     for (let item of this.data) {
-      let res = this.iterate(item, null, (node, parentNode) => {
+      let res = this.iterate(item, null, 0, (node, parentNode) => {
         if (node === element) {
           find = parentNode
           return false
@@ -186,6 +202,21 @@ export default class BasicDataProvider<T extends TreeNode> implements TreeDataPr
       if (res === false) break
     }
     return find
+  }
+
+  private getLevel(element: T): number {
+    if (!this.data) return undefined
+    let level = 0
+    for (let item of this.data) {
+      let res = this.iterate(item, null, 1, (node, _parentNode, l) => {
+        if (node === element) {
+          level = l
+          return false
+        }
+      })
+      if (res === false) break
+    }
+    return level
   }
 
   /**
@@ -209,6 +240,9 @@ export default class BasicDataProvider<T extends TreeNode> implements TreeDataPr
   public dispose(): void {
     this.data = []
     this._onDidChangeTreeData.dispose()
+    if (typeof this.opts.onDispose === 'function') {
+      this.opts.onDispose()
+    }
     disposeAll(this.disposables)
   }
 }
