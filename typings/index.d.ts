@@ -5071,6 +5071,307 @@ declare module 'coc.nvim' {
   }
   // }}
 
+  // TreeView related {{
+  export interface TreeItemLabel {
+    label: string
+    highlights?: [number, number][]
+  }
+
+  export interface TreeItemIcon {
+    text: string
+    hlGroup: string
+  }
+
+  /**
+   * Collapsible state of the tree item
+   */
+  export enum TreeItemCollapsibleState {
+    /**
+     * Determines an item can be neither collapsed nor expanded. Implies it has no children.
+     */
+    None = 0,
+    /**
+     * Determines an item is collapsed
+     */
+    Collapsed = 1,
+    /**
+     * Determines an item is expanded
+     */
+    Expanded = 2
+  }
+
+  export class TreeItem {
+    /**
+     * A human-readable string describing this item. When `falsy`, it is derived from {@link TreeItem.resourceUri resourceUri}.
+     */
+    label?: string | TreeItemLabel
+
+    /**
+     * The icon path or {@link ThemeIcon} for the tree item.
+     * When `falsy`, {@link ThemeIcon.Folder Folder Theme Icon} is assigned, if item is collapsible otherwise {@link ThemeIcon.File File Theme Icon}.
+     * When a file or folder {@link ThemeIcon} is specified, icon is derived from the current file icon theme for the specified theme icon using {@link TreeItem.resourceUri resourceUri} (if provided).
+     */
+    icon?: TreeItemIcon
+
+    /**
+     * Optional id for the tree item that has to be unique across tree. The id is used to preserve the selection and expansion state of the tree item.
+     *
+     * If not provided, an id is generated using the tree item's resourceUri when exists. **Note** that when labels change, ids will change and that selection and expansion state cannot be kept stable anymore.
+     */
+    id?: string
+
+    /**
+     * The {@link Uri} of the resource representing this item.
+     *
+     * Will be used to derive the {@link TreeItem.label label}, when it is not provided.
+     * Will be used to derive the icon from current file icon theme, when {@link TreeItem.iconPath iconPath} has {@link ThemeIcon} value.
+     */
+    resourceUri?: Uri
+
+    /**
+     * The tooltip text when you hover over this item.
+     */
+    tooltip?: string | MarkupContent
+
+    /**
+     * The {@link Command} that should be executed when the tree item is selected.
+     *
+     * Please use `vscode.open` or `vscode.diff` as command IDs when the tree item is opening
+     * something in the editor. Using these commands ensures that the resulting editor will
+     * appear consistent with how other built-in trees open editors.
+     */
+    command?: Command
+
+    /**
+     * {@link TreeItemCollapsibleState} of the tree item.
+     */
+    collapsibleState?: TreeItemCollapsibleState
+
+    /**
+     * @param label A human-readable string describing this item
+     * @param collapsibleState {@link TreeItemCollapsibleState} of the tree item. Default is {@link TreeItemCollapsibleState.None}
+     */
+    constructor(label: string | TreeItemLabel, collapsibleState?: TreeItemCollapsibleState)
+
+    /**
+     * @param resourceUri The {@link Uri} of the resource representing this item.
+     * @param collapsibleState {@link TreeItemCollapsibleState} of the tree item. Default is {@link TreeItemCollapsibleState.None}
+     */
+    constructor(resourceUri: Uri, collapsibleState?: TreeItemCollapsibleState)
+  }
+
+  /**
+   * Options for creating a {@link TreeView}
+   */
+  export interface TreeViewOptions<T> {
+    /**
+     * Fixed width for window, default to true
+     */
+    winfixwidth?: boolean
+    /**
+     * Disable indent of leaves without children, default to false
+     */
+    disableLeafIndent?: boolean
+    /**
+     * A data provider that provides tree data.
+     */
+    treeDataProvider: TreeDataProvider<T>
+    /**
+     * Enable check children for TreeItemCollapsibleState change, default to true
+     */
+    checkCollapseState?: boolean
+    /**
+     * Whether the tree supports multi-select. When the tree supports multi-select and a command is executed from the tree,
+     * the first argument to the command is the tree item that the command was executed on and the second argument is an
+     * array containing all selected tree items.
+     */
+    canSelectMany?: boolean
+  }
+
+  /**
+   * The event that is fired when an element in the {@link TreeView} is expanded or collapsed
+   */
+  export interface TreeViewExpansionEvent<T> {
+
+    /**
+     * Element that is expanded or collapsed.
+     */
+    readonly element: T
+
+  }
+
+  /**
+   * The event that is fired when there is a change in {@link TreeView.selection tree view's selection}
+   */
+  export interface TreeViewSelectionChangeEvent<T> {
+
+    /**
+     * Selected elements.
+     */
+    readonly selection: T[]
+
+  }
+
+  /**
+   * The event that is fired when there is a change in {@link TreeView.visible tree view's visibility}
+   */
+  export interface TreeViewVisibilityChangeEvent {
+
+    /**
+     * `true` if the {@link TreeView tree view} is visible otherwise `false`.
+     */
+    readonly visible: boolean
+
+  }
+
+  /**
+   * Represents a Tree view
+   */
+  export interface TreeView<T> extends Disposable {
+
+    /**
+     * Event that is fired when an element is expanded
+     */
+    readonly onDidExpandElement: Event<TreeViewExpansionEvent<T>>
+
+    /**
+     * Event that is fired when an element is collapsed
+     */
+    readonly onDidCollapseElement: Event<TreeViewExpansionEvent<T>>
+
+    /**
+     * Currently selected elements.
+     */
+    readonly selection: T[]
+
+    /**
+     * Event that is fired when the {@link TreeView.selection selection} has changed
+     */
+    readonly onDidChangeSelection: Event<TreeViewSelectionChangeEvent<T>>
+
+    /**
+     * Event that is fired when {@link TreeView.visible visibility} has changed
+     */
+    readonly onDidChangeVisibility: Event<TreeViewVisibilityChangeEvent>
+
+    /**
+     * `true` if the {@link TreeView tree view} is visible otherwise `false`.
+     *
+     * **NOTE:** is `true` when TreeView visible on other tab.
+     */
+    readonly visible: boolean
+
+    /**
+     * Window id used by TreeView.
+     */
+    readonly windowId: number | undefined
+
+    /**
+     * An optional human-readable message that will be rendered in the view.
+     * Setting the message to null, undefined, or empty string will remove the message from the view.
+     */
+    message?: string
+
+    /**
+     * The tree view title is initially taken from viewId of TreeView
+     * Changes to the title property will be properly reflected in the UI in the title of the view.
+     */
+    title?: string
+
+    /**
+     * An optional human-readable description which is rendered less prominently in the title of the view.
+     * Setting the title description to null, undefined, or empty string will remove the description from the view.
+     */
+    description?: string
+
+    /**
+     * Reveals the given element in the tree view.
+     * If the tree view is not visible then the tree view is shown and element is revealed.
+     *
+     * By default revealed element is selected.
+     * In order to not to select, set the option `select` to `false`.
+     * In order to focus, set the option `focus` to `true`.
+     * In order to expand the revealed element, set the option `expand` to `true`. To expand recursively set `expand` to the number of levels to expand.
+     * **NOTE:** You can expand only to 3 levels maximum.
+     *
+     * **NOTE:** The {@link TreeDataProvider} that the `TreeView` {@link window.createTreeView is registered with} with must implement {@link TreeDataProvider.getParent getParent} method to access this API.
+     */
+    reveal(element: T, options?: { select?: boolean, focus?: boolean, expand?: boolean | number }): Thenable<void>
+
+    /**
+     * Create tree view in new window, does nothing when it's visible.
+     *
+     * **NOTE:**
+     * **NOTE:** TreeView with same viewId in current tab would be disposed.
+     *
+     * @param splitCommand The command to open TreeView window, default to 'belowright 30vs'
+     */
+    show(splitCommand?: string): Promise<void>
+  }
+
+  /**
+   * A data provider that provides tree data
+   */
+  export interface TreeDataProvider<T> {
+    /**
+     * An optional event to signal that an element or root has changed.
+     * This will trigger the view to update the changed element/root and its children recursively (if shown).
+     * To signal that root has changed, do not pass any argument or pass `undefined` or `null`.
+     */
+    onDidChangeTreeData?: Event<T | undefined | null | void>
+
+    /**
+     * Get {@link TreeItem} representation of the `element`
+     *
+     * @param element The element for which {@link TreeItem} representation is asked for.
+     * @return {@link TreeItem} representation of the element
+     */
+    getTreeItem(element: T): TreeItem | Thenable<TreeItem>
+
+    /**
+     * Get the children of `element` or root if no element is passed.
+     *
+     * @param element The element from which the provider gets children. Can be `undefined`.
+     * @return Children of `element` or root if no element is passed.
+     */
+    getChildren(element?: T): ProviderResult<T[]>
+
+    /**
+     * Optional method to return the parent of `element`.
+     * Return `null` or `undefined` if `element` is a child of root.
+     *
+     * **NOTE:** This method should be implemented in order to access {@link TreeView.reveal reveal} API.
+     *
+     * @param element The element for which the parent has to be returned.
+     * @return Parent of `element`.
+     */
+    getParent?(element: T): ProviderResult<T>
+
+    /**
+     * Called on hover to resolve the {@link TreeItem.tooltip TreeItem} property if it is undefined.
+     * Called on tree item click/open to resolve the {@link TreeItem.command TreeItem} property if it is undefined.
+     * Only properties that were undefined can be resolved in `resolveTreeItem`.
+     * Functionality may be expanded later to include being called to resolve other missing
+     * properties on selection and/or on open.
+     *
+     * Will only ever be called once per TreeItem.
+     *
+     * onDidChangeTreeData should not be triggered from within resolveTreeItem.
+     *
+     * *Note* that this function is called when tree items are already showing in the UI.
+     * Because of that, no property that changes the presentation (label, description, etc.)
+     * can be changed.
+     *
+     * @param item Undefined properties of `item` should be set then `item` should be returned.
+     * @param element The object associated with the TreeItem.
+     * @param token A cancellation token.
+     * @return The resolved tree item or a thenable that resolves to such. It is OK to return the given
+     * `item`. When no result is returned, the given `item` will be used.
+     */
+    resolveTreeItem?(item: TreeItem, element: T, token: CancellationToken): ProviderResult<TreeItem>
+  }
+  // }}
+
   // workspace module {{
   /**
    * An event describing the change in Configuration
