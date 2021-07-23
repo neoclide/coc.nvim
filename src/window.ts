@@ -12,6 +12,8 @@ import Notification, { NotificationConfig, NotificationPreferences } from './mod
 import Picker, { QuickPickItem } from './model/picker'
 import ProgressNotification, { Progress } from './model/progress'
 import StatusLine, { StatusBarItem } from './model/status'
+import { TreeView, TreeViewOptions } from './tree'
+import BasicTreeView from './tree/TreeView'
 import { MessageLevel, OutputChannel } from './types'
 import { CONFIG_FILE_NAME, disposeAll } from './util'
 import { Mutex } from './util/mutex'
@@ -561,6 +563,17 @@ class Window {
       cancellable: options.cancellable
     })
     return await progress.show(this.notificationPreference)
+  }
+
+  /**
+   * Create a {@link TreeView} instance.
+   *
+   * @param viewId Id of the view, used as title of TreeView when title not exists.
+   * @param options Options for creating the {@link TreeView}
+   * @returns a {@link TreeView}.
+   */
+  public createTreeView<T>(viewId: string, options: TreeViewOptions<T>): TreeView<T> {
+    return new BasicTreeView(viewId, options)
   }
 
   private createNotification(borderhighlight: string, message: string, items: string[]): Promise<number> {

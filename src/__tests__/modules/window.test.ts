@@ -1,5 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Range } from 'vscode-languageserver-protocol'
+import { Disposable, Emitter, Range } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
+import { TreeItem, TreeItemCollapsibleState } from '../../tree'
 import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
@@ -8,6 +10,11 @@ import helper from '../helper'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
+
+interface FileNode {
+  filepath: string
+  isFolder?: boolean
+}
 
 beforeAll(async () => {
   await helper.setup()
@@ -84,6 +91,40 @@ describe('window functions', () => {
   it('should create outputChannel', () => {
     let channel = window.createOutputChannel('channel')
     expect(channel.name).toBe('channel')
+  })
+
+  it('should create TreeView instance', async () => {
+    let emitter = new Emitter<FileNode | undefined>()
+    let removed = false
+    let treeView = window.createTreeView('files', {
+      checkCollapseState: false,
+      treeDataProvider: {
+        onDidChangeTreeData: emitter.event,
+        getChildren: root => {
+          if (root) return undefined
+          if (removed) return [{ filepath: '/foo/a', isFolder: true }]
+          return [{ filepath: '/foo/a', isFolder: true }, { filepath: '/foo/b.js' }]
+        },
+        getTreeItem: (node: FileNode) => {
+          let { filepath, isFolder } = node
+          return new TreeItem(URI.file(filepath), isFolder ? TreeItemCollapsibleState.Collapsed : TreeItemCollapsibleState.None)
+        },
+      }
+    })
+    disposables.push(emitter)
+    disposables.push(treeView)
+    await treeView.show()
+    await helper.wait(50)
+    await nvim.command('exe 2')
+    await nvim.input('t')
+    await helper.wait(50)
+    let lines = await nvim.call('getline', [1, '$'])
+    expect(lines).toEqual(['files', '- a', '  b.js'])
+    removed = true
+    emitter.fire(undefined)
+    await helper.wait(50)
+    lines = await nvim.call('getline', [1, '$'])
+    expect(lines).toEqual(['files', '- a'])
   })
 
   it('should show outputChannel', async () => {
