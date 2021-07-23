@@ -446,7 +446,17 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (obj != null) return obj.item
     let item = await Promise.resolve(this.provider.getTreeItem(element))
     if (!item) throw new Error('Unable to resolve tree item')
-    this.nodesMap.set(element, { item, resolved: false })
+    let resolved = false
+    if (item.id) {
+      for (let obj of this.nodesMap.values()) {
+        if (obj.item.id === item.id) {
+          resolved = obj.resolved
+          item.collapsibleState = obj.item.collapsibleState
+          break
+        }
+      }
+    }
+    this.nodesMap.set(element, { item, resolved })
     return item
   }
 

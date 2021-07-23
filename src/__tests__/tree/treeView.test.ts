@@ -1,6 +1,8 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
 import TreeView from '../../tree/TreeView'
+import { TreeItem } from '../../tree/TreeItem'
 import BasicDataProvider, { ProviderOptions, TreeNode } from '../../tree/BasicDataProvider'
 import { disposeAll } from '../../util'
 import events from '../../events'
@@ -88,6 +90,15 @@ async function checkLines(arr: string[]): Promise<void> {
 }
 
 describe('TreeView', () => {
+  describe('TreeItem()', () => {
+    it('should create TreeItem from resourceUri', async () => {
+      let item = new TreeItem(URI.file('/foo/bar.ts'))
+      expect(item.resourceUri).toBeDefined()
+      expect(item.label).toBe('bar.ts')
+      expect(item.label).toBeDefined()
+    })
+  })
+
   describe('show()', () => {
     it('should show with title', async () => {
       createTreeView(defaultDef)
