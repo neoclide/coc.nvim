@@ -2581,6 +2581,44 @@ Tree view related~
 
 *CocTreeTitle* for title in tree view.
 *CocTreeOpenClose* for open and close icon in tree view.
+*CocTreeSelected* for highlight lines contains selected node.
+
+Symbol icons~
+
+CocSymbol* 						*CocSymbol*
+
+Highlight groups for symbol icons, including:
+
+*CocSymbolFile*
+*CocSymbolModule*
+*CocSymbolNamespace*
+*CocSymbolPackage*
+*CocSymbolClass*
+*CocSymbolMethod*
+*CocSymbolProperty*
+*CocSymbolField*
+*CocSymbolConstructor*
+*CocSymbolEnum*
+*CocSymbolInterface*
+*CocSymbolFunction*
+*CocSymbolVariable*
+*CocSymbolConstant*
+*CocSymbolString*
+*CocSymbolNumber*
+*CocSymbolBoolean*
+*CocSymbolArray*
+*CocSymbolObject*
+*CocSymbolKey*
+*CocSymbolNull*
+*CocSymbolEnumMember*
+*CocSymbolStruct*
+*CocSymbolEvent*
+*CocSymbolOperator*
+*CocSymbolTypeParameter*
+*CocSymbolDefault*
+
+Note: Use configuration `suggest.completionItemKindLabels` for customized icon
+characters.
 
 Others~
 

@@ -330,7 +330,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   }
 
   public get selection(): T[] {
-    return this._selection
+    return this._selection.slice()
   }
 
   public async checkLines(): Promise<boolean> {
@@ -390,33 +390,32 @@ export default class BasicTreeView<T> implements TreeView<T> {
 
   private selectItem(item: T): void {
     let { nvim } = this
+    if (this._selection.includes(item)
+      || !this.bufnr
+      || !workspace.env.sign) return
+    let row = this.getItemLnum(item)
+    if (row == null) return
     if (!this.canSelectMany) {
       this._selection = [item]
     } else {
-      if (this._selection.includes(item)) return
       this._selection.push(item)
     }
-    let row = this.getItemLnum(item)
-    if (row == null) return
-    if (this.bufnr) {
-      if (!this.canSelectMany) {
-        this.nvim.call('coc#compat#execute', [this.winid, `exe ${row + 1}`], true)
-      } else {
-        if (workspace.env.sign) {
-          nvim.call('sign_place', [signOffset + row, 'CocTree', 'CocCurrentLine', this.bufnr, { lnum: row + 1 }], true)
-        }
-      }
+    nvim.pauseNotification()
+    if (!this.canSelectMany) {
+      nvim.call('sign_unplace', ['CocTree', { buffer: this.bufnr }], true)
     }
+    nvim.call('coc#compat#execute', [this.winid, `exe ${row + 1}`], true)
+    nvim.call('sign_place', [signOffset + row, 'CocTree', 'CocTreeSelected', this.bufnr, { lnum: row + 1 }], true)
+    void nvim.resumeNotification(false, true)
     this._onDidChangeSelection.fire({ selection: this._selection })
   }
 
   private unselectItem(idx: number): void {
     let item = this._selection[idx]
-    this._selection.splice(idx, 1)
     let row = this.getItemLnum(item)
-    if (row != null && this.winid && workspace.env.sign) {
-      this.nvim.call('sign_unplace', ['CocTree', { buffer: this.bufnr, id: signOffset + row }], true)
-    }
+    if (row == null || !this.bufnr || !workspace.env.sign) return
+    this._selection.splice(idx, 1)
+    this.nvim.call('sign_unplace', ['CocTree', { buffer: this.bufnr, id: signOffset + row }], true)
     this._onDidChangeSelection.fire({ selection: this._selection })
   }
 
@@ -669,11 +668,9 @@ export default class BasicTreeView<T> implements TreeView<T> {
     regist('n', '<LeftRelease>', async element => {
       if (element) await this.onClick(element)
     })
-    if (this.canSelectMany && toggleSelection) {
-      regist('n', toggleSelection, async element => {
-        if (element) this.toggleSelection(element)
-      })
-    }
+    toggleSelection && regist('n', toggleSelection, async element => {
+      if (element) this.toggleSelection(element)
+    })
     invoke && regist('n', invoke, async element => {
       if (element) await this.invokeCommand(element)
     }, true)
