@@ -68,3 +68,4 @@ export {
 export { Neovim, MarkupKind, DiagnosticTag, DocumentHighlightKind, SymbolKind, SignatureHelpTriggerKind, FileChangeType, CodeActionKind, Diagnostic, DiagnosticSeverity, CompletionItemKind, InsertTextFormat, Location, LocationLink, CancellationTokenSource, CancellationToken, ProgressType, Position, Range, TextEdit, RequestType, RequestType0, NotificationType, NotificationType0, Buffer, Window, Highligher, Mru, Watchman, URI as Uri, Disposable, Event, Emitter, FloatFactory, fetch, download, ansiparse }
 export { workspace, window, CompletionTriggerKind, snippetManager, events, services, commands, sources, languages, diagnosticManager, extensions, listManager, BasicList, Mutex }
 export { disposeAll, concurrent, watchFile, wait, runCommand, isRunning, executable } from './util'
+export { TreeItem, TreeItemCollapsibleState } from './tree/index'

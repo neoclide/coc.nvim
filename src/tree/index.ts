@@ -2,7 +2,7 @@ import { Disposable, Event, CancellationToken } from 'vscode-languageserver-prot
 import { ProviderResult } from '../provider'
 import { TreeItem, TreeItemCollapsibleState } from './TreeItem'
 
-export { TreeItemCollapsibleState }
+export { TreeItem, TreeItemCollapsibleState }
 
 /**
  * Options for creating a {@link TreeView}
