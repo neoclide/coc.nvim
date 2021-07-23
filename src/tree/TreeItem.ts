@@ -1,4 +1,6 @@
 import { Command, MarkupContent } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
+import path from 'path'
 
 export interface TreeItemLabel {
   label: string
@@ -30,11 +32,22 @@ export enum TreeItemCollapsibleState {
 
 export class TreeItem {
   public label: string | TreeItemLabel
+  public id?: string
   public icon?: TreeItemIcon
+  public resourceUri?: URI
   public command?: Command
   public tooltip?: string | MarkupContent
 
-  constructor(label: string | TreeItemLabel, public collapsibleState: TreeItemCollapsibleState = TreeItemCollapsibleState.None) {
-    this.label = label
+  constructor(label: string | TreeItemLabel, collapsibleState?: TreeItemCollapsibleState)
+  // eslint-disable-next-line @typescript-eslint/unified-signatures
+  constructor(resourceUri: URI, collapsibleState?: TreeItemCollapsibleState)
+  constructor(label: string | TreeItemLabel | URI, public collapsibleState: TreeItemCollapsibleState = TreeItemCollapsibleState.None) {
+    if (URI.isUri(label)) {
+      this.resourceUri = label
+      this.label = path.basename(label.path)
+      this.id = label.toString()
+    } else {
+      this.label = label
+    }
   }
 }
