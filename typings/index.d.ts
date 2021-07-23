@@ -7739,7 +7739,7 @@ declare module 'coc.nvim' {
     middleware?: Middleware
     workspaceFolder?: WorkspaceFolder
     connectionOptions?: ConnectionOptions
-    markdown: {
+    markdown?: {
       isTrusted: boolean
     }
   }
