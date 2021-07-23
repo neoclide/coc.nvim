@@ -374,6 +374,10 @@ function! s:Hi() abort
   hi default link CocCursorRange    Search
   hi default link CocHighlightRead  CocHighlightText
   hi default link CocHighlightWrite CocHighlightText
+  " Tree view highlights
+  hi default link CocTreeTitle Title
+  hi default link CocTreeOpenClose CocBold
+
   if has('nvim')
     hi default link CocFloating NormalFloat
   else
