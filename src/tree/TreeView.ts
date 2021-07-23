@@ -57,6 +57,7 @@ interface TreeItemData {
   resolved: boolean
 }
 
+// TODO synchronize selection signs with nodes...
 /**
  * Basic TreeView implementation
  */
@@ -79,6 +80,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   public message: string | undefined
   public title: string
   public description: string | undefined
+  private retryTimers = 0
   private renderedItems: RenderedItem<T>[] = []
   private provider: TreeDataProvider<T>
   private readonly canSelectMany: boolean
@@ -219,6 +221,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   private async invokeCommand(element: T): Promise<void> {
     let obj = this.nodesMap.get(element)
     if (!obj) return
+    this.selectItem(element)
     let item = obj.item
     if (!obj.resolved && !item.command) {
       item = await this.resolveItem(element, item)
@@ -231,27 +234,23 @@ export default class BasicTreeView<T> implements TreeView<T> {
   private async changeMessageLine(msg: string): Promise<void> {
     if (!this.bufnr) return
     // add or remove message lines
-    let release = await this.mutex.acquire()
     try {
       let { messageCount } = this.lineState
       if (msg) {
         let highlights = [{ hlGroup: 'MoreMsg', colStart: 0, colEnd: byteLength(msg), lnum: 0 }]
-        this.updateUI([msg, ''], highlights, 0, messageCount)
         this.lineState.messageCount = 2
+        this.updateUI([msg, ''], highlights, 0, messageCount)
       } else if (messageCount) {
-        this.updateUI([], [], 0, messageCount)
         this.lineState.messageCount = 0
+        this.updateUI([], [], 0, messageCount)
       }
-      release()
     } catch (e) {
-      release()
       logger.error('Error on change message lines:', e)
     }
   }
 
   private async changeTitleLine(title: string | undefined, description: string | undefined): Promise<void> {
     if (!this.bufnr) return
-    let release = await this.mutex.acquire()
     try {
       let { messageCount, titleCount } = this.lineState
       if (!title) {
@@ -270,14 +269,13 @@ export default class BasicTreeView<T> implements TreeView<T> {
         this.updateUI(lines, highlights, messageCount, messageCount + titleCount)
       }
       this.lineState.titleCount = title ? 1 : 0
-      release()
     } catch (e) {
-      release()
       logger.error('Error on change title line:', e)
     }
   }
 
   private async onDataChange(node: T | undefined): Promise<void> {
+    this.clearSelection()
     if (!node) {
       await this.render()
       return
@@ -353,7 +351,13 @@ export default class BasicTreeView<T> implements TreeView<T> {
     let lnum = this.getItemLnum(element)
     let nodeIdx = lnum - this.startLnum
     let obj = this.renderedItems[nodeIdx]
-    if (!obj || treeItem.collapsibleState == TreeItemCollapsibleState.None) return
+    if (!obj || treeItem.collapsibleState == TreeItemCollapsibleState.None) {
+      if (typeof this.provider.getParent === 'function') {
+        let node = await Promise.resolve(this.provider.getParent(element))
+        if (node) await this.toggleExpand(node)
+      }
+      return
+    }
     // remove lines
     let removeCount = 0
     if (treeItem.collapsibleState == TreeItemCollapsibleState.Expanded) {
@@ -386,6 +390,13 @@ export default class BasicTreeView<T> implements TreeView<T> {
     } else {
       this.selectItem(element)
     }
+  }
+
+  private clearSelection(): void {
+    if (!workspace.env.sign) return
+    this._selection = []
+    this.nvim.call('sign_unplace', ['CocTree', { buffer: this.bufnr }], true)
+    this._onDidChangeSelection.fire({ selection: this._selection })
   }
 
   private selectItem(item: T): void {
@@ -533,7 +544,8 @@ export default class BasicTreeView<T> implements TreeView<T> {
     buf.setOption('modifiable', true, true)
     void buf.setLines(lines, { start, end, strictIndexing: false }, true)
     if (highlights.length) {
-      nvim.call('coc#highlight#update_highlights', [this.bufnr, highlightNamespace, highlights, 0, -1], true)
+      let highlightEnd = end == -1 ? -1 : start + lines.length
+      nvim.call('coc#highlight#update_highlights', [this.bufnr, highlightNamespace, highlights, start, highlightEnd], true)
     }
     buf.setOption('modifiable', false, true)
     if (workspace.env.isVim) nvim.command('redraw', true)
@@ -585,7 +597,9 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (focus) this.focusItem(element)
   }
 
-  private addHeadLines(lines: string[], highlights: HighlightItem[]): void {
+  private getHeadLines(): { lines: string[], highlights: HighlightItem[] } {
+    let lines: string[] = []
+    let highlights: HighlightItem[] = []
     if (this.message) {
       highlights.push({ hlGroup: 'MoreMsg', colStart: 0, colEnd: byteLength(this.message), lnum: 0 })
       lines.push(this.message)
@@ -601,6 +615,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       lines.push(this.title + (this.description ? ' ' + this.description : ''))
     }
     this.lineState.titleCount = this.title ? 1 : 0
+    return { lines, highlights }
   }
 
   // Render all tree items
@@ -610,18 +625,18 @@ export default class BasicTreeView<T> implements TreeView<T> {
     let lines: string[] = []
     let highlights: HighlightItem[] = []
     try {
-      let renderedItems: RenderedItem<T>[] = []
       let nodes = await Promise.resolve(this.provider.getChildren())
-      this.addHeadLines(lines, highlights)
       let level = 0
-      let lnum = lines.length
+      let lnum = this.startLnum
+      let renderedItems: RenderedItem<T>[] = []
       for (let node of nodes || []) {
         let n = await this.appendTreeNode(node, level, lnum, renderedItems, highlights)
         lnum += n
       }
       lines.push(...renderedItems.map(o => o.line))
       this.renderedItems = renderedItems
-      this.updateUI(lines, highlights)
+      this.updateUI(lines, highlights, this.startLnum, -1)
+      this.retryTimers = 0
       release()
     } catch (e) {
       this.renderedItems = []
@@ -629,8 +644,10 @@ export default class BasicTreeView<T> implements TreeView<T> {
       this.lineState = { titleCount: 0, messageCount: 1 }
       release()
       let errMsg = `${e.message}`.replace(/\r?\n/g, ' ')
-      this.updateUI([errMsg], [{ hlGroup: 'ErrorMsg', colStart: 0, colEnd: byteLength(errMsg), lnum: 0 }])
+      this.updateUI([errMsg], [{ hlGroup: 'WarningMsg', colStart: 0, colEnd: byteLength(errMsg), lnum: 0 }])
+      if (this.retryTimers == 5) return
       this.timer = setTimeout(() => {
+        this.retryTimers = this.retryTimers + 1
         void this.render()
       }, 500)
     }
@@ -648,7 +665,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       let win = nvim.createWindow(winid)
       win.close(true, true)
     }
-    nvim.command(`${splitCommand} +setl\\ buftype=nofile CocTreeView${id}`, true)
+    nvim.command(`keepalt ${splitCommand} +setl\\ buftype=nofile CocTreeView${id}`, true)
     nvim.command('setl bufhidden=wipe nonumber norelativenumber foldcolumn=0', true)
     nvim.command(`setl signcolumn=${this.canSelectMany ? 'yes' : 'no'}${this.winfixwidth ? ' winfixwidth' : ''}`, true)
     nvim.command('setl nocursorline nobuflisted wrap undolevels=-1 filetype=coctree nomodifiable noswapfile', true)
@@ -656,11 +673,14 @@ export default class BasicTreeView<T> implements TreeView<T> {
     let res = await nvim.resumeNotification()
     if (res[1]) throw new Error(`Error on buffer create:` + JSON.stringify(res[1]))
     const arr = await nvim.eval(`[bufnr('%'),win_getid()]`) as [number, number]
+    // this.addHeadLines(lines, highlights)
     this._onDidChangeVisibility.fire({ visible: true })
     this.registerKeymaps()
     this.bufnr = arr[0]
     this.winid = arr[1]
     this._creating = false
+    let { lines, highlights } = this.getHeadLines()
+    this.updateUI(lines, highlights)
     void this.render()
   }
 
@@ -722,6 +742,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       clearTimeout(this.timer)
       this.timer = undefined
     }
+    this._selection = []
     this.hide()
     this.cancelResolve()
     this.tooltipFactory.dispose()

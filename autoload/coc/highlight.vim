@@ -26,7 +26,7 @@ function! coc#highlight#get(bufnr, key, start, end) abort
   let ns = coc#highlight#create_namespace(a:key)
   let current = {}
   if has('nvim-0.5.0')
-    let end = a:end == -1 ? [-1, -1] : [a:end, 0]
+    let end = a:end == -1 ? [-1, -1] : [a:end - 1, 0]
     let markers = nvim_buf_get_extmarks(a:bufnr, ns, [a:start, 0], end, {'details': v:true})
     for [_, row, start_col, details] in markers
       let delta = details['end_row'] - row

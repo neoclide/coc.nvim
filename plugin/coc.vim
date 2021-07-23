@@ -379,6 +379,7 @@ function! s:Hi() abort
   hi default link CocTreeOpenClose CocBold
   hi default link CocTreeSelected CursorLine
   " Symbol highlights
+  hi default link CocSymbolDefault MoreMsg
   hi default link CocSymbolFile Statement
   hi default link CocSymbolModule Statement
   hi default link CocSymbolNamespace Statement
@@ -386,26 +387,25 @@ function! s:Hi() abort
   hi default link CocSymbolClass Statement
   hi default link CocSymbolMethod Function
   hi default link CocSymbolProperty Keyword
-  hi default link CocSymbolField Normal
+  hi default link CocSymbolField CocSymbolDefault
   hi default link CocSymbolConstructor Function
-  hi default link CocSymbolEnum Normal
-  hi default link CocSymbolInterface Normal
+  hi default link CocSymbolEnum CocSymbolDefault
+  hi default link CocSymbolInterface CocSymbolDefault
   hi default link CocSymbolFunction Function
-  hi default link CocSymbolVariable Normal
+  hi default link CocSymbolVariable CocSymbolDefault
   hi default link CocSymbolConstant Constant
   hi default link CocSymbolString String
   hi default link CocSymbolNumber Number
   hi default link CocSymbolBoolean Boolean
-  hi default link CocSymbolArray Normal
-  hi default link CocSymbolObject Normal
+  hi default link CocSymbolArray CocSymbolDefault
+  hi default link CocSymbolObject CocSymbolDefault
   hi default link CocSymbolKey Keyword
   hi default link CocSymbolNull Type
-  hi default link CocSymbolEnumMember Normal
+  hi default link CocSymbolEnumMember CocSymbolDefault
   hi default link CocSymbolStruct Keyword
   hi default link CocSymbolEvent Keyword
   hi default link CocSymbolOperator Operator
   hi default link CocSymbolTypeParameter Operator
-  hi default link CocSymbolDefault Normal
 
   if has('nvim')
     hi default link CocFloating NormalFloat
@@ -501,6 +501,7 @@ function! s:ShowInfo()
   endif
 endfunction
 
+command! -nargs=0 CocOutline      :call coc#rpc#notify('showOutline', [])
 command! -nargs=? CocDiagnostics  :call s:OpenDiagnostics(<f-args>)
 command! -nargs=0 CocInfo         :call s:ShowInfo()
 command! -nargs=0 CocOpenLog      :call coc#rpc#notify('openLog',  [])

@@ -81,10 +81,6 @@ describe('symbols handler', () => {
       }
     }`
       let buf = await createBuffer(code)
-      let fn = jest.fn()
-      events.on('SymbolsUpdate', (bufnr, symbols) => {
-        if (bufnr == buf.id) fn(symbols)
-      }, null, disposables)
       await nvim.call('cursor', [2, 8])
       await events.fire('CursorHold', [buf.id])
       let val = await buf.getVar('coc_current_function')
@@ -93,7 +89,6 @@ describe('symbols handler', () => {
       await events.fire('CursorHold', [buf.id])
       val = await buf.getVar('coc_current_function')
       expect(val).toBe('myClass')
-      expect(fn).toBeCalled()
     })
   })
 
