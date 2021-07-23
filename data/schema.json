@@ -989,11 +989,6 @@
       "default": "<C-p>",
       "description": "Key used for jump to previous cursors position."
     },
-    "tree.titleHighlight": {
-      "type": "string",
-      "default": "Title",
-      "description": "Highlight group for title of tree."
-    },
     "tree.closedIcon": {
       "type": "string",
       "default": "+",
@@ -1003,11 +998,6 @@
       "type": "string",
       "default": "-",
       "description": "Opend icon of tree view."
-    },
-    "tree.openCloseHighlight": {
-      "type": "string",
-      "default": "MoreMsg",
-      "description": "Highlight group for opened icon and closed icon."
     },
     "tree.key.toggleSelection": {
       "type": "string",
@@ -1033,6 +1023,22 @@
       "type": "string",
       "default": "<esc>",
       "description": "Trigger key to dispose the tree and close tree window."
+    },
+    "outline.splitCommand": {
+      "type": "string",
+      "default": "belowright 30vs",
+      "description": "Window split command used by outline."
+    },
+    "outline.followCursor": {
+      "type": "boolean",
+      "default": true,
+      "description": "Reveal item in outline tree on cursor hold."
+    },
+    "outline.sortBy": {
+      "type": "string",
+      "default": "category",
+      "description": "Sort method for symbols.",
+      "enum": ["position", "name", "category"]
     },
     "coc.preferences.enableMessageDialog": {
       "type": "boolean",

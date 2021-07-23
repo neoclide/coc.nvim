@@ -8,19 +8,17 @@ import { TreeItem, TreeItemCollapsibleState, TreeItemIcon, TreeItemLabel } from 
 
 export interface TreeNode {
   label: string
-  // use label when missing.
   key?: string
   tooltip?: string | MarkupContent
   icon?: TreeItemIcon
-  [key: string]: unknown
-  children?: TreeNode[]
+  children?: this[]
 }
 
-export interface ProviderOptions {
-  provideData: () => ProviderResult<TreeNode[]>
-  handleClick?: (item: TreeNode) => ProviderResult<void>
-  resolveIcon?: (item: TreeNode) => TreeItemIcon | undefined
-  resolveItem?: (item: TreeItem, element: TreeNode, token: CancellationToken) => ProviderResult<TreeItem>
+export interface ProviderOptions<T> {
+  provideData: () => ProviderResult<T[]>
+  handleClick?: (item: T) => ProviderResult<void>
+  resolveIcon?: (item: T) => TreeItemIcon | undefined
+  resolveItem?: (item: TreeItem, element: T, token: CancellationToken) => ProviderResult<TreeItem>
 }
 
 function isIcon(obj: any): obj is TreeItemIcon {
@@ -30,7 +28,7 @@ function isIcon(obj: any): obj is TreeItemIcon {
 /**
  * Check lable and key, children not checked.
  */
-function sameTreeNode(one: TreeNode, two: TreeNode): boolean {
+function sameTreeNode<T extends TreeNode>(one: T, two: T): boolean {
   if (one.label === two.label && one.key === two.key) {
     return true
   }
@@ -40,32 +38,33 @@ function sameTreeNode(one: TreeNode, two: TreeNode): boolean {
 /**
  * Check changes of nodes array, children not checked.
  */
-function sameTreeNodes(one: TreeNode[], two: TreeNode[]): boolean {
+function sameTreeNodes<T extends TreeNode>(one: T[], two: T[]): boolean {
   if (one.length !== two.length) return false
   return one.every((v, idx) => sameTreeNode(v, two[idx]))
 }
 
 /**
- * Tree data provider for resolved tree with children, which simple update method
+ * Tree data provider for resolved tree with children.
+ * Use update() to update data.
  */
-export default class BasicDataProvider implements TreeDataProvider<TreeNode> {
+export default class BasicDataProvider<T extends TreeNode> implements TreeDataProvider<T> {
   private disposables: Disposable[] = []
   private invokeCommand: string
-  private data: TreeNode[] | undefined
+  private data: T[] | undefined
   // only fired for change of exists TreeNode
-  private _onDidChangeTreeData = new Emitter<void | TreeNode>()
-  public onDidChangeTreeData: Event<void | TreeNode> = this._onDidChangeTreeData.event
+  private _onDidChangeTreeData = new Emitter<void | T>()
+  public onDidChangeTreeData: Event<void | T> = this._onDidChangeTreeData.event
   // data is shared with TreeView
-  constructor(private opts: ProviderOptions) {
+  constructor(private opts: ProviderOptions<T>) {
     this.invokeCommand = `_invoke_${uuid()}`
-    this.disposables.push(commandsManager.registerCommand(this.invokeCommand, async (node: TreeNode) => {
+    this.disposables.push(commandsManager.registerCommand(this.invokeCommand, async (node: T) => {
       if (typeof opts.handleClick === 'function') {
         await opts.handleClick(node)
       }
     }, null, true))
   }
 
-  private iterate(node: TreeNode, parentNode: TreeNode | undefined, fn: (node: TreeNode, parentNode?: TreeNode) => void | boolean): void | boolean {
+  private iterate(node: T, parentNode: T | undefined, fn: (node: T, parentNode?: T) => void | boolean): void | boolean {
     let res = fn(node, parentNode)
     if (res === false) return false
     if (Array.isArray(node.children)) {
@@ -80,9 +79,9 @@ export default class BasicDataProvider implements TreeDataProvider<TreeNode> {
   /**
    * Change old array to new nodes in place, keep old reference when possible.
    */
-  private updateNodes(old: TreeNode[], data: TreeNode[], parentNode: TreeNode | undefined, fireEvent = true): void {
+  private updateNodes(old: T[], data: T[], parentNode: T | undefined, fireEvent = true): void {
     let sameNodes = sameTreeNodes(old, data)
-    const applyNode = (previous: TreeNode, curr: TreeNode, fireEvent: boolean): void => {
+    const applyNode = (previous: T, curr: T, fireEvent: boolean): void => {
       let changed = false
       for (let key of Object.keys(curr)) {
         if (['children', 'key'].includes(key)) continue
@@ -139,7 +138,7 @@ export default class BasicDataProvider implements TreeDataProvider<TreeNode> {
   /**
    * Update with new data, fires change event when necessary.
    */
-  public update(data: TreeNode[], reset?: boolean): ReadonlyArray<TreeNode> {
+  public update(data: T[], reset?: boolean): ReadonlyArray<T> {
     if (reset) {
       this.data = data
       this._onDidChangeTreeData.fire(undefined)
@@ -149,9 +148,9 @@ export default class BasicDataProvider implements TreeDataProvider<TreeNode> {
     return this.data
   }
 
-  public getTreeItem(node: TreeNode): TreeItem {
+  public getTreeItem(node: T): TreeItem {
     let label: string | TreeItemLabel = node.label
-    let item = node.children?.length ? new TreeItem(label, TreeItemCollapsibleState.Collapsed): new TreeItem(label)
+    let item = node.children?.length ? new TreeItem(label, TreeItemCollapsibleState.Collapsed) : new TreeItem(label)
     if (node.tooltip) item.tooltip = node.tooltip
     if (isIcon(node.icon)) {
       item.icon = node.icon
@@ -162,7 +161,7 @@ export default class BasicDataProvider implements TreeDataProvider<TreeNode> {
     return item
   }
 
-  public async getChildren(element?: TreeNode): Promise<TreeNode[]> {
+  public async getChildren(element?: T): Promise<T[]> {
     if (element) return element.children || []
     if (this.data) return this.data
     let data = await Promise.resolve(this.opts.provideData())
@@ -174,9 +173,9 @@ export default class BasicDataProvider implements TreeDataProvider<TreeNode> {
   /**
    * Use reference check
    */
-  public getParent(element: TreeNode): TreeNode | undefined {
+  public getParent(element: T): T | undefined {
     if (!this.data) return undefined
-    let find: TreeNode
+    let find: T
     for (let item of this.data) {
       let res = this.iterate(item, null, (node, parentNode) => {
         if (node === element) {
@@ -192,7 +191,7 @@ export default class BasicDataProvider implements TreeDataProvider<TreeNode> {
   /**
    * Resolve command and tooltip
    */
-  public async resolveTreeItem(item: TreeItem, element: TreeNode, token: CancellationToken): Promise<TreeItem> {
+  public async resolveTreeItem(item: TreeItem, element: T, token: CancellationToken): Promise<TreeItem> {
     if (typeof this.opts.resolveItem === 'function') {
       let res = await Promise.resolve(this.opts.resolveItem(item, element, token))
       if (res) Object.assign(item, res)

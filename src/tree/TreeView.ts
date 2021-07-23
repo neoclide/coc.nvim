@@ -20,8 +20,6 @@ let globalId = 1
 interface TreeViewConfig {
   openedIcon: string
   closedIcon: string
-  openCloseHighlight: string
-  titleHighlight: string
 }
 
 interface RenderedItem<T> {
@@ -168,9 +166,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       let config = workspace.getConfiguration('tree')
       this.config = {
         openedIcon: config.get('openedIcon', ' '),
-        closedIcon: config.get('closedIcon', ' '),
-        openCloseHighlight: config.get('openCloseHighlight'),
-        titleHighlight: config.get('titleHighlight'),
+        closedIcon: config.get('closedIcon', ' ')
       }
       this.keys = {
         close: config.get<string>('key.close'),
@@ -265,7 +261,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       } else {
         let lines: string[] = []
         let highlights: HighlightItem[] = []
-        highlights.push({ hlGroup: this.config.titleHighlight, colStart: 0, colEnd: byteLength(title), lnum: messageCount })
+        highlights.push({ hlGroup: 'CocTreeTitle', colStart: 0, colEnd: byteLength(title), lnum: messageCount })
         if (description) {
           let colStart = byteLength(title) + 1
           highlights.push({ hlGroup: 'Comment', colStart, colEnd: colStart + byteLength(description), lnum: messageCount })
@@ -456,7 +452,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   }
 
   private getRenderedLine(treeItem: TreeItem, lnum: number, level: number, highlights: HighlightItem[]): string {
-    let { openedIcon, closedIcon, openCloseHighlight } = this.config
+    let { openedIcon, closedIcon } = this.config
     let prefix = '  '.repeat(level)
     const addHighlight = (text: string, hlGroup: string) => {
       let colStart = byteLength(prefix)
@@ -469,12 +465,12 @@ export default class BasicTreeView<T> implements TreeView<T> {
     }
     switch (treeItem.collapsibleState) {
       case TreeItemCollapsibleState.Expanded: {
-        addHighlight(openedIcon, openCloseHighlight)
+        addHighlight(openedIcon, 'CocTreeOpenClose')
         prefix += openedIcon + ' '
         break
       }
       case TreeItemCollapsibleState.Collapsed: {
-        addHighlight(closedIcon, openCloseHighlight)
+        addHighlight(closedIcon, 'CocTreeOpenClose')
         prefix += closedIcon + ' '
         break
       }
@@ -588,7 +584,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     }
     this.lineState.messageCount = this.message ? 2 : 0
     if (this.title) {
-      highlights.push({ hlGroup: this.config.titleHighlight, colStart: 0, colEnd: byteLength(this.title), lnum: lines.length })
+      highlights.push({ hlGroup: 'CocTreeTitle', colStart: 0, colEnd: byteLength(this.title), lnum: lines.length })
       if (this.description) {
         let colStart = byteLength(this.title) + 1
         highlights.push({ hlGroup: 'Comment', colStart, colEnd: colStart + byteLength(this.description), lnum: lines.length })
@@ -646,7 +642,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     nvim.command(`${splitCommand} +setl\\ buftype=nofile CocTreeView${id}`, true)
     nvim.command('setl bufhidden=wipe nonumber norelativenumber foldcolumn=0', true)
     nvim.command(`setl signcolumn=${this.canSelectMany ? 'yes' : 'no'}${this.winfixwidth ? ' winfixwidth' : ''}`, true)
-    nvim.command('setl cursorline nobuflisted wrap undolevels=-1 filetype=coctree nomodifiable noswapfile', true)
+    nvim.command('setl nocursorline nobuflisted wrap undolevels=-1 filetype=coctree nomodifiable noswapfile', true)
     nvim.command(`let w:cocViewId = "${this.viewId.replace(/"/g, '\\"')}"`, true)
     let res = await nvim.resumeNotification()
     if (res[1]) throw new Error(`Error on buffer create:` + JSON.stringify(res[1]))

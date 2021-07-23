@@ -13,7 +13,7 @@ type NodeDef = [string, NodeDef[]?]
 let nvim: Neovim
 let disposables: Disposable[] = []
 let treeView: TreeView<TreeNode>
-let provider: BasicDataProvider
+let provider: BasicDataProvider<TreeNode>
 let nodes: TreeNode[]
 beforeAll(async () => {
   await helper.setup()
@@ -53,7 +53,7 @@ function createNodes(defs: NodeDef[]): TreeNode[] {
   })
 }
 
-function createTreeView(defs: NodeDef[], opts: Partial<TreeViewOptions<TreeNode>> = {}, providerOpts: Partial<ProviderOptions> = {}) {
+function createTreeView(defs: NodeDef[], opts: Partial<TreeViewOptions<TreeNode>> = {}, providerOpts: Partial<ProviderOptions<TreeNode>> = {}) {
   nodes = createNodes(defs)
   provider = new BasicDataProvider(Object.assign(providerOpts, {
     provideData: () => {
@@ -68,6 +68,12 @@ function createTreeView(defs: NodeDef[], opts: Partial<TreeViewOptions<TreeNode>
 function updateData(defs: NodeDef[], reset = false) {
   nodes = createNodes(defs)
   provider.update(nodes, reset)
+}
+
+function makeUpdateUIThrowError() {
+  (treeView as any).updateUI = () => {
+    throw new Error('Error on updateUI')
+  }
 }
 
 let defaultDef: NodeDef[] = [
@@ -165,6 +171,10 @@ describe('TreeView', () => {
       treeView.title = undefined
       await helper.wait(50)
       await checkLines(['+ a', '+ b', '  g'])
+      makeUpdateUIThrowError()
+      treeView.title = 'xyz'
+      await helper.wait(50)
+      await checkLines(['+ a', '+ b', '  g'])
     })
 
     it('should change description', async () => {
@@ -179,6 +189,10 @@ describe('TreeView', () => {
       treeView.description = ''
       await helper.wait(50)
       await checkLines(['test', '+ a', '+ b', '  g'])
+      makeUpdateUIThrowError()
+      treeView.description = 'desc'
+      await helper.wait(50)
+      await checkLines(['test', '+ a', '+ b', '  g'])
     })
 
     it('should change message', async () => {
@@ -191,6 +205,10 @@ describe('TreeView', () => {
       await helper.wait(50)
       await checkLines(['foo', '', 'test', '+ a', '+ b', '  g'])
       treeView.message = undefined
+      await helper.wait(50)
+      await checkLines(['test', '+ a', '+ b', '  g'])
+      makeUpdateUIThrowError()
+      treeView.message = 'bar'
       await helper.wait(50)
       await checkLines(['test', '+ a', '+ b', '  g'])
     })
@@ -601,6 +619,21 @@ describe('TreeView', () => {
       expect(line).toMatch(msg)
       let res = await treeView.checkLines()
       expect(res).toBe(true)
+    })
+
+    it('should show error message on refresh error', async () => {
+      createTreeView(defaultDef)
+      await treeView.show()
+      await helper.wait(50)
+      makeUpdateUIThrowError()
+      updateData([
+        ['a', [['h'], ['d']]],
+        ['b', [['e'], ['f']]],
+        ['g'],
+      ])
+      await helper.wait(50)
+      let line = await helper.getCmdline()
+      expect(line).toMatch('Error on updateUI')
     })
   })
 
