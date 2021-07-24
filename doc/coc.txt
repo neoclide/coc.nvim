@@ -898,6 +898,63 @@ Built-in configurations:~
 
 	Key used for jump to previous cursors position, default: `<C-p>`
 
+						*coc-config-tree*
+"tree.closedIcon": ~
+	
+	Closed icon of tree view, default: '+'
+
+"tree.openedIcon": ~
+	
+	Opened icon of tree view, default: '-'
+
+"tree.key.toggleSelection":~
+
+	Trigger key to select/unselect item, default: <space>
+
+"tree.key.toggle":~
+
+	Trigger key to toggle expand state of tree node, default: 't'
+
+"tree.key.collapseAll":~
+
+	Trigger key to collapse all tree node, default: 'm'
+
+"tree.key.invoke":~
+
+	Trigger key to invoke default command of current node or selection,
+	default: <cr>
+
+"tree.key.close":~
+
+	Trigger key to dispose the tree and close tree window, default: <esc>
+
+						*coc-config-outline*
+"outline.splitCommand":~
+
+	Window split command used by outline, default 'belowright 30vs'
+
+"outline.followCursor":~
+
+	Reveal item in outline tree on cursor hold, default `true`
+
+"outline.keepWindow":~
+
+	Jump back to original window after outline is shown, default `true`
+
+"outline.sortBy":~
+
+	Sort method for symbols, default: 'category'
+	Could be 'position', 'name' or 'category'.
+
+"outline.expandLevel":~
+
+	Default expand level of tree nodes, default `1`
+
+"outline.checkBufferSwitch":~
+
+	Recreate outline view after changed to another buffer on current tab.
+	Default `true`
+
 						*coc-config-npm*
 "npm.binPath":~
 
@@ -1318,18 +1375,6 @@ b:coc_additional_keywords				*b:coc_additional_keywords*
 	" Add keyword characters for css
 	autocmd FileType css let b:coc_additional_keywords = ["-"]
 
-b:coc_current_function					*b:coc_current_function*
-
-	Function string that current cursor in.
-
-	Set `"coc.preferences.currentFunctionSymbolAutoUpdate": true`
-	in coc-settings.json to update it on CursorHold.
-
-b:coc_cursors_activated					*b:coc_cursors_activated*
-
-	Use expression `get(b:, 'coc_cursors_activated',0)` to check if
-	cursors session is activated for current buffer.
-
 g:coc_disable_startup_warning 				*g:coc_disable_startup_warning*
 
 	Disable possible warning on startup for old vim/node version.
@@ -1362,12 +1407,6 @@ g:coc_disable_transparent_cursor			*g:coc_disable_transparent_cursor*
 	cursor.
 
 	Default: 0
-
-g:coc_last_hover_message				*g:coc_last_hover_message*
-
-	Last message echoed from `doHover`, can be used in statusline.
-
-	Note: not used when floating or preview window used for `doHover`.
 
 g:coc_start_at_startup					*g:coc_start_at_startup*
 
@@ -1491,16 +1530,6 @@ g:coc_jump_locations					*g:coc_jump_locations*
 	'col': column number(1 based).
 	'text':  line content of location.
 
-g:coc_process_pid					*g:coc_process_pid*
-
-	Process pid of coc.nvim service. If your vim doesn't kill coc.nvim
-	process on exit, use:
->
-	autocmd VimLeavePre * if get(g:, 'coc_process_pid', 0)
-		\	| call system('kill -9 '.g:coc_process_pid) | endif
-<
-	in your vimrc.
-
 g:coc_status_error_sign					*g:coc_status_error_sign*
 
 	Error character used for statusline, default: `E`
@@ -1550,10 +1579,6 @@ g:coc_data_home						*g:coc_data_home*
 	Windows: `~/AppData/Local/coc`
 	Other: `~/.config/coc`
 
-g:coc_last_float_win					*g:coc_last_float_win*
-
-	Window id of latest created float/popup window.
-
 g:coc_sources_disable_map 				*g:coc_sources_disable_map*
 
 	Configure disabled sources for different filetypes.
@@ -1586,19 +1611,39 @@ g:coc_markdown_disabled_languages  		*g:coc_markdown_disabled_languages*
 	Filetype list that should be disabled for highlight in markdown block, ex: >
 
 	let g:coc_markdown_disabled_languages = ['html']
->
-g:coc_install_yarn_cmd 					*g:coc_install_yarn_cmd*
-
-	Yarn command used for |coc#util#install()| function.
 
 ------------------------------------------------------------------------------
 
 Some variables are provided by coc.nvim so you can use them in your
 statusline. See |coc-status| for detail.
 
+g:coc_process_pid					*g:coc_process_pid*
+
+	Process pid of coc.nvim service. If your vim doesn't kill coc.nvim
+	process on exit, use:
+>
+	autocmd VimLeavePre * if get(g:, 'coc_process_pid', 0)
+		\	| call system('kill -9 '.g:coc_process_pid) | endif
+<
+	in your vimrc.
+
 g:coc_service_initialized 			 *g:coc_service_initialized*
 
 	Is `1` when coc.nvim initialized, used with autocmd |CocNvimInit|.
+
+g:coc_status						*g:coc_status*
+
+	Status string contributed by extensions, used for status line.
+
+g:coc_last_float_win					*g:coc_last_float_win*
+
+	Window id of latest created float/popup window.
+
+g:coc_last_hover_message				*g:coc_last_hover_message*
+
+	Last message echoed from `doHover`, can be used in statusline.
+
+	Note: not used when floating or preview window used for `doHover`.
 
 b:coc_diagnostic_info					*b:coc_diagnostic_info*
 
@@ -1608,9 +1653,17 @@ b:coc_diagnostic_info					*b:coc_diagnostic_info*
 
 	can be used to customize statusline. See |coc-status|.
 
-g:coc_status						*g:coc_status*
+b:coc_current_function					*b:coc_current_function*
 
-	Status string contributed by extensions, used for status line.
+	Function string that current cursor in.
+
+	Set `"coc.preferences.currentFunctionSymbolAutoUpdate": true`
+	in coc-settings.json to update it on CursorHold.
+
+b:coc_cursors_activated					*b:coc_cursors_activated*
+
+	Use expression `get(b:, 'coc_cursors_activated',0)` to check if
+	cursors session is activated for current buffer.
 
 ------------------------------------------------------------------------------
 FUNCTIONS						*coc-functions*
@@ -1770,12 +1823,6 @@ coc#util#get_config({key})				*coc#util#get_config()*
 	Get configuration (mostly defined in coc-settings.json)	by {key}, ex: >
 
 	:echo coc#util#get_config('coc.preferences')
-
-coc#util#install()  					*coc#util#install()*
-
-	Install dependencies and compile source code of coc.nvim.
-
-	Deprecated, use release branch of coc.nvim is recommended.
 
 coc#float#has_float([{all}]) 				*coc#float#has_float()*
 
@@ -2260,6 +2307,31 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Useful when `diagnostic.autoRefresh` is `false`.
 
+"showOutline" 					*coc-action-showOutline*
+
+	Show outline tree view for current buffer. Old outline view on current
+	tab would be replaced.
+
+	Returns after window is shown (document symbol request is still in
+	progress).
+
+	Note: like VSCode, outline would try to reload document symbols after
+	500ms when provider not registered, which avoid the necessary to check
+	provider existence.
+
+	Note: error is shown when current buffer is not attatched, checkout
+	|coc-action-ensureDocument| for possible reasons.
+
+	Checkout |coc-config-tree| and |coc-config-outline| for available
+	configurations.
+
+	Checkout |CocTree| and |CocSymbol| for customize highlights.
+
+"hideOutline" 					*coc-action-hideOutline*
+
+	Close outline window on current tab.  Throws vim error when it can't
+	be closed by vim.
+
 "incomingCalls" [{CallHierarchyItem}] 		*coc-action-incomingCalls*
 
 	Retrieve incoming calls from {CallHierarchyItem} or current position
@@ -2440,6 +2512,10 @@ COMMANDS						*coc-commands*
 	Watch loaded [extension] for reload on file change, use <tab> for
 	complete extension id.
 
+:CocOutline 							*:CocOutline*
+
+	Invoke |coc-action-showOutline| by notification.
+
 ------------------------------------------------------------------------------
 AUTOCMD							*coc-autocmds*
 
@@ -2578,6 +2654,8 @@ List related~
 *CocListPath* for current cwd in statusline of CocList.
 
 Tree view related~
+
+CocTree* 						*CocTree*
 
 *CocTreeTitle* for title in tree view.
 *CocTreeOpenClose* for open and close icon in tree view.
