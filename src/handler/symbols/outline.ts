@@ -26,6 +26,7 @@ interface OutlineConfig {
   followCursor: boolean
   keepWindow: boolean
   expandLevel: number
+  checkBufferSwitch: boolean
   sortBy: 'position' | 'name' | 'category'
 }
 
@@ -57,6 +58,17 @@ export default class SymbolsOutline {
           })
         }
       }
+    }, null, this.disposables)
+    events.on('CursorHold', async bufnr => {
+      if (!this.config.checkBufferSwitch
+        || this.providersMap.size == 0) return
+      let buf = this.buffers.getItem(bufnr)
+      if (buf == null) return
+      let winid = await this.nvim.call('coc#util#get_win', ['cocViewId', 'OUTLINE'])
+      let win = this.nvim.createWindow(winid)
+      let target = await win.getVar('target_bufnr')
+      if (!target || target == bufnr) return
+      await this.show()
     }, null, this.disposables)
     events.on('CursorHold', async bufnr => {
       if (!this.config.followCursor) return
@@ -111,6 +123,7 @@ export default class SymbolsOutline {
         followCursor: c.get<boolean>('followCursor'),
         keepWindow: c.get<boolean>('keepWindow'),
         expandLevel: c.get<number>('expandLevel'),
+        checkBufferSwitch: c.get<boolean>('checkBufferSwitch'),
         sortBy: c.get<'position' | 'name' | 'category'>('sortBy'),
       }
     }
@@ -226,6 +239,10 @@ export default class SymbolsOutline {
       this.treeViews.delete(provider)
     })
     await treeView.show(this.config.splitCommand)
+    if (treeView.windowId) {
+      let win = this.nvim.createWindow(treeView.windowId)
+      win.setVar('target_bufnr', bufnr, true)
+    }
     if (this.config.keepWindow) {
       await this.nvim.command('wincmd p')
     }
@@ -236,6 +253,7 @@ export default class SymbolsOutline {
    */
   public async hide(): Promise<void> {
     let winid = await this.nvim.call('coc#util#get_win', ['cocViewId', 'OUTLINE'])
+    if (winid == -1) return
     let win = this.nvim.createWindow(winid)
     await win.close(true)
   }

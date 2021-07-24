@@ -1050,6 +1050,11 @@
       "default": 1,
       "description": "Expand level of tree nodes."
     },
+    "outline.checkBufferSwitch": {
+      "type": "boolean",
+      "default": true,
+      "description": "Recreate outline view after user changed to another buffer on current tab."
+    },
     "coc.preferences.enableMessageDialog": {
       "type": "boolean",
       "default": false,
