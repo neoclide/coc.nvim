@@ -13,7 +13,6 @@ import Picker, { QuickPickItem } from './model/picker'
 import ProgressNotification, { Progress } from './model/progress'
 import StatusLine, { StatusBarItem } from './model/status'
 import { TreeView, TreeViewOptions } from './tree'
-import BasicTreeView from './tree/TreeView'
 import { MessageLevel, OutputChannel } from './types'
 import { CONFIG_FILE_NAME, disposeAll } from './util'
 import { Mutex } from './util/mutex'
@@ -573,6 +572,7 @@ class Window {
    * @returns a {@link TreeView}.
    */
   public createTreeView<T>(viewId: string, options: TreeViewOptions<T>): TreeView<T> {
+    const BasicTreeView = require('./tree/TreeView').default
     return new BasicTreeView(viewId, options)
   }
 
