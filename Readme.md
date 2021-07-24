@@ -31,6 +31,7 @@ Install [nodejs](https://nodejs.org/en/download/) >= 12.12:
 ```sh
 curl -sL install-node.now.sh/lts | bash
 ```
+If you get an error about no permissions, change it to `sudo bash` and run it.
 
 For [vim-plug](https://github.com/junegunn/vim-plug) users:
 
