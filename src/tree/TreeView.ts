@@ -8,7 +8,6 @@ import { disposeAll } from '../util'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
 import { byteLength, byteSlice } from '../util/string'
-import window from '../window'
 import workspace from '../workspace'
 import { TreeDataProvider, TreeView, TreeViewExpansionEvent, TreeViewOptions, TreeViewSelectionChangeEvent, TreeViewVisibilityChangeEvent } from './index'
 import { TreeItem, TreeItemCollapsibleState } from './TreeItem'
@@ -57,7 +56,6 @@ interface TreeItemData {
   resolved: boolean
 }
 
-// TODO synchronize selection signs with nodes...
 /**
  * Basic TreeView implementation
  */
@@ -107,7 +105,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     Object.defineProperty(this, 'message', {
       set: (msg: string | undefined) => {
         message = msg ? msg.replace(/\r?\n/g, ' ') : undefined
-        this.changeMessageLine(message).logError()
+        this.updateHeadLines()
       },
       get: () => {
         return message
@@ -117,7 +115,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     Object.defineProperty(this, 'title', {
       set: (newTitle: string) => {
         title = newTitle ? newTitle.replace(/\r?\n/g, ' ') : undefined
-        this.changeTitleLine(title, this.description).logError()
+        this.updateHeadLines()
       },
       get: () => {
         return title
@@ -127,7 +125,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     Object.defineProperty(this, 'description', {
       set: (desc: string | undefined) => {
         description = desc ? desc.replace(/\r?\n/g, ' ') : undefined
-        this.changeTitleLine(this.title, description).logError()
+        this.updateHeadLines()
       },
       get: () => {
         return description
@@ -231,49 +229,6 @@ export default class BasicTreeView<T> implements TreeView<T> {
     await commandManager.execute(item.command)
   }
 
-  private async changeMessageLine(msg: string): Promise<void> {
-    if (!this.bufnr) return
-    // add or remove message lines
-    try {
-      let { messageCount } = this.lineState
-      if (msg) {
-        let highlights = [{ hlGroup: 'MoreMsg', colStart: 0, colEnd: byteLength(msg), lnum: 0 }]
-        this.lineState.messageCount = 2
-        this.updateUI([msg, ''], highlights, 0, messageCount)
-      } else if (messageCount) {
-        this.lineState.messageCount = 0
-        this.updateUI([], [], 0, messageCount)
-      }
-    } catch (e) {
-      logger.error('Error on change message lines:', e)
-    }
-  }
-
-  private async changeTitleLine(title: string | undefined, description: string | undefined): Promise<void> {
-    if (!this.bufnr) return
-    try {
-      let { messageCount, titleCount } = this.lineState
-      if (!title) {
-        if (titleCount) {
-          this.updateUI([], [], messageCount, messageCount + 1)
-        }
-      } else {
-        let lines: string[] = []
-        let highlights: HighlightItem[] = []
-        highlights.push({ hlGroup: 'CocTreeTitle', colStart: 0, colEnd: byteLength(title), lnum: messageCount })
-        if (description) {
-          let colStart = byteLength(title) + 1
-          highlights.push({ hlGroup: 'Comment', colStart, colEnd: colStart + byteLength(description), lnum: messageCount })
-        }
-        lines.push(title + (description ? ' ' + description : ''))
-        this.updateUI(lines, highlights, messageCount, messageCount + titleCount)
-      }
-      this.lineState.titleCount = title ? 1 : 0
-    } catch (e) {
-      logger.error('Error on change title line:', e)
-    }
-  }
-
   private async onDataChange(node: T | undefined): Promise<void> {
     this.clearSelection()
     if (!node) {
@@ -305,7 +260,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     } catch (e) {
       let errMsg = `Error on tree refresh: ${e.message}`
       logger.error(errMsg, e)
-      window.showMessage(errMsg, 'error')
+      this.nvim.errWriteLine('[coc.nvim] ' + errMsg)
       release()
     }
   }
@@ -597,37 +552,45 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (focus) this.focusItem(element)
   }
 
-  private getHeadLines(): { lines: string[], highlights: HighlightItem[] } {
+  private updateHeadLines(end?: number): void {
+    let { titleCount, messageCount } = this.lineState
+    end = end == null ? titleCount + messageCount : end
     let lines: string[] = []
     let highlights: HighlightItem[] = []
-    if (this.message) {
-      highlights.push({ hlGroup: 'MoreMsg', colStart: 0, colEnd: byteLength(this.message), lnum: 0 })
-      lines.push(this.message)
-      lines.push('')
-    }
-    this.lineState.messageCount = this.message ? 2 : 0
-    if (this.title) {
-      highlights.push({ hlGroup: 'CocTreeTitle', colStart: 0, colEnd: byteLength(this.title), lnum: lines.length })
-      if (this.description) {
-        let colStart = byteLength(this.title) + 1
-        highlights.push({ hlGroup: 'Comment', colStart, colEnd: colStart + byteLength(this.description), lnum: lines.length })
+    try {
+      if (this.message) {
+        highlights.push({ hlGroup: 'MoreMsg', colStart: 0, colEnd: byteLength(this.message), lnum: 0 })
+        lines.push(this.message)
+        lines.push('')
       }
-      lines.push(this.title + (this.description ? ' ' + this.description : ''))
+      if (this.title) {
+        highlights.push({ hlGroup: 'CocTreeTitle', colStart: 0, colEnd: byteLength(this.title), lnum: lines.length })
+        if (this.description) {
+          let colStart = byteLength(this.title) + 1
+          highlights.push({ hlGroup: 'Comment', colStart, colEnd: colStart + byteLength(this.description), lnum: lines.length })
+        }
+        lines.push(this.title + (this.description ? ' ' + this.description : ''))
+      }
+      this.lineState.messageCount = this.message ? 2 : 0
+      this.lineState.titleCount = this.title ? 1 : 0
+      this.updateUI(lines, highlights, 0, end)
+    } catch (e) {
+      this.nvim.errWriteLine('[coc.nvim] Error on update head lines:' + e.message)
+      logger.error('Error on update head lines:', e)
     }
-    this.lineState.titleCount = this.title ? 1 : 0
-    return { lines, highlights }
   }
 
   // Render all tree items
   private async render(): Promise<void> {
     if (!this.bufnr) return
     let release = await this.mutex.acquire()
-    let lines: string[] = []
-    let highlights: HighlightItem[] = []
     try {
+      let lines: string[] = []
+      let highlights: HighlightItem[] = []
+      let { startLnum } = this
       let nodes = await Promise.resolve(this.provider.getChildren())
       let level = 0
-      let lnum = this.startLnum
+      let lnum = startLnum
       let renderedItems: RenderedItem<T>[] = []
       for (let node of nodes || []) {
         let n = await this.appendTreeNode(node, level, lnum, renderedItems, highlights)
@@ -635,6 +598,8 @@ export default class BasicTreeView<T> implements TreeView<T> {
       }
       lines.push(...renderedItems.map(o => o.line))
       this.renderedItems = renderedItems
+      let delta = this.startLnum - startLnum
+      if (delta) highlights.forEach(o => o.lnum = o.lnum + delta)
       this.updateUI(lines, highlights, this.startLnum, -1)
       this.retryTimers = 0
       release()
@@ -679,8 +644,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     this.bufnr = arr[0]
     this.winid = arr[1]
     this._creating = false
-    let { lines, highlights } = this.getHeadLines()
-    this.updateUI(lines, highlights)
+    this.updateHeadLines(-1)
     void this.render()
   }
 
