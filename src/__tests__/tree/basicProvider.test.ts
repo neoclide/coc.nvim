@@ -133,6 +133,20 @@ describe('BasicDataProvider', () => {
       expect(item.collapsibleState).toBe(TreeItemCollapsibleState.None)
     })
 
+    it('should respect expandLevel option', async () => {
+      let provider = new BasicDataProvider({
+        expandLevel: 1,
+        provideData: () => {
+          return createNodes(defaultDef)
+        }
+      })
+      disposables.push(provider)
+      let res = await provider.getChildren()
+      let item = provider.getTreeItem(res[0])
+      expect(item).toBeDefined()
+      expect(item.collapsibleState).toBe(TreeItemCollapsibleState.Expanded)
+    })
+
     it('should include highlights', async () => {
       let provider = new BasicDataProvider({
         provideData: () => {
@@ -506,6 +520,22 @@ describe('BasicDataProvider', () => {
       ]
       let curr = provider.update(newNodes, true)
       expect(curr === nodes).toBe(false)
+    })
+  })
+
+  describe('dispose', () => {
+    it('should invoke onDispose from opts', async () => {
+      let called = false
+      let provider = new BasicDataProvider({
+        provideData: () => {
+          return []
+        },
+        onDispose: () => {
+          called = true
+        }
+      })
+      provider.dispose()
+      expect(called).toBe(true)
     })
   })
 })

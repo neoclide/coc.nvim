@@ -309,7 +309,10 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (!obj || treeItem.collapsibleState == TreeItemCollapsibleState.None) {
       if (typeof this.provider.getParent === 'function') {
         let node = await Promise.resolve(this.provider.getParent(element))
-        if (node) await this.toggleExpand(node)
+        if (node) {
+          await this.toggleExpand(node)
+          this.focusItem(node)
+        }
       }
       return
     }
@@ -331,6 +334,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     await this.appendTreeNode(obj.node, obj.level, lnum, newItems, newHighlights)
     this.renderedItems.splice(nodeIdx, removeCount + 1, ...newItems)
     this.updateUI(newItems.map(o => o.line), newHighlights, lnum, lnum + removeCount + 1)
+    this.updateSigns()
     if (treeItem.collapsibleState == TreeItemCollapsibleState.Collapsed) {
       this._onDidCollapseElement.fire({ element })
     } else {
@@ -389,11 +393,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (!this.winid) return
     let lnum = this.getItemLnum(element)
     if (lnum == null) return
-    let { nvim } = this
-    nvim.pauseNotification()
-    nvim.call('win_gotoid', [this.winid], true)
-    nvim.command(`exe ${lnum + 1}`, true)
-    void nvim.resumeNotification(false, true)
+    this.nvim.call('coc#compat#execute', [this.winid, `exe ${lnum + 1}`], true)
   }
 
   private getElementByLnum(lnum: number): T | undefined {
@@ -552,9 +552,9 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (focus) this.focusItem(element)
   }
 
-  private updateHeadLines(end?: number): void {
+  private updateHeadLines(initialize = false): void {
     let { titleCount, messageCount } = this.lineState
-    end = end == null ? titleCount + messageCount : end
+    let end = initialize ? -1 : titleCount + messageCount
     let lines: string[] = []
     let highlights: HighlightItem[] = []
     try {
@@ -574,10 +574,31 @@ export default class BasicTreeView<T> implements TreeView<T> {
       this.lineState.messageCount = this.message ? 2 : 0
       this.lineState.titleCount = this.title ? 1 : 0
       this.updateUI(lines, highlights, 0, end)
+      if (!initialize) {
+        this.updateSigns()
+      }
     } catch (e) {
       this.nvim.errWriteLine('[coc.nvim] Error on update head lines:' + e.message)
       logger.error('Error on update head lines:', e)
     }
+  }
+
+  /**
+   * Update signs after collapse/expand or head change
+   */
+  private updateSigns(): void {
+    let { selection, nvim, bufnr } = this
+    if (!selection.length
+      || !bufnr
+      || !workspace.env.sign) return
+    nvim.pauseNotification()
+    nvim.call('sign_unplace', ['CocTree', { buffer: bufnr }], true)
+    for (let n of selection) {
+      let row = this.getItemLnum(n)
+      if (row == null) continue
+      nvim.call('sign_place', [signOffset + row, 'CocTree', 'CocTreeSelected', bufnr, { lnum: row + 1 }], true)
+    }
+    void nvim.resumeNotification(false, true)
   }
 
   // Render all tree items
@@ -644,7 +665,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     this.bufnr = arr[0]
     this.winid = arr[1]
     this._creating = false
-    this.updateHeadLines(-1)
+    this.updateHeadLines(true)
     void this.render()
   }
 

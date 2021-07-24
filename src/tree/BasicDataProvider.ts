@@ -144,10 +144,10 @@ export default class BasicDataProvider<T extends TreeNode> implements TreeDataPr
    */
   public update(data: T[], reset?: boolean): ReadonlyArray<T> {
     if (reset) {
-      this.data = data
+      this.data = data || []
       this._onDidChangeTreeData.fire(undefined)
     } else {
-      this.updateNodes(this.data, data, undefined)
+      this.updateNodes(this.data, data || [], undefined)
     }
     return this.data
   }
