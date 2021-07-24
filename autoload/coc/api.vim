@@ -200,14 +200,18 @@ endfunction
 
 function! s:funcs.out_write(str)
   echon a:str
+  call timer_start(0, {-> s:execute('redraw')})
 endfunction
 
 function! s:funcs.err_write(str)
-  echoerr a:str
+  "echoerr a:str
 endfunction
 
 function! s:funcs.err_writeln(str)
-  echoerr a:str
+  echohl ErrorMsg
+  echom a:str
+  echohl None
+  call timer_start(0, {-> s:execute('redraw')})
 endfunction
 
 function! s:funcs.create_namespace(name) abort
