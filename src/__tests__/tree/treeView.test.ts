@@ -329,6 +329,38 @@ describe('TreeView', () => {
       expect(signs.length).toBe(0)
     })
 
+    it('should reset signs after expand & collapse', async () => {
+      createTreeView(defaultDef)
+      await treeView.show()
+      await helper.wait(50)
+      await nvim.command('exe 2')
+      await nvim.input('t')
+      await helper.wait(50)
+      await checkLines([
+        'test',
+        '- a',
+        '    c',
+        '    d',
+        '+ b',
+        '  g',
+      ])
+      await nvim.command('exe 3')
+      await nvim.input('<space>')
+      await helper.wait(50)
+      let buf = await nvim.buffer
+      let res = await nvim.call('sign_getplaced', [buf.id, { group: 'CocTree' }])
+      expect(res[0].signs.length).toBe(1)
+      await nvim.command('exe 2')
+      await nvim.input('t')
+      await helper.wait(50)
+      res = await nvim.call('sign_getplaced', [buf.id, { group: 'CocTree' }])
+      expect(res[0].signs.length).toBe(0)
+      await nvim.input('t')
+      await helper.wait(100)
+      res = await nvim.call('sign_getplaced', [buf.id, { group: 'CocTree' }])
+      expect(res[0].signs.length).toBe(1)
+    })
+
     it('should close tree view by <esc>', async () => {
       createTreeView(defaultDef)
       await treeView.show()
