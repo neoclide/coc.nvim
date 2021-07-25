@@ -59,13 +59,13 @@ export default class SymbolsOutline {
         }
       }
     }, null, this.disposables)
-    events.on('CursorHold', async bufnr => {
-      if (!this.config.checkBufferSwitch
-        || this.providersMap.size == 0) return
+    events.on('BufEnter', async bufnr => {
+      if (!this.config.checkBufferSwitch || this.providersMap.has(bufnr)) return
+      let winid = await this.nvim.call('coc#window#find', ['cocViewId', 'OUTLINE'])
+      if (winid == -1) return
+      await workspace.document
       let buf = this.buffers.getItem(bufnr)
       if (buf == null) return
-      let winid = await this.nvim.call('coc#util#get_win', ['cocViewId', 'OUTLINE'])
-      if (winid == -1) return
       let win = this.nvim.createWindow(winid)
       let target = await win.getVar('target_bufnr')
       if (!target || target == bufnr) return
@@ -77,7 +77,7 @@ export default class SymbolsOutline {
       if (!provider) return
       let views = this.treeViews.get(provider)
       if (!views || !views.length) return
-      let winid = await this.nvim.call('coc#util#get_win', ['cocViewId', 'OUTLINE'])
+      let winid = await this.nvim.call('coc#window#find', ['cocViewId', 'OUTLINE'])
       if (winid == -1) return
       let view = views.find(o => o.windowId == winid)
       if (!view) return
@@ -251,10 +251,9 @@ export default class SymbolsOutline {
    * Hide outline of current tab.
    */
   public async hide(): Promise<void> {
-    let winid = await this.nvim.call('coc#util#get_win', ['cocViewId', 'OUTLINE'])
+    let winid = await this.nvim.call('coc#window#find', ['cocViewId', 'OUTLINE']) as number
     if (winid == -1) return
-    let win = this.nvim.createWindow(winid)
-    await win.close(true)
+    await this.nvim.call('coc#window#close', [winid])
   }
 
   public dispose(): void {

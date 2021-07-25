@@ -160,45 +160,19 @@ function! coc#list#hide(original, height, winid) abort
   if !empty(arr) && arr[0] != 0
     silent! pclose!
     let previewwin = coc#list#get_preview(arr[0])
-    call s:close_win(previewwin)
+    call coc#window#close(previewwin)
   endif
   if !empty(getwininfo(a:original))
     call win_gotoid(a:original)
   endif
   if a:winid
-    call s:close_win(a:winid)
+    call coc#window#close(a:winid)
   endif
   if !empty(a:height) && win_getid() == a:original
     if exists('*nvim_win_set_height')
       call nvim_win_set_height(a:original, a:height)
     elseif win_getid() == a:original
       execute 'resize '.a:height
-    endif
-  endif
-endfunction
-
-function! s:close_win(winid) abort
-  if empty(a:winid) || a:winid == -1 || empty(getwininfo(a:winid))
-    return
-  endif
-  if s:is_vim
-    if exists('*win_execute')
-      noa call win_execute(a:winid, 'close!', 'silent!')
-    else
-      if win_getid() == a:winid
-        noa silent! close!
-      else
-        let winid = win_getid()
-        let res = win_gotoid(winid)
-        if res
-          noa silent! close!
-          noa wincmd p
-        endif
-      endif
-    endif
-  else
-    if nvim_win_is_valid(a:winid)
-      silent! noa call nvim_win_close(a:winid, 1)
     endif
   endif
 endfunction
