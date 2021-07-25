@@ -900,10 +900,6 @@ function! coc#util#refactor_foldlevel(lnum) abort
   return 1
 endfunction
 
-function! coc#util#get_pretext() abort
-  return strpart(getline('.'), 0, col('.') - 1)
-endfunction
-
 function! coc#util#refactor_fold_text(lnum) abort
   let range = ''
   let info = get(b:line_infos, a:lnum, [])
@@ -950,23 +946,4 @@ function! coc#util#get_offset() abort
     endif
   endfor
   return offset
-endfunction
-
-" Get single window by window variable
-function! coc#util#get_win(key, val) abort
-  for i in range(1, winnr('$'))
-    let res = getwinvar(i, a:key)
-    if res == a:val
-      return win_getid(i)
-    endif
-  endfor
-  return -1
-endfunction
-
-" Make sure window exists
-function! coc#util#win_gotoid(winid) abort
-  noa let res = win_gotoid(a:winid)
-  if res == 0
-    throw 'Invalid window number'
-  endif
 endfunction

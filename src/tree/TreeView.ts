@@ -806,14 +806,11 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (this.bufnr || this._creating) return
     this._creating = true
     let { nvim } = this
-    let winid = await nvim.call('coc#util#get_win', ['cocViewId', this.viewId])
+    let winid = await nvim.call('coc#window#find', ['cocViewId', this.viewId])
     let id = globalId
     globalId = globalId + 1
     nvim.pauseNotification()
-    if (winid != -1) {
-      let win = nvim.createWindow(winid)
-      win.close(true, true)
-    }
+    nvim.call('coc#window#close', [winid], true)
     nvim.command(`keepalt ${splitCommand} +setl\\ buftype=nofile CocTreeView${id}`, true)
     nvim.command('setl bufhidden=wipe nolist nonumber norelativenumber foldcolumn=0', true)
     nvim.command(`setl signcolumn=${this.canSelectMany ? 'yes' : 'no'}${this.winfixwidth ? ' winfixwidth' : ''}`, true)
@@ -822,7 +819,6 @@ export default class BasicTreeView<T> implements TreeView<T> {
     let res = await nvim.resumeNotification()
     if (res[1]) throw new Error(`Error on buffer create:` + JSON.stringify(res[1]))
     const arr = await nvim.eval(`[bufnr('%'),win_getid()]`) as [number, number]
-    // this.addHeadLines(lines, highlights)
     this._onDidChangeVisibility.fire({ visible: true })
     this.registerKeymaps()
     this.bufnr = arr[0]
