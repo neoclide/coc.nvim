@@ -239,6 +239,9 @@ export default class FloatFactory implements Disposable {
   }
 
   public dispose(): void {
+    this.cancel()
+    let { winid, nvim } = this
+    if (winid) nvim.call('coc#float#close', [winid], true)
     disposeAll(this.disposables)
   }
 }
