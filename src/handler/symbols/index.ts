@@ -141,8 +141,8 @@ export default class Symbols {
     }
   }
 
-  public async showOutline(): Promise<void> {
-    await this.outline.show()
+  public async showOutline(keep?: number): Promise<void> {
+    await this.outline.show(keep)
   }
 
   public async hideOutline(): Promise<void> {

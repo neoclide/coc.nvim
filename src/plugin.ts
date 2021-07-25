@@ -264,7 +264,7 @@ export default class Plugin extends EventEmitter {
     this.addAction('toggleExtension', name => extensions.toggleExtension(name))
     this.addAction('uninstallExtension', (...args: string[]) => extensions.uninstallExtension(args))
     this.addAction('getCurrentFunctionSymbol', () => this.handler.symbols.getCurrentFunctionSymbol())
-    this.addAction('showOutline', () => this.handler.symbols.showOutline())
+    this.addAction('showOutline', (keep?: number) => this.handler.symbols.showOutline(keep))
     this.addAction('hideOutline', () => this.handler.symbols.hideOutline())
     this.addAction('getWordEdit', () => this.handler.rename.getWordEdit())
     this.addAction('addCommand', cmd => this.handler.commands.addVimCommand(cmd))
