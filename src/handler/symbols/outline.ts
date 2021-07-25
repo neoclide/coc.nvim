@@ -69,7 +69,7 @@ export default class SymbolsOutline {
       let win = this.nvim.createWindow(winid)
       let target = await win.getVar('target_bufnr')
       if (!target || target == bufnr) return
-      await this.show()
+      await this.show(true)
     }, null, this.disposables)
     events.on('CursorHold', async bufnr => {
       if (!this.config.followCursor) return
@@ -209,7 +209,7 @@ export default class SymbolsOutline {
   /**
    * Create outline view.
    */
-  public async show(): Promise<void> {
+  public async show(keep?: boolean): Promise<void> {
     await workspace.document
     let bufnr = await this.nvim.call('bufnr', ['%'])
     let buf = this.buffers.getItem(bufnr)
@@ -242,7 +242,7 @@ export default class SymbolsOutline {
       let win = this.nvim.createWindow(treeView.windowId)
       win.setVar('target_bufnr', bufnr, true)
     }
-    if (this.config.keepWindow) {
+    if (keep || this.config.keepWindow) {
       await this.nvim.command('wincmd p')
     }
   }
