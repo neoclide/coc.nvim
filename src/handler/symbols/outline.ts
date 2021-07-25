@@ -1,7 +1,8 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable, DocumentSymbol, Range, SymbolKind } from 'vscode-languageserver-protocol'
-import languages from '../../languages'
 import events from '../../events'
+import debounce from 'debounce'
+import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
 import { TreeItemIcon } from '../../tree'
 import BasicDataProvider, { TreeNode } from '../../tree/BasicDataProvider'
@@ -10,9 +11,10 @@ import { ConfigurationChangeEvent } from '../../types'
 import { disposeAll } from '../../util'
 import { getSymbolKind } from '../../util/convert'
 import { comparePosition, positionInRange } from '../../util/position'
-import workspace from '../../workspace'
 import window from '../../window'
+import workspace from '../../workspace'
 import SymbolsBuffer from './buffer'
+const logger = require('../../util/logger')('symbols-outline')
 
 // Support expand level.
 interface OutlineNode extends TreeNode {
@@ -36,6 +38,7 @@ interface OutlineConfig {
 export default class SymbolsOutline {
   private providersMap: Map<number, BasicDataProvider<OutlineNode>> = new Map()
   private treeViews: WeakMap<BasicDataProvider<OutlineNode>, BasicTreeView<OutlineNode>[]> = new WeakMap()
+  private originalWins: WeakMap<BasicTreeView<OutlineNode>, number> = new WeakMap()
   private config: OutlineConfig
   private disposables: Disposable[] = []
   private labels: { [key: string]: string }
@@ -45,7 +48,7 @@ export default class SymbolsOutline {
   ) {
     this.loadConfiguration()
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
-    events.on('BufUnload', bufnr => {
+    events.on('BufUnload', async bufnr => {
       let provider = this.providersMap.get(bufnr)
       if (provider) {
         this.providersMap.delete(bufnr)
@@ -53,24 +56,39 @@ export default class SymbolsOutline {
         let views = this.treeViews.get(provider)
         if (views) {
           this.treeViews.delete(provider)
-          views.forEach(view => {
+          for (let view of views) {
+            if (!view.visible) continue
+            let winid = this.originalWins.get(view)
+            if (winid && this.config.checkBufferSwitch) {
+              // check if original window exists
+              let nr = await nvim.call('win_id2win', [winid])
+              if (nr) {
+                let win = nvim.createWindow(view.windowId)
+                // buffer could be recreated.
+                win.setVar('target_bufnr', -1, true)
+                let timer = setTimeout(() => {
+                  if (view.visible) view.dispose()
+                }, 200)
+                this.disposables.push({
+                  dispose: () => {
+                    clearTimeout(timer)
+                  }
+                })
+                return
+              }
+            }
+            this.originalWins.delete(view)
             view.dispose()
-          })
+          }
         }
       }
     }, null, this.disposables)
-    events.on('BufEnter', async bufnr => {
-      if (!this.config.checkBufferSwitch || this.providersMap.has(bufnr)) return
-      let winid = await this.nvim.call('coc#window#find', ['cocViewId', 'OUTLINE'])
-      if (winid == -1) return
-      await workspace.document
-      let buf = this.buffers.getItem(bufnr)
-      if (buf == null) return
-      let win = this.nvim.createWindow(winid)
-      let target = await win.getVar('target_bufnr')
-      if (!target || target == bufnr) return
-      await this.show(true)
-    }, null, this.disposables)
+    events.on('BufEnter', debounce(bufnr => {
+      this._onBufEnter(bufnr).catch(e => {
+        logger.error(e)
+        nvim.errWriteLine(`[coc.nvim] Error on BufEnter: ${e.message}`)
+      })
+    }, 100), null, this.disposables)
     events.on('CursorHold', async bufnr => {
       if (!this.config.followCursor) return
       let provider = this.providersMap.get(bufnr)
@@ -99,6 +117,20 @@ export default class SymbolsOutline {
       }
       if (curr) await view.reveal(curr)
     }, null, this.disposables)
+  }
+
+  private async _onBufEnter(bufnr: number): Promise<void> {
+    if (!this.config.checkBufferSwitch) return
+    let winid = await this.nvim.call('coc#window#find', ['cocViewId', 'OUTLINE'])
+    if (winid == -1) return
+    if (!this.buffers.getItem(bufnr)) {
+      let doc = await workspace.document
+      if (doc.bufnr != bufnr || !this.buffers.getItem(bufnr)) return
+    }
+    let win = this.nvim.createWindow(winid)
+    let target = await win.getVar('target_bufnr')
+    if (target == bufnr) return
+    await this.show(1)
   }
 
   private getIcon(kind: SymbolKind): TreeItemIcon {
@@ -209,9 +241,9 @@ export default class SymbolsOutline {
   /**
    * Create outline view.
    */
-  public async show(keep?: boolean): Promise<void> {
+  public async show(keep?: number): Promise<void> {
     await workspace.document
-    let bufnr = await this.nvim.call('bufnr', ['%'])
+    let [bufnr, winid] = await this.nvim.eval('[bufnr("%"),win_getid()]') as [number, number]
     let buf = this.buffers.getItem(bufnr)
     if (!buf) throw new Error('Document not attached')
     let provider = this.providersMap.get(bufnr)
@@ -223,6 +255,7 @@ export default class SymbolsOutline {
       enableFilter: true,
       treeDataProvider: provider,
     })
+    this.originalWins.set(treeView, winid)
     let arr = this.treeViews.get(provider) || []
     arr.push(treeView)
     this.treeViews.set(provider, arr)
@@ -242,7 +275,7 @@ export default class SymbolsOutline {
       let win = this.nvim.createWindow(treeView.windowId)
       win.setVar('target_bufnr', bufnr, true)
     }
-    if (keep || this.config.keepWindow) {
+    if (keep == 1 || (keep === undefined && this.config.keepWindow)) {
       await this.nvim.command('wincmd p')
     }
   }

@@ -2320,10 +2320,13 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Useful when `diagnostic.autoRefresh` is `false`.
 
-"showOutline" 					*coc-action-showOutline*
+"showOutline" [{keep}]				*coc-action-showOutline*
 
 	Show outline tree view for current buffer. Old outline view on current
 	tab would be replaced.
+
+	{keep} override `"outline.keepWindow"` configuration when specified.
+	Could be 0 or 1.
 
 	Returns after window is shown (document symbol request is still in
 	progress).
