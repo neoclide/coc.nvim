@@ -27,9 +27,10 @@ export default class SymbolsBuffer implements SyncItem {
   public async getSymbols(): Promise<DocumentSymbol[]> {
     let doc = workspace.getDocument(this.bufnr)
     if (!doc) return []
-    doc.forceSync()
+    await doc.patchChange()
     this.autoUpdate = true
-    if (doc.version == this.version) return this.symbols
+    // refresh for empty symbols since some languages server could be buggy first time.
+    if (doc.version == this.version && this.symbols?.length) return this.symbols
     this.cancel()
     await this._fetchSymbols()
     return this.symbols
@@ -48,7 +49,7 @@ export default class SymbolsBuffer implements SyncItem {
 
   private async _fetchSymbols(): Promise<void> {
     let { textDocument } = this
-    if (!textDocument || textDocument.version == this.version) return
+    if (!textDocument) return
     let { version } = textDocument
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let { token } = tokenSource

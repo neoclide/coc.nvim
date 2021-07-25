@@ -209,6 +209,10 @@ export default class SymbolsOutline {
         }
         this.setMessage(provider, 'Loading document symbols')
         let arr = await buf.getSymbols()
+        if (!arr || arr.length == 0) {
+          // server may return empty symbols on buffer initialize, throw error to force reload.
+          throw new Error('Empty symbols returned from language server. ')
+        }
         disposable = buf.onDidUpdate(symbols => {
           provider.update(convertSymbols(symbols))
         })

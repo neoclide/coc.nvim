@@ -160,14 +160,13 @@ export default class BasicTreeView<T> implements TreeView<T> {
             hlGroup: 'Cursor'
           }]
           this.renderedItems = []
-          this.updateUI([text + ' '], highlights, start, -1)
+          this.updateUI([text + ' '], highlights, start, -1, text.length > 0)
           if (text.length) {
             void this.doFilter(text)
           }
         } else if (filterText != null) {
           this.updateUI([], [], start, start + 1)
         }
-        this.nvim.command('redraw', true)
         filterText = text
       },
       get: () => {
@@ -200,6 +199,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     this.disposables.push(this._onDidChangeVisibility, this._onDidChangeSelection, this._onDidCollapseElement, this._onDidExpandElement)
     this.filter.onDidExit(() => {
       this.nodesMap.clear()
+      this.clearSelection()
       this.filterText = undefined
       void this.render()
     })
@@ -214,7 +214,6 @@ export default class BasicTreeView<T> implements TreeView<T> {
         let index = idx == -1 || idx == 0 ? 0 : idx - 1
         let node = this.renderedItems[index]?.node
         if (node) this.selectItem(node, true)
-        this.nvim.command('redraw', true)
         return
       }
       if (character == '<down>' || character == this.keys.selectNext) {
@@ -223,7 +222,6 @@ export default class BasicTreeView<T> implements TreeView<T> {
         let index = idx == -1 || idx == this.renderedItems.length - 1 ? 0 : idx + 1
         let node = this.renderedItems[index]?.node
         if (node) this.selectItem(node, true)
-        this.nvim.command('redraw', true)
         return
       }
       if (character == '<cr>' || character == this.keys.invoke) {
@@ -317,11 +315,9 @@ export default class BasicTreeView<T> implements TreeView<T> {
         delete o.highlights
         return o
       })
-      this.updateUI(renderedItems.map(o => o.line), highlights, lnum, -1)
-      if (renderedItems.length) {
-        this.selectItem(renderedItems[0].node, true)
-      }
-      this.nvim.command('redraw', true)
+      this.updateUI(renderedItems.map(o => o.line), highlights, lnum, -1, true)
+      if (renderedItems.length) this.selectItem(renderedItems[0].node, true)
+      this.redraw()
       release()
     } catch (e) {
       release()
@@ -505,10 +501,10 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (!workspace.env.sign) return
     this._selection = []
     this.nvim.call('sign_unplace', ['CocTree', { buffer: this.bufnr }], true)
-    this._onDidChangeSelection.fire({ selection: this._selection })
+    this._onDidChangeSelection.fire({ selection: [] })
   }
 
-  private selectItem(item: T, forceSingle?: boolean): void {
+  private selectItem(item: T, forceSingle?: boolean, noRedraw?: boolean): void {
     let { nvim } = this
     if (this._selection.includes(item)
       || !this.bufnr
@@ -526,7 +522,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     }
     nvim.call('coc#compat#execute', [this.winid, `exe ${row + 1}`], true)
     nvim.call('sign_place', [signOffset + row, 'CocTree', 'CocTreeSelected', this.bufnr, { lnum: row + 1 }], true)
-    if (workspace.isVim) nvim.command('redraw', true)
+    if (!noRedraw) this.redraw()
     void nvim.resumeNotification(false, true)
     this._onDidChangeSelection.fire({ selection: this._selection })
   }
@@ -654,7 +650,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     return takes
   }
 
-  private updateUI(lines: string[], highlights: HighlightItem[], start = 0, end = -1): void {
+  private updateUI(lines: string[], highlights: HighlightItem[], start = 0, end = -1, noRedraw = false): void {
     if (!this.bufnr) return
     let { nvim } = this
     let buf = nvim.createBuffer(this.bufnr)
@@ -666,7 +662,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       nvim.call('coc#highlight#update_highlights', [this.bufnr, highlightNamespace, highlights, start, highlightEnd], true)
     }
     buf.setOption('modifiable', false, true)
-    if (workspace.env.isVim) nvim.command('redraw', true)
+    if (!noRedraw) this.redraw()
     void nvim.resumeNotification(false, true)
   }
 
@@ -816,13 +812,14 @@ export default class BasicTreeView<T> implements TreeView<T> {
     nvim.command(`setl signcolumn=${this.canSelectMany ? 'yes' : 'no'}${this.winfixwidth ? ' winfixwidth' : ''}`, true)
     nvim.command('setl nocursorline nobuflisted wrap undolevels=-1 filetype=coctree nomodifiable noswapfile', true)
     nvim.command(`let w:cocViewId = "${this.viewId.replace(/"/g, '\\"')}"`, true)
+    nvim.call('bufnr', ['%'], true)
+    nvim.call('win_getid', [], true)
     let res = await nvim.resumeNotification()
     if (res[1]) throw new Error(`Error on buffer create:` + JSON.stringify(res[1]))
-    const arr = await nvim.eval(`[bufnr('%'),win_getid()]`) as [number, number]
     this._onDidChangeVisibility.fire({ visible: true })
     this.registerKeymaps()
-    this.bufnr = arr[0]
-    this.winid = arr[1]
+    this.bufnr = res[0][6]
+    this.winid = res[0][7]
     this._creating = false
     this.updateHeadLines(true)
     void this.render()
@@ -874,10 +871,16 @@ export default class BasicTreeView<T> implements TreeView<T> {
   private hide(): void {
     if (!this.bufnr) return
     this.nvim.command(`bd! ${this.bufnr}`, true)
-    if (workspace.isVim) this.nvim.command('redraw', true)
+    this.redraw()
     this._onDidChangeVisibility.fire({ visible: false })
     this.bufnr = undefined
     this.winid = undefined
+  }
+
+  private redraw(): void {
+    if (workspace.isVim || this.filter.activated) {
+      this.nvim.command('redraw', true)
+    }
   }
 
   private cancelResolve(): void {
