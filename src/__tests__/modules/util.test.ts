@@ -5,7 +5,7 @@ import fs from 'fs'
 import { wait, watchFile } from '../../util'
 import { isGitIgnored, findUp, resolveRoot, statAsync, parentDirs, isParentFolder } from '../../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
-import { score, positions } from '../../util/fzy'
+import { score, positions, groupPositions } from '../../util/fzy'
 import { score as matchScore } from '../../util/match'
 import { mixin } from '../../util/object'
 import { Mutex } from '../../util/mutex'
@@ -47,6 +47,11 @@ describe('score test', () => {
   it('fzy#positions', async () => {
     let arr = positions("amuser", "app/models/user.rb")
     expect(arr).toEqual([0, 4, 11, 12, 13, 14])
+  })
+
+  it('fzy#groupPositions', async () => {
+    let arr = groupPositions([1, 2, 3, 6, 7, 10])
+    expect(arr).toEqual([[1, 4], [6, 8], [10, 11]])
   })
 })
 

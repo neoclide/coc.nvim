@@ -7,6 +7,13 @@ export interface TreeItemLabel {
   highlights?: [number, number][]
 }
 
+// eslint-disable-next-line no-redeclare
+export namespace TreeItemLabel {
+  export function is(obj: any): obj is TreeItemLabel {
+    return typeof obj.label == 'string'
+  }
+}
+
 export interface TreeItemIcon {
   text: string
   hlGroup: string

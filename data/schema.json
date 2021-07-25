@@ -1024,6 +1024,21 @@
       "default": "<esc>",
       "description": "Trigger key to dispose the tree and close tree window."
     },
+    "tree.key.activeFilter": {
+      "type": "string",
+      "default": "f",
+      "description": "Trigger key active filter."
+    },
+    "tree.key.selectNext": {
+      "type": "string",
+      "default": "<C-n>",
+      "description": "Trigger key to select next item during filter."
+    },
+    "tree.key.selectPrevious": {
+      "type": "string",
+      "default": "<C-p>",
+      "description": "Trigger key to select previous item during filter."
+    },
     "outline.splitCommand": {
       "type": "string",
       "default": "belowright 30vs",
@@ -1036,7 +1051,7 @@
     },
     "outline.keepWindow": {
       "type": "boolean",
-      "default": true,
+      "default": false,
       "description": "Jump back to original window after outline is shown."
     },
     "outline.sortBy": {

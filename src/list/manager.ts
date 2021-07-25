@@ -57,7 +57,7 @@ export class ListManager implements Disposable {
     events.on('WinLeave', winid => {
       let session = this.getSessionByWinid(winid)
       if (session) this.prompt.cancel()
-    })
+    }, null, this.disposables)
     this.disposables.push(Disposable.create(() => {
       if (timer) clearTimeout(timer)
     }))

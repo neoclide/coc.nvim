@@ -120,6 +120,20 @@ export function score(needle, haystack): number {
   return M[n - 1][m - 1]
 }
 
+export function groupPositions(arr: number[]): [number, number][] {
+  let res: [number, number][] = []
+  for (let i = 0; i < arr.length; i++) {
+    let last = res.length ? res[res.length - 1] : undefined
+    let curr = arr[i]
+    if (last && curr == last[1]) {
+      last[1] = curr + 1
+    } else {
+      res.push([curr, curr + 1])
+    }
+  }
+  return res
+}
+
 export function positions(needle: string, haystack: string): number[] {
   let n = needle.length
   let m = haystack.length
