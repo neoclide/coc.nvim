@@ -141,15 +141,11 @@ function! coc#list#scroll_preview(dir) abort
 endfunction
 
 function! coc#list#restore(winid, height)
-  if has('nvim')
-    if nvim_win_is_valid(a:winid)
-      call nvim_win_set_height(a:winid, a:height)
-    endif
-  else
-    if exists('win_execute')
-      call win_execute(a:winid, 'noa resize '.a:height, 'silent!')
-      redraw
-    endif
+  if has('nvim') && nvim_win_is_valid(a:winid)
+    call nvim_win_set_height(a:winid, a:height)
+  elseif s:is_vim && exists('*win_execute')
+    call win_execute(a:winid, 'noa resize '.a:height, 'silent!')
+    redraw
   endif
 endfunction
 

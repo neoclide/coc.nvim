@@ -284,40 +284,32 @@ endfunction
 "   endLine: number
 " }
 function! coc#highlight#highlight_lines(winid, blocks) abort
-  let currwin = win_getid()
-  let switch = has('nvim') && currwin != a:winid
-  if switch
-    noa call nvim_set_current_win(a:winid)
-  endif
-  let defined = []
   let region_id = 1
+  let defined = []
+  let cmds = []
   for config in a:blocks
     let start = config['startLine'] + 1
     let end = config['endLine'] == -1 ? len(getbufline(winbufnr(a:winid), 1, '$')) + 1 : config['endLine'] + 1
     let filetype = get(config, 'filetype', '')
     let hlGroup = get(config, 'hlGroup', '')
     if !empty(hlGroup)
-      call s:execute(a:winid, 'syntax region '.hlGroup.' start=/\%'.start.'l/ end=/\%'.end.'l/')
+      call add(cmds, 'syntax region '.hlGroup.' start=/\%'.start.'l/ end=/\%'.end.'l/')
     else
       let filetype = matchstr(filetype, '\v^\w+')
       if empty(filetype) || filetype == 'txt' || index(get(g:, 'coc_markdown_disabled_languages', []), filetype) != -1
         continue
       endif
       if index(defined, filetype) == -1
-        call s:execute(a:winid, 'syntax include @'.toupper(filetype).' syntax/'.filetype.'.vim')
-        if has('nvim')
-          unlet! b:current_syntax
-        elseif exists('*win_execute')
-          call win_execute(a:winid, 'unlet! b:current_syntax')
-        endif
+        call add(cmds, 'syntax include @'.toupper(filetype).' syntax/'.filetype.'.vim')
+        call add(cmds, 'unlet! b:current_syntax')
         call add(defined, filetype)
       endif
-      call s:execute(a:winid, 'syntax region CodeBlock'.region_id.' start=/\%'.start.'l/ end=/\%'.end.'l/ contains=@'.toupper(filetype).' keepend')
+      call add(cmds, 'syntax region CodeBlock'.region_id.' start=/\%'.start.'l/ end=/\%'.end.'l/ contains=@'.toupper(filetype).' keepend')
       let region_id = region_id + 1
     endif
   endfor
-  if switch
-    noa call nvim_set_current_win(currwin)
+  if !empty(cmds)
+    call coc#compat#execute(a:winid, cmds, 'silent!')
   endif
 endfunction
 
@@ -493,14 +485,6 @@ function! s:create_cterm_hlgroup(group, fg, bg, attr) abort
   endif
   if a:attr != ""
     exec "silent hi " . a:group . " cterm=" . a:attr
-  endif
-endfunction
-
-function! s:execute(winid, cmd) abort
-  if has('nvim')
-    execute 'silent! ' a:cmd
-  else
-    call win_execute(a:winid, a:cmd, 'silent!')
   endif
 endfunction
 

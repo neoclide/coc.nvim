@@ -129,17 +129,14 @@ function! coc#compat#buf_del_keymap(bufnr, mode, lhs) abort
 endfunction
 
 " execute command or list of commands in window
-function! coc#compat#execute(winid, command) abort
-  if s:is_vim
-    if !exists('*win_execute')
-      throw 'win_execute function not exists, please upgrade your vim.'
-    endif
+function! coc#compat#execute(winid, command, ...) abort
+  if exists('*win_execute')
     if type(a:command) == v:t_string
-      keepalt call win_execute(a:winid, a:command)
+      keepalt call win_execute(a:winid, a:command, get(a:, 1, ''))
     elseif type(a:command) == v:t_list
-      keepalt call win_execute(a:winid, join(a:command, "\n"))
+      keepalt call win_execute(a:winid, join(a:command, "\n"), get(a:, 1, ''))
     endif
-  else
+  elseif has('nvim')
     let curr = nvim_get_current_win()
     noa keepalt call nvim_set_current_win(a:winid)
     if type(a:command) == v:t_string
