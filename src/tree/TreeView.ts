@@ -376,6 +376,10 @@ export default class BasicTreeView<T> implements TreeView<T> {
   }
 
   private async onDataChange(node: T | undefined): Promise<void> {
+    if (this.filter.activated) {
+      this.filter.deactivate()
+      return
+    }
     this.clearSelection()
     if (!node) {
       await this.render()
@@ -506,14 +510,13 @@ export default class BasicTreeView<T> implements TreeView<T> {
 
   private selectItem(item: T, forceSingle?: boolean, noRedraw?: boolean): void {
     let { nvim } = this
-    if (this._selection.includes(item)
-      || !this.bufnr
-      || !workspace.env.sign) return
+    if (!this.bufnr || !workspace.env.sign) return
     let row = this.getItemLnum(item)
     if (row == null) return
+    let exists = this._selection.includes(item)
     if (!this.canSelectMany || forceSingle) {
       this._selection = [item]
-    } else {
+    } else if (!exists) {
       this._selection.push(item)
     }
     nvim.pauseNotification()
@@ -524,7 +527,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     nvim.call('sign_place', [signOffset + row, 'CocTree', 'CocTreeSelected', this.bufnr, { lnum: row + 1 }], true)
     if (!noRedraw) this.redraw()
     void nvim.resumeNotification(false, true)
-    this._onDidChangeSelection.fire({ selection: this._selection })
+    if (!exists) this._onDidChangeSelection.fire({ selection: this._selection })
   }
 
   private unselectItem(idx: number): void {
