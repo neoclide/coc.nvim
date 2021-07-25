@@ -5169,6 +5169,10 @@ declare module 'coc.nvim' {
      */
     winfixwidth?: boolean
     /**
+     * Enable filter feature, default to false
+     */
+    enableFilter?: boolean
+    /**
      * Disable indent of leaves without children, default to false
      */
     disableLeafIndent?: boolean

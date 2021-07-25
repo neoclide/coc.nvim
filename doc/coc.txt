@@ -928,6 +928,19 @@ Built-in configurations:~
 
 	Trigger key to dispose the tree and close tree window, default: <esc>
 
+"tree.key.activeFilter":~
+
+	Trigger key active filter, only works when tree view support filter,
+	default: 'f'
+
+"tree.key.selectNext":~
+
+	Trigger key to select next item during filter, default <C-n>
+
+"tree.key.selectPrevious":~
+
+	Trigger key to select previous item during filter, default <C-p>
+
 						*coc-config-outline*
 "outline.splitCommand":~
 
@@ -939,7 +952,7 @@ Built-in configurations:~
 
 "outline.keepWindow":~
 
-	Jump back to original window after outline is shown, default `true`
+	Jump back to original window after outline is shown, default `false`
 
 "outline.sortBy":~
 

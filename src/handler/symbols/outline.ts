@@ -65,6 +65,7 @@ export default class SymbolsOutline {
       let buf = this.buffers.getItem(bufnr)
       if (buf == null) return
       let winid = await this.nvim.call('coc#util#get_win', ['cocViewId', 'OUTLINE'])
+      if (winid == -1) return
       let win = this.nvim.createWindow(winid)
       let target = await win.getVar('target_bufnr')
       if (!target || target == bufnr) return
@@ -76,11 +77,9 @@ export default class SymbolsOutline {
       if (!provider) return
       let views = this.treeViews.get(provider)
       if (!views || !views.length) return
-      let { nvim } = this
-      let tabPage = await nvim.tabpage
-      let wins = await tabPage.windows
-      let ids = wins.map(o => o.id)
-      let view = views.find(o => ids.includes(o.windowId))
+      let winid = await this.nvim.call('coc#util#get_win', ['cocViewId', 'OUTLINE'])
+      if (winid == -1) return
+      let view = views.find(o => o.windowId == winid)
       if (!view) return
       let pos = await window.getCursorPosition()
       let curr: OutlineNode
@@ -191,14 +190,13 @@ export default class SymbolsOutline {
         await nvim.command(`${winnr}wincmd w`)
         let pos = item.selectRange.start
         await nvim.call('coc#util#jumpTo', [pos.line, pos.character])
-        await nvim.command(`normal! zt`)
+        await nvim.command(`normal! zz`)
         let buf = nvim.createBuffer(bufnr)
         buf.highlightRanges('outline-hover', 'CocHoverRange', [item.selectRange])
         setTimeout(() => {
           buf.clearNamespace('outline-hover')
         }, 500)
-        await nvim.command(`wincmd p`)
-        if (workspace.isVim) nvim.command('redraw', true)
+        nvim.command('redraw', true)
       },
       onDispose: () => {
         this.providersMap.delete(buf.bufnr)
@@ -222,6 +220,7 @@ export default class SymbolsOutline {
       this.providersMap.set(bufnr, provider)
     }
     let treeView = new BasicTreeView('OUTLINE', {
+      enableFilter: true,
       treeDataProvider: provider,
     })
     let arr = this.treeViews.get(provider) || []
