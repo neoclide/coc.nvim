@@ -935,11 +935,11 @@ Built-in configurations:~
 
 "tree.key.selectNext":~
 
-	Trigger key to select next item during filter, default <C-n>
+	Trigger key to select next item during filter, default <C-j>
 
 "tree.key.selectPrevious":~
 
-	Trigger key to select previous item during filter, default <C-p>
+	Trigger key to select previous item during filter, default <C-k>
 
 						*coc-config-outline*
 "outline.splitCommand":~

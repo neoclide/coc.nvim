@@ -1031,12 +1031,12 @@
     },
     "tree.key.selectNext": {
       "type": "string",
-      "default": "<C-n>",
+      "default": "<C-j>",
       "description": "Trigger key to select next item during filter."
     },
     "tree.key.selectPrevious": {
       "type": "string",
-      "default": "<C-p>",
+      "default": "<C-k>",
       "description": "Trigger key to select previous item during filter."
     },
     "outline.splitCommand": {

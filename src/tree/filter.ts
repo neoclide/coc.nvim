@@ -7,6 +7,7 @@ export const sessionKey = 'filter'
 export default class Filter {
   private _activated = false
   private text: string
+  private history: string[] = []
   private disposables: Disposable[] = []
   private readonly _onDidUpdate = new Emitter<string>()
   private readonly _onDidExit = new Emitter<void>()
@@ -14,28 +15,47 @@ export default class Filter {
   public readonly onDidKeyPress: Event<string> = this._onDidKeyPress.event
   public readonly onDidUpdate: Event<string> = this._onDidUpdate.event
   public readonly onDidExit: Event<void> = this._onDidExit.event
-  constructor(private nvim: Neovim) {
+  constructor(private nvim: Neovim, keys: string[]) {
     this.text = ''
     events.on('InputChar', (session, character) => {
       if (session !== sessionKey || !this._activated) return
-      if (character.length == 1) {
-        this.text = this.text + character
-        this._onDidUpdate.fire(this.text)
-        return
-      }
-      if (character == '<bs>') {
-        this.text = this.text.slice(0, -1)
-        this._onDidUpdate.fire(this.text)
-        return
-      }
-      if (character == '<C-u>') {
-        this.text = ''
-        this._onDidUpdate.fire(this.text)
-        return
-      }
-      if (character == '<esc>') {
-        this.deactivate()
-        return
+      if (!keys.includes(character)) {
+        if (character.length == 1) {
+          this.text = this.text + character
+          this._onDidUpdate.fire(this.text)
+          return
+        }
+        if (character == '<bs>') {
+          this.text = this.text.slice(0, -1)
+          this._onDidUpdate.fire(this.text)
+          return
+        }
+        if (character == '<C-u>') {
+          this.text = ''
+          this._onDidUpdate.fire(this.text)
+          return
+        }
+        if (character == '<C-n>') {
+          let idx = this.history.indexOf(this.text)
+          let text = this.history[idx + 1] || this.history[0]
+          if (text) {
+            this.text = text
+            this._onDidUpdate.fire(this.text)
+          }
+          return
+        }
+        if (character == '<C-p>') {
+          let idx = this.history.indexOf(this.text)
+          let text = this.history[idx - 1] || this.history[this.history.length - 1]
+          if (text) {
+            this.text = text
+            this._onDidUpdate.fire(this.text)
+          }
+        }
+        if (character == '<esc>' || character == '<C-o>') {
+          this.deactivate()
+          return
+        }
       }
       this._onDidKeyPress.fire(character)
     }, null, this.disposables)
@@ -52,8 +72,12 @@ export default class Filter {
     if (!this._activated) return
     this.nvim.call('coc#prompt#stop_prompt', [sessionKey], true)
     this._activated = false
+    let { text } = this
     this.text = ''
     this._onDidExit.fire()
+    if (text && !this.history.includes(text)) {
+      this.history.push(text)
+    }
   }
 
   public get activated(): boolean {
@@ -62,6 +86,7 @@ export default class Filter {
 
   public dispose(): void {
     this.deactivate()
+    this.history = []
     this._onDidKeyPress.dispose()
     this._onDidUpdate.dispose()
     this._onDidExit.dispose()
