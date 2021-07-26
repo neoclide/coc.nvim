@@ -171,6 +171,7 @@ export class DiagnosticBuffer implements BufferSyncItem {
       if (equals(this.diagnostics, diagnostics)) {
         this.updateHighlights(diagnostics)
         this.showVirtualText(diagnostics, lnum)
+        if (isVim) this.nvim.command('redraw', true)
         return
       }
       this.diagnostics = diagnostics
