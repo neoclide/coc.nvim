@@ -92,20 +92,21 @@ export default class BasicTreeView<T> implements TreeView<T> {
   private retryTimers = 0
   private renderedItems: RenderedItem<T>[] = []
   private provider: TreeDataProvider<T>
-  private filter: Filter
-  private filterText: string | undefined
-  private readonly canSelectMany: boolean
-  private readonly leafIndent: boolean
-  private readonly winfixwidth: boolean
-  private readonly checkCollapseState: boolean
-  private readonly enableFilter: boolean
-  private lineState: LineState = { titleCount: 0, messageCount: 0 }
   private nodesMap: Map<T, TreeItemData> = new Map()
   private mutex: Mutex = new Mutex()
   private timer: NodeJS.Timer
   private disposables: Disposable[] = []
   private tooltipFactory: FloatFactory
   private resolveTokenSource: CancellationTokenSource | undefined
+  private lineState: LineState = { titleCount: 0, messageCount: 0 }
+  private filter: Filter
+  private filterText: string | undefined
+  private itemsToFilter: T[] | undefined
+  private readonly canSelectMany: boolean
+  private readonly leafIndent: boolean
+  private readonly winfixwidth: boolean
+  private readonly checkCollapseState: boolean
+  private readonly enableFilter: boolean
   constructor(private viewId: string, opts: TreeViewOptions<T>) {
     this.loadConfiguration()
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
@@ -160,10 +161,8 @@ export default class BasicTreeView<T> implements TreeView<T> {
             hlGroup: 'Cursor'
           }]
           this.renderedItems = []
-          this.updateUI([text + ' '], highlights, start, -1, text.length > 0)
-          if (text.length) {
-            void this.doFilter(text)
-          }
+          this.updateUI([text + ' '], highlights, start, -1, true)
+          void this.doFilter(text)
         } else if (filterText != null) {
           this.updateUI([], [], start, start + 1)
         }
@@ -201,6 +200,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       this.nodesMap.clear()
       this.clearSelection()
       this.filterText = undefined
+      this.itemsToFilter = undefined
       void this.render()
     })
     this.filter.onDidUpdate(text => {
@@ -271,34 +271,40 @@ export default class BasicTreeView<T> implements TreeView<T> {
   private async doFilter(text: string): Promise<void> {
     let items: ExtendedItem<T>[] = []
     let index = 0
-    const addNodes = async (nodes: T[]): Promise<void> => {
-      for (let n of nodes) {
+    let release = await this.mutex.acquire()
+    try {
+      if (!this.itemsToFilter) {
+        let itemsToFilter: T[] = []
+        const addNodes = async (nodes: T[]): Promise<void> => {
+          for (let n of nodes) {
+            itemsToFilter.push(n)
+            let arr = await Promise.resolve(this.provider.getChildren(n))
+            if (arr?.length) await addNodes(arr)
+          }
+        }
+        let nodes = await Promise.resolve(this.provider.getChildren())
+        await addNodes(nodes)
+        this.itemsToFilter = itemsToFilter
+      }
+      for (let n of this.itemsToFilter) {
         let item = await this.getTreeItem(n)
         let label = TreeItemLabel.is(item.label) ? item.label.label : item.label
-        if (hasMatch(text, label)) {
-          let idxs = positions(text, label)
+        if (!text || hasMatch(text, label)) {
+          let idxs = text ? positions(text, label) : []
           item.collapsibleState = TreeItemCollapsibleState.None
-          item.label = { label, highlights: groupPositions(idxs) }
-          let highlights: HighlightItem[] = []
-          let line = this.getRenderedLine(item, index, 0, highlights)
+          item.label = { label, highlights: text ? groupPositions(idxs) : [] }
+          let { line, highlights } = this.getRenderedLine(item, index, 0)
           items.push({
             level: 0,
             node: n,
             line,
             index,
-            score: score(text, label),
+            score: text ? score(text, label) : 0,
             highlights
           })
           index += 1
         }
-        let arr = await Promise.resolve(this.provider.getChildren(n))
-        if (arr?.length) await addNodes(arr)
       }
-    }
-    let release = await this.mutex.acquire()
-    try {
-      let nodes = await Promise.resolve(this.provider.getChildren())
-      await addNodes(nodes)
       items.sort((a, b) => {
         if (a.score != b.score) return b.score - a.score
         return a.index - b.index
@@ -377,7 +383,8 @@ export default class BasicTreeView<T> implements TreeView<T> {
 
   private async onDataChange(node: T | undefined): Promise<void> {
     if (this.filter.activated) {
-      this.filter.deactivate()
+      this.itemsToFilter = undefined
+      await this.doFilter(this.filterText)
       return
     }
     this.clearSelection()
@@ -576,8 +583,9 @@ export default class BasicTreeView<T> implements TreeView<T> {
     return item
   }
 
-  private getRenderedLine(treeItem: TreeItem, lnum: number, level: number, highlights: HighlightItem[]): string {
+  private getRenderedLine(treeItem: TreeItem, lnum: number, level: number): { line: string, highlights: HighlightItem[] } {
     let { openedIcon, closedIcon } = this.config
+    const highlights: HighlightItem[] = []
     const { label } = treeItem
     let prefix = '  '.repeat(level)
     const addHighlight = (text: string, hlGroup: string) => {
@@ -620,7 +628,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       }
     }
     prefix += typeof label === 'string' ? label : label.label
-    return prefix
+    return { line: prefix, highlights }
   }
 
   private async appendTreeNode(element: T, level: number, lnum: number, items: RenderedItem<T>[], highlights: HighlightItem[]): Promise<number> {
@@ -637,8 +645,9 @@ export default class BasicTreeView<T> implements TreeView<T> {
         treeItem.collapsibleState = TreeItemCollapsibleState.None
       }
     }
-    let line = this.getRenderedLine(treeItem, lnum, level, highlights)
-    items.push({ level, line, node: element })
+    let res = this.getRenderedLine(treeItem, lnum, level)
+    highlights.push(...res.highlights)
+    items.push({ level, line: res.line, node: element })
     if (treeItem.collapsibleState == TreeItemCollapsibleState.Expanded) {
       let l = level + 1
       if (!children) {
@@ -810,7 +819,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     globalId = globalId + 1
     nvim.pauseNotification()
     nvim.call('coc#window#close', [winid], true)
-    nvim.command(`keepalt ${splitCommand} +setl\\ buftype=nofile CocTreeView${id}`, true)
+    nvim.command(`keepalt ${splitCommand} +setl\\ buftype=nofile CocTree${id}`, true)
     nvim.command('setl bufhidden=wipe nolist nonumber norelativenumber foldcolumn=0', true)
     nvim.command(`setl signcolumn=${this.canSelectMany ? 'yes' : 'no'}${this.winfixwidth ? ' winfixwidth' : ''}`, true)
     nvim.command('setl nocursorline nobuflisted wrap undolevels=-1 filetype=coctree nomodifiable noswapfile', true)
@@ -844,7 +853,6 @@ export default class BasicTreeView<T> implements TreeView<T> {
     })
     this.enableFilter && activeFilter && regist('n', activeFilter, async () => {
       this.nvim.command(`exe ${this.startLnum}`, true)
-      this.nodesMap.clear()
       this.filter.active()
       this.filterText = ''
     }, true)
