@@ -161,6 +161,7 @@ export default class SymbolsOutline {
   }
 
   private convertSymbolToNode(documentSymbol: DocumentSymbol, sortFn: (a: OutlineNode, b: OutlineNode) => number): OutlineNode {
+    // let lnum = documentSymbol.selectionRange.start.line + 1
     return {
       label: documentSymbol.name,
       tooltip: documentSymbol.detail,
@@ -231,7 +232,8 @@ export default class SymbolsOutline {
         buf.highlightRanges('outline-hover', 'CocHoverRange', [item.selectRange])
         setTimeout(() => {
           buf.clearNamespace('outline-hover')
-        }, 500)
+          nvim.command('redraw', true)
+        }, 300)
         nvim.command('redraw', true)
       },
       onDispose: () => {
