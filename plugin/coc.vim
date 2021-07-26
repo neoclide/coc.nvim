@@ -292,6 +292,7 @@ function! s:Enable(initialize)
       autocmd WinEnter          * call coc#float#nvim_win_enter(win_getid())
       if exists('##WinClosed')
         autocmd WinClosed       * call coc#float#close_related(+expand('<afile>'))
+        autocmd WinClosed       * call s:Autocmd('WinClosed', +expand('<afile>'))
       endif
     endif
     if has('nvim-0.4.0') || has('patch-8.1.1719')
@@ -488,7 +489,7 @@ function! s:ShowInfo()
       call add(lines, 'Error: javascript bundle not found, please compile code of coc.nvim by esbuild.')
     endif
     if !empty(lines)
-      belowright vnew
+      botright vnew
       setl filetype=nofile
       call setline(1, lines)
     else
