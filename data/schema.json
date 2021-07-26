@@ -1041,7 +1041,7 @@
     },
     "outline.splitCommand": {
       "type": "string",
-      "default": "belowright 30vs",
+      "default": "botright 30vs",
       "description": "Window split command used by outline."
     },
     "outline.followCursor": {

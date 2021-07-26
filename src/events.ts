@@ -33,7 +33,7 @@ export type InsertChangeEvents = 'TextChangedP' | 'TextChangedI'
 
 export type TaskEvents = 'TaskExit' | 'TaskStderr' | 'TaskStdout'
 
-export type WindowEvents = 'WinLeave' | 'WinEnter'
+export type WindowEvents = 'WinLeave' | 'WinEnter' | 'WinClosed'
 
 export type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents | WindowEvents
   | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged'

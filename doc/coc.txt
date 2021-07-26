@@ -947,7 +947,7 @@ Built-in configurations:~
 						*coc-config-outline*
 "outline.splitCommand":~
 
-	Window split command used by outline, default 'belowright 30vs'
+	Window split command used by outline, default 'botright 30vs'
 
 "outline.followCursor":~
 
@@ -2348,6 +2348,11 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Use configuration `"suggest.completionItemKindLabels"` for custom icons.
 
+	To show outline for each tab automatically, use |autocmd|:
+>
+	autocmd VimEnter,Tabnew *
+		\ if empty(&buftype) | call CocActionAsync('showOutline', 1) | endif
+<
 "hideOutline" 					*coc-action-hideOutline*
 
 	Close outline window on current tab.  Throws vim error when it can't
@@ -2779,6 +2784,9 @@ supported:
 - Provide api `window.createTreeView` for extensions.
 
 Check |coc-config-tree| for related configurations.
+
+The filetype is `'coctree'`, which can be used to overwrite buffer and window
+options.
 
 ------------------------------------------------------------------------------
 
