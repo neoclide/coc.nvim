@@ -99,7 +99,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   private tooltipFactory: FloatFactory
   private resolveTokenSource: CancellationTokenSource | undefined
   private lineState: LineState = { titleCount: 0, messageCount: 0 }
-  private filter: Filter
+  private filter: Filter<T>
   private filterText: string | undefined
   private itemsToFilter: T[] | undefined
   private readonly canSelectMany: boolean
@@ -204,37 +204,40 @@ export default class BasicTreeView<T> implements TreeView<T> {
       buf.clearNamespace(highlightNamespace, this.startLnum - 1, this.startLnum)
     }, null, this.disposables)
     this.disposables.push(this._onDidChangeVisibility, this._onDidChangeSelection, this._onDidCollapseElement, this._onDidExpandElement)
-    this.filter.onDidExit(() => {
+    this.filter.onDidExit(node => {
       this.nodesMap.clear()
       this.clearSelection()
       this.filterText = undefined
       this.itemsToFilter = undefined
-      void this.render()
+      if (node && typeof this.provider.getParent === 'function') {
+        void this.reveal(node)
+      } else {
+        void this.render()
+      }
     })
     this.filter.onDidUpdate(text => {
       this.filterText = text
     })
     this.filter.onDidKeyPress(async character => {
-      if (!this.renderedItems?.length) return
+      let items = this.renderedItems
+      if (!items?.length) return
+      let curr = this.selection[0]
       if (character == '<up>' || character == this.keys.selectPrevious) {
-        let curr = this.selection[0]
-        let idx = this.renderedItems.findIndex(o => o.node == curr)
-        let index = idx == -1 || idx == 0 ? 0 : idx - 1
-        let node = this.renderedItems[index]?.node
+        let idx = items.findIndex(o => o.node == curr)
+        let index = idx == -1 || idx == 0 ? items.length - 1 : idx - 1
+        let node = items[index]?.node
         if (node) this.selectItem(node, true)
       }
       if (character == '<down>' || character == this.keys.selectNext) {
-        let curr = this.selection[0]
-        let idx = this.renderedItems.findIndex(o => o.node == curr)
-        let index = idx == -1 || idx == this.renderedItems.length - 1 ? 0 : idx + 1
-        let node = this.renderedItems[index]?.node
+        let idx = items.findIndex(o => o.node == curr)
+        let index = idx == -1 || idx == items.length - 1 ? 0 : idx + 1
+        let node = items[index]?.node
         if (node) this.selectItem(node, true)
       }
       if (character == '<cr>' || character == this.keys.invoke) {
-        let curr = this.selection[0]
         if (!curr) return
         await this.invokeCommand(curr)
-        this.filter.deactivate()
+        this.filter.deactivate(curr)
       }
     })
   }
