@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, DocumentSymbol, Range, SymbolKind } from 'vscode-languageserver-protocol'
+import { Disposable, DocumentSymbol, Range, SymbolKind, SymbolTag } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import debounce from 'debounce'
 import languages from '../../languages'
@@ -166,6 +166,7 @@ export default class SymbolsOutline {
       label: documentSymbol.name,
       tooltip: documentSymbol.detail,
       icon: this.getIcon(documentSymbol.kind),
+      deprecated: documentSymbol.tags?.includes(SymbolTag.Deprecated),
       kind: documentSymbol.kind,
       range: documentSymbol.range,
       selectRange: documentSymbol.selectionRange,

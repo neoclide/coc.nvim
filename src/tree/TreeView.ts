@@ -606,7 +606,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   private getRenderedLine(treeItem: TreeItem, lnum: number, level: number): { line: string, highlights: HighlightItem[] } {
     let { openedIcon, closedIcon } = this.config
     const highlights: HighlightItem[] = []
-    const { label } = treeItem
+    const { label, deprecated } = treeItem
     let prefix = '  '.repeat(level)
     const addHighlight = (text: string, hlGroup: string) => {
       let colStart = byteLength(prefix)
@@ -647,7 +647,11 @@ export default class BasicTreeView<T> implements TreeView<T> {
         })
       }
     }
-    prefix += typeof label === 'string' ? label : label.label
+    let labelText = typeof label === 'string' ? label : label.label
+    if (deprecated) {
+      addHighlight(labelText, 'CocDeprecatedHighlight')
+    }
+    prefix += labelText
     return { line: prefix, highlights }
   }
 
