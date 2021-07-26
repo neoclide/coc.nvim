@@ -97,7 +97,6 @@ describe('window functions', () => {
     let emitter = new Emitter<FileNode | undefined>()
     let removed = false
     let treeView = window.createTreeView('files', {
-      checkCollapseState: false,
       treeDataProvider: {
         onDidChangeTreeData: emitter.event,
         getChildren: root => {
