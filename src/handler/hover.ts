@@ -81,7 +81,7 @@ export default class HoverHandler {
     return true
   }
 
-  private async previewHover(hovers: Hover[], target?: string): Promise<void> {
+  public async previewHover(hovers: Hover[], target?: string): Promise<void> {
     let docs: Documentation[] = []
     target = target || this.config.target
     let isPreview = target === 'preview'

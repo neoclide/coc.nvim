@@ -1,5 +1,5 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, Disposable, Position } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Disposable, Hover, MarkupKind, Position } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import events from '../events'
 import languages from '../languages'
@@ -16,7 +16,7 @@ import Commands from './commands'
 import Fold from './fold'
 import Format from './format'
 import Highlights from './highlights'
-import HoverHandler from './hover'
+import HoverHandler, { HoverTarget } from './hover'
 import Links from './links'
 import Locations from './locations'
 import Refactor from './refactor/index'
@@ -114,6 +114,40 @@ export default class Handler {
 
   public addDisposable(disposable: Disposable): void {
     this.disposables.push(disposable)
+  }
+
+  public async definitionHover(target: HoverTarget): Promise<void> {
+    const { doc, position } = await this.getCurrentState()
+    this.checkProvier('hover', doc.textDocument)
+    await doc.synchronize()
+    const tokenSource = new CancellationTokenSource()
+    const hovers =  await languages.getHover(doc.textDocument, position, tokenSource.token)
+
+    const locs = await this.locations.definitions()
+    if (!locs.length) {
+      await this.hover.previewHover(hovers, target)
+      return
+    }
+
+    if (locs.length > 1) {
+      // TODO: mutiple locations
+    } else {
+      const loc = locs[0]
+      const doc = await workspace.loadFile(loc.uri)
+      if (!doc) return
+
+      const { start, end } = loc.range
+      const endLine = end.line - start.line >= 8 ? start.line + 8 : end.line
+      const lines = doc.getLines(start.line, endLine)
+      if (lines.length) {
+        const defHover: Hover = {
+          range: loc.range,
+          contents: { kind: MarkupKind.PlainText, value: lines.join('\n') }
+        }
+        hovers.splice(0, 0, defHover)
+      }
+      await this.hover.previewHover(hovers, target)
+    }
   }
 
   /**
