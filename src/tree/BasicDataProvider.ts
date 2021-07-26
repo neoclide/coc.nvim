@@ -10,6 +10,7 @@ export interface TreeNode {
   label: string
   key?: string
   tooltip?: string | MarkupContent
+  deprecated?: boolean
   icon?: TreeItemIcon
   children?: this[]
 }
@@ -31,7 +32,9 @@ function isIcon(obj: any): obj is TreeItemIcon {
  * Check lable and key, children not checked.
  */
 function sameTreeNode<T extends TreeNode>(one: T, two: T): boolean {
-  if (one.label === two.label && one.key === two.key) {
+  if (one.label === two.label
+    && one.deprecated === two.deprecated
+    && one.key === two.key) {
     return true
   }
   return false
@@ -168,6 +171,7 @@ export default class BasicDataProvider<T extends TreeNode> implements TreeDataPr
         item = new TreeItem(label, TreeItemCollapsibleState.Collapsed)
       }
     }
+    if (node.deprecated) item.deprecated = true
     if (node.tooltip) item.tooltip = node.tooltip
     if (isIcon(node.icon)) {
       item.icon = node.icon

@@ -44,6 +44,7 @@ export class TreeItem {
   public resourceUri?: URI
   public command?: Command
   public tooltip?: string | MarkupContent
+  public deprecated?: boolean
 
   constructor(label: string | TreeItemLabel, collapsibleState?: TreeItemCollapsibleState)
   // eslint-disable-next-line @typescript-eslint/unified-signatures

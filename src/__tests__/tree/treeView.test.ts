@@ -237,23 +237,6 @@ describe('TreeView', () => {
       await checkLines(['test', '+ a', '+ b', 'g'])
     })
 
-    it('should disable check of collapse state', async () => {
-      createTreeView(defaultDef, { checkCollapseState: false })
-      await treeView.show()
-      await helper.wait(50)
-      await treeView.reveal(nodes[0], { expand: true })
-      await checkLines(['test', '- a', '    c', '    d', '+ b', '  g'])
-      updateData([
-        ['a'],
-        ['b'],
-        ['g']
-      ])
-      await helper.wait(50)
-      await checkLines(['test', '- a', '+ b', '  g'])
-      let res = await treeView.checkLines()
-      expect(res).toBe(true)
-    })
-
     it('should support many selection', async () => {
       createTreeView(defaultDef, { canSelectMany: true })
       await treeView.show()
@@ -737,6 +720,30 @@ describe('TreeView', () => {
       await helper.wait(50)
       let line = await helper.getCmdline()
       expect(line).toMatch('Error on updateUI')
+    })
+
+    it('should render deprecated node with deprecated highlight', async () => {
+      createTreeView(defaultDef)
+      await treeView.show()
+      await helper.wait(50)
+      let defs: NodeDef[] = [
+        ['a'],
+        ['b']
+      ]
+      let nodes = createNodes(defs)
+      nodes[0].deprecated = true
+      provider.update(nodes)
+      await helper.wait(50)
+      await checkLines([
+        'test',
+        '  a',
+        '  b',
+      ])
+      let ns = await nvim.call('coc#highlight#create_namespace', ['tree'])
+      let bufnr = await nvim.call('bufnr', ['%'])
+      let markers = await nvim.call('nvim_buf_get_extmarks', [bufnr, ns, [1, 0], [1, -1], { details: true }]) as any[]
+      expect(markers.length > 0).toBe(true)
+      expect(markers[0][3]['hl_group']).toBe('CocDeprecatedHighlight')
     })
   })
 
