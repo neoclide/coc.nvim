@@ -111,7 +111,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     this.loadConfiguration()
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
     this.enableFilter = opts.enableFilter == true
-    this.filter = new Filter(this.nvim)
+    this.filter = new Filter(this.nvim, [this.keys.selectNext, this.keys.selectPrevious, this.keys.invoke])
     this.tooltipFactory = new FloatFactory(workspace.nvim)
     this.canSelectMany = !!opts.canSelectMany
     this.provider = opts.treeDataProvider
@@ -222,7 +222,6 @@ export default class BasicTreeView<T> implements TreeView<T> {
         let index = idx == -1 || idx == 0 ? 0 : idx - 1
         let node = this.renderedItems[index]?.node
         if (node) this.selectItem(node, true)
-        return
       }
       if (character == '<down>' || character == this.keys.selectNext) {
         let curr = this.selection[0]
@@ -230,12 +229,12 @@ export default class BasicTreeView<T> implements TreeView<T> {
         let index = idx == -1 || idx == this.renderedItems.length - 1 ? 0 : idx + 1
         let node = this.renderedItems[index]?.node
         if (node) this.selectItem(node, true)
-        return
       }
       if (character == '<cr>' || character == this.keys.invoke) {
         let curr = this.selection[0]
         if (!curr) return
         await this.invokeCommand(curr)
+        this.filter.deactivate()
       }
     })
   }
@@ -687,6 +686,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   }
 
   public async reveal(element: T, options: { select?: boolean; focus?: boolean; expand?: number | boolean } = {}): Promise<void> {
+    if (this.filter.activated) return
     let { select, focus, expand } = options
     let curr = element
     if (typeof this.provider.getParent !== 'function') {
@@ -917,6 +917,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     this.filter.dispose()
     this._selection = []
     this.hide()
+    this.itemsToFilter = []
     this.cancelResolve()
     this.tooltipFactory.dispose()
     this.renderedItems = []
