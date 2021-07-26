@@ -581,7 +581,7 @@ export class Workspace implements IWorkspace {
         }
       }
     } catch (e) {
-      logger.error(e)
+      logger.error('Error on applyEdits:', edit, e)
       window.showMessage(`Error on applyEdits: ${e.message}`, 'error')
       return false
     }
