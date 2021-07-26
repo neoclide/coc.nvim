@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Disposable, Emitter, Event, MarkupContent, MarkupKind } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Disposable, Emitter, Event, MarkupContent, MarkupKind, Range } from 'vscode-languageserver-protocol'
 import commandManager from '../commands'
 import events from '../events'
 import FloatFactory from '../model/floatFactory'
@@ -189,11 +189,19 @@ export default class BasicTreeView<T> implements TreeView<T> {
     }, null, this.disposables)
     events.on('WinEnter', winid => {
       if (winid != this.windowId || !this.filter.activated) return
+      let buf = this.nvim.createBuffer(this.bufnr)
+      let line = this.startLnum - 1
+      let len = this.filterText ? this.filterText.length : 0
+      let range = Range.create(line, len, line, len + 1)
+      buf.highlightRanges(highlightNamespace, 'Cursor', [range])
       this.nvim.call('coc#prompt#start_prompt', [sessionKey], true)
+      this.redraw()
     }, null, this.disposables)
     events.on('WinLeave', winid => {
       if (winid != this.windowId || !this.filter.activated) return
+      let buf = this.nvim.createBuffer(this.bufnr)
       this.nvim.call('coc#prompt#stop_prompt', [sessionKey], true)
+      buf.clearNamespace(highlightNamespace, this.startLnum - 1, this.startLnum)
     }, null, this.disposables)
     this.disposables.push(this._onDidChangeVisibility, this._onDidChangeSelection, this._onDidCollapseElement, this._onDidExpandElement)
     this.filter.onDidExit(() => {
