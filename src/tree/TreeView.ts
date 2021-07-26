@@ -105,7 +105,6 @@ export default class BasicTreeView<T> implements TreeView<T> {
   private readonly canSelectMany: boolean
   private readonly leafIndent: boolean
   private readonly winfixwidth: boolean
-  private readonly checkCollapseState: boolean
   private readonly enableFilter: boolean
   constructor(private viewId: string, opts: TreeViewOptions<T>) {
     this.loadConfiguration()
@@ -117,7 +116,6 @@ export default class BasicTreeView<T> implements TreeView<T> {
     this.provider = opts.treeDataProvider
     this.leafIndent = opts.disableLeafIndent !== true
     this.winfixwidth = opts.winfixwidth !== false
-    this.checkCollapseState = opts.checkCollapseState !== false
     let message: string | undefined
     Object.defineProperty(this, 'message', {
       set: (msg: string | undefined) => {
@@ -579,19 +577,27 @@ export default class BasicTreeView<T> implements TreeView<T> {
   }
 
   private async getTreeItem(element: T): Promise<TreeItem> {
-    let obj = this.nodesMap.get(element)
-    if (obj != null) return obj.item
-    let item = await Promise.resolve(this.provider.getTreeItem(element))
-    if (!item) throw new Error('Unable to resolve tree item')
+    let exists: TreeItem
     let resolved = false
-    if (item.id) {
+    let obj = this.nodesMap.get(element)
+    if (obj != null) {
+      exists = obj.item
+      resolved = obj.resolved
+    }
+    let item = await Promise.resolve(this.provider.getTreeItem(element))
+    if (item.id && !exists) {
       for (let obj of this.nodesMap.values()) {
         if (obj.item.id === item.id) {
           resolved = obj.resolved
-          item.collapsibleState = obj.item.collapsibleState
+          exists = obj.item
           break
         }
       }
+    }
+    if (exists
+      && exists.collapsibleState != TreeItemCollapsibleState.None
+      && item.collapsibleState != TreeItemCollapsibleState.None) {
+      item.collapsibleState = exists.collapsibleState
     }
     this.nodesMap.set(element, { item, resolved })
     return item
@@ -649,16 +655,6 @@ export default class BasicTreeView<T> implements TreeView<T> {
     let takes = 1
     let treeItem = await this.getTreeItem(element)
     let children
-    if (this.checkCollapseState) {
-      children = await Promise.resolve(this.provider.getChildren(element))
-      if (children?.length) {
-        if (treeItem.collapsibleState == TreeItemCollapsibleState.None) {
-          treeItem.collapsibleState = TreeItemCollapsibleState.Collapsed
-        }
-      } else {
-        treeItem.collapsibleState = TreeItemCollapsibleState.None
-      }
-    }
     let res = this.getRenderedLine(treeItem, lnum, level)
     highlights.push(...res.highlights)
     items.push({ level, line: res.line, node: element })
@@ -694,19 +690,22 @@ export default class BasicTreeView<T> implements TreeView<T> {
 
   public async reveal(element: T, options: { select?: boolean; focus?: boolean; expand?: number | boolean } = {}): Promise<void> {
     if (this.filter.activated) return
+    let isShown = this.getItemLnum(element) != null
     let { select, focus, expand } = options
     let curr = element
     if (typeof this.provider.getParent !== 'function') {
       throw new Error('missing getParent function from provider for reveal.')
     }
-    while (curr) {
-      let parentNode = await Promise.resolve(this.provider.getParent(curr))
-      if (parentNode) {
-        let item = await this.getTreeItem(parentNode)
-        item.collapsibleState = TreeItemCollapsibleState.Expanded
-        curr = parentNode
-      } else {
-        break
+    if (!isShown) {
+      while (curr) {
+        let parentNode = await Promise.resolve(this.provider.getParent(curr))
+        if (parentNode) {
+          let item = await this.getTreeItem(parentNode)
+          item.collapsibleState = TreeItemCollapsibleState.Expanded
+          curr = parentNode
+        } else {
+          break
+        }
       }
     }
     if (expand) {
@@ -732,8 +731,9 @@ export default class BasicTreeView<T> implements TreeView<T> {
         }
       }
     }
-    // render buffer
-    await this.render()
+    if (!isShown || expand) {
+      await this.render()
+    }
     if (select !== false) this.selectItem(element)
     if (focus) this.focusItem(element)
   }
