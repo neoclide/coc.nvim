@@ -18,6 +18,9 @@ Interface					|coc-interface|
   Commands						|coc-commands|
   Autocmds						|coc-autocmds|
   Highlights						|coc-highlights|
+Tree 						|coc-tree|
+  Tree mappings 				|coc-tree-mappings|
+  Tree filter 					|coc-tree-filter|
 List						|coc-list|
   List command					|coc-list-command|
   List command options 				|coc-list-options|
@@ -917,7 +920,7 @@ Built-in configurations:~
 
 "tree.key.collapseAll":~
 
-	Trigger key to collapse all tree node, default: 'm'
+	Trigger key to collapse all tree node, default: 'M'
 
 "tree.key.invoke":~
 
@@ -2343,6 +2346,8 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Checkout |CocTree| and |CocSymbol| for customize highlights.
 
+	Use configuration `"suggest.completionItemKindLabels"` for custom icons.
+
 "hideOutline" 					*coc-action-hideOutline*
 
 	Close outline window on current tab.  Throws vim error when it can't
@@ -2757,26 +2762,77 @@ CocSem_*						*CocSem*
   `hi default link CocSem_operator Operator`
 
 ==============================================================================
+TREE SUPPORT 						*coc-tree*
+
+Tree view is used for |coc-action-showOutline|, following features are
+supported:
+
+- Data update while keep tree node open/close state.
+- Auto refresh on load error.
+- Click open/close icon to toggle collapse state.
+- Click node to invoke default command.
+- Show tooltip in float window on |CursorHold| when possible.
+- Key-mappings support |coc-tree-mappings|
+- Optional multiple selection.
+- Optional node reveal support.
+- Optional fuzzy filter support.
+- Provide api `window.createTreeView` for extensions.
+
+Check |coc-config-tree| for related configurations.
+
+------------------------------------------------------------------------------
+
+TREE KEY MAPPINGS 					*coc-tree-mappings*
+
+- Active filter by `tree.key.activeFilter`, default to 'f'.
+- Toggle selection of node under cursor by `"tree.key.toggleSelection"`, default
+  to <space>.
+- Toggle collapse state of node under cursor by `"tree.key.toggle"`, default
+  to 't'.
+- Collapse all nodes by `"tree.key.collapseAll"`, default to 'M'.
+- Invoke default action of node under cursor or selected nodes by
+  `"tree.key.invoke"`, default to <cr>.
+
+------------------------------------------------------------------------------
+
+TREE FILTER 						*coc-tree-filter*
+
+Filter mode is used for search for specific node by fuzzy filter, invoke the
+key configured by `"tree.key.activeFilter"` to activate filter mode.
+
+When filter mode is activated, type normal character to insert filter input
+and following special keys are supported:
+
+- <bs>: delete last filter character when possible.
+- <C-u>: clean up filter text.
+- <C-p>: navigate to previous filter text (stored on command invoke).
+- <C-n>: navigate to next filter text (stored on command invoke).
+- <esc> and <C-o>: exit filter mode.
+- <up> or `"tree.key.selectPrevious"`: select previous node.
+- <down> or `"tree.key.selectNext"`: select next node.
+- <cr> or `"key.key.invoke"`: invoke command of selected node.
+
+==============================================================================
 LIST SUPPORT						*coc-list*
 
 Built-in list support to make working with lists of items easier.
 
 The following features are supported:
 
-* Insert & normal mode.
-* Default key-mappings for insert & normal mode.
-* Customize key-mappings for insert & normal mode.
-* Commands for reopening & doing actions with a previous list.
-* Different match modes.
-* Interactive mode.
-* Auto preview on cursor move.
-* Number select support.
-* Built-in actions for locations.
-* Parse ANSI code.
-* Mouse support.
-* Select actions using <tab>.
-* Multiple selections using <space> in normal mode.
-* Select lines by visual selection.
+- Insert & normal mode.
+- Default key-mappings for insert & normal mode.
+- Customize key-mappings for insert & normal mode.
+- Commands for reopening & doing actions with a previous list.
+- Different match modes.
+- Interactive mode.
+- Auto preview on cursor move.
+- Number select support.
+- Built-in actions for locations.
+- Parse ANSI code.
+- Mouse support.
+- Select actions using <tab>.
+- Multiple selections using <space> in normal mode.
+- Select lines by visual selection.
 
 ------------------------------------------------------------------------------
 
