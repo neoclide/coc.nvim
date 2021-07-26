@@ -4,17 +4,17 @@ import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { disposeAll } from '../util'
 export const sessionKey = 'filter'
 
-export default class Filter {
+export default class Filter<T> {
   private _activated = false
   private text: string
   private history: string[] = []
   private disposables: Disposable[] = []
   private readonly _onDidUpdate = new Emitter<string>()
-  private readonly _onDidExit = new Emitter<void>()
+  private readonly _onDidExit = new Emitter<T | undefined>()
   private readonly _onDidKeyPress = new Emitter<string>()
   public readonly onDidKeyPress: Event<string> = this._onDidKeyPress.event
   public readonly onDidUpdate: Event<string> = this._onDidUpdate.event
-  public readonly onDidExit: Event<void> = this._onDidExit.event
+  public readonly onDidExit: Event<T | undefined> = this._onDidExit.event
   constructor(private nvim: Neovim, keys: string[]) {
     this.text = ''
     events.on('InputChar', (session, character) => {
@@ -68,13 +68,13 @@ export default class Filter {
     this.nvim.call('coc#prompt#start_prompt', [sessionKey], true)
   }
 
-  public deactivate(): void {
+  public deactivate(node?: T): void {
     if (!this._activated) return
     this.nvim.call('coc#prompt#stop_prompt', [sessionKey], true)
     this._activated = false
     let { text } = this
     this.text = ''
-    this._onDidExit.fire()
+    this._onDidExit.fire(node)
     if (text && !this.history.includes(text)) {
       this.history.push(text)
     }

@@ -450,6 +450,32 @@ describe('TreeView', () => {
       ])
     })
 
+    it('should should collapse parent node by t', async () => {
+      createTreeView(defaultDef)
+      await treeView.show()
+      await helper.wait(50)
+      await nvim.command('exe 2')
+      await nvim.input('t')
+      await helper.wait(50)
+      await checkLines([
+        'test',
+        '- a',
+        '    c',
+        '    d',
+        '+ b',
+        '  g',
+      ])
+      await nvim.command('exe 3')
+      await nvim.input('t')
+      await helper.wait(50)
+      await checkLines([
+        'test',
+        '+ a',
+        '+ b',
+        '  g',
+      ])
+    })
+
     it('should collapse all nodes by M', async () => {
       createTreeView(defaultDef)
       let c = nodes[0].children[0]
@@ -823,6 +849,203 @@ describe('TreeView', () => {
         '    d',
         '+ b',
         '  g',
+      ])
+    })
+  })
+
+  describe('filter', () => {
+    async function createFilterTreeView(opts: Partial<ProviderOptions<TreeNode>> = {}): Promise<void> {
+      createTreeView(defaultDef, { enableFilter: true }, opts)
+      await treeView.show()
+      await helper.wait(50)
+      await nvim.input('f')
+      await helper.wait(50)
+    }
+
+    it('should start filter by input', async () => {
+      await createFilterTreeView()
+      await checkLines([
+        'test', ' ', '  a', '  c', '  d', '  b', '  e', '  f', '  g'
+      ])
+      await nvim.input('a')
+      await helper.wait(50)
+      await checkLines([
+        'test',
+        'a ',
+        '  a',
+      ])
+    })
+
+    it('should add & remove Cursor highlight on window change', async () => {
+      let winid = await nvim.call('win_getid')
+      let ns = await nvim.call('coc#highlight#create_namespace', ['tree'])
+      await createFilterTreeView()
+      let bufnr = await nvim.call('bufnr', ['%'])
+      let markers = await nvim.call('nvim_buf_get_extmarks', [bufnr, ns, [1, 0], [1, -1], {}]) as [number, number, number][]
+      expect(markers[0]).toBeDefined()
+      await nvim.call('win_gotoid', [winid])
+      await helper.wait(50)
+      markers = await nvim.call('nvim_buf_get_extmarks', [bufnr, ns, [1, 0], [1, -1], {}]) as [number, number, number][]
+      expect(markers.length).toBe(0)
+      await nvim.command('wincmd p')
+      await helper.wait(50)
+      markers = await nvim.call('nvim_buf_get_extmarks', [bufnr, ns, [1, 0], [1, -1], {}]) as [number, number, number][]
+      expect(markers.length).toBe(1)
+    })
+
+    it('should filter new nodes on data change', async () => {
+      await createFilterTreeView()
+      await nvim.input('a')
+      await helper.wait(50)
+      updateData([
+        ['ab'],
+        ['e'],
+        ['fa']
+      ])
+      await helper.wait(50)
+      await checkLines([
+        'test',
+        'a ',
+        '  ab',
+        '  fa',
+      ])
+    })
+
+    it('should change selected item by <up> and <down>', async () => {
+      await createFilterTreeView()
+      await nvim.input('a')
+      await helper.wait(50)
+      updateData([
+        ['ab'],
+        ['fa']
+      ])
+      await helper.wait(50)
+      await nvim.input('<down>')
+      await helper.wait(50)
+      let curr = treeView.selection[0]
+      expect(curr.label).toBe('fa')
+      await nvim.input('<down>')
+      await helper.wait(50)
+      curr = treeView.selection[0]
+      expect(curr.label).toBe('ab')
+      await nvim.input('<up>')
+      await helper.wait(50)
+      curr = treeView.selection[0]
+      expect(curr.label).toBe('fa')
+      await nvim.input('<up>')
+      await helper.wait(50)
+      curr = treeView.selection[0]
+      expect(curr.label).toBe('ab')
+    })
+
+    it('should invoke command by <cr>', async () => {
+      let node
+      await createFilterTreeView({
+        handleClick: n => {
+          node = n
+        }
+      })
+      await nvim.input('<cr>')
+      await helper.wait(50)
+      expect(node).toBeDefined()
+      let curr = treeView.selection[0]
+      expect(curr).toBeDefined()
+    })
+
+    it('should keep state when press <cr> with empty selection ', async () => {
+      await createFilterTreeView()
+      await nvim.input('ab')
+      await helper.wait(50)
+      await nvim.input('<cr>')
+      await helper.wait(50)
+      await checkLines(['test', 'ab '])
+    })
+
+    it('should delete last filter character by <bs>', async () => {
+      await createFilterTreeView()
+      await nvim.input('a')
+      await helper.wait(50)
+      await nvim.input('<bs>')
+      await helper.wait(50)
+      await checkLines([
+        'test', ' ', '  a', '  c', '  d', '  b', '  e', '  f', '  g'
+      ])
+    })
+
+    it('should clean filter character by <C-u>', async () => {
+      await createFilterTreeView()
+      await nvim.input('ab')
+      await helper.wait(50)
+      await nvim.input('<C-u>')
+      await helper.wait(50)
+      await checkLines([
+        'test', ' ', '  a', '  c', '  d', '  b', '  e', '  f', '  g'
+      ])
+    })
+
+    it('should cancel filter by <esc> and <C-o>', async () => {
+      await createFilterTreeView()
+      await nvim.input('<esc>')
+      await helper.wait(50)
+      await checkLines([
+        'test',
+        '+ a',
+        '+ b',
+        '  g',
+      ])
+      await nvim.input('f')
+      await helper.wait(50)
+      await nvim.input('<C-o>')
+      await helper.wait(50)
+      await checkLines([
+        'test',
+        '+ a',
+        '+ b',
+        '  g',
+      ])
+    })
+
+    it('should navigate input history by <C-n> and <C-p>', async () => {
+      await createFilterTreeView()
+      await nvim.input('a')
+      await helper.wait(20)
+      await nvim.input('<esc>')
+      await helper.wait(50)
+      await nvim.input('f')
+      await helper.wait(50)
+      await nvim.input('b')
+      await helper.wait(20)
+      await nvim.input('<C-o>')
+      await helper.wait(50)
+      await nvim.input('f')
+      await helper.wait(50)
+      await nvim.input('<C-n>')
+      await helper.wait(50)
+      await checkLines([
+        'test',
+        'a ',
+        '  a',
+      ])
+      await nvim.input('<C-n>')
+      await helper.wait(50)
+      await checkLines([
+        'test',
+        'b ',
+        '  b',
+      ])
+      await nvim.input('<C-p>')
+      await helper.wait(50)
+      await checkLines([
+        'test',
+        'a ',
+        '  a',
+      ])
+      await nvim.input('<C-p>')
+      await helper.wait(50)
+      await checkLines([
+        'test',
+        'b ',
+        '  b',
       ])
     })
   })
