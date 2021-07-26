@@ -883,6 +883,15 @@ describe('TreeView', () => {
       ])
     })
 
+    it('should not throw error on filter', async () => {
+      await createFilterTreeView()
+        ; (treeView as any).getRenderedLine = () => {
+          throw new Error('Error on updateUI')
+        }
+      await nvim.input('a')
+      await helper.wait(100)
+    })
+
     it('should add & remove Cursor highlight on window change', async () => {
       let winid = await nvim.call('win_getid')
       let ns = await nvim.call('coc#highlight#create_namespace', ['tree'])

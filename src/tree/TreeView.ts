@@ -204,12 +204,13 @@ export default class BasicTreeView<T> implements TreeView<T> {
     this.disposables.push(this._onDidChangeVisibility, this._onDidChangeSelection, this._onDidCollapseElement, this._onDidExpandElement)
     this.filter.onDidExit(node => {
       this.nodesMap.clear()
-      this.clearSelection()
       this.filterText = undefined
       this.itemsToFilter = undefined
       if (node && typeof this.provider.getParent === 'function') {
+        this.renderedItems = []
         void this.reveal(node)
       } else {
+        this.clearSelection()
         void this.render()
       }
     })
@@ -339,9 +340,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       release()
     } catch (e) {
       release()
-      let errMsg = `Error on tree filter: ${e.message}`
-      logger.error(errMsg, e)
-      this.nvim.errWriteLine('[coc.nvim] ' + errMsg)
+      logger.error(`Error on tree filter: ${e.message}`, e)
     }
   }
 
@@ -838,7 +837,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     globalId = globalId + 1
     nvim.pauseNotification()
     nvim.call('coc#window#close', [winid], true)
-    nvim.command(`keepalt ${splitCommand} +setl\\ buftype=nofile CocTree${id}`, true)
+    nvim.command(`silent keepalt ${splitCommand} +setl\\ buftype=nofile CocTree${id}`, true)
     nvim.command('setl bufhidden=wipe nolist nonumber norelativenumber foldcolumn=0', true)
     nvim.command(`setl signcolumn=${this.canSelectMany ? 'yes' : 'no'}${this.winfixwidth ? ' winfixwidth' : ''}`, true)
     nvim.command('setl nocursorline nobuflisted wrap undolevels=-1 filetype=coctree nomodifiable noswapfile', true)
