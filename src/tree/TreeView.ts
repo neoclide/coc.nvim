@@ -332,7 +332,11 @@ export default class BasicTreeView<T> implements TreeView<T> {
         return o
       })
       this.updateUI(renderedItems.map(o => o.line), highlights, lnum, -1, true)
-      if (renderedItems.length) this.selectItem(renderedItems[0].node, true)
+      if (renderedItems.length) {
+        this.selectItem(renderedItems[0].node, true)
+      } else {
+        this.clearSelection()
+      }
       this.redraw()
       release()
     } catch (e) {

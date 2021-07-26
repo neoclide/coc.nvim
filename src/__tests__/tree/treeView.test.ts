@@ -938,6 +938,21 @@ describe('TreeView', () => {
       expect(curr.label).toBe('ab')
     })
 
+    it('should not throw with empty nodes', async () => {
+      await createFilterTreeView()
+      await nvim.input('ab')
+      await helper.wait(50)
+      await nvim.input('<up>')
+      await helper.wait(50)
+      await nvim.input('<down>')
+      await helper.wait(50)
+      await nvim.input('<cr>')
+      await helper.wait(50)
+      await checkLines(['test', 'ab '])
+      let curr = treeView.selection[0]
+      expect(curr).toBeUndefined()
+    })
+
     it('should invoke command by <cr>', async () => {
       let node
       await createFilterTreeView({
