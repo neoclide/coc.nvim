@@ -125,6 +125,11 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
         endif
       endif
     endfor
+    if has('nvim') && end == -1
+      let count = nvim_buf_line_count(bufnr)
+      " remove highlights exceed last line.
+      call nvim_buf_clear_namespace(bufnr, ns, count, -1)
+    endif
   else
     call coc#highlight#clear_highlight(bufnr, a:key, start, end)
   endif
