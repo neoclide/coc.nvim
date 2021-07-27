@@ -149,6 +149,10 @@ export default class Symbols {
     await this.outline.hide()
   }
 
+  public hasOutline(bufnr: number): boolean {
+    return this.outline.has(bufnr)
+  }
+
   public dispose(): void {
     this.outline.dispose()
     this.buffers.dispose()

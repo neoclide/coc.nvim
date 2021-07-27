@@ -54,41 +54,36 @@ export default class SymbolsOutline {
         this.providersMap.delete(bufnr)
         provider.dispose()
         let views = this.treeViews.get(provider)
-        if (views) {
-          this.treeViews.delete(provider)
-          for (let view of views) {
-            if (!view.visible) continue
-            let winid = this.originalWins.get(view)
-            if (winid && this.config.checkBufferSwitch) {
-              // check if original window exists
-              let nr = await nvim.call('win_id2win', [winid])
-              if (nr) {
-                let win = nvim.createWindow(view.windowId)
-                // buffer could be recreated.
-                win.setVar('target_bufnr', -1, true)
-                let timer = setTimeout(() => {
-                  if (view.visible) view.dispose()
-                }, 200)
-                this.disposables.push({
-                  dispose: () => {
-                    clearTimeout(timer)
-                  }
-                })
-                return
-              }
+        this.treeViews.delete(provider)
+        for (let view of views) {
+          if (!view.visible) continue
+          let winid = this.originalWins.get(view)
+          if (winid && this.config.checkBufferSwitch) {
+            // check if original window exists
+            let nr = await nvim.call('win_id2win', [winid])
+            if (nr) {
+              let win = nvim.createWindow(view.windowId)
+              // buffer could be recreated.
+              win.setVar('target_bufnr', -1, true)
+              let timer = setTimeout(() => {
+                if (view.visible) view.dispose()
+              }, 200)
+              this.disposables.push({
+                dispose: () => {
+                  clearTimeout(timer)
+                }
+              })
+              continue
             }
-            this.originalWins.delete(view)
-            view.dispose()
           }
+          this.originalWins.delete(view)
+          view.dispose()
         }
       }
     }, null, this.disposables)
     events.on('BufEnter', debounce(bufnr => {
-      this._onBufEnter(bufnr).catch(e => {
-        logger.error(e)
-        nvim.errWriteLine(`[coc.nvim] Error on BufEnter: ${e.message}`)
-      })
-    }, 100), null, this.disposables)
+      this._onBufEnter(bufnr).logError()
+    }, global.hasOwnProperty('__TEST__') ? 10 : 100), null, this.disposables)
     events.on('CursorHold', async bufnr => {
       if (!this.config.followCursor) return
       let provider = this.providersMap.get(bufnr)
@@ -225,17 +220,19 @@ export default class SymbolsOutline {
         let { nvim } = this
         let winnr = await nvim.call('bufwinnr', [bufnr])
         if (winnr == -1) return
-        await nvim.command(`${winnr}wincmd w`)
+        nvim.pauseNotification()
+        nvim.command(`${winnr}wincmd w`, true)
         let pos = item.selectRange.start
-        await nvim.call('coc#util#jumpTo', [pos.line, pos.character])
-        await nvim.command(`normal! zz`)
+        nvim.call('coc#util#jumpTo', [pos.line, pos.character], true)
+        nvim.command(`normal! zz`, true)
         let buf = nvim.createBuffer(bufnr)
         buf.highlightRanges('outline-hover', 'CocHoverRange', [item.selectRange])
+        nvim.command('redraw', true)
+        await nvim.resumeNotification()
         setTimeout(() => {
           buf.clearNamespace('outline-hover')
           nvim.command('redraw', true)
-        }, 300)
-        nvim.command('redraw', true)
+        }, global.hasOwnProperty('__TEST__') ? 10 : 300)
       },
       onDispose: () => {
         this.providersMap.delete(buf.bufnr)
@@ -248,43 +245,47 @@ export default class SymbolsOutline {
   /**
    * Create outline view.
    */
-  public async show(keep?: number): Promise<void> {
-    await workspace.document
-    let [bufnr, winid] = await this.nvim.eval('[bufnr("%"),win_getid()]') as [number, number]
-    let buf = this.buffers.getItem(bufnr)
-    if (!buf) throw new Error('Document not attached')
-    let provider = this.providersMap.get(bufnr)
-    if (!provider) {
-      provider = this.createProvider(buf)
-      this.providersMap.set(bufnr, provider)
-    }
-    let treeView = new BasicTreeView('OUTLINE', {
-      enableFilter: true,
-      treeDataProvider: provider,
-    })
-    this.originalWins.set(treeView, winid)
-    let arr = this.treeViews.get(provider) || []
-    arr.push(treeView)
-    this.treeViews.set(provider, arr)
-    treeView.onDidChangeVisibility(({ visible }) => {
-      if (visible || !this.treeViews.has(provider)) return
-      let arr = this.treeViews.get(provider) || []
-      arr = arr.filter(s => s !== treeView)
-      if (arr.length) {
-        this.treeViews.set(provider, arr)
-        return
+    public async show(keep?: number): Promise<void> {
+      await workspace.document
+      let [bufnr, winid] = await this.nvim.eval('[bufnr("%"),win_getid()]') as [number, number]
+      let buf = this.buffers.getItem(bufnr)
+      if (!buf) throw new Error('Document not attached')
+      let provider = this.providersMap.get(bufnr)
+      if (!provider) {
+        provider = this.createProvider(buf)
+        this.providersMap.set(bufnr, provider)
       }
-      provider.dispose()
-      this.treeViews.delete(provider)
-    })
-    await treeView.show(this.config.splitCommand)
-    if (treeView.windowId) {
-      let win = this.nvim.createWindow(treeView.windowId)
-      win.setVar('target_bufnr', bufnr, true)
+      let treeView = new BasicTreeView('OUTLINE', {
+        enableFilter: true,
+        treeDataProvider: provider,
+      })
+      this.originalWins.set(treeView, winid)
+      let arr = this.treeViews.get(provider) || []
+      arr.push(treeView)
+      this.treeViews.set(provider, arr)
+      treeView.onDidChangeVisibility(({ visible }) => {
+        if (visible || !this.treeViews.has(provider)) return
+        let arr = this.treeViews.get(provider) || []
+        arr = arr.filter(s => s !== treeView)
+        if (arr.length) {
+          this.treeViews.set(provider, arr)
+          return
+        }
+        provider.dispose()
+        this.treeViews.delete(provider)
+      })
+      await treeView.show(this.config.splitCommand)
+      if (treeView.windowId) {
+        let win = this.nvim.createWindow(treeView.windowId)
+        win.setVar('target_bufnr', bufnr, true)
+      }
+      if (keep == 1 || (keep === undefined && this.config.keepWindow)) {
+        await this.nvim.command('wincmd p')
+      }
     }
-    if (keep == 1 || (keep === undefined && this.config.keepWindow)) {
-      await this.nvim.command('wincmd p')
-    }
+
+  public has(bufnr: number): boolean {
+    return this.providersMap.has(bufnr)
   }
 
   /**
@@ -299,6 +300,9 @@ export default class SymbolsOutline {
   public dispose(): void {
     for (let provider of this.providersMap.values()) {
       provider.dispose()
+      for (let view of this.treeViews.get(provider)) {
+        view.dispose()
+      }
     }
     this.providersMap.clear()
     disposeAll(this.disposables)
