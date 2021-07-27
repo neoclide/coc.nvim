@@ -49,8 +49,7 @@ describe('codeLenes featrue', () => {
     }))
     let doc = await helper.createDocument('example.js')
     await nvim.call('setline', [1, ['a', 'b', 'c']])
-    codeLens.checkProvider()
-    await helper.wait(150)
+    await codeLens.checkProvider()
     let buf = codeLens.buffers.getItem(doc.bufnr)
     let codelens = buf.getCodelenses()
     expect(codelens).toBeDefined()
@@ -104,7 +103,7 @@ describe('codeLenes featrue', () => {
     }))
     let doc = await helper.createDocument('example.js')
     await nvim.call('setline', [1, ['a', 'b', 'c']])
-    codeLens.checkProvider()
+    await codeLens.checkProvider()
     await helper.wait(50)
     await nvim.call('setline', [1, 'foo'])
     await helper.wait(200)
@@ -122,7 +121,8 @@ describe('codeLenes featrue', () => {
           range: Range.create(91, 0, 91, 1)
         }]
       },
-      resolveCodeLens: codeLens => {
+      resolveCodeLens: async codeLens => {
+        await helper.wait(50)
         codeLens.command = Command.create('save', '__save')
         return codeLens
       }
@@ -131,10 +131,12 @@ describe('codeLenes featrue', () => {
     let arr = new Array(100)
     arr.fill('')
     await nvim.call('setline', [1, arr])
-    codeLens.checkProvider()
-    await helper.wait(50)
+    await doc.synchronize()
+    await codeLens.checkProvider()
+    await nvim.command('normal! gg')
+    await helper.wait(20)
     await nvim.command('normal! G')
-    await helper.wait(120)
+    await helper.wait(100)
     let buf = codeLens.buffers.getItem(doc.bufnr)
     let codelens = buf.getCodelenses()
     expect(codelens).toBeDefined()
@@ -160,9 +162,38 @@ describe('codeLenes featrue', () => {
     }))
     await helper.createDocument('example.js')
     await nvim.call('setline', [1, ['a', 'b', 'c']])
-    codeLens.checkProvider()
-    await helper.wait(120)
+    await codeLens.checkProvider()
     await helper.doAction('codeLensAction')
+    expect(fn).toBeCalledWith(1, 2, 3)
+  })
+
+  it('should use picker fo multiple codeLenses', async () => {
+    let fn = jest.fn()
+    disposables.push(commands.registerCommand('__save', (...args) => {
+      fn(...args)
+    }))
+    disposables.push(commands.registerCommand('__delete', (...args) => {
+      fn(...args)
+    }))
+    disposables.push(languages.registerCodeLensProvider([{ language: 'javascript' }], {
+      provideCodeLenses: () => {
+        return [{
+          range: Range.create(0, 0, 0, 1),
+          command: Command.create('save', '__save', 1, 2, 3)
+        }, {
+          range: Range.create(0, 1, 0, 2),
+          command: Command.create('save', '__delete', 4, 5, 6)
+        }]
+      }
+    }))
+    let doc = await helper.createDocument('example.js')
+    await nvim.call('setline', [1, ['a', 'b', 'c']])
+    await doc.synchronize()
+    await codeLens.checkProvider()
+    let p = helper.doAction('codeLensAction')
+    await helper.wait(30)
+    await nvim.input('<cr>')
+    await p
     expect(fn).toBeCalledWith(1, 2, 3)
   })
 
@@ -178,7 +209,7 @@ describe('codeLenes featrue', () => {
     disposables.push(languages.registerCodeLensProvider([{ language: '*' }], {
       provideCodeLenses: () => {
         called++
-        if (called == 0) {
+        if (called == 1) {
           return null
         }
         return [{
@@ -197,8 +228,7 @@ describe('codeLenes featrue', () => {
     }))
     let doc = await helper.createDocument('example.js')
     await nvim.call('setline', [1, ['a', 'b', 'c']])
-    codeLens.checkProvider()
-    await helper.wait(120)
+    await codeLens.checkProvider()
     let markers = await helper.getMarkers(doc.buffer.id, srcId)
     expect(markers.length).toBeGreaterThan(0)
     let codeLensBuffer = codeLens.buffers.getItem(doc.buffer.id)
@@ -219,14 +249,13 @@ describe('codeLenes featrue', () => {
     }))
     let filepath = await createTmpFile('abc')
     let buffer = await helper.edit(filepath)
-    codeLens.checkProvider()
-    await helper.wait(100)
+    await codeLens.checkProvider()
     helper.updateConfiguration('codeLens.enable', false)
-    await helper.wait(100)
+    await helper.wait(10)
     let markers = await helper.getMarkers(buffer.id, srcId)
     expect(markers.length).toBe(0)
     helper.updateConfiguration('codeLens.enable', true)
-    await helper.wait(500)
+    await helper.wait(100)
     markers = await helper.getMarkers(buffer.id, srcId)
     expect(markers.length).toBeGreaterThan(0)
   })

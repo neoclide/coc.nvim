@@ -17,6 +17,8 @@ export default class CodeLensManager {
   public buffers: BufferSync<CodeLensBuffer>
   constructor(private nvim: Neovim) {
     this.setConfiguration()
+    // need neovim to work
+    if (!workspace.isNvim) return
     workspace.onDidChangeConfiguration(e => {
       this.setConfiguration(e)
     })
@@ -24,35 +26,27 @@ export default class CodeLensManager {
       if (doc.buftype != '') return undefined
       return new CodeLensBuffer(nvim, doc.bufnr, this.config)
     })
-    if (this.config.enabled) {
-      this.listen()
-    }
+    this.listen()
   }
 
   private listen(): void {
-    events.on('ready', () => {
-      this.checkProvider()
-    }, null, this.disposables)
     events.on('CursorMoved', bufnr => {
       let buf = this.buffers.getItem(bufnr)
       if (buf) buf.resolveCodeLens()
     }, null, this.disposables)
     // Refresh on CursorHold
-    events.on('CursorHold', async () => {
-      for (let buf of this.buffers.items) {
-        await buf.forceFetch()
-      }
+    events.on('CursorHold', async bufnr => {
+      let buf = this.buffers.getItem(bufnr)
+      if (buf) await buf.forceFetch()
     }, this, this.disposables)
   }
 
   /**
    * Check provider for buf that not fetched
    */
-  public checkProvider(): void {
+  public async checkProvider(): Promise<void> {
     for (let buf of this.buffers.items) {
-      if (buf.hasProvider) {
-        buf.fetchCodelenses()
-      }
+      await buf.forceFetch()
     }
   }
 
@@ -68,9 +62,9 @@ export default class CodeLensManager {
       }
       for (let buf of this.buffers.items) {
         if (enable) {
-          buf.forceFetch().logError()
+          buf.fetchCodelenses()
         } else {
-          buf.clear()
+          buf.cleanUp()
         }
       }
     }

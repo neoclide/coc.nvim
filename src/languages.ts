@@ -415,6 +415,7 @@ class Languages {
   }
 
   public async resolveCodeLens(codeLens: CodeLens, token: CancellationToken): Promise<CodeLens> {
+    if (codeLens.command != null) return codeLens
     return await this.codeLensManager.resolveCodeLens(codeLens, token)
   }
 
