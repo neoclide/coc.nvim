@@ -59,11 +59,6 @@ export interface DiagnosticConfig {
   format?: string
 }
 
-const ErrorSymbol = Symbol('CocError')
-const WarningSymbol = Symbol('CocWarning')
-const InformationSymbol = Symbol('CocInformation')
-const HintSymbol = Symbol('CocHint')
-
 /**
  * Manage diagnostics of buffer, including:
  *
@@ -201,27 +196,25 @@ export class DiagnosticBuffer implements BufferSyncItem {
 
   public addSigns(diagnostics: ReadonlyArray<Diagnostic>): void {
     if (!this.config.enableSign) return
-    this.clearSigns()
-    let { nvim, bufnr } = this
-    let signsMap: Map<number, Symbol[]> = new Map()
+    this.buffer.unplaceSign({ group: signGroup })
+    let signsMap: Map<number, DiagnosticSeverity[]> = new Map()
     for (let diagnostic of diagnostics) {
       let { range, severity } = diagnostic
       let line = range.start.line
-      let name = getNameFromSeverity(severity)
       let exists = signsMap.get(line) || []
-      let s = getSymbol(severity)
-      if (exists.includes(s)) {
+      if (exists.includes(severity)) {
         continue
       }
-      exists.push(s)
+      exists.push(severity)
       signsMap.set(line, exists)
-      nvim.call('sign_place', [0, signGroup, name, bufnr, { lnum: line + 1, priority: 14 - (severity || 0) }], true)
+      let priority = this.config.signPriority + 4 - severity
+      let name = getNameFromSeverity(severity)
+      this.buffer.placeSign({ name, lnum: line + 1, group: signGroup, priority })
     }
   }
 
   private clearSigns(): void {
-    let { nvim, bufnr } = this
-    nvim.call('sign_unplace', [signGroup, { buffer: bufnr }], true)
+    this.buffer.unplaceSign({ group: signGroup })
   }
 
   public setDiagnosticInfo(diagnostics: ReadonlyArray<Diagnostic>): void {
@@ -276,7 +269,7 @@ export class DiagnosticBuffer implements BufferSyncItem {
 
   public updateHighlights(diagnostics: ReadonlyArray<Diagnostic>): void {
     let items = this.getHighlightItems(diagnostics)
-    this.nvim.call('coc#highlight#update_highlights', [this.bufnr, highlightNamespace, items], true)
+    this.buffer.updateHighlights(highlightNamespace, items)
   }
 
   private getHighlightItems(diagnostics: ReadonlyArray<Diagnostic>): HighlightItem[] {
@@ -324,15 +317,12 @@ export class DiagnosticBuffer implements BufferSyncItem {
     } else {
       nvim.pauseNotification()
       this.clearHighlight()
-      if (this.config.enableSign) {
-        this.clearSigns()
-      }
+      this.clearSigns()
       if (this.config.virtualText) {
         this.buffer.clearNamespace(this.config.virtualTextSrcId)
       }
-      nvim.call('coc#compat#buf_del_var', [this.bufnr, 'coc_diagnostic_info'], true)
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      nvim.resumeNotification(false, true)
+      this.buffer.deleteVar('coc_diagnostic_info')
+      void nvim.resumeNotification(false, true)
     }
   }
 
@@ -384,17 +374,4 @@ function getCollections(diagnostics: ReadonlyArray<Diagnostic & { collection: st
     res.add(o.collection)
   })
   return res
-}
-
-function getSymbol(severity: DiagnosticSeverity): Symbol {
-  if (severity == DiagnosticSeverity.Error) {
-    return ErrorSymbol
-  }
-  if (severity == DiagnosticSeverity.Warning) {
-    return WarningSymbol
-  }
-  if (severity == DiagnosticSeverity.Information) {
-    return InformationSymbol
-  }
-  return HintSymbol
 }
