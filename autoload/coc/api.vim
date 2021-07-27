@@ -417,7 +417,7 @@ function! s:funcs.buf_set_var(bufnr, name, val)
 endfunction
 
 function! s:funcs.buf_del_var(bufnr, name)
-  call setbufvar(a:bufnr, a:name, v:null)
+  call coc#compat#buf_del_var(a:bufnr, a:name)
 endfunction
 
 function! s:funcs.buf_get_option(bufnr, name)

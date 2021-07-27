@@ -2058,6 +2058,60 @@ declare module 'coc.nvim' {
     pid: number
   }
 
+  export interface SignPlaceOption {
+    id?: number
+    group?: string
+    name: string
+    lnum: number
+    priority?: number
+  }
+
+  export interface SignUnplaceOption {
+    group?: string
+    id?: number
+  }
+
+  export interface SignPlacedOption {
+    /**
+     * Use '*' for all group, default to '' as unnamed group.
+     */
+    group?: string
+    id?: number
+    lnum?: number
+  }
+
+  export interface SignItem {
+    group: string
+    id: number
+    lnum: number
+    name: string
+    priority: number
+  }
+
+  export interface HighlightItem {
+    hlGroup: string
+    /**
+    * 0 based
+    */
+    lnum: number
+    /**
+    * 0 based
+    */
+    colStart: number
+    /**
+    * 0 based
+    */
+    colEnd: number
+  }
+
+  export interface BufferKeymapOption {
+    nowait?: boolean
+    silent?: boolean
+    script?: boolean
+    expr?: boolean
+    unique?: boolean
+  }
+
   export interface BufferHighlight {
     /**
      * Name of the highlight group to use
@@ -2154,6 +2208,11 @@ declare module 'coc.nvim' {
   }
 
   export interface Neovim extends BaseApi<Neovim> {
+
+    /**
+     * Echo error message to vim and log error stack.
+     */
+    echoError(msg: string | Error): void
 
     /**
      * Check if `nvim_` function exists.
@@ -2559,6 +2618,49 @@ declare module 'coc.nvim' {
      * Get changedtick of buffer.
      */
     changedtick: Promise<number>
+
+    /**
+     * Add buffer keymap by notification.
+     */
+    setKeymap(mode: string, lhs: string, rhs: string, opts?: BufferKeymapOption): void
+
+    /**
+     * Add sign to buffer by notification.
+     *
+     * @param {SignPlaceOption} sign
+     */
+    placeSign(sign: SignPlaceOption): void
+
+    /**
+     * Unplace signs by notification
+     */
+    unplaceSign(opts: SignUnplaceOption): void
+
+    /**
+     * Get signs by group name or id and lnum.
+     *
+     * @param {SignPlacedOption} opts
+     */
+    getSigns(opts: SignPlacedOption): Promise<SignItem[]>
+
+    /**
+     * Get highlight items by namespace (end exclusive).
+     *
+     * @param {string | number} ns Namespace key or id.
+     * @param {number} start 0 based line number, default to 0.
+     * @param {number} end 0 based line number, default to -1.
+     */
+    getHighlights(ns: string | number, start?: number, end?: number): Promise<HighlightItem[]>
+
+    /**
+     * Update namespaced highlights in range by notification.
+     *
+     * @param {string | number} ns Namespace key or id.
+     * @param {HighlightItem[]} highlights Highlight items.
+     * @param {number} start 0 based line number, default to 0.
+     * @param {number} end 0 based line number, default to -1.
+     */
+    updateHighlights(ns: string | number, highlights: HighlightItem[], start?: number, end?: number): void
 
     /**
      * Gets a map of buffer-local |user-commands|.
