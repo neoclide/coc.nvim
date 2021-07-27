@@ -128,6 +128,31 @@ function! coc#compat#buf_del_keymap(bufnr, mode, lhs) abort
   endif
 endfunction
 
+function! coc#compat#buf_add_keymap(bufnr, mode, lhs, rhs, opts) abort
+  if !bufloaded(a:bufnr)
+    return
+  endif
+  if exists('*nvim_buf_set_keymap')
+    call nvim_buf_set_keymap(a:bufnr, a:mode, a:lhs, a:rhs, a:opts)
+  else
+    let cmd = a:mode . 'noremap '
+    for key in keys(a:opts)
+      if get(a:opts, key, 0)
+        let cmd .= '<'.key.'>'
+      endif
+    endfor
+    let cmd .= '<buffer> '.a:lhs.' '.a:rhs
+    if bufnr('%') == a:bufnr
+      execute cmd
+    elseif exists('*win_execute')
+      let winid = coc#compat#buf_win_id(a:bufnr)
+      if winid != -1
+        call win_execute(winid, cmd)
+      endif
+    endif
+  endif
+endfunction
+
 " execute command or list of commands in window
 function! coc#compat#execute(winid, command, ...) abort
   if exists('*win_execute')
