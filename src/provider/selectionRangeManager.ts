@@ -26,7 +26,13 @@ export default class SelectionRangeManager extends Manager<SelectionRangeProvide
     let item = this.getProvider(document)
     if (!item) return null
     let { provider } = item
-    return (await Promise.resolve(provider.provideSelectionRanges(document, positions, token)) || [])
+    let ranges: SelectionRange[] = await Promise.resolve(provider.provideSelectionRanges(document, positions, token))
+    if (!ranges || ranges.length == 0) return []
+    for (let i = 0; i < ranges.length - 1; i++) {
+      let r = ranges[i]
+      if (!r.parent) r.parent = ranges[i + 1]
+    }
+    return ranges
   }
 
   public dispose(): void {

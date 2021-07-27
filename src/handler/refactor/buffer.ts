@@ -434,7 +434,6 @@ export default class RefactorBuffer implements BufferSyncItem {
         }
       }
     }
-    return null
   }
 
   private getLinesRange(lnum: number): [number, number] | null {
@@ -445,7 +444,6 @@ export default class RefactorBuffer implements BufferSyncItem {
         }
       }
     }
-    return null
   }
 
   private async getLines(fsPath: string, start: number, end: number): Promise<string[]> {

@@ -19,9 +19,6 @@ export default class Colors {
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
     let config = workspace.getConfiguration('coc.preferences')
     this._enabled = config.get<boolean>('colorSupport', true)
-    if (workspace.isVim && !workspace.env.textprop) {
-      this._enabled = false
-    }
     let usedColors: Set<string> = new Set()
     this.highlighters = workspace.registerBufferSync(doc => {
       let buf = new ColorBuffer(this.nvim, doc.bufnr, this._enabled, usedColors)
@@ -32,7 +29,6 @@ export default class Colors {
       this.highlightAll()
     }, null, this.disposables)
     workspace.onDidChangeConfiguration(async e => {
-      if (workspace.isVim && !workspace.env.textprop) return
       if (e.affectsConfiguration('coc.preferences.colorSupport')) {
         let config = workspace.getConfiguration('coc.preferences')
         let enabled = config.get<boolean>('colorSupport', true)
@@ -82,14 +78,7 @@ export default class Colors {
     let { color } = info
     let colorArr = [(color.red * 255).toFixed(0), (color.green * 255).toFixed(0), (color.blue * 255).toFixed(0)]
     let res = await this.nvim.call('coc#util#pick_color', [colorArr])
-    if (res === false) {
-      // cancel
-      return
-    }
-    if (!res || res.length != 3) {
-      window.showMessage('Failed to get color', 'warning')
-      return
-    }
+    if (!res) return
     let hex = toHexString({
       red: (res[0] / 65535),
       green: (res[1] / 65535),
@@ -150,7 +139,6 @@ export default class Colors {
         return info
       }
     }
-    return null
   }
 
   public dispose(): void {

@@ -77,7 +77,7 @@ describe('Picker key mappings', () => {
     let fn = jest.fn()
     picker.onDidClose(fn)
     await nvim.input('<C-c>')
-    await helper.wait(100)
+    await helper.wait(200)
     expect(fn).toBeCalledTimes(1)
   })
 

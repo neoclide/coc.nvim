@@ -120,11 +120,7 @@ export default class Refactor {
     if (filetype) nvim.command(`runtime! syntax/${filetype}.vim`, true)
     nvim.call('coc#util#do_autocmd', ['CocRefactorOpen'], true)
     let [, err] = await nvim.resumeNotification()
-    if (err) {
-      logger.error(err)
-      window.showMessage(`Error on open refactor window: ${err}`, 'error')
-      return
-    }
+    if (err) return
     let [bufnr, win] = await nvim.eval('[bufnr("%"),win_getid()]') as [number, number]
     let opts = { fromWinid, winid: win, cwd }
     await workspace.document

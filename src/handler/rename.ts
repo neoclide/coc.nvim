@@ -8,7 +8,9 @@ import workspace from '../workspace'
 const logger = require('../util/logger')('handler-rename')
 
 export default class Rename {
-  constructor(private nvim: Neovim, private handler: HandlerDelegate) {
+  constructor(
+    private nvim: Neovim,
+    private handler: HandlerDelegate) {
   }
 
   public async getWordEdit(): Promise<WorkspaceEdit> {
@@ -37,40 +39,29 @@ export default class Rename {
     let { doc, position } = await this.handler.getCurrentState()
     this.handler.checkProvier('rename', doc.textDocument)
     await doc.synchronize()
-    try {
-      let token = (new CancellationTokenSource()).token
-      let res = await languages.prepareRename(doc.textDocument, position, token)
-      if (token.isCancellationRequested) return false
-      if (res === false) {
-        window.showMessage('Invalid position for rename', 'warning')
-        return false
-      }
-      let curname: string
-      if (!newName) {
-        if (Range.is(res)) {
-          curname = doc.textDocument.getText(res)
-          await window.moveTo(res.start)
-        } else if (res && typeof res.placeholder === 'string') {
-          curname = res.placeholder
-        } else {
-          curname = await this.nvim.eval('expand("<cword>")') as string
-        }
-        newName = await window.requestInput('New name', curname)
-      }
-      if (!newName) return false
-      let edit = await languages.provideRenameEdits(doc.textDocument, position, newName, token)
-      if (token.isCancellationRequested) return false
-      if (!edit) {
-        window.showMessage('Invalid position for rename', 'warning')
-        return false
-      }
-      await workspace.applyEdit(edit)
-      if (workspace.isVim) this.nvim.command('redraw', true)
-      return true
-    } catch (e) {
-      window.showMessage(`Error on rename: ${e.message}`, 'error')
-      logger.error(e)
+    let token = (new CancellationTokenSource()).token
+    let res = await languages.prepareRename(doc.textDocument, position, token)
+    if (res === false) {
+      window.showMessage('Invalid position for rename', 'warning')
       return false
     }
+    let curname: string
+    if (!newName) {
+      if (Range.is(res)) {
+        curname = doc.textDocument.getText(res)
+        await window.moveTo(res.start)
+      } else if (res && typeof res.placeholder === 'string') {
+        curname = res.placeholder
+      } else {
+        curname = await this.nvim.eval('expand("<cword>")') as string
+      }
+      newName = await window.requestInput('New name', curname)
+    }
+    if (!newName) return false
+    let edit = await languages.provideRenameEdits(doc.textDocument, position, newName, token)
+    if (token.isCancellationRequested || !edit) return false
+    await workspace.applyEdit(edit)
+    if (workspace.isVim) this.nvim.command('redraw', true)
+    return true
   }
 }

@@ -19,8 +19,7 @@ export default class SelectionRangeHandler {
     let selectionRanges: SelectionRange[] = await this.handler.withRequestToken('selection ranges', token => {
       return languages.getSelectionRanges(doc.textDocument, [position], token)
     })
-    if (selectionRanges && selectionRanges.length) return selectionRanges
-    return null
+    return selectionRanges
   }
 
   public async selectRange(visualmode: string, forward: boolean): Promise<void> {
@@ -60,15 +59,18 @@ export default class SelectionRangeHandler {
     let selectionRange: SelectionRange
     if (selectionRanges.length == 1) {
       selectionRange = selectionRanges[0]
-    } else if (positions.length > 1) {
-      let r = Range.create(positions[0], positions[1])
+    } else {
+      let end = positions[1] || positions[0]
+      let r = Range.create(positions[0], end)
       selectionRange = selectionRanges[0]
       while (selectionRange) {
         if (equals(r, selectionRange.range)) {
           selectionRange = selectionRange.parent
           continue
         }
-        if (positionInRange(positions[1], selectionRange.range) == 0) {
+        if (
+          positionInRange(positions[0], selectionRange.range) == 0 &&
+          positionInRange(end, selectionRange.range) == 0) {
           break
         }
         selectionRange = selectionRange.parent
