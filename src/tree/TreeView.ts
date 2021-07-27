@@ -208,7 +208,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       this.itemsToFilter = undefined
       if (node && typeof this.provider.getParent === 'function') {
         this.renderedItems = []
-        void this.reveal(node)
+        void this.reveal(node, { focus: true })
       } else {
         this.clearSelection()
         void this.render()
@@ -502,7 +502,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     await this.appendTreeNode(obj.node, obj.level, lnum, newItems, newHighlights)
     this.renderedItems.splice(nodeIdx, removeCount + 1, ...newItems)
     this.updateUI(newItems.map(o => o.line), newHighlights, lnum, lnum + removeCount + 1)
-    this.updateSigns()
+    this.refreshSigns()
     if (treeItem.collapsibleState == TreeItemCollapsibleState.Collapsed) {
       this._onDidCollapseElement.fire({ element })
     } else {
@@ -520,9 +520,10 @@ export default class BasicTreeView<T> implements TreeView<T> {
   }
 
   private clearSelection(): void {
-    if (!workspace.env.sign) return
+    if (!this.bufnr) return
     this._selection = []
-    this.nvim.call('sign_unplace', ['CocTree', { buffer: this.bufnr }], true)
+    let buf = this.nvim.createBuffer(this.bufnr)
+    buf.unplaceSign({ group: 'CocTree' })
     this._onDidChangeSelection.fire({ selection: [] })
   }
 
@@ -531,6 +532,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (!this.bufnr || !workspace.env.sign) return
     let row = this.getItemLnum(item)
     if (row == null) return
+    let buf = nvim.createBuffer(this.bufnr)
     let exists = this._selection.includes(item)
     if (!this.canSelectMany || forceSingle) {
       this._selection = [item]
@@ -539,10 +541,10 @@ export default class BasicTreeView<T> implements TreeView<T> {
     }
     nvim.pauseNotification()
     if (!this.canSelectMany || forceSingle) {
-      nvim.call('sign_unplace', ['CocTree', { buffer: this.bufnr }], true)
+      buf.unplaceSign({ group: 'CocTree' })
     }
     nvim.call('coc#compat#execute', [this.winid, `exe ${row + 1}`], true)
-    nvim.call('sign_place', [signOffset + row, 'CocTree', 'CocTreeSelected', this.bufnr, { lnum: row + 1 }], true)
+    buf.placeSign({ id: signOffset + row, lnum: row + 1, name: 'CocTreeSelected', group: 'CocTree' })
     if (!noRedraw) this.redraw()
     void nvim.resumeNotification(false, true)
     if (!exists) this._onDidChangeSelection.fire({ selection: this._selection })
@@ -553,7 +555,8 @@ export default class BasicTreeView<T> implements TreeView<T> {
     let row = this.getItemLnum(item)
     if (row == null || !this.bufnr || !workspace.env.sign) return
     this._selection.splice(idx, 1)
-    this.nvim.call('sign_unplace', ['CocTree', { buffer: this.bufnr, id: signOffset + row }], true)
+    let buf = this.nvim.createBuffer(this.bufnr)
+    buf.unplaceSign({ group: 'CocTree', id: signOffset + row })
     this._onDidChangeSelection.fire({ selection: this._selection })
   }
 
@@ -764,7 +767,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       this.lineState.titleCount = this.title ? 1 : 0
       this.updateUI(lines, highlights, 0, end)
       if (!initialize) {
-        this.updateSigns()
+        this.refreshSigns()
       }
     } catch (e) {
       this.nvim.errWriteLine('[coc.nvim] Error on update head lines:' + e.message)
@@ -775,17 +778,16 @@ export default class BasicTreeView<T> implements TreeView<T> {
   /**
    * Update signs after collapse/expand or head change
    */
-  private updateSigns(): void {
+  private refreshSigns(): void {
     let { selection, nvim, bufnr } = this
-    if (!selection.length
-      || !bufnr
-      || !workspace.env.sign) return
+    if (!selection.length || !bufnr || !workspace.env.sign) return
+    let buf = nvim.createBuffer(bufnr)
     nvim.pauseNotification()
-    nvim.call('sign_unplace', ['CocTree', { buffer: bufnr }], true)
+    buf.unplaceSign({ group: 'CocTree' })
     for (let n of selection) {
       let row = this.getItemLnum(n)
       if (row == null) continue
-      nvim.call('sign_place', [signOffset + row, 'CocTree', 'CocTreeSelected', bufnr, { lnum: row + 1 }], true)
+      buf.placeSign({ id: signOffset + row, lnum: row + 1, name: 'CocTreeSelected', group: 'CocTree' })
     }
     void nvim.resumeNotification(false, true)
   }
