@@ -266,6 +266,7 @@ function! coc#list#preview(lines, config) abort
     endif
     call coc#compat#execute(winid, ['syntax clear', 'noa call winrestview({"lnum":'.lnum.',"topline":'.max([1, lnum - 3]).'})'])
   endif
+  call setwinvar(winid, '&foldenable', 0)
   if s:prefix.' '.name != bufname(bufnr)
     if s:is_vim
       call win_execute(winid, 'noa file '.fnameescape(s:prefix.' '.name), 'silent!')
