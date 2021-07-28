@@ -37,12 +37,6 @@ export interface CompleteConfig {
   asciiCharactersOnly: boolean
 }
 
-export interface Documentation {
-  filetype: string
-  content: string
-  active?: [number, number]
-}
-
 export type Callback = () => void
 
 // first time completion
