@@ -3,6 +3,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DefinitionProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
+import { equals } from '../util/object'
 const logger = require('../util/logger')('definitionManager')
 
 export default class DefinitionManager extends Manager<DefinitionProvider> implements Disposable {
@@ -51,14 +52,13 @@ export default class DefinitionManager extends Manager<DefinitionProvider> imple
     const defs: DefinitionLink[] = []
     for (const def of arr) {
       if (!Array.isArray(def)) continue
-
       for (const val of def) {
         if (LocationLink.is(val)) {
-          defs.push(val)
+          let idx = defs.findIndex(o => o.targetUri == val.targetUri && equals(o.targetRange, val.targetRange))
+          if (idx == -1) defs.push(val)
         }
       }
     }
-
     return defs
   }
 

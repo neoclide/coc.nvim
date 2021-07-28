@@ -1,7 +1,6 @@
 import { Definition, DocumentSelector, Location, LocationLink } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import workspace from '../workspace'
-import window from '../window'
 import { equals } from '../util/object'
 const logger = require('../util/logger')('provider-manager')
 
@@ -63,7 +62,7 @@ export default class Manager<T> {
           }
         }
       } else {
-        window.showMessage(`Bad definition ${JSON.stringify(def)}`, 'error')
+        logger.error(`Bad definition`, def)
       }
     }
     return res
