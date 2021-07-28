@@ -2055,14 +2055,19 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	same behavior as "jumpDefinition"
 
-"doHover" [{hoverTarget}]					*coc-action-doHover*
+"doHover" [{hoverTarget}]				*coc-action-doHover*
 
-	Show documentation of the current word in a preview window.
-	Return `v:false` when hover not found.
+	Show documentation of  current symbol, return `v:false` when hover not
+	found.
 
 	{hoverTarget}: optional specification for where to show hover info,
 	defaults to `coc.preferences.hoverTarget` in `coc-settings.json`.
 	Valid options: ["preview", "echo", "float"]
+	
+"definitionHover" [{hoverTarget}]			*coc-action-definitionHover*
+
+	Same as |coc-action-doHover| but includes definition contents from
+	definition provider when possible.
 
 "getHover"						*coc-action-getHover*
 

@@ -1,13 +1,15 @@
 import { Neovim } from '@chemzqm/neovim'
-import { ConfigurationChangeEvent, HandlerDelegate } from '../types'
-import FloatFactory, { FloatWinConfig } from '../model/floatFactory'
-import { Documentation } from '../markdown'
+import fs from 'fs'
 import { CancellationTokenSource, Disposable, Hover, MarkedString, MarkupContent, Range } from 'vscode-languageserver-protocol'
 import { disposeAll, isMarkdown } from '../util'
-import { TextDocumentContentProvider } from '../provider'
-import workspace from '../workspace'
-import languages from '../languages'
 import { URI } from 'vscode-uri'
+import languages from '../languages'
+import { Documentation } from '../markdown'
+import FloatFactory, { FloatWinConfig } from '../model/floatFactory'
+import { TextDocumentContentProvider } from '../provider'
+import { ConfigurationChangeEvent, HandlerDelegate } from '../types'
+import { readFileLines } from '../util/fs'
+import workspace from '../workspace'
 const logger = require('../util/logger')('handler-hover')
 
 export type HoverTarget = 'float' | 'preview' | 'echo'
@@ -26,11 +28,19 @@ export default class HoverHandler {
   private documentLines: string[] = []
   private config: HoverConfig
   private timer: NodeJS.Timeout
+  private hasProvider = false
+  private excludeImages = true
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
     this.loadConfiguration()
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
     this.hoverFactory = new FloatFactory(nvim)
     this.disposables.push(this.hoverFactory)
+  }
+
+  private registerProvider(): void {
+    if (this.hasProvider) return
+    this.hasProvider = true
+    let { nvim } = this
     let provider: TextDocumentContentProvider = {
       onDidChange: null,
       provideTextDocumentContent: async () => {
@@ -57,13 +67,17 @@ export default class HoverHandler {
         target: target == 'float' && !workspace.floatSupported ? 'preview' : target,
         previewMaxHeight: config.get<number>('previewMaxHeight', 12)
       }
+      if (this.config.target == 'preview') {
+        this.registerProvider()
+      }
+      let preferences = workspace.getConfiguration('coc.preferences')
+      this.excludeImages = preferences.get<boolean>('excludeImageLinksInMarkdownDocument', true)
     }
   }
 
   public async onHover(hoverTarget?: HoverTarget): Promise<boolean> {
     let { doc, position, winid } = await this.handler.getCurrentState()
     this.handler.checkProvier('hover', doc.textDocument)
-    this.hoverFactory.close()
     await doc.synchronize()
     let hovers = await this.handler.withRequestToken('hover', token => {
       return languages.getHover(doc.textDocument, position, token)
@@ -85,35 +99,25 @@ export default class HoverHandler {
   public async definitionHover(hoverTarget: HoverTarget): Promise<boolean> {
     const { doc, position } = await this.handler.getCurrentState()
     this.handler.checkProvier('hover', doc.textDocument)
-    this.hoverFactory.close()
     await doc.synchronize()
     const hovers = await this.handler.withRequestToken('hover', token => {
       return languages.getHover(doc.textDocument, position, token)
     }, true)
-    if (hovers == null || !hovers.length) return false
-
+    if (!hovers?.length) return false
     const defs = await this.handler.withRequestToken('definitionHover', token => {
       return languages.getDefinitionLinks(doc.textDocument, position, token)
     }, true)
-    if (!defs.length) {
-      await this.previewHover(hovers, hoverTarget)
-      return true
-    }
-    const uris = defs.map(val => URI.parse(val.targetUri).fsPath)
-    await workspace.loadFiles(uris)
-
     const hoverDocs: (Hover | Documentation)[] = []
-    for (const def of defs) {
-      const doc = workspace.getDocument(URI.parse(def.targetUri).fsPath)
-      const { start, end } = def.targetRange
-      const endLine = end.line - start.line >= 8 ? start.line + 8 : (start.line === end.line ? end.line + 1 : end.line)
-      const content = doc.getLines(start.line, endLine).join('\n')
-      hoverDocs.push({
-        content,
-        filetype: doc.filetype,
-        active: [1, 2]
-      })
+    if (defs?.length) {
+      for (const def of defs) {
+        if (!def.targetRange) continue
+        const { start, end } = def.targetRange
+        const endLine = end.line - start.line >= 8 ? start.line + 8 : (end.character == 0 ? end.line - 1 : end.line)
+        const lines = await readLines(def.targetUri, start.line, endLine)
+        hoverDocs.push({ content: lines.join('\n'), filetype: doc.filetype })
+      }
     }
+
     hoverDocs.push(...hovers)
     await this.previewHover(hoverDocs, hoverTarget)
     return true
@@ -124,8 +128,8 @@ export default class HoverHandler {
     target = target || this.config.target
     let isPreview = target === 'preview'
     for (let hover of hovers) {
-      if ('filetype' in hover) {
-        addDocument(docs, hover.content, hover.filetype, isPreview)
+      if (isDocumentaion(hover)) {
+        docs.push(hover)
         continue
       }
       let { contents } = hover
@@ -152,9 +156,9 @@ export default class HoverHandler {
         modes: ['n'],
         maxWidth: this.config.floatMaxWidth,
         maxHeight: this.config.floatMaxHeight,
-        autoHide: this.config.autoHide
+        autoHide: this.config.autoHide,
+        excludeImages: this.excludeImages
       }
-      opts.excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument', true)
       await this.hoverFactory.show(docs, opts)
       return
     }
@@ -202,9 +206,7 @@ export default class HoverHandler {
   }
 
   public dispose(): void {
-    if (this.timer) {
-      clearTimeout(this.timer)
-    }
+    if (this.timer) clearTimeout(this.timer)
     disposeAll(this.disposables)
   }
 }
@@ -217,4 +219,17 @@ function addDocument(docs: Documentation[], text: string, filetype: string, isPr
     content = '``` ' + filetype + '\n' + content + '\n```'
   }
   docs.push({ content, filetype })
+}
+
+function isDocumentaion(obj: any): obj is Documentation {
+  if (!obj) return false
+  return typeof obj.filetype === 'string' && typeof obj.content === 'string'
+}
+
+async function readLines(uri: string, start: number, end: number): Promise<string[]> {
+  let doc = workspace.getDocument(uri)
+  if (doc) return doc.getLines(start, end + 1)
+  let fsPath = URI.parse(uri).fsPath
+  if (!fs.existsSync(fsPath)) return []
+  return await readFileLines(fsPath, start, end)
 }
