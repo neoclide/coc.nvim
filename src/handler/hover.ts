@@ -7,6 +7,7 @@ import { disposeAll, isMarkdown } from '../util'
 import { TextDocumentContentProvider } from '../provider'
 import workspace from '../workspace'
 import languages from '../languages'
+import { URI } from 'vscode-uri'
 const logger = require('../util/logger')('handler-hover')
 
 export type HoverTarget = 'float' | 'preview' | 'echo'
@@ -81,11 +82,52 @@ export default class HoverHandler {
     return true
   }
 
-  public async previewHover(hovers: Hover[], target?: string): Promise<void> {
+  public async definitionHover(hoverTarget: HoverTarget): Promise<boolean> {
+    const { doc, position } = await this.handler.getCurrentState()
+    this.handler.checkProvier('hover', doc.textDocument)
+    this.hoverFactory.close()
+    await doc.synchronize()
+    const hovers = await this.handler.withRequestToken('hover', token => {
+      return languages.getHover(doc.textDocument, position, token)
+    }, true)
+    if (hovers == null || !hovers.length) return false
+
+    const defs = await this.handler.withRequestToken('definitionHover', token => {
+      return languages.getDefinitionLinks(doc.textDocument, position, token)
+    }, true)
+    if (!defs.length) {
+      await this.previewHover(hovers, hoverTarget)
+      return true
+    }
+    const uris = defs.map(val => URI.parse(val.targetUri).fsPath)
+    await workspace.loadFiles(uris)
+
+    const hoverDocs: (Hover | Documentation)[] = []
+    for (const def of defs) {
+      const doc = workspace.getDocument(URI.parse(def.targetUri).fsPath)
+      const { start, end } = def.targetRange
+      const endLine = end.line - start.line >= 8 ? start.line + 8 : (start.line === end.line ? end.line + 1 : end.line)
+      const content = doc.getLines(start.line, endLine).join('\n')
+      hoverDocs.push({
+        content,
+        filetype: doc.filetype,
+        active: [1, 2]
+      })
+    }
+    hoverDocs.push(...hovers)
+    await this.previewHover(hoverDocs, hoverTarget)
+    return true
+  }
+
+  private async previewHover(hovers: (Hover | Documentation)[], target?: string): Promise<void> {
     let docs: Documentation[] = []
     target = target || this.config.target
     let isPreview = target === 'preview'
     for (let hover of hovers) {
+      if ('filetype' in hover) {
+        addDocument(docs, hover.content, hover.filetype, isPreview)
+        continue
+      }
       let { contents } = hover
       if (Array.isArray(contents)) {
         for (let item of contents) {
