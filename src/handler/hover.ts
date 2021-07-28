@@ -1,13 +1,13 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import { CancellationTokenSource, Disposable, Hover, MarkedString, MarkupContent, Range } from 'vscode-languageserver-protocol'
-import { disposeAll, isMarkdown } from '../util'
 import { URI } from 'vscode-uri'
 import languages from '../languages'
 import { Documentation } from '../markdown'
 import FloatFactory, { FloatWinConfig } from '../model/floatFactory'
 import { TextDocumentContentProvider } from '../provider'
 import { ConfigurationChangeEvent, HandlerDelegate } from '../types'
+import { disposeAll, isMarkdown } from '../util'
 import { readFileLines } from '../util/fs'
 import workspace from '../workspace'
 const logger = require('../util/logger')('handler-hover')
@@ -77,6 +77,7 @@ export default class HoverHandler {
 
   public async onHover(hoverTarget?: HoverTarget): Promise<boolean> {
     let { doc, position, winid } = await this.handler.getCurrentState()
+    if (hoverTarget == 'preview') this.registerProvider()
     this.handler.checkProvier('hover', doc.textDocument)
     await doc.synchronize()
     let hovers = await this.handler.withRequestToken('hover', token => {
@@ -98,6 +99,7 @@ export default class HoverHandler {
 
   public async definitionHover(hoverTarget: HoverTarget): Promise<boolean> {
     const { doc, position } = await this.handler.getCurrentState()
+    if (hoverTarget == 'preview') this.registerProvider()
     this.handler.checkProvier('hover', doc.textDocument)
     await doc.synchronize()
     const hovers = await this.handler.withRequestToken('hover', token => {

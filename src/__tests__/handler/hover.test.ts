@@ -1,9 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, MarkedString, Hover, Range } from 'vscode-languageserver-protocol'
+import { Disposable, MarkedString, Hover, Range, TextEdit, Position } from 'vscode-languageserver-protocol'
 import HoverHandler from '../../handler/hover'
+import { URI } from 'vscode-uri'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
-import helper from '../helper'
+import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
 let hover: HoverHandler
@@ -33,13 +34,12 @@ afterEach(async () => {
   await helper.reset()
 })
 
+async function getDocumentText(): Promise<string> {
+  let lines = await nvim.call('getbufline', ['coc://document', 1, '$']) as string[]
+  return lines.join('\n')
+}
+
 describe('Hover', () => {
-
-  async function getDocumentText(): Promise<string> {
-    let lines = await nvim.call('getbufline', ['coc://document', 1, '$']) as string[]
-    return lines.join('\n')
-  }
-
   describe('onHover', () => {
     it('should return false when hover not found', async () => {
       hoverResult = null
@@ -132,6 +132,47 @@ describe('Hover', () => {
       hoverResult = { contents: [''] }
       let res = await hover.getHover()
       expect(res.length).toBe(0)
+    })
+  })
+
+  describe('definitionHover', () => {
+    it('should load definition from buffer', async () => {
+      hoverResult = { contents: 'string hover' }
+      let doc = await helper.createDocument()
+      await nvim.call('cursor', [1, 1])
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo\nbar')])
+      disposables.push(languages.registerDefinitionProvider([{ language: '*' }], {
+        provideDefinition() {
+          return [{
+            targetUri: doc.uri,
+            targetRange: Range.create(0, 0, 1, 3),
+            targetSelectionRange: Range.create(0, 0, 0, 3),
+          }]
+        }
+      }))
+      await hover.definitionHover('preview')
+      let res = await getDocumentText()
+      expect(res).toBe('foo\nbar\n\nstring hover')
+    })
+
+    it('should load definition link from file', async () => {
+      let fsPath = await createTmpFile('foo\nbar\n')
+      hoverResult = { contents: 'string hover' }
+      let doc = await helper.createDocument()
+      await nvim.call('cursor', [1, 1])
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo\nbar')])
+      disposables.push(languages.registerDefinitionProvider([{ language: '*' }], {
+        provideDefinition() {
+          return [{
+            targetUri: URI.file(fsPath).toString(),
+            targetRange: Range.create(0, 0, 1, 3),
+            targetSelectionRange: Range.create(0, 0, 0, 3),
+          }]
+        }
+      }))
+      await hover.definitionHover('preview')
+      let res = await getDocumentText()
+      expect(res).toBe('foo\nbar\n\nstring hover')
     })
   })
 })
