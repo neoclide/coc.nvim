@@ -130,7 +130,7 @@ export default class HoverHandler {
     target = target || this.config.target
     let isPreview = target === 'preview'
     for (let hover of hovers) {
-      if (isDocumentaion(hover)) {
+      if (isDocumentation(hover)) {
         docs.push(hover)
         continue
       }
@@ -223,7 +223,7 @@ function addDocument(docs: Documentation[], text: string, filetype: string, isPr
   docs.push({ content, filetype })
 }
 
-function isDocumentaion(obj: any): obj is Documentation {
+function isDocumentation(obj: any): obj is Documentation {
   if (!obj) return false
   return typeof obj.filetype === 'string' && typeof obj.content === 'string'
 }
