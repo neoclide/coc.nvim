@@ -279,7 +279,7 @@ endfunction
 
 
 " Add highlights to line groups of winid, support hlGroup and filetype
-" config should have startLine, endLine (1 based, end excluded) and filetype or hlGroup
+" config should have startLine, endLine (0 based, end excluded) and filetype or hlGroup
 " endLine should > startLine and endLine is excluded
 "
 " export interface CodeBlock {
