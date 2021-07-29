@@ -353,8 +353,8 @@ function! s:Hi() abort
   else
     hi default CocStrikeThrough guifg=#989898 ctermfg=gray
   endif
-  hi default CocFadeOut       guifg=#928374 ctermfg=245
   hi default CocMarkdownLink  ctermfg=Blue    guifg=#15aabf guibg=NONE
+  hi default link CocFadeOut       Conceal
   hi default link CocMarkdownCode     markdownCode
   hi default link CocMarkdownHeader   markdownH1
   hi default link CocMenuSel          PmenuSel
