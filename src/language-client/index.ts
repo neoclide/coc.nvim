@@ -549,7 +549,11 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeature(new SelectionRangeFeature(this))
     this.registerFeature(new ProgressFeature(this))
     this.registerFeature(new CallHierarchyFeature(this))
-    this.registerFeature(new SemanticTokensFeature(this))
+    if (workspace.isNvim || (workspace.isVim && workspace.env.textprop)) {
+      const config = workspace.getConfiguration('coc.preferences')
+      const enabled = config.get<boolean>('semanticTokensHighlights', true)
+      if (enabled) this.registerFeature(new SemanticTokensFeature(this))
+    }
     this.registerFeature(new LinkedEditingFeature(this))
     this.registerFeature(new DidCreateFilesFeature(this))
     this.registerFeature(new DidRenameFilesFeature(this))
