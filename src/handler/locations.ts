@@ -73,7 +73,7 @@ export default class LocationsHandler {
       return languages.getDefinition(doc, position, token)
     })
     await this.handleLocations(definition, openCommand)
-    return true
+    return definition ? definition.length > 0 : false
   }
 
   public async gotoDeclaration(openCommand?: string): Promise<boolean> {
@@ -81,7 +81,7 @@ export default class LocationsHandler {
       return languages.getDeclaration(doc, position, token)
     })
     await this.handleLocations(definition, openCommand)
-    return true
+    return definition ? (Array.isArray(definition) ? definition.length > 0 : true) : false
   }
 
   public async gotoTypeDefinition(openCommand?: string): Promise<boolean> {
@@ -89,7 +89,7 @@ export default class LocationsHandler {
       return languages.getTypeDefinition(doc, position, token)
     })
     await this.handleLocations(definition, openCommand)
-    return true
+    return definition ? definition.length > 0 : false
   }
 
   public async gotoImplementation(openCommand?: string): Promise<boolean> {
@@ -97,7 +97,7 @@ export default class LocationsHandler {
       return languages.getImplementation(doc, position, token)
     })
     await this.handleLocations(definition, openCommand)
-    return true
+    return definition ? definition.length > 0 : false
   }
 
   public async gotoReferences(openCommand?: string, includeDeclaration = true): Promise<boolean> {
@@ -105,7 +105,7 @@ export default class LocationsHandler {
       return languages.getReferences(doc, { includeDeclaration }, position, token)
     })
     await this.handleLocations(definition, openCommand)
-    return true
+    return definition ? definition.length > 0 : false
   }
 
   public async getTagList(): Promise<TagDefinition[] | null> {
