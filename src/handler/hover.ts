@@ -102,26 +102,23 @@ export default class HoverHandler {
     if (hoverTarget == 'preview') this.registerProvider()
     this.handler.checkProvier('hover', doc.textDocument)
     await doc.synchronize()
-    const hovers = await this.handler.withRequestToken('hover', token => {
+    const hovers: (Hover | Documentation)[] = await this.handler.withRequestToken('hover', token => {
       return languages.getHover(doc.textDocument, position, token)
     }, true)
     if (!hovers?.length) return false
     const defs = await this.handler.withRequestToken('definitionHover', token => {
       return languages.getDefinitionLinks(doc.textDocument, position, token)
     }, true)
-    const hoverDocs: (Hover | Documentation)[] = []
     if (defs?.length) {
       for (const def of defs) {
         if (!def.targetRange) continue
         const { start, end } = def.targetRange
         const endLine = end.line - start.line >= 8 ? start.line + 8 : (end.character == 0 ? end.line - 1 : end.line)
         const lines = await readLines(def.targetUri, start.line, endLine)
-        hoverDocs.push({ content: lines.join('\n'), filetype: doc.filetype })
+        hovers.push({ content: lines.join('\n'), filetype: doc.filetype })
       }
     }
-
-    hoverDocs.push(...hovers)
-    await this.previewHover(hoverDocs, hoverTarget)
+    await this.previewHover(hovers, hoverTarget)
     return true
   }
 
