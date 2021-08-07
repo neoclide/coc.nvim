@@ -92,10 +92,6 @@ export class DiagnosticBuffer implements BufferSyncItem {
     return this.config.displayByAle
   }
 
-  public onChange(): void {
-    this.refresh.clear()
-  }
-
   public changeState(state: DiagnosticState): void {
     this._state = state
   }
