@@ -165,9 +165,6 @@ export class Workspace implements IWorkspace {
       process.exit()
     }
     this._insertMode = this._env.mode.startsWith('insert')
-    let preferences = this.getConfiguration('coc.preferences')
-    let maxFileSize = preferences.get<string>('maxFileSize', '10MB')
-    this.maxFileSize = bytes.parse(maxFileSize)
     if (this._env.workspaceFolders && Array.isArray(this._env.workspaceFolders)) {
       this._workspaceFolders = this._env.workspaceFolders.map(f => ({
         uri: URI.file(f).toString(),
@@ -175,6 +172,9 @@ export class Workspace implements IWorkspace {
       }))
     }
     this.configurations.updateUserConfig(this._env.config)
+    let preferences = this.getConfiguration('coc.preferences')
+    let maxFileSize = preferences.get<string>('maxFileSize', '10MB')
+    this.maxFileSize = bytes.parse(maxFileSize)
     events.on(['InsertEnter', 'CursorMovedI'], () => {
       this._insertMode = true
     }, null, this.disposables)
