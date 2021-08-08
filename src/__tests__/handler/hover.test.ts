@@ -152,7 +152,7 @@ describe('Hover', () => {
       }))
       await hover.definitionHover('preview')
       let res = await getDocumentText()
-      expect(res).toBe('foo\nbar\n\nstring hover')
+      expect(res).toBe('string hover\n\nfoo\nbar')
     })
 
     it('should load definition link from file', async () => {
@@ -172,7 +172,7 @@ describe('Hover', () => {
       }))
       await hover.definitionHover('preview')
       let res = await getDocumentText()
-      expect(res).toBe('foo\nbar\n\nstring hover')
+      expect(res).toBe('string hover\n\nfoo\nbar')
     })
   })
 })
