@@ -1534,7 +1534,7 @@ function! s:close_win(winid) abort
   else
     if nvim_win_is_valid(a:winid)
       if exists('*win_execute')
-        call win_execute(a:winid, 'close!', 'silent!')
+        keepalt call win_execute(a:winid, 'noa close!', 'silent!')
       else
         call nvim_win_close(a:winid, 1)
       endif

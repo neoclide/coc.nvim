@@ -24,7 +24,7 @@ function! coc#window#close(winid) abort
     return
   endif
   if exists('*win_execute') || has('nvim')
-    call coc#compat#execute(a:winid, 'close!', 'silent!')
+    call coc#compat#execute(a:winid, 'noa close!', 'silent!')
   else
     let curr = win_getid()
     if curr == a:winid
