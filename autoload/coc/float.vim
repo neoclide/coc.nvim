@@ -1533,7 +1533,11 @@ function! s:close_win(winid) abort
     call popup_close(a:winid)
   else
     if nvim_win_is_valid(a:winid)
-      call nvim_win_close(a:winid, 1)
+      if exists('*win_execute')
+        call win_execute(a:winid, 'close!', 'silent!')
+      else
+        call nvim_win_close(a:winid, 1)
+      endif
     endif
   endif
 endfunction
