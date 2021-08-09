@@ -292,6 +292,7 @@ function! s:Enable(initialize)
       autocmd WinEnter          * call coc#float#nvim_win_enter(win_getid())
       if exists('##WinClosed')
         autocmd WinClosed       * call coc#float#close_related(+expand('<afile>'))
+        autocmd WinClosed       * call s:Autocmd('WinClosed', +expand('<afile>'))
       endif
     endif
     if has('nvim-0.4.0') || has('patch-8.1.1719')
@@ -348,12 +349,12 @@ function! s:Hi() abort
   hi default CocBold          term=bold cterm=bold gui=bold
   hi default CocItalic        term=italic cterm=italic gui=italic
   if s:is_vim || has('nvim-0.4.0')
-    hi default CocStrikeThrough guifg=#989898 ctermfg=gray  cterm=strikethrough gui=strikethrough
+    hi default CocStrikeThrough cterm=strikethrough gui=strikethrough
   else
     hi default CocStrikeThrough guifg=#989898 ctermfg=gray
   endif
-  hi default CocFadeOut       guifg=#928374 ctermfg=245
   hi default CocMarkdownLink  ctermfg=Blue    guifg=#15aabf guibg=NONE
+  hi default link CocFadeOut       Conceal
   hi default link CocMarkdownCode     markdownCode
   hi default link CocMarkdownHeader   markdownH1
   hi default link CocMenuSel          PmenuSel
@@ -374,6 +375,39 @@ function! s:Hi() abort
   hi default link CocCursorRange    Search
   hi default link CocHighlightRead  CocHighlightText
   hi default link CocHighlightWrite CocHighlightText
+  " Tree view highlights
+  hi default link CocTreeTitle Title
+  hi default link CocTreeOpenClose CocBold
+  hi default link CocTreeSelected CursorLine
+  " Symbol highlights
+  hi default link CocSymbolDefault MoreMsg
+  hi default link CocSymbolFile Statement
+  hi default link CocSymbolModule Statement
+  hi default link CocSymbolNamespace Statement
+  hi default link CocSymbolPackage Statement
+  hi default link CocSymbolClass Statement
+  hi default link CocSymbolMethod Function
+  hi default link CocSymbolProperty Keyword
+  hi default link CocSymbolField CocSymbolDefault
+  hi default link CocSymbolConstructor Function
+  hi default link CocSymbolEnum CocSymbolDefault
+  hi default link CocSymbolInterface CocSymbolDefault
+  hi default link CocSymbolFunction Function
+  hi default link CocSymbolVariable CocSymbolDefault
+  hi default link CocSymbolConstant Constant
+  hi default link CocSymbolString String
+  hi default link CocSymbolNumber Number
+  hi default link CocSymbolBoolean Boolean
+  hi default link CocSymbolArray CocSymbolDefault
+  hi default link CocSymbolObject CocSymbolDefault
+  hi default link CocSymbolKey Keyword
+  hi default link CocSymbolNull Type
+  hi default link CocSymbolEnumMember CocSymbolDefault
+  hi default link CocSymbolStruct Keyword
+  hi default link CocSymbolEvent Keyword
+  hi default link CocSymbolOperator Operator
+  hi default link CocSymbolTypeParameter Operator
+
   if has('nvim')
     hi default link CocFloating NormalFloat
   else
@@ -381,6 +415,9 @@ function! s:Hi() abort
   endif
   if !exists('*sign_getdefined') || empty(sign_getdefined('CocCurrentLine'))
     sign define CocCurrentLine linehl=CocMenuSel
+  endif
+  if !exists('*sign_getdefined') || empty(sign_getdefined('CocTreeSelected'))
+    sign define CocTreeSelected linehl=CocTreeSelected
   endif
   if has('nvim-0.5.0')
     hi default CocCursorTransparent gui=strikethrough blend=100
@@ -452,7 +489,7 @@ function! s:ShowInfo()
       call add(lines, 'Error: javascript bundle not found, please compile code of coc.nvim by esbuild.')
     endif
     if !empty(lines)
-      belowright vnew
+      botright vnew
       setl filetype=nofile
       call setline(1, lines)
     else
@@ -465,6 +502,7 @@ function! s:ShowInfo()
   endif
 endfunction
 
+command! -nargs=0 CocOutline      :call coc#rpc#notify('showOutline', [])
 command! -nargs=? CocDiagnostics  :call s:OpenDiagnostics(<f-args>)
 command! -nargs=0 CocInfo         :call s:ShowInfo()
 command! -nargs=0 CocOpenLog      :call coc#rpc#notify('openLog',  [])

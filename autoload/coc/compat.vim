@@ -128,25 +128,52 @@ function! coc#compat#buf_del_keymap(bufnr, mode, lhs) abort
   endif
 endfunction
 
-" execute command or list of commands in window
-function! coc#compat#execute(winid, command) abort
-  if s:is_vim
-    if !exists('*win_execute')
-      throw 'win_execute function not exists, please upgrade your vim.'
-    endif
-    if type(a:command) == v:t_string
-      keepalt call win_execute(a:winid, a:command)
-    elseif type(a:command) == v:t_list
-      keepalt call win_execute(a:winid, join(a:command, "\n"))
-    endif
+function! coc#compat#buf_add_keymap(bufnr, mode, lhs, rhs, opts) abort
+  if !bufloaded(a:bufnr)
+    return
+  endif
+  if exists('*nvim_buf_set_keymap')
+    call nvim_buf_set_keymap(a:bufnr, a:mode, a:lhs, a:rhs, a:opts)
   else
+    let cmd = a:mode . 'noremap '
+    for key in keys(a:opts)
+      if get(a:opts, key, 0)
+        let cmd .= '<'.key.'>'
+      endif
+    endfor
+    let cmd .= '<buffer> '.a:lhs.' '.a:rhs
+    if bufnr('%') == a:bufnr
+      execute cmd
+    elseif exists('*win_execute')
+      let winid = coc#compat#buf_win_id(a:bufnr)
+      if winid != -1
+        call win_execute(winid, cmd)
+      endif
+    endif
+  endif
+endfunction
+
+" execute command or list of commands in window
+function! coc#compat#execute(winid, command, ...) abort
+  if exists('*win_execute')
+    if type(a:command) == v:t_string
+      keepalt call win_execute(a:winid, a:command, get(a:, 1, ''))
+    elseif type(a:command) == v:t_list
+      keepalt call win_execute(a:winid, join(a:command, "\n"), get(a:, 1, ''))
+    endif
+  elseif has('nvim')
+    if !nvim_win_is_valid(a:winid)
+      return
+    endif
     let curr = nvim_get_current_win()
     noa keepalt call nvim_set_current_win(a:winid)
     if type(a:command) == v:t_string
-      exec a:command
+      exe get(a:, 1, '').' '.a:command
     elseif type(a:command) == v:t_list
-      exec join(a:command, "\n")
+      exe get(a:, 1, '').' '.join(a:command, "\n")
     endif
     noa keepalt call nvim_set_current_win(curr)
+  else
+    throw 'win_execute not exists, please upgrade vim.'
   endif
 endfunc

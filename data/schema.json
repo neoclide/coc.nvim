@@ -989,6 +989,87 @@
       "default": "<C-p>",
       "description": "Key used for jump to previous cursors position."
     },
+    "tree.closedIcon": {
+      "type": "string",
+      "default": "+",
+      "description": "Closed icon of tree view."
+    },
+    "tree.openedIcon": {
+      "type": "string",
+      "default": "-",
+      "description": "Opend icon of tree view."
+    },
+    "tree.key.toggleSelection": {
+      "type": "string",
+      "default": "<space>",
+      "description": "Trigger key to select/unselect item"
+    },
+    "tree.key.toggle": {
+      "type": "string",
+      "default": "t",
+      "description": "Trigger key to toggle expand state of tree node, does nothing with leaf node."
+    },
+    "tree.key.collapseAll": {
+      "type": "string",
+      "default": "M",
+      "description": "Trigger key to collapse all tree node."
+    },
+    "tree.key.invoke": {
+      "type": "string",
+      "default": "<cr>",
+      "description": "Trigger key to invoke default command of current node or selection."
+    },
+    "tree.key.close": {
+      "type": "string",
+      "default": "<esc>",
+      "description": "Trigger key to dispose the tree and close tree window."
+    },
+    "tree.key.activeFilter": {
+      "type": "string",
+      "default": "f",
+      "description": "Trigger key active filter."
+    },
+    "tree.key.selectNext": {
+      "type": "string",
+      "default": "<C-j>",
+      "description": "Trigger key to select next item during filter."
+    },
+    "tree.key.selectPrevious": {
+      "type": "string",
+      "default": "<C-k>",
+      "description": "Trigger key to select previous item during filter."
+    },
+    "outline.splitCommand": {
+      "type": "string",
+      "default": "botright 30vs",
+      "description": "Window split command used by outline."
+    },
+    "outline.followCursor": {
+      "type": "boolean",
+      "default": true,
+      "description": "Reveal item in outline tree on cursor hold."
+    },
+    "outline.keepWindow": {
+      "type": "boolean",
+      "default": false,
+      "description": "Jump back to original window after outline is shown."
+    },
+    "outline.sortBy": {
+      "type": "string",
+      "default": "category",
+      "description": "Sort method for symbols.",
+      "enum": ["position", "name", "category"]
+    },
+    "outline.expandLevel": {
+      "type": "number",
+      "default": 1,
+      "description": "Expand level of tree nodes."
+    },
+    "outline.checkBufferSwitch": {
+      "type": "boolean",
+      "default": true,
+      "description": "Recreate outline view after user changed to another buffer on current tab."
+    },
     "coc.preferences.enableMessageDialog": {
       "type": "boolean",
       "default": false,

@@ -26,7 +26,7 @@ function! coc#highlight#get(bufnr, key, start, end) abort
   let ns = coc#highlight#create_namespace(a:key)
   let current = {}
   if has('nvim-0.5.0')
-    let end = a:end == -1 ? [-1, -1] : [a:end, 0]
+    let end = a:end == -1 ? [-1, -1] : [a:end - 1, 0]
     let markers = nvim_buf_get_extmarks(a:bufnr, ns, [a:start, 0], end, {'details': v:true})
     for [_, row, start_col, details] in markers
       let delta = details['end_row'] - row
@@ -74,13 +74,17 @@ endfunction
 
 " Update highlights by check exists highlights.
 function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
-  if !bufloaded(a:bufnr)
+  let bufnr = a:bufnr
+  if a:bufnr == 0
+    let bufnr = bufnr('%')
+  endif
+  if !bufloaded(bufnr)
     return
   endif
   let start = get(a:, 1, 0)
   let end = get(a:, 2, -1)
   if empty(a:highlights)
-    call coc#highlight#clear_highlight(a:bufnr, a:key, start, end)
+    call coc#highlight#clear_highlight(bufnr, a:key, start, end)
     return
   endif
   let total = len(a:highlights)
@@ -89,7 +93,7 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
   let ns = coc#highlight#create_namespace(a:key)
   let currIndex = 0
   if has('nvim-0.5.0') || exists('*prop_list')
-    let current = coc#highlight#get(a:bufnr, a:key, start, end)
+    let current = coc#highlight#get(bufnr, a:key, start, end)
     for lnum in sort(map(keys(current), 'str2nr(v:val)'), {a, b -> a - b})
       let items = current[lnum]
       let indexes = []
@@ -115,19 +119,24 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
         let exists = exists + indexes
       else
         if has('nvim')
-          call nvim_buf_clear_namespace(a:bufnr, ns, lnum, lnum + 1)
+          call nvim_buf_clear_namespace(bufnr, ns, lnum, lnum + 1)
         else
-          call coc#api#call('buf_clear_namespace', [a:bufnr, ns, lnum, lnum + 1])
+          call coc#api#call('buf_clear_namespace', [bufnr, ns, lnum, lnum + 1])
         endif
       endif
     endfor
+    if has('nvim') && end == -1
+      let count = nvim_buf_line_count(bufnr)
+      " remove highlights exceed last line.
+      call nvim_buf_clear_namespace(bufnr, ns, count, -1)
+    endif
   else
-    call coc#highlight#clear_highlight(a:bufnr, a:key, start, end)
+    call coc#highlight#clear_highlight(bufnr, a:key, start, end)
   endif
   for i in range(0, total - 1)
     if index(exists, i) == -1
       let hi = a:highlights[i]
-      call coc#highlight#add_highlight(a:bufnr, ns, hi['hlGroup'], hi['lnum'], hi['colStart'], hi['colEnd'])
+      call coc#highlight#add_highlight(bufnr, ns, hi['hlGroup'], hi['lnum'], hi['colStart'], hi['colEnd'])
     endif
   endfor
 endfunction
@@ -270,7 +279,7 @@ endfunction
 
 
 " Add highlights to line groups of winid, support hlGroup and filetype
-" config should have startLine, endLine (1 based, end excluded) and filetype or hlGroup
+" config should have startLine, endLine (0 based, end excluded) and filetype or hlGroup
 " endLine should > startLine and endLine is excluded
 "
 " export interface CodeBlock {
@@ -280,40 +289,32 @@ endfunction
 "   endLine: number
 " }
 function! coc#highlight#highlight_lines(winid, blocks) abort
-  let currwin = win_getid()
-  let switch = has('nvim') && currwin != a:winid
-  if switch
-    noa call nvim_set_current_win(a:winid)
-  endif
-  let defined = []
   let region_id = 1
+  let defined = []
+  let cmds = []
   for config in a:blocks
     let start = config['startLine'] + 1
     let end = config['endLine'] == -1 ? len(getbufline(winbufnr(a:winid), 1, '$')) + 1 : config['endLine'] + 1
     let filetype = get(config, 'filetype', '')
     let hlGroup = get(config, 'hlGroup', '')
     if !empty(hlGroup)
-      call s:execute(a:winid, 'syntax region '.hlGroup.' start=/\%'.start.'l/ end=/\%'.end.'l/')
+      call add(cmds, 'syntax region '.hlGroup.' start=/\%'.start.'l/ end=/\%'.end.'l/')
     else
       let filetype = matchstr(filetype, '\v^\w+')
       if empty(filetype) || filetype == 'txt' || index(get(g:, 'coc_markdown_disabled_languages', []), filetype) != -1
         continue
       endif
       if index(defined, filetype) == -1
-        call s:execute(a:winid, 'syntax include @'.toupper(filetype).' syntax/'.filetype.'.vim')
-        if has('nvim')
-          unlet! b:current_syntax
-        elseif exists('*win_execute')
-          call win_execute(a:winid, 'unlet! b:current_syntax')
-        endif
+        call add(cmds, 'syntax include @'.toupper(filetype).' syntax/'.filetype.'.vim')
+        call add(cmds, 'unlet! b:current_syntax')
         call add(defined, filetype)
       endif
-      call s:execute(a:winid, 'syntax region CodeBlock'.region_id.' start=/\%'.start.'l/ end=/\%'.end.'l/ contains=@'.toupper(filetype).' keepend')
+      call add(cmds, 'syntax region CodeBlock'.region_id.' start=/\%'.start.'l/ end=/\%'.end.'l/ contains=@'.toupper(filetype).' keepend')
       let region_id = region_id + 1
     endif
   endfor
-  if switch
-    noa call nvim_set_current_win(currwin)
+  if !empty(cmds)
+    call coc#compat#execute(a:winid, cmds, 'silent!')
   endif
 endfunction
 
@@ -489,14 +490,6 @@ function! s:create_cterm_hlgroup(group, fg, bg, attr) abort
   endif
   if a:attr != ""
     exec "silent hi " . a:group . " cterm=" . a:attr
-  endif
-endfunction
-
-function! s:execute(winid, cmd) abort
-  if has('nvim')
-    execute 'silent! ' a:cmd
-  else
-    call win_execute(a:winid, a:cmd, 'silent!')
   endif
 endfunction
 
