@@ -46,14 +46,12 @@ export default class DiagnosticCollection {
       diagnostics.forEach(o => {
         // should be message for the file, but we need range
         o.range = o.range || Range.create(0, 0, 0, 0)
-        o.message = o.message || 'unknown error message'
-        // TODO make sure we check start position of next line when cursor at the end.
+        o.message = o.message || ''
         o.source = o.source || this.name
       })
       this.diagnosticsMap.set(uri, diagnostics)
       this._onDidDiagnosticsChange.fire(uri)
     }
-    return
   }
 
   public delete(uri: string): void {
@@ -63,7 +61,9 @@ export default class DiagnosticCollection {
   public clear(): void {
     let uris = Array.from(this.diagnosticsMap.keys())
     this.diagnosticsMap.clear()
-    this._onDidDiagnosticsClear.fire(uris)
+    if (uris.length) {
+      this._onDidDiagnosticsClear.fire(uris)
+    }
   }
 
   public forEach(callback: (uri: string, diagnostics: Diagnostic[], collection: DiagnosticCollection) => any, thisArg?: any): void {

@@ -120,6 +120,7 @@ describe('Picker key mappings', () => {
   })
 
   it('should toggle selection by <space>', async () => {
+    await helper.createDocument()
     picker = new Picker(nvim, { title: 'title', items })
     let winid = await picker.show({ pickerButtons: true })
     expect(winid).toBeDefined()
@@ -133,6 +134,7 @@ describe('Picker key mappings', () => {
   })
 
   it('should scroll forward & backward', async () => {
+    await helper.createDocument()
     let items = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'].map(s => {
       return { label: s }
     })

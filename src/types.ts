@@ -542,6 +542,11 @@ export interface WorkspaceConfiguration {
   readonly [key: string]: any
 }
 
+export interface ErrorItem {
+  location: Location
+  message: string
+}
+
 export interface ConfigurationInspect<T> {
   key: string
   defaultValue?: T

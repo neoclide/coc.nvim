@@ -3,8 +3,6 @@ import { LocationListItem } from '../types'
 
 export function getSeverityName(severity: DiagnosticSeverity): string {
   switch (severity) {
-    case DiagnosticSeverity.Error:
-      return 'Error'
     case DiagnosticSeverity.Warning:
       return 'Warning'
     case DiagnosticSeverity.Information:
@@ -18,8 +16,6 @@ export function getSeverityName(severity: DiagnosticSeverity): string {
 
 export function getSeverityType(severity: DiagnosticSeverity): string {
   switch (severity) {
-    case DiagnosticSeverity.Error:
-      return 'E'
     case DiagnosticSeverity.Warning:
       return 'W'
     case DiagnosticSeverity.Information:
@@ -27,7 +23,7 @@ export function getSeverityType(severity: DiagnosticSeverity): string {
     case DiagnosticSeverity.Hint:
       return 'I'
     default:
-      return 'Error'
+      return 'E'
   }
 }
 

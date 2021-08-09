@@ -2017,7 +2017,8 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	jump to definition position of the current symbol.
 	Return `v:false` when location not found.
 
-	|coc-list-location| is used when more than one position is available.
+	|coc-list-location| is used when more than one position is available,
+	for custom location list, use variable: |g:coc_enable_locationlist|.
 
 	To always use |coc-list-location|| for locations, use `v:false` for
 	{openCommand}.

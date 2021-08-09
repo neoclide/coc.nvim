@@ -184,7 +184,7 @@ export default class Plugin extends EventEmitter {
     this.addAction('diagnosticToggle', () => diagnosticManager.toggleDiagnostic())
     this.addAction('diagnosticToggleBuffer', async (bufnr?: number) => {
       if (!bufnr) bufnr = await nvim.call('bufnr', ['%'])
-      diagnosticManager.toggleDiagnosticBuffer(bufnr)
+      return diagnosticManager.toggleDiagnosticBuffer(bufnr)
     })
     this.addAction('diagnosticNext', severity => diagnosticManager.jumpNext(severity))
     this.addAction('diagnosticPrevious', severity => diagnosticManager.jumpPrevious(severity))
