@@ -6,7 +6,7 @@ import { v4 as uuid } from 'uuid'
 import { equals } from '../util/object'
 const logger = require('../util/logger')('definitionManager')
 
-export default class DefinitionManager extends Manager<DefinitionProvider> implements Disposable {
+export default class DefinitionManager extends Manager<DefinitionProvider> {
 
   public register(selector: DocumentSelector, provider: DefinitionProvider): Disposable {
     let item: ProviderItem<DefinitionProvider> = {
@@ -60,9 +60,5 @@ export default class DefinitionManager extends Manager<DefinitionProvider> imple
       }
     }
     return defs
-  }
-
-  public dispose(): void {
-    this.providers = new Set()
   }
 }

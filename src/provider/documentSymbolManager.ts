@@ -4,7 +4,7 @@ import { DocumentSymbolProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
 
-export default class DocumentSymbolManager extends Manager<DocumentSymbolProvider> implements Disposable {
+export default class DocumentSymbolManager extends Manager<DocumentSymbolProvider> {
 
   public register(selector: DocumentSelector, provider: DocumentSymbolProvider, displayName?: string): Disposable {
     let item: ProviderItem<DocumentSymbolProvider> = {
@@ -27,9 +27,5 @@ export default class DocumentSymbolManager extends Manager<DocumentSymbolProvide
     if (!item) return null
     let { provider } = item
     return (await Promise.resolve(provider.provideDocumentSymbols(document, token))) || []
-  }
-
-  public dispose(): void {
-    this.providers = new Set()
   }
 }

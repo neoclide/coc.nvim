@@ -4,7 +4,7 @@ import { HoverProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
 
-export default class HoverManager extends Manager<HoverProvider> implements Disposable {
+export default class HoverManager extends Manager<HoverProvider> {
 
   public register(selector: DocumentSelector, provider: HoverProvider): Disposable {
     let item: ProviderItem<HoverProvider> = {
@@ -32,9 +32,5 @@ export default class HoverManager extends Manager<HoverProvider> implements Disp
       if (hover && hover.contents != '') res.push(hover)
     }
     return res
-  }
-
-  public dispose(): void {
-    this.providers = new Set()
   }
 }

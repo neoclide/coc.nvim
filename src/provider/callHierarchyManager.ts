@@ -5,7 +5,7 @@ import { CallHierarchyProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
 
-export default class CallHierarchyManager extends Manager<CallHierarchyProvider> implements Disposable {
+export default class CallHierarchyManager extends Manager<CallHierarchyProvider> {
 
   public register(selector: DocumentSelector, provider: CallHierarchyProvider): Disposable {
     let item: ProviderItem<CallHierarchyProvider> = {
@@ -45,9 +45,5 @@ export default class CallHierarchyManager extends Manager<CallHierarchyProvider>
     if (provider.provideCallHierarchyIncomingCalls(item, token) === null) return null
 
     return await Promise.resolve(provider.provideCallHierarchyIncomingCalls(item, token))
-  }
-
-  public dispose(): void {
-    this.providers = new Set()
   }
 }

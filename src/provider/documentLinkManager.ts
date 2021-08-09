@@ -4,7 +4,7 @@ import { DocumentLinkProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
 
-export default class DocumentLinkManager extends Manager<DocumentLinkProvider> implements Disposable {
+export default class DocumentLinkManager extends Manager<DocumentLinkProvider> {
 
   public register(selector: DocumentSelector, provider: DocumentLinkProvider): Disposable {
     let item = {
@@ -47,9 +47,5 @@ export default class DocumentLinkManager extends Manager<DocumentLinkProvider> i
       }
     }
     return null
-  }
-
-  public dispose(): void {
-    this.providers = new Set()
   }
 }

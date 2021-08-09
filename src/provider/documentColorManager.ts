@@ -4,7 +4,7 @@ import { DocumentColorProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
 
-export default class DocumentColorManager extends Manager<DocumentColorProvider> implements Disposable {
+export default class DocumentColorManager extends Manager<DocumentColorProvider> {
 
   public register(selector: DocumentSelector, provider: DocumentColorProvider): Disposable {
     let item: ProviderItem<DocumentColorProvider> = {
@@ -33,9 +33,5 @@ export default class DocumentColorManager extends Manager<DocumentColorProvider>
     let { provider } = item
     let res = await Promise.resolve(provider.provideColorPresentations(color, { document, range }, token))
     return res
-  }
-
-  public dispose(): void {
-    this.providers = new Set()
   }
 }

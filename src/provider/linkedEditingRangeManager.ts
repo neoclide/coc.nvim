@@ -5,11 +5,7 @@ import { LinkedEditingRangeProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 const logger = require('../util/logger')('linkedEditingManager')
 
-export default class LinkedEditingRangeManager extends Manager<LinkedEditingRangeProvider> implements Disposable {
-  public dispose(): void {
-    this.providers = new Set()
-  }
-
+export default class LinkedEditingRangeManager extends Manager<LinkedEditingRangeProvider> {
   public register(selector: DocumentSelector, provider: LinkedEditingRangeProvider): Disposable {
     let item: ProviderItem<LinkedEditingRangeProvider> = {
       id: uuid(),

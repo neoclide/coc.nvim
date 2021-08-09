@@ -5,7 +5,7 @@ import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
 const logger = require('../util/logger')('codeActionManager')
 
-export default class CodeActionManager extends Manager<CodeActionProvider> implements Disposable {
+export default class CodeActionManager extends Manager<CodeActionProvider> {
   // action to provider uuid
   private providerMap: WeakMap<CodeAction, string> = new WeakMap()
 
@@ -90,9 +90,5 @@ export default class CodeActionManager extends Manager<CodeActionProvider> imple
     // save the map to support resolveClientId
     if (resolved) this.providerMap.set(resolved, id)
     return resolved || codeAction
-  }
-
-  public dispose(): void {
-    this.providers = new Set()
   }
 }

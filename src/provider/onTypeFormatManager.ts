@@ -10,7 +10,7 @@ export interface ProviderItem {
   provider: OnTypeFormattingEditProvider
 }
 
-export default class OnTypeFormatManager implements Disposable {
+export default class OnTypeFormatManager {
   private providers: Set<ProviderItem> = new Set()
 
   public register(selector: DocumentSelector, provider: OnTypeFormattingEditProvider, triggerCharacters: string[]): Disposable {
@@ -50,9 +50,5 @@ export default class OnTypeFormatManager implements Disposable {
     if (!provider) return
     let formatOpts = await workspace.getFormatOptions(document.uri)
     return await Promise.resolve(provider.provideOnTypeFormattingEdits(document, position, character, formatOpts, token))
-  }
-
-  public dispose(): void {
-    this.providers = new Set()
   }
 }

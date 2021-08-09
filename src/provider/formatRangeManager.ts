@@ -4,7 +4,7 @@ import { DocumentRangeFormattingEditProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
 
-export default class FormatRangeManager extends Manager<DocumentRangeFormattingEditProvider> implements Disposable {
+export default class FormatRangeManager extends Manager<DocumentRangeFormattingEditProvider> {
 
   public register(selector: DocumentSelector,
     provider: DocumentRangeFormattingEditProvider,
@@ -31,9 +31,5 @@ export default class FormatRangeManager extends Manager<DocumentRangeFormattingE
     if (!item) return null
     let { provider } = item
     return await Promise.resolve(provider.provideDocumentRangeFormattingEdits(document, range, options, token))
-  }
-
-  public dispose(): void {
-    this.providers = new Set()
   }
 }

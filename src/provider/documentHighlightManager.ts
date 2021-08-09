@@ -4,7 +4,7 @@ import { DocumentHighlightProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
 
-export default class DocumentHighlightManager extends Manager<DocumentHighlightProvider> implements Disposable {
+export default class DocumentHighlightManager extends Manager<DocumentHighlightProvider> {
 
   public register(selector: DocumentSelector, provider: DocumentHighlightProvider): Disposable {
     let item: ProviderItem<DocumentHighlightProvider> = {
@@ -27,9 +27,5 @@ export default class DocumentHighlightManager extends Manager<DocumentHighlightP
     if (!item) return null
     let { provider } = item
     return await Promise.resolve(provider.provideDocumentHighlights(document, position, token))
-  }
-
-  public dispose(): void {
-    this.providers = new Set()
   }
 }

@@ -101,12 +101,12 @@ describe('codeLenes featrue', () => {
         return codeLens
       }
     }))
-    let doc = await helper.createDocument('example.js')
+    let doc = await helper.createDocument('codelens.js')
     await nvim.call('setline', [1, ['a', 'b', 'c']])
     await codeLens.checkProvider()
     await helper.wait(50)
     await nvim.call('setline', [1, 'foo'])
-    await helper.wait(200)
+    await helper.wait(300)
     let buf = codeLens.buffers.getItem(doc.bufnr)
     let codelens = buf.getCodelenses()
     expect(codelens).toBeUndefined()

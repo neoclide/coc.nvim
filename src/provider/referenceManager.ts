@@ -4,7 +4,7 @@ import { ReferenceProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
 
-export default class ReferenceManager extends Manager<ReferenceProvider> implements Disposable {
+export default class ReferenceManager extends Manager<ReferenceProvider>  {
 
   public register(selector: DocumentSelector, provider: ReferenceProvider): Disposable {
     let item: ProviderItem<ReferenceProvider> = {
@@ -31,9 +31,5 @@ export default class ReferenceManager extends Manager<ReferenceProvider> impleme
       return Promise.resolve(provider.provideReferences(document, position, context, token))
     }))
     return this.toLocations(arr)
-  }
-
-  public dispose(): void {
-    this.providers = new Set()
   }
 }

@@ -2,7 +2,7 @@ import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, SymbolInformation } from 'vscode-languageserver-protocol'
 import { WorkspaceSymbolProvider } from './index'
 
-export default class WorkspaceSymbolManager implements Disposable {
+export default class WorkspaceSymbolManager {
   private providers: Map<string, WorkspaceSymbolProvider> = new Map()
 
   public register(provider: WorkspaceSymbolProvider): Disposable {
@@ -43,9 +43,5 @@ export default class WorkspaceSymbolManager implements Disposable {
 
   public hasProvider(): boolean {
     return this.providers.size > 0
-  }
-
-  public dispose(): void {
-    this.providers = new Map()
   }
 }

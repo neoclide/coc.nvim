@@ -4,7 +4,7 @@ import { RenameProvider } from './index'
 import Manager from './manager'
 import { v4 as uuid } from 'uuid'
 
-export default class RenameManager extends Manager<RenameProvider> implements Disposable {
+export default class RenameManager extends Manager<RenameProvider> {
 
   public register(selector: DocumentSelector, provider: RenameProvider): Disposable {
     let item = {
@@ -43,9 +43,5 @@ export default class RenameManager extends Manager<RenameProvider> implements Di
     // can not rename
     if (res == null) return false
     return res
-  }
-
-  public dispose(): void {
-    this.providers = new Set()
   }
 }

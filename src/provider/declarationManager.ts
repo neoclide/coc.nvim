@@ -5,7 +5,7 @@ import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
 const logger = require('../util/logger')('definitionManager')
 
-export default class DeclarationManager extends Manager<DeclarationProvider> implements Disposable {
+export default class DeclarationManager extends Manager<DeclarationProvider> {
 
   public register(selector: DocumentSelector, provider: DeclarationProvider): Disposable {
     let item: ProviderItem<DeclarationProvider> = {
@@ -28,9 +28,5 @@ export default class DeclarationManager extends Manager<DeclarationProvider> imp
     if (!item) return null
     let { provider } = item
     return await Promise.resolve(provider.provideDeclaration(document, position, token))
-  }
-
-  public dispose(): void {
-    this.providers = new Set()
   }
 }

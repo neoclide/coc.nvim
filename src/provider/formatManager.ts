@@ -4,7 +4,7 @@ import { DocumentFormattingEditProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
 
-export default class FormatManager extends Manager<DocumentFormattingEditProvider> implements Disposable {
+export default class FormatManager extends Manager<DocumentFormattingEditProvider> {
 
   public register(selector: DocumentSelector,
     provider: DocumentFormattingEditProvider,
@@ -34,9 +34,5 @@ export default class FormatManager extends Manager<DocumentFormattingEditProvide
     if (!item) return null
     let { provider } = item
     return await Promise.resolve(provider.provideDocumentFormattingEdits(document, options, token))
-  }
-
-  public dispose(): void {
-    this.providers = new Set()
   }
 }

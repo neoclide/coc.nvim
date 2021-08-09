@@ -4,7 +4,7 @@ import { ImplementationProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
 
-export default class ImplementationManager extends Manager<ImplementationProvider> implements Disposable {
+export default class ImplementationManager extends Manager<ImplementationProvider> {
 
   public register(selector: DocumentSelector, provider: ImplementationProvider): Disposable {
     let item: ProviderItem<ImplementationProvider> = {
@@ -30,9 +30,5 @@ export default class ImplementationManager extends Manager<ImplementationProvide
       return Promise.resolve(provider.provideImplementation(document, position, token))
     }))
     return this.toLocations(arr)
-  }
-
-  public dispose(): void {
-    this.providers = new Set()
   }
 }

@@ -5,7 +5,7 @@ import { DocumentRangeSemanticTokensProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 const logger = require('../util/logger')('semanticTokensRangeManager')
 
-export default class SemanticTokensRangeManager extends Manager<DocumentRangeSemanticTokensProvider> implements Disposable {
+export default class SemanticTokensRangeManager extends Manager<DocumentRangeSemanticTokensProvider> {
   public register(selector: DocumentSelector, provider: DocumentRangeSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
     let item: ProviderItem<DocumentRangeSemanticTokensProvider> = {
       id: uuid(),
@@ -32,9 +32,5 @@ export default class SemanticTokensRangeManager extends Manager<DocumentRangeSem
     if (provider.provideDocumentRangeSemanticTokens === null) return null
 
     return await Promise.resolve(provider.provideDocumentRangeSemanticTokens(document, range, token))
-  }
-
-  public dispose(): void {
-    this.providers = new Set()
   }
 }

@@ -4,7 +4,7 @@ import { FoldingContext, FoldingRangeProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
 
-export default class FoldingRangeManager extends Manager<FoldingRangeProvider> implements Disposable {
+export default class FoldingRangeManager extends Manager<FoldingRangeProvider>  {
 
   public register(selector: DocumentSelector, provider: FoldingRangeProvider): Disposable {
     let item: ProviderItem<FoldingRangeProvider> = {
@@ -23,9 +23,5 @@ export default class FoldingRangeManager extends Manager<FoldingRangeProvider> i
     if (!item) return null
     let { provider } = item
     return (await Promise.resolve(provider.provideFoldingRanges(document, context, token)) || [])
-  }
-
-  public dispose(): void {
-    this.providers = new Set()
   }
 }
