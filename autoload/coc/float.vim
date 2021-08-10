@@ -355,7 +355,12 @@ endfunction
 " Create or refresh scrollbar for winid
 " Need called on create, config, buffer change, scrolled
 function! coc#float#nvim_scrollbar(winid) abort
-  if !has('nvim-0.4.0') || !coc#float#valid(a:winid) || getwinvar(a:winid, 'target_winid', 0)
+  if !has('nvim-0.4.0') || getwinvar(a:winid, 'target_winid', 0)
+    return
+  endif
+  let tabnr = coc#window#tabnr(a:winid)
+  " works on current tab only
+  if tabnr != tabpagenr()
     return
   endif
   let config = nvim_win_get_config(a:winid)
@@ -787,22 +792,27 @@ endfunction
 
 " Close related windows, or specific kind
 function! coc#float#close_related(winid, ...) abort
-  let timer = getwinvar(a:winid, 'timer', 0)
-  if timer
-    call timer_stop(timer)
-  endif
-  let kind = get(a:, 1, '')
-  let winids = filter(coc#float#get_float_win_list(1), 'getwinvar(v:val, "target_winid", 0) == '.a:winid)
-  for id in winids
-    if s:is_vim
-      " vim doesn't throw
-      call popup_close(id)
-    elseif nvim_win_is_valid(id)
-      if empty(kind) || getwinvar(id, 'kind', '') ==# kind
-        noa call nvim_win_close(id, 1)
-      endif
+  let tabnr = coc#window#tabnr(a:winid)
+  if tabnr != -1
+    let timer = gettabwinvar(tabnr, a:winid, 'timer', 0)
+    if timer
+      call timer_stop(timer)
     endif
-  endfor
+    let kind = get(a:, 1, '')
+    let winids = gettabwinvar(tabnr, a:winid, 'related', [])
+    for id in winids
+      if s:is_vim
+        " vim doesn't throw
+        noa call popup_close(id)
+      else
+        if empty(kind) || gettabwinvar(tabnr, id, 'kind', '') ==# kind
+          if nvim_win_is_valid(id)
+            noa call nvim_win_close(id, 1)
+          endif
+        endif
+      endif
+    endfor
+  endif
 endfunction
 
 " Close related windows if target window is not visible.
@@ -1533,11 +1543,7 @@ function! s:close_win(winid) abort
     call popup_close(a:winid)
   else
     if nvim_win_is_valid(a:winid)
-      if exists('*win_execute')
-        keepalt call win_execute(a:winid, 'noa close!', 'silent!')
-      else
-        call nvim_win_close(a:winid, 1)
-      endif
+      call nvim_win_close(a:winid, 1)
     endif
   endif
 endfunction

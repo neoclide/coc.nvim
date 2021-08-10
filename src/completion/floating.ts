@@ -11,14 +11,6 @@ export interface PumBounding {
   readonly scrollbar: boolean
 }
 
-interface Bounding {
-  row: number
-  col: number
-  width: number
-  height: number
-  relative: string
-}
-
 export interface FloatingConfig {
   maxPreviewWidth: number
   excludeImages: boolean
