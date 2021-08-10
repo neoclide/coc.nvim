@@ -108,7 +108,7 @@ export default class HoverHandler {
     if (!hovers?.length) return false
     const defs = await this.handler.withRequestToken('definitionHover', token => {
       return languages.getDefinitionLinks(doc.textDocument, position, token)
-    }, true)
+    }, false)
     if (defs?.length) {
       for (const def of defs) {
         if (!def.targetRange) continue
