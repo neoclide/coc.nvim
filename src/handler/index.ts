@@ -86,6 +86,7 @@ export default class Handler {
     this.selectionRange = new SelectionRange(nvim, this)
     this.disposables.push({
       dispose: () => {
+        this.callHierarchy.dispose()
         this.codeLens.dispose()
         this.refactor.dispose()
         this.signature.dispose()

@@ -27,18 +27,15 @@ export default class CallHierarchyManager extends Manager<CallHierarchyProvider>
     return await Promise.resolve(provider.prepareCallHierarchy(document, position, token))
   }
 
-  public async provideCallHierarchyOutgoingCalls(item: CallHierarchyItem, token: CancellationToken): Promise<CallHierarchyOutgoingCall[]> {
-    let { document } = await workspace.getCurrentState()
+  public async provideCallHierarchyOutgoingCalls(document: TextDocument, item: CallHierarchyItem, token: CancellationToken): Promise<CallHierarchyOutgoingCall[]> {
     let providerItem = this.getProvider(document)
     if (!providerItem) return null
     let { provider } = providerItem
     if (provider.provideCallHierarchyOutgoingCalls === null) return null
-
     return await Promise.resolve(provider.provideCallHierarchyOutgoingCalls(item, token))
   }
 
-  public async provideCallHierarchyIncomingCalls(item: CallHierarchyItem, token: CancellationToken): Promise<CallHierarchyIncomingCall[]> {
-    let { document } = await workspace.getCurrentState()
+  public async provideCallHierarchyIncomingCalls(document: TextDocument, item: CallHierarchyItem, token: CancellationToken): Promise<CallHierarchyIncomingCall[]> {
     let providerItem = this.getProvider(document)
     if (!providerItem) return null
     let { provider } = providerItem

@@ -975,6 +975,16 @@ Built-in configurations:~
 	Recreate outline view after changed to another buffer on current tab.
 	Default `true`
 
+						*coc-config-callHierarchy*
+
+"callHierarchy.openCommand":~
+
+	Open command for callHierarchy tree view, default to "edit".
+	
+"callHierarchy.splitCommand":~
+
+	Window split command used by callHierarchy tree view.
+
 						*coc-config-npm*
 "npm.binPath":~
 
@@ -2377,6 +2387,16 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Retrieve outgoing calls from {CallHierarchyItem} or current position
 	when not provided.
+
+"showIncomingCalls"  				*coc-action-showIncomingCalls*
+
+	Show incoming calls of current function in call hierarchy tree view.
+	Configured by |coc-config-callHierarchy| and |coc-config-tree|.
+						
+"showOutgoingCalls"  				*coc-action-showOutgoingCalls*
+
+	Show outgoing calls of current function in call hierarchy tree view.
+	Configured by |coc-config-callHierarchy| and |coc-config-tree|.
 
 ------------------------------------------------------------------------------
 COMMANDS						*coc-commands*

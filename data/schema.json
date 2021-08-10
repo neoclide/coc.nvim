@@ -1075,6 +1075,16 @@
       "default": true,
       "description": "Recreate outline view after user changed to another buffer on current tab."
     },
+    "callHierarchy.openCommand": {
+      "type": "string",
+      "default": "edit",
+      "description": "Open command for callHierarchy tree view."
+    },
+    "callHierarchy.splitCommand": {
+      "type": "string",
+      "default": "botright 30vs",
+      "description": "Window split command used by callHierarchy tree view."
+    },
     "coc.preferences.enableMessageDialog": {
       "type": "boolean",
       "default": false,

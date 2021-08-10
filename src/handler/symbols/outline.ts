@@ -245,44 +245,44 @@ export default class SymbolsOutline {
   /**
    * Create outline view.
    */
-    public async show(keep?: number): Promise<void> {
-      await workspace.document
-      let [bufnr, winid] = await this.nvim.eval('[bufnr("%"),win_getid()]') as [number, number]
-      let buf = this.buffers.getItem(bufnr)
-      if (!buf) throw new Error('Document not attached')
-      let provider = this.providersMap.get(bufnr)
-      if (!provider) {
-        provider = this.createProvider(buf)
-        this.providersMap.set(bufnr, provider)
-      }
-      let treeView = new BasicTreeView('OUTLINE', {
-        enableFilter: true,
-        treeDataProvider: provider,
-      })
-      this.originalWins.set(treeView, winid)
-      let arr = this.treeViews.get(provider) || []
-      arr.push(treeView)
-      this.treeViews.set(provider, arr)
-      treeView.onDidChangeVisibility(({ visible }) => {
-        if (visible || !this.treeViews.has(provider)) return
-        let arr = this.treeViews.get(provider) || []
-        arr = arr.filter(s => s !== treeView)
-        if (arr.length) {
-          this.treeViews.set(provider, arr)
-          return
-        }
-        provider.dispose()
-        this.treeViews.delete(provider)
-      })
-      await treeView.show(this.config.splitCommand)
-      if (treeView.windowId) {
-        let win = this.nvim.createWindow(treeView.windowId)
-        win.setVar('target_bufnr', bufnr, true)
-      }
-      if (keep == 1 || (keep === undefined && this.config.keepWindow)) {
-        await this.nvim.command('wincmd p')
-      }
+  public async show(keep?: number): Promise<void> {
+    await workspace.document
+    let [bufnr, winid] = await this.nvim.eval('[bufnr("%"),win_getid()]') as [number, number]
+    let buf = this.buffers.getItem(bufnr)
+    if (!buf) throw new Error('Document not attached')
+    let provider = this.providersMap.get(bufnr)
+    if (!provider) {
+      provider = this.createProvider(buf)
+      this.providersMap.set(bufnr, provider)
     }
+    let treeView = new BasicTreeView('OUTLINE', {
+      enableFilter: true,
+      treeDataProvider: provider,
+    })
+    this.originalWins.set(treeView, winid)
+    let arr = this.treeViews.get(provider) || []
+    arr.push(treeView)
+    this.treeViews.set(provider, arr)
+    treeView.onDidChangeVisibility(({ visible }) => {
+      if (visible || !this.treeViews.has(provider)) return
+      let arr = this.treeViews.get(provider) || []
+      arr = arr.filter(s => s !== treeView)
+      if (arr.length) {
+        this.treeViews.set(provider, arr)
+        return
+      }
+      provider.dispose()
+      this.treeViews.delete(provider)
+    })
+    await treeView.show(this.config.splitCommand)
+    if (treeView.windowId) {
+      let win = this.nvim.createWindow(treeView.windowId)
+      win.setVar('target_bufnr', bufnr, true)
+    }
+    if (keep == 1 || (keep === undefined && this.config.keepWindow)) {
+      await this.nvim.command('wincmd p')
+    }
+  }
 
   public has(bufnr: number): boolean {
     return this.providersMap.has(bufnr)
