@@ -1,5 +1,17 @@
+function! coc#window#tabnr(winid) abort
+  if exists('*win_execute')
+    let ref = {}
+    call win_execute(a:winid, 'let ref["out"] = tabpagenr()')
+    return get(ref, 'out', -1)
+  elseif has('nvim')
+    let info = getwininfo(a:winid)
+    return empty(info) ? -1 : info[0]['tabnr']
+  else
+    throw 'win_execute() not exists, please upgrade your vim.'
+  endif
+endfunction
 
-" Get single window by window variable
+" Get single window by window variable, current tab only
 function! coc#window#find(key, val) abort
   for i in range(1, winnr('$'))
     let res = getwinvar(i, a:key)
@@ -23,7 +35,11 @@ function! coc#window#close(winid) abort
   if empty(a:winid) || a:winid == -1
     return
   endif
-  if exists('*win_execute') || has('nvim')
+  if exists('*nvim_win_is_valid') && exists('*nvim_win_close')
+    if nvim_win_is_valid(a:winid)
+      noa call nvim_win_close(a:winid, 1)
+    endif
+  elseif exists('*win_execute')
     call coc#compat#execute(a:winid, 'noa close!', 'silent!')
   else
     let curr = win_getid()
