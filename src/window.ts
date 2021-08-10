@@ -195,7 +195,7 @@ class Window {
       let release = await this.mutex.acquire()
       if (token && token.isCancellationRequested) {
         release()
-        return undefined
+        return -1
       }
       try {
         let menu = new Menu(this.nvim, { items: items.map(s => s.trim()), title }, token)

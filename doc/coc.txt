@@ -918,6 +918,10 @@ Built-in configurations:~
 
 	Trigger key to toggle expand state of tree node, default: 't'
 
+"tree.key.actions":~
+
+	Trigger key to invoke actions, default: <tab>
+
 "tree.key.collapseAll":~
 
 	Trigger key to collapse all tree node, default: 'M'

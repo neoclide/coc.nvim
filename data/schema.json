@@ -1009,6 +1009,11 @@
       "default": "t",
       "description": "Trigger key to toggle expand state of tree node, does nothing with leaf node."
     },
+    "tree.key.actions": {
+      "type": "string",
+      "default": "<tab>",
+      "description": "Trigger key to invoke actions."
+    },
     "tree.key.collapseAll": {
       "type": "string",
       "default": "M",

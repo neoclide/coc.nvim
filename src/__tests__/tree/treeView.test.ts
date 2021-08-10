@@ -542,6 +542,37 @@ describe('TreeView', () => {
       expect(node).toBeDefined()
       expect(node.label).toBe('a')
     })
+
+    it('should show warning when no actions exists', async () => {
+      createTreeView(defaultDef)
+      await treeView.show()
+      await helper.wait(50)
+      await nvim.call('cursor', [2, 3])
+      await nvim.input('<tab>')
+      await helper.wait(50)
+      let cmdline = await helper.getCmdline()
+      expect(cmdline).toMatch('No actions available')
+    })
+
+    it('should invoke selected action', async () => {
+      let node
+      createTreeView(defaultDef, {
+        actions: {
+          preview: el => {
+            node = el
+          }
+        }
+      })
+      await treeView.show()
+      await helper.wait(50)
+      await nvim.call('cursor', [2, 3])
+      await nvim.input('<tab>')
+      await helper.wait(50)
+      await nvim.input('<cr>')
+      await helper.wait(50)
+      expect(node).toBeDefined()
+      expect(node.label).toBe('a')
+    })
   })
 
   describe('events', () => {

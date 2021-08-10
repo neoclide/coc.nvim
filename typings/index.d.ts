@@ -5267,6 +5267,10 @@ declare module 'coc.nvim' {
    */
   export interface TreeViewOptions<T> {
     /**
+     * Custom actions
+     */
+    actions?: { [name: string]: (node: T, nodes?: T[]) => ProviderResult<void> }
+    /**
      * Fixed width for window, default to true
      */
     winfixwidth?: boolean

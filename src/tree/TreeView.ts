@@ -10,9 +10,11 @@ import { equals } from '../util/object'
 import { byteLength, byteSlice } from '../util/string'
 import { hasMatch, positions, score, groupPositions } from '../util/fzy'
 import workspace from '../workspace'
+import window from '../window'
 import Filter, { sessionKey } from './filter'
 import { TreeDataProvider, TreeView, TreeViewExpansionEvent, TreeViewOptions, TreeViewSelectionChangeEvent, TreeViewVisibilityChangeEvent } from './index'
 import { TreeItem, TreeItemCollapsibleState, TreeItemLabel } from './TreeItem'
+import Menu from '../model/menu'
 const logger = require('../util/logger')('BasicTreeView')
 const highlightNamespace = 'tree'
 const signOffset = 3000
@@ -49,17 +51,13 @@ interface LineState {
 interface Keys {
   invoke: string
   toggle: string
+  actions: string
   collapseAll: string
   toggleSelection: string
   close: string
   activeFilter: string
   selectNext: string
   selectPrevious: string
-}
-
-interface RenderOptions<T> {
-  highlights: HighlightItem[]
-  items: RenderedItem<T>[]
 }
 
 interface TreeItemData {
@@ -106,7 +104,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   private readonly leafIndent: boolean
   private readonly winfixwidth: boolean
   private readonly enableFilter: boolean
-  constructor(private viewId: string, opts: TreeViewOptions<T>) {
+  constructor(private viewId: string, private opts: TreeViewOptions<T>) {
     this.loadConfiguration()
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
     this.enableFilter = opts.enableFilter == true
@@ -265,6 +263,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
         close: config.get<string>('key.close'),
         invoke: config.get<string>('key.invoke'),
         toggle: config.get<string>('key.toggle'),
+        actions: config.get<string>('key.actions'),
         collapseAll: config.get<string>('key.collapseAll'),
         toggleSelection: config.get<string>('key.toggleSelection'),
         activeFilter: config.get<string>('key.activeFilter'),
@@ -390,6 +389,19 @@ export default class BasicTreeView<T> implements TreeView<T> {
     }
     if (!item.command) throw new Error(`Failed to resolve command from TreeItem.`)
     await commandManager.execute(item.command)
+  }
+
+  private async invokeActions(element: T, selection?: T[]): Promise<void> {
+    this.selectItem(element)
+    let actions = this.opts.actions
+    if (!actions) {
+      await window.showWarningMessage('No actions available')
+      return
+    }
+    let keys = Object.keys(actions)
+    let res = await window.showMenuPicker(keys, 'Choose action')
+    if (res == -1) return
+    await Promise.resolve(actions[keys[res]](element, selection))
   }
 
   private async onDataChange(node: T | undefined): Promise<void> {
@@ -858,7 +870,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   }
 
   private registerKeymaps(): void {
-    let { toggleSelection, close, invoke, toggle, collapseAll, activeFilter } = this.keys
+    let { toggleSelection, actions, close, invoke, toggle, collapseAll, activeFilter } = this.keys
     let { nvim } = this
     const regist = (mode: 'n' | 'v' | 's' | 'x', key: string, fn: (element: T | undefined) => Promise<void>, notify = false) => {
       this.disposables.push(workspace.registerLocalKeymap(mode, key, async () => {
@@ -881,6 +893,9 @@ export default class BasicTreeView<T> implements TreeView<T> {
     })
     invoke && regist('n', invoke, async element => {
       if (element) await this.invokeCommand(element)
+    }, true)
+    actions && regist('n', actions, async element => {
+      if (element) await this.invokeActions(element, this.selection.length > 1 ? this.selection : undefined)
     }, true)
     toggle && regist('n', toggle, async element => {
       if (element) await this.toggleExpand(element)

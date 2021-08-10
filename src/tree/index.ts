@@ -8,6 +8,7 @@ export { TreeItem, TreeItemIcon, TreeItemCollapsibleState }
  * Options for creating a {@link TreeView}
  */
 export interface TreeViewOptions<T> {
+  actions?: { [name: string]: (node: T, nodes?: T[]) => ProviderResult<void> }
   /**
    * Fixed width for window, default to true
    */
