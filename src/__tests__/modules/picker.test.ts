@@ -70,13 +70,14 @@ describe('Picker key mappings', () => {
     expect(res[0].signs[0].name).toBe('CocCurrentLine')
   })
 
-  it('should cancel by <C-c>', async () => {
+  it('should cancel by <esc>', async () => {
+    await helper.createDocument()
     picker = new Picker(nvim, { title: 'title', items })
     let winid = await picker.show({ pickerButtons: true })
     expect(winid).toBeDefined()
     let fn = jest.fn()
     picker.onDidClose(fn)
-    await nvim.input('<C-c>')
+    await nvim.input('<esc>')
     await helper.wait(200)
     expect(fn).toBeCalledTimes(1)
   })
@@ -127,8 +128,7 @@ describe('Picker key mappings', () => {
     let fn = jest.fn()
     picker.onDidClose(fn)
     await nvim.input('<space>')
-    await nvim.command('redraw')
-    await helper.wait(100)
+    await helper.wait(200)
     let lines = await nvim.call('getbufline', [picker.buffer.id, 1])
     expect(lines[0]).toMatch('[x]')
   })
