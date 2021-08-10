@@ -275,6 +275,8 @@ export default class Plugin extends EventEmitter {
     this.addAction('codeActionRange', (start, end, only) => this.handler.codeActions.codeActionRange(start, end, only))
     this.addAction('incomingCalls', (item?: CallHierarchyItem) => this.handler.callHierarchy.getIncoming(item))
     this.addAction('outgoingCalls', (item?: CallHierarchyItem) => this.handler.callHierarchy.getOutgoing(item))
+    this.addAction('showIncomingCalls', () => this.handler.callHierarchy.showCallHierarchyTree('incoming'))
+    this.addAction('showOutgoingCalls', () => this.handler.callHierarchy.showCallHierarchyTree('outgoing'))
     this.addAction('semanticHighlight', () => this.handler.semanticHighlighter.highlightCurrent())
     this.addAction('showSemanticHighlightInfo', () => this.handler.semanticHighlighter.showHiglightInfo())
   }

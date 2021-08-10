@@ -183,6 +183,18 @@ export class CommandManager implements Disposable {
       }
     }, false, 'open output buffer to show output from languageservers or extensions.')
     this.register({
+      id: 'document.showIncomingCalls',
+      execute: async () => {
+        await plugin.cocAction('showIncomingCalls')
+      }
+    }, false, 'show incoming calls in tree view.')
+    this.register({
+      id: 'document.showOutgoingCalls',
+      execute: async () => {
+        await plugin.cocAction('showOutgoingCalls')
+      }
+    }, false, 'show outgoing calls in tree view.')
+    this.register({
       id: 'document.echoFiletype',
       execute: async () => {
         let bufnr = await nvim.call('bufnr', '%')
@@ -243,6 +255,13 @@ export class CommandManager implements Disposable {
         await window.moveTo(ranges[0].start)
       }
     }, false, 'Jump to next symbol highlight position.')
+    this.register({
+      id: 'workspace.openLocation',
+      execute: async (winid: number, loc: Location, openCommand?: string) => {
+        if (winid) await nvim.call('win_gotoid', [winid])
+        await workspace.jumpTo(loc.uri, loc.range.start, openCommand)
+      }
+    }, true)
     this.register({
       id: 'document.jumpToPrevSymbol',
       execute: async () => {

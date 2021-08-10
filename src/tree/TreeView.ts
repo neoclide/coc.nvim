@@ -168,7 +168,9 @@ export default class BasicTreeView<T> implements TreeView<T> {
         return filterText
       }
     })
-    this.provider.onDidChangeTreeData(this.onDataChange, this, this.disposables)
+    if (this.provider.onDidChangeTreeData) {
+      this.provider.onDidChangeTreeData(this.onDataChange, this, this.disposables)
+    }
     events.on('BufUnload', bufnr => {
       if (bufnr != this.bufnr) return
       this.winid = undefined
