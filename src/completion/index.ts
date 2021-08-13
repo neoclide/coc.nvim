@@ -413,26 +413,22 @@ export class Completion implements Disposable {
     await this.startCompletion(option)
   }
 
-  private async onCompleteDone(item: VimCompleteItem): Promise<void> {
+  private async onCompleteDone(item?: VimCompleteItem): Promise<void> {
     let { document, isActivated } = this
     if (!isActivated || !document || !Is.vimCompleteItem(item)) return
     let opt = Object.assign({}, this.option)
     let resolvedItem = this.getCompleteItem(item)
     this.stop()
     if (!resolvedItem) return
-    let timestamp = this.insertCharTs
-    let insertLeaveTs = this.insertLeaveTs
     let source = new CancellationTokenSource()
+    setTimeout(() => {
+      if (source) source.cancel()
+    }, 500)
     await sources.doCompleteResolve(resolvedItem, source.token)
     source.dispose()
+    source = null
     this.addRecent(resolvedItem.word, document.bufnr)
-    // Wait possible TextChangedI
-    await wait(50)
-    if (this.insertCharTs != timestamp
-      || this.insertLeaveTs != insertLeaveTs) return
-    let [visible, lnum, pre] = await this.nvim.eval(`[pumvisible(),line('.'),strpart(getline('.'), 0, col('.') - 1)]`) as [number, number, string]
-    if (visible || lnum != opt.linenr || this.activated || !pre.endsWith(resolvedItem.word)) return
-    await document.patchChange()
+    await document.patchChange(true)
     await sources.doCompleteDone(resolvedItem, opt)
   }
 
