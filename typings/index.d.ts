@@ -5848,11 +5848,6 @@ declare module 'coc.nvim' {
     changeLines(lines: [number, string][]): Promise<void>
 
     /**
-     * Force document synchronize and emit change event when necessary.
-     */
-    forceSync(): void
-
-    /**
      * Get offset from lnum & col
      */
     getOffset(lnum: number, col: number): number
