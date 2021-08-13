@@ -78,8 +78,8 @@ export default class Highlights {
     let line = doc.getline(position.line)
     let ch = line[position.character]
     if (!ch || !doc.isWord(ch)) return null
+    await doc.synchronize()
     this.tokenSource = new CancellationTokenSource()
-    doc.forceSync()
     let source = this.tokenSource
     let highlights = await languages.getDocumentHighLight(doc.textDocument, position, source.token)
     if (source == this.tokenSource) {

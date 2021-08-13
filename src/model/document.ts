@@ -519,9 +519,9 @@ export default class Document {
    * Get ranges of word in textDocument.
    */
   public getSymbolRanges(word: string): Range[] {
-    this.forceSync()
+    let { version, filetype, uri } = this
+    let textDocument = new LinesTextDocument(uri, filetype, version, this.lines, this.eol)
     let res: Range[] = []
-    let { textDocument } = this
     let content = textDocument.getText()
     let str = ''
     for (let i = 0, l = content.length; i < l; i++) {

@@ -181,12 +181,6 @@ export class Workspace implements IWorkspace {
     events.on(['InsertLeave', 'CursorMoved'], () => {
       this._insertMode = false
     }, null, this.disposables)
-    let forceSync = async bufnr => {
-      let doc = this.getDocument(bufnr)
-      if (doc) doc.forceSync()
-    }
-    events.on('InsertLeave', forceSync, null, this.disposables)
-    events.on('CursorHold', forceSync, null, this.disposables)
     events.on('BufEnter', this.onBufEnter, this, this.disposables)
     events.on('CursorMoved', this.checkCurrentBuffer, this, this.disposables)
     events.on('CursorMovedI', this.checkCurrentBuffer, this, this.disposables)
