@@ -76,7 +76,7 @@ export default class Document {
   constructor(public readonly buffer: Buffer, private env: Env, private maxFileSize: number | null) {
     this.fireContentChanges = debounce(() => {
       this._fireContentChanges()
-    }, 100)
+    }, 300)
     this.fetchContent = debounce(() => {
       this._fetchContent().logError()
     }, 100)
@@ -334,11 +334,8 @@ export default class Document {
         this._fireContentChanges()
         // could be user type during applyEdits.
         if (!equals(newLines, res.lines)) {
-          process.nextTick(() => {
-            this.lines = res.lines
-            this.fireContentChanges.clear()
-            this._fireContentChanges()
-          })
+          this.lines = res.lines
+          this.fireContentChanges()
         }
         release()
       } catch (e) {
