@@ -4495,6 +4495,10 @@ declare module 'coc.nvim' {
    */
   export namespace events {
     export const cursor: CursorPosition
+    /**
+     * Insert mode detected by latest events.
+     */
+    export const insertMode: boolean
     export function on(event: EmptyEvents | AllEvents[], handler: () => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     /**
      * Attach handler to buffer events.

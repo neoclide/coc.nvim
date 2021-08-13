@@ -63,10 +63,14 @@ class Events {
   private handlers: Map<string, Function[]> = new Map()
   private _cursor: CursorPosition
   private _latestInsert: LatestInsert
-  private insertMode = false
+  private _insertMode = false
 
   public get cursor(): CursorPosition {
     return this._cursor
+  }
+
+  public get insertMode(): boolean {
+    return this._insertMode
   }
 
   public get latestInsert(): LatestInsert | undefined {
@@ -76,14 +80,14 @@ class Events {
   public async fire(event: string, args: any[]): Promise<void> {
     let cbs = this.handlers.get(event)
     if (event == 'InsertEnter') {
-      this.insertMode = true
+      this._insertMode = true
     } else if (event == 'InsertLeave') {
-      this.insertMode = false
-    } else if (!this.insertMode && (event == 'CursorHoldI' || event == 'CursorMovedI')) {
-      this.insertMode = true
+      this._insertMode = false
+    } else if (!this._insertMode && (event == 'CursorHoldI' || event == 'CursorMovedI')) {
+      this._insertMode = true
       await this.fire('InsertEnter', [args[0]])
-    } else if (this.insertMode && (event == 'CursorHold' || event == 'CursorMoved')) {
-      this.insertMode = false
+    } else if (this._insertMode && (event == 'CursorHold' || event == 'CursorMoved')) {
+      this._insertMode = false
       await this.fire('InsertLeave', [args[0]])
     }
     if (event == 'InsertCharPre') {

@@ -59,6 +59,7 @@ export class DiagnosticManager implements Disposable {
         diagnostics => {
           this._onDidRefresh.fire({ diagnostics, uri: buf.uri, bufnr: buf.bufnr })
           if (['never', 'jump'].includes(this.config.enableMessage)) return
+          if (events.insertMode) return
           this.echoMessage(true).logError()
         })
       let collections = this.getCollections(doc.uri)
