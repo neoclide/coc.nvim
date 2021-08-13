@@ -1353,6 +1353,7 @@ augroup end`
         let doc = this.getDocument(bufnr)
         if (doc && doc.attached) doc.fetchContent()
       }
+      events.on('TextChangedP', onChange, null, this.disposables)
       events.on('TextChangedI', onChange, null, this.disposables)
       events.on('TextChanged', onChange, null, this.disposables)
     }
