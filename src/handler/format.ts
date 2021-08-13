@@ -79,11 +79,8 @@ export default class FormatHandler {
       changedTs = Date.now()
       if (!lastInsert || changedTs - lastInsert > 300) return
       lastInsert = null
-      let doc = workspace.getDocument(bufnr)
-      if (!doc || !doc.attached) return
       let pre = info.pre[info.pre.length - 1]
-      if (!pre || !languages.hasProvider('onTypeEdit', doc.textDocument)) return
-      await this.tryFormatOnType(pre, bufnr)
+      if (pre) await this.tryFormatOnType(pre, bufnr)
     }))
     let lastEnterBufnr: number
     let lastEnterTs: number
@@ -94,6 +91,7 @@ export default class FormatHandler {
     handler.addDisposable(events.on('TextChangedI', async (bufnr, info) => {
       if (!this.preferences.formatOnType && !/^\s*$/.test(info.pre)) return
       if (lastEnterBufnr != bufnr || !lastEnterTs || Date.now() - lastEnterTs > 30) return
+      lastEnterBufnr = undefined
       await this.tryFormatOnType('\n', bufnr, true)
     }))
   }
@@ -121,7 +119,7 @@ export default class FormatHandler {
       return
     }
     if (!languages.hasProvider('formatOnType', doc.textDocument)) {
-      logger.warn(`Format on type provider not found for buffer: ${doc.bufnr}`)
+      logger.warn(`Format on type provider not found for buffer: ${doc.uri}`)
       return
     }
     if (!languages.canFormatOnType(ch, doc.textDocument)) return
