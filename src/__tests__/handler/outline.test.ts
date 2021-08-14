@@ -307,6 +307,7 @@ describe('symbols outline', () => {
 
     it('should update symbols', async () => {
       await createBuffer()
+      let doc = await workspace.document
       let bufnr = await nvim.call('bufnr', ['%'])
       await symbols.showOutline(1)
       await helper.wait(10)
@@ -317,6 +318,7 @@ describe('symbols outline', () => {
         end: -1,
         strictIndexing: false
       })
+      await doc.synchronize()
       await helper.wait(200)
       buf = await getOutlineBuffer()
       let lines = await buf.lines

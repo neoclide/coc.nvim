@@ -34,7 +34,6 @@ export default class CursorSession {
     private nvim: Neovim,
     private doc: Document,
     private config: Config) {
-    this.doc.forceSync()
     this.textDocument = this.doc.textDocument
     this.buffer.setVar('coc_cursors_activated', 1, true)
     let { cancelKey, nextKey, previousKey } = this.config

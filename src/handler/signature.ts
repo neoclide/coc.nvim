@@ -68,7 +68,6 @@ export default class Signature {
       lastInsert = null
       let doc = workspace.getDocument(bufnr)
       if (!doc || doc.isCommandLine || !doc.attached) return
-      // if (!triggerSignatureHelp && !formatOnType) return
       let pre = info.pre[info.pre.length - 1]
       if (!pre) return
       if (!languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) return
@@ -125,7 +124,6 @@ export default class Signature {
     let timer = this.timer = setTimeout(() => {
       tokenSource.cancel()
     }, this.config.wait)
-    await doc.synchronize()
     let signatureHelp = await languages.getSignatureHelp(doc.textDocument, position, token, {
       isRetrigger: this.signatureFactory.checkRetrigger(doc.bufnr),
       triggerKind: invoke ? SignatureHelpTriggerKind.Invoked : SignatureHelpTriggerKind.TriggerCharacter

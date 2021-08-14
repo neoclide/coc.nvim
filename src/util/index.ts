@@ -33,6 +33,15 @@ export function wait(ms: number): Promise<any> {
   })
 }
 
+export function waitNextTick(fn: () => void): Promise<void> {
+  return new Promise(resolve => {
+    process.nextTick(() => {
+      fn()
+      resolve(undefined)
+    })
+  })
+}
+
 export function getUri(fullpath: string, id: number, buftype: string, isCygwin: boolean): string {
   if (!fullpath) return `untitled:${id}`
   // https://github.com/neoclide/coc-java/issues/82

@@ -564,16 +564,15 @@ function! coc#util#highlight_options()
         \}
 endfunction
 
-function! coc#util#set_lines(bufnr, replacement, start, end) abort
+function! coc#util#set_lines(bufnr, changedtick, replacement, start, end) abort
+  if !bufloaded(a:bufnr)
+    return
+  endif
   if !s:is_vim
     call nvim_buf_set_lines(a:bufnr, a:start, a:end, 0, a:replacement)
   else
     call coc#api#notify('buf_set_lines', [a:bufnr, a:start, a:end, 0, a:replacement])
   endif
-  return {
-        \ 'lines': getbufline(a:bufnr, 1, '$'),
-        \ 'changedtick': getbufvar(a:bufnr, 'changedtick')
-        \ }
 endfunction
 
 function! coc#util#change_lines(bufnr, list) abort
@@ -595,10 +594,6 @@ function! coc#util#change_lines(bufnr, list) abort
     endfor
     exe 'noa buffer '.bufnr
   endif
-  return {
-        \ 'lines': getbufline(a:bufnr, 1, '$'),
-        \ 'changedtick': getbufvar(a:bufnr, 'changedtick')
-        \ }
 endfunction
 
 

@@ -65,11 +65,11 @@ describe('snippet provider', () => {
   })
 
   it('should update placeholder on placeholder update', async () => {
-    await helper.createDocument()
-    // await nvim.setLine('bar')
+    let doc = await helper.createDocument()
     await snippetManager.insertSnippet('$1\n${1/,/,\\n/g}')
-    await helper.wait(60)
     await nvim.input('a,b')
+    await helper.wait(50)
+    doc.forceSync()
     await helper.wait(200)
     let lines = await nvim.call('getline', [1, '$'])
     expect(lines).toEqual(['a,b', 'a,', 'b'])

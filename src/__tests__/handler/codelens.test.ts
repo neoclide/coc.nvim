@@ -77,6 +77,7 @@ describe('codeLenes featrue', () => {
     await helper.wait(100)
     let markers = await helper.getMarkers(doc.bufnr, srcId)
     await nvim.call('setline', [1, ['a', 'b', 'c']])
+    await doc.synchronize()
     await events.fire('CursorHold', [doc.bufnr])
     await helper.wait(200)
     markers = await helper.getMarkers(doc.bufnr, srcId)

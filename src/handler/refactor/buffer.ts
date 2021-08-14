@@ -297,7 +297,7 @@ export default class RefactorBuffer implements BufferSyncItem {
     let { document } = this
     const release = await this.mutex.acquire()
     try {
-      if (document.dirty) document.forceSync()
+      await document.synchronize()
       for (let item of items) {
         let fileItem = this._fileItems.find(o => o.filepath == item.filepath)
         if (fileItem) {
