@@ -1185,7 +1185,7 @@
     },
     "coc.preferences.formatOnType": {
       "type": "boolean",
-      "description": "Set to true to enable format on type",
+      "description": "Set to true to enable formatting on typing",
       "default": false
     },
     "coc.preferences.formatOnTypeFiletypes": {
