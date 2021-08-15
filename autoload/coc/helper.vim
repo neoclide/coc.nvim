@@ -27,6 +27,8 @@ function! coc#helper#str_diff(curr, previous, col) abort
     for i in range(min([prevLen, endLen]))
       if strcharpart(end, endLen - 1 - i, 1) ==# strcharpart(a:previous, prevLen -1 -i, 1)
         let endOffset = endOffset + 1
+      else
+        break
       endif
     endfor
   endif
@@ -35,6 +37,8 @@ function! coc#helper#str_diff(curr, previous, col) abort
     for i in range(min([strchars(remain), strchars(start)]))
       if strcharpart(remain, i, 1) ==# strcharpart(start, i ,1)
         let startOffset = startOffset + 1
+      else
+        break
       endif
     endfor
   endif

@@ -14,33 +14,47 @@ interface Change {
   newText: string
 }
 
-export function diffLines(oldLines: ReadonlyArray<string>, newLines: string[]): ChangedLines {
-  let start = 0
-  let end = oldLines.length
-  let oldLen = end
-  let len = newLines.length
-  for (let i = 0; i <= end; i++) {
-    if (newLines[i] !== oldLines[i]) {
-      start = i
+export function diffLines(oldLines: ReadonlyArray<string>, newLines: ReadonlyArray<string>, startLine: number): ChangedLines {
+  let endOffset = 0
+  let startOffset = 0
+  let parts = oldLines.slice(startLine + 1)
+  for (let i = 0; i < Math.min(parts.length, newLines.length); i++) {
+    if (parts[parts.length - 1 - i] == newLines[newLines.length - 1 - i]) {
+      endOffset = endOffset + 1
+    } else {
       break
     }
-    if (i == end) {
-      start = end
+  }
+  for (let i = 0; i <= Math.min(startLine, newLines.length - 1 - endOffset); i++) {
+    if (oldLines[i] == newLines[i]) {
+      startOffset = startOffset + 1
+    } else {
+      break
     }
   }
-  if (start != newLines.length) {
-    let maxRemain = Math.min(end - start, len - start)
-    for (let j = 0; j < maxRemain; j++) {
-      if (oldLines[oldLen - j - 1] != newLines[len - j - 1]) {
+  let replacement = newLines.slice(startOffset, newLines.length - endOffset)
+  let end = oldLines.length - endOffset
+  if (end > startOffset && replacement.length) {
+    let offset = 0
+    for (let i = 0; i < Math.min(replacement.length, end - startOffset); i++) {
+      if (replacement[i] == oldLines[startOffset + i]) {
+        offset = offset + 1
+      } else {
         break
       }
-      end = end - 1
+    }
+    if (offset) {
+      return {
+        start: startOffset + offset,
+        end,
+        replacement: replacement.slice(offset)
+      }
     }
   }
   return {
-    start,
+    start: startOffset,
     end,
-    replacement: newLines.slice(start, len - (oldLen - end))
+    replacement
   }
 }
 

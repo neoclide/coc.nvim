@@ -4,7 +4,8 @@ import { diffLines, getChange, patchLine, ChangedLines } from '../../util/diff'
 
 describe('diff lines', () => {
   function diff(oldStr: string, newStr: string): ChangedLines {
-    return diffLines(oldStr.split('\n'), newStr.split('\n'))
+    let oldLines = oldStr.split('\n')
+    return diffLines(oldLines, newStr.split('\n'), oldLines.length - 2)
   }
 
   it('should diff changed lines', () => {
@@ -24,8 +25,8 @@ describe('diff lines', () => {
   it('should diff remove lines', () => {
     let res = diff('a\n\n', 'a\n')
     expect(res).toEqual({
-      start: 2,
-      end: 3,
+      start: 1,
+      end: 2,
       replacement: []
     })
   })
@@ -33,8 +34,8 @@ describe('diff lines', () => {
   it('should diff remove multiple lines', () => {
     let res = diff('a\n\n\n', 'a\n')
     expect(res).toEqual({
-      start: 2,
-      end: 4,
+      start: 1,
+      end: 3,
       replacement: []
     })
   })
@@ -45,6 +46,15 @@ describe('diff lines', () => {
       start: 2,
       end: 3,
       replacement: []
+    })
+  })
+
+  it('should reduce changed lines', async () => {
+    let res = diffLines(['a', 'b', 'c'], ['a', 'b', 'c', 'd'], 0)
+    expect(res).toEqual({
+      start: 3,
+      end: 3,
+      replacement: ['d']
     })
   })
 })

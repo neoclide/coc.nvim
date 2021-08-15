@@ -313,7 +313,8 @@ export default class Document {
     let newLines = content.split(/\r?\n/)
     // could be equal sometimes
     if (!equals(lines, newLines)) {
-      let d = diffLines(lines, newLines)
+      let lnums = edits.map(o => o.range.start.line)
+      let d = diffLines(lines, newLines, Math.min.apply(null, lnums))
       let original = lines.slice(d.start, d.end)
       this.nvim.call('coc#util#set_lines', [this.bufnr, this._changedtick, original, d.replacement, d.start, d.end], true)
       if (this.env.isVim) this.nvim.command('redraw', true)
