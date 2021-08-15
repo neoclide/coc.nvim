@@ -223,7 +223,7 @@ describe('cursors#onchange', () => {
     await nvim.call('cursor', [1, 4])
     await nvim.input('iabc')
     await helper.wait(30)
-    doc.forceSync()
+    await doc.synchronize()
     await helper.wait(100)
     let lines = await nvim.call('getline', [1, '$'])
     expect(lines).toEqual(['fooabc fooabc fooabc', 'barabc barabc'])
