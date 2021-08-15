@@ -29,7 +29,7 @@ export interface LanguageServerConfig {
   disableDiagnostics?: boolean
   formatterPriority?: number
   filetypes: string[]
-  additionalSchemes: string[]
+  additionalSchemes?: string[]
   enable?: boolean
   args?: string[]
   cwd?: string
@@ -224,8 +224,38 @@ export class ServiceManager extends EventEmitter implements Disposable {
     let lspConfig = workspace.getConfiguration().get<{ key: LanguageServerConfig }>('languageserver', {} as any)
     for (let key of Object.keys(lspConfig)) {
       let config: LanguageServerConfig = lspConfig[key]
+      if (!this.validServerConfig(key, config)) {
+        continue
+      }
       this.registLanguageClient(key, config)
     }
+  }
+
+  private validServerConfig(key: string, config: LanguageServerConfig): boolean {
+    let errors: string[] = []
+    if (config.module != null && typeof config.module !== 'string') {
+      errors.push(`"module" field of languageserver ${key} should be string`)
+    }
+    if (config.command != null && typeof config.command !== 'string') {
+      errors.push(`"command" field of languageserver ${key} should be string`)
+    }
+    if (config.transport != null && typeof config.transport !== 'string') {
+      errors.push(`"transport" field of languageserver ${key} should be string`)
+    }
+    if (config.transportPort != null && typeof config.transportPort !== 'number') {
+      errors.push(`"transportPort" field of languageserver ${key} should be string`)
+    }
+    if (!Array.isArray(config.filetypes) || !config.filetypes.every(s => typeof s === 'string')) {
+      errors.push(`"filetypes" field of languageserver ${key} should be array of string`)
+    }
+    if (config.additionalSchemes && (!Array.isArray(config.additionalSchemes) || config.additionalSchemes.some(s => typeof s !== 'string'))) {
+      errors.push(`"additionalSchemes" field of languageserver ${key} should be array of string`)
+    }
+    if (errors.length) {
+      window.showMessage(errors.join('\n'), 'error')
+      return false
+    }
+    return true
   }
 
   private waitClient(id: string): Promise<void> {
