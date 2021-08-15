@@ -11,6 +11,14 @@ function! coc#compat#buf_win_id(bufnr) abort
   return info[0]['winid']
 endfunction
 
+function! coc#compat#buf_set_lines(bufnr, start, end, replacement) abort
+  if s:is_vim
+    call coc#api#notify('buf_set_lines', [a:bufnr, a:start, a:end, 0, a:replacement])
+  else
+    call nvim_buf_set_lines(a:bufnr, a:start, a:end, 0, a:replacement)
+  endif
+endfunction
+
 function! coc#compat#win_is_valid(winid) abort
   if exists('*nvim_win_is_valid')
     return nvim_win_is_valid(a:winid)

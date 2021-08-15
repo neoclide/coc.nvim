@@ -14,6 +14,47 @@ function! coc#helper#obj_equal(one, two) abort
   return 1
 endfunction
 
+" get change between two lines
+function! coc#helper#str_diff(curr, previous, col) abort
+  let end = strpart(a:curr, a:col - 1)
+  let start = strpart(a:curr, 0, a:col -1)
+  let endOffset = 0
+  let startOffset = 0
+  let currLen = strchars(a:curr)
+  let prevLen = strchars(a:previous)
+  if len(end)
+    let endLen = strchars(end)
+    for i in range(min([prevLen, endLen]))
+      if strcharpart(end, endLen - 1 - i, 1) ==# strcharpart(a:previous, prevLen -1 -i, 1)
+        let endOffset = endOffset + 1
+      else
+        break
+      endif
+    endfor
+  endif
+  let remain = endOffset == 0 ? a:previous : strcharpart(a:previous, 0, prevLen - endOffset)
+  if len(remain)
+    for i in range(min([strchars(remain), strchars(start)]))
+      if strcharpart(remain, i, 1) ==# strcharpart(start, i ,1)
+        let startOffset = startOffset + 1
+      else
+        break
+      endif
+    endfor
+  endif
+  return {
+      \ 'start': startOffset,
+      \ 'end': prevLen - endOffset,
+      \ 'text': strcharpart(a:curr, startOffset, currLen - startOffset - endOffset)
+      \ }
+endfunction
+
+function! coc#helper#str_apply(content, diff) abort
+  let totalLen = strchars(a:content)
+  let endLen = totalLen - a:diff['end']
+  return strcharpart(a:content, 0, a:diff['start']).a:diff['text'].strcharpart(a:content, a:diff['end'], endLen)
+endfunction
+
 " insert inserted to line at position, use ... when result is too long
 " line should only contains character has strwidth equals 1
 function! coc#helper#str_compose(line, position, inserted) abort
