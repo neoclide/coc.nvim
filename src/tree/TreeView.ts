@@ -383,7 +383,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (!obj) return
     this.selectItem(element)
     let item = obj.item
-    if (!obj.resolved && !item.command) {
+    if (!item.command) {
       item = await this.resolveItem(element, item)
       if (!item) return
     }
