@@ -296,16 +296,26 @@ export default class Document {
       edits = arguments[1]
     }
     if (edits.length == 0) return
-    let current = this.getDocumentContent()
-    let textDocument = TextDocument.create(this.uri, this.filetype, 1, current)
+    let textDocument = TextDocument.create(this.uri, this.filetype, 1, this.getDocumentContent())
     // apply edits to current textDocument
     let applied = TextDocument.applyEdits(textDocument, edits)
-    if (isWindows) applied = applied.replace(/\r\n/g, '\n')
+    let content: string
+    if (this.eol) {
+      if (applied.endsWith('\r\n')) {
+        content = applied.slice(0, -2)
+      } else {
+        content = applied.endsWith('\n') ? applied.slice(0, -1) : applied
+      }
+    } else {
+      content = applied
+    }
+    let lines = this.lines
+    let newLines = content.split(/\r?\n/)
     // could be equal sometimes
-    if (current !== applied) {
-      let newLines = (this.eol && applied.endsWith('\n') ? applied.slice(0, -1) : applied).split('\n')
-      let d = diffLines(this.lines, newLines)
-      this.nvim.call('coc#util#set_lines', [this.bufnr, this._changedtick, d.replacement, d.start, d.end], true)
+    if (!equals(lines, newLines)) {
+      let d = diffLines(lines, newLines)
+      let original = lines.slice(d.start, d.end)
+      this.nvim.call('coc#util#set_lines', [this.bufnr, this._changedtick, original, d.replacement, d.start, d.end], true)
       if (this.env.isVim) this.nvim.command('redraw', true)
       await waitNextTick(() => {
         // can't wait vim sync buffer

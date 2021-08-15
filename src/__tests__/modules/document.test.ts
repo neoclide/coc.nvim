@@ -26,7 +26,7 @@ afterEach(async () => {
   await helper.reset()
 })
 
-describe('document model properties', () => {
+describe('properties', () => {
   it('should parse iskeyword', async () => {
     let doc = await helper.createDocument()
     await nvim.setLine('foo bar')
@@ -167,7 +167,7 @@ describe('document model properties', () => {
   })
 })
 
-describe('document synchronize', () => {
+describe('synchronize', () => {
   it('should synchronize on lines change', async () => {
     let document = await helper.createDocument()
     let doc = TextDocument.create('untitled:1', 'txt', 1, document.getDocumentContent())
@@ -197,7 +197,7 @@ describe('document synchronize', () => {
   })
 })
 
-describe('document recreate', () => {
+describe('recreate', () => {
   async function assertDocument(fn: (doc: Document) => Promise<void>): Promise<void> {
     let disposables: Disposable[] = []
     let fsPath = path.join(__dirname, 'document.txt')
@@ -287,7 +287,7 @@ describe('document recreate', () => {
   })
 })
 
-describe('document getEndOffset', () => {
+describe('getEndOffset', () => {
   it('should getEndOffset #1', async () => {
     let doc = await helper.createDocument()
     await doc.buffer.setLines(['', ''], { start: 0, end: -1, strictIndexing: false })
@@ -322,6 +322,44 @@ describe('document getEndOffset', () => {
     expect(end).toBe(3)
     end = doc.getEndOffset(1, 1, true)
     expect(end).toBe(4)
+  })
+})
+
+describe('applyEdits', () => {
+  it('should synchronize content added', async () => {
+    let doc = await helper.createDocument()
+    let buffer = doc.buffer
+    await doc.buffer.setLines(['foo f'], { start: 0, end: -1, strictIndexing: false })
+    await doc.synchronize()
+    await nvim.command('normal! gg^2l')
+    await nvim.input('a')
+    await buffer.detach()
+    await nvim.input('r')
+    await doc.applyEdits([{
+      range: Range.create(0, 0, 0, 5),
+      newText: 'foo foo'
+    }])
+    await helper.wait(100)
+    let line = await nvim.line
+    expect(line).toBe('foor foo')
+  })
+
+  it('should synchronize content delete', async () => {
+    let doc = await helper.createDocument()
+    let buffer = doc.buffer
+    await doc.buffer.setLines(['foo f'], { start: 0, end: -1, strictIndexing: false })
+    await doc.synchronize()
+    await nvim.command('normal! gg^2l')
+    await nvim.input('a')
+    await buffer.detach()
+    await nvim.input('<backspace>')
+    await doc.applyEdits([{
+      range: Range.create(0, 0, 0, 5),
+      newText: 'foo foo'
+    }])
+    await helper.wait(100)
+    let line = await nvim.line
+    expect(line).toBe('fo foo')
   })
 })
 

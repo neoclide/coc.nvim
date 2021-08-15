@@ -564,15 +564,31 @@ function! coc#util#highlight_options()
         \}
 endfunction
 
-function! coc#util#set_lines(bufnr, changedtick, replacement, start, end) abort
+function! coc#util#set_lines(bufnr, changedtick, original, replacement, start, end) abort
   if !bufloaded(a:bufnr)
     return
   endif
-  if !s:is_vim
-    call nvim_buf_set_lines(a:bufnr, a:start, a:end, 0, a:replacement)
-  else
-    call coc#api#notify('buf_set_lines', [a:bufnr, a:start, a:end, 0, a:replacement])
+  if getbufvar(a:bufnr, 'changedtick') != a:changedtick && bufnr('%') == a:bufnr
+    " try apply current line change
+    let lnum = line('.')
+    let idx = a:start - lnum + 1
+    let previous = get(a:original, idx, 0)
+    if type(previous) == 1
+      let content = getline('.')
+      if previous !=# content
+        let diff = coc#helper#str_diff(content, previous, col('.'))
+        let changed = get(a:replacement, idx, 0)
+        if type(changed) == 1 && strcharpart(previous, 0, diff['end']) ==# strcharpart(changed, 0, diff['end'])
+          let applied = coc#helper#str_apply(changed, diff)
+          let replacement = copy(a:replacement)
+          let replacement[idx] = applied
+          call coc#compat#buf_set_lines(a:bufnr, a:start, a:end, replacement)
+          return
+        endif
+      endif
+    endif
   endif
+  call coc#compat#buf_set_lines(a:bufnr, a:start, a:end, a:replacement)
 endfunction
 
 function! coc#util#change_lines(bufnr, list) abort
