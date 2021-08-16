@@ -72,6 +72,31 @@ function! coc#util#check_refresh(bufnr)
   return 1
 endfunction
 
+function! coc#util#diagnostic_info(bufnr, checkInsert) abort
+  let checked = coc#util#check_refresh(a:bufnr)
+  if !checked
+    return v:null
+  endif
+  if a:checkInsert && mode() =~# '^i'
+    return v:null
+  endif
+  let locationlist = ''
+  let winid = -1
+  for info in getwininfo()
+    if info['bufnr'] == a:bufnr
+      let winid = info['winid']
+      let locationlist = get(getloclist(winid, {'title': 1}), 'title', '')
+      break
+    endif
+  endfor
+  return {
+      \ 'bufnr': bufnr('%'),
+      \ 'winid': winid,
+      \ 'lnum': line('.'),
+      \ 'locationlist': locationlist
+      \ }
+endfunction
+
 function! coc#util#open_file(cmd, file)
   let file = fnameescape(a:file)
   execute a:cmd .' '.file
