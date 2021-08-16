@@ -77,7 +77,7 @@ export default class Document {
     }, 300)
     this.fetchContent = debounce(() => {
       void this._fetchContent()
-    }, 10)
+    }, 100)
   }
 
   /**
@@ -438,14 +438,18 @@ export default class Document {
   /**
    * Used by vim for fetch new lines.
    */
-  private async _fetchContent(): Promise<void> {
+  private async _fetchContent(sync?: boolean): Promise<void> {
     if (!this.env.isVim || !this._attached) return
     let { nvim, bufnr, changedtick } = this
     let o = await nvim.call('coc#util#get_buf_lines', [bufnr, changedtick])
     if (o) {
       this._changedtick = o.changedtick
       this.lines = o.lines
-      this.fireContentChanges()
+      if (sync) {
+        this._forceSync()
+      } else {
+        this.fireContentChanges()
+      }
     }
   }
 
@@ -467,7 +471,7 @@ export default class Document {
         this._forceSync()
       } else {
         this.fetchContent.clear()
-        await this._fetchContent()
+        await this._fetchContent(true)
       }
     } else {
       // changedtick from buffer events could be not latest. #3003

@@ -196,7 +196,7 @@ export class Completion implements Disposable {
     this.input = search
     let items: VimCompleteItem[] = []
     if (complete.isIncomplete) {
-      await document.patchChange()
+      await document.patchChange(true)
       let { changedtick } = document
       items = await complete.completeInComplete(search)
       if (complete.isCanceled || document.changedtick != changedtick) return
