@@ -26,7 +26,7 @@ export class LinesTextDocument implements TextDocument {
     public readonly uri: string,
     public readonly languageId: string,
     public readonly version: number,
-    private readonly lines: ReadonlyArray<string>,
+    public readonly lines: ReadonlyArray<string>,
     private eol: boolean
   ) {
 

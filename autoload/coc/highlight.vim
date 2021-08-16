@@ -133,11 +133,13 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
   else
     call coc#highlight#clear_highlight(bufnr, a:key, start, end)
   endif
-  for i in range(0, total - 1)
-    if index(exists, i) == -1
-      let hi = a:highlights[i]
-      call coc#highlight#add_highlight(bufnr, ns, hi['hlGroup'], hi['lnum'], hi['colStart'], hi['colEnd'])
-    endif
+  let indexes = range(0, total - 1)
+  if !empty(exists)
+    let indexes = filter(indexes, 'index(exists, v:val) == -1')
+  endif
+  for i in indexes
+    let hi = a:highlights[i]
+    call coc#highlight#add_highlight(bufnr, ns, hi['hlGroup'], hi['lnum'], hi['colStart'], hi['colEnd'])
   endfor
 endfunction
 

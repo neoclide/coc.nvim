@@ -50,14 +50,12 @@ export default class Document {
   public chars: Chars
   public fireContentChanges: Function & { clear(): void }
   public fetchContent: Function & { clear(): void }
-  private _version = 1
   private size = 0
   private nvim: Neovim
   private eol = true
   private variables: { [key: string]: any }
   // real current lines
   private lines: ReadonlyArray<string> = []
-  private syncLines: ReadonlyArray<string> = []
   private _attached = false
   private _previewwindow = false
   private _winid = -1
@@ -68,6 +66,7 @@ export default class Document {
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
   private _onDocumentDetach = new Emitter<number>()
   private disposables: Disposable[] = []
+  private _textDocument: LinesTextDocument
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
   public readonly onDocumentDetach: Event<number> = this._onDocumentDetach.event
   constructor(public readonly buffer: Buffer, private env: Env, private maxFileSize: number | null) {
@@ -86,8 +85,8 @@ export default class Document {
     return this.syncLines.join('\n') + (this.eol ? '\n' : '')
   }
 
-  public get version(): number {
-    return this._version
+  public get attached(): boolean {
+    return this._attached
   }
 
   /**
@@ -176,6 +175,8 @@ export default class Document {
 
   /**
    * Returns if current document is opended with previewwindow
+   *
+   * @deprecated
    */
   public get previewwindow(): boolean {
     return this._previewwindow
@@ -201,13 +202,13 @@ export default class Document {
     if (token.isCancellationRequested) return false
     if (this.shouldAttach) {
       this.lines = opts.lines
-      this.syncLines = this.lines
       let res = await this.attach()
       if (!res) return false
       this._attached = true
     }
     this._filetype = this.convertFiletype(opts.filetype)
     this.setIskeyword(opts.iskeyword)
+    this.createTextDocument(1, this.lines)
     if (token.isCancellationRequested) {
       this.detach()
       return false
@@ -243,51 +244,44 @@ export default class Document {
     return !equals(this.lines, this.syncLines)
   }
 
-  private _fireContentChanges(): boolean {
+  private _fireContentChanges(): void {
     let { cursor, latestInsert } = events
-    if (!this.dirty) return false
+    if (!this.dirty) return
     let { textDocument } = this
-    try {
-      let endOffset = null
-      // consider cursor position.
-      if (cursor && cursor.bufnr == this.bufnr) {
-        endOffset = this.getEndOffset(cursor.lnum, cursor.col, cursor.insert)
-        // FIXME there could be multiple characters inserted after cursor, but can't handle for now.
-        if (latestInsert && latestInsert.bufnr == this.bufnr && Date.now() - latestInsert.timestamp < 200) {
-          let line = this.getline(cursor.lnum - 1, true)
-          let idx = characterIndex(line, cursor.col - 1)
-          let next = line[idx]
-          // latest insert character is next character, caused by extension like coc-pairs
-          if (next != line[idx - 1] && next == latestInsert.character) {
-            endOffset = endOffset - 1
-          }
+    let endOffset = null
+    // consider cursor position.
+    if (cursor && cursor.bufnr == this.bufnr) {
+      endOffset = this.getEndOffset(cursor.lnum, cursor.col, cursor.insert)
+      // FIXME there could be multiple characters inserted after cursor, but can't handle for now.
+      if (latestInsert && latestInsert.bufnr == this.bufnr && Date.now() - latestInsert.timestamp < 200) {
+        let line = this.getline(cursor.lnum - 1, true)
+        let idx = characterIndex(line, cursor.col - 1)
+        let next = line[idx]
+        // latest insert character is next character, caused by extension like coc-pairs
+        if (next != line[idx - 1] && next == latestInsert.character) {
+          endOffset = endOffset - 1
         }
       }
-      let content = this.getDocumentContent()
-      let change = getChange(textDocument.getText(), content, endOffset)
-      if (change == null) return
-      let start = textDocument.positionAt(change.start)
-      let end = textDocument.positionAt(change.end)
-      let original = textDocument.getText(Range.create(start, end))
-      this._version = this._version + 1
-      this.syncLines = this.lines
-      let changes = [{
-        range: { start, end },
-        rangeLength: change.end - change.start,
-        text: change.newText
-      }]
-      this._onDocumentChange.fire({
-        bufnr: this.bufnr,
-        original,
-        textDocument: { version: this.version, uri: this.uri },
-        contentChanges: changes
-      })
-      this._words = this.chars.matchKeywords(content)
-      return true
-    } catch (e) {
-      logger.error(e.message)
     }
-    return false
+    let content = this.getDocumentContent()
+    let change = getChange(textDocument.getText(), content, endOffset)
+    if (change == null) return
+    let start = textDocument.positionAt(change.start)
+    let end = textDocument.positionAt(change.end)
+    let original = textDocument.getText(Range.create(start, end))
+    this.createTextDocument(this.version + 1, this.lines)
+    let changes = [{
+      range: { start, end },
+      rangeLength: change.end - change.start,
+      text: change.newText
+    }]
+    this._onDocumentChange.fire({
+      bufnr: this.bufnr,
+      original,
+      textDocument: { version: this.version, uri: this.uri },
+      contentChanges: changes
+    })
+    this._words = this.chars.matchKeywords(content)
   }
 
   public async applyEdits(edits: TextEdit[]): Promise<void> {
@@ -430,8 +424,20 @@ export default class Document {
    * Synchronized textDocument.
    */
   public get textDocument(): TextDocument {
-    let { version, filetype, uri } = this
-    return new LinesTextDocument(uri, filetype, version, this.syncLines, this.eol)
+    return this._textDocument
+  }
+
+  private get syncLines(): ReadonlyArray<string> {
+    return this._textDocument.lines
+  }
+
+  public get version(): number {
+    return this._textDocument.version
+  }
+
+  private createTextDocument(version: number, lines: ReadonlyArray<string>): void {
+    let { uri, filetype, eol } = this
+    this._textDocument = new LinesTextDocument(uri, filetype, version, lines, eol)
   }
 
   /**
@@ -615,18 +621,15 @@ export default class Document {
 
   /**
    * Recreate document with new filetype.
-   *
-   * @internal
    */
   public setFiletype(filetype: string): void {
     this._filetype = this.convertFiletype(filetype)
-    this._version = this._version + 1
+    let lines = this._textDocument.lines
+    this._textDocument = new LinesTextDocument(this.uri, this.filetype, 1, lines, this.eol)
   }
 
   /**
    * Change iskeyword option of document
-   *
-   * @internal
    */
   public setIskeyword(iskeyword: string): void {
     let chars = this.chars = new Chars(iskeyword)
@@ -639,10 +642,6 @@ export default class Document {
     let lines = this.lines.length > 30000 ? this.lines.slice(0, 30000) : this.lines
     // TODO not parse words
     this._words = this.chars.matchKeywords(lines.join('\n'))
-  }
-
-  public get attached(): boolean {
-    return this._attached
   }
 
   /**

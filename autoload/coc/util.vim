@@ -230,11 +230,7 @@ function! coc#util#get_bufoptions(bufnr, maxFileSize) abort
   if !bufloaded(a:bufnr) | return v:null | endif
   let bufname = bufname(a:bufnr)
   let buftype = getbufvar(a:bufnr, '&buftype')
-  let previewwindow = 0
   let winid = bufwinid(a:bufnr)
-  if winid != -1
-    let previewwindow = getwinvar(winid, '&previewwindow', 0)
-  endif
   let size = -1
   if bufnr('%') == a:bufnr
     let size = line2byte(line("$") + 1)
@@ -250,7 +246,7 @@ function! coc#util#get_bufoptions(bufnr, maxFileSize) abort
         \ 'size': size,
         \ 'buftype': buftype,
         \ 'winid': winid,
-        \ 'previewwindow': previewwindow == 0 ? v:false : v:true,
+        \ 'previewwindow': v:false,
         \ 'variables': s:variables(a:bufnr),
         \ 'fullpath': empty(bufname) ? '' : fnamemodify(bufname, ':p'),
         \ 'eol': getbufvar(a:bufnr, '&eol'),
