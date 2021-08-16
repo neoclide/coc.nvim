@@ -640,7 +640,9 @@ endfunction
 
 " used by vim
 function! coc#util#get_buf_lines(bufnr, changedtick)
-  if !bufloaded(a:bufnr) | return '' | endif
+  if !bufloaded(a:bufnr) 
+    return v:null
+  endif
   let changedtick = getbufvar(a:bufnr, 'changedtick')
   if changedtick == a:changedtick
     return v:null
