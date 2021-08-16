@@ -94,9 +94,9 @@ export class DiagnosticManager implements Disposable {
     this.disposables.push(Disposable.create(() => {
       fn.clear()
     }))
-    events.on('InsertLeave', async bufnr => {
+    events.on('InsertLeave', async () => {
       if (this.config.refreshOnInsertMode) return
-      await this.refreshBuffer(bufnr)
+      this.refresh()
     }, null, this.disposables)
     events.on('BufEnter', async () => {
       if (this.timer) clearTimeout(this.timer)

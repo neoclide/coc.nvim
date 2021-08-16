@@ -5,6 +5,7 @@ import { BufferSyncItem, HighlightItem, LocationListItem } from '../types'
 import { equals } from '../util/object'
 import { comparePosition, lineInRange, positionInRange } from '../util/position'
 import workspace from '../workspace'
+import events from '../events'
 import { getLocationListItem, getNameFromSeverity, getSeverityType } from './util'
 const isVim = process.env.VIM_NODE_RPC == '1'
 const logger = require('../util/logger')('diagnostic-buffer')
@@ -52,6 +53,16 @@ export interface DiagnosticConfig {
   showUnused?: boolean
   showDeprecated?: boolean
   format?: string
+}
+
+interface DiagnosticInfo {
+  /**
+   * current bufnr
+   */
+  bufnr: number
+  lnum: number
+  winid: number
+  locationlist: string
 }
 
 /**
@@ -134,10 +145,10 @@ export class DiagnosticBuffer implements BufferSyncItem {
   private async _refresh(diagnosticsMap: { [collection: string]: Diagnostic[] }): Promise<void> {
     let { refreshOnInsertMode } = this.config
     let { nvim } = this
-    let arr = await nvim.eval(`[coc#util#check_refresh(${this.bufnr}),mode(),line("."),getloclist(bufwinid(${this.bufnr}),{'title':1})]`) as [number, string, number, { title: string }]
-    if (arr[0] == 0 || this._disposed) return
-    let mode = arr[1]
-    if (!refreshOnInsertMode && mode.startsWith('i') && !isEmpty(diagnosticsMap)) return
+    let checkInsert = !this.displayByAle && !refreshOnInsertMode
+    if (events.insertMode && checkInsert) return
+    let info = await nvim.call('coc#util#diagnostic_info', [this.bufnr, checkInsert]) as DiagnosticInfo | undefined
+    if (!info || this._disposed) return
     if (this.displayByAle) {
       nvim.pauseNotification()
       for (let [collection, diagnostics] of Object.entries(diagnosticsMap)) {
@@ -164,8 +175,8 @@ export class DiagnosticBuffer implements BufferSyncItem {
         }
       }
       if (changed) {
-        this.showVirtualText(arr[2])
-        this.updateLocationList(arr[3])
+        this.showVirtualText(info.lnum, info.bufnr)
+        this.updateLocationList(info.winid, info.locationlist)
         this.setDiagnosticInfo()
       }
       if (isVim && redraw) this.nvim.command('redraw', true)
@@ -174,9 +185,8 @@ export class DiagnosticBuffer implements BufferSyncItem {
     this.onRefresh(this.diagnostics)
   }
 
-  public updateLocationList(curr: { title: string }): void {
-    if (!this.config.locationlistUpdate) return
-    if (!curr || curr.title !== 'Diagnostics of coc') return
+  public updateLocationList(winid: number, title: string): void {
+    if (!this.config.locationlistUpdate || winid == -1 || title !== 'Diagnostics of coc') return
     let items: LocationListItem[] = []
     let { diagnostics } = this
     diagnostics.sort(sortDiagnostics)
@@ -184,7 +194,7 @@ export class DiagnosticBuffer implements BufferSyncItem {
       let item = getLocationListItem(this.bufnr, diagnostic)
       items.push(item)
     }
-    this.nvim.call('setloclist', [0, [], 'r', { title: 'Diagnostics of coc', items }], true)
+    this.nvim.call('setloclist', [winid, [], 'r', { title: 'Diagnostics of coc', items }], true)
   }
 
   public addSigns(collection: string, diagnostics: ReadonlyArray<Diagnostic>): void {
@@ -236,11 +246,12 @@ export class DiagnosticBuffer implements BufferSyncItem {
     this.nvim.call('coc#util#do_autocmd', ['CocDiagnosticChange'], true)
   }
 
-  public showVirtualText(lnum: number): void {
+  public showVirtualText(lnum: number, bufnr?: number): void {
     if (!this.config.virtualText) return
     let { virtualTextSrcId, virtualTextPrefix, virtualTextCurrentLineOnly } = this.config
     let { diagnostics, buffer } = this
     if (virtualTextCurrentLineOnly) {
+      if (bufnr && this.bufnr != bufnr) return
       diagnostics = diagnostics.filter(d => {
         let { start, end } = d.range
         return start.line <= lnum - 1 && end.line >= lnum - 1
@@ -352,13 +363,6 @@ function sortDiagnostics(a: Diagnostic, b: Diagnostic): number {
   let d = comparePosition(a.range.start, b.range.start)
   if (d != 0) return d
   return a.source > b.source ? 1 : -1
-}
-
-function isEmpty(diagnosticsMap: { [collection: string]: Diagnostic[] }): boolean {
-  for (let diags of Object.values(diagnosticsMap)) {
-    if (diags.length) return false
-  }
-  return true
 }
 
 function getHighlightGroup(diagnostic: Diagnostic): DiagnosticHighlight {
