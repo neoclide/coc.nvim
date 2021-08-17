@@ -394,17 +394,22 @@ export default class BasicTreeView<T> implements TreeView<T> {
     await commandManager.execute(item.command)
   }
 
-  private async invokeActions(element: T, selection?: T[]): Promise<void> {
+  private async invokeActions(element: T): Promise<void> {
     this.selectItem(element)
-    let actions = this.opts.actions
-    if (!actions) {
+    if (typeof this.provider.resolveActions !== 'function') {
+      await window.showWarningMessage('No actions')
+      return
+    }
+    let obj = this.nodesMap.get(element)
+    let actions = await Promise.resolve(this.provider.resolveActions(obj.item, element))
+    if (!actions || actions.length == 0) {
       await window.showWarningMessage('No actions available')
       return
     }
-    let keys = Object.keys(actions)
+    let keys = actions.map(o => o.title)
     let res = await window.showMenuPicker(keys, 'Choose action')
     if (res == -1) return
-    await Promise.resolve(actions[keys[res]](element, selection))
+    await Promise.resolve(actions[res].handler(element))
   }
 
   private async onDataChange(node: T | undefined): Promise<void> {
@@ -894,7 +899,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       if (element) await this.invokeCommand(element)
     }, true)
     actions && regist('n', actions, async element => {
-      if (element) await this.invokeActions(element, this.selection.length > 1 ? this.selection : undefined)
+      if (element) await this.invokeActions(element)
     }, true)
     toggle && regist('n', toggle, async element => {
       if (element) await this.toggleExpand(element)

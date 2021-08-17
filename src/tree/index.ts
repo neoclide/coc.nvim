@@ -4,11 +4,18 @@ import { TreeItem, TreeItemIcon, TreeItemCollapsibleState } from './TreeItem'
 
 export { TreeItem, TreeItemIcon, TreeItemCollapsibleState }
 
+export interface TreeItemAction<T> {
+  /**
+   * Label text in menu.
+   */
+  title: string
+  handler: (item: T) => ProviderResult<void>
+}
+
 /**
  * Options for creating a {@link TreeView}
  */
 export interface TreeViewOptions<T> {
-  actions?: { [name: string]: (node: T, nodes?: T[]) => ProviderResult<void> }
   /**
    * Fixed width for window, default to true
    */
@@ -202,4 +209,13 @@ export interface TreeDataProvider<T> {
    * `item`. When no result is returned, the given `item` will be used.
    */
   resolveTreeItem?(item: TreeItem, element: T, token: CancellationToken): ProviderResult<TreeItem>
+
+  /**
+   * Called with current element to resolve actions.
+   * Called when user press 'actions' key.
+   *
+   * @param item Resolved item.
+   * @param element The object under cursor.
+   */
+  resolveActions?(item: TreeItem, element: T): ProviderResult<TreeItemAction<T>[]>
 }

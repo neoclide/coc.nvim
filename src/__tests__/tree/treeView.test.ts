@@ -542,8 +542,10 @@ describe('TreeView', () => {
       expect(node).toBeDefined()
       expect(node.label).toBe('a')
     })
+  })
 
-    it('should show warning when no actions exists', async () => {
+  describe('invokeActions', () => {
+    it('should show warning when resolveActions not exists', async () => {
       createTreeView(defaultDef)
       await treeView.show()
       await helper.wait(50)
@@ -551,16 +553,36 @@ describe('TreeView', () => {
       await nvim.input('<tab>')
       await helper.wait(50)
       let cmdline = await helper.getCmdline()
-      expect(cmdline).toMatch('No actions available')
+      expect(cmdline).toMatch('No actions')
+    })
+
+    it('should show warning when resolveActions is empty', async () => {
+      createTreeView(defaultDef, {}, {
+        resolveActions: () => {
+          return []
+        }
+      })
+      await treeView.show()
+      await helper.wait(50)
+      await nvim.call('cursor', [2, 3])
+      await nvim.input('<tab>')
+      await helper.wait(50)
+      let cmdline = await helper.getCmdline()
+      expect(cmdline).toMatch('No actions')
     })
 
     it('should invoke selected action', async () => {
-      let node
-      createTreeView(defaultDef, {
-        actions: {
-          preview: el => {
-            node = el
-          }
+      let args: any[]
+      let called = false
+      createTreeView(defaultDef, {}, {
+        resolveActions: (item, element) => {
+          args = [item, element]
+          return [{
+            title: 'one',
+            handler: () => {
+              called = true
+            }
+          }]
         }
       })
       await treeView.show()
@@ -570,8 +592,9 @@ describe('TreeView', () => {
       await helper.wait(50)
       await nvim.input('<cr>')
       await helper.wait(50)
-      expect(node).toBeDefined()
-      expect(node.label).toBe('a')
+      expect(called).toBe(true)
+      expect(args[0].label).toBe('a')
+      expect(args[1].label).toBe('a')
     })
   })
 
