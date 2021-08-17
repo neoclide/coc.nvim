@@ -5213,6 +5213,11 @@ declare module 'coc.nvim' {
     label?: string | TreeItemLabel
 
     /**
+     * Description rendered less prominently after label.
+     */
+    description?: string
+
+    /**
      * The icon path or {@link ThemeIcon} for the tree item.
      * When `falsy`, {@link ThemeIcon.Folder Folder Theme Icon} is assigned, if item is collapsible otherwise {@link ThemeIcon.File File Theme Icon}.
      * When a file or folder {@link ThemeIcon} is specified, icon is derived from the current file icon theme for the specified theme icon using {@link TreeItem.resourceUri resourceUri} (if provided).

@@ -1,4 +1,4 @@
-*coc-nvim.txt*				LSP support for Vim & Neovim.
+*coc-nvim.txt*				NodeJS client for Vim & Neovim.
 
 Version: 0.0.80
 Author: Qiming Zhao <chemzqm at gmail.com>
@@ -2716,6 +2716,7 @@ Tree view related~
 CocTree* 						*CocTree*
 
 *CocTreeTitle* for title in tree view.
+*CocTreeDescription* for description beside label.
 *CocTreeOpenClose* for open and close icon in tree view.
 *CocTreeSelected* for highlight lines contains selected node.
 
