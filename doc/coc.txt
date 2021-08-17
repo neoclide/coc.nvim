@@ -987,6 +987,10 @@ Built-in configurations:~
 
 	Window split command used by callHierarchy tree view.
 
+"callHierarchy.enableTooltip":~
+
+	Enable tooltip to show relative filepath of call hierarchy.
+
 						*coc-config-npm*
 "npm.binPath":~
 

@@ -1085,6 +1085,11 @@
       "default": "botright 30vs",
       "description": "Window split command used by callHierarchy tree view."
     },
+    "callHierarchy.enableTooltip": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable tooltip to show relative filepath of call hierarchy."
+    },
     "coc.preferences.enableMessageDialog": {
       "type": "boolean",
       "default": false,
