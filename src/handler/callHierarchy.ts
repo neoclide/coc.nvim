@@ -1,8 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
-import path from 'path'
 import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CancellationTokenSource, Disposable, Emitter, Position, Range, SymbolKind, SymbolTag } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { URI } from 'vscode-uri'
 import commands from '../commands'
 import languages from '../languages'
 import { TreeDataProvider, TreeItem, TreeItemCollapsibleState, TreeItemIcon } from '../tree/index'
@@ -10,11 +8,14 @@ import BasicTreeView from '../tree/TreeView'
 import { ConfigurationChangeEvent, HandlerDelegate } from '../types'
 import { disposeAll } from '../util'
 import { getSymbolKind } from '../util/convert'
+import { omit } from '../util/lodash'
 import workspace from '../workspace'
+import events from '../events'
 const logger = require('../util/logger')('Handler-callHierarchy')
 
 interface CallHierarchyDataItem extends CallHierarchyItem {
   ranges?: Range[]
+  sourceUri?: string
   children?: CallHierarchyItem[]
 }
 
@@ -38,21 +39,38 @@ export default class CallHierarchyHandler {
   private labels: { [key: string]: string }
   private disposables: Disposable[] = []
   public static commandId = 'callHierarchy.reveal'
-  public static rangesHighlight = 'CocHoverRange'
+  public static rangesHighlight = 'CocSelectedRange'
+  private highlightWinids: Set<number> = new Set()
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
     this.loadConfiguration()
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
-    this.disposables.push(commands.registerCommand(CallHierarchyHandler.commandId, async (winid: number, item: CallHierarchyDataItem) => {
+    this.disposables.push(commands.registerCommand(CallHierarchyHandler.commandId, async (winid: number, item: CallHierarchyDataItem, openCommand?: string) => {
       let { nvim } = this
       await nvim.call('win_gotoid', [winid])
-      await workspace.jumpTo(item.uri, item.selectionRange.start, this.config.openCommand)
+      await workspace.jumpTo(item.uri, item.selectionRange.start, openCommand)
       let win = await nvim.window
       win.highlightRanges('CocHighlightText', [item.selectionRange], 10, true)
       if (item.ranges) {
-        win.clearMatchGroup(CallHierarchyHandler.rangesHighlight)
-        win.highlightRanges(CallHierarchyHandler.rangesHighlight, item.ranges, 100, true)
+        if (item.sourceUri) {
+          let doc = workspace.getDocument(item.sourceUri)
+          if (doc) {
+            doc.buffer.clearNamespace('callHierarchy')
+            doc.buffer.highlightRanges('callHierarchy', CallHierarchyHandler.rangesHighlight, item.ranges)
+          }
+        } else {
+          win.clearMatchGroup(CallHierarchyHandler.rangesHighlight)
+          win.highlightRanges(CallHierarchyHandler.rangesHighlight, item.ranges, 100, true)
+          this.highlightWinids.add(win.id)
+        }
       }
     }, null, true))
+    events.on('BufWinEnter', (_, winid) => {
+      if (this.highlightWinids.has(winid)) {
+        this.highlightWinids.delete(winid)
+        let win = nvim.createWindow(winid)
+        win.clearMatchGroup(CallHierarchyHandler.rangesHighlight)
+      }
+    }, null, this.disposables)
   }
 
   private loadConfiguration(e?: ConfigurationChangeEvent): void {
@@ -94,14 +112,13 @@ export default class CallHierarchyHandler {
       onDidChangeTreeData: _onDidChangeTreeData.event,
       getTreeItem: element => {
         let item = new TreeItem(element.name, element.children ? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed)
-        item.tooltip = path.relative(workspace.cwd, URI.parse(element.uri).fsPath)
         item.description = element.detail
         item.deprecated = element.tags?.includes(SymbolTag.Deprecated)
         item.icon = this.getIcon(element.kind)
         item.command = {
           command: CallHierarchyHandler.commandId,
           title: 'open location',
-          arguments: [winid, element]
+          arguments: [winid, element, this.config.openCommand]
         }
         return item
       },
@@ -127,6 +144,28 @@ export default class CallHierarchyHandler {
         element.children = items
         return items
       },
+      resolveActions: () => {
+        return [{
+          title: 'Open in new tab',
+          handler: async element => {
+            await commands.executeCommand(CallHierarchyHandler.commandId, winid, element, 'tabe')
+          }
+        }, {
+          title: 'Show Incoming Calls',
+          handler: element => {
+            rootItems = [omit(element, ['children', 'ranges'])]
+            provider.kind = 'incoming'
+            _onDidChangeTreeData.fire(undefined)
+          }
+        }, {
+          title: 'Show Outgoing Calls',
+          handler: element => {
+            rootItems = [omit(element, ['children', 'ranges'])]
+            provider.kind = 'outgoing'
+            _onDidChangeTreeData.fire(undefined)
+          }
+        }]
+      },
       dispose: () => {
         cancel()
         _onDidChangeTreeData.dispose()
@@ -142,7 +181,7 @@ export default class CallHierarchyHandler {
       if (res) items = res.map(o => Object.assign(o.from, { ranges: o.fromRanges }))
     } else if (kind == 'outgoing') {
       let res = await languages.provideOutgoingCalls(doc, item, token)
-      if (res) items = res.map(o => o.to)
+      if (res) items = res.map(o => Object.assign(o.to, { ranges: o.fromRanges, sourceUri: item.uri }))
     }
     return items
   }
@@ -189,14 +228,13 @@ export default class CallHierarchyHandler {
       if (!e) treeView.title = `${provider.kind.toUpperCase()} CALLS`
     })
     treeView.onDidChangeVisibility(e => {
-      if (!e.visible) {
-        provider.dispose()
-      }
+      if (!e.visible) provider.dispose()
     })
     await treeView.show(this.config.splitCommand)
   }
 
   public dispose(): void {
+    this.highlightWinids.clear()
     disposeAll(this.disposables)
   }
 }

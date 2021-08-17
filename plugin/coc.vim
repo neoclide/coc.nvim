@@ -380,6 +380,7 @@ function! s:Hi() abort
   hi default link CocTreeDescription Comment
   hi default link CocTreeOpenClose CocBold
   hi default link CocTreeSelected CursorLine
+  hi default link CocSelectedRange  CocHighlightText
   " Symbol highlights
   hi default link CocSymbolDefault MoreMsg
   hi default link CocSymbolFile Statement

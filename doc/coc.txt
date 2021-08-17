@@ -2205,8 +2205,8 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 "highlight"						*coc-action-highlight*
 
 	Highlight the symbols under the cursor.
-	Overwrite the highlight groups `CocHighlightText`, `CocHighlightRead`
-	and `CocHighlightWrite` for customizing the colors.
+	Overwrite the highlight groups |CocHighlightText|, |CocHighlightRead|
+	and |CocHighlightWrite| for customizing the colors.
 
 	To enable highlight on CursorHold, create an autocmd like this: >
 
@@ -2764,6 +2764,7 @@ Others~
 *CocHoverRange* for range of current hovered symbol.
 *CocMenuSel* for current menu item in menu dialog, works on neovim only since
 vim doesn't support change highlight group of cursorline inside popup.
+*CocSelectedRange* for highlight ranges of outgoing calls.
 
 Semantic highlights~
 
