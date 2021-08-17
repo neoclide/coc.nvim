@@ -102,7 +102,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   private readonly canSelectMany: boolean
   private readonly leafIndent: boolean
   private readonly winfixwidth: boolean
-  constructor(private viewId: string, private opts: TreeViewOptions<T>) {
+  constructor(private viewId: string, opts: TreeViewOptions<T>) {
     this.loadConfiguration()
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
     if (opts.enableFilter) {
