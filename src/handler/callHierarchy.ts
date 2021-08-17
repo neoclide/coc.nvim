@@ -1,7 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
+import path from 'path'
 import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CancellationTokenSource, Disposable, Emitter, Position, Range, SymbolKind, SymbolTag } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { URI } from 'vscode-uri'
 import commands from '../commands'
+import events from '../events'
 import languages from '../languages'
 import { TreeDataProvider, TreeItem, TreeItemCollapsibleState, TreeItemIcon } from '../tree/index'
 import BasicTreeView from '../tree/TreeView'
@@ -10,7 +13,6 @@ import { disposeAll } from '../util'
 import { getSymbolKind } from '../util/convert'
 import { omit } from '../util/lodash'
 import workspace from '../workspace'
-import events from '../events'
 const logger = require('../util/logger')('Handler-callHierarchy')
 
 interface CallHierarchyDataItem extends CallHierarchyItem {
@@ -22,6 +24,7 @@ interface CallHierarchyDataItem extends CallHierarchyItem {
 interface CallHierarchyConfig {
   splitCommand: string
   openCommand: string
+  enableTooltip: boolean
 }
 
 interface CallHierarchyProvider extends TreeDataProvider<CallHierarchyDataItem> {
@@ -79,7 +82,8 @@ export default class CallHierarchyHandler {
       let c = workspace.getConfiguration('callHierarchy')
       this.config = {
         splitCommand: c.get<string>('splitCommand'),
-        openCommand: c.get<string>('openCommand')
+        openCommand: c.get<string>('openCommand'),
+        enableTooltip: c.get<boolean>('enableTooltip')
       }
     }
   }
@@ -112,6 +116,9 @@ export default class CallHierarchyHandler {
       onDidChangeTreeData: _onDidChangeTreeData.event,
       getTreeItem: element => {
         let item = new TreeItem(element.name, element.children ? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed)
+        if (this.config.enableTooltip) {
+          item.tooltip = path.relative(workspace.cwd, URI.parse(element.uri).fsPath)
+        }
         item.description = element.detail
         item.deprecated = element.tags?.includes(SymbolTag.Deprecated)
         item.icon = this.getIcon(element.kind)
@@ -153,14 +160,14 @@ export default class CallHierarchyHandler {
         }, {
           title: 'Show Incoming Calls',
           handler: element => {
-            rootItems = [omit(element, ['children', 'ranges'])]
+            rootItems = [omit(element, ['children', 'ranges', 'sourceUri'])]
             provider.kind = 'incoming'
             _onDidChangeTreeData.fire(undefined)
           }
         }, {
           title: 'Show Outgoing Calls',
           handler: element => {
-            rootItems = [omit(element, ['children', 'ranges'])]
+            rootItems = [omit(element, ['children', 'ranges', 'sourceUri'])]
             provider.kind = 'outgoing'
             _onDidChangeTreeData.fire(undefined)
           }
