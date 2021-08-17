@@ -3,7 +3,7 @@ import { CancellationToken, MarkupContent, Disposable, Emitter, Event } from 'vs
 import commandsManager from '../commands'
 import { ProviderResult } from '../provider'
 import { disposeAll } from '../util'
-import { TreeDataProvider } from './index'
+import { TreeDataProvider, TreeItemAction } from './index'
 import { TreeItem, TreeItemCollapsibleState, TreeItemIcon, TreeItemLabel } from './TreeItem'
 
 export interface TreeNode {
@@ -22,12 +22,14 @@ export interface ProviderOptions<T> {
   handleClick?: (item: T) => ProviderResult<void>
   resolveIcon?: (item: T) => TreeItemIcon | undefined
   resolveItem?: (item: TreeItem, element: T, token: CancellationToken) => ProviderResult<TreeItem>
+  resolveActions?(item: TreeItem, element: T): ProviderResult<TreeItemAction<T>[]>
 }
 
 function isIcon(obj: any): obj is TreeItemIcon {
   if (!obj) return false
   return typeof obj.text === 'string' && typeof obj.hlGroup === 'string'
 }
+
 /**
  * Check lable and key, children not checked.
  */
@@ -59,6 +61,7 @@ export default class BasicDataProvider<T extends TreeNode> implements TreeDataPr
   // only fired for change of exists TreeNode
   private _onDidChangeTreeData = new Emitter<void | T>()
   public onDidChangeTreeData: Event<void | T> = this._onDidChangeTreeData.event
+  public resolveActions: (item: TreeItem, element: T) => ProviderResult<TreeItemAction<T>[]>
   // data is shared with TreeView
   constructor(private opts: ProviderOptions<T>) {
     this.invokeCommand = `_invoke_${uuid()}`
@@ -69,6 +72,9 @@ export default class BasicDataProvider<T extends TreeNode> implements TreeDataPr
         console.error('Handler not found')
       }
     }, null, true))
+    if (typeof opts.resolveActions === 'function') {
+      this.resolveActions = opts.resolveActions.bind(this)
+    }
   }
 
   private iterate(node: T, parentNode: T | undefined, level: number, fn: (node: T, parentNode: T | undefined, level: number) => void | boolean): void | boolean {
