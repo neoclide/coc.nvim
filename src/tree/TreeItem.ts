@@ -40,6 +40,7 @@ export enum TreeItemCollapsibleState {
 export class TreeItem {
   public label: string | TreeItemLabel
   public id?: string
+  public description?: string
   public icon?: TreeItemIcon
   public resourceUri?: URI
   public command?: Command

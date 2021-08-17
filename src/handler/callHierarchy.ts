@@ -61,7 +61,7 @@ export default class CallHierarchyHandler {
     return {
       getTreeItem: element => {
         let item = new TreeItem(element.name, element.children ? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed)
-        item.tooltip = element.detail
+        item.description = element.detail
         item.deprecated = element.tags?.includes(SymbolTag.Deprecated)
         item.icon = this.getIcon(element.kind)
         item.command = {
