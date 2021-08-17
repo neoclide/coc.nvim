@@ -904,11 +904,13 @@ Built-in configurations:~
 						*coc-config-tree*
 "tree.closedIcon": ~
 	
-	Closed icon of tree view, default: '+'
+	Closed icon of tree view, use '' to make it looks better when you
+	have patched font, default: '+'.
 
 "tree.openedIcon": ~
 	
-	Opened icon of tree view, default: '-'
+	Opened icon of tree view, use '' to make it looks better when you
+	have patched font, default: '-'
 
 "tree.key.toggleSelection":~
 

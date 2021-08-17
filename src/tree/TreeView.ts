@@ -14,7 +14,6 @@ import window from '../window'
 import Filter, { sessionKey } from './filter'
 import { TreeDataProvider, TreeView, TreeViewExpansionEvent, TreeViewOptions, TreeViewSelectionChangeEvent, TreeViewVisibilityChangeEvent } from './index'
 import { TreeItem, TreeItemCollapsibleState, TreeItemLabel } from './TreeItem'
-import Menu from '../model/menu'
 const logger = require('../util/logger')('BasicTreeView')
 const highlightNamespace = 'tree'
 const signOffset = 3000
@@ -97,18 +96,18 @@ export default class BasicTreeView<T> implements TreeView<T> {
   private tooltipFactory: FloatFactory
   private resolveTokenSource: CancellationTokenSource | undefined
   private lineState: LineState = { titleCount: 0, messageCount: 0 }
-  private filter: Filter<T>
+  private filter: Filter<T> | undefined
   private filterText: string | undefined
   private itemsToFilter: T[] | undefined
   private readonly canSelectMany: boolean
   private readonly leafIndent: boolean
   private readonly winfixwidth: boolean
-  private readonly enableFilter: boolean
   constructor(private viewId: string, private opts: TreeViewOptions<T>) {
     this.loadConfiguration()
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
-    this.enableFilter = opts.enableFilter == true
-    this.filter = new Filter(this.nvim, [this.keys.selectNext, this.keys.selectPrevious, this.keys.invoke])
+    if (opts.enableFilter) {
+      this.filter = new Filter(this.nvim, [this.keys.selectNext, this.keys.selectPrevious, this.keys.invoke])
+    }
     this.tooltipFactory = new FloatFactory(workspace.nvim)
     this.canSelectMany = !!opts.canSelectMany
     this.provider = opts.treeDataProvider
@@ -186,7 +185,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       this.cancelResolve()
     }, null, this.disposables)
     events.on('WinEnter', winid => {
-      if (winid != this.windowId || !this.filter.activated) return
+      if (winid != this.windowId || !this.filter?.activated) return
       let buf = this.nvim.createBuffer(this.bufnr)
       let line = this.startLnum - 1
       let len = this.filterText ? this.filterText.length : 0
@@ -196,49 +195,51 @@ export default class BasicTreeView<T> implements TreeView<T> {
       this.redraw()
     }, null, this.disposables)
     events.on('WinLeave', winid => {
-      if (winid != this.windowId || !this.filter.activated) return
+      if (winid != this.windowId || !this.filter?.activated) return
       let buf = this.nvim.createBuffer(this.bufnr)
       this.nvim.call('coc#prompt#stop_prompt', [sessionKey], true)
       buf.clearNamespace(highlightNamespace, this.startLnum - 1, this.startLnum)
     }, null, this.disposables)
     this.disposables.push(this._onDidChangeVisibility, this._onDidChangeSelection, this._onDidCollapseElement, this._onDidExpandElement)
-    this.filter.onDidExit(node => {
-      this.nodesMap.clear()
-      this.filterText = undefined
-      this.itemsToFilter = undefined
-      if (node && typeof this.provider.getParent === 'function') {
-        this.renderedItems = []
-        void this.reveal(node, { focus: true })
-      } else {
-        this.clearSelection()
-        void this.render()
-      }
-    })
-    this.filter.onDidUpdate(text => {
-      this.filterText = text
-    })
-    this.filter.onDidKeyPress(async character => {
-      let items = this.renderedItems
-      if (!items?.length) return
-      let curr = this.selection[0]
-      if (character == '<up>' || character == this.keys.selectPrevious) {
-        let idx = items.findIndex(o => o.node == curr)
-        let index = idx == -1 || idx == 0 ? items.length - 1 : idx - 1
-        let node = items[index]?.node
-        if (node) this.selectItem(node, true)
-      }
-      if (character == '<down>' || character == this.keys.selectNext) {
-        let idx = items.findIndex(o => o.node == curr)
-        let index = idx == -1 || idx == items.length - 1 ? 0 : idx + 1
-        let node = items[index]?.node
-        if (node) this.selectItem(node, true)
-      }
-      if (character == '<cr>' || character == this.keys.invoke) {
-        if (!curr) return
-        await this.invokeCommand(curr)
-        this.filter.deactivate(curr)
-      }
-    })
+    if (this.filter) {
+      this.filter.onDidExit(node => {
+        this.nodesMap.clear()
+        this.filterText = undefined
+        this.itemsToFilter = undefined
+        if (node && typeof this.provider.getParent === 'function') {
+          this.renderedItems = []
+          void this.reveal(node, { focus: true })
+        } else {
+          this.clearSelection()
+          void this.render()
+        }
+      })
+      this.filter.onDidUpdate(text => {
+        this.filterText = text
+      })
+      this.filter.onDidKeyPress(async character => {
+        let items = this.renderedItems
+        if (!items?.length) return
+        let curr = this.selection[0]
+        if (character == '<up>' || character == this.keys.selectPrevious) {
+          let idx = items.findIndex(o => o.node == curr)
+          let index = idx == -1 || idx == 0 ? items.length - 1 : idx - 1
+          let node = items[index]?.node
+          if (node) this.selectItem(node, true)
+        }
+        if (character == '<down>' || character == this.keys.selectNext) {
+          let idx = items.findIndex(o => o.node == curr)
+          let index = idx == -1 || idx == items.length - 1 ? 0 : idx + 1
+          let node = items[index]?.node
+          if (node) this.selectItem(node, true)
+        }
+        if (character == '<cr>' || character == this.keys.invoke) {
+          if (!curr) return
+          await this.invokeCommand(curr)
+          this.filter.deactivate(curr)
+        }
+      })
+    }
   }
 
   public get windowId(): number | undefined {
@@ -407,7 +408,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   }
 
   private async onDataChange(node: T | undefined): Promise<void> {
-    if (this.filter.activated) {
+    if (this.filter?.activated) {
       this.itemsToFilter = undefined
       await this.doFilter(this.filterText)
       return
@@ -705,7 +706,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   }
 
   public async reveal(element: T, options: { select?: boolean; focus?: boolean; expand?: number | boolean } = {}): Promise<void> {
-    if (this.filter.activated) return
+    if (this.filter?.activated) return
     let isShown = this.getItemLnum(element) != null
     let { select, focus, expand } = options
     let curr = element
@@ -881,7 +882,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     regist('n', '<LeftRelease>', async element => {
       if (element) await this.onClick(element)
     })
-    this.enableFilter && activeFilter && regist('n', activeFilter, async () => {
+    this.filter && activeFilter && regist('n', activeFilter, async () => {
       this.nvim.command(`exe ${this.startLnum}`, true)
       this.filter.active()
       this.filterText = ''
@@ -922,7 +923,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   }
 
   private redraw(): void {
-    if (workspace.isVim || this.filter.activated) {
+    if (workspace.isVim || this.filter?.activated) {
       this.nvim.command('redraw', true)
     }
   }
@@ -939,7 +940,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       clearTimeout(this.timer)
       this.timer = undefined
     }
-    this.filter.dispose()
+    this.filter?.dispose()
     this._selection = []
     this.hide()
     this.itemsToFilter = []
