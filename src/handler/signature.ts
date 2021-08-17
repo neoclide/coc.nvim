@@ -124,6 +124,7 @@ export default class Signature {
     let timer = this.timer = setTimeout(() => {
       tokenSource.cancel()
     }, this.config.wait)
+    await doc.patchChange(true)
     let signatureHelp = await languages.getSignatureHelp(doc.textDocument, position, token, {
       isRetrigger: this.signatureFactory.checkRetrigger(doc.bufnr),
       triggerKind: invoke ? SignatureHelpTriggerKind.Invoked : SignatureHelpTriggerKind.TriggerCharacter
