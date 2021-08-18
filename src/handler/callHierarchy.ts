@@ -96,6 +96,17 @@ export default class CallHierarchyHandler {
         source = null
       }
     }
+    const findParent = (curr: CallHierarchyDataItem, element: CallHierarchyDataItem): CallHierarchyDataItem | undefined => {
+      let children = curr.children
+      if (!Array.isArray(children)) return undefined
+      let find = children.find(o => o == element)
+      if (find) return curr
+      for (let item of children) {
+        let res = findParent(item, element)
+        if (res) return res
+      }
+      return undefined
+    }
     let provider: CallHierarchyProvider = {
       kind,
       onDidChangeTreeData: _onDidChangeTreeData.event,
@@ -138,6 +149,19 @@ export default class CallHierarchyHandler {
       },
       resolveActions: () => {
         return [{
+          title: 'Dismiss',
+          handler: async element => {
+            let parentElement: CallHierarchyDataItem | undefined
+            for (let curr of rootItems) {
+              parentElement = findParent(curr, element)
+              if (parentElement) break
+            }
+            if (!parentElement) return
+            let idx = parentElement.children.findIndex(o => o === element)
+            parentElement.children.splice(idx, 1)
+            _onDidChangeTreeData.fire(parentElement)
+          }
+        }, {
           title: 'Open in new tab',
           handler: async element => {
             await commands.executeCommand(CallHierarchyHandler.commandId, winid, element, 'tabe')
