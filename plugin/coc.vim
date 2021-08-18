@@ -433,7 +433,8 @@ function! s:Hi() abort
   endif
   call s:AddAnsiGroups()
 
-  if get(g:, 'coc_default_semantic_highlight_groups', 0) == 1
+  let enabled = get(g:, 'coc_semantic_highlight_filetypes', [])
+  if index(enabled, '*') != -1 || (!empty(&ft) && index(enabled, &ft) != -1)
     hi default link CocSem_namespace Identifier
     hi default link CocSem_type Type
     hi default link CocSem_class Structure

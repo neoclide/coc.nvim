@@ -1632,6 +1632,14 @@ g:coc_markdown_disabled_languages  		*g:coc_markdown_disabled_languages*
 
 	let g:coc_markdown_disabled_languages = ['html']
 
+g:coc_semantic_highlight_filetypes  		*g:coc_semantic_highlight_filetypes*
+
+	Filetype list that enabled for semanticTokens higilighting, ex: >
+
+	let g:coc_semantic_highlight_filetypes = ['rust']
+<
+	Default: `[]`
+
 ------------------------------------------------------------------------------
 
 Some variables are provided by coc.nvim so you can use them in your
@@ -2752,7 +2760,7 @@ CocSem_*						*CocSem*
   Basic defaults are provided for the "standard" token kinds, but any kind
   supported by the server can be highlighted by creating the highlight group.
 
-  Default (enabled by setting `g:coc_default_semantic_highlight_groups = 1`):
+  Default (enabled by setting filetype to `g:coc_seamtic_highlight_filetypes`):
   `hi default link CocSem_namespace Identifier`
   `hi default link CocSem_type Type`
   `hi default link CocSem_class Structure`
