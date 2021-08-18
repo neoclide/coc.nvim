@@ -2407,6 +2407,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	|coc-dialog-menu| could be invoked by key configured by
 	`"tree.key.actions".  Available actions:
 
+	- Dismiss.
 	- Open in new tab.
 	- Show Incoming Calls.
 	- Show Outgoing Calls.
