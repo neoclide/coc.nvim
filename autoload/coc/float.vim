@@ -55,6 +55,7 @@ endfunction
 "   highlight all borders with first value.
 " - close: (optional) show close button when is 1.
 " - buttons: (optional) array of button text for create buttons at bottom.
+" - codes: (optional) list of CodeBlock.
 function! coc#float#create_float_win(winid, bufnr, config) abort
   let lines = get(a:config, 'lines', v:null)
   let bufnr = coc#float#create_buf(a:bufnr, lines, 'hide')
@@ -78,6 +79,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
       endif
       call popup_setoptions(a:winid, opts)
       call coc#float#vim_buttons(a:winid, a:config)
+      call s:add_highlights(a:winid, a:config, 0)
       return [a:winid, winbufnr(a:winid)]
     else
       let config = s:convert_config_nvim(a:config)
@@ -85,6 +87,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
       call nvim_win_set_config(a:winid, config)
       call nvim_win_set_cursor(a:winid, [1, 0])
       call coc#float#nvim_create_related(a:winid, config, a:config)
+      call s:add_highlights(a:winid, a:config, 0)
       return [a:winid, bufnr]
     endif
   endif
@@ -165,6 +168,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
   call setwinvar(winid, '&wrap', 1)
   call setwinvar(winid, '&linebreak', 1)
   call setwinvar(winid, '&conceallevel', 0)
+  call s:add_highlights(winid, a:config, 0)
   let g:coc_last_float_win = winid
   call coc#util#do_autocmd('CocOpenFloat')
   return [winid, bufnr]
@@ -358,9 +362,8 @@ function! coc#float#nvim_scrollbar(winid) abort
   if !has('nvim-0.4.0') || getwinvar(a:winid, 'target_winid', 0)
     return
   endif
-  let tabnr = coc#window#tabnr(a:winid)
-  " works on current tab only
-  if tabnr != tabpagenr()
+  let winids = nvim_tabpage_list_wins(nvim_get_current_tabpage())
+  if index(winids, a:winid) == -1
     return
   endif
   let config = nvim_win_get_config(a:winid)
@@ -505,7 +508,6 @@ function! coc#float#create_cursor_float(winid, bufnr, lines, config) abort
   let alignTop = dimension['row'] < 0
   let winid = res[0]
   let bufnr = res[1]
-  call coc#highlight#add_highlights(winid, get(a:config, 'codes', []), get(a:config, 'highlights', []))
   redraw
   if has('nvim')
     call coc#float#nvim_scrollbar(winid)
@@ -912,15 +914,14 @@ function! coc#float#create_pum_float(winid, bufnr, lines, config) abort
         \ 'row': pumbounding['row'],
         \ 'height': height,
         \ 'width': width - 2 + (s:is_vim && ch > height ? -1 : 0),
+        \ 'codes': get(a:config, 'codes', [])
         \ }
   call coc#float#close_auto_hide_wins(a:winid)
   let res = coc#float#create_float_win(a:winid, a:bufnr, opts)
   if empty(res)
     return v:null
   endif
-  call coc#highlight#add_highlights(res[0], a:config['codes'], a:config['highlights'])
   call setwinvar(res[0], 'kind', 'pum')
-  redraw
   if has('nvim')
     call coc#float#nvim_scrollbar(res[0])
   endif
@@ -1754,4 +1755,20 @@ endfunction
 function! s:str_compose(line, idx, text) abort
   let first = strcharpart(a:line, 0, a:idx)
   return first.a:text.strcharpart(a:line, a:idx + strwidth(a:text))
+endfunction
+
+function! s:add_highlights(winid, config, create) abort
+  let codes = get(a:config, 'codes', [])
+  let highlights = get(a:config, 'highlights', [])
+  if empty(codes) && empty(highlights) && a:create
+    return
+  endif
+  let bgGroup = get(a:config, 'highlight', 'CocFloating')
+  for obj in codes
+    let hlGroup = get(obj, 'hlGroup', v:null)
+    if !empty(hlGroup)
+      let obj['hlGroup'] = coc#highlight#compose_hlgroup(hlGroup, bgGroup)
+    endif
+  endfor
+  call coc#highlight#add_highlights(a:winid, codes, highlights)
 endfunction
