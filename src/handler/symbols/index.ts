@@ -26,7 +26,7 @@ export default class Symbols {
       if (doc.buftype != '') return undefined
       return new SymbolsBuffer(doc.bufnr)
     })
-    this.outline = new Outline(nvim, this.buffers)
+    this.outline = new Outline(nvim, this.buffers, handler)
     events.on('CursorHold', async (bufnr: number) => {
       if (!this.functionUpdate || !this.buffers.getItem(bufnr)) return
       await this.getCurrentFunctionSymbol(bufnr)

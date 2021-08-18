@@ -1,15 +1,13 @@
 import { Neovim } from '@chemzqm/neovim'
+import debounce from 'debounce'
 import { Disposable, DocumentSymbol, Range, SymbolKind, SymbolTag } from 'vscode-languageserver-protocol'
 import events from '../../events'
-import debounce from 'debounce'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
-import { TreeItemIcon } from '../../tree'
 import BasicDataProvider, { TreeNode } from '../../tree/BasicDataProvider'
 import BasicTreeView from '../../tree/TreeView'
-import { ConfigurationChangeEvent } from '../../types'
+import { ConfigurationChangeEvent, HandlerDelegate } from '../../types'
 import { disposeAll } from '../../util'
-import { getSymbolKind } from '../../util/convert'
 import { comparePosition, positionInRange } from '../../util/position'
 import window from '../../window'
 import workspace from '../../workspace'
@@ -41,10 +39,10 @@ export default class SymbolsOutline {
   private originalWins: WeakMap<BasicTreeView<OutlineNode>, number> = new WeakMap()
   private config: OutlineConfig
   private disposables: Disposable[] = []
-  private labels: { [key: string]: string }
   constructor(
     private nvim: Neovim,
-    private buffers: BufferSync<SymbolsBuffer>
+    private buffers: BufferSync<SymbolsBuffer>,
+    private handler: HandlerDelegate
   ) {
     this.loadConfiguration()
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
@@ -128,21 +126,8 @@ export default class SymbolsOutline {
     await this.show(1)
   }
 
-  private getIcon(kind: SymbolKind): TreeItemIcon {
-    let { labels } = this
-    let kindText = getSymbolKind(kind)
-    let defaultIcon = typeof labels['default'] === 'string' ? labels['default'] : kindText[0].toLowerCase()
-    let text = kindText == 'Unknown' ? '' : labels[kindText[0].toLowerCase() + kindText.slice(1)]
-    if (!text || typeof text !== 'string') text = defaultIcon
-    return {
-      text,
-      hlGroup: kindText == 'Unknown' ? 'CocSymbolDefault' : `CocSymbol${kindText}`
-    }
-  }
-
   private loadConfiguration(e?: ConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('outline')) {
-      this.labels = workspace.getConfiguration('suggest').get<any>('completionItemKindLabels', {})
       let c = workspace.getConfiguration('outline')
       this.config = {
         splitCommand: c.get<string>('splitCommand'),
@@ -160,7 +145,7 @@ export default class SymbolsOutline {
     return {
       label: documentSymbol.name,
       tooltip: documentSymbol.detail,
-      icon: this.getIcon(documentSymbol.kind),
+      icon: this.handler.getIcon(documentSymbol.kind),
       deprecated: documentSymbol.tags?.includes(SymbolTag.Deprecated),
       kind: documentSymbol.kind,
       range: documentSymbol.range,
