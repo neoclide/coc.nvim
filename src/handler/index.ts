@@ -1,5 +1,5 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, Disposable, Position } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Disposable, Position, SymbolKind } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import events from '../events'
 import languages from '../languages'
@@ -26,6 +26,8 @@ import CallHierarchy from './callHierarchy'
 import SemanticTokensHighlights from './semanticTokensHighlights/index'
 import Signature from './signature'
 import Symbols from './symbols/index'
+import { HandlerDelegate } from '../types'
+import { getSymbolKind } from '../util/convert'
 const logger = require('../util/logger')('Handler')
 
 export interface CurrentState {
@@ -36,7 +38,7 @@ export interface CurrentState {
   mode: string
 }
 
-export default class Handler {
+export default class Handler implements HandlerDelegate {
   public readonly documentHighlighter: Highlights
   public readonly colors: Colors
   public readonly signature: Signature
@@ -54,6 +56,7 @@ export default class Handler {
   public readonly selectionRange: SelectionRange
   public readonly callHierarchy: CallHierarchy
   public readonly semanticHighlighter: SemanticTokensHighlights
+  private labels: { [key: string]: string }
   private requestStatusItem: StatusBarItem
   private requestTokenSource: CancellationTokenSource | undefined
   private requestTimer: NodeJS.Timer
@@ -67,6 +70,7 @@ export default class Handler {
         this.requestTokenSource = null
       }
     }, null, this.disposables)
+    this.labels = workspace.getConfiguration('suggest').get<any>('completionItemKindLabels', {})
     this.fold = new Fold(nvim, this)
     this.links = new Links(nvim, this)
     this.codeLens = new CodeLens(nvim)
@@ -165,6 +169,18 @@ export default class Handler {
       return null
     }
     return res
+  }
+
+  public getIcon(kind: SymbolKind): { text: string, hlGroup: string } {
+    let { labels } = this
+    let kindText = getSymbolKind(kind)
+    let defaultIcon = typeof labels['default'] === 'string' ? labels['default'] : kindText[0].toLowerCase()
+    let text = kindText == 'Unknown' ? '' : labels[kindText[0].toLowerCase() + kindText.slice(1)]
+    if (!text || typeof text !== 'string') text = defaultIcon
+    return {
+      text,
+      hlGroup: kindText == 'Unknown' ? 'CocSymbolDefault' : `CocSymbol${kindText}`
+    }
   }
 
   public async hasProvider(id: string): Promise<boolean> {

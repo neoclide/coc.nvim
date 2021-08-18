@@ -1,16 +1,15 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CancellationTokenSource, Disposable, Emitter, Position, Range, SymbolKind, SymbolTag } from 'vscode-languageserver-protocol'
+import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CancellationTokenSource, Disposable, Emitter, Position, Range, SymbolTag } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import commands from '../commands'
 import events from '../events'
 import languages from '../languages'
-import { TreeDataProvider, TreeItem, TreeItemCollapsibleState, TreeItemIcon } from '../tree/index'
+import { TreeDataProvider, TreeItem, TreeItemCollapsibleState } from '../tree/index'
 import BasicTreeView from '../tree/TreeView'
 import { ConfigurationChangeEvent, HandlerDelegate } from '../types'
 import { disposeAll } from '../util'
-import { getSymbolKind } from '../util/convert'
 import { omit } from '../util/lodash'
 import workspace from '../workspace'
 const logger = require('../util/logger')('Handler-callHierarchy')
@@ -39,7 +38,6 @@ function isCallHierarchyItem(item: any): item is CallHierarchyItem {
 
 export default class CallHierarchyHandler {
   private config: CallHierarchyConfig
-  private labels: { [key: string]: string }
   private disposables: Disposable[] = []
   public static commandId = 'callHierarchy.reveal'
   public static rangesHighlight = 'CocSelectedRange'
@@ -78,25 +76,12 @@ export default class CallHierarchyHandler {
 
   private loadConfiguration(e?: ConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('callHierarchy')) {
-      this.labels = workspace.getConfiguration('suggest').get<any>('completionItemKindLabels', {})
       let c = workspace.getConfiguration('callHierarchy')
       this.config = {
         splitCommand: c.get<string>('splitCommand'),
         openCommand: c.get<string>('openCommand'),
         enableTooltip: c.get<boolean>('enableTooltip')
       }
-    }
-  }
-
-  private getIcon(kind: SymbolKind): TreeItemIcon {
-    let { labels } = this
-    let kindText = getSymbolKind(kind)
-    let defaultIcon = typeof labels['default'] === 'string' ? labels['default'] : kindText[0].toLowerCase()
-    let text = kindText == 'Unknown' ? '' : labels[kindText[0].toLowerCase() + kindText.slice(1)]
-    if (!text || typeof text !== 'string') text = defaultIcon
-    return {
-      text,
-      hlGroup: kindText == 'Unknown' ? 'CocSymbolDefault' : `CocSymbol${kindText}`
     }
   }
 
@@ -121,7 +106,7 @@ export default class CallHierarchyHandler {
         }
         item.description = element.detail
         item.deprecated = element.tags?.includes(SymbolTag.Deprecated)
-        item.icon = this.getIcon(element.kind)
+        item.icon = this.handler.getIcon(element.kind)
         item.command = {
           command: CallHierarchyHandler.commandId,
           title: 'open location',
@@ -135,7 +120,7 @@ export default class CallHierarchyHandler {
         if (!element) {
           if (!rootItems) {
             rootItems = await this.prepare(doc, position, source.token) as CallHierarchyDataItem[]
-            if (!rootItems || !rootItems.length) {
+            if (!rootItems?.length) {
               throw new Error('No results.')
             }
           }
@@ -176,6 +161,8 @@ export default class CallHierarchyHandler {
       dispose: () => {
         cancel()
         _onDidChangeTreeData.dispose()
+        rootItems = undefined
+        _onDidChangeTreeData = undefined
       }
     }
     return provider
