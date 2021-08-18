@@ -178,7 +178,9 @@ function! coc#compat#execute(winid, command, ...) abort
     if type(a:command) == v:t_string
       exe get(a:, 1, '').' '.a:command
     elseif type(a:command) == v:t_list
-      exe get(a:, 1, '').' '.join(a:command, "\n")
+      for cmd in a:command
+        exe get(a:, 1, '').' '.cmd
+      endfor
     endif
     noa keepalt call nvim_set_current_win(curr)
   else
