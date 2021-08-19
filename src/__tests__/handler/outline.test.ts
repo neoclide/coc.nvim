@@ -139,7 +139,7 @@ describe('symbols outline', () => {
       await createBuffer()
       await symbols.showOutline(1)
       await helper.edit('unnamed')
-      await helper.wait(200)
+      await helper.wait(300)
       let buf = await getOutlineBuffer()
       let lines = await buf.lines
       expect(lines).toEqual(['Document symbol provider not found'])
@@ -322,7 +322,11 @@ describe('symbols outline', () => {
       await helper.wait(200)
       buf = await getOutlineBuffer()
       let lines = await buf.lines
-      expect(lines).toEqual(['OUTLINE'])
+      expect(lines).toEqual([
+        'No results',
+        '',
+        'OUTLINE'
+      ])
     })
   })
 

@@ -18,7 +18,7 @@ beforeAll(async () => {
   Object.assign(workspace.env, {
     locationlist: false
   })
-  locations = (helper.plugin as any).handler.locations
+  locations = helper.plugin.getHandler().locations
 })
 
 afterAll(async () => {
@@ -61,6 +61,12 @@ describe('locations', () => {
       let name = await nvim.call('bufname', ['%'])
       expect(name).toBe('test://foo')
     })
+
+    it('should return false when references not found', async () => {
+      currLocations = []
+      let res = await locations.gotoReferences('edit', true)
+      expect(res).toBe(false)
+    })
   })
 
   describe('definition', () => {
@@ -84,6 +90,12 @@ describe('locations', () => {
       expect(res).toBe(true)
       let name = await nvim.call('bufname', ['%'])
       expect(name).toBe('test://foo')
+    })
+
+    it('should return false when definitions not found', async () => {
+      currLocations = []
+      let res = await locations.gotoDefinition('edit')
+      expect(res).toBe(false)
     })
   })
 
@@ -109,6 +121,12 @@ describe('locations', () => {
       let name = await nvim.call('bufname', ['%'])
       expect(name).toBe('test://foo')
     })
+
+    it('should return false when declaration not found', async () => {
+      currLocations = []
+      let res = await locations.gotoDeclaration('edit')
+      expect(res).toBe(false)
+    })
   })
 
   describe('typeDefinition', () => {
@@ -120,18 +138,24 @@ describe('locations', () => {
       }))
     })
 
-    it('should get declarations', async () => {
+    it('should get type definition', async () => {
       currLocations = [createLocation('foo', 0, 0, 0, 0), createLocation('bar', 0, 0, 0, 0)]
       let res = await locations.typeDefinitions() as Location[]
       expect(res.length).toBe(2)
     })
 
-    it('should jump to declaration', async () => {
+    it('should jump to type definition', async () => {
       currLocations = [createLocation('foo', 0, 0, 0, 0)]
       let res = await locations.gotoTypeDefinition('edit')
       expect(res).toBe(true)
       let name = await nvim.call('bufname', ['%'])
       expect(name).toBe('test://foo')
+    })
+
+    it('should return false when type definition not found', async () => {
+      currLocations = []
+      let res = await locations.gotoTypeDefinition('edit')
+      expect(res).toBe(false)
     })
   })
 
@@ -144,18 +168,24 @@ describe('locations', () => {
       }))
     })
 
-    it('should get declarations', async () => {
+    it('should get implementations', async () => {
       currLocations = [createLocation('foo', 0, 0, 0, 0), createLocation('bar', 0, 0, 0, 0)]
       let res = await locations.implementations() as Location[]
       expect(res.length).toBe(2)
     })
 
-    it('should jump to declaration', async () => {
+    it('should jump to implementation', async () => {
       currLocations = [createLocation('foo', 0, 0, 0, 0)]
       let res = await locations.gotoImplementation('edit')
       expect(res).toBe(true)
       let name = await nvim.call('bufname', ['%'])
       expect(name).toBe('test://foo')
+    })
+
+    it('should return false when implementation not found', async () => {
+      currLocations = []
+      let res = await locations.gotoImplementation('edit')
+      expect(res).toBe(false)
     })
   })
 
