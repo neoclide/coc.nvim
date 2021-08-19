@@ -114,7 +114,10 @@ export default class HoverHandler {
         if (!def.targetRange) continue
         const { start, end } = def.targetRange
         const endLine = end.line - start.line >= 100 ? start.line + 100 : (end.character == 0 ? end.line - 1 : end.line)
-        const lines = await readLines(def.targetUri, start.line, endLine)
+        let lines = await readLines(def.targetUri, start.line, endLine)
+        if (lines[0].search(/\S/) > 0) {
+          lines = lines.map(l => l.substring(lines[0].search(/\S/)))
+        }
         hovers.push({ content: lines.join('\n'), filetype: doc.filetype })
       }
     }
