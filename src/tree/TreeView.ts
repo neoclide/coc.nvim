@@ -672,16 +672,12 @@ export default class BasicTreeView<T> implements TreeView<T> {
   private async appendTreeNode(element: T, level: number, lnum: number, items: RenderedItem<T>[], highlights: HighlightItem[]): Promise<number> {
     let takes = 1
     let treeItem = await this.getTreeItem(element)
-    let children
     let res = this.getRenderedLine(treeItem, lnum, level)
     highlights.push(...res.highlights)
     items.push({ level, line: res.line, node: element })
     if (treeItem.collapsibleState == TreeItemCollapsibleState.Expanded) {
       let l = level + 1
-      if (!children) {
-        children = await Promise.resolve(this.provider.getChildren(element))
-        children = children || []
-      }
+      let children = await Promise.resolve(this.provider.getChildren(element)) || []
       for (let el of children) {
         let n = await this.appendTreeNode(el, l, lnum + takes, items, highlights)
         takes = takes + n
