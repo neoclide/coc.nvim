@@ -825,9 +825,13 @@ export default class BasicTreeView<T> implements TreeView<T> {
       let level = 0
       let lnum = startLnum
       let renderedItems: RenderedItem<T>[] = []
-      for (let node of nodes || []) {
-        let n = await this.appendTreeNode(node, level, lnum, renderedItems, highlights)
-        lnum += n
+      if (!nodes?.length) {
+        this.message = 'No results'
+      } else {
+        for (let node of nodes) {
+          let n = await this.appendTreeNode(node, level, lnum, renderedItems, highlights)
+          lnum += n
+        }
       }
       lines.push(...renderedItems.map(o => o.line))
       this.renderedItems = renderedItems
@@ -946,6 +950,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   }
 
   public dispose(): void {
+    if (!this.provider) return
     if (this.timer) {
       clearTimeout(this.timer)
       this.timer = undefined
