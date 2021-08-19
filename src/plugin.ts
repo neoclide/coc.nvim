@@ -351,7 +351,7 @@ export default class Plugin extends EventEmitter {
     return res
   }
 
-  public getHandler(): any {
+  public getHandler(): Handler {
     return this.handler
   }
 

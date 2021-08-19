@@ -32,7 +32,7 @@ interface CallHierarchyProvider extends TreeDataProvider<CallHierarchyDataItem> 
 }
 
 function isCallHierarchyItem(item: any): item is CallHierarchyItem {
-  if (item.name && item.kind && Range.is(item.range) && item.uri) return true
+  if (item && item.name && item.kind && Range.is(item.range) && item.uri) return true
   return false
 }
 
@@ -50,20 +50,21 @@ export default class CallHierarchyHandler {
       await nvim.call('win_gotoid', [winid])
       await workspace.jumpTo(item.uri, item.selectionRange.start, openCommand)
       let win = await nvim.window
-      win.highlightRanges('CocHighlightText', [item.selectionRange], 10, true)
-      if (item.ranges) {
-        if (item.sourceUri) {
-          let doc = workspace.getDocument(item.sourceUri)
-          if (doc) {
-            doc.buffer.clearNamespace('callHierarchy')
-            doc.buffer.highlightRanges('callHierarchy', CallHierarchyHandler.rangesHighlight, item.ranges)
-          }
-        } else {
+      win.clearMatchGroup(CallHierarchyHandler.rangesHighlight)
+      win.highlightRanges(CallHierarchyHandler.rangesHighlight, [item.selectionRange], 10, true)
+      if (!item.ranges?.length) return
+      if (item.sourceUri) {
+        let doc = workspace.getDocument(item.sourceUri)
+        if (!doc) return
+        let winid = await nvim.call('coc#compat#buf_win_id', [doc.bufnr])
+        if (winid == -1) return
+        if (winid != win.id) {
+          win = nvim.createWindow(winid)
           win.clearMatchGroup(CallHierarchyHandler.rangesHighlight)
-          win.highlightRanges(CallHierarchyHandler.rangesHighlight, item.ranges, 100, true)
-          this.highlightWinids.add(win.id)
         }
       }
+      win.highlightRanges(CallHierarchyHandler.rangesHighlight, item.ranges, 100, true)
+      this.highlightWinids.add(win.id)
     }, null, true))
     events.on('BufWinEnter', (_, winid) => {
       if (this.highlightWinids.has(winid)) {
@@ -105,7 +106,6 @@ export default class CallHierarchyHandler {
         let res = findParent(item, element)
         if (res) return res
       }
-      return undefined
     }
     let provider: CallHierarchyProvider = {
       kind,
@@ -128,40 +128,28 @@ export default class CallHierarchyHandler {
       getChildren: async element => {
         cancel()
         source = new CancellationTokenSource()
+        let { token } = source
         if (!element) {
           if (!rootItems) {
-            rootItems = await this.prepare(doc, position, source.token) as CallHierarchyDataItem[]
-            if (!rootItems?.length) {
-              throw new Error('No results.')
-            }
+            rootItems = await this.prepare(doc, position, token) as CallHierarchyDataItem[]
+            if (!rootItems?.length) return
           }
           for (let o of rootItems) {
-            let children = await this.getChildren(doc, o, provider.kind, source.token)
-            if (source.token.isCancellationRequested) break
-            o.children = children
+            let children = await this.getChildren(doc, o, provider.kind, token)
+            if (token.isCancellationRequested) break
+            if (Array.isArray(children)) o.children = children
           }
           return rootItems
         }
         if (element.children) return element.children
-        let items = await this.getChildren(doc, element, provider.kind, source.token)
+        let items = await this.getChildren(doc, element, provider.kind, token)
+        source = null
+        if (token.isCancellationRequested) return []
         element.children = items
         return items
       },
       resolveActions: () => {
         return [{
-          title: 'Dismiss',
-          handler: async element => {
-            let parentElement: CallHierarchyDataItem | undefined
-            for (let curr of rootItems) {
-              parentElement = findParent(curr, element)
-              if (parentElement) break
-            }
-            if (!parentElement) return
-            let idx = parentElement.children.findIndex(o => o === element)
-            parentElement.children.splice(idx, 1)
-            _onDidChangeTreeData.fire(parentElement)
-          }
-        }, {
           title: 'Open in new tab',
           handler: async element => {
             await commands.executeCommand(CallHierarchyHandler.commandId, winid, element, 'tabe')
@@ -180,6 +168,19 @@ export default class CallHierarchyHandler {
             provider.kind = 'outgoing'
             _onDidChangeTreeData.fire(undefined)
           }
+        }, {
+          title: 'Dismiss',
+          handler: async element => {
+            let parentElement: CallHierarchyDataItem | undefined
+            for (let curr of rootItems) {
+              parentElement = findParent(curr, element)
+              if (parentElement) break
+            }
+            if (!parentElement) return
+            let idx = parentElement.children.findIndex(o => o === element)
+            parentElement.children.splice(idx, 1)
+            _onDidChangeTreeData.fire(parentElement)
+          }
         }]
       },
       dispose: () => {
@@ -197,51 +198,47 @@ export default class CallHierarchyHandler {
     if (kind == 'incoming') {
       let res = await languages.provideIncomingCalls(doc, item, token)
       if (res) items = res.map(o => Object.assign(o.from, { ranges: o.fromRanges }))
-    } else if (kind == 'outgoing') {
+    } else {
       let res = await languages.provideOutgoingCalls(doc, item, token)
       if (res) items = res.map(o => Object.assign(o.to, { ranges: o.fromRanges, sourceUri: item.uri }))
     }
     return items
   }
 
-  private async prepare(doc: TextDocument, position: Position, token: CancellationToken): Promise<CallHierarchyItem[]> {
+  private async prepare(doc: TextDocument, position: Position, token: CancellationToken): Promise<CallHierarchyItem[] | undefined> {
     this.handler.checkProvier('callHierarchy', doc)
     const res = await languages.prepareCallHierarchy(doc, position, token)
-    if (!res || token.isCancellationRequested) return undefined
     return isCallHierarchyItem(res) ? [res] : res
   }
 
-  public async getIncoming(item?: CallHierarchyItem): Promise<CallHierarchyIncomingCall[]> {
+  private async getCallHierarchyItems(item: CallHierarchyItem | undefined, kind: 'outgoing'): Promise<CallHierarchyOutgoingCall[]>
+  private async getCallHierarchyItems(item: CallHierarchyItem | undefined, kind: 'incoming'): Promise<CallHierarchyIncomingCall[]>
+  private async getCallHierarchyItems(item: CallHierarchyItem | undefined, kind: 'incoming' | 'outgoing'): Promise<any> {
     const { doc, position } = await this.handler.getCurrentState()
     const source = new CancellationTokenSource()
     if (!item) {
       await doc.synchronize()
       let res = await this.prepare(doc.textDocument, position, source.token)
       item = res ? res[0] : undefined
+      if (!res) return undefined
     }
-    if (!isCallHierarchyItem(item)) throw new Error('Not a CallHierarchyItem')
-    return await languages.provideIncomingCalls(doc.textDocument, item, source.token)
+    let method = kind == 'incoming' ? 'provideIncomingCalls' : 'provideOutgoingCalls'
+    return await languages[method](doc.textDocument, item, source.token)
   }
 
-  public async getOutgoing(item?: CallHierarchyItem): Promise<CallHierarchyOutgoingCall[]> {
-    const { doc, position } = await this.handler.getCurrentState()
-    const source = new CancellationTokenSource()
-    if (!item) {
-      await doc.synchronize()
-      let res = await this.prepare(doc.textDocument, position, source.token)
-      item = res ? res[0] : undefined
-    }
-    if (!isCallHierarchyItem(item)) throw new Error('Not a CallHierarchyItem')
-    return await languages.provideOutgoingCalls(doc.textDocument, item, source.token)
+  public async getIncoming(item?: CallHierarchyItem): Promise<CallHierarchyIncomingCall[] | undefined> {
+    return await this.getCallHierarchyItems(item, 'incoming')
+  }
+
+  public async getOutgoing(item?: CallHierarchyItem): Promise<CallHierarchyOutgoingCall[] | undefined> {
+    return await this.getCallHierarchyItems(item, 'outgoing')
   }
 
   public async showCallHierarchyTree(kind: 'incoming' | 'outgoing'): Promise<void> {
     const { doc, position, winid } = await this.handler.getCurrentState()
     await doc.synchronize()
     let provider = this.createProvider(doc.textDocument, winid, position, kind)
-    let treeView = new BasicTreeView('calls', {
-      treeDataProvider: provider
-    })
+    let treeView = new BasicTreeView('calls', { treeDataProvider: provider })
     treeView.title = `${kind.toUpperCase()} CALLS`
     provider.onDidChangeTreeData(e => {
       if (!e) treeView.title = `${provider.kind.toUpperCase()} CALLS`
@@ -249,6 +246,7 @@ export default class CallHierarchyHandler {
     treeView.onDidChangeVisibility(e => {
       if (!e.visible) provider.dispose()
     })
+    this.disposables.push(treeView)
     await treeView.show(this.config.splitCommand)
   }
 

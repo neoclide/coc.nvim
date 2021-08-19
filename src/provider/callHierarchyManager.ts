@@ -1,6 +1,5 @@
 import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, Disposable, DocumentSelector, Position } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import workspace from '../workspace'
 import { CallHierarchyProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
