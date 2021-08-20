@@ -1,5 +1,5 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, Disposable, Position, SymbolKind } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionKind, Disposable, Position, Range, SymbolKind } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import events from '../events'
 import languages from '../languages'
@@ -181,6 +181,14 @@ export default class Handler implements HandlerDelegate {
       text,
       hlGroup: kindText == 'Unknown' ? 'CocSymbolDefault' : `CocSymbol${kindText}`
     }
+  }
+
+  public async getCodeActions(doc: Document, range?: Range, only?: CodeActionKind[]): Promise<CodeAction[]> {
+    return await this.codeActions.getCodeActions(doc, range, only)
+  }
+
+  public async applyCodeAction(action: CodeAction): Promise<void> {
+    await this.codeActions.applyCodeAction(action)
   }
 
   public async hasProvider(id: string): Promise<boolean> {

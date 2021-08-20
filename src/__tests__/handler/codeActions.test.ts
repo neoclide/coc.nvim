@@ -17,7 +17,7 @@ let resolvedAction: CodeAction
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  codeActions = (helper.plugin as any).handler.codeActions
+  codeActions = helper.plugin.getHandler().codeActions
 })
 
 afterAll(async () => {

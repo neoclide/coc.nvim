@@ -1,5 +1,5 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import { Disposable, SymbolTag } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Disposable, Range, SymbolTag, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import Symbols from '../../handler/symbols/index'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
@@ -7,6 +7,7 @@ import workspace from '../../workspace'
 import events from '../../events'
 import helper from '../helper'
 import Parser from './parser'
+import { ProviderResult } from '../../provider'
 
 let nvim: Neovim
 let symbols: Symbols
@@ -327,6 +328,59 @@ describe('symbols outline', () => {
         '',
         'OUTLINE'
       ])
+    })
+  })
+
+  describe('actions', () => {
+    it('should invoke visual select', async () => {
+      await createBuffer()
+      let bufnr = await nvim.call('bufnr', ['%'])
+      await symbols.showOutline(0)
+      await helper.wait(50)
+      await nvim.command('exe 3')
+      await nvim.input('<tab>')
+      await helper.wait(50)
+      await nvim.input('<cr>')
+      await helper.wait(50)
+      let m = await nvim.mode
+      expect(m.mode).toBe('v')
+      let buf = await nvim.buffer
+      expect(buf.id).toBe(bufnr)
+    })
+
+    it('should invoke selected code action', async () => {
+      const codeAction = CodeAction.create('my action', CodeActionKind.Refactor)
+      let uri: string
+      disposables.push(languages.registerCodeActionProvider([{ language: '*' }], {
+        provideCodeActions: (
+          _document,
+          _range: Range,
+          _context: CodeActionContext,
+          _token: CancellationToken
+        ) => [codeAction],
+        resolveCodeAction: (action): ProviderResult<CodeAction> => {
+          action.edit = {
+            changes: {
+              [uri]: [TextEdit.del(Range.create(0, 0, 0, 5))]
+            }
+          }
+          return action
+        }
+      }, undefined))
+      await createBuffer()
+      let bufnr = await nvim.call('bufnr', ['%'])
+      let doc = workspace.getDocument(bufnr)
+      uri = doc.uri
+      await symbols.showOutline(0)
+      await helper.wait(50)
+      await nvim.command('exe 3')
+      await nvim.input('<tab>')
+      await helper.wait(50)
+      await nvim.input('<cr>')
+      await helper.wait(200)
+      let buf = await nvim.buffer
+      let lines = await buf.lines
+      expect(lines[0]).toBe(' myClass {')
     })
   })
 

@@ -1075,6 +1075,15 @@
       "default": true,
       "description": "Recreate outline view after user changed to another buffer on current tab."
     },
+    "outline.codeActionKinds": {
+      "type": "array",
+      "default": ["", "quickfix", "refactor"],
+      "description": "Ignore patterns of matcher",
+      "items": {
+        "type": "string",
+        "enum": ["", "quickfix", "refactor", "source"]
+      }
+    },
     "callHierarchy.openCommand": {
       "type": "string",
       "default": "edit",

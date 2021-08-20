@@ -62,12 +62,8 @@ export default class CodeActions {
     // TODO support fadeout disabled actions in menu
     codeActions = codeActions.filter(o => !o.disabled)
     codeActions.sort((a, b) => {
-      if (a.isPreferred && !b.isPreferred) {
-        return -1
-      }
-      if (b.isPreferred && !a.isPreferred) {
-        return 1
-      }
+      if (a.isPreferred && !b.isPreferred) return -1
+      if (b.isPreferred && !a.isPreferred) return 1
       return 0
     })
     return codeActions

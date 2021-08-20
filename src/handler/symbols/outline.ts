@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { Disposable, DocumentSymbol, Range, SymbolKind, SymbolTag } from 'vscode-languageserver-protocol'
+import { CodeActionKind, Disposable, DocumentSymbol, Range, SymbolKind, SymbolTag } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
@@ -27,6 +27,7 @@ interface OutlineConfig {
   keepWindow: boolean
   expandLevel: number
   checkBufferSwitch: boolean
+  codeActionKinds: CodeActionKind[]
   sortBy: 'position' | 'name' | 'category'
 }
 
@@ -136,12 +137,12 @@ export default class SymbolsOutline {
         expandLevel: c.get<number>('expandLevel'),
         checkBufferSwitch: c.get<boolean>('checkBufferSwitch'),
         sortBy: c.get<'position' | 'name' | 'category'>('sortBy'),
+        codeActionKinds: c.get('codeActionKinds')
       }
     }
   }
 
   private convertSymbolToNode(documentSymbol: DocumentSymbol, sortFn: (a: OutlineNode, b: OutlineNode) => number): OutlineNode {
-    // let lnum = documentSymbol.selectionRange.start.line + 1
     return {
       label: documentSymbol.name,
       tooltip: documentSymbol.detail,
@@ -168,6 +169,7 @@ export default class SymbolsOutline {
   private createProvider(buf: SymbolsBuffer): BasicDataProvider<OutlineNode> {
     let { bufnr } = buf
     let { sortBy } = this.config
+    let { nvim } = this
     let sortFn = (a: OutlineNode, b: OutlineNode): number => {
       if (sortBy === 'name') {
         return a.label < b.label ? -1 : 1
@@ -185,7 +187,7 @@ export default class SymbolsOutline {
     let provider = new BasicDataProvider({
       expandLevel: this.config.expandLevel,
       provideData: async () => {
-        let doc = workspace.getDocument(buf.bufnr)
+        let doc = workspace.getDocument(bufnr)
         if (!languages.hasProvider('documentSymbol', doc.textDocument)) {
           throw new Error('Document symbol provider not found')
         }
@@ -202,7 +204,6 @@ export default class SymbolsOutline {
         return convertSymbols(arr)
       },
       handleClick: async item => {
-        let { nvim } = this
         let winnr = await nvim.call('bufwinnr', [bufnr])
         if (winnr == -1) return
         nvim.pauseNotification()
@@ -218,6 +219,30 @@ export default class SymbolsOutline {
           buf.clearNamespace('outline-hover')
           nvim.command('redraw', true)
         }, global.hasOwnProperty('__TEST__') ? 10 : 300)
+      },
+      resolveActions: async (_, element) => {
+        let winnr = await nvim.call('bufwinnr', [bufnr])
+        if (winnr == -1) return
+        let doc = workspace.getDocument(bufnr)
+        let actions = await this.handler.getCodeActions(doc, element.range, this.config.codeActionKinds)
+        let arr = actions.map(o => {
+          return {
+            title: o.title,
+            handler: async () => {
+              let position = element.range.start
+              await nvim.command(`${winnr}wincmd w`)
+              await this.nvim.call('coc#util#jumpTo', [position.line, position.character])
+              await this.handler.applyCodeAction(o)
+            }
+          }
+        })
+        return [...arr, {
+          title: 'Visual Select',
+          handler: async item => {
+            await nvim.command(`${winnr}wincmd w`)
+            await workspace.selectRange(item.range)
+          }
+        }]
       },
       onDispose: () => {
         this.providersMap.delete(buf.bufnr)
