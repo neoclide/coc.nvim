@@ -1044,6 +1044,11 @@
       "default": "<C-k>",
       "description": "Trigger key to select previous item during filter."
     },
+    "outline.showLineNumber": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show line number of symbols."
+    },
     "outline.splitCommand": {
       "type": "string",
       "default": "botright 30vs",
@@ -1078,7 +1083,7 @@
     "outline.codeActionKinds": {
       "type": "array",
       "default": ["", "quickfix", "refactor"],
-      "description": "Ignore patterns of matcher",
+      "description": "Filter code actions in actions menu by kinds.",
       "items": {
         "type": "string",
         "enum": ["", "quickfix", "refactor", "source"]

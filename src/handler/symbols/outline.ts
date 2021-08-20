@@ -27,6 +27,7 @@ interface OutlineConfig {
   keepWindow: boolean
   expandLevel: number
   checkBufferSwitch: boolean
+  showLineNumber: boolean
   codeActionKinds: CodeActionKind[]
   sortBy: 'position' | 'name' | 'category'
 }
@@ -137,7 +138,8 @@ export default class SymbolsOutline {
         expandLevel: c.get<number>('expandLevel'),
         checkBufferSwitch: c.get<boolean>('checkBufferSwitch'),
         sortBy: c.get<'position' | 'name' | 'category'>('sortBy'),
-        codeActionKinds: c.get('codeActionKinds')
+        showLineNumber: c.get<boolean>('showLineNumber'),
+        codeActionKinds: c.get<string[]>('codeActionKinds')
       }
     }
   }
@@ -146,6 +148,7 @@ export default class SymbolsOutline {
     return {
       label: documentSymbol.name,
       tooltip: documentSymbol.detail,
+      description: this.config.showLineNumber ? `${documentSymbol.selectionRange.start.line + 1}` : undefined,
       icon: this.handler.getIcon(documentSymbol.kind),
       deprecated: documentSymbol.tags?.includes(SymbolTag.Deprecated),
       kind: documentSymbol.kind,

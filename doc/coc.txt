@@ -977,6 +977,16 @@ Built-in configurations:~
 	Recreate outline view after changed to another buffer on current tab.
 	Default `true`
 
+"outline.showLineNumber": ~
+
+	Show line number of document symbols.
+	Default `true`
+
+"outline.codeActionKinds":~
+
+	Filter code actions in actions menu by kinds.
+	Default: ["", "quickfix", "refactor", "source"]
+
 						*coc-config-callHierarchy*
 
 "callHierarchy.openCommand":~

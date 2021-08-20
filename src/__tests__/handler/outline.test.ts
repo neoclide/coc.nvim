@@ -1,13 +1,13 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Disposable, Range, SymbolTag, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Disposable, Range, SymbolTag, TextEdit } from 'vscode-languageserver-protocol'
+import events from '../../events'
 import Symbols from '../../handler/symbols/index'
 import languages from '../../languages'
+import { ProviderResult } from '../../provider'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
-import events from '../../events'
 import helper from '../helper'
 import Parser from './parser'
-import { ProviderResult } from '../../provider'
 
 let nvim: Neovim
 let symbols: Symbols
@@ -92,7 +92,7 @@ describe('symbols outline', () => {
       let buf = nvim.createBuffer(bufnr)
       let lines = await buf.getLines()
       expect(lines).toEqual([
-        'OUTLINE', '- c myClass', '    m fun1', '    m fun2'
+        'OUTLINE', '- c myClass 1', '    m fun1 2', '    m fun2 3'
       ])
       let signs = await buf.getSigns({ group: 'CocTree' })
       expect(signs.length).toBe(1)
@@ -158,7 +158,7 @@ describe('symbols outline', () => {
       let buf = await getOutlineBuffer()
       let lines = await buf.lines
       expect(lines).toEqual([
-        'OUTLINE', '- c myClass', '    m fun1', '    m fun2'
+        'OUTLINE', '- c myClass 1', '    m fun1 2', '    m fun2 3'
       ])
     })
 
@@ -187,7 +187,7 @@ describe('symbols outline', () => {
       let buf = await getOutlineBuffer()
       let lines = await buf.lines
       expect(lines).toEqual([
-        'OUTLINE', '- c myClass', '    m fun2', '    m fun1'
+        'OUTLINE', '- c myClass 1', '    m fun2 2', '    m fun1 3'
       ])
     })
 
@@ -204,7 +204,7 @@ describe('symbols outline', () => {
       let buf = await getOutlineBuffer()
       let lines = await buf.lines
       expect(lines).toEqual([
-        'OUTLINE', '- c myClass', '    m fun1', '    m fun2'
+        'OUTLINE', '- c myClass 1', '    m fun1 3', '    m fun2 2'
       ])
     })
   })
@@ -239,7 +239,7 @@ describe('symbols outline', () => {
       expect(buf).toBeDefined()
       let lines = await buf.lines
       expect(lines).toEqual([
-        'OUTLINE', '- c myClass', '    m fun1', '    m fun2'
+        'OUTLINE', '- c myClass 1', '    m fun1 2', '    m fun2 3'
       ])
     })
 

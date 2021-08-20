@@ -10,6 +10,7 @@ export interface TreeNode {
   label: string
   key?: string
   tooltip?: string | MarkupContent
+  description?: string
   deprecated?: boolean
   icon?: TreeItemIcon
   children?: this[]
@@ -177,6 +178,7 @@ export default class BasicDataProvider<T extends TreeNode> implements TreeDataPr
         item = new TreeItem(label, TreeItemCollapsibleState.Collapsed)
       }
     }
+    item.description = node.description
     if (node.deprecated) item.deprecated = true
     if (node.tooltip) item.tooltip = node.tooltip
     if (isIcon(node.icon)) {
