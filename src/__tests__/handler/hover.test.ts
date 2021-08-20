@@ -13,7 +13,7 @@ let hoverResult: Hover
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  hover = (helper.plugin as any).handler.hover
+  hover = helper.plugin.getHandler().hover
 })
 
 afterAll(async () => {

@@ -114,8 +114,12 @@ export default class HoverHandler {
         if (!def.targetRange) continue
         const { start, end } = def.targetRange
         const endLine = end.line - start.line >= 100 ? start.line + 100 : (end.character == 0 ? end.line - 1 : end.line)
-        const lines = await readLines(def.targetUri, start.line, endLine)
-        hovers.push({ content: lines.join('\n'), filetype: doc.filetype })
+        let lines = await readLines(def.targetUri, start.line, endLine)
+        if (lines.length) {
+          let indent = lines[0].match(/^\s*/)[0]
+          if (indent) lines = lines.map(l => l.startsWith(indent) ? l.substring(indent.length) : l)
+          hovers.push({ content: lines.join('\n'), filetype: doc.filetype })
+        }
       }
     }
     await this.previewHover(hovers, hoverTarget)
