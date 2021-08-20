@@ -7646,7 +7646,7 @@ declare module 'coc.nvim' {
     /**
      * Get readonly diagnostics for uri
      */
-    export function getDiagnostics(uri: string): ReadonlyArray<(Diagnostic & { collection: string })>
+    export function getDiagnostics(uri: string): { [collection: string]: Diagnostic[] }
 
     /**
      * Get readonly diagnostics by document and range.
