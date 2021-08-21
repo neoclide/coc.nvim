@@ -2862,6 +2862,7 @@ by configuration |coc-config-tree|.
 <tab> 	- Invoke actions of current item, configured by `"tree.key.actions"`.
 <esc>   - Close tree window, configured by `"tree.key.close"`.
 <cr>    - Invoke command of current item,  configured by `"tree.key.invoke"`.
+<C-o>   - Move cursor to original window.
 f 	- Activate filter, configured by `"tree.key.activeFilter"`.
 t 	- Trigger key to toggle expand state of tree node, configured by
 	`tree.key.toggle`.

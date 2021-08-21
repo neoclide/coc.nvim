@@ -273,6 +273,17 @@ describe('TreeView', () => {
   })
 
   describe('key-mappings', () => {
+    it('should jump back by <C-o>', async () => {
+      let winid = await nvim.call('win_getid')
+      createTreeView(defaultDef)
+      await treeView.show()
+      await helper.wait(50)
+      await nvim.input('<C-o>')
+      await helper.wait(50)
+      let win = await nvim.window
+      expect(win.id).toBe(winid)
+    })
+
     it('should toggle selection by <space>', async () => {
       createTreeView(defaultDef)
       await treeView.show()

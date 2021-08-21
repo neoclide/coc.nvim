@@ -73,6 +73,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   private winid: number | undefined
   private config: TreeViewConfig
   private keys: Keys
+  private originalWin: number
   private _creating: boolean
   private _selection: T[] = []
   private _onDidExpandElement = new Emitter<TreeViewExpansionEvent<T>>()
@@ -859,6 +860,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (this.bufnr || this._creating) return
     this._creating = true
     let { nvim } = this
+    this.originalWin = await nvim.call('win_getid')
     let winid = await nvim.call('coc#window#find', ['cocViewId', this.viewId])
     let id = globalId
     globalId = globalId + 1
@@ -898,6 +900,9 @@ export default class BasicTreeView<T> implements TreeView<T> {
         await Promise.resolve(fn(element))
       }, notify))
     }
+    this.disposables.push(workspace.registerLocalKeymap('n', '<C-o>', () => {
+      nvim.call('win_gotoid', [this.originalWin], true)
+    }, true))
     regist('n', '<LeftRelease>', async element => {
       if (element) await this.onClick(element)
     })
