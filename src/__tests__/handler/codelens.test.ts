@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Range, Command } from 'vscode-languageserver-protocol'
+import { Disposable, Range, Command, TextEdit, Position } from 'vscode-languageserver-protocol'
 import { disposeAll } from '../../util'
 import languages from '../../languages'
 import commands from '../../commands'
@@ -85,10 +85,16 @@ describe('codeLenes featrue', () => {
   })
 
   it('should cancel codeLenes request on document change', async () => {
+    let cancelled = false
     disposables.push(languages.registerCodeLensProvider([{ language: 'javascript' }], {
-      provideCodeLenses: () => {
+      provideCodeLenses: (_, token) => {
         return new Promise(resolve => {
-          setTimeout(() => {
+          token.onCancellationRequested(() => {
+            cancelled = true
+            clearTimeout(timer)
+            resolve(null)
+          })
+          let timer = setTimeout(() => {
             resolve([{
               range: Range.create(0, 0, 0, 1)
             }, {
@@ -103,11 +109,11 @@ describe('codeLenes featrue', () => {
       }
     }))
     let doc = await helper.createDocument('codelens.js')
-    await nvim.call('setline', [1, ['a', 'b', 'c']])
-    await codeLens.checkProvider()
-    await helper.wait(50)
-    await nvim.call('setline', [1, 'foo'])
-    await helper.wait(300)
+    await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'a\nb\nc')])
+    let p = codeLens.checkProvider()
+    await doc.applyEdits([TextEdit.replace(Range.create(0, 0, 0, 1), 'foo')])
+    await p
+    expect(cancelled).toBe(true)
     let buf = codeLens.buffers.getItem(doc.bufnr)
     let codelens = buf.getCodelenses()
     expect(codelens).toBeUndefined()
@@ -135,9 +141,9 @@ describe('codeLenes featrue', () => {
     await doc.synchronize()
     await codeLens.checkProvider()
     await nvim.command('normal! gg')
-    await helper.wait(20)
+    await helper.wait(300)
     await nvim.command('normal! G')
-    await helper.wait(100)
+    await helper.wait(300)
     let buf = codeLens.buffers.getItem(doc.bufnr)
     let codelens = buf.getCodelenses()
     expect(codelens).toBeDefined()
@@ -256,7 +262,7 @@ describe('codeLenes featrue', () => {
     let markers = await helper.getMarkers(buffer.id, srcId)
     expect(markers.length).toBe(0)
     helper.updateConfiguration('codeLens.enable', true)
-    await helper.wait(100)
+    await helper.wait(300)
     markers = await helper.getMarkers(buffer.id, srcId)
     expect(markers.length).toBeGreaterThan(0)
   })

@@ -38,10 +38,10 @@ export default class CodeLensBuffer implements BufferSyncItem {
   ) {
     this.fetchCodelenses = debounce(() => {
       void this._fetchCodeLenses()
-    }, global.hasOwnProperty('__TEST__') ? 10 : 200)
+    }, 200)
     this.resolveCodeLens = debounce(() => {
       void this._resolveCodeLenses()
-    }, global.hasOwnProperty('__TEST__') ? 10 : 200)
+    }, 200)
     this.fetchCodelenses()
   }
 
@@ -54,6 +54,7 @@ export default class CodeLensBuffer implements BufferSyncItem {
   }
 
   public async forceFetch(): Promise<void> {
+    this.fetchCodelenses.clear()
     await this._fetchCodeLenses()
   }
 

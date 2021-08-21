@@ -77,9 +77,8 @@ describe('Picker key mappings', () => {
     expect(winid).toBeDefined()
     let fn = jest.fn()
     picker.onDidClose(fn)
-    await nvim.input('<esc>')
-    await helper.wait(100)
-    await nvim.command('redraw')
+    await nvim.eval(`feedkeys("\\<Esc>", 'in')`)
+    await helper.wait(200)
     expect(fn).toBeCalledTimes(1)
   })
 
