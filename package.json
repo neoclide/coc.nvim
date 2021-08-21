@@ -10,8 +10,8 @@
     "clean": "rimraf lib build",
     "lint": "eslint . --ext .ts --quiet",
     "build": "node esbuild.js",
-    "test": "node --trace-warnings node_modules/jest/bin/jest.js --runInBand --forceExit",
-    "test-build": "node --trace-warnings node_modules/jest/bin/jest.js --runInBand --coverage --forceExit",
+    "test": "./node_modules/.bin/jest --runInBand --forceExit",
+    "test-build": "./node_modules/.bin/jest --runInBand --coverage --forceExit",
     "prepare": "node esbuild.js"
   },
   "repository": {
@@ -39,6 +39,9 @@
     "clearMocks": true,
     "globalSetup": "./jest.js",
     "testEnvironment": "node",
+    "coveragePathIgnorePatterns": [
+      "<rootDir>/src/__tests__/*"
+    ],
     "moduleFileExtensions": [
       "ts",
       "tsx",
@@ -57,7 +60,7 @@
     "@types/fb-watchman": "^2.0.0",
     "@types/fs-extra": "^9.0.6",
     "@types/glob": "^7.1.3",
-    "@types/jest": "^26.0.18",
+    "@types/jest": "^27.0.1",
     "@types/marked": "^2.0.4",
     "@types/minimatch": "^3.0.3",
     "@types/mkdirp": "^1.0.1",
@@ -75,8 +78,8 @@
     "eslint": "^7.15.0",
     "eslint-plugin-jest": "^24.1.3",
     "eslint-plugin-jsdoc": "^30.7.13",
-    "jest": "26.6.3",
-    "ts-jest": "^26.4.4",
+    "jest": "27.0.6",
+    "ts-jest": "^27.0.5",
     "typescript": "^4.3.5",
     "vscode-languageserver": "7.0.0"
   },
