@@ -224,6 +224,7 @@ describe('symbols outline', () => {
 
     it('should recreated when original window exists', async () => {
       await symbols.showOutline(1)
+      await helper.wait(50)
       await createBuffer()
       await helper.wait(50)
       let buf = await getOutlineBuffer()
