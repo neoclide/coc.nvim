@@ -222,6 +222,16 @@ describe('symbols outline', () => {
       expect(buf).toBeUndefined()
     })
 
+    it('should check current window on BufEnter', async () => {
+      await createBuffer()
+      await symbols.showOutline(0)
+      let winid = await nvim.call('win_getid', [])
+      await nvim.command('enew')
+      await helper.wait(200)
+      let win = await nvim.window
+      expect(win.id).toBe(winid)
+    })
+
     it('should recreated when original window exists', async () => {
       await symbols.showOutline(1)
       await helper.wait(50)

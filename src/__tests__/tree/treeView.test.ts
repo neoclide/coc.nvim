@@ -118,7 +118,7 @@ describe('TreeView', () => {
       expect(treeView.windowId).toBe(windowId)
     })
 
-    it('should close exists view with same viewId', async () => {
+    it('should reuse window', async () => {
       createTreeView(defaultDef)
       await treeView.show()
       let windowId = treeView.windowId
@@ -127,9 +127,7 @@ describe('TreeView', () => {
       createTreeView(defaultDef)
       await treeView.show()
       await helper.wait(50)
-      expect(treeView.windowId != windowId).toBe(true)
-      let nr = await nvim.call('win_id2win', [windowId])
-      expect(nr).toBe(0)
+      expect(treeView.windowId).toBe(windowId)
     })
 
     it('should render item icon', async () => {
