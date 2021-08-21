@@ -9,14 +9,24 @@ on:
       - master
 
 jobs:
-  test:
+  test:  
+    timeout-minutes: 60
     runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        node-version: [12, 14]
+        os:  
+          - "ubuntu-latest"  
+        node:
+          - "16"
+          - "14"
+          - "12"
+        include:
+          # only enable coverage on the fastest job
+          - os: "ubuntu-latest"
+            node: "16"
+            ENABLE_CODE_COVERAGE: true
 
     env:
       NODE_ENV: test
@@ -56,9 +66,8 @@ jobs:
           export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-linux64/bin"
           nvim --version
           yarn test-build
-        env:
-          NODE_ENV: test
       - name: Codecov
-        uses: codecov/codecov-action@v2.0.2
+        uses: codecov/codecov-action@v2.0.2  
+        if: ${{ matrix.ENABLE_CODE_COVERAGE }}
         with:
           fail_ci_if_error: true
