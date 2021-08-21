@@ -863,8 +863,12 @@ export default class BasicTreeView<T> implements TreeView<T> {
     let id = globalId
     globalId = globalId + 1
     nvim.pauseNotification()
-    nvim.call('coc#window#close', [winid], true)
-    nvim.command(`silent keepalt ${splitCommand} +setl\\ buftype=nofile CocTree${id}`, true)
+    if (winid != -1) {
+      nvim.call('win_gotoid', [winid], true)
+      nvim.command(`silent edit +setl\\ buftype=nofile CocTree${id}`, true)
+    } else {
+      nvim.command(`silent keepalt ${splitCommand} +setl\\ buftype=nofile CocTree${id}`, true)
+    }
     nvim.command('setl bufhidden=wipe nolist nonumber norelativenumber foldcolumn=0', true)
     nvim.command(`setl signcolumn=${this.canSelectMany ? 'yes' : 'no'}${this.winfixwidth ? ' winfixwidth' : ''}`, true)
     nvim.command('setl nocursorline nobuflisted wrap undolevels=-1 filetype=coctree nomodifiable noswapfile', true)
@@ -875,8 +879,9 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (res[1]) throw new Error(`Error on buffer create:` + JSON.stringify(res[1]))
     this._onDidChangeVisibility.fire({ visible: true })
     this.registerKeymaps()
-    this.bufnr = res[0][6]
-    this.winid = res[0][7]
+    let arr = res[0]
+    this.bufnr = arr[arr.length - 2]
+    this.winid = arr[arr.length - 1]
     this._creating = false
     this.updateHeadLines(true)
     void this.render()
