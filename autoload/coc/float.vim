@@ -564,17 +564,12 @@ function! coc#float#create_prompt_win(title, default, opts) abort
     call nvim_set_current_win(winid)
     inoremap <buffer> <C-a> <Home>
     inoremap <buffer><expr><C-e> pumvisible() ? "\<C-e>" : "\<End>"
-    exe 'inoremap <silent><buffer> <esc> <C-r>=coc#float#close_i('.winid.')<CR><esc>'
+    exe 'imap <silent><buffer> <esc> <esc><esc>'
     exe 'nnoremap <silent><buffer> <esc> :call coc#float#close('.winid.')<CR>'
     exe 'inoremap <silent><expr><nowait><buffer> <cr> "\<C-r>=coc#float#prompt_insert(getline(''.''))\<cr>\<esc>"'
     call feedkeys('A', 'in')
   endif
   return [bufnr, winid]
-endfunction
-
-function! coc#float#close_i(winid) abort
-  call coc#float#close(a:winid)
-  return ''
 endfunction
 
 function! coc#float#prompt_insert(text) abort
