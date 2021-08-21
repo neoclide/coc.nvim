@@ -10,8 +10,8 @@
     "clean": "rimraf lib build",
     "lint": "eslint . --ext .ts --quiet",
     "build": "node esbuild.js",
-    "test": "./node_modules/.bin/jest --runInBand --forceExit",
-    "test-build": "./node_modules/.bin/jest --runInBand --coverage --forceExit",
+    "test": "./node_modules/.bin/jest --forceExit",
+    "test-build": "./node_modules/.bin/jest --coverage --forceExit",
     "prepare": "node esbuild.js"
   },
   "repository": {
