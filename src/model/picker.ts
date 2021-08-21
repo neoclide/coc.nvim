@@ -233,8 +233,9 @@ export default class Picker {
   }
 
   public dispose(): void {
+    this.picked.clear()
+    this.keyMappings.clear()
     disposeAll(this.disposables)
-    this.disposables = []
     this.nvim.call('coc#prompt#stop_prompt', ['picker'], true)
     this.win?.close()
     this.win = undefined
