@@ -1,4 +1,4 @@
-name: coc.nvim CI
+name: Dev
 
 on:
   push:
@@ -32,26 +32,29 @@ jobs:
       NODE_ENV: test
 
     steps:
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
+      - name: Checkout
+        uses: actions/checkout@v2.3.4
         with:
-          node-version: ${{ matrix.node-version }}
-      - name: Install yarn
-        run: |
-          curl --compressed -o- -L https://yarnpkg.com/install.sh | bash
-      - uses: actions/checkout@v2.3.4
+          fetch-depth: 2  
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v2.4.0
         with:
-          fetch-depth: 2
-      - name: yarn install
+          node-version: ${{ matrix.node }}
+          cache: "yarn"
+
+      - name: Install Dependencies
         run: |
-          yarn global add typescript
-          yarn
+          yarn global add typescript  
+          yarn install --frozen-lockfile
+
       - name: yarn lint
-        run: yarn lint
+        run: yarn lint  
+
       - if: matrix.os == 'macos-latest'
         name: yarn test on macOS
         run: |
-          curl -LO https://github.com/neovim/neovim/releases/download/nightly/nvim-macos.tar.gz
+          curl -LO https://github.com/neovim/neovim/releases/download/v0.5.0/nvim-macos.tar.gz
           tar xzf nvim-macos.tar.gz
           export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-osx64/bin"
           nvim --version
@@ -61,11 +64,12 @@ jobs:
         run: |
           sudo apt-get install ripgrep -y
           rg --version
-          curl -LO https://github.com/neovim/neovim/releases/download/nightly/nvim-linux64.tar.gz
+          curl -LO https://github.com/neovim/neovim/releases/download/v0.5.0/nvim-linux64.tar.gz
           tar xzf nvim-linux64.tar.gz
           export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-linux64/bin"
           nvim --version
           yarn test-build
+
       - name: Codecov
         uses: codecov/codecov-action@v2.0.2  
         if: ${{ matrix.ENABLE_CODE_COVERAGE }}
