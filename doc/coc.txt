@@ -977,6 +977,16 @@ Built-in configurations:~
 	Recreate outline view after changed to another buffer on current tab.
 	Default `true`
 
+"outline.showLineNumber": ~
+
+	Show line number of document symbols.
+	Default `true`
+
+"outline.codeActionKinds":~
+
+	Filter code actions in actions menu by kinds.
+	Default: ["", "quickfix", "refactor", "source"]
+
 						*coc-config-callHierarchy*
 
 "callHierarchy.openCommand":~
@@ -2845,14 +2855,18 @@ Use variable |w:cocViewId| to detect the kind of tree.
 
 TREE KEY MAPPINGS 					*coc-tree-mappings*
 
-- Active filter by `tree.key.activeFilter`, default to 'f'.
-- Toggle selection of node under cursor by `"tree.key.toggleSelection"`, default
-  to <space>.
-- Toggle collapse state of node under cursor by `"tree.key.toggle"`, default
-  to 't'.
-- Collapse all nodes by `"tree.key.collapseAll"`, default to 'M'.
-- Invoke default action of node under cursor or selected nodes by
-  `"tree.key.invoke"`, default to <cr>.
+Default key-mappings are provided for 'coctree' buffer, which can be changed
+by configuration |coc-config-tree|.
+
+<space> - Select/unselect item, configured by `"tree.key.toggleSelection"`.
+<tab> 	- Invoke actions of current item, configured by `"tree.key.actions"`.
+<esc>   - Close tree window, configured by `"tree.key.close"`.
+<cr>    - Invoke command of current item,  configured by `"tree.key.invoke"`.
+<C-o>   - Move cursor to original window.
+f 	- Activate filter, configured by `"tree.key.activeFilter"`.
+t 	- Trigger key to toggle expand state of tree node, configured by
+	`tree.key.toggle`.
+M 	- Collapse all tree node, configured by `"tree.key.collapseAll"`.
 
 ------------------------------------------------------------------------------
 
@@ -2861,17 +2875,20 @@ TREE FILTER 						*coc-tree-filter*
 Filter mode is used for search for specific node by fuzzy filter, invoke the
 key configured by `"tree.key.activeFilter"` to activate filter mode.
 
+Note: some tree views not have filter mode supported.
+
 When filter mode is activated, type normal character to insert filter input
 and following special keys are supported:
 
-- <bs>: delete last filter character when possible.
-- <C-u>: clean up filter text.
-- <C-p>: navigate to previous filter text (stored on command invoke).
-- <C-n>: navigate to next filter text (stored on command invoke).
-- <esc> and <C-o>: exit filter mode.
-- <up> or `"tree.key.selectPrevious"`: select previous node.
-- <down> or `"tree.key.selectNext"`: select next node.
-- <cr> or `"key.key.invoke"`: invoke command of selected node.
+<bs> 	- Delete last filter character when possible.
+<C-u> 	- Clean up filter text.
+<C-p> 	- Navigate to previous filter text (stored on command invoke).
+<C-n> 	- Navigate to next filter text (stored on command invoke).
+<esc> 	- exit filter mode.
+<C-o> 	- exit filter mode.
+<up> or `"tree.key.selectPrevious"` 	- Select previous node.
+<down> or `"tree.key.selectNext"` 	- Select next node.
+<cr> or `"key.key.invoke"` 	- Invoke command of selected node.
 
 ==============================================================================
 LIST SUPPORT						*coc-list*

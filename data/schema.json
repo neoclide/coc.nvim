@@ -1044,6 +1044,11 @@
       "default": "<C-k>",
       "description": "Trigger key to select previous item during filter."
     },
+    "outline.showLineNumber": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show line number of symbols."
+    },
     "outline.splitCommand": {
       "type": "string",
       "default": "botright 30vs",
@@ -1074,6 +1079,15 @@
       "type": "boolean",
       "default": true,
       "description": "Recreate outline view after user changed to another buffer on current tab."
+    },
+    "outline.codeActionKinds": {
+      "type": "array",
+      "default": ["", "quickfix", "refactor"],
+      "description": "Filter code actions in actions menu by kinds.",
+      "items": {
+        "type": "string",
+        "enum": ["", "quickfix", "refactor", "source"]
+      }
     },
     "callHierarchy.openCommand": {
       "type": "string",

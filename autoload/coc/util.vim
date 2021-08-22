@@ -124,7 +124,11 @@ function! coc#util#job_command()
     return
   endif
   if !filereadable(s:root.'/build/index.js')
-    echohl Error | echom '[coc.nvim] build/index.js not found, please compile coc.nvim by: npm run build' | echohl None
+    if isdirectory(s:root.'/src')
+      echohl Error | echom '[coc.nvim] build/index.js not found, please install dependencies and compile coc.nvim by: yarn install' | echohl None
+    else
+      echohl Error | echon '[coc.nvim] your coc.nvim is broken.' | echohl None
+    endif
     return
   endif
   return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/build/index.js']
