@@ -1,11 +1,9 @@
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { CancellationToken, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
+import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { ListItem, ListItemWithHighlights, ListOptions } from '../types'
 import { disposeAll } from '../util'
-import { Mutex } from '../util/mutex'
-import window from '../window'
 import workspace from '../workspace'
 import ListConfiguration from './configuration'
 const logger = require('../util/logger')('list-ui')
@@ -31,14 +29,12 @@ export default class ListUI {
   private newTab = false
   private buffer: Buffer
   private currIndex = 0
-  private drawCount = 0
   private items: ListItemWithHighlights[] = []
   private disposables: Disposable[] = []
   private signOffset: number
   private matchHighlightGroup: string
   private selected: Set<number> = new Set()
   private mouseDown: MousePosition
-  private mutex: Mutex = new Mutex()
   private _onDidChangeLine = new Emitter<number>()
   private _onDidOpen = new Emitter<number>()
   private _onDidClose = new Emitter<number>()
@@ -86,10 +82,6 @@ export default class ListUI {
     events.on('CursorMoved', debounced, null, this.disposables)
   }
 
-  public get shown(): boolean {
-    return this.window != null
-  }
-
   public get bufnr(): number | undefined {
     return this.buffer?.id
   }
@@ -113,19 +105,11 @@ export default class ListUI {
     nvim.pauseNotification()
     this.setCursor(n + 1, 0)
     nvim.command('redraw', true)
-    nvim.resumeNotification(false, true).logError()
+    void nvim.resumeNotification(false, true)
   }
 
   public get index(): number {
     return this.currIndex
-  }
-
-  public get firstItem(): ListItem {
-    return this.items[0]
-  }
-
-  public get lastItem(): ListItem {
-    return this.items[this.items.length - 1]
   }
 
   public getItem(index: number): ListItem {
@@ -138,11 +122,10 @@ export default class ListUI {
     return window.cursor.then(cursor => {
       this.currIndex = cursor[0] - 1
       return this.items[this.currIndex]
-    }, _e => null)
+    })
   }
 
   public async echoMessage(item: ListItem): Promise<void> {
-    if (this.bufnr) return
     let { items } = this
     let idx = items.indexOf(item)
     let msg = `[${idx + 1}/${items.length}] ${item.label || ''}`
@@ -150,15 +133,15 @@ export default class ListUI {
   }
 
   public async updateItem(item: ListItem, index: number): Promise<void> {
-    if (!this.bufnr || workspace.bufnr != this.bufnr) return
+    if (!this.bufnr) return
     let obj: ListItem = Object.assign({ resolved: true }, item)
     if (index < this.length) {
       this.items[index] = obj
       let { nvim } = this
       nvim.pauseNotification()
-      nvim.command('setl modifiable', true)
-      nvim.call('setline', [index + 1, obj.label], true)
-      nvim.command('setl nomodifiable', true)
+      this.buffer.setOption('modifiable', true, true)
+      nvim.call('setbufline', [this.bufnr, index + 1, obj.label], true)
+      this.buffer.setOption('modifiable', false, true)
       await nvim.resumeNotification()
     }
   }
@@ -194,10 +177,11 @@ export default class ListUI {
       this.setCursor(lnum, 0)
       this._onDoubleClick.fire()
     }
-    if (!this.mouseDown || this.mouseDown.winid != this.mouseDown.winid) return
     if (current && event == 'mouseDrag') {
+      if (!this.mouseDown) return
       await this.selectLines(this.mouseDown.lnum, lnum)
     } else if (current && event == 'mouseUp') {
+      if (!this.mouseDown) return
       if (this.mouseDown.lnum == lnum) {
         this.setCursor(lnum, 0)
         nvim.command('redraw', true)
@@ -298,101 +282,68 @@ export default class ListUI {
 
   public get ready(): Promise<void> {
     if (this.window) return Promise.resolve()
-    return new Promise<void>((resolve, reject) => {
-      let timeout = setTimeout(() => {
-        reject(new Error('window create timeout'))
-      }, 3000)
+    return new Promise<void>(resolve => {
       let disposable = this.onDidLineChange(() => {
         disposable.dispose()
-        clearTimeout(timeout)
         resolve()
       })
     })
   }
 
-  public async drawItems(items: ListItem[], height: number, reload = false, token?: CancellationToken): Promise<void> {
-    let count = this.drawCount = this.drawCount + 1
+  public async drawItems(items: ListItem[], height: number, reload = false): Promise<void> {
     const { nvim, name, listOptions } = this
-    const release = await this.mutex.acquire()
     this.items = items.length > this.limitLines ? items.slice(0, this.limitLines) : items
-    const create = this.window == null
-    if (create && !(token && token.isCancellationRequested)) {
-      try {
-        let { position, numberSelect } = listOptions
-        let [bufnr, winid] = await nvim.call('coc#list#create', [position, height, name, numberSelect])
-        if (token && token.isCancellationRequested) {
-          nvim.call('coc#list#clean_up', [], true)
-        } else {
-          this.height = height
-          this.buffer = nvim.createBuffer(bufnr)
-          this.window = nvim.createWindow(winid)
-          this._onDidOpen.fire(this.bufnr)
-        }
-      } catch (e) {
-        nvim.call('coc#prompt#stop_prompt', ['list'], true)
-        nvim.call('coc#list#clean_up', [], true)
-        release()
-        window.showMessage(`Error on list create: ${e.message}`, 'error')
-        return
-      }
+    if (!this.window) {
+      let { position, numberSelect } = listOptions
+      let [bufnr, winid] = await nvim.call('coc#list#create', [position, height, name, numberSelect])
+      this.height = height
+      this.buffer = nvim.createBuffer(bufnr)
+      let win = this.window = nvim.createWindow(winid)
+      let statusSegments = this.config.get<string[]>('statusLineSegments')
+      if (statusSegments) win.setOption('statusline', statusSegments.join(" "), true)
+      this._onDidOpen.fire(this.bufnr)
     }
-    release()
-    if (token && token.isCancellationRequested) return
-    if (count !== this.drawCount) return
     const lines = this.items.map(item => item.label)
     let newIndex = reload ? this.currIndex : 0
-    await this.setLines(lines, false, newIndex)
+    this.setLines(lines, false, newIndex)
     this._onDidLineChange.fire(this.currIndex + 1)
   }
 
-  public async appendItems(items: ListItem[]): Promise<void> {
-    if (!this.window) return
+  public appendItems(items: ListItem[]): void {
     let curr = this.items.length
     if (curr >= this.limitLines) return
     let max = this.limitLines - curr
     let append = items.slice(0, max)
     this.items = this.items.concat(append)
-    await this.setLines(append.map(item => item.label), curr > 0, this.currIndex)
+    this.setLines(append.map(item => item.label), curr > 0, this.currIndex)
   }
 
-  private async setLines(lines: string[], append = false, index: number): Promise<void> {
+  private setLines(lines: string[], append = false, index: number): void {
     let { nvim, buffer, window } = this
     if (!buffer || !window) return
     nvim.pauseNotification()
     if (!append) {
-      let statusSegments: Array<String> | null = this.config.get('statusLineSegments')
-      if (statusSegments) {
-        window.notify('nvim_win_set_option', ['statusline', statusSegments.join(" ")])
-      }
       nvim.call('coc#compat#clear_matches', [window.id], true)
       if (!lines.length) {
         lines = ['No results, press ? on normal mode to get help.']
-        nvim.call('coc#compat#matchaddpos', ['Comment', [[1]], 99, this.window.id], true)
+        nvim.call('coc#compat#matchaddpos', ['Comment', [[1]], 99, window.id], true)
       }
     }
     buffer.setOption('modifiable', true, true)
-    if (workspace.isVim) {
-      nvim.call('coc#list#setlines', [buffer.id, lines, append], true)
-    } else {
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      buffer.setLines(lines, { start: append ? -1 : 0, end: -1, strictIndexing: false }, true)
-    }
+    void buffer.setLines(lines, { start: append ? -1 : 0, end: -1, strictIndexing: false }, true)
     buffer.setOption('modifiable', false, true)
     if (!append && index == 0) {
-      this.doHighlight(0, 300)
+      this.doHighlight(0, 299)
     } else {
       let height = this.newTab ? workspace.env.lines : this.height
       this.doHighlight(Math.max(0, index - height), Math.min(index + height + 1, this.length - 1))
     }
     if (!append) {
       this.currIndex = index
-      window.notify('nvim_win_set_cursor', [[index + 1, 0]])
+      window.setCursor([index + 1, 0], true)
     }
     nvim.command('redraws', true)
-    let res = await nvim.resumeNotification()
-    if (Array.isArray(res[1]) && res[1][0] == 0) {
-      this.window = null
-    }
+    void nvim.resumeNotification(false, true)
   }
 
   public restoreWindow(): void {
@@ -401,25 +352,6 @@ export default class ListUI {
     if (winid && height) {
       this.nvim.call('coc#list#restore', [winid, height], true)
     }
-  }
-
-  public reset(): void {
-    if (this.window) {
-      this.window = null
-      this.buffer = null
-    }
-  }
-
-  public dispose(): void {
-    disposeAll(this.disposables)
-    this.window = null
-    this.buffer = null
-    this.items = []
-    this._onDidChangeLine.dispose()
-    this._onDidOpen.dispose()
-    this._onDidClose.dispose()
-    this._onDidLineChange.dispose()
-    this._onDoubleClick.dispose()
   }
 
   public get length(): number {
@@ -436,7 +368,6 @@ export default class ListUI {
   }
 
   private doHighlight(start: number, end: number): void {
-    let { nvim } = workspace
     let { items } = this
     let groups: HighlightGroup[] = []
     for (let i = start; i <= Math.min(end, items.length - 1); i++) {
@@ -454,16 +385,16 @@ export default class ListUI {
         }
       }
     }
-    nvim.call('coc#compat#matchaddgroups', [this.window.id, groups], true)
+    this.nvim.call('coc#compat#matchaddgroups', [this.window.id, groups], true)
   }
 
   public setCursor(lnum: number, col: number): void {
-    let { window, items } = this
+    let { items } = this
     let max = items.length == 0 ? 1 : items.length
     if (lnum > max) return
     // change index since CursorMoved event not fired (seems bug of neovim)!
     this.onLineChange(lnum - 1)
-    if (window) window.notify('nvim_win_set_cursor', [[lnum, col]])
+    this.window?.setCursor([lnum, col], true)
   }
 
   private async getSelectedRange(): Promise<[number, number]> {
@@ -472,10 +403,27 @@ export default class ListUI {
     await nvim.eval('feedkeys("\\<esc>", "in")')
     let [, start] = await nvim.call('getpos', "'<")
     let [, end] = await nvim.call('getpos', "'>")
-    if (start > end) {
-      [start, end] = [end, start]
-    }
     this.nvim.call('coc#prompt#start_prompt', ['list'], true)
     return [start, end]
+  }
+
+  public reset(): void {
+    if (this.window) {
+      this.window = null
+      this.buffer = null
+    }
+  }
+
+  public dispose(): void {
+    disposeAll(this.disposables)
+    this.nvim.call('coc#window#close', [this.winid || -1], true)
+    this.window = null
+    this.buffer = null
+    this.items = []
+    this._onDidChangeLine.dispose()
+    this._onDidOpen.dispose()
+    this._onDidClose.dispose()
+    this._onDidLineChange.dispose()
+    this._onDoubleClick.dispose()
   }
 }

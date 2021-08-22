@@ -49,9 +49,7 @@ export default class CommandsList extends BasicList {
     nvim.pauseNotification()
     nvim.command('syntax match CocCommandsTitle /\\t.*$/ contained containedin=CocCommandsLine', true)
     nvim.command('highlight default link CocCommandsTitle Comment', true)
-    nvim.resumeNotification().catch(_e => {
-      // noop
-    })
+    void nvim.resumeNotification(false, true)
   }
 }
 

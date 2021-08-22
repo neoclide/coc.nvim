@@ -21,6 +21,7 @@ const locations: ReadonlyArray<QuickfixItem> = [{
   lnum: 3,
   text: 'option'
 }]
+
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
@@ -92,7 +93,8 @@ describe('list commands', () => {
 
   it('should goto next & previous', async () => {
     await manager.start(['location'])
-    await helper.wait(100)
+    await manager.session?.ui.ready
+    await helper.wait(60)
     await manager.doAction()
     await manager.cancel()
     let bufname = await nvim.eval('expand("%:p")')
@@ -287,7 +289,7 @@ describe('list configuration', () => {
     await manager.onMouseEvent('<LeftDrag>')
     await setMouseEvent(3)
     await manager.onMouseEvent('<LeftRelease>')
-    await helper.wait(30)
+    await helper.wait(100)
     let items = await manager.session?.ui.getItems()
     expect(items.length).toBe(3)
   })

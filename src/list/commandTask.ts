@@ -24,7 +24,6 @@ export interface CommandTaskOption {
 
 export default class CommandTask extends EventEmitter implements ListTask {
   private disposables: Disposable[] = []
-  // private processes: ChildProcess[] = []
   constructor(private opt: CommandTaskOption) {
     super()
     this.start()

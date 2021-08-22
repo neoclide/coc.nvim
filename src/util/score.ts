@@ -11,6 +11,7 @@ export interface MatchResult {
 // filename startsWith +1, fuzzy +0.5
 
 export function getMatchResult(text: string, query: string, filename = ''): MatchResult {
+  if (!text) return { score: 0 }
   if (!query) return { score: 1 }
   let matches: number[] = []
   let codes = getCharCodes(query)

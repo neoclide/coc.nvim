@@ -14,11 +14,9 @@ export default class DiagnosticsList extends LocationList {
   public async loadItems(context: ListContext): Promise<ListItem[]> {
     let list = diagnosticManager.getDiagnosticList()
     let { cwd } = context
-
     const config = this.getConfig()
     const shouldIncludeCode = config.get<boolean>('includeCode', true)
     const pathFormat = config.get<PathFormatting>('pathFormat', "full")
-
     const unformatted: UnformattedListItem[] = list.map(item => {
       const file = isParentFolder(cwd, item.file) ? path.relative(cwd, item.file) : item.file
       const formattedPath = formatPath(pathFormat, file)
@@ -45,9 +43,7 @@ export default class DiagnosticsList extends LocationList {
     nvim.command('highlight default link CocDiagnosticsWarning CocWarningSign', true)
     nvim.command('highlight default link CocDiagnosticsInfo CocInfoSign', true)
     nvim.command('highlight default link CocDiagnosticsHint CocHintSign', true)
-    nvim.resumeNotification().catch(_e => {
-      // noop
-    })
+    void nvim.resumeNotification(false, true)
   }
 }
 

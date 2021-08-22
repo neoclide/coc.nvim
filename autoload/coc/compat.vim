@@ -92,10 +92,11 @@ endfunction
 " hlGroup, pos, priority
 function! coc#compat#matchaddgroups(winid, groups) abort
   " add by winid
-  if s:is_vim && has('patch-8.1.0218') || has('nvim-0.4.0')
+  if has('patch-8.1.0218') || has('nvim-0.4.0')
     for group in a:groups
       call matchaddpos(group['hlGroup'], [group['pos']], group['priority'], -1, {'window': a:winid})
     endfor
+    return
   endif
   let curr = win_getid()
   if curr == a:winid

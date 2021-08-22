@@ -164,13 +164,9 @@ export default class Worker {
    * Draw all items with filter if necessary
    */
   public drawItems(): void {
-    let { totalItems, listOptions } = this
+    let { totalItems } = this
     let items: ListItemWithHighlights[]
-    if (listOptions.interactive) {
-      items = this.convertToHighlightItems(totalItems)
-    } else {
-      items = this.filterItems(totalItems)
-    }
+    items = this.filterItems(totalItems)
     this._onDidChangeItems.fire({ items, finished: true })
   }
 
@@ -198,9 +194,8 @@ export default class Worker {
     if (!input) return []
     return items.map(item => {
       let filterLabel = getFilterLabel(item)
-      if (filterLabel == '') return item
       let res = getMatchResult(filterLabel, input)
-      if (!res || !res.score) return item
+      if (!res?.score) return item
       let highlights = this.getHighlights(filterLabel, res.matches)
       return Object.assign({}, item, { highlights })
     })

@@ -461,7 +461,7 @@ describe('User mappings', () => {
       '<C-r>': 'do:refresh',
       '<C-a>': 'do:selectall',
       '<C-s>': 'do:switch',
-      '<C-q>': 'do:cancel',
+      '<C-l>': 'do:cancel',
       '<C-t>': 'do:toggle',
       '<C-n>': 'do:next',
       '<C-p>': 'do:previous',
@@ -494,7 +494,7 @@ describe('User mappings', () => {
     expect(manager.isActivated).toBe(false)
     await manager.start(['location'])
     await helper.wait(100)
-    await nvim.eval('feedkeys("\\<C-q>", "in")')
+    await nvim.eval('feedkeys("\\<C-l>", "in")')
     await helper.wait(100)
     expect(manager.isActivated).toBe(true)
     await manager.start(['location'])

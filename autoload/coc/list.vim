@@ -166,7 +166,7 @@ function! coc#list#hide(original, height, winid) abort
     call win_gotoid(a:original)
   endif
   if a:winid
-    call coc#window#close(a:winid)
+    silent! call coc#window#close(a:winid)
   endif
   if !empty(a:height) && win_getid() == a:original
     if exists('*nvim_win_set_height')

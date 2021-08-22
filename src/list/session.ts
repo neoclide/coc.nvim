@@ -1,6 +1,7 @@
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
+import { Disposable } from 'vscode-languageserver-protocol'
+import { Mutex } from '../util/mutex'
 import extensions from '../extensions'
 import Highlighter from '../model/highligher'
 import { IList, ListAction, ListContext, ListItem, ListMode, ListOptions, Matcher } from '../types'
@@ -23,7 +24,6 @@ export default class ListSession {
   public readonly ui: UI
   public readonly worker: Worker
   private cwd: string
-  private uiTokenSource: CancellationTokenSource
   private interval: NodeJS.Timer
   private loadingFrame = ''
   private timer: NodeJS.Timer
@@ -33,6 +33,7 @@ export default class ListSession {
   private window: Window
   private buffer: Buffer
   private interactiveDebounceTime: number
+  private mutex: Mutex = new Mutex()
   /**
    * Original list arguments.
    */
@@ -98,17 +99,23 @@ export default class ListSession {
       await this.doAction()
     }, null, this.disposables)
     this.worker.onDidChangeItems(async ({ items, reload, append, finished }) => {
-      if (this.hidden) return
-      if (append) {
-        await this.ui.appendItems(items)
-      } else {
-        let height = this.config.get<number>('height', 10)
-        if (finished && !listOptions.interactive && listOptions.input.length == 0) {
-          height = Math.min(items.length, height)
+      let release = await this.mutex.acquire()
+      if (!this.hidden) {
+        try {
+          if (append) {
+            this.ui.appendItems(items)
+          } else {
+            let height = this.config.get<number>('height', 10)
+            if (finished && !listOptions.interactive && listOptions.input.length == 0) {
+              height = Math.min(items.length, height)
+            }
+            await this.ui.drawItems(items, Math.max(1, height), reload)
+          }
+        } catch (e) {
+          nvim.echoError(e)
         }
-        let tokenSource = this.uiTokenSource = new CancellationTokenSource()
-        await this.ui.drawItems(items, Math.max(1, height), reload, tokenSource.token)
       }
+      release()
     }, null, this.disposables)
     this.worker.onDidChangeLoading(loading => {
       if (this.hidden) return
@@ -195,7 +202,6 @@ export default class ListSession {
       }
     }
     if (invalids.length) {
-      logger.error(`Can't create shortcut for actions: ${invalids.join(',')} of "${this.name}" list`)
       names = names.filter(s => !invalids.includes(s))
     }
     await nvim.call('coc#prompt#stop_prompt', ['list'])
@@ -203,6 +209,9 @@ export default class ListSession {
     await wait(10)
     this.prompt.start()
     if (n) await this.doAction(names[n - 1])
+    if (invalids.length) {
+      nvim.echoError(`Can't create shortcut for actions: ${invalids.join(',')} of "${this.name}" list`)
+    }
   }
 
   public async doAction(name?: string): Promise<void> {
@@ -284,11 +293,6 @@ export default class ListSession {
 
   public async hide(): Promise<void> {
     if (this.hidden) return
-    if (this.uiTokenSource) {
-      this.uiTokenSource.cancel()
-      this.uiTokenSource.dispose()
-      this.uiTokenSource = null
-    }
     let { nvim, interval } = this
     if (interval) clearInterval(interval)
     this.hidden = true
@@ -445,10 +449,6 @@ export default class ListSession {
     }
   }
 
-  public redrawItems(): void {
-    this.worker.drawItems()
-  }
-
   public onMouseEvent(key): Promise<void> {
     switch (key) {
       case '<LeftMouse>':
@@ -470,11 +470,11 @@ export default class ListSession {
       if (n == 0) n = 10
       if (this.ui.length >= n) {
         this.nvim.pauseNotification()
-        this.ui.setCursor(Number(ch), 0)
+        this.ui.setCursor(n, 0)
         await this.nvim.resumeNotification()
         await this.doAction()
+        return true
       }
-      return true
     }
     return false
   }
@@ -559,11 +559,6 @@ export default class ListSession {
   public dispose(): void {
     if (!this.hidden) {
       this.hidden = true
-      if (this.uiTokenSource) {
-        this.uiTokenSource.cancel()
-        this.uiTokenSource.dispose()
-        this.uiTokenSource = null
-      }
       let { winid } = this.ui
       this.ui.reset()
       if (this.window && winid) {
