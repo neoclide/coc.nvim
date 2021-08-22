@@ -143,7 +143,7 @@ describe('Picker key mappings', () => {
     let winid = await picker.show({ maxHeight: 3 })
     expect(winid).toBeDefined()
     await nvim.input('<C-f>')
-    await helper.wait(50)
+    await helper.wait(100)
     await nvim.command('setl scrolloff=0')
     await nvim.call('win_gotoid', [winid])
     await nvim.command('normal! h')
