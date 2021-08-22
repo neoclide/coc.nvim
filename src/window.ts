@@ -402,7 +402,7 @@ class Window {
    * @param position LSP position.
    */
   public async moveTo(position: Position): Promise<void> {
-    await this.nvim.call('coc#util#jumpTo', [position.line, position.character])
+    await this.nvim.call('coc#cursor#move_to', [position.line, position.character])
     if (workspace.env.isVim) this.nvim.command('redraw', true)
   }
 
@@ -413,7 +413,7 @@ class Window {
    * @returns Character offset.
    */
   public async getOffset(): Promise<number> {
-    return await this.nvim.call('coc#util#get_offset') as number
+    return await this.nvim.call('coc#cursor#char_offset') as number
   }
 
   /**
@@ -423,7 +423,7 @@ class Window {
    * @returns Cursor screen position.
    */
   public async getCursorScreenPosition(): Promise<ScreenPosition> {
-    let [row, col] = await this.nvim.call('coc#util#cursor_pos') as [number, number]
+    let [row, col] = await this.nvim.call('coc#cursor#screen_pos') as [number, number]
     return { row, col }
   }
 

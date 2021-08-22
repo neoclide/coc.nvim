@@ -35,7 +35,7 @@ export default class Highlights {
   public async highlight(): Promise<void> {
     let { nvim } = this
     this.cancel()
-    let [bufnr, winid, pos, cursors] = await nvim.eval(`[bufnr("%"),win_getid(),coc#util#cursor(),get(b:,'coc_cursors_activated',0)]`) as [number, number, [number, number], number]
+    let [bufnr, winid, pos, cursors] = await nvim.eval(`[bufnr("%"),win_getid(),coc#cursor#position(),get(b:,'coc_cursors_activated',0)]`) as [number, number, [number, number], number]
     let doc = workspace.getDocument(bufnr)
     if (!doc || !doc.attached || cursors) return
     if (!languages.hasProvider('documentHighlight', doc.textDocument)) return

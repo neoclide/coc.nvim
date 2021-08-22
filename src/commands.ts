@@ -117,14 +117,6 @@ export class CommandManager implements Disposable {
       }
     }, true)
     this.register({
-      id: 'workspace.diffDocument',
-      execute: async () => {
-        let document = await workspace.document
-        if (!document) return
-        await nvim.call('coc#util#diff_content', [document.getLines()])
-      }
-    })
-    this.register({
       id: 'workspace.clearWatchman',
       execute: async () => {
         let res = await window.runTerminalCommand('watchman watch-del-all')

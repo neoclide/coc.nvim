@@ -106,7 +106,7 @@ export default class Handler implements HandlerDelegate {
 
   public async getCurrentState(): Promise<CurrentState> {
     let { nvim } = this
-    let [bufnr, [line, character], winid, mode] = await nvim.eval("[bufnr('%'),coc#util#cursor(),win_getid(),mode()]") as [number, [number, number], number, string]
+    let [bufnr, [line, character], winid, mode] = await nvim.eval("[bufnr('%'),coc#cursor#position(),win_getid(),mode()]") as [number, [number, number], number, string]
     let doc = workspace.getDocument(bufnr)
     if (!doc || !doc.attached) throw new Error(`current buffer ${bufnr} not attached`)
     return {

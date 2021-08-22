@@ -49,7 +49,7 @@ export interface Autocmd {
   callback: Function
 }
 
-const APIVERSION = 9
+const APIVERSION = 10
 const logger = require('./util/logger')('workspace')
 let NAME_SPACE = 2000
 const methods = [
@@ -486,7 +486,7 @@ export class Workspace implements IWorkspace {
   public async applyEdit(edit: WorkspaceEdit): Promise<boolean> {
     let { nvim } = this
     let { documentChanges, changes } = edit
-    let [bufnr, cursor] = await nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number]]
+    let [bufnr, cursor] = await nvim.eval('[bufnr("%"),coc#cursor#position()]') as [number, [number, number]]
     let document = this.getDocument(bufnr)
     let uri = document ? document.uri : null
     let currEdits = null
@@ -632,7 +632,7 @@ export class Workspace implements IWorkspace {
       return Range.create(line - 1, 0, line, 0)
     }
     if (mode === 'cursor') {
-      let [line, character] = await nvim.eval("coc#util#cursor()") as [number, number]
+      let [line, character] = await nvim.eval("coc#cursor#position()") as [number, number]
       return Range.create(line, character, line, character)
     }
     if (!['v', 'V', 'char', 'line', '\x16'].includes(mode)) {

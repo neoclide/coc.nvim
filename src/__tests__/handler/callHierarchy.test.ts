@@ -160,7 +160,7 @@ describe('CallHierarchy', () => {
     await helper.wait(50)
     doc = await workspace.document
     expect(doc.uri).toBe(uri)
-    let res = await nvim.call('coc#util#cursor')
+    let res = await nvim.call('coc#cursor#position')
     expect(res).toEqual([1, 0])
     let matches = await nvim.call('getmatches') as any[]
     expect(matches.length).toBe(2)

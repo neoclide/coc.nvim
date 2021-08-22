@@ -207,7 +207,7 @@ export default class SymbolsOutline {
         nvim.pauseNotification()
         nvim.command(`${winnr}wincmd w`, true)
         let pos = item.selectRange.start
-        nvim.call('coc#util#jumpTo', [pos.line, pos.character], true)
+        nvim.call('coc#cursor#move_to', [pos.line, pos.character], true)
         nvim.command(`normal! zz`, true)
         let buf = nvim.createBuffer(bufnr)
         buf.highlightRanges('outline-hover', 'CocHoverRange', [item.selectRange])
@@ -229,7 +229,7 @@ export default class SymbolsOutline {
             handler: async () => {
               let position = element.range.start
               await nvim.command(`${winnr}wincmd w`)
-              await this.nvim.call('coc#util#jumpTo', [position.line, position.character])
+              await this.nvim.call('coc#cursor#move_to', [position.line, position.character])
               await this.handler.applyCodeAction(o)
             }
           }

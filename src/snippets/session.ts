@@ -155,7 +155,7 @@ export class SnippetSession {
     await this.document.applyEdits(edits)
     this.applying = false
     if (delta) {
-      await this.nvim.call('coc#util#move_cursor', delta)
+      await this.nvim.call('coc#cursor#move_by_col', delta)
     }
   }
 

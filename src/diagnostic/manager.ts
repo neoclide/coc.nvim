@@ -397,7 +397,7 @@ export class DiagnosticManager implements Disposable {
   }
 
   public async getCurrentDiagnostics(): Promise<Diagnostic[]> {
-    let [bufnr, cursor, eol, lastline] = await this.nvim.eval(`[bufnr("%"),coc#util#cursor(),col('.')==col('$')-1,line('.')==line('$')]`) as [number, [number, number], number, number]
+    let [bufnr, cursor, eol, lastline] = await this.nvim.eval(`[bufnr("%"),coc#cursor#position(),col('.')==col('$')-1,line('.')==line('$')]`) as [number, [number, number], number, number]
     return this.getDiagnosticsAt(bufnr, cursor, eol == 1, lastline == 1)
   }
 

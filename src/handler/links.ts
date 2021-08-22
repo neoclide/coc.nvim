@@ -27,7 +27,7 @@ export default class Links {
   }
 
   public async openCurrentLink(): Promise<boolean> {
-    let [line, character] = await this.nvim.call('coc#util#cursor') as [number, number]
+    let [line, character] = await this.nvim.call('coc#cursor#position') as [number, number]
     let links = await this.getLinks()
     if (!links || links.length == 0) return false
     let position = Position.create(line, character)

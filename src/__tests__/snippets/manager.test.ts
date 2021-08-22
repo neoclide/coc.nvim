@@ -144,7 +144,7 @@ describe('snippet provider', () => {
     await helper.wait(100)
     let active = await snippetManager.insertSnippet('bar')
     expect(active).toBe(true)
-    let cursor = await nvim.call('coc#util#cursor')
+    let cursor = await nvim.call('coc#cursor#position')
     expect(cursor).toEqual([0, 3])
   })
 

@@ -1,5 +1,4 @@
 scriptencoding utf-8
-" Related to float window create
 let s:is_vim = !has('nvim')
 let s:root = expand('<sfile>:h:h:h')
 let s:progresschars = get(g:, 'coc_progress_chars', ['░', '▇'])
@@ -526,7 +525,7 @@ function! coc#float#create_prompt_win(title, default, opts) abort
   else
     let col = curr + width <= &columns - 2 ? 0 : &columns - s:prompt_win_width
   endif
-  let [lineIdx, colIdx] = coc#util#cursor_pos()
+  let [lineIdx, colIdx] = coc#cursor#screen_pos()
   let bufnr = 0
   if has('nvim')
     let bufnr = s:prompt_win_bufnr
@@ -862,7 +861,7 @@ function! coc#float#get_config_cursor(lines, config) abort
     let ch += float2nr(ceil(str2float(string(dw))/(maxWidth - 2)))
   endfor
   let width = coc#helper#min(maxWidth, width)
-  let [lineIdx, colIdx] = coc#util#cursor_pos()
+  let [lineIdx, colIdx] = coc#cursor#screen_pos()
   " How much we should move left
   let offsetX = coc#helper#min(get(a:config, 'offsetX', 0), colIdx)
   let showTop = 0
@@ -1396,7 +1395,7 @@ function! coc#float#cursor_relative(winid) abort
   if winid == a:winid
     return v:null
   endif
-  let [cursorLine, cursorCol] = coc#util#cursor_pos()
+  let [cursorLine, cursorCol] = coc#cursor#screen_pos()
   if has('nvim')
     let [row, col] = nvim_win_get_position(a:winid)
     return {'row' : row - cursorLine, 'col' : col - cursorCol}

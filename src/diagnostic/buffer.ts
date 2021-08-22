@@ -242,7 +242,8 @@ export class DiagnosticBuffer implements BufferSyncItem {
         }
       }
     }
-    this.nvim.call('coc#util#set_buf_var', [this.bufnr, 'coc_diagnostic_info', info], true)
+    let buf = this.nvim.createBuffer(this.bufnr)
+    buf.setVar('coc_diagnostic_info', info, true)
     this.nvim.call('coc#util#do_autocmd', ['CocDiagnosticChange'], true)
   }
 

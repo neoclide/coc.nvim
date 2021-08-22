@@ -68,10 +68,7 @@ export default class ExtensionList extends BasicList {
       let { root } = item.data
       let files = await fs.readdir(root)
       let file = files.find(f => /^readme/i.test(f))
-      if (file) {
-        let escaped = await nvim.call('fnameescape', [path.join(root, file)])
-        await workspace.callAsync('coc#util#execute', [`edit ${escaped}`])
-      }
+      if (file) await workspace.callAsync('coc#util#jump', ['edit', path.join(root, file)])
     })
 
     this.addAction('reload', async item => {

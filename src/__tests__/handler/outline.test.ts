@@ -313,7 +313,7 @@ describe('symbols outline', () => {
       await helper.wait(50)
       let curr = await nvim.call('bufnr', ['%'])
       expect(curr).toBe(bufnr)
-      let cursor = await nvim.call('coc#util#cursor')
+      let cursor = await nvim.call('coc#cursor#position')
       expect(cursor).toEqual([1, 2])
     })
 

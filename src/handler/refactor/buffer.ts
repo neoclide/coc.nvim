@@ -339,7 +339,7 @@ export default class RefactorBuffer implements BufferSyncItem {
       buffer.setOption('undolevels', 1000, true)
       if (count == 2 && hlRanges.length) {
         let pos = hlRanges[0].start
-        nvim.call('coc#util#jumpTo', [pos.line, pos.character], true)
+        nvim.call('coc#cursor#move_to', [pos.line, pos.character], true)
       }
       if (workspace.isVim) {
         nvim.command('redraw', true)
