@@ -591,7 +591,6 @@ describe('User mappings', () => {
     helper.updateConfiguration('list.insertMappings', {
       '<C-r>': 'prompt:paste',
     })
-    let text: string
     await nvim.command('let @* = "foobar"')
     await manager.start(['location'])
     await manager.session.ui.ready

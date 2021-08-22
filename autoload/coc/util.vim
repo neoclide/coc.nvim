@@ -407,13 +407,6 @@ function! s:echo_signature(parts)
   endfor
 endfunction
 
-function! coc#util#unplace_signs(bufnr, sign_ids)
-  if !bufloaded(a:bufnr) | return | endif
-  for id in a:sign_ids
-    execute 'silent! sign unplace '.id.' buffer='.a:bufnr
-  endfor
-endfunction
-
 function! coc#util#setline(lnum, line)
   keepjumps call setline(a:lnum, a:line)
 endfunction
