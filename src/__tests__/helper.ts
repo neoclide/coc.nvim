@@ -189,7 +189,7 @@ export class Helper extends EventEmitter {
   public async mockFunction(name: string, result: string | number | any): Promise<void> {
     let content = `
     function! ${name}(...)
-      return ${JSON.stringify(result)}
+      return ${typeof result == 'number' ? result : JSON.stringify(result)}
     endfunction
     `
     let file = await createTmpFile(content)

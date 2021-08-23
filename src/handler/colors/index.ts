@@ -6,9 +6,10 @@ import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
 import { HandlerDelegate } from '../../types'
 import { disposeAll } from '../../util'
+import { toHexString } from '../../util/color'
 import window from '../../window'
 import workspace from '../../workspace'
-import ColorBuffer, { toHexString } from './colorBuffer'
+import ColorBuffer from './colorBuffer'
 const logger = require('../../util/logger')('colors-index')
 
 export default class Colors {
@@ -32,11 +33,9 @@ export default class Colors {
       if (e.affectsConfiguration('coc.preferences.colorSupport')) {
         let config = workspace.getConfiguration('coc.preferences')
         let enabled = config.get<boolean>('colorSupport', true)
-        if (enabled != this._enabled) {
-          this._enabled = enabled
-          for (let buf of this.highlighters.items) {
-            buf.setState(enabled)
-          }
+        this._enabled = enabled
+        for (let buf of this.highlighters.items) {
+          buf.setState(enabled)
         }
       }
     }, null, this.disposables)
@@ -58,7 +57,7 @@ export default class Colors {
     let document = await workspace.document
     let tokenSource = new CancellationTokenSource()
     let presentations = await languages.provideColorPresentations(info, document.textDocument, tokenSource.token)
-    if (!presentations || presentations.length == 0) return
+    if (!presentations?.length) return
     let res = await window.showMenuPicker(presentations.map(o => o.label), 'choose color:')
     if (res == -1) return
     let presentation = presentations[res]
@@ -122,11 +121,10 @@ export default class Colors {
 
   public async doHighlight(bufnr: number): Promise<void> {
     let highlighter = this.highlighters.getItem(bufnr)
-    if (!highlighter) return
-    await highlighter.doHighlight()
+    if (highlighter) await highlighter.doHighlight()
   }
 
-  private async getColorInformation(bufnr: number): Promise<ColorInformation | null> {
+  public async getColorInformation(bufnr: number): Promise<ColorInformation | null> {
     let highlighter = this.highlighters.getItem(bufnr)
     if (!highlighter) return null
     let position = await window.getCursorPosition()
@@ -139,6 +137,7 @@ export default class Colors {
         return info
       }
     }
+    return null
   }
 
   public dispose(): void {

@@ -6,42 +6,13 @@ import { SyncItem } from '../../model/bufferSync'
 import { group } from '../../util/array'
 import { equals } from '../../util/object'
 import { positionInRange } from '../../util/position'
+import { isDark, toHexColor, toHexString } from '../../util/color'
 import workspace from '../../workspace'
 const logger = require('../../util/logger')('colors-buffer')
 
 export interface ColorRanges {
   color: Color
   ranges: Range[]
-}
-
-function pad(str: string): string {
-  return str.length == 1 ? `0${str}` : str
-}
-
-export function toHexString(color: Color): string {
-  let c = toHexColor(color)
-  return `${pad(c.red.toString(16))}${pad(c.green.toString(16))}${pad(c.blue.toString(16))}`
-}
-
-export function toHexColor(color: Color): { red: number; green: number; blue: number } {
-  let { red, green, blue } = color
-  return {
-    red: Math.round(red * 255),
-    green: Math.round(green * 255),
-    blue: Math.round(blue * 255)
-  }
-}
-
-export function isDark(color: Color): boolean {
-  // http://www.w3.org/TR/WCAG20/#relativeluminancedef
-  let rgb = [color.red, color.green, color.blue]
-  let lum = []
-  for (let i = 0; i < rgb.length; i++) {
-    let chan = rgb[i]
-    lum[i] = (chan <= 0.03928) ? chan / 12.92 : Math.pow(((chan + 0.055) / 1.055), 2.4)
-  }
-  let luma = 0.2126 * lum[0] + 0.7152 * lum[1] + 0.0722 * lum[2]
-  return luma <= 0.5
 }
 
 export default class ColorBuffer implements SyncItem {
@@ -56,9 +27,7 @@ export default class ColorBuffer implements SyncItem {
     private enabled: boolean,
     private usedColors: Set<string>) {
     this.highlight = debounce(() => {
-      this.doHighlight().catch(e => {
-        logger.error('Error on color highlight:', e.stack)
-      })
+      void this.doHighlight()
     }, global.hasOwnProperty('__TEST__') ? 10 : 500)
   }
 
@@ -101,13 +70,13 @@ export default class ColorBuffer implements SyncItem {
       colors = colors || []
       if (token.isCancellationRequested) return
       this.version = version
-      await this.addHighlight(colors, token)
+      await this.addHighlight(colors)
     } catch (e) {
       logger.error('Error on highlight:', e)
     }
   }
 
-  private async addHighlight(colors: ColorInformation[], token: CancellationToken): Promise<void> {
+  private async addHighlight(colors: ColorInformation[]): Promise<void> {
     colors = colors || []
     if (equals(this._colors, colors)) return
     let { nvim } = this
@@ -117,28 +86,19 @@ export default class ColorBuffer implements SyncItem {
     nvim.pauseNotification()
     this.buffer.clearNamespace('color')
     this.defineColors(colors)
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    nvim.resumeNotification(false, true)
+    void nvim.resumeNotification(false, true)
     for (let colors of groups) {
-      if (token.isCancellationRequested) {
-        this._colors = []
-        return
-      }
       nvim.pauseNotification()
       let colorRanges = this.getColorRanges(colors)
       for (let o of colorRanges) {
         this.highlightColor(o.ranges, o.color)
       }
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      nvim.resumeNotification(false, true)
+      void nvim.resumeNotification(false, true)
     }
-    if (workspace.isVim) {
-      this.nvim.command('redraw', true)
-    }
+    if (workspace.isVim) this.nvim.command('redraw', true)
   }
 
   private highlightColor(ranges: Range[], color: Color): void {
-    let { red, green, blue } = toHexColor(color)
     let hlGroup = `BG${toHexString(color)}`
     this.buffer.highlightRanges('color', hlGroup, ranges)
   }

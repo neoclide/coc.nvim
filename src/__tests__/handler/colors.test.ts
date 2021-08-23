@@ -1,29 +1,29 @@
-import helper from '../helper'
 import { Neovim } from '@chemzqm/neovim'
-import { Color, Range, CancellationToken, ColorInformation, Position, ColorPresentation, Disposable } from 'vscode-languageserver-protocol'
+import { CancellationToken, Color, ColorInformation, ColorPresentation, Disposable, Position, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import Colors from '../../handler/colors/index'
-import { toHexString } from '../../handler/colors/colorBuffer'
-import languages from '../../languages'
 import commands from '../../commands'
+import { toHexString } from '../../util/color'
+import Colors from '../../handler/colors/index'
+import languages from '../../languages'
 import { ProviderResult } from '../../provider'
 import { disposeAll } from '../../util'
+import helper from '../helper'
 
 let nvim: Neovim
 let state = 'normal'
 let colors: Colors
 let disposables: Disposable[] = []
+let colorPresentations: ColorPresentation[] = []
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  colors = (helper.plugin as any).handler.colors
-
+  colors = helper.plugin.getHandler().colors
   disposables.push(languages.registerDocumentColorProvider([{ language: '*' }], {
     provideColorPresentations: (
       _color: Color,
       _context: { document: TextDocument; range: Range },
       _token: CancellationToken
-    ): ColorPresentation[] => [ColorPresentation.create('red'), ColorPresentation.create('#ff0000')],
+    ): ColorPresentation[] => colorPresentations,
     provideDocumentColors: (
       document: TextDocument,
       _token: CancellationToken
@@ -49,6 +49,7 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
+  colorPresentations = []
   await helper.reset()
 })
 
@@ -66,7 +67,8 @@ describe('Colors', () => {
   })
 
   describe('configuration', () => {
-    it('should toggle enable state on configuration change', () => {
+    it('should toggle enable state on configuration change', async () => {
+      await helper.createDocument()
       helper.updateConfiguration('coc.preferences.colorSupport', false)
       expect(colors.enabled).toBe(false)
       helper.updateConfiguration('coc.preferences.colorSupport', true)
@@ -87,6 +89,7 @@ describe('Colors', () => {
     })
 
     it('should register editor.action.colorPresentation command', async () => {
+      colorPresentations = [ColorPresentation.create('red'), ColorPresentation.create('#ff0000')]
       let doc = await helper.createDocument()
       await nvim.setLine('#ffffff')
       doc.forceSync()
@@ -153,8 +156,58 @@ describe('Colors', () => {
     })
   })
 
-  describe('pickPresentation', () => {
+  describe('hasColor()', () => {
+    it('should return false when bufnr not exists', async () => {
+      let res = colors.hasColor(99)
+      colors.clearHighlight(99)
+      expect(res).toBe(false)
+    })
+  })
+
+  describe('getColorInformation()', () => {
+    it('should return null when highlighter not exists', async () => {
+      let res = await colors.getColorInformation(99)
+      expect(res).toBe(null)
+    })
+
+    it('should return null when color not found', async () => {
+      let doc = await helper.createDocument()
+      await nvim.setLine('#ffffff foo ')
+      doc.forceSync()
+      await colors.doHighlight(doc.bufnr)
+      await nvim.call('cursor', [1, 12])
+      let res = await colors.getColorInformation(doc.bufnr)
+      expect(res).toBe(null)
+    })
+  })
+
+  describe('hasColorAtPosition()', () => {
+    it('should return false when bufnr not exists', async () => {
+      let res = colors.hasColorAtPosition(99, Position.create(0, 0))
+      expect(res).toBe(false)
+    })
+  })
+
+  describe('pickPresentation()', () => {
+    it('should show warning when color not exists', async () => {
+      await helper.createDocument()
+      await colors.pickPresentation()
+      let msg = await helper.getCmdline()
+      expect(msg).toMatch('Color not found')
+    })
+
+    it('should not throw when presentations not exists', async () => {
+      colorPresentations = []
+      let doc = await helper.createDocument()
+      await nvim.setLine('#ffffff')
+      doc.forceSync()
+      await colors.doHighlight(99)
+      await colors.doHighlight(doc.bufnr)
+      await helper.doAction('colorPresentation')
+    })
+
     it('should pick presentations', async () => {
+      colorPresentations = [ColorPresentation.create('red'), ColorPresentation.create('#ff0000')]
       let doc = await helper.createDocument()
       await nvim.setLine('#ffffff')
       doc.forceSync()
@@ -168,7 +221,14 @@ describe('Colors', () => {
     })
   })
 
-  describe('pickColor', () => {
+  describe('pickColor()', () => {
+    it('should show warning when color not exists', async () => {
+      await helper.createDocument()
+      await colors.pickColor()
+      let msg = await helper.getCmdline()
+      expect(msg).toMatch('not found')
+    })
+
     it('should pickColor', async () => {
       await helper.mockFunction('coc#util#pick_color', [0, 0, 0])
       let doc = await helper.createDocument()
@@ -178,6 +238,17 @@ describe('Colors', () => {
       await helper.doAction('pickColor')
       let line = await nvim.getLine()
       expect(line).toBe('#000000')
+    })
+
+    it('should not throw when pick color return 0', async () => {
+      await helper.mockFunction('coc#util#pick_color', 0)
+      let doc = await helper.createDocument()
+      await nvim.setLine('#ffffff')
+      doc.forceSync()
+      await colors.doHighlight(doc.bufnr)
+      await helper.doAction('pickColor')
+      let line = await nvim.getLine()
+      expect(line).toBe('#ffffff')
     })
   })
 })
