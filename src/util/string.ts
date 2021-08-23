@@ -1,3 +1,31 @@
+import { Range } from 'vscode-languageserver-protocol'
+
+export function rangeParts(text: string, range: Range): [string, string] {
+  let { start, end } = range
+  let lines = text.split(/\r?\n/)
+  let before = ''
+  let after = ''
+  let len = lines.length
+  // get start and end parts
+  for (let i = 0; i < len; i++) {
+    let curr = lines[i]
+    if (i < start.line) {
+      before += curr + '\n'
+      continue
+    }
+    if (i > end.line) {
+      after += curr + (i == len - 1 ? '' : '\n')
+      continue
+    }
+    if (i == start.line) {
+      before += curr.slice(0, start.character)
+    }
+    if (i == end.line) {
+      after += curr.slice(end.character) + (i == len - 1 ? '' : '\n')
+    }
+  }
+  return [before, after]
+}
 
 // nvim use utf8
 export function byteLength(str: string): number {

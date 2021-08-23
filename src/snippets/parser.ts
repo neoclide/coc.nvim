@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CharCode } from '../util/charCode'
+import { rangeParts } from '../util/string'
 import { Range } from 'vscode-languageserver-protocol'
-import { TextDocument } from 'vscode-languageserver-textdocument'
 const logger = require('../util/logger')('snippets-parser')
 
 export const enum TokenType {
@@ -572,8 +572,7 @@ export class TextmateSnippet extends Marker {
     let placeholder = this.placeholders[id]
     if (!placeholder) return
     let { index } = placeholder
-    const document = TextDocument.create('untitled:/1', 'snippet', 0, placeholder.toString())
-    snippet = TextDocument.applyEdits(document, [{ range, newText: snippet }])
+    let [before, after] = rangeParts(placeholder.toString(), range)
     let nested = new SnippetParser().parse(snippet, true)
     let maxIndexAdded = nested.maxIndexNumber + 1
     let indexes: number[] = []
@@ -591,7 +590,10 @@ export class TextmateSnippet extends Marker {
       }
       return true
     })
-    this.replace(placeholder, nested.children)
+    let children = nested.children
+    if (before) children.unshift(new Text(before))
+    if (after) children.push(new Text(after))
+    this.replace(placeholder, children)
     return Math.min.apply(null, indexes)
   }
 

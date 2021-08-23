@@ -162,7 +162,7 @@ export class CocSnippet {
   // update internal positions, no change of buffer
   // return TextEdit list when needed
   public updatePlaceholder(placeholder: CocSnippetPlaceholder, edit: TextEdit): { edits: TextEdit[]; delta: number } {
-    let { start, end } = edit.range
+    // let { start, end } = edit.range
     let { range } = this
     let { value, id, index } = placeholder
     let newText = editRange(placeholder.range, value, edit)

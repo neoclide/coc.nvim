@@ -1,5 +1,6 @@
 import path from 'path'
 import { URI } from 'vscode-uri'
+import { Range } from 'vscode-languageserver-protocol'
 import os from 'os'
 import fs from 'fs'
 import { wait, watchFile } from '../../util'
@@ -9,12 +10,23 @@ import { score, positions, groupPositions } from '../../util/fzy'
 import { score as matchScore } from '../../util/match'
 import { mixin } from '../../util/object'
 import { Mutex } from '../../util/mutex'
-import { indexOf } from '../../util/string'
+import { indexOf, rangeParts } from '../../util/string'
 import helper, { createTmpFile } from '../helper'
 import { ansiparse } from '../../util/ansiparse'
 import { concurrent } from '../../util'
 import { spawn } from 'child_process'
 import { terminate } from '../../util/processes'
+
+describe('rangeParts', () => {
+  it('should get parts', async () => {
+    let res = rangeParts('foo bar', Range.create(0, 0, 0, 4))
+    expect(res).toEqual(['', 'bar'])
+    res = rangeParts('foo\nbar', Range.create(0, 1, 1, 1))
+    expect(res).toEqual(['f', 'ar'])
+    res = rangeParts('x\nfoo\nbar\ny', Range.create(0, 1, 2, 3))
+    expect(res).toEqual(['x', '\ny'])
+  })
+})
 
 describe('watchFile', () => {
   it('should watch file', async () => {

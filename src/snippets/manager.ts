@@ -113,7 +113,7 @@ export class SnippetManager {
 
   public isActived(bufnr: number): boolean {
     let session = this.getSession(bufnr)
-    return session && session.isActive
+    return session && session.isActive ? true : false
   }
 
   public jumpable(): boolean {
