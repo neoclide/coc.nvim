@@ -35,6 +35,7 @@
     "projects": [
       "<rootDir>"
     ],
+    "maxWorkers": 2,
     "watchman": false,
     "clearMocks": true,
     "globalSetup": "./jest.js",

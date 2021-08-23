@@ -91,10 +91,7 @@ export default abstract class BasicList implements IList, Disposable {
     for (let i = 0; i < args.length; i++) {
       let arg = args[i]
       let def = this.optionMap.get(arg)
-      if (!def) {
-        logger.error(`Option "${arg}" of "${this.name}" not found`)
-        continue
-      }
+      if (!def) continue
       let value: string | boolean = true
       if (def.hasValue) {
         value = args[i + 1] || ''
@@ -211,7 +208,7 @@ export default abstract class BasicList implements IList, Disposable {
     await workspace.jumpTo(uri, position, command)
   }
 
-  private createAction(action: ListAction): void {
+  public createAction(action: ListAction): void {
     let { name } = action
     let idx = this.actions.findIndex(o => o.name == name)
     // allow override
@@ -289,14 +286,16 @@ export default abstract class BasicList implements IList, Disposable {
     for (let doc of workspace.documents) {
       let fsPath = URI.parse(doc.uri).fsPath
       if (path.extname(fsPath) == extname) {
-        let { filetype } = doc
-        // react syntax could be slow
-        if (filetype == 'javascriptreact') return 'javascript'
-        if (filetype == 'typescriptreact') return 'typescript'
-        if (filetype.indexOf('.') !== -1) return filetype.split('.')[0]
-        return filetype
+        return getFiletype(doc.filetype)
       }
     }
     return ''
   }
+}
+
+export function getFiletype(filetype: string): string {
+  if (filetype == 'javascriptreact') return 'javascript'
+  if (filetype == 'typescriptreact') return 'typescript'
+  if (filetype.indexOf('.') !== -1) return filetype.split('.')[0]
+  return filetype
 }

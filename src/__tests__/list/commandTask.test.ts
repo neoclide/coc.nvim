@@ -112,7 +112,7 @@ describe('Command task', () => {
     let list = new DataList(nvim)
     disposables.push(manager.registerList(list))
     await manager.start(['data'])
-    await helper.wait(100)
+    await helper.wait(500)
     let lines = await nvim.call('getline', [1, '$']) as string[]
     expect(lines).toEqual(['foo', 'bar'])
   })
@@ -122,5 +122,13 @@ describe('Command task', () => {
     disposables.push(manager.registerList(list))
     await manager.start(['sleep'])
     manager.session.stop()
+  })
+
+  it('should show error for bad key', async () => {
+    let list = new DataList(nvim)
+    list.config.fixKey('<X-a>')
+    await helper.wait(500)
+    let msg = await helper.getCmdline()
+    expect(msg).toMatch('not supported')
   })
 })

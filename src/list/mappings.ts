@@ -17,9 +17,6 @@ export default class Mappings {
     private config: ListConfiguration) {
     let { prompt } = manager
 
-    this.add('insert', '<C-k>', () => {
-      prompt.removeTail()
-    })
     this.add('insert', '<C-n>', () => {
       manager.session?.history.next()
     })
@@ -41,7 +38,6 @@ export default class Mappings {
       manager.stop()
       return
     })
-    this.add('insert', '<esc>', () => manager.cancel())
     this.add('insert', '<C-l>', async () => {
       await manager.session?.reloadItems()
     })
@@ -76,10 +72,6 @@ export default class Mappings {
     this.add('insert', ['<ScrollWheelDown>'], this.doScroll.bind(this, '<ScrollWheelDown>'))
     this.add('insert', ['<C-f>'], this.doScroll.bind(this, '<C-f>'))
     this.add('insert', ['<C-b>'], this.doScroll.bind(this, '<C-b>'))
-
-    this.add('normal', '<C-o>', () => {
-      // do nothing, avoid buffer switch by accident
-    })
     this.add('normal', 't', () => manager.doAction('tabe'))
     this.add('normal', 's', () => manager.doAction('split'))
     this.add('normal', 'd', () => manager.doAction('drop'))
@@ -91,7 +83,6 @@ export default class Mappings {
     this.add('normal', '<C-c>', () => {
       manager.stop()
     })
-    this.add('normal', '<esc>', () => manager.cancel())
     this.add('normal', '<C-l>', () => manager.session?.reloadItems())
     this.add('normal', '<C-o>', () => manager.session?.jumpBack())
     this.add('normal', '<C-e>', () => this.scrollPreview('down'))
@@ -202,7 +193,6 @@ export default class Mappings {
     let { nvim } = this
     await nvim.call('coc#prompt#stop_prompt', ['list'])
     window.showMessage(msg, 'error')
-    this.manager.prompt.start()
   }
 
   private async evalExpression(expr: string, _mode: string): Promise<void> {
