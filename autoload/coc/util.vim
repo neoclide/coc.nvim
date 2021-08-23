@@ -3,10 +3,10 @@ let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:clear_match_by_id = has('nvim-0.5.0') || has('patch-8.1.1084')
-let s:vim_api_version = 9
-
+let s:vim_api_version = 10
 let s:activate = ""
 let s:quit = ""
+
 if has("gui_macvim") && has('gui_running')
   let s:app = "MacVim"
 elseif $TERM_PROGRAM ==# "Apple_Terminal"
@@ -18,15 +18,6 @@ elseif has('mac')
   let s:quit = "quit"
   let s:activate = 'activate'
 endif
-
-function! coc#util#has_preview()
-  for i in range(1, winnr('$'))
-    if getwinvar(i, '&previewwindow')
-      return i
-    endif
-  endfor
-  return 0
-endfunction
 
 function! coc#util#api_version() abort
   return s:vim_api_version
@@ -141,16 +132,6 @@ function! coc#util#echo_hover(msg)
   let g:coc_last_hover_message = a:msg
 endfunction
 
-function! coc#util#execute(cmd)
-  silent exe a:cmd
-  if &filetype ==# ''
-    filetype detect
-  endif
-  if s:is_vim
-    redraw!
-  endif
-endfunction
-
 function! coc#util#jump(cmd, filepath, ...) abort
   if a:cmd != 'pedit'
     silent! normal! m'
@@ -182,20 +163,6 @@ function! coc#util#jump(cmd, filepath, ...) abort
   if s:is_vim
     redraw
   endif
-endfunction
-
-function! coc#util#jumpTo(line, character) abort
-  let content = getline(a:line + 1)
-  let pre = strcharpart(content, 0, a:character)
-  let col = strlen(pre) + 1
-  call cursor(a:line + 1, col)
-endfunction
-
-" Position of cursor relative to screen cell
-function! coc#util#cursor_pos() abort
-  let nr = winnr()
-  let [row, col] = win_screenpos(nr)
-  return [row + winline() - 2, col + wincol() - 2]
 endfunction
 
 function! coc#util#echo_messages(hl, msgs)
@@ -280,10 +247,6 @@ function! coc#util#get_config(key) abort
   return coc#rpc#request('getConfig', [a:key])
 endfunction
 
-function! coc#util#on_error(msg) abort
-  echohl Error | echom '[coc.nvim] '.a:msg | echohl None
-endfunction
-
 function! coc#util#preview_info(info, filetype, ...) abort
   pclose
   keepalt new +setlocal\ previewwindow|setlocal\ buftype=nofile|setlocal\ noswapfile|setlocal\ wrap [Document]
@@ -355,11 +318,6 @@ function! coc#util#get_input()
   return matchstr(before, '\k*$')
 endfunction
 
-function! coc#util#move_cursor(delta)
-  let pos = getcurpos()
-  call cursor(pos[1], pos[2] + a:delta)
-endfunction
-
 function! coc#util#get_complete_option()
   let pos = getcurpos()
   let line = getline(pos[1])
@@ -426,10 +384,6 @@ function! coc#util#quickpick(title, items, cb) abort
   endif
 endfunction
 
-function! coc#util#get_syntax_name(lnum, col)
-  return synIDattr(synIDtrans(synID(a:lnum,a:col,1)),"name")
-endfunction
-
 function! coc#util#echo_signatures(signatures) abort
   if pumvisible() | return | endif
   echo ""
@@ -450,13 +404,6 @@ function! s:echo_signature(parts)
       execute "echon '".substitute(text, "'", "''", 'g')."'"
       echohl None
     endif
-  endfor
-endfunction
-
-function! coc#util#unplace_signs(bufnr, sign_ids)
-  if !bufloaded(a:bufnr) | return | endif
-  for id in a:sign_ids
-    execute 'silent! sign unplace '.id.' buffer='.a:bufnr
   endfor
 endfunction
 
@@ -662,36 +609,6 @@ function! coc#util#get_changeinfo()
         \}
 endfunction
 
-" show diff of current buffer
-function! coc#util#diff_content(lines) abort
-  let tmpfile = tempname()
-  setl foldenable
-  call writefile(a:lines, tmpfile)
-  let ft = &filetype
-  diffthis
-  execute 'vs '.tmpfile
-  if !empty(ft)
-    execute 'setf ' . ft
-  endif
-  diffthis
-  setl foldenable
-endfunction
-
-function! coc#util#clear_signs()
-  let buflist = filter(range(1, bufnr('$')), 'buflisted(v:val)')
-  for b in buflist
-    let signIds = []
-    let lines = split(execute('sign place buffer='.b), "\n")
-    for line in lines
-      let ms = matchlist(line, 'id=\(\d\+\)\s\+name=Coc')
-      if len(ms) > 0
-        call add(signIds, ms[1])
-      endif
-    endfor
-    call coc#util#unplace_signs(b, signIds)
-  endfor
-endfunction
-
 function! coc#util#open_url(url)
   if has('mac') && executable('open')
     call system('open '.a:url)
@@ -767,17 +684,6 @@ function! coc#util#rebuild()
         \ 'cmd': 'npm rebuild',
         \ 'keepfocus': 1,
         \})
-endfunction
-
-" content of first echo line
-function! coc#util#echo_line()
-  let str = ''
-  let line = &lines - (&cmdheight - 1)
-  for i in range(1, &columns - 1)
-    let nr = screenchar(line, i)
-    let str = str . nr2char(nr)
-  endfor
-  return str
 endfunction
 
 " [r, g, b] ['255', '255', '255']
@@ -887,11 +793,6 @@ function! s:system(cmd)
   return output
 endfunction
 
-function! coc#util#set_buf_var(bufnr, name, val) abort
-  if !bufloaded(a:bufnr) | return | endif
-  call setbufvar(a:bufnr, a:name, a:val)
-endfunction
-
 function! coc#util#unmap(bufnr, keys) abort
   if bufnr('%') == a:bufnr
     for key in a:keys
@@ -947,13 +848,6 @@ function! coc#util#refactor_fold_text(lnum) abort
   return trim(getline(a:lnum)[3:]).' '.range
 endfunction
 
-function! coc#util#set_buf_lines(bufnr, lines) abort
-  let res = setbufline(a:bufnr, 1, a:lines)
-  if res == 0
-    silent call deletebufline(a:bufnr, len(a:lines) + 1, '$')
-  endif
-endfunction
-
 " get tabsize & expandtab option
 function! coc#util#get_format_opts(bufnr) abort
   if a:bufnr && bufloaded(a:bufnr)
@@ -965,23 +859,4 @@ function! coc#util#get_format_opts(bufnr) abort
   endif
   let tabsize = &shiftwidth == 0 ? &tabstop : &shiftwidth
   return [tabsize, &expandtab]
-endfunction
-
-function! coc#util#clearmatches(ids, ...)
-  let winid = get(a:, 1, win_getid())
-  call coc#highlight#clear_matches(winid, a:ids)
-endfunction
-
-" Character offset of current cursor
-function! coc#util#get_offset() abort
-  let offset = 0
-  let lnum = line('.')
-  for i in range(1, lnum)
-    if i == lnum
-      let offset += strchars(strpart(getline('.'), 0, col('.')-1))
-    else
-      let offset += strchars(getline(i)) + 1
-    endif
-  endfor
-  return offset
 endfunction

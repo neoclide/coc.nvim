@@ -517,3 +517,7 @@ function! coc#highlight#create_namespace(key) abort
   endif
   return s:namespace_map[a:key]
 endfunction
+
+function! coc#highlight#get_syntax_name(lnum, col)
+  return synIDattr(synIDtrans(synID(a:lnum,a:col,1)),"name")
+endfunction

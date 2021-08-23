@@ -122,6 +122,12 @@ function! s:funcs.command(command) abort
     call timer_start(0, {-> s:execute(a:command)})
   else
     execute a:command
+    let err = get(g:, 'errmsg', '')
+    " get error from python script run.
+    if !empty(err)
+      unlet g:errmsg
+      throw err
+    endif
   endif
 endfunction
 
