@@ -4551,6 +4551,12 @@ declare module 'coc.nvim' {
     export function on(event: 'InputChar', handler: (session: string, character: string, mode: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     export function on(event: 'PromptInsert', handler: (value: string, bufnr: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     export function on(event: 'Command', handler: (name: string) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
+
+    /**
+     * Fired after user insert character and made change to the buffer.
+     * Fired before TextChangedI & TextChanged event.
+     */
+    export function on(event: 'TextInsert', handler: (bufnr: number, info: InsertChange, character: string) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
   }
   // }}
 

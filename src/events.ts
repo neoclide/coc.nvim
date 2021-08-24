@@ -39,7 +39,7 @@ export type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents | Wind
   | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged'
   | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized'
   | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar'
-  | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet'
+  | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'TextInsert'
 
 export type MoveEvents = 'CursorMoved' | 'CursorMovedI'
 
@@ -78,10 +78,6 @@ class Events {
     return this._insertMode
   }
 
-  public get latestInsert(): LatestInsert | undefined {
-    return this._latestInsert ? Object.assign({}, this._latestInsert) : undefined
-  }
-
   public async fire(event: string, args: any[]): Promise<void> {
     let cbs = this.handlers.get(event)
     if (event == 'InsertEnter') {
@@ -90,16 +86,29 @@ class Events {
       this._insertMode = false
     } else if (!this._insertMode && (event == 'CursorHoldI' || event == 'CursorMovedI')) {
       this._insertMode = true
-      await this.fire('InsertEnter', [args[0]])
+      void this.fire('InsertEnter', [args[0]])
     } else if (this._insertMode && (event == 'CursorHold' || event == 'CursorMoved')) {
       this._insertMode = false
-      await this.fire('InsertLeave', [args[0]])
+      this.fire('InsertLeave', [args[0]]).logError()
     }
     if (event == 'MenuPopupChanged') {
       this._pumAlignTop = args[1] > args[0].row
     }
     if (event == 'InsertCharPre') {
       this._latestInsert = { bufnr: args[1], character: args[0], timestamp: Date.now() }
+    }
+    if (event == 'TextChangedI' || event == 'TextChangedP') {
+      if (this._latestInsert) {
+        let insert = this._latestInsert
+        this._latestInsert = undefined
+        if (insert.bufnr == args[0] && Date.now() - insert.timestamp < 200 && args[1].pre.length) {
+          let pre = args[1].pre
+          // make it fires after TextChangedI & TextChangedP
+          process.nextTick(() => {
+            void this.fire('TextInsert', [...args, pre[pre.length - 1]])
+          })
+        }
+      }
     }
     if (event == 'CursorMoved' || event == 'CursorMovedI') {
       let cursor = {
@@ -127,6 +136,7 @@ class Events {
   public on(event: MoveEvents, handler: (bufnr: number, cursor: [number, number]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: InsertChangeEvents, handler: (bufnr: number, info: InsertChange) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: WindowEvents, handler: (winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'TextInsert', handler: (bufnr: number, info: InsertChange, character: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'FloatBtnClick', handler: (bufnr: number, index: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TextChanged', handler: (bufnr: number, changedtick: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TaskExit', handler: (id: string, code: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
