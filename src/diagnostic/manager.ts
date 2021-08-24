@@ -96,6 +96,7 @@ export class DiagnosticManager implements Disposable {
     }))
     events.on('InsertLeave', async () => {
       if (this.config.refreshOnInsertMode) return
+      if (!this.autoRefresh) return
       this.refresh()
     }, null, this.disposables)
     events.on('BufEnter', async () => {
@@ -513,7 +514,7 @@ export class DiagnosticManager implements Disposable {
       messageTarget,
       enableHighlightLineNumber,
       highlighLimit: config.get<number>('highlighLimit', 1000),
-      autoRefresh: config.get<boolean>('autoRefresh', false),
+      autoRefresh: config.get<boolean>('autoRefresh', true),
       virtualTextSrcId: workspace.createNameSpace('diagnostic-virtualText'),
       checkCurrentLine: config.get<boolean>('checkCurrentLine', false),
       enableSign: workspace.env.sign && config.get<boolean>('enableSign', true),
@@ -586,7 +587,7 @@ export class DiagnosticManager implements Disposable {
    * Refresh diagnostics by uri or bufnr
    */
   public async refreshBuffer(uri: string | number, force = false): Promise<boolean> {
-    if (!this.autoRefresh || !force) return false
+    if (!force) return false
     let buf = this.buffers.getItem(uri)
     if (!buf) return false
     let diagnosticsMap = this.getDiagnostics(buf.uri)
