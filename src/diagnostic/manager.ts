@@ -598,7 +598,7 @@ export class DiagnosticManager implements Disposable {
    * Refresh diagnostics by uri or bufnr
    */
   public async refreshBuffer(uri: string | number, force = false): Promise<boolean> {
-    if (!this.autoRefresh && !force) return false
+    if (!this.autoRefresh || !force) return false
     let buf = this.buffers.getItem(uri)
     if (!buf) return false
     let diagnosticsMap = this.getDiagnostics(buf.uri)
