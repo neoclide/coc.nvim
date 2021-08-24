@@ -1,4 +1,4 @@
-import { Disposable, DocumentSymbol } from 'vscode-languageserver-protocol'
+import { Disposable } from 'vscode-languageserver-protocol'
 import { disposeAll } from './util'
 import { VimCompleteItem } from './types'
 import { equals } from './util/object'
@@ -64,9 +64,14 @@ class Events {
   private _cursor: CursorPosition
   private _latestInsert: LatestInsert
   private _insertMode = false
+  private _pumAlignTop = false
 
   public get cursor(): CursorPosition {
     return this._cursor
+  }
+
+  public get pumAlignTop(): boolean {
+    return this._pumAlignTop
   }
 
   public get insertMode(): boolean {
@@ -89,6 +94,9 @@ class Events {
     } else if (this._insertMode && (event == 'CursorHold' || event == 'CursorMoved')) {
       this._insertMode = false
       await this.fire('InsertLeave', [args[0]])
+    }
+    if (event == 'MenuPopupChanged') {
+      this._pumAlignTop = args[1] > args[0].row
     }
     if (event == 'InsertCharPre') {
       this._latestInsert = { bufnr: args[1], character: args[0], timestamp: Date.now() }

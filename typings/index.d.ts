@@ -4494,7 +4494,14 @@ declare module 'coc.nvim' {
    * Used for listen to events send from vim.
    */
   export namespace events {
+    /**
+     * Latest cursor position.
+     */
     export const cursor: CursorPosition
+    /**
+     * Latest pum position, is true when pum positioned above current line.
+     */
+    export const pumAlignTop: boolean
     /**
      * Insert mode detected by latest events.
      */
