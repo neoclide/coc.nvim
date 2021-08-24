@@ -194,7 +194,19 @@ export class DiagnosticManager implements Disposable {
     let level = severity ? severityLevel(severity) : 0
     for (let collection of collections) {
       let diagnostics = collection.get(uri)
-      if (level) diagnostics = diagnostics.filter(o => o.severity == level)
+      if (level) {
+        diagnostics = diagnostics.filter(o => o.severity == level)
+      } else {
+        let minLevel = this.config.level
+        if (minLevel && minLevel < DiagnosticSeverity.Hint) {
+          diagnostics = diagnostics.filter(o => {
+            if (o.severity && o.severity > minLevel) {
+              return false
+            }
+            return true
+          })
+        }
+      }
       let ranges = diagnostics.map(o => o.range)
       res.push(...ranges)
     }
@@ -218,7 +230,7 @@ export class DiagnosticManager implements Disposable {
       let items = collection.get(uri)
       if (!items) continue
       items = items.filter(d => {
-        if (level && level < DiagnosticSeverity.Hint && d.severity && d.severity > level) {
+        if (level && d.severity && d.severity > level) {
           return false
         }
         if (!showUnused && d.tags?.includes(DiagnosticTag.Unnecessary)) {

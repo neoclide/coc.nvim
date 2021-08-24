@@ -134,6 +134,8 @@ describe('diagnostic manager', () => {
       helper.updateConfiguration('diagnostic.level', 'hint')
       helper.updateConfiguration('diagnostic.showUnused', true)
       helper.updateConfiguration('diagnostic.showDeprecated', true)
+      let ranges = manager.getSortedRanges(doc.uri)
+      expect(ranges.length).toBe(3)
     })
   })
 
