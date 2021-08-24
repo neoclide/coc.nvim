@@ -1,7 +1,7 @@
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { Disposable } from 'vscode-languageserver-protocol'
-import events from '../events'
+import events, { BufEvents } from '../events'
 import { Documentation, parseDocuments } from '../markdown'
 import { disposeAll } from '../util'
 import { Mutex } from '../util/mutex'
@@ -52,13 +52,13 @@ export default class FloatFactory implements Disposable {
   private cursor: [number, number]
   private onCursorMoved: ((bufnr: number, cursor: [number, number]) => void) & { clear(): void }
   constructor(private nvim: Neovim) {
-    this.onCursorMoved = debounce(this._onCursorMoved.bind(this), 300)
+    this.onCursorMoved = debounce(this._onCursorMoved.bind(this), 100)
   }
 
   private bindEvents(autoHide: boolean, alignTop: boolean): void {
-    let eventNames = ['InsertLeave', 'InsertEnter', 'BufEnter']
+    let eventNames: BufEvents[] = ['InsertLeave', 'InsertEnter', 'BufEnter']
     for (let ev of eventNames) {
-      events.on(ev as any, bufnr => {
+      events.on(ev, bufnr => {
         if (bufnr == this._bufnr) return
         this.close()
       }, null, this.disposables)
@@ -100,9 +100,8 @@ export default class FloatFactory implements Disposable {
    *
    * @deprecated use show method instead
    */
-  public async create(docs: Documentation[], allowSelection = false, offsetX = 0): Promise<void> {
+  public async create(docs: Documentation[], _allowSelection = false, offsetX = 0): Promise<void> {
     await this.show(docs, {
-      modes: allowSelection ? ['n', 's'] : ['n'],
       offsetX
     })
   }
@@ -158,16 +157,16 @@ export default class FloatFactory implements Disposable {
     this.unbind()
     let arr = await this.nvim.call('coc#float#create_cursor_float', [this.winid, this._bufnr, lines, config])
     if (isVim) this.nvim.command('redraw', true)
-    if (!arr || arr.length == 0) {
-      this.winid = undefined
+    if (!arr || arr.length == 0 || this.closeTs > timestamp) {
+      let winid = arr && arr.length > 0 ? arr[2] : this.winid
+      if (winid) {
+        this.winid = 0
+        this.nvim.call('coc#float#close', [winid], true)
+        if (isVim) this.nvim.command('redraw', true)
+      }
       return
     }
     let [targetBufnr, cursor, winid, bufnr, alignTop] = arr as [number, [number, number], number, number, number]
-    if (this.closeTs > timestamp) {
-      this.winid = undefined
-      this.nvim.call('coc#float#close', [winid], true)
-      return
-    }
     this.winid = winid
     this._bufnr = bufnr
     this.targetBufnr = targetBufnr
@@ -183,7 +182,7 @@ export default class FloatFactory implements Disposable {
     this.closeTs = Date.now()
     this.unbind()
     if (winid) {
-      this.winid = undefined
+      this.winid = 0
       nvim.pauseNotification()
       nvim.call('coc#float#close', [winid], true)
       if (isVim) this.nvim.command('redraw', true)

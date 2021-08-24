@@ -76,7 +76,6 @@ describe('FloatFactory', () => {
         floatFactory.show(docs),
         floatFactory.show(docs)
       ])
-      await helper.wait(30)
       let count = 0
       let wins = await nvim.windows
       for (let win of wins) {
@@ -185,13 +184,13 @@ describe('FloatFactory', () => {
       }]
       await floatFactory.show(docs)
       await nvim.command(`edit foo`)
-      await helper.wait(100)
+      await helper.wait(50)
       let hasFloat = await nvim.call('coc#float#has_float')
       expect(hasFloat).toBe(0)
     })
 
     it('should hide on CursorMoved', async () => {
-      await helper.edit()
+      await helper.createDocument()
       await nvim.setLine('foo')
       let docs: Documentation[] = [{
         filetype: 'markdown',
@@ -202,7 +201,7 @@ describe('FloatFactory', () => {
       expect(hasFloat).toBe(1)
       await helper.wait(30)
       await nvim.input('$')
-      await helper.wait(500)
+      await helper.wait(200)
       hasFloat = await nvim.call('coc#float#has_float')
       expect(hasFloat).toBe(0)
     })
@@ -219,7 +218,7 @@ describe('FloatFactory', () => {
       await nvim.call('cursor', [1, 2])
       await helper.wait(10)
       await nvim.call('cursor', cursor)
-      await helper.wait(300)
+      await helper.wait(200)
       let hasFloat = await nvim.call('coc#float#has_float')
       expect(hasFloat).toBe(1)
     })
