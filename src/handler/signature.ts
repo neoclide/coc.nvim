@@ -20,6 +20,12 @@ interface SignatureConfig {
   hideOnChange: boolean
 }
 
+interface SignaturePosition {
+  bufnr: number
+  lnum: number
+  col: number
+}
+
 interface SignaturePart {
   text: string
   type: 'Label' | 'MoreMsg' | 'Normal'
@@ -29,7 +35,7 @@ export default class Signature {
   private timer: NodeJS.Timer
   private config: SignatureConfig
   private signatureFactory: FloatFactory
-  private signaturePosition: Position
+  private lastPosition: SignaturePosition | undefined
   private disposables: Disposable[] = []
   private tokenSource: CancellationTokenSource | undefined
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
@@ -38,41 +44,32 @@ export default class Signature {
     this.disposables.push(this.signatureFactory)
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
     events.on('CursorMovedI', async (bufnr, cursor) => {
+      let pos = this.lastPosition
+      if (!pos) return
       // avoid close signature for valid position.
-      if (!this.signaturePosition) return
-      let doc = workspace.getDocument(bufnr)
-      if (!doc) return
-      let { line, character } = this.signaturePosition
-      if (cursor[0] - 1 == line) {
-        let currline = doc.getline(cursor[0] - 1)
-        let col = byteLength(currline.slice(0, character)) + 1
-        if (cursor[1] >= col) return
-      }
+      if (pos.bufnr == bufnr && pos.lnum == cursor[0] && pos.col <= cursor[1]) return
       this.signatureFactory.close()
     }, null, this.disposables)
     events.on(['InsertLeave', 'BufEnter'], () => {
       this.tokenSource?.cancel()
     }, null, this.disposables)
-    events.on(['TextChangedI', 'TextChangedP'], async () => {
+    events.on('TextChangedI', () => {
       if (this.config.hideOnChange) {
         this.signatureFactory.close()
       }
     }, null, this.disposables)
-    let lastInsert: number
-    events.on('InsertCharPre', async () => {
-      lastInsert = Date.now()
-    }, null, this.disposables)
-    events.on('TextChangedI', async (bufnr, info) => {
+    events.on('TextInsert', async (bufnr, info, character) => {
       if (!this.config.trigger) return
-      if (!lastInsert || Date.now() - lastInsert > 300) return
-      lastInsert = null
-      let doc = workspace.getDocument(bufnr)
-      if (!doc || doc.isCommandLine || !doc.attached) return
-      let pre = info.pre[info.pre.length - 1]
-      if (!pre) return
-      if (!languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) return
+      let doc = this.getTextDocument(bufnr)
+      if (!doc || !languages.shouldTriggerSignatureHelp(doc.textDocument, character)) return
       await this._triggerSignatureHelp(doc, { line: info.lnum - 1, character: info.pre.length }, false)
     }, null, this.disposables)
+  }
+
+  private getTextDocument(bufnr: number): Document | undefined {
+    let doc = workspace.getDocument(bufnr)
+    if (!doc || doc.isCommandLine || !doc.attached) return
+    return doc
   }
 
   private loadConfiguration(e?: ConfigurationChangeEvent): void {
@@ -208,7 +205,8 @@ export default class Signature {
       }
       return p
     }, [])
-    this.signaturePosition = position
+    let content = doc.getline(position.line, false).slice(0, position.character)
+    this.lastPosition = { bufnr: doc.bufnr, lnum: position.line + 1, col: byteLength(content) + 1 }
     let { preferAbove, maxWindowHeight, maxWindowWidth } = this.config
     const excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
     await this.signatureFactory.show(docs, {

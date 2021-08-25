@@ -48,6 +48,26 @@ describe('signatureHelp', () => {
       expect(lines[2]).toMatch('my signature')
     })
 
+    it('should trigger by space', async () => {
+      let called = false
+      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
+        provideSignatureHelp: (_doc, _position) => {
+          called = true
+          return {
+            signatures: [SignatureInformation.create('foo()', 'my signature')],
+            activeParameter: null,
+            activeSignature: null
+          }
+        }
+      }, [' ']))
+      await helper.createDocument()
+      await nvim.input('i')
+      await helper.wait(30)
+      await nvim.input(' ')
+      await helper.wait(50)
+      expect(called).toBe(true)
+    })
+
     it('should show signature help with param label as string', async () => {
       disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
         provideSignatureHelp: (_doc, _position) => {
@@ -292,14 +312,13 @@ describe('signatureHelp', () => {
         }
       }, ['(', ',']))
       await helper.createDocument()
-      await nvim.input('foo')
-      await nvim.input('(')
-      await helper.wait(100)
-      let win = await helper.getFloat()
+      await nvim.input('ifoo(')
+      let winid = await helper.waitFloat()
       await nvim.input('x')
       await helper.wait(100)
-      let res = await nvim.call('coc#float#valid', [win.id])
+      let res = await nvim.call('coc#float#valid', [winid])
       expect(res).toBe(0)
+      configurations.updateUserConfig({ 'signature.hideOnTextChange': false })
     })
 
     it('should disable signature help trigger', async () => {
