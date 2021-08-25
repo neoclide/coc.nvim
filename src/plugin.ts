@@ -315,8 +315,7 @@ export default class Plugin extends EventEmitter {
       logger.info(`coc.nvim ${this.version} initialized with node: ${process.version} after ${Date.now() - s}ms`)
       this.emit('ready')
     } catch (e) {
-      console.error(`Error on initialize: ${e.stack}`)
-      logger.error(e.stack)
+      nvim.echoError(e)
     }
   }
 
