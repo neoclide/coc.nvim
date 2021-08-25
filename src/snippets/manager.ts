@@ -17,7 +17,8 @@ export class SnippetManager {
     workspace.onDidChangeTextDocument(async e => {
       let session = this.getSession(e.bufnr)
       if (session) {
-        await session.synchronizeUpdatedPlaceholders(e.contentChanges[0])
+        let firstLine = e.originalLines[e.contentChanges[0].range.start.line] || ''
+        await session.synchronizeUpdatedPlaceholders(e.contentChanges[0], firstLine)
       }
     }, null, this.disposables)
 

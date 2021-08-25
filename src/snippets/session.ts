@@ -3,13 +3,14 @@ import { FormattingOptions } from 'jsonc-parser'
 import { Emitter, Event, InsertTextMode, Range, TextDocumentContentChangeEvent, TextEdit } from 'vscode-languageserver-protocol'
 import completion from '../completion'
 import Document from '../model/document'
-import { comparePosition, positionInRange, rangeInRange } from '../util/position'
-import { byteLength } from '../util/string'
+import { comparePosition, isSingleLine, positionInRange, rangeInRange } from '../util/position'
+import { byteLength, characterIndex } from '../util/string'
 import workspace from '../workspace'
 import window from '../window'
 import events from '../events'
 import { CocSnippet, CocSnippetPlaceholder } from "./snippet"
 import { SnippetVariableResolver } from "./variableResolve"
+import { singleLineEdit } from '../util/textedit'
 const logger = require('../util/logger')('snippets-session')
 
 export class SnippetSession {
@@ -23,15 +24,14 @@ export class SnippetSession {
   public readonly onCancel: Event<void> = this._onCancelEvent.event
 
   constructor(private nvim: Neovim, public readonly bufnr: number) {
-    let config = workspace.getConfiguration('coc.preferences')
     let suggest = workspace.getConfiguration('suggest')
-    this.preferComplete = config.get<boolean>('preferCompleteThanJumpPlaceholder', suggest.get('preferCompleteThanJumpPlaceholder', false))
+    this.preferComplete = suggest.get('preferCompleteThanJumpPlaceholder', false)
   }
 
   public async start(snippetString: string, select = true, range?: Range, insertTextMode?: InsertTextMode): Promise<boolean> {
     const { document } = this
     if (!document || !document.attached) return false
-    events.fire('InsertSnippet', []).logError()
+    void events.fire('InsertSnippet', [])
     if (!range) {
       let position = await window.getCursorPosition()
       range = Range.create(position, position)
@@ -124,13 +124,37 @@ export class SnippetSession {
     await this.selectPlaceholder(prev)
   }
 
-  public async synchronizeUpdatedPlaceholders(change: TextDocumentContentChangeEvent): Promise<void> {
+  public async synchronizeUpdatedPlaceholders(change: TextDocumentContentChangeEvent, changedLine?: string): Promise<void> {
     if (!this.isActive || !this.document || this.applying) return
     let edit: TextEdit = { range: (change as any).range, newText: change.text }
     let { snippet } = this
     // change outside range
     let adjusted = snippet.adjustTextEdit(edit)
     if (adjusted) return
+    let currRange = this.placeholder.range
+    if (changedLine != null
+      && singleLineEdit(edit)
+      && !rangeInRange(edit.range, currRange)
+      && isSingleLine(currRange)
+      && changedLine.slice(currRange.start.character, currRange.end.character) == this.placeholder.value
+      && events.cursor
+      && events.cursor.bufnr == this.bufnr
+      && events.cursor.lnum == edit.range.start.line + 1) {
+      let col = events.cursor.col
+      // split changedLine with currRange
+      let preText = changedLine.slice(0, currRange.start.character)
+      let postText = changedLine.slice(currRange.end.character)
+      let newLine = this.document.getline(edit.range.start.line)
+      if (newLine.startsWith(preText) && newLine.endsWith(postText)) {
+        let endCharacter = newLine.length - postText.length
+        let cursorIdx = characterIndex(newLine, col - 1)
+        // make sure cursor in range
+        if (cursorIdx >= preText.length && cursorIdx <= endCharacter) {
+          let newText = newLine.slice(preText.length, endCharacter)
+          edit = TextEdit.replace(currRange, newText)
+        }
+      }
+    }
     if (comparePosition(edit.range.start, snippet.range.end) > 0) {
       if (!edit.newText) return
       logger.info('Content change after snippet, cancelling snippet session')

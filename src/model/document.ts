@@ -9,7 +9,7 @@ import { diffLines, getChange } from '../util/diff'
 import { disposeAll, getUri, wait, waitNextTick } from '../util/index'
 import { equals } from '../util/object'
 import { emptyRange } from '../util/position'
-import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
+import { byteIndex, byteLength, byteSlice } from '../util/string'
 import { Chars } from './chars'
 import { LinesTextDocument } from './textdocument'
 const logger = require('../util/logger')('model-document')
@@ -245,23 +245,13 @@ export default class Document {
   }
 
   private _fireContentChanges(): void {
-    let { cursor, latestInsert } = events
+    let { cursor } = events
     if (!this.dirty) return
-    let { textDocument } = this
+    let textDocument = this._textDocument
     let endOffset = null
     // consider cursor position.
     if (cursor && cursor.bufnr == this.bufnr) {
       endOffset = this.getEndOffset(cursor.lnum, cursor.col, cursor.insert)
-      // FIXME there could be multiple characters inserted after cursor, but can't handle for now.
-      if (latestInsert && latestInsert.bufnr == this.bufnr && Date.now() - latestInsert.timestamp < 200) {
-        let line = this.getline(cursor.lnum - 1, true)
-        let idx = characterIndex(line, cursor.col - 1)
-        let next = line[idx]
-        // latest insert character is next character, caused by extension like coc-pairs
-        if (next != line[idx - 1] && next == latestInsert.character) {
-          endOffset = endOffset - 1
-        }
-      }
     }
     let content = this.getDocumentContent()
     let change = getChange(textDocument.getText(), content, endOffset)
@@ -278,6 +268,7 @@ export default class Document {
     this._onDocumentChange.fire({
       bufnr: this.bufnr,
       original,
+      originalLines: textDocument.lines,
       textDocument: { version: this.version, uri: this.uri },
       contentChanges: changes
     })

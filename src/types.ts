@@ -359,6 +359,10 @@ export interface DidChangeTextDocumentParams {
    * Original content before change
    */
   original: string
+  /**
+   * Changed lines
+   */
+  originalLines: ReadonlyArray<string>
 }
 // }}
 

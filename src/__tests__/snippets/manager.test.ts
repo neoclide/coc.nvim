@@ -225,10 +225,23 @@ describe('snippet provider', () => {
       expect(res).toBe(true)
       await nvim.input('abc')
       await nvim.input('<esc>')
-      await helper.wait(200)
+      await helper.wait(50)
       await doc.patchChange()
       let line = await nvim.line
       expect(line).toBe('abcemptyabc')
+    })
+
+    it('should fix edit to current placeholder', async () => {
+      await nvim.command('startinsert')
+      let res = await snippetManager.insertSnippet('()$1$0', true)
+      expect(res).toBe(true)
+      await nvim.input('(')
+      await nvim.input(')')
+      await nvim.input('<Left>')
+      await helper.wait(50)
+      await doc.patchChange()
+      await helper.wait(200)
+      expect(snippetManager.session).toBeDefined()
     })
   })
 
