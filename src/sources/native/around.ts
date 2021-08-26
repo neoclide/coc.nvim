@@ -1,8 +1,8 @@
 import { Disposable } from 'vscode-languageserver-protocol'
-import Source from '../model/source'
-import { CompleteOption, CompleteResult, ISource } from '../types'
-import workspace from '../workspace'
-const logger = require('../util/logger')('source-around')
+import Source from '../source'
+import { CompleteOption, CompleteResult, ISource } from '../../types'
+import workspace from '../../workspace'
+const logger = require('../../util/logger')('sources-around')
 
 export default class Around extends Source {
   constructor() {

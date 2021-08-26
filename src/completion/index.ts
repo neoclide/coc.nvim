@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import events, { PopupChangeEvent, InsertChange } from '../events'
 import Document from '../model/document'
 import sources from '../sources'
@@ -417,7 +417,7 @@ export class Completion implements Disposable {
     let timestamp = this.insertCharTs
     let insertLeaveTs = this.insertLeaveTs
     let source = new CancellationTokenSource()
-    await sources.doCompleteResolve(resolvedItem, source.token)
+    await this.doCompleteResolve(resolvedItem, source.token)
     source.dispose()
     // Wait possible TextChangedI
     await wait(50)
@@ -425,7 +425,26 @@ export class Completion implements Disposable {
     let [visible, lnum, pre] = await this.nvim.eval(`[pumvisible(),line('.'),strpart(getline('.'), 0, col('.') - 1)]`) as [number, number, string]
     if (visible || lnum != opt.linenr || this.activated || !pre.endsWith(resolvedItem.word)) return
     await document.patchChange(true)
-    await sources.doCompleteDone(resolvedItem, opt)
+    await this.doCompleteDone(resolvedItem, opt)
+  }
+
+  private async doCompleteResolve(item: ExtendedCompleteItem, token: CancellationToken): Promise<void> {
+    let source = sources.getSource(item.source)
+    if (source && typeof source.onCompleteResolve == 'function') {
+      try {
+        await Promise.resolve(source.onCompleteResolve(item, token))
+      } catch (e) {
+        logger.error('Error on complete resolve:', e.stack)
+      }
+    }
+  }
+
+  public async doCompleteDone(item: ExtendedCompleteItem, opt: CompleteOption): Promise<void> {
+    let data = JSON.parse(item.user_data)
+    let source = sources.getSource(data.source)
+    if (source && typeof source.onCompleteDone === 'function') {
+      await Promise.resolve(source.onCompleteDone(item, opt))
+    }
   }
 
   private async onInsertLeave(): Promise<void> {
@@ -490,7 +509,7 @@ export class Completion implements Disposable {
     }
     let source = this.resolveTokenSource = new CancellationTokenSource()
     let { token } = source
-    await sources.doCompleteResolve(resolvedItem, token)
+    await this.doCompleteResolve(resolvedItem, token)
     if (this.resolveTokenSource == source) {
       this.resolveTokenSource = null
     }

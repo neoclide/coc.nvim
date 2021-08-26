@@ -1,22 +1,22 @@
-import fastDiff from 'fast-diff'
 import { Neovim } from '@chemzqm/neovim'
+import fastDiff from 'fast-diff'
 import fs from 'fs'
 import path from 'path'
 import util from 'util'
-import { Disposable, CancellationToken } from 'vscode-languageserver-protocol'
-import events from './events'
-import extensions from './extensions'
-import Source from './model/source'
-import VimSource from './model/source-vim'
-import { CompleteOption, ISource, SourceStat, SourceType, ExtendedCompleteItem, SourceConfig } from './types'
-import { disposeAll, getUri } from './util'
-import { statAsync } from './util/fs'
-import { score } from './util/match'
-import workspace from './workspace'
-import window from './window'
-import { byteSlice } from './util/string'
-import { isEmpty } from './util/object'
-const logger = require('./util/logger')('sources')
+import { Disposable } from 'vscode-languageserver-protocol'
+import events from '../events'
+import extensions from '../extensions'
+import { CompleteOption, ExtendedCompleteItem, ISource, SourceConfig, SourceStat, SourceType } from '../types'
+import { disposeAll, getUri } from '../util'
+import { statAsync } from '../util/fs'
+import { score } from '../util/match'
+import { isEmpty } from '../util/object'
+import { byteSlice } from '../util/string'
+import window from '../window'
+import workspace from '../workspace'
+import Source from './source'
+import VimSource from './source-vim'
+const logger = require('../util/logger')('sources')
 
 export class Sources {
   private sourceMap: Map<string, ISource> = new Map()
@@ -29,9 +29,9 @@ export class Sources {
 
   private createNativeSources(): void {
     try {
-      this.disposables.push((require('./source/around')).regist(this.sourceMap))
-      this.disposables.push((require('./source/buffer')).regist(this.sourceMap))
-      this.disposables.push((require('./source/file')).regist(this.sourceMap))
+      this.disposables.push((require('./native/around')).regist(this.sourceMap))
+      this.disposables.push((require('./native/buffer')).regist(this.sourceMap))
+      this.disposables.push((require('./native/file')).regist(this.sourceMap))
     } catch (e) {
       console.error('Create source error:' + e.message)
     }
@@ -184,25 +184,6 @@ export class Sources {
     return this.sourceMap.get(name) || null
   }
 
-  public async doCompleteResolve(item: ExtendedCompleteItem, token: CancellationToken): Promise<void> {
-    let source = this.getSource(item.source)
-    if (source && typeof source.onCompleteResolve == 'function') {
-      try {
-        await Promise.resolve(source.onCompleteResolve(item, token))
-      } catch (e) {
-        logger.error('Error on complete resolve:', e.stack)
-      }
-    }
-  }
-
-  public async doCompleteDone(item: ExtendedCompleteItem, opt: CompleteOption): Promise<void> {
-    let data = JSON.parse(item.user_data)
-    let source = this.getSource(data.source)
-    if (source && typeof source.onCompleteDone === 'function') {
-      await Promise.resolve(source.onCompleteDone(item, opt))
-    }
-  }
-
   public shouldCommit(item: ExtendedCompleteItem, commitCharacter: string): boolean {
     if (!item || !item.source) return false
     let source = this.getSource(item.source)
@@ -334,8 +315,7 @@ export class Sources {
   private onDocumentEnter(bufnr: number): void {
     let { sources } = this
     for (let s of sources) {
-      if (!s.enable) continue
-      if (typeof s.onEnter == 'function') {
+      if (s.enable && typeof s.onEnter == 'function') {
         s.onEnter(bufnr)
       }
     }
@@ -343,8 +323,7 @@ export class Sources {
 
   public createSource(config: SourceConfig): Disposable {
     if (!config.name || !config.doComplete) {
-      console.error(`name and doComplete required for createSource`)
-      return
+      throw new Error(`name and doComplete required for createSource`)
     }
     let source = new Source(Object.assign({ sourceType: SourceType.Service } as any, config))
     return this.addSource(source)

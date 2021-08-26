@@ -3,12 +3,12 @@ import minimatch from 'minimatch'
 import path from 'path'
 import util from 'util'
 import { Disposable } from 'vscode-languageserver-protocol'
-import Source from '../model/source'
-import { CompleteOption, CompleteResult, ISource, VimCompleteItem } from '../types'
-import { statAsync } from '../util/fs'
-import { byteSlice } from '../util/string'
-import workspace from '../workspace'
-const logger = require('../util/logger')('source-file')
+import Source from '../source'
+import { CompleteOption, CompleteResult, ISource, VimCompleteItem } from '../../types'
+import { statAsync } from '../../util/fs'
+import { byteSlice } from '../../util/string'
+import workspace from '../../workspace'
+const logger = require('../../util/logger')('sources-file')
 const pathRe = /(?:\.{0,2}|~|\$HOME|([\w]+)|[a-zA-Z]:|)(\/|\\)(?:[\w.@()-]+(\/|\\))*(?:[\w.@()-])*$/
 
 interface PathOption {

@@ -1,8 +1,8 @@
 import { Disposable } from 'vscode-languageserver-protocol'
-import Source from '../model/source'
-import { CompleteOption, CompleteResult, ISource } from '../types'
-import workspace from '../workspace'
-const logger = require('../util/logger')('source-buffer')
+import Source from '../source'
+import { CompleteOption, CompleteResult, ISource } from '../../types'
+import workspace from '../../workspace'
+const logger = require('../../util/logger')('sources-buffer')
 
 export default class Buffer extends Source {
   constructor() {

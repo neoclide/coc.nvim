@@ -5,7 +5,7 @@ import { byteSlice } from '../util/string'
 import workspace from '../workspace'
 import window from '../window'
 import Source from './source'
-const logger = require('../util/logger')('model-source-vim')
+const logger = require('../util/logger')('sources-source-vim')
 
 export default class VimSource extends Source {
 
@@ -35,8 +35,7 @@ export default class VimSource extends Source {
     await this.callOptinalFunc('refresh', [])
   }
 
-  public async onCompleteDone(item: ExtendedCompleteItem, opt: CompleteOption): Promise<void> {
-    await super.onCompleteDone(item, opt)
+  public async onCompleteDone(item: ExtendedCompleteItem, _opt: CompleteOption): Promise<void> {
     if (!this.optionalFns.includes('on_complete')) return
     await this.callOptinalFunc('on_complete', [item])
   }

@@ -3,7 +3,7 @@ import { CancellationToken } from 'vscode-languageserver-protocol'
 import { CompleteOption, CompleteResult, ISource, SourceConfig, SourceType, VimCompleteItem } from '../types'
 import { byteSlice } from '../util/string'
 import workspace from '../workspace'
-const logger = require('../util/logger')('model-source')
+const logger = require('../util/logger')('sources-source')
 
 export default class Source implements ISource {
   public readonly name: string
@@ -148,23 +148,23 @@ export default class Source implements ISource {
       }
     }
     let fn = this.defaults['shouldComplete']
-    if (fn) return await Promise.resolve(fn.call(this, opt))
+    if (typeof fn === 'function') return await Promise.resolve(fn.call(this, opt))
     return true
   }
 
   public async refresh(): Promise<void> {
     let fn = this.defaults['refresh']
-    if (fn) await Promise.resolve(fn.call(this))
+    if (typeof fn === 'function') await Promise.resolve(fn.call(this))
   }
 
   public async onCompleteDone(item: VimCompleteItem, opt: CompleteOption): Promise<void> {
     let fn = this.defaults['onCompleteDone']
-    if (fn) await Promise.resolve(fn.call(this, item, opt))
+    if (typeof fn === 'function') await Promise.resolve(fn.call(this, item, opt))
   }
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> {
     let fn = this.defaults['doComplete']
-    if (fn) return await Promise.resolve(fn.call(this, opt, token))
+    if (typeof fn === 'function') return await Promise.resolve(fn.call(this, opt, token))
     return null
   }
 }
