@@ -45,7 +45,6 @@ const FIRST_TIMEOUT = 500
 export default class Complete {
   // identify this complete
   public results: CompleteResult[] = []
-  public readonly recentScores: RecentScore
   private completing: Set<string> = new Set()
   private _canceled = false
   private localBonus: Map<string, number>
@@ -54,13 +53,9 @@ export default class Complete {
   public readonly onDidComplete: Event<void> = this._onDidComplete.event
   constructor(public option: CompleteOption,
     private document: Document,
-    recentScores: RecentScore | null,
     private config: CompleteConfig,
     private sources: ISource[],
     private nvim: Neovim) {
-    Object.defineProperty(this, 'recentScores', {
-      get: (): RecentScore => recentScores || {}
-    })
   }
 
   public get isCompleting(): boolean {
@@ -247,12 +242,7 @@ export default class Complete {
           if (item.signature) user_data.signature = item.signature
           item.user_data = JSON.stringify(user_data)
           item.source = source
-          let recentScore = this.recentScores[`${bufnr}|${word}`]
-          if (recentScore && now - recentScore < 60 * 1000) {
-            item.recentScore = recentScore
-          } else {
-            item.recentScore = 0
-          }
+          item.recentScore = 0
         }
         item.priority = priority
         item.abbr = item.abbr || item.word

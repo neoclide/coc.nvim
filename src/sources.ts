@@ -15,6 +15,7 @@ import { score } from './util/match'
 import workspace from './workspace'
 import window from './window'
 import { byteSlice } from './util/string'
+import { isEmpty } from './util/object'
 const logger = require('./util/logger')('sources')
 
 export class Sources {
@@ -351,6 +352,7 @@ export class Sources {
 
   private disabledByLanguageId(source: ISource, languageId: string): boolean {
     let map = workspace.env.disabledSources
+    if (isEmpty(map)) return false
     let list = map ? map[languageId] : []
     return Array.isArray(list) && list.includes(source.name)
   }

@@ -31,7 +31,6 @@ export class Completion implements Disposable {
   private lastInsert?: LastInsert
   private disposables: Disposable[] = []
   private complete: Complete | null = null
-  private recentScores: RecentScore = {}
   private resolveTokenSource: CancellationTokenSource
   private pretext: string
   private changedTick = 0
@@ -109,11 +108,6 @@ export class Completion implements Disposable {
 
   private get isCommandLine(): boolean {
     return this.document?.uri.endsWith('%5BCommand%20Line%5D')
-  }
-
-  private addRecent(word: string, bufnr: number): void {
-    if (!word) return
-    this.recentScores[`${bufnr}|${word}`] = Date.now()
   }
 
   public get isActivated(): boolean {
@@ -274,7 +268,7 @@ export class Completion implements Disposable {
     await doc.patchChange()
     // document get changed, not complete
     if (doc.changedtick != option.changedtick) return
-    let complete = new Complete(option, doc, this.recentScores, config, arr, nvim)
+    let complete = new Complete(option, doc, config, arr, nvim)
     this.start(complete)
     let items = await this.complete.doComplete()
     if (complete.isCanceled) return
@@ -430,7 +424,6 @@ export class Completion implements Disposable {
     if (this.insertCharTs != timestamp || this.insertLeaveTs != insertLeaveTs) return
     let [visible, lnum, pre] = await this.nvim.eval(`[pumvisible(),line('.'),strpart(getline('.'), 0, col('.') - 1)]`) as [number, number, string]
     if (visible || lnum != opt.linenr || this.activated || !pre.endsWith(resolvedItem.word)) return
-    this.addRecent(resolvedItem.word, document.bufnr)
     await document.patchChange(true)
     await sources.doCompleteDone(resolvedItem, opt)
   }

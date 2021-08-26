@@ -1,5 +1,11 @@
 import * as Is from './is'
 
+export function isEmpty(obj: object | null | undefined): boolean {
+  if (!obj) return true
+  if (Array.isArray(obj)) return obj.length == 0
+  return Object.keys(obj).length == 0
+}
+
 export function deepClone<T>(obj: T): T {
   if (!obj || typeof obj !== 'object') {
     return obj
