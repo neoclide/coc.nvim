@@ -9,6 +9,7 @@
   "scripts": {
     "clean": "rimraf lib build",
     "lint": "eslint . --ext .ts --quiet",
+    "lint:typecheck": "tsc -p tsconfig.json",
     "build": "node esbuild.js",
     "test": "./node_modules/.bin/jest --forceExit",
     "test-build": "./node_modules/.bin/jest --coverage --forceExit",
@@ -35,7 +36,7 @@
     "projects": [
       "<rootDir>"
     ],
-    "maxWorkers": 2,
+    "maxWorkers": 3,
     "watchman": false,
     "clearMocks": true,
     "globalSetup": "./jest.js",
@@ -87,16 +88,15 @@
   },
   "dependencies": {
     "@chemzqm/neovim": "^5.3.5",
-    "ansi-styles": "^5.0.0",
     "bytes": "^3.1.0",
+    "tslib": "^2.0.3",
+    "ansi-styles": "^5.0.0",
     "cli-table": "^0.3.4",
-    "content-disposition": "^0.5.3",
     "debounce": "^1.2.0",
-    "decompress-response": "^6.0.0",
     "fast-diff": "^1.2.0",
     "fb-watchman": "^2.0.1",
-    "follow-redirects": "^1.13.0",
     "fs-extra": "^9.0.1",
+    "follow-redirects": "^1.13.0",
     "http-proxy-agent": "^4.0.1",
     "https-proxy-agent": "^5.0.0",
     "isuri": "^2.0.3",
@@ -106,17 +106,17 @@
     "minimatch": "^3.0.4",
     "rc": "^1.2.8",
     "semver": "^7.3.2",
-    "string.prototype.matchall": "^4.0.3",
     "strip-ansi": "^6.0.0",
     "tar": "^6.1.7",
-    "tslib": "^2.0.3",
     "unzip-stream": "^0.3.1",
+    "content-disposition": "^0.5.3",
+    "decompress-response": "^6.0.0",
     "uuid": "^7.0.3",
+    "which": "^2.0.2",
+    "vscode-uri": "^2.1.2",
     "vscode-jsonrpc": "^6.0.0",
     "vscode-languageserver-protocol": "^3.16.0",
     "vscode-languageserver-textdocument": "^1.0.1",
-    "vscode-languageserver-types": "^3.16.0",
-    "vscode-uri": "^2.1.2",
-    "which": "^2.0.2"
+    "vscode-languageserver-types": "^3.16.0"
   }
 }

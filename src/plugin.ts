@@ -2,7 +2,6 @@ import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
 import fs from 'fs'
 import path from 'path'
-import matchAll from 'string.prototype.matchall'
 import { CallHierarchyItem, CodeAction, CodeActionKind } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commandManager from './commands'
@@ -21,7 +20,6 @@ import { OutputChannel, PatternType } from './types'
 import window from './window'
 import workspace from './workspace'
 const logger = require('./util/logger')('plugin')
-matchAll.shim()
 
 declare const REVISION
 
