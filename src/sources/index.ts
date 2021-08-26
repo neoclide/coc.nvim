@@ -3,9 +3,10 @@ import fastDiff from 'fast-diff'
 import fs from 'fs'
 import path from 'path'
 import util from 'util'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { CompletionItemKind, Disposable, DocumentSelector } from 'vscode-languageserver-protocol'
 import events from '../events'
 import extensions from '../extensions'
+import { CompletionItemProvider } from '../provider'
 import { CompleteOption, ExtendedCompleteItem, ISource, SourceConfig, SourceStat, SourceType } from '../types'
 import { disposeAll, getUri } from '../util'
 import { statAsync } from '../util/fs'
@@ -15,6 +16,7 @@ import { byteSlice } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import Source from './source'
+import LanguageSource, { CompleteConfig } from './source-language'
 import VimSource from './source-vim'
 const logger = require('../util/logger')('sources')
 
@@ -22,6 +24,78 @@ export class Sources {
   private sourceMap: Map<string, ISource> = new Map()
   private disposables: Disposable[] = []
   private remoteSourcePaths: string[] = []
+  private completeConfig: CompleteConfig
+
+  public init(): void {
+    this.loadCompleteConfig()
+    workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('suggest')) {
+        this.loadCompleteConfig()
+      }
+    }, null, this.disposables)
+    this.createNativeSources()
+    this.createRemoteSources()
+    events.on('BufEnter', this.onDocumentEnter, this, this.disposables)
+    workspace.watchOption('runtimepath', async (oldValue, newValue) => {
+      let result = fastDiff(oldValue, newValue)
+      for (let [changeType, value] of result) {
+        if (changeType == 1) {
+          let paths = value.replace(/,$/, '').split(',')
+          for (let p of paths) {
+            if (p) await this.createVimSources(p)
+          }
+        }
+      }
+    }, this.disposables)
+  }
+
+  private loadCompleteConfig(): void {
+    let suggest = workspace.getConfiguration('suggest')
+    let labels = suggest.get<{ [key: string]: string }>('completionItemKindLabels', {})
+    let map = new Map([
+      [CompletionItemKind.Text, labels['text'] || 'v'],
+      [CompletionItemKind.Method, labels['method'] || 'f'],
+      [CompletionItemKind.Function, labels['function'] || 'f'],
+      [CompletionItemKind.Constructor, typeof labels['constructor'] == 'function' ? 'f' : labels['con' + 'structor']],
+      [CompletionItemKind.Field, labels['field'] || 'm'],
+      [CompletionItemKind.Variable, labels['variable'] || 'v'],
+      [CompletionItemKind.Class, labels['class'] || 'C'],
+      [CompletionItemKind.Interface, labels['interface'] || 'I'],
+      [CompletionItemKind.Module, labels['module'] || 'M'],
+      [CompletionItemKind.Property, labels['property'] || 'm'],
+      [CompletionItemKind.Unit, labels['unit'] || 'U'],
+      [CompletionItemKind.Value, labels['value'] || 'v'],
+      [CompletionItemKind.Enum, labels['enum'] || 'E'],
+      [CompletionItemKind.Keyword, labels['keyword'] || 'k'],
+      [CompletionItemKind.Snippet, labels['snippet'] || 'S'],
+      [CompletionItemKind.Color, labels['color'] || 'v'],
+      [CompletionItemKind.File, labels['file'] || 'F'],
+      [CompletionItemKind.Reference, labels['reference'] || 'r'],
+      [CompletionItemKind.Folder, labels['folder'] || 'F'],
+      [CompletionItemKind.EnumMember, labels['enumMember'] || 'm'],
+      [CompletionItemKind.Constant, labels['constant'] || 'v'],
+      [CompletionItemKind.Struct, labels['struct'] || 'S'],
+      [CompletionItemKind.Event, labels['event'] || 'E'],
+      [CompletionItemKind.Operator, labels['operator'] || 'O'],
+      [CompletionItemKind.TypeParameter, labels['typeParameter'] || 'T'],
+    ])
+    let floatEnable = suggest.get<boolean>('floatEnable', true)
+    let detailField = suggest.get<string>('detailField', 'preview')
+    if (detailField == 'preview' && (!floatEnable || !workspace.floatSupported)) {
+      detailField = 'menu'
+    }
+    this.completeConfig = Object.assign(this.completeConfig || {}, {
+      labels: map,
+      floatEnable,
+      detailField,
+      defaultKindText: labels['default'] || '',
+      priority: suggest.get<number>('languageSourcePriority', 99),
+      echodocSupport: suggest.get<boolean>('echodocSupport', false),
+      snippetsSupport: suggest.get<boolean>('snippetsSupport', true),
+      detailMaxLength: suggest.get<number>('detailMaxLength', 100),
+      invalidInsertCharacters: suggest.get<string[]>('invalidInsertCharacters', ['(', '<', '{', '[', '\r', '\n']),
+    })
+  }
 
   private get nvim(): Neovim {
     return workspace.nvim
@@ -34,6 +108,33 @@ export class Sources {
       this.disposables.push((require('./native/file')).regist(this.sourceMap))
     } catch (e) {
       console.error('Create source error:' + e.message)
+    }
+  }
+
+  public createLanguageSource(
+    name: string,
+    shortcut: string,
+    selector: DocumentSelector | null,
+    provider: CompletionItemProvider,
+    triggerCharacters: string[],
+    priority?: number | undefined,
+    allCommitCharacters?: string[]
+  ): Disposable {
+    let source = new LanguageSource(
+      name,
+      shortcut,
+      provider,
+      selector,
+      triggerCharacters || [],
+      allCommitCharacters || [],
+      priority,
+      this.completeConfig)
+    logger.debug('created service source', name)
+    this.sourceMap.set(name, source)
+    return {
+      dispose: () => {
+        this.sourceMap.delete(name)
+      }
     }
   }
 
@@ -148,23 +249,6 @@ export class Sources {
       if (files.length == 0) return
       await Promise.all(files.map(p => this.createVimSourceExtension(this.nvim, p)))
     }
-  }
-
-  public init(): void {
-    this.createNativeSources()
-    this.createRemoteSources()
-    events.on('BufEnter', this.onDocumentEnter, this, this.disposables)
-    workspace.watchOption('runtimepath', async (oldValue, newValue) => {
-      let result = fastDiff(oldValue, newValue)
-      for (let [changeType, value] of result) {
-        if (changeType == 1) {
-          let paths = value.replace(/,$/, '').split(',')
-          for (let p of paths) {
-            if (p) await this.createVimSources(p)
-          }
-        }
-      }
-    }, this.disposables)
   }
 
   public get names(): string[] {

@@ -11,7 +11,6 @@ import diagnosticManager from './diagnostic/manager'
 import events from './events'
 import extensions from './extensions'
 import Handler from './handler'
-import languages from './languages'
 import listManager from './list/manager'
 import services from './services'
 import snippetManager from './snippets/manager'
@@ -292,7 +291,6 @@ export default class Plugin extends EventEmitter {
     try {
       await extensions.init()
       await workspace.init()
-      languages.init()
       snippetManager.init()
       completion.init()
       diagnosticManager.init()
