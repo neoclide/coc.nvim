@@ -2140,7 +2140,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	configuration.
 	4. The buffer is used for command line window.
 
-"rename"						*CocAction'(rename)*
+"rename"						*CocAction('rename')*
 
 	Rename the symbol under the cursor position, user will be prompted for
 	a new name.
@@ -2266,7 +2266,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Deactivate extension of {id}.
 
-"pickColor"						*CocAction'(pickColor)*
+"pickColor"						*CocAction('pickColor')*
 
 	Change the color at the current cursor position.
 
