@@ -9,15 +9,15 @@ on:
       - master
 
 jobs:
-  test:  
+  test:
     timeout-minutes: 60
     runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
-        os:  
-          - "ubuntu-latest"  
+        os:
+          - "ubuntu-latest"
         node:
           - "16"
           - "14"
@@ -35,7 +35,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2.3.4
         with:
-          fetch-depth: 2  
+          fetch-depth: 2
 
       - name: Setup Node.js ${{ matrix.node }}
         uses: actions/setup-node@v2.4.0
@@ -45,11 +45,8 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          yarn global add typescript  
+          yarn global add typescript
           yarn install --frozen-lockfile
-
-      - name: yarn lint
-        run: yarn lint  
 
       - if: matrix.os == 'macos-latest'
         name: yarn test on macOS
@@ -71,7 +68,7 @@ jobs:
           yarn test-build --maxWorkers=2
 
       - name: Codecov
-        uses: codecov/codecov-action@v2.0.2  
+        uses: codecov/codecov-action@v2.0.2
         if: ${{ matrix.ENABLE_CODE_COVERAGE }}
         with:
           fail_ci_if_error: true
