@@ -299,16 +299,16 @@ export class Completion implements Disposable {
   }
 
   private async onTextChangedP(bufnr: number, info: InsertChange): Promise<void> {
-    let { option, document } = this
+    let { option, document, nvim } = this
     let pretext = this.pretext = info.pre
     // avoid trigger filter on pumvisible
     if (!option || option.bufnr != bufnr || info.changedtick == this.changedTick) return
     let hasInsert = this.latestInsert != null
     this.lastInsert = null
     if (info.pre.match(/^\s*/)[0] !== option.line.match(/^\s*/)[0]) {
-      // Can't handle indent change
-      logger.warn('Complete stopped by indent change.')
-      this.stop(false)
+      // indent changed, should restart completion
+      this.stop()
+      nvim.call('coc#start', [], true)
       return
     }
     // not handle when not triggered by character insert
