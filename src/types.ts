@@ -415,10 +415,6 @@ export interface CompleteResult {
   priority?: number
 }
 
-export interface RecentScore {
-  [index: string]: number
-}
-
 // option on complete & should_complete
 export interface CompleteOption {
   readonly bufnr: number
