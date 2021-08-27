@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Emitter, Event, Position } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
-import { CompleteOption, VimCompleteItem, CompleteResult, ExtendedCompleteItem, ISource, RecentScore } from '../types'
+import { CompleteOption, VimCompleteItem, CompleteResult, ExtendedCompleteItem, ISource } from '../types'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { byteSlice, characterIndex } from '../util/string'
 import { matchScore } from './match'

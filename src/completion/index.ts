@@ -3,7 +3,7 @@ import { CancellationToken, CancellationTokenSource, Disposable } from 'vscode-l
 import events, { PopupChangeEvent, InsertChange } from '../events'
 import Document from '../model/document'
 import sources from '../sources'
-import { CompleteOption, ISource, RecentScore, VimCompleteItem, ExtendedCompleteItem } from '../types'
+import { CompleteOption, ISource, VimCompleteItem, ExtendedCompleteItem } from '../types'
 import { disposeAll, wait } from '../util'
 import * as Is from '../util/is'
 import workspace from '../workspace'
