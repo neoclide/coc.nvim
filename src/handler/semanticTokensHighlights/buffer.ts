@@ -230,7 +230,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     let tokens: uinteger[] = []
     if (SemanticTokens.is(result)) {
       tokens = result.data
-    } else if (result.edits.length) {
+    } else {
       tokens = previousResult.tokens
       result.edits.forEach(e => {
         if (e.deleteCount > 0) {
