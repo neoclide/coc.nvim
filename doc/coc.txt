@@ -143,7 +143,7 @@ for more details.
 Built-in configurations:~
 
 							*coc-config-http*
-"http.proxy":~
+*http.proxy*
 
 	HTTP proxy URI, used for extensions that send request, default: `""`
 
@@ -151,6 +151,14 @@ Built-in configurations:~
 
 	Controls whether the proxy server certificate should be verified
 	against the list of supplied CAs, default: `true`
+
+"http.proxyAuthorization":~
+
+	The value to send as the `Proxy-Authorization` header for every network request.
+
+"http.proxyCA":~
+
+	CA (file) to use as Certificate Authority.
 
 							*coc-config-suggest*
 "suggest.enablePreselect":~
@@ -860,9 +868,6 @@ Built-in configurations:~
 	List should contains changed locations after workspace edit, default
 	to vim's quickfix, default: `quickfix`
 
-"coc.preferences.highlightTimeout":~
-
-	Highlight timeout for buffer in floating window, default: `500`
 
 "coc.preferences.floatActions":~
 
