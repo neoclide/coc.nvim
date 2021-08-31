@@ -766,6 +766,11 @@
       "default": true,
       "description": "Automatically hide hover float window on CursorMove or InsertEnter."
     },
+    "hover.displayBorder": {
+      "type": "boolean",
+      "default": false,
+      "description": "Show border on hover float window."
+    },
     "dialog.maxHeight": {
       "type": "number",
       "default": 20,
