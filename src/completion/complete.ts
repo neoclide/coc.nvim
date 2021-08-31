@@ -35,6 +35,8 @@ export interface CompleteConfig {
   removeDuplicateItems: boolean
   defaultSortMethod: string
   asciiCharactersOnly: boolean
+  floatBorder: boolean
+  floatHighlight: string
 }
 
 export type Callback = () => void

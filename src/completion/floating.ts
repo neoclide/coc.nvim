@@ -14,6 +14,8 @@ export interface PumBounding {
 export interface FloatingConfig {
   maxPreviewWidth: number
   excludeImages: boolean
+  floatBorder: boolean
+  floatHighlight: string
 }
 
 export default class Floating {
@@ -38,6 +40,8 @@ export default class Floating {
       highlights,
       maxWidth: config.maxPreviewWidth,
       pumbounding: bounding,
+      border: config.floatBorder ? [1, 1, 1, 1] : undefined,
+      highlight: config.floatHighlight,
     }])
     if (this.isVim) nvim.command('redraw', true)
     if (!res || res.length == 0) return

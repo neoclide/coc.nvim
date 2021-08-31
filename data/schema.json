@@ -510,6 +510,16 @@
       "description": "Suggest ASCII characters only",
       "default": false
     },
+    "suggest.floatBorder": {
+      "type": "boolean",
+      "description": "Show border on suggest float window.",
+      "default": false
+    },
+    "suggest.floatHighlight": {
+      "type": "string",
+      "default": "CocFloating",
+      "description": "Highlight group for suggest window/popup, default to 'CocFloating'"
+    },
     "diagnostic.enable": {
       "type": "boolean",
       "description": "Set to false to disable diagnostic display",

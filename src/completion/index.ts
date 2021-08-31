@@ -161,7 +161,9 @@ export class Completion implements Disposable {
       localityBonus: getConfig<boolean>('localityBonus', true),
       highPrioritySourceLimit: getConfig<number>('highPrioritySourceLimit', null),
       lowPrioritySourceLimit: getConfig<number>('lowPrioritySourceLimit', null),
-      asciiCharactersOnly: getConfig<boolean>('asciiCharactersOnly', false)
+      asciiCharactersOnly: getConfig<boolean>('asciiCharactersOnly', false),
+      floatBorder: getConfig<boolean>('floatBorder', false),
+      floatHighlight: getConfig<string>('floatHighlight', 'CocFloating')
     }
   }
 
@@ -528,7 +530,9 @@ export class Completion implements Disposable {
         let source = new CancellationTokenSource()
         await this.floating.show(docs, bounding, {
           maxPreviewWidth: this.config.maxPreviewWidth,
-          excludeImages: this.excludeImages
+          excludeImages: this.excludeImages,
+          floatBorder: this.config.floatBorder,
+          floatHighlight: this.config.floatHighlight
         }, source.token)
       }
       if (!this.isActivated) {

@@ -908,7 +908,9 @@ function! coc#float#create_pum_float(winid, bufnr, lines, config) abort
         \ 'row': pumbounding['row'],
         \ 'height': height,
         \ 'width': width - 2 + (s:is_vim && ch > height ? -1 : 0),
-        \ 'codes': get(a:config, 'codes', [])
+        \ 'codes': get(a:config, 'codes', []),
+        \ 'border': get(a:config, 'border', [0, 0, 0, 0]),
+        \ 'highlight': get(a:config, 'highlight', 'CocFloating')
         \ }
   call coc#float#close_auto_hide_wins(a:winid)
   let res = coc#float#create_float_win(a:winid, a:bufnr, opts)
