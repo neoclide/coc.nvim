@@ -21,6 +21,7 @@ interface HoverConfig {
   floatMaxHeight: number | undefined
   autoHide: boolean
   floatBorder: boolean
+  floatHighlight: string
 }
 
 export default class HoverHandler {
@@ -67,7 +68,8 @@ export default class HoverHandler {
         floatMaxWidth: config.get('floatMaxWidth', 80),
         target: target == 'float' && !workspace.floatSupported ? 'preview' : target,
         previewMaxHeight: config.get<number>('previewMaxHeight', 12),
-        floatBorder: config.get<boolean>('floatBorder', false)
+        floatBorder: config.get<boolean>('floatBorder', false),
+        floatHighlight: config.get<string>('floatHighlight', 'CocFloating')
       }
       if (this.config.target == 'preview') {
         this.registerProvider()
@@ -163,7 +165,8 @@ export default class HoverHandler {
         maxHeight: this.config.floatMaxHeight,
         autoHide: this.config.autoHide,
         excludeImages: this.excludeImages,
-        border: this.config.floatBorder ? [1, 1, 1, 1] : undefined
+        border: this.config.floatBorder ? [1, 1, 1, 1] : undefined,
+        highlight: this.config.floatHighlight
       }
       await this.hoverFactory.show(docs, opts)
       return

@@ -771,6 +771,11 @@
       "default": false,
       "description": "Show border on hover float window."
     },
+    "hover.floatHighlight": {
+      "type": "string",
+      "default": "CocFloating",
+      "description": "Highlight group for hover window/popup, default to 'CocFloating'"
+    },
     "dialog.maxHeight": {
       "type": "number",
       "default": 20,
