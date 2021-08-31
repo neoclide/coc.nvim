@@ -766,7 +766,7 @@
       "default": true,
       "description": "Automatically hide hover float window on CursorMove or InsertEnter."
     },
-    "hover.displayBorder": {
+    "hover.floatBorder": {
       "type": "boolean",
       "default": false,
       "description": "Show border on hover float window."

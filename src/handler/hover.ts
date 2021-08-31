@@ -20,7 +20,7 @@ interface HoverConfig {
   floatMaxWidth: number
   floatMaxHeight: number | undefined
   autoHide: boolean
-  displayBorder: boolean
+  floatBorder: boolean
 }
 
 export default class HoverHandler {
@@ -67,7 +67,7 @@ export default class HoverHandler {
         floatMaxWidth: config.get('floatMaxWidth', 80),
         target: target == 'float' && !workspace.floatSupported ? 'preview' : target,
         previewMaxHeight: config.get<number>('previewMaxHeight', 12),
-        displayBorder: config.get<boolean>('displayBorder', false)
+        floatBorder: config.get<boolean>('floatBorder', false)
       }
       if (this.config.target == 'preview') {
         this.registerProvider()
@@ -163,7 +163,7 @@ export default class HoverHandler {
         maxHeight: this.config.floatMaxHeight,
         autoHide: this.config.autoHide,
         excludeImages: this.excludeImages,
-        border: this.config.displayBorder ? [1, 1, 1, 1] : undefined
+        border: this.config.floatBorder ? [1, 1, 1, 1] : undefined
       }
       await this.hoverFactory.show(docs, opts)
       return
