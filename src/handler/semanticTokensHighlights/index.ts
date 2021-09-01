@@ -152,7 +152,7 @@ export default class SemanticTokensHighlights {
     let doc = workspace.getDocument(item.bufnr)
     const legend = languages.getLegend(doc.textDocument)
     if (legend?.tokenTypes.length) {
-      for (const t of legend.tokenTypes) {
+      for (const t of [...new Set(legend.tokenTypes)]) {
         highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: `CocSem_${t}`, hlGroup: `CocSem_${t}` }])
         highlighter.addLine('')
       }
@@ -162,7 +162,7 @@ export default class SemanticTokensHighlights {
     highlighter.addLine('Tokens modifiers that current Language Server supported:', headGroup)
     highlighter.addLine('')
     if (legend?.tokenModifiers.length) {
-      for (const t of legend.tokenModifiers) {
+      for (const t of [...new Set(legend.tokenModifiers)]) {
         highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: `CocSem_${t}`, hlGroup: `CocSem_${t}` }])
         highlighter.addLine('')
       }
