@@ -462,7 +462,13 @@ export class DiagnosticManager implements Disposable {
     })
     if (useFloat) {
       let { maxWindowHeight, maxWindowWidth } = this.config
-      await this.floatFactory.show(docs, { maxWidth: maxWindowWidth, maxHeight: maxWindowHeight, modes: ['n'] })
+      await this.floatFactory.show(docs, {
+        maxWidth: maxWindowWidth,
+        maxHeight: maxWindowHeight,
+        modes: ['n'],
+        border: this.config.floatBorder ? [1, 1, 1, 1] : undefined,
+        highlight: this.config.floatHighlight
+      })
     } else {
       let lines = docs.map(d => d.content).join('\n').split(/\r?\n/)
       if (lines.length) {
@@ -552,6 +558,8 @@ export class DiagnosticManager implements Disposable {
       showUnused: config.get<boolean>('showUnused', true),
       showDeprecated: config.get<boolean>('showDeprecated', true),
       format: config.get<string>('format', '[%source%code] [%severity] %message'),
+      floatBorder: config.get<boolean>('floatBorder', false),
+      floatHighlight: config.get<string>('floatHighlight', 'CocFloating')
     }
     this.enabled = config.get<boolean>('enable', true)
     this.defineSigns()

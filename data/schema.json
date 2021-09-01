@@ -668,6 +668,16 @@
       "default": true,
       "description": "Show deprecated variables"
     },
+    "diagnostic.floatBorder": {
+      "type": "boolean",
+      "description": "Show border on diagnostic float window.",
+      "default": false
+    },
+    "diagnostic.floatHighlight": {
+      "type": "string",
+      "default": "CocFloating",
+      "description": "Highlight group for diagnostic window/popup, default to 'CocFloating'"
+    },
     "signature.enable": {
       "type": "boolean",
       "description": "Enable signature help when trigger character typed, require restart service on change.",

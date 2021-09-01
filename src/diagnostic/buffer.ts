@@ -53,6 +53,8 @@ export interface DiagnosticConfig {
   showUnused?: boolean
   showDeprecated?: boolean
   format?: string
+  floatBorder: boolean
+  floatHighlight: string
 }
 
 interface DiagnosticInfo {
