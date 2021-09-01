@@ -396,7 +396,6 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
   matchScore?: number
   priority?: number
   preselect?: boolean
-  recentScore?: number
   signature?: string
   localBonus?: number
   index?: number
