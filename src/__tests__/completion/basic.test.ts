@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { ISource, SourceType, CompleteResult } from '../../types'
+import { ISource, SourceType, CompleteResult, CompleteOption } from '../../types'
 import helper from '../helper'
 import sources from '../../sources'
 import { CancellationToken } from 'vscode-jsonrpc'
@@ -400,5 +400,47 @@ describe('completion', () => {
       expect(item.abbr.length).toBeLessThanOrEqual(10)
     }
     disposable.dispose()
+  })
+
+  it('should delete previous items if complete item is null', async () => {
+    await helper.edit()
+    let source1: ISource = {
+      name: 'source1',
+      priority: 90,
+      enable: true,
+      sourceType: SourceType.Native,
+      triggerCharacters: ['.'],
+      doComplete: async (): Promise<CompleteResult> => Promise.resolve({
+        items: [ {word: 'foo', dup: 1} ]
+      })
+    }
+    let source2: ISource = {
+      name: 'source2',
+      priority: 90,
+      enable: true,
+      sourceType: SourceType.Native,
+      triggerCharacters: ['.'],
+      doComplete: async (opt: CompleteOption): Promise<CompleteResult> => {
+        let result: CompleteResult = opt.input == 'foo' ? null : {
+          items: [{ word: 'foo', dup: 1 }], isIncomplete: true
+        }
+        return Promise.resolve(result)
+      }
+    }
+    let disposable1 = sources.addSource(source1)
+    let disposable2 = sources.addSource(source2)
+    await nvim.input('i')
+    await helper.wait(30)
+    await nvim.input('.f')
+    await helper.waitPopup()
+    let items = await helper.getItems()
+    expect(items.length).toEqual(2)
+    await nvim.input('oo')
+    await helper.waitPopup()
+    items = await helper.getItems()
+    expect(items.length).toEqual(1)
+    expect(items[0].word).toBe('foo')
+    disposable1.dispose()
+    disposable2.dispose()
   })
 })

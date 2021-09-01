@@ -153,6 +153,8 @@ export default class Complete {
             if (empty) this._onDidComplete.fire()
             resolve(undefined)
           } else {
+            let { results } = this
+            this.results = results.filter(res => res.source != name)
             resolve(undefined)
           }
         }, err => {
