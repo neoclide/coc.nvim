@@ -453,7 +453,7 @@ describe('list', () => {
       }
       manager.registerList(list)
       await manager.start(['test'])
-      await helper.wait(10)
+      await helper.wait(50)
       let msg = await helper.getCmdline()
       expect(msg).toMatch('test error')
     })
