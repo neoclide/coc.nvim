@@ -249,7 +249,7 @@ export default class Complete {
         item.score = input.length ? score * (item.sourceScore || 1) : 0
         item.localBonus = this.localBonus ? this.localBonus.get(filterText) || 0 : 0
         words.add(word)
-        if (item.isSnippet && item.word == input) {
+        if (item.isSnippet && input.length && item.word == input) {
           item.preselect = true
         }
         arr.push(item)
