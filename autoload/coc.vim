@@ -54,6 +54,8 @@ function! coc#_complete() abort
   if s:select_api && len(items) && preselect != -1
     noa call complete(startcol, items)
     call nvim_select_popupmenu_item(preselect, v:false, v:false, {})
+    " use <cmd> specific key to preselect item at once
+    call feedkeys("\<Cmd>\<CR>" , 'i')
   else
     call complete(startcol, items)
   endif
