@@ -113,8 +113,11 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     if get(a:config, 'close', 0)
       let opts['close'] = 'button'
     endif
-    if !empty(get(a:config, 'borderhighlight', []))
-      let opts['borderhighlight'] = map(a:config['borderhighlight'], 'coc#highlight#compose_hlgroup(v:val,"'.hlgroup.'")')
+    if !empty(get(a:config, 'borderhighlight', v:null))
+      let borderhighlight = a:config['borderhighlight']
+      let opts['borderhighlight'] = type(borderhighlight) == 3
+            \ ? map(borderhighlight, 'coc#highlight#compose_hlgroup(v:val,"'.hlgroup.'")')
+            \ : [coc#highlight#compose_hlgroup(borderhighlight, hlgroup)]
     endif
     if !s:empty_border(get(a:config, 'border', []))
       let opts['border'] = a:config['border']
