@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Emitter, Event, Position } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
-import { CompleteOption, VimCompleteItem, CompleteResult, ExtendedCompleteItem, ISource } from '../types'
+import { CompleteOption, FloatConfig, VimCompleteItem, CompleteResult, ExtendedCompleteItem, ISource } from '../types'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { byteSlice, characterIndex } from '../util/string'
 import { matchScore } from './match'
@@ -15,7 +15,6 @@ export interface CompleteConfig {
   enablePreselect: boolean
   labelMaxLength: number
   floatEnable: boolean
-  maxPreviewWidth: number
   autoTrigger: string
   previewIsKeyword: string
   triggerCompletionWait: number
@@ -35,6 +34,7 @@ export interface CompleteConfig {
   removeDuplicateItems: boolean
   defaultSortMethod: string
   asciiCharactersOnly: boolean
+  floatConfig: FloatConfig
 }
 
 export type Callback = () => void

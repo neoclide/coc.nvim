@@ -3,7 +3,7 @@ import { CancellationToken, CancellationTokenSource, Disposable } from 'vscode-l
 import events, { PopupChangeEvent, InsertChange } from '../events'
 import Document from '../model/document'
 import sources from '../sources'
-import { CompleteOption, ISource, VimCompleteItem, ExtendedCompleteItem } from '../types'
+import { CompleteOption, ISource, VimCompleteItem, ExtendedCompleteItem, FloatConfig } from '../types'
 import { disposeAll, wait } from '../util'
 import * as Is from '../util/is'
 import workspace from '../workspace'
@@ -138,6 +138,7 @@ export class Completion implements Disposable {
       autoTrigger,
       floatEnable,
       keepCompleteopt,
+      floatConfig: getConfig<FloatConfig>('floatConfig', {}),
       defaultSortMethod: getConfig<string>('defaultSortMethod', 'length'),
       removeDuplicateItems: getConfig<boolean>('removeDuplicateItems', false),
       disableMenuShortcut: getConfig<boolean>('disableMenuShortcut', false),
@@ -147,7 +148,6 @@ export class Completion implements Disposable {
       previewIsKeyword: getConfig<string>('previewIsKeyword', '@,48-57,_192-255'),
       enablePreview: getConfig<boolean>('enablePreview', false),
       enablePreselect: getConfig<boolean>('enablePreselect', false),
-      maxPreviewWidth: getConfig<number>('maxPreviewWidth', 80),
       triggerCompletionWait: getConfig<number>('triggerCompletionWait', 100),
       labelMaxLength: getConfig<number>('labelMaxLength', 200),
       triggerAfterInsertEnter: getConfig<boolean>('triggerAfterInsertEnter', false),
@@ -526,10 +526,9 @@ export class Completion implements Disposable {
     } else {
       if (this.config.floatEnable) {
         let source = new CancellationTokenSource()
-        await this.floating.show(docs, bounding, {
-          maxPreviewWidth: this.config.maxPreviewWidth,
+        await this.floating.show(docs, bounding, Object.assign({}, this.config.floatConfig, {
           excludeImages: this.excludeImages
-        }, source.token)
+        }), source.token)
       }
       if (!this.isActivated) {
         this.floating.close()

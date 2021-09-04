@@ -165,10 +165,6 @@ Built-in configurations:~
 
 	Enable preselect feature on Neovim, default: `false`
 
-"suggest.maxPreviewWidth":~
-
-	Maximum width of floating preview window, default: `80`
-
 "suggest.labelMaxLength":~
 
 	Maximum length of label shown in 'pum', default: `200`
@@ -180,6 +176,11 @@ Built-in configurations:~
 "suggest.floatEnable":~
 
 	Enable floating window for documentation when possible, default: `true`
+
+"suggest.floatConfig":~
+	
+	Configuration of floating window/popup, see |coc-config-float|.
+	Excludes properties: "title", "close" and "maxHeight".
 
 "suggest.detailMaxLength":~
 
@@ -420,10 +421,6 @@ Built-in configurations:~
 
 	Default: `200`
 
-"diagnostic.maxWindowWidth":~
-
-	Maximum width of diagnostics floating window, default: `80`
-
 "diagnostic.checkCurrentLine":~
 
 	Show all diagnostics of the current line if none of them are at the current
@@ -491,9 +488,9 @@ Built-in configurations:~
 
 	Sign of hint diagnostics shown in the 'signcolumn', default: `">>"`
 
-"diagnostic.maxWindowHeight":~
+"diagnostic.floatConfig"~
 
-	Maximum height of diagnostics floating window, default: `8`
+	Configuration of floating window/popup, see |coc-config-float|.
 
 "diagnostic.filetypeMap":~
 
@@ -575,13 +572,10 @@ Built-in configurations:~
 
 	Max height of preview window for hover, default: `12`
 
-"hover.floatMaxWidth":~
+"hover.floatConfig":~
 
-	Maximum width of hover float window, not bigger than 80.
-
-"hover.floatMaxHeight":~
-
-	Maximum height of hover float window.
+	Configuration of floating window/popup for hover documents, see
+	|coc-config-float|.
 
 "hover.autoHide":~
 
@@ -1012,6 +1006,19 @@ Built-in configurations:~
 
 	Command or full path of npm or yarn executable for install/update
 	extensions, default: `npm`
+
+						*coc-config-float*
+
+Used by `suggest.floatConfig`, `diagnostic.floatConfig` and `hover.floatConfig`,
+following properties are supported:
+
+	- "border": Change to `true` to enable border.
+	- "highlight": Background highlight group of float window.
+	- "title": Title used by float window.
+	- "borderhighlight": Border highlight group of float window.
+	- "close": Set to true to draw close icon.
+	- "maxWidth": Maximum width of float window, contains border.
+	- "maxHeight": Maximum height of float window, contains border.
 
 						*coc-config-languageserver*
 "languageserver":~

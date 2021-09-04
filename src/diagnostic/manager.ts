@@ -468,8 +468,8 @@ export class DiagnosticManager implements Disposable {
       docs.push({ filetype, content: str })
     })
     if (useFloat) {
-      let { maxWindowHeight, maxWindowWidth } = this.config
-      await this.floatFactory.show(docs, { maxWidth: maxWindowWidth, maxHeight: maxWindowHeight, modes: ['n'] })
+      let config = this.floatFactory.applyFloatConfig({ modes: ['n'], maxWidth: 80 }, this.config.floatConfig)
+      await this.floatFactory.show(docs, config)
     } else {
       let lines = docs.map(d => d.content).join('\n').split(/\r?\n/)
       if (lines.length) {
@@ -530,6 +530,7 @@ export class DiagnosticManager implements Disposable {
     let enableHighlightLineNumber = config.get<boolean>('enableHighlightLineNumber', true)
     if (!workspace.isNvim) enableHighlightLineNumber = false
     this.config = {
+      floatConfig: config.get('floatConfig', {}),
       messageTarget,
       enableHighlightLineNumber,
       highlighLimit: config.get<number>('highlighLimit', 1000),
@@ -538,8 +539,6 @@ export class DiagnosticManager implements Disposable {
       checkCurrentLine: config.get<boolean>('checkCurrentLine', false),
       enableSign: workspace.env.sign && config.get<boolean>('enableSign', true),
       locationlistUpdate: config.get<boolean>('locationlistUpdate', true),
-      maxWindowHeight: config.get<number>('maxWindowHeight', 10),
-      maxWindowWidth: config.get<number>('maxWindowWidth', 80),
       enableMessage: config.get<string>('enableMessage', 'always'),
       messageDelay: config.get<number>('messageDelay', 200),
       virtualText: config.get<boolean>('virtualText', false) && this.nvim.hasFunction('nvim_buf_set_virtual_text'),

@@ -3,6 +3,44 @@
   "description": "Configuration file for coc.nvim",
   "additionalProperties": false,
   "definitions": {
+    "float": {
+      "type": "object",
+      "properties": {
+        "border": {
+          "type": "boolean",
+          "default": false,
+          "description": "Set to true to use borders."
+        },
+        "highlight": {
+          "type": "string",
+          "default": "CocFloating",
+          "description": "Background highlight group of float window."
+        },
+        "title": {
+          "type": "string",
+          "default": "",
+          "description": "Title used by float window."
+        },
+        "borderhighlight": {
+          "type": "string",
+          "default": "CocFloating",
+          "description": "Border highlight group of float window."
+        },
+        "close": {
+          "type": "boolean",
+          "default": false,
+          "description": "Set to true to draw close icon"
+        },
+        "maxWidth": {
+          "type": "number",
+          "description": "Maximum width of float window, contains border."
+        },
+        "maxHeight": {
+          "type": "number",
+          "description": "Maximum height of float window, contains border."
+        }
+      }
+    },
     "languageServerBase": {
       "type": "object",
       "properties": {
@@ -304,11 +342,6 @@
       "description": "Enable preselect feature of LSP, only works on neovim",
       "default": false
     },
-    "suggest.maxPreviewWidth": {
-      "type": "number",
-      "default": 80,
-      "description": "Maximum width of floating preview window."
-    },
     "suggest.enablePreview": {
       "type": "boolean",
       "description": "Add preview option to completeopt, default: false.",
@@ -318,6 +351,18 @@
       "type": "boolean",
       "description": "Enable floating window for documentation when possible.",
       "default": true
+    },
+    "suggest.floatConfig": {
+      "type": "object",
+      "description": "Configure style of documentation window for complete item.",
+      "allOf": [{ "$ref": "#/definitions/float" }],
+      "additionalProperties": false,
+      "properties": {
+        "border": {},
+        "highlight": {},
+        "borderhighlight": {},
+        "maxWidth": {}
+      }
     },
     "suggest.labelMaxLength": {
       "type": "number",
@@ -633,15 +678,20 @@
       "description": "Text of hint sign",
       "default": ">>"
     },
-    "diagnostic.maxWindowHeight": {
-      "type": "number",
-      "description": "Maximum height of diagnostics floating window.",
-      "default": 8
-    },
-    "diagnostic.maxWindowWidth": {
-      "type": "number",
-      "description": "Maximum width of diagnostics floating window.",
-      "default": 80
+    "diagnostic.floatConfig": {
+      "type": "object",
+      "description": "Configure float window style of diagnostic message.",
+      "allOf": [{ "$ref": "#/definitions/float" }],
+      "additionalProperties": false,
+      "properties": {
+        "border": {},
+        "highlight": {},
+        "borderhighlight": {},
+        "title": {},
+        "close": {},
+        "maxHeight": {},
+        "maxWidth": {}
+      }
     },
     "diagnostic.filetypeMap": {
       "type": "object",
@@ -752,14 +802,20 @@
       "default": 12,
       "description": "Max height of preview window for hover."
     },
-    "hover.floatMaxWidth": {
-      "type": "number",
-      "default": 80,
-      "description": "Maximum width of hover float window, not bigger than 80."
-    },
-    "hover.floatMaxHeight": {
-      "type": "number",
-      "description": "Maximum width of hover float window, not bigger than 80."
+    "hover.floatConfig": {
+      "type": "object",
+      "description": "Configure float window style of hover documents.",
+      "allOf": [{ "$ref": "#/definitions/float" }],
+      "additionalProperties": false,
+      "properties": {
+        "border": {},
+        "highlight": {},
+        "borderhighlight": {},
+        "title": {},
+        "close": {},
+        "maxHeight": {},
+        "maxWidth": {}
+      }
     },
     "hover.autoHide": {
       "type": "boolean",
@@ -1242,7 +1298,7 @@
     },
     "coc.preferences.excludeImageLinksInMarkdownDocument": {
       "type": "boolean",
-      "description": "Exclude image links from document markdown text",
+      "description": "Exclude image links from markdown text in float window.",
       "default": true
     },
     "coc.preferences.silentAutoupdate": {

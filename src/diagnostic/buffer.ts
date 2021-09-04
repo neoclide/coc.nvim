@@ -1,7 +1,7 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { Mutex } from '../util/mutex'
 import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Position } from 'vscode-languageserver-protocol'
-import { BufferSyncItem, HighlightItem, LocationListItem } from '../types'
+import { BufferSyncItem, FloatConfig, HighlightItem, LocationListItem } from '../types'
 import { equals } from '../util/object'
 import { comparePosition, lineInRange, positionInRange } from '../util/position'
 import workspace from '../workspace'
@@ -40,8 +40,6 @@ export interface DiagnosticConfig {
   level: number
   messageTarget: string
   messageDelay: number
-  maxWindowHeight: number
-  maxWindowWidth: number
   refreshOnInsertMode: boolean
   virtualText: boolean
   virtualTextCurrentLineOnly: boolean
@@ -53,6 +51,7 @@ export interface DiagnosticConfig {
   showUnused?: boolean
   showDeprecated?: boolean
   format?: string
+  floatConfig: FloatConfig
 }
 
 interface DiagnosticInfo {

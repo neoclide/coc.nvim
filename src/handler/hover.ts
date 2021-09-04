@@ -6,7 +6,7 @@ import languages from '../languages'
 import { Documentation } from '../markdown'
 import FloatFactory, { FloatWinConfig } from '../model/floatFactory'
 import { TextDocumentContentProvider } from '../provider'
-import { ConfigurationChangeEvent, HandlerDelegate } from '../types'
+import { ConfigurationChangeEvent, FloatConfig, HandlerDelegate } from '../types'
 import { disposeAll, isMarkdown } from '../util'
 import { readFileLines } from '../util/fs'
 import workspace from '../workspace'
@@ -16,9 +16,8 @@ export type HoverTarget = 'float' | 'preview' | 'echo'
 
 interface HoverConfig {
   target: HoverTarget
+  floatConfig: FloatConfig
   previewMaxHeight: number
-  floatMaxWidth: number
-  floatMaxHeight: number | undefined
   autoHide: boolean
 }
 
@@ -61,9 +60,8 @@ export default class HoverHandler {
       let config = workspace.getConfiguration('hover')
       let target = config.get<HoverTarget>('target', 'float')
       this.config = {
+        floatConfig: config.get('floatConfig', {}),
         autoHide: config.get('autoHide', true),
-        floatMaxHeight: config.get('floatMaxHeight', undefined),
-        floatMaxWidth: config.get('floatMaxWidth', 80),
         target: target == 'float' && !workspace.floatSupported ? 'preview' : target,
         previewMaxHeight: config.get<number>('previewMaxHeight', 12)
       }
@@ -155,14 +153,13 @@ export default class HoverHandler {
       }
     }
     if (target == 'float') {
-      let opts: FloatWinConfig = {
+      let config = this.hoverFactory.applyFloatConfig({
         modes: ['n'],
-        maxWidth: this.config.floatMaxWidth,
-        maxHeight: this.config.floatMaxHeight,
         autoHide: this.config.autoHide,
-        excludeImages: this.excludeImages
-      }
-      await this.hoverFactory.show(docs, opts)
+        excludeImages: this.excludeImages,
+        maxWidth: 80,
+      }, this.config.floatConfig)
+      await this.hoverFactory.show(docs, config)
       return
     }
     let lines = docs.reduce((p, c) => {

@@ -1,5 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken } from 'vscode-jsonrpc'
+import { FloatConfig } from '../types'
 import { parseDocuments, Documentation } from '../markdown'
 const logger = require('../util/logger')('floating')
 
@@ -11,8 +12,7 @@ export interface PumBounding {
   readonly scrollbar: boolean
 }
 
-export interface FloatingConfig {
-  maxPreviewWidth: number
+export interface FloatingConfig extends FloatConfig {
   excludeImages: boolean
 }
 
@@ -33,12 +33,17 @@ export default class Floating {
       this.close()
       return
     }
-    let res = await nvim.call('coc#float#create_pum_float', [this.winid, this.bufnr, lines, {
+    let opts = {
       codes,
       highlights,
-      maxWidth: config.maxPreviewWidth,
+      maxWidth: config.maxWidth || 80,
       pumbounding: bounding,
-    }])
+      border: config.border ? [1, 1, 1, 1] : undefined,
+      highlight: config.highlight,
+      borderhighlight: config.borderhighlight
+    }
+    logger.debug('opts:', opts)
+    let res = await nvim.call('coc#float#create_pum_float', [this.winid, this.bufnr, lines, opts])
     if (this.isVim) nvim.command('redraw', true)
     if (!res || res.length == 0) return
     this.winid = res[0]

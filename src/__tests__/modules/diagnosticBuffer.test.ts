@@ -11,8 +11,6 @@ const config: any = {
   locationlistUpdate: true,
   enableSign: true,
   enableHighlightLineNumber: true,
-  maxWindowHeight: 8,
-  maxWindowWidth: 80,
   enableMessage: 'always',
   messageTarget: 'echo',
   messageDelay: 250,

@@ -38,6 +38,16 @@ export interface HandlerDelegate {
   applyCodeAction(action: CodeAction): Promise<void>
 }
 
+export interface FloatConfig {
+  border?: boolean
+  highlight?: string
+  title?: string
+  borderhighlight?: string
+  close?: boolean
+  maxHeight?: number
+  maxWidth?: number
+}
+
 /**
  * Represent a highlight that not cross lines
  * all zero based.

@@ -6,6 +6,7 @@ import { Documentation, parseDocuments } from '../markdown'
 import { disposeAll } from '../util'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
+import { FloatConfig } from '../types'
 const isVim = process.env.VIM_NODE_RPC == '1'
 const logger = require('../util/logger')('model-float')
 
@@ -104,6 +105,14 @@ export default class FloatFactory implements Disposable {
     await this.show(docs, {
       offsetX
     })
+  }
+
+  public applyFloatConfig(conf: FloatWinConfig, opts: FloatConfig): FloatWinConfig {
+    for (let key of ['maxWidth', 'maxHeight', 'close', 'title', 'highlight', 'borderhighlight']) {
+      if (opts[key]) conf[key] = opts[key]
+    }
+    if (opts.border) conf.border = [1, 1, 1, 1]
+    return conf
   }
 
   /**
