@@ -323,21 +323,46 @@ endfunction
 " Copmpose hlGroups with foreground and background colors.
 function! coc#highlight#compose_hlgroup(fgGroup, bgGroup) abort
   let hlGroup = 'Fg'.a:fgGroup.'Bg'.a:bgGroup
-  if a:fgGroup == a:bgGroup
+  if a:fgGroup ==# a:bgGroup
     return a:fgGroup
   endif
   if hlexists(hlGroup)
     return hlGroup
   endif
-  let fg = synIDattr(synIDtrans(hlID(a:fgGroup)), 'fg', 'gui')
-  let bg = synIDattr(synIDtrans(hlID(a:bgGroup)), 'bg', 'gui')
-  if fg =~# '^#' || bg =~# '^#'
-    call s:create_gui_hlgroup(hlGroup, fg, bg, '')
-  else
-    let fg = synIDattr(synIDtrans(hlID(a:fgGroup)), 'fg', 'cterm')
-    let bg = synIDattr(synIDtrans(hlID(a:bgGroup)), 'bg', 'cterm')
-    call s:create_cterm_hlgroup(hlGroup, fg, bg, '')
+  let fgId = synIDtrans(hlID(a:fgGroup))
+  let bgId = synIDtrans(hlID(a:bgGroup))
+  let guifg = synIDattr(fgId, 'fg', 'gui')
+  let guibg = synIDattr(bgId, 'bg', 'gui')
+  let ctermfg = synIDattr(fgId, 'fg', 'cterm')
+  let ctermbg = synIDattr(bgId, 'bg', 'cterm')
+  let bold = synIDattr(fgId, 'bold') ==# '1'
+  let italic = synIDattr(fgId, 'italic') ==# '1'
+  let underline = synIDattr(fgId, 'underline') ==# '1'
+  let cmd = 'silent hi ' . hlGroup
+  if !empty(guifg)
+    let cmd .= ' guifg=' . guifg
   endif
+  if !empty(ctermfg)
+    let cmd .= ' ctermfg=' . ctermfg
+  elseif guifg =~# '^#'
+    let cmd .= ' ctermfg=' . coc#color#rgb2term(strpart(guifg, 1))
+  endif
+  if !empty(guibg)
+    let cmd .= ' guibg=' . guibg
+  endif
+  if !empty(ctermbg)
+    let cmd .= ' ctermbg=' . ctermbg
+  elseif guibg =~# '^#'
+    let cmd .= ' ctermbg=' . coc#color#rgb2term(strpart(guibg, 1))
+  endif
+  if bold
+    let cmd .= ' cterm=bold gui=bold'
+  elseif italic
+    let cmd .= ' cterm=italic gui=italic'
+  elseif underline
+    let cmd .= ' cterm=underline gui=underline'
+  endif
+  execute cmd
   return hlGroup
 endfunction
 
@@ -467,31 +492,6 @@ function! coc#highlight#clear_matches(winid, ids)
     if switch
       noa call nvim_set_current_win(curr)
     endif
-  endif
-endfunction
-
-" Sets the highlighting for the given group
-function! s:create_gui_hlgroup(group, fg, bg, attr)
-  if a:fg != ""
-    exec "silent hi " . a:group . " guifg=" . a:fg . " ctermfg=" . coc#color#rgb2term(strpart(a:fg, 1))
-  endif
-  if a:bg != ""
-    exec "silent hi " . a:group . " guibg=" . a:bg . " ctermbg=" . coc#color#rgb2term(strpart(a:bg, 1))
-  endif
-  if a:attr != ""
-    exec "silent hi " . a:group . " gui=" . a:attr . " cterm=" . a:attr
-  endif
-endfun
-
-function! s:create_cterm_hlgroup(group, fg, bg, attr) abort
-  if a:fg != ""
-    exec "silent hi " . a:group . " ctermfg=" . a:fg
-  endif
-  if a:bg != ""
-    exec "silent hi " . a:group . " ctermbg=" . a:bg
-  endif
-  if a:attr != ""
-    exec "silent hi " . a:group . " cterm=" . a:attr
   endif
 endfunction
 

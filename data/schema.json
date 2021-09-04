@@ -1225,13 +1225,6 @@
         "type": "string"
       }
     },
-    "coc.preferences.highlightTimeout": {
-      "type": "integer",
-      "default": 500,
-      "minimum": 200,
-      "maximum": 5000,
-      "description": "Highlight timeout for buffer in floating window."
-    },
     "coc.preferences.floatActions": {
       "type": "boolean",
       "description": "Set to false to disable float/popup support for actions menu, won't work on vim without float or popup window support.",

@@ -1,4 +1,4 @@
-*coc-nvim.txt*				NodeJS client for Vim & Neovim.
+*coc-nvim.txt*					NodeJS client for Vim & Neovim.
 
 Version: 0.0.80
 Author: Qiming Zhao <chemzqm at gmail.com>
@@ -92,7 +92,7 @@ INSTALLATION						*coc-installation*
 If you're using [vim-plug](https://github.com/junegunn/vim-plug), add this to
 your `init.vim` or `.vimrc`: >
 
-  Plug 'neoclide/coc.nvim'
+  Plug 'neoclide/coc.nvim', {'branch': 'release'}
 <
 And run: >
 
@@ -107,6 +107,7 @@ You can also use Vim's native package management: >
   mkdir -p ~/.vim/pack/coc/start
   cd ~/.vim/pack/coc/start
   curl --fail -L https://github.com/neoclide/coc.nvim/archive/release.tar.gz|tar xzfv -
+
   # for neovim
   mkdir -p ~/.local/share/nvim/site/pack/coc/start
   cd ~/.local/share/nvim/site/pack/coc/start
@@ -142,7 +143,7 @@ for more details.
 Built-in configurations:~
 
 							*coc-config-http*
-"http.proxy":~
+*http.proxy*
 
 	HTTP proxy URI, used for extensions that send request, default: `""`
 
@@ -150,6 +151,14 @@ Built-in configurations:~
 
 	Controls whether the proxy server certificate should be verified
 	against the list of supplied CAs, default: `true`
+
+"http.proxyAuthorization":~
+
+	The value to send as the `Proxy-Authorization` header for every network request.
+
+"http.proxyCA":~
+
+	CA (file) to use as Certificate Authority.
 
 							*coc-config-suggest*
 "suggest.enablePreselect":~
@@ -859,9 +868,6 @@ Built-in configurations:~
 	List should contains changed locations after workspace edit, default
 	to vim's quickfix, default: `quickfix`
 
-"coc.preferences.highlightTimeout":~
-
-	Highlight timeout for buffer in floating window, default: `500`
 
 "coc.preferences.floatActions":~
 
@@ -1976,11 +1982,14 @@ CocAction({action}, [...{args}])			*CocAction()*
 
 	Checkout |coc-actions| for available actions.
 
+	Note: it's recommended to use |CocActionAsync()| unless you need
+	result from |CocAction()|.
+
 							*CocActionAsync()*
 
 CocActionAsync({action}, [...{args}, [{callback}]])
 
-	Call CocAction without blocking vim.
+	Call CocAction by send notification to server of coc.nvim.
 
 	Optional callback is called with `error` as the first argument and
 	`response` as the second argument.
@@ -2136,7 +2145,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	configuration.
 	4. The buffer is used for command line window.
 
-"rename"						*CocAction'(rename)*
+"rename"						*CocAction('rename')*
 
 	Rename the symbol under the cursor position, user will be prompted for
 	a new name.
@@ -2262,7 +2271,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Deactivate extension of {id}.
 
-"pickColor"						*CocAction'(pickColor)*
+"pickColor"						*CocAction('pickColor')*
 
 	Change the color at the current cursor position.
 
@@ -3083,51 +3092,51 @@ LIST MAPPINGS						*coc-list-mappings*
 
 Default mappings on insert mode:
 
-<Esc>       - cancel list session.
-<CR>        - do default action with selected items or current item.
-<C-c>       - stop loading task.
-<C-v>       - paste text from system clipboard.
-<C-l>       - reload list.
-<C-o>       - change to normal mode.
-<Down>      - select next line.
-<Up>        - select previous line.
-<Left>      - move cursor left.
-<Right>     - move cursor right.
-<End>       - move cursor to end of prompt.
-<C-e>       - same as <End>.
-<Home>      - move cursor to start of prompt.
-<C-a>       - same as <Home>.
-<C-f>       - scroll window forward.
-<C-b>       - scroll window backward.
-<Backspace> - remove previous character of cursor.
-<C-h>       - remove previous character of cursor.
-<C-w>       - remove previous word of cursor.
-<C-u>       - remove characters before cursor.
-<C-n>       - navigate to next input in history.
-<C-p>       - navigate to previous input in history.
-<C-s>       - switch matcher for filter items.
-<C-r>       - insert content from Vim register.
-<Tab>       - select action.
+<Esc>       - Cancel list session.
+<CR>        - Do default action with selected items or current item.
+<C-c>       - Stop loading task.
+<C-v>       - Paste text from system clipboard.
+<C-l>       - Reload list.
+<C-o>       - Change to normal mode.
+<Down>      - Select next line.
+<Up>        - Select previous line.
+<Left>      - Move cursor left.
+<Right>     - Move cursor right.
+<End>       - Move cursor to end of prompt.
+<C-e>       - Same as <End>.
+<Home>      - Move cursor to start of prompt.
+<C-a>       - Same as <Home>.
+<C-f>       - Scroll window forward.
+<C-b>       - Scroll window backward.
+<Backspace> - Remove previous character of cursor.
+<C-h>       - Remove previous character of cursor.
+<C-w>       - Remove previous word of cursor.
+<C-u>       - Remove characters before cursor.
+<C-n>       - Navigate to next input in history.
+<C-p>       - Navigate to previous input in history.
+<C-s>       - Switch matcher for filter items.
+<C-r>       - Insert content from vim's register.
+<Tab>       - Select action.
 
 Default mappings on normal mode:
 
-<Esc>       - cancel list session.
-<CR>        - do default action with selected items or current item.
-<C-c>       - stop source from fetching more items.
-<C-l>       - reload list.
-<C-a>       - mark all visible items selected.
-<C-o>       - jump to original window on list create.
-<Tab>       - select action.
-<C-e> 	    - scroll preview window down.
-<C-y> 	    - scroll preview window up.
-<Space>     - toggle select of current item.
-i,I,o,O,a,A - change to insert mode.
-p           - preview action.
-:           - cancel list session without closing window.
-?           - show help of current list.
-t           - do 'tabe' action.
-d           - do 'drop' action.
-s           - do 'split' action.
+<Esc>       - Cancel list session.
+<CR>        - Do default action with selected items or current item.
+<C-c>       - Stop source from fetching more items.
+<C-l>       - Reload list.
+<C-a>       - Mark all visible items selected.
+<C-o>       - Jump to original window on list create.
+<Tab>       - Select action.
+<C-e> 	    - Scroll preview window down.
+<C-y> 	    - Scroll preview window up.
+<Space>     - Toggle select of current item.
+i,I,o,O,a,A - Change to insert mode.
+p           - Preview action.
+:           - Cancel list session without closing window.
+?           - Show help of current list.
+t           - Do 'tabe' action.
+d           - Do 'drop' action.
+s           - Do 'split' action.
 
 Use |coc-list-mappings-custom| to override default mappings.
 
