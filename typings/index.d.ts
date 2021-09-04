@@ -7509,18 +7509,17 @@ declare module 'coc.nvim' {
    * [here](https://code.visualstudio.com/docs/editor/userdefinedsnippets#_creating-your-own-snippets).
    */
   export class SnippetString {
-
     /**
      * The snippet string.
      */
-    value: string;
+    value: string
 
     constructor(
       /**
        * The default snippet string.
        */
       value?: string
-    );
+    )
 
     /**
      * Builder-function that appends the given string to
@@ -7529,7 +7528,7 @@ declare module 'coc.nvim' {
      * @param string A value to append 'as given'. The string will be escaped.
      * @return This snippet string.
      */
-    appendText(string: string): SnippetString;
+    appendText(string: string): SnippetString
 
     /**
      * Builder-function that appends a tabstop (`$1`, `$2` etc) to
@@ -7539,7 +7538,7 @@ declare module 'coc.nvim' {
      * value starting at 1.
      * @return This snippet string.
      */
-    appendTabstop(number?: number): SnippetString;
+    appendTabstop(number?: number): SnippetString
 
     /**
      * Builder-function that appends a placeholder (`${1:value}`) to
@@ -7551,7 +7550,7 @@ declare module 'coc.nvim' {
      * value starting at 1.
      * @return This snippet string.
      */
-    appendPlaceholder(value: string | ((snippet: SnippetString) => any), number?: number): SnippetString;
+    appendPlaceholder(value: string | ((snippet: SnippetString) => any), number?: number): SnippetString
 
     /**
      * Builder-function that appends a choice (`${1|a,b,c|}`) to
@@ -7562,7 +7561,7 @@ declare module 'coc.nvim' {
      * value starting at 1.
      * @return This snippet string.
      */
-    appendChoice(values: string[], number?: number): SnippetString;
+    appendChoice(values: string[], number?: number): SnippetString
 
     /**
      * Builder-function that appends a variable (`${VAR}`) to
@@ -7573,7 +7572,7 @@ declare module 'coc.nvim' {
      * be resolved - either a string or a function with which a nested snippet can be created.
      * @return This snippet string.
      */
-    appendVariable(name: string, defaultValue: string | ((snippet: SnippetString) => any)): SnippetString;
+    appendVariable(name: string, defaultValue: string | ((snippet: SnippetString) => any)): SnippetString
   }
   /**
    * Manage snippet sessions.
