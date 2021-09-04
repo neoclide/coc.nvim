@@ -6,6 +6,7 @@ import window from '../window'
 import * as Snippets from "./parser"
 import { SnippetSession } from './session'
 import { SnippetVariableResolver } from './variableResolve'
+import { SnippetString } from './string'
 const logger = require('../util/logger')('snippets-manager')
 
 export class SnippetManager {
@@ -55,7 +56,7 @@ export class SnippetManager {
   /**
    * Insert snippet at current cursor position
    */
-  public async insertSnippet(snippet: string, select = true, range?: Range, insertTextMode?: InsertTextMode): Promise<boolean> {
+  public async insertSnippet(snippet: string | SnippetString, select = true, range?: Range, insertTextMode?: InsertTextMode): Promise<boolean> {
     let { bufnr } = workspace
     let session = this.getSession(bufnr)
     if (!session) {
@@ -68,7 +69,8 @@ export class SnippetManager {
         }
       })
     }
-    let isActive = await session.start(snippet, select, range, insertTextMode)
+    let snippetString = typeof snippet === 'string' ? snippet : snippet.value
+    let isActive = await session.start(snippetString, select, range, insertTextMode)
     if (isActive) this.statusItem.show()
     return isActive
   }
