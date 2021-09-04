@@ -28,6 +28,20 @@ function! coc#util#cursor()
   return [line('.') - 1, strchars(strpart(getline('.'), 0, col('.') - 1))]
 endfunction
 
+function! coc#util#has_preview()
+  for i in range(1, winnr('$'))
+    if getwinvar(i, '&previewwindow')
+      return i
+    endif
+  endfor
+  return 0
+endfunction
+
+function! coc#util#jumpTo(line, character) abort
+  echohl WarningMsg | echon 'coc#util#jumpTo is deprecated, use coc#cursor#move_to instead.' | echohl None
+  call coc#cursor#move_to(a:line, a:character)
+endfunction
+
 function! coc#util#path_replace_patterns() abort
   if has('win32unix') && exists('g:coc_cygqwin_path_prefixes')
     echohl WarningMsg 
