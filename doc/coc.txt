@@ -549,8 +549,8 @@ Built-in configurations:~
 							*coc-config-refactor*
 "refactor.saveToFile":~
 
-	Save to file when write refactor buffer with ':noa wa' command, set to
-	false if you want save buffer by yourself.
+	Save chagnes to file when write refactor buffer with |:write| command,
+	set to false if you want save buffer by yourself.
 
 "refactor.openCommand":~
 
@@ -889,11 +889,11 @@ Built-in configurations:~
 
 	Not open split window with update status when performing auto update.
 
-						*coc-config-cursors*
-
 "coc.preferences.willSaveHandlerTimeout"~
 
 	Will save handler timeout, default: `500`
+
+						*coc-config-cursors*
 
 "cursors.cancelKey":~
 
@@ -1217,7 +1217,7 @@ Note: Use |:verbose| command to check key-mappings that taking effect.
 
 Note: Use 'noremap' with <Plug> will make the key-mapping not work at all.
 
-Note: Key-mappings are provided for convenient, use |CocActionAsync()| or
+Note: <Plug> key-mappings are provided for convenient, use |CocActionAsync()| or
 |CocAction()| for more options.
 
 Normal mode key-mappings:~
@@ -2022,17 +2022,20 @@ Available Actions ~
 
 Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
-"sourceStat"						*CocAction('sourceStat')*
+"ensureDocument" 					*CocAction('ensureDocument')*
 
-	get the list of completion source stats for the current buffer.
+	Ensure current document is attached to coc.nvim, should be used when
+	you need invoke action of current document just after document
+	created.
 
-"refreshSource" [{source}]				*CocAction('refreshSource')*
+	Return `v:false` when the document can't be attached, the document
+	won't be attached for one of these reasons:
 
-	refresh all sources or a source with a name of {source}.
-
-"toggleSource" {source}					*CocAction('toggleSource')*
-
-	enable/disable {source}.
+	1. The 'buftype' option is neither <empty> nor acwrite.
+	2. Buffer variable `b:coc_enabled` is set to `0`.
+	3. Size of buffer bigger than `coc.preferences.maxFileSize`
+	configuration.
+	4. The buffer is used for command line window.
 
 "diagnosticList"					*CocAction('diagnosticList')*
 
@@ -2050,6 +2053,25 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 "diagnosticPreview"					*CocAction('diagnosticPreview')*
 
 	Show diagnostics under current cursor in preview window.
+
+"diagnosticRefresh" [{bufnr}] 			*CocAction('diagnosticRefresh')*
+
+	Force refresh diagnostics for special buffer with {bufnr} or all buffers
+	when {bufnr} not exists, returns `v:null` before diagnostics are shown.
+
+	Useful when `diagnostic.autoRefresh` is `false`.
+
+"refreshSource" [{source}]				*CocAction('refreshSource')*
+
+	refresh all sources or a source with a name of {source}.
+
+"sourceStat"						*CocAction('sourceStat')*
+
+	get the list of completion source stats for the current buffer.
+
+"toggleSource" {source}					*CocAction('toggleSource')*
+
+	enable/disable {source}.
 
 "jumpDefinition" [{openCommand}]			*CocAction('jumpDefinition')*
 
@@ -2095,6 +2117,11 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	same behavior as "jumpDefinition"
 
+"getHover"						*CocAction('getHover')*
+
+	Get documentation text array on current position, returns array of
+	string.
+
 "doHover" [{hoverTarget}]				*CocAction('doHover')*
 
 	Show documentation of  current symbol, return `v:false` when hover not
@@ -2108,11 +2135,6 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Same as |CocAction('doHover')|, but includes definition contents from
 	definition provider when possible.
-
-"getHover"						*CocAction('getHover')*
-
-	Get documentation text array on current position, returns array of
-	string.
 
 "showSignatureHelp"					*CocAction('showSignatureHelp')*
 
@@ -2130,21 +2152,6 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Get a list of symbols of current buffer or specific {bufnr}.
 
-"ensureDocument" 					*CocAction('ensureDocument')*
-
-	Ensure current document is attached to coc.nvim, should be used when
-	you need invoke action of current document just after document
-	created.
-
-	Return `v:false` when the document can't be attached, the document
-	won't be attached for one of these reasons:
-
-	1. The 'buftype' option is neither <empty> nor acwrite.
-	2. Buffer variable `b:coc_enabled` is set to `0`.
-	3. Size of buffer bigger than `coc.preferences.maxFileSize`
-	configuration.
-	4. The buffer is used for command line window.
-
 "rename"						*CocAction('rename')*
 
 	Rename the symbol under the cursor position, user will be prompted for
@@ -2153,17 +2160,11 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	Note: coc.nvim supports rename for disk files, but your language server
 	may not.
 
-"selectionRanges"					*CocAction('selectionRanges')*
+"refactor"						*CocAction('refactor')*
 
-	Get selection ranges of current position from language server.
-
-"services"						*CocAction('services')*
-
-	Get an information list for all services.
-
-"toggleService" {serviceId}				*CocAction('toggleService')*
-
-	Start or stop a service.
+	Open refactor windows with current symbol as activated cursor ranges.
+	Check |coc-config-cursors| and |coc-config-refactor| for related
+	configuration.
 
 "format"						*CocAction('format')*
 
@@ -2177,6 +2178,18 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	When {mode} is omitted, it should be called using |formatexpr|.
 
+
+"selectionRanges"					*CocAction('selectionRanges')*
+
+	Get selection ranges of current position from language server.
+
+"services"						*CocAction('services')*
+
+	Get an information list for all services.
+
+"toggleService" {serviceId}				*CocAction('toggleService')*
+
+	Start or stop a service.
 
 "codeAction" [{mode}] [{only}]				*CocAction('codeAction')*
 
@@ -2360,13 +2373,6 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Note: this will only affect diagnostics shown in the UI, list of all
 	diagnostics won't change.
-
-"diagnosticRefresh" [{bufnr}] 			*CocAction('diagnosticRefresh')*
-
-	Force refresh diagnostics for special buffer with {bufnr} or all buffers
-	when {bufnr} not exists, returns `v:null` before diagnostics are shown.
-
-	Useful when `diagnostic.autoRefresh` is `false`.
 
 "showOutline" [{keep}]				*CocAction('showOutline')*
 
