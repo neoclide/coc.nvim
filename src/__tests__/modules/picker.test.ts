@@ -17,6 +17,7 @@ afterAll(async () => {
 
 afterEach(async () => {
   if (picker) picker.dispose()
+  picker = undefined
   await helper.reset()
 })
 
@@ -144,13 +145,13 @@ describe('Picker key mappings', () => {
     expect(winid).toBeDefined()
     await nvim.input('<C-f>')
     await helper.wait(100)
-    await nvim.command('setl scrolloff=0')
-    await nvim.call('win_gotoid', [winid])
-    await nvim.command('normal! h')
-    let res = await nvim.call('getline', ['.'])
-    expect(res).toMatch('c')
+    let info = await nvim.call('getwininfo', [winid])
+    expect(info[0]).toBeDefined()
+    expect(info[0].topline).toBeGreaterThan(1)
     await nvim.input('<C-b>')
     await helper.wait(100)
-    res = await nvim.call('getline', ['.'])
+    info = await nvim.call('getwininfo', [winid])
+    expect(info[0]).toBeDefined()
+    expect(info[0].topline).toBe(1)
   })
 })
