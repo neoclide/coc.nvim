@@ -69,8 +69,8 @@ export class SnippetManager {
         }
       })
     }
-    let snippetString = typeof snippet === 'string' ? snippet : snippet.value
-    let isActive = await session.start(snippetString, select, range, insertTextMode)
+    let snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet
+    let isActive = await session.start(snippetStr, select, range, insertTextMode)
     if (isActive) this.statusItem.show()
     return isActive
   }
