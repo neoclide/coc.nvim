@@ -44,7 +44,6 @@ async function createDocument(name?: string): Promise<Document> {
   diagnostics.push(createDiagnostic('hint', Range.create(1, 2, 1, 3), DiagnosticSeverity.Hint))
   diagnostics.push(createDiagnostic('error', Range.create(2, 0, 2, 2), DiagnosticSeverity.Error))
   collection.set(doc.uri, diagnostics)
-  await manager.refreshBuffer(doc.uri)
   doc.forceSync()
   return doc
 }
@@ -69,7 +68,7 @@ describe('diagnostic manager', () => {
       disposable.dispose()
     })
 
-    it('should refresh on InsertLeave', async () => {
+    it('should delay refresh on InsertLeave', async () => {
       let doc = await helper.createDocument()
       await nvim.input('i')
       let collection = manager.create('test')
@@ -81,9 +80,14 @@ describe('diagnostic manager', () => {
       })
       diagnostics.push(createDiagnostic('error', Range.create(0, 2, 0, 4), DiagnosticSeverity.Error))
       collection.set(doc.uri, diagnostics)
-      await helper.wait(30)
+      await helper.wait(10)
       await nvim.input('<esc>')
+      await helper.wait(100)
+      let val = await doc.buffer.getVar('coc_diagnostic_info') as any
+      expect(val).toBe(null)
       await helper.wait(600)
+      val = await doc.buffer.getVar('coc_diagnostic_info') as any
+      expect(val).toBeDefined()
     })
   })
 

@@ -5,17 +5,12 @@ const logger = require('../util/logger')('diagnostic-collection')
 
 export default class DiagnosticCollection {
   private diagnosticsMap: Map<string, Diagnostic[]> = new Map()
-  private _onDispose = new Emitter<void>()
   private _onDidDiagnosticsChange = new Emitter<string>()
-  private _onDidDiagnosticsClear = new Emitter<string[]>()
-
-  public readonly name: string
-  public readonly onDispose: Event<void> = this._onDispose.event
   public readonly onDidDiagnosticsChange: Event<string> = this._onDidDiagnosticsChange.event
-  public readonly onDidDiagnosticsClear: Event<string[]> = this._onDidDiagnosticsClear.event
 
-  constructor(owner: string) {
-    this.name = owner
+  constructor(
+    public readonly name: string,
+    private onDispose?: () => void) {
   }
 
   public set(uri: string, diagnostics: Diagnostic[] | undefined): void
@@ -56,13 +51,14 @@ export default class DiagnosticCollection {
 
   public delete(uri: string): void {
     this.diagnosticsMap.delete(uri)
+    this._onDidDiagnosticsChange.fire(uri)
   }
 
   public clear(): void {
-    let uris = Array.from(this.diagnosticsMap.keys())
+    let uris = this.diagnosticsMap.keys()
     this.diagnosticsMap.clear()
-    if (uris.length) {
-      this._onDidDiagnosticsClear.fire(uris)
+    for (let uri of uris) {
+      this._onDidDiagnosticsChange.fire(uri)
     }
   }
 
@@ -84,9 +80,7 @@ export default class DiagnosticCollection {
 
   public dispose(): void {
     this.clear()
-    this._onDispose.fire(void 0)
-    this._onDispose.dispose()
-    this._onDidDiagnosticsClear.dispose()
+    if (this.onDispose) this.onDispose()
     this._onDidDiagnosticsChange.dispose()
   }
 }

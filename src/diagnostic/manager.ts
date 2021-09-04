@@ -78,8 +78,8 @@ export class DiagnosticManager implements Disposable {
 
     events.on('CursorMoved', bufnr => {
       if (this.config.enableMessage != 'always') return
+      if (!this.buffers.getItem(bufnr)) return
       if (this.timer) clearTimeout(this.timer)
-      if (bufnr == this.floatFactory.bufnr) return
       this.timer = setTimeout(async () => {
         await this.echoMessage(true)
       }, this.config.messageDelay)
@@ -94,11 +94,24 @@ export class DiagnosticManager implements Disposable {
     this.disposables.push(Disposable.create(() => {
       fn.clear()
     }))
-    events.on('InsertLeave', async () => {
-      if (this.config.refreshOnInsertMode) return
-      if (!this.autoRefresh) return
-      this.refresh()
+    let timer: NodeJS.Timer
+    events.on('InsertLeave', async bufnr => {
+      if (this.config.refreshOnInsertMode || !this.autoRefresh) return
+      let doc = workspace.getDocument(bufnr)
+      if (!doc?.attached) return
+      doc._forceSync()
+      timer = setTimeout(() => {
+        if (events.insertMode) return
+        for (let buf of this.buffers.items) {
+          void buf.refresh(this.getDiagnostics(buf.uri), false)
+        }
+      }, Math.max(0, 500 - Date.now() + events.lastChangeTs))
     }, null, this.disposables)
+    let clear = () => {
+      if (timer) clearTimeout(timer)
+    }
+    this.disposables.push({ dispose: clear })
+    events.on('InsertEnter', clear, null, this.disposables)
     events.on('BufEnter', async () => {
       if (this.timer) clearTimeout(this.timer)
     }, null, this.disposables)
@@ -164,24 +177,16 @@ export class DiagnosticManager implements Disposable {
   public create(name: string): DiagnosticCollection {
     let collection = this.getCollectionByName(name)
     if (collection) return collection
-    collection = new DiagnosticCollection(name)
+    collection = new DiagnosticCollection(name, () => {
+      let idx = this.collections.findIndex(o => o == collection)
+      if (idx !== -1) this.collections.splice(idx, 1)
+    })
     this.collections.push(collection)
     collection.onDidDiagnosticsChange(uri => {
       let buf = this.buffers.getItem(uri)
       if (!this.autoRefresh || !buf) return
-      let diagnosticsMap = this.getDiagnostics(uri, name)
-      void buf.refresh(diagnosticsMap)
-    })
-    collection.onDidDiagnosticsClear(uris => {
-      if (!this.autoRefresh) return
-      for (let uri of uris) {
-        let buf = this.buffers.getItem(uri)
-        if (buf) void buf.refresh({ [name]: [] })
-      }
-    })
-    collection.onDispose(() => {
-      let idx = this.collections.findIndex(o => o == collection)
-      if (idx !== -1) this.collections.splice(idx, 1)
+      if (events.insertMode && !this.config.refreshOnInsertMode) return
+      void buf.refresh(this.getDiagnostics(uri, name), true)
     })
     return collection
   }
@@ -228,23 +233,25 @@ export class DiagnosticManager implements Disposable {
     let collections = collection ? [this.getCollectionByName(collection)] : this.getCollections(uri)
     let { level, showUnused, showDeprecated } = this.config
     for (let collection of collections) {
-      let items = collection.get(uri)
-      if (!items) continue
-      items = items.filter(d => {
-        if (level && d.severity && d.severity > level) {
-          return false
-        }
-        if (!showUnused && d.tags?.includes(DiagnosticTag.Unnecessary)) {
-          return false
-        }
-        if (!showDeprecated && d.tags?.includes(DiagnosticTag.Deprecated)) {
-          return false
-        }
-        return true
-      })
-      items.sort((a, b) => {
-        return comparePosition(a.range.start, b.range.start)
-      })
+      if (!collection) continue
+      let items = collection.get(uri) || []
+      if (items.length) {
+        items = items.filter(d => {
+          if (level && d.severity && d.severity > level) {
+            return false
+          }
+          if (!showUnused && d.tags?.includes(DiagnosticTag.Unnecessary)) {
+            return false
+          }
+          if (!showDeprecated && d.tags?.includes(DiagnosticTag.Deprecated)) {
+            return false
+          }
+          return true
+        })
+        items.sort((a, b) => {
+          return comparePosition(a.range.start, b.range.start)
+        })
+      }
       res[collection.name] = items
     }
     return res
@@ -599,14 +606,15 @@ export class DiagnosticManager implements Disposable {
    * Refresh diagnostics by uri or bufnr
    */
   public async refreshBuffer(uri: string | number, force = false): Promise<boolean> {
-    if (!force) return false
     let buf = this.buffers.getItem(uri)
     if (!buf) return false
-    let diagnosticsMap = this.getDiagnostics(buf.uri)
-    await buf.refresh(diagnosticsMap)
+    await buf.refresh(this.getDiagnostics(buf.uri), force)
     return true
   }
 
+  /**
+   * Force diagnostics refresh.
+   */
   public refresh(bufnr?: number): void {
     if (!bufnr) {
       for (let item of this.buffers.items) {

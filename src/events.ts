@@ -63,6 +63,7 @@ class Events {
   private handlers: Map<string, Function[]> = new Map()
   private _cursor: CursorPosition
   private _latestInsert: LatestInsert
+  private _lastChange = 0
   private _insertMode = false
   private _pumAlignTop = false
 
@@ -76,6 +77,10 @@ class Events {
 
   public get insertMode(): boolean {
     return this._insertMode
+  }
+
+  public get lastChangeTs(): number {
+    return this._lastChange
   }
 
   public async fire(event: string, args: any[]): Promise<void> {
@@ -97,15 +102,19 @@ class Events {
     if (event == 'InsertCharPre') {
       this._latestInsert = { bufnr: args[1], character: args[0], timestamp: Date.now() }
     }
+    if (event == 'TextChanged') {
+      this._lastChange = Date.now()
+    }
     if (event == 'TextChangedI' || event == 'TextChangedP') {
+      this._lastChange = Date.now()
       if (this._latestInsert) {
         let insert = this._latestInsert
         this._latestInsert = undefined
         if (insert.bufnr == args[0] && Date.now() - insert.timestamp < 200 && args[1].pre.length) {
-          let pre = args[1].pre
+          let character = args[1].pre.slice(-1)
           // make it fires after TextChangedI & TextChangedP
           process.nextTick(() => {
-            void this.fire('TextInsert', [...args, pre[pre.length - 1]])
+            void this.fire('TextInsert', [...args, character])
           })
         }
       }

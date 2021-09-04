@@ -128,10 +128,16 @@ export class DiagnosticBuffer implements BufferSyncItem {
     this.nvim.call(method, [this.bufnr, 'coc' + collection, aleItems], true)
   }
 
-  public async refresh(diagnosticsMap: { [collection: string]: Diagnostic[] }): Promise<void> {
+  /**
+   * Refresh buffer with new diagnostics.
+   *
+   * @param {Object} diagnosticsMap
+   * @param {boolean} force Force highlights update.
+   */
+  public async refresh(diagnosticsMap: { [collection: string]: Diagnostic[] }, force?: boolean): Promise<void> {
     let release = await this.mutex.acquire()
     try {
-      await this._refresh(diagnosticsMap)
+      await this._refresh(diagnosticsMap, force === true)
       release()
     } catch (e) {
       release()
@@ -142,7 +148,7 @@ export class DiagnosticBuffer implements BufferSyncItem {
   /**
    * Refresh UI with new diagnostics.
    */
-  private async _refresh(diagnosticsMap: { [collection: string]: Diagnostic[] }): Promise<void> {
+  private async _refresh(diagnosticsMap: { [collection: string]: Diagnostic[] }, force: boolean): Promise<void> {
     let { refreshOnInsertMode } = this.config
     let { nvim } = this
     let checkInsert = !this.displayByAle && !refreshOnInsertMode
@@ -169,7 +175,7 @@ export class DiagnosticBuffer implements BufferSyncItem {
           redraw = true
           this.addSigns(collection, diagnostics)
           this.updateHighlights(collection, diagnostics)
-        } else if (prev.length) {
+        } else if (prev.length && force) {
           redraw = true
           this.updateHighlights(collection, diagnostics)
         }
