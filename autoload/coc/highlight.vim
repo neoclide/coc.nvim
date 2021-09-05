@@ -331,10 +331,10 @@ function! coc#highlight#compose_hlgroup(fgGroup, bgGroup) abort
   endif
   let fgId = synIDtrans(hlID(a:fgGroup))
   let bgId = synIDtrans(hlID(a:bgGroup))
-  let guifg = synIDattr(fgId, 'fg', 'gui')
-  let guibg = synIDattr(bgId, 'bg', 'gui')
-  let ctermfg = synIDattr(fgId, 'fg', 'cterm')
-  let ctermbg = synIDattr(bgId, 'bg', 'cterm')
+  let guifg = synIDattr(fgId, 'reverse', 'gui') !=# '1' ? synIDattr(fgId, 'fg', 'gui') : synIDattr(fgId, 'bg', 'gui')
+  let guibg = synIDattr(bgId, 'reverse', 'gui') !=# '1' ? synIDattr(bgId, 'bg', 'gui') : synIDattr(bgId, 'fg', 'gui')
+  let ctermfg = synIDattr(fgId, 'reverse', 'cterm') !=# '1' ? synIDattr(fgId, 'fg', 'cterm') : synIDattr(fgId, 'bg', 'cterm')
+  let ctermbg = synIDattr(bgId, 'reverse', 'cterm') !=# '1' ? synIDattr(bgId, 'bg', 'cterm') : synIDattr(bgId, 'fg', 'cterm')
   let bold = synIDattr(fgId, 'bold') ==# '1'
   let italic = synIDattr(fgId, 'italic') ==# '1'
   let underline = synIDattr(fgId, 'underline') ==# '1'
