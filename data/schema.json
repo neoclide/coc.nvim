@@ -32,11 +32,12 @@
           "description": "Set to true to draw close icon"
         },
         "maxWidth": {
-          "type": "number",
+          "type": "integer",
           "description": "Maximum width of float window, include border."
         },
         "maxHeight": {
-          "type": "number",
+          "type": "integer",
+          "minimum": 2,
           "description": "Maximum height of float window, include border."
         },
         "focusable": {

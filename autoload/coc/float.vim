@@ -318,6 +318,9 @@ function! coc#float#nvim_right_pad(config, winid, hlgroup, winblend, related) ab
         \ 'focusable': v:false,
         \ 'style': 'minimal',
         \ }
+  if has('nvim-0.5.0')
+    let config['zindex'] = 300
+  endif
   if winid && nvim_win_is_valid(winid)
     let bufnr = nvim_win_get_buf(winid)
     noa call nvim_win_close(winid, 1)
