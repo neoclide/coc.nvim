@@ -5,6 +5,10 @@ function! coc#helper#get_charactor(line, col) abort
   return strchars(strpart(a:line, 0, a:col - 1))
 endfunction
 
+function! coc#helper#last_character(line) abort
+  return strcharpart(a:line, strchars(a:line) - 1, 1)
+endfunction
+
 function! coc#helper#obj_equal(one, two) abort
   for key in keys(a:one)
     if a:one[key] != a:two[key]

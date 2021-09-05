@@ -462,7 +462,9 @@ function! coc#float#nvim_scrollbar(winid) abort
     endif
     call setwinvar(id, 'kind', 'scrollbar')
     call setwinvar(id, 'target_winid', a:winid)
+    call s:add_related(id, a:winid)
   endif
+  call coc#float#nvim_scroll_adjust(a:winid)
   let thumb_height = max([1, float2nr(floor(height * (height + 0.0)/ch))])
   let wininfo = getwininfo(a:winid)[0]
   let start = 0
@@ -486,7 +488,6 @@ function! coc#float#nvim_scrollbar(winid) abort
       call nvim_buf_add_highlight(sbuf, -1, 'PmenuSbar', idx, 0, 1)
     endif
   endfor
-  call s:add_related(id, a:winid)
 endfunction
 
 function! coc#float#create_border_lines(border, title, width, height, hasbtn) abort
@@ -1453,6 +1454,47 @@ function! coc#float#cursor_relative(winid) abort
   endif
   let pos = popup_getpos(a:winid)
   return {'row' : pos['line'] - cursorLine - 1, 'col' : pos['col'] - cursorCol - 1}
+endfunction
+
+" Change border window & close window when scrollbar is shown.
+function! coc#float#nvim_scroll_adjust(winid) abort
+  let winid = coc#float#get_related(a:winid, 'border')
+  if !winid
+    return
+  endif
+  let bufnr = winbufnr(winid)
+  let lines = nvim_buf_get_lines(bufnr, 0, -1, 0)
+  if len(lines) > 2 && coc#helper#last_character(lines[1]) ==# s:borderchars[1]
+    let cw = nvim_win_get_width(a:winid)
+    let width = nvim_win_get_width(winid)
+    if width - cw != 1 + (strcharpart(lines[1], 0, 1) ==# s:borderchars[3] ? 1 : 0)
+      return
+    endif
+    call nvim_win_set_width(winid, width + 1)
+    let lastline = len(lines) - 1
+    for i in range(0, lastline)
+      let line = lines[i]
+      if i == 0 && strcharpart(lines[0], 0, 1) ==# s:borderchars[4]
+        let add = s:borderchars[0]
+      elseif i == lastline && strcharpart(lines[i], 0, 1) ==# s:borderchars[7]
+        let add = s:borderchars[2]
+      else
+        let add = ' '
+      endif
+      let prev = strcharpart(line, 0, strchars(line) - 1)
+      let lines[i] = prev . add . coc#helper#last_character(line)
+    endfor
+    call nvim_buf_set_lines(bufnr, 0, -1, 0, lines)
+    let id = coc#float#get_related(a:winid, 'close')
+    if id
+      let [row, col] = nvim_win_get_position(id)
+      call nvim_win_set_config(id, {
+            \ 'relative': 'editor',
+            \ 'row': row,
+            \ 'col': col + 1,
+            \ })
+    endif
+  endif
 endfunction
 
 " move winid include relative windows.
