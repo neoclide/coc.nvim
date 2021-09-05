@@ -457,6 +457,7 @@ function! coc#float#nvim_scrollbar(winid) abort
     if winblend
       call setwinvar(id, '&winblend', winblend)
     endif
+    call setwinvar(id, '&winhl', 'Normal:CocScrollbar,NormalNC:CocScrollbar')
     call setwinvar(id, 'kind', 'scrollbar')
     call setwinvar(id, 'target_winid', a:winid)
   endif
@@ -480,7 +481,7 @@ function! coc#float#nvim_scrollbar(winid) abort
     if idx >= start && idx < start + thumb_height
       call nvim_buf_add_highlight(sbuf, -1, 'PmenuThumb', idx, 0, 1)
     else
-      call nvim_buf_add_highlight(sbuf, -1, 'PmenuSbar', idx, 0, 1)
+      "call nvim_buf_add_highlight(sbuf, -1, 'PmenuSbar', idx, 0, 1)
     endif
   endfor
   call s:add_related(id, a:winid)

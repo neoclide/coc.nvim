@@ -209,7 +209,6 @@ export default class Signature {
     let config = this.signatureFactory.applyFloatConfig({
       preferTop: this.config.preferAbove,
       autoHide: false,
-      focusable: false,
       offsetX: offset,
       modes: ['i', 'ic', 's'],
       excludeImages
