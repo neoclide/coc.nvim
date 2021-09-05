@@ -4,7 +4,7 @@ import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
 import FloatFactory from '../model/floatFactory'
-import { ConfigurationChangeEvent, HandlerDelegate } from '../types'
+import { ConfigurationChangeEvent, FloatConfig, HandlerDelegate } from '../types'
 import { disposeAll, isMarkdown } from '../util'
 import { byteLength } from '../util/string'
 import workspace from '../workspace'
@@ -14,10 +14,9 @@ interface SignatureConfig {
   wait: number
   trigger: boolean
   target: string
-  maxWindowHeight: number
-  maxWindowWidth: number
   preferAbove: boolean
   hideOnChange: boolean
+  floatConfig: FloatConfig
 }
 
 interface SignaturePosition {
@@ -81,10 +80,9 @@ export default class Signature {
       }
       this.config = {
         target,
+        floatConfig: config.get('floatConfig', {}),
         trigger: config.get<boolean>('enable', true),
         wait: Math.max(config.get<number>('triggerSignatureWait', 500), 200),
-        maxWindowHeight: config.get<number>('maxWindowHeight', 80),
-        maxWindowWidth: config.get<number>('maxWindowWidth', 80),
         preferAbove: config.get<boolean>('preferShownAbove', true),
         hideOnChange: config.get<boolean>('hideOnTextChange', false),
       }
@@ -207,17 +205,16 @@ export default class Signature {
     }, [])
     let content = doc.getline(position.line, false).slice(0, position.character)
     this.lastPosition = { bufnr: doc.bufnr, lnum: position.line + 1, col: byteLength(content) + 1 }
-    let { preferAbove, maxWindowHeight, maxWindowWidth } = this.config
     const excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
-    await this.signatureFactory.show(docs, {
-      maxWidth: maxWindowWidth,
-      maxHeight: maxWindowHeight,
-      preferTop: preferAbove,
+    let config = this.signatureFactory.applyFloatConfig({
+      preferTop: this.config.preferAbove,
       autoHide: false,
+      focusable: false,
       offsetX: offset,
       modes: ['i', 'ic', 's'],
       excludeImages
-    })
+    }, this.config.floatConfig)
+    await this.signatureFactory.show(docs, config)
   }
 
   private echoSignature(signatureHelp: SignatureHelp): void {

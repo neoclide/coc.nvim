@@ -514,9 +514,10 @@ Built-in configurations:~
 	Enable signature help when trigger character typed. Requires service restart
 	on change, default: `true`
 
-"signature.maxWindowWidth":~
+"signature.floatConfig":~
 
-	Max width of signature float window, default: `60`
+	Configuration of floating window/popup for signature documents, see
+	|coc-config-float|.
 
 "signature.triggerSignatureWait":~
 
@@ -538,10 +539,6 @@ Built-in configurations:~
 
 	Hide signature help's floating window when text changed. Requires restart
 	on change, default: `false`
-
-"signature.maxWindowHeight":~
-
-	Maximum height of floating window with the signature help, default: `8`
 
 							*coc-config-refactor*
 "refactor.saveToFile":~
@@ -1009,8 +1006,9 @@ Built-in configurations:~
 
 						*coc-config-float*
 
-Used by `suggest.floatConfig`, `diagnostic.floatConfig` and `hover.floatConfig`,
-following properties are supported:
+Used by `suggest.floatConfig`, `diagnostic.floatConfig`,
+`signature.floatConfig` and `hover.floatConfig`, following properties are
+supported:
 
 	- "border": Change to `true` to enable border.
 	- "highlight": Background highlight group of float window.

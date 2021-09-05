@@ -729,17 +729,17 @@
     "diagnostic.separateRelatedInformationAsDiagnostics": {
       "type": "boolean",
       "default": false,
-      "description": "Separate related information as diagnostics"
+      "description": "Separate related information as diagnostics."
     },
     "diagnostic.showUnused": {
       "type": "boolean",
       "default": true,
-      "description": "Show unused variables"
+      "description": "Show diagnostics with unused tag."
     },
     "diagnostic.showDeprecated": {
       "type": "boolean",
       "default": true,
-      "description": "Show deprecated variables"
+      "description": "Show diagnostics with deprecated tag."
     },
     "signature.enable": {
       "type": "boolean",
@@ -759,16 +759,23 @@
       "default": "float",
       "enum": ["float", "echo"]
     },
-    "signature.maxWindowWidth": {
-      "type": "integer",
-      "default": 80,
-      "description": "Maximum width of signature float window (or popup on vim8)."
-    },
-    "signature.maxWindowHeight": {
-      "type": "number",
-      "description": "Maximum height of signature float window (or popup on vim8).",
-      "minimum": 3,
-      "default": 8
+    "signature.floatConfig": {
+      "type": "object",
+      "description": "Configure float window style of signature documents.",
+      "allOf": [{ "$ref": "#/definitions/float" }],
+      "additionalProperties": false,
+      "properties": {
+        "border": {},
+        "highlight": {},
+        "borderhighlight": {},
+        "title": {},
+        "close": {},
+        "maxHeight": {},
+        "maxWidth": {},
+        "winblend": {},
+        "focusable": {},
+        "shadow": {}
+      }
     },
     "signature.preferShownAbove": {
       "type": "boolean",
