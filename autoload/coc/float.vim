@@ -561,8 +561,6 @@ function! coc#float#create_cursor_float(winid, bufnr, lines, config) abort
   return [currbuf, pos, winid, bufnr, alignTop]
 endfunction
 
-
-
 " Create float window for input
 function! coc#float#create_prompt_win(title, default, opts) abort
   call coc#float#close_auto_hide_wins()
