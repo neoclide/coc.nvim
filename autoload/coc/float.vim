@@ -424,16 +424,16 @@ function! coc#float#nvim_scrollbar(winid) abort
   let border = getwinvar(a:winid, 'border', [])
   let winblend = getwinvar(a:winid, '&winblend', 0)
   let move_down = closewin && !get(border, 0, 0)
-  if move_down
-    let height = height - 1
-  endif
   let id = coc#float#get_related(a:winid, 'scrollbar')
-  if ch <= height || height <= 0
+  if ch <= height || height <= 1
     " no scrollbar, remove exists
     if id
       call s:close_win(id)
     endif
     return
+  endif
+  if move_down
+    let height = height - 1
   endif
   call coc#float#close_related(a:winid, 'pad')
   let sbuf = id ? winbufnr(id) : 0
@@ -936,7 +936,9 @@ function! coc#float#create_pum_float(winid, bufnr, lines, config) abort
   let rp = &columns - pumbounding['col'] - pw
   let showRight = pumbounding['col'] > rp ? 0 : 1
   let maxWidth = showRight ? coc#helper#min(rp - 1, a:config['maxWidth']) : coc#helper#min(pumbounding['col'] - 1, a:config['maxWidth'])
-  let maxHeight = &lines - pumbounding['row'] - &cmdheight - 1
+  let border = get(a:config, 'border', [])
+  let bh = get(border, 0 ,0) + get(border, 2, 0)
+  let maxHeight = &lines - pumbounding['row'] - &cmdheight - 1 - bh
   if maxWidth <= 2 || maxHeight < 1
     return v:null
   endif
